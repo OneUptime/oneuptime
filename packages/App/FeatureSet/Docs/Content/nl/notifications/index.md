@@ -61,7 +61,7 @@ Wanneer je lid wordt van een project met een geverifieerd aanmeld-e-mailadres, s
 2. Voor elke ernst, op elk van de vier tabbladen van **Hoe ik bereikbaar ben**, stuurt een regel je een e-mail zodra je wordt opgeroepen.
 3. Een reeks nieuws over wat van jou is, en over je diensten, staat aan per e-mail. Zie [Meldingsinstellingen](/docs/notifications/notification-settings#wat-er-aanstaat-voor-een-nieuw-lid).
 
-Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elke ernst, verstuurd zodra je wordt opgeroepen. Een telefoonnummer voor sms verifiëren betekent dus dat elke oproep je ook een sms stuurt. Wil je sms alleen voor kritieke oproepen, verwijder dan de sms-regels van de andere ernstniveaus. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint).
+Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elke ernst, verstuurd zodra je wordt opgeroepen. Een telefoonnummer voor sms verifiëren betekent dus dat elke oproep je ook een sms stuurt. Wil je sms alleen voor kritieke oproepen, verwijder dan de sms-regels van de andere ernstniveaus. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint). Als je project een standaardreeks heeft, volgen je e-mailadres en elke methode die je verifieert die in plaats daarvan: zie [De standaardreeks](/docs/notifications/on-call-rules#de-standaardreeks).
 
 ## De instellingschecklist
 
@@ -84,6 +84,10 @@ Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elk
 | **Er moeten nog een paar dingen worden ingesteld** | Een ernst heeft geen regel, of een stap is nog niet gedaan |
 | **Nog niets kan je bereiken** | Geen van je methoden is bruikbaar: geen enkele is geverifieerd, of elke geverifieerde zit op een kanaal dat dit project heeft uitgezet |
 | **Je bent ingesteld en hebt nu geen dienst** | Alles is klaar voor de dag dat een beleid je noemt |
+
+Zolang er een stap openstaat, openen de **Gebruikersinstellingen** op deze checklist, en op **Meldingsmethoden** zodra er niets wezenlijks meer openstaat. Een link naar een andere pagina van de **Gebruikersinstellingen** opent nog steeds die pagina.
+
+Als je in een bereikbaarheidsbeleid staat en je instellingen niet af zijn, toont de bel bovenaan elke pagina **Rond het instellen van je meldingen af**, en waarom: niets kan je bereiken, een ernstniveau heeft geen regel, of je project vraagt om een telefoonmethode die je niet hebt geverifieerd. Hij opent deze checklist, of **Hoe ik bereikbaar ben** voor de telefoon. **Een week verbergen** verbergt hem in deze browser, en hij verdwijnt vanzelf zodra je instellingen af zijn.
 
 ## Als geen regel past
 

@@ -28,13 +28,15 @@ O endereço é verificado pela própria sonda do seu servidor, então precisa es
 
 ![Início pergunta "O que você quer fazer primeiro?", com "Saber quando meu site ou API cair" marcado](screen:home-goal-website)
 
-A página **Início** de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair** e clique em **Continuar**. Depois clique em **Crie seu primeiro monitor**, na lista **Boas-vindas ao OneUptime 👋**. Se a lista não mostrar esse passo, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `website down` e escolha **Saber quando meu site ou API cair**.
+A página **Início** de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair** e clique em **Continuar**. Depois clique em **Crie seu primeiro monitor**, na lista **Boas-vindas ao OneUptime 👋**. Se a lista não mostrar esse passo, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `website down` e escolha **Saber quando meu site ou API cair**. **Monitores** também a oferece: **Configuração guiada** na lista vazia e em **Como funciona**, e uma linha em **Criar monitor** assim que você escolhe **Site** ou **API**.
 
 ### Digitar o endereço
 
 ![O passo "O que devemos verificar?", com "Começar a verificar" destacado](screen:website-down-address)
 
-Em **O que devemos verificar?**, digite o endereço em **Endereço do site ou da API**. Para um endpoint de API, marque **Este é um endpoint de API**. Clique em **Começar a verificar**: as sondas verificam o endereço na hora, e uma frase diz o que elas encontraram. Clique em **Continuar**.
+Em **O que devemos verificar?**, o passo diz de quantos locais o endereço será verificado. Digite-o em **Endereço do site ou da API**. Para um endpoint de API, marque **Este é um endpoint de API**. Clique em **Começar a verificar**: as sondas verificam o endereço na hora, e uma frase diz o que elas encontraram. Clique em **Continuar**.
+
+Quando o monitor de um colega já verifica o endereço, ou um criado pela API, pelo Terraform ou por uma importação, o passo diz isso antes de criar qualquer coisa. Clique em **Abrir o monitor** para ver quem ele avisa, ou em **Criar meu próprio monitor** para seguir com um seu. Ele só cita um monitor que você pode abrir.
 
 ### Escolher quem é avisado
 
@@ -42,7 +44,7 @@ Em **O que devemos verificar?**, digite o endereço em **Endereço do site ou da
 
 Em **Quem deve ser avisado?**, o que você vê depende do projeto:
 
-- Se ainda não há nenhuma política de plantão nem regra de plantão, você já está em **Quem é acionado**. Clique em **Adicionar membros da equipe** para incluir pessoas que já estão no projeto e depois em **Salvar e continuar**. Isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta do projeto.
+- Se ainda não há nenhuma política de plantão nem regra de plantão, você já está em **Quem é acionado**. Clique em **Adicionar membros da equipe** para incluir pessoas que já estão no projeto e depois em **Salvar e continuar**. Isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta do projeto. Cada pessoa é acionada como diz o seu **Como me contatar**: o link abre o seu em uma nova aba.
 - Se já há uma política ou regra de plantão, as próprias regras do projeto decidem quem é acionado: clique em **Continuar**.
 - Como membro, você não pode configurar acionamentos, então aparece que você vai receber e-mails como proprietário do monitor: clique em **Continuar**.
 
@@ -50,18 +52,23 @@ Em **Quem deve ser avisado?**, o que você vê depende do projeto:
 
 ![O passo "Envie um teste", com "Enviar uma chamada de teste para mim" destacado](screen:website-down-test)
 
-Em **Envie um teste**, clique em **Enviar uma chamada de teste para mim**. Escolha uma **Gravidade** e clique em **Enviar chamada de teste**. O teste chega até você como um acionamento real chegaria, e cada mensagem diz TEST. Nenhum incidente é criado.
+Em **Envie um teste**, clique em **Enviar uma chamada de teste para mim**. Escolha uma **Gravidade**: a linha abaixo dela diz que o teste chega a você como diz o seu **Como me contatar** para essa gravidade. Clique em **Enviar chamada de teste**. O teste chega até você como um acionamento real chegaria, e cada mensagem diz TEST. Nenhum incidente é criado.
 
 ### Confirmar o acionamento de teste
 
 Abra o link do e-mail e confirme o acionamento ali. Um número de telefone verificado também funciona, assim que SMS e chamadas estiverem ativados no projeto: abra o link do SMS, ou pressione 1 durante a ligação. Depois clique em **Concluído** na caixa de diálogo e em **Continuar**.
+
+### Mostrar aos clientes
+
+Se o projeto tem uma página de status e você pode adicionar monitores a ela, vem mais um passo. Em **Mostrar aos clientes?**, escolha a página em **Página de status** e clique em **Adicionar à página de status**, ou clique em **Agora não**. Um projeto que ainda não tem página de status pula esse passo: o resumo oferece **Mostrar em uma página de status** no lugar, com o seu monitor já marcado.
 :::
 
 ## Verificar se funcionou
 
 ![O resumo, lido dos registros: "Verificado", "Quando ele cai", "Quem é avisado" e "Testado"](screen:website-down-summary)
 
-- A configuração termina no resumo, com o que foi salvo: **Verificado**, **Quando ele cai**, **Quem é avisado** e **Testado**.
+- A configuração termina no resumo, com o que foi salvo: **Verificado**, **Quando ele cai**, **Quem é avisado** e **Testado**, e **Página de status** quando uma página mostra o monitor.
+- Em **Próximos passos**, **Ser acionado por SMS ou ligação telefônica** abre a configuração guiada **Acionar a pessoa certa quando algo quebrar**, que adiciona o seu telefone.
 - Clique em **Abrir o monitor** e depois em **Mostrar a cadeia**, no cartão **Quando cair** dele: isso mostra a cadeia que vai do monitor até as pessoas que ele alcança, e diz **Nada interrompe a cadeia.** quando nada a interromperia.
 - Em **Início**, a lista marca o passo **Crie seu primeiro monitor** como feito assim que chega a primeira verificação. Se era o último passo, a lista desaparece.
 

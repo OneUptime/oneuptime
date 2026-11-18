@@ -175,13 +175,25 @@ describe("On-Call Policies and the On-Call overview", () => {
       expect(RULES).toContain(condition);
     }
 
+    /*
+     * A later policy is asked too, off to start with (#7371): its dialog
+     * hid the switch with nothing in its place, and a second policy was
+     * saved paging nobody.
+     */
+    expect(RULES).toContain(
+      "return kind !== EveryNewEventRulesOfferKind.LaterPolicy;",
+    );
+
     const policies: string = page("en", POLICIES);
 
     expect(policies).toContain(
-      `A project's first policy is also asked **${SWITCH}**, which starts on.`,
+      `The form also asks **${SWITCH}**, of people who may add on-call rules.`,
     );
     expect(policies).toContain(
-      "It is asked of people who may add on-call rules, while the project has no on-call policy and no on-call rule.",
+      "It starts on for a project's first policy, while the project has no on-call policy and no on-call rule, and off for any later one",
+    );
+    expect(policies).toContain(
+      "Left off, a policy pages nobody until a rule, a monitor or a person runs it.",
     );
   });
 
@@ -195,11 +207,13 @@ describe("On-Call Policies and the On-Call overview", () => {
   });
 
   it("the overview's set-up steps let the first policy do it as it is created", () => {
-    // The create form asks it, on to start with.
+    // The create form asks it, on to start with unless the policy is a later one.
     expect(FORM).toContain(`translationKey("${SWITCH}")`);
-    expect(FORM).toContain("defaultValue: true,");
+    expect(FORM).toContain(
+      "defaultValue: options.everyNewEventRulesStartsOn !== false,",
+    );
     expect(page("en", ON_CALL)).toContain(
-      `A project's first policy can do this as it is created: leave **${SWITCH}** on. For any other policy, go to`,
+      `A project's first policy can do this as it is created: leave **${SWITCH}** on. A later policy is asked the same, off to start with.`,
     );
   });
 });

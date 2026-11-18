@@ -140,7 +140,7 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 OneUptime læser hvert abonnement, appen kan læse, op til 50, medmindre du angiver nogle under **Abonnementer**. Appens hemmelighed holder op med at virke på sin udløbsdato: Fra 30 dage før advarer hver læsning om det. Kør kommandoen igen, og indsæt det, den udskriver, for at give den en ny.
 
-I hvert abonnement viser OneUptime ressourcerne af hver type, den læser målinger fra, med deres tags, regioner og ressourcegrupper, og desuden hvert virtuelt netværks undernet og hver netværkssikkerhedsgruppe med dens regler. Den registrerer også, hvordan de hænger sammen: det undernet og virtuelle netværk, hver virtuel maskine, netværksgrænseflade og skaleringssæt kører i, og de netværkssikkerhedsgrupper, der beskytter den, på dens grænseflader og på dens undernet, hvor hver load balancer og application gateway sender trafik hen, og netværket og node-skaleringssættene i hver AKS-klynge. **Monitoring Reader** læser det hele, så der er intet mere at tildele.
+I hvert abonnement viser OneUptime ressourcerne af hver type, den læser metrikker fra, med deres tags, regioner og ressourcegrupper, og desuden hvert virtuelt netværks undernet og hver netværkssikkerhedsgruppe med dens regler. Den registrerer også, hvordan de hænger sammen: det undernet og virtuelle netværk, hver virtuel maskine, netværksgrænseflade og skaleringssæt kører i, og de netværkssikkerhedsgrupper, der beskytter den, på dens grænseflader og på dens undernet, hvor hver load balancer og application gateway sender trafik hen, og netværket og node-skaleringssættene i hver AKS-klynge. **Monitoring Reader** læser det hele, så der er intet mere at tildele.
 
 ## Google Cloud
 

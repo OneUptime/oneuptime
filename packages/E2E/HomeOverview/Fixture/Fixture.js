@@ -41,6 +41,15 @@
  *                         question first
  *                 half    the four steps, the monitor's first check in
  *                 hidden  the four steps, hidden by this person
+ *                 gaps    the four steps, the monitor's and who is told's
+ *                         done while only email pages the owner (#9442),
+ *                         a status page that shows no monitor and an
+ *                         invitation nobody accepted, each said under its
+ *                         step (#6938)
+ *                 more    a website project whose two steps are done:
+ *                         what else to set up (#7986) - the owner's
+ *                         phone, the status page that shows no monitor,
+ *                         the team
  *               without it, a new project skipped the question (the four
  *               steps, none done) and every other scenario finished it
  *   ?plan=      free: OneUptime Cloud's Free plan (the team step needs Growth)
@@ -145,8 +154,11 @@ import UserUtil from "Common/UI/Utils/User";
 import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import { parseProjectGoals } from "Common/Types/WelcomeChecklist/ProjectGoal";
 import {
+  WELCOME_GAP_INVITATION_NOT_ACCEPTED,
   WelcomeAudience,
+  WelcomeStep,
   buildWelcomeChecklist,
+  buildWelcomeMoreSteps,
 } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import {
   SETUP_HEALTH_WORDS,
@@ -1160,19 +1172,70 @@ ModelAPI.getItem = async (options) => {
  */
 const welcomeMode = params.get("welcome") || "";
 const welcome = {
-  goals: welcomeMode === "ask" ? null : [],
+  goals:
+    welcomeMode === "ask" ? null : welcomeMode === "more" ? ["uptime"] : [],
   isHiddenForMe: welcomeMode === "hidden",
-  isFinished: !isNew,
+  isFinished:
+    welcomeMode === "more" || (!isNew && !["gaps"].includes(welcomeMode)),
   reached:
     welcomeMode === "half"
       ? [
           ActivationMilestone.FirstMonitorCreated,
           ActivationMilestone.FirstCheckResultReceived,
         ]
-      : [],
+      : welcomeMode === "gaps" || welcomeMode === "more"
+        ? [
+            ActivationMilestone.FirstMonitorCreated,
+            ActivationMilestone.FirstCheckResultReceived,
+            ActivationMilestone.FirstTestPageAcknowledged,
+          ]
+        : [],
   isFreePlan: params.get("plan") === "free",
 };
 fixture.welcomeRequests = [];
+
+/*
+ * Why a step whose record exists is not done yet (#6938), as the server
+ * reads it: Setup health's finding about the status page, and an
+ * invitation nobody accepted.
+ */
+const EMPTY_STATUS_PAGE_GAP = {
+  check: SetupHealthCheck.StatusPageShowsNoMonitor,
+  finding: makeSetupHealthFinding({
+    check: SetupHealthCheck.StatusPageShowsNoMonitor,
+    level: SetupHealthLevel.WorthFixing,
+    record: {
+      kind: SetupHealthRecordKind.StatusPage,
+      id: "50000000-0000-4000-8000-000000000001",
+      name: "Acme Commerce status",
+    },
+    fix: SetupHealthFix.StatusPageResources,
+    fixRecordId: "50000000-0000-4000-8000-000000000001",
+    words: SETUP_HEALTH_WORDS.statusPageShowsNoMonitor,
+    values: { statusPage: "Acme Commerce status" },
+  }),
+};
+
+function withGaps(states) {
+  return states.map((state) => {
+    if (state.isDone || state.needsPlan) {
+      return state;
+    }
+
+    if (state.step === WelcomeStep.StatusPage) {
+      return { ...state, gap: EMPTY_STATUS_PAGE_GAP };
+    }
+
+    if (state.step === WelcomeStep.Team) {
+      return {
+        ...state,
+        gap: { check: WELCOME_GAP_INVITATION_NOT_ACCEPTED, finding: null },
+      };
+    }
+
+    return state;
+  });
+}
 
 function welcomeAnswer() {
   const base = {
@@ -1185,6 +1248,8 @@ function welcomeAnswer() {
     steps: [],
     doneCount: 0,
     totalCount: 0,
+    moreSteps: [],
+    canBePagedByPhoneOrApp: null,
   };
 
   // A viewer was invited: the owner's checklist is not theirs (#6807).
@@ -1193,6 +1258,27 @@ function welcomeAnswer() {
   }
 
   if (welcome.isFinished) {
+    // What else to set up (#7986), until this person hides it.
+    if (welcomeMode === "more" && !welcome.isHiddenForMe) {
+      return {
+        ...base,
+        audience: WelcomeAudience.SetUp,
+        moreSteps: withGaps(
+          buildWelcomeMoreSteps({
+            goals: welcome.goals,
+            facts: {
+              reached: welcome.reached,
+              hasPolicyThatPagesSomeone: false,
+              hasFinishedImport: false,
+            },
+            plan: { isFreePlan: welcome.isFreePlan },
+          }),
+        ),
+        // Only the owner's sign-in email pages them (#9442).
+        canBePagedByPhoneOrApp: false,
+      };
+    }
+
     return { ...base, audience: WelcomeAudience.SetUp };
   }
 
@@ -1200,21 +1286,21 @@ function welcomeAnswer() {
     goals: welcome.goals,
     facts: {
       reached: welcome.reached,
-      hasRuleThatPagesSomeone: false,
+      hasPolicyThatPagesSomeone: false,
       hasFinishedImport: false,
-      serverCanSendEmail: true,
     },
     plan: { isFreePlan: welcome.isFreePlan },
-    readerIsServerAdmin: false,
   });
 
   return {
     ...base,
     audience: WelcomeAudience.SetUp,
     shouldAskForGoals: welcome.goals === null,
-    steps: checklist.steps,
+    steps: welcomeMode === "gaps" ? withGaps(checklist.steps) : checklist.steps,
     doneCount: checklist.doneCount,
     totalCount: checklist.totalCount,
+    // Who is told is done, and only email pages the owner (#9442).
+    canBePagedByPhoneOrApp: welcomeMode === "gaps" ? false : null,
   };
 }
 
@@ -1369,7 +1455,11 @@ function setupHealthFindings() {
     return [];
   }
 
-  const project = { kind: SetupHealthRecordKind.Project, id: PROJECT_ID, name: "" };
+  const project = {
+    kind: SetupHealthRecordKind.Project,
+    id: PROJECT_ID,
+    name: "",
+  };
 
   return [
     setupFinding({

@@ -20,7 +20,11 @@ En vaktpolicy avgjør hvem som tilkalles om en hendelse eller et varsel, og hvem
 
 **Hvem varsles først?** er valgfritt og vises bare for folk som kan legge til eskaleringsregler: står det tomt, tilkaller policyen ingen før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felt**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for å legge til de neste nivåene.
 
-For den første policyen i et prosjekt spør skjemaet også **Utløs den ved hver nye hendelse og hvert nye varsel**, som starter slått på. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne policyen. Bare folk som kan legge til vaktregler, får spørsmålet, så lenge prosjektet verken har en vaktpolicy eller en vaktregel.
+Skjemaet spør også **Utløs den ved hver nye hendelse og hvert nye varsel**, hvis du kan legge til vaktregler. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne policyen. Den starter slått på for den første policyen i et prosjekt, så lenge prosjektet verken har en vaktpolicy eller en vaktregel, og slått av for senere policyer: å utløse to policyer ved hver nye hendelse og hvert nye varsel er et valg du må ta. Slått av tilkaller policyen ingen før en regel, en monitor eller en person kjører den.
+
+![Forklaringen på den tomme listen «Vaktpolicyer», med «Veiledet oppsett» uthevet](screen:on-call-policies-guided-setup)
+
+Vil du heller bli veiledet steg for steg, fra telefonen din til et testtilkall, klikker du på **Veiledet oppsett**: på den tomme listen **Vaktpolicyer** eller under **Slik fungerer det**. Se [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 
 Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver policy. Velg policyer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter policyer fra en eksport: en eksport inneholder policyens egne innstillinger, ikke eskaleringsreglene eller eierne.
 

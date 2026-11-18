@@ -88,6 +88,9 @@ Open each schedule under **On-Call** > **On-Call Schedules** and check who is on
 ### Make sure everyone can be paged
 People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on. **On-Call** > **Readiness** shows who cannot be reached yet.
 
+### Send a test page
+In the report, select **Test this policy** to page a policy you brought over once, without an incident: every message says TEST. With several policies, pick one first.
+
 ### Carry on your incident numbers
 If your team refers to incidents by number, start OneUptime's after your last one in PagerDuty: under **Incidents** > **Settings** > **Numbering**, set **Next Incident Number** on the **Next Number** card to one past it. A number then never means two different incidents.
 

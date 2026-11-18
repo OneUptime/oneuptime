@@ -38,6 +38,7 @@ import { getColumnBillingAccessControlForAllColumns } from "Common/Types/Databas
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import Dictionary from "Common/Types/Dictionary";
 import { MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS } from "Common/Types/StatusPage/MasterPassword";
+import { getStatusPagePublicName } from "Common/Types/StatusPage/StatusPagePublicName";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
@@ -459,12 +460,16 @@ describe("the Status Pages Overview: creating a status page", () => {
       /modalType === ModalType\.Create[\s\S]*?RouteMap\[PageMap\.STATUS_PAGE_VIEW\]/,
     );
 
-    // Its first step counts the page's resources, and opens Resources.
+    /*
+     * Its first step counts the page's resources, and its Add Monitors opens
+     * the dialog that adds them right there (#7466), not Resources.
+     */
     expect(overview.indexOf("<StatusPageFirstStep")).toBeLessThan(
       overview.indexOf("<StatusPagePreviewLink"),
     );
     expect(firstStep).toContain("count > 0 ? FirstStepState.Hidden");
-    expect(firstStep).toContain("PageMap.STATUS_PAGE_VIEW_RESOURCES");
+    expect(firstStep).toContain("<BulkAddStatusPageMonitorsModal");
+    expect(firstStep).not.toContain("PageMap.STATUS_PAGE_VIEW_RESOURCES");
     expect(StatusPageOverviewCopy.firstStepTitle).toBe(
       "Nothing on this status page yet",
     );
@@ -482,7 +487,7 @@ describe("the Status Pages Overview: creating a status page", () => {
     expect(details).toContain("getLabelsFormField<StatusPage>()");
     expect(overview).toContain("<OverviewCustomFields");
     expect(page).toContain(
-      "The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens its **Resources** screen. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.",
+      "The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens a dialog right there to pick the monitors visitors see. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.",
     );
   });
 });
@@ -1105,9 +1110,14 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
     }
 
     expect(feed).toContain("<title>${XML.escape(data.title)} Updates</title>");
+    // The page's public name: its Page Title, else its name (#7467).
     expect(readSource(STATUS_PAGE_API)).toContain(
-      "title: statusPage.pageTitle || statusPage.name,",
+      "title: getStatusPagePublicName(statusPage),",
     );
+    expect(
+      getStatusPagePublicName({ pageTitle: "Acme Status", name: "acme-prod" }),
+    ).toBe("Acme Status");
+    expect(getStatusPagePublicName({ name: "acme-prod" })).toBe("acme-prod");
 
     for (const prefix of [
       "Incident: ",

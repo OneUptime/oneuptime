@@ -171,6 +171,25 @@ Mit Docker Compose setzen Sie die `GLOBAL_EMAIL_`-Einstellungen in `config.env` 
 
 OneUptime liest die Variablen beim Start. Ist eine davon falsch, etwa ein Port, der keine Zahl ist, oder ein fehlendes Passwort, versendet der Server keine E-Mails, bis das behoben ist; das Log des Servers, die E-Mail-Einstellungen im Admin Dashboard und die Checkliste unter `/admin/setup` nennen die Variable. Passwörter und Schlüssel werden nie angezeigt. Um die Einstellungen zu ändern, ändern Sie die Variablen und starten OneUptime neu: Das Admin Dashboard ändert sie nicht.
 
+## Sehen, was der Server gesendet hat
+
+Auf einem selbst gehosteten Server endet **Einstellungen > Benachrichtigungen > E-Mails** im Admin Dashboard mit der Karte **E-Mail-Protokoll**. Sie listet jede E-Mail, die der Server über seine eigenen Einstellungen gesendet hat und die zu keinem Projekt gehört, etwa ein Zurücksetzen des Passworts, einen Anmeldelink oder eine Einladung, und jede E-Mail, die er nicht senden konnte, auch die eines Projekts: an wen sie ging, wann, was sie war und was der Mail-Dienst geantwortet hat.
+
+- Schalten Sie **Nur fehlgeschlagene E-Mails** ein, um nur die E-Mails zu sehen, die nicht versendet wurden.
+- Die versendete E-Mail eines Projekts steht in den eigenen Protokollen dieses Projekts, nicht hier. Eine E-Mail über den eigenen Mailserver eines Projekts steht nie hier.
+- Das Protokoll speichert nie die Nachricht selbst, denn ein Zurücksetzen des Passworts oder ein Anmeldelink lässt jeden herein, der ihn hat. Ein Link in einem Betreff wird als `[link]` gespeichert.
+- Nur Master-Admins können es lesen. Jede E-Mail wird 30 Tage lang aufbewahrt.
+
+## Erfahren, wenn E-Mail oder die Sonden ausfallen
+
+Wenn die E-Mail des Servers nicht mehr funktioniert oder keine globale Sonde mehr meldet, benachrichtigt OneUptime die Master-Admins, und noch einmal, sobald es wieder funktioniert. Wählen Sie in der Karte **Ausfallbenachrichtigungen** auf derselben Seite, wohin:
+
+- **Push an die Geräte der Master-Administratoren** sendet eine Push-Benachrichtigung an jedes Gerät, auf dem ein Master-Admin in der OneUptime-App angemeldet ist. Sie ist eingeschaltet, bis Sie sie ausschalten.
+- **SMS an diese Nummer** sendet eine SMS über die SMS-Einstellungen des Servers.
+- Die **Admin-Benachrichtigungs-E-Mail** erfährt es bei den Sonden ebenfalls.
+
+Eine Nachricht geht nie über den ausgefallenen Kanal, eine Nachricht über E-Mail also nie per E-Mail, und nie über einen Kanal, über den der Server gerade nicht senden kann. Gemeldet wird nur eine Änderung, für jedes höchstens einmal pro Stunde, und Projektmitglieder werden nie benachrichtigt.
+
 ## Fehlerbehebung
 
 Eine Test-E-Mail, die nicht versendet wird, nennt den Grund. Bei jeder anderen E-Mail öffnen Sie den Tab **E-Mail** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungsprotokolle** und wählen in ihrer Zeile **Statusmeldung anzeigen**.

@@ -13,7 +13,7 @@ flowchart TB
 
 - Um projeto do qual você é proprietário: só o proprietário pode ativar SMS e chamadas, e só o proprietário ou um administrador pode criar uma política de plantão.
 - Seu celular.
-- Os membros da equipe que você quer acionar, já adicionados ao projeto: [Convidar pessoas](/docs/permissions/inviting-people) mostra como.
+- Os membros da equipe que você quer acionar: a configuração pode convidá-los por e-mail, ou veja [Convidar pessoas](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Seu servidor precisa conseguir enviar e-mails, SMS e chamadas. O administrador p
 
 ![Início pergunta "O que você quer fazer primeiro?", com "Acionar a pessoa certa quando algo quebrar" marcado](screen:home-goal-paging)
 
-Na página **Início** do seu projeto, clique em **Configure uma política de plantão**, na lista **Boas-vindas ao OneUptime 👋**. A página inicial de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Acionar a pessoa certa quando algo quebrar** e clique em **Continuar**. Se o passo não aparecer ou já estiver feito, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `get paged` e escolha **Acionar a pessoa certa quando algo quebrar**.
+Na página **Início** do seu projeto, clique em **Configure uma política de plantão**, na lista **Boas-vindas ao OneUptime 👋**. A página inicial de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Acionar a pessoa certa quando algo quebrar** e clique em **Continuar**. Se o passo não aparecer ou já estiver feito, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `get paged` e escolha **Acionar a pessoa certa quando algo quebrar**. Em **Plantão**, **Configuração guiada** também a abre.
 
 ### Instalar o app no celular
 
-Instale o OneUptime On-Call pela App Store ou pelo Google Play e faça login: assim o app registra seu celular para as notificações push. De volta à configuração, clique em **Verificar de novo**: **App móvel ou navegador**, em **Como devemos contatar você?**, agora mostra seu celular.
+Em **Como devemos contatar você?**, clique em **Baixar o app**, escaneie o código com o celular, instale o app e faça login. De volta à configuração, clique em **Verificar de novo**: **App móvel ou navegador** agora mostra seu celular. **Usar este navegador** aciona também este navegador.
 
 ### Ativar SMS e chamadas
 
@@ -47,11 +47,11 @@ Projetos novos começam com SMS e chamadas desativados. Se você é o proprietá
 
 Digite seu número de celular com o código do país em **Seu número de telefone**, por exemplo `+15551234567`, e clique em **Enviar um código por SMS**. Informe o código recebido por SMS e clique em **Verificar**: os acionamentos também ligam para esse mesmo número. Clique em **Continuar**. Para ser acionado só pelo app e por e-mail, deixe o número em branco e clique em **Continuar** direto.
 
-### Escolher quem mais é acionado
+### Escolher quem é acionado primeiro
 
-![O passo "Quem mais está de plantão?", com "Salvar e continuar" destacado](screen:paging-who-else)
+![O passo "Quem é acionado primeiro?", com "Salvar e continuar" destacado](screen:paging-who-else)
 
-Em **Quem mais está de plantão?**, você já está em **Acionados primeiro**. Clique em **Adicionar membros da equipe** para acionar outras pessoas junto com você e depois em **Salvar e continuar**. Num projeto que ainda não tem nenhuma política de plantão, isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta. Num projeto que já tem uma, escolha-a em **Política de plantão** e adicione as pessoas em **Adicionar à primeira regra de escalonamento**. Se ainda não for possível contatar alguém, o passo fica aberto em **Um acionamento chega até eles?**: clique em **Enviar lembrete de configuração** para essa pessoa e depois em **Continuar**.
+Em **Quem é acionado primeiro?**, você já está em **Acionados primeiro**. Clique em **Adicionar membros da equipe** para acionar outras pessoas ao mesmo tempo que você. Para alguém que ainda não está no projeto, clique em **Convidar por e-mail**, digite o endereço e clique em **Enviar convite**. Depois clique em **Salvar e continuar**. Num projeto que ainda não tem nenhuma política de plantão, isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta. Num projeto que já tem uma, escolha-a em **Política de plantão** e adicione as pessoas em **Adicionar à primeira regra de escalonamento**. Se ainda não for possível contatar alguém, o passo fica aberto em **Um acionamento chega até eles?**: clique em **Enviar lembrete de configuração** para essa pessoa e depois em **Continuar**.
 
 ### Decidir o que acontece se ninguém responder
 
@@ -75,7 +75,7 @@ Abra o link do SMS ou do e-mail e confirme o acionamento ali, ou pressione 1 dur
 ![O resumo "O acionamento está configurado": "Quem é acionado", "Se ninguém responder" e "Testado"](screen:paging-summary)
 
 - O passo de teste diz quem confirmou o acionamento, como e em quanto tempo.
-- A configuração termina em **O acionamento está configurado**, com o que foi salvo: **Quem é acionado**, **Se ninguém responder** e **Testado**. Um problema na própria política, como alguém que ela não consegue contatar, aparece em **Requer atenção**.
+- A configuração termina em **O acionamento está configurado**, com o que foi salvo: **Quem é acionado**, **Se ninguém responder** e **Testado**. **Quem é acionado** diz, em ordem, como cada pessoa é contatada. Um problema na própria política, como alguém que ela não consegue contatar, aparece em **Requer atenção**.
 - Em **Início**, a lista marca o passo **Configure uma política de plantão** como feito. Se era o último passo, a lista desaparece.
 
 Se a política aciona outra pessoa, você também pode ver o escalonamento: clique em **Abrir a política de plantão** no resumo e depois em **Testar esta política**. Ative **Percorrer todos os níveis de escalonamento**, envie o teste e não confirme o primeiro acionamento: a próxima pessoa é acionada em até 2 minutos.

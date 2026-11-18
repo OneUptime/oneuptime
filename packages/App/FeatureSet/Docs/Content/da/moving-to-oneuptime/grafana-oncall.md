@@ -88,6 +88,9 @@ En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan mar
 ### Sørg for, at alle kan tilkaldes
 Inviterede personer accepterer deres invitation og tilføjer derefter et telefonnummer, en e-mailadresse eller mobilappen, de kan tilkaldes på. **Vagt** > **Parathed** viser, hvem der endnu ikke kan nås.
 
+### Send et testkald
+Vælg **Test denne politik** i rapporten for at tilkalde en overført politik én gang uden en hændelse: Hver besked siger TEST. Er der flere politikker, så vælg først én.
+
 ### Fortsæt dine hændelsesnumre
 Hvis dit team omtaler hændelser ved nummer, så lad OneUptimes numre starte efter dit sidste i Grafana OnCall: Under **Hændelser** > **Indstillinger** > **Nummerering** sætter du **Næste hændelsesnummer** på kortet **Næste nummer** til nummeret efter det. Et nummer betyder så aldrig to forskellige hændelser.
 

@@ -1160,7 +1160,7 @@ class User extends UserModel {
    * contract): the pods of the release before keep serving while a
    * release's migrations run, and every insert into "User" they make names
    * it - dropped, nobody could sign up until the last of them was gone.
-   * KeepSampleProjectColumns1809183200000 puts it back where 15.0.0 already
+   * KeepSampleProjectColumns1809183500000 puts it back where 15.0.0 already
    * dropped it. Read and written by nobody, hidden from the documentation.
    */
   @ColumnAccessControl({

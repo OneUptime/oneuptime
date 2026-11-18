@@ -78,10 +78,17 @@ import {
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
 import {
+  DEFAULT_WELCOME_STEPS,
+  PHONE_OR_APP_METHOD_TYPES,
+  WELCOME_STEP_GAP_CHECKS,
   WelcomeOutcomeFacts,
   WelcomeStep,
+  canPageByPhoneOrApp,
+  getWelcomeMoreSteps,
   isWelcomeStepDone,
 } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
+import ProjectGoal from "Common/Types/WelcomeChecklist/ProjectGoal";
+import { SetupHealthCheck } from "Common/Types/SetupHealth/SetupHealth";
 import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -578,12 +585,15 @@ describe("Quickstart", () => {
         routedGuidedSetup("MONITOR_GUIDED_SETUP").setupFile,
         "utf8",
       );
-      const summaryLink: string = oneLine(
+      const summaryRoute: string = oneLine(
         blockFrom(
           websiteSetup,
-          "to={routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)}",
-          "</AppLink>",
+          "const statusPageSetupRoute: Route | null =",
+          ": null;",
         ),
+      );
+      const summaryLink: string = oneLine(
+        blockFrom(websiteSetup, "to={statusPageSetupRoute}", "</AppLink>"),
       );
 
       expect(where).toEqual({
@@ -599,6 +609,9 @@ describe("Quickstart", () => {
       );
 
       // The website setup's summary links the same setup, by these words.
+      expect(summaryRoute).toContain(
+        "routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)",
+      );
       expect(summaryLink).toContain("WEBSITE_DOWN_COPY.nextStatusPage");
       expect(setupWord(QUICKSTART_SETUP_COPIES.website, "nextStatusPage")).toBe(
         "Show it on a status page",
@@ -612,9 +625,10 @@ describe("Quickstart", () => {
      * By the on-call section, the website setup's own policy pages the reader
      * and its test page was acknowledged: either ticks the on-call step, and
      * a ticked step is no longer a button. So the section opens the setup
-     * from Search, and says the step opens it only while it is not ticked.
+     * from the website setup's summary (#7370), or later from Search, and
+     * says the step opens it only while it is not ticked.
      */
-    it("opens the on-call setup from Search, because the website setup has ticked its checklist step", () => {
+    it("opens the on-call setup from the website setup's summary or from Search, because the website setup has ticked its checklist step", () => {
       const task: ChecklistTask = checklistTaskOf("OnCall");
       const where: StepDestinations = stepDestinations(task);
       const setup: RoutedGuidedSetup = routedGuidedSetup(where.mayCreate);
@@ -637,16 +651,15 @@ describe("Quickstart", () => {
       );
       const facts: (data: {
         reached: Array<ActivationMilestone>;
-        hasRuleThatPagesSomeone: boolean;
+        hasPolicyThatPagesSomeone: boolean;
       }) => WelcomeOutcomeFacts = (data: {
         reached: Array<ActivationMilestone>;
-        hasRuleThatPagesSomeone: boolean;
+        hasPolicyThatPagesSomeone: boolean;
       }): WelcomeOutcomeFacts => {
         return {
           reached: data.reached,
-          hasRuleThatPagesSomeone: data.hasRuleThatPagesSomeone,
+          hasPolicyThatPagesSomeone: data.hasPolicyThatPagesSomeone,
           hasFinishedImport: false,
-          serverCanSendEmail: true,
         };
       };
       // Each step of the path is drawn by WelcomePlanStep (#8897).
@@ -668,7 +681,7 @@ describe("Quickstart", () => {
       expect(
         isWelcomeStepDone(
           WelcomeStep.OnCall,
-          facts({ reached: [], hasRuleThatPagesSomeone: true }),
+          facts({ reached: [], hasPolicyThatPagesSomeone: true }),
         ),
       ).toBe(true);
       expect(
@@ -676,14 +689,14 @@ describe("Quickstart", () => {
           WelcomeStep.OnCall,
           facts({
             reached: [ActivationMilestone.FirstTestPageAcknowledged],
-            hasRuleThatPagesSomeone: false,
+            hasPolicyThatPagesSomeone: false,
           }),
         ),
       ).toBe(true);
       expect(
         isWelcomeStepDone(
           WelcomeStep.OnCall,
-          facts({ reached: [], hasRuleThatPagesSomeone: false }),
+          facts({ reached: [], hasPolicyThatPagesSomeone: false }),
         ),
       ).toBe(false);
 
@@ -699,10 +712,47 @@ describe("Quickstart", () => {
       expect(section).toContain(
         `so the checklist ticks **${task.title}** as done.`,
       );
+      /*
+       * The summary's "Get paged by SMS or phone call" opens the setup for
+       * whoever may use it, as the project's owner may (#7370).
+       */
+      const phoneLink: string = oneLine(
+        blockFrom(
+          dashboard(
+            "Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup.tsx",
+          ),
+          'dataTestId="guided-setup-next-phone"',
+          "</AppLink>",
+        ),
+      );
+      const phonePage: string = oneLine(
+        blockFrom(
+          dashboard("Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts"),
+          "export const getPagedByPhonePage",
+          "};",
+        ),
+      );
+      const phoneWords: string = setupWord(
+        QUICKSTART_SETUP_COPIES.website,
+        "nextPhone",
+      );
+
+      expect(phoneLink).toContain("WEBSITE_DOWN_COPY.nextPhone");
+      expect(phonePage).toContain(
+        `return mayUseOnCallSetup ? PageMap.${where.mayCreate} :`,
+      );
+      expect(phoneWords).toBe("Get paged by SMS or phone call");
+
       expect(first.heading).toBe("Open the on-call setup");
       expect(first.body).toBe(
-        `Press \`Ctrl+K\` (\`Cmd+K\` on a Mac), type \`get paged\` and choose **${setup.title}**. While the checklist has not ticked **${task.title}**, that step opens the same guided setup.`,
+        `On the website setup's summary, click **${phoneWords}**: it opens the guided setup **${setup.title}**. To open it later, press \`Ctrl+K\` (\`Cmd+K\` on a Mac), type \`get paged\` and choose it. While the checklist has not ticked **${task.title}**, that step opens the same guided setup. Once it has, and while only email can page you, Home keeps **${phoneWords}** under it.`,
       );
+      // The same words under the ticked step (#9442).
+      expect(
+        dashboard(
+          "Components/Home/WelcomeChecklist/WelcomeChecklistCatalog.ts",
+        ),
+      ).toContain(`phoneTitle: translationKey("${phoneWords}"),`);
     });
 
     it("walks each setup's steps in the order its frame draws them, each under the title it draws", () => {
@@ -918,7 +968,7 @@ describe("Quickstart", () => {
       "monitoringInterval: DEFAULT_MONITORING_INTERVAL,",
     );
     expect(setupWord(QUICKSTART_SETUP_COPIES.website, "checkHelp")).toContain(
-      "OneUptime checks it every 5 minutes",
+      "OneUptime makes a {{monitor}} that checks it every 5 minutes",
     );
     expect(QUICKSTART).toContain("checks your website every five minutes");
     expect(QUICKSTART).toContain(
@@ -1019,8 +1069,15 @@ describe("Quickstart", () => {
     expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "whoAddToLevel")).toBe(
       "Add to the first escalation rule",
     );
+    /*
+     * Everyone this step adds is paged at once, with you (#7372); someone
+     * not in the project yet is invited from the step (#7150).
+     */
+    expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "inviteByEmail")).toBe(
+      "Invite by email",
+    );
     expect(QUICKSTART).toContain(
-      `keep **${GUIDED_SETUP_POLICY_NAME}** under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.`,
+      `keep **${GUIDED_SETUP_POLICY_NAME}** under **On-call policy**. To page teammates at the same time as you, add them under **Add to the first escalation rule**, or invite them with **Invite by email**. Click **Save and continue**.`,
     );
   });
 
@@ -1143,6 +1200,10 @@ describe("Quickstart", () => {
     expect(reach).toContain("your sign-in email is listed already");
     expect(reach).toContain(
       "install the OneUptime On-Call app from the App Store or Google Play, sign in, and click **Recheck**",
+    );
+    // Push is set up in the step itself (#7149): the app's codes, or this browser.
+    expect(reach).toContain(
+      `**${setupWord(QUICKSTART_SETUP_COPIES.onCall, "getTheApp")}** shows a code to scan for each store, and **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "useThisBrowser")}** has this browser paged too.`,
     );
     expect(reach).toContain(
       `click **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "turnOnSmsAndCalls")}**, type your number in **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "phoneLabel")}** and click **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "sendSmsCode")}**: on OneUptime Cloud, texts and calls are paid from the project's balance, so the step asks you to add some first.`,
@@ -2336,7 +2397,7 @@ describe("Home Page & Shortcuts", () => {
     expect(items).toEqual([
       "A search box, with **Declare Incident** and **Create** beside it.",
       "One line that says whether anything is wrong, over five numbers that count what needs attention.",
-      "**Welcome to OneUptime 👋**, a checklist for a new project, until it is done.",
+      "**Welcome to OneUptime 👋**, a checklist for a new project, until it is done, then **More to set up** while anything is left.",
       "**Needs attention**, every problem that is open right now, by name.",
       "**Your project**, what the project is made of, and **Upcoming maintenance** when any is scheduled.",
       "**Explore OneUptime**, every product, one category at a time.",
@@ -2493,8 +2554,22 @@ describe("Home Page & Shortcuts", () => {
     );
     // The guided setup (#6804), the same page the checklist's step opens.
     expect(page).toBe("MONITOR_GUIDED_SETUP");
+    /*
+     * One start for one job (#7759): the headline leaves its button out
+     * while the Welcome card offers the monitor step, on the checklist or
+     * among what else to set up.
+     */
+    expect(oneLine(HOME_PAGE_SOURCE)).toContain(
+      "return data.canCreateMonitor && !data.welcome.offersFirstMonitor;",
+    );
+    expect(oneLine(HOME_PAGE_SOURCE)).toContain(
+      "canCreateMonitor={isCreateFirstMonitorShown({",
+    );
+    expect(oneLine(CHECKLIST_SOURCE)).toContain(
+      "if (data.view === WelcomeCardView.Checklist) { return isMonitorLeft(data.answer.steps); }",
+    );
     expect(sectionOf(HOME, "### The headline")).toContain(
-      `While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **${routedGuidedSetup(page).title}**. Only people who are allowed to create monitors see it.`,
+      `While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **${routedGuidedSetup(page).title}**, unless the welcome checklist under it offers that step already. Only people who are allowed to create monitors see it.`,
     );
   });
 
@@ -2601,12 +2676,11 @@ describe("Home Page & Shortcuts", () => {
   });
 
   it("gives the checklist's steps, what finishes each and what each opens, as the catalog routes them", () => {
-    // The project's own steps: the server's email is the server admin's.
-    const tasks: Array<ChecklistTask> = checklistTasks().filter(
-      (task: ChecklistTask): boolean => {
-        return task.step !== "ServerEmail";
-      },
-    );
+    /*
+     * The project's own steps: the server's setup is its admins' own card,
+     * not a step (#7018).
+     */
+    const tasks: Array<ChecklistTask> = checklistTasks();
     const rows: Array<Array<string>> = onlyTableOf(
       sectionOf(HOME, "### The welcome checklist"),
     );
@@ -2644,6 +2718,22 @@ describe("Home Page & Shortcuts", () => {
 
     // Done on outcomes, as the rules in Common/Types/WelcomeChecklist say.
     expect((rows[1] as Array<string>)[1]).toBe("Its first check comes in.");
+    /*
+     * Who is told: a policy that can reach someone, run by an on-call rule
+     * or paged directly by a monitor's criteria (#7017).
+     */
+    const service: string = oneLine(
+      readSource(COMMON_DIR, "Server/Services/WelcomeChecklistService.ts"),
+    );
+    expect(service).toContain(
+      "this.readPoliciesRunByRules(projectId), this.readPoliciesPagedByMonitors(projectId),",
+    );
+    expect(service).toContain(
+      "reference.model === MonitorStepsReferenceModel.OnCallDutyPolicy && reference.isOperative &&",
+    );
+    expect((rows[4] as Array<string>)[1]).toBe(
+      "A test page is acknowledged, a page reaches someone, or an on-call rule or a monitor runs a policy that can reach someone.",
+    );
     expect((rows[5] as Array<string>)[1]).toBe(
       "A status page shows a monitor.",
     );
@@ -2748,7 +2838,7 @@ describe("Home Page & Shortcuts", () => {
 
     // The steps with no guided setup say none.
     for (const task of tasks) {
-      if (task.guidedSetupPage || task.step === "ServerEmail") {
+      if (task.guidedSetupPage) {
         continue;
       }
 
@@ -2838,8 +2928,12 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
-  it("names the next step, the plan's limit and the server's email as the card does", () => {
+  it("names the next step, the plan's limit and the server's own card as Home draws them", () => {
     const section: string = sectionOf(HOME, "### The welcome checklist");
+    const serverCard: string = dashboard(
+      "Components/ServerSetup/ServerSetupCard.tsx",
+    );
+    const home: string = oneLine(HOME_PAGE_SOURCE);
 
     expect(CHECKLIST_CATALOG_SOURCE).toContain(
       'nextBadge: translationKey("Next step"),',
@@ -2851,7 +2945,187 @@ describe("Home Page & Shortcuts", () => {
     expect(CHECKLIST_CATALOG_SOURCE).toContain(
       "WELCOME_PLAN_PAGE: PageMap = PageMap.SETTINGS_BILLING;",
     );
-    expect(section).toContain("**This server cannot send email yet**");
+    /*
+     * A server that is not set up yet is its admins' own card, drawn above
+     * the checklist, never a step of it as well (#7018).
+     */
+    expect(CHECKLIST_CATALOG_SOURCE).not.toContain("WelcomeStep.ServerEmail");
+    expect(home.indexOf("<ServerSetupCard />")).toBeGreaterThan(-1);
+    expect(home.indexOf("<ServerSetupCard />")).toBeLessThan(
+      home.indexOf("<GettingStarted"),
+    );
+    expect(serverCard).toContain(
+      'finishSetup: translationKey("Finish setup"),',
+    );
+    expect(serverCard).toContain("to={getAdminServerSetupUrl()}");
+    expect(section).toContain(
+      "On a self-hosted server that is not set up yet, its admins see the server's own card above the checklist instead, with **Finish setup**, which opens the Admin Dashboard.",
+    );
+    expect(section).not.toContain("This server cannot send email yet");
+  });
+
+  /*
+   * A step whose record exists but does not work yet (#6938) says why, in
+   * the sentence Setup Health draws for it, and opens the page that fixes
+   * it; next, its button names the fix.
+   */
+  it("says why a step whose record exists is not done, in Setup Health's words, and names its fix", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+    const gap: string = dashboard(
+      "Components/Home/WelcomeChecklist/WelcomeStepGap.tsx",
+    );
+    const words: string = dashboard(
+      "Components/SetupHealth/SetupHealthWords.ts",
+    );
+
+    // The breaks the page names, as the rules map them to steps.
+    expect(WELCOME_STEP_GAP_CHECKS[WelcomeStep.StatusPage]).toEqual([
+      SetupHealthCheck.StatusPageShowsNoMonitor,
+    ]);
+    expect(WELCOME_STEP_GAP_CHECKS[WelcomeStep.Monitor]).toEqual([
+      SetupHealthCheck.MonitorNotChecked,
+    ]);
+    expect(WELCOME_STEP_GAP_CHECKS[WelcomeStep.OnCall]).toEqual(
+      expect.arrayContaining([
+        SetupHealthCheck.PolicyNotRun,
+        SetupHealthCheck.PolicyReachesNobody,
+      ]),
+    );
+    // An invitation nobody accepted is the team's, read by the server.
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      '"An invitation to this project hasn\'t been accepted yet.",',
+    );
+    // In Setup Health's own sentence, opening its fix, named on the button.
+    expect(dashboard("Pages/Home/SetupHealth.tsx")).toContain(
+      'title="Setup Health"',
+    );
+    expect(gap).toContain("<FindingSentence finding={props.gap.finding} />");
+    expect(gap).toContain("return getSetupHealthFixLink({");
+    expect(oneLine(CHECKLIST_SOURCE)).toContain(
+      "startTitle={ getWelcomeStepGapFix({ gap: state.gap, translator: translator, })?.text }",
+    );
+    expect(words).toContain(
+      '[SetupHealthFix.StatusPageResources]: translationKey("Add Monitors"),',
+    );
+    expect(section).toContain(
+      "A step whose record exists but does not work yet says why under it, in the words of **Setup Health**: a status page that shows no monitor, a monitor nothing checks, an on-call policy that nothing runs or that reaches nobody, an invitation nobody accepted. The step then opens the page that fixes it, and when it is next, its button names the fix, such as **Add Monitors**.",
+    );
+  });
+
+  /*
+   * Paged by more than email (#9442): once who is told is ticked, the way
+   * to SMS, calls and the app stays under it while only email pages you.
+   */
+  it("keeps the way to SMS, calls and the app under the ticked on-call step while only email can page you", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+    const card: string = oneLine(CHECKLIST_SOURCE);
+    const catalog: string = oneLine(CHECKLIST_CATALOG_SOURCE);
+    const service: string = oneLine(
+      readSource(COMMON_DIR, "Server/Services/WelcomeChecklistService.ts"),
+    );
+    const task: ChecklistTask = checklistTaskOf("OnCall");
+    const setup: RoutedGuidedSetup = routedGuidedSetup(
+      "ON_CALL_DUTY_GUIDED_SETUP",
+    );
+    const phoneWords: string = setupWord(
+      QUICKSTART_SETUP_COPIES.website,
+      "nextPhone",
+    );
+
+    // In the website setup's own words, to the on-call guided setup.
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      `phoneTitle: translationKey("${phoneWords}"),`,
+    );
+    expect(catalog).toContain(
+      "RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route, ).toString(), GuidedSetupEntryPoint.Home,",
+    );
+    // Under the ticked step, for who may create a policy.
+    expect(card).toContain(
+      "doneFooter={ state.step === WelcomeStep.OnCall && offersPhone ? pagedByPhoneLink : undefined }",
+    );
+    expect(card).toContain(
+      "data.answer.canBePagedByPhoneOrApp === false && data.mayUseOnCallSetup,",
+    );
+    expect(catalog).toContain(
+      "return PermissionGate.check(new OnCallDutyPolicy(), ModelAction.Create) .isAllowed;",
+    );
+    // Read once the step is done: a verified phone or push device pages you.
+    expect(service).toContain(
+      "data.isOnCallDone ? this.canBePagedByPhoneOrApp(data.caller) : Promise.resolve(null),",
+    );
+    expect(PHONE_OR_APP_METHOD_TYPES).toEqual([
+      "SMS",
+      "Call",
+      "WhatsApp",
+      "Push",
+    ]);
+    expect(
+      canPageByPhoneOrApp([{ methodType: "Email", isVerified: true }]),
+    ).toBe(false);
+    expect(
+      canPageByPhoneOrApp([{ methodType: "SMS", isVerified: false }]),
+    ).toBe(false);
+    expect(
+      canPageByPhoneOrApp([{ methodType: "Push", isVerified: true }]),
+    ).toBe(true);
+
+    expect(section).toContain(
+      `Once **${task.title}** is ticked, and while only email can page you, **${phoneWords}** stays under it: it opens the guided setup **${setup.title}**, to add your phone or the mobile app. Only people who may create on-call policies see it.`,
+    );
+  });
+
+  /*
+   * What else to set up (#7986): once the checklist is done, the core steps
+   * no goal brought, as a card among Home's others, hidden for one person.
+   */
+  it("offers what else to set up once the checklist is done, as a card among Home's others", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+    const card: string = oneLine(CHECKLIST_SOURCE);
+    const more: string = oneLine(
+      dashboard("Components/Home/WelcomeChecklist/WelcomeMoreSteps.tsx"),
+    );
+    const phoneWords: string = setupWord(
+      QUICKSTART_SETUP_COPIES.website,
+      "nextPhone",
+    );
+
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'title: translationKey("More to set up"),',
+    );
+    // The core steps a website's goal did not bring: a status page, the team.
+    expect(DEFAULT_WELCOME_STEPS).toEqual([
+      WelcomeStep.Monitor,
+      WelcomeStep.OnCall,
+      WelcomeStep.StatusPage,
+      WelcomeStep.Team,
+    ]);
+    expect(getWelcomeMoreSteps({ goals: [ProjectGoal.Uptime] })).toEqual([
+      WelcomeStep.StatusPage,
+      WelcomeStep.Team,
+    ]);
+    // A project that never chose goals had the four already.
+    expect(getWelcomeMoreSteps({ goals: null })).toEqual([]);
+    // Shown once finished, while a step or the phone is left, unless hidden.
+    expect(card).toContain(
+      "if (answer.isFinished) { return !answer.isHiddenForMe && (getMoreSteps(answer).length > 0 || Boolean(data.offersPhone)) ? WelcomeCardView.More : WelcomeCardView.None; }",
+    );
+    // A card among the others: only the question and the checklist take Home.
+    expect(card).toContain(
+      "return ( data.view === WelcomeCardView.Checklist && data.answer !== null && data.answer.goals !== null );",
+    );
+    // The phone first, then the steps; its Hide is the checklist's.
+    expect(more.indexOf("{props.offersPhone ? (")).toBeGreaterThan(-1);
+    expect(more.indexOf("{props.offersPhone ? (")).toBeLessThan(
+      more.indexOf("{props.moreSteps.map("),
+    );
+    expect(more).toContain("title={WELCOME_CHECKLIST_COPY.hideButton}");
+    expect(card).toContain(
+      "onHide={() => { change(WELCOME_CHECKLIST_HIDE_ROUTE, {})",
+    );
+
+    expect(section).toContain(
+      `Once the checklist is done, **More to set up** takes its place under the headline, as a card among the others: the core steps your goals did not bring, such as a status page and your team, each until it works, with **${phoneWords}** first while only email can page you. Its **Hide** takes it away for you, with no line left behind.`,
+    );
   });
 
   it("promises no way back to the checklist that no step draws", () => {
@@ -3199,6 +3473,28 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain("**When this goes down** card");
     expect(pageWords).toContain('dismissed: translationKey("Dismissed"),');
     expect(section).toContain("restored from **Dismissed**");
+
+    /*
+     * An owner the card says no Created email reaches is a finding too
+     * (#9371), with the card's own fix pages.
+     */
+    expect(
+      oneLine(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "../../../../Common/Types/SetupHealth/SetupHealth.ts",
+          ),
+          "utf8",
+        ),
+      ),
+    ).toContain('OwnerNotEmailed = "owner_not_emailed"');
+    expect(pageWords).toContain(
+      "[SetupHealthFix.TeamMembers]: OWNER_FIX_WORDS.team,",
+    );
+    expect(section).toContain(
+      "Each owner the card says no Created email reaches is a finding too, worth fixing, with the same page to put it right.",
+    );
   });
 
   it("names Your project's resources in the card's order, and when Upcoming maintenance shows", () => {
@@ -3252,6 +3548,26 @@ describe("Home Page & Shortcuts", () => {
     expect(EXPLORE_SOURCE).toContain("groupItemsByCategory(");
     expect(sectionOf(HOME, "### Explore OneUptime")).toContain(
       "**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials.",
+    );
+    /*
+     * The products the project hides are not left out of everything
+     * (#7468): they are its last tab, named as the products menu names
+     * them, with the menu's note that they still work.
+     */
+    expect(dashboard("Components/NavBar/NavBar.tsx")).toContain(
+      'export const HIDDEN_PRODUCTS_TITLE: string = translationKey("More products");',
+    );
+    expect(oneLine(EXPLORE_SOURCE)).toContain(
+      "? [...listedCategories, { title: hiddenTitle, items: hiddenItems }]",
+    );
+    expect(EXPLORE_SOURCE).toContain("<HiddenProductsMenuNote");
+    expect(
+      dashboard("Components/ProjectProducts/ProjectProductsCopy.ts"),
+    ).toContain(
+      '"Hidden in this project. Search still finds them, and their pages work.",',
+    );
+    expect(sectionOf(HOME, "### Explore OneUptime")).toContain(
+      "The products your project hides are under its last tab, **More products**, with a note that they still work.",
     );
   });
 
@@ -3988,6 +4304,21 @@ describe("Your Account", () => {
         return rows.includes(page);
       }),
     ).toEqual(rows);
+  });
+
+  it("opens User Settings on its Setup Checklist while something is left, and on Notification Methods after (#7039)", () => {
+    expect(
+      dashboard(
+        "Components/UserSettings/SetupChecklist/UserSettingsLanding.ts",
+      ).replace(/\s+/g, " "),
+    ).toContain(
+      "return hasEssentialStepsLeft ? PageMap.USER_SETTINGS_SETUP : PageMap.USER_SETTINGS_NOTIFICATION_METHODS;",
+    );
+    expect(
+      sectionOf(YOUR_ACCOUNT, "## What each project keeps for you"),
+    ).toContain(
+      "It opens on **Setup Checklist** while something is left to set up, and on **Notification Methods** once nothing essential is.",
+    );
   });
 
   it("keeps the theme in the browser and a picked language in the account: the browser's language first, the device's theme unless Light or Dark was picked", () => {

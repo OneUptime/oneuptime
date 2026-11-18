@@ -110,6 +110,14 @@ export interface ComponentProps {
    * heading, for the browser tab and anything else that reads it as text.
    */
   recordTitle?: PageRecordTitle | undefined;
+  /*
+   * Whose page this is, first in the browser tab: "OneUptime | Incidents",
+   * the product's name (ProductBranding), unless the front end is someone
+   * else's. A status page is its owner's: its tab reads "Acme Status |
+   * Incidents", never OneUptime's name, and a page of it with no title of
+   * its own (its Overview) reads "Acme Status" alone (#7467).
+   */
+  documentTitleName?: string | undefined;
 }
 
 export interface PageRecordTitle {
@@ -312,14 +320,24 @@ const Page: FunctionComponent<ComponentProps> = (
     const pageTitle: string | undefined =
       breadcrumbTitle || recordHeadingText || translatedTitle;
 
+    const documentTitleName: string = (props.documentTitleName || "").trim();
+
     if (pageTitle) {
       // The installation's own name when it goes by one (ProductBranding).
-      document.title = `${getProductName()} | ${pageTitle}`;
+      document.title = `${documentTitleName || getProductName()} | ${pageTitle}`;
+    } else if (documentTitleName) {
+      // A front end's page with no title of its own: whose page it is.
+      document.title = documentTitleName;
     }
 
     // What names this page from outside it: Give Feedback's "this page (SLOs)".
     publishPageTrail(breadcrumbLinks);
-  }, [translatedTitle, recordHeadingText, breadcrumbLinks]);
+  }, [
+    translatedTitle,
+    recordHeadingText,
+    breadcrumbLinks,
+    props.documentTitleName,
+  ]);
 
   if (props.error) {
     return <ErrorMessage message={props.error} />;

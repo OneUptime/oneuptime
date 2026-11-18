@@ -36,7 +36,7 @@ O explorador tem seis abas:
 
 ## Antes de começar
 
-- **Métricas chegando.** Envie-as com [OpenTelemetry](/docs/telemetry/open-telemetry), ou de um agente como o [coletor OpenTelemetry para hosts](/docs/telemetry/host-otel-collector) ou o [agente Kubernetes](/docs/telemetry/kubernetes-agent).
+- **Métricas chegando.** Envie-as com [OpenTelemetry](/docs/telemetry/open-telemetry), ou de um agente como o [coletor OpenTelemetry para hosts](/docs/telemetry/host-otel-collector) ou o [agente Kubernetes](/docs/telemetry/kubernetes-agent). Até chegarem os primeiros dados, esta página oferece **Configuração guiada**, que leva você dos seus primeiros registros, métricas e traços até os alertas sobre eles, ao lado de **Enviar suas primeiras métricas**, o guia de configuração sozinho.
 - **Uma função que possa ler telemetria.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria ou Visualizador de telemetria, ou uma função personalizada com a permissão Read Metrics. Veja [Telemetria](/docs/permissions/index#telemetria) para saber quais métricas ela lê.
 
 ## Encontrar uma métrica

@@ -28,13 +28,15 @@ La dirección se comprueba desde la propia sonda de tu servidor, así que debe s
 
 ![Inicio pregunta «¿Qué quieres hacer primero?», con «Saber cuándo cae mi sitio web o mi API» marcado](screen:home-goal-website)
 
-La página **Inicio** de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API** y haz clic en **Continuar**. Después haz clic en **Crea tu primer monitor**, en la lista **Te damos la bienvenida a OneUptime 👋**. Si la lista no lo muestra, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `website down` y elige **Saber cuándo cae mi sitio web o mi API**.
+La página **Inicio** de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API** y haz clic en **Continuar**. Después haz clic en **Crea tu primer monitor**, en la lista **Te damos la bienvenida a OneUptime 👋**. Si la lista no lo muestra, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `website down` y elige **Saber cuándo cae mi sitio web o mi API**. **Monitores** también la ofrece: **Configuración guiada** en la lista vacía y en **Cómo funciona**, y una línea en **Crear monitor** en cuanto eliges **Sitio web** o **API**.
 
 ### Escribir la dirección
 
 ![El paso «¿Qué debemos comprobar?», con «Empezar a comprobar» resaltado](screen:website-down-address)
 
-En **¿Qué debemos comprobar?**, escribe la dirección en **Dirección del sitio web o de la API**. Para un endpoint de API, marca **Este es un endpoint de API**. Haz clic en **Empezar a comprobar**: las sondas la comprueban de inmediato, y una frase dice lo que han encontrado. Haz clic en **Continuar**.
+En **¿Qué debemos comprobar?**, el paso dice desde cuántas ubicaciones se comprobará la dirección. Escríbela en **Dirección del sitio web o de la API**. Para un endpoint de API, marca **Este es un endpoint de API**. Haz clic en **Empezar a comprobar**: las sondas la comprueban de inmediato, y una frase dice lo que han encontrado. Haz clic en **Continuar**.
+
+Cuando el monitor de un compañero ya comprueba la dirección, o uno creado por la API, Terraform o una importación, el paso lo dice antes de crear nada. Haz clic en **Abrir el monitor** para ver a quién avisa, o en **Crear mi propio monitor** para seguir con uno tuyo. Solo nombra un monitor que puedas abrir.
 
 ### Elegir a quién se avisa
 
@@ -42,7 +44,7 @@ En **¿Qué debemos comprobar?**, escribe la dirección en **Dirección del siti
 
 En **¿A quién hay que avisar?**, lo que ves depende del proyecto:
 
-- Si aún no hay ninguna política de guardia ni ninguna regla de guardia, ya estás en **A quién se avisa**. Haz clic en **Añadir miembros del equipo** para incluir a personas que ya están en el proyecto y, después, en **Guardar y continuar**. Esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta del proyecto.
+- Si aún no hay ninguna política de guardia ni ninguna regla de guardia, ya estás en **A quién se avisa**. Haz clic en **Añadir miembros del equipo** para incluir a personas que ya están en el proyecto y, después, en **Guardar y continuar**. Esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta del proyecto. A cada persona se le avisa como dice su **Cómo contactarme**: el enlace abre el tuyo en una pestaña nueva.
 - Si ya hay una política o una regla de guardia, las propias reglas del proyecto deciden a quién se avisa: haz clic en **Continuar**.
 - Si eres miembro, como no puedes configurar los avisos, se te indica que recibirás correos como propietario del monitor: haz clic en **Continuar**.
 
@@ -50,18 +52,23 @@ En **¿A quién hay que avisar?**, lo que ves depende del proyecto:
 
 ![El paso «Envía una prueba», con «Enviarme un aviso de prueba» resaltado](screen:website-down-test)
 
-En **Envía una prueba**, haz clic en **Enviarme un aviso de prueba**. Elige una **Gravedad** y haz clic en **Enviar aviso de prueba**. La prueba te llega igual que un aviso real, y cada mensaje dice TEST. No se crea ningún incidente.
+En **Envía una prueba**, haz clic en **Enviarme un aviso de prueba**. Elige una **Gravedad**: la línea de debajo dice que la prueba te llega como dice tu **Cómo contactarme** para esa gravedad. Haz clic en **Enviar aviso de prueba**. La prueba te llega igual que un aviso real, y cada mensaje dice TEST. No se crea ningún incidente.
 
 ### Reconocer el aviso de prueba
 
 Abre el enlace del correo y reconoce ahí el aviso. Un número de teléfono verificado también sirve, una vez que los SMS y las llamadas están activados en el proyecto: abre el enlace del SMS, o pulsa 1 durante la llamada. Después haz clic en **Hecho** en el cuadro de diálogo y en **Continuar**.
+
+### Mostrarlo a los clientes
+
+Si el proyecto tiene una página de estado y puedes añadirle monitores, sigue un paso más. En **¿Mostrarlo a los clientes?**, elige la página en **Página de estado** y haz clic en **Añadir a la página de estado**, o haz clic en **Ahora no**. Un proyecto que aún no tiene página de estado se lo salta: el resumen ofrece en su lugar **Mostrarlo en una página de estado**, con tu monitor ya marcado.
 :::
 
 ## Comprobar que ha funcionado
 
 ![El resumen, leído de los registros: «Comprobado», «Cuando se cae», «A quién se avisa» y «Probado»](screen:website-down-summary)
 
-- La configuración termina en su resumen, con lo que se ha guardado: **Comprobado**, **Cuando se cae**, **A quién se avisa** y **Probado**.
+- La configuración termina en su resumen, con lo que se ha guardado: **Comprobado**, **Cuando se cae**, **A quién se avisa** y **Probado**, y **Página de estado** en cuanto una página muestra el monitor.
+- En **Siguientes pasos**, **Recibir avisos por SMS o llamada telefónica** abre la configuración guiada **Avisar a la persona adecuada cuando algo falle**, que añade tu teléfono.
 - Haz clic en **Abrir el monitor** y, después, en **Mostrar la cadena**, en su tarjeta **Cuando falla**: muestra la cadena que va del monitor a las personas a las que llega, y dice **Nada detiene la cadena.** cuando nada la detendría.
 - En **Inicio**, la lista marca el paso **Crea tu primer monitor** como hecho en cuanto llega la primera comprobación. Si era el último paso, la lista desaparece.
 

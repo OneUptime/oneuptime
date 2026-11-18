@@ -438,6 +438,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Activation/ProjectMilestoneBackfill.ts": {
     "ProjectMilestoneBackfill.backfill ProjectMilestone": Why.Migration,
   },
+  /*
+   * The first-data marks of telemetry sent before the marks were kept, from
+   * what ClickHouse holds (#9454).
+   */
+  "packages/Common/Server/Utils/Activation/TelemetryMilestoneBackfill.ts": {
+    "(module) ProjectMilestone": Why.Migration,
+  },
   "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts":
     {
       "CloudConnectionResourceSync.archive CloudResource": Why.Reported,

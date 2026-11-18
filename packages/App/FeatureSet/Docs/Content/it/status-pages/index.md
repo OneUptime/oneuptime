@@ -72,8 +72,10 @@ Questo è tutto il modulo. L'elenco **Pagine di stato** mostra **Nome**, **Descr
 
 ### Aprire la nuova pagina
 
-La nuova pagina si apre sulla sua schermata **Panoramica**. Finché la pagina non ha una risorsa, la schermata comincia con **Ancora niente su questa pagina di stato** e **Aggiungi monitor**, che apre la sua schermata **Risorse**. Seguono due schede: **Link della pagina di stato**, con il link alla pagina vera e propria e **Copia link**, e **Dettagli della pagina di stato**, dove potete modificare il nome, la descrizione e le etichette appena impostati. Quando il progetto ha campi personalizzati delle pagine di stato, segue una scheda **Campi personalizzati**.
+La nuova pagina si apre sulla sua schermata **Panoramica**. Finché la pagina non ha una risorsa, la schermata comincia con **Ancora niente su questa pagina di stato** e **Aggiungi monitor**, che apre lì stesso una finestra di dialogo per scegliere i monitor che vedono i visitatori. Seguono due schede: **Link della pagina di stato**, con il link alla pagina vera e propria e **Copia link**, e **Dettagli della pagina di stato**, dove potete modificare il nome, la descrizione e le etichette appena impostati. Quando il progetto ha campi personalizzati delle pagine di stato, segue una scheda **Campi personalizzati**.
 :::
+
+Per farvi guidare passo dopo passo, dai monitor che la pagina mostra fino a ciò che vedono i vostri clienti, fate clic su **Configurazione guidata**: nell'elenco vuoto **Pagine di stato** o in **Come funziona**. Vedi [Pubblicare una pagina di stato](/docs/guides/status-page).
 
 Una pagina creata con l'API o con Terraform è soggetta agli stessi piani delle impostazioni descritte più sotto. Su OneUptime Cloud, creare una pagina con un'impostazione attiva che il vostro piano non include (per esempio privata, un elenco nascosto, HTML, CSS o JavaScript personalizzati, report via email, iscritti via SMS, Slack, Microsoft Teams o webhook, una lista di IP consentiti) viene rifiutato con `402 Payment Required`, e il messaggio indica il piano. Il piano di ogni impostazione è indicato accanto a essa più sotto. Le impostazioni lasciate al valore predefinito, come le lascia questo modulo, funzionano su tutti i piani.
 

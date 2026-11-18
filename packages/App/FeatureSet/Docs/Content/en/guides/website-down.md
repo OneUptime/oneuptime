@@ -28,13 +28,15 @@ The address is checked from your server's own probe, so it must be reachable fro
 
 ![Home asks "What do you want to do first?", with "Know when my website or API is down" ticked](screen:home-goal-website)
 
-A new project's **Home** first asks **What do you want to do first?**: tick **Know when my website or API is down** and click **Continue**. Then click **Create your first monitor** in the **Welcome to OneUptime 👋** checklist. If the checklist does not show it, press `Ctrl+K` (`Cmd+K` on a Mac), type `website down` and choose **Know when my website or API is down**.
+A new project's **Home** first asks **What do you want to do first?**: tick **Know when my website or API is down** and click **Continue**. Then click **Create your first monitor** in the **Welcome to OneUptime 👋** checklist. If the checklist does not show it, press `Ctrl+K` (`Cmd+K` on a Mac), type `website down` and choose **Know when my website or API is down**. **Monitors** offers it too: **Guided setup** on the empty list and under **How it works**, and a line on **Create Monitor** once you pick **Website** or **API**.
 
 ### Enter the address
 
 ![The step "What should we check?", with "Start checking" ringed](screen:website-down-address)
 
-Under **What should we check?**, type the address in **Website or API address**. For an API endpoint, tick **This is an API endpoint**. Click **Start checking**: the probes check it at once, and a sentence says what they found. Click **Continue**.
+Under **What should we check?**, the step says from how many locations the address will be checked. Type it in **Website or API address**. For an API endpoint, tick **This is an API endpoint**. Click **Start checking**: the probes check it at once, and a sentence says what they found. Click **Continue**.
+
+When a teammate's monitor already checks the address, or one the API, Terraform or an import made, the step says so before it makes anything. Click **Open the monitor** to see who it tells, or **Create my own monitor** to go on with one of your own. It names only a monitor you may open.
 
 ### Choose who is told
 
@@ -42,7 +44,7 @@ Under **What should we check?**, type the address in **Website or API address**.
 
 Under **Who should be told?**, what you see depends on the project:
 
-- With no on-call policy or on-call rule yet, you are already in **Who is paged**. Click **Add teammates** to add people who are already in the project, then click **Save and continue**. This creates **Default on-call policy**, which pages them for every new incident and alert in the project.
+- With no on-call policy or on-call rule yet, you are already in **Who is paged**. Click **Add teammates** to add people who are already in the project, then click **Save and continue**. This creates **Default on-call policy**, which pages them for every new incident and alert in the project. Each person is paged the way their **How to Reach Me** says: the link opens yours in a new tab.
 - With an on-call policy or rule, the project's own rules decide who is paged: click **Continue**.
 - As a member, who may not set up paging, you are told you will be emailed as the monitor's owner: click **Continue**.
 
@@ -50,18 +52,23 @@ Under **Who should be told?**, what you see depends on the project:
 
 ![The step "Send a test", with "Send me a test page" ringed](screen:website-down-test)
 
-Under **Send a test**, click **Send me a test page**. Pick a **Severity** and click **Send test page**. The test reaches you the way a real page would, and every message says TEST. No incident is created.
+Under **Send a test**, click **Send me a test page**. Pick a **Severity**: the line under it says the test reaches you as your **How to Reach Me** says for that severity. Click **Send test page**. The test reaches you the way a real page would, and every message says TEST. No incident is created.
 
 ### Acknowledge the test page
 
 Open the link in the email and acknowledge the page there. A verified phone number works too, once SMS and calls are turned on for the project: open the link in the text message, or press 1 during the call. Then click **Done** in the dialog, and **Continue**.
+
+### Show it to customers
+
+If the project has a status page and you may add monitors to it, one more step follows. Under **Show it to customers?**, pick the page in **Status page** and click **Add to status page**, or click **Not now**. A project with no status page yet skips it: the summary offers **Show it on a status page** instead, with your monitor ticked.
 :::
 
 ## Check that it worked
 
 ![The summary, read from the records: "Checked", "When it goes down", "Who is told" and "Tested"](screen:website-down-summary)
 
-- The setup ends on its summary, read from the records: **Checked**, **When it goes down**, **Who is told** and **Tested**.
+- The setup ends on its summary, read from the records: **Checked**, **When it goes down**, **Who is told** and **Tested**, and **Status page** once one shows the monitor.
+- Under **What next**, **Get paged by SMS or phone call** opens the guided setup **Page the right person when something breaks**, which adds your phone.
 - Click **Open the monitor**, then **Show the chain** on its **When this goes down** card: it shows the chain from the monitor to the people it reaches, and says **Nothing stops the chain.** when nothing would stop it.
 - On **Home**, the checklist marks **Create your first monitor** as done once the first check comes in. When it was the last step, the checklist is gone.
 

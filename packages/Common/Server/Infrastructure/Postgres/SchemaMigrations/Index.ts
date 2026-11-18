@@ -1054,7 +1054,11 @@ import { WidenWorkspaceMessageIdColumns1809182970000 } from "./1809182970000-Wid
 import { AddNetworkDeviceManufacturer1809182980000 } from "./1809182980000-AddNetworkDeviceManufacturer";
 import { AddOnCallFireDrillResults1809183100000 } from "./1809183100000-AddOnCallFireDrillResults";
 import { AddOnCallFireDrillResultsIndexAndKey1809183110000 } from "./1809183110000-AddOnCallFireDrillResultsIndexAndKey";
-import { KeepSampleProjectColumns1809183200000 } from "./1809183200000-KeepSampleProjectColumns";
+import { AddBackupScriptLastRun1809183200000 } from "./1809183200000-AddBackupScriptLastRun";
+import { AddProjectDefaultPagingLadder1809183250000 } from "./1809183250000-AddProjectDefaultPagingLadder";
+import { AddServerEmailLog1809183300000 } from "./1809183300000-AddServerEmailLog";
+import { AddServerAlerts1809183400000 } from "./1809183400000-AddServerAlerts";
+import { KeepSampleProjectColumns1809183500000 } from "./1809183500000-KeepSampleProjectColumns";
 
 export default [
   InitialMigration,
@@ -2113,5 +2117,9 @@ export default [
   AddNetworkDeviceManufacturer1809182980000,
   AddOnCallFireDrillResults1809183100000,
   AddOnCallFireDrillResultsIndexAndKey1809183110000,
-  KeepSampleProjectColumns1809183200000,
+  AddBackupScriptLastRun1809183200000,
+  AddProjectDefaultPagingLadder1809183250000,
+  AddServerEmailLog1809183300000,
+  AddServerAlerts1809183400000,
+  KeepSampleProjectColumns1809183500000,
 ];

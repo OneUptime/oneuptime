@@ -167,6 +167,7 @@ Let's Encrypt को इंटरनेट से पहुँचने यो�
 :::cards
 - [त्वरित शुरुआत](/docs/introduction/quickstart): पंद्रह मिनट में एक मॉनिटर, एक ऑन-कॉल नीति और एक स्थिति पृष्ठ।
 - [Docker Compose](/docs/installation/docker-compose): आपकी अपनी प्रॉक्सी, बैकअप, अपडेट और प्रोडक्शन चेकलिस्ट।
+- [Kubernetes और Helm](/docs/installation/kubernetes): Kubernetes इंस्टॉल का बैकअप लें और उसकी कुंजियाँ सँभालकर रखें।
 - [अपग्रेड करना](/docs/installation/upgrading): नई रिलीज़ पर जाएँ, एक बार में एक मुख्य संस्करण।
 - [वास्तुकला](/docs/self-hosted/architecture): OneUptime के हिस्से कैसे एक साथ काम करते हैं।
 :::

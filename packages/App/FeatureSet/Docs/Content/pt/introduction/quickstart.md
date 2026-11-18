@@ -74,17 +74,17 @@ A configuração do site já criou a **Política de plantão padrão**, que acio
 :::steps
 ### Abrir a configuração de plantão
 
-Pressione `Ctrl+K` (`Cmd+K` em um Mac), digite `get paged` e escolha **Acionar a pessoa certa quando algo quebrar**. Enquanto a lista não marcar **Configure uma política de plantão**, essa etapa abre a mesma configuração guiada.
+No resumo da configuração do site, clique em **Ser acionado por SMS ou ligação telefônica**: o link abre a configuração guiada **Acionar a pessoa certa quando algo quebrar**. Para abri-la mais tarde, pressione `Ctrl+K` (`Cmd+K` em um Mac), digite `get paged` e escolha-a. Enquanto a lista não marcar **Configure uma política de plantão**, essa etapa abre a mesma configuração guiada. Depois de marcada, e enquanto só o e-mail puder acionar você, a página Início mantém **Ser acionado por SMS ou ligação telefônica** abaixo dela.
 
 ### Escolher como você é contatado
 
 ![O passo "Como devemos contatar você?", com "Ativar SMS e chamadas" destacado](screen:paging-reach-you)
 
-Em **Como devemos contatar você?**, seu e-mail de login já aparece. Para notificações push, instale o app OneUptime On-Call pela App Store ou pelo Google Play, faça login e clique em **Verificar de novo**. Para receber também SMS e chamadas, clique em **Ativar SMS e chamadas**, digite seu número em **Seu número de telefone** e clique em **Enviar um código por SMS**: no OneUptime Cloud, SMS e chamadas são pagos com o saldo do projeto, então a etapa pede que você adicione saldo primeiro. Clique em **Continuar**.
+Em **Como devemos contatar você?**, seu e-mail de login já aparece. Para notificações push, instale o app OneUptime On-Call pela App Store ou pelo Google Play, faça login e clique em **Verificar de novo**. **Baixar o app** mostra um código para escanear de cada loja, e **Usar este navegador** aciona também este navegador. Para receber também SMS e chamadas, clique em **Ativar SMS e chamadas**, digite seu número em **Seu número de telefone** e clique em **Enviar um código por SMS**: no OneUptime Cloud, SMS e chamadas são pagos com o saldo do projeto, então a etapa pede que você adicione saldo primeiro. Clique em **Continuar**.
 
-### Escolher quem mais é acionado
+### Escolher quem é acionado primeiro
 
-Em **Quem mais está de plantão?**, mantenha a **Política de plantão padrão** em **Política de plantão**. Para acionar membros da equipe com você, adicione-os em **Adicionar à primeira regra de escalonamento**. Clique em **Salvar e continuar**.
+Em **Quem é acionado primeiro?**, mantenha a **Política de plantão padrão** em **Política de plantão**. Para acionar membros da equipe ao mesmo tempo que você, adicione-os em **Adicionar à primeira regra de escalonamento**, ou convide-os com **Convidar por e-mail**. Clique em **Salvar e continuar**.
 
 ### Decidir o que acontece se ninguém responder
 

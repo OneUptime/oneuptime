@@ -49,7 +49,9 @@ import OwnerRulePlanBuilder, {
   withPendingOwners,
 } from "../Utils/Rules/OwnerRulePlan";
 import CreatorTeams from "../Utils/Rules/CreatorTeams";
-import InheritedOwners from "../Utils/Rules/InheritedOwners";
+import InheritedOwners, {
+  InheritedOwnersReader,
+} from "../Utils/Rules/InheritedOwners";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 /*
@@ -259,6 +261,12 @@ class AlertOwnerRuleEngineServiceClass
     monitorCache?: MonitorRuleCriteriaCache | undefined;
     // The owners a resource will have once it is created (withPendingOwners).
     pendingOwners?: Map<OwnerRuleInheritSource, OwnerIdSets> | undefined;
+    /*
+     * Who owns the resources, for a reader that plans many alerts of one
+     * project (WhoIsToldService.resolveProject): read once for all of them
+     * (InheritedOwnersCache). Read for this alert alone otherwise.
+     */
+    inheritedOwners?: InheritedOwnersReader | undefined;
   }): Promise<OwnerRulePlan<AlertOwnerRule>> {
     const { alert, rules } = data;
 
@@ -295,9 +303,12 @@ class AlertOwnerRuleEngineServiceClass
       });
     }
 
+    const inheritedOwners: InheritedOwnersReader =
+      data.inheritedOwners || InheritedOwners;
+
     return builder.build(
       withPendingOwners({
-        read: await InheritedOwners.read({
+        read: await inheritedOwners.read({
           sources: builder.getSourcesToInherit(),
           resources: {
             // An alert has one monitor.

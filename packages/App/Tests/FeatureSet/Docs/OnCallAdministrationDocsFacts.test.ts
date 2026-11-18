@@ -3135,13 +3135,46 @@ describe("readiness", () => {
     );
   });
 
-  it("does not let ready responders be ticked", () => {
-    expect(READINESS_PAGE).toContain("isItemSelectable={isRemindable}");
+  it("reminds a ready responder only of a phone method the project asks for", () => {
+    /*
+     * A ready responder is reminded only when the project asks people on
+     * call for a phone method and they have none (#7449); anybody may be
+     * ticked by someone who may apply the project's default ladder (#7450).
+     */
+    expect(READINESS_PAGE).toContain("isItemSelectable={isSelectable}");
+    /*
+     * The rule the reminder, Readiness and the bell share (#7040): anything
+     * but Ready, or a phone method the project asks for and they lack.
+     */
     expect(READINESS_PAGE).toContain(
-      "return row.status !== READINESS_STATUS_READY;",
+      "return hasNotificationSetupToFinish(row.readiness);",
+    );
+    expect(
+      readCommonSource("Types/OnCallDutyPolicy/NotificationSetupToFinish.ts"),
+    ).toContain(
+      "readiness.status !== READY_READINESS_STATUS ||\n    readiness.isMissingPhoneMethod === true",
+    );
+    expect(READINESS_PAGE).toContain(
+      "return isDefaultLadderOffered || isRemindable(row);",
+    );
+    expect(READINESS_PAGE).toContain(
+      "await sendSetupReminders(onClickProps.items.filter(isRemindable));",
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "Ready responders cannot be ticked: there is nothing to remind them about.",
+      "A ready responder is reminded only when they have **No phone method**: there is nothing else to remind them about.",
+    );
+  });
+
+  it("applies the default ladder from the same list, to the people ticked", () => {
+    expect(READINESS_PAGE).toContain("useApplyDefaultLadderBulkAction");
+    expect(READINESS_PAGE).toContain(
+      "defaultLadder.length > 0 && canApplyDefaultLadder();",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "2. Click **Apply Default Ladder**. The confirmation shows the ladder and names everyone it changes.",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "Applying it takes **Project Owner** or **Project Admin**, or **Edit User Notification Rules** in a custom role.",
     );
   });
 
@@ -3172,6 +3205,30 @@ describe("readiness", () => {
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
       "- Under **Users**, open a member, then **Readiness** in the **On-Call** section: their status, their methods and their coverage grid.",
+    );
+  });
+
+  /*
+   * The bell's own line (#7040): everyone a policy pages whose setup is not
+   * finished, by the rule the setup reminder and Readiness use
+   * (hasNotificationSetupToFinish), opening their checklist.
+   */
+  it("says the bell asks anyone on a policy to finish their own setup, by the rule Readiness uses", () => {
+    const nudge: string = readDashboardSource(
+      "Components/Header/NotificationSetupNudge.ts",
+    ).replace(/\s+/g, " ");
+
+    expect(nudge).toContain(
+      'title: translationKey("Finish setting up your notifications")',
+    );
+    expect(nudge).toContain(
+      "if (!hasNotificationSetupToFinish(readiness)) { return null; }",
+    );
+    expect(nudge).toContain(
+      "if (!readiness || readiness.reachedVia.length === 0) { return null; }",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "- Anyone on a policy whose own setup is not finished sees **Finish setting up your notifications** in the bell at the top of every page, which opens their setup checklist.",
     );
   });
 });

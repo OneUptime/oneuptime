@@ -97,7 +97,7 @@ Pour voir comment une vérification a été jugée, ouvrez la **Vue d'ensemble**
 
 **Quand il tombe en panne** dit en quelques phrases ce qui se passe quand le moniteur tombe en panne et qui est prévenu : le statut qu'il définit, l'incident ou l'alerte qu'il ouvre, qui reçoit un e-mail et qui il alerte, nommément. Chaque chose qui empêcherait quelqu'un d'être prévenu figure sur sa propre ligne, avec un lien vers la page qui la corrige. On le trouve dans la **Vue d'ensemble** d'un moniteur, sous ses critères sur sa page **Critères**, à l'étape des critères de **Créer un moniteur** pour le moniteur que vous configurez, et dans la configuration guidée d'un site web.
 
-Il établit la chaîne comme le fait un vrai incident ou une vraie alerte : avec les règles de propriétaire, les règles de confidentialité, les règles d'étiquettes et les règles d'astreinte de votre projet, la règle d'incident des alertes qui transforme une alerte en incident, et les personnes que la première règle d'escalade de chaque politique d'astreinte atteint en ce moment. Une variable de titre que seule une vérification remplit est affichée telle qu'elle est écrite. **Afficher la chaîne** l'ouvre ligne par ligne :
+Il établit la chaîne comme le fait un vrai incident ou une vraie alerte : avec les règles de propriétaire, les règles de confidentialité, les règles d'étiquettes et les règles d'astreinte de votre projet, la règle d'incident des alertes qui transforme une alerte en incident, et les personnes que la première règle d'escalade de chaque politique d'astreinte atteint en ce moment. Une règle d'astreinte qui porte sur le propriétaire d'une alerte (**Propriétaire de l'alerte**) est évaluée sur les propriétaires que l'alerte aura : les personnes et équipes que ses critères désignent, les propriétaires de l'équipement réseau que surveille le moniteur et ceux qu'ajoutent les règles de propriétaire. Une variable de titre que seule une vérification remplit est affichée telle qu'elle est écrite. **Afficher la chaîne** l'ouvre ligne par ligne :
 
 | Ligne | Ce qu'elle dit |
 | --- | --- |
@@ -107,7 +107,7 @@ Il établit la chaîne comme le fait un vrai incident ou une vraie alerte : avec
 | **Règles de propriétaire** | Les règles de propriétaire qui ajoutent ses propriétaires. |
 | **Privé** | Pourquoi il est privé : une règle de confidentialité ou les critères. Un incident privé n'apparaît sur aucune page de statut et ne prévient aucun abonné, et seuls ses propriétaires, les Propriétaires du projet et les Administrateurs du projet peuvent le voir. |
 | **Règles d'étiquettes** | Les règles d'étiquettes dont les étiquettes changent les règles d'astreinte qui alertent. |
-| **Règles d'astreinte** | Les règles d'astreinte qui lui correspondent. |
+| **Règles d'astreinte** | Les règles d'astreinte qui lui correspondent. Pour une règle qui porte sur le propriétaire d'une alerte, la ligne dit quel propriétaire la fait correspondre. |
 | **Politique d'astreinte** | Chaque politique que ces règles déclenchent : qui sa première règle d'escalade atteint en ce moment et par quel moyen, et qui elle n'atteint pas, et pourquoi. |
 | **Pages de statut** | Les pages de statut qui l'affichent, chacune avec le groupe de moniteurs par lequel elle affiche le moniteur. |
 | **Règle d'incident** | Pour une alerte : la règle d'incident des alertes qui en déclare un incident, aussitôt ou une fois que l'alerte est restée ouverte, et cet incident, décrit comme tout incident. |
@@ -128,7 +128,7 @@ Il établit la chaîne comme le fait un vrai incident ou une vraie alerte : avec
 
 Une alerte qu'une règle d'incident des alertes transforme en un incident qui alerte quelqu'un n'est pas une rupture : ce sont les politiques de l'incident qui sont vérifiées.
 
-Les propriétaires qui ne reçoivent pas d'e-mail sont listés après les ruptures, chacun avec la raison et l'endroit où il est désigné : une personne qui n'est pas membre du projet, une équipe sans aucun membre du projet (**Ouvrir l'équipe**), ou une équipe d'un autre projet, désignée dans les critères (**Ouvrir les critères**), sur l'équipement réseau que surveille le moniteur (**Ouvrir l'équipement réseau**) ou par une règle de propriétaire (**Ouvrir les règles de propriétaire**). L'e-mail part quand même, aux propriétaires qu'il atteint ou aux Propriétaires du projet : ce ne sont donc pas des ruptures.
+Les propriétaires qui ne reçoivent pas d'e-mail sont listés après les ruptures, chacun avec la raison et l'endroit où il est désigné : une personne qui n'est pas membre du projet, une équipe sans aucun membre du projet (**Ouvrir l'équipe**), ou une équipe d'un autre projet, désignée dans les critères (**Ouvrir les critères**), sur l'équipement réseau que surveille le moniteur (**Ouvrir l'équipement réseau**) ou par une règle de propriétaire (**Ouvrir les règles de propriétaire**). L'e-mail part quand même, aux propriétaires qu'il atteint ou aux Propriétaires du projet : ce ne sont donc pas des ruptures. La santé de la configuration les liste aussi, comme points à corriger.
 
 ### Revérifier, et ce que vous voyez
 

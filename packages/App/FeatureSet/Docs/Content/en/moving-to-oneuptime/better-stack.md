@@ -94,7 +94,7 @@ Open each one under **Monitors** and check its first results. A heartbeat monito
 Add owners to your monitors, or an on-call policy under **On-Call** > **On-Call Policies** to the incidents they open, so the right people hear when something goes down.
 
 ### Point your status page's address at OneUptime
-Under **Status Pages**, open the page, add your domain under **Custom Domains**, then change its DNS record. Your visitors and subscribers then reach the new page.
+Under **Status Pages**, open the page, add your domain under **Custom Domains**, then change its DNS record. Your visitors and subscribers then reach the new page. Until then, the report shows where each page you brought over is live on OneUptime, with **Copy link**.
 
 ### Turn off the checks in Better Stack
 Once OneUptime checks the same things, pause them in Better Stack so nobody is told twice.

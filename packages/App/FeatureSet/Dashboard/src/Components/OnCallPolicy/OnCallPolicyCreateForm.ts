@@ -36,9 +36,10 @@ import SelectFormFields from "Common/UI/Types/SelectEntityField";
  * neither - so the first policy someone made from the Home checklist paged
  * nobody, and the step said it was done. With it on, the server adds an
  * on-call rule for incidents and one for alerts naming the policy
- * (EveryNewEventRules). The page offers it only while the project has no
- * on-call policy and no on-call rule (shouldOfferEveryNewEventRules); four
- * rows then, still one page: a step for one switch would be the longer way.
+ * (EveryNewEventRules). A later policy is asked it too, off to start with
+ * (#7371): its dialog used to hide the switch with nothing in its place, so
+ * a second policy was saved paging nobody, and nothing said so. Four rows,
+ * still one page: a step for one switch would be the longer way.
  *
  * Its words: the label names the policy ("this policy", never "it", which
  * under "Who gets paged first?" could be anyone), and the description says
@@ -62,11 +63,18 @@ export interface OnCallPolicyCreateFormOptions {
    */
   canAddEscalationRules: () => boolean;
   /*
-   * Whether to offer "Page this policy for every new incident and alert": a
-   * project's first policy, for someone who may add on-call rules. Read when
-   * the form is drawn. Left out, it is never offered.
+   * Whether to offer "Page this policy for every new incident and alert",
+   * to someone who may add on-call rules: a project's first policy, and a
+   * later one (getEveryNewEventRulesOfferKind). Read when the form is drawn.
+   * Left out, it is never offered.
    */
   offerEveryNewEventRules?: (() => boolean) | undefined;
+  /*
+   * Whether the switch starts on: on for a first policy, off for a later
+   * one (doesEveryNewEventRulesOfferStartOn). Its default, so the page
+   * builds the fields again when the answer changes. Left out, it starts on.
+   */
+  everyNewEventRulesStartsOn?: boolean | undefined;
 }
 
 export const getOnCallPolicyCreateFormFields: (
@@ -117,7 +125,11 @@ export const getOnCallPolicyCreateFormFields: (
       description: PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_DESCRIPTION,
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
-      defaultValue: true,
+      /*
+       * On for a first policy, off for a later one: paging two policies for
+       * every new incident and alert is a choice to make, not a default.
+       */
+      defaultValue: options.everyNewEventRulesStartsOn !== false,
       showIf: (): boolean => {
         return Boolean(options.offerEveryNewEventRules?.());
       },

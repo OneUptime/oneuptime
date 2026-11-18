@@ -705,11 +705,38 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               { name: "Auto Recharge", gate: PageSearchGate.Billing },
             ],
             /*
-             * The project's own mail servers and Twilio accounts, folded
-             * under the page's More settings (OwnSendersFold): each result
-             * opens the fold at its table.
+             * How members are paged by default (#7449), and the project's
+             * own mail servers and Twilio accounts, folded under the page's
+             * More settings (ProjectPagingDefaultsWords, OwnSendersFold): each
+             * result opens the fold at its card.
              */
             actions: [
+              {
+                id: "default-ladder-for-new-members",
+                title: "Default Ladder for New Members",
+                icon: IconProp.List,
+                keywords: [
+                  "default ladder",
+                  "default paging ladder",
+                  "default notification rules",
+                  "default on-call rules",
+                  "new member notification",
+                  "how to reach me default",
+                ],
+                anchor: "default-ladder-for-new-members",
+              },
+              {
+                id: "phone-for-people-on-call",
+                title: "Phone for People on Call",
+                icon: IconProp.DevicePhoneMobile,
+                keywords: [
+                  "require phone",
+                  "phone method",
+                  "require sms",
+                  "on-call phone",
+                ],
+                anchor: "phone-for-people-on-call",
+              },
               {
                 id: "custom-smtp-configs",
                 title: "Custom SMTP Configs",

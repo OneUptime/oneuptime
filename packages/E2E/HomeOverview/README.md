@@ -53,7 +53,7 @@ command palette.
 | `?fail=`     | comma separated: `overview` (every Incident list fails, so Home's batch does), `overview-once` (only the first one does), `resources` (every Status Page count fails), `upcoming` (the upcoming maintenance list fails)                                                                    |
 | `?lang=`     | `de` reads the German locale file                                                                                                                                                                                                                                                           |
 | `?theme=`    | `dark` adds `html.dark`                                                                                                                                                                                                                                                                     |
-| `?welcome=`  | The Welcome checklist's answer (`GET /api/welcome-checklist`), built with the real rules in `Common/Types/WelcomeChecklist`: `ask` (nobody has answered for a new project yet: the question first), `half` (the four steps, the monitor's first check in), `hidden` (hidden by this person). Without it, a new project skipped the question and every other scenario finished the checklist |
+| `?welcome=`  | The Welcome checklist's answer (`GET /api/welcome-checklist`), built with the real rules in `Common/Types/WelcomeChecklist`: `ask` (nobody has answered for a new project yet: the question first), `half` (the four steps, the monitor's first check in), `hidden` (hidden by this person), `gaps` (the four steps, the monitor's and who is told's done while only email pages the owner, a status page that shows no monitor and an invitation nobody accepted, each said under its step), `more` (a website project whose two steps are done: More to set up, with the owner's phone, the status page that shows no monitor and the team). Without it, a new project skipped the question and every other scenario finished the checklist |
 | `?plan=`     | `free`: OneUptime Cloud's Free plan, so the team step needs Growth                                                                                                                                                                                                                          |
 
 ## What the spec covers
@@ -83,6 +83,13 @@ command palette.
   outcome; the Free plan's team step says it needs Growth; Hide leaves a line with Show it and How
   OneUptime works, and Show it brings the checklist back; an invited member sees neither; the
   question in German on a dark card.
+- **Once a step's record exists, and once the first steps are done** (#6938, #7986, #9442): at
+  1280px and 390px, a website project whose steps are done gets More to set up in its overview -
+  the phone first, then the status page with the break it names, then the team - each row's
+  chevron beside its words; the phone opens the on-call guided setup from Home, the status page's
+  break its Monitors; Hide leaves no line; dark, and German and Persian at both widths, nothing
+  cut off. On the checklist, each step whose record exists says what it is missing where its time
+  was, and the ticked on-call step keeps Get paged by SMS or phone call; dark in Persian.
 - **Failures and Refresh**: the batch failing shows the card's error and never a strip of zeros,
   and the list says it could not be loaded and points at Try again; Try again recovering; a resource count the role may not read losing only its row; the upcoming
   list failing leaving out its card; Refresh reading again without blanking the page.

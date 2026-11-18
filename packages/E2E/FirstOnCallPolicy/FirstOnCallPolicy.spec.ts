@@ -24,9 +24,11 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  * incident and an alert on-call rule.
  *
  * Pinned here, in Chromium: the switch's row in the dialog - named for the
- * policy, said what it does, on - and what Create sends; that it is asked
- * only of a project's first policy, of someone who may add on-call rules,
- * and never when the project's counts fail; that it fits a 390px phone,
+ * policy, said what it does, on - and what Create sends; that a later
+ * policy is asked it too, off, so its dialog says before it is saved that a
+ * policy nothing triggers pages nobody (#7371); that it is asked only of
+ * someone who may add on-call rules, and never when the project's counts
+ * fail; that it fits a 390px phone,
  * reads in German and, in Persian, sits at the start of the row on the right
  * with the dialog laid out right to left, in dark mode. The fixture records
  * every create and every count, so the tests check what the page asked and
@@ -87,6 +89,10 @@ const NEW_PROJECT_COUNTS: Array<string> = [
 
 // The explanation's first step: the list's Create, in a new project.
 const SHOWCASE_BUTTON: string = "resource-showcase-add-button";
+
+// The explanation's primary button: the on-call guided setup (#7148).
+const SETUP_BUTTON: string = "resource-showcase-setup-button";
+const SETUP_OPENED: string = "on-call-guided-setup-opened";
 
 interface RecordedCreate {
   model: string;
@@ -336,8 +342,14 @@ test.describe("a new project's first on-call policy", () => {
   });
 });
 
-test.describe("a project that is not new is not asked", () => {
-  test("with a policy in the list: nothing is counted, nothing asked, nothing sent", async ({
+/*
+ * ISSUE #7371: a later policy's dialog hid the switch, with nothing in its
+ * place, and the policy was saved paging nobody without a word. It is
+ * asked too, off to start with: paging two policies for every new incident
+ * and alert is a choice to make, not a default.
+ */
+test.describe("a project that is not new is asked, off (#7371)", () => {
+  test("with a policy in the list: the switch is there, off, saying a policy nothing triggers pages nobody; nothing counted, nothing sent", async ({
     page,
   }: {
     page: Page;
@@ -346,19 +358,44 @@ test.describe("a project that is not new is not asked", () => {
     await expect(page.getByText("Platform on-call").first()).toBeVisible();
     await openCreate(page);
 
-    await expect(dialog(page).getByRole("switch")).toHaveCount(0);
-    await expect(dialog(page)).not.toContainText(SWITCH);
+    const toggle: Locator = everyNewEventSwitch(page);
+
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect(toggle).toHaveAccessibleDescription(SWITCH_DESCRIPTION);
     // Only the list's own count: the offer counts nothing.
     expect((await fixture(page)).counts).toEqual([LIST_FIRST_RUN_COUNT]);
     // A project with a policy is not told what On-Call is.
     await expect(page.getByTestId(SHOWCASE_BUTTON)).toHaveCount(0);
+
+    await screenshot(page, "later-policy-dialog-1280");
 
     const created: RecordedCreate = await createNamed(page, "Database on-call");
 
     expect(created.misc[SWITCH_KEY]).toBeUndefined();
   });
 
-  test("with an incident on-call rule and no policy: the counts say so, and nothing is asked", async ({
+  test("turned on, a later policy asks for the two rules too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "?policies=one");
+    await expect(page.getByText("Platform on-call").first()).toBeVisible();
+    await openCreate(page);
+
+    await switchLabel(page, SWITCH).click();
+    await expect(everyNewEventSwitch(page)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    const created: RecordedCreate = await createNamed(page, "Database on-call");
+
+    expect(created.misc[SWITCH_KEY]).toBe(true);
+  });
+
+  test("with an incident on-call rule and no policy: the counts say so, and the switch is there, off", async ({
     page,
   }: {
     page: Page;
@@ -373,13 +410,18 @@ test.describe("a project that is not new is not asked", () => {
         return (await fixture(page)).counts.sort();
       })
       .toEqual(NEW_PROJECT_COUNTS);
-    await expect(dialog(page).getByRole("switch")).toHaveCount(0);
+    await expect(everyNewEventSwitch(page)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
 
     const created: RecordedCreate = await createNamed(page, "Platform on-call");
 
     expect(created.misc[SWITCH_KEY]).toBeUndefined();
   });
+});
 
+test.describe("when the answer is not known, or not theirs to give, nothing is asked", () => {
   test("when the project's counts fail, nothing is asked and the dialog is what it always was", async ({
     page,
   }: {
@@ -437,6 +479,94 @@ test.describe("a project that is not new is not asked", () => {
       "aria-checked",
       "true",
     );
+  });
+});
+
+/*
+ * ISSUE #7148: On-Call's own pages never led to its guided setup. A new
+ * project's empty list explains On-Call with "Guided setup" first, as its
+ * one primary button, and Create On-Call Policy beside it, plain; "How it
+ * works" offers it once the project has a policy.
+ */
+test.describe("the guided setup, from On-Call itself (#7148)", () => {
+  test("a new project's empty list leads to the setup in one click, Create beside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page);
+
+    const setup: Locator = page.getByTestId(SETUP_BUTTON);
+
+    await expect(setup).toHaveText("Guided setup");
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toHaveText(
+      "Create On-Call Policy",
+    );
+
+    // The setup first, on the same row as Create, at 1280px.
+    const [setupBox, createBox] = await Promise.all([
+      box(setup),
+      box(page.getByTestId(SHOWCASE_BUTTON)),
+    ]);
+    expect(setupBox.x).toBeLessThan(createBox.x);
+    expect(Math.abs(setupBox.y - createBox.y)).toBeLessThan(2);
+
+    await screenshot(page, "on-call-empty-list-guided-setup-1280");
+
+    await setup.click();
+
+    // Saying where it was opened from, for guided_setup/started (#7054).
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/dashboard/${PROJECT_ID}/on-call-duty/setup\\?from=empty_list$`,
+      ),
+    );
+    await expect(page.getByTestId(SETUP_OPENED)).toBeAttached();
+  });
+
+  test("a project with a policy finds it under How it works", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "?policies=one");
+    await expect(page.getByText("Platform on-call").first()).toBeVisible();
+    // The list is in use: nothing explains it under the table.
+    await expect(page.getByTestId(SETUP_BUTTON)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "How it works" }).click();
+    await expect(dialog(page).getByTestId(SETUP_BUTTON)).toHaveText(
+      "Guided setup",
+    );
+
+    await dialog(page).getByTestId(SETUP_BUTTON).click();
+
+    await expect(page.getByTestId(SETUP_OPENED)).toBeAttached();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("at 390px the two buttons wrap inside the explanation, nothing to scroll sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openPage(page);
+
+    await expect(page.getByTestId(SETUP_BUTTON)).toBeVisible();
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toBeVisible();
+    await expectNoSidewaysScroll(page);
+  });
+
+  test("a Project Member, who may create a policy, is offered it too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "?role=member");
+
+    await expect(page.getByTestId(SETUP_BUTTON)).toHaveText("Guided setup");
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toBeVisible();
   });
 });
 

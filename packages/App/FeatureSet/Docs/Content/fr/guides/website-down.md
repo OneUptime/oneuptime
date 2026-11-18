@@ -28,13 +28,15 @@ L'adresse est vérifiée par la propre sonde de votre serveur : elle doit donc �
 
 ![Accueil demande « Que voulez-vous faire en premier ? », avec « Savoir quand mon site web ou mon API est en panne » coché](screen:home-goal-website)
 
-Dans un nouveau projet, la page **Accueil** demande d'abord **Que voulez-vous faire en premier ?** : cochez **Savoir quand mon site web ou mon API est en panne** et cliquez sur **Continuer**. Cliquez ensuite sur **Créez votre premier moniteur** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Si la liste de vérification n'affiche pas cette étape, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `website down` et choisissez **Savoir quand mon site web ou mon API est en panne**.
+Dans un nouveau projet, la page **Accueil** demande d'abord **Que voulez-vous faire en premier ?** : cochez **Savoir quand mon site web ou mon API est en panne** et cliquez sur **Continuer**. Cliquez ensuite sur **Créez votre premier moniteur** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Si la liste de vérification n'affiche pas cette étape, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `website down` et choisissez **Savoir quand mon site web ou mon API est en panne**. **Moniteurs** la propose aussi : **Configuration guidée** dans la liste vide et sous **Fonctionnement**, et une ligne dans **Créer un moniteur** dès que vous choisissez **Site web** ou **API**.
 
 ### Saisir l'adresse
 
 ![L'étape « Que devons-nous vérifier ? », avec « Lancer la vérification » entouré](screen:website-down-address)
 
-Sous **Que devons-nous vérifier ?**, saisissez l'adresse dans **Adresse du site web ou de l'API**. Pour un point de terminaison d'API, cochez **Il s'agit d'un point de terminaison d'API**. Cliquez sur **Lancer la vérification** : les sondes vérifient aussitôt l'adresse, et une phrase indique ce qu'elles ont trouvé. Cliquez sur **Continuer**.
+Sous **Que devons-nous vérifier ?**, l'étape indique depuis combien d'emplacements l'adresse sera vérifiée. Saisissez-la dans **Adresse du site web ou de l'API**. Pour un point de terminaison d'API, cochez **Il s'agit d'un point de terminaison d'API**. Cliquez sur **Lancer la vérification** : les sondes vérifient aussitôt l'adresse, et une phrase indique ce qu'elles ont trouvé. Cliquez sur **Continuer**.
+
+Quand le moniteur d'un coéquipier vérifie déjà l'adresse, ou un moniteur créé par l'API, Terraform ou une importation, l'étape le dit avant de créer quoi que ce soit. Cliquez sur **Ouvrir le moniteur** pour voir qui il prévient, ou sur **Créer mon propre moniteur** pour continuer avec le vôtre. Elle ne nomme qu'un moniteur que vous pouvez ouvrir.
 
 ### Choisir qui est prévenu
 
@@ -42,7 +44,7 @@ Sous **Que devons-nous vérifier ?**, saisissez l'adresse dans **Adresse du site
 
 Sous **Qui faut-il prévenir ?**, ce que vous voyez dépend du projet :
 
-- Si le projet n'a encore ni politique d'astreinte ni règle d'astreinte, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Ajouter des membres de l'équipe** pour ajouter des personnes qui font déjà partie du projet, puis cliquez sur **Enregistrer et continuer**. Cela crée la **Politique d'astreinte par défaut**, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte du projet.
+- Si le projet n'a encore ni politique d'astreinte ni règle d'astreinte, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Ajouter des membres de l'équipe** pour ajouter des personnes qui font déjà partie du projet, puis cliquez sur **Enregistrer et continuer**. Cela crée la **Politique d'astreinte par défaut**, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte du projet. Chaque personne est alertée comme l'indique son **Comment me joindre** : le lien ouvre le vôtre dans un nouvel onglet.
 - Si le projet a une politique ou une règle d'astreinte, ce sont ses propres règles qui décident qui est alerté : cliquez sur **Continuer**.
 - Si vous êtes membre, et ne pouvez donc pas configurer les alertes, l'étape vous indique que vous recevrez un e-mail en tant que propriétaire du moniteur : cliquez sur **Continuer**.
 
@@ -50,18 +52,23 @@ Sous **Qui faut-il prévenir ?**, ce que vous voyez dépend du projet :
 
 ![L'étape « Envoyer un test », avec « M'envoyer un appel de test » entouré](screen:website-down-test)
 
-Sous **Envoyer un test**, cliquez sur **M'envoyer un appel de test**. Choisissez une **Gravité** et cliquez sur **Envoyer l'appel de test**. Le test vous parvient comme le ferait un vrai appel, et chaque message indique TEST. Aucun incident n'est créé.
+Sous **Envoyer un test**, cliquez sur **M'envoyer un appel de test**. Choisissez une **Gravité** : la ligne en dessous indique que le test vous joint comme l'indique votre **Comment me joindre** pour cette gravité. Cliquez sur **Envoyer l'appel de test**. Le test vous parvient comme le ferait un vrai appel, et chaque message indique TEST. Aucun incident n'est créé.
 
 ### Prendre en compte l'appel de test
 
 Prenez l'appel de test en compte depuis le lien de l'e-mail. Un numéro de téléphone vérifié fonctionne aussi, une fois les SMS et les appels activés pour le projet : ouvrez le lien du SMS, ou appuyez sur 1 pendant l'appel téléphonique. Cliquez ensuite sur **Terminé** dans la boîte de dialogue, puis sur **Continuer**.
+
+### Le montrer aux clients
+
+Si le projet a une page de statut et que vous pouvez y ajouter des moniteurs, une étape de plus suit. Sous **Le montrer aux clients ?**, choisissez la page dans **Page de statut** et cliquez sur **Ajouter à la page de statut**, ou cliquez sur **Pas maintenant**. Un projet qui n'a pas encore de page de statut la saute : le récapitulatif propose plutôt **L'afficher sur une page de statut**, avec votre moniteur déjà coché.
 :::
 
 ## Vérifier que tout fonctionne
 
 ![Le résumé, lu dans les enregistrements : « Vérifié », « En cas de panne », « Qui est prévenu » et « Testé »](screen:website-down-summary)
 
-- La configuration se termine sur son récapitulatif, tiré de ce qui est enregistré : **Vérifié**, **En cas de panne**, **Qui est prévenu** et **Testé**.
+- La configuration se termine sur son récapitulatif, tiré de ce qui est enregistré : **Vérifié**, **En cas de panne**, **Qui est prévenu** et **Testé**, et **Page de statut** dès qu'une page affiche le moniteur.
+- Sous **Prochaines étapes**, **Être alerté par SMS ou par appel téléphonique** ouvre la configuration guidée **Alerter la bonne personne quand quelque chose tombe en panne**, qui ajoute votre téléphone.
 - Cliquez sur **Ouvrir le moniteur**, puis sur **Afficher la chaîne** dans sa carte **Quand il tombe en panne** : la carte montre la chaîne qui mène du moniteur aux personnes qu'il joint, et indique **Rien n'interrompt la chaîne.** quand rien ne l'interromprait.
 - Sur la page **Accueil**, la liste de vérification marque l'étape **Créez votre premier moniteur** comme terminée dès que le résultat de la première vérification arrive. Si c'était la dernière étape, la liste de vérification disparaît.
 

@@ -2,11 +2,18 @@ import { toolImportDocsUrl } from "./ToolImportApi";
 import ToolImportLogo from "./ToolImportLogo";
 import ToolImportNoteList from "./ToolImportNoteList";
 import {
+  getToolImportReportRecords,
   getToolImportReportSections,
   TOOL_IMPORT_REPORT_COUNT_ORDER,
   TOOL_IMPORT_SECTION_PAGE_SIZE,
+  ToolImportReportRecord,
   ToolImportReportSection,
 } from "./ToolImportPlanView";
+import { STATUS_PAGE_CUSTOM_DOMAINS } from "../CustomDomain/CustomDomainKinds";
+import PublicAddresses from "../CustomDomain/PublicAddresses";
+import { getTestPolicyGate } from "../OnCallTestPage/OnCallTestPageAccess";
+import SendTestPageButton from "../OnCallTestPage/SendTestPageButton";
+import { STATUS_PAGE_EXAMPLE_DOMAIN } from "../StatusPage/StatusPageOverviewCopy";
 import {
   describeToolImportNote,
   formatToolImportDateTime,
@@ -17,6 +24,7 @@ import {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import Color from "Common/Types/Color";
 import {
   Blue,
@@ -27,6 +35,7 @@ import {
   Slate500,
 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
 import {
   getToolImportSourceDefinition,
   isToolImportStatusPageHost,
@@ -44,15 +53,24 @@ import {
 import ToolImportResourceKind from "Common/Types/ToolImport/ToolImportResourceKind";
 import ToolImportRunStatus from "Common/Types/ToolImport/ToolImportRunStatus";
 import ToolImportSource from "Common/Types/ToolImport/ToolImportSource";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { STATUS_PAGE_URL } from "Common/UI/Config";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  useId,
   useMemo,
   useState,
 } from "react";
@@ -60,7 +78,9 @@ import React, {
 /*
  * Step four: what the import did. The counts at the top, every item with
  * what it became - linked to the record it became, failures first - and,
- * once it is done, what is left to finish the switch.
+ * once it is done, what is left to finish the switch, with the step that
+ * proves it works: a test page to a policy it brought over, or where each
+ * status page it brought over is live (#7032).
  *
  * A run that never got as far as importing (the read failed, the preview
  * was discarded or expired) says so, and offers a new import.
@@ -277,10 +297,168 @@ const ReportSection: FunctionComponent<{
   );
 };
 
+/*
+ * THE NEXT STEP AN IMPORT ENDS ON (issue #7032). A switch is done when it
+ * works, not when the records exist: an on-call tool's checklist offers a
+ * test page to a policy the import brought over (#6811's dialog), and a
+ * status page tool's shows each page's address - where it is live now, to
+ * open and copy - with the way to put it on the team's own domain
+ * (PublicAddresses, as a status page's Overview draws them).
+ */
+
+export const TOOL_IMPORT_TEST_PAGE_TEST_ID: string = "tool-import-test-page";
+export const TOOL_IMPORT_TEST_POLICY_TEST_ID: string =
+  "tool-import-test-policy";
+export const TOOL_IMPORT_TEST_POLICY_PICKER_TEST_ID: string =
+  "tool-import-test-policy-picker";
+export const TOOL_IMPORT_STATUS_PAGE_ADDRESSES_TEST_ID: string =
+  "tool-import-status-page-addresses";
+
+/*
+ * How many imported status pages the address step shows: an account's
+ * main pages, few enough for the checklist to stay a checklist. The rest
+ * are a click away, on Status Pages.
+ */
+export const TOOL_IMPORT_STATUS_PAGE_ADDRESSES_SHOWN: number = 3;
+
+export const TOOL_IMPORT_TEST_PAGE_COPY: {
+  title: string;
+  onePolicy: string;
+  severalPolicies: string;
+  policyPicker: string;
+} = {
+  title: translationKey("Send a test page"),
+  onePolicy: translationKey(
+    "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.",
+  ),
+  severalPolicies: translationKey(
+    "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.",
+  ),
+  policyPicker: translationKey("On-Call Policy"),
+};
+
+/*
+ * Test this policy, on the policy picked: the first the import brought
+ * over, or - with several - the one picked from them.
+ */
+const TestImportedPolicy: FunctionComponent<{
+  policies: Array<ToolImportReportRecord>;
+}> = (props: { policies: Array<ToolImportReportRecord> }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const pickerId: string = useId();
+  const [pickedId, setPickedId] = useState<string>(props.policies[0]!.id);
+  const policy: ToolImportReportRecord =
+    props.policies.find((candidate: ToolImportReportRecord): boolean => {
+      return candidate.id === pickedId;
+    }) || props.policies[0]!;
+
+  // A policy's name is the team's own: drawn as written.
+  const options: Array<DropdownOption> = props.policies.map(
+    (candidate: ToolImportReportRecord): DropdownOption => {
+      return {
+        value: candidate.id,
+        label: candidate.name,
+        isUserContent: true,
+      };
+    },
+  );
+
+  return (
+    <div
+      className="mt-2 flex flex-wrap items-center gap-2"
+      data-testid={TOOL_IMPORT_TEST_PAGE_TEST_ID}
+    >
+      {props.policies.length > 1 ? (
+        <div className="w-full min-w-0 sm:w-64">
+          <label htmlFor={pickerId} className="sr-only">
+            {translator.translateText(TOOL_IMPORT_TEST_PAGE_COPY.policyPicker)}
+          </label>
+          <Dropdown
+            inputId={pickerId}
+            options={options}
+            value={options.find((option: DropdownOption): boolean => {
+              return option.value === policy.id;
+            })}
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              if (typeof value === "string") {
+                setPickedId(value);
+              }
+            }}
+            isClearable={false}
+            isCompact={true}
+            dataTestId={TOOL_IMPORT_TEST_POLICY_PICKER_TEST_ID}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+      <SendTestPageButton
+        target={{
+          kind: "policy",
+          policyId: policy.id,
+          policyName: policy.name,
+        }}
+        buttonStyle={ButtonStyleType.OUTLINE}
+        buttonSize={ButtonSize.Small}
+        dataTestId={TOOL_IMPORT_TEST_POLICY_TEST_ID}
+      />
+    </div>
+  );
+};
+
+/*
+ * Each imported page's addresses: on OneUptime's own domain, live now, and
+ * the team's own domain once it is added - with Add a custom domain, which
+ * opens the page's Custom Domains, while it has none.
+ */
+const ImportedStatusPageAddresses: FunctionComponent<{
+  pages: Array<ToolImportReportRecord>;
+}> = (props: { pages: Array<ToolImportReportRecord> }): ReactElement => {
+  return (
+    <div
+      className="mt-3 space-y-4"
+      data-testid={TOOL_IMPORT_STATUS_PAGE_ADDRESSES_TEST_ID}
+    >
+      {props.pages
+        .slice(0, TOOL_IMPORT_STATUS_PAGE_ADDRESSES_SHOWN)
+        .map((page: ToolImportReportRecord): ReactElement => {
+          const pageId: ObjectID = new ObjectID(page.id);
+
+          return (
+            <div
+              key={page.id}
+              data-testid={`${TOOL_IMPORT_STATUS_PAGE_ADDRESSES_TEST_ID}-${page.id}`}
+            >
+              <p className="mb-1.5 break-words font-medium text-gray-900">
+                {page.name}
+              </p>
+              <PublicAddresses
+                kind={STATUS_PAGE_CUSTOM_DOMAINS}
+                parentId={pageId}
+                oneUptimeUrl={URL.fromString(
+                  `${STATUS_PAGE_URL.toString()}/${page.id}`,
+                )}
+                customDomainsRoute={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route,
+                  { modelId: pageId },
+                )}
+                exampleDomain={STATUS_PAGE_EXAMPLE_DOMAIN}
+              />
+            </div>
+          );
+        })}
+    </div>
+  );
+};
+
 interface FinishStep {
   title: string;
   description: string;
   link?: { title: string; route: Route } | undefined;
+  // What the step offers to do there and then (#7032), under its words.
+  content?: ReactElement | undefined;
 }
 
 /*
@@ -288,13 +466,15 @@ interface FinishStep {
  * check the monitors (a heartbeat has a new address), choose who is told,
  * point the status page's domain at OneUptime, and stop the old checks -
  * or, for a tool that only hosts status pages, check the pages, point the
- * domain and close the old page.
+ * domain and close the old page. The step on the domain shows each
+ * imported page's address (#7032).
  */
 function getMonitoringFinishSteps(data: {
   translator: Translator;
   toolTitle: string;
   bringsStatusPages: boolean;
   isStatusPageHost: boolean;
+  statusPages: Array<ToolImportReportRecord>;
 }): Array<FinishStep> {
   const translator: Translator = data.translator;
   const toolValues: { tool: string } = { tool: data.toolTitle };
@@ -304,6 +484,28 @@ function getMonitoringFinishSteps(data: {
       RouteMap[PageMap.STATUS_PAGES] as Route,
     ),
   };
+
+  /*
+   * Where the imported pages are, under the step that moves them to the
+   * team's domain. Status Pages stays linked only for the pages the step
+   * leaves out, or when the import brought none.
+   */
+  const addressStep: FinishStep = {
+    title: translator.translateTemplate(
+      "Point your status page's address at OneUptime",
+    ),
+    description: translator.translateTemplate(
+      "Add your domain under the status page's Custom Domains, then change its DNS record. Your visitors and subscribers then reach the new page.",
+    ),
+    content:
+      data.statusPages.length > 0 ? (
+        <ImportedStatusPageAddresses pages={data.statusPages} />
+      ) : undefined,
+  };
+  const addressStepLink: { title: string; route: Route } | undefined =
+    data.statusPages.length > TOOL_IMPORT_STATUS_PAGE_ADDRESSES_SHOWN
+      ? statusPagesLink
+      : undefined;
 
   /*
    * A tool that only hosts status pages checks nothing: what is left is
@@ -319,14 +521,7 @@ function getMonitoringFinishSteps(data: {
         ),
         link: statusPagesLink,
       },
-      {
-        title: translator.translateTemplate(
-          "Point your status page's address at OneUptime",
-        ),
-        description: translator.translateTemplate(
-          "Add your domain under the status page's Custom Domains, then change its DNS record. Your visitors and subscribers then reach the new page.",
-        ),
-      },
+      { ...addressStep, link: addressStepLink },
       {
         title: translator.translateTemplate(
           "Turn off your page in {{tool}}",
@@ -369,13 +564,8 @@ function getMonitoringFinishSteps(data: {
 
   if (data.bringsStatusPages) {
     steps.push({
-      title: translator.translateTemplate(
-        "Point your status page's address at OneUptime",
-      ),
-      description: translator.translateTemplate(
-        "Add your domain under the status page's Custom Domains, then change its DNS record. Your visitors and subscribers then reach the new page.",
-      ),
-      link: statusPagesLink,
+      ...addressStep,
+      link: data.statusPages.length > 0 ? addressStepLink : statusPagesLink,
     });
   }
 
@@ -393,18 +583,129 @@ function getMonitoringFinishSteps(data: {
   return steps;
 }
 
+/*
+ * What is left to do once an on-call tool's import is done: check the
+ * schedules, make sure everyone can be paged, send a test page to a policy
+ * it brought over (#7032) - for whoever may test one - carry on the
+ * incident numbers, send the alerts here, and switch the old paging off.
+ */
+function getOnCallFinishSteps(data: {
+  translator: Translator;
+  toolTitle: string;
+  policies: Array<ToolImportReportRecord>;
+  canTestPolicies: boolean;
+}): Array<FinishStep> {
+  const translator: Translator = data.translator;
+  const toolValues: { tool: string } = { tool: data.toolTitle };
+  const steps: Array<FinishStep> = [
+    {
+      title: translator.translateTemplate("Check the on-call schedules"),
+      description: translator.translateTemplate(
+        "Open each schedule and check who is on call now and who is next.",
+      ),
+      link: {
+        title: translator.translateTemplate("Open On-Call Schedules"),
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route,
+        ),
+      },
+    },
+    {
+      title: translator.translateTemplate("Make sure everyone can be paged"),
+      description: translator.translateTemplate(
+        "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.",
+      ),
+      link: {
+        title: translator.translateTemplate("Open On-Call Readiness"),
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.ON_CALL_DUTY_READINESS] as Route,
+        ),
+      },
+    },
+  ];
+
+  /*
+   * Once people can be paged, a test page proves it: the policy's first
+   * escalation rule is paged as an incident would page it, each message
+   * marked TEST, and nobody else is told.
+   */
+  if (data.policies.length > 0 && data.canTestPolicies) {
+    const onlyPolicy: ToolImportReportRecord | undefined =
+      data.policies.length === 1 ? data.policies[0] : undefined;
+
+    steps.push({
+      title: translator.translateTemplate(TOOL_IMPORT_TEST_PAGE_COPY.title),
+      description: onlyPolicy
+        ? translator.translateTemplate(TOOL_IMPORT_TEST_PAGE_COPY.onePolicy, {
+            policy: onlyPolicy.name,
+          })
+        : translator.translateTemplate(
+            TOOL_IMPORT_TEST_PAGE_COPY.severalPolicies,
+          ),
+      content: <TestImportedPolicy policies={data.policies} />,
+    });
+  }
+
+  steps.push(
+    /*
+     * The import brings the setup over, not past incidents, so it
+     * leaves the numbers alone: a team that says "INC-2345" carries
+     * on after it, before its first incident is declared here.
+     */
+    {
+      title: translator.translateTemplate("Carry on your incident numbers"),
+      description: translator.translateTemplate(
+        "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.",
+        toolValues,
+      ),
+      link: {
+        title: translator.translateTemplate("Open Incident Numbering"),
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route,
+        ),
+      },
+    },
+    {
+      title: translator.translateTemplate("Send your alerts to OneUptime"),
+      description: translator.translateTemplate(
+        "Point your monitors and the tools that raise alerts at OneUptime, and page yourself once to test it.",
+      ),
+      link: {
+        title: translator.translateTemplate("Open Monitors"),
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITORS] as Route,
+        ),
+      },
+    },
+    {
+      title: translator.translateTemplate(
+        "Turn off paging in {{tool}}",
+        toolValues,
+      ),
+      description: translator.translateTemplate(
+        "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.",
+        toolValues,
+      ),
+    },
+  );
+
+  return steps;
+}
+
 const FinishTheSwitch: FunctionComponent<{
   toolTitle: string;
   docsPath: string;
   category: ToolImportCategory;
   bringsStatusPages: boolean;
   isStatusPageHost: boolean;
+  report: ToolImportReportData;
 }> = (props: {
   toolTitle: string;
   docsPath: string;
   category: ToolImportCategory;
   bringsStatusPages: boolean;
   isStatusPageHost: boolean;
+  report: ToolImportReportData;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const toolValues: { tool: string } = { tool: props.toolTitle };
@@ -416,79 +717,20 @@ const FinishTheSwitch: FunctionComponent<{
           toolTitle: props.toolTitle,
           bringsStatusPages: props.bringsStatusPages,
           isStatusPageHost: props.isStatusPageHost,
+          statusPages: getToolImportReportRecords(
+            props.report,
+            ToolImportResourceKind.StatusPage,
+          ),
         })
-      : [
-          {
-            title: translator.translateTemplate("Check the on-call schedules"),
-            description: translator.translateTemplate(
-              "Open each schedule and check who is on call now and who is next.",
-            ),
-            link: {
-              title: translator.translateTemplate("Open On-Call Schedules"),
-              route: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route,
-              ),
-            },
-          },
-          {
-            title: translator.translateTemplate(
-              "Make sure everyone can be paged",
-            ),
-            description: translator.translateTemplate(
-              "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.",
-            ),
-            link: {
-              title: translator.translateTemplate("Open On-Call Readiness"),
-              route: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.ON_CALL_DUTY_READINESS] as Route,
-              ),
-            },
-          },
-          /*
-           * The import brings the setup over, not past incidents, so it
-           * leaves the numbers alone: a team that says "INC-2345" carries
-           * on after it, before its first incident is declared here.
-           */
-          {
-            title: translator.translateTemplate(
-              "Carry on your incident numbers",
-            ),
-            description: translator.translateTemplate(
-              "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.",
-              toolValues,
-            ),
-            link: {
-              title: translator.translateTemplate("Open Incident Numbering"),
-              route: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route,
-              ),
-            },
-          },
-          {
-            title: translator.translateTemplate(
-              "Send your alerts to OneUptime",
-            ),
-            description: translator.translateTemplate(
-              "Point your monitors and the tools that raise alerts at OneUptime, and page yourself once to test it.",
-            ),
-            link: {
-              title: translator.translateTemplate("Open Monitors"),
-              route: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS] as Route,
-              ),
-            },
-          },
-          {
-            title: translator.translateTemplate(
-              "Turn off paging in {{tool}}",
-              toolValues,
-            ),
-            description: translator.translateTemplate(
-              "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.",
-              toolValues,
-            ),
-          },
-        ];
+      : getOnCallFinishSteps({
+          translator: translator,
+          toolTitle: props.toolTitle,
+          policies: getToolImportReportRecords(
+            props.report,
+            ToolImportResourceKind.OnCallPolicy,
+          ),
+          canTestPolicies: getTestPolicyGate().isAllowed,
+        });
 
   return (
     <div
@@ -505,9 +747,14 @@ const FinishTheSwitch: FunctionComponent<{
               <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-700">
                 {translator.formatNumber(index + 1)}
               </span>
-              <div className="min-w-0 text-sm">
+              {/*
+               * As wide as the row: a step's addresses line up across it,
+               * their actions at its end.
+               */}
+              <div className="min-w-0 flex-1 text-sm">
                 <p className="font-medium text-gray-900">{step.title}</p>
                 <p className="mt-0.5 text-gray-600">{step.description}</p>
+                {step.content}
                 {step.link && (
                   <Link
                     to={step.link.route}
@@ -715,6 +962,7 @@ const ToolImportReport: FunctionComponent<ComponentProps> = (
             ToolImportResourceKind.StatusPage,
           )}
           isStatusPageHost={isToolImportStatusPageHost(definition)}
+          report={report}
         />
       )}
 

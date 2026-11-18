@@ -2,15 +2,20 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  CHECK_HELP_FROM_LOCATIONS,
   FirstCheckAnswer,
   FirstCheckSentence,
   FirstCheckVerdict,
   MONITOR_NAME_MAX_LENGTH,
   WEBSITE_DOWN_COPY,
+  WEBSITE_DOWN_OPTIONAL_STEPS,
   WEBSITE_DOWN_POLICY_NAME,
   WEBSITE_DOWN_SETUP,
+  WEBSITE_DOWN_STEPS,
+  WEBSITE_DOWN_TERMS,
   WebsiteAddress,
   WebsiteDownProgressFacts,
+  WebsiteDownStatusPageChoice,
   WebsiteDownStep,
   WebsiteDownSummaryFacts,
   WebsiteDownSummaryRow,
@@ -20,8 +25,12 @@ import {
   areWhoIsToldCountsKnown,
   buildWebsiteMonitor,
   describeFirstCheck,
+  getCheckHelpTemplate,
   getIncidentSeverityId,
   getMonitorAddress,
+  getOtherMonitorSentence,
+  getPagedByPhonePage,
+  getStatusPageShownSentence,
   getWebsiteAddressIdentity,
   getWebsiteDownProgress,
   getFirstCheckVerdict,
@@ -30,15 +39,18 @@ import {
   getWhoIsToldDoneLine,
   getWhoIsToldHelp,
   getWhoIsToldMode,
+  hasStatusPageStep,
   isDownAnswer,
   isFirstCheckSettled,
   isMonitorCheckingAddress,
   isSameWebsiteAddress,
+  isStatusPageSetupOffered,
   isTestDone,
   isWebsiteDownFinished,
   parseWebsiteAddress,
   readFirstCheckAnswers,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { DEFAULT_MONITORING_INTERVAL } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitoringIntervalDefault";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import { MonitorStepProbeResponse } from "../../../Models/DatabaseModels/MonitorProbe";
@@ -2059,5 +2071,393 @@ describe("the summary's severity, in brackets after the word for incident, in ev
         "incident",
       ),
     ).toBeNull();
+  });
+});
+
+/*
+ * STEP 1 SAYS FROM HOW MANY LOCATIONS (#7461): "from several locations" was
+ * said on a server with one probe. The number is the probes a new monitor
+ * starts with; with none known, no number - never "several".
+ */
+describe("step 1 says from how many locations (#7461)", () => {
+  const help: (count: number | null) => string = (
+    count: number | null,
+  ): string => {
+    const chosen: ReturnType<typeof getCheckHelpTemplate> =
+      getCheckHelpTemplate(count);
+    const values: Record<string, string> = {
+      monitor: "monitor",
+      incident: "incident",
+    };
+
+    return typeof chosen.template === "string"
+      ? english.translateTemplate(chosen.template, values)
+      : english.translatePlural(chosen.template, chosen.count!, values);
+  };
+
+  test("one probe: from 1 location, and when that location finds it down", () => {
+    expect(help(1)).toBe(
+      "OneUptime makes a monitor that checks it every 5 minutes from 1 location. An incident opens when that location finds it down: no answer, or an answer with an error.",
+    );
+  });
+
+  test("three probes: from 3 locations, and when all of them find it down", () => {
+    expect(help(3)).toBe(
+      "OneUptime makes a monitor that checks it every 5 minutes from 3 locations. An incident opens when all of them find it down: no answer, or an answer with an error.",
+    );
+  });
+
+  test("a number that could not be read, or no probe: no number at all", () => {
+    expect(getCheckHelpTemplate(null)).toEqual({
+      template: WEBSITE_DOWN_COPY.checkHelp,
+    });
+    expect(getCheckHelpTemplate(0)).toEqual({
+      template: WEBSITE_DOWN_COPY.checkHelp,
+    });
+    expect(help(null)).toBe(
+      "OneUptime makes a monitor that checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.",
+    );
+  });
+
+  test.each([[null], [0], [1], [2], [7]])(
+    "never promises several locations (%s)",
+    (count: number | null) => {
+      expect(help(count)).not.toMatch(/several/i);
+    },
+  );
+
+  test("its every form keeps the Glossary's words and the number, in every language", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const table: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of [
+        CHECK_HELP_FROM_LOCATIONS.other,
+        `${CHECK_HELP_FROM_LOCATIONS.other}_one`,
+      ]) {
+        const worded: string | undefined = table[key];
+
+        expect({ language, key, worded: Boolean(worded) }).toEqual({
+          language,
+          key,
+          worded: true,
+        });
+
+        for (const placeholder of [
+          "{{monitor}}",
+          "{{incident}}",
+          "{{count}}",
+        ]) {
+          expect({
+            language,
+            key,
+            placeholder,
+            kept: worded!.includes(placeholder),
+          }).toEqual({
+            language,
+            key,
+            placeholder,
+            kept: true,
+          });
+        }
+
+        expect({ language, key, isEnglish: worded === key }).toEqual({
+          language,
+          key,
+          isEnglish: false,
+        });
+      }
+    }
+  });
+
+  test("German: one location in the one form, three in the other, the number in the sentence", () => {
+    const german: Translator = dashboardTranslator("de");
+    const values: Record<string, string> = {
+      monitor: "Monitor",
+      incident: "Vorfall",
+    };
+
+    expect(
+      german.translatePlural(CHECK_HELP_FROM_LOCATIONS, 1, values),
+    ).toContain("von 1 Standort aus");
+    expect(
+      german.translatePlural(CHECK_HELP_FROM_LOCATIONS, 3, values),
+    ).toContain("von 3 Standorten aus");
+  });
+
+  test("Persian: the number in the reader's digits", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    expect(
+      persian.translatePlural(CHECK_HELP_FROM_LOCATIONS, 3, {
+        monitor: "مانیتور",
+        incident: "حادثه",
+      }),
+    ).toContain("۳ مکان");
+  });
+});
+
+/*
+ * THE GLOSSARY'S WORDS IN THE SETUP'S SENTENCES (#7057): each its own key,
+ * worded for the middle of a sentence, so the slot a sentence leaves for it
+ * reads as the language says it.
+ */
+describe("the Glossary's words the setup marks (#7057)", () => {
+  test("monitor, incident and on-call policy, and How to Reach Me's link", () => {
+    expect(WEBSITE_DOWN_TERMS).toEqual({
+      monitor: "monitor",
+      incident: "incident",
+      onCallPolicy: "on-call policy",
+      howToReachMe: "How to Reach Me",
+    });
+  });
+
+  test("each is worded in every language", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const table: Record<string, string> = readDashboardLocale(language);
+
+      for (const word of Object.values(WEBSITE_DOWN_TERMS)) {
+        expect({ language, word, worded: Boolean(table[word]) }).toEqual({
+          language,
+          word,
+          worded: true,
+        });
+      }
+    }
+
+    // Norwegian's incident was left in English; its menu says Hendelser.
+    expect(readDashboardLocale("no")["incident"]).toBe("hendelse");
+  });
+
+  test("the sentences leave them a slot, in every language", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const table: Record<string, string> = readDashboardLocale(language);
+
+      for (const [key, slot] of [
+        [WEBSITE_DOWN_COPY.checkHelp, "{{monitor}}"],
+        [WEBSITE_DOWN_COPY.checkHelp, "{{incident}}"],
+        [WEBSITE_DOWN_COPY.whoCreatePolicyNote, "{{onCallPolicy}}"],
+        [WEBSITE_DOWN_COPY.whoCreateHelp, "{{howToReachMe}}"],
+      ] as Array<[string, string]>) {
+        expect({ language, slot, kept: table[key]!.includes(slot) }).toEqual({
+          language,
+          slot,
+          kept: true,
+        });
+      }
+    }
+  });
+});
+
+/*
+ * A MONITOR SOMEONE ELSE MADE (#7254): its name, set apart, and who made it
+ * when the records name a person.
+ */
+describe("a monitor someone else made for the address (#7254)", () => {
+  test("a teammate's: its name, and who made it", () => {
+    expect(
+      withoutIsolateMarks(
+        getOtherMonitorSentence({
+          translator: english,
+          monitorName: "acme.example",
+          creatorName: "Grace Hopper",
+        }),
+      ),
+    ).toBe(
+      'The monitor "acme.example" already checks this address. Grace Hopper made it.',
+    );
+  });
+
+  test("one the API, Terraform or an import made: its name alone", () => {
+    for (const creatorName of ["", "   "]) {
+      expect(
+        withoutIsolateMarks(
+          getOtherMonitorSentence({
+            translator: english,
+            monitorName: "acme.example",
+            creatorName: creatorName,
+          }),
+        ),
+      ).toBe('The monitor "acme.example" already checks this address.');
+    }
+  });
+
+  test.each(["de", "ar", "fa", "ja", "hi"])(
+    "in %s: the reader's words, the name and the person kept as written",
+    (language: string) => {
+      const sentence: string = withoutIsolateMarks(
+        getOtherMonitorSentence({
+          translator: dashboardTranslator(language),
+          monitorName: "acme.example",
+          creatorName: "Grace Hopper",
+        }),
+      );
+      const worded: string =
+        readDashboardLocale(language)[WEBSITE_DOWN_COPY.otherMonitorMadeBy]!;
+
+      expect(sentence).toBe(
+        worded
+          .replace("{{name}}", "acme.example")
+          .replace("{{person}}", "Grace Hopper"),
+      );
+      expect(sentence).not.toContain("already checks");
+    },
+  );
+
+  test("the name and the person are set apart, so a right-to-left sentence keeps them in order", () => {
+    const sentence: string = getOtherMonitorSentence({
+      translator: dashboardTranslator("fa"),
+      monitorName: "acme.example",
+      creatorName: "Grace Hopper",
+    });
+
+    expect(sentence).not.toBe(withoutIsolateMarks(sentence));
+  });
+});
+
+/*
+ * WHERE "GET PAGED BY SMS OR PHONE CALL" LEADS (#7370): the on-call guided
+ * setup for whoever may use it, Notification Methods for anyone else.
+ */
+describe("Get paged by SMS or phone call (#7370)", () => {
+  test("the on-call guided setup, for whoever may use it", () => {
+    expect(getPagedByPhonePage(true)).toBe(PageMap.ON_CALL_DUTY_GUIDED_SETUP);
+  });
+
+  test("Notification Methods, for anyone else", () => {
+    expect(getPagedByPhonePage(false)).toBe(
+      PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
+    );
+  });
+});
+
+/*
+ * STEP 4, SHOW IT TO CUSTOMERS? (#7053): only where it can be done, done
+ * once a page shows the monitor or the person said "Not now", and never a
+ * condition of the setup's finish.
+ */
+describe("4. Show it to customers? (#7053)", () => {
+  const PAGE: WebsiteDownStatusPageChoice = { id: "sp-1", name: "Acme Status" };
+
+  test("walked only by someone who may add a monitor to a page, in a project with one", () => {
+    expect(
+      hasStatusPageStep({ mayAddToStatusPage: true, statusPages: [PAGE] }),
+    ).toBe(true);
+    expect(
+      hasStatusPageStep({ mayAddToStatusPage: false, statusPages: [PAGE] }),
+    ).toBe(false);
+    expect(
+      hasStatusPageStep({ mayAddToStatusPage: true, statusPages: [] }),
+    ).toBe(false);
+  });
+
+  test("the summary offers the status page setup instead, while there is no page, to whoever may make one", () => {
+    expect(
+      isStatusPageSetupOffered({
+        hasStatusPageStep: false,
+        mayCreateStatusPage: true,
+      }),
+    ).toBe(true);
+    expect(
+      isStatusPageSetupOffered({
+        hasStatusPageStep: false,
+        mayCreateStatusPage: false,
+      }),
+    ).toBe(false);
+    expect(
+      isStatusPageSetupOffered({
+        hasStatusPageStep: true,
+        mayCreateStatusPage: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("a fourth step, last, only when the run walks it", () => {
+    expect(
+      getWebsiteDownProgress(progressFacts({ hasStatusPageStep: true })).map(
+        (step: { key: string }): string => {
+          return step.key;
+        },
+      ),
+    ).toEqual([
+      WebsiteDownStep.Check,
+      WebsiteDownStep.WhoIsTold,
+      WebsiteDownStep.Test,
+      WebsiteDownStep.StatusPage,
+    ]);
+    expect(getWebsiteDownProgress(progressFacts())).toHaveLength(3);
+    expect(WEBSITE_DOWN_STEPS).toHaveLength(3);
+    expect(WEBSITE_DOWN_OPTIONAL_STEPS).toEqual([WebsiteDownStep.StatusPage]);
+  });
+
+  const tested: Partial<WebsiteDownProgressFacts> = {
+    hasMonitor: true,
+    isWhoIsToldDone: true,
+    testStatus: OnCallTestPageStatus.Acknowledged,
+    hasStatusPageStep: true,
+  };
+
+  test("done once a page shows the monitor, or the person said Not now", () => {
+    expect(doneKeys(progressFacts(tested))).not.toContain(
+      WebsiteDownStep.StatusPage,
+    );
+    expect(
+      doneKeys(progressFacts({ ...tested, isOnStatusPage: true })),
+    ).toContain(WebsiteDownStep.StatusPage);
+    expect(
+      doneKeys(progressFacts({ ...tested, isStatusPageSkipped: true })),
+    ).toContain(WebsiteDownStep.StatusPage);
+  });
+
+  test("never before the test: each step builds on the one before", () => {
+    expect(
+      doneKeys(
+        progressFacts({
+          ...tested,
+          testStatus: null,
+          isOnStatusPage: true,
+        }),
+      ),
+    ).toEqual([WebsiteDownStep.Check, WebsiteDownStep.WhoIsTold]);
+  });
+
+  test("optional: the setup is finished at the acknowledged test, step 4 done or not", () => {
+    expect(isWebsiteDownFinished(progressFacts(tested))).toBe(true);
+  });
+
+  test("the summary says which page shows it, only when one does", () => {
+    expect(
+      rowText(
+        getWebsiteDownSummaryRows(
+          english,
+          summaryFacts({ statusPageName: "Acme Status" }),
+        ),
+        "status_page",
+      ),
+    ).toBe('"Acme Status" shows it to your customers.');
+    expect(
+      rowText(
+        getWebsiteDownSummaryRows(english, summaryFacts()),
+        "status_page",
+      ),
+    ).toBeUndefined();
+    expect(
+      getWebsiteDownSummaryRows(english, summaryFacts({ statusPageName: null }))
+        .length,
+    ).toBe(4);
+  });
+
+  test("the page's name is set apart in the sentence", () => {
+    const sentence: string = getStatusPageShownSentence(
+      dashboardTranslator("ar"),
+      "Acme Status",
+    );
+
+    expect(sentence).not.toBe(withoutIsolateMarks(sentence));
+    expect(withoutIsolateMarks(sentence)).toBe(
+      readDashboardLocale("ar")[WEBSITE_DOWN_COPY.statusPageShown]!.replace(
+        "{{statusPage}}",
+        "Acme Status",
+      ),
+    );
   });
 });

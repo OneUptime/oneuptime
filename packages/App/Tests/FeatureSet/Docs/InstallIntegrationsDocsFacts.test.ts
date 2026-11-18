@@ -1911,8 +1911,10 @@ describe("Docker Compose, against the compose files and scripts", () => {
       'exec sh ./Scripts/Install/WithConfig.sh bash "$0" "$@"',
     );
     expect(backup).toContain("sudo docker run");
+    // One name a run, worked out once: a backup past midnight is reported under the name it wrote.
+    expect(backup).toContain('BACKUP_FILE_NAME="db-$(date +%d).backup"');
     expect(backup).toContain(
-      "--file=/var/lib/postgresql/data/db-$(date +%d).backup",
+      '--file="/var/lib/postgresql/data/$BACKUP_FILE_NAME"',
     );
     expect(config.get("DATABASE_BACKUP_DIRECTORY")).toBe("/Backups");
     expect(config.get("DATABASE_BACKUP_PASSWORD")).toBe("${DATABASE_PASSWORD}");
@@ -1922,6 +1924,25 @@ describe("Docker Compose, against the compose files and scripts", () => {
     );
     expect(page).toContain(
       "It asks for your sudo password and writes `Backups/db-<day of the month>.backup`, so daily backups replace the ones from a month earlier.",
+    );
+  });
+
+  /*
+   * #7026: each run tells the server how it went, so Server Setup reads
+   * the backups; a failed dump fails the command. The page says both, as
+   * the script does them.
+   */
+  it("the backup tells OneUptime how it went, and a failed dump ends with an error", () => {
+    const backup: string = readSource("backup");
+
+    expect(backup).toContain(
+      'node ./Scripts/Install/BackupScriptRun.js "$BACKUP_STATUS" "$BACKUP_FOLDER/$BACKUP_FILE_NAME" || true',
+    );
+    expect(backup).toContain('exit "$BACKUP_EXIT"');
+    expect(backup).toContain("BACKUP_EXIT=1");
+
+    expect(page).toContain(
+      "Each run tells OneUptime how it went, so Server Setup in the Admin Dashboard shows when the last backup finished, and says so when a backup failed or the last one is more than a week old. A run whose dump failed says so and ends with an error, so a cron job can tell.",
     );
   });
 

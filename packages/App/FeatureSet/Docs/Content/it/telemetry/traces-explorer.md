@@ -36,7 +36,7 @@ L'esploratore ha cinque schede:
 
 ## Prima di iniziare
 
-- **Tracce in arrivo.** Strumentate i vostri servizi con [OpenTelemetry](/docs/telemetry/open-telemetry). La scheda **Guida alla configurazione** mostra il codice per il vostro linguaggio.
+- **Tracce in arrivo.** Strumentate i vostri servizi con [OpenTelemetry](/docs/telemetry/open-telemetry). La scheda **Guida alla configurazione** mostra il codice per il vostro linguaggio. Finché non arrivano i primi dati, questa pagina offre **Configurazione guidata**, che vi porta dai primi log, metriche e tracce fino agli avvisi su di essi, accanto a **Invia le tue prime tracce**, la sola guida all'installazione.
 - **Un ruolo che può leggere la telemetria.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria o Visualizzatore della telemetria, oppure un ruolo personalizzato con il permesso Read Traces. Il suo ambito decide di chi sono gli span che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Trovare una richiesta

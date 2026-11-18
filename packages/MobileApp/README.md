@@ -247,6 +247,22 @@ device's safe area and an additional 40 points of breathing room. The coverage
 form keeps the same clearance because its nested modal can leave the tab bar
 visible.
 
+### Get Ready for On-Call
+
+The app's first steps, on one screen: **allow notifications**, **ring through
+silent mode** (Critical Alerts on iOS, Do Not Disturb access on Android) and
+**send yourself a test page** and acknowledge it from its notification - the
+same test page as the Dashboard's _Send me a test page_. The next step's button
+is the screen's one primary action, each step says where it stands, and a step
+turned off in the phone's settings opens them.
+
+A new install opens it by itself once, the first time it is signed in to a
+project, and only from Home; Not Now puts it away for good, and **Settings >
+Get Ready for On-Call** opens it whenever the responder wants. An update over a
+phone already registered for pushes never opens it by itself. See
+`src/onboarding/getReady.ts` (the steps, as rules), `src/onboarding/firstRun.ts`
+(when it opens by itself) and `src/screens/GetReadyScreen.tsx`.
+
 ### Where the data comes from
 
 | Screen                            | Endpoint                                                                                     |
@@ -373,7 +389,8 @@ escalated - never owner subscriptions or note-posted notices.
 - **Android** uses the `oncall_critical` notification channel, which requests
   `bypassDnd` and plays on the alarm audio stream. The Do Not Disturb bypass
   needs the user to grant this app **Do Not Disturb access** in system
-  settings; the app opens that screen when the switch is turned on. Channel
+  settings; the app opens that screen when the switch is turned on, and turns
+  the setting on when the user comes back with access granted. Channel
   settings are frozen by Android at creation, so changing them means shipping a
   new channel id, not editing `src/notifications/channels.ts`.
 - **iOS** needs Apple's critical-alerts entitlement. Apple has granted it to

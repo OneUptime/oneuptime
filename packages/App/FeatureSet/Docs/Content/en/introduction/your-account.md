@@ -134,7 +134,7 @@ You can belong to any number of projects. The project picker at the top left of 
 
 ## What each project keeps for you
 
-**User Settings**, at the right of the bar under the top bar, is yours alone, and each project has its own. Open it in every project you are on call for.
+**User Settings**, at the right of the bar under the top bar, is yours alone, and each project has its own. Open it in every project you are on call for. It opens on **Setup Checklist** while something is left to set up, and on **Notification Methods** once nothing essential is.
 
 | Page | What it is for | Learn more |
 | --- | --- | --- |

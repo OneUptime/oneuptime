@@ -171,6 +171,25 @@ With Docker Compose, set the `GLOBAL_EMAIL_` settings in `config.env`, then run 
 
 OneUptime reads the variables when it starts. If one is wrong, such as a port that is not a number or a missing password, the server sends no email until it is fixed; the server's log, the Admin Dashboard's email settings and the checklist at `/admin/setup` name the variable. Passwords and keys are never shown. To change the settings, change the variables and restart OneUptime: the Admin Dashboard does not change them.
 
+## See what the server sent
+
+On a self-hosted server, **Settings > Notifications > Emails** in the Admin Dashboard ends with the **Email Log** card. It lists every email the server sent through its own settings that belongs to no project, such as a password reset, a sign-in link or an invitation, and every email it failed to send, a project's too: who it went to, when, what it was, and what the mail service answered.
+
+- Turn on **Failed emails only** to see only the emails that did not go out.
+- A project's email that went out is in that project's own logs, not here. One sent through a project's own mail server never is.
+- The log never keeps the message itself, because a password reset or a sign-in link lets whoever holds it in. A link in a subject is kept as `[link]`.
+- Only master admins can read it. Each email is kept for 30 days.
+
+## Be told when email or the probes stop
+
+When the server's email stops working, or every global probe stops reporting, OneUptime tells the master admins, and once more when it works again. Choose where in the **Outage Notifications** card on the same page:
+
+- **Push to Master Admins' Devices** sends a push notification to every device a master admin signed in to the OneUptime app on. It is on until you turn it off.
+- **Text This Number** sends an SMS through the server's own SMS settings.
+- The **Admin Notification Email** hears about the probes too.
+
+A message never goes through the channel that stopped, so a message about email never goes by email, and never through a channel the server can't send through right now. Only a change is told, at most once an hour for each, and project members are never told.
+
 ## Troubleshooting
 
 A test email that does not go says why. For any other email, open the **Email** tab of **Project Settings > Notifications > Notification Logs** and select **View Status Message** on its row.

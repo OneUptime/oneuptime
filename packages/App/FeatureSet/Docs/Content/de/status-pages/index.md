@@ -72,8 +72,10 @@ Das ist das ganze Formular. Die Liste **Statusseiten** zeigt **Name**, **Beschre
 
 ### Die neue Seite öffnen
 
-Die neue Seite öffnet sich auf ihrem Bildschirm **Übersicht**. Solange die Seite keine Ressource hat, beginnt der Bildschirm mit **Noch nichts auf dieser Statusseite** und **Monitore hinzufügen**, das ihren Bildschirm **Ressourcen** öffnet. Danach folgen zwei Karten: **Link zur Statusseite**, mit dem Link auf die Seite selbst und **Link kopieren**, und **Statusseiten-Details**, wo Sie Name, Beschreibung und Beschriftungen bearbeiten, die Sie gerade gesetzt haben. Sobald das Projekt benutzerdefinierte Felder für Statusseiten hat, folgt ihnen eine Karte **Benutzerdefinierte Felder**.
+Die neue Seite öffnet sich auf ihrem Bildschirm **Übersicht**. Solange die Seite keine Ressource hat, beginnt der Bildschirm mit **Noch nichts auf dieser Statusseite** und **Monitore hinzufügen**, das gleich dort einen Dialog öffnet, in dem Sie die Monitore wählen, die Besucher sehen. Danach folgen zwei Karten: **Link zur Statusseite**, mit dem Link auf die Seite selbst und **Link kopieren**, und **Statusseiten-Details**, wo Sie Name, Beschreibung und Beschriftungen bearbeiten, die Sie gerade gesetzt haben. Sobald das Projekt benutzerdefinierte Felder für Statusseiten hat, folgt ihnen eine Karte **Benutzerdefinierte Felder**.
 :::
+
+Wenn Sie sich lieber hindurchführen lassen, von den Monitoren, die die Seite zeigt, bis zu dem, was Ihre Kunden sehen, klicken Sie auf **Geführte Einrichtung**: in der leeren Liste **Statusseiten** oder unter **So funktioniert es**. Siehe [Eine Statusseite veröffentlichen](/docs/guides/status-page).
 
 Eine Seite, die über die API oder Terraform angelegt wird, unterliegt denselben Tarifen wie die unten beschriebenen Einstellungen. In OneUptime Cloud wird das Anlegen einer Seite mit einer eingeschalteten Einstellung, die Ihr Tarif nicht enthält – zum Beispiel privat, eine ausgeblendete Liste, eigenes HTML, CSS oder JavaScript, E-Mail-Berichte, SMS-, Slack-, Microsoft-Teams- oder Webhook-Abonnenten, eine IP-Zulassungsliste –, mit `402 Payment Required` abgelehnt, und die Meldung nennt den Tarif. Der Tarif jeder Einstellung steht unten bei ihr. Einstellungen, die auf ihrem Standard bleiben, wie dieses Formular sie lässt, funktionieren in jedem Tarif.
 

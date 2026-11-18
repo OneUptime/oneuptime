@@ -179,7 +179,7 @@
     "text": [
       "1",
       "我們要檢查什麼？",
-      "OneUptime 每 5 分鐘檢查一次。當檢查它的每個位置都發現它當機（沒有回應，或回應錯誤）時，就會建立事件。",
+      "OneUptime 會建立一個監測器，每 5 分鐘從 2 個位置檢查一次。當所有位置都發現它當機（沒有回應，或回應錯誤）時，就會建立事件。",
       "網站或 API 位址",
       "這是一個 API 端點",
       "開始檢查",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: 監測器",
+      "button: 事件",
       "field text: https://example.com",
       "field checkbox: ",
       "button: 開始檢查",
@@ -209,8 +211,10 @@
       "儲存並繼續"
     ],
     "outline": [
+      "link: 如何聯絡我",
       "button: 新增團隊成員",
       "button: 移除 Ada Lovelace",
+      "button: 待命策略",
       "button: 儲存並繼續"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "開啟簡訊和電話",
       "行動應用程式或瀏覽器",
       "未設定。",
-      "在你的通知方式中取得 OneUptime 應用程式，或在此瀏覽器中開啟通知。",
-      "設定應用程式或此瀏覽器",
+      "透過 OneUptime On-Call 應用程式在手機上接收呼叫，或在此瀏覽器中接收。",
+      "使用此瀏覽器",
+      "取得應用程式",
       "繼續",
       "重新檢查"
     ],
     "outline": [
       "button: 儲值餘額",
       "button: 開啟簡訊和電話",
-      "link: 設定應用程式或此瀏覽器",
+      "button: 使用此瀏覽器",
+      "button: 取得應用程式",
       "button: 繼續",
       "button: 重新檢查"
     ],
     "width": 768,
-    "height": 572
+    "height": 598
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "透過簡訊傳送驗證碼",
       "行動應用程式或瀏覽器",
       "未設定。",
-      "在你的通知方式中取得 OneUptime 應用程式，或在此瀏覽器中開啟通知。",
-      "設定應用程式或此瀏覽器",
+      "透過 OneUptime On-Call 應用程式在手機上接收呼叫，或在此瀏覽器中接收。",
+      "使用此瀏覽器",
+      "取得應用程式",
       "繼續",
       "重新檢查",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: 透過簡訊傳送驗證碼",
-      "link: 設定應用程式或此瀏覽器",
+      "button: 使用此瀏覽器",
+      "button: 取得應用程式",
       "button: 繼續",
       "button: 重新檢查"
     ],
     "width": 768,
-    "height": 544
+    "height": 570
   },
   "paging-who-else": {
     "text": [
       "2",
-      "還有誰待命？",
+      "首先呼叫誰？",
       "這會建立待命策略「預設待命策略」。在此專案中每出現一個新事件和警示，它都會先呼叫這些人。",
       "首先呼叫",
       "新增團隊成員",
       "AL",
       "Ada Lovelace",
+      "這裡的所有人會同時被呼叫。只在無人回應時才呼叫的人，在下一步中設定。",
+      "以電子郵件邀請",
       "儲存並繼續"
     ],
     "outline": [
       "button: 新增團隊成員",
       "button: 移除 Ada Lovelace",
+      "button: 以電子郵件邀請",
       "button: 儲存並繼續"
     ],
     "width": 768,
-    "height": 226
+    "height": 302
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "呼叫已設定",
       "呼叫對象",
-      "每個新事件或警示都會執行「預設待命策略」，它會呼叫 Ada Lovelace (電子郵件, SMS, 電話)。",
+      "每個新事件或警示都會執行「預設待命策略」，它會呼叫 Ada Lovelace (立即透過電子郵件、SMS 與 電話)。",
       "如果無人回應",
       "如果 30 分鐘內無人確認，將呼叫 Grace Hopper。",
       "已測試",
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "待命",
+      "每次都能通知到對的人",
+      "1",
+      "建立待命策略",
+      "2",
+      "為每條上報規則新增排班或人員",
+      "3",
+      "將其連結到監測器、事件和警示",
+      "引導式設定",
+      "建立待命策略",
+      "逐步指南",
+      "文件"
+    ],
+    "outline": [
+      "heading: 每次都能通知到對的人",
+      "button: 引導式設定",
+      "button: 建立待命策略",
+      "link: 逐步指南",
+      "link: 文件"
+    ],
+    "width": 417,
+    "height": 292
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "新增上報規則",
+      "新增此策略的層級 2：呼叫誰，以及何時呼叫。",
+      "通知",
+      "待命排程會通知目前待命的人；「輪換中的下一個人」會通知其後的人。團隊會通知每位成員。",
+      "新增回應者",
+      "此規則決定呼叫誰。每個人透過哪種方式、在多久之後被聯絡，由其本人的 如何聯絡我 決定。",
+      "呼叫延遲（分鐘）",
+      "在呼叫此層級之前，Level 1 等待確認的時間。儲存為 Level 1 的等待時間。",
+      "更多欄位· 名稱、描述",
+      "取消",
+      "建立規則",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: 新增上報規則",
+      "button: 關閉",
+      "button: 新增回應者",
+      "link: 如何聯絡我",
+      "field number: 30",
+      "button: 更多欄位· 名稱、描述",
+      "button: 取消",
+      "button: 建立規則"
+    ],
+    "width": 512,
+    "height": 508
+  },
   "ingestion-keys": {
     "text": [
       "擷取金鑰",
@@ -543,18 +607,13 @@
       "第 1-4 筆，共 4 筆",
       "每頁列數",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: 依名稱、說明搜尋擷取金鑰…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: 擷取金鑰",
@@ -580,13 +639,13 @@
       "field checkbox: 選取 擷取金鑰：Marketing site",
       "button: 檢視擷取金鑰",
       "button: 擷取金鑰：Marketing site 的更多操作",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: 前往上一頁",
       "button: 第 1 頁",
       "button: 前往下一頁"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

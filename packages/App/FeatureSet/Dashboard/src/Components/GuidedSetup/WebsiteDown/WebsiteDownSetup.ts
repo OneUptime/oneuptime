@@ -34,9 +34,11 @@ import {
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import {
   composedValue,
+  PluralTemplate,
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import PageMap from "../../../Utils/PageMap";
 import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
@@ -57,14 +59,19 @@ import {
  *      an API endpoint - with Create Monitor's defaults: the probes a new
  *      monitor starts with, every five minutes, and the type's criteria
  *      (offline when it does not answer, or answers outside 200 to 399,
- *      which opens an incident once its probes agree). The monitor's probes
- *      check it at once, and their answers are said in a sentence, with
- *      what they mean under the probe agreement rule (#7410). An address
- *      one of this person's monitors already checks makes no second
- *      monitor: the setup goes on with theirs, and says so (#7059) -
- *      whatever the browser kept of the run. On Cloud's Free plan with no
- *      payment method, the step says so before Start checking, with where
- *      to add one: the server refuses the monitor without it (#7367).
+ *      which opens an incident once its probes agree). The step says from
+ *      how many locations before anything is made: the probes a new monitor
+ *      starts with (#7461). The monitor's probes check it at once, and
+ *      their answers are said in a sentence, with what they mean under the
+ *      probe agreement rule (#7410). An address one of this person's
+ *      monitors already checks makes no second monitor: the setup goes on
+ *      with theirs, and says so (#7059) - whatever the browser kept of the
+ *      run. An address a teammate's monitor checks - or one the API,
+ *      Terraform or an import made - is said too, before anything is made,
+ *      with the way to open it or to make one's own (#7254): only a monitor
+ *      the person may read, and never taken over. On Cloud's Free plan with
+ *      no payment method, the step says so before Start checking, with
+ *      where to add one: the server refuses the monitor without it (#7367).
  *   2. Who should be told? A project with no on-call policy gets one,
  *      paging the people picked - "You", to start with - for every new
  *      incident and alert (FirstResponders, EveryNewEventRules). A project
@@ -73,9 +80,18 @@ import {
  *      emailed when its status changes: the creator of an operational
  *      resource is made its owner, and the setup makes them one when the
  *      server does not - a master admin, whom it never makes the owner of
- *      what they create (#7409). The step says so only when they are.
+ *      what they create (#7409). The step says so only when they are. Its
+ *      "How to Reach Me" opens the person's own, in a new tab (#7757).
  *   3. Send a test: a test page to themselves (#6811), acknowledged from
- *      the message. Then the summary, read from the records.
+ *      the message.
+ *   4. Show it to customers? Optional (#7053): for someone who may put a
+ *      monitor on a status page, in a project that has one, the monitor is
+ *      added to the page picked, or "Not now". A project with no status
+ *      page yet is offered the status page guided setup in the summary
+ *      instead, so a newcomer's job is not one step longer.
+ *
+ * Then the summary, read from the records, and what to do next: the on-call
+ * guided setup for paging by SMS or phone, for whoever may use it (#7370).
  *
  * This file is the setup's rules and words, React-free so tests read
  * them; WebsiteDownApi.ts reads and writes the records.
@@ -91,12 +107,24 @@ export enum WebsiteDownStep {
   Check = "check",
   WhoIsTold = "who_is_told",
   Test = "test",
+  // Optional, and only where it can be done (#7053): getWebsiteDownProgress.
+  StatusPage = "status_page",
 }
 
+// The steps every run walks.
 export const WEBSITE_DOWN_STEPS: ReadonlyArray<WebsiteDownStep> = [
   WebsiteDownStep.Check,
   WebsiteDownStep.WhoIsTold,
   WebsiteDownStep.Test,
+];
+
+/*
+ * The step a run walks after them where it can be done (#7053): someone
+ * who may put a monitor on a status page, in a project with a status page
+ * to put it on.
+ */
+export const WEBSITE_DOWN_OPTIONAL_STEPS: ReadonlyArray<WebsiteDownStep> = [
+  WebsiteDownStep.StatusPage,
 ];
 
 /*
@@ -144,6 +172,10 @@ export const WEBSITE_DOWN_COPY: {
   addPaymentMethod: string;
   checkPaymentAgain: string;
   existingMonitor: string;
+  otherMonitor: string;
+  otherMonitorMadeBy: string;
+  otherMonitorChoice: string;
+  createOwnMonitor: string;
   continueButton: string;
   cannotCreateMonitor: string;
   whoTitle: string;
@@ -170,6 +202,13 @@ export const WEBSITE_DOWN_COPY: {
   testDidNotGetIt: string;
   testDidNotGetItHelp: string;
   testMethodsLink: string;
+  statusPageTitle: string;
+  statusPageOutcome: string;
+  statusPageHelp: string;
+  statusPageLabel: string;
+  statusPageAdd: string;
+  statusPageNotNow: string;
+  statusPageShown: string;
   summaryTitle: string;
   summaryChecked: string;
   summaryWhenDown: string;
@@ -178,10 +217,13 @@ export const WEBSITE_DOWN_COPY: {
   summaryNotTested: string;
   summaryNext: string;
   nextStatusPage: string;
+  nextOpenStatusPage: string;
   nextPhone: string;
   nextMonitor: string;
   startOver: string;
   couldNotSave: string;
+  createMonitorOffer: string;
+  guidedSetup: string;
 } = {
   pageTitle: translationKey("Know when my website or API is down"),
   pageDescription: translationKey(
@@ -201,10 +243,13 @@ export const WEBSITE_DOWN_COPY: {
    * A new monitor's probes must all agree before its status changes (its
    * minimumProbeAgreement is not set: ProbeAgreementRule), so one location
    * that fails opens nothing. "Several locations" was not true of a
-   * self-hosted server with one probe (#7410).
+   * self-hosted server with one probe (#7410, #7461). Said when how many
+   * locations would check it cannot be read; CHECK_HELP_FROM_LOCATIONS
+   * says the number when it can. {{monitor}} and {{incident}} are the
+   * Glossary's words, marked where the setup first uses them (#7057).
    */
   checkHelp: translationKey(
-    "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.",
+    "OneUptime makes a {{monitor}} that checks it every 5 minutes. An {{incident}} opens when every location that checks it finds it down: no answer, or an answer with an error.",
   ),
   addressLabel: translationKey("Website or API address"),
   addressPlaceholder: "https://example.com",
@@ -236,16 +281,40 @@ export const WEBSITE_DOWN_COPY: {
   existingMonitor: translationKey(
     'Your monitor "{{name}}" already checks this address, so no new monitor was made.',
   ),
+  /*
+   * Said, before anything is made, when a monitor this person may read but
+   * did not make checks the address: a teammate's, or one the API,
+   * Terraform or an import made (#7254). It is never taken over - step 2
+   * and the test would change what it does for whoever made it (#7190) -
+   * so the person opens it, or makes their own. Who made it is said when
+   * the records name a person.
+   */
+  otherMonitor: translationKey(
+    'The monitor "{{name}}" already checks this address.',
+  ),
+  otherMonitorMadeBy: translationKey(
+    'The monitor "{{name}}" already checks this address. {{person}} made it.',
+  ),
+  otherMonitorChoice: translationKey(
+    "Open it to see who it tells, or create your own to go on with this setup.",
+  ),
+  createOwnMonitor: translationKey("Create my own monitor"),
   continueButton: translationKey("Continue"),
   cannotCreateMonitor: translationKey(
     "Creating a monitor needs permission you do not have in this project. Ask a Project Admin to give it to you, or to set this up.",
   ),
   whoTitle: translationKey("Who should be told?"),
+  /*
+   * {{howToReachMe}} is a link to the person's own How to Reach Me, in a
+   * new tab so the setup keeps its place (#7757): it was named as a place
+   * nobody could find.
+   */
   whoCreateHelp: translationKey(
-    "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.",
+    "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.",
   ),
+  // {{onCallPolicy}} is the Glossary's word (#7057).
   whoCreatePolicyNote: translationKey(
-    'This makes the on-call policy "{{policy}}", which pages them for every new incident and alert in this project.',
+    'This makes the {{onCallPolicy}} "{{policy}}", which pages them for every new incident and alert in this project.',
   ),
   whoPeopleLabel: translationKey("Who is paged"),
   whoAddPeople: translationKey("Add teammates"),
@@ -318,6 +387,23 @@ export const WEBSITE_DOWN_COPY: {
     "Each message above says whether it was sent, and why not. Check your spam folder, and that your email, phone number or the mobile app is added and verified in your notification methods.",
   ),
   testMethodsLink: translationKey("Open my notification methods"),
+  /*
+   * STEP 4, SHOW IT TO CUSTOMERS? (#7053): optional, and only where it can
+   * be done - someone who may put a monitor on a status page, in a project
+   * with a status page to put it on.
+   */
+  statusPageTitle: translationKey("Show it to customers?"),
+  statusPageOutcome: translationKey("Your customers see it on a status page."),
+  statusPageHelp: translationKey(
+    'Add "{{name}}" to a status page, so your customers see when it is down.',
+  ),
+  statusPageLabel: translationKey("Status page"),
+  statusPageAdd: translationKey("Add to status page"),
+  // The telemetry setup's word for a step left for later.
+  statusPageNotNow: translationKey("Not now"),
+  statusPageShown: translationKey(
+    '"{{statusPage}}" shows it to your customers.',
+  ),
   summaryTitle: translationKey("{{name}} is set up"),
   summaryChecked: translationKey("Checked"),
   summaryWhenDown: translationKey("When it goes down"),
@@ -328,12 +414,150 @@ export const WEBSITE_DOWN_COPY: {
   ),
   summaryNext: translationKey("What next"),
   nextStatusPage: translationKey("Show it on a status page"),
+  // The status page setup's own words for its public link.
+  nextOpenStatusPage: translationKey("Open the status page"),
   nextPhone: translationKey("Get paged by SMS or phone call"),
   nextMonitor: translationKey("Open the monitor"),
   startOver: translationKey("Check another address"),
   couldNotSave: translationKey(
     "That did not save. Check your connection and try again.",
   ),
+  /*
+   * Create Monitor, with Website or API picked (#7054): the whole job is
+   * one guided setup away, for whoever may create a monitor.
+   */
+  createMonitorOffer: translationKey(
+    "Only need to know when it is down? The guided setup checks the address, picks who is told and sends you a test, on one page.",
+  ),
+  // The setup page's breadcrumb, as a product's onboarding names its setup.
+  guidedSetup: translationKey("Guided setup"),
+};
+
+/*
+ * STEP 1'S HELP, WITH HOW MANY LOCATIONS (#7461): the probes a new monitor
+ * starts with (MonitorProbeSelectionUtil, as Create Monitor reads them),
+ * read before it is made. All of them must find it down before an incident
+ * opens: a new monitor sets no minimum (ProbeAgreementRule).
+ */
+export const CHECK_HELP_FROM_LOCATIONS: PluralTemplate = {
+  one: "OneUptime makes a {{monitor}} that checks it every 5 minutes from {{count}} location. An {{incident}} opens when that location finds it down: no answer, or an answer with an error.",
+  other:
+    "OneUptime makes a {{monitor}} that checks it every 5 minutes from {{count}} locations. An {{incident}} opens when all of them find it down: no answer, or an answer with an error.",
+};
+
+/*
+ * Which of the two step 1 says: the number when it is known and there is a
+ * location to say; the sentence with no number otherwise - a read that
+ * failed, or a project whose new monitors start with no probe (the first
+ * check then says where probes are added).
+ */
+export const getCheckHelpTemplate: (locationCount: number | null) => {
+  template: string | PluralTemplate;
+  count?: number | undefined;
+} = (
+  locationCount: number | null,
+): { template: string | PluralTemplate; count?: number | undefined } => {
+  if (typeof locationCount === "number" && locationCount > 0) {
+    return { template: CHECK_HELP_FROM_LOCATIONS, count: locationCount };
+  }
+
+  return { template: WEBSITE_DOWN_COPY.checkHelp };
+};
+
+/*
+ * The Glossary's words in the setup's sentences (#7057), each a key of its
+ * own, worded for the middle of a sentence, as the slots they fill.
+ */
+export const WEBSITE_DOWN_TERMS: {
+  monitor: string;
+  incident: string;
+  onCallPolicy: string;
+  howToReachMe: string;
+} = {
+  monitor: translationKey("monitor"),
+  incident: translationKey("incident"),
+  onCallPolicy: translationKey("on-call policy"),
+  // A page's name, and the link to it (#7757).
+  howToReachMe: translationKey("How to Reach Me"),
+};
+
+/*
+ * WHEN A MONITOR THIS PERSON DID NOT MAKE CHECKS THE ADDRESS (#7254): its
+ * name, set apart from the words so a right-to-left sentence keeps it in
+ * order, and who made it when the records name someone.
+ */
+export const getOtherMonitorSentence: (data: {
+  translator: Translator;
+  monitorName: string;
+  creatorName: string;
+}) => string = (data: {
+  translator: Translator;
+  monitorName: string;
+  creatorName: string;
+}): string => {
+  const creator: string = data.creatorName.trim();
+
+  return creator
+    ? data.translator.translateTemplate(
+        WEBSITE_DOWN_COPY.otherMonitorMadeBy,
+        { name: data.monitorName, person: creator },
+        { setsValuesApart: true },
+      )
+    : data.translator.translateTemplate(
+        WEBSITE_DOWN_COPY.otherMonitor,
+        { name: data.monitorName },
+        { setsValuesApart: true },
+      );
+};
+
+/*
+ * WHERE "GET PAGED BY SMS OR PHONE CALL" LEADS (#7370): the on-call guided
+ * setup, which turns SMS and calls on, adds balance on Cloud and verifies
+ * the number on one page - for whoever may use it, by the rule On-Call's
+ * own "Guided setup" button follows (creating an on-call policy). Anyone
+ * else adds a number on Notification Methods, as before.
+ */
+export const getPagedByPhonePage: (mayUseOnCallSetup: boolean) => PageMap = (
+  mayUseOnCallSetup: boolean,
+): PageMap => {
+  return mayUseOnCallSetup
+    ? PageMap.ON_CALL_DUTY_GUIDED_SETUP
+    : PageMap.USER_SETTINGS_NOTIFICATION_METHODS;
+};
+
+/*
+ * STEP 4 (#7053): what it offers, read before the steps are drawn.
+ */
+export interface WebsiteDownStatusPageChoice {
+  id: string;
+  name: string;
+}
+
+// Whether the run walks step 4: a status page to add it to, and permission.
+export const hasStatusPageStep: (data: {
+  mayAddToStatusPage: boolean;
+  statusPages: ReadonlyArray<WebsiteDownStatusPageChoice>;
+}) => boolean = (data: {
+  mayAddToStatusPage: boolean;
+  statusPages: ReadonlyArray<WebsiteDownStatusPageChoice>;
+}): boolean => {
+  return data.mayAddToStatusPage && data.statusPages.length > 0;
+};
+
+/*
+ * Whether the summary offers the status page guided setup, with this
+ * monitor ticked (StatusPageGuidedSetup reads `monitorId`): while the run
+ * has no step 4 - no status page yet - and only to whoever may make one.
+ * Optional, as everything under "What next" is.
+ */
+export const isStatusPageSetupOffered: (data: {
+  hasStatusPageStep: boolean;
+  mayCreateStatusPage: boolean;
+}) => boolean = (data: {
+  hasStatusPageStep: boolean;
+  mayCreateStatusPage: boolean;
+}): boolean => {
+  return !data.hasStatusPageStep && data.mayCreateStatusPage;
 };
 
 /*
@@ -935,6 +1159,9 @@ export enum WebsiteDownRunValue {
   WhoIsToldConfirmed = "whoIsToldConfirmed",
   TestExecutionLogId = "testExecutionLogId",
   TestSkipped = "testSkipped",
+  // Step 4 (#7053): the status page the run put the monitor on, or "Not now".
+  StatusPageId = "statusPageId",
+  StatusPageSkipped = "statusPageSkipped",
 }
 
 // What the records say about each step, read when the page opens.
@@ -945,6 +1172,11 @@ export interface WebsiteDownProgressFacts {
   isWhoIsToldDone: boolean;
   testStatus: OnCallTestPageStatus | null;
   isTestSkipped: boolean;
+  // The run walks step 4 (hasStatusPageStep). Left out, it does not.
+  hasStatusPageStep?: boolean | undefined;
+  // A status page shows the monitor, read from the records.
+  isOnStatusPage?: boolean | undefined;
+  isStatusPageSkipped?: boolean | undefined;
 }
 
 export const isTestDone: (facts: WebsiteDownProgressFacts) => boolean = (
@@ -964,12 +1196,28 @@ export const getWebsiteDownProgress: (
   // Each step builds on the one before: nothing after a missing monitor counts.
   const hasMonitor: boolean = facts.hasMonitor;
   const isWhoDone: boolean = hasMonitor && facts.isWhoIsToldDone;
+  const isTestStepDone: boolean = isWhoDone && isTestDone(facts);
 
-  return [
+  const steps: Array<GuidedSetupStepProgress> = [
     { key: WebsiteDownStep.Check, isDone: hasMonitor },
     { key: WebsiteDownStep.WhoIsTold, isDone: isWhoDone },
-    { key: WebsiteDownStep.Test, isDone: isWhoDone && isTestDone(facts) },
+    { key: WebsiteDownStep.Test, isDone: isTestStepDone },
   ];
+
+  /*
+   * Step 4 last, and only where it can be done (#7053): done once a status
+   * page shows the monitor, or the person said "Not now".
+   */
+  if (facts.hasStatusPageStep) {
+    steps.push({
+      key: WebsiteDownStep.StatusPage,
+      isDone:
+        isTestStepDone &&
+        (Boolean(facts.isOnStatusPage) || Boolean(facts.isStatusPageSkipped)),
+    });
+  }
+
+  return steps;
 };
 
 // The setup reached its end: the thing works and was tested.
@@ -1013,6 +1261,8 @@ export interface WebsiteDownSummaryFacts {
   canSendEmail: boolean;
   testResult: OnCallTestPageResult | null;
   testResultSentence: string | null;
+  // The status page that shows the monitor (#7053); not given, none.
+  statusPageName?: string | null | undefined;
 }
 
 export interface WebsiteDownSummaryRow {
@@ -1143,5 +1393,26 @@ export const getWebsiteDownSummaryRows: (
         : translator.translateText(WEBSITE_DOWN_COPY.summaryNotTested) || "",
   });
 
+  // Only what the records say: a status page that shows it (#7053).
+  if (facts.statusPageName) {
+    rows.push({
+      key: "status_page",
+      label: translator.translateText(WEBSITE_DOWN_COPY.statusPageLabel) || "",
+      text: getStatusPageShownSentence(translator, facts.statusPageName),
+    });
+  }
+
   return rows;
+};
+
+// '"Acme Status" shows it to your customers.', the page's name set apart.
+export const getStatusPageShownSentence: (
+  translator: Translator,
+  statusPageName: string,
+) => string = (translator: Translator, statusPageName: string): string => {
+  return translator.translateTemplate(
+    WEBSITE_DOWN_COPY.statusPageShown,
+    { statusPage: statusPageName },
+    { setsValuesApart: true },
+  );
 };

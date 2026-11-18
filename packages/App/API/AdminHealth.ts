@@ -39,6 +39,15 @@ import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import { getClickhouseDiskSnapshots } from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
 import CustomDomainServerReadiness from "Common/Server/Utils/CustomDomain/CustomDomainServerReadiness";
 import ServerSetupChecklist from "Common/Server/Utils/ServerSetup/ServerSetupChecklist";
+import BackupScriptRuns from "Common/Server/Utils/ServerSetup/BackupScriptRuns";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
+import { ServerProductsAnswer } from "Common/Types/Product/ServerProductsAnswer";
+import {
+  BackupScriptCheckIn,
+  BackupScriptRun,
+  readBackupScriptCheckIn,
+} from "Common/Types/Backup/BackupScriptRun";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import ObjectID from "Common/Types/ObjectID";
 import VersionUtil from "Common/Utils/VersionUtil";
@@ -1014,6 +1023,8 @@ export interface InstallationHealthReaders {
   queues: () => Promise<JSONArray>;
   latestVersion: () => Promise<string | null>;
   serverSetup: () => Promise<ServerSetupChecklistAnswer>;
+  // Which products the server switches off (#7481): what Settings > Products reads.
+  serverProducts: () => Promise<ServerProductsAnswer>;
 }
 
 /*
@@ -1087,6 +1098,9 @@ const DEFAULT_INSTALLATION_HEALTH_READERS: InstallationHealthReaders = {
   serverSetup: (): Promise<ServerSetupChecklistAnswer> => {
     return ServerSetupChecklist.getAnswer();
   },
+  serverProducts: (): Promise<ServerProductsAnswer> => {
+    return ServerProducts.getAnswer();
+  },
 };
 
 // A reader that fails answers its fallback: one datastore down must not hide the rest.
@@ -1154,28 +1168,42 @@ export async function getInstallationHealthFacts(
       readOr(readers.isValkeyConnected, false, "Valkey"),
     ]);
 
-  const [migrations, clickhouseDisks, queues, latestVersion, serverSetup] =
-    await Promise.all([
-      isPostgresConnected
-        ? readOr<JSONObject | null>(readers.migrations, null, "migrations")
-        : Promise.resolve(null),
-      isClickhouseConnected
-        ? readOr(readers.clickhouseDisks, [], "ClickHouse's disks")
-        : Promise.resolve([]),
-      isValkeyConnected
-        ? readOr<JSONArray>(readers.queues, [], "the queues")
-        : Promise.resolve([] as JSONArray),
-      isPostgresConnected
-        ? readOr<string | null>(readers.latestVersion, null, "the version")
-        : Promise.resolve(null),
-      isPostgresConnected
-        ? readOr<ServerSetupChecklistAnswer | null>(
-            readers.serverSetup,
-            null,
-            "the server setup checklist",
-          )
-        : Promise.resolve(null),
-    ]);
+  const [
+    migrations,
+    clickhouseDisks,
+    queues,
+    latestVersion,
+    serverSetup,
+    serverProducts,
+  ] = await Promise.all([
+    isPostgresConnected
+      ? readOr<JSONObject | null>(readers.migrations, null, "migrations")
+      : Promise.resolve(null),
+    isClickhouseConnected
+      ? readOr(readers.clickhouseDisks, [], "ClickHouse's disks")
+      : Promise.resolve([]),
+    isValkeyConnected
+      ? readOr<JSONArray>(readers.queues, [], "the queues")
+      : Promise.resolve([] as JSONArray),
+    isPostgresConnected
+      ? readOr<string | null>(readers.latestVersion, null, "the version")
+      : Promise.resolve(null),
+    isPostgresConnected
+      ? readOr<ServerSetupChecklistAnswer | null>(
+          readers.serverSetup,
+          null,
+          "the server setup checklist",
+        )
+      : Promise.resolve(null),
+    // What an admin saved is in PostgreSQL.
+    isPostgresConnected
+      ? readOr<ServerProductsAnswer | null>(
+          readers.serverProducts,
+          null,
+          "the products switched off on this server",
+        )
+      : Promise.resolve(null),
+  ]);
 
   const postgresMigrations: JSONObject | undefined = migrations?.[
     "postgres"
@@ -1226,6 +1254,7 @@ export async function getInstallationHealthFacts(
       isUpdateCheckDisabled: DisableUpdateCheck,
     },
     serverSetup: serverSetup,
+    serverProducts: serverProducts,
   };
 }
 
@@ -1284,6 +1313,62 @@ router.post(
   "/doctor",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   answerInstallationHealth({ withAddressProof: true }),
+);
+
+/*
+ * ---------------------------------------------------------------------------
+ * `npm run backup` says it ran (#7026)
+ *
+ * backup.sh, on the Docker Compose server, tells the server how each run
+ * went - { succeeded, sizeInBytes } - through Scripts/Install/
+ * BackupScriptRun.js, which presents the cluster key from that server's
+ * config.env to its own ingress, as `npm run doctor` does: the setup
+ * checklist's Backups item is then measured, not the admin's word.
+ *
+ * The cluster key only: only the server's operator holds it, so neither a
+ * project's member, an outsider nor a session of any kind can mark a server
+ * as backed up (the router hands the route ClusterKeyAuthorization's check,
+ * which refuses a missing, wrong or shipped key, and the key in a URL). The
+ * server keeps when it was told, whether it succeeded and the dump's size
+ * (GlobalConfig.backupScriptLastRun), and nothing else the body holds.
+ *
+ * An older server answers the newer script with a 404, which the script
+ * says and lets the backup be; an older script never calls it, and the
+ * checklist reads as before.
+ * ---------------------------------------------------------------------------
+ */
+router.post(
+  "/backup-run",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const checkIn: BackupScriptCheckIn | null = readBackupScriptCheckIn(
+        req.body,
+      );
+
+      if (!checkIn) {
+        throw new BadDataException(
+          "Say how the backup went: succeeded, true or false, and the size of the dump in bytes.",
+        );
+      }
+
+      const run: BackupScriptRun = await BackupScriptRuns.record({
+        checkIn: checkIn,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        recorded: true,
+        at: run.at,
+        succeeded: run.succeeded,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
 );
 
 /*

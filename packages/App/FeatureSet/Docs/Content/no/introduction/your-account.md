@@ -134,7 +134,7 @@ Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venst
 
 ## Det hvert prosjekt tar vare på for deg
 
-**Brukerinnstillinger**, til høyre i linjen under topplinjen, er bare dine, og hvert prosjekt har sine egne. Åpne dem i hvert prosjekt der du har vakt.
+**Brukerinnstillinger**, til høyre i linjen under topplinjen, er bare dine, og hvert prosjekt har sine egne. Åpne dem i hvert prosjekt der du har vakt. De åpner på **Oppsettsjekkliste** så lenge noe gjenstår å sette opp, og på **Varslingsmetoder** når ingenting vesentlig mangler.
 
 | Side | Hva den brukes til | Les mer |
 | --- | --- | --- |

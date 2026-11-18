@@ -36,7 +36,7 @@ Utforskaren har fem flikar:
 
 ## Innan du börjar
 
-- **Spår som kommer in.** Instrumentera dina tjänster med [OpenTelemetry](/docs/telemetry/open-telemetry). Fliken **Installationsguide** visar koden för ditt språk.
+- **Spår som kommer in.** Instrumentera dina tjänster med [OpenTelemetry](/docs/telemetry/open-telemetry). Fliken **Installationsguide** visar koden för ditt språk. Tills de första data kommer erbjuder den här sidan **Guidad installation**, som tar dig från dina första loggar, mätvärden och spår till larm på dem, bredvid **Skicka dina första spår**, installationsguiden ensam.
 - **En roll som får läsa telemetri.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem eller Telemetritittare, eller en anpassad roll med behörigheten Read Traces. Dess omfång avgör vems spans du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Hitta en förfrågan

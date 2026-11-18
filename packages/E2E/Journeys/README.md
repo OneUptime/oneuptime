@@ -23,7 +23,9 @@ check, from what the fixture's server kept, that the job was really done.
 | Get paged by phone and escalate to a teammate (Cloud) | Home, on OneUptime Cloud | calls are on and paid for, my number is verified, and a policy calls me, then pages Grace |
 | Get paged by phone and escalate to a teammate (Cloud, guided setup) | Home, on OneUptime Cloud | SMS and calls are on and paid for, my number is verified for both, a policy pages me for every new incident and alert, then Grace, and its test page was acknowledged |
 | Publish a status page that shows the monitor | Home, with the website monitor | the status page shows the monitor |
+| Publish a status page that shows the monitor (guided setup) | Home, with the website monitor: Status Pages' **Guided setup** | the status page shows the monitor, and I saw what my customers see |
 | Send first telemetry and get an alert on it | Home, in a new project | the first logs are in and a Logs monitor alerts on them |
+| Send first telemetry and get an alert on it (guided setup) | Home, in a new project: Logs' **Guided setup** | the first data is in, and three recommended monitors alert on the service that sent it |
 | As an invited member, make myself reachable | Home, as a member, SMS on for the project | my phone number is verified for SMS |
 | As a self-hosted admin, make the server able to send email | Admin Dashboard, where the first admin lands (Server setup) | the SMTP server is saved and a test email has gone out |
 
@@ -142,9 +144,26 @@ page to be at rest (nothing changed for 700ms) before it acts, so every run read
 same pages.
 
 `?seed=monitor` adds the website monitor, `?seed=phones` turns SMS and calls on with
-money in the balance, `?as=member` signs in as Grace and `?billing=on` draws OneUptime
-Cloud. A new monitor is checked at once by both probes (each answering 200 in 312 ms),
-and a test page to yourself is acknowledged at once.
+money in the balance, `?seed=teammate-monitor` adds Ada's monitor of
+`https://acme-commerce.example`, `?seed=status-page` a status page showing nothing yet,
+`?seed=busy` a project in use (a hundred monitors carrying labels, three monitor groups,
+two status pages and five services that report), `?seed=status-page-grid` a status page
+whose Resources are two grids, Service by three Regions and by six, with long monitor
+names and two resources off the grid, `?as=viewer` signs in as Grace, a
+Project Viewer who may create nothing,
+`?as=member` signs in as Grace, `?as=admin` signs Ada in as the master admin of a
+self-hosted server with no Twilio, `?email=off` makes it a server that cannot send email
+yet, `?test=unanswered` leaves a test page paging with nobody acknowledging it,
+`?billing=on` draws OneUptime Cloud and `?theme=dark` the dark theme. A new monitor is checked at once by both probes
+(each answering 200 in 312 ms), and a test page to yourself is acknowledged at once. A
+policy's test page preview lists its first level's people by the methods they verified,
+an invitation by address makes the person it names (who has not accepted), and the
+server has a push key, so a browser can be offered push.
+
+Other suites on this fixture (`OnCallGuidedSetup`, `WebsiteDownGuidedSetup`,
+`StatusPageTelemetryGuidedSetups`) run it on
+a port of their own and build it into a folder of their own (`JOURNEYS_FIXTURE_PORT`,
+`JOURNEYS_FIXTURE_OUTPUT`).
 
 ## Run it
 

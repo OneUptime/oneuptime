@@ -1711,7 +1711,14 @@ export const MonitorGroupRoutePath: Dictionary<string> = {
 };
 
 export const UserSettingsRoutePath: Dictionary<string> = {
-  [PageMap.USER_SETTINGS]: "notification-methods",
+  /*
+   * User Settings' own address: it opens the setup checklist while essential
+   * steps are left on it, and Notification Methods - where User Settings
+   * always opened - after (#7039, Pages/UserSettings/Landing). The nav bar's
+   * User Settings, Search's User Settings and every page's "User Settings"
+   * crumb go here.
+   */
+  [PageMap.USER_SETTINGS]: "",
   [PageMap.USER_SETTINGS_CUSTOM_FIELDS]: "custom-fields",
   [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: "notification-methods",
@@ -9354,10 +9361,11 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   /*
-   * Declared LAST in this block on purpose. The breadcrumb resolver treats the
-   * first non-splat route under a prefix as that section's landing page, and
-   * the "User Settings" crumb on every page here must keep pointing at
-   * notification-methods.
+   * Declared LAST in this block on purpose: the breadcrumb resolver falls
+   * back to the first non-splat route under a prefix as that section's
+   * landing page. The "User Settings" crumb on every page here points at
+   * User Settings' own address (USER_SETTINGS, an ancestor of every page
+   * under it), which opens the first page by what is left to set up (#7039).
    */
   [PageMap.USER_SETTINGS_SETUP]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${

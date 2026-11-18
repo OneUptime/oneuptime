@@ -30,7 +30,7 @@ Gatewayen tar plassen til serverens egen Twilio-konto for alt som ellers ville g
 1. I Admin Dashboard går du til **Innstillinger > Anrop og SMS** og klikker på **Edit Provider** på kortet **SMS and Call Provider**.
 2. Velg **Your own gateway**, og skriv inn **Gateway URL**. Gatewayen kan ligge på det private nettverket ditt.
 3. Lagre. OneUptime lager en signeringshemmelighet for deg. Kopier den fra kortet inn i gatewayen din.
-4. Klikk på **Send Test**. Gatewayen din skal svare med en 2xx-status og ikke sende noe.
+4. Klikk på **Sjekk gateway**. Gatewayen din skal svare med en 2xx-status og ikke sende noe.
 :::
 
 For å bytte ut hemmeligheten tømmer du **Signeringshemmelighet** under **Flere felt** og lagrer: OneUptime lager en ny. For å gå tilbake til Twilio velger du **Twilio** og lagrer.
@@ -116,7 +116,7 @@ SMS- eller anropsloggen, og for en vakttilkalling personens vaktlogg, sier `Sent
 
 ## Testforespørsler
 
-**Send test** sender en forespørsel med `event` satt til `test`, og `to`, `project` og `actions` satt til `null`. Svar på den med en 2xx-status, og send ingenting.
+**Sjekk gateway** sender en forespørsel med `event` satt til `test`, og `to`, `project` og `actions` satt til `null`. Svar på den med en 2xx-status, og send ingenting.
 
 ## Neste steg
 

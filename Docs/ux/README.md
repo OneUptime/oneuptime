@@ -64,11 +64,15 @@ learned one can find their way around the next.
   a banner to create a monitor, five zeros, the Welcome card and two empty lists, all asking for the
   same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
   that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
-  brings the rest of Home back, with the line that shows it again. Enforced by
+  brings the rest of Home back, with the line that shows it again; once finished, "More to set up" is
+  one card among Home's others while core steps no goal brought are left (#7986). Enforced by
   [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
-  setup. Not enforced: use judgement.
+  setup: Home's headline leaves out "Create your first monitor" while the Welcome card offers that
+  step (#7759). Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx) for Home; elsewhere, not
+  enforced: use judgement.
 - **A job that crosses products is a guided setup, on one page.** "Know when my website is down" needs a
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
@@ -319,6 +323,14 @@ work out, starts from a default for everything else, and folds what most people 
   least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
   compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
   use judgement.
+- **A button keeps its words from a tablet to a wide screen.** A bell alone, named only by its
+  tooltip, is found by hovering: the Logs and Traces explorers drew Create monitor so from 768px
+  until their toolbars were 77rem wide, a service's Logs tab at 1280px too (#9455). A row with no
+  room for a button's words wraps, as the explorers' toolbars do, or folds its lesser actions into
+  ⋯, as a table's header does; it never hides the words at the middle widths to show them again
+  wider. On a phone a button may keep its icon alone beside what says what it does
+  (`isTitleHiddenOnPhone`). Enforced by
+  [ButtonWordsAtEveryWidthGuard](../../packages/Common/Tests/UI/ButtonWordsAtEveryWidthGuard.test.ts).
 - **One button.** An action is the shared `Button` (`Common/UI/Components/Button`), never a
   `<button>` drawn by hand in the primary colours: 34 of them each had their own size and corners,
   and their focus ring, locked look and phone layout had drifted from the shared one (#9128). Every

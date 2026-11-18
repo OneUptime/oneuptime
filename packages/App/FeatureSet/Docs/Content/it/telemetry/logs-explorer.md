@@ -36,7 +36,7 @@ L'esploratore ha cinque schede:
 
 ## Prima di iniziare
 
-- **Log in arrivo.** Inviateli con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La scheda **Guida alla configurazione** mostra la configurazione per il vostro linguaggio o collector.
+- **Log in arrivo.** Inviateli con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La scheda **Guida alla configurazione** mostra la configurazione per il vostro linguaggio o collector. Finché non arrivano i primi dati, questa pagina offre **Configurazione guidata**, che vi porta dai primi log, metriche e tracce fino agli avvisi su di essi, accanto a **Invia i tuoi primi log**, la sola guida all'installazione. Per verificare l'endpoint e la vostra chiave prima di configurare un'app, aprite **Invia un log di prova** nel primo passaggio della guida: invia un log dal servizio `oneuptime-test`, che potrete eliminare in seguito.
 - **Un ruolo che può leggere la telemetria.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria o Visualizzatore della telemetria, oppure un ruolo personalizzato con il permesso Read Logs. Il suo ambito decide di chi sono i log che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Trovare una riga di log

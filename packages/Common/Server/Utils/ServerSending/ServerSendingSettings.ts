@@ -1,5 +1,11 @@
 import crypto from "crypto";
-import { EncryptionSecret } from "../../EnvironmentConfig";
+import {
+  EncryptionSecret,
+  ExpoAccessToken,
+  PushNotificationRelayUrl,
+  VapidPrivateKey,
+  VapidPublicKey,
+} from "../../EnvironmentConfig";
 import {
   getServerEmailEnvironment,
   toServerEmailSettings,
@@ -67,7 +73,13 @@ import {
  * the whole of the settings - an auth token, a gateway secret or a password
  * changed is other settings - so it says nothing of them to anyone without
  * the secret, and the same settings give another fingerprint on another
- * server. Push has none: its one setting changes only when it is saved.
+ * server.
+ *
+ * Push (#6881) goes out through this server's Expo access token, or else the
+ * push relay's address, and browsers are pushed with its VAPID keys: all set
+ * by environment variables. A push entry is marked with the way it was
+ * learned with, so a relay address fixed and a restart start push again at
+ * untested, rather than "failing" until the next push goes out.
  */
 
 const FINGERPRINT_SCHEME: string = "server-sending-settings:v1";
@@ -205,14 +217,60 @@ const asList: (value: unknown) => string = (value: unknown): string => {
     .join(",");
 };
 
+/*
+ * The way push goes (#6881), as the push senders take it: through this
+ * server's own Expo access token, else the push relay's address; and the
+ * VAPID keys browsers are pushed with. All set by environment variables, so
+ * changed only by a restart - never by a save.
+ */
+export interface ServerPushRoute {
+  expoAccessToken?: string | undefined;
+  relayUrl?: string | undefined;
+  vapidPublicKey?: string | undefined;
+  vapidPrivateKey?: string | undefined;
+}
+
+export const getServerPushRoute: () => ServerPushRoute =
+  (): ServerPushRoute => {
+    return {
+      expoAccessToken: ExpoAccessToken,
+      relayUrl: PushNotificationRelayUrl,
+      vapidPublicKey: VapidPublicKey,
+      vapidPrivateKey: VapidPrivateKey,
+    };
+  };
+
 export default class ServerSendingSettings {
-  // The channels whose settings can change without a save, and so carry fingerprints.
+  /*
+   * The channels whose settings can change without a save, and so carry
+   * fingerprints: email, SMS and calls, and push, whose way out is set by
+   * environment variables only (#6881).
+   */
   public static hasFingerprints(channel: ServerSendingChannel): boolean {
     return (
       channel === ServerSendingChannel.Email ||
       channel === ServerSendingChannel.SMS ||
-      channel === ServerSendingChannel.Call
+      channel === ServerSendingChannel.Call ||
+      channel === ServerSendingChannel.Push
     );
+  }
+
+  /*
+   * The way push goes, as a list of texts: Expo with this server's token,
+   * or the relay at its address, and the VAPID keys. A relay address that
+   * is fixed, or a token that is set, is another way out, and starts push
+   * again at untested.
+   */
+  public static describePushRoute(route: ServerPushRoute): Array<string> {
+    const expoAccessToken: string = asText(route.expoAccessToken);
+
+    return [
+      "push",
+      expoAccessToken ? "expo" : "relay",
+      expoAccessToken || asText(route.relayUrl),
+      asText(route.vapidPublicKey),
+      asText(route.vapidPrivateKey),
+    ];
   }
 
   /*
@@ -230,6 +288,18 @@ export default class ServerSendingSettings {
 
     if (channel === ServerSendingChannel.Email) {
       return ServerSendingSettings.getEmailFingerprints(row);
+    }
+
+    /*
+     * Push had nothing remembered before its fingerprints: an entry without
+     * one is the way it goes now.
+     */
+    if (channel === ServerSendingChannel.Push) {
+      const route: string = ServerSendingSettings.fingerprint(
+        ServerSendingSettings.describePushRoute(getServerPushRoute()),
+      );
+
+      return { current: route, unmarked: route };
     }
 
     const saved: Array<string> = ServerSendingSettings.describeRoute(row, null);

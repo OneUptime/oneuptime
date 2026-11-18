@@ -13,7 +13,7 @@ flowchart TB
 
 - Ein Projekt, dessen Eigentümer Sie sind: SMS und Anrufe schaltet nur der Eigentümer ein, eine Bereitschaftsrichtlinie legt der Eigentümer oder ein Admin an.
 - Ihr Mobiltelefon.
-- Die Teammitglieder, die alarmiert werden sollen, als Mitglieder des Projekts: [Personen einladen](/docs/permissions/inviting-people) zeigt, wie das geht.
+- Die Teammitglieder, die alarmiert werden sollen: Die Einrichtung kann sie per E-Mail einladen, oder siehe [Personen einladen](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Ihr Server muss E-Mails, SMS und Anrufe senden können. Sein Master-Admin richte
 
 ![Die Startseite fragt „Was möchten Sie zuerst tun?“, „Die richtige Person alarmieren, wenn etwas ausfällt“ ist angehakt](screen:home-goal-paging)
 
-Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Bereitschaftsrichtlinie einrichten**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Die richtige Person alarmieren, wenn etwas ausfällt** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie **Die richtige Person alarmieren, wenn etwas ausfällt**.
+Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Bereitschaftsrichtlinie einrichten**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Die richtige Person alarmieren, wenn etwas ausfällt** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie **Die richtige Person alarmieren, wenn etwas ausfällt**. In **Bereitschaft** öffnet **Geführte Einrichtung** sie ebenfalls.
 
 ### Die App auf Ihrem Telefon installieren
 
-Installieren Sie OneUptime On-Call aus dem App Store oder von Google Play und melden Sie sich an: Die App registriert Ihr Telefon für Push-Benachrichtigungen. Zurück in der Einrichtung klicken Sie auf **Erneut prüfen**: **Mobile App oder Browser** unter **Wie sollen wir dich erreichen?** zeigt jetzt Ihr Telefon an.
+Klicken Sie unter **Wie sollen wir dich erreichen?** auf **App herunterladen**, scannen Sie den Code mit Ihrem Telefon, installieren Sie die App und melden Sie sich an. Zurück in der Einrichtung klicken Sie auf **Erneut prüfen**: **Mobile App oder Browser** zeigt jetzt Ihr Telefon an. **Diesen Browser verwenden** alarmiert auch diesen Browser.
 
 ### SMS und Anrufe einschalten
 
@@ -47,11 +47,11 @@ In neuen Projekten sind SMS und Telefonanrufe ausgeschaltet. Sind Sie Eigentüme
 
 Geben Sie Ihre Mobilnummer mit Ländervorwahl in **Deine Telefonnummer** ein, etwa `+15551234567`, und klicken Sie auf **Code per SMS senden**. Geben Sie den Code aus der SMS ein und klicken Sie auf **Verifizieren**: Dieselbe Nummer wird bei Alarmierungen auch angerufen. Klicken Sie auf **Weiter**. Um nur über die App und per E-Mail alarmiert zu werden, lassen Sie die Nummer weg und klicken Sie sofort auf **Weiter**.
 
-### Festlegen, wer sonst alarmiert wird
+### Festlegen, wer zuerst alarmiert wird
 
-![Der Schritt „Wer hat sonst Bereitschaft?“, „Speichern und weiter“ ist markiert](screen:paging-who-else)
+![Der Schritt „Wer wird zuerst alarmiert?“, „Speichern und weiter“ ist markiert](screen:paging-who-else)
 
-Unter **Wer hat sonst Bereitschaft?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um außer Ihnen weitere Personen zu alarmieren, und dann auf **Speichern und weiter**. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
+Unter **Wer wird zuerst alarmiert?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um weitere Personen gleichzeitig mit Ihnen zu alarmieren. Für jemanden, der noch nicht im Projekt ist, klicken Sie auf **Per E-Mail einladen**, geben die Adresse ein und klicken auf **Einladung senden**. Klicken Sie dann auf **Speichern und weiter**. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
 
 ### Festlegen, was passiert, wenn niemand antwortet
 
@@ -75,7 +75,7 @@ Klicken Sie unter **Test-Alarmierung senden** auf **Diese Richtlinie testen**. W
 ![Die Zusammenfassung „Die Alarmierung ist eingerichtet“: „Wer alarmiert wird“, „Wenn niemand antwortet“ und „Getestet“](screen:paging-summary)
 
 - Der Testschritt zeigt, wer die Alarmierung bestätigt hat, wie und wie schnell.
-- Die Einrichtung endet mit **Die Alarmierung ist eingerichtet**, aus den gespeicherten Daten gelesen: **Wer alarmiert wird**, **Wenn niemand antwortet** und **Getestet**. Ein Problem mit der Richtlinie selbst, etwa jemand, den sie nicht erreichen kann, steht unter **Erfordert Aufmerksamkeit**.
+- Die Einrichtung endet mit **Die Alarmierung ist eingerichtet**, aus den gespeicherten Daten gelesen: **Wer alarmiert wird**, **Wenn niemand antwortet** und **Getestet**. **Wer alarmiert wird** nennt der Reihe nach, wie jede Person erreicht wird. Ein Problem mit der Richtlinie selbst, etwa jemand, den sie nicht erreichen kann, steht unter **Erfordert Aufmerksamkeit**.
 - Auf der **Startseite** markiert die Checkliste **Bereitschaftsrichtlinie einrichten** als erledigt. War es der letzte Schritt, ist die Checkliste verschwunden.
 
 Alarmiert die Richtlinie noch jemand anderen, können Sie auch die Eskalation beobachten: Klicken Sie in der Zusammenfassung auf **Bereitschaftsrichtlinie öffnen** und dann auf **Diese Richtlinie testen**. Schalten Sie **Jede Eskalationsstufe durchlaufen** ein, senden Sie den Test und bestätigen Sie die erste Alarmierung nicht: Die nächste Person wird bis zu 2 Minuten später alarmiert.

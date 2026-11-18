@@ -30,7 +30,7 @@ The gateway takes the place of the server's own Twilio account, for everything t
 1. In the Admin Dashboard, go to **Settings > Call and SMS**, and click **Edit Provider** on the **SMS and Call Provider** card.
 2. Choose **Your own gateway**, and enter the **Gateway URL**. It can be on your private network.
 3. Save. OneUptime makes a signing secret for you. Copy it from the card into your gateway.
-4. Click **Send Test**. Your gateway should answer with a 2xx status and send nothing.
+4. Click **Check Gateway**. Your gateway should answer with a 2xx status and send nothing.
 :::
 
 To replace the secret, clear **Signing Secret** under **More fields** and save: OneUptime makes a new one. To go back to Twilio, choose **Twilio** and save.
@@ -116,7 +116,7 @@ The SMS or call log, and for an on-call page the person's on-call log, says `Sen
 
 ## Test Requests
 
-**Send test** sends a request with `event` set to `test`, and `to`, `project` and `actions` set to `null`. Answer it with a 2xx status and send nothing.
+**Check Gateway** sends a request with `event` set to `test`, and `to`, `project` and `actions` set to `null`. Answer it with a 2xx status and send nothing.
 
 ## Next steps
 

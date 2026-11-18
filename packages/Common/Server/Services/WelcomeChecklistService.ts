@@ -4,21 +4,29 @@ import MonitorService from "./MonitorService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallReadinessService, {
   ReadinessSummary,
+  UserReadiness,
 } from "./OnCallReadinessService";
 import ProjectMilestoneService, {
   ReachedMilestone,
 } from "./ProjectMilestoneService";
 import ProjectService from "./ProjectService";
+import SetupHealthService from "./SetupHealthService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
 import ToolImportRunService from "./ToolImportRunService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import QueryHelper from "../Types/Database/QueryHelper";
+import MonitorStepsReferenceExtractor, {
+  MonitorStepsReference,
+  MonitorStepsReferenceModel,
+} from "../Utils/Monitor/MonitorStepsReferenceExtractor";
 import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
 import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
+import Monitor from "../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "../../Models/DatabaseModels/Project";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
@@ -31,19 +39,33 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import ProductKey from "../../Types/Product/ProductKey";
+import {
+  SetupHealthAnswer,
+  SetupHealthFinding,
+} from "../../Types/SetupHealth/SetupHealth";
 import ToolImportRunStatus from "../../Types/ToolImport/ToolImportRunStatus";
 import ProjectGoal, {
   parseProjectGoals,
 } from "../../Types/WelcomeChecklist/ProjectGoal";
 import {
   LegacyChecklistCounts,
+  WELCOME_GAP_INVITATION_NOT_ACCEPTED,
   WelcomeAudience,
   WelcomeChecklist,
+  WelcomeChecklistStepState,
+  WelcomeOutcomeFacts,
   WelcomeStep,
   buildWelcomeChecklist,
+  buildWelcomeMoreSteps,
+  canPageByPhoneOrApp,
   getStepsForGoals,
   getWelcomeAudience,
+  getWelcomeMoreSteps,
+  getWelcomeStepGapFromFindings,
+  hasWelcomeStepGapChecks,
   isLegacyChecklistComplete,
+  isWelcomeStepOffOnServer,
   needsOnCallRuleCheck,
   shouldAskForGoals,
 } from "../../Types/WelcomeChecklist/WelcomeChecklist";
@@ -61,6 +83,7 @@ import {
   parseWelcomeChecklistState,
   toWelcomeChecklistStateJSON,
   withTestPageAcknowledgedBy,
+  withTestPagesAcknowledgedBefore,
   withWelcomeChecklistFinished,
   withWelcomeChecklistHiddenFor,
 } from "../../Types/WelcomeChecklist/WelcomeChecklistState";
@@ -81,13 +104,19 @@ import { EntityManager } from "typeorm";
  * what they need and writes what they decide:
  *
  *   - the milestones, always (one indexed read);
- *   - the on-call rules and their policies' responders, only while "who is
- *     told" is a step that no milestone has finished;
+ *   - what runs the on-call policies - the on-call rules and the monitors'
+ *     criteria (#7017) - and those policies' responders, only while "who
+ *     is told" is a step that no milestone has finished;
  *   - finished imports, only while importing is a step left to do;
  *   - the checklist before this one's four counts, once, for a project that
  *     existed before it (needsLegacyCheck);
- *   - whether the server can send email, for a master admin of a
- *     self-hosted server.
+ *   - whether the server can send email, which the steps' words follow;
+ *   - while the steps show: why a step whose record exists is not done
+ *     (Setup health's findings, and invitations nobody accepted, #6938),
+ *     and, once "who is told" is done, whether a phone or the app can page
+ *     the person asking (#9442);
+ *   - once the checklist is finished, the core steps no goal brought that
+ *     are left (#7986), with the same reads for them.
  *
  * Writes go straight to the project's row (changeState), not through
  * ProjectService's update: they are the server's own bookkeeping, and would
@@ -112,6 +141,12 @@ export const MAX_POLICIES_CHECKED_FOR_RESPONDERS: number = 5;
 
 // How many enabled rules of each kind are read, at most.
 export const MAX_RULES_READ: number = 50;
+
+/*
+ * How many monitors' criteria are read for the policies they page, at most:
+ * "who is told" is read while it is open, in a project's first hour.
+ */
+export const MAX_MONITORS_READ: number = 50;
 
 export interface WelcomeChecklistCaller {
   projectId: ObjectID;
@@ -188,6 +223,26 @@ export default class WelcomeChecklistService {
 
     if (isWelcomeChecklistFinished(state)) {
       answer.isFinished = true;
+
+      /*
+       * What else to set up (#7986), for a project that finished its goals'
+       * steps by their outcomes. One finished by the checklist before this
+       * one, or by what a browser remembered of it, was set up before there
+       * were goals, and is offered nothing.
+       */
+      if (
+        state.finishedBy === WelcomeChecklistFinishedBy.Outcomes &&
+        !answer.isHiddenForMe
+      ) {
+        await this.addMoreSteps({
+          caller: caller,
+          row: row,
+          answer: answer,
+          reached: await this.readMilestones(caller.projectId),
+          offProducts: await ServerProducts.getOffProducts(),
+        });
+      }
+
       return answer;
     }
 
@@ -196,16 +251,17 @@ export default class WelcomeChecklistService {
     );
 
     const steps: Array<WelcomeStep> = getStepsForGoals(row.goals);
-    const readerIsServerAdmin: boolean =
-      !IsBillingEnabled && Boolean(caller.props.isMasterAdmin);
+    // A step of a product switched off on the server is left out (#6815).
+    const offProducts: Array<ProductKey> =
+      await ServerProducts.getOffProducts();
 
-    const [hasRuleThatPagesSomeone, hasFinishedImport, serverCanSendEmail]: [
+    const [hasPolicyThatPagesSomeone, hasFinishedImport, serverCanSendEmail]: [
       boolean,
       boolean,
       boolean,
     ] = await Promise.all([
       needsOnCallRuleCheck({ steps: steps, reached: reached })
-        ? this.hasRuleThatPagesSomeone(caller.projectId)
+        ? this.hasPolicyThatPagesSomeone(caller.projectId)
         : Promise.resolve(false),
       steps.includes(WelcomeStep.Import)
         ? this.hasFinishedImport(caller.projectId)
@@ -213,18 +269,17 @@ export default class WelcomeChecklistService {
       this.canServerSendEmail(),
     ]);
 
+    const facts: WelcomeOutcomeFacts = {
+      reached: reached,
+      hasPolicyThatPagesSomeone: hasPolicyThatPagesSomeone,
+      hasFinishedImport: hasFinishedImport,
+    };
+
     const checklist: WelcomeChecklist = buildWelcomeChecklist({
       goals: row.goals,
-      // A step of a product switched off on the server is left out (#6815).
-      offProducts: await ServerProducts.getOffProducts(),
-      facts: {
-        reached: reached,
-        hasRuleThatPagesSomeone: hasRuleThatPagesSomeone,
-        hasFinishedImport: hasFinishedImport,
-        serverCanSendEmail: serverCanSendEmail,
-      },
+      offProducts: offProducts,
+      facts: facts,
       plan: { isFreePlan: row.isFreePlan },
-      readerIsServerAdmin: readerIsServerAdmin,
     });
 
     answer.canSendEmail = serverCanSendEmail;
@@ -234,9 +289,10 @@ export default class WelcomeChecklistService {
 
     if (checklist.isProjectFinished) {
       /*
-       * Finished for everyone, once: later visits read nothing else. This
-       * answer still carries the steps, all done, so the browser that sees
-       * the last one tick off sends home/checklist_finished.
+       * Finished for everyone, once. This answer still carries the steps,
+       * all done, so the browser that sees the last one tick off sends
+       * home/checklist_finished - and, for whoever has not hidden the
+       * card, what else to set up (#7986).
        */
       await this.changeState(
         caller.projectId,
@@ -250,6 +306,17 @@ export default class WelcomeChecklistService {
       );
 
       answer.isFinished = true;
+
+      if (!answer.isHiddenForMe) {
+        await this.addMoreSteps({
+          caller: caller,
+          row: row,
+          answer: answer,
+          reached: reached,
+          offProducts: offProducts,
+        });
+      }
+
       return answer;
     }
 
@@ -260,7 +327,195 @@ export default class WelcomeChecklistService {
       reached: reached,
     });
 
+    // The steps show: say what each one left is missing, and how I am paged.
+    if (!answer.isHiddenForMe && !answer.shouldAskForGoals) {
+      await this.addGapsAndReach({
+        caller: caller,
+        answer: answer,
+        steps: answer.steps,
+        isOnCallDone: answer.steps.some(
+          (stepState: WelcomeChecklistStepState): boolean => {
+            return stepState.step === WelcomeStep.OnCall && stepState.isDone;
+          },
+        ),
+      });
+    }
+
     return answer;
+  }
+
+  /*
+   * WHAT ELSE TO SET UP (#7986): the core steps no goal brought that are
+   * left to do, with why each is not done yet. "Who is told" is done once
+   * no step of it is left - a goal brought it, or it works - so the answer
+   * says then whether a phone or the app pages the person asking (#9442),
+   * unless on-call is off on this server.
+   */
+  private static async addMoreSteps(data: {
+    caller: WelcomeChecklistCaller;
+    row: ProjectChecklistRow;
+    answer: WelcomeChecklistAnswer;
+    reached: Set<ActivationMilestone>;
+    offProducts: Array<ProductKey>;
+  }): Promise<void> {
+    const candidates: Array<WelcomeStep> = getWelcomeMoreSteps({
+      goals: data.row.goals,
+      offProducts: data.offProducts,
+    });
+
+    const facts: WelcomeOutcomeFacts = {
+      reached: data.reached,
+      hasPolicyThatPagesSomeone: needsOnCallRuleCheck({
+        steps: candidates,
+        reached: data.reached,
+      })
+        ? await this.hasPolicyThatPagesSomeone(data.caller.projectId)
+        : false,
+      // Importing is no core step, and never offered.
+      hasFinishedImport: false,
+    };
+
+    data.answer.moreSteps = buildWelcomeMoreSteps({
+      goals: data.row.goals,
+      facts: facts,
+      plan: { isFreePlan: data.row.isFreePlan },
+      offProducts: data.offProducts,
+    });
+
+    await this.addGapsAndReach({
+      caller: data.caller,
+      answer: data.answer,
+      steps: data.answer.moreSteps,
+      isOnCallDone:
+        !isWelcomeStepOffOnServer(WelcomeStep.OnCall, data.offProducts) &&
+        !data.answer.moreSteps.some(
+          (state: WelcomeChecklistStepState): boolean => {
+            return state.step === WelcomeStep.OnCall;
+          },
+        ),
+    });
+  }
+
+  /*
+   * What the shown steps need besides done or not, each read only when it
+   * can change what is drawn, side by side:
+   *
+   *   - why a step left to do is not done although its record exists
+   *     (#6938): Setup health's findings as this person is shown them, for
+   *     a step that has checks; invitations nobody accepted, for the team;
+   *   - once "who is told" is done, whether a phone or the app can page the
+   *     person asking (#9442).
+   */
+  private static async addGapsAndReach(data: {
+    caller: WelcomeChecklistCaller;
+    answer: WelcomeChecklistAnswer;
+    steps: Array<WelcomeChecklistStepState>;
+    isOnCallDone: boolean;
+  }): Promise<void> {
+    const open: Array<WelcomeChecklistStepState> = data.steps.filter(
+      (state: WelcomeChecklistStepState): boolean => {
+        return !state.isDone && state.needsPlan === null;
+      },
+    );
+
+    const [findings, hasInvitationNotAccepted, canBePagedByPhoneOrApp]: [
+      Array<SetupHealthFinding>,
+      boolean,
+      boolean | null,
+    ] = await Promise.all([
+      open.some((state: WelcomeChecklistStepState): boolean => {
+        return hasWelcomeStepGapChecks(state.step);
+      })
+        ? this.readSetupHealthFindings(data.caller)
+        : Promise.resolve([]),
+      open.some((state: WelcomeChecklistStepState): boolean => {
+        return state.step === WelcomeStep.Team;
+      })
+        ? this.hasInvitationNotAccepted(data.caller.projectId)
+        : Promise.resolve(false),
+      data.isOnCallDone
+        ? this.canBePagedByPhoneOrApp(data.caller)
+        : Promise.resolve(null),
+    ]);
+
+    for (const state of open) {
+      if (state.step === WelcomeStep.Team) {
+        state.gap = hasInvitationNotAccepted
+          ? { check: WELCOME_GAP_INVITATION_NOT_ACCEPTED, finding: null }
+          : null;
+        continue;
+      }
+
+      state.gap = getWelcomeStepGapFromFindings(state.step, findings);
+    }
+
+    data.answer.canBePagedByPhoneOrApp = canBePagedByPhoneOrApp;
+  }
+
+  /*
+   * The project's Setup health findings as this person is shown them,
+   * without the dismissed (#6812): kept a minute for the project, so Home's
+   * own count of them reads the same. None when they cannot be read: a
+   * step then only says what it always said.
+   */
+  public static async readSetupHealthFindings(
+    caller: WelcomeChecklistCaller,
+  ): Promise<Array<SetupHealthFinding>> {
+    try {
+      const health: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: caller.projectId,
+        props: caller.props,
+      });
+
+      return health.findings;
+    } catch (err) {
+      logger.error("Could not read the project's setup health:");
+      logger.error(err as Error);
+      return [];
+    }
+  }
+
+  // Whether somebody was invited to the project and has not accepted yet.
+  public static async hasInvitationNotAccepted(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      const pending: number = (
+        await TeamMemberService.countBy({
+          query: { projectId: projectId, hasAcceptedInvitation: false },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      return pending > 0;
+    } catch (err) {
+      logger.error("Could not read the project's invitations:");
+      logger.error(err as Error);
+      return false;
+    }
+  }
+
+  /*
+   * Whether a verified phone number or push device can page the person
+   * asking, in this project (On-Call Readiness, kept a minute), or null
+   * when it cannot be read - somebody who is no member of the project, a
+   * master admin looking in, is never offered a phone they cannot add.
+   */
+  public static async canBePagedByPhoneOrApp(
+    caller: WelcomeChecklistCaller,
+  ): Promise<boolean | null> {
+    try {
+      const readiness: UserReadiness =
+        await OnCallReadinessService.getReadinessForUser(
+          caller.userId,
+          caller.projectId,
+        );
+
+      return canPageByPhoneOrApp(readiness.methods);
+    } catch (err) {
+      logger.debug(err);
+      return null;
+    }
   }
 
   /*
@@ -349,6 +604,48 @@ export default class WelcomeChecklistService {
         return withTestPageAcknowledgedBy(current, data.userId.toString());
       },
     );
+  }
+
+  /*
+   * Notes members who acknowledged a test page before the note was kept
+   * (#7042): the one-off backfill's write (TestPageAcknowledgementBackfill),
+   * oldest first. They go before the members noted since, and a member
+   * noted already is left as they are. Written as every write is
+   * (changeState), so a member noted live meanwhile is kept, and a project
+   * where every one of them is noted already is not locked at all. Returns
+   * how many members it noted.
+   */
+  public static async noteTestPagesAcknowledgedBefore(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+  }): Promise<number> {
+    const row: ProjectChecklistRow = await this.readProject(data.projectId);
+
+    if (
+      withTestPagesAcknowledgedBefore(row.state, data.userIds) === row.state
+    ) {
+      return 0;
+    }
+
+    let notedCount: number = 0;
+
+    await this.changeState(
+      data.projectId,
+      (current: WelcomeChecklistState): WelcomeChecklistState => {
+        const next: WelcomeChecklistState = withTestPagesAcknowledgedBefore(
+          current,
+          data.userIds,
+        );
+
+        notedCount =
+          (next.testPageAcknowledgedByUserIds || []).length -
+          (current.testPageAcknowledgedByUserIds || []).length;
+
+        return next;
+      },
+    );
+
+    return Math.max(notedCount, 0);
   }
 
   /*
@@ -476,18 +773,28 @@ export default class WelcomeChecklistService {
   }
 
   /*
-   * Whether somebody would be told: an enabled incident or alert on-call
-   * rule runs a policy that can reach at least one responder. Until a test
+   * Whether somebody would be told: a policy in service that can reach at
+   * least one responder is run when something breaks - by an enabled
+   * incident or alert on-call rule, or by a monitor whose criteria page it
+   * directly (#7017), as Setup health counts a policy as run. Until a test
    * page (#6811) has been acknowledged, or a real page has reached
-   * someone, this is how the checklist knows. A policy that no rule runs,
-   * or that pages nobody reachable, does not count.
+   * someone, this is how the checklist knows. A policy that nothing runs,
+   * that is archived, or that pages nobody reachable, does not count.
    */
-  public static async hasRuleThatPagesSomeone(
+  public static async hasPolicyThatPagesSomeone(
     projectId: ObjectID,
   ): Promise<boolean> {
     try {
-      const policyIds: Array<string> =
-        await this.readPoliciesRunByRules(projectId);
+      const [runByRules, pagedByMonitors]: [Array<string>, Array<string>] =
+        await Promise.all([
+          this.readPoliciesRunByRules(projectId),
+          this.readPoliciesPagedByMonitors(projectId),
+        ]);
+
+      const policyIds: Array<string> = await this.readPoliciesInService(
+        projectId,
+        Array.from(new Set<string>([...runByRules, ...pagedByMonitors])),
+      );
 
       for (const policyId of policyIds.slice(
         0,
@@ -511,10 +818,92 @@ export default class WelcomeChecklistService {
 
       return false;
     } catch (err) {
-      logger.error("Could not check whether an on-call rule pages someone:");
+      logger.error("Could not check whether an on-call policy pages someone:");
       logger.error(err as Error);
       return false;
     }
+  }
+
+  /*
+   * The ids of the policies the project's monitors page directly: an
+   * on-call policy named in a criteria's incident or alert, where that
+   * criteria opens one (MonitorStepsReferenceExtractor's operative
+   * references). Only monitors that are checked: a monitor whose
+   * monitoring is off, or that is archived, opens nothing.
+   */
+  public static async readPoliciesPagedByMonitors(
+    projectId: ObjectID,
+  ): Promise<Array<string>> {
+    const monitors: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        projectId: projectId,
+        disableActiveMonitoring: false,
+        isArchived: false,
+      },
+      select: { _id: true, monitorSteps: true },
+      skip: 0,
+      limit: MAX_MONITORS_READ,
+      props: { isRoot: true },
+    });
+
+    const policyIds: Array<string> = [];
+
+    for (const monitor of monitors) {
+      for (const reference of MonitorStepsReferenceExtractor.extract(
+        monitor.monitorSteps,
+      ) as Array<MonitorStepsReference>) {
+        if (
+          reference.model === MonitorStepsReferenceModel.OnCallDutyPolicy &&
+          reference.isOperative &&
+          !policyIds.includes(reference.id)
+        ) {
+          policyIds.push(reference.id);
+        }
+      }
+    }
+
+    return policyIds;
+  }
+
+  /*
+   * The policies among `policyIds` that are in service: in this project and
+   * not archived - an archived policy pages no one (#8234). In the order
+   * they were named.
+   */
+  public static async readPoliciesInService(
+    projectId: ObjectID,
+    policyIds: Array<string>,
+  ): Promise<Array<string>> {
+    if (policyIds.length === 0) {
+      return [];
+    }
+
+    const policies: Array<OnCallDutyPolicy> =
+      await OnCallDutyPolicyService.findBy({
+        query: {
+          projectId: projectId,
+          _id: QueryHelper.any(policyIds),
+          isArchived: false,
+        },
+        select: { _id: true },
+        skip: 0,
+        limit: policyIds.length,
+        props: { isRoot: true },
+      });
+
+    const inService: Set<string> = new Set<string>(
+      policies
+        .map((policy: OnCallDutyPolicy): string => {
+          return (policy._id?.toString() || "").toLowerCase();
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    return policyIds.filter((id: string): boolean => {
+      return inService.has(id.toLowerCase());
+    });
   }
 
   // The ids of the policies enabled incident and alert on-call rules run.

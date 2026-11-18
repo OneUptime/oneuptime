@@ -16,6 +16,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -51,6 +52,11 @@ const API_NAMES: Array<string> = [
   "setRepeat",
   "loadPolicyReadiness",
   "sendSetupReminders",
+  "loadReachOrders",
+  "getBrowserPushProblem",
+  "registerThisBrowser",
+  "mayInviteByEmail",
+  "inviteByEmail",
 ];
 
 for (const name of API_NAMES) {
@@ -80,6 +86,11 @@ jest.mock(
       "setRepeat",
       "loadPolicyReadiness",
       "sendSetupReminders",
+      "loadReachOrders",
+      "getBrowserPushProblem",
+      "registerThisBrowser",
+      "mayInviteByEmail",
+      "inviteByEmail",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
@@ -413,6 +424,61 @@ jest.mock(
 
 let canSendEmail: boolean | null = true;
 let sendingStatus: unknown = null;
+let projectCanSend: unknown = null;
+let pushTurnedOff: boolean = false;
+
+// Whether the server turned push off (GlobalConfig), as each test says.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/PushNotificationsTurnedOff",
+  () => {
+    return {
+      __esModule: true,
+      usePushNotificationsTurnedOff: (): boolean => {
+        return pushTurnedOff;
+      },
+    };
+  },
+);
+
+// The link a master admin hands over: it reads the invitation from the server.
+jest.mock("../../../UI/Components/InvitationLink/InvitationLinkModal", () => {
+  return {
+    __esModule: true,
+    // Its words (INVITATION_LINK_COPY) are the module's own.
+    ...(jest.requireActual(
+      "../../../UI/Components/InvitationLink/InvitationLinkModal",
+    ) as Record<string, unknown>),
+    default: (props: {
+      teamMemberId: { toString: () => string };
+      onClose: () => void;
+    }) => {
+      return (
+        <div
+          data-testid="invitation-link-dialog"
+          data-team-member={props.teamMemberId.toString()}
+        >
+          <button
+            type="button"
+            data-testid="invitation-link-done"
+            onClick={props.onClose}
+          >
+            Done
+          </button>
+        </div>
+      );
+    },
+  };
+});
+
+// A code is drawn by a library loaded later: here, what it would encode.
+jest.mock("../../../UI/Components/QR/QR", () => {
+  return {
+    __esModule: true,
+    default: (props: { text: string }) => {
+      return <span data-testid="qr-code" data-text={props.text} />;
+    },
+  };
+});
 
 jest.mock("../../../UI/Utils/ServerSending", () => {
   return {
@@ -422,6 +488,10 @@ jest.mock("../../../UI/Utils/ServerSending", () => {
     },
     useServerSendingStatus: () => {
       return sendingStatus;
+    },
+    // What any member of the project reads (GET /project-can-send, #7151).
+    useProjectCanSend: () => {
+      return projectCanSend;
     },
   };
 });
@@ -440,6 +510,15 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 });
 
 import OnCallGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallGuidedSetup";
+import {
+  BrowserPushError,
+  BrowserPushProblem,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration";
+import {
+  MOBILE_APP_ANDROID_URL,
+  MOBILE_APP_IOS_URL,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppStoreLinks";
+import Toast from "../../../UI/Utils/Toast";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import {
   ON_CALL_SETUP_COPY,
@@ -634,6 +713,7 @@ beforeEach(() => {
   marketplace = null;
   canSendEmail = true;
   sendingStatus = null;
+  projectCanSend = null;
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
@@ -669,6 +749,21 @@ beforeEach(() => {
   api["loadPolicyReadiness"]!.mockResolvedValue([ANA]);
   api["sendSetupReminders"]!.mockResolvedValue({
     "user-ben": { state: "sent", message: "" },
+  });
+  // Not read: the summary names how each person is reached.
+  api["loadReachOrders"]!.mockResolvedValue(null);
+  // A browser that can take push, registered at the first ask.
+  api["getBrowserPushProblem"]!.mockReturnValue(null);
+  api["registerThisBrowser"]!.mockResolvedValue({
+    deviceId: "device-1",
+    alreadyRegistered: false,
+  });
+  pushTurnedOff = false;
+  // Someone who may invite to the members team, and an invitation that goes.
+  api["mayInviteByEmail"]!.mockReturnValue(true);
+  api["inviteByEmail"]!.mockResolvedValue({
+    teamMemberId: "tm-cara",
+    userId: "user-cara",
   });
   getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Acknowledged));
 });
@@ -718,7 +813,7 @@ describe("a brand-new project", () => {
     expect(stepState("who_else")).toBe("upcoming");
     expect(stepState("no_answer")).toBe("upcoming");
     expect(stepState("test")).toBe("upcoming");
-    expect(screen.getByText("Who else is on call?")).toBeInTheDocument();
+    expect(screen.getByText("Who is paged first?")).toBeInTheDocument();
     expect(screen.getByText("What if nobody answers?")).toBeInTheDocument();
     expect(screen.getByText("Send a test page")).toBeInTheDocument();
     expect(api["createPolicy"]).not.toHaveBeenCalled();
@@ -738,7 +833,7 @@ describe("a brand-new project", () => {
 });
 
 describe("how should we reach you", () => {
-  test("shows the verified email, and push not set up yet with where to set it up", async () => {
+  test("shows the verified email, and push not set up yet, set up right here", async () => {
     await renderSetup();
 
     expect(
@@ -747,10 +842,157 @@ describe("how should we reach you", () => {
     expect(
       screen.getByTestId("on-call-setup-reach-push-value"),
     ).toHaveTextContent("Not set up.");
-    expect(screen.getByTestId("on-call-setup-push-link")).toHaveAttribute(
-      "href",
-      expect.stringContaining("notification-methods"),
+    expect(screen.getByTestId("on-call-setup-push-options")).toHaveTextContent(
+      "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
     );
+    expect(
+      screen.getByTestId("on-call-setup-use-this-browser"),
+    ).toHaveTextContent("Use this browser");
+    expect(screen.getByTestId("on-call-setup-get-the-app")).toHaveTextContent(
+      "Get the app",
+    );
+    // Not a trip to Notification Methods any more.
+    expect(screen.queryByTestId("on-call-setup-push-link")).toBeNull();
+  });
+
+  /*
+   * ISSUE #7149: push only linked to User Settings > Notification Methods.
+   * This browser is registered in the step, from the click, the way
+   * Notification Methods registers one; the app is a code to scan.
+   */
+  test("Use this browser registers it from the click, then reads again what reaches you (#7149)", async () => {
+    await renderSetup();
+
+    // Nothing is asked of the browser until the person clicks.
+    expect(api["registerThisBrowser"]).not.toHaveBeenCalled();
+
+    api["loadMyReach"]!.mockResolvedValue({
+      isReachable: true,
+      methods: [
+        EMAIL,
+        {
+          methodType: "Push",
+          maskedIdentifier: "Chrome on Windows",
+          isVerified: true,
+        },
+      ],
+    });
+    await press("on-call-setup-use-this-browser");
+
+    expect(api["registerThisBrowser"]).toHaveBeenCalledTimes(1);
+    expect(api["loadMyReach"]).toHaveBeenLastCalledWith(true);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("on-call-setup-reach-push-value"),
+      ).toHaveTextContent("Chrome on Windows");
+    });
+    // Set up: nothing more to offer on the row.
+    expect(screen.queryByTestId("on-call-setup-use-this-browser")).toBeNull();
+    expect(
+      Toast.getToasts().some((toast: { title: string }) => {
+        return toast.title === "Browser Registered";
+      }),
+    ).toBe(true);
+    Toast.dismissAll();
+  });
+
+  test("a browser that blocks push says what to do, plainly, and nothing is kept (#7149)", async () => {
+    api["registerThisBrowser"]!.mockRejectedValue(
+      new BrowserPushError(BrowserPushProblem.PermissionBlocked),
+    );
+    await renderSetup();
+    await press("on-call-setup-use-this-browser");
+
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-error"),
+    ).toHaveTextContent(
+      "Notifications are blocked for OneUptime in this browser. Click the icon at the left of the address bar, allow notifications for this site, and then register this browser again.",
+    );
+    expect(
+      screen.getByTestId("on-call-setup-reach-push-value"),
+    ).toHaveTextContent("Not set up.");
+    // The person may try again.
+    expect(
+      screen.getByTestId("on-call-setup-use-this-browser"),
+    ).toBeInTheDocument();
+  });
+
+  test("a server refusal is said in its words (#7149)", async () => {
+    api["registerThisBrowser"]!.mockRejectedValue(
+      new Error("Push notifications are turned off for this project."),
+    );
+    await renderSetup();
+    await press("on-call-setup-use-this-browser");
+
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-error"),
+    ).toHaveTextContent("Push notifications are turned off for this project.");
+  });
+
+  test("a server with no push keys says so in place of Use this browser; the app is still offered (#7149)", async () => {
+    api["getBrowserPushProblem"]!.mockReturnValue(
+      BrowserPushProblem.NotConfigured,
+    );
+    await renderSetup();
+
+    expect(screen.queryByTestId("on-call-setup-use-this-browser")).toBeNull();
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-problem"),
+    ).toHaveTextContent(
+      "Push notifications are not set up on this OneUptime server. An administrator needs to set the VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables.",
+    );
+    expect(screen.getByTestId("on-call-setup-get-the-app")).toBeInTheDocument();
+  });
+
+  test("a server that turned push off says so, with neither button (#7149)", async () => {
+    pushTurnedOff = true;
+    await renderSetup();
+
+    expect(
+      screen.getByTestId("on-call-setup-push-turned-off"),
+    ).toHaveTextContent("Push notifications are turned off on this server.");
+    expect(screen.queryByTestId("on-call-setup-use-this-browser")).toBeNull();
+    expect(screen.queryByTestId("on-call-setup-get-the-app")).toBeNull();
+  });
+
+  test("Get the app opens a code for each store and the address to sign in to, then Recheck (#7149)", async () => {
+    await renderSetup();
+
+    const button: HTMLElement = screen.getByTestId("on-call-setup-get-the-app");
+
+    expect(button).toHaveAttribute("aria-expanded", "false");
+
+    await press("on-call-setup-get-the-app");
+
+    expect(button).toHaveAttribute("aria-expanded", "true");
+
+    const codes: HTMLElement = screen.getByTestId("on-call-setup-app-codes");
+
+    expect(
+      within(codes)
+        .getAllByTestId("qr-code")
+        .map((code: HTMLElement): string | null => {
+          return code.getAttribute("data-text");
+        }),
+    ).toEqual([MOBILE_APP_IOS_URL, MOBILE_APP_ANDROID_URL]);
+    expect(
+      within(codes).getByTestId("on-call-setup-app-server-url"),
+    ).toHaveTextContent(/^https?:\/\//);
+    expect(
+      screen.getByText(
+        "Once the app is signed in on your phone, click Recheck.",
+      ),
+    ).toBeInTheDocument();
+
+    // Recheck reads what reaches the person again.
+    api["loadMyReach"]!.mockClear();
+    await press("on-call-setup-reach-recheck");
+
+    expect(api["loadMyReach"]).toHaveBeenCalledWith(true);
+
+    await press("on-call-setup-get-the-app");
+
+    expect(screen.queryByTestId("on-call-setup-app-codes")).toBeNull();
   });
 
   test("Cloud, channels off: an owner turns SMS and calls on there, after reading the balance", async () => {
@@ -934,6 +1176,57 @@ describe("how should we reach you", () => {
   });
 
   /*
+   * #7151: a member - not only a master admin - is told the server cannot
+   * send SMS or make calls before typing a number, and who sets it up. The
+   * number was refused only at Add, after an owner had turned SMS on.
+   */
+  test("self-hosted without Twilio: a member is told before typing a number, and offered no number box", async () => {
+    billingEnabled = false;
+    projectCanSend = { email: true, sms: false, call: false };
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-no-twilio")).toHaveTextContent(
+      "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard.",
+    );
+    // The server's admin is named, never a link a member could not open.
+    expect(screen.queryByTestId("on-call-setup-set-up-twilio")).toBeNull();
+    expect(screen.queryByTestId("on-call-setup-phone")).toBeNull();
+  });
+
+  test("a project with its own Twilio config sends SMS though the server cannot: the number box is offered", async () => {
+    billingEnabled = false;
+    // The server has no Twilio, as a master admin would read it ...
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    sendingStatus = {
+      channels: [
+        {
+          channel: ServerSendingChannel.SMS,
+          state: ServerSendingState.NotSetUp,
+        },
+        {
+          channel: ServerSendingChannel.Call,
+          state: ServerSendingState.NotSetUp,
+        },
+      ],
+      globalProbes: null,
+    };
+    // ... but this project's own config sends both.
+    projectCanSend = { email: true, sms: true, call: true };
+    await renderSetup();
+
+    expect(screen.queryByTestId("on-call-setup-no-twilio")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-phone")).toBeInTheDocument();
+  });
+
+  test("email failing now, after it worked, says so on the email row too", async () => {
+    canSendEmail = true;
+    projectCanSend = { email: false, sms: true, call: true };
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-no-email")).toBeInTheDocument();
+  });
+
+  /*
    * ISSUE #7180: the number is typed in a box that reads left to right on
    * every page, its example "+15551234567" with it - on a Persian or Arabic
    * page its "+" went after its digits - and a phone offers its dial pad.
@@ -1061,6 +1354,41 @@ describe("who else is on call", () => {
     keepRun({ reachConfirmed: true });
     await renderSetup();
   };
+
+  /*
+   * ISSUE #7372: step 2 was "Who else is on call?", which read as the place
+   * to add the teammate to page when nobody answers: a newcomer added them
+   * here, and both were paged at the same moment. It asks who is paged
+   * first, says everyone picked is paged at once, and sends whoever should
+   * be paged only if nobody answers to the next step.
+   */
+  test("asks who is paged first, and sends someone to page if nobody answers to the next step (#7372)", async () => {
+    await reachDone();
+
+    const step: HTMLElement = screen.getByTestId("guided-setup-step-who_else");
+
+    expect(step).toHaveTextContent("Who is paged first?");
+    expect(step).not.toHaveTextContent("Who else is on call?");
+    expect(screen.getByTestId("on-call-setup-who-next-hint")).toHaveTextContent(
+      "Everyone here is paged at the same time. Someone to page only if nobody answers comes in the next step.",
+    );
+    // The next step is where someone is paged after a wait.
+    expect(screen.getByText("What if nobody answers?")).toBeInTheDocument();
+  });
+
+  test("a project with policies says the same under the first escalation rule (#7372)", async () => {
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await reachDone();
+
+    expect(screen.getByTestId("on-call-setup-who-next-hint")).toHaveTextContent(
+      "Everyone here is paged at the same time.",
+    );
+  });
 
   test("a new project: one policy, you first, with its catch-all rules", async () => {
     await reachDone();
@@ -1300,6 +1628,205 @@ describe("who else is on call", () => {
  * OnCallSetupApi.loadPolicyChoices from a fake server that answers a list
  * as the real one does: only the records its query matches.
  */
+/*
+ * ISSUE #7150: someone not in the project yet had to be invited from Users
+ * first, then picked. "Invite by email" invites them from the step - the
+ * Users page's Invite User, through the server's own checks - and adds them
+ * to who is paged first, saved with the rest.
+ */
+describe("invite by email (#7150)", () => {
+  const CARA: {
+    userId: string;
+    name: string;
+    isReachable: boolean;
+    channels: Array<string>;
+  } = {
+    userId: "user-cara",
+    name: "cara@acme.example",
+    isReachable: false,
+    channels: [],
+  };
+
+  const reachDone: () => Promise<void> = async (): Promise<void> => {
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+  };
+
+  const invite: (email: string) => Promise<void> = async (
+    email: string,
+  ): Promise<void> => {
+    await press("on-call-setup-invite-open");
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: email },
+    });
+    await press("on-call-setup-invite-send");
+  };
+
+  test("invites the address and adds them to who is paged first, saved with the rest", async () => {
+    await reachDone();
+    await invite("cara@acme.example");
+
+    expect(api["inviteByEmail"]).toHaveBeenCalledWith("cara@acme.example");
+    expect(screen.getByTestId("on-call-setup-people-picked")).toHaveTextContent(
+      JSON.stringify({ user: [USER_ID, "user-cara"] }),
+    );
+    expect(screen.getByTestId("on-call-setup-invited")).toHaveTextContent(
+      "cara@acme.example is invited and added here.",
+    );
+    // The form closes; another can be invited.
+    expect(screen.queryByTestId("on-call-setup-invite")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-invite-open")).toBeInTheDocument();
+
+    api["loadPolicyReadiness"]!.mockResolvedValue([ANA, CARA]);
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: [USER_ID, "user-cara"] }),
+    );
+    // Not reachable until they accept and set up a way: a reminder for them.
+    expect(stepState("who_else")).toBe("open");
+    expect(
+      screen.getByTestId("on-call-setup-responder-user-cara"),
+    ).toHaveTextContent("cara@acme.example (not reachable yet)");
+    expect(
+      screen.getByTestId("on-call-setup-send-reminder-user-cara"),
+    ).toBeInTheDocument();
+  });
+
+  test("a project with policies: the invitee joins its first escalation rule", async () => {
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await reachDone();
+    await invite("cara@acme.example");
+    await press("on-call-setup-who-save");
+
+    expect(api["addToFirstLevel"]).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: ["user-cara"] }),
+    );
+  });
+
+  test("an address that is not one is refused before anything is sent", async () => {
+    await reachDone();
+    await invite("cara at acme");
+
+    expect(api["inviteByEmail"]).not.toHaveBeenCalled();
+    expect(screen.getByTestId("on-call-setup-invite")).toHaveTextContent(
+      "Enter an email address, such as ana@example.com.",
+    );
+  });
+
+  test("the plan's seat limit refuses in the server's words, and nobody is added", async () => {
+    api["inviteByEmail"]!.mockRejectedValue(
+      new Error(
+        "This project has used all 5 of its seats. Remove someone from the project, or ask a Project Owner to add seats.",
+      ),
+    );
+    await reachDone();
+    await invite("cara@acme.example");
+
+    expect(screen.getByTestId("on-call-setup-invite-error")).toHaveTextContent(
+      "This project has used all 5 of its seats.",
+    );
+    expect(screen.getByTestId("on-call-setup-people-picked")).toHaveTextContent(
+      JSON.stringify({ user: [USER_ID] }),
+    );
+    expect(screen.queryByTestId("on-call-setup-invited")).toBeNull();
+  });
+
+  test("someone who may not invite is not offered it", async () => {
+    api["mayInviteByEmail"]!.mockReturnValue(false);
+    await reachDone();
+
+    expect(screen.queryByTestId("on-call-setup-invite-open")).toBeNull();
+  });
+
+  test("never asks whether the address has an account: one field, the same words for any address", async () => {
+    await reachDone();
+    await press("on-call-setup-invite-open");
+
+    const form: HTMLElement = screen.getByTestId("on-call-setup-invite");
+
+    // The address alone: no name asked of a person without an account.
+    expect(form.querySelectorAll("input")).toHaveLength(1);
+    expect(
+      screen.getByTestId("on-call-setup-invite-description"),
+    ).toHaveTextContent(
+      "We email them an invitation to this project and add them here.",
+    );
+
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-send");
+
+    // One call, the address alone, whatever the server finds for it.
+    expect(api["inviteByEmail"]).toHaveBeenCalledTimes(1);
+    expect(api["inviteByEmail"]!.mock.calls[0]).toEqual(["cara@acme.example"]);
+  });
+
+  test("a server that cannot send email says so before anything is sent", async () => {
+    canSendEmail = false;
+    await reachDone();
+    await press("on-call-setup-invite-open");
+
+    expect(
+      screen.getByTestId("on-call-setup-invite-description"),
+    ).toHaveTextContent(
+      "This server cannot send email yet, so they get no invitation email. The invitation is still created: ask your server's admin to set up email.",
+    );
+
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-send");
+
+    // Anyone but a master admin gets no link to hand over.
+    expect(screen.queryByTestId("invitation-link-dialog")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-invited")).toBeInTheDocument();
+  });
+
+  test("on a server that cannot send email, a master admin is handed the invitation's link", async () => {
+    canSendEmail = false;
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    await reachDone();
+    await press("on-call-setup-invite-open");
+
+    expect(
+      screen.getByTestId("on-call-setup-invite-description"),
+    ).toHaveTextContent("you get a link to send them yourself");
+
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-send");
+
+    expect(screen.getByTestId("invitation-link-dialog")).toHaveAttribute(
+      "data-team-member",
+      "tm-cara",
+    );
+
+    await press("invitation-link-done");
+
+    expect(screen.queryByTestId("invitation-link-dialog")).toBeNull();
+  });
+
+  test("Cancel closes the form and sends nothing", async () => {
+    await reachDone();
+    await press("on-call-setup-invite-open");
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-cancel");
+
+    expect(screen.queryByTestId("on-call-setup-invite")).toBeNull();
+    expect(api["inviteByEmail"]).not.toHaveBeenCalled();
+  });
+});
+
 describe("archived on-call policies (#8234)", () => {
   const LIVE_ID: string = "60000000-0000-4000-8000-000000000011";
   const ARCHIVED_ID: string = "60000000-0000-4000-8000-000000000012";
@@ -1689,6 +2216,63 @@ describe("coming back", () => {
       "href",
       expect.stringContaining(`/on-call-duty/policies/${POLICY_ID}/escalation`),
     );
+  });
+
+  /*
+   * ISSUE #7154: the summary named who is paged and by what, never in which
+   * order. It says the order a page reaches each person - their own How to
+   * Reach Me, as "Test this policy" previews it on the server.
+   */
+  test("says the order a page reaches each person, as the test page's preview reads it (#7154)", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      noAnswerDone: true,
+      testExecutionLogId: "log-1",
+    });
+    api["loadReachOrders"]!.mockResolvedValue({
+      [USER_ID]: [
+        { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+      ],
+    });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("on-call-setup-summary-first"),
+      ).toHaveTextContent(
+        'Any new incident or alert runs "Default on-call policy", which pages Ana Lopez (SMS at once, then phone call after 5 minutes).',
+      );
+    });
+    // The policy's own preview: nothing is worked out a second time here.
+    expect(api["loadReachOrders"]).toHaveBeenCalledWith(POLICY_ID);
+  });
+
+  test("an order that cannot be read leaves the summary naming how each person is reached (#7154)", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      noAnswerDone: true,
+      testExecutionLogId: "log-1",
+    });
+    api["loadReachOrders"]!.mockResolvedValue(null);
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(api["loadReachOrders"]).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId("on-call-setup-summary-first")).toHaveTextContent(
+      "which pages Ana Lopez (Email, SMS).",
+    );
+  });
+
+  test("the order is read only once the summary shows, never on the steps", async () => {
+    keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+    await renderSetup();
+
+    expect(stepState("no_answer")).toBe("open");
+    expect(api["loadReachOrders"]).not.toHaveBeenCalled();
   });
 
   test("a policy the project had: its own rules decide, never 'any new incident'", async () => {

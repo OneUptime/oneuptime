@@ -36,7 +36,7 @@ Udforskeren har seks faner:
 
 ## Før du begynder
 
-- **Metrikker, der ankommer.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry) eller fra en agent som [OpenTelemetry-collectoren til værter](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
+- **Metrikker, der ankommer.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry) eller fra en agent som [OpenTelemetry-collectoren til værter](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Indtil de første data kommer, tilbyder denne side **Guidet opsætning**, som fører dig fra dine første protokoller, metrikker og spor til advarsler om dem, ved siden af **Send dine første metrikker**, opsætningsguiden alene.
 - **En rolle, der må læse telemetri.** Projektejer, Projektadministrator, Projektmedlem, Seer, Telemetriadministrator, Telemetrimedlem eller Telemetriseer, eller en brugerdefineret rolle med tilladelsen Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) om, hvilke metrikker den læser.
 
 ## Find en metrik

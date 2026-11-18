@@ -61,7 +61,7 @@ Quando entrate in un progetto con un'e-mail di accesso verificata, OneUptime vi 
 2. Per ogni gravità, su ciascuna delle quattro schede delle **Come contattarmi**, una regola vi invia un'e-mail appena venite chiamati.
 3. Un insieme di aggiornamenti su ciò che è vostro, e sui vostri turni, viene attivato via e-mail. Vedete [Impostazioni notifiche](/docs/notifications/notification-settings#cosa-è-attivo-per-un-nuovo-membro).
 
-Ogni metodo che verificate in seguito riceve le stesse regole: una regola per ogni gravità, inviata appena venite chiamati. Quindi verificare un numero di telefono per gli SMS significa che ogni chiamata vi manda anche un SMS. Per tenere gli SMS solo per le chiamate critiche, eliminate le regole SMS delle altre gravità. Vedete [Come contattarmi](/docs/notifications/on-call-rules#le-regole-con-cui-partite).
+Ogni metodo che verificate in seguito riceve le stesse regole: una regola per ogni gravità, inviata appena venite chiamati. Quindi verificare un numero di telefono per gli SMS significa che ogni chiamata vi manda anche un SMS. Per tenere gli SMS solo per le chiamate critiche, eliminate le regole SMS delle altre gravità. Vedete [Come contattarmi](/docs/notifications/on-call-rules#le-regole-con-cui-partite). Quando il vostro progetto ha una sequenza predefinita, la vostra e-mail e ogni metodo che verificate la seguono invece: vedete [La sequenza predefinita](/docs/notifications/on-call-rules#la-sequenza-predefinita).
 
 ## L'elenco di configurazione
 
@@ -84,6 +84,10 @@ Ogni metodo che verificate in seguito riceve le stesse regole: una regola per og
 | **Alcune cose devono ancora essere configurate** | Una gravità non ha una regola, o un passaggio non è ancora fatto |
 | **Per ora niente può raggiungerti** | Nessuno dei vostri metodi è utilizzabile: nessuno è verificato, oppure ogni metodo verificato è su un canale che questo progetto ha disattivato |
 | **Sei configurato e al momento non sei di reperibilità** | Tutto è pronto per il giorno in cui una politica vi nominerà |
+
+Finché resta un passaggio, le **Impostazioni utente** si aprono su questo elenco, e su **Metodi di notifica** quando non resta più nulla di essenziale. Un link a un'altra pagina delle **Impostazioni utente** apre comunque quella pagina.
+
+Quando siete in una politica di reperibilità e la vostra configurazione non è finita, la campanella in alto in ogni pagina mostra **Completa la configurazione delle tue notifiche**, e perché: nulla può raggiungervi, una gravità non ha una regola, o il vostro progetto chiede un metodo telefonico che non avete verificato. Apre questo elenco, oppure **Come contattarmi** per il telefono. **Nascondi per una settimana** la nasconde in questo browser, e sparisce da sola appena la vostra configurazione è finita.
 
 ## Quando nessuna regola corrisponde
 

@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useId } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useId,
+} from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -50,10 +55,23 @@ export interface ShowcaseAddButton {
   tooltip?: string | undefined;
 }
 
+/*
+ * The product's guided setup (ProductOnboarding's guidedSetup, #7148): the
+ * explanation's one primary button where there is one, with the list's
+ * own Create beside it, plain.
+ */
+export interface ShowcaseSetupButton {
+  // English, looked up by the button.
+  title: string;
+  onClick: () => void;
+}
+
 export interface ComponentProps {
   showcase: ResourceShowcase;
   // Left out where the viewer has no way to add one.
   addButton?: ShowcaseAddButton | undefined;
+  // Left out where the product has no guided setup, or the viewer may not use it.
+  setupButton?: ShowcaseSetupButton | undefined;
   // The product's documentation, linked beside the button ("/docs/slo/introduction").
   docsRoute?: Route | URL | undefined;
   /*
@@ -74,11 +92,18 @@ export interface ComponentProps {
   hidesDescription?: boolean | undefined;
   // Drawn without its own frame, inside a dialog (a product's About).
   isBare?: boolean | undefined;
+  /*
+   * A quiet line under the buttons, which brings its own spacing: How it
+   * works' offer to import from another tool (#7033).
+   */
+  actionsNote?: ReactNode | undefined;
 }
 
 export const RESOURCE_SHOWCASE_TEST_ID: string = "resource-showcase";
 export const RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID: string =
   "resource-showcase-add-button";
+export const RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID: string =
+  "resource-showcase-setup-button";
 export const RESOURCE_SHOWCASE_PREVIEW_TEST_ID: string =
   "resource-showcase-preview";
 export const RESOURCE_SHOWCASE_CHART_TEST_ID: string =
@@ -99,6 +124,12 @@ export const RESOURCE_SHOWCASE_ROW_STATE_TEST_ID: string =
   "resource-showcase-row-state";
 export const RESOURCE_SHOWCASE_STAT_UNIT_TEST_ID: string =
   "resource-showcase-stat-unit";
+/*
+ * The pitch: the eyebrow, the title, the steps and the buttons, beside the
+ * example - what the docs' shot of a product's empty list holds (#9419).
+ */
+export const RESOURCE_SHOWCASE_PITCH_TEST_ID: string =
+  "resource-showcase-pitch";
 
 // Over the feature grid.
 export const RESOURCE_SHOWCASE_FEATURES_TITLE: string =
@@ -513,7 +544,10 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               : SHOWCASE_HERO_CLASS_NAME
           }
         >
-          <div className="min-w-0">
+          <div
+            className="min-w-0"
+            data-testid={RESOURCE_SHOWCASE_PITCH_TEST_ID}
+          >
             {/* A dialog's title already names the product. */}
             {!props.isBare && (
               <Pill
@@ -566,16 +600,36 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               </ol>
             )}
 
-            {(props.addButton || props.docsRoute || props.guideRoute) && (
+            {(props.addButton ||
+              props.setupButton ||
+              props.docsRoute ||
+              props.guideRoute) && (
               /*
                * The button starts the row, level with the steps above it.
+               * A guided setup goes first, as the one primary button: it
+               * ends with the job done and tested, where Create ends with a
+               * record (#7148).
                */
               <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+                {props.setupButton && (
+                  <Button
+                    title={props.setupButton.title}
+                    icon={IconProp.Play}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    buttonSize={ButtonSize.Large}
+                    onClick={props.setupButton.onClick}
+                    dataTestId={RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID}
+                  />
+                )}
                 {props.addButton && (
                   <Button
                     title={props.addButton.title}
                     icon={props.addButton.icon || IconProp.Add}
-                    buttonStyle={ButtonStyleType.PRIMARY}
+                    buttonStyle={
+                      props.setupButton
+                        ? ButtonStyleType.NORMAL
+                        : ButtonStyleType.PRIMARY
+                    }
                     buttonSize={ButtonSize.Large}
                     disabled={props.addButton.disabled}
                     tooltip={props.addButton.tooltip}
@@ -613,6 +667,8 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
                 )}
               </div>
             )}
+
+            {props.actionsNote}
 
             {showcase.highlights.length > 0 && (
               <ul

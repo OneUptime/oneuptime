@@ -5,6 +5,10 @@ import {
   WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwnersSource,
   WhoIsToldPersonProblem,
   WhoIsToldPolicy,
@@ -40,6 +44,7 @@ import {
   SetupHealthLevel,
   SetupHealthMonitorFact,
   SetupHealthMonitorReason,
+  SetupHealthOwnerSubject,
   SetupHealthReadable,
   SetupHealthRecord,
   SetupHealthRecordKind,
@@ -886,8 +891,17 @@ describe("the monitors' chains, as findings", () => {
       });
 
       expect(told.chains[0]!.breaks).toEqual([]);
-      // The chains themselves are whole: what a private record's criteria names is still run.
-      expect(told.chains[0]!.criteria).toBe(all.chains[0]!.criteria);
+      /*
+       * The chains themselves are whole: what a private record's criteria
+       * names is still run. The record is only marked hidden, so none of
+       * its owners is listed for them (#9371).
+       */
+      const hidden: WhoIsToldEvent = told.chains[0]!.criteria[0]!.events[0]!;
+      const whole: WhoIsToldEvent = all.chains[0]!.criteria[0]!.events[0]!;
+
+      expect(hidden).toEqual({ ...whole, isHidden: true });
+      expect(hidden.policies).toBe(whole.policies);
+      expect(whole.isHidden).toBeUndefined();
     });
 
     test("a policy's break a public incident raises too affects that incident's monitor alone", () => {
@@ -1048,6 +1062,90 @@ describe("responders, from Readiness", () => {
 
     expect(findings[0]!.sentence).toBe(
       "Someone has no verified notification method, so pages don't reach them.",
+    );
+  });
+
+  /*
+   * The project asks people on call for a phone method (#7449): Readiness
+   * names who has none (isMissingPhoneMethod), and this lists them, worth
+   * fixing - never a second calculation of what a phone method is.
+   */
+  test("somebody on a policy with no phone method, where the project asks for one, is worth fixing", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        responders: [
+          {
+            userId: BEN,
+            name: "Ben Ito",
+            isNotReachable: false,
+            reason: SetupHealthResponderReason.NoVerifiedMethod,
+            isMissingPhoneMethod: true,
+          },
+        ],
+      }),
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      check: SetupHealthCheck.ResponderHasNoPhone,
+      level: SetupHealthLevel.WorthFixing,
+      record: { kind: SetupHealthRecordKind.User, id: BEN, name: "Ben Ito" },
+      fix: SetupHealthFix.OnCallReadiness,
+    });
+    expect(findings[0]!.sentence).toBe(
+      "Ben Ito is on call but has no verified phone method, which this project asks everyone on call to have.",
+    );
+  });
+
+  test("somebody nothing reaches is one finding, the worse one, not a phone one too", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        responders: [
+          {
+            userId: BEN,
+            name: "Ben Ito",
+            isNotReachable: true,
+            reason: SetupHealthResponderReason.NoVerifiedMethod,
+            isMissingPhoneMethod: true,
+          },
+        ],
+      }),
+    );
+
+    expect(
+      findings.map((finding: SetupHealthFinding): SetupHealthCheck => {
+        return finding.check;
+      }),
+    ).toEqual([SetupHealthCheck.ResponderCannotBePaged]);
+  });
+
+  test("a project that does not ask, or somebody who has one, is no phone finding", () => {
+    for (const isMissingPhoneMethod of [false, undefined]) {
+      expect(
+        getSetupHealthFindings(
+          facts({
+            responders: [
+              {
+                userId: BEN,
+                name: "Ben Ito",
+                isNotReachable: false,
+                reason: SetupHealthResponderReason.NoVerifiedMethod,
+                isMissingPhoneMethod: isMissingPhoneMethod,
+              },
+            ],
+          }),
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  test("the phone finding is listed with who is paged, after who can't be", () => {
+    expect(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.ResponderHasNoPhone),
+    ).toBe(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(
+        SetupHealthCheck.ResponderCannotBePaged,
+      ) + 1,
     );
   });
 
@@ -2491,6 +2589,624 @@ describe("dismissing a finding", () => {
     expect(
       applySetupHealthDismissals([otherMonitor], [dismissal({})]).dismissed,
     ).toEqual([]);
+  });
+});
+
+/*
+ * THE OWNERS NO CREATED EMAIL REACHES (#9371): the card's "Owners who
+ * aren't emailed", listed for the whole project, each about what puts it
+ * right, as the card links it.
+ */
+describe("owners no Created email reaches", () => {
+  const PAYMENTS: string = "68120000-0000-4000-8000-0000000000f5";
+  const ELSEWHERE: string = "68120000-0000-4000-8000-0000000000f6";
+  const CARA: string = "68120000-0000-4000-8000-0000000000c3";
+  const DAN: string = "68120000-0000-4000-8000-0000000000c4";
+  const OWNER_RULE: string = "68120000-0000-4000-8000-0000000000f7";
+  const DEVICE: string = "68120000-0000-4000-8000-0000000000f8";
+
+  function owner(
+    data: Partial<WhoIsToldOwnerNotReached> & {
+      problem: WhoIsToldOwnerProblem;
+      addedBy: WhoIsToldOwnerAddedBy;
+    },
+  ): WhoIsToldOwnerNotReached {
+    const isTeam: boolean = data.problem !== WhoIsToldOwnerProblem.NotInProject;
+
+    return {
+      kind: isTeam ? WhoIsToldOwnerKind.Team : WhoIsToldOwnerKind.User,
+      id: data.id || (isTeam ? PAYMENTS : CARA),
+      name:
+        data.name ??
+        (data.problem === WhoIsToldOwnerProblem.TeamHasNobodyInProject
+          ? "Payments"
+          : ""),
+      ...data,
+    };
+  }
+
+  function event(data: {
+    kind?: OnCallTestPageRecordKind;
+    notReached: Array<WhoIsToldOwnerNotReached>;
+    isPrivate?: boolean;
+    declares?: Array<WhoIsToldOwnerNotReached>;
+  }): WhoIsToldEvent {
+    const made: WhoIsToldEvent = {
+      kind: data.kind || OnCallTestPageRecordKind.Incident,
+      title: "Checkout API is offline",
+      severityName: "Critical",
+      owners: {
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: [],
+        teamNames: [],
+        notReached: data.notReached,
+      },
+      ownerRules: [],
+      rules: [],
+      policies: [],
+      statusPages: [],
+      ownerIds: { userIds: [], teamIds: [] },
+    };
+
+    if (data.isPrivate) {
+      made.isPrivate = true;
+    }
+
+    if (data.declares) {
+      made.declares = {
+        rule: { id: "68120000-0000-4000-8000-0000000000f9", name: "Declare" },
+        waitInMinutes: 0,
+        incident: event({ notReached: data.declares }),
+      };
+    }
+
+    return made;
+  }
+
+  function ownersChain(data: {
+    monitorId?: string;
+    monitorName?: string;
+    events: Array<WhoIsToldEvent>;
+  }): WhoIsToldResult {
+    return chain({
+      ...(data.monitorId !== undefined ? { monitorId: data.monitorId } : {}),
+      ...(data.monitorName !== undefined
+        ? { monitorName: data.monitorName }
+        : {}),
+      criteria: [{ id: "offline", name: "Offline", events: data.events }],
+    });
+  }
+
+  function ownerFindings(
+    chains: Array<WhoIsToldResult>,
+  ): Array<SetupHealthFinding> {
+    return only(
+      getSetupHealthFindings(facts({ chains: chains })),
+      SetupHealthCheck.OwnerNotEmailed,
+    );
+  }
+
+  function relatedIds(finding: SetupHealthFinding | undefined): Array<string> {
+    return (finding?.related || []).map((record: SetupHealthRecord): string => {
+      return record.id;
+    });
+  }
+
+  test("a team with nobody in the project is one finding about the team, worth fixing, affecting every monitor that names it", () => {
+    const findings: Array<SetupHealthFinding> = ownerFindings([
+      ownersChain({
+        events: [
+          event({
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+                addedBy: WhoIsToldOwnerAddedBy.Criteria,
+              }),
+            ],
+          }),
+        ],
+      }),
+      ownersChain({
+        monitorId: BILLING,
+        monitorName: "Billing API",
+        events: [
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+                addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                rule: { id: OWNER_RULE, name: "Payments routes" },
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      level: SetupHealthLevel.WorthFixing,
+      subject: SetupHealthOwnerSubject.TeamHasNobody,
+      record: {
+        kind: SetupHealthRecordKind.Team,
+        id: PAYMENTS,
+        name: "Payments",
+      },
+      fix: SetupHealthFix.TeamMembers,
+      fixRecordId: PAYMENTS,
+      values: { team: "Payments" },
+      sentence:
+        "Team Payments has nobody in it who is a member of this project, so nobody is emailed through it.",
+    });
+    expect(relatedIds(findings[0])).toEqual([CHECKOUT, BILLING]);
+  });
+
+  test("someone named in a monitor's criteria who isn't a member: about the monitor, fixed on its criteria, once however many", () => {
+    const findings: Array<SetupHealthFinding> = ownerFindings([
+      ownersChain({
+        events: [
+          event({
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.Criteria,
+              }),
+              owner({
+                id: DAN,
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.Criteria,
+              }),
+            ],
+          }),
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.Criteria,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      subject: SetupHealthOwnerSubject.CriteriaNotInProject,
+      record: {
+        kind: SetupHealthRecordKind.Monitor,
+        id: CHECKOUT,
+        name: "Checkout API",
+      },
+      related: [],
+      fix: SetupHealthFix.MonitorCriteria,
+      fixRecordId: CHECKOUT,
+      sentence:
+        "Someone named as an owner in the criteria of Checkout API isn't a member of this project, so isn't emailed.",
+    });
+    // A person who is not a member is never named.
+    expect(JSON.stringify(findings)).not.toContain(CARA);
+    expect(JSON.stringify(findings)).not.toContain(DAN);
+  });
+
+  test("a team of another project named in the criteria: about the monitor, fixed on its criteria", () => {
+    expect(
+      ownerFindings([
+        ownersChain({
+          events: [
+            event({
+              notReached: [
+                owner({
+                  id: ELSEWHERE,
+                  problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+                  addedBy: WhoIsToldOwnerAddedBy.Criteria,
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    ).toMatchObject([
+      {
+        subject: SetupHealthOwnerSubject.CriteriaTeamOfAnotherProject,
+        record: { kind: SetupHealthRecordKind.Monitor, id: CHECKOUT },
+        fix: SetupHealthFix.MonitorCriteria,
+        sentence:
+          "A team of another project is named as an owner in the criteria of Checkout API, so nobody is emailed through it.",
+      },
+    ]);
+  });
+
+  test("an owner of the network device a monitor watches: about the monitor, fixed on the device's owners", () => {
+    expect(
+      ownerFindings([
+        ownersChain({
+          events: [
+            event({
+              notReached: [
+                owner({
+                  problem: WhoIsToldOwnerProblem.NotInProject,
+                  addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+                  networkDeviceId: DEVICE,
+                }),
+                owner({
+                  id: ELSEWHERE,
+                  problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+                  addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+                  networkDeviceId: DEVICE,
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    ).toMatchObject([
+      {
+        subject: SetupHealthOwnerSubject.NetworkDeviceNotInProject,
+        record: { kind: SetupHealthRecordKind.Monitor, id: CHECKOUT },
+        fix: SetupHealthFix.NetworkDeviceOwners,
+        fixRecordId: DEVICE,
+        sentence:
+          "An owner of the network device Checkout API watches isn't a member of this project, so isn't emailed.",
+      },
+      {
+        subject: SetupHealthOwnerSubject.NetworkDeviceTeamOfAnotherProject,
+        fix: SetupHealthFix.NetworkDeviceOwners,
+        fixRecordId: DEVICE,
+        sentence:
+          "A team of another project owns the network device Checkout API watches, so nobody is emailed through it.",
+      },
+    ]);
+  });
+
+  test("added by an owner rule: about the rule, of incidents or alerts, affecting each monitor whose records it adds them to", () => {
+    const findings: Array<SetupHealthFinding> = ownerFindings([
+      ownersChain({
+        events: [
+          event({
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                rule: { id: OWNER_RULE, name: "Checkout routes" },
+              }),
+            ],
+          }),
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            notReached: [
+              owner({
+                id: ELSEWHERE,
+                problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+                addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                rule: { id: OWNER_RULE, name: "Alert routes" },
+              }),
+            ],
+          }),
+        ],
+      }),
+      ownersChain({
+        monitorId: BILLING,
+        monitorName: "Billing API",
+        events: [
+          event({
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                rule: { id: OWNER_RULE, name: "Checkout routes" },
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+
+    expect(findings).toHaveLength(2);
+    expect(
+      findings.find((finding: SetupHealthFinding): boolean => {
+        return finding.record.kind === SetupHealthRecordKind.IncidentOwnerRule;
+      }),
+    ).toMatchObject({
+      subject: SetupHealthOwnerSubject.OwnerRuleNotInProject,
+      record: { id: OWNER_RULE, name: "Checkout routes" },
+      related: [
+        { kind: SetupHealthRecordKind.Monitor, id: CHECKOUT },
+        { kind: SetupHealthRecordKind.Monitor, id: BILLING },
+      ],
+      fix: SetupHealthFix.IncidentOwnerRules,
+      fixRecordId: "",
+      sentence:
+        "Owner rule Checkout routes adds someone who isn't a member of this project as an owner, so they aren't emailed.",
+    });
+    expect(
+      findings.find((finding: SetupHealthFinding): boolean => {
+        return finding.record.kind === SetupHealthRecordKind.AlertOwnerRule;
+      }),
+    ).toMatchObject({
+      subject: SetupHealthOwnerSubject.OwnerRuleTeamOfAnotherProject,
+      fix: SetupHealthFix.AlertOwnerRules,
+      sentence:
+        "Owner rule Alert routes adds a team of another project as an owner, so nobody is emailed through it.",
+    });
+  });
+
+  test("the incident an alert incident rule declares is listed too: its owner rules are incidents'", () => {
+    expect(
+      ownerFindings([
+        ownersChain({
+          events: [
+            event({
+              kind: OnCallTestPageRecordKind.Alert,
+              notReached: [],
+              declares: [
+                owner({
+                  problem: WhoIsToldOwnerProblem.NotInProject,
+                  addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                  rule: { id: OWNER_RULE, name: "Incident routes" },
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    ).toMatchObject([
+      {
+        record: {
+          kind: SetupHealthRecordKind.IncidentOwnerRule,
+          id: OWNER_RULE,
+        },
+        fix: SetupHealthFix.IncidentOwnerRules,
+      },
+    ]);
+  });
+
+  test("an owner the card links no page for is not listed: a device's with no device, a rule's with no rule", () => {
+    expect(
+      ownerFindings([
+        ownersChain({
+          events: [
+            event({
+              notReached: [
+                owner({
+                  problem: WhoIsToldOwnerProblem.NotInProject,
+                  addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+                }),
+                owner({
+                  problem: WhoIsToldOwnerProblem.NotInProject,
+                  addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("a project whose every owner is reached has no such finding", () => {
+    expect(
+      ownerFindings([ownersChain({ events: [event({ notReached: [] })] })]),
+    ).toEqual([]);
+  });
+
+  describe("for a reader of a private record (#9370)", () => {
+    const teamWithNobody: WhoIsToldOwnerNotReached = owner({
+      problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+      addedBy: WhoIsToldOwnerAddedBy.Criteria,
+    });
+
+    function project(): SetupHealthFacts {
+      return facts({
+        chains: [
+          // A private incident naming Payments, and a public one doing the same.
+          ownersChain({
+            events: [event({ isPrivate: true, notReached: [teamWithNobody] })],
+          }),
+          ownersChain({
+            monitorId: BILLING,
+            monitorName: "Billing API",
+            events: [event({ notReached: [teamWithNobody] })],
+          }),
+        ],
+      });
+    }
+
+    const notTheirs: (event: WhoIsToldEvent) => boolean = (
+      item: WhoIsToldEvent,
+    ): boolean => {
+      return item.isPrivate === true;
+    };
+
+    test("a private record they can't see names none of its owners; a public one still does, affecting its own monitor alone", () => {
+      const all: Array<SetupHealthFinding> = only(
+        getSetupHealthFindings(project()),
+        SetupHealthCheck.OwnerNotEmailed,
+      );
+      const told: Array<SetupHealthFinding> = only(
+        getSetupHealthFindings(
+          getSetupHealthFactsForReader(project(), notTheirs),
+        ),
+        SetupHealthCheck.OwnerNotEmailed,
+      );
+
+      expect(relatedIds(all[0])).toEqual([CHECKOUT, BILLING]);
+      expect(told).toHaveLength(1);
+      expect(relatedIds(told[0])).toEqual([BILLING]);
+    });
+
+    test("a private record alone naming them: nothing at all", () => {
+      const facts: SetupHealthFacts = project();
+      facts.chains = [facts.chains[0]!];
+
+      expect(
+        only(
+          getSetupHealthFindings(
+            getSetupHealthFactsForReader(facts, notTheirs),
+          ),
+          SetupHealthCheck.OwnerNotEmailed,
+        ),
+      ).toEqual([]);
+    });
+
+    test("the incident a hidden alert declares names nobody either", () => {
+      const facts: SetupHealthFacts = project();
+      facts.chains = [
+        ownersChain({
+          events: [
+            event({
+              kind: OnCallTestPageRecordKind.Alert,
+              isPrivate: true,
+              notReached: [],
+              declares: [teamWithNobody],
+            }),
+          ],
+        }),
+      ];
+
+      expect(
+        only(
+          getSetupHealthFindings(
+            getSetupHealthFactsForReader(facts, notTheirs),
+          ),
+          SetupHealthCheck.OwnerNotEmailed,
+        ),
+      ).toEqual([]);
+    });
+  });
+
+  test("a team, an owner rule: each shown only to whoever may read it", () => {
+    const findings: Array<SetupHealthFinding> = ownerFindings([
+      ownersChain({
+        events: [
+          event({
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+                addedBy: WhoIsToldOwnerAddedBy.Criteria,
+              }),
+              owner({
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                rule: { id: OWNER_RULE, name: "Checkout routes" },
+              }),
+            ],
+          }),
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            notReached: [
+              owner({
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                rule: { id: OWNER_RULE, name: "Alert routes" },
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+
+    const seen: (readable: Partial<SetupHealthReadable>) => Array<string> = (
+      readable: Partial<SetupHealthReadable>,
+    ): Array<string> => {
+      return redactSetupHealthFindings(findings, {
+        monitorIds: new Set<string>([CHECKOUT]),
+        policyIds: new Set<string>(),
+        scheduleIds: new Set<string>(),
+        statusPageIds: new Set<string>(),
+        ingestionKeyIds: new Set<string>(),
+        canReadResponders: false,
+        ...readable,
+      }).map((finding: SetupHealthFinding): string => {
+        return finding.record.kind;
+      });
+    };
+
+    expect(seen({})).toEqual([]);
+    expect(seen({ teamIds: new Set<string>([PAYMENTS]) })).toEqual([
+      SetupHealthRecordKind.Team,
+    ]);
+    expect(
+      seen({ incidentOwnerRuleIds: new Set<string>([OWNER_RULE]) }),
+    ).toEqual([SetupHealthRecordKind.IncidentOwnerRule]);
+    expect(seen({ alertOwnerRuleIds: new Set<string>([OWNER_RULE]) })).toEqual([
+      SetupHealthRecordKind.AlertOwnerRule,
+    ]);
+  });
+
+  test("they are worth fixing, listed after a monitor's own breaks", () => {
+    expect(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.OwnerNotEmailed),
+    ).toBeGreaterThan(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.MonitorTellsNobody),
+    );
+    expect(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.OwnerNotEmailed),
+    ).toBeLessThan(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.PolicyNotRun),
+    );
+  });
+
+  test("every subject's sentence fills every placeholder it names", () => {
+    const subjects: Array<WhoIsToldOwnerNotReached> = [
+      owner({
+        problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+        addedBy: WhoIsToldOwnerAddedBy.Criteria,
+      }),
+      owner({
+        problem: WhoIsToldOwnerProblem.NotInProject,
+        addedBy: WhoIsToldOwnerAddedBy.Criteria,
+      }),
+      owner({
+        id: ELSEWHERE,
+        problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+        addedBy: WhoIsToldOwnerAddedBy.Criteria,
+      }),
+      owner({
+        problem: WhoIsToldOwnerProblem.NotInProject,
+        addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+        networkDeviceId: DEVICE,
+      }),
+      owner({
+        id: ELSEWHERE,
+        problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+        addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+        networkDeviceId: DEVICE,
+      }),
+      owner({
+        problem: WhoIsToldOwnerProblem.NotInProject,
+        addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+        rule: { id: OWNER_RULE, name: "Checkout routes" },
+      }),
+      owner({
+        id: ELSEWHERE,
+        problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+        addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+        rule: { id: OWNER_RULE, name: "Checkout routes" },
+      }),
+    ];
+
+    const findings: Array<SetupHealthFinding> = ownerFindings([
+      ownersChain({ events: [event({ notReached: subjects })] }),
+    ]);
+
+    expect(
+      findings
+        .map((finding: SetupHealthFinding): string => {
+          return finding.subject;
+        })
+        .sort(),
+    ).toEqual(Object.values(SetupHealthOwnerSubject).sort());
+
+    for (const finding of findings) {
+      for (const placeholder of getTemplatePlaceholders(finding.words)) {
+        expect(finding.values[placeholder]).toBeTruthy();
+      }
+
+      expect(finding.sentence).not.toContain("{{");
+    }
   });
 });
 

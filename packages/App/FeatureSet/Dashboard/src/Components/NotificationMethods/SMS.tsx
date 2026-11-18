@@ -17,6 +17,11 @@ import {
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
 import NotificationChannelOffPanel from "./NotificationChannelOffPanel";
+import ServerCannotSendPanel, {
+  ServerCannotSendChannel,
+} from "./ServerCannotSendPanel";
+import { useProjectCanSend } from "Common/UI/Utils/ServerSending";
+import { ProjectCanSendAnswer } from "Common/Types/ServerSending/ProjectCanSend";
 import {
   isAddingOffered,
   ProjectChannelState,
@@ -50,6 +55,16 @@ const SMS: () => JSX.Element = (): ReactElement => {
     ProjectNotificationChannel.SMS,
   );
   const isChannelOff: boolean = channelState === ProjectChannelState.Off;
+
+  /*
+   * Whether an SMS can go anywhere at all: neither the project nor the
+   * server has an account or gateway for it (#7151). A number would be
+   * refused at Add, after it was typed - and turning the project's switch
+   * on changes nothing - so the server's admin is named first, and Add is
+   * not offered.
+   */
+  const canSend: ProjectCanSendAnswer | null = useProjectCanSend();
+  const isServerUnableToSend: boolean = canSend?.sms === false;
 
   /*
    * Deleting a phone number cascades to every notification rule that uses it,
@@ -138,12 +153,19 @@ const SMS: () => JSX.Element = (): ReactElement => {
         name="User Settings > Notification Methods > SMS"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={isAddingOffered(channelState)}
+        isCreateable={!isServerUnableToSend && isAddingOffered(channelState)}
         topContent={
-          <NotificationChannelOffPanel
-            list={ChannelGatedMethodList.SMS}
-            state={channelState}
-          />
+          isServerUnableToSend ? (
+            <ServerCannotSendPanel
+              channel={ServerCannotSendChannel.SMS}
+              canSend={false}
+            />
+          ) : (
+            <NotificationChannelOffPanel
+              list={ChannelGatedMethodList.SMS}
+              state={channelState}
+            />
+          )
         }
         cardProps={{
           title: "Phone Numbers for SMS Notifications",
@@ -151,7 +173,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
             "Manage Phone Numbers that will receive SMS notifications for this project.",
         }}
         noItemsMessage={
-          isChannelOff
+          isChannelOff || isServerUnableToSend
             ? getChannelGatedMethodList(ChannelGatedMethodList.SMS)
                 .noItemsWhileOff
             : "No phone numbers yet. Add one to receive notifications."

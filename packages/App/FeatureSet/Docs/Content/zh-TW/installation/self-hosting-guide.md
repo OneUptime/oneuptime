@@ -167,6 +167,7 @@ Let's Encrypt 需要能從網際網路連線的連接埠 80 和 443，以及指�
 :::cards
 - [快速開始](/docs/introduction/quickstart): 十五分鐘內建好一個監測器、一個值班政策和一個狀態頁面。
 - [Docker Compose](/docs/installation/docker-compose): 你自己的代理、備份、更新和正式環境清單。
+- [Kubernetes 和 Helm](/docs/installation/kubernetes): 備份 Kubernetes 上的安裝，並保管它的金鑰。
 - [升級](/docs/installation/upgrading): 升級到新版本，一次只升一個主要版本。
 - [架構](/docs/self-hosted/architecture): OneUptime 的各部分如何協同運作。
 :::

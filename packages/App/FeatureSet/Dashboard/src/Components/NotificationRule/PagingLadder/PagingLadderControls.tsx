@@ -1,4 +1,7 @@
-import { PagingMethodChoice } from "./PagingLadderMethods";
+import {
+  PagingMethodChoice,
+  getMethodChoiceLabel,
+} from "./PagingLadderMethods";
 import { getMethodIcon } from "./PagingLadderParts";
 import { PAGING_LADDER_COPY, describeWait } from "./PagingLadderWords";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -10,7 +13,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -169,11 +171,7 @@ export const AddMethodMenu: FunctionComponent<AddMethodMenuProps> = (
       return (
         <MoreMenuItem
           key={key}
-          text={NotificationMethodUtil.getMethodLabel(
-            translator,
-            choice.channel,
-            choice.identifier,
-          )}
+          text={getMethodChoiceLabel(translator, choice)}
           isUserContent={true}
           icon={getMethodIcon(choice)}
           dataTestId={`paging-ladder-add-option-${key}`}

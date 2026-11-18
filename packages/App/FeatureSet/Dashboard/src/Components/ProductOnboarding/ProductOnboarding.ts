@@ -1,3 +1,4 @@
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import ProductKey, {
   OnboardedProductKey,
@@ -36,7 +37,8 @@ import { ResourceShowcase } from "../ResourceShowcase/ResourceShowcase";
  *   - telemetry (Logs, Traces, Metrics, Exceptions, Profiles): the showcase
  *     over the explorer until the project's first telemetry arrives, its
  *     button the setup guide that waits for that data
- *     (TelemetryFirstRunShowcase);
+ *     (TelemetryFirstRunShowcase) - after the guided setup that goes on to
+ *     alerts, on Logs, Traces and Metrics (#7142);
  *   - a product with get-started steps of its own (Network, Security
  *     Events, Data Security, Code, AI / LLM): the showcase under those
  *     steps, as the explanation, without steps or a button of its own.
@@ -72,6 +74,30 @@ export interface ProductOnboarding {
    * job starts.
    */
   guideRoute?: Route | undefined;
+  /*
+   * The guided setup that does the product's job on one page, where the
+   * product has one (Components/GuidedSetup): offered as the explanation's
+   * primary button, on the empty list and in "How it works" alike (#7148),
+   * to whoever may create what it makes. The list's own Create stays beside
+   * it, plain.
+   */
+  guidedSetup?: ProductGuidedSetup | undefined;
+}
+
+export interface ProductGuidedSetup {
+  // The setup's page.
+  page: PageMap;
+  // English translation key: the button's words.
+  buttonTitle: string;
+  // Offered to whoever may create one of these: the record the setup makes.
+  modelType: { new (): BaseModel };
+  /*
+   * The other records the setup makes, which they may create too: a status
+   * page is made with the monitors it shows (#7142), and the telemetry
+   * setup makes an ingestion key and the monitors that alert on its data.
+   * Someone who could only start it is not offered it.
+   */
+  alsoCreates?: ReadonlyArray<{ new (): BaseModel }> | undefined;
 }
 
 /*

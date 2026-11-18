@@ -3,7 +3,7 @@ import { AddSampleProject1809123500000 } from "../../../../Server/Infrastructure
 import { AddSampleProjectUserIndex1809123500001 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123500001-AddSampleProjectUserIndex";
 import { MasterApiKeyHashedColumn1809180790100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180790100-MasterApiKeyHashedColumn";
 import { RemoveSampleProject1809180800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180800000-RemoveSampleProject";
-import { KeepSampleProjectColumns1809183200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183200000-KeepSampleProjectColumns";
+import { KeepSampleProjectColumns1809183500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183500000-KeepSampleProjectColumns";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Project from "../../../../Models/DatabaseModels/Project";
 import User from "../../../../Models/DatabaseModels/User";
@@ -391,14 +391,14 @@ describe("RemoveSampleProject1809180800000", () => {
   });
 });
 
-describe("KeepSampleProjectColumns1809183200000", () => {
+describe("KeepSampleProjectColumns1809183500000", () => {
   test("runs outside a transaction, as an online index build and validation must", () => {
-    expect(new KeepSampleProjectColumns1809183200000().transaction).toBe(false);
+    expect(new KeepSampleProjectColumns1809183500000().transaction).toBe(false);
   });
 
   test("puts back the columns, the index and the key - each only if missing", async () => {
     const recorded: Recorded = await record({
-      migration: new KeepSampleProjectColumns1809183200000(),
+      migration: new KeepSampleProjectColumns1809183500000(),
       direction: "up",
     });
 
@@ -423,7 +423,7 @@ describe("KeepSampleProjectColumns1809183200000", () => {
     ];
 
     const kept: Recorded = await record({
-      migration: new KeepSampleProjectColumns1809183200000(),
+      migration: new KeepSampleProjectColumns1809183500000(),
       direction: "up",
     });
 
@@ -451,7 +451,7 @@ describe("KeepSampleProjectColumns1809183200000", () => {
   test("down changes nothing", async () => {
     expect(
       await record({
-        migration: new KeepSampleProjectColumns1809183200000(),
+        migration: new KeepSampleProjectColumns1809183500000(),
         direction: "down",
       }),
     ).toEqual([]);
@@ -522,11 +522,11 @@ describe("their place", () => {
     const migrations: Array<unknown> = SchemaMigrations as Array<unknown>;
 
     expect(
-      migrations.indexOf(KeepSampleProjectColumns1809183200000),
+      migrations.indexOf(KeepSampleProjectColumns1809183500000),
     ).toBeGreaterThan(migrations.indexOf(RemoveSampleProject1809180800000));
     expect(
       migrations.filter((migration: unknown): boolean => {
-        return migration === KeepSampleProjectColumns1809183200000;
+        return migration === KeepSampleProjectColumns1809183500000;
       }),
     ).toHaveLength(1);
   });

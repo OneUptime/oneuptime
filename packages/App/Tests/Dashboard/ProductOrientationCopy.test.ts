@@ -351,7 +351,7 @@ describe("Home orientation copy", () => {
         "Hide",
         "steps completed",
         "Create your first monitor",
-        "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.",
+        "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.",
         "What do you want to do first?",
         "Know when my website or API is down",
         "Back to setup",

@@ -13,7 +13,7 @@ flowchart TB
 
 - Un proyecto del que seas propietario: solo su propietario puede activar los SMS y las llamadas, y solo su propietario o un administrador puede crear una política de guardia.
 - Tu teléfono móvil.
-- Los miembros del equipo a los que quieres avisar, ya añadidos al proyecto: [Invitar a personas](/docs/permissions/inviting-people) explica cómo.
+- Los miembros del equipo a los que quieres avisar: la configuración puede invitarlos por correo, o consulta [Invitar a personas](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Tu servidor debe poder enviar correos, SMS y llamadas. Su administrador principa
 
 ![Inicio pregunta «¿Qué quieres hacer primero?», con «Avisar a la persona adecuada cuando algo falle» marcado](screen:home-goal-paging)
 
-En la página **Inicio** de tu proyecto, haz clic en **Configura una política de guardia**, en la lista **Te damos la bienvenida a OneUptime 👋**. La página de inicio de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Avisar a la persona adecuada cuando algo falle** y haz clic en **Continuar**. Si el paso no aparece o ya está hecho, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elige **Avisar a la persona adecuada cuando algo falle**.
+En la página **Inicio** de tu proyecto, haz clic en **Configura una política de guardia**, en la lista **Te damos la bienvenida a OneUptime 👋**. La página de inicio de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Avisar a la persona adecuada cuando algo falle** y haz clic en **Continuar**. Si el paso no aparece o ya está hecho, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elige **Avisar a la persona adecuada cuando algo falle**. En **Guardia**, **Configuración guiada** también la abre.
 
 ### Instalar la app en el teléfono
 
-Instala OneUptime On-Call desde el App Store o Google Play e inicia sesión: así la app registra tu teléfono para las notificaciones push. De vuelta en la configuración, haz clic en **Volver a comprobar**: **App móvil o navegador**, en **¿Cómo debemos localizarte?**, ya muestra tu teléfono.
+En **¿Cómo debemos localizarte?**, haz clic en **Obtener la app**, escanea el código con tu teléfono, instala la app e inicia sesión. De vuelta en la configuración, haz clic en **Volver a comprobar**: **App móvil o navegador** ya muestra tu teléfono. **Usar este navegador** avisa también en este navegador.
 
 ### Activar los SMS y las llamadas
 
@@ -47,11 +47,11 @@ Los proyectos nuevos empiezan con los SMS y las llamadas desactivados. Si eres e
 
 Escribe tu número de móvil con el prefijo de país en **Tu número de teléfono**, por ejemplo `+15551234567`, y haz clic en **Envíame un código por SMS**. Introduce el código del SMS y haz clic en **Verificar**: ese mismo número también recibe las llamadas de los avisos. Haz clic en **Continuar**. Para recibir avisos solo por la app y por correo, no añadas el número y haz clic en **Continuar** directamente.
 
-### Elegir a quién más se avisa
+### Elegir a quién se avisa primero
 
-![El paso «¿Quién más está de guardia?», con «Guardar y continuar» resaltado](screen:paging-who-else)
+![El paso «¿A quién se avisa primero?», con «Guardar y continuar» resaltado](screen:paging-who-else)
 
-En **¿Quién más está de guardia?**, ya estás en **Avisados primero**. Haz clic en **Añadir miembros del equipo** para avisar a otras personas contigo y, después, en **Guardar y continuar**. En un proyecto que aún no tiene ninguna política de guardia, esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta. En un proyecto que ya tiene una, elígela en **Política de guardia** y añade a las personas en **Añadir a la primera regla de escalado**. Si aún no se puede localizar a alguien, el paso se queda abierto en **¿Les llega un aviso?**: haz clic en **Enviar recordatorio de configuración** para esa persona y, después, en **Continuar**.
+En **¿A quién se avisa primero?**, ya estás en **Avisados primero**. Haz clic en **Añadir miembros del equipo** para avisar a otras personas a la vez que a ti. Para alguien que aún no está en el proyecto, haz clic en **Invitar por correo**, escribe su dirección y haz clic en **Enviar invitación**. Después haz clic en **Guardar y continuar**. En un proyecto que aún no tiene ninguna política de guardia, esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta. En un proyecto que ya tiene una, elígela en **Política de guardia** y añade a las personas en **Añadir a la primera regla de escalado**. Si aún no se puede localizar a alguien, el paso se queda abierto en **¿Les llega un aviso?**: haz clic en **Enviar recordatorio de configuración** para esa persona y, después, en **Continuar**.
 
 ### Decidir qué pasa si nadie responde
 
@@ -75,7 +75,7 @@ Abre el enlace del SMS o del correo y reconoce ahí el aviso, o pulsa 1 durante 
 ![El resumen «Los avisos están configurados»: «A quién se avisa», «Si nadie responde» y «Probado»](screen:paging-summary)
 
 - El paso de prueba dice quién reconoció el aviso, cómo y en cuánto tiempo.
-- La configuración termina en **Los avisos están configurados**, con lo que se ha guardado: **A quién se avisa**, **Si nadie responde** y **Probado**. Un problema de la propia política, como alguien a quien no puede localizar, aparece en **Requiere atención**.
+- La configuración termina en **Los avisos están configurados**, con lo que se ha guardado: **A quién se avisa**, **Si nadie responde** y **Probado**. **A quién se avisa** dice, en orden, cómo se localiza a cada persona. Un problema de la propia política, como alguien a quien no puede localizar, aparece en **Requiere atención**.
 - En **Inicio**, la lista marca el paso **Configura una política de guardia** como hecho. Si era el último paso, la lista desaparece.
 
 Si la política avisa a otra persona, también puedes ver el escalado: haz clic en **Abrir la política de guardia** en el resumen y, después, en **Probar esta política**. Activa **Recorrer cada nivel de escalado**, envía la prueba y no reconozcas el primer aviso: se avisa a la siguiente persona como mucho 2 minutos después.

@@ -97,7 +97,7 @@ Para ver cómo se juzgó una comprobación, abra la **Vista general** del monito
 
 **Cuando falla** dice en pocas frases qué pasa cuando el monitor falla y a quién se avisa: el estado que establece, el incidente o la alerta que abre, quién recibe un correo y a quién avisa, por su nombre. Cada cosa que impediría avisar a alguien aparece en su propia línea, con un enlace a la página que la corrige. Está en la **Vista general** de un monitor, debajo de sus criterios en su página **Criterios**, en el paso de criterios de **Crear monitor** para el monitor que estás configurando, y en la configuración guiada de sitios web.
 
-Calcula la cadena como lo hace un incidente o una alerta real: con las reglas del propietario, las reglas de privacidad, las reglas de etiquetas y las reglas de guardia de tu proyecto, la regla de incidentes de alertas que convierte una alerta en un incidente, y a quién alcanza ahora mismo la primera regla de escalamiento de cada política de guardia. Una variable del título que solo rellena una comprobación se muestra tal como está escrita. **Mostrar la cadena** la abre fila por fila:
+Calcula la cadena como lo hace un incidente o una alerta real: con las reglas del propietario, las reglas de privacidad, las reglas de etiquetas y las reglas de guardia de tu proyecto, la regla de incidentes de alertas que convierte una alerta en un incidente, y a quién alcanza ahora mismo la primera regla de escalamiento de cada política de guardia. Una regla de guardia que pregunta quién es el propietario de una alerta (**Propietario de la alerta**) se compara con los propietarios que tendrá la alerta: las personas y equipos que indican sus criterios, los propietarios del dispositivo de red que vigila el monitor y los que añaden las reglas del propietario. Una variable del título que solo rellena una comprobación se muestra tal como está escrita. **Mostrar la cadena** la abre fila por fila:
 
 | Fila | Qué dice |
 | --- | --- |
@@ -107,7 +107,7 @@ Calcula la cadena como lo hace un incidente o una alerta real: con las reglas de
 | **Reglas del propietario** | Las reglas del propietario que añaden sus propietarios. |
 | **Privado** | Por qué es privado: una regla de privacidad o los criterios. Un incidente privado no aparece en ninguna página de estado ni avisa a ningún suscriptor, y solo sus propietarios, los Propietarios del proyecto y los Administradores del proyecto pueden verlo. |
 | **Reglas de etiquetas** | Las reglas de etiquetas cuyas etiquetas cambian qué reglas de guardia se activan. |
-| **Reglas de guardia** | Las reglas de guardia que coinciden con él. |
+| **Reglas de guardia** | Las reglas de guardia que coinciden con él. Para una regla que compara quién es el propietario de una alerta, indica qué propietario hace que coincida. |
 | **Política de guardia** | Cada política que activan esas reglas: a quién alcanza ahora mismo su primera regla de escalamiento y por qué medio, y a quién no alcanza, y por qué. |
 | **Páginas de estado** | Las páginas de estado que lo muestran, cada una con el grupo de monitores a través del cual muestra el monitor. |
 | **Regla de incidentes** | Para una alerta: la regla de incidentes de alertas que declara un incidente a partir de ella, de inmediato o cuando la alerta ha seguido abierta, y ese incidente, descrito como cualquier incidente. |
@@ -128,7 +128,7 @@ Calcula la cadena como lo hace un incidente o una alerta real: con las reglas de
 
 Una alerta que una regla de incidentes de alertas convierte en un incidente que avisa a alguien no es una interrupción: se comprueban las políticas del incidente.
 
-Los propietarios que no reciben correo aparecen después de las interrupciones, cada uno con el motivo y el lugar donde se indican: alguien que no es miembro del proyecto, un equipo sin nadie que lo sea (**Abrir equipo**), o un equipo de otro proyecto, indicado en los criterios (**Abrir criterios**), en el dispositivo de red que vigila el monitor (**Abrir dispositivo de red**) o por una regla del propietario (**Abrir reglas del propietario**). El correo se envía igualmente, a los propietarios a los que llega o a los Propietarios del proyecto, así que no son interrupciones.
+Los propietarios que no reciben correo aparecen después de las interrupciones, cada uno con el motivo y el lugar donde se indican: alguien que no es miembro del proyecto, un equipo sin nadie que lo sea (**Abrir equipo**), o un equipo de otro proyecto, indicado en los criterios (**Abrir criterios**), en el dispositivo de red que vigila el monitor (**Abrir dispositivo de red**) o por una regla del propietario (**Abrir reglas del propietario**). El correo se envía igualmente, a los propietarios a los que llega o a los Propietarios del proyecto, así que no son interrupciones. La salud de la configuración también los muestra, como algo que conviene corregir.
 
 ### Volver a comprobar, y lo que puedes ver
 

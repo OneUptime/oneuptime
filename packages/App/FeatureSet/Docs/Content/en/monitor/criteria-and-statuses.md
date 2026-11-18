@@ -97,7 +97,7 @@ To see how a check was judged, open the monitor's **Overview**: the **Monitor Su
 
 **When this goes down** says in a few sentences what happens when the monitor fails and who is told: the status it sets, the incident or alert it opens, who that emails and who it pages, by name. Each thing that would stop someone being told is a line of its own, with a link to the page that puts it right. It is on a monitor's **Overview**, under its criteria on its **Criteria** page, on the criteria step of **Create Monitor** for the monitor you are setting up, and in the website guided setup.
 
-It works the chain out as a real incident or alert does: with the owner rules, privacy rules, label rules and on-call rules of your project, the alert incident rule that turns an alert into an incident, and who each on-call policy's first escalation rule reaches right now. A title placeholder that only a check fills is shown as written. **Show the chain** opens it row by row:
+It works the chain out as a real incident or alert does: with the owner rules, privacy rules, label rules and on-call rules of your project, the alert incident rule that turns an alert into an incident, and who each on-call policy's first escalation rule reaches right now. An alert's on-call rule that asks who owns it (**Alert Owner**) is matched on the owners the alert will have: the people and teams its criteria names, the owners of the network device the monitor watches, and whom owner rules add. A title placeholder that only a check fills is shown as written. **Show the chain** opens it row by row:
 
 | Row | What it says |
 | --- | --- |
@@ -107,7 +107,7 @@ It works the chain out as a real incident or alert does: with the owner rules, p
 | **Owner Rules** | The owner rules that add its owners. |
 | **Private** | Why it is private: a privacy rule, or the criteria. A private incident shows on no status page and tells no subscriber, and only its owners, the Project Owners and the Project Admins can see it. |
 | **Label Rules** | The label rules whose labels change which on-call rules page it. |
-| **On-call rules** | The on-call rules that match it. |
+| **On-call rules** | The on-call rules that match it. A rule that matches who owns an alert says which owner made it match. |
 | **On-call policy** | Each policy those rules run: who its first escalation rule reaches right now and by what, and who it can't reach, and why. |
 | **Status pages** | The status pages that show it, each with the monitor group it shows the monitor through. |
 | **Incident Rule** | For an alert: the alert incident rule that declares an incident from it, right away or once the alert has stayed open, and that incident, told as any incident is. |
@@ -128,7 +128,7 @@ It works the chain out as a real incident or alert does: with the owner rules, p
 
 An alert that an alert incident rule turns into an incident that pages someone is not a break: the incident's own policies are checked instead.
 
-Owners who aren't emailed are listed after the breaks, each with why and where they are named: someone who isn't a member of the project, a team with nobody in it who is (**Open Team**), or a team of another project, named in the criteria (**Open Criteria**), on the network device the monitor watches (**Open Network Device**) or by an owner rule (**Open Owner Rules**). The email still goes out, to the owners it reaches or to the Project Owners, so they are not breaks.
+Owners who aren't emailed are listed after the breaks, each with why and where they are named: someone who isn't a member of the project, a team with nobody in it who is (**Open Team**), or a team of another project, named in the criteria (**Open Criteria**), on the network device the monitor watches (**Open Network Device**) or by an owner rule (**Open Owner Rules**). The email still goes out, to the owners it reaches or to the Project Owners, so they are not breaks. Setup Health lists them too, as worth fixing.
 
 ### Recheck, and what you can see
 

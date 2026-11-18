@@ -12,13 +12,18 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  * FirstTracesReceived, FirstMetricsReceived, FirstExceptionsReceived and
  * FirstProfilesReceived.
  *
- * Marked by the fan-in writer (TelemetryFanInWriter.submit), the one door
- * every telemetry ingest path - OpenTelemetry over HTTP and gRPC, Fluent,
- * syslog, the cloud and Vercel log drains - hands its rows to ClickHouse
- * through: collect() reads which projects a submission's rows belong to
- * when it is handed over, and markReached() keeps the milestone once
- * ClickHouse has accepted them, so a batch that is refused or fails sets
- * nothing.
+ * Marked by the fan-in writer (TelemetryFanInWriter.submit), the door
+ * nearly every telemetry ingest path - OpenTelemetry over HTTP and gRPC,
+ * Fluent, syslog, the cloud and Vercel log drains - hands its rows to
+ * ClickHouse through: collect() reads which projects a submission's rows
+ * belong to when it is handed over, and markReached() keeps the milestone
+ * once ClickHouse has accepted them, so a batch that is refused or fails
+ * sets nothing. The two writers that insert a network device's logs
+ * themselves - its syslog, forwarded by a probe (ProbeSyslogIngestService),
+ * and its SNMP traps (SnmpTrapLogWriter) - call markInserted() once their
+ * insert has succeeded (#6897): the Logs explorer shows those lines as it
+ * shows any other, so they are the project's first logs as much as an
+ * app's.
  *
  * The ingest path is the busiest in the product, so collect() costs one
  * string comparison a row (a submission's rows are nearly always one
@@ -97,6 +102,19 @@ export default class TelemetryMilestones {
       return projectIds ? { milestone, projectIds } : null;
     } catch {
       return null;
+    }
+  }
+
+  /*
+   * Rows a writer inserted itself, outside the fan-in writer: called once
+   * ClickHouse has accepted them, so a failed insert - which throws before
+   * this is reached - keeps nothing. Never throws.
+   */
+  public static markInserted(tableName: string, rows: Array<JSONObject>): void {
+    try {
+      this.markReached(this.collect(tableName, rows));
+    } catch {
+      // A milestone is never worth failing the insert that went in.
     }
   }
 

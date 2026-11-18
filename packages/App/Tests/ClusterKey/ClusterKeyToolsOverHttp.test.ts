@@ -69,6 +69,8 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
 
 const DOCTOR_TOOL: string = "Scripts/Install/Doctor.js";
 const DIAGNOSE_TOOL: string = "HelmChart/Public/diagnose.sh";
+// `npm run backup`'s report of how the run went (#7026).
+const BACKUP_TOOL: string = "Scripts/Install/BackupScriptRun.js";
 
 // What `npm start` runs Docker Compose through: it exports config.env's settings.
 const WITH_CONFIG: string = path.join(
@@ -282,6 +284,54 @@ const TOOL_RUNS: Record<string, ToolRun> = {
     },
     printed: "✗ Email: Not set up yet: OneUptime cannot send invitations.",
   },
+  [BACKUP_TOOL]: {
+    run: async (
+      port: number,
+      key: string,
+      startApp: (configured: string) => void,
+    ): Promise<string> => {
+      const directory: string = fs.mkdtempSync(
+        path.join(os.tmpdir(), "backup-key-"),
+      );
+
+      try {
+        fs.writeFileSync(
+          path.join(directory, "config.env"),
+          doctorConfig(port, key),
+        );
+        fs.writeFileSync(path.join(directory, "db-17.backup"), "PGDMP dump");
+
+        startApp(
+          await runProgram(
+            "sh",
+            [
+              WITH_CONFIG,
+              process.execPath,
+              "-e",
+              'process.stdout.write(process.env.ONEUPTIME_SECRET || "")',
+            ],
+            { cwd: directory },
+          ),
+        );
+
+        // As backup.sh runs it: through WithConfig.sh, once pg_dump is done.
+        return await runProgram(
+          "sh",
+          [
+            WITH_CONFIG,
+            process.execPath,
+            path.join(REPOSITORY_ROOT, BACKUP_TOOL),
+            "0",
+            path.join(directory, "db-17.backup"),
+          ],
+          { cwd: directory },
+        );
+      } finally {
+        fs.rmSync(directory, { recursive: true, force: true });
+      }
+    },
+    printed: "OneUptime was told about this backup",
+  },
 };
 
 describe("the key the installation's own tools present is the key the app accepts", () => {
@@ -295,8 +345,13 @@ describe("the key the installation's own tools present is the key the app accept
 
   beforeAll(async () => {
     server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      if (req.method === "POST" && req.url === toolCaller(DOCTOR_TOOL).path) {
+      if (
+        req.method === "POST" &&
+        (req.url === toolCaller(DOCTOR_TOOL).path ||
+          req.url === toolCaller(BACKUP_TOOL).path)
+      ) {
         const isAccepted: boolean = accepts(req.headers["clusterkey"]);
+        const isBackupRun: boolean = req.url === toolCaller(BACKUP_TOOL).path;
 
         answered.push(isAccepted);
         res.writeHead(isAccepted ? 200 : 400, {
@@ -304,7 +359,11 @@ describe("the key the installation's own tools present is the key the app accept
         });
         res.end(
           JSON.stringify(
-            isAccepted ? ANSWER : { message: "Invalid cluster key provided" },
+            !isAccepted
+              ? { message: "Invalid cluster key provided" }
+              : isBackupRun
+                ? { recorded: true, at: new Date().toISOString() }
+                : ANSWER,
           ),
         );
         return;
@@ -329,7 +388,7 @@ describe("the key the installation's own tools present is the key the app accept
     });
   });
 
-  test("every tool that presents the key is run here, at the doctor's path", () => {
+  test("every tool that presents the key is run here, at the doctor's path or the backup run's", () => {
     expect(Object.keys(TOOL_RUNS).sort()).toEqual(
       CLUSTER_KEY_ROUTE_TOOL_CALLERS.map(
         (entry: ClusterKeyRouteToolCaller): string => {
@@ -337,17 +396,16 @@ describe("the key the installation's own tools present is the key the app accept
         },
       ).sort(),
     );
-    expect(
-      CLUSTER_KEY_ROUTE_TOOL_CALLERS.map(
-        (entry: ClusterKeyRouteToolCaller): string => {
-          return entry.path;
-        },
-      ),
-    ).toEqual(
-      CLUSTER_KEY_ROUTE_TOOL_CALLERS.map((): string => {
-        return toolCaller(DOCTOR_TOOL).path;
-      }),
-    );
+
+    for (const entry of CLUSTER_KEY_ROUTE_TOOL_CALLERS) {
+      expect({ tool: entry.tool, path: entry.path }).toEqual({
+        tool: entry.tool,
+        path:
+          entry.tool === BACKUP_TOOL
+            ? "/api/admin/health/backup-run"
+            : toolCaller(DOCTOR_TOOL).path,
+      });
+    }
   });
 
   describe.each(KEYS)(

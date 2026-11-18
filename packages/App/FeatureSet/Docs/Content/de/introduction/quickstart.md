@@ -74,17 +74,17 @@ Die Website-Einrichtung hat bereits die **Standard-Bereitschaftsrichtlinie** ang
 :::steps
 ### Die Bereitschafts-Einrichtung öffnen
 
-Drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie **Die richtige Person alarmieren, wenn etwas ausfällt**. Solange die Checkliste **Bereitschaftsrichtlinie einrichten** nicht abgehakt hat, öffnet dieser Schritt dieselbe geführte Einrichtung.
+Klicken Sie in der Zusammenfassung der Website-Einrichtung auf **Per SMS oder Anruf alarmiert werden**: Der Link öffnet die geführte Einrichtung **Die richtige Person alarmieren, wenn etwas ausfällt**. Um sie später zu öffnen, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie sie aus. Solange die Checkliste **Bereitschaftsrichtlinie einrichten** nicht abgehakt hat, öffnet dieser Schritt dieselbe geführte Einrichtung. Hat sie ihn abgehakt und können Sie nur per E-Mail alarmiert werden, behält die Startseite **Per SMS oder Anruf alarmiert werden** darunter.
 
 ### Festlegen, wie Sie erreicht werden
 
 ![Der Schritt „Wie sollen wir dich erreichen?“, „SMS und Anrufe einschalten“ ist markiert](screen:paging-reach-you)
 
-Unter **Wie sollen wir dich erreichen?** ist Ihre Anmelde-E-Mail bereits aufgeführt. Für Push-Benachrichtigungen installieren Sie die App OneUptime On-Call aus dem App Store oder von Google Play, melden sich an und klicken auf **Erneut prüfen**. Um auch per SMS und Anruf erreicht zu werden, klicken Sie auf **SMS und Anrufe einschalten**, geben Ihre Nummer in **Deine Telefonnummer** ein und klicken auf **Code per SMS senden**: Auf OneUptime Cloud werden SMS und Anrufe aus dem Guthaben des Projekts bezahlt, deshalb bittet der Schritt Sie zuerst, Guthaben aufzuladen. Klicken Sie auf **Weiter**.
+Unter **Wie sollen wir dich erreichen?** ist Ihre Anmelde-E-Mail bereits aufgeführt. Für Push-Benachrichtigungen installieren Sie die App OneUptime On-Call aus dem App Store oder von Google Play, melden sich an und klicken auf **Erneut prüfen**. **App herunterladen** zeigt für jeden Store einen Code zum Scannen, und **Diesen Browser verwenden** lässt auch diesen Browser alarmieren. Um auch per SMS und Anruf erreicht zu werden, klicken Sie auf **SMS und Anrufe einschalten**, geben Ihre Nummer in **Deine Telefonnummer** ein und klicken auf **Code per SMS senden**: Auf OneUptime Cloud werden SMS und Anrufe aus dem Guthaben des Projekts bezahlt, deshalb bittet der Schritt Sie zuerst, Guthaben aufzuladen. Klicken Sie auf **Weiter**.
 
-### Festlegen, wer sonst alarmiert wird
+### Festlegen, wer zuerst alarmiert wird
 
-Behalten Sie unter **Wer hat sonst Bereitschaft?** die **Standard-Bereitschaftsrichtlinie** unter **Bereitschaftsrichtlinie** bei. Um Teammitglieder mit Ihnen zu alarmieren, nehmen Sie sie unter **Zur ersten Eskalationsregel hinzufügen** auf. Klicken Sie auf **Speichern und weiter**.
+Behalten Sie unter **Wer wird zuerst alarmiert?** die **Standard-Bereitschaftsrichtlinie** unter **Bereitschaftsrichtlinie** bei. Um Teammitglieder gleichzeitig mit Ihnen zu alarmieren, nehmen Sie sie unter **Zur ersten Eskalationsregel hinzufügen** auf oder laden sie mit **Per E-Mail einladen** ein. Klicken Sie auf **Speichern und weiter**.
 
 ### Festlegen, was passiert, wenn niemand antwortet
 

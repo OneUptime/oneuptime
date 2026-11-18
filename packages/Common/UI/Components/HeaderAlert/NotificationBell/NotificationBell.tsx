@@ -2,11 +2,24 @@ import React, { ReactElement, useRef } from "react";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
-import { NotificationItem } from "./NotificationItem";
+import {
+  NotificationBellBadge,
+  NotificationItem,
+  getNotificationBellBadge,
+} from "./NotificationItem";
 import NotificationBellDropdown from "./NotificationBellDropdown";
 import { HeaderAlertType } from "../HeaderAlert";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+
+// The badge's colour for the kind of item it counts.
+export const BADGE_COLOR_CLASS_NAMES: Record<HeaderAlertType, string> = {
+  [HeaderAlertType.ERROR]: "bg-red-500",
+  // 600, not 500: its white count reads on it.
+  [HeaderAlertType.WARNING]: "bg-amber-600",
+  [HeaderAlertType.SUCCESS]: "bg-emerald-500",
+  [HeaderAlertType.INFO]: "bg-gray-500",
+};
 
 export interface ComponentProps {
   items: Array<NotificationItem>;
@@ -27,45 +40,18 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
   const bellButtonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
 
-  const itemsWithCount: Array<NotificationItem> = props.items.filter(
-    (item: NotificationItem) => {
-      return item.count > 0;
-    },
+  /*
+   * The badge counts the most urgent kind of item there is, in its colour:
+   * critical, then what asks the person to do something, then their
+   * on-call duty, then the rest (getNotificationBellBadge).
+   */
+  const badge: NotificationBellBadge | null = getNotificationBellBadge(
+    props.items,
   );
-
-  // Count items by type
-  const criticalItemsCount: number = itemsWithCount.filter(
-    (item: NotificationItem) => {
-      return item.alertType === HeaderAlertType.ERROR;
-    },
-  ).length;
-
-  const successItemsCount: number = itemsWithCount.filter(
-    (item: NotificationItem) => {
-      return item.alertType === HeaderAlertType.SUCCESS;
-    },
-  ).length;
-
-  const infoItemsCount: number = itemsWithCount.filter(
-    (item: NotificationItem) => {
-      return item.alertType === HeaderAlertType.INFO;
-    },
-  ).length;
-
-  // Determine badge count and color based on priority: Critical > Success > Info
-  let badgeCount: number = 0;
-  let badgeColor: string = "bg-gray-500";
-
-  if (criticalItemsCount > 0) {
-    badgeCount = criticalItemsCount;
-    badgeColor = "bg-red-500";
-  } else if (successItemsCount > 0) {
-    badgeCount = successItemsCount;
-    badgeColor = "bg-emerald-500";
-  } else if (infoItemsCount > 0) {
-    badgeCount = infoItemsCount;
-    badgeColor = "bg-gray-500";
-  }
+  const badgeCount: number = badge ? badge.count : 0;
+  const badgeColor: string = badge
+    ? BADGE_COLOR_CLASS_NAMES[badge.alertType]
+    : BADGE_COLOR_CLASS_NAMES[HeaderAlertType.INFO];
 
   /*
    * Escape closes the panel from anywhere in it and hands focus back to the

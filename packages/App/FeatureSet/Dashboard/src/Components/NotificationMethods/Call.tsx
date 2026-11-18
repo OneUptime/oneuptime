@@ -19,6 +19,11 @@ import {
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
 import NotificationChannelOffPanel from "./NotificationChannelOffPanel";
+import ServerCannotSendPanel, {
+  ServerCannotSendChannel,
+} from "./ServerCannotSendPanel";
+import { useProjectCanSend } from "Common/UI/Utils/ServerSending";
+import { ProjectCanSendAnswer } from "Common/Types/ServerSending/ProjectCanSend";
 import {
   isAddingOffered,
   ProjectChannelState,
@@ -80,6 +85,14 @@ const Call: () => JSX.Element = (): ReactElement => {
     ProjectNotificationChannel.Call,
   );
   const isChannelOff: boolean = channelState === ProjectChannelState.Off;
+
+  /*
+   * Whether a call can go anywhere at all: neither the project nor the
+   * server has an account or gateway for it (#7151). Said before a number
+   * is typed, with the server's admin named, and Add not offered.
+   */
+  const canSend: ProjectCanSendAnswer | null = useProjectCanSend();
+  const isServerUnableToSend: boolean = canSend?.call === false;
 
   /*
    * Deleting a phone number cascades to every notification rule that calls it,
@@ -187,12 +200,19 @@ const Call: () => JSX.Element = (): ReactElement => {
         name="User Settings > Notification Methods > Call"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={isAddingOffered(channelState)}
+        isCreateable={!isServerUnableToSend && isAddingOffered(channelState)}
         topContent={
-          <NotificationChannelOffPanel
-            list={ChannelGatedMethodList.Call}
-            state={channelState}
-          />
+          isServerUnableToSend ? (
+            <ServerCannotSendPanel
+              channel={ServerCannotSendChannel.Call}
+              canSend={false}
+            />
+          ) : (
+            <NotificationChannelOffPanel
+              list={ChannelGatedMethodList.Call}
+              state={channelState}
+            />
+          )
         }
         cardProps={{
           title: "Phone Numbers for Call Notifications",
@@ -200,7 +220,7 @@ const Call: () => JSX.Element = (): ReactElement => {
             "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS is verified for calls too, with no new code.",
         }}
         noItemsMessage={
-          isChannelOff
+          isChannelOff || isServerUnableToSend
             ? getChannelGatedMethodList(ChannelGatedMethodList.Call)
                 .noItemsWhileOff
             : "No phone numbers yet. Add one to receive notifications."

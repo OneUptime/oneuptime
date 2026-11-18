@@ -32,6 +32,12 @@ const ServiceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         enableRealtime={true}
         limit={100}
         noLogsMessage="Logs appear here as soon as this service sends them."
+        /*
+         * Create monitor: a Logs monitor on this service's logs, with what
+         * the view shows. Where a setup guide's View logs lands (#6876), so
+         * the next step - being told about these logs - is one click away.
+         */
+        offersCreateMonitor={true}
       />
       {/*
        * Only when it can do something (AI on, a repository, no improvement

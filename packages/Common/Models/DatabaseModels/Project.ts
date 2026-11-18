@@ -27,7 +27,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
@@ -1755,6 +1755,87 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public disableOnCallNotificationFallback?: boolean = undefined;
+
+  /*
+   * THE PROJECT'S DEFAULT LADDER (#7449, Types/NotificationRule/
+   * PagingLadderDefault): how a member is paged once they verify a way to
+   * be reached, by channel - "push and SMS at once, then a call after 5
+   * minutes" - instead of every verified method at once. A method of a
+   * channel it names gets its rules at its waits in every card; a channel
+   * it leaves out gets no on-call rules. Applied as members verify methods
+   * and join, it rewrites nobody's rules; an admin applies it to members
+   * they pick from On-Call > Readiness (#7450). Empty: every verified
+   * method pages at once, as it always did. Refused by ProjectService
+   * unless it reads as a default (getPagingLadderDefaultProblem), stored
+   * tidied. Read by everyone in the project, as the ladder it is; set by
+   * its owners and admins.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Default Paging Ladder",
+    description:
+      "How a member is paged once they verify a way to be reached: steps of a channel and a wait in minutes. A channel it leaves out gets no on-call rules. It changes nobody's existing rules. Empty: every verified method pages at once.",
+    example:
+      '[{"channel": "Push", "notifyAfterMinutes": 0}, {"channel": "SMS", "notifyAfterMinutes": 0}, {"channel": "Call", "notifyAfterMinutes": 5}]',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public defaultPagingLadder?: JSONArray = undefined;
+
+  /*
+   * PEOPLE ON CALL NEED A PHONE METHOD (#7449, #1809): when on, On-Call
+   * Readiness names every responder with no verified SMS, phone call or
+   * WhatsApp number (isMissingRequiredPhoneMethod), Setup health lists
+   * them, and a setup reminder asks them to add one. Nobody is locked out
+   * and no page is held back: it is a finding, not a gate.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Phone Method for On-Call",
+    description:
+      "When on, On-Call Readiness and Setup health name everyone on an on-call policy who has no verified SMS, phone call or WhatsApp number, and a setup reminder asks them to add one. Nobody is locked out.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    unique: false,
+    default: false,
+  })
+  public requirePhoneMethodForOnCall?: boolean = undefined;
 
   /*
    * Throttle flag for the owner notification sent when the fallback above is used or
@@ -5674,7 +5755,7 @@ export default class Project extends TenantModel {
    * release's migrations run, and they filter every probe's claim of its
    * monitors on it, and name it in every insert into "Project" - dropped,
    * no probe check ran until the last of them was gone.
-   * KeepSampleProjectColumns1809183200000 puts it back where 15.0.0 already
+   * KeepSampleProjectColumns1809183500000 puts it back where 15.0.0 already
    * dropped it. Read and written by nobody, hidden from the documentation.
    */
   @ColumnAccessControl({

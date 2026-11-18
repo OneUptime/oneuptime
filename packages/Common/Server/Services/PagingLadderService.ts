@@ -2,6 +2,7 @@ import AlertSeverityService from "./AlertSeverityService";
 import BaseService from "./BaseService";
 import DatabaseService from "./DatabaseService";
 import IncidentSeverityService from "./IncidentSeverityService";
+import ProjectService from "./ProjectService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserMattermostService from "./UserMattermostService";
@@ -22,6 +23,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import Project from "../../Models/DatabaseModels/Project";
 import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRule";
 import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -45,10 +47,24 @@ import {
   getPagingLadderStepsProblem,
   planPagingLadderSave,
   readPagingId,
+  readPagingLadder,
   readPagingLadderKeptCells,
   readPagingLadderSteps,
 } from "../../Types/NotificationRule/PagingLadder";
+import {
+  PAGING_LADDER_ADMIN_PERMISSIONS,
+  PagingLadderDefaultMemberResult,
+  PagingLadderDefaultOutcome,
+  PagingLadderDefaultStep,
+  PagingLadderFromDefault,
+  PagingLadderMethodReference,
+  describePagingLadderDefaultResult,
+  getChannelsOfPagingLadderSteps,
+  getPagingLadderFromDefault,
+  readPagingLadderDefault,
+} from "../../Types/NotificationRule/PagingLadderDefault";
 import ObjectID from "../../Types/ObjectID";
+import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import Permission from "../../Types/Permission";
 
 /*
@@ -88,17 +104,22 @@ import Permission from "../../Types/Permission";
  * lists to each other.
  */
 export const PAGING_LADDER_ADMIN_WRITE_PERMISSIONS: ReadonlyArray<Permission> =
-  [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.EditProjectUserNotificationRule,
-  ];
+  PAGING_LADDER_ADMIN_PERMISSIONS;
 
 export const PAGING_LADDER_NOT_ALLOWED_MESSAGE: string =
   "You can change your own ladder. To change a member's, ask a Project Admin, or someone who may edit members' notification rules.";
 
 export const PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE: string =
   "A step names a notification method that is not verified, or is not theirs in this project. Verify it in Notification Methods, or choose another method, then save.";
+
+export const PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE: string =
+  "Only a Project Admin, or someone who may edit members' notification rules, can apply the project's default ladder to members.";
+
+export const PAGING_LADDER_NO_DEFAULT_MESSAGE: string =
+  "This project has no default ladder yet. Set one in Project Settings > Notifications > Notification Channels, then apply it.";
+
+export const PAGING_LADDER_DEFAULT_FAILED_MESSAGE: string =
+  "The default ladder could not be applied to this member. Try again, or open their How to Reach Me.";
 
 // What a save did.
 export interface PagingLadderSaveResult extends JSONObject {
@@ -317,38 +338,57 @@ export class PagingLadderService extends BaseService {
   }): Promise<Set<string>> {
     const keys: Set<string> = new Set<string>();
 
-    await Promise.all(
-      OWNED_METHOD_TABLES.map(
-        async (table: OwnedMethodTable): Promise<void> => {
-          const rows: Array<DatabaseBaseModel> = await table.service.findBy({
-            query: {
-              projectId: data.projectId,
-              userId: data.userId,
-              ...(table.hasVerification ? { isVerified: true } : {}),
-            } as never,
-            select: { _id: true } as never,
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: { isRoot: true },
-          });
-
-          for (const row of rows) {
-            const id: string = readPagingId(row.id);
-
-            if (id) {
-              keys.add(
-                getPagingLadderMethodKey({
-                  methodColumn: table.column,
-                  methodId: id,
-                }),
-              );
-            }
-          }
-        },
-      ),
-    );
+    for (const method of await this.getUsableMethods(data)) {
+      keys.add(getPagingLadderMethodKey(method));
+    }
 
     return keys;
+  }
+
+  /*
+   * The person's methods a rule may name, by column and id, in the order
+   * the tables are read: each one theirs, in this project, and verified
+   * (every webhook, which has no verification).
+   */
+  @CaptureSpan()
+  public async getUsableMethods(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<Array<PagingLadderMethodReference>> {
+    const byTable: Array<Array<PagingLadderMethodReference>> =
+      await Promise.all(
+        OWNED_METHOD_TABLES.map(
+          async (
+            table: OwnedMethodTable,
+          ): Promise<Array<PagingLadderMethodReference>> => {
+            const rows: Array<DatabaseBaseModel> = await table.service.findBy({
+              query: {
+                projectId: data.projectId,
+                userId: data.userId,
+                ...(table.hasVerification ? { isVerified: true } : {}),
+              } as never,
+              select: { _id: true } as never,
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: { isRoot: true },
+            });
+
+            const methods: Array<PagingLadderMethodReference> = [];
+
+            for (const row of rows) {
+              const id: string = readPagingId(row.id);
+
+              if (id) {
+                methods.push({ methodColumn: table.column, methodId: id });
+              }
+            }
+
+            return methods;
+          },
+        ),
+      );
+
+    return byTable.flat();
   }
 
   /*
@@ -564,6 +604,197 @@ export class PagingLadderService extends BaseService {
       deletedCount: plan.delete.length,
       unchangedCount: plan.unchangedCount,
     };
+  }
+
+  /*
+   * APPLYING THE PROJECT'S DEFAULT LADDER TO MEMBERS (#7450).
+   *
+   * Only someone who may change anybody's rules applies it - to anybody,
+   * themselves included: it is an admin's action on the project's members,
+   * never a member's own. Each member is a member of the project (R1),
+   * their ladder is the default mapped to the methods they have verified
+   * (getPagingLadderFromDefault: a channel they have not verified is left
+   * out and named, and they keep their own steps in its place), and it is
+   * saved through applyLadder: its checks once more, its audit entry per
+   * row, and its one email to the member. A member who has verified none
+   * of the default's channels is skipped, and nothing of theirs changes.
+   */
+  public assertMayApplyDefault(props: DatabaseCommonInteractionProps): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    if (
+      CallerPermission.holdsAnyOf(props, [
+        ...PAGING_LADDER_ADMIN_WRITE_PERMISSIONS,
+      ])
+    ) {
+      return;
+    }
+
+    throw new NotAuthorizedException(PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE);
+  }
+
+  // The project's default ladder, as it is kept; empty for none.
+  @CaptureSpan()
+  public async getProjectDefault(
+    projectId: ObjectID,
+  ): Promise<Array<PagingLadderDefaultStep>> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { defaultPagingLadder: true },
+      props: { isRoot: true },
+    });
+
+    return readPagingLadderDefault(project?.defaultPagingLadder);
+  }
+
+  // One member: the default, as far as their verified methods go.
+  @CaptureSpan()
+  public async applyDefaultLadder(data: {
+    projectId: ObjectID;
+    targetUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    // The project's default, when the caller has read it already.
+    defaultSteps?: ReadonlyArray<PagingLadderDefaultStep> | undefined;
+  }): Promise<PagingLadderDefaultMemberResult> {
+    this.assertMayApplyDefault(data.props);
+
+    const defaultSteps: ReadonlyArray<PagingLadderDefaultStep> =
+      data.defaultSteps || (await this.getProjectDefault(data.projectId));
+
+    if (defaultSteps.length === 0) {
+      throw new BadDataException(PAGING_LADDER_NO_DEFAULT_MESSAGE);
+    }
+
+    // R1, for every member, the caller too: never applied to a non-member.
+    await UserNotificationRuleAdminService.assertTargetUserIsProjectMember({
+      targetUserId: data.targetUserId,
+      props: { ...data.props, tenantId: data.projectId },
+    });
+
+    const [methods, cells, rules]: [
+      Array<PagingLadderMethodReference>,
+      Array<PagingLadderCell>,
+      Array<UserNotificationRule>,
+    ] = await Promise.all([
+      this.getUsableMethods({
+        projectId: data.projectId,
+        userId: data.targetUserId,
+      }),
+      this.getCells(data.projectId),
+      this.getRules({ projectId: data.projectId, userId: data.targetUserId }),
+    ]);
+
+    const fromDefault: PagingLadderFromDefault = getPagingLadderFromDefault({
+      defaultSteps: defaultSteps,
+      methods: methods,
+      currentSteps: readPagingLadder({
+        cells: cells,
+        rules: rules as unknown as Array<PagingLadderRule>,
+      }).steps,
+    });
+
+    const keptChannels: Array<OnCallPageChannel> =
+      getChannelsOfPagingLadderSteps(fromDefault.keptSteps);
+
+    if (fromDefault.steps.length === 0) {
+      return {
+        userId: data.targetUserId.toString(),
+        outcome: PagingLadderDefaultOutcome.Skipped,
+        appliedSteps: [],
+        leftOutChannels: fromDefault.leftOutChannels,
+        keptChannels: [],
+        changedRuleCount: 0,
+        message: describePagingLadderDefaultResult({
+          outcome: PagingLadderDefaultOutcome.Skipped,
+          leftOutChannels: fromDefault.leftOutChannels,
+          keptChannels: [],
+        }),
+      };
+    }
+
+    const saved: PagingLadderSaveResult = await this.applyLadder({
+      projectId: data.projectId,
+      targetUserId: data.targetUserId,
+      steps: fromDefault.steps,
+      props: data.props,
+    });
+
+    return {
+      userId: data.targetUserId.toString(),
+      outcome: PagingLadderDefaultOutcome.Applied,
+      appliedSteps: fromDefault.appliedSteps,
+      leftOutChannels: fromDefault.leftOutChannels,
+      keptChannels: keptChannels,
+      changedRuleCount:
+        saved.createdCount + saved.updatedCount + saved.deletedCount,
+      message: describePagingLadderDefaultResult({
+        outcome: PagingLadderDefaultOutcome.Applied,
+        leftOutChannels: fromDefault.leftOutChannels,
+        keptChannels: keptChannels,
+      }),
+    };
+  }
+
+  /*
+   * Several members, one after another, each on their own: one refused or
+   * failing never stops the rest, and is answered for in its own words.
+   * Refused as a whole, before anything is read, for a caller who may not
+   * apply the default, or a project that has none.
+   */
+  @CaptureSpan()
+  public async applyDefaultLadderToMembers(data: {
+    projectId: ObjectID;
+    userIds: ReadonlyArray<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<PagingLadderDefaultMemberResult>> {
+    this.assertMayApplyDefault(data.props);
+
+    const defaultSteps: Array<PagingLadderDefaultStep> =
+      await this.getProjectDefault(data.projectId);
+
+    if (defaultSteps.length === 0) {
+      throw new BadDataException(PAGING_LADDER_NO_DEFAULT_MESSAGE);
+    }
+
+    const results: Array<PagingLadderDefaultMemberResult> = [];
+
+    for (const userId of data.userIds) {
+      try {
+        results.push(
+          await this.applyDefaultLadder({
+            projectId: data.projectId,
+            targetUserId: userId,
+            props: data.props,
+            defaultSteps: defaultSteps,
+          }),
+        );
+      } catch (err) {
+        const isExplained: boolean =
+          err instanceof BadDataException ||
+          err instanceof NotAuthorizedException;
+
+        if (!isExplained) {
+          logger.error(err);
+        }
+
+        results.push({
+          userId: userId.toString(),
+          outcome: PagingLadderDefaultOutcome.Failed,
+          appliedSteps: [],
+          leftOutChannels: [],
+          keptChannels: [],
+          changedRuleCount: 0,
+          message:
+            isExplained && (err as Error).message
+              ? (err as Error).message
+              : PAGING_LADDER_DEFAULT_FAILED_MESSAGE,
+        });
+      }
+    }
+
+    return results;
   }
 
   // The rule a planned row is, ready to create.

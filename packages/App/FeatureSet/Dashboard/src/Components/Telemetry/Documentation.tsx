@@ -29,14 +29,19 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import ProductKey from "Common/Types/Product/ProductKey";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "./IngestionKeySelector";
+import TelemetryTestLogFold from "./TelemetryTestLogFold";
 import ResourceConnectionWatch from "../ResourceOnboarding/ResourceConnectionWatch";
 import Service from "Common/Models/DatabaseModels/Service";
 import FrameworkGuideLinks from "./FrameworkGuideLinks";
-import { getProductsSetUpByGuide } from "./TelemetryGuideProducts";
+import {
+  getFirstDataMilestonesOfProducts,
+  getProductsSetUpByGuide,
+} from "./TelemetryGuideProducts";
 import { TelemetryGuideLanguageKey } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
 import SetupGuideTopics from "../SetupGuide/SetupGuideTopics";
@@ -98,8 +103,9 @@ export type TelemetryType =
  * dialog has (TelemetryFirstRunShowcase), so a Setup Guide tab notices the
  * first data too, and links to it on the service that sent it - or, for
  * data that names no service (FluentBit's logs), the picked key's first
- * data and the product's explorer (#7754). Profiles listen for their first
- * profile in the guide itself, so they have none.
+ * data (#7754) or the project's first data of the guide's signal, whichever
+ * key sent it (#7888), and the product's explorer. Profiles listen for
+ * their first profile in the guide itself, so they have none.
  */
 export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
   "Wait for the first data",
@@ -1005,6 +1011,39 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         ? getCompatibleIngestGuide(selectedMethod)
         : null;
 
+    /*
+     * "Send a test log" (#7760), under the endpoint and the key it uses:
+     * the logs guide's own ways (OpenTelemetry, FluentBit, Fluentd), whose
+     * step shows the OTLP endpoint, with a Server key picked. Not for a
+     * browser guide's key, which the server takes only from a page of its
+     * origins, nor for another tool's endpoint, nor in a guide for a whole
+     * service, whose wait is for that service.
+     */
+    const offersTestLog: boolean =
+      telemetryType === "logs" &&
+      !props.everySignal &&
+      !compatibleGuide &&
+      !isBrowserSdkGuide &&
+      Boolean(selectedKey?.secretKey);
+
+    return (
+      <>
+        {renderKeySelector(compatibleGuide)}
+        {offersTestLog ? (
+          <TelemetryTestLogFold otlpUrl={otlpUrlValue} token={tokenValue} />
+        ) : (
+          <></>
+        )}
+      </>
+    );
+  };
+
+  // The key picker, and the endpoint and the token of the key picked.
+  const renderKeySelector: (
+    compatibleGuide: CompatibleIngestGuideCopy | null,
+  ) => ReactElement = (
+    compatibleGuide: CompatibleIngestGuideCopy | null,
+  ): ReactElement => {
     return (
       <IngestionKeySelector
         endpointLabel={
@@ -2039,6 +2078,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   }
 
+  // What the Setup Guide tab's last step tells the products menu, and waits for.
+  const guideProducts: Array<ProductKey> = getProductsSetUpByGuide({
+    telemetryType: telemetryType,
+    everySignal: props.everySignal,
+  });
+
   return (
     <div className="mb-5">
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
@@ -2113,10 +2158,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 viewText={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].text}
                 ingestionKey={selectedKey}
                 dataPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].dataPage}
-                products={getProductsSetUpByGuide({
-                  telemetryType: telemetryType,
-                  everySignal: props.everySignal,
-                })}
+                products={guideProducts}
+                firstDataMilestones={getFirstDataMilestonesOfProducts(
+                  guideProducts,
+                )}
               />
             </div>
           )}

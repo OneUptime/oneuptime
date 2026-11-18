@@ -34,7 +34,7 @@ De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsA
 :::steps
 ### Lägg till ett sätt att nå dig
 
-Klicka på **Lägg till** vid ett steg för att skicka en av dina verifierade metoder vid stegets tidpunkt, eller på **Lägg till steg** för att börja ett nytt steg efter det sista. Ett nummer eller en adress som fortfarande väntar på sin kod står under **Inte verifierad än**, med **Verifiera**.
+Klicka på **Lägg till** vid ett steg för att skicka en av dina verifierade metoder vid stegets tidpunkt, eller på **Lägg till steg** för att börja ett nytt steg efter det sista. Ett nummer eller en adress som fortfarande väntar på sin kod står under **Inte verifierad än**, med **Verifiera**. Utan att lämna sidan skickar **Lägg till din telefon** under stegen en kod till ditt nummer, och när det är verifierat larmar numret dig via SMS och telefonsamtal; **Använd den här webbläsaren** och **Skaffa appen** lägger till push på samma sätt.
 
 ### Välj när den används
 
@@ -46,6 +46,8 @@ Klicka på **Spara ändringar**, som visas så snart något har ändrats. Det sk
 :::
 
 **Testa dina larm**, längst ned på sidan, skickar ett testlarm till dig genom dem.
+
+När din server inte kan skicka e-post, sms eller telefonsamtal just nu är ett steg av det slaget märkt **Skickas inte just nu**, och sidan säger en gång vem som kan konfigurera det.
 
 När en allvarlighetsgrad förtjänar något annat öppnar **Annorlunda för vissa allvarlighetsgrader**, knappen bredvid rubriken, flikarna och korten som beskrivs nedan. Ett kort som avviker från din ordning är märkt **Avviker från ordningen**. Sidan öppnas fortfarande på dina steg och visar under dem varje kort som avviker och vad det gör i stället. **Spara ändringar** låter de korten vara som de är; **Använd den här ordningen för alla allvarlighetsgrader**, sist i listan, ger dem också din ordning, efter att ha nämnt de kort som förlorar sin avvikelse. En allvarlighetsgrad som ditt projekt har arkiverat behåller sina egna regler.
 
@@ -68,7 +70,7 @@ En allvarlighetsgrad som ditt projekt har arkiverat kommer efter de andra, marke
 
 ## Reglerna du börjar med
 
-Varje metod som du verifierar får en regel på varje kort på varje flik, skickad så snart du larmas. Din inloggnings-e-post har dem sedan dagen du gick med, så att ett larm alltid når dig. Verifiera ett telefonnummer för SMS, så skickar varje larm också ett SMS till dig.
+Varje metod som du verifierar får en regel på varje kort på varje flik, skickad så snart du larmas. Din inloggnings-e-post har dem sedan dagen du gick med, så att ett larm alltid når dig. Verifiera ett telefonnummer för SMS, så skickar varje larm också ett SMS till dig. När ditt projekt har en standardordning följer en metod som du verifierar den i stället: se [Standardordningen](#standardordningen).
 
 Det är en säker början, och oftast för mycket. Skala ned det till vad varje allvarlighetsgrad förtjänar:
 
@@ -79,6 +81,18 @@ Det är en säker början, och oftast för mycket. Skala ned det till vad varje 
 | Mindre eller låg | Ett e-postmeddelande direkt |
 
 Dina egna regler har inga tysta timmar: håll låga allvarlighetsgrader på e-post, eller på en push-regel inställd på **Normal**, så att de aldrig väcker dig. För att låta larmet för en låg allvarlighetsgrad vänta på arbetstid för alla ställer du jourregeln som larmar på **Endast under arbetstid**: se [Jourregler](/docs/alerts/settings#jourregler).
+
+## Standardordningen
+
+Ett projekt kan ha en standardordning: hur en medlem larmas när den verifierar ett sätt att nås på. En Projektägare eller Projektadministratör ställer in den i **Standardordning för nya medlemmar**, hopfälld under **Fler inställningar** på **Projektinställningar → Aviseringar → Aviseringskanaler**, med kanaler i stället för någons egna enheter: till exempel push direkt och ett telefonsamtal efter 5 minuter.
+
+Med en standardordning får en metod som du verifierar en regel vid varje steg i sin kanal, på varje kort på varje flik, och en kanal som ordningen utelämnar får ingen. Regler som du redan har ändras aldrig, och ett larm som inte hittar någon regel faller fortfarande tillbaka på dina verifierade metoder.
+
+För att ge den till medlemmar som redan har regler använder en administratör **Använd standardordning** på sidan Beredskap: se [Använd standardordningen](/docs/on-call/readiness#använd-standardordningen). Var och en av dem får ett e-postmeddelande.
+
+För att följa den själv klickar du på **Börja från projektets standardordning**, bredvid **Annorlunda för vissa allvarlighetsgrader**. Dina steg blir standardens, med dina egna verifierade metoder: ett sätt som du inte har verifierat utelämnas och nämns, och du behåller dina egna steg i stället. Ingenting ändras förrän du klickar på **Spara ändringar**.
+
+**Telefon för personer i jour**, bredvid, ber alla i jour att ha ett verifierat nummer för SMS, telefonsamtal eller WhatsApp. Så länge du inte har något säger den här sidan det ovanför **Lägg till din telefon**, och Beredskap och Inställningarnas hälsa nämner dig. Ingen blir utelåst.
 
 ## Lägg till en regel
 
@@ -121,7 +135,7 @@ En push-regel, för en telefon eller en webbläsare, kan också skicka sin push 
 
 ## När en allvarlighetsgrad saknar regel
 
-En allvarlighetsgrad som ditt projekt lägger till senare får regler inom några minuter, skapade utifrån de val du redan har gjort på den fliken: samma metoder, efter samma väntetider, och en push som låter och upprepas på samma sätt. Hade du inga regler på den fliken får den din verifierade e-post, direkt.
+En allvarlighetsgrad som ditt projekt lägger till senare får regler inom några minuter, skapade utifrån de val du redan har gjort på den fliken: samma metoder, efter samma väntetider, och en push som låter och upprepas på samma sätt. Hade du inga regler på den fliken får den din verifierade e-post, direkt. När ditt projekt har en standardordning följer din e-post den i stället: se [Standardordningen](#standardordningen).
 
 Ett larm som ändå inte hittar någon regel skickas till dina verifierade metoder i alla fall, och du får ett e-postmeddelande om det; se [När ingen regel matchar](/docs/notifications/index#när-ingen-regel-matchar).
 

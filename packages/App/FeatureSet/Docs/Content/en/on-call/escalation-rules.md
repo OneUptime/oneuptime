@@ -45,7 +45,7 @@ When you create an on-call policy on the **On-Call Policies** page, the form ask
 :::steps
 ### Open the policy's escalation rules
 
-Open the on-call policy, choose **Escalation Rules** in its side menu and click **Add Escalation Rule**. The dialog is one short page.
+Open the on-call policy, choose **Escalation Rules** in its side menu and click **Add Escalation Rule**. The dialog is one short page. It says which level of the policy the rule adds.
 
 ### Choose who to notify
 
@@ -61,6 +61,10 @@ Under **Notify**, click **Add responder**, search, and pick as many on-call sche
 ### Set how long to wait
 
 **Escalate after (in minutes)** is how long to wait for an acknowledgement before the next level is paged. It starts at **30 minutes**; change it to whatever suits the level.
+
+![The "Add Escalation Rule" dialog on a policy with one level, with "Paged after (in minutes)" ringed](screen:escalation-rule-paged-after)
+
+A rule added after the first asks **Paged after (in minutes)** instead: how long the level before it waits for an acknowledgement before this one is paged. It starts at that level's wait and is saved as it; the new level itself waits 30 minutes until you add one after it. Someone who may add rules but not change them is asked **Escalate after (in minutes)**, and the dialog says when the new level is paged.
 
 ### Name the rule, if you want to
 
@@ -190,7 +194,7 @@ A level can page the next person in an on-call schedule's rotation: the person a
 
 :::steps
 1. Make sure the policy's first level, **Level 1**, notifies the on-call schedule.
-2. Click **Add Escalation Rule**, then **Add responder**, and pick the same schedule under **Next in rotation**. Set **Escalate after (in minutes)** and click **Create Rule**.
+2. Click **Add Escalation Rule**, then **Add responder**, and pick the same schedule under **Next in rotation**. Set **Paged after (in minutes)** and click **Create Rule**.
 3. Add one more level for the team or the manager who should hear next.
 :::
 

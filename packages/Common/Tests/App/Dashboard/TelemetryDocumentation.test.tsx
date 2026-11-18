@@ -352,6 +352,155 @@ describe("TelemetryDocumentation", () => {
     });
   });
 
+  /*
+   * SEND A TEST LOG (#7760): one command under the endpoint and the key in
+   * the logs guide's first step, to see them work before any app is set up.
+   * Folded to one line - the guide's own steps are the way most people go -
+   * and only where the step shows the OTLP endpoint and a Server key.
+   */
+  describe("a test log, in the logs guide's first step", () => {
+    // The guide step an element is in.
+    const firstStepOf: (element: HTMLElement) => HTMLElement = (
+      element: HTMLElement,
+    ): HTMLElement => {
+      return element.closest("div.relative") as HTMLElement;
+    };
+
+    const keyShown: () => Promise<void> = async (): Promise<void> => {
+      await waitFor(() => {
+        expect(document.body.textContent).toContain("secret-production");
+      });
+    };
+
+    test("is folded under the endpoint and the key, to one line that says what it is for", async () => {
+      renderGuide("logs");
+      await keyShown();
+
+      const fold: HTMLElement = screen.getByTestId("telemetry-test-log");
+      const toggle: HTMLElement = screen.getByTestId(
+        "telemetry-test-log-toggle",
+      );
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(fold).toHaveTextContent("Send a test log");
+      expect(fold).toHaveTextContent(
+        "Check the endpoint and the key before you set up your app.",
+      );
+      expect(screen.queryByTestId("telemetry-test-log-body")).toBeNull();
+      // It sits in the first step, with the key it uses.
+      const firstStep: HTMLElement = screen
+        .getByText("Get Your Ingestion Credentials")
+        .closest("div.relative") as HTMLElement;
+      expect(within(firstStep).getByTestId("telemetry-test-log")).toBe(fold);
+    });
+
+    test("opened: the command, with the endpoint's logs address and the key the step shows, from oneuptime-test", async () => {
+      renderGuide("logs");
+      await keyShown();
+
+      fireEvent.click(screen.getByTestId("telemetry-test-log-toggle"));
+
+      const body: HTMLElement = screen.getByTestId("telemetry-test-log-body");
+
+      expect(screen.getByTestId("telemetry-test-log-toggle")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      expect(screen.getByTestId("telemetry-test-log-toggle")).toHaveAttribute(
+        "aria-controls",
+        body.id,
+      );
+      expect(body).toHaveTextContent(
+        "Run this in a terminal. It sends one log from the service oneuptime-test, which you can delete afterwards.",
+      );
+      expect(within(body).getByText("oneuptime-test").tagName).toBe("CODE");
+
+      /*
+       * The OTLP endpoint the step's card shows - here a placeholder, with
+       * no server address known in a test - and its /v1/logs.
+       */
+      const command: string = body.textContent || "";
+      const endpoint: string =
+        within(firstStepOf(body)).getByText("OTLP Endpoint").nextElementSibling
+          ?.textContent || "";
+      expect(endpoint.length).toBeGreaterThan(0);
+      expect(command).toContain("curl -sS ");
+      expect(command).toContain(`"${endpoint}/v1/logs"`);
+      expect(command).toContain('-H "Content-Type: application/json"');
+      expect(command).toContain('-H "x-oneuptime-token: secret-production"');
+      expect(command).toContain('"stringValue":"oneuptime-test"');
+
+      // Folded again with one more press.
+      fireEvent.click(screen.getByTestId("telemetry-test-log-toggle"));
+      expect(screen.queryByTestId("telemetry-test-log-body")).toBeNull();
+    });
+
+    test.each(["FluentBit", "Fluentd"])(
+      "%s offers it too: its step shows the same endpoint and key",
+      async (method: string) => {
+        renderGuide("logs");
+        await keyShown();
+        pickMethod(method);
+
+        // The step's key picker reads the project's keys again.
+        expect(
+          await screen.findByTestId("telemetry-test-log"),
+        ).toBeInTheDocument();
+      },
+    );
+
+    test.each([
+      "metrics",
+      "traces",
+      "exceptions",
+      "profiles",
+    ] as Array<TelemetryType>)(
+      "the %s guide has none: the test sends a log",
+      async (type: TelemetryType) => {
+        renderGuide(type);
+        await keyShown();
+
+        expect(screen.queryByTestId("telemetry-test-log")).toBeNull();
+      },
+    );
+
+    test("another tool's endpoint has none: its step shows that tool's address, not OTLP", async () => {
+      renderGuide("logs");
+      await keyShown();
+
+      fireEvent.click(screen.getByTestId("compatible-ingest-loki"));
+
+      expect(screen.queryByTestId("telemetry-test-log")).toBeNull();
+    });
+
+    test("a browser guide has none: its key is taken only from a page of its origins", async () => {
+      renderGuide("logs");
+      await keyShown();
+
+      fireEvent.click(screen.getByRole("button", { name: "React" }));
+
+      expect(screen.queryByTestId("telemetry-test-log")).toBeNull();
+    });
+
+    test("a guide for a whole service has none: its wait is for that service", async () => {
+      render(
+        <MemoryRouter>
+          <TelemetryDocumentation telemetryType="logs" everySignal={true} />
+        </MemoryRouter>,
+      );
+      await keyShown();
+
+      expect(screen.queryByTestId("telemetry-test-log")).toBeNull();
+    });
+
+    test("with no key picked yet, there is nothing to send with", () => {
+      renderGuide("logs");
+
+      // Before the project's keys are read.
+      expect(screen.queryByTestId("telemetry-test-log")).toBeNull();
+    });
+  });
+
   describe("the log shippers", () => {
     test("FluentBit: one run step, on the host or in Docker Compose", () => {
       const container: HTMLElement = renderGuide("logs");

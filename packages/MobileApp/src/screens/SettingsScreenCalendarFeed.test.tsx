@@ -91,6 +91,7 @@ jest.mock("@react-navigation/native", () => {
     useNavigation: () => {
       return { navigate: mockNavigate };
     },
+    useFocusEffect: jest.fn(),
   };
 });
 
@@ -116,12 +117,13 @@ describe("SettingsScreen calendar feed row", () => {
     expect(mockNavigate).toHaveBeenCalledWith("OnCallCalendarFeed");
   });
 
-  test("hides the whole section on a server without calendar feeds", async () => {
+  test("hides its row on a server without calendar feeds, and the section keeps Get Ready for On-Call", async () => {
     mockCalendarFeed.current = { isAvailable: false, isChecking: false };
 
     await render(<SettingsScreen />);
 
-    expect(screen.queryByTestId("settings-section-oncall")).toBeNull();
+    expect(screen.getByTestId("settings-section-oncall")).toBeTruthy();
+    expect(screen.getByTestId("settings-row-get-ready")).toBeTruthy();
     expect(screen.queryByText("Calendar feed")).toBeNull();
 
     /* The neighbouring sections are still there. */

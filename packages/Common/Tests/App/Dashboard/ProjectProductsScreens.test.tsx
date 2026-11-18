@@ -24,7 +24,9 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import { HIDDEN_PRODUCTS_CHOOSE_LINK_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/HiddenProductsMenuNote";
-import ExploreProducts from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ExploreProducts";
+import ExploreProducts, {
+  HOME_EXPLORE_HIDDEN_NOTE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ExploreProducts";
 import ProjectResources from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ProjectResources";
 import HiddenProductsWithData from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/HiddenProductsWithData";
 import ProductsSettings from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
@@ -45,6 +47,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ProductKey from "../../../Types/Product/ProductKey";
 import { ProductUsage } from "../../../Types/Product/ProductUsage";
 import { ProjectProductsChosenBy } from "../../../Types/Product/ProjectProducts";
+import { ServerProductOffReason } from "../../../Types/Product/ServerProducts";
 import {
   ProjectProductsAnswer,
   getEmptyProjectProductsAnswer,
@@ -679,6 +682,124 @@ describe("Home without the hidden products", () => {
     const panel: HTMLElement = screen.getByTestId("home-explore-panel");
     expect(within(panel).queryByText("Logs")).toBeNull();
     expect(within(panel).getByText("Metrics")).toBeInTheDocument();
+  });
+
+  /*
+   * "Everything OneUptime can do" (#7468): the products the project hides
+   * are not left out of the card, but under its last tab, More products -
+   * the products menu's name for them - with the menu's note that they
+   * still work.
+   */
+  test("Explore lists the hidden products under its last tab, More products, and opens each", () => {
+    given({
+      hidden: [ProductKey.Logs, ProductKey.SecurityEvents],
+      canChooseProducts: true,
+    });
+
+    render(wrapInRouter(<ExploreProducts projectId={PROJECT_ID} />));
+
+    const tabs: Array<HTMLElement> = screen.getAllByTestId("home-explore-tab");
+    const last: HTMLElement = tabs[tabs.length - 1]!;
+
+    expect(last.textContent).toBe("More products2");
+    expect(
+      tabs.filter((tab: HTMLElement): boolean => {
+        return (tab.textContent || "").startsWith("More products");
+      }),
+    ).toHaveLength(1);
+    // No note until the tab is opened.
+    expect(screen.queryByTestId(HOME_EXPLORE_HIDDEN_NOTE_TEST_ID)).toBeNull();
+
+    fireEvent.click(last);
+
+    const panel: HTMLElement = screen.getByTestId("home-explore-panel");
+    expect(within(panel).getByText("Logs")).toBeInTheDocument();
+    expect(
+      within(panel)
+        .getAllByTestId("home-explore-product")
+        .map((product: HTMLElement): string => {
+          return product.querySelector(".truncate")?.textContent || "";
+        }),
+    ).toHaveLength(2);
+    expect(
+      screen.getByTestId(HOME_EXPLORE_HIDDEN_NOTE_TEST_ID),
+    ).toHaveTextContent(
+      "Hidden in this project. Search still finds them, and their pages work.",
+    );
+    // Whoever may choose the products can show them again from here.
+    expect(
+      within(screen.getByTestId(HOME_EXPLORE_HIDDEN_NOTE_TEST_ID)).getByTestId(
+        HIDDEN_PRODUCTS_CHOOSE_LINK_TEST_ID,
+      ),
+    ).toHaveTextContent("Choose products");
+    // A hidden product opens as any other does.
+    expect(
+      within(panel).getByText("Logs").closest("a")?.getAttribute("href"),
+    ).toContain(`/dashboard/${PROJECT_ID}/logs`);
+  });
+
+  test("someone who may not choose the products reads the note without the way to change it", () => {
+    given({ hidden: [ProductKey.Logs], canChooseProducts: false });
+
+    render(wrapInRouter(<ExploreProducts projectId={PROJECT_ID} />));
+
+    const tabs: Array<HTMLElement> = screen.getAllByTestId("home-explore-tab");
+    fireEvent.click(tabs[tabs.length - 1]!);
+
+    expect(
+      screen.getByTestId(HOME_EXPLORE_HIDDEN_NOTE_TEST_ID),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(HIDDEN_PRODUCTS_CHOOSE_LINK_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("nothing hidden: no More products tab", () => {
+    given({});
+
+    render(wrapInRouter(<ExploreProducts projectId={PROJECT_ID} />));
+
+    expect(
+      screen
+        .getAllByTestId("home-explore-tab")
+        .some((tab: HTMLElement): boolean => {
+          return (tab.textContent || "").startsWith("More products");
+        }),
+    ).toBe(false);
+  });
+
+  test("a product switched off on the server is in no tab, More products included", () => {
+    given({
+      hidden: [ProductKey.Logs],
+      offOnServer: { [ProductKey.Logs]: ServerProductOffReason.SwitchedOff },
+    });
+
+    render(wrapInRouter(<ExploreProducts projectId={PROJECT_ID} />));
+
+    expect(
+      screen
+        .getAllByTestId("home-explore-tab")
+        .some((tab: HTMLElement): boolean => {
+          return (tab.textContent || "").startsWith("More products");
+        }),
+    ).toBe(false);
+  });
+
+  test("each tab has an id of its own, whatever script its name is in", () => {
+    given({ hidden: [ProductKey.Logs] });
+
+    render(wrapInRouter(<ExploreProducts projectId={PROJECT_ID} />));
+
+    const ids: Array<string> = screen
+      .getAllByTestId("home-explore-tab")
+      .map((tab: HTMLElement): string => {
+        return tab.id;
+      });
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(
+      screen.getByTestId("home-explore-panel").getAttribute("aria-labelledby"),
+    ).toBe(ids[0]);
   });
 
   test("Explore names the plan a product needs", () => {

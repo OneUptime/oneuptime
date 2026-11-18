@@ -9,7 +9,10 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
-import { pickDropdownOption } from "../SuiteHelpers/Dropdowns";
+import {
+  pickDropdownOption,
+  shownDropdownValueOf,
+} from "../SuiteHelpers/Dropdowns";
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -548,8 +551,13 @@ test("a self-hosted estate after the fix: databases and APIs on the map, workloa
   await expect(
     page.locator('.react-flow__edge[aria-label*=" → "]'),
   ).toHaveCount(8);
-  // Eight lines converge on two cards: labels wait for the pointer.
-  await expect(page.getByLabel("Line labels")).toHaveValue("hover");
+  /*
+   * Eight lines converge on two cards: labels wait for the pointer. The
+   * picker is the shared Dropdown, which shows its choice as text (#9294).
+   */
+  await expect(
+    shownDropdownValueOf(page.getByRole("combobox", { name: "Line labels" })),
+  ).toHaveText("On hover");
   await screenshot(page, "discovered-infrastructure-map-synthetic");
 });
 

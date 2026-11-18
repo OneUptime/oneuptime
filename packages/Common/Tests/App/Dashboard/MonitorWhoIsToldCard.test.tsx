@@ -63,6 +63,7 @@ import {
   getBreakSentence,
   getDeclaresSentence,
   getFixLink,
+  getOwnerMatchSentence,
   getOwnersSentences,
   getPagedOwnersSentence,
   getPrivateSentences,
@@ -2220,6 +2221,110 @@ describe("what the record's own rules make of it", () => {
     expect(
       within(await openChain()).queryByTestId("who-is-told-label-rules"),
     ).toBeNull();
+  });
+
+  /*
+   * AN ALERT OWNER RULE (#9407): the on-call rule matches on who owns the
+   * alert, and the chain says which owner made it match, under the rule.
+   */
+  describe("the owners that make an on-call rule match (#9407)", () => {
+    const PAYMENTS_RULE: string = "68102222-0000-4000-8000-0000000000c3";
+    const NIGHT_RULE: string = "68102222-0000-4000-8000-0000000000c4";
+
+    function ownedAlert(
+      overrides: Partial<WhoIsToldEvent> = {},
+    ): WhoIsToldEvent {
+      return event({
+        kind: OnCallTestPageRecordKind.Alert,
+        rules: [
+          { id: PAYMENTS_RULE, name: "Payments' alerts" },
+          { id: NIGHT_RULE, name: "" },
+        ],
+        ownerMatches: [
+          { ruleId: PAYMENTS_RULE, ownerNames: ["Payments", "Ana Lopez"] },
+          { ruleId: NIGHT_RULE, ownerNames: ["Night shift"] },
+        ],
+        ...overrides,
+      });
+    }
+
+    test("each matched rule's owners are said under On-call rules, a rule the reader can't see as such", async () => {
+      renderWith(result([offline({ events: [ownedAlert()] })]));
+
+      const row: HTMLElement = within(await openChain()).getByTestId(
+        "who-is-told-rules",
+      );
+      const lines: Array<string> = within(row)
+        .getAllByTestId("who-is-told-owner-match")
+        .map((line: HTMLElement): string => {
+          return line.textContent || "";
+        });
+
+      expect(row).toHaveTextContent("Payments' alerts, A rule you can't see");
+      expect(lines).toEqual([
+        "It's owned by Payments, Ana Lopez, so Payments' alerts matches.",
+        "It's owned by Night shift, so a rule you can't see matches.",
+      ]);
+    });
+
+    test("no rule its owners make match: no such line, and the row reads as before", async () => {
+      renderWith(
+        result([
+          offline({ events: [ownedAlert({ ownerMatches: undefined })] }),
+        ]),
+      );
+
+      const row: HTMLElement = within(await openChain()).getByTestId(
+        "who-is-told-rules",
+      );
+
+      expect(within(row).queryByTestId("who-is-told-owner-match")).toBeNull();
+      expect(row).toHaveTextContent(
+        "On-call rulesPayments' alerts, A rule you can't see",
+      );
+    });
+
+    test("a private alert the reader can't see says nothing of its owners", async () => {
+      renderWith(
+        result([
+          offline({
+            events: [
+              ownedAlert({
+                isPrivate: true,
+                isHidden: true,
+                title: "",
+                rules: [],
+                ownerMatches: undefined,
+              }),
+            ],
+          }),
+        ]),
+      );
+
+      const chain: HTMLElement = await openChain();
+
+      expect(within(chain).queryByTestId("who-is-told-owner-match")).toBeNull();
+      expect(chain).not.toHaveTextContent("Payments");
+    });
+
+    test("in the reader's language, the rule and owners set apart as names", () => {
+      const german: Translator = localeTranslator("de");
+
+      expect(
+        getOwnerMatchSentence({
+          match: { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+          rules: [{ id: PAYMENTS_RULE, name: "Payments' alerts" }],
+          translator: german,
+        }),
+      ).toContain("Eigentümer:");
+      expect(
+        getOwnerMatchSentence({
+          match: { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+          rules: [{ id: PAYMENTS_RULE, name: "" }],
+          translator: german,
+        }),
+      ).toContain("eine Regel, die Sie nicht sehen können");
+    });
   });
 
   test("a status page names the monitor group it shows the monitor through, one the reader can't see as such (#7214)", async () => {

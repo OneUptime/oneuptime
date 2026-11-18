@@ -120,6 +120,10 @@ Die Konnektivität der Geräte ist eine eigene Voraussetzung. iOS-Geräte brauch
 
 Bei mobilen Pushes liest OneUptime außerdem etwa 15 Minuten nach jedem Push den Zustellbeleg von Expo: Ein Push, der das Gerät nie erreicht hat, erscheint dann im Push-Log als nicht zugestellt und, bei einem Bereitschaftsalarm, auf der Bereitschafts-Zeitleiste.
 
+## Einen Test-Push senden
+
+Ein Master-Admin kann Push von der Seite des Servers prüfen: **Test-Push senden** unter **Admin Dashboard > Einstellungen > Push-Benachrichtigungen** schickt einen Test-Push an die Telefone und Browser, die er registriert hat, und an niemanden sonst. Kann nichts hinausgehen, sagt er, warum: Push ist ausgeschaltet, nichts ist registriert, oder der Server hat keine VAPID-Schlüssel für einen Browser.
+
 ## Push für den ganzen Server ausschalten
 
 Darf nichts Ihr Netzwerk über Expo, das Push-Relay oder den Push-Dienst eines Browsers verlassen, kann ein Master-Admin Push unter **Admin Dashboard > Einstellungen > Push-Benachrichtigungen** ausschalten: Schalten Sie **Send push notifications** aus und bestätigen Sie.
@@ -251,6 +255,10 @@ Um das Gerät zurückzuholen, öffnen Sie darauf die mobile App, während Sie an
 Über das Push-Relay (kein `EXPO_ACCESS_TOKEN`) funktioniert das genauso: Das Relay meldet `DeviceNotRegistered`, wenn es einen Push sendet, und liest die Zustellbelege, nach denen Ihre Instanz fragt.
 
 Wenn nichts davon hilft, schreiben Sie uns an [hello@oneuptime.com](mailto:hello@oneuptime.com) mit den Fehlern aus Ihren OneUptime-Logs.
+
+### Das Admin Dashboard meldet, dass Push fehlschlägt
+
+Das Admin Dashboard meldet, dass Push fehlschlägt, wenn die eigenen Push-Benachrichtigungen des Servers nicht mehr versendet werden: Das Push-Relay, Expo Push oder Web Push hat sie abgelehnt oder war nicht erreichbar. Es nennt, seit wann, und was geantwortet wurde. Ein Push, den ein einzelnes Gerät abgelehnt hat, etwa an eine deinstallierte App, zählt nicht. Sobald wieder ein Push versendet wird, gilt Push als funktionierend. Senden Sie einen Test-Push, um es zu prüfen.
 
 ## Nächste Schritte
 

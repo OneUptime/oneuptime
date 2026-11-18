@@ -3,12 +3,13 @@ import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import WhoWasToldApi from "./WhoWasToldApi";
+// Read where it is kept, so ErrorSentenceGuard sees its {{error}} drawn.
+import { WHO_WAS_TOLD_COPY } from "./WhoWasToldCopy";
 import {
   DELIVERY_CHIPS,
   PAGE_CHIPS,
   STATUS_CHIPS,
   SUBSCRIBER_CHIPS,
-  WHO_WAS_TOLD_COPY,
   WHO_WAS_TOLD_PEOPLE_SHOWN,
   WHO_WAS_TOLD_PLURALS,
   WhoWasToldChip,

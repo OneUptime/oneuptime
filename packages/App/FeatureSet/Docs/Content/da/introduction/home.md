@@ -15,7 +15,7 @@ Hjem er den første side, du ser i et projekt. Den viser med et blik, om noget h
 
 1. Et søgefelt med **Erklær hændelse** og **Opret** ved siden af.
 2. Én linje, der siger, om noget er galt, over fem tal, der tæller det, der kræver opmærksomhed.
-3. **Velkommen til OneUptime 👋**, en tjekliste til et nyt projekt, indtil den er gennemført.
+3. **Velkommen til OneUptime 👋**, en tjekliste til et nyt projekt, indtil den er gennemført, og derefter **Mere at sætte op**, så længe der er noget tilbage.
 4. **Kræver opmærksomhed**, hvert problem, der er åbent lige nu, ved navn.
 5. **Dit projekt**, hvad projektet består af, og **Kommende vedligeholdelse**, når der er planlagt noget.
 6. **Udforsk OneUptime**, alle produkter, én kategori ad gangen.
@@ -40,7 +40,7 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 
 Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Hjem følger også med, når det, den tæller, ændrer sig: når en hændelse, en advarsel, en monitor, en vedligeholdelseshændelse eller et SLO oprettes, ændres eller slettes, følger linjen, tallene, **Kræver opmærksomhed** og **Kommende vedligeholdelse** med inden for få sekunder, uden at du skal genindlæse. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
 
-Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første monitor**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**. Kun personer, der har lov til at oprette monitorer, ser den.
+Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første monitor**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**, medmindre tjeklisten under den allerede tilbyder det trin. Kun personer, der har lov til at oprette monitorer, ser den.
 
 ### De fem tal
 
@@ -68,13 +68,17 @@ Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og
 | **Opret din første monitor** | Den første kontrol kommer ind. | Den guidede opsætning **Vide, når mit website eller API er nede**, eller listen **Monitorer** for den, der ikke må oprette monitorer. |
 | **Forbind en server eller en klynge** | De første metrikker kommer ind. | **Værter** |
 | **Send dine første logs, metrikker eller traces** | Projektets første logs, metrikker, traces, undtagelser eller profiler kommer ind. | Den guidede opsætning **Send protokoller, metrikker og spor, og få derefter advarsler** |
-| **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel kører en politik, der kan nå nogen. | Den guidede opsætning **Tilkalde den rette person, når noget går ned** |
+| **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel eller en monitor kører en politik, der kan nå nogen. | Den guidede opsætning **Tilkalde den rette person, når noget går ned** |
 | **Udgiv en statusside** | En statusside viser en monitor. | Den guidede opsætning **Udgiv en statusside**, eller listen **Statussider** for den, der ikke må oprette statussider. |
 | **Inviter dit team** | Nogen accepterer din invitation. | **Brugere** |
 
-Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Clouds Free-abonnement, der har én person, siger **Inviter dit team**, at det kræver Growth-abonnementet, og åbner **Fakturering**. På en selvhostet server, der endnu ikke kan sende e-mail, ser serverens administratorer først **Denne server kan ikke sende e-mail endnu**; det åbner administrationsdashboardet.
+Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Clouds Free-abonnement, der har én person, siger **Inviter dit team**, at det kræver Growth-abonnementet, og åbner **Fakturering**. På en selvhostet server, der endnu ikke er sat op, ser dens administratorer i stedet serverens eget kort over tjeklisten med **Afslut opsætningen**, som åbner administrationsdashboardet.
 
 Hvert trin fortæller, cirka hvor lang tid det tager, tjeklisten, cirka hvor meget tid der er tilbage, og det næste trin har sin egen knap **Start**.
+
+Et trin, hvis post findes, men endnu ikke virker, siger under sig hvorfor med ordene fra **Opsætningens tilstand**: en statusside, der ikke viser nogen monitor, en monitor, som intet tjekker, en vagtpolitik, som intet kører, eller som ikke når nogen, en invitation, som ingen har accepteret. Trinnet åbner så den side, der løser det, og når det er det næste, nævner dets knap løsningen, fx **Tilføj monitorer**.
+
+Når **Opsæt en vagtpolitik** er krydset af, og så længe kun e-mail kan tilkalde dig, bliver **Få kald via SMS eller telefonopkald** stående under det: Linket åbner den guidede opsætning **Tilkalde den rette person, når noget går ned**, så du kan tilføje din telefon eller mobilappen. Kun personer, der må oprette vagtpolitikker, ser det.
 
 En guidet opsætning klarer hele opgaven på én side, et trin ad gangen, og slutter med, hvad den har sat op, og hvad du kan gøre bagefter. Søg efter dens navn for at åbne den igen senere.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Ja"| hidden{"Skjult<br/>af dig?"}
     hidden -->|"Ja"| line["En linje til at<br/>vise den igen"]
     hidden -->|"Nej"| done{"Alle trin<br/>færdige?"}
-    done -->|"Ja"| gone["Ingen tjekliste"]
+    done -->|"Ja"| gone["Mere at sætte op,<br/>så længe noget er tilbage"]
     done -->|"Nej"| shown["Tjeklisten med<br/>de resterende trin"]
 ```
 
 Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den før, skal du klikke på **Skjul**: den er så kun skjult for dig, på alle enheder, og en linje bliver stående med **Vis den** og **Sådan virker OneUptime**. Folk, der er inviteret til projektet som medlemmer, ser ikke tjeklisten. **Sådan virker OneUptime** er stadig ét klik væk i alle projekter: åbn det fra **Hjælp** eller med knappen ved siden af **Udforsk OneUptime**.
+
+Når tjeklisten er gennemført, tager **Mere at sætte op** dens plads under overskriften som et kort blandt de andre: de grundlæggende trin, dine mål ikke bragte med, fx en statusside og dit team, hvert indtil det virker, med **Få kald via SMS eller telefonopkald** først, så længe kun e-mail kan tilkalde dig. Dens **Skjul** skjuler den for dig uden at efterlade en linje.
 
 **Sådan virker OneUptime** åbner med **Sådan hænger det sammen**: de fire trin, et problem går igennem, **Opdage**, **Reagere**, **Kommunikere** og **Forbedre**, hver med de produkter, der klarer det. Derefter kommer kategorierne i menuen **Produkter**, hver med sine produkter og hvad hvert produkt er til: vælg en, eller gå videre med piletasterne eller **Næste**. Klik på et produkt for at åbne det. Produkter, som dit projekt skjuler, er udeladt.
 
@@ -103,7 +109,7 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 
 ### Opsætningens tilstand
 
-Når noget i projektets opsætning ville forhindre, at folk får besked, slutter **Kræver opmærksomhed** med **Opsætning**: hvor mange ting der bør ses på. Den åbner **Opsætningens tilstand**, som begynder med én linje i farven på det alvorligste fund: hvor mange problemer der ville forhindre, at folk får besked, hvor mange ting der er værd at rette, eller **Intet at rette**. Under den viser siden, hvad der er sat forkert op, det værste først, under **Tilkald når ikke frem**, **Værd at rette** og **Forslag**: en monitor, der ikke tilkalder nogen, en vagtpolitik, som intet kører, en person, der ikke kan tilkaldes, SMS slået fra, en vagttidsplan uden nogen på vagt, en statusside, der ikke viser nogen monitor, et brugerdefineret domæne, hvis SSL-certifikat ikke kunne udstedes, en indtagelsesnøgle, som der aldrig er kommet data ind med. Hvert fund siger med én sætning, hvad der er galt, med navnene på jeres monitorer, politikker og personer med fed skrift, de monitorer eller politikker, fundet rammer, efter **Berører**, og lige under det knappen, der åbner rettelsen. To kan rettes lige der, når en dialog har sagt præcis, hvad der ændres: **Slå SMS til** (eller telefonopkald, WhatsApp eller Telegram) for dem, der må slå det til, og **Opret vagtregel**, som tilkalder den vagtpolitik, du vælger, for en monitor, der ikke tilkaldte nogen. En monitors fund er de brud, som dens kort **Når den går ned** nævner, og en vagtpolitik, som intet kører, eller et brugerdefineret domæne, der ikke åbner sin statusside, siger det også øverst på politikkens eller statussidens egen side. Et fund, som jeres team bevidst lader være, kan skjules med en begrundelse, for alle, og gendannes fra **Afvist**. Søg finder siden som **Opsætningens tilstand**, og Spørg AI svarer på "er min opsætning i orden?" ud fra den.
+Når noget i projektets opsætning ville forhindre, at folk får besked, slutter **Kræver opmærksomhed** med **Opsætning**: hvor mange ting der bør ses på. Den åbner **Opsætningens tilstand**, som begynder med én linje i farven på det alvorligste fund: hvor mange problemer der ville forhindre, at folk får besked, hvor mange ting der er værd at rette, eller **Intet at rette**. Under den viser siden, hvad der er sat forkert op, det værste først, under **Tilkald når ikke frem**, **Værd at rette** og **Forslag**: en monitor, der ikke tilkalder nogen, en vagtpolitik, som intet kører, en person, der ikke kan tilkaldes, SMS slået fra, en vagttidsplan uden nogen på vagt, en statusside, der ikke viser nogen monitor, et brugerdefineret domæne, hvis SSL-certifikat ikke kunne udstedes, en indtagelsesnøgle, som der aldrig er kommet data ind med. Hvert fund siger med én sætning, hvad der er galt, med navnene på jeres monitorer, politikker og personer med fed skrift, de monitorer eller politikker, fundet rammer, efter **Berører**, og lige under det knappen, der åbner rettelsen. To kan rettes lige der, når en dialog har sagt præcis, hvad der ændres: **Slå SMS til** (eller telefonopkald, WhatsApp eller Telegram) for dem, der må slå det til, og **Opret vagtregel**, som tilkalder den vagtpolitik, du vælger, for en monitor, der ikke tilkaldte nogen. En monitors fund er de brud, som dens kort **Når den går ned** nævner, og en vagtpolitik, som intet kører, eller et brugerdefineret domæne, der ikke åbner sin statusside, siger det også øverst på politikkens eller statussidens egen side. Hver ejer, som e-mailen om oprettelsen ifølge kortet aldrig når, er også et fund, der er værd at rette, med den samme side til at rette det. Et fund, som jeres team bevidst lader være, kan skjules med en begrundelse, for alle, og gendannes fra **Afvist**. Søg finder siden som **Opsætningens tilstand**, og Spørg AI svarer på "er min opsætning i orden?" ud fra den.
 
 ### Dit projekt
 
@@ -113,7 +119,7 @@ Når noget i projektets opsætning ville forhindre, at folk får besked, slutter
 
 ### Udforsk OneUptime
 
-**Udforsk OneUptime** viser produkterne i menuen **Produkter** én kategori ad gangen, begyndende med det grundlæggende. Hvert produkt siger, hvad det er til, og åbnes, når du klikker på det. De produkter, dit projekt skjuler, er ikke med.
+**Udforsk OneUptime** viser produkterne i menuen **Produkter** én kategori ad gangen, begyndende med det grundlæggende. Hvert produkt siger, hvad det er til, og åbnes, når du klikker på det. De produkter, dit projekt skjuler, ligger under den sidste fane, **Flere produkter**, med en note om, at de stadig virker.
 
 ## Find rundt
 

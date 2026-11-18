@@ -32,7 +32,7 @@ Every minute, OneUptime counts the logs that match the monitor's filters and arr
 :::steps
 ### Start a new monitor
 
-Go to **Monitors** and click **Create Monitor**. Or, in the logs explorer, search for the logs you want to hear about and click **Create monitor** (the bell) in its toolbar: the new monitor starts out watching the explorer's search, severities, services and attributes.
+Go to **Monitors** and click **Create Monitor**. Or, in the logs explorer, search for the logs you want to hear about and click **Create monitor** (the bell) in its toolbar: the new monitor starts out watching the explorer's search, severities, services and attributes. A service's **Logs** tab has the same button, and its monitor watches that service.
 
 ### Choose Logs
 

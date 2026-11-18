@@ -14,8 +14,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * Now Create asks for the name, with the description and the labels under
  * More fields, and opens the new page's Overview. While the page shows no
- * monitors, its Overview starts with that one next step (Add Monitors, which
- * opens its Resources page).
+ * monitors, its Overview starts with that one next step: Add Monitors, which
+ * opens the dialog that puts them on the page right there, beside the link
+ * to the page (#7466). It opened the page's Resources page, where a second
+ * Add opened the picker, and the link was back on the Overview.
  *
  * The link card showed one address, the page's address on OneUptime's own
  * domain, whatever custom domains the page had. It now lists every address
@@ -53,7 +55,10 @@ export const StatusPageOverviewCopy: {
   firstStepTitle: string;
   firstStepDescription: string;
   firstStepReaderDescription: string;
+  // Its button, and the title of the dialog it opens.
   firstStepButton: string;
+  // What the toast that says they were added offers next.
+  viewStatusPage: string;
 } = {
   namePlaceholder: translationKey("e.g., Acme Status"),
   descriptionHelp: translationKey(
@@ -77,6 +82,7 @@ export const StatusPageOverviewCopy: {
     "Visitors see no status here until monitors are added on its Resources page.",
   ),
   firstStepButton: translationKey("Add Monitors"),
+  viewStatusPage: translationKey("View Status Page"),
 };
 
 // The link card's body, where the addresses and Copy link are.

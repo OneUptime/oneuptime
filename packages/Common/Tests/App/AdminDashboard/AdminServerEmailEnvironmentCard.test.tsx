@@ -751,6 +751,112 @@ describe("not set by environment variables", () => {
   });
 });
 
+/*
+ * #7460: Server Setup's "Set up email" opened Settings > Emails on four
+ * cards, two of whose Edit buttons came before the mail server's. It opens
+ * the page in the form of the server that sends the email - Edit SMTP
+ * Config, or the provider's - once, and takes ?set-up=email off the
+ * address, so the page opened again opens as it always has.
+ */
+describe("opened from Server Setup's Set up email", () => {
+  afterEach(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
+  async function dialogTitled(name: string): Promise<HTMLElement> {
+    let dialog: HTMLElement | null = null;
+
+    await waitFor(
+      () => {
+        dialog = screen.getByRole("dialog", { name: name });
+        expect(dialog).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    return dialog as unknown as HTMLElement;
+  }
+
+  test("opens the mail server's form, and only it, and takes set-up=email off the address", async () => {
+    window.history.replaceState({}, "", "/admin/settings/smtp?set-up=email");
+    environmentAnswer = answerFor({});
+
+    await renderPage();
+
+    expect(await dialogTitled(EMAIL["smtpEditButton"]!)).toBeVisible();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(window.location.pathname).toBe("/admin/settings/smtp");
+    expect(window.location.search).toBe("");
+  });
+
+  test("on a server that sends through SendGrid: SendGrid's form", async () => {
+    window.history.replaceState({}, "", "/admin/settings/smtp?set-up=email");
+    environmentAnswer = answerFor({});
+    mockGetItem.mockImplementation(async (options: unknown) => {
+      const item: unknown = await answerGetItem(options);
+
+      Object.assign(item as Record<string, unknown>, {
+        emailServerType: EmailServerType.Sendgrid,
+      });
+
+      return item;
+    });
+
+    await renderPage();
+
+    expect(await dialogTitled(EMAIL["sendgridEditButton"]!)).toBeVisible();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  });
+
+  test("opened as usual: the cards, and no form until an Edit is pressed", async () => {
+    window.history.replaceState({}, "", "/admin/settings/smtp");
+    environmentAnswer = answerFor({});
+
+    await renderPage();
+
+    expect(await savedCardEditButton(EMAIL["smtpEditButton"]!)).toBeEnabled();
+    await settle();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("set by environment variables: nothing here to edit, so nothing opens", async () => {
+    window.history.replaceState({}, "", "/admin/settings/smtp?set-up=email");
+    environmentAnswer = answerFor(environmentSmtp());
+
+    await renderPage();
+    await environmentCard();
+    await settle();
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("the Admin Notification Email comes after everything that makes email work", async () => {
+    environmentAnswer = answerFor({});
+
+    await renderPage();
+    await savedCardEditButton(EMAIL["adminNotificationEditButton"]!);
+
+    const editButtons: Array<string> = screen
+      .getAllByRole("button")
+      .map((button: HTMLElement) => {
+        return (button.textContent || "").trim();
+      })
+      .filter((name: string) => {
+        return [
+          EMAIL["serverEditButton"],
+          EMAIL["smtpEditButton"],
+          EMAIL["adminNotificationEditButton"],
+        ].includes(name);
+      });
+
+    expect(editButtons).toEqual([
+      EMAIL["serverEditButton"],
+      EMAIL["smtpEditButton"],
+      EMAIL["adminNotificationEditButton"],
+    ]);
+  });
+});
+
 describe("in a right-to-left language", () => {
   /*
    * Between a Latin word and Persian or Arabic text, GLOBAL_EMAIL_'s last

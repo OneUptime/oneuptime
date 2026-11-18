@@ -74,17 +74,17 @@ The website setup already made **Default on-call policy**, which pages you by em
 :::steps
 ### Open the on-call setup
 
-Press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose **Page the right person when something breaks**. While the checklist has not ticked **Set up an on-call policy**, that step opens the same guided setup.
+On the website setup's summary, click **Get paged by SMS or phone call**: it opens the guided setup **Page the right person when something breaks**. To open it later, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose it. While the checklist has not ticked **Set up an on-call policy**, that step opens the same guided setup. Once it has, and while only email can page you, Home keeps **Get paged by SMS or phone call** under it.
 
 ### Choose how you are reached
 
 ![The step "How should we reach you?", with "Turn on SMS and phone calls" ringed](screen:paging-reach-you)
 
-Under **How should we reach you?**, your sign-in email is listed already. For push notifications, install the OneUptime On-Call app from the App Store or Google Play, sign in, and click **Recheck**. To be texted and called too, click **Turn on SMS and phone calls**, type your number in **Your phone number** and click **Text me a code**: on OneUptime Cloud, texts and calls are paid from the project's balance, so the step asks you to add some first. Click **Continue**.
+Under **How should we reach you?**, your sign-in email is listed already. For push notifications, install the OneUptime On-Call app from the App Store or Google Play, sign in, and click **Recheck**. **Get the app** shows a code to scan for each store, and **Use this browser** has this browser paged too. To be texted and called too, click **Turn on SMS and phone calls**, type your number in **Your phone number** and click **Text me a code**: on OneUptime Cloud, texts and calls are paid from the project's balance, so the step asks you to add some first. Click **Continue**.
 
-### Choose who else is paged
+### Choose who is paged first
 
-Under **Who else is on call?**, keep **Default on-call policy** under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.
+Under **Who is paged first?**, keep **Default on-call policy** under **On-call policy**. To page teammates at the same time as you, add them under **Add to the first escalation rule**, or invite them with **Invite by email**. Click **Save and continue**.
 
 ### Decide what happens if nobody answers
 

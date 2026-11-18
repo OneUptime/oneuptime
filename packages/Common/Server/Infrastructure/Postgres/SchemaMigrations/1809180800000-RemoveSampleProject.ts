@@ -37,7 +37,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * "Project" names both. This migration dropped them, and from that moment
  * until the last of those pods was gone no probe check ran and nobody
  * could sign up. The models keep them - hidden, read and written by nobody
- * (KeepSampleProjectColumns1809183200000 puts them back where this
+ * (KeepSampleProjectColumns1809183500000 puts them back where this
  * migration already dropped them) - until a later release drops them.
  *
  * Outside a transaction: each delete is a statement of its own, and a run

@@ -1,5 +1,6 @@
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
+import { GuidedSetupEntryPoint } from "Common/UI/Utils/GuidedSetupEvents";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -7,12 +8,14 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourceShowcaseCard from "../ResourceShowcase/ResourceShowcaseCard";
+import ToolImportHowItWorksLine from "../ToolImport/ToolImportHowItWorksLine";
 import {
   PRODUCT_ABOUT_TEXT,
   OnboardedProductKey,
   ProductOnboarding,
 } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
+import { getProductGuidedSetupButton } from "./ProductShowcase";
 import {
   PRODUCT_TITLE_BUTTON_CLASS_NAME,
   PRODUCT_TITLE_ICON_BUTTON_CLASS_NAME,
@@ -86,9 +89,34 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
           <div data-testid={PRODUCT_ABOUT_DIALOG_TEST_ID}>
             <ResourceShowcaseCard
               showcase={onboarding.showcase}
+              /*
+               * No Create here: an explanation, not a second way to make
+               * one. A product's guided setup is offered, as on its empty
+               * list (#7148): the way to its job, step by step.
+               */
+              setupButton={getProductGuidedSetupButton({
+                onboarding: onboarding,
+                from: GuidedSetupEntryPoint.HowItWorks,
+                beforeOpen: (): void => {
+                  setIsOpen(false);
+                },
+              })}
               docsRoute={onboarding.docsRoute}
               guideRoute={onboarding.guideRoute}
               isBare={true}
+              /*
+               * "Moving from another tool?" with the empty list's link to
+               * the importer, for a product an import fills and whoever
+               * may run it (#7033): a busy list no longer offers it.
+               */
+              actionsNote={
+                <ToolImportHowItWorksLine
+                  product={props.product}
+                  onOpen={(): void => {
+                    setIsOpen(false);
+                  }}
+                />
+              }
             />
           </div>
         </Modal>

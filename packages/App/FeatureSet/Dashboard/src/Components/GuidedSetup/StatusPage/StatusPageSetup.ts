@@ -26,6 +26,13 @@ import {
  *      no monitor yet is offered the website-down setup first. A name one
  *      of this person's own pages has already makes no second page: the
  *      monitors go on that page, and step 2 says so (#7252).
+ *
+ *      A project that has status pages this person may change is offered
+ *      them first (#7517): the newest is picked, a project with several
+ *      names them in a picker, and the monitors go on the one picked.
+ *      Making a new page stays one click away. A busy project's list has a
+ *      search, a label to narrow it by and its monitor groups, each added
+ *      as one row (#7147); "Select all" picks what the list shows.
  *   2. This is what your customers see: the page as a list of what it
  *      shows, its link, and what appears on it by itself (incidents on
  *      these monitors, and subscribers are emailed), never (alerts), and
@@ -111,6 +118,16 @@ export const STATUS_PAGE_SETUP_COPY: {
   nextEmbed: string;
   nextStatusPage: string;
   startOver: string;
+  existingPageOne: string;
+  existingPagesLabel: string;
+  makeNewInstead: string;
+  useExistingInstead: string;
+  onThePage: string;
+  searchPlaceholder: string;
+  labelPlaceholder: string;
+  labelFilterLabel: string;
+  noMatch: string;
+  monitorGroupKind: string;
 } = {
   /*
    * What each step sets up, beside the steps (GuidedSetupFrame, #8897): the
@@ -190,6 +207,33 @@ export const STATUS_PAGE_SETUP_COPY: {
   nextEmbed: translationKey("Add the status to your website"),
   nextStatusPage: translationKey("Open this status page's settings"),
   startOver: translationKey("Set up another status page"),
+  /*
+   * A PROJECT THAT HAS A STATUS PAGE ALREADY (#7517): step 1 says so first
+   * and goes on with it - the newcomer who made one by hand came to finish
+   * it, not to start a second beside it. One page is named in the sentence
+   * (set apart, STATUS_PAGE_NAME_SENTENCE); several are counted
+   * (getExistingPagesLine), and picked from by name, newest first.
+   */
+  existingPageOne: translationKey(
+    'This project already has a status page, "{{name}}". The monitors you pick are added to it.',
+  ),
+  // The picker of several pages: the website setup's word for one (#7053).
+  existingPagesLabel: translationKey("Status page"),
+  makeNewInstead: translationKey("Make a new status page instead"),
+  useExistingInstead: translationKey("Add to an existing status page instead"),
+  // A monitor, or monitor group, the page picked already shows.
+  onThePage: translationKey("On the page"),
+  /*
+   * A BUSY PROJECT'S LIST (#7147): a search by name, and a label to narrow
+   * it by, in the words the Dashboard's other lists use for them.
+   */
+  searchPlaceholder: translationKey("Search by name"),
+  labelPlaceholder: translationKey("All labels"),
+  labelFilterLabel: translationKey("Filter by label"),
+  // A search or label that finds nothing says so, and offers nothing else.
+  noMatch: translationKey("Nothing matches."),
+  // A monitor group's row, beside its name: the kind of thing it puts on the page.
+  monitorGroupKind: translationKey("Monitor Group"),
 };
 
 /*
@@ -270,17 +314,196 @@ export const getStartOverStatusPageName: (data: {
 };
 
 /*
- * THE MONITORS PICKED. None to start with; "Select all" picks every one,
- * and picking keeps the order the list shows, so the page lists them as
- * the person saw them.
+ * THE MONITORS PICKED. None to start with; "Select all" picks every one
+ * the list shows, and picking keeps the order the list shows, so the page
+ * lists them as the person saw them.
  */
+
+// A label a monitor or a monitor group carries: what the list is narrowed by (#7147).
+export interface StatusPageSetupLabel {
+  id: string;
+  name: string;
+  color?: string | undefined;
+}
+
 export interface StatusPageSetupMonitor {
   id: string;
   name: string;
   // The monitor's current status ("Operational"), when it has one.
   statusName?: string | undefined;
   statusColor?: string | undefined;
+  labels?: Array<StatusPageSetupLabel> | undefined;
 }
+
+/*
+ * A MONITOR GROUP (#7147), put on the page as Add Multiple Monitor Groups
+ * puts one (BulkAddStatusPageMonitorGroups): one row, named as the group
+ * is, with the status of its monitors.
+ */
+export interface StatusPageSetupMonitorGroup {
+  id: string;
+  name: string;
+  labels?: Array<StatusPageSetupLabel> | undefined;
+}
+
+/*
+ * WHAT THE LIST SHOWS (#7147): the monitors and monitor groups whose name
+ * holds what was typed - in any case, however the spaces run, as a name is
+ * compared (getStatusPageNameIdentity) - and that carry the label picked.
+ * Nothing typed and no label: everything.
+ */
+export interface StatusPageSetupFilter {
+  search: string;
+  labelId: string | null;
+}
+
+export const NO_STATUS_PAGE_SETUP_FILTER: StatusPageSetupFilter = {
+  search: "",
+  labelId: null,
+};
+
+export const isStatusPageSetupFiltered: (
+  filter: StatusPageSetupFilter,
+) => boolean = (filter: StatusPageSetupFilter): boolean => {
+  return (
+    getStatusPageNameIdentity(filter.search).length > 0 ||
+    Boolean(filter.labelId)
+  );
+};
+
+export const matchesStatusPageSetupFilter: (data: {
+  item: { name: string; labels?: Array<StatusPageSetupLabel> | undefined };
+  filter: StatusPageSetupFilter;
+}) => boolean = (data: {
+  item: { name: string; labels?: Array<StatusPageSetupLabel> | undefined };
+  filter: StatusPageSetupFilter;
+}): boolean => {
+  const search: string = getStatusPageNameIdentity(data.filter.search);
+
+  if (search && !getStatusPageNameIdentity(data.item.name).includes(search)) {
+    return false;
+  }
+
+  if (
+    data.filter.labelId &&
+    !(data.item.labels || []).some((label: StatusPageSetupLabel): boolean => {
+      return label.id === data.filter.labelId;
+    })
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+// The items of `items` the list shows, in the list's order.
+export const getShownItems: <
+  TItem extends {
+    name: string;
+    labels?: Array<StatusPageSetupLabel> | undefined;
+  },
+>(data: {
+  items: ReadonlyArray<TItem>;
+  filter: StatusPageSetupFilter;
+}) => Array<TItem> = <
+  TItem extends {
+    name: string;
+    labels?: Array<StatusPageSetupLabel> | undefined;
+  },
+>(data: {
+  items: ReadonlyArray<TItem>;
+  filter: StatusPageSetupFilter;
+}): Array<TItem> => {
+  return data.items.filter((item: TItem): boolean => {
+    return matchesStatusPageSetupFilter({ item: item, filter: data.filter });
+  });
+};
+
+/*
+ * The labels the list can be narrowed by: each label a monitor or a monitor
+ * group carries, once, by name. A project whose monitors carry none has no
+ * label to pick, and the step draws no picker.
+ */
+export const getLabelsOfList: (data: {
+  monitors: ReadonlyArray<StatusPageSetupMonitor>;
+  monitorGroups: ReadonlyArray<StatusPageSetupMonitorGroup>;
+}) => Array<StatusPageSetupLabel> = (data: {
+  monitors: ReadonlyArray<StatusPageSetupMonitor>;
+  monitorGroups: ReadonlyArray<StatusPageSetupMonitorGroup>;
+}): Array<StatusPageSetupLabel> => {
+  const byId: Map<string, StatusPageSetupLabel> = new Map<
+    string,
+    StatusPageSetupLabel
+  >();
+
+  for (const item of [...data.monitors, ...data.monitorGroups]) {
+    for (const label of item.labels || []) {
+      if (label.id && label.name && !byId.has(label.id)) {
+        byId.set(label.id, label);
+      }
+    }
+  }
+
+  return Array.from(byId.values()).sort(
+    (first: StatusPageSetupLabel, second: StatusPageSetupLabel): number => {
+      return first.name.localeCompare(second.name);
+    },
+  );
+};
+
+/*
+ * "Select all" picks what the list shows (#7147): each of `shown` not
+ * picked yet, after what was picked - with a search or a label on, what it
+ * hides stays as it was, picked or not. Picks of things the page already
+ * shows (`onThePage`) are never made: they would be skipped.
+ */
+export const pickShownItems: (data: {
+  picked: ReadonlyArray<string>;
+  shown: ReadonlyArray<{ id: string }>;
+  onThePage?: ReadonlyArray<string> | undefined;
+}) => Array<string> = (data: {
+  picked: ReadonlyArray<string>;
+  shown: ReadonlyArray<{ id: string }>;
+  onThePage?: ReadonlyArray<string> | undefined;
+}): Array<string> => {
+  const picked: Array<string> = [...data.picked];
+
+  for (const item of data.shown) {
+    if (
+      !picked.includes(item.id) &&
+      !(data.onThePage || []).includes(item.id)
+    ) {
+      picked.push(item.id);
+    }
+  }
+
+  return picked;
+};
+
+/*
+ * Opened for one monitor - the website-down setup's summary offers this
+ * setup for the monitor it set up, while the project has no status page to
+ * add it to (#7053) - that monitor starts ticked: the person chose to show
+ * it. Nothing else is ticked, and an id that names none of the project's
+ * monitors ticks nothing.
+ */
+export const STATUS_PAGE_SETUP_MONITOR_QUERY: string = "monitorId";
+
+export const getMonitorPickedOnOpen: (data: {
+  monitorId: string | null | undefined;
+  monitors: ReadonlyArray<StatusPageSetupMonitor>;
+}) => Array<string> = (data: {
+  monitorId: string | null | undefined;
+  monitors: ReadonlyArray<StatusPageSetupMonitor>;
+}): Array<string> => {
+  const found: StatusPageSetupMonitor | undefined = data.monitorId
+    ? data.monitors.find((monitor: StatusPageSetupMonitor): boolean => {
+        return monitor.id === data.monitorId;
+      })
+    : undefined;
+
+  return found ? [found.id] : [];
+};
 
 export const togglePickedMonitor: (data: {
   picked: ReadonlyArray<string>;
@@ -298,16 +521,6 @@ export const togglePickedMonitor: (data: {
   return [...data.picked, data.monitorId];
 };
 
-export const pickAllMonitors: (
-  monitors: ReadonlyArray<StatusPageSetupMonitor>,
-) => Array<string> = (
-  monitors: ReadonlyArray<StatusPageSetupMonitor>,
-): Array<string> => {
-  return monitors.map((monitor: StatusPageSetupMonitor): string => {
-    return monitor.id;
-  });
-};
-
 // The monitors picked, in the order the list shows them.
 export const getPickedMonitors: (data: {
   monitors: ReadonlyArray<StatusPageSetupMonitor>;
@@ -319,6 +532,96 @@ export const getPickedMonitors: (data: {
   return data.monitors.filter((monitor: StatusPageSetupMonitor): boolean => {
     return data.picked.includes(monitor.id);
   });
+};
+
+// The monitor groups picked, in the order the list shows them (#7147).
+export const getPickedMonitorGroups: (data: {
+  monitorGroups: ReadonlyArray<StatusPageSetupMonitorGroup>;
+  picked: ReadonlyArray<string>;
+}) => Array<StatusPageSetupMonitorGroup> = (data: {
+  monitorGroups: ReadonlyArray<StatusPageSetupMonitorGroup>;
+  picked: ReadonlyArray<string>;
+}): Array<StatusPageSetupMonitorGroup> => {
+  return data.monitorGroups.filter(
+    (group: StatusPageSetupMonitorGroup): boolean => {
+      return data.picked.includes(group.id);
+    },
+  );
+};
+
+/*
+ * THE PROJECT'S STATUS PAGES THIS PERSON MAY CHANGE (#7517), which step 1
+ * offers before it makes a new one. Read newest first, archived ones left
+ * out (an archived page is offline).
+ */
+export interface StatusPageSetupPage {
+  id: string;
+  name: string;
+  /*
+   * Its Page Title, if it has one: the name its visitors read
+   * (StatusPagePublicName), which the preview of step 2 shows (#7467).
+   */
+  pageTitle?: string | undefined;
+  // The labels it carries, by id: a grant limited to labels reaches it by them.
+  labelIds?: Array<string> | undefined;
+}
+
+/*
+ * Which pages a person's grants to change a status page reach, as the
+ * server weighs a grant by the record it acts on: a grant with no labels
+ * reaches every page; one limited to labels, the pages carrying one of
+ * them; one limited to owned records, the pages the person or one of their
+ * teams owns; and a block with labels takes away the pages carrying one of
+ * those. Who reads a page but may not change it is never offered it: the
+ * monitors would not be added.
+ */
+export interface StatusPageEditReach {
+  isProjectWide: boolean;
+  labelIds: Array<string>;
+  reachesOwned: boolean;
+  blockedLabelIds: Array<string>;
+}
+
+// Someone who may change no status page.
+export const NO_STATUS_PAGE_EDIT_REACH: StatusPageEditReach = {
+  isProjectWide: false,
+  labelIds: [],
+  reachesOwned: false,
+  blockedLabelIds: [],
+};
+
+export const mayEditStatusPage: (data: {
+  reach: StatusPageEditReach;
+  labelIds: ReadonlyArray<string>;
+  // The person, or one of their teams, owns the page.
+  isOwned: boolean;
+}) => boolean = (data: {
+  reach: StatusPageEditReach;
+  labelIds: ReadonlyArray<string>;
+  isOwned: boolean;
+}): boolean => {
+  // Ids compared as the server compares them: in any case.
+  const carries: (labelIds: ReadonlyArray<string>) => boolean = (
+    labelIds: ReadonlyArray<string>,
+  ): boolean => {
+    const wanted: Array<string> = labelIds.map((labelId: string): string => {
+      return labelId.toLowerCase();
+    });
+
+    return data.labelIds.some((labelId: string): boolean => {
+      return wanted.includes(labelId.toLowerCase());
+    });
+  };
+
+  if (carries(data.reach.blockedLabelIds)) {
+    return false;
+  }
+
+  if (data.reach.isProjectWide || carries(data.reach.labelIds)) {
+    return true;
+  }
+
+  return data.reach.reachesOwned && data.isOwned;
 };
 
 /*
@@ -381,16 +684,35 @@ export const STATUS_PAGE_NAME_SENTENCE: SentenceOptions = {
   setsValuesApart: true,
 };
 
-// Step 1's line once it is done: '"Acme Status" shows 3 monitors.'
+/*
+ * Step 1's line once it is done: '"Acme Status" shows 3 monitors.' - or,
+ * once the page shows a monitor group (#7147), its rows are not all
+ * monitors, and the line says so: '"Acme Status" shows 13 monitors and
+ * monitor groups.'
+ */
 export const getPickDoneLine: (data: {
   translator: Translator;
   name: string;
   monitorCount: number;
+  hasMonitorGroups?: boolean | undefined;
 }) => string = (data: {
   translator: Translator;
   name: string;
   monitorCount: number;
+  hasMonitorGroups?: boolean | undefined;
 }): string => {
+  if (data.hasMonitorGroups) {
+    return data.translator.translatePlural(
+      {
+        one: '"{{name}}" shows {{count}} monitor group.',
+        other: '"{{name}}" shows {{count}} monitors and monitor groups.',
+      },
+      data.monitorCount,
+      { name: data.name },
+      STATUS_PAGE_NAME_SENTENCE,
+    );
+  }
+
   return data.translator.translatePlural(
     {
       one: '"{{name}}" shows {{count}} monitor.',
@@ -399,6 +721,36 @@ export const getPickDoneLine: (data: {
     data.monitorCount,
     { name: data.name },
     STATUS_PAGE_NAME_SENTENCE,
+  );
+};
+
+/*
+ * The sentence step 1 opens with when the project has pages this person
+ * may change: the page by its name, set apart in the sentence; several, by
+ * their count.
+ */
+export const getExistingPagesLine: (data: {
+  translator: Translator;
+  pages: ReadonlyArray<StatusPageSetupPage>;
+}) => string = (data: {
+  translator: Translator;
+  pages: ReadonlyArray<StatusPageSetupPage>;
+}): string => {
+  if (data.pages.length === 1) {
+    return data.translator.translateTemplate(
+      STATUS_PAGE_SETUP_COPY.existingPageOne,
+      { name: data.pages[0]!.name },
+      STATUS_PAGE_NAME_SENTENCE,
+    );
+  }
+
+  return data.translator.translatePlural(
+    {
+      one: "This project already has {{count}} status page. The monitors you pick are added to the one you choose.",
+      other:
+        "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.",
+    },
+    data.pages.length,
   );
 };
 

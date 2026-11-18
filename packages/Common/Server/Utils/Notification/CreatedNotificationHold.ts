@@ -69,6 +69,13 @@ import logger from "../Logger";
  * second call, a workflow's next step, the MCP server's - are in by then,
  * and told too. That is up to one more run of the job; nobody is paged any
  * later.
+ *
+ * WHO IS STILL ADDING OWNERS IS ASKED BY AN ALERT'S ON-CALL RULES TOO
+ * (#9407). A rule with an Alert Owner condition ("Alert Owner is any of
+ * Payments") is matched on the alert's owners, and its chain cannot tell
+ * whether the create and its caller have added theirs yet: they wait for
+ * them a moment (isAddingOwners, whenOwnersAreIn,
+ * AlertOnCallRulesOnOwnerChange.waitForOwnersOfCreate).
  */
 
 export enum OwnersAddedBy {
@@ -88,6 +95,8 @@ interface HeldCreate {
   // Marks the record not notified, once it exists (chainAddsOwners).
   release: (() => Promise<void>) | null;
   isReleased: boolean;
+  // Told each time somebody's owners are in (whenOwnersAreIn).
+  waiting: Set<() => void>;
 }
 
 // A create: the CreateBy its caller hands the service, and every hook is handed.
@@ -163,6 +172,7 @@ export default class CreatedNotificationHold {
         addingOwners: new Set<OwnersAddedBy>(),
         release: null,
         isReleased: false,
+        waiting: new Set<() => void>(),
       };
       CREATES.set(create, record);
     }
@@ -223,6 +233,11 @@ export default class CreatedNotificationHold {
 
     record.addingOwners.delete(by);
 
+    // Whoever waits for them hears it first: letting the hold go may take a while.
+    for (const tell of Array.from(record.waiting)) {
+      tell();
+    }
+
     if (record.isReleased || !record.release || record.addingOwners.size > 0) {
       return;
     }
@@ -237,5 +252,61 @@ export default class CreatedNotificationHold {
         `Releasing a Created notification held for its owners failed: ${error}. The owners are told once the hold has lasted ${this.HELD_FOR_AT_MOST_MINUTES} minutes.`,
       );
     }
+  }
+
+  /*
+   * Whether any of `by` said it adds owners to what the create makes
+   * (willAddOwners, chainAddsOwners) and has not said they are in.
+   */
+  public static isAddingOwners(
+    create: Create,
+    by: ReadonlyArray<OwnersAddedBy>,
+  ): boolean {
+    const record: HeldCreate | undefined = CREATES.get(create);
+
+    if (!record) {
+      return false;
+    }
+
+    return by.some((item: OwnersAddedBy): boolean => {
+      return record.addingOwners.has(item);
+    });
+  }
+
+  /*
+   * Settles once none of `by` is still adding owners - at once when none
+   * is - or once `atMostMs` has passed: whether their owners are in. Never
+   * throws, and waits for nobody else: an owner that could not be added is
+   * in as far as this goes, as for the hold (ownersAreIn).
+   */
+  public static whenOwnersAreIn(
+    create: Create,
+    by: ReadonlyArray<OwnersAddedBy>,
+    atMostMs: number,
+  ): Promise<boolean> {
+    const record: HeldCreate | undefined = CREATES.get(create);
+
+    if (!record || !this.isAddingOwners(create, by)) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise<boolean>((resolve: (areIn: boolean) => void) => {
+      const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        record.waiting.delete(tell);
+        resolve(false);
+      }, atMostMs);
+
+      const tell: () => void = (): void => {
+        if (this.isAddingOwners(create, by)) {
+          return;
+        }
+
+        record.waiting.delete(tell);
+        clearTimeout(timer);
+        resolve(true);
+      };
+
+      record.waiting.add(tell);
+    });
   }
 }

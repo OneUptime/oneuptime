@@ -21,6 +21,11 @@ import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import AlertOnCallRulesOnOwnerChange, {
   OWNERS_CHANGED_REASON,
 } from "../../../Server/Utils/Alert/AlertOnCallRulesOnOwnerChange";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
+import logger from "../../../Server/Utils/Logger";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../../../Server/Utils/Notification/CreatedNotificationHold";
 import OnCallObserverPaging from "../../../Server/Utils/OnCall/OnCallObserverPaging";
 import { OnCallRulesPaging } from "../../../Server/Utils/OnCall/OnCallRulePageAs";
 import RuleCriteriaOwnerIds from "../../../Server/Utils/Rules/RuleCriteriaOwnerIds";
@@ -39,7 +44,10 @@ import {
   getRuleCriteriaOwnerFieldsForModel,
   isRuleCriteriaOwnerField,
 } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
-import { matchesRuleCriteriaOwnerFilter } from "../../../Utils/Rules/RuleCriteriaOwnerMatch";
+import {
+  getOwnersMeetingRuleCriteriaOwnerFilter,
+  matchesRuleCriteriaOwnerFilter,
+} from "../../../Utils/Rules/RuleCriteriaOwnerMatch";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
   afterEach,
@@ -203,6 +211,107 @@ describe("matchesRuleCriteriaOwnerFilter", () => {
         ownerIds: [JANE],
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * WHICH OWNERS MAKE AN OWNER CONDITION HOLD (#9407): what "When this goes
+ * down" names under a rule its owners make match.
+ */
+describe("getOwnersMeetingRuleCriteriaOwnerFilter", () => {
+  test("is any of: the picks that are owners, in the order picked, each once", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE, PLATFORM_TEAM, OMAR, JANE]),
+        ownerIds: [OMAR, JANE.toUpperCase(), DATABASE_TEAM],
+      }),
+    ).toEqual([JANE, OMAR]);
+  });
+
+  test("is all of, when every pick is an owner: every pick", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE, OMAR], RuleCriteriaOperator.HasAllOf),
+        ownerIds: [OMAR, JANE],
+      }),
+    ).toEqual([JANE, OMAR]);
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE, OMAR], RuleCriteriaOperator.HasAllOf),
+        ownerIds: [OMAR],
+      }),
+    ).toEqual([]);
+  });
+
+  test("is none of names nobody: no owner makes it hold", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE], RuleCriteriaOperator.HasNoneOf),
+        ownerIds: [OMAR],
+      }),
+    ).toEqual([]);
+  });
+
+  test("a condition the owners do not meet, or another operator, names nobody", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE]),
+        ownerIds: [OMAR],
+      }),
+    ).toEqual([]);
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: {
+          field: "alertOwners",
+          operator: RuleCriteriaOperator.Contains,
+          value: JANE,
+        },
+        ownerIds: [JANE],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("the owners that make an alert on-call rule match (getOwnersMakingRuleMatch, #9407)", () => {
+  test("each owner a rule's Alert Owner conditions pick, each once; other conditions name nobody", () => {
+    expect(
+      AlertOnCallRuleEngineService.getOwnersMakingRuleMatch({
+        rule: rule({
+          name: "Platform and Jane",
+          policyId: POLICY_PLATFORM,
+          criteria: criteria([
+            severityFilter([HIGH_SEVERITY]),
+            ownerFilter([PLATFORM_TEAM, JANE]),
+            ownerFilter([JANE, OMAR]),
+          ]),
+        }),
+        ownerIds: [JANE, PLATFORM_TEAM, DATABASE_TEAM],
+      }),
+    ).toEqual([PLATFORM_TEAM, JANE]);
+  });
+
+  test("a rule whose owner condition is is none of, or that has none, names nobody", () => {
+    expect(
+      AlertOnCallRuleEngineService.getOwnersMakingRuleMatch({
+        rule: rule({
+          name: "Not Platform's",
+          policyId: POLICY_PLATFORM,
+          criteria: criteria([
+            ownerFilter([PLATFORM_TEAM], RuleCriteriaOperator.HasNoneOf),
+          ]),
+        }),
+        ownerIds: [JANE],
+      }),
+    ).toEqual([]);
+
+    const withoutCriteria: AlertOnCallRule = new AlertOnCallRule();
+
+    expect(
+      AlertOnCallRuleEngineService.getOwnersMakingRuleMatch({
+        rule: withoutCriteria,
+        ownerIds: [JANE],
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -428,6 +537,88 @@ describe("an alert on-call rule with an Alert Owner condition", () => {
       await AlertOnCallRuleEngineService.getMatchingRules(unsaved),
     ).toEqual([]);
     expect(ownerReads).not.toHaveBeenCalled();
+  });
+
+  /*
+   * When this goes down asks about an alert a monitor would open, held in
+   * memory, with the owners its create will give it (#9407).
+   */
+  describe("the owners of an alert not saved yet, handed in", () => {
+    beforeEach(() => {
+      stubRules([
+        rule({
+          name: "Owned by Platform",
+          policyId: POLICY_PLATFORM,
+          criteria: criteria([ownerFilter([PLATFORM_TEAM])]),
+        }),
+        rule({
+          name: "Not owned by Platform",
+          policyId: POLICY_DATABASE,
+          criteria: criteria([
+            ownerFilter([PLATFORM_TEAM], RuleCriteriaOperator.HasNoneOf),
+          ]),
+        }),
+      ]);
+    });
+
+    function unsaved(): Alert {
+      const item: Alert = new Alert();
+      item.projectId = PROJECT_ID;
+      return item;
+    }
+
+    test("is any of matches the owners handed in, and nothing is read", async () => {
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            unsaved(),
+            undefined,
+            { ownerIds: [JANE, PLATFORM_TEAM] },
+          ),
+        ),
+      ).toEqual(["Owned by Platform"]);
+      expect(ownerReads).not.toHaveBeenCalled();
+    });
+
+    test("is none of does not match when an owner handed in is picked", async () => {
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            unsaved(),
+            undefined,
+            { ownerIds: [PLATFORM_TEAM.toUpperCase()] },
+          ),
+        ),
+      ).toEqual(["Owned by Platform"]);
+    });
+
+    test("no owners handed in: is none of holds, is any of does not", async () => {
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            unsaved(),
+            undefined,
+            { ownerIds: [] },
+          ),
+        ),
+      ).toEqual(["Not owned by Platform"]);
+      expect(ownerReads).not.toHaveBeenCalled();
+    });
+
+    test("for a saved alert, the owners handed in are read instead of its rows", async () => {
+      owners = [];
+
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            alert(),
+            undefined,
+            { ownerIds: [PLATFORM_TEAM] },
+          ),
+        ),
+      ).toEqual(["Owned by Platform"]);
+      expect(ownerReads).not.toHaveBeenCalled();
+    });
   });
 
   describe("combined with other conditions", () => {
@@ -922,6 +1113,266 @@ describe("an owner added after the alert is created (AlertOnCallRulesOnOwnerChan
 
     expect(paging.addedPolicyIds).toEqual([POLICY_PLATFORM]);
     expect(paging.holds.get(POLICY_PLATFORM)?.isAiHold).toBeFalsy();
+  });
+
+  /*
+   * THE OWNERS ADDED OUTSIDE ITS CREATE CHAIN ARE WAITED FOR (#9407): its
+   * creator's, and those the code that made it adds once the create has
+   * returned - a monitor's criteria's, the network device's. And an owner
+   * that comes in once the rules have read the owners runs them again.
+   */
+  describe("as the alert is created", () => {
+    let runs: SpyInstance<(...args: Array<unknown>) => unknown>;
+    let warnings: SpyInstance<(...args: Array<unknown>) => unknown>;
+    let errorsLogged: SpyInstance<(...args: Array<unknown>) => unknown>;
+    let ruleReads: SpyInstance<(...args: Array<unknown>) => unknown>;
+
+    const PLATFORMS_RULE: () => AlertOnCallRule = (): AlertOnCallRule => {
+      return rule({
+        name: "Platform's alerts",
+        policyId: POLICY_PLATFORM,
+        criteria: criteria([ownerFilter([PLATFORM_TEAM])]),
+      });
+    };
+
+    // An alert's create, as a monitor makes it: its creator's word and its own.
+    function monitorsCreate(): CreateBy<Alert> {
+      const create: CreateBy<Alert> = {
+        data: new Alert(),
+        props: { isRoot: true },
+      };
+
+      CreatedNotificationHold.willAddOwners(create, OwnersAddedBy.Create);
+      CreatedNotificationHold.willAddOwners(create, OwnersAddedBy.Caller);
+
+      return create;
+    }
+
+    function waitFor(create: CreateBy<Alert>): Promise<void> {
+      return AlertOnCallRulesOnOwnerChange.waitForOwnersOfCreate({
+        createBy: create,
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+      });
+    }
+
+    // Whether a promise has settled after a few turns.
+    async function hasSettled(promise: Promise<void>): Promise<boolean> {
+      let settled: boolean = false;
+
+      promise.then(() => {
+        settled = true;
+      });
+
+      for (let i: number = 0; i < 20; i++) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      }
+
+      return settled;
+    }
+
+    // Every run of the rules after an owner change, the one finishCreating starts too.
+    async function allRunsDone(): Promise<void> {
+      await Promise.all(
+        runs.mock.results.map((result: { value: unknown }) => {
+          return result.value as Promise<void>;
+        }),
+      );
+    }
+
+    function withWaitOf(ms: number): () => void {
+      const target: { OWNERS_WAITED_FOR_AT_MOST_MS: number } =
+        AlertOnCallRulesOnOwnerChange as unknown as {
+          OWNERS_WAITED_FOR_AT_MOST_MS: number;
+        };
+      const was: number = target.OWNERS_WAITED_FOR_AT_MOST_MS;
+
+      target.OWNERS_WAITED_FOR_AT_MOST_MS = ms;
+
+      return (): void => {
+        target.OWNERS_WAITED_FOR_AT_MOST_MS = was;
+      };
+    }
+
+    beforeEach(() => {
+      runs = jest.spyOn(
+        AlertOnCallRulesOnOwnerChange,
+        "onOwnersChanged",
+      ) as unknown as SpyInstance<(...args: Array<unknown>) => unknown>;
+      warnings = jest.spyOn(logger, "warn").mockImplementation((() => {
+        // read by the tests
+      }) as never) as unknown as SpyInstance<
+        (...args: Array<unknown>) => unknown
+      >;
+      errorsLogged = jest.spyOn(logger, "error").mockImplementation((() => {
+        // read by the tests
+      }) as never) as unknown as SpyInstance<
+        (...args: Array<unknown>) => unknown
+      >;
+      stubRules([PLATFORMS_RULE()]);
+      ruleReads = jest.spyOn(
+        AlertOnCallRuleService,
+        "findBy",
+      ) as unknown as SpyInstance<(...args: Array<unknown>) => unknown>;
+    });
+
+    test("its on-call rules wait until its creator's and its caller's owners are in", async () => {
+      const create: CreateBy<Alert> = monitorsCreate();
+      AlertOnCallRulesOnOwnerChange.startCreating(ALERT_ID);
+
+      const waiting: Promise<void> = waitFor(create);
+
+      expect(await hasSettled(waiting)).toBe(false);
+
+      // The create returned: its creator is in. The monitor is still adding the criteria's owners.
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+      expect(await hasSettled(waiting)).toBe(false);
+
+      // Its owners written: they ran nothing on their own, the alert being created.
+      owners = [PLATFORM_TEAM];
+      await AlertOnCallRulesOnOwnerChange.onOwnersChanged({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+      });
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+      expect(await hasSettled(waiting)).toBe(true);
+      expect(executed).not.toHaveBeenCalled();
+
+      // The rules read the owners now, and see Platform; nothing runs again once the create is done.
+      AlertOnCallRulesOnOwnerChange.finishCreating(ALERT_ID);
+      await allRunsDone();
+
+      expect(runs).toHaveBeenCalledTimes(1);
+      expect(executed).not.toHaveBeenCalled();
+      expect(warnings).not.toHaveBeenCalled();
+    });
+
+    test("a project with no rule that asks who owns an alert waits for nobody", async () => {
+      stubRules([
+        rule({
+          name: "High alerts",
+          policyId: POLICY_PLATFORM,
+          criteria: criteria([severityFilter([HIGH_SEVERITY])]),
+        }),
+      ]);
+
+      const waiting: Promise<void> = waitFor(monitorsCreate());
+
+      expect(await hasSettled(waiting)).toBe(true);
+    });
+
+    test("nobody still adding owners waits for nothing, and reads no rule", async () => {
+      const create: CreateBy<Alert> = monitorsCreate();
+
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+      const waiting: Promise<void> = waitFor(create);
+
+      expect(await hasSettled(waiting)).toBe(true);
+      expect(ruleReads).not.toHaveBeenCalled();
+
+      // A create with nobody adding owners - a form's, with no creator to add - neither.
+      expect(
+        await hasSettled(
+          waitFor({ data: new Alert(), props: { isRoot: true } }),
+        ),
+      ).toBe(true);
+      expect(ruleReads).not.toHaveBeenCalled();
+    });
+
+    test("it waits OWNERS_WAITED_FOR_AT_MOST_MS at most, and an owner that comes in later, as it is created, runs the rules again when it is", async () => {
+      expect(AlertOnCallRulesOnOwnerChange.OWNERS_WAITED_FOR_AT_MOST_MS).toBe(
+        10 * 1000,
+      );
+
+      const restore: () => void = withWaitOf(30);
+
+      try {
+        const create: CreateBy<Alert> = monitorsCreate();
+        AlertOnCallRulesOnOwnerChange.startCreating(ALERT_ID);
+
+        // Nobody says their owners are in: the wait runs out.
+        await waitFor(create);
+
+        expect(warnings).toHaveBeenCalledTimes(1);
+        expect(String(warnings.mock.calls[0]![0])).toContain(
+          "were not all in after 30 ms",
+        );
+
+        // The monitor's owners come in once the rules have read the owners, before the create is done.
+        owners = [PLATFORM_TEAM];
+        await AlertOnCallRulesOnOwnerChange.onOwnersChanged({
+          alertId: ALERT_ID,
+          projectId: PROJECT_ID,
+        });
+        await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+        expect(executed).not.toHaveBeenCalled();
+
+        AlertOnCallRulesOnOwnerChange.finishCreating(ALERT_ID);
+        await allRunsDone();
+
+        // Run again once it is done: Platform's rule matches now, and pages.
+        expect(runs).toHaveBeenCalledTimes(2);
+        expect(attached).toEqual([POLICY_PLATFORM]);
+        expect(executed).toHaveBeenCalledTimes(1);
+        expect(String(executed.mock.calls[0]![0])).toBe(POLICY_PLATFORM);
+      } finally {
+        restore();
+      }
+    });
+
+    test("an owner its chain added before the rules read the owners runs nothing again", async () => {
+      AlertOnCallRulesOnOwnerChange.startCreating(ALERT_ID);
+
+      // Added by the owner rules, before the on-call rules.
+      owners = [PLATFORM_TEAM];
+      await AlertOnCallRulesOnOwnerChange.onOwnersChanged({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+      });
+
+      await waitFor({ data: new Alert(), props: { isRoot: true } });
+      AlertOnCallRulesOnOwnerChange.finishCreating(ALERT_ID);
+      await allRunsDone();
+
+      expect(runs).toHaveBeenCalledTimes(1);
+      expect(executed).not.toHaveBeenCalled();
+    });
+
+    test("an owner change once the create is done runs the rules as ever, once", async () => {
+      AlertOnCallRulesOnOwnerChange.startCreating(ALERT_ID);
+      await waitFor({ data: new Alert(), props: { isRoot: true } });
+      AlertOnCallRulesOnOwnerChange.finishCreating(ALERT_ID);
+
+      owners = [PLATFORM_TEAM];
+      await AlertOnCallRulesOnOwnerChange.onOwnersChanged({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+      });
+      await allRunsDone();
+
+      expect(runs).toHaveBeenCalledTimes(1);
+      expect(executed).toHaveBeenCalledTimes(1);
+    });
+
+    test("rules that cannot be read wait for nobody, and never fail the create", async () => {
+      jest
+        .spyOn(AlertOnCallRuleEngineService, "hasRulesWithOwnerCondition")
+        .mockRejectedValue(new Error("the database is away") as never);
+
+      const waiting: Promise<void> = waitFor(monitorsCreate());
+
+      expect(await hasSettled(waiting)).toBe(true);
+      await expect(waiting).resolves.toBeUndefined();
+      expect(String(errorsLogged.mock.calls[0]![0])).toContain(
+        "Could not wait for alert",
+      );
+    });
   });
 });
 

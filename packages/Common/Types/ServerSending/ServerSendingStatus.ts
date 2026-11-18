@@ -43,6 +43,10 @@
  * Dashboard, the Accounts pages and their tests all read it.
  */
 
+import ServerSetUpProblem, {
+  ServerSetUpProblemWords,
+} from "./ServerSetUpProblem";
+
 export enum ServerSendingChannel {
   Email = "email",
   SMS = "sms",
@@ -161,6 +165,12 @@ export interface ServerChannelStatus {
   lastFailure: string | null;
   // What the settings are missing, while the channel is not set up.
   setUpProblem: string | null;
+  /*
+   * The same, in words every language has (ServerSetUpProblem, #9437):
+   * left out for what is drawn as it came - what is wrong with the
+   * environment variables - and by an older server.
+   */
+  setUpProblemWords?: ServerSetUpProblemWords | undefined;
   /*
    * Recipients refused lately while other sends went out (#9217): never a
    * reason for the banner. Left out when there are none.
@@ -475,6 +485,7 @@ export default class ServerSendingStatusUtil {
   public static getStatus(data: {
     channel: ServerSendingChannel;
     setUpProblem: string | null;
+    setUpProblemWords?: ServerSetUpProblemWords | null | undefined;
     entry: ServerSendingHealthEntry;
   }): ServerChannelStatus {
     const isSetUp: boolean = !data.setUpProblem;
@@ -491,6 +502,10 @@ export default class ServerSendingStatusUtil {
       lastFailure: data.entry.lastFailure,
       setUpProblem: data.setUpProblem,
     };
+
+    if (!isSetUp && data.setUpProblemWords) {
+      status.setUpProblemWords = data.setUpProblemWords;
+    }
 
     if (isSetUp && data.entry.recipientRefusals?.length) {
       status.recipientRefusals = data.entry.recipientRefusals.map(
@@ -524,6 +539,16 @@ export default class ServerSendingStatusUtil {
     }
 
     return true;
+  }
+
+  /*
+   * Whether a send would go out now, as the people of a project are told it
+   * (#7151, #6880): not while the channel is not set up, nor while it fails.
+   * Said to signed-in members only, as a yes or no (ProjectCanSend): never
+   * why, which is the server's admins'.
+   */
+  public static canSendNow(status: { state: ServerSendingState }): boolean {
+    return !ServerSendingStatusUtil.needsAttention(status);
   }
 
   /*
@@ -819,6 +844,16 @@ export default class ServerSendingStatusUtil {
         lastFailure: readText(row["lastFailure"]),
         setUpProblem: readText(row["setUpProblem"]),
       };
+
+      // Words only beside the sentence they say, and only ones this page knows.
+      const setUpProblemWords: ServerSetUpProblemWords | null =
+        status.setUpProblem
+          ? ServerSetUpProblem.parse(row["setUpProblemWords"])
+          : null;
+
+      if (setUpProblemWords) {
+        status.setUpProblemWords = setUpProblemWords;
+      }
 
       const refusals: Array<ServerSendingRecipientRefusal> =
         readRecipientRefusals(row["recipientRefusals"]);

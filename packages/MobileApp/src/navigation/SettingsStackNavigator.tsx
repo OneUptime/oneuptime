@@ -6,6 +6,8 @@ import ProjectsScreen from "../screens/settings/ProjectsScreen";
 import SSOProviderSelectScreen from "../screens/settings/SSOProviderSelectScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
 import CriticalAlertSoundScreen from "../screens/settings/CriticalAlertSoundScreen";
+import GetReadyScreen from "../screens/GetReadyScreen";
+import { GET_READY_TEXT } from "../onboarding/getReady";
 import type { SettingsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -42,6 +44,11 @@ export default function SettingsStackNavigator(): React.JSX.Element {
         name="CriticalAlertSound"
         component={CriticalAlertSoundScreen}
         options={{ title: "Alarm Sound" }}
+      />
+      <Stack.Screen
+        name="GetReady"
+        component={GetReadyScreen}
+        options={{ title: GET_READY_TEXT.screenTitle }}
       />
     </Stack.Navigator>
   );

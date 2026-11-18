@@ -1,4 +1,6 @@
 import AppLink from "../AppLink/AppLink";
+import { HIDDEN_PRODUCTS_TITLE } from "../NavBar/NavBar";
+import HiddenProductsMenuNote from "../NavBar/HiddenProductsMenuNote";
 import { PRODUCT_ABOUT_BUTTON_CLASS_NAME } from "../ProductOnboarding/ProductAboutButton";
 import { HOW_IT_WORKS_TITLE } from "./HowOneUptimeWorks";
 import {
@@ -7,12 +9,15 @@ import {
 } from "./HowOneUptimeWorksDialog";
 import { useDashboardNavigationItems } from "../../Utils/NavigationItems";
 import {
+  getItemPlacement,
   getListedItems,
   withProductMarks,
 } from "../../Utils/ProjectProducts/ProductsMenu";
 import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
 import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ProductPlacement } from "Common/Types/Product/ProjectProducts";
+import { ProjectProductsAnswer } from "Common/Types/Product/ProjectProductsAnswer";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
@@ -49,9 +54,13 @@ import { useTranslation } from "react-i18next";
  * never puts forty products in front of anyone at once. Project settings
  * (Users, Teams, Settings) are left out: they are not products to explore.
  *
- * So are the products the project hides (Project Settings > Products,
- * #6814): a category whose products are all hidden has no tab. A product
- * the project's plan cannot use says which plan can, before it is opened.
+ * The products the project hides (Project Settings > Products, #6814) are
+ * not left out of "everything": they move to the last tab, More products,
+ * as they move under More products at the foot of the products menu, with
+ * the menu's note that they still work (#7468). A category whose products
+ * are all hidden has no tab of its own. A product the project's plan cannot
+ * use says which plan can, before it is opened. A product switched off on
+ * the server is nowhere.
  */
 
 export interface ComponentProps {
@@ -61,6 +70,9 @@ export interface ComponentProps {
 // The button beside the card's title that opens How OneUptime works.
 export const HOME_HOW_ONEUPTIME_WORKS_TEST_ID: string =
   "home-how-oneuptime-works";
+
+// The note on the More products tab: they are hidden, and still work.
+export const HOME_EXPLORE_HIDDEN_NOTE_TEST_ID: string = "home-explore-hidden";
 
 // The products menu's categories, without the settings one.
 export const getExploreCategories: (data: {
@@ -77,15 +89,36 @@ export const getExploreCategories: (data: {
   );
 };
 
-type SlugifyFunction = (value: string) => string;
+/*
+ * The products the project hides, in the catalog's order, each with its
+ * marks: what the More products tab lists (#7468). Never one switched off
+ * on the server.
+ */
+export const getExploreHiddenItems: (data: {
+  items: ReadonlyArray<MoreMenuItem>;
+  answer: ProjectProductsAnswer;
+}) => Array<MoreMenuItem> = (data: {
+  items: ReadonlyArray<MoreMenuItem>;
+  answer: ProjectProductsAnswer;
+}): Array<MoreMenuItem> => {
+  return data.items
+    .filter((item: MoreMenuItem): boolean => {
+      return (
+        getItemPlacement({ item: item, answer: data.answer }) ===
+        ProductPlacement.Hidden
+      );
+    })
+    .map((item: MoreMenuItem): MoreMenuItem => {
+      return withProductMarks(item, data.answer);
+    });
+};
 
-const slugify: SlugifyFunction = (value: string): string => {
-  return (
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "category"
-  );
+/*
+ * A tab's id: its place, so tabs named in a script with no Latin letters
+ * (Persian, Japanese) never share one.
+ */
+const getTabId: (index: number) => string = (index: number): string => {
+  return `home-explore-tab-${index}`;
 };
 
 const ExploreProducts: FunctionComponent<ComponentProps> = (
@@ -96,7 +129,7 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
   const { moreMenuItems } = useDashboardNavigationItems();
   const products: ProjectProductsState = useProjectProducts(props.projectId);
 
-  const categories: Array<MenuCategory> = getExploreCategories({
+  const listedCategories: Array<MenuCategory> = getExploreCategories({
     items: getListedItems({
       items: moreMenuItems,
       answer: products.answer,
@@ -105,6 +138,20 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
     }),
     settingsCategory: t("navbar.categories.settings"),
   });
+
+  const hiddenItems: Array<MoreMenuItem> = getExploreHiddenItems({
+    items: moreMenuItems,
+    answer: products.answer,
+  });
+
+  // The hidden products last, under the products menu's name for them.
+  const hiddenTitle: string =
+    translator.translateText(HIDDEN_PRODUCTS_TITLE) || HIDDEN_PRODUCTS_TITLE;
+
+  const categories: Array<MenuCategory> =
+    hiddenItems.length > 0
+      ? [...listedCategories, { title: hiddenTitle, items: hiddenItems }]
+      : listedCategories;
 
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const tabRefs: React.MutableRefObject<Array<HTMLButtonElement | null>> =
@@ -117,6 +164,8 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
   // The language changed and the list with it: stay in range.
   const activeIndex: number = Math.min(selectedIndex, categories.length - 1);
   const activeCategory: MenuCategory = categories[activeIndex]!;
+  const isHiddenTab: boolean =
+    hiddenItems.length > 0 && activeIndex === categories.length - 1;
 
   const selectTab: (index: number) => void = (index: number): void => {
     const next: number = (index + categories.length) % categories.length;
@@ -198,7 +247,7 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
                   }}
                   type="button"
                   role="tab"
-                  id={`home-explore-tab-${slugify(category.title)}`}
+                  id={getTabId(index)}
                   aria-selected={isSelected}
                   aria-controls={panelId}
                   tabIndex={isSelected ? 0 : -1}
@@ -237,72 +286,94 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
         <div
           id={panelId}
           role="tabpanel"
-          aria-labelledby={`home-explore-tab-${slugify(activeCategory.title)}`}
+          aria-labelledby={getTabId(activeIndex)}
           data-testid="home-explore-panel"
           data-category={activeCategory.title}
-          className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+          className="mt-5"
         >
-          {activeCategory.items.map((item: MoreMenuItem): ReactElement => {
-            const colors: IconColorClasses =
-              ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
-              ICON_COLOR_CLASSES["indigo"]!;
-
-            return (
-              <AppLink
-                key={item.route.toString()}
-                to={item.route}
-                onNavigateComplete={() => {
-                  UiAnalytics.capture("dashboard/home/explore-product", {
-                    projectId: props.projectId,
-                    product: item.title,
-                  });
+          {isHiddenTab ? (
+            /*
+             * Why these are here, as the products menu says it under More
+             * products: hidden, and still working - with the way to show
+             * them again, for whoever may choose the project's products.
+             */
+            <div
+              data-testid={HOME_EXPLORE_HIDDEN_NOTE_TEST_ID}
+              className="mb-4 text-sm text-gray-600"
+            >
+              <HiddenProductsMenuNote
+                canChooseProducts={products.answer.canChooseProducts}
+                onNavigate={() => {
+                  // Nothing to close: the link leaves Home.
                 }}
-                className="group flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 transition hover:border-indigo-300 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                <span
-                  data-testid="home-explore-product"
-                  className="flex min-w-0 flex-1 items-start gap-3"
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {activeCategory.items.map((item: MoreMenuItem): ReactElement => {
+              const colors: IconColorClasses =
+                ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
+                ICON_COLOR_CLASSES["indigo"]!;
+
+              return (
+                <AppLink
+                  key={item.route.toString()}
+                  to={item.route}
+                  onNavigateComplete={() => {
+                    UiAnalytics.capture("dashboard/home/explore-product", {
+                      projectId: props.projectId,
+                      product: item.title,
+                    });
+                  }}
+                  className="group flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 transition hover:border-indigo-300 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   <span
-                    className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ring-1 ring-inset ${colors.bg} ${colors.ring}`}
+                    data-testid="home-explore-product"
+                    className="flex min-w-0 flex-1 items-start gap-3"
                   >
-                    <Icon
-                      icon={item.icon}
-                      className={`h-5 w-5 ${colors.text}`}
-                    />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                      <span className="truncate">{item.title}</span>
-                      {item.neededPlan ? (
-                        <span
-                          data-testid="home-explore-plan"
-                          className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-xs font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
-                        >
-                          {translator.translateTemplate("{{planName}} Plan", {
-                            planName: item.neededPlan,
-                          })}
+                    <span
+                      className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ring-1 ring-inset ${colors.bg} ${colors.ring}`}
+                    >
+                      <Icon
+                        icon={item.icon}
+                        className={`h-5 w-5 ${colors.text}`}
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                        <span className="truncate">{item.title}</span>
+                        {item.neededPlan ? (
+                          <span
+                            data-testid="home-explore-plan"
+                            className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-xs font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
+                          >
+                            {translator.translateTemplate("{{planName}} Plan", {
+                              planName: item.neededPlan,
+                            })}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                      </span>
+                      {item.description ? (
+                        <span className="mt-0.5 line-clamp-2 block text-xs leading-5 text-gray-500">
+                          {item.description}
                         </span>
                       ) : (
                         <></>
                       )}
                     </span>
-                    {item.description ? (
-                      <span className="mt-0.5 line-clamp-2 block text-xs leading-5 text-gray-500">
-                        {item.description}
-                      </span>
-                    ) : (
-                      <></>
-                    )}
+                    <Icon
+                      icon={IconProp.ChevronRight}
+                      className="mt-0.5 h-4 w-4 flex-none text-gray-300"
+                    />
                   </span>
-                  <Icon
-                    icon={IconProp.ChevronRight}
-                    className="mt-0.5 h-4 w-4 flex-none text-gray-300"
-                  />
-                </span>
-              </AppLink>
-            );
-          })}
+                </AppLink>
+              );
+            })}
+          </div>
         </div>
       </Card>
     </div>

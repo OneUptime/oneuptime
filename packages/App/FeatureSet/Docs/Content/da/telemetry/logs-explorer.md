@@ -36,7 +36,7 @@ Udforskeren har fem faner:
 
 ## Før du begynder
 
-- **Protokoller, der ankommer.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fanen **Opsætningsvejledning** viser konfigurationen til dit sprog eller din collector.
+- **Protokoller, der ankommer.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fanen **Opsætningsvejledning** viser konfigurationen til dit sprog eller din collector. Indtil de første data kommer, tilbyder denne side **Guidet opsætning**, som fører dig fra dine første protokoller, metrikker og spor til advarsler om dem, ved siden af **Send dine første protokoller**, opsætningsguiden alene. For at tjekke endpointet og din nøgle, før du sætter en app op, skal du åbne **Send en testprotokol** i vejledningens første trin: det sender én protokol fra tjenesten `oneuptime-test`, som du kan slette bagefter.
 - **En rolle, der må læse telemetri.** Projektejer, Projektadministrator, Projektmedlem, Seer, Telemetriadministrator, Telemetrimedlem eller Telemetriseer, eller en brugerdefineret rolle med tilladelsen Read Logs. Dens omfang afgør, hvis protokoller du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Find en protokollinje

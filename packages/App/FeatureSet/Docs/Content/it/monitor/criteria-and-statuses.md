@@ -97,7 +97,7 @@ Per vedere come è stato giudicato un controllo, aprite la **Panoramica** del mo
 
 **Quando va giù** dice in poche frasi cosa succede quando il monitor si guasta e chi viene avvisato: lo stato che imposta, l'incidente o l'avviso che apre, chi riceve un'email e chi avvisa, per nome. Ogni cosa che impedirebbe di avvisare qualcuno è su una riga a sé, con un link alla pagina che la risolve. Si trova nella **Panoramica** di un monitor, sotto i suoi criteri nella pagina **Criteri**, nel passaggio dei criteri di **Crea monitor** per il monitor che stai configurando, e nella configurazione guidata dei siti web.
 
-Ricostruisce la catena come fa un vero incidente o avviso: con le regole del proprietario, le regole di privacy, le regole etichette e le regole di reperibilità del tuo progetto, la regola di incidente degli avvisi che trasforma un avviso in un incidente, e chi raggiunge in questo momento la prima regola di escalation di ogni policy di reperibilità. Un segnaposto del titolo che solo un controllo compila viene mostrato così com'è scritto. **Mostra la catena** la apre riga per riga:
+Ricostruisce la catena come fa un vero incidente o avviso: con le regole del proprietario, le regole di privacy, le regole etichette e le regole di reperibilità del tuo progetto, la regola di incidente degli avvisi che trasforma un avviso in un incidente, e chi raggiunge in questo momento la prima regola di escalation di ogni policy di reperibilità. Una regola di reperibilità che chiede chi è il proprietario di un avviso (**Proprietario dell'avviso**) viene confrontata con i proprietari che l'avviso avrà: le persone e i team indicati dai suoi criteri, i proprietari del dispositivo di rete che il monitor controlla e quelli che aggiungono le regole del proprietario. Un segnaposto del titolo che solo un controllo compila viene mostrato così com'è scritto. **Mostra la catena** la apre riga per riga:
 
 | Riga | Cosa dice |
 | --- | --- |
@@ -107,7 +107,7 @@ Ricostruisce la catena come fa un vero incidente o avviso: con le regole del pro
 | **Regole del proprietario** | Le regole del proprietario che aggiungono i suoi proprietari. |
 | **Privato** | Perché è privato: una regola di privacy o i criteri. Un incidente privato non compare in nessuna pagina di stato e non avvisa nessun iscritto, e solo i suoi proprietari, i Proprietari del progetto e gli Amministratori del progetto possono vederlo. |
 | **Regole etichette** | Le regole etichette le cui etichette cambiano quali regole di reperibilità si attivano. |
-| **Regole di reperibilità** | Le regole di reperibilità che vi corrispondono. |
+| **Regole di reperibilità** | Le regole di reperibilità che vi corrispondono. Per una regola che confronta chi è il proprietario di un avviso, indica quale proprietario la fa corrispondere. |
 | **Policy di reperibilità** | Ogni policy che quelle regole attivano: chi raggiunge in questo momento la sua prima regola di escalation e con quale mezzo, e chi non raggiunge, e perché. |
 | **Pagine di stato** | Le pagine di stato che lo mostrano, ciascuna con il gruppo di monitor attraverso cui mostra il monitor. |
 | **Regola di incidente** | Per un avviso: la regola di incidente degli avvisi che ne dichiara un incidente, subito o quando l'avviso è rimasto aperto, e quell'incidente, descritto come ogni incidente. |
@@ -128,7 +128,7 @@ Ricostruisce la catena come fa un vero incidente o avviso: con le regole del pro
 
 Un avviso che una regola di incidente degli avvisi trasforma in un incidente che avvisa qualcuno non è un'interruzione: vengono controllate le policy dell'incidente.
 
-I proprietari che non ricevono email sono elencati dopo le interruzioni, ciascuno con il motivo e il punto in cui è indicato: qualcuno che non è membro del progetto, un team senza nessun membro del progetto (**Apri team**), o un team di un altro progetto, indicato nei criteri (**Apri criteri**), sul dispositivo di rete che il monitor controlla (**Apri dispositivo di rete**) o da una regola del proprietario (**Apri regole del proprietario**). L'email parte comunque, ai proprietari che raggiunge o ai Proprietari del progetto, quindi non sono interruzioni.
+I proprietari che non ricevono email sono elencati dopo le interruzioni, ciascuno con il motivo e il punto in cui è indicato: qualcuno che non è membro del progetto, un team senza nessun membro del progetto (**Apri team**), o un team di un altro progetto, indicato nei criteri (**Apri criteri**), sul dispositivo di rete che il monitor controlla (**Apri dispositivo di rete**) o da una regola del proprietario (**Apri regole del proprietario**). L'email parte comunque, ai proprietari che raggiunge o ai Proprietari del progetto, quindi non sono interruzioni. Anche lo stato della configurazione li elenca, come punti da correggere.
 
 ### Ricontrollare, e cosa puoi vedere
 

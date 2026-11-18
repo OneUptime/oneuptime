@@ -6,6 +6,7 @@ Readiness answers a question before an incident does: if something fired right n
 - [How a status is worked out](#how-a-status-is-worked-out): Ready, Needs setup or Unreachable, and why.
 - [The Readiness page](#the-readiness-page): Every responder in the project, in one list.
 - [Remind people to finish their setup](#remind-people-to-finish-their-setup): An email that names what is missing.
+- [Apply the default ladder](#apply-the-default-ladder): The project's default ladder, for the people you pick.
 - [User On-Call Time](#user-on-call-time): How long each person was on call.
 :::
 
@@ -32,6 +33,8 @@ A responder is anyone an on-call policy can page: a person named on an escalatio
 
 A gap is a severity with no rule, on the incidents, incident episodes, alerts or alert episodes tab. A rule that turns a severity off on purpose is not a gap. A page that finds a gap still reaches the person on their verified methods, unless the project has turned that fallback off: see [When no rule matches](/docs/notifications/index#when-no-rule-matches).
 
+When the project asks everyone on call for a phone method, under **Phone for People on Call**, a responder with no verified SMS, phone call or WhatsApp number is also marked **No phone method**, whatever their status, and Setup Health names them. Nobody is locked out: a page still reaches them on the methods they have.
+
 ## The Readiness page
 
 Open **On-Call → Readiness**. The **On-call readiness** card lists everyone any on-call policy in the project can reach, the people who need something first. Anyone in the project can open it.
@@ -53,12 +56,24 @@ Above the list, the tiles count **Responders**, **Ready**, **Needs setup** and *
 Only the person can add and verify their own notification methods and rules, so the fix is to ask them.
 
 :::steps
-1. On the Readiness page, tick the responders to remind. Ready responders cannot be ticked: there is nothing to remind them about.
+1. On the Readiness page, tick the responders to remind. A ready responder is reminded only when they have **No phone method**: there is nothing else to remind them about.
 2. Click **Send setup reminder**. The confirmation names everyone it is about to email.
 3. Confirm. Each person gets one email naming what is missing from their own setup, with a link to the page that fixes it.
 :::
 
 A banner then says how many reminders were sent, skipped or failed, and why for each one that was not sent. Nobody is reminded more than once in 24 hours, and one go reminds at most 250 people. Sending reminders takes **Project Owner**, **Project Admin** or **On-Call Admin**, or **Edit On-Call Policy** in a custom role.
+
+## Apply the default ladder
+
+When the project has a default ladder (see [The default ladder](/docs/notifications/on-call-rules#the-default-ladder)), you can give it to people who already have rules of their own.
+
+:::steps
+1. On the Readiness page, tick the responders.
+2. Click **Apply Default Ladder**. The confirmation shows the ladder and names everyone it changes.
+3. Confirm. Each person's rules for every severity are replaced by the ladder, on the methods they have verified.
+:::
+
+A way someone has not verified is left out, and they keep their own steps in its place; someone who has verified none of the ladder's ways is left as they were. A banner then says, for each person, what was applied or why not, by channel: nobody's numbers or addresses are shown. Each person whose rules changed gets one email, and each change is in the project's audit log. Applying it takes **Project Owner** or **Project Admin**, or **Edit User Notification Rules** in a custom role.
 
 ## Readiness on other pages
 
@@ -66,6 +81,7 @@ A banner then says how many reminders were sent, skipped or failed, and why for 
 - On a policy's **Escalation Rules**, a level whose responders cannot all be paged says so on its card. See [The escalation summary](/docs/on-call/escalation-rules#the-escalation-summary).
 - Under **Users**, open a member, then **Readiness** in the **On-Call** section: their status, their methods and their coverage grid.
 - For your own setup, **User Settings → Setup Checklist** walks you through it. See [The setup checklist](/docs/notifications/index#the-setup-checklist).
+- Anyone on a policy whose own setup is not finished sees **Finish setting up your notifications** in the bell at the top of every page, which opens their setup checklist.
 
 ## The weekly readiness email
 

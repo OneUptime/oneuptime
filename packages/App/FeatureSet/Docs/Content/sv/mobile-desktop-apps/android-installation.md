@@ -68,6 +68,8 @@ Appen registrerar sedan telefonen i vart och ett av dina projekt. Varje projekt 
 
 Appen visar ett projekt i taget: tryck på projektets namn högst upp på en skärm för att byta. Ett projekt som kräver enkel inloggning står som **SSO Required** under **Settings → Manage Projects** tills du trycker på **Authenticate with SSO** där.
 
+Vid en ny installation öppnar appen sedan **Get Ready for On-Call** en gång: tre steg så att ett larm når telefonen, även på natten med Stör ej på. Tillåt aviseringar, tryck på **Turn On Critical Alerts**, sedan på **Send Test Page**, och bekräfta testlarmet från dess avisering. **Not Now** lägger undan skärmen, och **Settings → Get Ready for On-Call** öppnar den igen när som helst. Måste åtkomst till Stör ej tillåtas i Android-inställningarna slås kritiska larm på så fort du kommer tillbaka till appen.
+
 ## Kontrollera att larmen når telefonen
 
 :::steps

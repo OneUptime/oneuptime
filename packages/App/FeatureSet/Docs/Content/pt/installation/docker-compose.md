@@ -413,6 +413,8 @@ npm run backup
 
 Ele pede sua senha de sudo e grava `Backups/db-<day of the month>.backup`, de modo que os backups diários substituem os de um mês antes. Execute-o pelo menos uma vez por dia.
 
+Cada execução diz ao OneUptime como foi, então Configuração do servidor, no Admin Dashboard, mostra quando o último backup terminou e avisa quando um backup falhou ou o último tem mais de uma semana. Uma execução cujo dump falhou diz isso e termina com um erro, para que um job do cron perceba.
+
 ### Copie os backups para fora do servidor
 
 Um backup no mesmo disco que o banco de dados não sobrevive à perda desse disco.
@@ -518,7 +520,7 @@ Quando algo não funcionar, execute o doctor na pasta `oneuptime`:
 npm run doctor
 ```
 
-Ele lista o que está errado, o mais grave primeiro, cada linha com a correção exata, e termina com **Everything looks right.** ou com o número de coisas a corrigir. Ele verifica cada contêiner e mostra as últimas linhas do log dos que não estão rodando, o `config.env`, se o `HOST` chega a este servidor, o certificado quando `PROVISION_SSL` está ativado e o espaço livre em disco. Também pergunta ao OneUptime o que ele vê de si mesmo: PostgreSQL, ClickHouse e Valkey, as migrações, as filas, a versão e as etapas de configuração do servidor, como e-mail e sondas. O `npm start` termina com as mesmas verificações e diz apenas o que precisa de atenção.
+Ele lista o que está errado, o mais grave primeiro, cada linha com a correção exata, e termina com **Everything looks right.** ou com o número de coisas a corrigir. Ele verifica cada contêiner e mostra as últimas linhas do log dos que não estão rodando, o `config.env`, se o `HOST` chega a este servidor e se um proxy à frente dele repassa o nome do host e o `X-Forwarded-Proto`, o certificado quando `PROVISION_SSL` está ativado e o espaço livre em disco. Também pergunta ao OneUptime o que ele vê de si mesmo: PostgreSQL, ClickHouse e Valkey, as migrações, as filas, a versão e as etapas de configuração do servidor, como e-mail e sondas. Linhas marcadas com • são úteis de saber, mas não são falhas, e não entram na contagem: quais produtos estão desativados neste servidor e onde isso foi definido. Um nome em `SERVER_PRODUCTS` que o OneUptime não conhece é marcado com ! para você conferir. O `npm start` termina com as mesmas verificações e diz apenas o que precisa de atenção.
 
 Para ver também os erros recentes de cada serviço, cada um com o nome do serviço:
 
@@ -526,7 +528,7 @@ Para ver também os erros recentes de cada serviço, cada um com o nome do servi
 npm run doctor -- --logs
 ```
 
-Ele termina com o código `1` quando algo marcado com ✗ precisa de correção, para que um script possa executá-lo. O Admin Dashboard mostra o que o OneUptime vê de si mesmo no topo de **Integridade do OneUptime**, e no Kubernetes o `HelmChart/Public/diagnose.sh` o imprime.
+Ele termina com o código `1` quando algo marcado com ✗ precisa de correção, para que um script possa executá-lo. O Admin Dashboard mostra o que o OneUptime vê de si mesmo no topo de **Integridade do OneUptime**, e no Kubernetes o `HelmChart/Public/diagnose.sh` o imprime e depois verifica o endereço que as pessoas abrem e o certificado dele.
 
 ## Solução de problemas
 

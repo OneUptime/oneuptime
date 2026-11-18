@@ -45,7 +45,7 @@ Quando crei una policy di reperibilità nella pagina **Policy di reperibilità**
 :::steps
 ### Apri le regole di escalation della policy
 
-Apri la policy di reperibilità, scegli **Regole di escalation** nel suo menu laterale e fai clic su **Aggiungi regola di escalation**. La finestra di dialogo è una sola pagina breve.
+Apri la policy di reperibilità, scegli **Regole di escalation** nel suo menu laterale e fai clic su **Aggiungi regola di escalation**. La finestra di dialogo è una sola pagina breve. Indica quale livello della policy aggiunge la regola.
 
 ### Scegli chi notificare
 
@@ -61,6 +61,10 @@ In **Notifica**, fai clic su **Aggiungi destinatario**, cerca e scegli tutte le 
 ### Imposta quanto attendere
 
 **Escala dopo (in minuti)** è quanto attendere una conferma prima di avvisare il livello successivo. Parte da **30 minuti**; cambialo in base al livello.
+
+![La finestra «Aggiungi regola di escalation» di una policy con un livello, con «Chiamato dopo (in minuti)» evidenziato](screen:escalation-rule-paged-after)
+
+Una regola aggiunta dopo la prima chiede invece **Chiamato dopo (in minuti)**: quanto il livello precedente attende una conferma prima che venga chiamato questo. Parte dall'attesa di quel livello e viene salvato come sua attesa; il nuovo livello attende 30 minuti finché non ne aggiungi uno dopo. Chi può aggiungere regole ma non modificarle vede **Escala dopo (in minuti)**, e la finestra di dialogo dice quando viene chiamato il nuovo livello.
 
 ### Dai un nome alla regola, se vuoi
 
@@ -190,7 +194,7 @@ Un livello può avvisare la persona successiva nella rotazione di una pianificaz
 
 :::steps
 1. Assicurati che il primo livello della policy, **Level 1**, notifichi la pianificazione di reperibilità.
-2. Fai clic su **Aggiungi regola di escalation**, poi su **Aggiungi destinatario**, e scegli la stessa pianificazione in **Successivo nella rotazione**. Imposta **Escala dopo (in minuti)** e fai clic su **Crea regola**.
+2. Fai clic su **Aggiungi regola di escalation**, poi su **Aggiungi destinatario**, e scegli la stessa pianificazione in **Successivo nella rotazione**. Imposta **Chiamato dopo (in minuti)** e fai clic su **Crea regola**.
 3. Aggiungi un altro livello per il team o il manager che deve essere avvisato dopo.
 :::
 

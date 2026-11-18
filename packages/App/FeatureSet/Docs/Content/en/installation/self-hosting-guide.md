@@ -167,6 +167,7 @@ Let's Encrypt needs ports 80 and 443 reachable from the internet, and your domai
 :::cards
 - [Quickstart](/docs/introduction/quickstart): A monitor, an on-call policy and a status page in fifteen minutes.
 - [Docker Compose](/docs/installation/docker-compose): Your own proxy, backups, updates and the production checklist.
+- [Kubernetes and Helm](/docs/installation/kubernetes): Back up a Kubernetes install, and keep its keys.
 - [Upgrading](/docs/installation/upgrading): Move to a new release, one major version at a time.
 - [Architecture](/docs/self-hosted/architecture): How the parts of OneUptime fit together.
 :::

@@ -2,6 +2,8 @@
 
 A monitor checks something you run, such as a website, an API, a host or a Kubernetes cluster, and tells you when it stops working. **Create Monitor** asks what to monitor first, then what to check, then how often. Everything but the type, the name and what to check starts with defaults that suit most monitors.
 
+For a website or API, a guided setup walks you from its address to a test page instead: click **Guided setup** on the empty **Monitors** list, or under **How it works**. **Create Monitor** offers it too, once you pick **Website** or **API**. See [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 > [!NOTE]
 > To create a monitor you need the Project Owner, Project Admin, Project Member, Monitor Admin or Monitor Member role, or a custom role with the Create Monitor permission.
 

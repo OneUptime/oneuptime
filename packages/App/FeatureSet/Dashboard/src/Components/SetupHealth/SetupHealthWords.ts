@@ -1,6 +1,9 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { getChannelName } from "../Monitor/Overview/WhoIsToldWords";
+import {
+  getChannelName,
+  OWNER_FIX_WORDS,
+} from "../Monitor/Overview/WhoIsToldWords";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -251,6 +254,11 @@ const FIX_WORDS: Readonly<Record<SetupHealthFix, string>> = {
     "Add Notification Rule",
   ),
   [SetupHealthFix.TelemetryIngestionKey]: translationKey("Open Ingestion Key"),
+  // An owner no Created email reaches (#9371): the card's own links' words.
+  [SetupHealthFix.TeamMembers]: OWNER_FIX_WORDS.team,
+  [SetupHealthFix.NetworkDeviceOwners]: OWNER_FIX_WORDS.networkDevice,
+  [SetupHealthFix.IncidentOwnerRules]: OWNER_FIX_WORDS.ownerRules,
+  [SetupHealthFix.AlertOwnerRules]: OWNER_FIX_WORDS.ownerRules,
 };
 
 /*
@@ -278,6 +286,11 @@ const FIX_PAGES: Readonly<Partial<Record<SetupHealthFix, PageMap>>> = {
   [SetupHealthFix.ProjectOwners]: PageMap.TEAMS,
   [SetupHealthFix.TelemetryIngestionKey]:
     PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+  // Where the card puts an owner no Created email reaches right (#9371).
+  [SetupHealthFix.TeamMembers]: PageMap.TEAM_VIEW_MEMBERS,
+  [SetupHealthFix.NetworkDeviceOwners]: PageMap.NETWORK_DEVICE_VIEW_OWNERS,
+  [SetupHealthFix.IncidentOwnerRules]: PageMap.INCIDENTS_SETTINGS_OWNER_RULES,
+  [SetupHealthFix.AlertOwnerRules]: PageMap.ALERTS_SETTINGS_OWNER_RULES,
 };
 
 const WORKSPACE_RULE_PAGES: Readonly<Record<WorkspaceType, PageMap>> = {
@@ -335,6 +348,7 @@ const RECORD_PAGES: Readonly<Partial<Record<SetupHealthRecordKind, PageMap>>> =
     [SetupHealthRecordKind.StatusPage]: PageMap.STATUS_PAGE_VIEW,
     [SetupHealthRecordKind.TelemetryIngestionKey]:
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+    [SetupHealthRecordKind.Team]: PageMap.TEAM_VIEW,
   };
 
 // Where a record a finding reaches is opened; null for one with no page.

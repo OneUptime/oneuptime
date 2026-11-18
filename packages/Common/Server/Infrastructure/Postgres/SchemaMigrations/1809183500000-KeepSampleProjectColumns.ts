@@ -25,10 +25,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * migration runs outside a transaction; "User" is a table every sign-in
  * writes.
  */
-export class KeepSampleProjectColumns1809183200000
+export class KeepSampleProjectColumns1809183500000
   implements MigrationInterface
 {
-  public name: string = "KeepSampleProjectColumns1809183200000";
+  public name: string = "KeepSampleProjectColumns1809183500000";
 
   // CREATE INDEX CONCURRENTLY and VALIDATE CONSTRAINT run outside one.
   public transaction: boolean = false;

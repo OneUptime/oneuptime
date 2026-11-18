@@ -72,8 +72,10 @@ Det er hele skjemaet. Listen **Statussider** viser **Navn**, **Beskrivelse**, **
 
 ### Åpne den nye siden
 
-Den nye siden åpnes på skjermen **Oversikt**. Til siden har en ressurs, begynner skjermen med **Ingenting på denne statussiden ennå** og **Legg til monitorer**, som åpner skjermen **Ressurser**. Deretter kommer to kort: **Lenke til statussiden**, med lenken til selve siden og **Kopier lenke**, og **Detaljer for statusside**, der du kan redigere navnet, beskrivelsen og etikettene du nettopp satte. Når prosjektet har egendefinerte felt for statussider, følger et kort **Egendefinerte felt**.
+Den nye siden åpnes på skjermen **Oversikt**. Til siden har en ressurs, begynner skjermen med **Ingenting på denne statussiden ennå** og **Legg til monitorer**, som åpner en dialog rett der, der du velger monitorene besøkende ser. Deretter kommer to kort: **Lenke til statussiden**, med lenken til selve siden og **Kopier lenke**, og **Detaljer for statusside**, der du kan redigere navnet, beskrivelsen og etikettene du nettopp satte. Når prosjektet har egendefinerte felt for statussider, følger et kort **Egendefinerte felt**.
 :::
+
+Vil du heller bli veiledet steg for steg, fra monitorene siden viser til det kundene dine ser, klikker du på **Veiledet oppsett**: på den tomme listen **Statussider** eller under **Slik fungerer det**. Se [Publiser en statusside](/docs/guides/status-page).
 
 En side som opprettes med API-et eller med Terraform, er underlagt de samme abonnementene som innstillingene nedenfor. På OneUptime Cloud blir oppretting av en side med en påslått innstilling som abonnementet ditt ikke inkluderer (for eksempel privat, en skjult liste, egendefinert HTML, CSS eller JavaScript, e-postrapporter, abonnenter via SMS, Slack, Microsoft Teams eller webhook, en IP-tillatelsesliste) avvist med `402 Payment Required`, og meldingen nevner abonnementet. Abonnementet for hver innstilling står ved innstillingen nedenfor. Innstillinger som står på standard, slik dette skjemaet lar dem stå, fungerer på alle abonnementer.
 

@@ -514,6 +514,27 @@ const store = {
   // What the Recommendations menu item reads: no monitors, nothing dismissed.
   Monitor: [],
   RecommendationDismissal: [],
+  /*
+   * The project's first data of each kind (its activation milestones): the
+   * master Topology page reads the first traces, which its services sent.
+   */
+  ProjectMilestone: [
+    {
+      _id: uuid("55000000", 1),
+      milestone: "first_traces_received",
+      reachedAt: fresh,
+    },
+    {
+      _id: uuid("55000000", 2),
+      milestone: "first_logs_received",
+      reachedAt: fresh,
+    },
+    {
+      _id: uuid("55000000", 3),
+      milestone: "first_metrics_received",
+      reachedAt: fresh,
+    },
+  ],
 };
 
 const INVENTORY_TABLES = new Set([

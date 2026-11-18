@@ -33,8 +33,10 @@ import { getJestSpyOn } from "../../Spy";
  *
  * Now Create asks for the name, with the description and the labels under
  * More fields, and opens the new page's Overview. While the page has no
- * resource, the Overview starts with that one next step, Add Monitors. The
- * link card says where visitors find the page: every address it answers at,
+ * resource, the Overview starts with that one next step, Add Monitors,
+ * which opens the dialog that puts monitors on the page right there - it
+ * opened the Resources page, where a second Add opened the picker (#7466).
+ * The link card says where visitors find the page: every address it answers at,
  * its custom domains first (Components/CustomDomain/PublicAddresses, held
  * state by state in PublicAddresses.test.tsx), each live one a link with
  * Copy link - and, when visitors cannot just open them, that they sign in or
@@ -52,6 +54,20 @@ interface CapturedTableProps {
 }
 
 let tableProps: CapturedTableProps | null = null;
+
+// What the Overview's first step hands the dialog that adds monitors.
+interface CapturedBulkAddProps {
+  projectId: ObjectID;
+  statusPageId: ObjectID;
+  statusPageGroupId?: ObjectID | undefined;
+  title?: string | undefined;
+  description?: string | undefined;
+  addedToastAction?: { title: string; onClick: () => void } | undefined;
+  onClose: () => void;
+  onComplete: (result: unknown) => void;
+}
+
+const mockBulkAdd: { props: CapturedBulkAddProps | null } = { props: null };
 const countMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
@@ -188,6 +204,19 @@ jest.mock(
   },
 );
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitorsModal",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: CapturedBulkAddProps) => {
+        mockBulkAdd.props = props;
+        return <div data-testid="bulk-add-dialog">{props.title}</div>;
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Components/BulkUpdate/BulkLabelActions", () => {
   return {
     __esModule: true,
@@ -271,11 +300,14 @@ const PAGE_PROPS: PageComponentProps = {
 
 let gate: PermissionGateResult = { isAllowed: true };
 let navigated: Array<string> = [];
+let navigatedOptions: Array<unknown> = [];
 
 beforeEach(() => {
   tableProps = null;
+  mockBulkAdd.props = null;
   gate = { isAllowed: true };
   navigated = [];
+  navigatedOptions = [];
 
   countMock.mockReset();
   countMock.mockImplementation(async (): Promise<number> => {
@@ -310,8 +342,9 @@ beforeEach(() => {
     },
   );
   getJestSpyOn(Navigation, "navigate").mockImplementation(
-    (route: unknown): void => {
+    (route: unknown, options?: unknown): void => {
       navigated.push(String(route));
+      navigatedOptions.push(options);
     },
   );
 });
@@ -459,7 +492,7 @@ describe("the Overview's first step", () => {
     ).toBe(PROJECT_ID);
   });
 
-  test("a page with no resource: says so, with Add Monitors, which opens its Resources", async () => {
+  test("a page with no resource: says so, with Add Monitors, which adds them right here", async () => {
     await renderFirstStep();
 
     const step: HTMLElement = await screen.findByTestId(
@@ -470,6 +503,7 @@ describe("the Overview's first step", () => {
     expect(step).toHaveTextContent(
       "Add the monitors visitors should see. Each one shows its live status and uptime.",
     );
+    expect(screen.queryByTestId("bulk-add-dialog")).toBeNull();
 
     await act(async () => {
       fireEvent.click(
@@ -480,8 +514,123 @@ describe("the Overview's first step", () => {
     expect(
       screen.getByTestId(STATUS_PAGE_FIRST_STEP_BUTTON_TEST_ID),
     ).toHaveTextContent("Add Monitors");
-    expect(navigated).toHaveLength(1);
-    expect(navigated[0]).toContain(`/status-pages/${STATUS_PAGE_ID}/resources`);
+
+    // The dialog opens on the Overview: no step to Resources, no second Add.
+    expect(navigated).toEqual([]);
+    expect(screen.getByTestId("bulk-add-dialog")).toBeInTheDocument();
+
+    const props: CapturedBulkAddProps = mockBulkAdd.props!;
+
+    // Named as the button that opened it, and saying what the step says.
+    expect(props.title).toBe("Add Monitors");
+    expect(props.description).toBe(StatusPageOverviewCopy.firstStepDescription);
+    // This page's, in this project, at its top: no group yet.
+    expect(props.statusPageId.toString()).toBe(STATUS_PAGE_ID);
+    expect(props.projectId.toString()).toBe(PROJECT_ID);
+    expect(props.statusPageGroupId).toBeUndefined();
+  });
+
+  test("once monitors are added, the page is counted again and the step gives way to the link", async () => {
+    let resourceCount: number = 0;
+    countMock.mockImplementation(async (): Promise<number> => {
+      return resourceCount;
+    });
+
+    await renderFirstStep();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(STATUS_PAGE_FIRST_STEP_BUTTON_TEST_ID),
+      );
+    });
+
+    resourceCount = 1;
+
+    // Added as asked: the dialog says so in a toast, and closes.
+    await act(async () => {
+      mockBulkAdd.props!.onComplete({ succeeded: [], failed: [], skipped: [] });
+      mockBulkAdd.props!.onClose();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(STATUS_PAGE_FIRST_STEP_TEST_ID)).toBeNull();
+    });
+
+    expect(countMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId("bulk-add-dialog")).toBeNull();
+    expect(navigated).toEqual([]);
+  });
+
+  test("the toast's View Status Page opens the page as its visitors see it, in a new tab", async () => {
+    await renderFirstStep();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(STATUS_PAGE_FIRST_STEP_BUTTON_TEST_ID),
+      );
+    });
+
+    const action: { title: string; onClick: () => void } =
+      mockBulkAdd.props!.addedToastAction!;
+
+    expect(action.title).toBe("View Status Page");
+
+    action.onClick();
+
+    expect(navigated).toEqual([
+      `${STATUS_PAGE_URL.toString()}/${STATUS_PAGE_ID}`,
+    ]);
+    expect(navigatedOptions).toEqual([{ openInNewTab: true }]);
+  });
+
+  test("a report of what could not be added stays to be read while the page is counted again", async () => {
+    let resourceCount: number = 0;
+    countMock.mockImplementation(async (): Promise<number> => {
+      return resourceCount;
+    });
+
+    await renderFirstStep();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(STATUS_PAGE_FIRST_STEP_BUTTON_TEST_ID),
+      );
+    });
+
+    resourceCount = 1;
+
+    // Some added, some failed: the dialog shows its report, still open.
+    await act(async () => {
+      mockBulkAdd.props!.onComplete({ succeeded: [], failed: [], skipped: [] });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(STATUS_PAGE_FIRST_STEP_TEST_ID)).toBeNull();
+    });
+
+    expect(screen.getByTestId("bulk-add-dialog")).toBeInTheDocument();
+
+    await act(async () => {
+      mockBulkAdd.props!.onClose();
+    });
+
+    expect(screen.queryByTestId("bulk-add-dialog")).toBeNull();
+  });
+
+  test("closed with nothing added, the step stays as it was", async () => {
+    await renderFirstStep();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(STATUS_PAGE_FIRST_STEP_BUTTON_TEST_ID),
+      );
+    });
+
+    await act(async () => {
+      mockBulkAdd.props!.onClose();
+    });
+
+    expect(screen.queryByTestId("bulk-add-dialog")).toBeNull();
+    expect(
+      screen.getByTestId(STATUS_PAGE_FIRST_STEP_TEST_ID),
+    ).toBeInTheDocument();
+    expect(countMock).toHaveBeenCalledTimes(1);
   });
 
   test("someone who may not add monitors reads where they are added, with no button", async () => {
@@ -538,6 +687,7 @@ describe("the Overview's first step", () => {
       "Nothing on this status page yet",
     );
     expect(StatusPageOverviewCopy.firstStepButton).toBe("Add Monitors");
+    expect(StatusPageOverviewCopy.viewStatusPage).toBe("View Status Page");
   });
 
   /*

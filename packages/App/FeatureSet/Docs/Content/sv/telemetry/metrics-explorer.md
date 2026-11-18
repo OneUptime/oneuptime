@@ -36,7 +36,7 @@ Utforskaren har sex flikar:
 
 ## Innan du börjar
 
-- **Mätvärden som kommer in.** Skicka dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller från en agent som [OpenTelemetry Collector för värdar](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
+- **Mätvärden som kommer in.** Skicka dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller från en agent som [OpenTelemetry Collector för värdar](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Tills de första data kommer erbjuder den här sidan **Guidad installation**, som tar dig från dina första loggar, mätvärden och spår till larm på dem, bredvid **Skicka dina första mätvärden**, installationsguiden ensam.
 - **En roll som får läsa telemetri.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem eller Telemetritittare, eller en anpassad roll med behörigheten Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) för vilka mätvärden den läser.
 
 ## Hitta ett mätvärde

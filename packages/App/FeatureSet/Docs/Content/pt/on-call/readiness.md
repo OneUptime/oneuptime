@@ -6,6 +6,7 @@ A prontidão responde a uma pergunta antes que um incidente a responda: se algo 
 - [Como um status é definido](#como-um-status-é-definido): Pronto, Needs setup ou Unreachable, e por quê.
 - [A página Prontidão](#a-página-prontidão): Cada destinatário do projeto, em uma lista.
 - [Lembrar as pessoas de terminar a configuração](#lembrar-as-pessoas-de-terminar-a-configuração): Um e-mail que diz o que está faltando.
+- [Aplicar a sequência padrão](#aplicar-a-sequência-padrão): A sequência padrão do projeto, para as pessoas que você escolher.
 - [Tempo de plantão do usuário](#tempo-de-plantão-do-usuário): Quanto tempo cada pessoa ficou de plantão.
 :::
 
@@ -32,6 +33,8 @@ Um destinatário é qualquer pessoa que uma política de plantão pode acionar: 
 
 Uma lacuna é uma gravidade sem regra, na aba de incidentes, episódios de incidentes, alertas ou episódios de alertas. Uma regra que desliga uma gravidade de propósito não é uma lacuna. Um acionamento que encontra uma lacuna ainda chega à pessoa pelos métodos verificados dela, a menos que o projeto tenha desligado essa alternativa: veja [Quando nenhuma regra corresponde](/docs/notifications/index#quando-nenhuma-regra-corresponde).
 
+Quando o projeto pede um método por telefone a todos de plantão, em **Telefone para quem está de plantão**, um destinatário sem um número verificado de SMS, chamada telefônica ou WhatsApp também é marcado com **Sem método por telefone**, seja qual for o status, e Saúde da configuração o cita. Ninguém fica bloqueado: um acionamento ainda chega a ele pelos métodos que tem.
+
 ## A página Prontidão
 
 Abra **Plantão → Prontidão**. O cartão **Prontidão do plantão** lista cada pessoa que uma política de plantão do projeto pode alcançar, primeiro as que precisam de algo. Qualquer pessoa do projeto pode abri-lo.
@@ -53,12 +56,24 @@ Acima da lista, os blocos contam **Destinatários**, **Pronto**, **Precisa de co
 Só a própria pessoa pode adicionar e verificar seus métodos de notificação e suas regras, então a solução é pedir a ela.
 
 :::steps
-1. Na página Prontidão, marque os destinatários que quer lembrar. Destinatários prontos não podem ser marcados: não há nada para lembrá-los.
+1. Na página Prontidão, marque os destinatários que quer lembrar. Um destinatário pronto só é lembrado quando está marcado com **Sem método por telefone**: não há mais nada para lembrá-lo.
 2. Clique em **Enviar lembrete de configuração**. A confirmação nomeia cada pessoa que vai receber o e-mail.
 3. Confirme. Cada pessoa recebe um e-mail que diz o que falta na própria configuração, com um link para a página que resolve isso.
 :::
 
 Depois, um aviso diz quantos lembretes foram enviados, ignorados ou falharam, e por quê para cada um que não foi enviado. Ninguém recebe mais de um lembrete a cada 24 horas, e um envio lembra no máximo 250 pessoas. Enviar lembretes exige **Proprietário do projeto**, **Administrador do projeto** ou **Administrador de plantão**, ou **Edit On-Call Policy** em uma função personalizada.
+
+## Aplicar a sequência padrão
+
+Quando o projeto tem uma sequência padrão (veja [A sequência padrão](/docs/notifications/on-call-rules#a-sequência-padrão)), você pode dá-la a pessoas que já têm regras próprias.
+
+:::steps
+1. Na página Prontidão, marque os destinatários.
+2. Clique em **Aplicar sequência padrão**. A confirmação mostra a sequência e cita todas as pessoas que ela muda.
+3. Confirme. As regras de cada pessoa para cada gravidade são substituídas pela sequência, nos métodos que ela verificou.
+:::
+
+Uma forma que alguém não verificou fica de fora, e a pessoa mantém as próprias etapas no lugar dela; quem não verificou nenhuma das formas da sequência fica como estava. Depois, um aviso diz para cada pessoa o que foi aplicado ou por que não, por canal: os números e endereços de ninguém são mostrados. Cada pessoa cujas regras mudaram recebe um e-mail, e cada mudança fica no log de auditoria do projeto. Aplicá-la exige **Proprietário do projeto** ou **Administrador do projeto**, ou **Edit User Notification Rules** em uma função personalizada.
 
 ## A prontidão em outras páginas
 
@@ -66,6 +81,7 @@ Depois, um aviso diz quantos lembretes foram enviados, ignorados ou falharam, e 
 - Nas **Regras de escalonamento** de uma política, um nível cujos destinatários não podem ser todos acionados diz isso no seu cartão. Veja [O resumo do escalonamento](/docs/on-call/escalation-rules#o-resumo-do-escalonamento).
 - Em **Usuários**, abra um membro e depois **Prontidão** na seção **Plantão**: o status, os métodos e a grade de cobertura da pessoa.
 - Para a sua própria configuração, **Configurações do usuário → Lista de configuração** guia você. Veja [A lista de configuração](/docs/notifications/index#a-lista-de-configuração).
+- Quem está em uma política e não concluiu a própria configuração vê **Conclua a configuração das suas notificações** no sino no topo de cada página, que abre a sua lista de configuração.
 
 ## O e-mail semanal de prontidão
 

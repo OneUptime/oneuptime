@@ -2563,6 +2563,87 @@ test.describe("keyboard only", () => {
     await expect(bell).toBeFocused();
   });
 
+  /*
+   * "Finish setting up your notifications" (#7040), as the Dashboard's
+   * header draws it in the real bell: under On-Call, amber, with why under
+   * its title and Hide beside it - one box, two buttons, neither inside
+   * the other - on a laptop and on a phone, light and dark.
+   */
+  for (const theme of ["light", "dark"] as const) {
+    for (const width of [1280, 390] as const) {
+      test(`the bell's setup item reads, opens and hides at ${width} (${theme})`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        await openKeyboard(page, theme === "dark" ? "&theme=dark" : "");
+
+        await page.getByRole("button", { name: "View notifications" }).click();
+
+        const box: Locator = page.getByTestId(
+          "notification-bell-item-notificationSetup-box",
+        );
+
+        await expect(box).toBeVisible();
+        await expect(box).toContainText("Finish setting up your notifications");
+        await expect(
+          page.getByTestId(
+            "notification-bell-item-notificationSetup-description",
+          ),
+        ).toHaveText("Nothing can reach you yet.");
+
+        // Under On-Call, after the duty it is about.
+        const onCallHeading: Locator = page.getByText("On-Call", {
+          exact: true,
+        });
+        const headingBottom: number = (await onCallHeading.boundingBox())!.y;
+        const onCallItem: Locator = page.getByRole("button", {
+          name: "You are on call",
+        });
+        expect((await onCallItem.boundingBox())!.y).toBeGreaterThan(
+          headingBottom,
+        );
+        expect((await box.boundingBox())!.y).toBeGreaterThan(
+          (await onCallItem.boundingBox())!.y,
+        );
+
+        // Hide is a button of its own, a finger's size under a finger, inside the panel.
+        const hide: Locator = page.getByTestId(
+          "notification-bell-item-notificationSetup-dismiss",
+        );
+        const hideBox: { x: number; width: number } =
+          (await hide.boundingBox())!;
+        const panelBox: { x: number; width: number } =
+          (await box.boundingBox())!;
+
+        expect(hideBox.x + hideBox.width).toBeLessThanOrEqual(
+          panelBox.x + panelBox.width + 1,
+        );
+        expect(hideBox.width).toBeGreaterThanOrEqual(20);
+
+        // The page never scrolls sideways, on a phone neither.
+        expect(
+          await page.evaluate((): number => {
+            return (
+              document.documentElement.scrollWidth -
+              document.documentElement.clientWidth
+            );
+          }),
+        ).toBeLessThanOrEqual(0);
+
+        await screenshot(page, `bell-setup-item-${width}-${theme}`, {
+          fullPage: false,
+        });
+
+        await hide.click();
+        await expect(page.getByTestId("keyboard-log")).toHaveText(
+          "bell-hide:notificationSetup",
+        );
+      });
+    }
+  }
+
   test("a form's steps: a finished step is reached with Tab and opened with Enter or Space", async ({
     page,
   }: {

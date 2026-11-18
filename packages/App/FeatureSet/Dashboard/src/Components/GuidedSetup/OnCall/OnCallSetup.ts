@@ -13,13 +13,24 @@ import {
 } from "Common/Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  OnCallTestPagePreview,
+  OnCallTestPagePreviewMethod,
   OnCallTestPageResult,
   OnCallTestPageStatus,
+  OnCallTestPageWarning,
+  OnCallTestPageWarningCode,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatProjectBalanceAmount } from "Common/Utils/Project/ProjectBalance";
 import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
+import { CHANNEL_NAMES } from "../../OnCallTestPage/OnCallTestPageWords";
+import { formatNameList } from "../../AiAccess/AiAccessModes";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * GUIDED SETUP: PAGE THE RIGHT PERSON, AND ESCALATE (issue #6805).
@@ -36,7 +47,7 @@ import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
  *      one code, and the app. Each says what stops it on this project and
  *      this server, and the fix is in the step: an owner turns SMS and
  *      calls on there, anyone else is told who can.
- *   2. Who else is on call? A project with no policy gets "Default on-call
+ *   2. Who is paged first? A project with no policy gets "Default on-call
  *      policy", paging the people picked, with the two on-call rules that
  *      run it for every new incident and alert (#5359). A project with
  *      policies starts from one of them: the people picked join its first
@@ -104,7 +115,10 @@ export const ON_CALL_SETUP_COPY: {
   phoneNone: string;
   pushNone: string;
   pushHelp: string;
-  pushLink: string;
+  useThisBrowser: string;
+  getTheApp: string;
+  appRecheckHint: string;
+  browserRegistered: string;
   phoneLabel: string;
   sendSmsCode: string;
   phoneError: string;
@@ -119,6 +133,15 @@ export const ON_CALL_SETUP_COPY: {
   continueButton: string;
   saveButton: string;
   whoTitle: string;
+  whoNextHint: string;
+  inviteByEmail: string;
+  inviteEmailLabel: string;
+  inviteDescription: string;
+  inviteSend: string;
+  inviteCancel: string;
+  inviteEmailError: string;
+  invited: string;
+  inviteNoTeam: string;
   whoCreateHelp: string;
   whoExistingHelp: string;
   whoPolicyLabel: string;
@@ -173,7 +196,7 @@ export const ON_CALL_SETUP_COPY: {
 } = {
   pageTitle: translationKey("Page the right person when something breaks"),
   pageDescription: translationKey(
-    "Guided setup: how you are reached, who else is on call, what happens if nobody answers, and a test page, on this page.",
+    "Guided setup: how you are reached, who is paged first, what happens if nobody answers, and a test page, on this page.",
   ),
   /*
    * What each step sets up, beside the steps (GuidedSetupFrame, #8897): the
@@ -201,10 +224,21 @@ export const ON_CALL_SETUP_COPY: {
   emailNone: translationKey("No verified email address."),
   phoneNone: translationKey("No phone number yet."),
   pushNone: translationKey("Not set up."),
+  /*
+   * Push is set up in the step itself (#7149): this browser, registered from
+   * the person's click, or the app, from a code to scan. It linked to
+   * Notification Methods before.
+   */
   pushHelp: translationKey(
-    "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
+    "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
   ),
-  pushLink: translationKey("Set up the app or this browser"),
+  useThisBrowser: translationKey("Use this browser"),
+  getTheApp: translationKey("Get the app"),
+  appRecheckHint: translationKey(
+    "Once the app is signed in on your phone, click Recheck.",
+  ),
+  // As Notification Methods says it once a browser is registered.
+  browserRegistered: translationKey("Browser Registered"),
   phoneLabel: translationKey("Your phone number"),
   sendSmsCode: translationKey("Text me a code"),
   phoneError: translationKey(
@@ -230,7 +264,35 @@ export const ON_CALL_SETUP_COPY: {
   ),
   continueButton: WEBSITE_DOWN_COPY.continueButton,
   saveButton: WEBSITE_DOWN_COPY.whoSave,
-  whoTitle: translationKey("Who else is on call?"),
+  /*
+   * Who the policy's first escalation rule pages, at once. It was "Who else
+   * is on call?", which read as the place to add the teammate to page when
+   * nobody answers: a newcomer added them here, and both were paged at the
+   * same moment (#7372). That teammate is the next step's.
+   */
+  whoTitle: translationKey("Who is paged first?"),
+  whoNextHint: translationKey(
+    "Everyone here is paged at the same time. Someone to page only if nobody answers comes in the next step.",
+  ),
+  /*
+   * Someone not in the project yet, invited from the step (#7150): the
+   * Users page's Invite User, by address, on the team it starts on. Nothing
+   * said depends on whether the address has an account.
+   */
+  inviteByEmail: translationKey("Invite by email"),
+  inviteEmailLabel: translationKey("Their email address"),
+  inviteDescription: translationKey(
+    "We email them an invitation to this project and add them here. A page reaches them once they accept and set up how they are reached.",
+  ),
+  inviteSend: translationKey("Send invitation"),
+  inviteCancel: translationKey("Cancel"),
+  inviteEmailError: translationKey(
+    "Enter an email address, such as ana@example.com.",
+  ),
+  invited: translationKey("{{email}} is invited and added here."),
+  inviteNoTeam: translationKey(
+    "No team could be picked for them here. Invite them from Users, where you choose their team.",
+  ),
   whoCreateHelp: translationKey(
     'This makes the on-call policy "{{policy}}". It pages these people first, for every new incident and alert in this project.',
   ),
@@ -256,7 +318,7 @@ export const ON_CALL_SETUP_COPY: {
   policyMadeElsewhere: WEBSITE_DOWN_COPY.policyMadeElsewhere,
   /*
    * Said when the run's policy was deleted - in another tab, or by a
-   * teammate - so "Who else is on call?" opened again on making or picking
+   * teammate - so "Who is paged first?" opened again on making or picking
    * one (#7516), and when the page opens on a run whose policy is gone.
    */
   policyDeleted: translationKey(
@@ -349,7 +411,7 @@ export enum OnCallRunValue {
  * What the run keeps of its policy and of the steps built on it. When the
  * policy is gone - found so when the page opens, or deleted in another tab
  * or by a teammate while it is open (#7516) - they are forgotten together,
- * so the setup starts again at "Who else is on call?". Who is reached stays
+ * so the setup starts again at "Who is paged first?". Who is reached stays
  * confirmed: it is the person's, not the policy's.
  */
 export const RUN_VALUES_OF_THE_POLICY: ReadonlyArray<OnCallRunValue> = [
@@ -457,9 +519,11 @@ export interface PhoneChannelFacts {
   // OneUptime Cloud: the balance, in US cents; null while not known.
   balanceInUSDCents: number | null;
   /*
-   * Self-hosted: whether the server can send SMS and make calls, as a
-   * master admin reads it (ServerSendingStatus). Null when not known - for
-   * anyone else, and on OneUptime Cloud.
+   * Self-hosted: whether an SMS or a call can go anywhere - the project's
+   * own Twilio config, or the server's account or gateway - as any member
+   * of the project reads it (GET /project-can-send, #7151), or a master
+   * admin's sending status while that is not read. Null when not known;
+   * always yes on OneUptime Cloud.
    */
   serverCanSendSms: boolean | null;
   serverCanCall: boolean | null;
@@ -836,6 +900,11 @@ export interface OnCallSummaryFacts {
    * which may match only some incidents: the summary says so, not "any".
    */
   isCatchAll: boolean;
+  /*
+   * The order a page reaches each person, by user id (getReachOrders), when
+   * it was read: the first row says it (#7154). Absent, it names how.
+   */
+  reachOrders?: ReachOrders | null | undefined;
 }
 
 export interface OnCallSummaryRow {
@@ -844,24 +913,214 @@ export interface OnCallSummaryRow {
   text: string;
 }
 
-// "Ana Lopez (Email, SMS)": a person and how a page reaches them.
+/*
+ * THE ORDER A PAGE REACHES A PERSON (#7154): "SMS at once, then phone
+ * call after 5 minutes". It is each person's own How to Reach Me for the
+ * test's first severity, as the test page's preview reads it on the server
+ * (OnCallTestPageApi.preview, sortRulesAsAPageReachesThem): the same rules,
+ * the same order, the same fallback - never worked out a second time here.
+ */
+export interface ReachStep {
+  channel: string;
+  notifyAfterMinutes: number;
+}
+
+// The steps a page takes to each person a policy's first level pages, by user id.
+export type ReachOrders = Record<string, Array<ReachStep>>;
+
+export const REACH_AT_ONCE: string = translationKey("{{methods}} at once");
+
+export const REACH_AFTER: PluralTemplate = {
+  one: "{{methods}} after {{count}} minute",
+  other: "{{methods}} after {{count}} minutes",
+};
+
+export const REACH_THEN: string = translationKey("{{first}}, then {{next}}");
+
+/*
+ * The steps of a test page's preview that would reach each person: a
+ * method that is verified, on a channel the project has not turned off. A
+ * person who opted out of the severity is reached by nothing.
+ */
+export const getReachOrders: (preview: OnCallTestPagePreview) => ReachOrders = (
+  preview: OnCallTestPagePreview,
+): ReachOrders => {
+  const orders: ReachOrders = {};
+
+  for (const person of preview.people || []) {
+    const channelsOff: Array<string> = (person.warningCodes || [])
+      .filter((warning: OnCallTestPageWarning): boolean => {
+        return (
+          warning.code === OnCallTestPageWarningCode.ChannelOff &&
+          Boolean(warning.channel)
+        );
+      })
+      .map((warning: OnCallTestPageWarning): string => {
+        return String(warning.channel);
+      });
+
+    orders[person.userId] = person.isOptedOut
+      ? []
+      : (person.methods || [])
+          .filter((method: OnCallTestPagePreviewMethod): boolean => {
+            return (
+              method.isVerified && !channelsOff.includes(String(method.channel))
+            );
+          })
+          .map((method: OnCallTestPagePreviewMethod): ReachStep => {
+            return {
+              channel: String(method.channel),
+              notifyAfterMinutes: Math.max(
+                0,
+                Number(method.notifyAfterMinutes) || 0,
+              ),
+            };
+          });
+  }
+
+  return orders;
+};
+
+/*
+ * The steps gathered by when they are taken, soonest first: methods with
+ * the same wait are taken together, each named once.
+ */
+export const groupReachSteps: (
+  steps: ReadonlyArray<ReachStep>,
+) => Array<{ notifyAfterMinutes: number; channels: Array<string> }> = (
+  steps: ReadonlyArray<ReachStep>,
+): Array<{ notifyAfterMinutes: number; channels: Array<string> }> => {
+  const groups: Array<{ notifyAfterMinutes: number; channels: Array<string> }> =
+    [];
+
+  const ordered: Array<ReachStep> = steps
+    .map(
+      (step: ReachStep, index: number): { step: ReachStep; index: number } => {
+        return { step: step, index: index };
+      },
+    )
+    .sort(
+      (
+        a: { step: ReachStep; index: number },
+        b: { step: ReachStep; index: number },
+      ): number => {
+        return (
+          a.step.notifyAfterMinutes - b.step.notifyAfterMinutes ||
+          a.index - b.index
+        );
+      },
+    )
+    .map((entry: { step: ReachStep; index: number }): ReachStep => {
+      return entry.step;
+    });
+
+  for (const step of ordered) {
+    const last:
+      | { notifyAfterMinutes: number; channels: Array<string> }
+      | undefined = groups[groups.length - 1];
+
+    if (last && last.notifyAfterMinutes === step.notifyAfterMinutes) {
+      if (!last.channels.includes(step.channel)) {
+        last.channels.push(step.channel);
+      }
+
+      continue;
+    }
+
+    groups.push({
+      notifyAfterMinutes: step.notifyAfterMinutes,
+      channels: [step.channel],
+    });
+  }
+
+  return groups;
+};
+
+// "SMS and email": the channels of one step, cased for the middle of a sentence.
+const describeReachChannels: (
+  translator: Translator,
+  channels: ReadonlyArray<string>,
+) => string = (
+  translator: Translator,
+  channels: ReadonlyArray<string>,
+): string => {
+  return formatNameList(
+    channels.map((channel: string): string => {
+      const name: string =
+        CHANNEL_NAMES[channel as OnCallPageChannel] || channel;
+
+      return translator.translateTerm(name, { inSentence: true }) || name;
+    }),
+    "and",
+    translator,
+  );
+};
+
+/*
+ * "SMS at once, then phone call after 5 minutes", or "" for no steps: the
+ * order a page reaches a person, in the reader's language.
+ */
+export const describeReachOrder: (
+  translator: Translator,
+  steps: ReadonlyArray<ReachStep>,
+) => string = (
+  translator: Translator,
+  steps: ReadonlyArray<ReachStep>,
+): string => {
+  let text: string = "";
+
+  for (const group of groupReachSteps(steps)) {
+    const methods: string = describeReachChannels(translator, group.channels);
+    const groupText: string =
+      group.notifyAfterMinutes === 0
+        ? translator.translateTemplate(REACH_AT_ONCE, { methods: methods })
+        : translator.translatePlural(REACH_AFTER, group.notifyAfterMinutes, {
+            methods: methods,
+          });
+
+    text = text
+      ? translator.translateTemplate(REACH_THEN, {
+          first: text,
+          next: groupText,
+        })
+      : groupText;
+  }
+
+  return text;
+};
+
+/*
+ * "Ana Lopez (Email, SMS)": a person and how a page reaches them - or, with
+ * the order a page takes (#7154), "Ana Lopez (SMS at once, then phone call
+ * after 5 minutes)".
+ */
 export const describeResponder: (
   translator: Translator,
   person: ResponderReach,
-) => string = (translator: Translator, person: ResponderReach): string => {
+  steps?: ReadonlyArray<ReachStep> | undefined,
+) => string = (
+  translator: Translator,
+  person: ResponderReach,
+  steps?: ReadonlyArray<ReachStep> | undefined,
+): string => {
   if (!person.isReachable || person.channels.length === 0) {
     return translator.translateTemplate("{{name}} (not reachable yet)", {
       name: person.name,
     });
   }
 
+  const order: string = steps ? describeReachOrder(translator, steps) : "";
+
+  // The channels' names, joined with the reader's comma ("، " in Persian).
   return translator.translateTemplate("{{name}} ({{channels}})", {
     name: person.name,
-    channels: person.channels
-      .map((channel: string): string => {
-        return getChannelName(channel as OnCallPageChannel, translator);
-      })
-      .join(", "),
+    channels:
+      order ||
+      joinList(
+        person.channels.map((channel: string): string => {
+          return getChannelName(channel as OnCallPageChannel, translator);
+        }),
+      ),
   });
 };
 
@@ -871,12 +1130,14 @@ export const describeFirstLevel: (
   data: {
     level: PolicyLevel | undefined;
     responders: ReadonlyArray<ResponderReach>;
+    reachOrders?: ReachOrders | null | undefined;
   },
 ) => string = (
   translator: Translator,
   data: {
     level: PolicyLevel | undefined;
     responders: ReadonlyArray<ResponderReach>;
+    reachOrders?: ReachOrders | null | undefined;
   },
 ): string => {
   if (!data.level) {
@@ -891,7 +1152,9 @@ export const describeFirstLevel: (
     level: data.level,
     responders: data.responders,
   })) {
-    parts.push(describeResponder(translator, person));
+    parts.push(
+      describeResponder(translator, person, data.reachOrders?.[person.userId]),
+    );
     described.add(person.name);
   }
 
@@ -919,6 +1182,7 @@ export const getOnCallSummaryRows: (
   const people: string = describeFirstLevel(translator, {
     level: first,
     responders: facts.responders,
+    reachOrders: facts.reachOrders,
   });
 
   let firstText: string;

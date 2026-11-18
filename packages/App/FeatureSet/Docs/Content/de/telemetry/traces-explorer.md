@@ -36,7 +36,7 @@ Der Explorer hat fünf Tabs:
 
 ## Bevor Sie beginnen
 
-- **Eintreffende Traces.** Instrumentieren Sie Ihre Dienste mit [OpenTelemetry](/docs/telemetry/open-telemetry). Der Tab **Einrichtungsanleitung** zeigt den Code für Ihre Sprache.
+- **Eintreffende Traces.** Instrumentieren Sie Ihre Dienste mit [OpenTelemetry](/docs/telemetry/open-telemetry). Der Tab **Einrichtungsanleitung** zeigt den Code für Ihre Sprache. Bis die ersten Daten eintreffen, bietet diese Seite **Geführte Einrichtung** an, das Sie von Ihren ersten Protokollen, Metriken und Traces bis zu Warnungen dazu führt, neben **Ihre ersten Traces senden**, der Einrichtungsanleitung allein.
 - **Eine Rolle, die Telemetrie lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Telemetrie-Administrator, Telemetrie-Mitglied oder Telemetrie-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Traces. Ihr Bereich entscheidet, wessen Spans Sie sehen: siehe [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Eine Anfrage finden

@@ -36,7 +36,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **도착하는 메트릭.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 보내거나, [호스트용 OpenTelemetry Collector](/docs/telemetry/host-otel-collector)나 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent) 같은 에이전트에서 보냅니다.
+- **도착하는 메트릭.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 보내거나, [호스트용 OpenTelemetry Collector](/docs/telemetry/host-otel-collector)나 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent) 같은 에이전트에서 보냅니다. 첫 데이터가 도착할 때까지 이 페이지에는 **안내형 설정**이 표시됩니다. 첫 로그, 메트릭, 트레이스부터 그에 대한 경고까지 안내합니다. 옆의 **첫 메트릭 보내기**는 설정 가이드만 엽니다.
 - **텔레메트리를 읽을 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 텔레메트리 관리자, 텔레메트리 구성원, 텔레메트리 뷰어 중 하나이거나 Read Metrics 권한이 있는 사용자 지정 역할입니다. 역할이 어떤 메트릭을 읽는지는 [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
 
 ## 메트릭 찾기

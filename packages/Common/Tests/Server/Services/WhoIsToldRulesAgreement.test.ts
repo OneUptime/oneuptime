@@ -25,6 +25,25 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import User from "../../../Models/DatabaseModels/User";
+import AlertOwnerRule from "../../../Models/DatabaseModels/AlertOwnerRule";
+import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
+import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import AlertOwnerRuleEngineService from "../../../Server/Services/AlertOwnerRuleEngineService";
+import AlertOwnerTeamService from "../../../Server/Services/AlertOwnerTeamService";
+import AlertOwnerUserService from "../../../Server/Services/AlertOwnerUserService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamService from "../../../Server/Services/TeamService";
+import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertIncidentRuleEngineService, {
   AlertIncidentRuleOutcome,
@@ -1294,5 +1313,653 @@ describe("a new alert's privacy, label, on-call and alert incident rules", () =>
     expect(declaredRightAway).toBeGreaterThan(CASES / 10);
     expect(waiting).toBeGreaterThan(CASES / 20);
     expect(none).toBeGreaterThan(CASES / 10);
+  });
+});
+
+/*
+ * WHAT AN ALERT'S OWNERS MAKE ITS ON-CALL RULES PAGE (#9407).
+ *
+ * An alert on-call rule can match on who owns the alert: "Alert Owner is
+ * any of" (or "is none of") people and teams. The real alert's owners are
+ * the owner rows its create writes before its on-call rules run - the
+ * people and teams its criteria names and the network device's owners
+ * (MonitorAlert, through AlertService.addOwners), then whom its owner rules
+ * add (AlertOwnerRuleEngineService) - each a member of the project or one
+ * of its teams (OwnerRuleAssignment.createOwner). The card holds the alert
+ * in memory, with no rows, and works out the same owners.
+ *
+ * Over generated criteria owners, device owners, owner rules and on-call
+ * rules with and without an owner condition, both "is any of" and "is none
+ * of": the policies the card says are paged are the ones the real alert's
+ * rules page, matched on its owner rows, and both are what a plain reading
+ * of the rules says.
+ */
+describe("a new alert's owners and its Alert Owner rules (#9407)", () => {
+  const ANA: string = "72120000-0000-4000-8000-000000000a01";
+  const BEN: string = "72120000-0000-4000-8000-000000000a02";
+  // Left the project: never an owner.
+  const CARA: string = "72120000-0000-4000-8000-000000000a03";
+  // The project's teams: Payments has Ana in it, Night shift nobody.
+  const PAYMENTS: string = "72120000-0000-4000-8000-000000000a11";
+  const NIGHT_SHIFT: string = "72120000-0000-4000-8000-000000000a12";
+  // Another project's team: never an owner here.
+  const ELSEWHERE: string = "72120000-0000-4000-8000-000000000a13";
+
+  const MEMBERS: Array<string> = [ANA, BEN];
+  const PROJECT_TEAMS: Record<string, string> = {
+    [PAYMENTS]: "Payments",
+    [NIGHT_SHIFT]: "Night shift",
+  };
+  const TEAM_MEMBERS: Record<string, Array<string>> = {
+    [PAYMENTS]: [ANA],
+    [NIGHT_SHIFT]: [],
+  };
+  const PEOPLE: Array<string> = [ANA, BEN, CARA];
+  const TEAMS: Array<string> = [PAYMENTS, NIGHT_SHIFT, ELSEWHERE];
+  const CANDIDATES: Array<string> = [...PEOPLE, ...TEAMS];
+
+  const OWNER_CASES: number = 150;
+
+  interface OwnerRuleFacts {
+    severities: Array<string>;
+    titlePattern: string | null;
+    people: Array<string>;
+    teams: Array<string>;
+  }
+
+  interface OwnerOnCallRuleFacts {
+    severities: Array<string>;
+    titlePattern: string | null;
+    owner: { isNoneOf: boolean; picks: Array<string> } | null;
+    policies: Array<string>;
+  }
+
+  interface OwnerCaseFacts {
+    monitorName: string;
+    titleTemplate: string;
+    severity: string;
+    criteriaPeople: Array<string>;
+    criteriaTeams: Array<string>;
+    devicePeople: Array<string>;
+    deviceTeams: Array<string>;
+    ownerRules: Array<OwnerRuleFacts>;
+    onCallRules: Array<OwnerOnCallRuleFacts>;
+  }
+
+  function generateOwnerCase(random: SeededRandom): OwnerCaseFacts {
+    const ownerRules: Array<OwnerRuleFacts> = [];
+    const onCallRules: Array<OwnerOnCallRuleFacts> = [];
+
+    for (let index: number = random(3); index > 0; index--) {
+      ownerRules.push({
+        severities: rarelySomeOf(severityIds("alert"), 3, random),
+        titlePattern: random(3) === 0 ? pick(TITLE_PATTERNS, random) : null,
+        people: someOf(PEOPLE, random),
+        teams: someOf(TEAMS, random),
+      });
+    }
+
+    for (let index: number = 1 + random(3); index > 0; index--) {
+      const picks: Array<string> = [pick(CANDIDATES, random)];
+
+      if (random(3) === 0) {
+        const second: string = pick(CANDIDATES, random);
+
+        if (!picks.includes(second)) {
+          picks.push(second);
+        }
+      }
+
+      onCallRules.push({
+        severities: rarelySomeOf(severityIds("alert"), 4, random),
+        titlePattern: random(5) === 0 ? pick(TITLE_PATTERNS, random) : null,
+        // Most here ask who owns the alert, which is what this is about.
+        owner:
+          random(5) === 0 ? null : { isNoneOf: random(2) === 0, picks: picks },
+        policies: [pick(POLICIES, random)],
+      });
+    }
+
+    const devices: boolean = random(3) === 0;
+
+    return {
+      monitorName: pick(MONITOR_NAMES, random),
+      titleTemplate: pick(TITLE_TEMPLATES, random),
+      severity: pick(severityIds("alert"), random),
+      criteriaPeople: someOf(PEOPLE, random),
+      criteriaTeams: someOf(TEAMS, random),
+      devicePeople: devices ? someOf(PEOPLE, random) : [],
+      deviceTeams: devices ? someOf(TEAMS, random) : [],
+      ownerRules: ownerRules,
+      onCallRules: onCallRules,
+    };
+  }
+
+  // A rule's conditions besides owners, on the alert as it opens.
+  function holds(
+    rule: { severities: Array<string>; titlePattern: string | null },
+    facts: OwnerCaseFacts,
+  ): boolean {
+    if (
+      rule.severities.length > 0 &&
+      !rule.severities.includes(facts.severity)
+    ) {
+      return false;
+    }
+
+    return (
+      !rule.titlePattern ||
+      new RegExp(rule.titlePattern).test(
+        facts.titleTemplate.split("{{monitorName}}").join(facts.monitorName),
+      )
+    );
+  }
+
+  /*
+   * A PLAIN READING: the alert's owners are everyone named - the criteria,
+   * the device, each owner rule that matches - who can own it: a member of
+   * the project, or one of its teams, whoever is in it.
+   */
+  function oracleOwners(facts: OwnerCaseFacts): Array<string> {
+    const named: Array<string> = [
+      ...facts.criteriaPeople,
+      ...facts.criteriaTeams,
+      ...facts.devicePeople,
+      ...facts.deviceTeams,
+    ];
+
+    for (const rule of facts.ownerRules) {
+      if (holds(rule, facts)) {
+        named.push(...rule.people, ...rule.teams);
+      }
+    }
+
+    return sortedUnique(
+      named.filter((id: string): boolean => {
+        return MEMBERS.includes(id) || Boolean(PROJECT_TEAMS[id]);
+      }),
+    );
+  }
+
+  function oracleOwnerPolicies(facts: OwnerCaseFacts): Array<string> {
+    const owners: Array<string> = oracleOwners(facts);
+
+    return sortedUnique(
+      facts.onCallRules.flatMap((rule: OwnerOnCallRuleFacts): Array<string> => {
+        if (!holds(rule, facts)) {
+          return [];
+        }
+
+        if (rule.owner) {
+          const picked: boolean = rule.owner.picks.some(
+            (id: string): boolean => {
+              return owners.includes(id);
+            },
+          );
+
+          if (picked === rule.owner.isNoneOf) {
+            return [];
+          }
+        }
+
+        return rule.policies;
+      }),
+    );
+  }
+
+  function ownerRulesOf(facts: OwnerCaseFacts): Array<AlertOwnerRule> {
+    return facts.ownerRules.map(
+      (rule: OwnerRuleFacts, index: number): AlertOwnerRule => {
+        const item: AlertOwnerRule = withId(
+          new AlertOwnerRule(),
+          ruleId("f", index),
+        );
+        item.name = `Owner rule ${index}`;
+        item.projectId = PROJECT_ID;
+        item.isEnabled = true;
+        item.notifyOwners = false;
+        item.monitors = [];
+        item.alertLabels = [];
+        item.monitorLabels = [];
+        item.alertSeverities = rule.severities.map(
+          (id: string): AlertSeverity => {
+            return withId(new AlertSeverity(), id);
+          },
+        );
+
+        if (rule.titlePattern) {
+          item.alertTitlePattern = rule.titlePattern;
+        }
+
+        item.ownerUsers = rule.people.map((id: string): User => {
+          return withId(new User(), id);
+        });
+        item.ownerTeams = rule.teams.map((id: string): Team => {
+          return withId(new Team(), id);
+        });
+        return item;
+      },
+    );
+  }
+
+  function ownerOnCallRulesOf(facts: OwnerCaseFacts): Array<AlertOnCallRule> {
+    return facts.onCallRules.map(
+      (rule: OwnerOnCallRuleFacts, index: number): AlertOnCallRule => {
+        const item: AlertOnCallRule = withId(
+          new AlertOnCallRule(),
+          ruleId("e", index),
+        );
+        item.name = `On-call rule ${index}`;
+        item.projectId = PROJECT_ID;
+        item.isEnabled = true;
+        item.onCallDutyPolicies = policiesOf(rule.policies);
+
+        if (!rule.owner) {
+          return withConditions(
+            item as unknown as Record<string, unknown>,
+            {
+              severities: rule.severities,
+              monitors: [],
+              labels: [],
+              monitorLabels: [],
+              titlePattern: rule.titlePattern,
+            },
+            "alert",
+          ) as unknown as AlertOnCallRule;
+        }
+
+        // An owner condition lives in the criteria, and so do the rest then.
+        const filters: Array<RuleCriteriaFilter> = [
+          {
+            field: "alertOwners",
+            operator: rule.owner.isNoneOf
+              ? RuleCriteriaOperator.HasNoneOf
+              : RuleCriteriaOperator.HasAnyOf,
+            value: rule.owner.picks,
+          },
+        ];
+
+        if (rule.severities.length > 0) {
+          filters.push({
+            field: "alertSeverities",
+            operator: RuleCriteriaOperator.HasAnyOf,
+            value: rule.severities,
+          });
+        }
+
+        if (rule.titlePattern) {
+          filters.push({
+            field: "alertTitlePattern",
+            operator: RuleCriteriaOperator.MatchesPattern,
+            value: rule.titlePattern,
+          });
+        }
+
+        item.criteria = {
+          schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+          filterCondition: FilterCondition.All,
+          filters: filters,
+        };
+        return item;
+      },
+    );
+  }
+
+  // The monitor of a case: one criteria that opens an alert with these owners.
+  function ownerMonitorOf(facts: OwnerCaseFacts): Monitor {
+    const monitor: Monitor = monitorOf(
+      {
+        monitorName: facts.monitorName,
+        monitorLabels: [],
+        titleTemplate: facts.titleTemplate,
+        severity: facts.severity,
+        labels: [],
+        isPrivate: false,
+        privacyRules: [],
+        labelRules: [],
+        onCallRules: [],
+        incidentRules: [],
+        incidentOnCallRules: [],
+      },
+      "alert",
+    );
+
+    const instance: MonitorCriteriaInstance = criteriaInstanceOf(monitor);
+
+    instance.data!.alerts = (instance.data!.alerts || []).map(
+      (template: CriteriaAlert): CriteriaAlert => {
+        return {
+          ...template,
+          ownerUserIds: facts.criteriaPeople.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+          ownerTeamIds: facts.criteriaTeams.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        };
+      },
+    );
+
+    return monitor;
+  }
+
+  function criteriaInstanceOf(monitor: Monitor): MonitorCriteriaInstance {
+    return (
+      monitor.monitorSteps!.data!.monitorStepsInstanceArray[0] as MonitorStep
+    ).data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!;
+  }
+
+  // The owner rows the real alert gets, as the owner tables hold them.
+  interface OwnerRow {
+    alertId: string;
+    userId?: string | undefined;
+    teamId?: string | undefined;
+  }
+
+  let ownerRows: Array<OwnerRow> = [];
+  let ownerFacts: OwnerCaseFacts;
+
+  // The ids a query asks for in a column: one id, or QueryHelper.any's.
+  function idsOfQuery(
+    query: Record<string, unknown>,
+    column: string,
+  ): Array<string> {
+    const value: unknown = query[column];
+
+    if (!value) {
+      return [];
+    }
+
+    if (value instanceof ObjectID || typeof value === "string") {
+      return [value.toString().toLowerCase()];
+    }
+
+    const parameters: Record<string, unknown> =
+      ((value as { objectLiteralParameters?: Record<string, unknown> })
+        ?.objectLiteralParameters as Record<string, unknown>) || {};
+    const values: unknown = Object.values(parameters)[0];
+
+    return (Array.isArray(values) ? values : []).map(
+      (item: unknown): string => {
+        return String(item).toLowerCase();
+      },
+    );
+  }
+
+  function rowsOf(
+    query: Record<string, unknown>,
+    column: "userId" | "teamId",
+  ): Array<AlertOwnerUser | AlertOwnerTeam> {
+    const alertIds: Array<string> = idsOfQuery(query, "alertId");
+    const ownerIds: Array<string> = idsOfQuery(query, column);
+
+    return ownerRows
+      .filter((row: OwnerRow): boolean => {
+        const id: string | undefined = row[column];
+
+        return (
+          Boolean(id) &&
+          alertIds.includes(row.alertId) &&
+          (ownerIds.length === 0 || ownerIds.includes(id!))
+        );
+      })
+      .map((row: OwnerRow): AlertOwnerUser | AlertOwnerTeam => {
+        const item: AlertOwnerUser | AlertOwnerTeam =
+          column === "userId" ? new AlertOwnerUser() : new AlertOwnerTeam();
+        item.alertId = new ObjectID(row.alertId);
+        (item as unknown as Record<string, unknown>)[column] = new ObjectID(
+          row[column]!,
+        );
+        return item;
+      });
+  }
+
+  beforeEach(() => {
+    ownerRows = [];
+
+    jest
+      .spyOn(IncidentPrivacyRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(AlertPrivacyRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(IncidentLabelRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest.spyOn(AlertLabelRuleService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(IncidentOnCallRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(AlertIncidentRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(AlertOnCallRuleService, "findBy")
+      .mockImplementation((async () => {
+        return ownerOnCallRulesOf(ownerFacts);
+      }) as never);
+    jest
+      .spyOn(AlertOwnerRuleService, "findBy")
+      .mockImplementation((async () => {
+        return ownerRulesOf(ownerFacts);
+      }) as never);
+    jest.spyOn(MonitorService, "findOneById").mockImplementation((async () => {
+      return ownerMonitorOf(ownerFacts);
+    }) as never);
+    jest.spyOn(MonitorService, "findOneBy").mockImplementation((async () => {
+      return ownerMonitorOf(ownerFacts);
+    }) as never);
+    jest
+      .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
+      .mockImplementation((async () => {
+        return {
+          ownerUserIds: ownerFacts.devicePeople.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+          ownerTeamIds: ownerFacts.deviceTeams.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        };
+      }) as never);
+
+    // Who is a member of the project, and who is in each of its teams.
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockImplementation((async (data: { userId: ObjectID }) => {
+        return MEMBERS.includes(data.userId.toString().toLowerCase());
+      }) as never);
+    jest
+      .spyOn(TeamMemberService, "getProjectMemberUserIds")
+      .mockImplementation((async (data: {
+        userIds: Array<ObjectID | string>;
+      }) => {
+        return data.userIds
+          .filter((id: ObjectID | string): boolean => {
+            return MEMBERS.includes(id.toString().toLowerCase());
+          })
+          .map((id: ObjectID | string): ObjectID => {
+            return new ObjectID(id.toString());
+          });
+      }) as never);
+    jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }) => {
+      return idsOfQuery(args.query, "teamId").flatMap(
+        (teamId: string): Array<TeamMember> => {
+          return (TEAM_MEMBERS[teamId] || []).map(
+            (userId: string): TeamMember => {
+              const member: TeamMember = new TeamMember();
+              member.teamId = new ObjectID(teamId);
+              member.userId = new ObjectID(userId);
+              return member;
+            },
+          );
+        },
+      );
+    }) as never);
+    // The project's teams, read with the project's id: another's is not found.
+    jest.spyOn(TeamService, "findBy").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }) => {
+      return idsOfQuery(args.query, "_id")
+        .filter((id: string): boolean => {
+          return Boolean(PROJECT_TEAMS[id]);
+        })
+        .map((id: string): Team => {
+          const team: Team = withId(new Team(), id);
+          team.name = PROJECT_TEAMS[id]!;
+          return team;
+        });
+    }) as never);
+
+    // The owner tables: written by the create, read by the on-call rules.
+    jest
+      .spyOn(AlertOwnerUserService, "findBy")
+      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
+        return rowsOf(args.query, "userId");
+      }) as never);
+    jest
+      .spyOn(AlertOwnerTeamService, "findBy")
+      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
+        return rowsOf(args.query, "teamId");
+      }) as never);
+    jest
+      .spyOn(AlertOwnerUserService, "create")
+      .mockImplementation((async (createBy: { data: AlertOwnerUser }) => {
+        ownerRows.push({
+          alertId: createBy.data.alertId!.toString().toLowerCase(),
+          userId: createBy.data.userId!.toString().toLowerCase(),
+        });
+        return createBy.data;
+      }) as never);
+    jest
+      .spyOn(AlertOwnerTeamService, "create")
+      .mockImplementation((async (createBy: { data: AlertOwnerTeam }) => {
+        const teamId: string = createBy.data.teamId!.toString().toLowerCase();
+
+        // The owner service refuses a team that is not the project's.
+        if (!PROJECT_TEAMS[teamId]) {
+          throw new ProjectScopedReferenceException(
+            "The team is not one of this project's teams.",
+          );
+        }
+
+        ownerRows.push({
+          alertId: createBy.data.alertId!.toString().toLowerCase(),
+          teamId: teamId,
+        });
+        return createBy.data;
+      }) as never);
+  });
+
+  test("the card, the real alert's owner rows and a plain reading of the rules agree on what is paged", async () => {
+    const random: SeededRandom = seededRandom(9407);
+    let matchedOnOwners: number = 0;
+    let keptOffByOwners: number = 0;
+    let ownedByARuleAlone: number = 0;
+
+    for (let index: number = 0; index < OWNER_CASES; index++) {
+      ownerFacts = generateOwnerCase(random);
+      ownerRows = [];
+      createdAlerts = [];
+      createdIncidents = [];
+
+      const event: WhoIsToldEvent = await cardEvent();
+      const monitor: Monitor = ownerMonitorOf(ownerFacts);
+
+      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+        criteriaInstance: criteriaInstanceOf(monitor),
+        monitor: monitor,
+        dataToProcess: DATA_TO_PROCESS,
+        rootCause: "The check failed",
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: {},
+        openAlerts: [],
+        props: {},
+      });
+
+      const context: string = JSON.stringify({ case: index, ownerFacts });
+
+      expect({ context, created: createdAlerts.length }).toEqual({
+        context,
+        created: 1,
+      });
+
+      const alert: Alert = createdAlerts[0]!;
+
+      // The create's chain, in its order: privacy, owners, labels, on-call.
+      await AlertPrivacyRuleEngineService.applyRulesToAlert(alert);
+      await AlertOwnerRuleEngineService.applyRulesToAlert(alert);
+      await AlertLabelRuleEngineService.applyRulesToAlert(alert);
+      const paging: OnCallRulesPaging =
+        await AlertOnCallRuleEngineService.applyRulesToAlert(alert);
+
+      const owners: Array<string> = oracleOwners(ownerFacts);
+      const policies: Array<string> = oracleOwnerPolicies(ownerFacts);
+
+      // The real alert's owner rows are the owners a plain reading gives.
+      expect({
+        context,
+        rows: sortedUnique(
+          ownerRows.map((row: OwnerRow): string => {
+            return (row.userId || row.teamId)!;
+          }),
+        ),
+      }).toEqual({ context, rows: owners });
+      // And the card matches on them, as the real alert's rules do.
+      expect({ context, card: cardPolicies(event) }).toEqual({
+        context,
+        card: policies,
+      });
+      expect({ context, real: pagedIds(paging) }).toEqual({
+        context,
+        real: policies,
+      });
+      expect({ context, errors: errors.mock.calls }).toEqual({
+        context,
+        errors: [],
+      });
+
+      // Named by the criteria or the device, rather than by an owner rule alone.
+      const namedDirectly: Set<string> = new Set<string>([
+        ...ownerFacts.criteriaPeople,
+        ...ownerFacts.criteriaTeams,
+        ...ownerFacts.devicePeople,
+        ...ownerFacts.deviceTeams,
+      ]);
+
+      for (const rule of ownerFacts.onCallRules) {
+        if (!rule.owner || !holds(rule, ownerFacts)) {
+          continue;
+        }
+
+        const pickedOwners: Array<string> = rule.owner.picks.filter(
+          (id: string): boolean => {
+            return owners.includes(id);
+          },
+        );
+
+        if (pickedOwners.length > 0 && !rule.owner.isNoneOf) {
+          matchedOnOwners++;
+        }
+
+        if (pickedOwners.length > 0 && rule.owner.isNoneOf) {
+          keptOffByOwners++;
+        }
+
+        if (
+          pickedOwners.length > 0 &&
+          pickedOwners.every((id: string): boolean => {
+            return !namedDirectly.has(id);
+          })
+        ) {
+          ownedByARuleAlone++;
+        }
+      }
+    }
+
+    // The generator draws every kind of case, so the agreement means something.
+    expect(matchedOnOwners).toBeGreaterThan(OWNER_CASES / 10);
+    expect(keptOffByOwners).toBeGreaterThan(OWNER_CASES / 20);
+    expect(ownedByARuleAlone).toBeGreaterThan(OWNER_CASES / 50);
   });
 });

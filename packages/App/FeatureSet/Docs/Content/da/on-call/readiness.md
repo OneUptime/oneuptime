@@ -6,6 +6,7 @@ Parathed besvarer et spørgsmål, før en hændelse gør det: hvis noget gik i g
 - [Sådan fastlægges en status](#sådan-fastlægges-en-status): Klar, Needs setup eller Unreachable, og hvorfor.
 - [Siden Parathed](#siden-parathed): Hver modtager i projektet, i én liste.
 - [Mind folk om at gøre opsætningen færdig](#mind-folk-om-at-gøre-opsætningen-færdig): En e-mail, der nævner, hvad der mangler.
+- [Anvend standardrækkefølgen](#anvend-standardrækkefølgen): Projektets standardrækkefølge, for de personer, du vælger.
 - [Brugerens vagttid](#brugerens-vagttid): Hvor længe hver person havde vagt.
 :::
 
@@ -32,6 +33,8 @@ En modtager er enhver, en vagtpolitik kan tilkalde: en person, der er nævnt i e
 
 Et hul er en alvorlighed uden regel, på fanen for hændelser, hændelsesepisoder, advarsler eller advarselsepisoder. En regel, der bevidst slår en alvorlighed fra, er ikke et hul. Et tilkald, der rammer et hul, når alligevel personen på de bekræftede metoder, medmindre projektet har slået den mulighed fra: se [Når ingen regel passer](/docs/notifications/index#når-ingen-regel-passer).
 
+Når projektet beder alle på vagt om en telefonmetode, under **Telefon for folk på vagt**, bliver en modtager uden et bekræftet nummer til sms, telefonopkald eller WhatsApp også markeret med **Ingen telefonmetode**, uanset status, og Opsætningens tilstand nævner vedkommende. Ingen bliver låst ude: et tilkald når dem stadig på de metoder, de har.
+
 ## Siden Parathed
 
 Åbn **Vagt → Parathed**. Kortet **Vagtparathed** viser alle, som en vagtpolitik i projektet kan nå, med dem, der har brug for noget, først. Alle i projektet kan åbne det.
@@ -53,12 +56,24 @@ Over listen tæller felterne **Modtagere**, **Klar**, **Kræver opsætning** og 
 Kun personen selv kan tilføje og bekræfte sine notifikationsmetoder og regler, så løsningen er at bede dem om det.
 
 :::steps
-1. Sæt flueben ved de modtagere, du vil minde, på siden Parathed. Modtagere, der er klar, kan ikke markeres: der er intet at minde dem om.
+1. Sæt flueben ved de modtagere, du vil minde, på siden Parathed. En modtager, der er klar, mindes kun, når vedkommende er markeret med **Ingen telefonmetode**: der er intet andet at minde dem om.
 2. Klik på **Send påmindelse om opsætning**. Bekræftelsen nævner alle, der er ved at få en e-mail.
 3. Bekræft. Hver person får én e-mail, der nævner, hvad der mangler i deres egen opsætning, med et link til den side, hvor de retter det.
 :::
 
 Et banner viser derefter, hvor mange påmindelser der blev sendt, sprunget over eller mislykkedes, og hvorfor for hver, der ikke blev sendt. Ingen mindes mere end én gang på 24 timer, og én omgang minder højst 250 personer. At sende påmindelser kræver **Projektejer**, **Projektadministrator** eller **Vagtadministrator**, eller **Edit On-Call Policy** i en brugerdefineret rolle.
+
+## Anvend standardrækkefølgen
+
+Når projektet har en standardrækkefølge (se [Standardrækkefølgen](/docs/notifications/on-call-rules#standardrækkefølgen)), kan du give den til personer, der allerede har deres egne regler.
+
+:::steps
+1. Sæt flueben ved modtagerne på siden Parathed.
+2. Klik på **Anvend standardrækkefølge**. Bekræftelsen viser rækkefølgen og nævner alle, den ændrer.
+3. Bekræft. Hver persons regler for hver alvorlighed erstattes af rækkefølgen, på de metoder, de har bekræftet.
+:::
+
+En måde, som en person ikke har bekræftet, udelades, og de beholder deres egne trin i stedet; en person, der ikke har bekræftet nogen af rækkefølgens måder, forbliver som før. Et banner viser derefter for hver person, hvad der blev anvendt, eller hvorfor ikke, efter kanal: ingens numre eller adresser vises. Hver person, hvis regler ændredes, får én e-mail, og hver ændring står i projektets revisionslog. At anvende den kræver **Projektejer** eller **Projektadministrator**, eller **Edit User Notification Rules** i en brugerdefineret rolle.
 
 ## Parathed på andre sider
 
@@ -66,6 +81,7 @@ Et banner viser derefter, hvor mange påmindelser der blev sendt, sprunget over 
 - På en politiks **Eskaleringsregler** siger et niveau på sit kort, hvis ikke alle dets modtagere kan tilkaldes. Se [Eskaleringsoversigten](/docs/on-call/escalation-rules#eskaleringsoversigten).
 - Under **Brugere** åbner du et medlem og derefter **Parathed** i sektionen **Vagt**: personens status, metoder og dækningsgitter.
 - Til din egen opsætning guider **Brugerindstillinger → Opsætningstjekliste** dig igennem. Se [Opsætningstjeklisten](/docs/notifications/index#opsætningstjeklisten).
+- Alle i en politik, hvis egen opsætning ikke er færdig, ser **Gør opsætningen af dine notifikationer færdig** i klokken øverst på hver side, som åbner deres opsætningstjekliste.
 
 ## Den ugentlige e-mail om parathed
 

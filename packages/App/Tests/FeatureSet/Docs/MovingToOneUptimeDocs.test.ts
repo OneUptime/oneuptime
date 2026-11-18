@@ -324,6 +324,8 @@ describe.each(AllToolImportSources)(
           "On-Call",
           "On-Call Schedules",
           "Readiness",
+          // The report's test page of a policy it brought over (#7032).
+          "Test this policy",
         );
       } else {
         if (!isToolImportStatusPageHost(definition)) {
@@ -331,7 +333,13 @@ describe.each(AllToolImportSources)(
         }
 
         if (definition.kinds.includes(ToolImportResourceKind.StatusPage)) {
-          names.push("Tick them too", "Status Pages", "Custom Domains");
+          names.push(
+            "Tick them too",
+            "Status Pages",
+            "Custom Domains",
+            // Beside each imported page's address in the report (#7032).
+            "Copy link",
+          );
         }
       }
 
@@ -527,5 +535,153 @@ describe("what the pages promise in English", () => {
         },
       ),
     ).toEqual(["A", "B"]);
+    expect(
+      finishStepsOf(
+        "## A\n:::steps\n### One\nx\n:::\n## Finish\n:::steps\n### Two\ny\n\n### Three\nz\n:::\n",
+      ),
+    ).toEqual([
+      { heading: "Two", body: "y" },
+      { heading: "Three", body: "z" },
+    ]);
+  });
+});
+
+/*
+ * The report's last steps prove the switch works (#7032), and the pages'
+ * Finish the switch says them as the report does: an on-call tool's sends
+ * a test page once everyone can be paged, before the incident numbers;
+ * a status page tool's says, in the step that moves the page to the team's
+ * domain, where each imported page is live until then. Each in every
+ * language, with the step and the button as that language's Dashboard
+ * names them.
+ */
+interface FinishStep {
+  heading: string;
+  body: string;
+}
+
+// The steps of a page's last steps block: Finish the switch.
+function finishStepsOf(markdown: string): Array<FinishStep> {
+  const blocks: Array<string> = markdown.split(":::steps");
+  const last: string = (blocks[blocks.length - 1] || "").split("\n:::")[0]!;
+
+  return last
+    .split("\n### ")
+    .slice(1)
+    .map((part: string): FinishStep => {
+      const [heading, ...rest] = part.split("\n");
+
+      return { heading: heading!.trim(), body: rest.join("\n").trim() };
+    });
+}
+
+describe("Finish the switch ends on the report's next step", () => {
+  const onCallTools: Array<ToolImportSource> = AllToolImportSources.filter(
+    (source: ToolImportSource): boolean => {
+      return (
+        getToolImportSourceDefinition(source).category ===
+        ToolImportCategory.OnCall
+      );
+    },
+  );
+  const statusPageTools: Array<ToolImportSource> = AllToolImportSources.filter(
+    (source: ToolImportSource): boolean => {
+      return getToolImportSourceDefinition(source).kinds.includes(
+        ToolImportResourceKind.StatusPage,
+      );
+    },
+  );
+
+  test("the five on-call tools and the three status page tools have such a step", () => {
+    expect(onCallTools).toEqual([
+      ToolImportSource.OpsGenie,
+      ToolImportSource.PagerDuty,
+      ToolImportSource.IncidentIo,
+      ToolImportSource.SplunkOnCall,
+      ToolImportSource.GrafanaOnCall,
+    ]);
+    expect(statusPageTools).toEqual([
+      ToolImportSource.UptimeRobot,
+      ToolImportSource.AtlassianStatuspage,
+      ToolImportSource.BetterStack,
+    ]);
+  });
+
+  test.each(onCallTools)(
+    "%s: Send a test page comes after making sure everyone can be paged, and names Test this policy, in every language",
+    (source: ToolImportSource) => {
+      for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        const locale: Record<string, string> = readDashboardLocale(lang);
+        const steps: Array<FinishStep> = finishStepsOf(readPage(lang, source));
+        const at: number = steps.findIndex((step: FinishStep): boolean => {
+          return step.heading === locale["Send a test page"];
+        });
+
+        expect({
+          lang,
+          steps: steps.length,
+          at,
+          afterReadiness: (steps[at - 1]?.body || "").includes(
+            `**${locale["Readiness"]}**`,
+          ),
+          button: (steps[at]?.body || "").includes(
+            `**${locale["Test this policy"]}**`,
+          ),
+          says: (steps[at]?.body || "").includes(
+            lang === "en" ? "every message says TEST" : "",
+          ),
+        }).toEqual({
+          lang,
+          steps: 6,
+          at: 2,
+          afterReadiness: true,
+          button: true,
+          says: true,
+        });
+      }
+    },
+  );
+
+  test.each(statusPageTools)(
+    "%s: the step that moves the page to your domain says where it is live until then, with Copy link, in every language",
+    (source: ToolImportSource) => {
+      for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        const locale: Record<string, string> = readDashboardLocale(lang);
+        const domainSteps: Array<FinishStep> = finishStepsOf(
+          readPage(lang, source),
+        ).filter((step: FinishStep): boolean => {
+          return step.body.includes(`**${locale["Custom Domains"]}**`);
+        });
+
+        expect({
+          lang,
+          domainSteps: domainSteps.length,
+          copyLink: (domainSteps[0]?.body || "").includes(
+            `**${locale["Copy link"]}**`,
+          ),
+        }).toEqual({ lang, domainSteps: 1, copyLink: true });
+      }
+
+      expect(
+        finishStepsOf(readPage("en", source)).find((step: FinishStep) => {
+          return step.heading === "Point your status page's address at OneUptime";
+        })?.body,
+      ).toContain(
+        "Until then, the report shows where each page you brought over is live on OneUptime, with **Copy link**.",
+      );
+    },
+  );
+
+  test("a tool that brings no status page or policy says neither", () => {
+    for (const source of [
+      ToolImportSource.Pingdom,
+      ToolImportSource.StatusCake,
+      ToolImportSource.UptimeKuma,
+    ]) {
+      const page: string = readPage("en", source);
+
+      expect(page).not.toContain("**Test this policy**");
+      expect(page).not.toContain("**Copy link**");
+    }
   });
 });

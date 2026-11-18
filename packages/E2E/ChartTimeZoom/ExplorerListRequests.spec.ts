@@ -501,9 +501,12 @@ test.describe("while an explorer waits to know what it shows, every part of it s
       .getByTestId("logs-pagination")
       .getByTestId("pagination-summary");
     await expect(footer).toHaveText("Loading...", { timeout: 30000 });
-    // The list's own loader, in the room its rows will take.
+    /*
+     * The list's own skeleton, in the room its rows will take: its first
+     * rows load as rows (TableSkeleton), no longer a loader bar (#9220).
+     */
     const list: Locator = page.getByTestId("logs-table");
-    await expect(list.getByTestId("component-loader")).toBeVisible();
+    await expect(list.getByTestId("table-skeleton")).toBeVisible();
     expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(192);
     await expect(page.getByText("No logs found")).toHaveCount(0);
     await page.waitForTimeout(SETTLE_MS);

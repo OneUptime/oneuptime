@@ -114,6 +114,14 @@ export enum ProductEventName {
   // How to reach me (#6820): a paging ladder saved, and the grid opened.
   PagingLadderSaved = "paging_ladder/saved",
   PagingLadderGridOpened = "paging_ladder/grid_opened",
+  /*
+   * The project's default ladder (#7449) saved, and applied to members from
+   * On-Call Readiness (#7450).
+   */
+  PagingLadderDefaultSaved = "paging_ladder/default_saved",
+  PagingLadderDefaultApplied = "paging_ladder/default_applied",
+  // A person's own steps filled with the project's default (#9445).
+  PagingLadderStartedFromDefault = "paging_ladder/started_from_default",
 
   // "Used by" (#6813): the full list of what refers to a record was opened.
   UsedByListOpened = "used_by/list_opened",
@@ -350,8 +358,9 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   },
   {
     name: ProductEventName.GuidedSetupStarted,
-    description: "A guided setup was opened.",
-    properties: [token("setup")],
+    description:
+      "A guided setup was opened, and where from when the way in names itself (from: empty_list, how_it_works, create_monitor, website_down_summary).",
+    properties: [token("setup"), token("from")],
   },
   {
     name: ProductEventName.GuidedSetupStepReached,
@@ -466,6 +475,33 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       "The per-severity grid behind a paging ladder was opened on How to Reach Me, and how many cards differed from the ladder then.",
     properties: [{ name: "is_own" }, { name: "differing_card_count" }],
+  },
+  {
+    name: ProductEventName.PagingLadderDefaultSaved,
+    description:
+      "The project's default ladder for new members was saved in Project Settings > Notifications > Notification Channels: how many steps it has (0: turned off).",
+    properties: [{ name: "step_count" }],
+  },
+  {
+    name: ProductEventName.PagingLadderDefaultApplied,
+    description:
+      "The project's default ladder was applied from On-Call Readiness to the members picked: how many were picked, and how many got it, were skipped or failed.",
+    properties: [
+      { name: "member_count" },
+      { name: "applied_count" },
+      { name: "skipped_count" },
+      { name: "failed_count" },
+    ],
+  },
+  {
+    name: ProductEventName.PagingLadderStartedFromDefault,
+    description:
+      "Start From the Project's Default filled a paging ladder on How to Reach Me with the project's default, before it was saved: by the person or for a member, how many steps it gave, and how many of the default's channels it left out as not verified.",
+    properties: [
+      { name: "is_own" },
+      { name: "step_count" },
+      { name: "left_out_count" },
+    ],
   },
   {
     name: ProductEventName.UsedByListOpened,

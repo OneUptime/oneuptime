@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -41,9 +42,18 @@ const api: Record<string, MockFunction> = {
   isMonitorOwner: getJestMockFunction(),
   ensureMonitorOwner: getJestMockFunction(),
   needsPaymentMethod: getJestMockFunction(),
+  findOtherMonitor: getJestMockFunction(),
+  loadDefaultLocationCount: getJestMockFunction(),
+  loadStatusPages: getJestMockFunction(),
+  findStatusPageShowing: getJestMockFunction(),
+  addToStatusPage: getJestMockFunction(),
 };
 let mayCreateMonitor: boolean = true;
 let mayAddPaymentMethod: boolean = true;
+// Step 4 (#7053), the on-call setup (#7370) and the status page setup's link.
+let mayAddToStatusPage: boolean = true;
+let mayUseOnCallSetup: boolean = true;
+let mayCreateStatusPage: boolean = true;
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi",
@@ -63,6 +73,11 @@ jest.mock(
       "isMonitorOwner",
       "ensureMonitorOwner",
       "needsPaymentMethod",
+      "findOtherMonitor",
+      "loadDefaultLocationCount",
+      "loadStatusPages",
+      "findStatusPageShowing",
+      "addToStatusPage",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
@@ -83,7 +98,27 @@ jest.mock(
       mayAddPaymentMethod: (): boolean => {
         return mayAddPaymentMethod;
       },
+      mayAddToStatusPage: (): boolean => {
+        return mayAddToStatusPage;
+      },
+      mayUseOnCallSetup: (): boolean => {
+        return mayUseOnCallSetup;
+      },
       isPaymentRequired: actual["isPaymentRequired"],
+    };
+  },
+);
+
+// Whether the person may make a status page: the summary's offer of its setup.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {},
+      mayCreateStatusPage: (): boolean => {
+        return mayCreateStatusPage;
+      },
     };
   },
 );
@@ -308,6 +343,13 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { STATUS_PAGE_URL } from "../../../UI/Config";
+import Route from "../../../Types/API/Route";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006804";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -494,6 +536,23 @@ const sent: (name: ProductEventName) => Array<Record<string, unknown>> = (
     });
 };
 
+/*
+ * Step 2's note on the policy it makes, as drawn: the Glossary's word for an
+ * on-call policy is a defined term inside it (#7057).
+ */
+const POLICY_NOTE: string =
+  'This makes the on-call policy "Default on-call policy", which pages them for every new incident and alert in this project.';
+
+const policyNote: () => string = (): string => {
+  return withoutIsolateMarks(
+    screen.getByTestId("guided-setup-who-policy-note").textContent || "",
+  );
+};
+
+// Step 2's help, its How to Reach Me a link (#7757).
+const WHO_CREATE_HELP: string =
+  "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.";
+
 const typeAddress: (text: string) => void = (text: string): void => {
   fireEvent.change(screen.getByTestId("guided-setup-address"), {
     target: { value: text },
@@ -518,6 +577,9 @@ beforeEach(() => {
   window.localStorage.clear();
   mayCreateMonitor = true;
   mayAddPaymentMethod = true;
+  mayAddToStatusPage = true;
+  mayUseOnCallSetup = true;
+  mayCreateStatusPage = true;
   canSendEmail = true;
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -556,6 +618,14 @@ beforeEach(() => {
   api["ensureMonitorOwner"]!.mockResolvedValue(true);
   // Not Cloud's Free plan without a card, as most projects are not.
   api["needsPaymentMethod"]!.mockResolvedValue(false);
+  // Nobody else's monitor checks the address (#7254).
+  api["findOtherMonitor"]!.mockResolvedValue(null);
+  // A new monitor starts with two probes (#7461).
+  api["loadDefaultLocationCount"]!.mockResolvedValue(2);
+  // A new project: no status page yet, so no step 4 (#7053).
+  api["loadStatusPages"]!.mockResolvedValue([]);
+  api["findStatusPageShowing"]!.mockResolvedValue(null);
+  api["addToStatusPage"]!.mockResolvedValue(undefined);
   getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Acknowledged));
   getWhoIsToldMock.mockResolvedValue(WHO_IS_TOLD);
 });
@@ -795,11 +865,7 @@ describe("2. Who should be told?", () => {
     expect(screen.getByTestId("picked")).toHaveTextContent(
       JSON.stringify({ user: [USER_ID] }),
     );
-    expect(
-      screen.getByText(
-        'This makes the on-call policy "Default on-call policy", which pages them for every new incident and alert in this project.',
-      ),
-    ).toBeInTheDocument();
+    expect(policyNote()).toBe(POLICY_NOTE);
 
     await press("guided-setup-who-continue");
 
@@ -1087,25 +1153,6 @@ describe("the summary", () => {
       monitorId: MONITOR_ID,
       userId: USER_ID,
     });
-  });
-
-  test("offers what to do next", async () => {
-    keepRun({
-      monitorId: MONITOR_ID,
-      policyId: POLICY_ID,
-      testExecutionLogId: "log-1",
-    });
-    await renderSetup();
-
-    expect(
-      screen.getByText(WEBSITE_DOWN_COPY.nextStatusPage).closest("a"),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/status-pages/setup`);
-    expect(
-      screen.getByText(WEBSITE_DOWN_COPY.nextMonitor).closest("a"),
-    ).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/monitors/${MONITOR_ID}`,
-    );
   });
 
   test("Check another address starts a new run, the last one's records kept", async () => {
@@ -2608,11 +2655,7 @@ describe("the run's policy deleted in another tab or by a teammate (#8235)", () 
       // The project's policies were counted again: making one is offered.
       expect(api["loadWhoIsToldFacts"]).toHaveBeenCalledTimes(2);
       expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'This makes the on-call policy "Default on-call policy", which pages them for every new incident and alert in this project.',
-        ),
-      ).toBeInTheDocument();
+      expect(policyNote()).toBe(POLICY_NOTE);
       expect(screen.getByTestId("guided-setup-who-continue")).toHaveTextContent(
         WEBSITE_DOWN_COPY.whoSave,
       );
@@ -2639,7 +2682,7 @@ describe("the run's policy deleted in another tab or by a teammate (#8235)", () 
 
       expect(screen.getByTestId("guided-setup-who-region")).toBe(region);
       expect(region).toHaveTextContent(DELETED);
-      expect(region).toHaveTextContent(WEBSITE_DOWN_COPY.whoCreateHelp);
+      expect(region).toHaveTextContent(WHO_CREATE_HELP);
       // Why first, then what to do.
       expect(region.firstElementChild).toBe(
         screen.getByTestId("guided-setup-policy-deleted"),
@@ -3496,5 +3539,694 @@ describe("a project that pages people already: the summary names who is told", (
       ).toHaveTextContent('"Default on-call policy" pages Ada Lovelace');
     });
     expect(getWhoIsToldMock).not.toHaveBeenCalled();
+  });
+});
+
+// A Dashboard page's address in this project, as the page builds it.
+const routeTo: (page: PageMap, modelId?: string) => string = (
+  page: PageMap,
+  modelId?: string,
+): string => {
+  return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
+    modelId: modelId,
+  }).toString();
+};
+
+// The defined terms a part of the page marks, by their Glossary anchor.
+const markedTerms: (element: HTMLElement) => Array<string> = (
+  element: HTMLElement,
+): Array<string> => {
+  return Array.from(
+    element.querySelectorAll('[data-testid="defined-term"]'),
+  ).map((term: Element): string => {
+    return term.getAttribute("data-glossary-term") || "";
+  });
+};
+
+/*
+ * A part's words as drawn, isolate marks out and the no-break space that
+ * holds a number to its unit ("5 minutes") read as a space.
+ */
+const textOf: (testId: string) => string = (testId: string): string => {
+  return withoutIsolateMarks(
+    screen.getByTestId(testId).textContent || "",
+  ).replace(/[\u00A0\u202F]/g, " ");
+};
+
+/*
+ * STEP 1 SAYS FROM HOW MANY LOCATIONS (#7461): it promised "several
+ * locations" on a server with one probe. The number is the probes a new
+ * monitor starts with, read before anything is made.
+ */
+describe("1. From how many locations it is checked (#7461)", () => {
+  test("a server with one probe: from 1 location, never several", async () => {
+    api["loadDefaultLocationCount"]!.mockResolvedValue(1);
+    await renderSetup();
+
+    // The regression (#7461): what the open step says, whatever draws it.
+    expect(textOf("guided-setup-step-check-content")).toContain(
+      "from 1 location.",
+    );
+    expect(textOf("guided-setup-step-check-content")).not.toMatch(/several/i);
+    expect(textOf("guided-setup-check-help")).toBe(
+      "OneUptime makes a monitor that checks it every 5 minutes from 1 location. An incident opens when that location finds it down: no answer, or an answer with an error.",
+    );
+    expect(textOf("guided-setup-check-help")).not.toMatch(/several/i);
+  });
+
+  test("three probes: from 3 locations, and all of them must find it down", async () => {
+    api["loadDefaultLocationCount"]!.mockResolvedValue(3);
+    await renderSetup();
+
+    expect(textOf("guided-setup-check-help")).toBe(
+      "OneUptime makes a monitor that checks it every 5 minutes from 3 locations. An incident opens when all of them find it down: no answer, or an answer with an error.",
+    );
+  });
+
+  test("a number that could not be read: none is said, and nothing is guessed", async () => {
+    api["loadDefaultLocationCount"]!.mockResolvedValue(null);
+    await renderSetup();
+
+    expect(textOf("guided-setup-check-help")).toBe(
+      "OneUptime makes a monitor that checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.",
+    );
+  });
+
+  test("the number and the first check agree", async () => {
+    await renderSetup();
+
+    expect(textOf("guided-setup-check-help")).toContain("from 2 locations");
+
+    typeAddress("acme.example");
+    await startChecking();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+        "from 2 locations",
+      );
+    });
+  });
+
+  test("read only while step 1 is the one to do", async () => {
+    keepRun({ monitorId: MONITOR_ID });
+    await renderSetup();
+
+    expect(api["loadDefaultLocationCount"]).not.toHaveBeenCalled();
+  });
+
+  test("Check another address reads it again", async () => {
+    keepRun({
+      monitorId: MONITOR_ID,
+      policyId: POLICY_ID,
+      testExecutionLogId: "log-1",
+    });
+    await renderSetup();
+    api["loadDefaultLocationCount"]!.mockResolvedValue(1);
+    await press("guided-setup-start-over");
+
+    await waitFor(() => {
+      expect(textOf("guided-setup-check-help")).toContain("from 1 location.");
+    });
+  });
+});
+
+/*
+ * THE GLOSSARY'S WORDS (#7057): monitor and incident where step 1 first
+ * says them, on-call policy where step 2 makes one - three on the page,
+ * each once. The step-by-step guide beside the progress line is the
+ * setup's Learn more.
+ */
+describe("the Glossary's words, marked where the setup first uses them (#7057)", () => {
+  test("monitor and incident in step 1's help", async () => {
+    await renderSetup();
+
+    expect(markedTerms(screen.getByTestId("guided-setup-check-help"))).toEqual([
+      "monitor",
+      "incident",
+    ]);
+  });
+
+  test("on-call policy where step 2 says it makes one", async () => {
+    await toWhoIsTold();
+
+    expect(
+      markedTerms(screen.getByTestId("guided-setup-who-policy-note")),
+    ).toEqual(["on-call-policy"]);
+    // Each word once: step 1 is folded to its line now.
+    expect(markedTerms(screen.getByTestId("guided-setup"))).toEqual([
+      "on-call-policy",
+    ]);
+  });
+
+  test("the marked words read as the sentence: one word each, nothing added", async () => {
+    await renderSetup();
+
+    const words: Array<string> = Array.from(
+      screen
+        .getByTestId("guided-setup-check-help")
+        .querySelectorAll('[data-testid="defined-term"]'),
+    ).map((term: Element): string => {
+      return term.textContent || "";
+    });
+
+    expect(words).toEqual(["monitor", "incident"]);
+  });
+});
+
+/*
+ * HOW TO REACH ME, ONE CLICK AWAY (#7757): step 2 named it as a place
+ * nobody could find. It links the person's own, in a new tab, so the
+ * setup keeps its place and the people picked.
+ */
+describe("2. How to Reach Me, one click away (#7757)", () => {
+  test("links the person's own How to Reach Me, in a new tab", async () => {
+    await toWhoIsTold();
+
+    // The regression (#7757): the words were there, as plain text.
+    const link: HTMLElement = within(
+      screen.getByTestId("guided-setup-step-who_is_told-content"),
+    ).getByRole("link", { name: "How to Reach Me" });
+
+    expect(link).toBe(screen.getByTestId("guided-setup-how-to-reach-me"));
+
+    expect(link.tagName).toBe("A");
+    expect(link).toHaveTextContent("How to Reach Me");
+    expect(link).toHaveAttribute(
+      "href",
+      routeTo(PageMap.USER_SETTINGS_ON_CALL_RULES),
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(textOf("guided-setup-who-create-help")).toBe(WHO_CREATE_HELP);
+  });
+
+  test("opening it leaves the step as it was: nothing saved, the people kept", async () => {
+    await toWhoIsTold();
+    await act(async () => {
+      fireEvent.click(screen.getByText("Add Grace and Platform"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("guided-setup-how-to-reach-me"));
+    });
+
+    expect(stepState("who_is_told")).toBe("open");
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.getByTestId("picked")).toHaveTextContent("user-grace");
+  });
+});
+
+/*
+ * A MONITOR SOMEONE ELSE MADE ALREADY CHECKS THE ADDRESS (#7254): a
+ * teammate's, or one the API, Terraform or an import made. Said before
+ * anything is made, never taken over, and never one the person may not
+ * read.
+ */
+describe("1. A monitor someone else made already checks the address (#7254)", () => {
+  const GRACES_MONITOR_ID: string = "50000000-0000-4000-8000-000000000099";
+
+  const gracesMonitor: (creatorName?: string) => {
+    id: string;
+    name: string;
+    creatorName: string;
+    isOwn: boolean;
+    record: WebsiteDownMonitorRecord;
+  } = (
+    creatorName: string = "Grace Hopper",
+  ): {
+    id: string;
+    name: string;
+    creatorName: string;
+    isOwn: boolean;
+    record: WebsiteDownMonitorRecord;
+  } => {
+    return {
+      id: GRACES_MONITOR_ID,
+      name: "Acme storefront",
+      creatorName: creatorName,
+      isOwn: false,
+      record: { ...MONITOR, id: GRACES_MONITOR_ID, name: "Acme storefront" },
+    };
+  };
+
+  const checkTeammatesAddress: () => Promise<void> =
+    async (): Promise<void> => {
+      api["findOtherMonitor"]!.mockResolvedValue(gracesMonitor());
+      await renderSetup();
+      typeAddress("acme.example");
+      await startChecking();
+    };
+
+  test("said before anything is made: its name, who made it, and the two ways on", async () => {
+    await checkTeammatesAddress();
+
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({});
+    expect(stepState("check")).toBe("open");
+    expect(textOf("guided-setup-other-monitor-sentence")).toBe(
+      'The monitor "Acme storefront" already checks this address. Grace Hopper made it.',
+    );
+    expect(screen.getByTestId("guided-setup-other-monitor")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.otherMonitorChoice,
+    );
+    expect(screen.getByTestId("guided-setup-other-monitor")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
+
+    const open: HTMLElement = screen.getByTestId(
+      "guided-setup-open-other-monitor",
+    );
+
+    expect(open).toHaveTextContent(WEBSITE_DOWN_COPY.nextMonitor);
+    expect(open).toHaveAttribute(
+      "href",
+      routeTo(PageMap.MONITOR_VIEW, GRACES_MONITOR_ID),
+    );
+    expect(open).toHaveAttribute("target", "_blank");
+    expect(
+      screen.getByTestId("guided-setup-create-own-monitor"),
+    ).toHaveTextContent(WEBSITE_DOWN_COPY.createOwnMonitor);
+    // Start checking would only say it again.
+    expect(screen.queryByTestId("guided-setup-start-checking")).toBeNull();
+  });
+
+  test("looked for only after this person's own, with the address typed and who they are", async () => {
+    await checkTeammatesAddress();
+
+    expect(api["findOtherMonitor"]).toHaveBeenCalledWith({
+      address: {
+        url: "https://acme.example",
+        host: "acme.example",
+        monitorName: "acme.example",
+      },
+      userId: USER_ID,
+    });
+    expect(api["findOwnMonitor"]!.mock.invocationCallOrder[0]!).toBeLessThan(
+      api["findOtherMonitor"]!.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("one the API, Terraform or an import made: its name, and nobody named", async () => {
+    api["findOtherMonitor"]!.mockResolvedValue(gracesMonitor(""));
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(textOf("guided-setup-other-monitor-sentence")).toBe(
+      'The monitor "Acme storefront" already checks this address.',
+    );
+  });
+
+  test("Create my own monitor makes one beside it, once, and the setup goes on with it", async () => {
+    await checkTeammatesAddress();
+    await press("guided-setup-create-own-monitor");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    // The teammate's is not asked about again: the person chose.
+    expect(api["findOtherMonitor"]).toHaveBeenCalledTimes(1);
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+    expect(screen.queryByTestId("guided-setup-other-monitor")).toBeNull();
+    expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-first-check")).toHaveTextContent(
+        "acme.example answered 200",
+      );
+    });
+  });
+
+  test("Open the monitor makes nothing: the teammate's monitor is never this run's", async () => {
+    await checkTeammatesAddress();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("guided-setup-open-other-monitor"));
+    });
+
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(api["ensureMonitorOwner"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({});
+  });
+
+  test("this person's own wins: theirs is used, and the project's are not asked", async () => {
+    api["findOwnMonitor"]!.mockResolvedValue(MONITOR);
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(api["findOtherMonitor"]).not.toHaveBeenCalled();
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("guided-setup-existing-monitor"),
+    ).toBeInTheDocument();
+  });
+
+  test("one of theirs the project's read found is theirs: the setup goes on with it", async () => {
+    api["findOtherMonitor"]!.mockResolvedValue({
+      ...gracesMonitor("Ada Lovelace"),
+      isOwn: true,
+      record: MONITOR,
+    });
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+    expect(
+      screen.getByTestId("guided-setup-existing-monitor"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("guided-setup-other-monitor")).toBeNull();
+  });
+
+  /*
+   * A monitor the person may not read is never handed to the page: the
+   * server leaves it out of the list (WebsiteDownApi.findOtherMonitor), so
+   * the look-up finds none and nothing says one exists.
+   */
+  test("a monitor this person may not read is never mentioned, not even that one exists", async () => {
+    api["findOtherMonitor"]!.mockResolvedValue(null);
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(screen.queryByTestId("guided-setup-other-monitor")).toBeNull();
+    expect(document.body.textContent).not.toContain("already checks");
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+  });
+
+  test("another address forgets it: Start checking comes back", async () => {
+    await checkTeammatesAddress();
+    typeAddress("status.acme.example");
+
+    expect(screen.queryByTestId("guided-setup-other-monitor")).toBeNull();
+    expect(
+      screen.getByTestId("guided-setup-start-checking"),
+    ).toBeInTheDocument();
+  });
+
+  test("a look-up that fails makes nothing on a guess, says why, and the step stays open", async () => {
+    api["findOtherMonitor"]!.mockRejectedValue(new Error("offline"));
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(stepState("check")).toBe("open");
+  });
+});
+
+/*
+ * WHAT NEXT, EACH FOR WHOEVER MAY DO IT: paging by SMS or phone opens the
+ * on-call guided setup (#7370), and a project with no status page is
+ * offered the status page setup with this monitor ticked (#7053).
+ */
+describe("the summary's what next, each for whoever may do it (#7370, #7053)", () => {
+  const toSummary: () => Promise<void> = async (): Promise<void> => {
+    keepRun({
+      monitorId: MONITOR_ID,
+      policyId: POLICY_ID,
+      testExecutionLogId: "log-1",
+    });
+    await renderSetup();
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  };
+
+  test("Get paged by SMS or phone call opens the on-call guided setup, saying where from", async () => {
+    await toSummary();
+
+    // The regression (#7370): the same words opened Notification Methods.
+    const link: HTMLElement = screen
+      .getByText(WEBSITE_DOWN_COPY.nextPhone)
+      .closest("a")!;
+
+    expect(link).toHaveAttribute(
+      "href",
+      `${routeTo(PageMap.ON_CALL_DUTY_GUIDED_SETUP)}?from=website_down_summary`,
+    );
+    expect(link).toBe(screen.getByTestId("guided-setup-next-phone"));
+    expect(link).toHaveTextContent(WEBSITE_DOWN_COPY.nextPhone);
+  });
+
+  test("someone who may not create an on-call policy adds a number to their notification methods", async () => {
+    mayUseOnCallSetup = false;
+    await toSummary();
+
+    expect(screen.getByTestId("guided-setup-next-phone")).toHaveAttribute(
+      "href",
+      routeTo(PageMap.USER_SETTINGS_NOTIFICATION_METHODS),
+    );
+  });
+
+  test("no status page yet: the status page setup, with this monitor ticked", async () => {
+    await toSummary();
+
+    const link: HTMLElement = screen.getByTestId(
+      "guided-setup-next-status-page",
+    );
+
+    expect(link).toHaveTextContent(WEBSITE_DOWN_COPY.nextStatusPage);
+    expect(link).toHaveAttribute(
+      "href",
+      `${routeTo(PageMap.STATUS_PAGES_GUIDED_SETUP)}?monitorId=${MONITOR_ID}&from=website_down_summary`,
+    );
+    expect(
+      screen.queryByTestId("guided-setup-next-open-status-page"),
+    ).toBeNull();
+  });
+
+  test("someone who may not make a status page is not offered its setup", async () => {
+    mayCreateStatusPage = false;
+    await toSummary();
+
+    expect(screen.queryByTestId("guided-setup-next-status-page")).toBeNull();
+    expect(screen.getByTestId("guided-setup-next-phone")).toBeInTheDocument();
+  });
+
+  test("the monitor's own page, as before", async () => {
+    await toSummary();
+
+    expect(
+      screen.getByText(WEBSITE_DOWN_COPY.nextMonitor).closest("a"),
+    ).toHaveAttribute("href", routeTo(PageMap.MONITOR_VIEW, MONITOR_ID));
+  });
+});
+
+/*
+ * STEP 4, SHOW IT TO CUSTOMERS? (#7053): optional, and only where it can
+ * be done - someone who may put a monitor on a status page, in a project
+ * with one. A project with none keeps three steps, so a newcomer's job is
+ * no longer.
+ */
+describe("4. Show it to customers? (#7053)", () => {
+  const PAGES: Array<{ id: string; name: string }> = [
+    { id: "70000000-0000-4000-8000-000000000001", name: "Acme Status" },
+    { id: "70000000-0000-4000-8000-000000000002", name: "Internal Status" },
+  ];
+
+  const tested: Record<string, unknown> = {
+    monitorId: MONITOR_ID,
+    policyId: POLICY_ID,
+    testExecutionLogId: "log-1",
+  };
+
+  const toStatusPageStep: () => Promise<void> = async (): Promise<void> => {
+    api["loadStatusPages"]!.mockResolvedValue(PAGES);
+    keepRun(tested);
+    await renderSetup();
+    expect(stepState("status_page")).toBe("open");
+  };
+
+  test("a project with a status page: a fourth step after the test, and the summary waits for it", async () => {
+    await toStatusPageStep();
+
+    expect(screen.getByTestId("guided-setup-progress")).toHaveTextContent(
+      "3 of 4 steps done",
+    );
+    expect(
+      screen.getByText(WEBSITE_DOWN_COPY.statusPageTitle),
+    ).toBeInTheDocument();
+    expect(textOf("guided-setup-step-status_page-content")).toContain(
+      'Add "acme.example" to a status page, so your customers see when it is down.',
+    );
+    expect(
+      screen.getByTestId("guided-setup-outcome-status_page"),
+    ).toHaveTextContent(WEBSITE_DOWN_COPY.statusPageOutcome);
+    expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+    expect(api["loadStatusPages"]).toHaveBeenCalledTimes(1);
+  });
+
+  test("optional: the setup was finished at the acknowledged test", async () => {
+    await toStatusPageStep();
+
+    expect(sent(ProductEventName.GuidedSetupFinished)).toHaveLength(1);
+  });
+
+  test("Add to status page puts it on the page picked, and the summary says so, with its link", async () => {
+    await toStatusPageStep();
+    await press("guided-setup-status-page-add");
+
+    expect(api["addToStatusPage"]).toHaveBeenCalledWith({
+      statusPageId: PAGES[0]!.id,
+      monitorId: MONITOR_ID,
+      monitorName: "acme.example",
+    });
+    expect(storedRun()).toEqual({ ...tested, statusPageId: PAGES[0]!.id });
+    expect(stepState("status_page")).toBe("done");
+    expect(textOf("guided-setup-step-status_page-done-line")).toBe(
+      '"Acme Status" shows it to your customers.',
+    );
+    expect(textOf("guided-setup-summary-status_page")).toContain(
+      '"Acme Status" shows it to your customers.',
+    );
+
+    const open: HTMLElement = screen.getByTestId(
+      "guided-setup-next-open-status-page",
+    );
+
+    expect(open).toHaveTextContent(WEBSITE_DOWN_COPY.nextOpenStatusPage);
+    expect(open).toHaveAttribute(
+      "href",
+      `${STATUS_PAGE_URL.toString()}/${PAGES[0]!.id}`,
+    );
+    expect(open).toHaveAttribute("target", "_blank");
+    // On a page already: its setup is not offered.
+    expect(screen.queryByTestId("guided-setup-next-status-page")).toBeNull();
+  });
+
+  test("another page picked: the monitor goes on that one", async () => {
+    await toStatusPageStep();
+
+    const picker: HTMLElement = within(
+      screen.getByTestId("guided-setup-step-status_page-content"),
+    ).getByRole("combobox");
+
+    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
+    await act(async () => {
+      fireEvent.click(
+        await screen.findByRole("option", { name: "Internal Status" }),
+      );
+    });
+    await press("guided-setup-status-page-add");
+
+    expect(api["addToStatusPage"]).toHaveBeenCalledWith({
+      statusPageId: PAGES[1]!.id,
+      monitorId: MONITOR_ID,
+      monitorName: "acme.example",
+    });
+  });
+
+  test("Not now: nothing is added, the summary opens, and it stays so on return", async () => {
+    await toStatusPageStep();
+    await press("guided-setup-status-page-not-now");
+
+    expect(api["addToStatusPage"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({ ...tested, statusPageSkipped: true });
+    expect(stepState("status_page")).toBe("done");
+    expect(textOf("guided-setup-step-status_page-done-line")).toBe("Not now");
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+    expect(screen.queryByTestId("guided-setup-summary-status_page")).toBeNull();
+
+    cleanup();
+    await renderSetup();
+
+    expect(stepState("status_page")).toBe("done");
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  });
+
+  test("a monitor a page shows already: the step is done, and nothing is added twice", async () => {
+    api["loadStatusPages"]!.mockResolvedValue(PAGES);
+    api["findStatusPageShowing"]!.mockResolvedValue(PAGES[1]);
+    keepRun(tested);
+    await renderSetup();
+
+    expect(stepState("status_page")).toBe("done");
+    expect(textOf("guided-setup-step-status_page-done-line")).toBe(
+      '"Internal Status" shows it to your customers.',
+    );
+    expect(api["addToStatusPage"]).not.toHaveBeenCalled();
+    expect(api["findStatusPageShowing"]).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      statusPages: PAGES,
+      preferredStatusPageId: undefined,
+    });
+  });
+
+  test("on return, the run's page is read first; one that no longer shows it opens the step again", async () => {
+    api["loadStatusPages"]!.mockResolvedValue(PAGES);
+    keepRun({ ...tested, statusPageId: PAGES[1]!.id });
+    await renderSetup();
+
+    expect(api["findStatusPageShowing"]).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      statusPages: PAGES,
+      preferredStatusPageId: PAGES[1]!.id,
+    });
+    expect(stepState("status_page")).toBe("open");
+  });
+
+  test("a page it could not be added to: says why, and the step stays open", async () => {
+    api["addToStatusPage"]!.mockRejectedValue(
+      new Error("Status page not found."),
+    );
+    await toStatusPageStep();
+    await press("guided-setup-status-page-add");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Status page not found.",
+    );
+    expect(stepState("status_page")).toBe("open");
+    expect(storedRun()).toEqual(tested);
+  });
+
+  test("skipping the test leads to it too", async () => {
+    api["loadStatusPages"]!.mockResolvedValue(PAGES);
+    await toTest();
+    await press("guided-setup-skip-test");
+
+    expect(stepState("status_page")).toBe("open");
+  });
+
+  test("a monitor of theirs found at step 1 that a page shows: step 4 done before it is reached", async () => {
+    api["loadStatusPages"]!.mockResolvedValue(PAGES);
+    api["findOwnMonitor"]!.mockResolvedValue(MONITOR);
+    api["findStatusPageShowing"]!.mockResolvedValue(PAGES[0]);
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(api["findStatusPageShowing"]).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      statusPages: PAGES,
+    });
+  });
+
+  test("someone who may not put a monitor on a status page: three steps, and no page is read", async () => {
+    mayAddToStatusPage = false;
+    api["loadStatusPages"]!.mockResolvedValue(PAGES);
+    keepRun(tested);
+    await renderSetup();
+
+    expect(api["loadStatusPages"]).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("guided-setup-step-status_page")).toBeNull();
+    expect(screen.getByTestId("guided-setup-progress")).toHaveTextContent(
+      "3 of 3 steps done",
+    );
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  });
+
+  test("a project with no status page: three steps, so the job is no longer", async () => {
+    keepRun(tested);
+    await renderSetup();
+
+    expect(screen.queryByTestId("guided-setup-step-status_page")).toBeNull();
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  });
+
+  test("status pages that cannot be read: no fourth step, as no page would", async () => {
+    api["loadStatusPages"]!.mockRejectedValue(new Error("offline"));
+    keepRun(tested);
+    await renderSetup();
+
+    expect(screen.queryByTestId("guided-setup-step-status_page")).toBeNull();
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
   });
 });

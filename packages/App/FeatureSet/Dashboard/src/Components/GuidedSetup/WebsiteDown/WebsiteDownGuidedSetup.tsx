@@ -1,37 +1,62 @@
 import WebsiteDownApi, {
   FirstCheckState,
+  WebsiteDownFoundMonitor,
   WebsiteDownMonitorRecord,
+  WebsiteDownOtherMonitor,
   WebsiteDownPolicyRecord,
   isPaymentRequired,
   mayAddPaymentMethod,
+  mayAddToStatusPage,
   mayCreateMonitor,
+  mayUseOnCallSetup,
 } from "./WebsiteDownApi";
 import {
   FirstCheckSentence,
   WEBSITE_DOWN_COPY,
   WEBSITE_DOWN_SETUP,
   WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
+  WEBSITE_DOWN_TERMS,
   WebsiteAddress,
   WebsiteDownProgressFacts,
   WebsiteDownRunValue,
+  WebsiteDownStatusPageChoice,
   WebsiteDownStep,
   WebsiteDownSummaryRow,
   WhoIsToldFacts,
   WhoIsToldMode,
   areWhoIsToldCountsKnown,
   describeFirstCheck,
+  getCheckHelpTemplate,
   getIncidentSeverityId,
   getMonitorAddress,
+  getOtherMonitorSentence,
+  getPagedByPhonePage,
   getPaymentNeededText,
+  getStatusPageShownSentence,
   getWebsiteDownProgress,
   getWebsiteDownSummaryRows,
   getWhoIsToldDoneLine,
   getWhoIsToldHelp,
   getWhoIsToldMode,
+  hasStatusPageStep,
   isFirstCheckSettled,
+  isStatusPageSetupOffered,
   isWebsiteDownFinished,
   parseWebsiteAddress,
 } from "./WebsiteDownSetup";
+import { mayCreateStatusPage } from "../StatusPage/StatusPageSetupApi";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import { STATUS_PAGE_URL } from "Common/UI/Config";
+import {
+  GuidedSetupEntryPoint,
+  withGuidedSetupEntryPoint,
+} from "Common/UI/Utils/GuidedSetupEvents";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
@@ -83,7 +108,7 @@ import {
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
@@ -202,6 +227,18 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
    * setup makes them one when the server does not, #7409). Null until read.
    */
   const [isOwner, setIsOwner] = useState<boolean | null>(null);
+  /*
+   * How many locations a monitor made now would be checked from, read when
+   * step 1 is the one to do (#7461). Null until read, or when it cannot be.
+   */
+  const [locationCount, setLocationCount] = useState<number | null>(null);
+  /*
+   * A monitor this person may read but did not make checks the address
+   * typed (#7254): said, with the way to open it or make one's own, until
+   * the address changes.
+   */
+  const [otherMonitor, setOtherMonitor] =
+    useState<WebsiteDownOtherMonitor | null>(null);
 
   // Step 2's people: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
@@ -222,10 +259,28 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const [showNotReceivedHelp, setShowNotReceivedHelp] =
     useState<boolean>(false);
 
+  /*
+   * Step 4 (#7053): the project's status pages, read when the page opens
+   * for someone who may put a monitor on one; the one that shows the
+   * monitor, read from the records; and the one picked.
+   */
+  const [statusPages, setStatusPages] = useState<
+    Array<WebsiteDownStatusPageChoice>
+  >([]);
+  const [statusPageShowing, setStatusPageShowing] =
+    useState<WebsiteDownStatusPageChoice | null>(null);
+  const [pickedStatusPageId, setPickedStatusPageId] = useState<string>("");
+
   const executionLogId: string =
     typeof run[WebsiteDownRunValue.TestExecutionLogId] === "string"
       ? (run[WebsiteDownRunValue.TestExecutionLogId] as string)
       : "";
+
+  // The run walks step 4 only where it can be done (#7053).
+  const walksStatusPageStep: boolean = hasStatusPageStep({
+    mayAddToStatusPage: mayAddToStatusPage(),
+    statusPages: statusPages,
+  });
 
   const facts: WebsiteDownProgressFacts = {
     hasMonitor: Boolean(monitor),
@@ -233,6 +288,9 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       Boolean(policy) || run[WebsiteDownRunValue.WhoIsToldConfirmed] === true,
     testStatus: testResult?.status || null,
     isTestSkipped: run[WebsiteDownRunValue.TestSkipped] === true,
+    hasStatusPageStep: walksStatusPageStep,
+    isOnStatusPage: Boolean(statusPageShowing),
+    isStatusPageSkipped: run[WebsiteDownRunValue.StatusPageSkipped] === true,
   };
 
   const progress: ReturnType<typeof getWebsiteDownProgress> =
@@ -319,10 +377,20 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         });
       }
 
-      const [loadedWhoFacts, loadedIsOwner, loadedNeedsPayment]: [
+      const mayAddPage: boolean = mayAddToStatusPage();
+
+      const [
+        loadedWhoFacts,
+        loadedIsOwner,
+        loadedNeedsPayment,
+        loadedLocationCount,
+        loadedStatusPages,
+      ]: [
         WhoIsToldFacts,
         boolean | null,
         boolean,
+        number | null,
+        Array<WebsiteDownStatusPageChoice>,
       ] = await Promise.all([
         WebsiteDownApi.loadWhoIsToldFacts(),
         loadedMonitor
@@ -335,7 +403,37 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         loadedMonitor
           ? Promise.resolve(false)
           : WebsiteDownApi.needsPaymentMethod(),
+        // And from how many locations it would be checked (#7461).
+        loadedMonitor
+          ? Promise.resolve(null)
+          : WebsiteDownApi.loadDefaultLocationCount(),
+        /*
+         * Step 4's status pages (#7053), for someone who may put a monitor
+         * on one. A read that fails offers no step 4, as no page would.
+         */
+        mayAddPage
+          ? WebsiteDownApi.loadStatusPages().catch(() => {
+              return [];
+            })
+          : Promise.resolve([]),
       ]);
+
+      // Whether a page shows the run's monitor already, the run's page first.
+      const runStatusPageId: string | boolean | undefined =
+        nextRun[WebsiteDownRunValue.StatusPageId];
+      const loadedShowing: WebsiteDownStatusPageChoice | null =
+        loadedMonitor && loadedStatusPages.length > 0
+          ? await WebsiteDownApi.findStatusPageShowing({
+              monitorId: loadedMonitor.id,
+              statusPages: loadedStatusPages,
+              preferredStatusPageId:
+                typeof runStatusPageId === "string"
+                  ? runStatusPageId
+                  : undefined,
+            }).catch(() => {
+              return null;
+            })
+          : null;
 
       if (!isActive) {
         return;
@@ -344,11 +442,17 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       setRun(nextRun);
       setIsOwner(loadedIsOwner);
       setNeedsPayment(loadedNeedsPayment);
+      setLocationCount(loadedLocationCount);
       setMonitor(loadedMonitor);
       setPolicy(loadedPolicy);
       setPolicyGone(runPolicyGone);
       setTestResult(loadedResult);
       setWhoFacts(loadedWhoFacts);
+      setStatusPages(loadedStatusPages);
+      setStatusPageShowing(loadedShowing);
+      setPickedStatusPageId(
+        loadedShowing?.id || loadedStatusPages[0]?.id || "",
+      );
       setOpenStepKey(
         getFirstOpenStepKey(
           getWebsiteDownProgress({
@@ -358,6 +462,13 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
               nextRun[WebsiteDownRunValue.WhoIsToldConfirmed] === true,
             testStatus: loadedResult?.status || null,
             isTestSkipped: nextRun[WebsiteDownRunValue.TestSkipped] === true,
+            hasStatusPageStep: hasStatusPageStep({
+              mayAddToStatusPage: mayAddPage,
+              statusPages: loadedStatusPages,
+            }),
+            isOnStatusPage: Boolean(loadedShowing),
+            isStatusPageSkipped:
+              nextRun[WebsiteDownRunValue.StatusPageSkipped] === true,
           }),
         ),
       );
@@ -606,7 +717,15 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   /*
    * STEP 1: WHAT SHOULD WE CHECK?
    */
-  const startChecking: () => Promise<void> = async (): Promise<void> => {
+  /*
+   * `makesOwn`: "Create my own monitor", pressed once a teammate's monitor
+   * for the address was said (#7254) - the person's own, made beside it.
+   */
+  const startChecking: (options?: {
+    makesOwn?: boolean | undefined;
+  }) => Promise<void> = async (options?: {
+    makesOwn?: boolean | undefined;
+  }): Promise<void> => {
     const address: WebsiteAddress | null = parseWebsiteAddress(addressText);
 
     if (!address) {
@@ -626,11 +745,39 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
        * a run the browser lost (a private window, another device) or a
        * start over makes no second one (#7059).
        */
-      const existing: WebsiteDownMonitorRecord | null =
+      let existing: WebsiteDownMonitorRecord | null =
         await WebsiteDownApi.findOwnMonitor({
           address: address,
           userId: userId,
         });
+
+      /*
+       * Then the project's monitors this person may read (#7254): one a
+       * teammate made, or the API, Terraform or an import, is said before
+       * anything is made - never taken over, and never one the server
+       * keeps from them. One of their own that their read missed is theirs.
+       */
+      if (!existing && !options?.makesOwn) {
+        const other: WebsiteDownFoundMonitor | null =
+          await WebsiteDownApi.findOtherMonitor({
+            address: address,
+            userId: userId,
+          });
+
+        if (other?.isOwn) {
+          existing = other.record;
+        } else if (other) {
+          setOtherMonitor({
+            id: other.id,
+            name: other.name,
+            creatorName: other.creatorName,
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      setOtherMonitor(null);
 
       const monitorId: string = existing
         ? existing.id
@@ -654,6 +801,26 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           userId: userId,
         }),
       );
+
+      /*
+       * A monitor of theirs that a status page shows already makes step 4
+       * done (#7053): nothing is added twice.
+       */
+      if (statusPages.length > 0) {
+        const showing: WebsiteDownStatusPageChoice | null =
+          await WebsiteDownApi.findStatusPageShowing({
+            monitorId: monitorId,
+            statusPages: statusPages,
+          }).catch(() => {
+            return null;
+          });
+
+        setStatusPageShowing(showing);
+
+        if (showing) {
+          setPickedStatusPageId(showing.id);
+        }
+      }
 
       if (existing) {
         setIsExistingMonitor(true);
@@ -741,6 +908,42 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     <></>
   );
 
+  // Step 1's help: the number of locations once read (#7461).
+  const checkHelp: {
+    template: string | PluralTemplate;
+    count?: number | undefined;
+  } = getCheckHelpTemplate(locationCount);
+
+  /*
+   * A monitor this person may read but did not make checks the address
+   * (#7254): its name, who made it when the records say, and the two ways
+   * on, under the address it is about. A polite live region: Start
+   * checking made nothing, and a screen reader hears why.
+   */
+  const otherMonitorNotice: ReactElement = otherMonitor ? (
+    <div
+      className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+      data-testid="guided-setup-other-monitor"
+      aria-live="polite"
+    >
+      <p
+        className="break-words text-sm text-gray-700"
+        data-testid="guided-setup-other-monitor-sentence"
+      >
+        {getOtherMonitorSentence({
+          translator: translator,
+          monitorName: otherMonitor.name,
+          creatorName: otherMonitor.creatorName,
+        })}
+      </p>
+      <p className="text-sm text-gray-500">
+        {translator.translateText(WEBSITE_DOWN_COPY.otherMonitorChoice)}
+      </p>
+    </div>
+  ) : (
+    <></>
+  );
+
   /*
    * A monitor found rather than made says so first, then what its check
    * found. A name or host typed as one long word wraps inside the step.
@@ -803,8 +1006,31 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         void startChecking();
       }}
     >
-      <p className="text-sm text-gray-500">
-        {translator.translateText(WEBSITE_DOWN_COPY.checkHelp)}
+      {/*
+       * How often, from how many locations (#7461), and when an incident
+       * opens - the Glossary's monitor and incident marked, the first time
+       * the setup uses them (#7057).
+       */}
+      <p
+        className="text-sm text-gray-500"
+        data-testid="guided-setup-check-help"
+      >
+        <TranslatedSentence
+          template={checkHelp.template}
+          count={checkHelp.count}
+          slots={{
+            monitor: (
+              <DefinedTerm term={GlossaryTerm.Monitor}>
+                {translator.translateText(WEBSITE_DOWN_TERMS.monitor)}
+              </DefinedTerm>
+            ),
+            incident: (
+              <DefinedTerm term={GlossaryTerm.Incident}>
+                {translator.translateText(WEBSITE_DOWN_TERMS.incident)}
+              </DefinedTerm>
+            ),
+          }}
+        />
       </p>
       <div>
         <label
@@ -821,6 +1047,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             onChange={(value: string) => {
               setAddressText(value);
               setAddressError("");
+              // What was found was the address typed before (#7254).
+              setOtherMonitor(null);
             }}
             error={addressError || undefined}
             autoFocus={true}
@@ -837,6 +1065,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         }}
         dataTestId="guided-setup-is-api"
       />
+      {otherMonitorNotice}
       {saveError ? (
         <p role="alert" className="text-sm text-red-600">
           <ErrorInSentence message={saveError} showWhereToLook={true} />
@@ -846,21 +1075,51 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       )}
       {paymentNotice}
       <div className={ACTIONS_CLASS_NAME}>
-        <Button
-          title={WEBSITE_DOWN_COPY.startChecking}
-          type={ButtonType.Submit}
-          buttonStyle={ButtonStyleType.PRIMARY}
-          isLoading={isSaving}
-          dataTestId="guided-setup-start-checking"
-        />
-        {/* A server, a port, a heartbeat: Create Monitor has every type. */}
-        <AppLink
-          to={routeOf(PageMap.MONITOR_CREATE)}
-          className={`${linkClassName} md:ml-4`}
-          dataTestId="guided-setup-other-types"
-        >
-          {translator.translateText("More monitor types") || ""}
-        </AppLink>
+        {otherMonitor ? (
+          /*
+           * A monitor this person did not make checks the address
+           * (#7254): open it, or make their own beside it. Neither is
+           * pressed for them, so neither is primary.
+           */
+          <>
+            <Button
+              title={WEBSITE_DOWN_COPY.createOwnMonitor}
+              buttonStyle={ButtonStyleType.NORMAL}
+              isLoading={isSaving}
+              dataTestId="guided-setup-create-own-monitor"
+              onClick={() => {
+                void startChecking({ makesOwn: true });
+              }}
+            />
+            <a
+              href={routeOf(PageMap.MONITOR_VIEW, otherMonitor.id).toString()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClassName}
+              data-testid="guided-setup-open-other-monitor"
+            >
+              {translator.translateText(WEBSITE_DOWN_COPY.nextMonitor)}
+            </a>
+          </>
+        ) : (
+          <>
+            <Button
+              title={WEBSITE_DOWN_COPY.startChecking}
+              type={ButtonType.Submit}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              isLoading={isSaving}
+              dataTestId="guided-setup-start-checking"
+            />
+            {/* A server, a port, a heartbeat: Create Monitor has every type. */}
+            <AppLink
+              to={routeOf(PageMap.MONITOR_CREATE)}
+              className={`${linkClassName} md:ml-4`}
+              dataTestId="guided-setup-other-types"
+            >
+              {translator.translateText("More monitor types") || ""}
+            </AppLink>
+          </>
+        )}
       </div>
     </form>
   );
@@ -1087,8 +1346,32 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             {whoDoneLine}
           </p>
         ) : mode === WhoIsToldMode.CreatePolicy ? (
-          <p className="text-sm text-gray-500">
-            {translator.translateText(WEBSITE_DOWN_COPY.whoCreateHelp)}
+          <p
+            className="text-sm text-gray-500"
+            data-testid="guided-setup-who-create-help"
+          >
+            {/*
+             * How to Reach Me is a link to the person's own (#7757), in a
+             * new tab, so the setup keeps its place and its people.
+             */}
+            <TranslatedSentence
+              template={WEBSITE_DOWN_COPY.whoCreateHelp}
+              slots={{
+                howToReachMe: (
+                  <a
+                    href={routeOf(
+                      PageMap.USER_SETTINGS_ON_CALL_RULES,
+                    ).toString()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={linkClassName}
+                    data-testid="guided-setup-how-to-reach-me"
+                  >
+                    {translator.translateText(WEBSITE_DOWN_TERMS.howToReachMe)}
+                  </a>
+                ),
+              }}
+            />
           </p>
         ) : (
           <>
@@ -1141,14 +1424,25 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
               dataTestId="guided-setup-people"
             />
           </div>
-          <p className="text-sm text-gray-500">
-            {translator.translateTemplate(
-              WEBSITE_DOWN_COPY.whoCreatePolicyNote,
-              {
+          <p
+            className="text-sm text-gray-500"
+            data-testid="guided-setup-who-policy-note"
+          >
+            {/* The Glossary's on-call policy, marked where first met (#7057). */}
+            <TranslatedSentence
+              template={WEBSITE_DOWN_COPY.whoCreatePolicyNote}
+              values={{
                 // The name it will be made with, in the reader's language.
                 policy: getFirstOnCallPolicyName(translator),
-              },
-            )}
+              }}
+              slots={{
+                onCallPolicy: (
+                  <DefinedTerm term={GlossaryTerm.OnCallPolicy}>
+                    {translator.translateText(WEBSITE_DOWN_TERMS.onCallPolicy)}
+                  </DefinedTerm>
+                ),
+              }}
+            />
           </p>
         </>
       ) : (
@@ -1234,8 +1528,117 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       saveRun({ [WebsiteDownRunValue.TestSkipped]: true });
     }
 
-    setOpenStepKey(null);
+    // Step 4 where the run walks it and it is not done (#7053), or the summary.
+    openNextStep(WebsiteDownStep.Test);
   };
+
+  /*
+   * STEP 4: SHOW IT TO CUSTOMERS? (#7053) The monitor goes on the page
+   * picked, as the status page setup puts one on (never twice), and the
+   * summary says which page shows it; or "Not now".
+   */
+  const pickedStatusPage: WebsiteDownStatusPageChoice | undefined =
+    statusPages.find((page: WebsiteDownStatusPageChoice): boolean => {
+      return page.id === pickedStatusPageId;
+    }) || statusPages[0];
+
+  const addToStatusPage: () => Promise<void> = async (): Promise<void> => {
+    if (!monitor || !pickedStatusPage) {
+      return;
+    }
+
+    setSaveError("");
+    setIsSaving(true);
+
+    try {
+      await WebsiteDownApi.addToStatusPage({
+        statusPageId: pickedStatusPage.id,
+        monitorId: monitor.id,
+        monitorName: monitor.name,
+      });
+      saveRun({
+        [WebsiteDownRunValue.StatusPageId]: pickedStatusPage.id,
+        [WebsiteDownRunValue.StatusPageSkipped]: null,
+      });
+      setStatusPageShowing(pickedStatusPage);
+      openNextStep(WebsiteDownStep.StatusPage);
+    } catch (err) {
+      setSaveError(API.getFriendlyMessage(err));
+    }
+
+    setIsSaving(false);
+  };
+
+  const statusPageOptions: Array<DropdownOption> = statusPages.map(
+    (page: WebsiteDownStatusPageChoice): DropdownOption => {
+      // A page's name as the project wrote it.
+      return { value: page.id, label: page.name, isUserContent: true };
+    },
+  );
+
+  const statusPageContent: ReactElement = (
+    <div className="space-y-4">
+      <p className="break-words text-sm text-gray-500">
+        {translator.translateTemplate(
+          WEBSITE_DOWN_COPY.statusPageHelp,
+          { name: monitor?.name || host },
+          { setsValuesApart: true },
+        )}
+      </p>
+      <div>
+        <label
+          htmlFor="guided-setup-status-page"
+          className="block text-sm font-medium text-gray-700"
+        >
+          {translator.translateText(WEBSITE_DOWN_COPY.statusPageLabel)}
+        </label>
+        <div className="mt-1">
+          <Dropdown
+            inputId="guided-setup-status-page"
+            dataTestId="guided-setup-status-page"
+            options={statusPageOptions}
+            value={statusPageOptions.find((option: DropdownOption) => {
+              return option.value === pickedStatusPage?.id;
+            })}
+            isClearable={false}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              if (typeof value === "string") {
+                setPickedStatusPageId(value);
+              }
+            }}
+          />
+        </div>
+      </div>
+      {saveError ? (
+        <p role="alert" className="text-sm text-red-600">
+          <ErrorInSentence message={saveError} showWhereToLook={true} />
+        </p>
+      ) : (
+        <></>
+      )}
+      <div className={ACTIONS_CLASS_NAME}>
+        <Button
+          title={WEBSITE_DOWN_COPY.statusPageAdd}
+          buttonStyle={ButtonStyleType.PRIMARY}
+          isLoading={isSaving}
+          dataTestId="guided-setup-status-page-add"
+          onClick={() => {
+            void addToStatusPage();
+          }}
+        />
+        <Button
+          title={WEBSITE_DOWN_COPY.statusPageNotNow}
+          buttonStyle={ButtonStyleType.LINK}
+          dataTestId="guided-setup-status-page-not-now"
+          onClick={() => {
+            setSaveError("");
+            saveRun({ [WebsiteDownRunValue.StatusPageSkipped]: true });
+            openNextStep(WebsiteDownStep.StatusPage);
+          }}
+        />
+      </div>
+    </div>
+  );
 
   const skipTest: ReactElement = (
     <Button
@@ -1361,6 +1764,19 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  // Step 4, where the run walks it (#7053).
+  if (walksStatusPageStep && progress[3]) {
+    steps.push({
+      ...progress[3],
+      title: WEBSITE_DOWN_COPY.statusPageTitle,
+      outcome: WEBSITE_DOWN_COPY.statusPageOutcome,
+      doneLine: statusPageShowing
+        ? getStatusPageShownSentence(translator, statusPageShowing.name)
+        : translator.translateText(WEBSITE_DOWN_COPY.statusPageNotNow) || "",
+      content: statusPageContent,
+    });
+  }
+
   /*
    * THE SUMMARY.
    */
@@ -1388,8 +1804,40 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           testResultSentence: testResult
             ? getResultSentence(translator, testResult)
             : null,
+          statusPageName: statusPageShowing?.name || null,
         })
       : [];
+
+  /*
+   * WHAT NEXT, each only for whoever may do it. A status page: the one
+   * that shows the monitor, at its link; else, while the project has none
+   * to add it to, the status page guided setup with this monitor ticked
+   * (#7053). Paging by SMS or phone: the on-call guided setup (#7370).
+   */
+  const statusPageSetupRoute: Route | null =
+    monitor &&
+    isStatusPageSetupOffered({
+      hasStatusPageStep: walksStatusPageStep,
+      mayCreateStatusPage: mayCreateStatusPage(),
+    })
+      ? new Route(
+          withGuidedSetupEntryPoint(
+            `${routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP).toString()}?monitorId=${monitor.id}`,
+            GuidedSetupEntryPoint.WebsiteDownSummary,
+          ),
+        )
+      : null;
+
+  const pagedByPhonePage: PageMap = getPagedByPhonePage(mayUseOnCallSetup());
+  const pagedByPhoneRoute: Route =
+    pagedByPhonePage === PageMap.ON_CALL_DUTY_GUIDED_SETUP
+      ? new Route(
+          withGuidedSetupEntryPoint(
+            routeOf(pagedByPhonePage).toString(),
+            GuidedSetupEntryPoint.WebsiteDownSummary,
+          ),
+        )
+      : routeOf(pagedByPhonePage);
 
   const summary: ReactElement = (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
@@ -1418,22 +1866,46 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         {translator.translateText(WEBSITE_DOWN_COPY.summaryNext)}
       </h3>
       <ul className="mt-2 space-y-1">
+        {statusPageShowing ? (
+          <li>
+            {/* The page that shows it, as its customers open it (#7053). */}
+            <a
+              href={`${STATUS_PAGE_URL.toString()}/${statusPageShowing.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClassName}
+              data-testid="guided-setup-next-open-status-page"
+            >
+              {translator.translateText(WEBSITE_DOWN_COPY.nextOpenStatusPage)}
+            </a>
+          </li>
+        ) : statusPageSetupRoute ? (
+          <li>
+            {/*
+             * The status page guided setup (#6806), with this monitor
+             * ticked: the project has no status page to add it to yet.
+             */}
+            <AppLink
+              to={statusPageSetupRoute}
+              className={linkClassName}
+              dataTestId="guided-setup-next-status-page"
+            >
+              {translator.translateText(WEBSITE_DOWN_COPY.nextStatusPage) || ""}
+            </AppLink>
+          </li>
+        ) : (
+          <></>
+        )}
         <li>
           {/*
-           * The status page guided setup (#6806), which lists this monitor
-           * to pick.
+           * The on-call guided setup turns SMS and calls on, adds balance on
+           * Cloud and verifies the number on one page (#7370): for whoever
+           * may use it. Anyone else adds a number to their methods.
            */}
           <AppLink
-            to={routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)}
+            to={pagedByPhoneRoute}
             className={linkClassName}
-          >
-            {translator.translateText(WEBSITE_DOWN_COPY.nextStatusPage) || ""}
-          </AppLink>
-        </li>
-        <li>
-          <AppLink
-            to={routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)}
-            className={linkClassName}
+            dataTestId="guided-setup-next-phone"
           >
             {translator.translateText(WEBSITE_DOWN_COPY.nextPhone) || ""}
           </AppLink>
@@ -1471,6 +1943,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             setPolicyGone(null);
             setShowNotReceivedHelp(false);
             setIsOwner(null);
+            setOtherMonitor(null);
+            setStatusPageShowing(null);
             setOpenStepKey(WebsiteDownStep.Check);
             // The project may have a policy now: who is told is asked afresh.
             WebsiteDownApi.loadWhoIsToldFacts()
@@ -1480,6 +1954,24 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
               });
             // And whether a new monitor needs a payment method first.
             void WebsiteDownApi.needsPaymentMethod().then(setNeedsPayment);
+            // From how many locations it would be checked (#7461).
+            void WebsiteDownApi.loadDefaultLocationCount().then(
+              setLocationCount,
+            );
+            /*
+             * And the status pages step 4 offers (#7053): the project may
+             * have one now, made from the summary's link.
+             */
+            if (mayAddToStatusPage()) {
+              WebsiteDownApi.loadStatusPages()
+                .then((pages: Array<WebsiteDownStatusPageChoice>) => {
+                  setStatusPages(pages);
+                  setPickedStatusPageId(pages[0]?.id || "");
+                })
+                .catch(() => {
+                  setStatusPages([]);
+                });
+            }
           }}
         />
       </div>

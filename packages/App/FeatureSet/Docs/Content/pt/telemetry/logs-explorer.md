@@ -36,7 +36,7 @@ O explorador tem cinco abas:
 
 ## Antes de começar
 
-- **Registros chegando.** Envie-os com [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). A aba **Guia de configuração** mostra a configuração para a sua linguagem ou o seu coletor.
+- **Registros chegando.** Envie-os com [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). A aba **Guia de configuração** mostra a configuração para a sua linguagem ou o seu coletor. Até chegarem os primeiros dados, esta página oferece **Configuração guiada**, que leva você dos seus primeiros registros, métricas e traços até os alertas sobre eles, ao lado de **Enviar seus primeiros registros**, o guia de configuração sozinho. Para verificar o endpoint e a sua chave antes de configurar um aplicativo, abra **Enviar um registro de teste** no primeiro passo do guia: ele envia um registro do serviço `oneuptime-test`, que você pode excluir depois.
 - **Uma função que possa ler telemetria.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria ou Visualizador de telemetria, ou uma função personalizada com a permissão Read Logs. O escopo dela decide de quem são os registros que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
 
 ## Encontrar uma linha de registro

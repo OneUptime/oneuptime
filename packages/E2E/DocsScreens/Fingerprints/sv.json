@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Vad ska vi kontrollera?",
-      "OneUptime kontrollerar den var 5:e minut. En incident öppnas när alla platser som kontrollerar den finner den nere: inget svar, eller ett svar med ett fel.",
+      "OneUptime skapar en monitor som kontrollerar den var 5:e minut från 2 platser. En incident öppnas när alla finner den nere: inget svar, eller ett svar med ett fel.",
       "Adress till webbplats eller API",
       "Det här är en API-endpoint",
       "Börja kontrollera",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incident",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Börja kontrollera",
@@ -205,12 +207,14 @@
       "Lägg till teammedlemmar",
       "AL",
       "Ada Lovelace",
-      "Detta skapar jourpolicyn ”Standardjourpolicy”, som larmar dem vid varje ny incident och varje nytt larm i det här projektet.",
+      "Detta skapar en jourpolicy, ”Standardjourpolicy”, som larmar dem vid varje ny incident och varje nytt larm i det här projektet.",
       "Spara och fortsätt"
     ],
     "outline": [
+      "link: Så når man mig",
       "button: Lägg till teammedlemmar",
       "button: Ta bort Ada Lovelace",
+      "button: jourpolicy",
       "button: Spara och fortsätt"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "Slå på sms och samtal",
       "Mobilapp eller webbläsare",
       "Inte konfigurerat.",
-      "Skaffa OneUptime-appen eller slå på aviseringar i den här webbläsaren, från dina aviseringsmetoder.",
-      "Konfigurera appen eller den här webbläsaren",
+      "Få larm i telefonen med appen OneUptime On-Call, eller i den här webbläsaren.",
+      "Använd den här webbläsaren",
+      "Skaffa appen",
       "Fortsätt",
       "Kontrollera igen"
     ],
     "outline": [
       "button: Fyll på saldo",
       "button: Slå på sms och samtal",
-      "link: Konfigurera appen eller den här webbläsaren",
+      "button: Använd den här webbläsaren",
+      "button: Skaffa appen",
       "button: Fortsätt",
       "button: Kontrollera igen"
     ],
     "width": 768,
-    "height": 632
+    "height": 658
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "Skicka en kod till mig via sms",
       "Mobilapp eller webbläsare",
       "Inte konfigurerat.",
-      "Skaffa OneUptime-appen eller slå på aviseringar i den här webbläsaren, från dina aviseringsmetoder.",
-      "Konfigurera appen eller den här webbläsaren",
+      "Få larm i telefonen med appen OneUptime On-Call, eller i den här webbläsaren.",
+      "Använd den här webbläsaren",
+      "Skaffa appen",
       "Fortsätt",
       "Kontrollera igen",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Skicka en kod till mig via sms",
-      "link: Konfigurera appen eller den här webbläsaren",
+      "button: Använd den här webbläsaren",
+      "button: Skaffa appen",
       "button: Fortsätt",
       "button: Kontrollera igen"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Vem mer har jour?",
+      "Vem larmas först?",
       "Detta skapar jourpolicyn ”Standardjourpolicy”. Den larmar först de här personerna, vid varje ny incident och varje nytt larm i det här projektet.",
       "Larmas först",
       "Lägg till teammedlemmar",
       "AL",
       "Ada Lovelace",
+      "Alla här larmas samtidigt. Vem som bara ska larmas om ingen svarar väljer du i nästa steg.",
+      "Bjud in via e-post",
       "Spara och fortsätt"
     ],
     "outline": [
       "button: Lägg till teammedlemmar",
       "button: Ta bort Ada Lovelace",
+      "button: Bjud in via e-post",
       "button: Spara och fortsätt"
     ],
     "width": 768,
-    "height": 246
+    "height": 322
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "Larmningen är konfigurerad",
       "Vem som larmas",
-      "Varje ny incident och varje nytt larm kör ”Standardjourpolicy”, som larmar Ada Lovelace (E-post, SMS, Telefonsamtal).",
+      "Varje ny incident och varje nytt larm kör ”Standardjourpolicy”, som larmar Ada Lovelace (e-post, SMS och telefonsamtal direkt).",
       "Om ingen svarar",
       "Om ingen kvitterar inom 30 minuter larmas Grace Hopper.",
       "Testat",
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Jour",
+      "Rätt person får veta, varje gång",
+      "1",
+      "Skapa en jourpolicy",
+      "2",
+      "Lägg till scheman eller personer i varje eskaleringsregel",
+      "3",
+      "Koppla den till monitorer, incidenter och larm",
+      "Guidad installation",
+      "Skapa jourpolicy",
+      "Steg-för-steg-guide",
+      "Dokumentation"
+    ],
+    "outline": [
+      "heading: Rätt person får veta, varje gång",
+      "button: Guidad installation",
+      "button: Skapa jourpolicy",
+      "link: Steg-för-steg-guide",
+      "link: Dokumentation"
+    ],
+    "width": 417,
+    "height": 292
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Lägg till eskaleringsregel",
+      "Lägger till nivå 2 i den här policyn: vem som larmas, och när.",
+      "Avisera",
+      "Jourscheman larmar den som har jour; Nästa i rotationen larmar personen efter dem. Team larmar varje medlem.",
+      "Lägg till mottagare",
+      "Den här regeln säger vem som larmas. Hur varje person nås, med vilken metod och efter hur lång tid, står i personens egen Så når man mig.",
+      "Larmas efter (i minuter)",
+      "Hur länge Level 1 väntar på en bekräftelse innan den här nivån larmas. Sparas som väntetiden för Level 1.",
+      "Fler fält· Namn, Beskrivning",
+      "Avbryt",
+      "Skapa regel",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Lägg till eskaleringsregel",
+      "button: Stäng",
+      "button: Lägg till mottagare",
+      "link: Så når man mig",
+      "field number: 30",
+      "button: Fler fält· Namn, Beskrivning",
+      "button: Avbryt",
+      "button: Skapa regel"
+    ],
+    "width": 512,
+    "height": 528
+  },
   "ingestion-keys": {
     "text": [
       "Intagningsnycklar",
@@ -543,18 +607,13 @@
       "Visar 1-4 av 4",
       "Rader per sida",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Sök i intagningsnycklar efter namn, beskrivning…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Intagningsnycklar",
@@ -580,13 +639,13 @@
       "field checkbox: Markera Intagningsnyckel: Marketing site",
       "button: Visa Intagningsnyckel",
       "button: Fler åtgärder för Intagningsnyckel: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Gå till föregående sida",
       "button: Sida 1",
       "button: Gå till nästa sida"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

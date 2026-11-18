@@ -74,17 +74,17 @@ La configuración del sitio web ya creó la **Política de guardia predeterminad
 :::steps
 ### Abrir la configuración de guardia
 
-Pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elige **Avisar a la persona adecuada cuando algo falle**. Mientras la lista no haya marcado **Configura una política de guardia**, ese paso abre la misma configuración guiada.
+En el resumen de la configuración del sitio web, haz clic en **Recibir avisos por SMS o llamada telefónica**: el enlace abre la configuración guiada **Avisar a la persona adecuada cuando algo falle**. Para abrirla más tarde, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elígela. Mientras la lista no haya marcado **Configura una política de guardia**, ese paso abre la misma configuración guiada. Una vez marcado, y mientras solo el correo pueda avisarte, Inicio mantiene **Recibir avisos por SMS o llamada telefónica** debajo.
 
 ### Elegir cómo se te localiza
 
 ![El paso «¿Cómo debemos localizarte?», con «Activar SMS y llamadas» resaltado](screen:paging-reach-you)
 
-En **¿Cómo debemos localizarte?**, tu correo de inicio de sesión ya aparece. Para las notificaciones push, instala la app OneUptime On-Call desde la App Store o Google Play, inicia sesión y haz clic en **Volver a comprobar**. Para recibir también SMS y llamadas, haz clic en **Activar SMS y llamadas**, escribe tu número en **Tu número de teléfono** y haz clic en **Envíame un código por SMS**: en OneUptime Cloud, los SMS y las llamadas se pagan con el saldo del proyecto, así que el paso te pide añadir saldo primero. Haz clic en **Continuar**.
+En **¿Cómo debemos localizarte?**, tu correo de inicio de sesión ya aparece. Para las notificaciones push, instala la app OneUptime On-Call desde la App Store o Google Play, inicia sesión y haz clic en **Volver a comprobar**. **Obtener la app** muestra un código para escanear de cada tienda, y **Usar este navegador** avisa también en este navegador. Para recibir también SMS y llamadas, haz clic en **Activar SMS y llamadas**, escribe tu número en **Tu número de teléfono** y haz clic en **Envíame un código por SMS**: en OneUptime Cloud, los SMS y las llamadas se pagan con el saldo del proyecto, así que el paso te pide añadir saldo primero. Haz clic en **Continuar**.
 
-### Elegir a quién más se avisa
+### Elegir a quién se avisa primero
 
-En **¿Quién más está de guardia?**, deja la **Política de guardia predeterminada** en **Política de guardia**. Para avisar a miembros del equipo contigo, añádelos en **Añadir a la primera regla de escalado**. Haz clic en **Guardar y continuar**.
+En **¿A quién se avisa primero?**, deja la **Política de guardia predeterminada** en **Política de guardia**. Para avisar a miembros del equipo a la vez que a ti, añádelos en **Añadir a la primera regla de escalado**, o invítalos con **Invitar por correo**. Haz clic en **Guardar y continuar**.
 
 ### Decidir qué pasa si nadie responde
 

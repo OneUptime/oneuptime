@@ -13,7 +13,7 @@ flowchart TB
 
 - Een project waarvan u eigenaar bent: sms en oproepen aanzetten kan alleen de eigenaar, een bereikbaarheidsbeleid aanmaken de eigenaar of een beheerder.
 - Uw mobiele telefoon.
-- De teamleden die u wilt laten oproepen, als leden van het project: [Mensen uitnodigen](/docs/permissions/inviting-people) laat zien hoe.
+- De teamleden die u wilt laten oproepen: de begeleide installatie kan ze per e-mail uitnodigen, of zie [Mensen uitnodigen](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Uw server moet e-mail, sms-berichten en oproepen kunnen versturen. De hoofdbehee
 
 ![Start vraagt "Wat wil je eerst doen?", met "De juiste persoon oproepen als er iets kapotgaat" aangevinkt](screen:home-goal-paging)
 
-Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Stel een bereikbaarheidsbeleid in**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **De juiste persoon oproepen als er iets kapotgaat** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**.
+Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Stel een bereikbaarheidsbeleid in**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **De juiste persoon oproepen als er iets kapotgaat** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**. In **Bereikbaarheid** opent **Begeleide installatie** haar ook.
 
 ### De app op uw telefoon installeren
 
-Installeer OneUptime On-Call uit de App Store of Google Play en meld u aan: de app registreert uw telefoon voor pushmeldingen. Terug in de begeleide installatie klikt u op **Opnieuw controleren**: **Mobiele app of browser** onder **Hoe moeten we je bereiken?** toont nu uw telefoon.
+Klik onder **Hoe moeten we je bereiken?** op **Download de app**, scan de code met uw telefoon, installeer de app en meld u aan. Terug in de begeleide installatie klikt u op **Opnieuw controleren**: **Mobiele app of browser** toont nu uw telefoon. **Deze browser gebruiken** roept ook deze browser op.
 
 ### Sms en oproepen aanzetten
 
@@ -47,11 +47,11 @@ In nieuwe projecten staan sms en telefoonoproepen uit. Bent u eigenaar van het p
 
 Typ uw mobiele nummer met landcode bij **Je telefoonnummer**, bijvoorbeeld `+15551234567`, en klik op **Stuur me een code per sms**. Voer de code uit de sms in en klik op **Verifiëren**: hetzelfde nummer wordt bij oproepen ook gebeld. Klik op **Doorgaan**. Wilt u alleen via de app en per e-mail worden opgeroepen, laat het nummer dan weg en klik meteen op **Doorgaan**.
 
-### Kiezen wie er nog meer wordt opgeroepen
+### Kiezen wie als eerste wordt opgeroepen
 
-![De stap "Wie is er nog meer bereikbaar?", met "Opslaan en doorgaan" omcirkeld](screen:paging-who-else)
+![De stap "Wie wordt als eerste opgeroepen?", met "Opslaan en doorgaan" omcirkeld](screen:paging-who-else)
 
-Onder **Wie is er nog meer bereikbaar?** staat u al bij **Eerst opgeroepen**. Klik op **Teamleden toevoegen** om naast u nog anderen op te roepen, en klik daarna op **Opslaan en doorgaan**. Heeft het project nog geen bereikbaarheidsbeleid, dan wordt zo het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing. Heeft het er al een, kies het dan onder **Bereikbaarheidsbeleid** en voeg in plaats daarvan mensen toe onder **Toevoegen aan de eerste escalatieregel**. Is iemand nog niet bereikbaar, dan blijft de stap open op **Bereikt een oproep hen?**: klik voor die persoon op **Herinnering voor instellingen sturen** en daarna op **Doorgaan**.
+Onder **Wie wordt als eerste opgeroepen?** staat u al bij **Eerst opgeroepen**. Klik op **Teamleden toevoegen** om tegelijk met u nog anderen op te roepen. Voor iemand die nog niet in het project zit, klikt u op **Uitnodigen per e-mail**, typt u het adres en klikt u op **Uitnodiging versturen**. Klik daarna op **Opslaan en doorgaan**. Heeft het project nog geen bereikbaarheidsbeleid, dan wordt zo het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing. Heeft het er al een, kies het dan onder **Bereikbaarheidsbeleid** en voeg in plaats daarvan mensen toe onder **Toevoegen aan de eerste escalatieregel**. Is iemand nog niet bereikbaar, dan blijft de stap open op **Bereikt een oproep hen?**: klik voor die persoon op **Herinnering voor instellingen sturen** en daarna op **Doorgaan**.
 
 ### Bepalen wat er gebeurt als niemand antwoordt
 
@@ -75,7 +75,7 @@ Open de link in de sms of de e-mail en bevestig de oproep daar, of druk tijdens 
 ![De samenvatting "Oproepen zijn ingericht": "Wie wordt opgeroepen", "Als niemand antwoordt" en "Getest"](screen:paging-summary)
 
 - De teststap laat zien wie de oproep heeft bevestigd, hoe en hoe snel.
-- De begeleide installatie eindigt op **Oproepen zijn ingericht**, gelezen uit de opgeslagen gegevens: **Wie wordt opgeroepen**, **Als niemand antwoordt** en **Getest**. Een probleem met het beleid zelf, zoals iemand die het niet kan bereiken, staat onder **Vraagt aandacht**.
+- De begeleide installatie eindigt op **Oproepen zijn ingericht**, gelezen uit de opgeslagen gegevens: **Wie wordt opgeroepen**, **Als niemand antwoordt** en **Getest**. **Wie wordt opgeroepen** noemt op volgorde hoe elke persoon wordt bereikt. Een probleem met het beleid zelf, zoals iemand die het niet kan bereiken, staat onder **Vraagt aandacht**.
 - Op **Start** markeert de checklist **Stel een bereikbaarheidsbeleid in** als klaar. Was het de laatste stap, dan is de checklist verdwenen.
 
 Roept het beleid nog iemand anders op, dan kunt u de escalatie ook zien gebeuren: klik in de samenvatting op **Het bereikbaarheidsbeleid openen** en daarna op **Dit beleid testen**. Zet **Elk escalatieniveau doorlopen** aan, verstuur de test en bevestig de eerste oproep niet: de volgende persoon wordt tot 2 minuten later opgeroepen.

@@ -94,7 +94,7 @@ Abre cada uno en **Monitores** y revisa sus primeros resultados. Un monitor de l
 Añade propietarios a tus monitores, o una política de guardia en **Guardia** > **Políticas de guardia** a los incidentes que abren, para que las personas adecuadas se enteren cuando algo falle.
 
 ### Apunta la dirección de tu página de estado a OneUptime
-En **Páginas de estado**, abre la página, añade tu dominio en **Dominios personalizados** y luego cambia su registro DNS. Así tus visitantes y suscriptores llegarán a la nueva página.
+En **Páginas de estado**, abre la página, añade tu dominio en **Dominios personalizados** y luego cambia su registro DNS. Así tus visitantes y suscriptores llegarán a la nueva página. Hasta entonces, el informe muestra dónde está en línea en OneUptime cada página que trajiste, con **Copiar enlace**.
 
 ### Desactiva las comprobaciones en Better Stack
 Cuando OneUptime compruebe lo mismo, pausa las comprobaciones en Better Stack para que nadie reciba dos avisos.

@@ -165,6 +165,17 @@ async function openStatusPageSetup(page: Page): Promise<void> {
     .toBe("open");
 }
 
+/*
+ * Step 1 offers the project's page first (#7517): a new page is one click
+ * away, and asks for its name.
+ */
+async function makeANewPageInstead(page: Page): Promise<void> {
+  await page
+    .getByRole("button", { name: "Make a new status page instead" })
+    .click();
+  await expect(page.getByLabel("Status page name")).toBeVisible();
+}
+
 // Step 1, as a person does it: a name (left as it starts when none is given), the monitor, Create.
 async function nameAndPublish(page: Page, name?: string): Promise<void> {
   if (name !== undefined) {
@@ -310,11 +321,12 @@ test("a long address on a phone: the note comes first, and both lines of the ste
  * A STATUS PAGE RUN THE BROWSER LOST (#7252): the status page setup keeps
  * its run in the browser too, and a lost run - a private window, another
  * device, storage cleared, another tab - made a second page with the same
- * name. Now the name typed, however it is typed, goes on with this
- * person's own page of that name, adds the monitors picked to it, and step
- * 2 says so; the fixture's server kept one status page and one monitor on
- * it. Setting up another page after it starts with no name, so the next
- * page is a page of its own.
+ * name. Now step 1 offers the page already made first, its monitor on it
+ * (#7517); and a new page with the name typed, however it is typed, goes on
+ * with this person's own page of that name, adds the monitors picked to
+ * it, and step 2 says so; the fixture's server kept one status page and one
+ * monitor on it. Setting up another page after it starts with no name, so
+ * the next page is a page of its own.
  */
 test("a status page run this browser lost: the same name goes on with the page already made, and says so; another name gets its own", async ({
   page,
@@ -335,7 +347,17 @@ test("a status page run this browser lost: the same name goes on with the page a
 
   await loseTheRunAndReload(page, "pick");
 
-  // The same name, typed another way.
+  // The page already made is offered first, its monitor on it (#7517).
+  await expect(page.getByTestId("guided-setup-existing-pages")).toHaveText(
+    'This project already has a status page, "Acme Commerce Status". The monitors you pick are added to it.',
+  );
+  await expect(page.getByLabel(SEEDED_MONITOR)).toBeDisabled();
+  await expect(page.getByTestId("guided-setup-create-status-page")).toHaveText(
+    "Continue",
+  );
+
+  // A new page instead, with the same name typed another way.
+  await makeANewPageInstead(page);
   await nameAndPublish(page, "  acme commerce   STATUS ");
   await expect(
     page.getByTestId("guided-setup-existing-status-page"),
@@ -390,6 +412,18 @@ test("a long status page name on a phone: the note comes first in step 2, and ev
 
   await loseTheRunAndReload(page, "pick");
 
+  // The page offered first (#7517) names it in a line that wraps.
+  await expect(page.getByTestId("guided-setup-existing-pages")).toContainText(
+    name,
+  );
+  expect(await textOverflowOf(page, ["guided-setup-existing-pages"])).toEqual({
+    "guided-setup-existing-pages": 0,
+  });
+  await expectNoSidewaysScroll(page, {
+    message: "step 1, the project's page offered, 390 pixels wide",
+  });
+
+  await makeANewPageInstead(page);
   await nameAndPublish(page, name.toUpperCase());
   await expect(
     page.getByTestId("guided-setup-existing-status-page"),

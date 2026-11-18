@@ -100,15 +100,32 @@
       "startsAt": "Home, with the website monitor",
       "endsWhen": "the status page shows the website monitor",
       "budget": {
-        "screens": 3,
+        "screens": 2,
         "dialogs": 2,
-        "clicks": 10,
+        "clicks": 9,
         "fieldsTyped": 1,
         "products": 1,
         "keystrokes": 11,
-        "defaultsKept": 1,
+        "defaultsKept": 0,
         "choices": 8,
-        "words": 376
+        "words": 334
+      }
+    },
+    "status-page-guided": {
+      "title": "Publish a status page that shows the monitor (guided setup)",
+      "path": "guided",
+      "startsAt": "Home, with the website monitor",
+      "endsWhen": "the status page shows the website monitor, and I saw what my customers see",
+      "budget": {
+        "screens": 2,
+        "dialogs": 0,
+        "clicks": 6,
+        "fieldsTyped": 0,
+        "products": 1,
+        "keystrokes": 0,
+        "defaultsKept": 1,
+        "choices": 7,
+        "words": 282
       }
     },
     "first-telemetry": {
@@ -126,6 +143,23 @@
         "defaultsKept": 8,
         "choices": 3,
         "words": 885
+      }
+    },
+    "first-telemetry-guided": {
+      "title": "Send first telemetry and get an alert on it (guided setup)",
+      "path": "guided",
+      "startsAt": "Home, in a new project",
+      "endsWhen": "the first data is in, and three recommended monitors alert on the service that sent it",
+      "budget": {
+        "screens": 2,
+        "dialogs": 1,
+        "clicks": 6,
+        "fieldsTyped": 0,
+        "products": 2,
+        "keystrokes": 4,
+        "defaultsKept": 1,
+        "choices": 3,
+        "words": 684
       }
     },
     "member-reachable": {
@@ -153,13 +187,13 @@
       "budget": {
         "screens": 2,
         "dialogs": 2,
-        "clicks": 11,
+        "clicks": 10,
         "fieldsTyped": 5,
         "products": 2,
         "keystrokes": 119,
         "defaultsKept": 2,
         "choices": 0,
-        "words": 490
+        "words": 493
       }
     }
   }

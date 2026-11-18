@@ -13,7 +13,7 @@ flowchart TB
 
 - Et projekt, du ejer: sms og opkald slås til af projektets ejer, og en vagtpolitik oprettes af ejeren eller en administrator.
 - Din mobiltelefon.
-- De teammedlemmer, der skal tilkaldes, tilføjet til projektet: [Inviter personer](/docs/permissions/inviting-people) viser hvordan.
+- De teammedlemmer, der skal tilkaldes: opsætningen kan invitere dem via e-mail, eller se [Inviter personer](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Din server skal kunne sende e-mail, sms og opkald. Dens masteradministrator sæt
 
 ![Hjem spørger »Hvad vil du gøre først?«, med »Tilkalde den rette person, når noget går ned« markeret](screen:home-goal-paging)
 
-På siden **Hjem** i dit projekt klikker du på **Opsæt en vagtpolitik** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Tilkalde den rette person, når noget går ned**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde den rette person, når noget går ned**.
+På siden **Hjem** i dit projekt klikker du på **Opsæt en vagtpolitik** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Tilkalde den rette person, når noget går ned**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde den rette person, når noget går ned**. I **Vagt** åbner **Guidet opsætning** den også.
 
 ### Hent appen på din telefon
 
-Installér OneUptime On-Call fra App Store eller Google Play, og log ind: så registreres din telefon til push-notifikationer. Tilbage i opsætningen klikker du på **Kontrollér igen**: **Mobilapp eller browser** under **Hvordan skal vi nå dig?** viser nu din telefon.
+Under **Hvordan skal vi nå dig?** klikker du på **Hent appen**, scanner koden med din telefon, installerer appen og logger ind. Tilbage i opsætningen klikker du på **Kontrollér igen**: **Mobilapp eller browser** viser nu din telefon. **Brug denne browser** tilkalder også denne browser.
 
 ### Slå sms og opkald til
 
@@ -47,11 +47,11 @@ Nye projekter starter med sms og telefonopkald slået fra. Ejer du projektet, s�
 
 Skriv dit mobilnummer med landekode i **Dit telefonnummer**, for eksempel `+15551234567`, og klik på **Send mig en kode på sms**. Indtast koden fra sms'en, og klik på **Bekræft**: det samme nummer bliver også ringet op ved tilkald. Klik på **Fortsæt**. Vil du kun tilkaldes via appen og e-mail, så udelad nummeret, og klik straks på **Fortsæt**.
 
-### Vælg, hvem der ellers tilkaldes
+### Vælg, hvem der tilkaldes først
 
-![Trinnet »Hvem har ellers vagt?«, med »Gem og fortsæt« fremhævet](screen:paging-who-else)
+![Trinnet »Hvem tilkaldes først?«, med »Gem og fortsæt« fremhævet](screen:paging-who-else)
 
-Under **Hvem har ellers vagt?** er du allerede med i **Tilkaldes først**. Klik på **Tilføj teammedlemmer** for at tilkalde andre sammen med dig, og klik derefter på **Gem og fortsæt**. I et projekt, der endnu ikke har en vagtpolitik, oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel. I et projekt, der har en, vælger du den under **Vagtpolitik** og tilføjer i stedet personer under **Føj til den første eskaleringsregel**. Kan nogen ikke nås endnu, bliver trinnet stående på **Når en tilkaldelse dem?**: klik på **Send påmindelse om opsætning** for dem og derefter på **Fortsæt**.
+Under **Hvem tilkaldes først?** er du allerede med i **Tilkaldes først**. Klik på **Tilføj teammedlemmer** for at tilkalde andre samtidig med dig. For en person, der endnu ikke er i projektet, klikker du på **Inviter via e-mail**, skriver adressen og klikker på **Send invitationen**. Klik derefter på **Gem og fortsæt**. I et projekt, der endnu ikke har en vagtpolitik, oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel. I et projekt, der har en, vælger du den under **Vagtpolitik** og tilføjer i stedet personer under **Føj til den første eskaleringsregel**. Kan nogen ikke nås endnu, bliver trinnet stående på **Når en tilkaldelse dem?**: klik på **Send påmindelse om opsætning** for dem og derefter på **Fortsæt**.
 
 ### Bestem, hvad der sker, hvis ingen svarer
 
@@ -75,7 +75,7 @@ Under **Send et testkald** klikker du på **Test denne politik**. Vælg en **Alv
 ![Oversigten »Tilkaldelse er sat op«: »Hvem der tilkaldes«, »Hvis ingen svarer« og »Testet«](screen:paging-summary)
 
 - Testtrinnet viser, hvem der kvitterede for tilkaldet, hvordan og hvor hurtigt.
-- Opsætningen slutter med **Tilkaldelse er sat op**, hentet fra det, der faktisk er gemt: **Hvem der tilkaldes**, **Hvis ingen svarer** og **Testet**. Et problem med selve politikken, for eksempel en person, den ikke kan nå, står under **Kræver opmærksomhed**.
+- Opsætningen slutter med **Tilkaldelse er sat op**, hentet fra det, der faktisk er gemt: **Hvem der tilkaldes**, **Hvis ingen svarer** og **Testet**. **Hvem der tilkaldes** viser i rækkefølge, hvordan hver person nås. Et problem med selve politikken, for eksempel en person, den ikke kan nå, står under **Kræver opmærksomhed**.
 - På **Hjem** markerer tjeklisten **Opsæt en vagtpolitik** som udført. Var det det sidste trin, er tjeklisten væk.
 
 Tilkalder politikken en anden, kan du også se eskaleringen: klik på **Åbn vagtpolitikken** i oversigten og derefter på **Test denne politik**. Slå **Gå gennem hvert eskaleringsniveau** til, send testen, og lad være med at kvittere for det første tilkald: den næste person tilkaldes op til 2 minutter senere.

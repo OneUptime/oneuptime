@@ -413,6 +413,8 @@ npm run backup
 
 sudo のパスワードを求められ、`Backups/db-<day of the month>.backup` が書き込まれます。そのため、毎日のバックアップは 1 か月前のものを置き換えます。少なくとも 1 日 1 回は実行してください。
 
+実行のたびに結果が OneUptime に伝わるため、Admin Dashboard の サーバーの設定 には前回のバックアップがいつ終わったかが表示され、バックアップが失敗したときや前回のものが 1 週間以上前のときはそう表示されます。ダンプに失敗した実行はその旨を表示してエラーで終了するので、cron ジョブでも分かります。
+
 ### バックアップをサーバーの外にコピーする
 
 データベースと同じディスクにあるバックアップは、そのディスクが失われると一緒に失われます。
@@ -518,7 +520,7 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 npm run doctor
 ```
 
-問題を重要なものから順に一覧にし、各行に正確な直し方を示し、最後に **Everything looks right.** か直すべき項目の数を表示します。すべてのコンテナーを確認して動いていないもののログの最後の行を示すほか、`config.env`、`HOST` がこのサーバーに届くか、`PROVISION_SSL` がオンのときの証明書、空きディスク容量を確認します。さらに OneUptime 自身に見えている状態も尋ねます。PostgreSQL、ClickHouse、Valkey、移行、キュー、バージョン、そしてメールやプローブなどサーバーのセットアップ手順です。`npm start` も最後に同じ確認を行い、対応が必要なものだけを表示します。
+問題を重要なものから順に一覧にし、各行に正確な直し方を示し、最後に **Everything looks right.** か直すべき項目の数を表示します。すべてのコンテナーを確認して動いていないもののログの最後の行を示すほか、`config.env`、`HOST` がこのサーバーに届くか、前段のプロキシーがホスト名と `X-Forwarded-Proto` を引き継いでいるか、`PROVISION_SSL` がオンのときの証明書、空きディスク容量を確認します。さらに OneUptime 自身に見えている状態も尋ねます。PostgreSQL、ClickHouse、Valkey、移行、キュー、バージョン、そしてメールやプローブなどサーバーのセットアップ手順です。• の付いた行は知っておくとよい情報で、問題ではなく、数にも入りません。このサーバーでオフになっている製品と、それがどこで設定されたかです。OneUptime が知らない名前が `SERVER_PRODUCTS` にあると、確認すべき項目として ! が付きます。`npm start` も最後に同じ確認を行い、対応が必要なものだけを表示します。
 
 各サービスの最近のエラーもサービス名付きで表示するには、次を実行します。
 
@@ -526,7 +528,7 @@ npm run doctor
 npm run doctor -- --logs
 ```
 
-✗ の付いた項目を直す必要があるときは終了コード `1` で終わるので、スクリプトからも実行できます。Admin Dashboard は OneUptime 自身に見えている状態を **OneUptime のヘルス** の一番上に表示し、Kubernetes では `HelmChart/Public/diagnose.sh` が出力します。
+✗ の付いた項目を直す必要があるときは終了コード `1` で終わるので、スクリプトからも実行できます。Admin Dashboard は OneUptime 自身に見えている状態を **OneUptime のヘルス** の一番上に表示し、Kubernetes では `HelmChart/Public/diagnose.sh` が出力し、さらに利用者が開くアドレスとその証明書を確認します。
 
 ## トラブルシューティング
 

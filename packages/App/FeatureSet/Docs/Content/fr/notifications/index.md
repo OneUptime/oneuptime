@@ -61,7 +61,7 @@ Quand vous rejoignez un projet avec un e-mail de connexion vérifié, OneUptime 
 2. Pour chaque gravité, sur chacun des quatre onglets des **Comment me joindre**, une règle vous envoie un e-mail dès que vous êtes alerté.
 3. Un ensemble de nouvelles sur ce dont vous êtes propriétaire, et sur vos permanences, est activé par e-mail. Voir [Paramètres de notification](/docs/notifications/notification-settings#ce-qui-est-activé-pour-un-nouveau-membre).
 
-Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Comment me joindre](/docs/notifications/on-call-rules#les-règles-de-départ).
+Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Comment me joindre](/docs/notifications/on-call-rules#les-règles-de-départ). Quand votre projet a une séquence par défaut, votre e-mail et chaque méthode que vous vérifiez la suivent à la place : voir [La séquence par défaut](/docs/notifications/on-call-rules#la-séquence-par-défaut).
 
 ## La liste de configuration
 
@@ -84,6 +84,10 @@ Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règ
 | **Il reste quelques éléments à configurer** | Une gravité n'a pas de règle, ou une étape n'est pas encore faite |
 | **Rien ne peut encore vous joindre** | Aucune de vos méthodes n'est utilisable : aucune n'est vérifiée, ou chaque méthode vérifiée est sur un canal que ce projet a désactivé |
 | **Vous êtes configuré et n'êtes pas d'astreinte en ce moment** | Tout est prêt pour le jour où une politique vous nommera |
+
+Tant qu'une étape reste à faire, les **Paramètres utilisateur** s'ouvrent sur cette liste, et sur **Méthodes de notification** une fois qu'il ne reste plus rien d'essentiel. Un lien vers une autre page des **Paramètres utilisateur** ouvre toujours cette page.
+
+Quand vous êtes dans une politique d'astreinte et que votre configuration n'est pas terminée, la cloche en haut de chaque page affiche **Terminez la configuration de vos notifications**, et pourquoi : rien ne peut vous joindre, une gravité n'a pas de règle, ou votre projet demande un moyen téléphonique que vous n'avez pas vérifié. Elle ouvre cette liste, ou **Comment me joindre** pour le téléphone. **Masquer pendant une semaine** la masque dans ce navigateur, et elle disparaît d'elle-même une fois votre configuration terminée.
 
 ## Quand aucune règle ne correspond
 

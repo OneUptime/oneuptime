@@ -12,6 +12,7 @@ import {
   WhoIsToldHeadline,
   WhoIsToldMonitorGroup,
   WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerMatch,
   WhoIsToldOwnerNotReached,
   WhoIsToldOwnerProblem,
   WhoIsToldOwners,
@@ -343,6 +344,52 @@ export const DECLARES_WORDS: Readonly<{
 export const LABEL_RULES_NOTE: string = translationKey(
   "Their labels change which on-call rules page it.",
 );
+
+/*
+ * THE OWNERS THAT MAKE AN ON-CALL RULE MATCH (#9407): an alert on-call
+ * rule's Alert Owner condition matches on who owns the alert - whom its
+ * criteria names, the network device's owners and whom its owner rules add
+ * - so the chain says which owner made the rule match, as it names a label
+ * rule whose label did. A rule the reader can't see is said as such.
+ */
+export const OWNER_MATCH_WORDS: Readonly<{
+  sentence: string;
+  hiddenRuleSentence: string;
+}> = {
+  sentence: translationKey("It's owned by {{owners}}, so {{rule}} matches."),
+  hiddenRuleSentence: translationKey(
+    "It's owned by {{owners}}, so a rule you can't see matches.",
+  ),
+};
+
+// One owner match's sentence, the rule named as the event's rules name it.
+export function getOwnerMatchSentence(data: {
+  match: WhoIsToldOwnerMatch;
+  rules: ReadonlyArray<WhoIsToldRule>;
+  translator: Translator;
+}): string {
+  const ruleName: string =
+    data.rules.find((rule: WhoIsToldRule): boolean => {
+      return rule.id === data.match.ruleId;
+    })?.name || "";
+  const owners: TemplateValue = composedValue(
+    (sentence: Translator): string => {
+      return formatList(data.match.ownerNames, sentence);
+    },
+  );
+
+  return ruleName
+    ? data.translator.translateTemplate(
+        OWNER_MATCH_WORDS.sentence,
+        { owners: owners, rule: ruleName },
+        { setsValuesApart: true },
+      )
+    : data.translator.translateTemplate(
+        OWNER_MATCH_WORDS.hiddenRuleSentence,
+        { owners: owners },
+        { setsValuesApart: true },
+      );
+}
 
 /*
  * A status page that shows the monitor through a monitor group (#7214): the

@@ -15,7 +15,7 @@ Ouvrez **Accueil** dans la barre du haut, ou appuyez sur `g` puis `h` depuis n'i
 
 1. Un champ de recherche, avec **Déclarer un incident** et **Créer** à côté.
 2. Une ligne qui dit si quelque chose ne va pas, au-dessus de cinq nombres qui comptent ce qui demande de l'attention.
-3. **Bienvenue sur OneUptime 👋**, une liste de vérification pour un nouveau projet, jusqu'à ce qu'elle soit terminée.
+3. **Bienvenue sur OneUptime 👋**, une liste de vérification pour un nouveau projet, jusqu'à ce qu'elle soit terminée, puis **À configurer ensuite** tant qu'il reste quelque chose.
 4. **Attention requise**, chaque problème ouvert en ce moment, par son nom.
 5. **Votre projet**, ce qui compose le projet, et **Maintenance à venir** quand une maintenance est planifiée.
 6. **Explorer OneUptime**, tous les produits, une catégorie à la fois.
@@ -40,7 +40,7 @@ La ligne du haut nomme ce qui est ouvert de plus urgent, dans une couleur assort
 
 À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. L'accueil suit aussi ce qu'il compte au fil des changements : quand un incident, une alerte, un moniteur, un événement de maintenance ou un SLO est créé, modifié ou supprimé, la ligne, les nombres, **Attention requise** et **Maintenance à venir** se mettent à jour en quelques secondes, sans actualiser. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
 
-Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Créez votre premier moniteur**, qui ouvre la configuration guidée **Savoir quand mon site web ou mon API est en panne**. Seules les personnes autorisées à créer des moniteurs le voient.
+Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Créez votre premier moniteur**, qui ouvre la configuration guidée **Savoir quand mon site web ou mon API est en panne**, sauf si la liste de vérification en dessous propose déjà cette étape. Seules les personnes autorisées à créer des moniteurs le voient.
 
 ### Les cinq nombres
 
@@ -68,13 +68,17 @@ Chaque étape se coche d'elle-même quand la chose fonctionne, pas quand un enre
 | **Créez votre premier moniteur** | Sa première vérification arrive. | La configuration guidée **Savoir quand mon site web ou mon API est en panne**, ou la liste **Moniteurs** pour quelqu'un qui ne peut pas créer de moniteurs. |
 | **Connecter un serveur ou un cluster** | Ses premières métriques arrivent. | **Hôtes** |
 | **Envoyer vos premiers logs, métriques ou traces** | Les premiers logs, métriques, traces, exceptions ou profils du projet arrivent. | La configuration guidée **Envoyer des journaux, des métriques et des traces, puis être alerté** |
-| **Configurez une politique d'astreinte** | Une alerte de test est acquittée, une alerte joint quelqu'un, ou une règle d'astreinte exécute une politique qui peut joindre quelqu'un. | La configuration guidée **Alerter la bonne personne quand quelque chose tombe en panne** |
+| **Configurez une politique d'astreinte** | Une alerte de test est acquittée, une alerte joint quelqu'un, ou une règle d'astreinte ou un moniteur exécute une politique qui peut joindre quelqu'un. | La configuration guidée **Alerter la bonne personne quand quelque chose tombe en panne** |
 | **Publiez une page de statut** | Une page de statut affiche un moniteur. | La configuration guidée **Publiez une page de statut**, ou la liste **Pages de statut** pour quelqu'un qui ne peut pas créer de pages de statut. |
 | **Invitez votre équipe** | Quelqu'un accepte votre invitation. | **Utilisateurs** |
 
-L'étape à faire en premier est marquée **Étape suivante**. Avec l'offre Free d'OneUptime Cloud, qui comprend une personne, **Invitez votre équipe** indique qu'il faut l'offre Growth, et ouvre **Facturation**. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, les administrateurs du serveur voient d'abord **Ce serveur ne peut pas encore envoyer d'e-mails** ; cela ouvre le tableau de bord admin.
+L'étape à faire en premier est marquée **Étape suivante**. Avec l'offre Free d'OneUptime Cloud, qui comprend une personne, **Invitez votre équipe** indique qu'il faut l'offre Growth, et ouvre **Facturation**. Sur un serveur auto-hébergé qui n'est pas encore configuré, ses administrateurs voient à la place la carte du serveur au-dessus de la liste, avec **Terminer la configuration**, qui ouvre le tableau de bord admin.
 
 Chaque étape indique combien de temps elle prend environ, la liste indique le temps qu'il reste environ, et l'étape suivante a son propre bouton **Lancer**.
+
+Une étape dont l'enregistrement existe mais ne fonctionne pas encore dit pourquoi en dessous, avec les mots de **Santé de la configuration** : une page de statut qui n'affiche aucun moniteur, un moniteur que rien ne vérifie, une politique d'astreinte que rien n'exécute ou qui ne joint personne, une invitation que personne n'a acceptée. L'étape ouvre alors la page qui corrige le problème et, quand c'est l'étape suivante, son bouton nomme la correction, par exemple **Ajouter des moniteurs**.
+
+Une fois **Configurez une politique d'astreinte** cochée, et tant que seul l'e-mail peut vous alerter, **Être alerté par SMS ou par appel téléphonique** reste en dessous : le lien ouvre la configuration guidée **Alerter la bonne personne quand quelque chose tombe en panne**, pour ajouter votre téléphone ou l'app mobile. Seules les personnes autorisées à créer des politiques d'astreinte le voient.
 
 Une configuration guidée fait tout le travail sur une seule page, étape par étape, et se termine par ce qu'elle a configuré et ce qu'il faut faire ensuite. Pour en rouvrir une plus tard, recherchez son nom.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Oui"| hidden{"Masquée<br/>par vous ?"}
     hidden -->|"Oui"| line["Une ligne pour<br/>la réafficher"]
     hidden -->|"Non"| done{"Toutes les étapes<br/>terminées ?"}
-    done -->|"Oui"| gone["Pas de liste"]
+    done -->|"Oui"| gone["À configurer ensuite,<br/>tant qu'il reste quelque chose"]
     done -->|"Non"| shown["La liste, avec<br/>les étapes restantes"]
 ```
 
 La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la masquer plus tôt, cliquez sur **Masquer** : elle n'est masquée que pour vous, sur chaque appareil, et une ligne reste avec **Afficher** et **Comment fonctionne OneUptime**. Les personnes invitées dans le projet comme membres ne voient pas la liste. **Comment fonctionne OneUptime** reste à un clic, dans n'importe quel projet : ouvrez-le depuis **Aide**, ou avec le bouton à côté de **Explorer OneUptime**.
+
+Une fois la liste terminée, **À configurer ensuite** prend sa place sous le titre, comme une carte parmi les autres : les étapes essentielles que vos objectifs n'ont pas apportées, comme une page de statut et votre équipe, chacune jusqu'à ce qu'elle fonctionne, avec **Être alerté par SMS ou par appel téléphonique** en premier tant que seul l'e-mail peut vous alerter. Son **Masquer** la masque pour vous, sans laisser de ligne.
 
 **Comment fonctionne OneUptime** s'ouvre sur **Comment tout s'articule** : les quatre étapes par lesquelles passe un problème, **Détecter**, **Réagir**, **Communiquer** et **Améliorer**, chacune avec les produits qui s'en chargent. Viennent ensuite les catégories du menu **Produits**, chacune avec ses produits et ce à quoi sert chacun : choisissez-en une, ou passez à la suivante avec les flèches du clavier ou **Suivant**. Cliquez sur un produit pour l'ouvrir. Les produits que votre projet masque n'y figurent pas.
 
@@ -103,7 +109,7 @@ La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la
 
 ### Santé de la configuration
 
-Quand quelque chose dans la configuration du projet empêcherait de prévenir les bonnes personnes, **Attention requise** se termine par **Configuration** : le nombre de points à examiner. Cette ligne ouvre **Santé de la configuration**, qui commence par une ligne dans la couleur du constat le plus grave : combien de problèmes empêcheraient de prévenir les bonnes personnes, combien de points sont à corriger, ou **Rien à corriger**. En dessous, la page liste ce qui est mal configuré, le plus grave d'abord, sous **Les alertes n'arriveront pas**, **À corriger** et **Suggestions** : un moniteur qui n'alerte personne, une politique d'astreinte que rien ne déclenche, une personne qu'on ne peut pas alerter, les SMS désactivés, un planning d'astreinte où personne n'est de garde, une page de statut qui n'affiche aucun moniteur, un domaine personnalisé dont le certificat SSL n'a pas pu être émis, une clé d'ingestion avec laquelle aucune donnée n'est arrivée. Chaque constat dit en une phrase ce qui ne va pas, avec les noms de vos moniteurs, politiques et personnes en gras, les moniteurs ou politiques qu'il touche après **Concerne**, et juste en dessous le bouton qui ouvre sa correction. Deux se corrigent sur place, une fois qu'une boîte de dialogue a dit exactement ce qui va changer : **Activer les SMS** (ou les appels téléphoniques, WhatsApp ou Telegram), pour qui peut les activer, et **Créer une règle d'astreinte**, qui déclenche la politique d'astreinte que vous choisissez pour un moniteur qui n'alertait personne. Les constats d'un moniteur sont les ruptures que nomme sa carte **Quand il tombe en panne**, et une politique d'astreinte que rien ne déclenche, ou un domaine personnalisé qui n'ouvre pas sa page de statut, le dit aussi en haut de la page de la politique ou de la page de statut. Un constat que votre équipe laisse tel quel exprès peut être masqué avec une raison, pour tout le monde, puis restauré depuis **Ignoré**. La recherche trouve la page sous le nom **Santé de la configuration**, et Demander à l'IA répond à « Ma configuration est-elle correcte ? » à partir d'elle.
+Quand quelque chose dans la configuration du projet empêcherait de prévenir les bonnes personnes, **Attention requise** se termine par **Configuration** : le nombre de points à examiner. Cette ligne ouvre **Santé de la configuration**, qui commence par une ligne dans la couleur du constat le plus grave : combien de problèmes empêcheraient de prévenir les bonnes personnes, combien de points sont à corriger, ou **Rien à corriger**. En dessous, la page liste ce qui est mal configuré, le plus grave d'abord, sous **Les alertes n'arriveront pas**, **À corriger** et **Suggestions** : un moniteur qui n'alerte personne, une politique d'astreinte que rien ne déclenche, une personne qu'on ne peut pas alerter, les SMS désactivés, un planning d'astreinte où personne n'est de garde, une page de statut qui n'affiche aucun moniteur, un domaine personnalisé dont le certificat SSL n'a pas pu être émis, une clé d'ingestion avec laquelle aucune donnée n'est arrivée. Chaque constat dit en une phrase ce qui ne va pas, avec les noms de vos moniteurs, politiques et personnes en gras, les moniteurs ou politiques qu'il touche après **Concerne**, et juste en dessous le bouton qui ouvre sa correction. Deux se corrigent sur place, une fois qu'une boîte de dialogue a dit exactement ce qui va changer : **Activer les SMS** (ou les appels téléphoniques, WhatsApp ou Telegram), pour qui peut les activer, et **Créer une règle d'astreinte**, qui déclenche la politique d'astreinte que vous choisissez pour un moniteur qui n'alertait personne. Les constats d'un moniteur sont les ruptures que nomme sa carte **Quand il tombe en panne**, et une politique d'astreinte que rien ne déclenche, ou un domaine personnalisé qui n'ouvre pas sa page de statut, le dit aussi en haut de la page de la politique ou de la page de statut. Chaque propriétaire que, selon la carte, l'e-mail de création n'atteint jamais est aussi un constat à corriger, avec la même page pour y remédier. Un constat que votre équipe laisse tel quel exprès peut être masqué avec une raison, pour tout le monde, puis restauré depuis **Ignoré**. La recherche trouve la page sous le nom **Santé de la configuration**, et Demander à l'IA répond à « Ma configuration est-elle correcte ? » à partir d'elle.
 
 ### Votre projet
 
@@ -113,7 +119,7 @@ Quand quelque chose dans la configuration du projet empêcherait de prévenir le
 
 ### Explorer OneUptime
 
-**Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus. Les produits que votre projet masque n'y figurent pas.
+**Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus. Les produits que votre projet masque se trouvent dans son dernier onglet, **Plus de produits**, avec une note qui dit qu'ils fonctionnent toujours.
 
 ## Se repérer
 

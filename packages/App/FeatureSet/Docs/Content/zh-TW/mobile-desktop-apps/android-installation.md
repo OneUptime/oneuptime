@@ -68,6 +68,8 @@ flowchart TB
 
 應用程式一次顯示一個專案：輕觸畫面頂端的專案名稱即可切換。要求單一登入的專案會在 **Settings → Manage Projects** 中顯示 **SSO Required**，直到你在那裡輕觸 **Authenticate with SSO**。
 
+全新安裝時，應用程式隨後會開啟一次 **Get Ready for On-Call**：三個步驟，讓呼叫即使在夜間開啟「零打擾」時也能送達手機。允許通知，輕觸 **Turn On Critical Alerts**，然後輕觸 **Send Test Page**，並從通知中確認這次測試呼叫。 **Not Now** 會關閉它， **Settings → Get Ready for On-Call** 可隨時再次開啟它。如果需要在 Android 設定中允許「零打擾」存取權，回到應用程式後重大警示會立即開啟。
+
 ## 確認呼叫能送達手機
 
 :::steps

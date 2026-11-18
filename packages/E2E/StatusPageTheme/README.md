@@ -17,7 +17,9 @@ custom domain. The query string sets the page: `theme` (`Light`, `Dark` or
 own, `none` for a failed lookup), `private=1` (a page only signed-in readers see),
 `sso=1`, `darkLogo=1` (a page with a logo made for the dark theme too,
 `Fixture/logo-dark.svg`), `grid=wide` (the grid group by six regions rather than
-three) and `lang` (the page's default language: its HTML is sent
+three), `notMonitored=1` (resources nothing checks, drawn as Not monitored: a group of
+their own, "Legacy", and the grid's API cell in Asia Pacific), `logo=none` (a page with
+no logo, named in its header) and `lang` (the page's default language: its HTML is sent
 in it, with the `<html lang dir>` the page servers write, and the app shows it to a
 visitor who never chose another - `lang=ar` is an Arabic page, right to left). The server's `/hold` and `/release` hold Tailwind and the
 app's bundle back, so a test can look at the page as the browser has it before
@@ -32,7 +34,9 @@ the private sign-in page, its SSO page (whose one provider the fixture's server
 lists over HTTP, as the page's ModelList reads it) and the not-found page; the SSO
 page's way back to the password form, lined up under its providers, and its SAML and
 OpenID Connect providers as one evenly spaced list, each chosen from the keyboard; status
-text at 4.5:1; the very dark
+text at 4.5:1 against every layer behind it, blended down to the first opaque one, a ground
+Chrome reports as `color(srgb ...)` (a grid cell's pill) included, and Not monitored at 4.5:1 in
+a row, a group's rollup and a grid cell; the very dark
 red of a long outage's bar with an edge; the logo on a light backdrop whenever a Dark
 page or one that follows the device is dark, and the logo made for the dark theme
 drawn instead, on nothing, where the page has one; no switch on a Light or Dark page
@@ -56,7 +60,9 @@ at 390, 768 and 1280 pixels in English, Arabic and Persian (Chromium only; each 
 sets its own window). Its matrix needs 580 pixels: at 390 it is a stack, each row a
 section headed by its value and each cell a tile with its column's name at the start
 and its status at the end, one to a line; at 768 and 1280 it is the matrix, with its
-column headings. With `grid=wide` the group has six regions (US East, US West, EU,
+column headings. The empty EU cell's dash is hidden from a screen reader, which hears that
+the cell has no resources, in the page's language, after the tile's column in the stack and
+under its column's heading in the matrix (#7431). With `grid=wide` the group has six regions (US East, US West, EU,
 Asia Pacific, South America and Africa, with nothing in the Dashboard's EU cell): 1,000
 pixels of matrix, which no laptop fits, so it is a stack there too, its tiles side by
 side - three to a line at 1280, two at 768 - each ruled off from the one before it.
@@ -64,6 +70,12 @@ Nothing scrolls sideways. With its columns widened past its box, the matrix scro
 its card and each row's value stays whole at the start of the line, on a solid ground,
 ruled off on its cells' side, left to right and right to left. The dark theme draws it
 with nothing white. Its screenshots are `grid-*.png`.
+
+`StatusPageName.spec.ts` opens the page with `logo=none`, as a page made by Create
+Status Page or the guided setup is: its header names it where the logo would be, a
+link to its Overview beside the header's links, at 390 and 1280 pixels, light and
+dark, in English and Arabic, and the browser tab is named after the page on every page
+of it, never OneUptime (#7467). Its screenshots are `name-*.png`.
 
 This checks real browser rendering and the app's theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

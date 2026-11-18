@@ -13,7 +13,7 @@ flowchart TB
 
 - Un projet dont vous êtes propriétaire : seul un propriétaire peut activer les SMS et les appels, et seul un propriétaire ou un administrateur peut créer une politique d'astreinte.
 - Votre téléphone mobile.
-- Les membres de votre équipe à alerter, ajoutés au projet : [Inviter des personnes](/docs/permissions/inviting-people) explique comment.
+- Les membres de votre équipe à alerter : la configuration peut les inviter par e-mail, ou voir [Inviter des personnes](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Votre serveur doit pouvoir envoyer des e-mails et des SMS, et passer des appels.
 
 ![Accueil demande « Que voulez-vous faire en premier ? », avec « Alerter la bonne personne quand quelque chose tombe en panne » coché](screen:home-goal-paging)
 
-Sur la page **Accueil** de votre projet, cliquez sur **Configurez une politique d'astreinte** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Alerter la bonne personne quand quelque chose tombe en panne** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**.
+Sur la page **Accueil** de votre projet, cliquez sur **Configurez une politique d'astreinte** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Alerter la bonne personne quand quelque chose tombe en panne** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**. Dans **Astreinte**, **Configuration guidée** l'ouvre aussi.
 
 ### Installer l'application sur votre téléphone
 
-Installez OneUptime On-Call depuis l'App Store ou Google Play et connectez-vous : l'application enregistre votre téléphone pour les notifications push. De retour dans la configuration, cliquez sur **Revérifier** : **Application mobile ou navigateur**, sous **Comment devons-nous vous joindre ?**, affiche maintenant votre téléphone.
+Sous **Comment devons-nous vous joindre ?**, cliquez sur **Obtenir l'application**, scannez le code avec votre téléphone, installez l'application et connectez-vous. De retour dans la configuration, cliquez sur **Revérifier** : **Application mobile ou navigateur** affiche maintenant votre téléphone. **Utiliser ce navigateur** fait aussi alerter ce navigateur.
 
 ### Activer les SMS et les appels
 
@@ -47,11 +47,11 @@ Dans un nouveau projet, les SMS et les appels téléphoniques sont désactivés.
 
 Saisissez votre numéro de mobile avec son indicatif pays dans **Votre numéro de téléphone**, par exemple `+15551234567`, et cliquez sur **M'envoyer un code par SMS**. Saisissez ensuite le code reçu par SMS et cliquez sur **Vérifier** : ce même numéro est aussi appelé lors des alertes. Cliquez sur **Continuer**. Pour n'être alerté que par l'application et par e-mail, laissez le numéro vide et cliquez directement sur **Continuer**.
 
-### Choisir qui d'autre est alerté
+### Choisir qui est alerté en premier
 
-![L'étape « Qui d'autre est d'astreinte ? », avec « Enregistrer et continuer » entouré](screen:paging-who-else)
+![L'étape « Qui est alerté en premier ? », avec « Enregistrer et continuer » entouré](screen:paging-who-else)
 
-Sous **Qui d'autre est d'astreinte ?**, vous êtes déjà dans **Alertés en premier**. Cliquez sur **Ajouter des membres de l'équipe** pour alerter d'autres personnes avec vous, puis cliquez sur **Enregistrer et continuer**. Dans un projet qui n'a pas encore de politique d'astreinte, cela crée la **Politique d'astreinte par défaut**, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte. Dans un projet qui en a une, choisissez-la sous **Politique d'astreinte**, et ajoutez plutôt les personnes sous **Ajouter à la première règle d'escalade**. Si quelqu'un ne peut pas encore être joint, l'étape reste ouverte sur **Une alerte les atteint-elle ?** : cliquez sur **Envoyer un rappel de configuration** pour cette personne, puis sur **Continuer**.
+Sous **Qui est alerté en premier ?**, vous êtes déjà dans **Alertés en premier**. Cliquez sur **Ajouter des membres de l'équipe** pour alerter d'autres personnes en même temps que vous. Pour quelqu'un qui n'est pas encore dans le projet, cliquez sur **Inviter par e-mail**, saisissez son adresse et cliquez sur **Envoyer l'invitation**. Cliquez ensuite sur **Enregistrer et continuer**. Dans un projet qui n'a pas encore de politique d'astreinte, cela crée la **Politique d'astreinte par défaut**, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte. Dans un projet qui en a une, choisissez-la sous **Politique d'astreinte**, et ajoutez plutôt les personnes sous **Ajouter à la première règle d'escalade**. Si quelqu'un ne peut pas encore être joint, l'étape reste ouverte sur **Une alerte les atteint-elle ?** : cliquez sur **Envoyer un rappel de configuration** pour cette personne, puis sur **Continuer**.
 
 ### Décider de ce qui se passe si personne ne répond
 
@@ -75,7 +75,7 @@ Prenez l'appel de test en compte depuis le lien du SMS ou de l'e-mail, ou appuye
 ![Le résumé « L'alerte est configurée » : « Qui est alerté », « Si personne ne répond » et « Testé »](screen:paging-summary)
 
 - L'étape de test indique qui a pris l'appel de test en compte, par quel moyen et en combien de temps.
-- La configuration se termine sur **L'alerte est configurée**, un récapitulatif tiré de ce qui est enregistré : **Qui est alerté**, **Si personne ne répond** et **Testé**. Un problème de la politique elle-même, comme une personne qu'elle ne peut pas joindre, est listé sous **Attention requise**.
+- La configuration se termine sur **L'alerte est configurée**, un récapitulatif tiré de ce qui est enregistré : **Qui est alerté**, **Si personne ne répond** et **Testé**. **Qui est alerté** indique dans l'ordre comment chaque personne est jointe. Un problème de la politique elle-même, comme une personne qu'elle ne peut pas joindre, est listé sous **Attention requise**.
 - Sur la page **Accueil**, la liste de vérification marque l'étape **Configurez une politique d'astreinte** comme terminée. Si c'était la dernière étape, la liste de vérification disparaît.
 
 Si la politique alerte quelqu'un d'autre, vous pouvez aussi observer l'escalade : cliquez sur **Ouvrir la politique d'astreinte** dans le récapitulatif, puis sur **Tester cette politique**. Activez **Parcourir chaque niveau d'escalade**, envoyez le test et ne prenez pas en compte la première alerte : la personne suivante est alertée au plus 2 minutes plus tard.

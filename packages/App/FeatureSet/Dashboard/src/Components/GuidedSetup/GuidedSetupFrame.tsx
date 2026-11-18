@@ -11,9 +11,12 @@ import { WELCOME_MINUTES_COPY } from "../Home/WelcomeChecklist/WelcomeChecklistC
 import GuidedSetupContext from "../../Utils/DashboardRecording/GuidedSetupContext";
 import { PRODUCT_TEXT_CLASS_NAME } from "Common/UI/Utils/ProductText";
 import {
+  GUIDED_SETUP_FROM_QUERY,
   GuidedSetupEvents,
+  getGuidedSetupEntryPoint,
   useGuidedSetupEvents,
 } from "Common/UI/Utils/GuidedSetupEvents";
+import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -200,7 +203,17 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const events: GuidedSetupEvents = useGuidedSetupEvents(props.setup);
+  /*
+   * Started says where the setup was opened from, when the way in named
+   * itself on the address (?from=, #7054): the empty list, How it works,
+   * Create Monitor, another setup's summary.
+   */
+  const events: GuidedSetupEvents = useGuidedSetupEvents(
+    props.setup,
+    getGuidedSetupEntryPoint(
+      Navigation.getQueryStringByName(GUIDED_SETUP_FROM_QUERY),
+    ),
+  );
 
   useEffect(() => {
     events.reachStep(props.openStepKey || SUMMARY_STEP_KEY);

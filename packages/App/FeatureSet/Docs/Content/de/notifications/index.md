@@ -61,7 +61,7 @@ Wenn Sie einem Projekt mit einer verifizierten Anmelde-E-Mail beitreten, richtet
 2. Für jeden Schweregrad, auf jedem der vier Tabs der **Wie ich erreichbar bin**, schickt Ihnen eine Regel eine E-Mail, sobald Sie alarmiert werden.
 3. Eine Reihe von Neuigkeiten zu dem, was Ihnen gehört, und zu Ihren Schichten ist per E-Mail eingeschaltet. Siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings#was-für-ein-neues-mitglied-eingeschaltet-ist).
 
-Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten).
+Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten). Hat Ihr Projekt einen Standardablauf, folgen Ihre E-Mail und jede Methode, die Sie verifizieren, stattdessen ihm: siehe [Der Standardablauf](/docs/notifications/on-call-rules#der-standardablauf).
 
 ## Die Einrichtungs-Checkliste
 
@@ -84,6 +84,10 @@ Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel
 | **Ein paar Dinge müssen noch eingerichtet werden** | Ein Schweregrad hat keine Regel, oder ein Schritt ist noch nicht erledigt |
 | **Noch kann Sie nichts erreichen** | Keine Ihrer Methoden kann genutzt werden: Keine ist verifiziert, oder jede verifizierte liegt auf einem Kanal, den dieses Projekt ausgeschaltet hat |
 | **Sie sind eingerichtet und haben gerade keine Bereitschaft** | Alles ist bereit für den Tag, an dem eine Richtlinie Sie nennt |
+
+Solange ein Schritt offen ist, öffnen sich die **Benutzereinstellungen** auf dieser Checkliste, und auf **Benachrichtigungsmethoden**, sobald nichts Wesentliches mehr offen ist. Ein Link zu einer anderen Seite der **Benutzereinstellungen** öffnet weiterhin diese Seite.
+
+Wenn Sie in einer Bereitschaftsrichtlinie stehen und Ihre Einrichtung nicht fertig ist, zeigt die Glocke oben auf jeder Seite **Richten Sie Ihre Benachrichtigungen fertig ein**, und warum: Nichts kann Sie erreichen, ein Schweregrad hat keine Regel, oder Ihr Projekt verlangt eine Telefonmethode, die Sie nicht verifiziert haben. Sie öffnet diese Checkliste, oder **Wie ich erreichbar bin** für das Telefon. **Eine Woche ausblenden** blendet sie in diesem Browser aus, und sie verschwindet von selbst, sobald Ihre Einrichtung fertig ist.
 
 ## Wenn keine Regel passt
 

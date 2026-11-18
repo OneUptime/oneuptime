@@ -72,6 +72,12 @@ const MONITOR_VIEW_MENU_FILE: string =
   "App/FeatureSet/Dashboard/src/Pages/Monitor/View/SideMenu.tsx";
 const CRITERIA_STEPS_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps.tsx";
+const WEBSITE_DOWN_OFFER_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetupOffer.tsx";
+const WEBSITE_DOWN_COPY_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts";
+const PRODUCT_ONBOARDINGS_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboardings.ts";
 
 // Create Monitor's steps, in order: the page's first three sections.
 const STEP_TITLES: Array<string> = [
@@ -106,6 +112,22 @@ const UI_WORDS: Array<string> = [
 
 // The search words every page offers as examples.
 const SEARCH_EXAMPLES: Array<string> = ["k8s", "postgres", "heartbeat", "tls"];
+
+/*
+ * The page's second paragraph, the way into the website guided setup
+ * (#7054): Guided setup on the empty Monitors list and under How it works,
+ * and on Create Monitor once Website or API is picked.
+ */
+const GUIDED_SETUP_LINE: number = 4;
+const GUIDED_SETUP_WORDS: Array<string> = [
+  "Guided setup",
+  "Monitors",
+  "How it works",
+  "Create Monitor",
+  "Website",
+  "API",
+];
+const WEBSITE_GUIDE_LINK: string = "](/docs/guides/website-down)";
 
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
@@ -502,6 +524,42 @@ describe("the Creating a Monitor docs page", () => {
     });
   });
 
+  /*
+   * Where the website guided setup is offered (#7054): the Monitors
+   * product's "Guided setup", on its empty list and under How it works,
+   * and a line under Create Monitor's type picker for Website and API.
+   */
+  describe("the way into the website guided setup", () => {
+    it("is offered where the page says, by the button the dashboard draws", () => {
+      const create: string = readRepoFile(CREATE_PAGE_FILE);
+      const offer: string = readRepoFile(WEBSITE_DOWN_OFFER_FILE);
+      const copy: string = readRepoFile(WEBSITE_DOWN_COPY_FILE);
+      const onboardings: string = readRepoFile(PRODUCT_ONBOARDINGS_FILE);
+      const monitors: string = onboardings.slice(
+        onboardings.indexOf("[ProductKey.Monitors]: {"),
+        onboardings.indexOf("[ProductKey.Incidents]: {"),
+      );
+      const line: string = ENGLISH.split("\n")[GUIDED_SETUP_LINE] || "";
+
+      expect(monitors).toContain("page: PageMap.MONITOR_GUIDED_SETUP,");
+      expect(monitors).toContain(
+        'buttonTitle: translationKey("Guided setup"),',
+      );
+      expect(create).toContain("<WebsiteDownSetupOffer");
+      expect(offer).toContain(
+        "return monitorType === MonitorType.Website || monitorType === MonitorType.API;",
+      );
+      expect(offer).toContain("WEBSITE_DOWN_COPY.guidedSetup");
+      expect(copy).toContain('guidedSetup: translationKey("Guided setup"),');
+      expect(MonitorTypeHelper.getTitle(MonitorType.Website)).toBe("Website");
+      expect(MonitorTypeHelper.getTitle(MonitorType.API)).toBe("API");
+
+      expect(line).toBe(
+        "For a website or API, a guided setup walks you from its address to a test page instead: click **Guided setup** on the empty **Monitors** list, or under **How it works**. **Create Monitor** offers it too, once you pick **Website** or **API**. See [Know When Your Website or API Is Down](/docs/guides/website-down).",
+      );
+    });
+  });
+
   describe.each(SUPPORTED_DOCS_LANGUAGE_CODES)("in %s", (lang: string) => {
     const page: string = readPage(lang);
     const dashboard: Record<string, string> = readDashboardLocale(lang);
@@ -528,6 +586,18 @@ describe("the Creating a Monitor docs page", () => {
           found: page.includes(`**${dashboard[word]!}**`),
         }).toEqual({ word, found: true });
       }
+    });
+
+    it("offers the website guided setup on its second paragraph, under the words that language's dashboard gives it", () => {
+      const line: string = page.split("\n")[GUIDED_SETUP_LINE] || "";
+
+      for (const word of GUIDED_SETUP_WORDS) {
+        expect({
+          word,
+          found: line.includes(`**${dashboard[word]!}**`),
+        }).toEqual({ word, found: true });
+      }
+      expect(line).toContain(WEBSITE_GUIDE_LINK);
     });
 
     it("offers the same search words, and links to monitor templates", () => {

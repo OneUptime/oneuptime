@@ -9,9 +9,10 @@ import React, {
   useRef,
   useState,
 } from "react";
-import NotNull from "Common/Types/BaseDatabase/NotNull";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import IconProp from "Common/Types/Icon/IconProp";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -26,7 +27,10 @@ import { RESOURCE_CONNECTION_STEP_TITLE } from "../ResourceOnboarding/ResourceOn
 import TelemetryDocumentation, {
   TelemetryType,
 } from "../Telemetry/Documentation";
-import { getProductsSetUpByGuide } from "../Telemetry/TelemetryGuideProducts";
+import {
+  getFirstDataMilestonesOfProducts,
+  getProductsSetUpByGuide,
+} from "../Telemetry/TelemetryGuideProducts";
 import {
   TelemetryFirstRunHost,
   TelemetryFirstRunHostContext,
@@ -38,12 +42,30 @@ import { ShowcaseAddButton } from "../ResourceShowcase/ResourceShowcaseCard";
 /*
  * A telemetry product's explanation (Logs, Traces, Metrics, Exceptions,
  * Profiles, and Topology, which is drawn from traces) over its explorer,
- * while the project has never received telemetry: no service has reported.
- * Its button is the first step, "Send your first logs": the setup guide in
- * a dialog, which waits for the data to arrive - the first service that
- * reports, or the first data of the key the guide's snippets carry, for
- * telemetry that names no service (#7754) - and links to it. Once it has,
- * the page is the explorer alone, read again as the dialog closes.
+ * until the project's first data of the product's own signal arrives: its
+ * first-data mark (#6534, #6897), the activation milestone the server keeps
+ * once ClickHouse took the project's first logs, traces, metrics,
+ * exceptions or profiles - the mark the products menu's "Not set up" reads
+ * too (PRODUCT_USAGE_MILESTONES). So a project that sends traces and no
+ * logs still meets the Logs explanation, and one whose logs name no service
+ * does not. Its button is the first step, "Send your first logs": the setup
+ * guide in a dialog, which waits for the data to arrive - the first service
+ * that reports, the first data of the key the guide's snippets carry
+ * (#7754), or the project's first data of the signal, whichever key sent it
+ * (#7888) - and links to it. Once it has, the page is the explorer alone,
+ * read again as the dialog closes.
+ *
+ * The mark is asked for again every few seconds while it is missing
+ * (useFirstRecordWatch), so data that arrives while the page is open -
+ * with no dialog open, sent from a terminal or by a shipper set up
+ * elsewhere - takes the explanation away and reads the explorer again: the
+ * first logs show without a reload (#7755).
+ *
+ * Logs, Traces and Metrics offer the guided setup "Send logs, metrics and
+ * traces, then get alerted" first (#7142, their ProductOnboarding's
+ * guidedSetup): the same guide and wait, then the monitors that alert on
+ * the service. The dialog stays beside it, plain, for the data alone: two
+ * jobs, a button each.
  *
  * The explorer stays under it: nothing is hidden on the strength of this
  * check, and a project whose services have reported never sees it. A
@@ -66,6 +88,12 @@ export interface TelemetryFirstRun {
   viewText: string;
   // The product's explorer: where data that names no service shows.
   dataPage: PageMap;
+  /*
+   * The first-data mark of the signal the page draws: until it is kept, the
+   * page explains itself. The mark of the product in the products menu
+   * (PRODUCT_USAGE_MILESTONES), which a test holds them to.
+   */
+  firstDataMilestone: ActivationMilestone;
 }
 
 export const TELEMETRY_FIRST_RUNS: Record<
@@ -83,6 +111,7 @@ export const TELEMETRY_FIRST_RUNS: Record<
     viewPage: PageMap.SERVICE_VIEW_LOGS,
     viewText: translationKey("View logs"),
     dataPage: PageMap.LOGS,
+    firstDataMilestone: ActivationMilestone.FirstLogsReceived,
   },
   [ProductKey.Traces]: {
     telemetryType: "traces",
@@ -90,6 +119,7 @@ export const TELEMETRY_FIRST_RUNS: Record<
     viewPage: PageMap.SERVICE_VIEW_TRACES,
     viewText: translationKey("View traces"),
     dataPage: PageMap.TRACES,
+    firstDataMilestone: ActivationMilestone.FirstTracesReceived,
   },
   [ProductKey.Metrics]: {
     telemetryType: "metrics",
@@ -97,6 +127,7 @@ export const TELEMETRY_FIRST_RUNS: Record<
     viewPage: PageMap.SERVICE_VIEW_METRICS,
     viewText: translationKey("View metrics"),
     dataPage: PageMap.METRICS,
+    firstDataMilestone: ActivationMilestone.FirstMetricsReceived,
   },
   [ProductKey.Exceptions]: {
     telemetryType: "exceptions",
@@ -104,6 +135,7 @@ export const TELEMETRY_FIRST_RUNS: Record<
     viewPage: PageMap.SERVICE_VIEW_EXCEPTIONS,
     viewText: translationKey("View exceptions"),
     dataPage: PageMap.EXCEPTIONS,
+    firstDataMilestone: ActivationMilestone.FirstExceptionsReceived,
   },
   [ProductKey.Profiles]: {
     telemetryType: "profiles",
@@ -111,13 +143,16 @@ export const TELEMETRY_FIRST_RUNS: Record<
     viewPage: PageMap.SERVICE_VIEW_PROFILES,
     viewText: translationKey("View profiles"),
     dataPage: PageMap.PROFILES,
+    firstDataMilestone: ActivationMilestone.FirstProfilesReceived,
   },
+  // The map of services is drawn from their traces.
   [ProductKey.Topology]: {
     telemetryType: "traces",
     startText: translationKey("Send your first traces"),
     viewPage: PageMap.SERVICE_VIEW_TRACES,
     viewText: translationKey("View traces"),
     dataPage: PageMap.TRACES,
+    firstDataMilestone: ActivationMilestone.FirstTracesReceived,
   },
 };
 
@@ -136,7 +171,10 @@ export const TELEMETRY_SETUP_DESCRIPTION: string = translationKey(
 export interface SetupModalProps {
   firstRun: TelemetryFirstRun;
   onClose: () => void;
-  // The first data arrived: a service reported, or the key sent its first.
+  /*
+   * The first data arrived: a service reported, the key sent its first, or
+   * the project's first data of the signal was kept.
+   */
   onConnected?: (() => void) | undefined;
 }
 
@@ -148,6 +186,9 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
   // The key the guide's snippets carry, which the last step watches too.
   const [ingestionKey, setIngestionKey] =
     useState<TelemetryIngestionKey | null>(null);
+  const products: Array<ProductKey> = getProductsSetUpByGuide({
+    telemetryType: props.firstRun.telemetryType,
+  });
 
   return (
     <Modal
@@ -176,9 +217,13 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
             }}
             ingestionKey={ingestionKey}
             dataPage={props.firstRun.dataPage}
-            products={getProductsSetUpByGuide({
-              telemetryType: props.firstRun.telemetryType,
-            })}
+            products={products}
+            /*
+             * The project's first data of the guide's signal, whichever key
+             * sent it: a key that already sends traces finishes the logs
+             * guide with its first logs (#7888).
+             */
+            firstDataMilestones={getFirstDataMilestonesOfProducts(products)}
             onDataArrived={() => {
               props.onConnected?.();
             }}
@@ -218,12 +263,36 @@ const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
    */
   const hasFirstDataRef: MutableRefObject<boolean> = useRef<boolean>(false);
   const [explorerReads, setExplorerReads] = useState<number>(0);
-  // Services that have reported: any telemetry at all.
+
+  const readExplorerAgain: () => void = (): void => {
+    setExplorerReads((value: number): number => {
+      return value + 1;
+    });
+  };
+
+  /*
+   * The project's first data of this page's signal: its mark, asked for
+   * again every few seconds while it is missing. One that arrives while
+   * the page is open reads the explorer again - at once, or as the setup
+   * dialog over it closes - unless the explorer has drawn data already.
+   */
   const watch: FirstRecordWatch = useFirstRecordWatch({
-    modelType: Service,
+    modelType: ProjectMilestone,
     query: {
       projectId: ProjectUtil.getCurrentProjectId()!,
-      lastSeenAt: new NotNull(),
+      milestone: firstRun.firstDataMilestone,
+    },
+    onFirstRecord: (): void => {
+      if (hasData) {
+        return;
+      }
+
+      if (isSetupOpen) {
+        hasFirstDataRef.current = true;
+        return;
+      }
+
+      readExplorerAgain();
     },
   });
 
@@ -257,9 +326,7 @@ const TelemetryFirstRunShowcase: FunctionComponent<ComponentProps> = (
 
     if (hasFirstDataRef.current) {
       hasFirstDataRef.current = false;
-      setExplorerReads((value: number): number => {
-        return value + 1;
-      });
+      readExplorerAgain();
     }
   };
 

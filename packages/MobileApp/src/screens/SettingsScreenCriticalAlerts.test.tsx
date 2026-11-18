@@ -101,10 +101,19 @@ jest.mock("../storage/serverUrl", () => {
   };
 });
 
+/*
+ * The screen's focus effect, kept so a test can show Settings again: React
+ * Navigation runs it each time the screen comes into focus.
+ */
+const mockFocusEffect: { current: (() => void) | null } = { current: null };
+
 jest.mock("@react-navigation/native", () => {
   return {
     useNavigation: () => {
       return { navigate: jest.fn() };
+    },
+    useFocusEffect: (effect: () => void) => {
+      mockFocusEffect.current = effect;
     },
   };
 });
@@ -471,5 +480,57 @@ describe("Toggling the switch", () => {
     })) as unknown as { props: { disabled?: boolean } };
 
     expect(toggle.props.disabled).toBe(true);
+  });
+});
+
+/*
+ * Get Ready for On-Call and Alarm sound open over Settings, which stays
+ * mounted under them, and either can change what critical alerts do (#9461):
+ * shown again, Settings reads the switch again, so it never says off for a
+ * setting just turned on above it.
+ */
+describe("Shown again after a screen above it", () => {
+  beforeEach(() => {
+    mockFocusEffect.current = null;
+    mockCriticalAlertsState.current = stateWith();
+  });
+
+  test("its first showing reads nothing twice: the hook read it as it mounted", async () => {
+    await render(<SettingsScreen />);
+
+    mockFocusEffect.current?.();
+
+    expect(mockCriticalAlertsState.current.refresh).not.toHaveBeenCalled();
+  });
+
+  test("shown again, it reads critical alerts again", async () => {
+    await render(<SettingsScreen />);
+
+    // Settings opens; then Get Ready for On-Call over it, and back.
+    mockFocusEffect.current?.();
+    mockFocusEffect.current?.();
+
+    expect(mockCriticalAlertsState.current.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a read that fails leaves the switch as it was", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      isEnabled: true,
+      refresh: jest.fn(async () => {
+        throw new Error("The phone's settings could not be read.");
+      }) as unknown as () => Promise<void>,
+    });
+
+    await render(<SettingsScreen />);
+
+    mockFocusEffect.current?.();
+    mockFocusEffect.current?.();
+
+    const toggle: { props: { value?: boolean } } = (await waitFor(() => {
+      return screen.getByRole("switch");
+    })) as unknown as { props: { value?: boolean } };
+
+    expect(mockCriticalAlertsState.current.refresh).toHaveBeenCalledTimes(1);
+    expect(toggle.props.value).toBe(true);
   });
 });

@@ -36,7 +36,7 @@ El explorador tiene cinco pestañas:
 
 ## Antes de empezar
 
-- **Registros que llegan.** Envíelos con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La pestaña **Guía de configuración** muestra la configuración para su lenguaje o su recolector.
+- **Registros que llegan.** Envíelos con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La pestaña **Guía de configuración** muestra la configuración para su lenguaje o su recolector. Hasta que llegan los primeros datos, esta página ofrece **Configuración guiada**, que te lleva desde tus primeros registros, métricas y trazas hasta las alertas sobre ellos, junto a **Enviar tus primeros registros**, la guía de configuración sola. Para comprobar el endpoint y su clave antes de configurar una aplicación, abra **Enviar un registro de prueba** en el primer paso de la guía: envía un registro del servicio `oneuptime-test`, que puede eliminar después.
 - **Un rol que pueda leer telemetría.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de telemetría, Miembro de telemetría o Visor de telemetría, o un rol personalizado con el permiso Read Logs. Su ámbito decide de quién son los registros que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
 
 ## Encontrar una línea de registro

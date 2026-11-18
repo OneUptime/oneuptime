@@ -50,7 +50,8 @@ import React, {
  * It answers, top to bottom:
  *   1. Can I find or start what I came for?  Search and the create actions.
  *   2. Is anything wrong?                    The health headline and strip.
- *   3. Is this project set up?               Getting Started, until it is.
+ *   3. Is this project set up?               Getting Started, until it is;
+ *                                            then what else to set up.
  *   4. What exactly needs me?                The open work, by name.
  *   5. What is in this project?              Its resources, and what is
  *                                            coming up.
@@ -102,7 +103,28 @@ export const HOME_ROW_SIDE_COLUMN_CLASS_NAME: string =
 export interface HomeWelcome {
   view: WelcomeCardView | null;
   isTakingHome: boolean;
+  /*
+   * The Welcome card offers to create the first monitor: its step is left,
+   * on the checklist or among what else to set up (#7759).
+   */
+  offersFirstMonitor: boolean;
 }
+
+/*
+ * Whether the health card's headline ends on "Create your first monitor"
+ * (#7759): for whoever may create a monitor, unless the Welcome card
+ * already offers that step - one start for one job on a page, never two
+ * that lead to the same guided setup.
+ */
+export const isCreateFirstMonitorShown: (data: {
+  canCreateMonitor: boolean;
+  welcome: HomeWelcome;
+}) => boolean = (data: {
+  canCreateMonitor: boolean;
+  welcome: HomeWelcome;
+}): boolean => {
+  return data.canCreateMonitor && !data.welcome.offersFirstMonitor;
+};
 
 // What Home is drawing.
 export enum HomeMode {
@@ -193,6 +215,7 @@ const Home: FunctionComponent<ComponentProps> = (
   const [welcome, setWelcome] = useState<HomeWelcome>({
     view: null,
     isTakingHome: false,
+    offersFirstMonitor: false,
   });
 
   /*
@@ -251,7 +274,10 @@ const Home: FunctionComponent<ComponentProps> = (
       loadedAt={overview.loadedAt}
       now={now}
       onRefresh={refresh}
-      canCreateMonitor={gates.canCreateMonitor}
+      canCreateMonitor={isCreateFirstMonitorShown({
+        canCreateMonitor: gates.canCreateMonitor,
+        welcome: welcome,
+      })}
     />
   );
 
@@ -290,15 +316,25 @@ const Home: FunctionComponent<ComponentProps> = (
 
       {/*
        * Is this server set up? For its master admins only, while email,
-       * HTTPS or the choice about sign-ups is still open.
+       * HTTPS or the choice about sign-ups is still open. It is the one
+       * place Home asks for the server's setup: the Welcome checklist has
+       * no step of its own for the server's email (#7018).
        */}
       <ServerSetupCard />
 
       <GettingStarted
         projectId={currentProjectId}
         className="!mb-0"
-        onViewChange={(view: WelcomeCardView | null, isTakingHome: boolean) => {
-          setWelcome({ view: view, isTakingHome: isTakingHome });
+        onViewChange={(
+          view: WelcomeCardView | null,
+          isTakingHome: boolean,
+          offersFirstMonitor: boolean,
+        ) => {
+          setWelcome({
+            view: view,
+            isTakingHome: isTakingHome,
+            offersFirstMonitor: offersFirstMonitor,
+          });
         }}
       />
 

@@ -20,7 +20,11 @@ Una política de guardia decide a quién se avisa por un incidente o una alerta,
 
 **¿A quién se avisa primero?** es opcional y solo se pregunta a quien puede añadir reglas de escalado: si se deja vacío, la política no avisa a nadie hasta que tenga una regla. **Descripción** y **Etiquetas** esperan en **Más campos**. Para añadir los niveles siguientes, consulta [Reglas de escalado](/docs/on-call/escalation-rules).
 
-A la primera política de un proyecto, el formulario también le pregunta **Activarla con cada nuevo incidente y cada nueva alerta**, activado de entrada. Añade una regla en **Incidentes → Reglas → Reglas de guardia** y otra en **Alertas → Reglas → Reglas de guardia**, que coinciden con todo y ejecutan esta política. Solo se pregunta a quien puede añadir reglas de guardia, mientras el proyecto no tenga ninguna política de guardia ni ninguna regla de guardia.
+El formulario también pregunta **Activarla con cada nuevo incidente y cada nueva alerta** a quien puede añadir reglas de guardia. Añade una regla en **Incidentes → Reglas → Reglas de guardia** y otra en **Alertas → Reglas → Reglas de guardia**, que coinciden con todo y ejecutan esta política. Empieza activado para la primera política de un proyecto, mientras el proyecto no tenga ninguna política de guardia ni ninguna regla de guardia, y desactivado para las siguientes: activar dos políticas con cada nuevo incidente y cada nueva alerta es una decisión que hay que tomar. Si se deja desactivado, la política no avisa a nadie hasta que una regla, un monitor o una persona la ejecute.
+
+![La explicación de la lista «Políticas de guardia» vacía, con «Configuración guiada» resaltado](screen:on-call-policies-guided-setup)
+
+Para que te guíen paso a paso, desde tu teléfono hasta un aviso de prueba, haz clic en **Configuración guiada**: en la lista vacía de **Políticas de guardia** o en **Cómo funciona**. Consulta [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
 
 La lista **Políticas de guardia** muestra de cada política su **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**. Selecciona políticas para **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Archivar**, **Exportar JSON** o eliminarlas. **Importar JSON** crea políticas a partir de una exportación: una exportación contiene los ajustes propios de una política, no sus reglas de escalado ni sus propietarios.
 

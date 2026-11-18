@@ -55,6 +55,11 @@ import {
   toCriticalAlertSoundVolume,
 } from "../../Types/PushNotification/CriticalAlertVolume";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ServerSendingOutcomes from "../Utils/ServerSending/ServerSendingOutcomes";
+import {
+  ServerSendingChannel,
+  ServerSendingFailureScope,
+} from "../../Types/ServerSending/ServerSendingStatus";
 import {
   fitTextsToBudget,
   MAX_PUSH_TEXT_BYTES,
@@ -214,6 +219,45 @@ export class ExpoPushRefusedError extends Error {
     this.name = "ExpoPushRefusedError";
     this.code = data.code;
     this.expoMessage = data.expoMessage;
+  }
+}
+
+/*
+ * WHOSE A FAILED PUSH IS (#6881).
+ *
+ * The server says whether its own pushes go out (ServerSendingStatus), as
+ * it says it of its email, SMS and calls: each push it sends reports how it
+ * went (recordServerOutcome). Only a failure of the server's own way to the
+ * push services says its pushes fail:
+ *
+ *   - Server     the push relay it sends through cannot be reached or
+ *                refuses it, Expo refuses this server's access token or the
+ *                app's credentials, a browser's push service refuses this
+ *                server's VAPID keys or cannot be reached;
+ *   - Throttled  a push service asking the server to slow down;
+ *   - Device     one device's: gone (DeviceNotRegistered, a 404 or 410 from
+ *                a browser's push service), a token or subscription that is
+ *                not one, a subscription made with other VAPID keys, or a
+ *                device sent to too often - never the server's failure;
+ *   - Message    one message too big for the push service;
+ *   - NotSetUp   nothing to send it with: a browser, on a server with no
+ *                VAPID keys, which Server Setup already says.
+ */
+export enum PushFailureOwner {
+  Server = "server",
+  Throttled = "throttled",
+  Device = "device",
+  Message = "message",
+  NotSetUp = "not-set-up",
+}
+
+// A device's push that failed, and whose failure it is: thrown with the words it always had.
+export class PushSendFailure extends Error {
+  public readonly owner: PushFailureOwner;
+
+  public constructor(message: string, owner: PushFailureOwner) {
+    super(message);
+    this.owner = owner;
   }
 }
 
@@ -831,6 +875,9 @@ export default class PushNotificationService {
       `Push notification results: ${successCount} successful, ${errorCount} failed`,
     );
 
+    // Whether the server's own pushes go out (#6881). Never throws.
+    await PushNotificationService.recordServerOutcome(results);
+
     // Each device's push log, when one is written: its receipt may change it.
     const pushLogIds: Array<string | undefined> = [];
 
@@ -981,6 +1028,125 @@ export default class PushNotificationService {
         return send();
       },
     );
+  }
+
+  /*
+   * Whose a failed device's push is (PushFailureOwner): what each send path
+   * threw it as. Anything else that failed on the way - a library's own
+   * error the paths did not foresee - is the server's.
+   */
+  public static getFailureOwner(reason: unknown): PushFailureOwner {
+    return reason instanceof PushSendFailure
+      ? reason.owner
+      : PushFailureOwner.Server;
+  }
+
+  /*
+   * Whose a refusal Expo answered a push with is, by Expo's error code
+   * (https://docs.expo.dev/push-notifications/sending-notifications/#individual-errors):
+   * a device that is gone or sent to too often, and a message too big, are
+   * theirs; credentials that are refused (InvalidCredentials,
+   * MismatchSenderId, InvalidProviderToken) are the server's - every push
+   * of that app fails - and so is a code this version does not know.
+   */
+  public static getExpoRefusalOwner(
+    code: string | undefined,
+  ): PushFailureOwner {
+    switch (code) {
+      case EXPO_DEVICE_NOT_REGISTERED:
+      case "MessageRateExceeded":
+        return PushFailureOwner.Device;
+      case "MessageTooBig":
+        return PushFailureOwner.Message;
+      default:
+        return PushFailureOwner.Server;
+    }
+  }
+
+  /*
+   * Whose a browser push service's refusal is, by its status: a
+   * subscription that is gone (404, 410) or that it does not take (400,
+   * 403 for one made with other VAPID keys) is the browser's; a payload too
+   * big (413) the message's; a slow-down (429) a throttle; this server's
+   * VAPID keys refused (401), a push service that failed (5xx) or could not
+   * be reached (no status at all) the server's.
+   */
+  public static getWebPushFailureOwner(error: unknown): PushFailureOwner {
+    const statusCode: unknown = (error as { statusCode?: unknown } | null)
+      ?.statusCode;
+
+    if (typeof statusCode !== "number") {
+      return PushFailureOwner.Server;
+    }
+
+    if (statusCode === 429) {
+      return PushFailureOwner.Throttled;
+    }
+
+    if (statusCode === 413) {
+      return PushFailureOwner.Message;
+    }
+
+    if (statusCode === 401 || statusCode >= 500) {
+      return PushFailureOwner.Server;
+    }
+
+    return PushFailureOwner.Device;
+  }
+
+  /*
+   * How one of the server's own pushes went (#6881), for whether its pushes
+   * go out (ServerSendingStatus), as MailService, SmsService and CallService
+   * report theirs: one outcome per push, never one per device. A push any
+   * device's push service took went out; one none took fails for the
+   * server only when one of its devices failed for the server's reason - a
+   * gone phone, a stale browser or a message too big says nothing of the
+   * server's pushes. Written only when it is news (recordOutcome), so a
+   * push costs no write the other channels' sends do not.
+   */
+  public static async recordServerOutcome(
+    results: ReadonlyArray<PromiseSettledResult<unknown>>,
+  ): Promise<void> {
+    if (
+      results.some((result: PromiseSettledResult<unknown>): boolean => {
+        return result.status === "fulfilled";
+      })
+    ) {
+      await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.Push);
+      return;
+    }
+
+    for (const result of results) {
+      if (result.status !== "rejected") {
+        continue;
+      }
+
+      const owner: PushFailureOwner = PushNotificationService.getFailureOwner(
+        result.reason,
+      );
+
+      if (
+        owner !== PushFailureOwner.Server &&
+        owner !== PushFailureOwner.Throttled
+      ) {
+        continue;
+      }
+
+      // A push token is somebody's phone: never kept, even for the server's admins.
+      await ServerSendingOutcomes.recordFailed(
+        ServerSendingChannel.Push,
+        PushNotificationService.withoutAnyPushToken(
+          PushNotificationService.getFailureReason(result.reason),
+        ),
+        {
+          scope:
+            owner === PushFailureOwner.Throttled
+              ? ServerSendingFailureScope.Throttled
+              : ServerSendingFailureScope.Server,
+        },
+      );
+      return;
+    }
   }
 
   // A device's failed send, as its push log and the on-call timeline say it.
@@ -1135,7 +1301,11 @@ export default class PushNotificationService {
     }
 
     if (!this.isWebPushInitialized) {
-      throw new Error("Web push notifications not configured");
+      // No VAPID keys: browsers are not set up to be pushed to (Server Setup says so).
+      throw new PushSendFailure(
+        "Web push notifications not configured",
+        PushFailureOwner.NotSetUp,
+      );
     }
 
     try {
@@ -1162,12 +1332,23 @@ export default class PushNotificationService {
         );
       } catch (parseError) {
         logger.error(`Failed to parse device token: ${parseError}`);
-        throw new Error(`Invalid device token format: ${parseError}`);
+        throw new PushSendFailure(
+          `Invalid device token format: ${parseError}`,
+          PushFailureOwner.Device,
+        );
       }
 
-      PushNotificationService.assertWebPushEndpointIsAllowed(
-        subscriptionObject?.endpoint,
-      );
+      // A subscription at an address that is no push service is that browser's.
+      try {
+        PushNotificationService.assertWebPushEndpointIsAllowed(
+          subscriptionObject?.endpoint,
+        );
+      } catch (endpointError) {
+        throw new PushSendFailure(
+          (endpointError as Error).message,
+          PushFailureOwner.Device,
+        );
+      }
 
       const result: webpush.SendResult = await webpush.sendNotification(
         subscriptionObject,
@@ -1186,6 +1367,11 @@ export default class PushNotificationService {
 
       logger.info(`Web push notification sent successfully`);
     } catch (error: any) {
+      // Whose it is was decided where it was thrown.
+      if (error instanceof PushSendFailure) {
+        throw error;
+      }
+
       logger.error(`Failed to send web push notification: ${error.message}`);
       logger.error(error);
 
@@ -1194,12 +1380,16 @@ export default class PushNotificationService {
           deviceToken,
         );
 
-        throw new Error(
+        throw new PushSendFailure(
           `The push service no longer accepts this browser's subscription (HTTP ${error.statusCode}): it expired or was revoked. The device is marked as not receiving notifications; register the browser again to receive them.`,
+          PushFailureOwner.Device,
         );
       }
 
-      throw error;
+      throw new PushSendFailure(
+        error?.message || "Failed to send web push notification",
+        PushNotificationService.getWebPushFailureOwner(error),
+      );
     }
   }
 
@@ -1398,7 +1588,10 @@ export default class PushNotificationService {
   ): Promise<ExpoPushAccepted | undefined> {
     // Without the token: what fails here is shown to every project member.
     if (!Expo.isExpoPushToken(expoPushToken)) {
-      throw new Error(`Invalid Expo push token for ${deviceType} device.`);
+      throw new PushSendFailure(
+        `Invalid Expo push token for ${deviceType} device.`,
+        PushFailureOwner.Device,
+      );
     }
 
     const dataPayload: { [key: string]: string } = {};
@@ -1470,10 +1663,20 @@ export default class PushNotificationService {
             expoPushToken,
           );
 
-          throw new Error(PushNotificationService.EXPO_PUSH_TOKEN_GONE_MESSAGE);
+          throw new PushSendFailure(
+            PushNotificationService.EXPO_PUSH_TOKEN_GONE_MESSAGE,
+            PushFailureOwner.Device,
+          );
         }
 
-        throw new Error(`Expo push notification failed: ${expoMessage}`);
+        const code: unknown = errorTicket.details?.error;
+
+        throw new PushSendFailure(
+          `Expo push notification failed: ${expoMessage}`,
+          PushNotificationService.getExpoRefusalOwner(
+            typeof code === "string" ? code : undefined,
+          ),
+        );
       }
 
       logger.info(
@@ -1497,7 +1700,21 @@ export default class PushNotificationService {
       logger.error(
         `Failed to send Expo push notification to ${deviceType} device: ${error.message}`,
       );
-      throw error;
+
+      if (error instanceof PushSendFailure) {
+        throw error;
+      }
+
+      /*
+       * Expo could not be reached, or refused this server's access token:
+       * the server's - or, asked to slow down, a throttle.
+       */
+      throw new PushSendFailure(
+        error?.message || "Failed to send Expo push notification",
+        (error as { statusCode?: unknown } | null)?.statusCode === 429
+          ? PushFailureOwner.Throttled
+          : PushFailureOwner.Server,
+      );
     }
   }
 
@@ -1574,7 +1791,10 @@ export default class PushNotificationService {
             expoPushToken,
           );
 
-          throw new Error(PushNotificationService.EXPO_PUSH_TOKEN_GONE_MESSAGE);
+          throw new PushSendFailure(
+            PushNotificationService.EXPO_PUSH_TOKEN_GONE_MESSAGE,
+            PushFailureOwner.Device,
+          );
         }
 
         /*
@@ -1586,16 +1806,21 @@ export default class PushNotificationService {
           PushNotificationService.getRelayExpoRefusal(response);
 
         if (refusal) {
-          throw new Error(
+          throw new PushSendFailure(
             `Expo push notification failed: ${PushNotificationService.withoutPushToken(
               refusal.message,
               expoPushToken,
             )}`,
+            PushNotificationService.getExpoRefusalOwner(refusal.code),
           );
         }
 
-        throw new Error(
+        // The relay itself refused it, or failed: the server's way to Expo (#6881).
+        throw new PushSendFailure(
           `Push relay error: ${JSON.stringify(response.jsonData)}`,
+          response.statusCode === 429
+            ? PushFailureOwner.Throttled
+            : PushFailureOwner.Server,
         );
       }
 
@@ -1630,7 +1855,19 @@ export default class PushNotificationService {
       logger.error(
         `Failed to send push notification via relay to ${deviceType} device: ${error.message}`,
       );
-      throw error;
+
+      if (error instanceof PushSendFailure) {
+        throw error;
+      }
+
+      /*
+       * The relay could not be reached - an air-gapped server, a wrong
+       * PUSH_NOTIFICATION_RELAY_URL: no phone gets a push (#6881).
+       */
+      throw new PushSendFailure(
+        error?.message || "Failed to send push notification via relay",
+        PushFailureOwner.Server,
+      );
     }
   }
 

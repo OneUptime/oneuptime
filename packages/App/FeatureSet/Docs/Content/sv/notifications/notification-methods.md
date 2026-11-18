@@ -188,7 +188,7 @@ Den kanalen är avstängd i det här projektet. Kortet berättar vem som kan sl�
 :::
 
 :::details Koden kom aldrig fram
-E-post kan ta några minuter och hamnar ibland i skräpposten; SMS kan ta en minut. Vänta en minut och klicka sedan på **Skicka en ny kod** i dialogen. **Projektinställningar → Aviseringar → Aviseringsloggar** visar vad som hände med meddelandet.
+E-post kan ta några minuter och hamnar ibland i skräpposten; SMS kan ta en minut. Vänta en minut och klicka sedan på **Skicka en ny kod** i dialogen. **Projektinställningar → Aviseringar → Aviseringsloggar** visar vad som hände med meddelandet. Den som får läsa loggarna får **Öppna Aviseringsloggar** under koden, som öppnar meddelandets flik; alla andra uppmanas att fråga en Projektägare eller Projektadministratör.
 :::
 
 :::details Det går inte att lägga till mitt Slack-konto
@@ -198,6 +198,10 @@ Anslut först ditt konto under **Användarinställningar → Arbetsyta → Slack
 :::details Min telefon får inga push-aviseringar
 Kontrollera att telefonen finns under **Enheter för push-aviseringar**, och skicka den en **Testavisering**. Se [Vanliga frågor och felsökning](/docs/mobile-desktop-apps/faq-troubleshooting#aviseringar).
 :::
+
+### Sidan säger att den här servern inte kan skicka sms
+
+Din server har just nu inget fungerande sätt att skicka sms eller ringa samtal: inget är konfigurerat, eller det som är konfigurerat misslyckas. Tills det fungerar säger sidan det, och du kan inte lägga till ett nummer för det. Fråga serverns administratör, som i stället ser en länk till inställningarna. Ett projekt med en egen Twilio-konfiguration skickar via den och påverkas inte. Detsamma gäller e-post.
 
 ## Nästa steg
 

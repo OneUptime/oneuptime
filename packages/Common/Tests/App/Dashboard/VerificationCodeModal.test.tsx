@@ -69,6 +69,8 @@ jest.mock("react-i18next", () => {
 
 import VerificationCodeModal, {
   VERIFICATION_CODE_INPUT_TEST_ID,
+  VERIFICATION_CODE_NOT_ARRIVED_TEST_ID,
+  VERIFICATION_CODE_OPEN_LOGS_TEST_ID,
   VERIFICATION_CODE_RESEND_TEST_ID,
   VERIFICATION_CODE_STATUS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/VerificationCodeModal";
@@ -76,10 +78,18 @@ import {
   getVerificationCodeChannel,
   VerificationCodeChannel,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/VerificationCodeChannels";
+import { NotificationLogsTab } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/NotificationLogsTabQuery";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 
 const PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
 const ITEM_ID: string = "11111111-7777-4777-8777-777777777777";
@@ -215,6 +225,39 @@ const typeCode: (code: string) => void = (code: string): void => {
   fireEvent.change(codeInput()!, { target: { value: code } });
 };
 
+/*
+ * The reader's permission snapshot, as the API's response headers leave
+ * it: who may read which log decides where the not-arrived hint sends them.
+ */
+const asReader: (permissions: Array<Permission>) => void = (
+  permissions: Array<Permission>,
+): void => {
+  const rows: Array<UserPermission> = permissions.map(
+    (permission: Permission): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: false,
+      } as unknown as UserPermission;
+    },
+  );
+
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue({
+    _type: "UserTenantAccessPermission",
+    projectId: new ObjectID(PROJECT_ID),
+    permissions: rows,
+    isBlockPermission: false,
+  } as unknown as UserTenantAccessPermission);
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue(
+      HeldPermissionsUtil.getUnblockedPermissions(
+        HeldPermissionsUtil.fromRows({ rows, globalPermissions: [] }),
+      ),
+    );
+};
+
 beforeEach(() => {
   sessionStorage.setItem("current_project_id", PROJECT_ID);
 
@@ -251,6 +294,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
+  jest.restoreAllMocks();
   sessionStorage.clear();
 });
 
@@ -337,11 +381,135 @@ describe("a code that is waiting", () => {
   });
 
   test("tells the person what to do if it does not come", async () => {
+    asReader([Permission.ProjectMember]);
     await open();
 
-    expect(document.body.textContent).toContain(
-      "Texts can take a minute to arrive. If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
+    expect(
+      screen.getByTestId(VERIFICATION_CODE_NOT_ARRIVED_TEST_ID),
+    ).toHaveTextContent(
+      "Texts can take a minute to arrive. If it does not come, see what happened to it in Notification Logs.",
     );
+  });
+});
+
+/*
+ * ISSUE #7374: the hint under the code sent everybody to "Project Settings >
+ * Notifications > Notification Logs". The person verifying a number is
+ * often an invited member, for whom Project Settings is the owner's place,
+ * and someone who may not read the logs could do nothing with it. Now who
+ * may read the channel's log is linked straight to its tab, in a tab of its
+ * own beside the dialog, and anyone else is told who can look.
+ */
+describe("a code that has not come (#7374)", () => {
+  test("never sends anybody down a path into Project Settings", async () => {
+    for (const rows of [[Permission.ProjectMember], []]) {
+      asReader(rows);
+      await open();
+
+      expect(
+        screen.getByTestId(VERIFICATION_CODE_NOT_ARRIVED_TEST_ID),
+      ).not.toHaveTextContent("Project Settings");
+      cleanup();
+      postMock.mockClear();
+    }
+  });
+
+  test("a member who may read the SMS log is linked to its tab, in a new tab", async () => {
+    asReader([Permission.ProjectMember]);
+    await open();
+
+    const link: HTMLElement = screen.getByTestId(
+      VERIFICATION_CODE_OPEN_LOGS_TEST_ID,
+    );
+
+    expect(link).toHaveTextContent("Open Notification Logs");
+    expect(link.getAttribute("href")).toMatch(
+      new RegExp(
+        `/dashboard/${PROJECT_ID}/settings/notification-logs\\?tab=sms$`,
+      ),
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  test("someone who may not read the logs is told who can look, with no link", async () => {
+    asReader([]);
+    await open();
+
+    expect(
+      screen.getByTestId(VERIFICATION_CODE_NOT_ARRIVED_TEST_ID),
+    ).toHaveTextContent(
+      "Texts can take a minute to arrive. If it does not come, ask a Project Owner or Project Admin to look it up in Notification Logs.",
+    );
+    expect(
+      screen.queryByTestId(VERIFICATION_CODE_OPEN_LOGS_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("a custom role that blocks the SMS log reads as one that may not", async () => {
+    asReader([Permission.ReadEmailLog]);
+    await open(VerificationCodeChannel.SMS);
+
+    expect(
+      screen.queryByTestId(VERIFICATION_CODE_OPEN_LOGS_TEST_ID),
+    ).toBeNull();
+    cleanup();
+    postMock.mockClear();
+
+    // The same role reads the email log: an email's code links there.
+    asReader([Permission.ReadEmailLog]);
+    await open(VerificationCodeChannel.Email);
+
+    expect(
+      screen
+        .getByTestId(VERIFICATION_CODE_OPEN_LOGS_TEST_ID)
+        .getAttribute("href"),
+    ).toMatch(/\/settings\/notification-logs$/);
+    expect(
+      screen.getByTestId(VERIFICATION_CODE_NOT_ARRIVED_TEST_ID),
+    ).toHaveTextContent(
+      "Emails can take a few minutes, and sometimes land in spam. If it does not come, see what happened to it in Notification Logs.",
+    );
+  });
+
+  test.each([
+    [VerificationCodeChannel.SMS, NotificationLogsTab.SMS],
+    [VerificationCodeChannel.IncomingCallNumber, NotificationLogsTab.SMS],
+    [VerificationCodeChannel.Email, NotificationLogsTab.Email],
+    [VerificationCodeChannel.WhatsApp, NotificationLogsTab.WhatsApp],
+  ])(
+    "%s codes are looked up on the %s tab",
+    (channel: VerificationCodeChannel, tab: NotificationLogsTab) => {
+      expect(getVerificationCodeChannel(channel).logsTab).toBe(tab);
+    },
+  );
+
+  test("a call number's hint names no log: it is verified by SMS instead", async () => {
+    asReader([Permission.ProjectOwner]);
+    await open(VerificationCodeChannel.Call);
+
+    expect(
+      getVerificationCodeChannel(VerificationCodeChannel.Call).logsTab,
+    ).toBe(null);
+    expect(
+      screen.queryByTestId(VERIFICATION_CODE_OPEN_LOGS_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(VERIFICATION_CODE_NOT_ARRIVED_TEST_ID),
+    ).toHaveTextContent(
+      "A number you have verified for SMS is verified for calls without a code, so you can verify it there instead.",
+    );
+  });
+
+  test("every channel's hint, with logs and without, names no path into Project Settings", () => {
+    for (const channel of Object.values(VerificationCodeChannel)) {
+      const definition: ReturnType<typeof getVerificationCodeChannel> =
+        getVerificationCodeChannel(channel);
+
+      expect(definition.notArrivedHint).not.toContain("Project Settings");
+      expect(definition.notArrivedHintWithoutLogs).not.toContain(
+        "Project Settings",
+      );
+    }
   });
 });
 

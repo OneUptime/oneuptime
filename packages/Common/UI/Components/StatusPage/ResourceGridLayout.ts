@@ -13,10 +13,23 @@
  * Wherever the matrix would not fit its box (a container query on the
  * grid's box, which is what is narrow, whatever the window) the same table
  * is drawn as a stack: each row a box of its own, headed by its value, and
- * each of its cells under the name of its column, one under the other, as
- * wide as the box. Nothing scrolls sideways, and a chip's name has the
- * box's width. The table's own column headings are not drawn there: each
+ * each of its cells a tile under the name of its column. Nothing scrolls
+ * sideways. The table's own column headings are not drawn there: each
  * cell names its column instead (cellLabel), and is read with it.
+ *
+ * As many tiles share a line as the row's box has room for, at least 17rem
+ * each (#7430): one to a line on a phone, two beside the side menu of a
+ * 1280px or a 1440px window. Each cell used to be a line as wide as the
+ * box, one under the other, with a chip or two at its start and the rest
+ * empty, so a row of a three-column grid was three tall lines on a laptop,
+ * and a grid of many columns was hard to scan while editing it. The tiles
+ * are ruled off from each other and from the row's value as the cells were,
+ * inside the row's own rounded box, as the public grid's tiles are
+ * (PublicResourceGridLayout): a tile draws the rule above it and the one at
+ * its start, which starts one pixel before its place, over the tile before
+ * it. The first tile of a line has no tile before it: its start rule falls
+ * on the row's own border, and the row's box, which clips what it holds to
+ * its rounded corners, never draws it twice.
  *
  * Where the matrix fits, nothing changes: every class below that is not
  * under the container query is the class the grid had. So the query's width
@@ -36,6 +49,20 @@ export const RESOURCE_GRID_COLUMN_WIDTH_IN_REM: number = 13;
  * a stack rather than a matrix that scrolls a few pixels.
  */
 export const RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM: number = 6;
+
+/*
+ * A tile of the stack, at least: the cell's chips, each a name beside its
+ * Edit and ⋯ and, for someone who may remove it, its checkbox. 17rem keeps
+ * a chip's name at least 140px with all of them drawn (a phone's, where
+ * there is no hover to wait for), and lets two tiles share a line beside
+ * the side menu of a 1280px window, whose Resources card leaves the grid
+ * some 584px. A box narrower than one tile (a phone's 316px) has one tile
+ * to a line, as wide as the box.
+ */
+export const RESOURCE_GRID_TILE_WIDTH_IN_REM: number = 17;
+
+// The stack's lines of tiles: as many as fit, each as wide as the others.
+export const RESOURCE_GRID_TILES_CLASS_NAME: string = `grid-cols-[repeat(auto-fill,minmax(min(100%,${RESOURCE_GRID_TILE_WIDTH_IN_REM}rem),1fr))]`;
 
 /*
  * What a grid's matrix needs: room for its rows' values, and room for each
@@ -126,27 +153,50 @@ export const RESOURCE_GRID_PARTS: ResourceGridParts = {
   head: { base: "", stack: ["hidden"], matrix: [] },
   body: { base: "", stack: ["flex", "flex-col", "gap-3"], matrix: [] },
   /*
-   * A row of the stack: a box of its own. Its border's colour is a class of
-   * its own, outside the query (dark mode), which draws nothing in the
-   * matrix, where a row has no border.
+   * A row of the stack: a box of its own, its value over a grid of its
+   * cells' tiles, as many to a line as fit (#7430). It clips what it holds
+   * to its rounded corners, so the start rule of a line's first tile, which
+   * falls on the box's own border, is never drawn. Its border's colour is a
+   * class of its own, outside the query (dark mode), which draws nothing in
+   * the matrix, where a row has no border.
    */
   row: {
     base: "border-gray-200",
-    stack: ["block", "rounded-lg", "border"],
+    stack: [
+      "grid",
+      RESOURCE_GRID_TILES_CLASS_NAME,
+      "overflow-hidden",
+      "rounded-lg",
+      "border",
+    ],
     matrix: [],
   },
   /*
    * The row's value: held at the start of a matrix that scrolls sideways,
-   * and the heading of its box in the stack, over a line.
+   * and the heading of its box in the stack, across every column of tiles.
+   * The tiles under it draw the rule between them.
    */
   rowHeading: {
     base: "sticky left-0 z-10 border-b border-r border-gray-200 bg-white px-3 py-3 text-left align-top text-xs font-semibold text-gray-800",
-    stack: ["static", "block", "rounded-t-lg", "border-r-0", "py-2"],
+    stack: [
+      "static",
+      "col-span-full",
+      "rounded-t-lg",
+      "border-b-0",
+      "border-r-0",
+      "py-2",
+    ],
     matrix: [],
   },
+  /*
+   * A cell: in the stack, a tile of its row's box, ruled off above (from
+   * the row's value, or from the line of tiles before) and at its start
+   * (from the tile before it), its start rule a pixel before its place, on
+   * the tile before's last pixel, or on the row's border for a line's first.
+   */
   cell: {
     base: "border-b border-gray-200 px-2 py-2 align-top",
-    stack: ["block", "last:border-b-0"],
+    stack: ["block", "-ms-px", "border-b-0", "border-t", "border-s"],
     matrix: [],
   },
   /*

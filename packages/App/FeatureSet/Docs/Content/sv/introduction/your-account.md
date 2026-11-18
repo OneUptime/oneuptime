@@ -134,7 +134,7 @@ Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänst
 
 ## Det som varje projekt sparar åt dig
 
-**Användarinställningar**, till höger i fältet under toppfältet, är bara dina, och varje projekt har sina egna. Öppna dem i varje projekt där du har jour.
+**Användarinställningar**, till höger i fältet under toppfältet, är bara dina, och varje projekt har sina egna. Öppna dem i varje projekt där du har jour. De öppnas på **Checklista för konfiguration** så länge något återstår att konfigurera, och på **Aviseringsmetoder** när inget väsentligt saknas.
 
 | Sida | Vad den används till | Läs mer |
 | --- | --- | --- |

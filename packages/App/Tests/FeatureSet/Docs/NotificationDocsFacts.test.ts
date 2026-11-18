@@ -742,16 +742,26 @@ describe("what a new member starts with", () => {
       expect(forMethod).toContain(`NotificationRuleType.${ruleType}`);
     }
 
+    /*
+     * At once, unless the project has a default ladder (#7449): then the
+     * method's channel follows it, at each of its waits, or gets no rule.
+     */
+    expect(forMethod).toContain(
+      "steps === null ? [{ notifyAfterMinutes: 0 }] : steps;",
+    );
     expect(
       functionSource(
         ruleService,
         "private async createSeverityScopedRules(",
         "private async createSingleRule(",
       ),
-    ).toContain("rule.notifyAfterMinutes = 0;");
+    ).toContain("rule.notifyAfterMinutes = step.notifyAfterMinutes;");
 
     expect(english(REACHING_YOU)).toContain(
       "1. Your sign-in email is added as a verified email method.\n2. For every severity, on each of the four tabs of **How to Reach Me**, a rule emails you as soon as you are paged.",
+    );
+    expect(english(REACHING_YOU)).toContain(
+      "When your project has a default ladder, your email and every method you verify follow it instead: see [The default ladder](/docs/notifications/on-call-rules#the-default-ladder).",
     );
   });
 
@@ -867,6 +877,67 @@ describe("the setup checklist", () => {
         })
         .sort(),
     ).toEqual([...words].sort());
+  });
+
+  // As the Dashboard's source says it, its whitespace run together.
+  const flatSource: (relative: string) => string = (
+    relative: string,
+  ): string => {
+    return readDashboardSource(relative).replace(/\s+/g, " ");
+  };
+
+  it("is where User Settings opens while an essential step is left, and Notification Methods after (#7039)", () => {
+    expect(
+      flatSource(
+        "Components/UserSettings/SetupChecklist/UserSettingsLanding.ts",
+      ),
+    ).toContain(
+      "return hasEssentialStepsLeft ? PageMap.USER_SETTINGS_SETUP : PageMap.USER_SETTINGS_NOTIFICATION_METHODS;",
+    );
+    // Essential: a step the progress bar counts, or a headline that pages would not reach.
+    expect(
+      flatSource("Components/UserSettings/SetupChecklist/ChecklistModel.ts"),
+    ).toContain(
+      "checklist.completedCount < checklist.totalCount || checklist.headlineStatus === SetupHeadlineStatus.NotReachable || checklist.headlineStatus === SetupHeadlineStatus.NeedsSetup",
+    );
+    expect(checklist).toContain(
+      "While a step is left, **User Settings** opens on this checklist, and on **Notification Methods** once nothing essential is left. A link to any other page of **User Settings** still opens that page.",
+    );
+  });
+
+  it("is what the bell's Finish setting up your notifications opens, for someone on a policy, until it is hidden for a week (#7040)", () => {
+    const nudge: string = flatSource(
+      "Components/Header/NotificationSetupNudge.ts",
+    );
+
+    expect(nudge).toContain(
+      'title: translationKey("Finish setting up your notifications")',
+    );
+    expect(nudge).toContain('hide: translationKey("Hide for a week")');
+    expect(nudge).toContain(
+      "NOTIFICATION_SETUP_NUDGE_HIDDEN_FOR_IN_MS: number = 7 * 24 * 60 * 60 * 1000;",
+    );
+    // Nobody a policy pages has nothing to be reached for yet.
+    expect(nudge).toContain(
+      "if (!readiness || readiness.reachedVia.length === 0) { return null; }",
+    );
+    // The three reasons, in the words the page gives them.
+    expect(nudge).toContain(
+      'nothingReaches: translationKey("Nothing can reach you yet.")',
+    );
+    expect(nudge).toContain(
+      'ruleGaps: translationKey("Some severities have no notification rule yet.")',
+    );
+    expect(nudge).toContain(
+      'noPhone: translationKey( "This project asks everyone on call to have a phone method.", )',
+    );
+    // The checklist, or How to Reach Me for the phone.
+    expect(nudge).toContain(
+      "return reason === NotificationSetupReason.NoPhone ? PageMap.USER_SETTINGS_ON_CALL_RULES : PageMap.USER_SETTINGS_SETUP;",
+    );
+    expect(checklist).toContain(
+      "When you are on an on-call policy and your setup is not finished, the bell at the top of every page says **Finish setting up your notifications**, and why: nothing can reach you, a severity has no rule, or your project asks for a phone method you have not verified. It opens this checklist, or **How to Reach Me** for the phone. **Hide for a week** puts it away in this browser, and it goes by itself once your setup is finished.",
+    );
   });
 });
 
@@ -1829,8 +1900,26 @@ describe("personal on-call rules", () => {
     expect(backfill).toContain("schedule: EVERY_FIVE_MINUTE");
     expect(backfill).toContain("mirroredRules");
     expect(backfill).toContain('methodColumn: "userEmailId",');
-    expect(backfill).toContain("notifyAfterMinutes: 0,");
     expect(backfill).toContain("if (intent.hasOptOut) {");
+    /*
+     * The verified email at once - or as the project's default ladder sends
+     * email, when it has one (#9444): at each of its email steps, or never.
+     */
+    expect(backfill).toContain(
+      "await PagingLadderService.getProjectDefault(severity.projectId)",
+    );
+    expect(
+      functionSource(
+        backfill,
+        "const getNewSeverityEmailWaits: GetNewSeverityEmailWaitsFunction",
+        "type HasJoinedSinceSeverityFunction",
+      ),
+    ).toContain(
+      "if (defaultSteps.length === 0) {\n    return [0];\n  }\n\n  return getPagingLadderDefaultStepsForChannel({\n    defaultSteps: defaultSteps,\n    channel: OnCallPageChannel.Email,\n  })",
+    );
+    expect(backfill).toContain(
+      "for (const notifyAfterMinutes of data.emailWaits) {",
+    );
     // A push rule sounds and repeats as the person's other cards do (#7452).
     expect(backfill).toContain("getPagingLadderStepsForNewCell");
     expect(backfill).toContain("rule.pushNotificationLevel =");
@@ -1838,7 +1927,64 @@ describe("personal on-call rules", () => {
       "rule.repeatEveryMinutes = getRepeatEveryMinutes(",
     );
     expect(rules).toContain(
-      "A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once.",
+      "A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once. When your project has a default ladder, your email follows it instead: see [The default ladder](#the-default-ladder).",
+    );
+  });
+
+  it("starts your own ladder from the project's default, mapped as Readiness applies it, saved only by Save Changes (#9445)", () => {
+    const words: string = readDashboardSource(
+      "Components/NotificationRule/PagingLadder/PagingLadderWords.ts",
+    );
+    const editor: string = readDashboardSource(
+      "Components/NotificationRule/PagingLadder/PagingLadderEditor.tsx",
+    );
+
+    expect(words).toContain(
+      'start: translationKey("Start From the Project\'s Default"),',
+    );
+    // Beside Different for Some Severities, until the steps are the default's.
+    expect(editor).toContain("title={PAGING_LADDER_DEFAULT_START_COPY.start}");
+    expect(editor).toContain("title={PAGING_LADDER_COPY.differentForSome}");
+    expect(editor).toContain(
+      "const isStartOffered: boolean = Boolean(defaultStart) && !isDraftTheDefault;",
+    );
+    // It fills the draft; the ladder's own Save Changes saves it.
+    expect(
+      functionSource(
+        editor,
+        "const startFromDefault: () => void",
+        "const save: (keepDifferences: boolean)",
+      ),
+    ).not.toContain("onSave");
+    expect(
+      readDashboardSource("Components/NotificationRule/HowToReachMe.tsx"),
+    ).toContain("getPagingLadderDefaultStart({");
+    // The mapping Readiness's Apply Default Ladder saves.
+    expect(
+      functionSource(
+        readCommonSource("Types/NotificationRule/PagingLadderDefault.ts"),
+        "export const getPagingLadderDefaultStart",
+        "export const isMissingRequiredPhoneMethod",
+      ),
+    ).toContain("getPagingLadderFromDefault({");
+    expect(rules).toContain(
+      "To follow it yourself, click **Start From the Project's Default**, beside **Different for Some Severities**. Your steps become the default's, with your own verified methods: a way you have not verified is left out and named, and you keep your own steps in its place. Nothing changes until you click **Save Changes**.",
+    );
+  });
+
+  it("marks a step your server can't send right now, and says once who can set it up (#9446)", () => {
+    const marks: string = readDashboardSource(
+      "Components/NotificationRule/PagingLadder/StepsNotSentNow.tsx",
+    );
+
+    expect(marks).toContain('translationKey("Not sent right now")');
+    // GET /project-can-send's three yes-or-noes, as Notification Methods reads them.
+    expect(
+      readDashboardSource("Components/NotificationRule/HowToReachMe.tsx"),
+    ).toContain("useProjectCanSend()");
+    expect(marks).toContain("SERVER_CANNOT_SEND_COPY");
+    expect(rules).toContain(
+      "When your server cannot send email, SMS or phone calls right now, a step of that kind is marked **Not sent right now**, and the page says once who can set it up.",
     );
   });
 

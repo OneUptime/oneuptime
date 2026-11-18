@@ -271,10 +271,12 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.Service,
+    // Logs for the spike in a service's error logs (#7146).
     monitorTypes: [
       MonitorType.Metrics,
       MonitorType.Traces,
       MonitorType.Exceptions,
+      MonitorType.Logs,
     ],
     templateCount: getAllServiceAlertTemplates().length,
     /*

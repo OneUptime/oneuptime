@@ -50,6 +50,8 @@ const PAGE_URL: string = `/docs/${PAGE_RELATIVE_PATH}`;
 
 const FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleForm.ts";
+// A new rule after the first asks this instead of Escalate after (#7373).
+const PAGED_AFTER_TITLE: string = "Paged after (in minutes)";
 const RULES_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules.tsx";
 const SIDE_MENU_FILE: string =
@@ -210,6 +212,17 @@ describe("the Escalation Rules docs page", () => {
     expect(form).toContain('translationKey("Add responder")');
     expect(PAGE).toContain("**Add responder**");
 
+    /*
+     * A new rule after the first asks when it is paged, saved as the wait
+     * of the level before it (#7373): the page names that field, and that
+     * the new level waits the default itself.
+     */
+    expect(form).toContain(`translationKey(\n  "${PAGED_AFTER_TITLE}",\n)`);
+    expect(PAGE).toContain(`**${PAGED_AFTER_TITLE}**`);
+    expect(PAGE).toContain(
+      `the new level itself waits ${DEFAULT_ESCALATE_AFTER_IN_MINUTES} minutes until you add one after it`,
+    );
+
     for (const button of RULE_BUTTONS) {
       expect(rules).toContain(`"${button}"`);
       expect(PAGE).toContain(`**${button}**`);
@@ -309,6 +322,7 @@ describe("the Escalation Rules docs page", () => {
           "Notify",
           "Add responder",
           "Escalate after (in minutes)",
+          PAGED_AFTER_TITLE,
           MORE_FIELDS_SECTION_TITLE,
           ...RULE_BUTTONS,
           "Repeat Policy",
@@ -495,7 +509,8 @@ describe("the Escalation Rules docs page, on paging the next person in the rotat
       NEXT_IN_ROTATION,
       "Add Escalation Rule",
       "Add responder",
-      "Escalate after (in minutes)",
+      // The rotation's level comes after Level 1: it asks when it is paged (#7373).
+      PAGED_AFTER_TITLE,
       "Create Rule",
       EXECUTION_TIMELINE,
     ]) {

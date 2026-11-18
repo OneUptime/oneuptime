@@ -35,6 +35,7 @@ import ProjectMembership, {
   ProjectMembershipStandings,
 } from "../Utils/TeamMember/ProjectMembership";
 import { getWhoCanTurnOnClause } from "../../Utils/Project/NotificationChannels";
+import { isMissingRequiredPhoneMethod } from "../../Types/NotificationRule/PagingLadderDefault";
 import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -229,6 +230,14 @@ export interface UserReadiness {
   methods: Array<ReadinessMethod>;
   coverage: Array<ReadinessCoverageCell>;
   reasons: Array<string>;
+  /*
+   * The project asks people on call for a phone method (#7449) and this
+   * member has no verified SMS, phone call or WhatsApp number
+   * (isMissingRequiredPhoneMethod). Their status says nothing of it - they
+   * are paged as before - so the Readiness page, Setup health and the
+   * setup reminder read it here. Absent from an older server's answer.
+   */
+  isMissingPhoneMethod?: boolean | undefined;
   reachedVia: Array<ResponderSource>;
   /**
    * The teams that page this responder, in name order. Empty whenever `reachedVia` does
@@ -288,6 +297,13 @@ export const NOT_A_PROJECT_MEMBER_READINESS_REASONS: ReadonlyArray<string> = [
   "No longer a member of this project - cannot be paged",
   "Remove them from this policy's escalation rules, schedules and overrides, or invite them back to the project",
 ];
+
+/*
+ * The reason on a responder with no verified phone method while their project
+ * asks people on call for one (Project.requirePhoneMethodForOnCall, #7449).
+ */
+export const PHONE_METHOD_REQUIRED_READINESS_REASON: string =
+  "No verified phone method (SMS, phone call or WhatsApp) - this project asks everyone on call to add one";
 
 /*
  * The reasons on a responder who was invited to the project and has not
@@ -612,6 +628,12 @@ interface ProjectNotificationSettings {
    * channels are.
    */
   isPushTurnedOffOnServer: boolean;
+  /*
+   * The project asks everyone on call for a phone method
+   * (Project.requirePhoneMethodForOnCall, #7449): a responder without one
+   * is named (isMissingPhoneMethod), never refused a page.
+   */
+  isPhoneMethodRequired: boolean;
 }
 
 /** Everything the per-user pass needs, loaded once for the whole responder set. */
@@ -1972,6 +1994,7 @@ export default class OnCallReadinessService {
         enableCallNotifications: true,
         enableWhatsAppNotifications: true,
         enableTelegramNotifications: true,
+        requirePhoneMethodForOnCall: true,
       },
       props: {
         isRoot: true,
@@ -1996,6 +2019,7 @@ export default class OnCallReadinessService {
       ),
       customChannels: await this.loadCustomChannels(),
       isPushTurnedOffOnServer: await this.loadIsPushTurnedOffOnServer(),
+      isPhoneMethodRequired: project?.requirePhoneMethodForOnCall === true,
     };
   }
 
@@ -2887,7 +2911,30 @@ export default class OnCallReadinessService {
       reasons = [...NOT_A_PROJECT_MEMBER_READINESS_REASONS];
     }
 
-    return {
+    /*
+     * The project's ask for a phone method (#7449): a member with no
+     * verified SMS, phone call or WhatsApp number while the project asks
+     * people on call for one. It changes nobody's status - they are paged
+     * as before - and it is said after what stops a page from arriving: for
+     * somebody nothing reaches, "no verified notification method" already
+     * says it.
+     */
+    const isMissingPhoneMethod: boolean =
+      isProjectMember &&
+      isMissingRequiredPhoneMethod({
+        isRequired: inputs.projectSettings.isPhoneMethodRequired,
+        verifiedChannels: verifiedMethods.map(
+          (method: ReadinessMethod): string => {
+            return method.methodType;
+          },
+        ),
+      });
+
+    if (isMissingPhoneMethod && status !== ReadinessStatus.NotReachable) {
+      reasons.push(PHONE_METHOD_REQUIRED_READINESS_REASON);
+    }
+
+    const readiness: UserReadiness = {
       userId: user.id!,
       userName:
         user.name?.toString() || user.email?.toString() || "Unknown User",
@@ -2925,6 +2972,13 @@ export default class OnCallReadinessService {
           return a.name.localeCompare(b.name);
         }),
     };
+
+    // Said only when it is so, so an answer reads as it always did.
+    if (isMissingPhoneMethod) {
+      readiness.isMissingPhoneMethod = true;
+    }
+
+    return readiness;
   }
 
   /**

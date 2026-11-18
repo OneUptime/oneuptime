@@ -30,6 +30,10 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import ProbeService from "Common/Server/Services/ProbeService";
+import ProjectMilestoneService, {
+  ReachMilestoneData,
+} from "Common/Server/Services/ProjectMilestoneService";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import NetworkFlowDeviceMatcher from "Common/Server/Utils/NetworkFlow/NetworkFlowDeviceMatcher";
 import SyslogDeviceMatcher from "Common/Server/Utils/Syslog/SyslogDeviceMatcher";
@@ -564,6 +568,96 @@ describe("a probe older than the raw line", () => {
     ]);
 
     expect(attributesOf(onlyRow())["event.name"]).toBe("interface.down");
+  });
+});
+
+/*
+ * A device's syslog is in the Logs explorer like any app's logs, so its
+ * first lines are the project's first logs (#6897): kept once ClickHouse
+ * took them, as the fan-in writer keeps every other kind - never for lines
+ * that were dropped, or an insert that failed.
+ */
+describe("the project's first logs", () => {
+  let reached: Array<ReachMilestoneData> = [];
+
+  beforeEach(() => {
+    reached = [];
+    jest
+      .spyOn(ProjectMilestoneService, "reachInBackground")
+      .mockImplementation((data: ReachMilestoneData): void => {
+        reached.push(data);
+      });
+  });
+
+  test("a device's first lines keep its project's first logs, once they are stored", async () => {
+    await ingest([fromProbe(CISCO_LINK_DOWN, SWITCH_ADDRESS)]);
+
+    expect(insertedRows).toHaveLength(1);
+    expect(reached).toEqual([
+      {
+        projectId: PROJECT.toString(),
+        milestone: ActivationMilestone.FirstLogsReceived,
+      },
+    ]);
+  });
+
+  test("lines kept for the probe's project from an address that is no device count too", async () => {
+    await ingest([fromProbe(STRANGER_LINK_DOWN, STRANGER_ADDRESS)]);
+
+    expect(reached).toEqual([
+      {
+        projectId: PROJECT.toString(),
+        milestone: ActivationMilestone.FirstLogsReceived,
+      },
+    ]);
+  });
+
+  test("each project a batch's lines belong to, once", async () => {
+    const otherProjectSwitch: NetworkDevice = device({
+      id: ObjectID.generate(),
+      projectId: OTHER_PROJECT,
+      name: "Their Switch",
+      hostname: SWITCH_ADDRESS,
+    });
+    probeDevicesByAddress[SWITCH_ADDRESS] = [
+      SWITCH_DEVICE,
+      otherProjectSwitch,
+    ];
+
+    await ingest([
+      fromProbe(CISCO_LINK_DOWN, SWITCH_ADDRESS),
+      fromProbe(CISCO_LINK_DOWN, SWITCH_ADDRESS),
+    ]);
+
+    expect(insertedRows.length).toBeGreaterThanOrEqual(2);
+    expect(
+      reached
+        .map((data: ReachMilestoneData): string => {
+          return String(data.projectId);
+        })
+        .sort(),
+    ).toEqual([PROJECT.toString(), OTHER_PROJECT.toString()].sort());
+    for (const data of reached) {
+      expect(data.milestone).toBe(ActivationMilestone.FirstLogsReceived);
+    }
+  });
+
+  test("nothing stored, nothing kept: lines no parser knows from an address that is no device", async () => {
+    await ingest([fromProbe("GET / HTTP/1.1", STRANGER_ADDRESS)]);
+
+    expect(insertJsonRows).not.toHaveBeenCalled();
+    expect(reached).toEqual([]);
+  });
+
+  test("an insert ClickHouse refused keeps nothing", async () => {
+    insertJsonRows.mockImplementation((async (): Promise<void> => {
+      throw new Error("ClickHouse is down.");
+    }) as never);
+
+    await expect(
+      ingest([fromProbe(CISCO_LINK_DOWN, SWITCH_ADDRESS)]),
+    ).rejects.toThrow("ClickHouse is down.");
+    expect(reached).toEqual([]);
   });
 });
 

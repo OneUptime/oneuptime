@@ -486,6 +486,27 @@ jobs:
           Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
           --forceExit
 
+      # #7449, #7450: a project's default ladder. The migration's two Project
+      # columns as the model has them, added to an existing project's row
+      # rewriting nothing; a default saved through ProjectService stored
+      # tidied as jsonb and read back the same by the verify path, the
+      # admin's apply and Readiness's phone ask; a method verified with a
+      # default getting its rules at its waits, as rows; and the default
+      # applied to members rewriting their rows - one with none of its
+      # channels skipped, every row kept. On copies of the migrated tables.
+      - name: Test a project's default ladder on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DEFAULT_PAGING_LADDER_TESTS: "true"
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DefaultPagingLadderPostgres.test.ts
+          --forceExit
+
       # Clones the migrated on-call policy pages and their steps, runbook runs,
       # the email, SMS, call, push, WhatsApp, Telegram, webhook, Slack /
       # Microsoft Teams and AI request logs, the incidents, alerts and
@@ -735,6 +756,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallFireDrillPostgres.test.ts --forceExit
+
+      # #9407, #9371: When this goes down and Setup health work out who owns
+      # what each monitor opens - the project's teams and who is in them,
+      # every network device's owners, every monitor's own owners - in one
+      # read of each for the whole project. On copies of the migrated owner
+      # tables: an alert's owners are the rows its create would write, an
+      # Alert Owner rule matches them as the real engine matches a saved
+      # alert's rows, who isn't reached is said, another project's device
+      # owner is never read, and the statements do not grow with the monitors.
+      - name: Test who owns what a monitor opens, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WHO_IS_TOLD_OWNERS_TESTS: "true"
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WhoIsToldOwnersPostgres.test.ts --forceExit
 
       # #9036, #9069: deleting an escalation rule, a schedule, a team or a
       # person keeps the on-call runs, their timelines and the pages that
@@ -4521,6 +4562,63 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WhoWasToldReadPostgres.test.ts --forceExit
+
+      # #7026: npm run backup tells the server it ran. GlobalConfig, cloned
+      # from the migrated schema as it was before AddBackupScriptLastRun: one
+      # nullable jsonb column added, the row a server has kept as it was and
+      # read as never told, a run written through the model read back whole
+      # and replaced by the next, and down() and up() again.
+      - name: Test the backup script's last run on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_BACKUP_SCRIPT_RUN_TESTS: "true"
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddBackupScriptLastRunPostgres.test.ts
+          --forceExit
+
+      # #6878: the server's own email log. AddServerEmailLog in a schema of
+      # its own: the table and its two indexes with no key to a project, a
+      # password reset's row written by MailService's writer with no link
+      # or token in it, the master admins' list newest first and failed
+      # only, each sort served by its index, rows older than 30 days
+      # deleted by the daily purge, and down() and up() again.
+      - name: Test the server's email log on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SERVER_EMAIL_LOG_TESTS: "true"
+          SERVER_EMAIL_LOG_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SERVER_EMAIL_LOG_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SERVER_EMAIL_LOG_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddServerEmailLogPostgres.test.ts
+          --forceExit
+
+      # #6879: master admins told when the server's email or its global
+      # probes stop working. GlobalConfig, cloned as it was before
+      # AddServerAlerts: three nullable columns added with the row kept as
+      # it was, then the job through GlobalConfigService on that row - its
+      # first look tells nobody, email that fails is told by push and SMS
+      # and written once, nothing more after - and down() and up() again.
+      # Shard 3: the job is App's, and App is installed there.
+      - name: Test telling master admins of outages on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SERVER_ALERTS_TESTS: "true"
+          SERVER_ALERTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SERVER_ALERTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SERVER_ALERTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddServerAlertsPostgres.test.ts
+          --forceExit
 
       # #9066: a rule is never widened to every record by a delete. Every
       # list a rule can be limited to (152 match lists of 87 rule kinds and

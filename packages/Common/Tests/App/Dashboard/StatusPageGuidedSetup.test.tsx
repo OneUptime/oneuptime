@@ -16,6 +16,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -35,6 +36,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const api: Record<string, MockFunction> = {
   loadMonitors: getJestMockFunction(),
+  loadMonitorGroups: getJestMockFunction(),
+  loadEditableStatusPages: getJestMockFunction(),
   findOwnStatusPage: getJestMockFunction(),
   createStatusPage: getJestMockFunction(),
   addMonitors: getJestMockFunction(),
@@ -50,6 +53,8 @@ jest.mock(
 
     for (const name of [
       "loadMonitors",
+      "loadMonitorGroups",
+      "loadEditableStatusPages",
       "findOwnStatusPage",
       "createStatusPage",
       "addMonitors",
@@ -108,6 +113,9 @@ import StatusPageGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Comp
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import {
   STATUS_PAGE_SETUP_COPY,
+  STATUS_PAGE_SETUP_MONITOR_QUERY,
+  StatusPageSetupMonitor,
+  getMonitorPickedOnOpen,
   isSameStatusPageName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -217,6 +225,9 @@ beforeEach(() => {
   jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(USER_ID));
 
   api["loadMonitors"]!.mockResolvedValue(MONITORS);
+  // A project with no monitor group and no status page yet.
+  api["loadMonitorGroups"]!.mockResolvedValue([]);
+  api["loadEditableStatusPages"]!.mockResolvedValue([]);
   api["findOwnStatusPage"]!.mockResolvedValue(null);
   api["createStatusPage"]!.mockResolvedValue(PAGE_ID);
   api["addMonitors"]!.mockResolvedValue({
@@ -312,6 +323,93 @@ describe("a brand-new run", () => {
     expect(screen.getByTestId("guided-setup-public-notice")).toHaveTextContent(
       STATUS_PAGE_SETUP_COPY.publicNotice,
     );
+  });
+});
+
+/*
+ * OPENED FOR ONE MONITOR (#7053): the website-down setup's summary offers
+ * this setup for the monitor it set up, while the project has no status
+ * page to add it to, and the person chose to show that monitor: it starts
+ * ticked, and nothing else is.
+ */
+describe("opened for one monitor, from the website setup's summary (#7053)", () => {
+  const openedFor: (search: string) => void = (search: string): void => {
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/status-pages/setup${search}`,
+    );
+  };
+
+  afterEach(() => {
+    openedFor("");
+  });
+
+  test("that monitor starts ticked, and nothing else", async () => {
+    const chosen: string = MONITORS[1]!["id"] as string;
+
+    openedFor(`?monitorId=${chosen}&from=website_down_summary`);
+    await renderSetup();
+
+    for (const monitor of MONITORS) {
+      const box: HTMLElement = screen.getByTestId(
+        `guided-setup-monitor-${monitor["id"]}`,
+      );
+
+      if (monitor["id"] === chosen) {
+        expect(box).toBeChecked();
+      } else {
+        expect(box).not.toBeChecked();
+      }
+    }
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "1 of 3 picked",
+    );
+    // Opened from the website setup's summary, and started says so.
+    expect(sent(ProductEventName.GuidedSetupStarted)).toEqual([
+      { setup: "status_page", from: "website_down_summary" },
+    ]);
+  });
+
+  test("an id that names none of the project's monitors ticks nothing", async () => {
+    openedFor("?monitorId=50000000-0000-4000-8000-00000000dead");
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 3 picked",
+    );
+  });
+
+  test("Create the status page puts that monitor on it", async () => {
+    const chosen: string = MONITORS[0]!["id"] as string;
+
+    openedFor(`?monitorId=${chosen}`);
+    await renderSetup();
+    await press("guided-setup-create-status-page");
+
+    expect(api["addMonitors"]).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        api["addMonitors"]!.mock.calls[0]![0] as {
+          monitors: Array<{ id: string }>;
+        }
+      ).monitors.map((monitor: { id: string }): string => {
+        return monitor.id;
+      }),
+    ).toEqual([chosen]);
+  });
+
+  test("the rule: the monitor named, among the project's, or nothing", () => {
+    const monitors: Array<StatusPageSetupMonitor> = [
+      { id: "a", name: "API" },
+      { id: "b", name: "Database" },
+    ];
+
+    expect(getMonitorPickedOnOpen({ monitorId: "b", monitors })).toEqual(["b"]);
+    expect(getMonitorPickedOnOpen({ monitorId: "z", monitors })).toEqual([]);
+    expect(getMonitorPickedOnOpen({ monitorId: null, monitors })).toEqual([]);
+    expect(getMonitorPickedOnOpen({ monitorId: "", monitors })).toEqual([]);
+    expect(STATUS_PAGE_SETUP_MONITOR_QUERY).toBe("monitorId");
   });
 });
 
@@ -484,6 +582,37 @@ describe("2. This is what your customers see", () => {
     expect(preview).toHaveTextContent("API");
     expect(preview).toHaveTextContent("Operational");
     expect(preview).toHaveTextContent("Database");
+  });
+
+  /*
+   * #7467: the public page names itself by its Page Title, else its name,
+   * and the preview says the same. A new page has no Page Title: its name.
+   */
+  test("names a new page by its name, as its public page's header and tab do", async () => {
+    await reachReview();
+
+    expect(screen.getByTestId("guided-setup-preview-name")).toHaveTextContent(
+      /^Acme Status$/,
+    );
+  });
+
+  test("names a page with a Page Title by it, as its visitors read it, never by its own name", async () => {
+    api["loadStatusPage"]!.mockResolvedValue({
+      id: PAGE_ID,
+      name: "acme-prod",
+      pageTitle: "Acme Status",
+    });
+    keepRun({ statusPageId: PAGE_ID });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-preview-name")).toHaveTextContent(
+        /^Acme Status$/,
+      );
+    });
+    expect(screen.getByTestId("guided-setup-preview")).not.toHaveTextContent(
+      "acme-prod",
+    );
   });
 
   test("gives the public link, opening in a new tab", async () => {
@@ -1192,6 +1321,30 @@ describe("read in another language (#7252)", () => {
       });
     });
 
+    /*
+     * A monitor and a monitor group are named by the project: "Network" is
+     * "Network" in every language, never the Dashboard's word for it
+     * (German "Netzwerk"), in the list step 1 picks from (#7147).
+     */
+    test("the list's names are drawn as the project wrote them, never looked up", async () => {
+      api["loadMonitors"]!.mockResolvedValue([
+        { id: "m-network", name: "Network" },
+        { id: "m-status", name: "Status" },
+      ]);
+      api["loadMonitorGroups"]!.mockResolvedValue([
+        { id: "g-network", name: "Network" },
+      ]);
+      await renderSetup();
+
+      const list: string = withoutIsolateMarks(
+        screen.getByTestId("guided-setup-monitors").textContent || "",
+      );
+
+      expect(list).toContain("Network");
+      expect(list).toContain("Status");
+      expect(list).not.toContain(readDashboardLocale(language)["Network"]!);
+    });
+
     test("the name is one of the reader's pages: step 2 says so in their words, naming the page", async () => {
       api["findOwnStatusPage"]!.mockResolvedValue({
         id: PAGE_ID,
@@ -1287,5 +1440,847 @@ describe("read in another language (#7252)", () => {
         ),
       ).toBe(fill(language, STATUS_PAGE_SETUP_COPY.summaryTitle, { name }));
     });
+  });
+});
+
+/*
+ * A PROJECT THAT HAS A STATUS PAGE ALREADY (#7517): the 14.0.109 newcomer
+ * made "Walk Co Status" by hand, then opened the setup from Search, and
+ * it made a second page beside it. Step 1 now says so first and goes on
+ * with the project's page - the newest, or the one picked of several -
+ * adding only what it does not show yet. Making a new page stays one click
+ * away, for whoever may make one. Which pages are offered - only those the
+ * person may change - is StatusPageSetupApi's (loadEditableStatusPages);
+ * here, what step 1 does with them.
+ */
+describe("a project that has a status page already (#7517)", () => {
+  const WALK_CO: Record<string, string> = {
+    id: "70000000-0000-4000-8000-000000007517",
+    name: "Walk Co Status",
+  };
+  const OLDER: Record<string, string> = {
+    id: "70000000-0000-4000-8000-000000007518",
+    name: "Walk Co Internal",
+  };
+
+  const pressTitled: (testId: string) => Promise<void> = async (
+    testId: string,
+  ): Promise<void> => {
+    await press(testId);
+  };
+
+  // What each page shows, as the server keeps it: Walk Co nothing yet, the older one the API monitor.
+  let shownOn: Record<string, Array<string>> = {};
+
+  beforeEach(() => {
+    shownOn = { [WALK_CO["id"]!]: [], [OLDER["id"]!]: ["m-api"] };
+    api["loadEditableStatusPages"]!.mockResolvedValue([WALK_CO]);
+    api["loadShownMonitors"]!.mockImplementation(
+      async (id: string): Promise<Record<string, unknown>> => {
+        const monitorIds: Array<string> = shownOn[id] || [];
+
+        return {
+          count: monitorIds.length,
+          names: monitorIds.map((monitorId: string): string => {
+            return (
+              MONITORS.find((monitor: Record<string, string>): boolean => {
+                return monitor["id"] === monitorId;
+              })?.["name"] || ""
+            );
+          }),
+          monitorIds: monitorIds,
+          monitorGroupIds: [],
+        };
+      },
+    );
+    // Add Multiple Monitors' rule: a monitor the page shows is not added twice.
+    api["addMonitors"]!.mockImplementation(
+      async (data: {
+        statusPageId: string;
+        monitors: Array<{ id: string }>;
+      }): Promise<unknown> => {
+        const onPage: Array<string> = shownOn[data.statusPageId] || [];
+
+        for (const monitor of data.monitors) {
+          if (!onPage.includes(monitor.id)) {
+            onPage.push(monitor.id);
+          }
+        }
+
+        shownOn[data.statusPageId] = onPage;
+        return { succeeded: data.monitors, skipped: [], failed: [] };
+      },
+    );
+  });
+
+  // A page of several, picked from the list of their names.
+  const pickPage: (name: string) => Promise<void> = async (
+    name: string,
+  ): Promise<void> => {
+    const picker: HTMLElement = within(
+      screen.getByTestId("guided-setup-existing-page"),
+    ).getByRole("combobox");
+
+    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("option", { name: name }));
+    });
+  };
+
+  test("one page: step 1 names it first, asks no name, and says nothing about a new public page", async () => {
+    await renderSetup();
+
+    const line: HTMLElement = screen.getByTestId("guided-setup-existing-pages");
+    expect(line).toHaveTextContent(
+      'This project already has a status page, "Walk Co Status". The monitors you pick are added to it.',
+    );
+    expect(
+      screen.queryByTestId("guided-setup-status-page-name"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-public-notice"),
+    ).not.toBeInTheDocument();
+    // One page: nothing to pick from.
+    expect(
+      screen.queryByTestId("guided-setup-existing-page"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("guided-setup-create-status-page"),
+    ).toHaveTextContent("Add to the page");
+    // A new page stays one click away.
+    expect(screen.getByTestId("guided-setup-make-new-page")).toHaveTextContent(
+      "Make a new status page instead",
+    );
+    // None ticked, as ever.
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 3 picked",
+    );
+  });
+
+  test("Add to the page makes no page: the monitors picked go on the project's page, and step 2 opens on it", async () => {
+    await renderSetup();
+    await press("guided-setup-monitor-m-api");
+    await press("guided-setup-monitor-m-db");
+    await pressTitled("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(api["findOwnStatusPage"]).not.toHaveBeenCalled();
+    expect(api["addMonitors"]).toHaveBeenCalledTimes(1);
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toEqual({
+      statusPageId: WALK_CO["id"],
+      monitors: [MONITORS[0], MONITORS[2]],
+    });
+    expect(storedRun()).toEqual({ statusPageId: WALK_CO["id"] });
+    expect(stepState("pick")).toBe("done");
+    expect(stepState("review")).toBe("open");
+    expect(screen.getByTestId("guided-setup-preview-name")).toHaveTextContent(
+      "Walk Co Status",
+    );
+    // Picked on purpose: no "no new one was made" note.
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * #7467: the preview names the page as its public page does, in its
+   * header and its tab - its Page Title, else its name. A page of the
+   * project's with a Page Title is previewed by it, never by the name its
+   * team gave it.
+   */
+  test("a page of the project's with a Page Title is previewed by it, as its visitors read it", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([
+      { ...WALK_CO, pageTitle: "Walk Co Public Status" },
+    ]);
+
+    await renderSetup();
+    await press("guided-setup-monitor-m-api");
+    await pressTitled("guided-setup-create-status-page");
+
+    const name: HTMLElement = screen.getByTestId("guided-setup-preview-name");
+    expect(name).toHaveTextContent("Walk Co Public Status");
+    expect(name).not.toHaveTextContent("Walk Co Status");
+  });
+
+  test("what the page shows already is ticked and locked, On the page, and only the rest is added", async () => {
+    shownOn[WALK_CO["id"]!] = ["m-api"];
+    await renderSetup();
+
+    const onPage: HTMLElement = screen.getByTestId(
+      "guided-setup-monitor-m-api",
+    );
+    expect(onPage).toBeChecked();
+    expect(onPage).toBeDisabled();
+    expect(onPage.closest("li")).toHaveTextContent("On the page");
+    // What can be picked: the two the page does not show.
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 2 picked",
+    );
+
+    await press("guided-setup-select-all");
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "2 of 2 picked",
+    );
+    await press("guided-setup-create-status-page");
+
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toEqual({
+      statusPageId: WALK_CO["id"],
+      monitors: [MONITORS[1], MONITORS[2]],
+    });
+  });
+
+  test("a page that shows monitors already, and nothing more picked: Continue goes on with it as it is", async () => {
+    shownOn[WALK_CO["id"]!] = ["m-api"];
+    await renderSetup();
+
+    const button: HTMLElement = screen.getByTestId(
+      "guided-setup-create-status-page",
+    );
+    expect(button).toHaveTextContent("Continue");
+
+    await press("guided-setup-create-status-page");
+
+    expect(api["addMonitors"]).not.toHaveBeenCalled();
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({ statusPageId: WALK_CO["id"] });
+    expect(stepState("review")).toBe("open");
+    expect(screen.getByTestId("guided-setup-preview")).toHaveTextContent("API");
+
+    // A pick turns Continue back into the add.
+    cleanup();
+    window.localStorage.clear();
+    await renderSetup();
+    await press("guided-setup-monitor-m-web");
+    expect(
+      screen.getByTestId("guided-setup-create-status-page"),
+    ).toHaveTextContent("Add to the page");
+  });
+
+  test("a page that shows nothing, and nothing picked: says so, and adds nothing", async () => {
+    await renderSetup();
+    await press("guided-setup-create-status-page");
+
+    expect(
+      screen.getByText(STATUS_PAGE_SETUP_COPY.nothingPicked),
+    ).toBeInTheDocument();
+    expect(api["addMonitors"]).not.toHaveBeenCalled();
+    expect(storedRun()).toEqual({});
+    expect(stepState("pick")).toBe("open");
+  });
+
+  test("Make a new status page instead: today's step 1, and one page made", async () => {
+    await renderSetup();
+    await press("guided-setup-make-new-page");
+
+    expect(nameField().value).toBe("Acme Status");
+    expect(screen.getByTestId("guided-setup-public-notice")).toBeVisible();
+    expect(
+      screen.queryByTestId("guided-setup-existing-pages"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("guided-setup-use-existing-page"),
+    ).toHaveTextContent("Add to an existing status page instead");
+
+    await press("guided-setup-monitor-m-web");
+    await press("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(1);
+    expect(api["createStatusPage"]).toHaveBeenCalledWith("Acme Status");
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toMatchObject({
+      statusPageId: PAGE_ID,
+    });
+    expect(storedRun()).toEqual({ statusPageId: PAGE_ID });
+  });
+
+  test("a new page whose monitors cannot be read back counts what was added to it, never what the project's page shows", async () => {
+    shownOn[WALK_CO["id"]!] = ["m-api", "m-db"];
+    await renderSetup();
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeDisabled();
+    });
+    await press("guided-setup-make-new-page");
+    await press("guided-setup-monitor-m-web");
+
+    const read: (id: string) => Promise<unknown> = api[
+      "loadShownMonitors"
+    ]!.getMockImplementation() as (id: string) => Promise<unknown>;
+    api["loadShownMonitors"]!.mockImplementation(
+      (id: string): Promise<unknown> => {
+        return id === PAGE_ID
+          ? Promise.reject(new Error("The read failed."))
+          : read(id);
+      },
+    );
+    await press("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).toHaveBeenCalledWith("Acme Status");
+    expect(
+      screen.getByTestId("guided-setup-step-pick-done-line"),
+    ).toHaveTextContent('"Acme Status" shows 1 monitor.');
+    expect(screen.getByTestId("guided-setup-preview")).toHaveTextContent(
+      "Website",
+    );
+    expect(screen.getByTestId("guided-setup-preview")).not.toHaveTextContent(
+      "API",
+    );
+  });
+
+  test("and back: Add to an existing status page instead goes on with the project's page again, the picks kept", async () => {
+    await renderSetup();
+    await press("guided-setup-monitor-m-db");
+    await press("guided-setup-make-new-page");
+    await press("guided-setup-use-existing-page");
+
+    expect(screen.getByTestId("guided-setup-existing-pages")).toBeVisible();
+    expect(screen.getByTestId("guided-setup-monitor-m-db")).toBeChecked();
+    await press("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toEqual({
+      statusPageId: WALK_CO["id"],
+      monitors: [MONITORS[2]],
+    });
+  });
+
+  test("several pages: they are counted, picked from by name, newest first, and the one picked gets the monitors", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([WALK_CO, OLDER]);
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-existing-pages")).toHaveTextContent(
+      "This project already has 2 status pages. The monitors you pick are added to the one you choose.",
+    );
+    // The newest is picked to start with.
+    expect(screen.getByTestId("guided-setup-existing-page")).toHaveTextContent(
+      "Walk Co Status",
+    );
+    expect(api["loadShownMonitors"]).toHaveBeenCalledWith(WALK_CO["id"]);
+
+    // The older one, picked from the list of names.
+    await pickPage("Walk Co Internal");
+    await waitFor(() => {
+      expect(api["loadShownMonitors"]).toHaveBeenCalledWith(OLDER["id"]);
+    });
+    // It shows the API monitor already.
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeDisabled();
+    });
+
+    await press("guided-setup-monitor-m-web");
+    await press("guided-setup-create-status-page");
+
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toEqual({
+      statusPageId: OLDER["id"],
+      monitors: [MONITORS[1]],
+    });
+    expect(storedRun()).toEqual({ statusPageId: OLDER["id"] });
+  });
+
+  test("a page picked before the one before it is read: the marks are the page picked, whatever arrives late", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([WALK_CO, OLDER]);
+    shownOn[WALK_CO["id"]!] = ["m-db"];
+    // Walk Co's read is slow: it arrives after the older page's.
+    let arriveWalkCo: () => void = (): void => {};
+    const fake: (id: string) => Promise<unknown> = api[
+      "loadShownMonitors"
+    ]!.getMockImplementation() as (id: string) => Promise<unknown>;
+    api["loadShownMonitors"]!.mockImplementation(
+      (id: string): Promise<unknown> => {
+        if (id !== WALK_CO["id"]) {
+          return fake(id);
+        }
+
+        return new Promise((resolve: (value: unknown) => void) => {
+          arriveWalkCo = () => {
+            resolve(fake(id));
+          };
+        });
+      },
+    );
+    await renderSetup();
+    await pickPage("Walk Co Internal");
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeDisabled();
+    });
+
+    await act(async () => {
+      arriveWalkCo();
+    });
+
+    // The older page's marks stay: Walk Co's late read draws none.
+    expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeDisabled();
+    expect(screen.getByTestId("guided-setup-monitor-m-db")).not.toBeDisabled();
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 2 picked",
+    );
+  });
+
+  test("someone who may change the project's pages but not make one: the offer, and no way to a new page", async () => {
+    mayCreate = false;
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-existing-pages")).toBeVisible();
+    expect(
+      screen.queryByTestId("guided-setup-make-new-page"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-not-allowed"),
+    ).not.toBeInTheDocument();
+
+    await press("guided-setup-monitor-m-api");
+    await press("guided-setup-create-status-page");
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toMatchObject({
+      statusPageId: WALK_CO["id"],
+    });
+  });
+
+  test("someone who may neither change a page nor make one is told so, as before", async () => {
+    mayCreate = false;
+    api["loadEditableStatusPages"]!.mockResolvedValue([]);
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-not-allowed")).toBeVisible();
+    expect(screen.queryByTestId("guided-setup")).not.toBeInTheDocument();
+  });
+
+  test("a project with no page this person may change: today's step 1, unchanged", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([]);
+    await renderSetup();
+
+    expect(nameField().value).toBe("Acme Status");
+    expect(screen.getByTestId("guided-setup-public-notice")).toBeVisible();
+    expect(
+      screen.queryByTestId("guided-setup-existing-pages"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-use-existing-page"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("guided-setup-create-status-page"),
+    ).toHaveTextContent("Create the status page");
+  });
+
+  test("pages that cannot be read: today's step 1, rather than no step at all", async () => {
+    api["loadEditableStatusPages"]!.mockRejectedValue(new Error("offline"));
+    await renderSetup();
+
+    expect(nameField()).toBeVisible();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("a run whose page is known never offers another", async () => {
+    keepRun({ statusPageId: PAGE_ID });
+    api["loadShownMonitors"]!.mockResolvedValue({ count: 0, names: [] });
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-empty-page")).toBeVisible();
+    expect(
+      screen.queryByTestId("guided-setup-existing-pages"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-make-new-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Set up another status page asks for a new one, with the project's pages one click away", async () => {
+    keepRun({ statusPageId: WALK_CO["id"], reviewed: true });
+    shownOn[WALK_CO["id"]!] = ["m-api"];
+    api["loadStatusPage"]!.mockResolvedValue({
+      id: WALK_CO["id"],
+      name: WALK_CO["name"],
+    });
+    await renderSetup();
+    await press("guided-setup-start-over");
+
+    expect(nameField()).toBeVisible();
+    expect(
+      screen.queryByTestId("guided-setup-existing-pages"),
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-use-existing-page"),
+      ).toBeVisible();
+    });
+  });
+
+  /*
+   * THE MONITOR THE WEBSITE SETUP HANDED IN (#7053), now that step 1 may
+   * offer a page: it is still the one thing ticked, and goes on the page
+   * offered.
+   */
+  test("the monitor the website setup handed in stays ticked, and goes on the page offered", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/status-pages/setup?monitorId=m-web&from=website_down_summary`,
+    );
+
+    try {
+      await renderSetup();
+
+      expect(screen.getByTestId("guided-setup-monitor-m-web")).toBeChecked();
+      expect(
+        screen.getByTestId("guided-setup-monitor-m-api"),
+      ).not.toBeChecked();
+      await press("guided-setup-create-status-page");
+
+      expect(api["addMonitors"]!.mock.calls[0]![0]).toEqual({
+        statusPageId: WALK_CO["id"],
+        monitors: [MONITORS[1]],
+      });
+    } finally {
+      window.history.replaceState({}, "", "/");
+    }
+  });
+});
+
+/*
+ * A BUSY PROJECT (#7147): two hundred monitors in one list was one long
+ * scroll. The list gets a search by name and a label to narrow it by, its
+ * monitor groups are listed - each added as one row of the page - and
+ * "Select all" picks what the list shows. None is ticked to start with.
+ */
+describe("a busy project's list (#7147)", () => {
+  const LABELS: Record<string, { id: string; name: string; color: string }> = {
+    production: {
+      id: "10000000-0000-4000-8000-000000000001",
+      name: "production",
+      color: "#ef4444",
+    },
+    staging: {
+      id: "10000000-0000-4000-8000-000000000002",
+      name: "staging",
+      color: "#f59e0b",
+    },
+  };
+
+  // Two hundred monitors: checkout-001 to checkout-100 in production, the rest in staging.
+  const BUSY: Array<Record<string, unknown>> = Array.from(
+    { length: 200 },
+    (_unused: unknown, index: number): Record<string, unknown> => {
+      const number: number = index + 1;
+      const isProduction: boolean = number <= 100;
+
+      return {
+        id: `m-${String(number).padStart(3, "0")}`,
+        name: `${isProduction ? "checkout" : "search"}-${String(
+          number,
+        ).padStart(3, "0")}`,
+        statusName: "Operational",
+        labels: [isProduction ? LABELS["production"] : LABELS["staging"]],
+      };
+    },
+  );
+
+  const GROUPS: Array<Record<string, unknown>> = [
+    {
+      id: "g-checkout",
+      name: "Checkout",
+      labels: [LABELS["production"]],
+    },
+    { id: "g-search", name: "Search" },
+  ];
+
+  const search: (text: string) => Promise<void> = async (
+    text: string,
+  ): Promise<void> => {
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("guided-setup-search"), {
+        target: { value: text },
+      });
+    });
+  };
+
+  const shownMonitorIds: () => Array<string> = (): Array<string> => {
+    return Array.from(
+      screen
+        .getByTestId("guided-setup-monitors")
+        .querySelectorAll('[data-testid^="guided-setup-monitor-m-"]'),
+    ).map((element: Element): string => {
+      return (element.getAttribute("data-testid") || "").replace(
+        "guided-setup-monitor-",
+        "",
+      );
+    });
+  };
+
+  const pickLabel: (name: string) => Promise<void> = async (
+    name: string,
+  ): Promise<void> => {
+    const picker: HTMLElement = within(
+      screen.getByTestId("guided-setup-label-filter"),
+    ).getByRole("combobox", { name: "Filter by label" });
+
+    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("option", { name: name }));
+    });
+  };
+
+  beforeEach(() => {
+    api["loadMonitors"]!.mockResolvedValue(BUSY);
+    api["loadMonitorGroups"]!.mockResolvedValue(GROUPS);
+  });
+
+  test("lists the groups first, then every monitor, none ticked, with a search and the labels to narrow by", async () => {
+    await renderSetup();
+
+    expect(shownMonitorIds()).toHaveLength(200);
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 202 picked",
+    );
+    const groupRow: HTMLElement = screen.getByTestId(
+      "guided-setup-monitor-group-row-g-checkout",
+    );
+    expect(groupRow).toHaveTextContent("Checkout");
+    expect(groupRow).toHaveTextContent("Monitor Group");
+    expect(
+      groupRow.compareDocumentPosition(
+        screen.getByTestId("guided-setup-monitor-m-001"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByTestId("guided-setup-search")).toBeVisible();
+    expect(screen.getByTestId("guided-setup-label-filter")).toBeVisible();
+    expect(
+      screen.getByTestId("guided-setup-monitor-group-g-checkout"),
+    ).not.toBeChecked();
+  });
+
+  test("finds and picks three by typing, and puts exactly those on the page", async () => {
+    await renderSetup();
+
+    await search("checkout-01");
+    // checkout-010 to checkout-019.
+    expect(shownMonitorIds()).toHaveLength(10);
+    await press("guided-setup-monitor-m-012");
+
+    await search("  SEARCH-150 ");
+    expect(shownMonitorIds()).toEqual(["m-150"]);
+    await press("guided-setup-monitor-m-150");
+
+    await search("checkout-007");
+    await press("guided-setup-monitor-m-007");
+
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "3 of 202 picked",
+    );
+    await press("guided-setup-create-status-page");
+
+    const added: { monitors: Array<{ id: string }> } = api["addMonitors"]!.mock
+      .calls[0]![0] as { monitors: Array<{ id: string }> };
+    // In the list's order, whatever order they were picked in.
+    expect(
+      added.monitors.map((monitor: { id: string }): string => {
+        return monitor.id;
+      }),
+    ).toEqual(["m-007", "m-012", "m-150"]);
+    expect(added).not.toHaveProperty("monitorGroups");
+  });
+
+  test("a search that finds nothing says so, and offers nothing to select", async () => {
+    await renderSetup();
+    await search("payments");
+
+    expect(screen.getByTestId("guided-setup-no-match")).toHaveTextContent(
+      "Nothing matches.",
+    );
+    expect(
+      screen.queryByTestId("guided-setup-select-all"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Select all picks what is shown, and what the search hides stays as it was", async () => {
+    await renderSetup();
+    await press("guided-setup-monitor-m-200");
+
+    await search("checkout-00");
+    await press("guided-setup-select-all");
+
+    // checkout-001 to checkout-009, and the one picked before.
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "10 of 202 picked",
+    );
+    await search("");
+    expect(screen.getByTestId("guided-setup-monitor-m-200")).toBeChecked();
+    expect(screen.getByTestId("guided-setup-monitor-m-010")).not.toBeChecked();
+    expect(
+      screen.getByTestId("guided-setup-monitor-group-g-checkout"),
+    ).not.toBeChecked();
+  });
+
+  test("picks by label: the label narrows the list to what carries it, and Select all picks those", async () => {
+    await renderSetup();
+    await pickLabel("staging");
+
+    expect(shownMonitorIds()).toHaveLength(100);
+    expect(shownMonitorIds()[0]).toBe("m-101");
+    // The Checkout group carries production, not staging; Search carries none.
+    expect(
+      screen.queryByTestId("guided-setup-monitor-group-row-g-checkout"),
+    ).not.toBeInTheDocument();
+
+    await press("guided-setup-select-all");
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "100 of 202 picked",
+    );
+    await press("guided-setup-create-status-page");
+
+    const added: { monitors: Array<{ id: string }> } = api["addMonitors"]!.mock
+      .calls[0]![0] as { monitors: Array<{ id: string }> };
+    expect(added.monitors).toHaveLength(100);
+    expect(
+      added.monitors.every((monitor: { id: string }): boolean => {
+        return Number(monitor.id.slice(2)) > 100;
+      }),
+    ).toBe(true);
+  });
+
+  test("a label and a search together: what carries the label and matches the name", async () => {
+    await renderSetup();
+    await pickLabel("production");
+    await search("checkout");
+
+    // The production monitors, and the group that carries production.
+    expect(shownMonitorIds()).toHaveLength(100);
+    expect(
+      screen.getByTestId("guided-setup-monitor-group-row-g-checkout"),
+    ).toBeVisible();
+
+    await search("checkout-09");
+    expect(shownMonitorIds()).toHaveLength(10);
+    expect(
+      screen.queryByTestId("guided-setup-monitor-group-row-g-checkout"),
+    ).not.toBeInTheDocument();
+
+    // A name no monitor carrying the label has.
+    await search("search-1");
+    expect(screen.getByTestId("guided-setup-no-match")).toBeVisible();
+  });
+
+  test("a monitor group goes on the page as a group, before the monitors, through Add Multiple Monitor Groups' rule", async () => {
+    await renderSetup();
+    await press("guided-setup-monitor-group-g-checkout");
+    await press("guided-setup-monitor-m-150");
+
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "2 of 202 picked",
+    );
+    await press("guided-setup-create-status-page");
+
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toEqual({
+      statusPageId: PAGE_ID,
+      monitors: [BUSY[149]],
+      monitorGroups: [GROUPS[0]],
+    });
+  });
+
+  test("once the page shows a group, step 1's line counts monitors and monitor groups, never all as monitors", async () => {
+    api["loadShownMonitors"]!.mockResolvedValue({
+      count: 2,
+      names: ["Checkout", "search-150"],
+      monitorIds: ["m-150"],
+      monitorGroupIds: ["g-checkout"],
+    });
+    await renderSetup();
+    await press("guided-setup-monitor-group-g-checkout");
+    await press("guided-setup-monitor-m-150");
+    await press("guided-setup-create-status-page");
+
+    expect(
+      screen.getByTestId("guided-setup-step-pick-done-line"),
+    ).toHaveTextContent('"Acme Status" shows 2 monitors and monitor groups.');
+  });
+
+  test("a group alone is something to show: the page is made with it", async () => {
+    await renderSetup();
+    await press("guided-setup-monitor-group-g-search");
+    await press("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).toHaveBeenCalledTimes(1);
+    expect(api["addMonitors"]!.mock.calls[0]![0]).toEqual({
+      statusPageId: PAGE_ID,
+      monitors: [],
+      monitorGroups: [GROUPS[1]],
+    });
+  });
+
+  test("Clear unticks everything picked, monitors and groups", async () => {
+    await renderSetup();
+    await press("guided-setup-monitor-group-g-search");
+    await press("guided-setup-monitor-m-002");
+    await press("guided-setup-clear-all");
+
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 202 picked",
+    );
+    expect(
+      screen.getByTestId("guided-setup-monitor-group-g-search"),
+    ).not.toBeChecked();
+  });
+
+  test("the monitor the website setup handed in stays picked while a search hides it, and goes on the page", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/status-pages/setup?monitorId=m-042`,
+    );
+
+    try {
+      await renderSetup();
+      expect(screen.getByTestId("guided-setup-monitor-m-042")).toBeChecked();
+      expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+        "1 of 202 picked",
+      );
+
+      await search("search-");
+      expect(
+        screen.queryByTestId("guided-setup-monitor-m-042"),
+      ).not.toBeInTheDocument();
+      await press("guided-setup-monitor-m-199");
+      await press("guided-setup-create-status-page");
+
+      const added: { monitors: Array<{ id: string }> } = api["addMonitors"]!
+        .mock.calls[0]![0] as { monitors: Array<{ id: string }> };
+      expect(
+        added.monitors.map((monitor: { id: string }): string => {
+          return monitor.id;
+        }),
+      ).toEqual(["m-042", "m-199"]);
+    } finally {
+      window.history.replaceState({}, "", "/");
+    }
+  });
+
+  test("a short list keeps to its checkboxes: no search, no label to pick", async () => {
+    api["loadMonitors"]!.mockResolvedValue(BUSY.slice(0, 3));
+    api["loadMonitorGroups"]!.mockResolvedValue([]);
+    await renderSetup();
+
+    expect(screen.queryByTestId("guided-setup-search")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-label-filter"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("monitor groups that cannot be read leave the monitors to pick", async () => {
+    api["loadMonitorGroups"]!.mockRejectedValue(new Error("Forbidden"));
+    await renderSetup();
+
+    expect(shownMonitorIds()).toHaveLength(200);
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 200 picked",
+    );
+  });
+
+  test("a monitor's name is drawn as the project wrote it, never looked up", async () => {
+    api["loadMonitors"]!.mockResolvedValue([
+      { id: "m-network", name: "Network" },
+      { id: "m-delete", name: "Delete" },
+    ]);
+    api["loadMonitorGroups"]!.mockResolvedValue([]);
+    await renderSetup();
+
+    expect(
+      screen.getByTestId("guided-setup-monitors").textContent || "",
+    ).toContain("Network");
   });
 });

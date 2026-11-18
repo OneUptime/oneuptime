@@ -6,6 +6,7 @@ La prontezza risponde a una domanda prima che lo faccia un incidente: se qualcos
 - [Come viene stabilito uno stato](#come-viene-stabilito-uno-stato): Pronto, Needs setup o Unreachable, e perché.
 - [La pagina Prontezza](#la-pagina-prontezza): Ogni destinatario del progetto, in un solo elenco.
 - [Ricordare alle persone di completare la configurazione](#ricordare-alle-persone-di-completare-la-configurazione): Un'e-mail che nomina ciò che manca.
+- [Applicare la sequenza predefinita](#applicare-la-sequenza-predefinita): La sequenza predefinita del progetto, per le persone che scegliete.
 - [Tempo di reperibilità dell'utente](#tempo-di-reperibilità-dellutente): Per quanto tempo ogni persona è stata reperibile.
 :::
 
@@ -32,6 +33,8 @@ Un destinatario è chiunque una policy di reperibilità possa avvisare: una pers
 
 Una lacuna è una gravità senza regola, sulla scheda degli incidenti, degli episodi di incidenti, degli avvisi o degli episodi di avvisi. Una regola che disattiva di proposito una gravità non è una lacuna. Un avviso che trova una lacuna raggiunge comunque la persona sui suoi metodi verificati, a meno che il progetto non abbia disattivato questo ripiego: vedi [Quando nessuna regola corrisponde](/docs/notifications/index#quando-nessuna-regola-corrisponde).
 
+Quando il progetto chiede a tutte le persone reperibili un metodo telefonico, in **Telefono per le persone reperibili**, un destinatario senza un numero verificato per SMS, chiamate telefoniche o WhatsApp viene anche segnato **Nessun metodo telefonico**, qualunque sia il suo stato, e Stato della configurazione lo nomina. Nessuno resta escluso: una chiamata lo raggiunge comunque sui metodi che ha.
+
 ## La pagina Prontezza
 
 Aprite **Reperibilità → Prontezza**. La scheda **Preparazione della reperibilità** elenca ogni persona che una policy di reperibilità del progetto può raggiungere, prima quelle che hanno bisogno di qualcosa. Chiunque nel progetto può aprirla.
@@ -53,12 +56,24 @@ Sopra l'elenco, i riquadri contano **Destinatari**, **Pronto**, **Da configurare
 Solo la persona stessa può aggiungere e verificare i propri metodi di notifica e le proprie regole, quindi la soluzione è chiederglielo.
 
 :::steps
-1. Nella pagina Prontezza, spuntate i destinatari a cui inviare un promemoria. I destinatari pronti non si possono spuntare: non c'è niente da ricordare loro.
+1. Nella pagina Prontezza, spuntate i destinatari a cui inviare un promemoria. Un destinatario pronto riceve un promemoria solo quando è segnato **Nessun metodo telefonico**: non c'è nient'altro da ricordargli.
 2. Fate clic su **Invia promemoria di configurazione**. La conferma nomina ogni persona a cui sta per scrivere.
 3. Confermate. Ogni persona riceve un'e-mail che nomina ciò che manca nella sua configurazione, con un link alla pagina che lo sistema.
 :::
 
 Un banner indica poi quanti promemoria sono stati inviati, saltati o non riusciti, e perché per ciascuno di quelli non inviati. Nessuno riceve più di un promemoria ogni 24 ore, e un invio raggiunge al massimo 250 persone. Inviare promemoria richiede **Proprietario del progetto**, **Amministratore del progetto** o **Amministratore della reperibilità**, oppure **Edit On-Call Policy** in un ruolo personalizzato.
+
+## Applicare la sequenza predefinita
+
+Quando il progetto ha una sequenza predefinita (vedi [La sequenza predefinita](/docs/notifications/on-call-rules#la-sequenza-predefinita)), potete darla alle persone che hanno già regole proprie.
+
+:::steps
+1. Nella pagina Prontezza, spuntate i destinatari.
+2. Fate clic su **Applica sequenza predefinita**. La conferma mostra la sequenza e nomina tutte le persone che cambia.
+3. Confermate. Le regole di ogni persona per ogni gravità vengono sostituite dalla sequenza, sui metodi che ha verificato.
+:::
+
+Un modo che qualcuno non ha verificato viene escluso, e al suo posto quella persona tiene i propri passaggi; chi non ha verificato nessuno dei modi della sequenza resta com'era. Un banner indica poi, per ogni persona, cosa è stato applicato o perché no, per canale: i numeri e gli indirizzi di nessuno vengono mostrati. Ogni persona le cui regole sono cambiate riceve un'e-mail, e ogni modifica compare nel log di audit del progetto. Applicarla richiede **Proprietario del progetto** o **Amministratore del progetto**, oppure **Edit User Notification Rules** in un ruolo personalizzato.
 
 ## La prontezza in altre pagine
 
@@ -66,6 +81,7 @@ Un banner indica poi quanti promemoria sono stati inviati, saltati o non riuscit
 - Nelle **Regole di escalation** di una policy, un livello i cui destinatari non possono essere avvisati tutti lo indica sulla sua scheda. Vedi [Il riepilogo dell'escalation](/docs/on-call/escalation-rules#il-riepilogo-dellescalation).
 - In **Utenti**, aprite un membro e poi **Prontezza** nella sezione **Reperibilità**: il suo stato, i suoi metodi e la sua griglia di copertura.
 - Per la vostra configurazione, **Impostazioni utente → Elenco di configurazione** vi guida. Vedi [L'elenco di configurazione](/docs/notifications/index#lelenco-di-configurazione).
+- Chi è in una politica e non ha finito la propria configurazione vede **Completa la configurazione delle tue notifiche** nella campanella in alto in ogni pagina, che apre il suo elenco di configurazione.
 
 ## L'e-mail settimanale sulla prontezza
 

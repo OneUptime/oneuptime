@@ -661,7 +661,13 @@ describe("the cards people set", () => {
     }
   });
 
-  test("the page title's example is a name, and the detail rows have no stand-in sentences", async () => {
+  /*
+   * A page with no Page Title goes by its name, in its header and its
+   * browser tab (#7467): its row says so, where a bare dash read as if the
+   * page had no name anywhere. The description's row says nothing for
+   * nothing: no stand-in sentence.
+   */
+  test("the page title's example is a name; with none, its row says the page's name is used, and the description's row has no stand-in", async () => {
     await renderPage();
 
     const name: string = "Status Page > Branding > Title and Description";
@@ -675,11 +681,14 @@ describe("the cards people set", () => {
       "e.g., Live status of Acme's website and API.",
     );
 
-    for (const row of detailFieldsOf(name) as Array<
-      FieldShape & { placeholder?: string }
-    >) {
-      expect(row.placeholder).toBeUndefined();
-    }
+    const [titleRow, descriptionRow] = detailFieldsOf(name) as [
+      FieldShape & { placeholder?: string },
+      FieldShape & { placeholder?: string },
+    ];
+
+    expect(titleRow.placeholder).toBe("None. The status page's name is used.");
+    expect(titleRow.placeholder).toBe(StatusPageBrandingCopy.pageTitleEmpty);
+    expect(descriptionRow.placeholder).toBeUndefined();
   });
 
   test.each([

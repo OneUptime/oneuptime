@@ -15,7 +15,7 @@ Open **Home** in the bar at the top, or press `g` then `h` from anywhere. Home i
 
 1. A search box, with **Declare Incident** and **Create** beside it.
 2. One line that says whether anything is wrong, over five numbers that count what needs attention.
-3. **Welcome to OneUptime 👋**, a checklist for a new project, until it is done.
+3. **Welcome to OneUptime 👋**, a checklist for a new project, until it is done, then **More to set up** while anything is left.
 4. **Needs attention**, every problem that is open right now, by name.
 5. **Your project**, what the project is made of, and **Upcoming maintenance** when any is scheduled.
 6. **Explore OneUptime**, every product, one category at a time.
@@ -40,7 +40,7 @@ The line at the top names the most urgent thing that is open, in a matching colo
 
 Beside it, Home says when it last read the project, and **Refresh** reads it again. Home also follows what it counts as it changes: when an incident, alert, monitor, maintenance event or SLO is created, changed or deleted, the line, the numbers, **Needs attention** and **Upcoming maintenance** catch up within seconds, without a refresh. When you come back to a Home tab after a minute or more, it refreshes by itself.
 
-While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **Know when my website or API is down**. Only people who are allowed to create monitors see it.
+While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **Know when my website or API is down**, unless the welcome checklist under it offers that step already. Only people who are allowed to create monitors see it.
 
 ### The five numbers
 
@@ -68,13 +68,17 @@ Each step ticks itself off when the thing works, not when a record exists, and e
 | **Create your first monitor** | Its first check comes in. | The guided setup **Know when my website or API is down**, or the **Monitors** list for someone who may not create monitors. |
 | **Connect a server or cluster** | Its first metrics arrive. | **Hosts** |
 | **Send your first logs, metrics or traces** | The project's first logs, metrics, traces, exceptions or profiles arrive. | The guided setup **Send logs, metrics and traces, then get alerted** |
-| **Set up an on-call policy** | A test page is acknowledged, a page reaches someone, or an on-call rule runs a policy that can reach someone. | The guided setup **Page the right person when something breaks** |
+| **Set up an on-call policy** | A test page is acknowledged, a page reaches someone, or an on-call rule or a monitor runs a policy that can reach someone. | The guided setup **Page the right person when something breaks** |
 | **Publish a status page** | A status page shows a monitor. | The guided setup **Publish a status page**, or the **Status Pages** list for someone who may not create status pages. |
 | **Invite your team** | Someone accepts your invitation. | **Users** |
 
-The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, which has one person, **Invite your team** says it needs the Growth plan, and opens **Billing**. On a self-hosted server that cannot send email yet, the server's admins see **This server cannot send email yet** first; it opens the Admin Dashboard.
+The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, which has one person, **Invite your team** says it needs the Growth plan, and opens **Billing**. On a self-hosted server that is not set up yet, its admins see the server's own card above the checklist instead, with **Finish setup**, which opens the Admin Dashboard.
 
 Each step says about how long it takes, the checklist says about how long is left, and the next step has a **Start** button of its own.
+
+A step whose record exists but does not work yet says why under it, in the words of **Setup Health**: a status page that shows no monitor, a monitor nothing checks, an on-call policy that nothing runs or that reaches nobody, an invitation nobody accepted. The step then opens the page that fixes it, and when it is next, its button names the fix, such as **Add Monitors**.
+
+Once **Set up an on-call policy** is ticked, and while only email can page you, **Get paged by SMS or phone call** stays under it: it opens the guided setup **Page the right person when something breaks**, to add your phone or the mobile app. Only people who may create on-call policies see it.
 
 A guided setup does the whole job on one page, a step at a time, and ends with what it set up and what to do next. To open one again later, search for its name.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|Yes| hidden{"Hidden<br/>by you?"}
     hidden -->|Yes| line["A line to<br/>show it again"]
     hidden -->|No| done{"Every step<br/>done?"}
-    done -->|Yes| gone["No checklist"]
+    done -->|Yes| gone["More to set up,<br/>while anything is left"]
     done -->|No| shown["The checklist, with<br/>the steps left to do"]
 ```
 
 The checklist goes away for everyone once every step is done. To hide it sooner, click **Hide**: it is hidden for you alone, on every device, and a line stays with **Show it** and **How OneUptime works**. People invited to the project as members do not see the checklist. **How OneUptime works** stays one click away, in any project: open it from **Help**, or with the button beside **Explore OneUptime**.
+
+Once the checklist is done, **More to set up** takes its place under the headline, as a card among the others: the core steps your goals did not bring, such as a status page and your team, each until it works, with **Get paged by SMS or phone call** first while only email can page you. Its **Hide** takes it away for you, with no line left behind.
 
 **How OneUptime works** opens on **How it fits together**: the four steps a problem moves through, **Detect**, **Respond**, **Communicate** and **Improve**, each with the products that do it. Then come the categories of the **Products** menu, each listing its products and what each is for: pick one, or move on with the arrow keys or **Next**. Click a product to open it. Products your project hides are left out.
 
@@ -103,7 +109,7 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 
 ### Setup health
 
-When something in the project's setup would stop people from being told, **Needs attention** ends with **Setup**: how many things need a look. It opens **Setup Health**, which starts with one line in the colour of the worst finding: how many problems would stop people from being told, how many things are worth fixing, or **Nothing to fix**. Under it, the page lists what is misconfigured, worst first, under **Pages Will Not Arrive**, **Worth Fixing** and **Suggestions**: a monitor that pages nobody, an on-call policy nothing runs, a responder who can't be paged, SMS switched off, a schedule with nobody on call, a status page that shows no monitor, a custom domain whose SSL certificate couldn't be issued, an ingestion key no data has arrived with. Each finding says what is wrong in one sentence, with your monitors', policies' and people's names in bold, the monitors or policies it **Affects**, and right under it the button that opens its fix. Two can be fixed right there, once a dialog has said exactly what will change: **Turn On SMS** (or phone calls, WhatsApp or Telegram), for whoever may switch it on, and **Create On-Call Rule**, which pages the on-call policy you pick for a monitor that paged nobody. A monitor's findings are the breaks its **When this goes down** card names, and an on-call policy that nothing runs, or a custom domain that doesn't open its status page, says so at the top of the policy's or the status page's own page too. A finding your team leaves as it is on purpose can be dismissed with a reason, for everyone, and restored from **Dismissed**. Search finds the page as **Setup Health**, and Ask AI answers "is my setup OK?" from it.
+When something in the project's setup would stop people from being told, **Needs attention** ends with **Setup**: how many things need a look. It opens **Setup Health**, which starts with one line in the colour of the worst finding: how many problems would stop people from being told, how many things are worth fixing, or **Nothing to fix**. Under it, the page lists what is misconfigured, worst first, under **Pages Will Not Arrive**, **Worth Fixing** and **Suggestions**: a monitor that pages nobody, an on-call policy nothing runs, a responder who can't be paged, SMS switched off, a schedule with nobody on call, a status page that shows no monitor, a custom domain whose SSL certificate couldn't be issued, an ingestion key no data has arrived with. Each finding says what is wrong in one sentence, with your monitors', policies' and people's names in bold, the monitors or policies it **Affects**, and right under it the button that opens its fix. Two can be fixed right there, once a dialog has said exactly what will change: **Turn On SMS** (or phone calls, WhatsApp or Telegram), for whoever may switch it on, and **Create On-Call Rule**, which pages the on-call policy you pick for a monitor that paged nobody. A monitor's findings are the breaks its **When this goes down** card names, and an on-call policy that nothing runs, or a custom domain that doesn't open its status page, says so at the top of the policy's or the status page's own page too. Each owner the card says no Created email reaches is a finding too, worth fixing, with the same page to put it right. A finding your team leaves as it is on purpose can be dismissed with a reason, for everyone, and restored from **Dismissed**. Search finds the page as **Setup Health**, and Ask AI answers "is my setup OK?" from it.
 
 ### Your project
 
@@ -113,7 +119,7 @@ When something in the project's setup would stop people from being told, **Needs
 
 ### Explore OneUptime
 
-**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it. The products your project hides are left out.
+**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it. The products your project hides are under its last tab, **More products**, with a note that they still work.
 
 ## Finding your way around
 

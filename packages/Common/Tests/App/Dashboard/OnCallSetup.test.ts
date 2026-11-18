@@ -15,10 +15,15 @@ import {
   OnCallSummaryRow,
   PHONE_BALANCE_FLOOR_IN_USD_CENTS,
   PhoneChannelFacts,
+  REACH_AFTER,
+  REACH_AT_ONCE,
+  REACH_THEN,
   RUN_VALUES_OF_THE_POLICY,
+  ReachStep,
   ResponderReach,
   canAddPhone,
   describeFirstLevel,
+  describeReachOrder,
   describeResponder,
   formatUsdCents,
   getDefaultNoAnswerChoice,
@@ -27,7 +32,9 @@ import {
   getOnCallSummaryRows,
   getPhoneBreaks,
   getPolicyBreaks,
+  getReachOrders,
   getRunWithoutPolicy,
+  groupReachSteps,
   getVerifiedMethodsOfType,
   isOnCallSetupFinished,
   isPhoneBalanceTooLow,
@@ -48,9 +55,14 @@ import {
 } from "../../../Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  OnCallTestPageKind,
+  OnCallTestPagePreview,
+  OnCallTestPagePreviewMethod,
+  OnCallTestPagePreviewPerson,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
   OnCallTestPageStatus,
+  OnCallTestPageWarningCode,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { Translator, createTranslator } from "../../../Types/Translator";
 
@@ -822,6 +834,286 @@ describe("the summary", () => {
         responders: [],
       }),
     ).toBe("Ana Lopez");
+  });
+});
+
+/*
+ * ISSUE #7154: the summary said who the first level pages and by what
+ * ("Ana Lopez (Email, SMS, Phone call)"), never in which order - #6805's
+ * "pages Ana by SMS, then a call". The order is the person's own How to
+ * Reach Me for the test's first severity, as the test page's preview reads
+ * it on the server (OnCallTestPageApi.preview): this only words it.
+ */
+describe("the order a page reaches each person (#7154)", () => {
+  const step: (channel: OnCallPageChannel, minutes: number) => ReachStep = (
+    channel: OnCallPageChannel,
+    minutes: number,
+  ): ReachStep => {
+    return { channel: channel, notifyAfterMinutes: minutes };
+  };
+
+  const previewPerson: (
+    overrides: Partial<OnCallTestPagePreviewPerson>,
+  ) => OnCallTestPagePreviewPerson = (
+    overrides: Partial<OnCallTestPagePreviewPerson>,
+  ): OnCallTestPagePreviewPerson => {
+    return {
+      userId: "user-ana",
+      userName: "Ana Lopez",
+      methods: [],
+      hasNoRule: false,
+      isOptedOut: false,
+      warnings: [],
+      ...overrides,
+    };
+  };
+
+  const method: (
+    channel: OnCallPageChannel,
+    minutes: number,
+    isVerified?: boolean,
+  ) => OnCallTestPagePreviewMethod = (
+    channel: OnCallPageChannel,
+    minutes: number,
+    isVerified: boolean = true,
+  ): OnCallTestPagePreviewMethod => {
+    return {
+      channel: channel,
+      notifyAfterMinutes: minutes,
+      isVerified: isVerified,
+      canAcknowledge: true,
+    };
+  };
+
+  test("reads each person's steps from the test page's preview: verified methods, on channels that are on", () => {
+    const preview: OnCallTestPagePreview = {
+      kind: OnCallTestPageKind.Policy,
+      people: [
+        previewPerson({
+          methods: [
+            method(OnCallPageChannel.SMS, 0),
+            method(OnCallPageChannel.Email, 0, false),
+            method(OnCallPageChannel.Call, 5),
+            method(OnCallPageChannel.WhatsApp, 10),
+          ],
+          warningCodes: [
+            {
+              code: OnCallTestPageWarningCode.ChannelOff,
+              channel: OnCallPageChannel.WhatsApp,
+              message: "WhatsApp is off for this project.",
+            },
+          ],
+        }),
+        previewPerson({
+          userId: "user-ben",
+          userName: "Ben Ito",
+          isOptedOut: true,
+          methods: [method(OnCallPageChannel.SMS, 0)],
+        }),
+      ],
+      notPaged: [],
+      cost: {
+        isPaid: false,
+        smsCount: 0,
+        callCount: 0,
+        whatsAppCount: 0,
+        telegramCount: 0,
+      },
+    };
+
+    expect(getReachOrders(preview)).toEqual({
+      "user-ana": [
+        step(OnCallPageChannel.SMS, 0),
+        step(OnCallPageChannel.Call, 5),
+      ],
+      // Opted out of the severity: nothing reaches them.
+      "user-ben": [],
+    });
+  });
+
+  test("takes the steps soonest first, the same wait together, each method once", () => {
+    expect(
+      groupReachSteps([
+        step(OnCallPageChannel.Call, 5),
+        step(OnCallPageChannel.SMS, 0),
+        step(OnCallPageChannel.Email, 0),
+        step(OnCallPageChannel.SMS, 0),
+      ]),
+    ).toEqual([
+      {
+        notifyAfterMinutes: 0,
+        channels: [OnCallPageChannel.SMS, OnCallPageChannel.Email],
+      },
+      { notifyAfterMinutes: 5, channels: [OnCallPageChannel.Call] },
+    ]);
+    expect(groupReachSteps([])).toEqual([]);
+  });
+
+  test("says it in a sentence: what goes at once, then what follows after how long", () => {
+    expect(describeReachOrder(english, [])).toBe("");
+    expect(describeReachOrder(english, [step(OnCallPageChannel.SMS, 0)])).toBe(
+      "SMS at once",
+    );
+    expect(
+      describeReachOrder(english, [
+        step(OnCallPageChannel.SMS, 0),
+        step(OnCallPageChannel.Call, 5),
+      ]),
+    ).toBe("SMS at once, then phone call after 5 minutes");
+    expect(
+      describeReachOrder(english, [
+        step(OnCallPageChannel.Email, 0),
+        step(OnCallPageChannel.SMS, 0),
+        step(OnCallPageChannel.Call, 1),
+        step(OnCallPageChannel.Call, 15),
+      ]),
+    ).toBe(
+      "email and SMS at once, then phone call after 1 minute, then phone call after 15 minutes",
+    );
+    // A first step after a wait says so.
+    expect(
+      describeReachOrder(english, [step(OnCallPageChannel.Email, 10)]),
+    ).toBe("email after 10 minutes");
+  });
+
+  test("a person reachable by steps is described by them; one nothing reaches is not reachable yet", () => {
+    expect(
+      describeResponder(english, ana, [
+        step(OnCallPageChannel.SMS, 0),
+        step(OnCallPageChannel.Call, 5),
+      ]),
+    ).toBe("Ana Lopez (SMS at once, then phone call after 5 minutes)");
+    // Steps not read: the channels, as before.
+    expect(describeResponder(english, ana)).toBe(
+      "Ana Lopez (Email, SMS, Phone call)",
+    );
+    // Steps read as none: the channels still say how readiness found them.
+    expect(describeResponder(english, ana, [])).toBe(
+      "Ana Lopez (Email, SMS, Phone call)",
+    );
+    expect(
+      describeResponder(english, ben, [step(OnCallPageChannel.SMS, 0)]),
+    ).toBe("Ben Ito (not reachable yet)");
+  });
+
+  test("the summary's first row says the order a page reaches each person", () => {
+    const first: OnCallSummaryRow | undefined = getOnCallSummaryRows(english, {
+      policy: policyRecord(),
+      responders: [ana],
+      breaks: [],
+      isCatchAll: true,
+      testResult: null,
+      testResultSentence: null,
+      reachOrders: {
+        [ana.userId]: [
+          step(OnCallPageChannel.SMS, 0),
+          step(OnCallPageChannel.Call, 5),
+        ],
+      },
+    }).find((row: OnCallSummaryRow): boolean => {
+      return row.key === "first";
+    });
+
+    expect(first?.text).toBe(
+      'Any new incident or alert runs "Default on-call policy", which pages Ana Lopez (SMS at once, then phone call after 5 minutes).',
+    );
+  });
+
+  test.each(["de", "fa", "ja"])(
+    "%s says it in its own words, with nothing left in English",
+    (language: string) => {
+      const table: Record<string, string> = readLocale(language);
+      const translator: Translator = createTranslator(
+        (key: string): string | undefined => {
+          return table[key];
+        },
+        language,
+      );
+      const text: string = describeReachOrder(translator, [
+        step(OnCallPageChannel.SMS, 0),
+        step(OnCallPageChannel.Call, 5),
+      ]);
+
+      expect(text).not.toContain("at once");
+      expect(text).not.toContain("then");
+      expect(text).not.toContain("after");
+      expect(text).not.toContain("minute");
+      expect(text).not.toContain("hone call");
+      // The language's own name for each method, in its own order of words.
+      expect(text).toContain(table["Phone call"]!.slice(1));
+      expect(text).toContain(table["SMS"]!);
+    },
+  );
+
+  /*
+   * Seen in the Persian summary at 390px (#7152): a person's channels, when
+   * no order was read, were joined with a Latin comma between Persian words.
+   */
+  test("a person's channels are joined with the reader's comma", () => {
+    const table: Record<string, string> = readLocale("fa");
+    const persian: Translator = createTranslator(
+      (key: string): string | undefined => {
+        return table[key];
+      },
+      "fa",
+    );
+    const text: string = describeResponder(persian, ana);
+
+    expect(text).toContain(`${table["Email"]}، ${table["SMS"]}`);
+    expect(text).not.toContain(", ");
+    // English keeps its own.
+    expect(describeResponder(english, ana)).toBe(
+      "Ana Lopez (Email, SMS, Phone call)",
+    );
+  });
+
+  test("its words are keys of en.json, translated in every language with their placeholders", () => {
+    const words: Array<string> = [
+      REACH_AT_ONCE,
+      REACH_THEN,
+      REACH_AFTER.one,
+      REACH_AFTER.other,
+    ];
+    const en: Record<string, string> = readLocale("en");
+
+    expect(en[REACH_AT_ONCE]).toBe(REACH_AT_ONCE);
+    expect(en[REACH_THEN]).toBe(REACH_THEN);
+    expect(en[REACH_AFTER.other]).toBe(REACH_AFTER.other);
+    expect(en[`${REACH_AFTER.other}_one`]).toBe(REACH_AFTER.one);
+
+    for (const file of fs.readdirSync(LOCALES)) {
+      if (!file.endsWith(".json") || file === "en.json") {
+        continue;
+      }
+
+      const table: Record<string, string> = readLocale(
+        file.replace(".json", ""),
+      );
+
+      for (const word of [REACH_AT_ONCE, REACH_THEN, REACH_AFTER.other]) {
+        const value: string = table[word] || "";
+
+        expect({
+          file,
+          word,
+          translated: Boolean(value) && value !== word,
+        }).toEqual({
+          file,
+          word,
+          translated: true,
+        });
+
+        for (const placeholder of word.match(/{{\w+}}/g) || []) {
+          expect({ file, word, kept: value.includes(placeholder) }).toEqual({
+            file,
+            word,
+            kept: true,
+          });
+        }
+      }
+    }
+
+    expect(words).toHaveLength(4);
   });
 });
 

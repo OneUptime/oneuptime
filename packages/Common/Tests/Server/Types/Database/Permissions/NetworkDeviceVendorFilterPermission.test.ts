@@ -1,8 +1,7 @@
 import NetworkDevice from "../../../../../Models/DatabaseModels/NetworkDevice";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import ModelPermission, {
-  CheckReadPermissionType,
-} from "../../../../../Server/Types/Database/Permissions/Index";
+import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
+import { CheckReadPermissionType } from "../../../../../Server/Types/Database/Permissions/ReadPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import Select from "../../../../../Server/Types/Database/Select";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";

@@ -38,12 +38,17 @@ import {
 } from "../../Billing/PayAsYouGo";
 import ResourceConnectionWatch from "../../ResourceOnboarding/ResourceConnectionWatch";
 import TelemetryDocumentation from "../../Telemetry/Documentation";
-import { getProductsSetUpByGuide } from "../../Telemetry/TelemetryGuideProducts";
+import {
+  getFirstDataMilestonesOfProducts,
+  getProductsSetUpByGuide,
+} from "../../Telemetry/TelemetryGuideProducts";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import Route from "Common/Types/API/Route";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   WELCOME_STEP_MINUTES,
   WelcomeStep,
@@ -95,6 +100,16 @@ const ACTIONS_CLASS_NAME: string = "flex flex-wrap items-center gap-3";
 const linkClassName: string =
   "text-sm font-medium text-indigo-600 hover:text-indigo-800 underline-offset-2 hover:underline";
 
+// What the guide of step 1 sets up: a service's traces, metrics and logs.
+const GUIDE_PRODUCTS: Array<ProductKey> = getProductsSetUpByGuide({
+  telemetryType: "traces",
+  everySignal: true,
+});
+
+// The first data of those products, which step 1 tells apart from a service.
+const GUIDE_FIRST_DATA_MILESTONES: Array<ActivationMilestone> =
+  getFirstDataMilestonesOfProducts(GUIDE_PRODUCTS);
+
 const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const userId: string = UserUtil.getUserId()?.toString() || "";
@@ -107,9 +122,15 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
     });
   }, [userId]);
 
-  const recommendations: Array<MonitorRecommendation> = useMemo(() => {
+  /*
+   * Step 2's monitors: for the data the project's first data says arrived
+   * (#7146), read as the step opens, and the setup's three until then.
+   */
+  const [recommendations, setRecommendations] = useState<
+    Array<MonitorRecommendation>
+  >(() => {
     return getTelemetryRecommendations();
-  }, []);
+  });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
@@ -230,7 +251,10 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
     };
   }, [store]);
 
-  // Step 2's offer: what the service has already, read once it is open.
+  /*
+   * Step 2's offer, read once it is open: the monitors for the data that
+   * arrived (#7146), and what the service has already.
+   */
   useEffect(() => {
     if (openStepKey !== TelemetrySetupStep.Alert || !service) {
       return;
@@ -238,32 +262,51 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
 
     let isActive: boolean = true;
 
-    TelemetrySetupApi.loadCoveredRecommendationIds({
-      service: service,
-      recommendations: recommendations,
-      translator: translator,
-    })
-      .catch(() => {
-        // Unknown coverage offers all three; the server refuses nothing twice.
-        return [] as Array<string>;
-      })
-      .then((covered: Array<string>) => {
-        if (!isActive) {
-          return;
-        }
+    const loadOffer: () => Promise<void> = async (): Promise<void> => {
+      // Not known when it cannot be read: the setup's three are offered.
+      let reached: Array<ActivationMilestone> | null = null;
 
-        setCoveredIds(covered);
-        setPicked(
-          getInitialPick({
-            recommendationIds: recommendations.map(
-              (recommendation: MonitorRecommendation): string => {
-                return recommendation.recommendationId;
-              },
-            ),
-            coveredIds: covered,
-          }),
-        );
-      });
+      try {
+        reached = await TelemetrySetupApi.loadFirstDataReached();
+      } catch {
+        reached = null;
+      }
+
+      const offer: Array<MonitorRecommendation> =
+        getTelemetryRecommendations(reached);
+
+      // Unknown coverage offers them all; the server refuses nothing twice.
+      let covered: Array<string> = [];
+
+      try {
+        covered = await TelemetrySetupApi.loadCoveredRecommendationIds({
+          service: service,
+          recommendations: offer,
+          translator: translator,
+        });
+      } catch {
+        covered = [];
+      }
+
+      if (!isActive) {
+        return;
+      }
+
+      setRecommendations(offer);
+      setCoveredIds(covered);
+      setPicked(
+        getInitialPick({
+          recommendationIds: offer.map(
+            (recommendation: MonitorRecommendation): string => {
+              return recommendation.recommendationId;
+            },
+          ),
+          coveredIds: covered,
+        }),
+      );
+    };
+
+    void loadOffer();
 
     return () => {
       isActive = false;
@@ -338,15 +381,23 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
          * service.name (an SDK falls back to unknown_service otherwise),
          * and the Sentry snippet's release, my-service@1.0.0, names
          * my-service.
+         *
+         * Data that names none - an OpenTelemetry Collector or another
+         * tool's agent with no service.name - is still seen (#7888): while
+         * no service of the project has reported, the project's first data
+         * with no service registered says so, and how to name one, and the
+         * step waits on. With services that report, data may be one of
+         * theirs: they are offered below.
          */}
         <ResourceConnectionWatch
           modelType={Service}
           viewPage={PageMap.SERVICE_VIEW}
           viewText="View service"
-          products={getProductsSetUpByGuide({
-            telemetryType: "traces",
-            everySignal: true,
-          })}
+          products={GUIDE_PRODUCTS}
+          isServiceRequired={true}
+          firstDataMilestones={
+            reporting.length === 0 ? GUIDE_FIRST_DATA_MILESTONES : undefined
+          }
           onConnected={(record: BaseModel) => {
             const id: string = record._id?.toString() || "";
             const name: unknown = record.getColumnValue("name");

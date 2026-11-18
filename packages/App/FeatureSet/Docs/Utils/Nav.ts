@@ -1764,9 +1764,14 @@ const DocsNav: NavGroup[] = [
         title: "Backups",
         url: "/docs/installation/backups",
       },
+      /*
+       * The server's own page for a Kubernetes install: the chart, and how
+       * to back up its data (#9438), which Server Setup opens on Kubernetes.
+       * It links the chart's own docs on Artifact Hub, where this link went.
+       */
       {
         title: "Kubernetes and Helm",
-        url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
+        url: "/docs/installation/kubernetes",
       },
       // A cluster with no route to the internet: a release's images and signed chart, carried across.
       {

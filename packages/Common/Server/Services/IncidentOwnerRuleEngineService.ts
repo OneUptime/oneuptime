@@ -50,7 +50,9 @@ import OwnerRulePlanBuilder, {
   withPendingOwners,
 } from "../Utils/Rules/OwnerRulePlan";
 import CreatorTeams from "../Utils/Rules/CreatorTeams";
-import InheritedOwners from "../Utils/Rules/InheritedOwners";
+import InheritedOwners, {
+  InheritedOwnersReader,
+} from "../Utils/Rules/InheritedOwners";
 
 /*
  * Whether any owner that was actually added came from one inherited source.
@@ -268,6 +270,12 @@ class IncidentOwnerRuleEngineServiceClass
     monitorCache?: MonitorRuleCriteriaCache | undefined;
     // The owners a resource will have once it is created (withPendingOwners).
     pendingOwners?: Map<OwnerRuleInheritSource, OwnerIdSets> | undefined;
+    /*
+     * Who owns the resources, for a reader that plans many incidents of one
+     * project (WhoIsToldService.resolveProject): read once for all of them
+     * (InheritedOwnersCache). Read for this incident alone otherwise.
+     */
+    inheritedOwners?: InheritedOwnersReader | undefined;
   }): Promise<OwnerRulePlan<IncidentOwnerRule>> {
     const { incident, rules } = data;
 
@@ -309,6 +317,7 @@ class IncidentOwnerRuleEngineServiceClass
         read: await this.readInheritedOwners(
           incident,
           builder.getSourcesToInherit(),
+          data.inheritedOwners,
         ),
         pending: data.pendingOwners,
         sources: builder.getSourcesToInherit(),
@@ -320,8 +329,9 @@ class IncidentOwnerRuleEngineServiceClass
   private async readInheritedOwners(
     incident: Incident,
     sources: Set<OwnerRuleInheritSource>,
+    reader?: InheritedOwnersReader | undefined,
   ): Promise<Map<OwnerRuleInheritSource, OwnerIdSets>> {
-    return await InheritedOwners.read({
+    return await (reader || InheritedOwners).read({
       sources: sources,
       resources: {
         monitorIds: InheritedOwners.idsOf(incident.monitors),

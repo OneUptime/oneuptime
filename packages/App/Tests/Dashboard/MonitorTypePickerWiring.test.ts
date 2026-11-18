@@ -209,6 +209,50 @@ describe("monitor type picker wiring", () => {
     test("the criteria step folds a new monitor's default criteria", () => {
       expect(source).toContain("foldDefaultCriteria={true}");
     });
+
+    /*
+     * Website or API picked: the guided setup does the whole job - who is
+     * told and a test page too - on one page, and the picker's footer says
+     * so (#7054). Only on a plain Create Monitor: opened with nothing in
+     * its address but the type to start on.
+     */
+    test("offers the guided setup under the type picked, on a plain Create Monitor only (#7054)", () => {
+      const fields: number = source.indexOf("fields={[");
+      const picker: number = source.indexOf(
+        "getMonitorTypeFormField<Monitor>({",
+        fields,
+      );
+      const name: number = source.indexOf("name: true,", fields);
+      const pickerOptions: string = source.slice(picker, name);
+
+      expect(pickerOptions).toContain("getFooterElement: (");
+      expect(pickerOptions).toContain("<WebsiteDownSetupOffer");
+      expect(pickerOptions).toContain("monitorType={monitorType}");
+      expect(pickerOptions).toContain("isOffered={isPlainCreate}");
+      expect(source).toContain(
+        'import WebsiteDownSetupOffer from "../../Components/GuidedSetup/WebsiteDown/WebsiteDownSetupOffer";',
+      );
+
+      const plain: string = source.slice(
+        source.indexOf("const isPlainCreate: boolean"),
+      );
+
+      expect(plain.slice(0, plain.indexOf("}, []);"))).toContain(
+        'return key === "monitorType";',
+      );
+    });
+  });
+
+  describe("the template forms do not offer the guided setup", () => {
+    test.each([
+      ["Pages", "Monitor", "Settings", "MonitorTemplates.tsx"],
+      ["Pages", "Monitor", "Settings", "MonitorTemplatesView.tsx"],
+    ])("%s/%s/%s/%s", (...segments: Array<string>) => {
+      const source: string = read(...segments);
+
+      expect(source).not.toContain("WebsiteDownSetupOffer");
+      expect(source).not.toContain("getFooterElement");
+    });
   });
 
   describe("the monitor template form asks for the type first too", () => {

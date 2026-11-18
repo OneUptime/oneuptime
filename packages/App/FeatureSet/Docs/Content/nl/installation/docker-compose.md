@@ -413,6 +413,8 @@ npm run backup
 
 Het vraagt om uw sudo-wachtwoord en schrijft `Backups/db-<day of the month>.backup`, zodat dagelijkse back-ups die van een maand eerder vervangen. Voer het minstens één keer per dag uit.
 
+Elke run vertelt OneUptime hoe die ging, zodat Serverinstelling in het Admin Dashboard laat zien wanneer de laatste back-up klaar was, en het zegt wanneer een back-up mislukte of de laatste meer dan een week oud is. Een run waarvan de dump mislukte, zegt dat en eindigt met een fout, zodat een cronjob het merkt.
+
 ### Kopieer de back-ups van de server af
 
 Een back-up op dezelfde schijf als de database overleeft het verlies van die schijf niet.
@@ -518,7 +520,7 @@ Als iets niet werkt, voer dan de doctor uit in de map `oneuptime`:
 npm run doctor
 ```
 
-Hij somt op wat er mis is, het ernstigste eerst, elke regel met de precieze oplossing, en eindigt met **Everything looks right.** of met het aantal dingen dat u moet oplossen. Hij controleert elke container en toont de laatste regels van het log van elke container die niet draait, `config.env`, of `HOST` deze server bereikt, het certificaat als `PROVISION_SSL` aan staat, en de vrije schijfruimte. Hij vraagt ook aan OneUptime wat het van zichzelf ziet: PostgreSQL, ClickHouse en Valkey, de migraties, de wachtrijen, de versie en de installatiestappen van de server, zoals e-mail en sondes. `npm start` eindigt met dezelfde controles en noemt alleen wat aandacht nodig heeft.
+Hij somt op wat er mis is, het ernstigste eerst, elke regel met de precieze oplossing, en eindigt met **Everything looks right.** of met het aantal dingen dat u moet oplossen. Hij controleert elke container en toont de laatste regels van het log van elke container die niet draait, `config.env`, of `HOST` deze server bereikt en of een proxy ervoor de hostnaam en `X-Forwarded-Proto` doorgeeft, het certificaat als `PROVISION_SSL` aan staat, en de vrije schijfruimte. Hij vraagt ook aan OneUptime wat het van zichzelf ziet: PostgreSQL, ClickHouse en Valkey, de migraties, de wachtrijen, de versie en de installatiestappen van de server, zoals e-mail en sondes. Regels met • zijn goed om te weten maar geen fout, en tellen niet mee: welke producten op deze server zijn uitgeschakeld, en waar dat is ingesteld. Een naam in `SERVER_PRODUCTS` die OneUptime niet kent, krijgt ! als iets om naar te kijken. `npm start` eindigt met dezelfde controles en noemt alleen wat aandacht nodig heeft.
 
 Om ook de recente fouten van elke dienst te zien, elk met de naam van de dienst:
 
@@ -526,7 +528,7 @@ Om ook de recente fouten van elke dienst te zien, elk met de naam van de dienst:
 npm run doctor -- --logs
 ```
 
-Hij eindigt met code `1` als iets met ✗ moet worden opgelost, zodat een script hem kan uitvoeren. Het Admin Dashboard toont bovenaan **OneUptime-gezondheid** wat OneUptime van zichzelf ziet, en op Kubernetes drukt `HelmChart/Public/diagnose.sh` het af.
+Hij eindigt met code `1` als iets met ✗ moet worden opgelost, zodat een script hem kan uitvoeren. Het Admin Dashboard toont bovenaan **OneUptime-gezondheid** wat OneUptime van zichzelf ziet, en op Kubernetes drukt `HelmChart/Public/diagnose.sh` het af en controleert daarna het adres dat mensen openen en het certificaat ervan.
 
 ## Probleemoplossing
 

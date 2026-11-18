@@ -12,8 +12,10 @@ import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertEpisodeOnCallRuleService from "./AlertEpisodeOnCallRuleService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertOwnerRuleService from "./AlertOwnerRuleService";
 import IncidentEpisodeOnCallRuleService from "./IncidentEpisodeOnCallRuleService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
+import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
 import MonitorService from "./MonitorService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyScheduleService, {
@@ -34,6 +36,7 @@ import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageResourceService from "./StatusPageResourceService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
+import TeamService from "./TeamService";
 import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
 import WhoIsToldService, {
   WHO_IS_TOLD_MONITOR_SELECT,
@@ -43,8 +46,10 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import AlertEpisodeOnCallRule from "../../Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
+import AlertOwnerRule from "../../Models/DatabaseModels/AlertOwnerRule";
 import IncidentEpisodeOnCallRule from "../../Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOwnerRule from "../../Models/DatabaseModels/IncidentOwnerRule";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -54,6 +59,7 @@ import RecommendationDismissal from "../../Models/DatabaseModels/RecommendationD
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
+import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import User from "../../Models/DatabaseModels/User";
@@ -143,9 +149,12 @@ import WorkspaceType, {
  * exists says only that it opens on that monitor's card - nothing of whom
  * it tells, and none of the breaks it would raise (#7213). So it raises no
  * finding of theirs here either: their findings are worked out again from
- * the facts, kept for that, with such records' breaks left out
- * (getSetupHealthFactsForReader). Somebody who may read every private
- * record, or one in a project with none, is handed the project's findings.
+ * the facts, kept for that, with such records' breaks left out, and none
+ * of their owners no Created email reaches (#9371) - the card names none
+ * of its owners (getSetupHealthFactsForReader). Somebody who may read every
+ * private record, or one in a project with none, is handed the project's
+ * findings. A team or an owner rule such an owner finding is about is
+ * shown to whoever may read it (readReadable), as a monitor or a policy is.
  */
 
 // What is kept a minute per project.
@@ -239,12 +248,19 @@ export function toResponderFact(user: UserReadiness): SetupHealthResponderFact {
     reason = SetupHealthResponderReason.InvitationNotAccepted;
   }
 
-  return {
+  const fact: SetupHealthResponderFact = {
     userId: idText(user.userId),
     name: user.userName || user.userEmail || "",
     isNotReachable: user.status === ReadinessStatus.NotReachable,
     reason: reason,
   };
+
+  // Readiness's own answer, never worked out again here (#7449).
+  if (user.isMissingPhoneMethod === true) {
+    fact.isMissingPhoneMethod = true;
+  }
+
+  return fact;
 }
 
 export default class SetupHealthService {
@@ -1362,6 +1378,43 @@ export default class SetupHealthService {
         },
       ),
       canReadResponders: await this.canReadResponders(data),
+      // What an owner no Created email reaches is about (#9371).
+      teamIds: await readIds(
+        SetupHealthRecordKind.Team,
+        async (ids: Array<ObjectID>): Promise<Array<Team>> => {
+          return await TeamService.findBy({
+            query: idsQuery(ids),
+            select: { _id: true },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: data.props,
+          });
+        },
+      ),
+      incidentOwnerRuleIds: await readIds(
+        SetupHealthRecordKind.IncidentOwnerRule,
+        async (ids: Array<ObjectID>): Promise<Array<IncidentOwnerRule>> => {
+          return await IncidentOwnerRuleService.findBy({
+            query: idsQuery(ids),
+            select: { _id: true },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: data.props,
+          });
+        },
+      ),
+      alertOwnerRuleIds: await readIds(
+        SetupHealthRecordKind.AlertOwnerRule,
+        async (ids: Array<ObjectID>): Promise<Array<AlertOwnerRule>> => {
+          return await AlertOwnerRuleService.findBy({
+            query: idsQuery(ids),
+            select: { _id: true },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: data.props,
+          });
+        },
+      ),
     };
   }
 

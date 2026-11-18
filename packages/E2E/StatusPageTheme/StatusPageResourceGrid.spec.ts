@@ -1,4 +1,4 @@
-import { expect, Page, test } from "@playwright/test";
+import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
@@ -364,6 +364,23 @@ test.describe("the public status page's resource grid (#7238)", () => {
         }
       }
 
+      /*
+       * #7431: the Dashboard's EU cell is empty. Its dash is drawn for the
+       * eye and hidden from a screen reader, which hears the tile's column
+       * and then that it has no resources, in the page's language.
+       */
+      const emptyCell: Locator = page
+        .getByTestId("status-page-grid")
+        .getByRole("cell", {
+          name: `EU ${wordsOf(language.lang, "overview.gridCellEmpty")}`,
+          exact: true,
+        });
+
+      await expect(emptyCell).toHaveCount(1);
+      await expect(
+        emptyCell.getByTestId("status-page-grid-cell-empty"),
+      ).toBeVisible();
+
       await expectNoSidewaysScroll(page);
       await shoot(page, `${language.lang}-390-light`);
     });
@@ -404,6 +421,17 @@ test.describe("the public status page's resource grid (#7238)", () => {
               .getByRole("columnheader", { name: column, exact: true }),
           ).toBeVisible();
         }
+
+        /*
+         * #7431: in the matrix the empty cell is read under its column's
+         * heading, and says it has no resources, where it was read blank.
+         */
+        await expect(
+          page.getByTestId("status-page-grid").getByRole("cell", {
+            name: wordsOf(language.lang, "overview.gridCellEmpty"),
+            exact: true,
+          }),
+        ).toHaveCount(1);
 
         await expectNoSidewaysScroll(page);
 

@@ -522,6 +522,10 @@ services:
     environment:
       <<: *common-runtime-variables
       PORT: ${APP_PORT}
+      # How this server was installed: Server Setup in the Admin Dashboard
+      # links the steps it can run, such as npm run backup. Not a setting:
+      # the Helm chart's pods are told apart by Kubernetes itself.
+      INSTALLED_WITH: docker-compose
       SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
       WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS: ${WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS}
       CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE: ${CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE}

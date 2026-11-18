@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Hva skal vi sjekke?",
-      "OneUptime sjekker den hvert 5. minutt. En hendelse åpnes når alle plasseringer som sjekker den, finner den nede: ikke noe svar, eller et svar med en feil.",
+      "OneUptime oppretter en monitor som sjekker den hvert 5. minutt fra 2 plasseringer. En hendelse åpnes når alle finner den nede: ikke noe svar, eller et svar med en feil.",
       "Adresse til nettsted eller API",
       "Dette er et API-endepunkt",
       "Start sjekkingen",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: hendelse",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Start sjekkingen",
@@ -205,12 +207,14 @@
       "Legg til teammedlemmer",
       "AL",
       "Ada Lovelace",
-      "Dette oppretter vaktpolicyen «Standard vaktpolicy», som tilkaller dem for hver nye hendelse og hvert nye varsel i dette prosjektet.",
+      "Dette oppretter en vaktpolicy, «Standard vaktpolicy», som tilkaller dem for hver nye hendelse og hvert nye varsel i dette prosjektet.",
       "Lagre og fortsett"
     ],
     "outline": [
+      "link: Slik når man meg",
       "button: Legg til teammedlemmer",
       "button: Fjern Ada Lovelace",
+      "button: vaktpolicy",
       "button: Lagre og fortsett"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "Slå på SMS og anrop",
       "Mobilapp eller nettleser",
       "Ikke satt opp.",
-      "Hent OneUptime-appen, eller slå på varslinger i denne nettleseren, fra varslingsmetodene dine.",
-      "Sett opp appen eller denne nettleseren",
+      "Få tilkall på telefonen med OneUptime On-Call-appen, eller i denne nettleseren.",
+      "Bruk denne nettleseren",
+      "Hent appen",
       "Fortsett",
       "Kontroller på nytt"
     ],
     "outline": [
       "button: Legg til saldo",
       "button: Slå på SMS og anrop",
-      "link: Sett opp appen eller denne nettleseren",
+      "button: Bruk denne nettleseren",
+      "button: Hent appen",
       "button: Fortsett",
       "button: Kontroller på nytt"
     ],
     "width": 768,
-    "height": 632
+    "height": 658
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "Send meg en kode på SMS",
       "Mobilapp eller nettleser",
       "Ikke satt opp.",
-      "Hent OneUptime-appen, eller slå på varslinger i denne nettleseren, fra varslingsmetodene dine.",
-      "Sett opp appen eller denne nettleseren",
+      "Få tilkall på telefonen med OneUptime On-Call-appen, eller i denne nettleseren.",
+      "Bruk denne nettleseren",
+      "Hent appen",
       "Fortsett",
       "Kontroller på nytt",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Send meg en kode på SMS",
-      "link: Sett opp appen eller denne nettleseren",
+      "button: Bruk denne nettleseren",
+      "button: Hent appen",
       "button: Fortsett",
       "button: Kontroller på nytt"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Hvem andre har vakt?",
+      "Hvem tilkalles først?",
       "Dette oppretter vaktpolicyen «Standard vaktpolicy». Den tilkaller først disse personene, for hver nye hendelse og hvert nye varsel i dette prosjektet.",
       "Tilkalles først",
       "Legg til teammedlemmer",
       "AL",
       "Ada Lovelace",
+      "Alle her tilkalles samtidig. Hvem som bare skal tilkalles hvis ingen svarer, velger du i neste trinn.",
+      "Inviter via e-post",
       "Lagre og fortsett"
     ],
     "outline": [
       "button: Legg til teammedlemmer",
       "button: Fjern Ada Lovelace",
+      "button: Inviter via e-post",
       "button: Lagre og fortsett"
     ],
     "width": 768,
-    "height": 246
+    "height": 322
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "Tilkalling er satt opp",
       "Hvem som tilkalles",
-      "Hver nye hendelse og hvert nye varsel kjører «Standard vaktpolicy», som tilkaller Ada Lovelace (E-post, SMS, Telefonanrop).",
+      "Hver nye hendelse og hvert nye varsel kjører «Standard vaktpolicy», som tilkaller Ada Lovelace (e-post, SMS og telefonanrop med en gang).",
       "Hvis ingen svarer",
       "Hvis ingen kvitterer innen 30 minutter, tilkalles Grace Hopper.",
       "Testet",
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Vakt",
+      "Riktig person får beskjed, hver gang",
+      "1",
+      "Opprett en vaktpolicy",
+      "2",
+      "Legg til vaktplaner eller personer i hver eskaleringsregel",
+      "3",
+      "Koble den til monitorer, hendelser og varsler",
+      "Veiledet oppsett",
+      "Opprett vaktpolicy",
+      "Trinnvis veiledning",
+      "Dokumentasjon"
+    ],
+    "outline": [
+      "heading: Riktig person får beskjed, hver gang",
+      "button: Veiledet oppsett",
+      "button: Opprett vaktpolicy",
+      "link: Trinnvis veiledning",
+      "link: Dokumentasjon"
+    ],
+    "width": 417,
+    "height": 328
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Legg til eskaleringsregel",
+      "Legger til nivå 2 i denne policyen: hvem som tilkalles, og når.",
+      "Varsle",
+      "Vaktplaner varsler den som har vakt; Neste i rotasjonen varsler personen etter dem. Team varsler hvert medlem.",
+      "Legg til mottaker",
+      "Denne regelen sier hvem som kalles opp. Hvordan hver person nås, med hvilken metode og etter hvor lang tid, står i deres egen Slik når man meg.",
+      "Tilkalles etter (i minutter)",
+      "Hvor lenge Level 1 venter på en bekreftelse før dette nivået tilkalles. Lagres som ventetiden til Level 1.",
+      "Flere felt· Navn, Beskrivelse",
+      "Avbryt",
+      "Opprett regel",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Legg til eskaleringsregel",
+      "button: Lukk",
+      "button: Legg til mottaker",
+      "link: Slik når man meg",
+      "field number: 30",
+      "button: Flere felt· Navn, Beskrivelse",
+      "button: Avbryt",
+      "button: Opprett regel"
+    ],
+    "width": 512,
+    "height": 528
+  },
   "ingestion-keys": {
     "text": [
       "Inntaksnøkler",
@@ -543,18 +607,13 @@
       "Viser 1-4 av 4",
       "Rader per side",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Søk i inntaksnøkler etter navn, beskrivelse…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Inntaksnøkler",
@@ -580,13 +639,13 @@
       "field checkbox: Velg Inntaksnøkkel: Marketing site",
       "button: Vis Inntaksnøkkel",
       "button: Flere handlinger for Inntaksnøkkel: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Gå til forrige side",
       "button: Side 1",
       "button: Gå til neste side"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

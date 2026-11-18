@@ -32,11 +32,17 @@ Il tuo server ha bisogno di un suo nome host, come `oneuptime.example.com`, con 
 
 Nella **Home** del tuo progetto, fai clic su **Pubblica una pagina di stato** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Informare i clienti con una pagina di stato** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `status page` e scegli **Pubblica una pagina di stato**.
 
+Anche **Pagine di stato** la apre: fate clic su **Configurazione guidata** nel suo elenco vuoto, o in **Come funziona** quando il progetto ha già una pagina di stato.
+
 ### Dare un nome e scegliere cosa mostra
 
 ![Il passaggio «Dalle un nome e scegli cosa mostra», con «Crea la pagina di stato» evidenziato](screen:status-page-pick)
 
 In **Dalle un nome e scegli cosa mostra**, tieni il **Nome della pagina di stato** suggerito o digitane uno tuo. In **Cosa mostra**, spunta i monitor che i tuoi clienti devono vedere, oppure fai clic su **Seleziona tutto**. Fai clic su **Crea la pagina di stato**. Da questo momento la pagina è pubblica al suo link, e mostra solo i monitor che hai spuntato.
+
+Se il progetto ha già una pagina di stato, il passaggio vi aggiunge i monitor che spuntate e segna come **Sulla pagina** quelli che mostra già. Con più pagine, sceglietene una in **Pagina di stato**. Per una nuova pagina, fate clic su **Crea invece una nuova pagina di stato**.
+
+Con molti monitor, digitate parte di un nome in **Cerca per nome**, oppure scegliete un'etichetta in **Tutte le etichette**: **Seleziona tutto** spunta allora ciò che l'elenco mostra. Un gruppo di monitor compare sulla pagina come una sola riga.
 
 ### Guardare cosa vedono i tuoi clienti
 

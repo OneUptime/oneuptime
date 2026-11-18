@@ -111,7 +111,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Delete On-Call Policy User Override",
       "Read On-Call Policy User Override",
     ],
-    [READINESS_AND_REPORTS]: ["Edit On-Call Policy"],
+    [READINESS_AND_REPORTS]: [
+      "Edit On-Call Policy",
+      // Applying the project's default ladder to members (#7450).
+      "Edit User Notification Rules",
+    ],
   };
 
 /*

@@ -89,6 +89,19 @@ jest.mock("../hooks/usePushNotifications", () => {
     },
   };
 });
+/*
+ * Every test here starts with empty storage, which reads as a new install:
+ * the first steps would open by themselves over the pages under test. Their
+ * own suite (GetReadyFirstRun) covers that.
+ */
+jest.mock("../onboarding/firstRun", () => {
+  return {
+    isFirstRunOfThisInstall: async (): Promise<boolean> => {
+      return false;
+    },
+    resetFirstRunDecision: (): void => {},
+  };
+});
 jest.mock("./AuthStackNavigator", () => {
   return {
     __esModule: true,

@@ -5,6 +5,7 @@ import {
   describePushSettings,
   describeWait,
 } from "./PagingLadderWords";
+import { NOT_SENT_RIGHT_NOW, isStepNotSentNow } from "./StepsNotSentNow";
 import { NOTIFIED_VIA_CHANNEL_ICONS } from "../../OnCallPolicy/ExecutionLogs/NotifiedVia";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -16,6 +17,7 @@ import {
   getChannelForPagingMethodColumn,
   getPagingLadderStepKey,
 } from "Common/Types/NotificationRule/PagingLadder";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -99,11 +101,14 @@ export const MethodLabel: FunctionComponent<{
       {NotificationMethodUtil.getMethodName(translator, channel)}
     </span>
   );
-  const identifier: string = NotificationMethodUtil.getIdentifierText(
-    translator,
-    channel,
-    props.choice.identifier,
-  );
+  // A channel of the project's default: its name alone (#7449).
+  const identifier: string = props.choice.isChannelOnly
+    ? ""
+    : NotificationMethodUtil.getIdentifierText(
+        translator,
+        channel,
+        props.choice.identifier,
+      );
 
   return (
     <span className="min-w-0 break-words" data-testid="paging-ladder-method">
@@ -130,18 +135,28 @@ export const MethodLabel: FunctionComponent<{
   );
 };
 
-// A step on one line: its method, when, and how a push sounds.
+/*
+ * A step on one line: its method, when, and how a push sounds. A step this
+ * server can't send right now (#9446) carries the warning icon, named for a
+ * screen reader; why is said once on the page (StepsNotSentNowNotice).
+ */
 export const StepChip: FunctionComponent<{
   step: PagingLadderStep;
   methods: ReadonlyArray<PagingMethodChoice>;
   tone?: "neutral" | "added" | "removed" | undefined;
+  channelsNotSentNow?: ReadonlyArray<OnCallPageChannel> | undefined;
 }> = (props: {
   step: PagingLadderStep;
   methods: ReadonlyArray<PagingMethodChoice>;
   tone?: "neutral" | "added" | "removed" | undefined;
+  channelsNotSentNow?: ReadonlyArray<OnCallPageChannel> | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const pushSettings: string = describePushSettings(translator, props.step);
+  const isNotSentNow: boolean = isStepNotSentNow(
+    props.step,
+    props.channelsNotSentNow || [],
+  );
 
   const toneClassName: string =
     props.tone === "added"
@@ -155,6 +170,19 @@ export const StepChip: FunctionComponent<{
       className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-md border px-2 py-0.5 text-sm text-gray-700 ${toneClassName}`}
       data-testid="paging-ladder-step-chip"
     >
+      {isNotSentNow ? (
+        <span
+          className="inline-flex flex-none items-center text-amber-600"
+          data-testid="paging-ladder-step-chip-not-sent-now"
+        >
+          <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
+          <span className="sr-only">
+            {translator.translateText(NOT_SENT_RIGHT_NOW)}
+          </span>
+        </span>
+      ) : (
+        <></>
+      )}
       <MethodLabel choice={findMethodChoice(props.methods, props.step)} />
       <span className="text-gray-400" aria-hidden="true">
         <InlineSeparator markOnly />
@@ -217,10 +245,12 @@ export const DifferencesList: FunctionComponent<{
   differences: ReadonlyArray<PagingLadderDifference>;
   methods: ReadonlyArray<PagingMethodChoice>;
   severityColors: Record<string, string>;
+  channelsNotSentNow?: ReadonlyArray<OnCallPageChannel> | undefined;
 }> = (props: {
   differences: ReadonlyArray<PagingLadderDifference>;
   methods: ReadonlyArray<PagingMethodChoice>;
   severityColors: Record<string, string>;
+  channelsNotSentNow?: ReadonlyArray<OnCallPageChannel> | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -262,6 +292,7 @@ export const DifferencesList: FunctionComponent<{
                         step={step}
                         methods={props.methods}
                         tone="added"
+                        channelsNotSentNow={props.channelsNotSentNow}
                       />
                     );
                   })}
@@ -300,6 +331,7 @@ export const DifferencesList: FunctionComponent<{
                           key={getPagingLadderStepKey(changed.step)}
                           step={changed.step}
                           methods={props.methods}
+                          channelsNotSentNow={props.channelsNotSentNow}
                         />
                       );
                     },

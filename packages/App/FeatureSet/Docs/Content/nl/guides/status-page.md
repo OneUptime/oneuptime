@@ -32,11 +32,17 @@ Uw server heeft een eigen hostnaam nodig met een A-record dat ernaar wijst, zoal
 
 Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Publiceer een statuspagina**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **Mijn klanten informeren met een statuspagina** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `status page` en kies **Publiceer een statuspagina**.
 
+Ook **Statuspagina's** opent hem: klik in de lege lijst op **Begeleide installatie**, of onder **Hoe het werkt** zodra het project een statuspagina heeft.
+
 ### De pagina een naam geven en kiezen wat ze toont
 
 ![De stap "Geef de pagina een naam en kies wat ze toont", met "De statuspagina aanmaken" omcirkeld](screen:status-page-pick)
 
 Behoud onder **Geef de pagina een naam en kies wat ze toont** de voorgestelde **Naam van de statuspagina** of typ een eigen naam. Vink onder **Wat ze toont** de monitoren aan die uw klanten moeten zien, of klik op **Alles selecteren**. Klik op **De statuspagina aanmaken**. Vanaf dit moment is de pagina openbaar via haar link, en toont ze alleen de monitoren die u hebt aangevinkt.
+
+Heeft het project al een statuspagina, dan voegt de stap de monitoren die u aanvinkt eraan toe en markeert de monitoren die ze al toont als **Op de pagina**. Met meerdere pagina's kiest u er een onder **Statuspagina**. Voor een nieuwe pagina klikt u op **In plaats daarvan een nieuwe statuspagina maken**.
+
+Met veel monitoren typt u een deel van een naam in **Zoeken op naam**, of kiest u een label onder **Alle labels**: **Alles selecteren** vinkt dan aan wat de lijst toont. Een monitorgroep komt op de pagina als één rij.
 
 ### Bekijken wat uw klanten zien
 

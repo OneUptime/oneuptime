@@ -45,7 +45,7 @@ Cuando creas una política de guardia en la página **Políticas de guardia**, e
 :::steps
 ### Abre las reglas de escalado de la política
 
-Abre la política de guardia, elige **Reglas de escalado** en su menú lateral y haz clic en **Añadir regla de escalado**. El diálogo es una sola página corta.
+Abre la política de guardia, elige **Reglas de escalado** en su menú lateral y haz clic en **Añadir regla de escalado**. El diálogo es una sola página corta. Indica qué nivel de la política añade la regla.
 
 ### Elige a quién notificar
 
@@ -61,6 +61,10 @@ En **Notificar**, haz clic en **Añadir destinatario**, busca y elige tantas pro
 ### Indica cuánto esperar
 
 **Escalar después de (en minutos)** es cuánto esperar a que alguien reconozca el aviso antes de avisar al siguiente nivel. Empieza en **30 minutos**; cámbialo a lo que convenga al nivel.
+
+![El diálogo «Añadir regla de escalado» de una política con un nivel, con «Avisado tras (en minutos)» resaltado](screen:escalation-rule-paged-after)
+
+Una regla que se añade después de la primera pregunta en cambio **Avisado tras (en minutos)**: cuánto espera el nivel anterior a que alguien reconozca antes de avisar a este. Empieza en la espera de ese nivel y se guarda como su espera; el nuevo nivel espera 30 minutos hasta que añadas otro después. Quien puede añadir reglas pero no cambiarlas ve **Escalar después de (en minutos)**, y el diálogo dice cuándo se avisa al nuevo nivel.
 
 ### Ponle nombre a la regla, si quieres
 
@@ -190,7 +194,7 @@ Un nivel puede avisar a la siguiente persona de la rotación de una programació
 
 :::steps
 1. Asegúrate de que el primer nivel de la política, **Level 1**, notifica a la programación de guardia.
-2. Haz clic en **Añadir regla de escalado**, luego en **Añadir destinatario**, y elige la misma programación en **Siguiente en la rotación**. Indica **Escalar después de (en minutos)** y haz clic en **Crear regla**.
+2. Haz clic en **Añadir regla de escalado**, luego en **Añadir destinatario**, y elige la misma programación en **Siguiente en la rotación**. Indica **Avisado tras (en minutos)** y haz clic en **Crear regla**.
 3. Añade un nivel más para el equipo o el responsable que deba enterarse a continuación.
 :::
 

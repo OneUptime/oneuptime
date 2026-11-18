@@ -83,6 +83,7 @@ import {
   SetupHealthFix,
   SetupHealthLevel,
   SetupHealthReadable,
+  SetupHealthOwnerSubject,
   SetupHealthRecord,
   SetupHealthRecordKind,
   SetupHealthResponderReason,
@@ -124,6 +125,8 @@ const SCHEDULE: string = "68125555-0000-4000-8000-0000000000d1";
 const STATUS_PAGE: string = "68125555-0000-4000-8000-0000000000e1";
 const DISMISSAL: string = "68125555-0000-4000-8000-0000000000f1";
 const INGESTION_KEY: string = "68125555-0000-4000-8000-0000000000f2";
+const OWNER_TEAM: string = "68125555-0000-4000-8000-0000000000f3";
+const NETWORK_DEVICE: string = "68125555-0000-4000-8000-0000000000f4";
 const DOMAIN: string = "68125555-0000-4000-8000-0000000000e2";
 
 const translator: Translator = getGlobalTranslator();
@@ -372,6 +375,143 @@ describe("a finding, in the reader's words, with where to fix it", () => {
     ).not.toBe("Open Ingestion Key");
   });
 
+  test("an owner no Created email reaches, in every Dashboard language, the names as written, fixed where the card fixes it (#9371)", () => {
+    const owner: (
+      subject: SetupHealthOwnerSubject,
+      data: {
+        record: SetupHealthRecord;
+        fix: SetupHealthFix;
+        fixRecordId?: string;
+        values: Record<string, string>;
+      },
+    ) => SetupHealthFinding = (
+      subject: SetupHealthOwnerSubject,
+      data: {
+        record: SetupHealthRecord;
+        fix: SetupHealthFix;
+        fixRecordId?: string;
+        values: Record<string, string>;
+      },
+    ): SetupHealthFinding => {
+      return makeSetupHealthFinding({
+        check: SetupHealthCheck.OwnerNotEmailed,
+        level: SetupHealthLevel.WorthFixing,
+        subject: subject,
+        record: data.record,
+        fix: data.fix,
+        fixRecordId: data.fixRecordId,
+        words: SETUP_HEALTH_WORDS.ownerNotEmailed[subject],
+        values: data.values,
+      });
+    };
+    const monitor: SetupHealthRecord = {
+      kind: SetupHealthRecordKind.Monitor,
+      id: CHECKOUT,
+      name: "Checkout API",
+    };
+    const rule: SetupHealthRecord = {
+      kind: SetupHealthRecordKind.AlertOwnerRule,
+      id: "68125555-0000-4000-8000-0000000000f5",
+      name: "Payments routes",
+    };
+
+    const findings: Array<SetupHealthFinding> = [
+      owner(SetupHealthOwnerSubject.TeamHasNobody, {
+        record: {
+          kind: SetupHealthRecordKind.Team,
+          id: OWNER_TEAM,
+          name: "Night shift",
+        },
+        fix: SetupHealthFix.TeamMembers,
+        fixRecordId: OWNER_TEAM,
+        values: { team: "Night shift" },
+      }),
+      ...[
+        SetupHealthOwnerSubject.CriteriaNotInProject,
+        SetupHealthOwnerSubject.CriteriaTeamOfAnotherProject,
+      ].map((subject: SetupHealthOwnerSubject): SetupHealthFinding => {
+        return owner(subject, {
+          record: monitor,
+          fix: SetupHealthFix.MonitorCriteria,
+          fixRecordId: CHECKOUT,
+          values: { monitor: "Checkout API" },
+        });
+      }),
+      ...[
+        SetupHealthOwnerSubject.NetworkDeviceNotInProject,
+        SetupHealthOwnerSubject.NetworkDeviceTeamOfAnotherProject,
+      ].map((subject: SetupHealthOwnerSubject): SetupHealthFinding => {
+        return owner(subject, {
+          record: monitor,
+          fix: SetupHealthFix.NetworkDeviceOwners,
+          fixRecordId: NETWORK_DEVICE,
+          values: { monitor: "Checkout API" },
+        });
+      }),
+      ...[
+        SetupHealthOwnerSubject.OwnerRuleNotInProject,
+        SetupHealthOwnerSubject.OwnerRuleTeamOfAnotherProject,
+      ].map((subject: SetupHealthOwnerSubject): SetupHealthFinding => {
+        return owner(subject, {
+          record: rule,
+          fix: SetupHealthFix.AlertOwnerRules,
+          values: { rule: "Payments routes" },
+        });
+      }),
+    ];
+
+    expect(
+      findings.map((finding: SetupHealthFinding): string => {
+        return finding.subject;
+      }),
+    ).toEqual(Object.values(SetupHealthOwnerSubject));
+
+    for (const finding of findings) {
+      expect(getSetupHealthSentence(finding, translator)).toBe(
+        finding.sentence,
+      );
+
+      for (const language of DASHBOARD_LANGUAGES_BUT_ENGLISH) {
+        const sentence: string = getSetupHealthSentence(
+          finding,
+          dashboardTranslator(language),
+        );
+
+        expect({ language, translated: sentence !== finding.sentence }).toEqual(
+          { language, translated: true },
+        );
+
+        for (const name of Object.values(finding.values)) {
+          expect(sentence).toContain(name);
+        }
+      }
+    }
+
+    // The card's own link words, in the reader's language.
+    expect(
+      findings.map((finding: SetupHealthFinding): string => {
+        return getSetupHealthFixLink({
+          finding: finding,
+          translator: translator,
+        })!.text;
+      }),
+    ).toEqual([
+      "Open Team",
+      "Open Criteria",
+      "Open Criteria",
+      "Open Network Device",
+      "Open Network Device",
+      "Open Owner Rules",
+      "Open Owner Rules",
+    ]);
+    expect(
+      getSetupHealthFixLink({
+        finding: findings[0]!,
+        translator: dashboardTranslator("de"),
+      })!.text,
+    ).toBe("Team öffnen");
+  });
+
   test("a person with no name is someone, in the reader's words", () => {
     const nameless: SetupHealthFinding = makeSetupHealthFinding({
       check: SetupHealthCheck.ResponderCannotBePaged,
@@ -439,6 +579,19 @@ describe("a finding, in the reader's words, with where to fix it", () => {
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
       INGESTION_KEY,
     ],
+    // #9371: where the card puts an owner no Created email reaches right.
+    [SetupHealthFix.TeamMembers, PageMap.TEAM_VIEW_MEMBERS, OWNER_TEAM],
+    [
+      SetupHealthFix.NetworkDeviceOwners,
+      PageMap.NETWORK_DEVICE_VIEW_OWNERS,
+      NETWORK_DEVICE,
+    ],
+    [
+      SetupHealthFix.IncidentOwnerRules,
+      PageMap.INCIDENTS_SETTINGS_OWNER_RULES,
+      "",
+    ],
+    [SetupHealthFix.AlertOwnerRules, PageMap.ALERTS_SETTINGS_OWNER_RULES, ""],
   ])(
     "%s opens %s",
     (fix: SetupHealthFix, pageMap: PageMap, recordId: string) => {

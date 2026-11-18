@@ -45,7 +45,7 @@ När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efte
 :::steps
 ### Öppna policyns eskaleringsregler
 
-Öppna jourpolicyn, välj **Eskaleringsregler** i dess sidomeny och klicka på **Lägg till eskaleringsregel**. Dialogen är en kort sida.
+Öppna jourpolicyn, välj **Eskaleringsregler** i dess sidomeny och klicka på **Lägg till eskaleringsregel**. Dialogen är en kort sida. Den säger vilken nivå i policyn regeln lägger till.
 
 ### Välj vem som ska aviseras
 
@@ -61,6 +61,10 @@ Klicka på **Lägg till mottagare** under **Avisera**, sök och välj så många
 ### Ange hur länge det ska väntas
 
 **Eskalera efter (i minuter)** är hur länge det väntas på en bekräftelse innan nästa nivå larmas. Den börjar på **30 minuter**; ändra den till det som passar nivån.
+
+![Dialogen ”Lägg till eskaleringsregel” för en policy med en nivå, med ”Larmas efter (i minuter)” markerad](screen:escalation-rule-paged-after)
+
+En regel som läggs till efter den första frågar i stället **Larmas efter (i minuter)**: hur länge nivån före den väntar på en bekräftelse innan den här larmas. Den börjar på den nivåns väntetid och sparas som den; den nya nivån väntar själv 30 minuter tills du lägger till en efter den. Den som får lägga till regler men inte ändra dem får **Eskalera efter (i minuter)**, och dialogen säger när den nya nivån larmas.
 
 ### Ge regeln ett namn, om du vill
 
@@ -190,7 +194,7 @@ En nivå kan larma nästa person i ett jourschemas rotation: personen efter den 
 
 :::steps
 1. Se till att policyns första nivå, **Level 1**, aviserar jourschemat.
-2. Klicka på **Lägg till eskaleringsregel**, sedan på **Lägg till mottagare**, och välj samma schema under **Nästa i rotationen**. Ange **Eskalera efter (i minuter)** och klicka på **Skapa regel**.
+2. Klicka på **Lägg till eskaleringsregel**, sedan på **Lägg till mottagare**, och välj samma schema under **Nästa i rotationen**. Ange **Larmas efter (i minuter)** och klicka på **Skapa regel**.
 3. Lägg till ytterligare en nivå för teamet eller chefen som ska få veta härnäst.
 :::
 

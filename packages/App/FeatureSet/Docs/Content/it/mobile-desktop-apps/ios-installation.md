@@ -58,6 +58,8 @@ L'app registra poi l'iPhone o iPad in ciascuno dei tuoi progetti. Ogni progetto 
 
 L'app mostra un progetto alla volta: tocca il nome del progetto in cima a una schermata per cambiarlo. Un progetto che richiede il single sign-on risulta **SSO Required** in **Settings → Manage Projects** finché non tocchi lì **Authenticate with SSO**.
 
+Su una nuova installazione, l'app apre poi **Get Ready for On-Call** una volta: tre passaggi perché un avviso raggiunga il dispositivo, anche di notte in modalità silenziosa. Consenti le notifiche, tocca **Turn On Critical Alerts**, poi **Send Test Page**, e riconosci l'avviso di prova dalla sua notifica. **Not Now** chiude la schermata, e **Settings → Get Ready for On-Call** la riapre quando vuoi. Se gli avvisi critici vanno consentiti nelle Impostazioni di iOS, si attivano appena torni nell'app.
+
 ## Controllare che gli avvisi arrivino al dispositivo
 
 :::steps

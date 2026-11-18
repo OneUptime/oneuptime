@@ -87,6 +87,9 @@ Apri ogni pianificazione in **Reperibilità** > **Pianificazioni di reperibilit�
 ### Assicurati che tutti possano essere avvisati
 Le persone invitate accettano l'invito, poi aggiungono un numero di telefono, un indirizzo email o l'app mobile su cui essere avvisate. **Reperibilità** > **Prontezza** mostra chi non è ancora raggiungibile.
 
+### Invia una chiamata di test
+Nel report, seleziona **Testa questa policy** per avvisare una volta una policy importata, senza un incidente: ogni messaggio dice TEST. Se le policy sono più di una, scegline prima una.
+
 ### Prosegui la numerazione dei tuoi incidenti
 Se il tuo team indica gli incidenti per numero, fai partire quelli di OneUptime dopo il tuo ultimo in Opsgenie: in **Incidenti** > **Impostazioni** > **Numerazione**, imposta **Numero successivo dell'incidente** nella scheda **Numero successivo** al numero successivo. Così un numero non indica mai due incidenti diversi.
 

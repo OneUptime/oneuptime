@@ -24,7 +24,16 @@ const {
 const esbuild = require("../../../Common/node_modules/esbuild");
 
 const repository = path.resolve(__dirname, "../../../..");
-const output = path.join(repository, "output/playwright/journeys-ui/fixture");
+/*
+ * Where the bundles are built: the journeys' folder, or a suite's own
+ * (JOURNEYS_FIXTURE_OUTPUT), so two suites on this fixture never build into
+ * one folder at once.
+ */
+const output = path.join(
+  repository,
+  process.env.JOURNEYS_FIXTURE_OUTPUT ||
+    "output/playwright/journeys-ui/fixture",
+);
 const port = Number(process.env.JOURNEYS_FIXTURE_PORT || 4831);
 
 /*
@@ -113,12 +122,21 @@ const blankProfilePicture = path.join(
  */
 /*
  * What the page is told before its bundle runs. The fixture's query
- * parameters (seed, as, billing) are kept in the tab's sessionStorage, so a
+ * parameters (seed, as, billing, theme, email, test) are kept in the tab's
+ * sessionStorage, so a
  * page that reloads itself, or one an in-app link took to an address
  * without them, is drawn for the same project and person.
  */
+/*
+ * The server's push key (VAPID_PUBLIC_KEY), as every server that sends push
+ * has: a real P-256 public key, so "Use this browser" is offered as it is
+ * on OneUptime Cloud (#7149). Nothing is ever sent to a push service.
+ */
+const VAPID_PUBLIC_KEY =
+  "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
+
 const BOOT = `(function () {
-  var names = ["seed", "as", "billing"];
+  var names = ["seed", "as", "billing", "theme", "email", "test"];
   var query = new URLSearchParams(window.location.search);
   var kept = {};
   try { kept = JSON.parse(window.sessionStorage.getItem("__journeyParams") || "{}"); } catch (e) {}
@@ -126,13 +144,13 @@ const BOOT = `(function () {
   try { window.sessionStorage.setItem("__journeyParams", JSON.stringify(kept)); } catch (e) {}
   window.__journeyParams = kept;
   var billing = window.location.pathname.indexOf("/admin") !== 0 && kept.billing === "on";
-  window.process = { env: { HOST: "oneuptime.acme-commerce.example", HTTP_PROTOCOL: "https", BILLING_ENABLED: billing ? "true" : "false", IS_ENTERPRISE_EDITION: "false", VERSION: "14.0.108", NODE_ENV: "development" } };
+  window.process = { env: { HOST: "oneuptime.acme-commerce.example", HTTP_PROTOCOL: "https", BILLING_ENABLED: billing ? "true" : "false", IS_ENTERPRISE_EDITION: "false", VERSION: "14.0.108", NODE_ENV: "development", VAPID_PUBLIC_KEY: "${VAPID_PUBLIC_KEY}" } };
   window.global = window;
-  try { window.localStorage.setItem("oneuptime-dashboard-theme", "light"); } catch (e) {}
+  try { window.localStorage.setItem("oneuptime-dashboard-theme", kept.theme === "dark" ? "dark" : "light"); } catch (e) {}
 })();`;
 
 function html(bundle, title) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><script>${BOOT}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/${bundle}/${bundle === "dashboard" ? "Dashboard" : "Admin"}.js"></script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><script>${BOOT}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}html.dark,html.dark body{background-color:#0f172a}html.dark{color:#f8fafc}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/${bundle}/${bundle === "dashboard" ? "Dashboard" : "Admin"}.js"></script></body></html>`;
 }
 
 function serveFile(response, file, contentType) {

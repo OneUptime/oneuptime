@@ -2,12 +2,22 @@ import {
   FirstCheckAnswer,
   WEBSITE_DOWN_POLICY_NAME,
   WebsiteAddress,
+  WebsiteDownStatusPageChoice,
   WebsiteMonitorSeeds,
   WhoIsToldFacts,
   buildWebsiteMonitor,
   isMonitorCheckingAddress,
   readFirstCheckAnswers,
 } from "./WebsiteDownSetup";
+import StatusPageSetupApi from "../StatusPage/StatusPageSetupApi";
+import ProbeUtil from "../../../Utils/Probe";
+import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
+import Project from "Common/Models/DatabaseModels/Project";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import {
   FirstOnCallPolicyCreate,
   buildFirstOnCallPolicy,
@@ -33,7 +43,6 @@ import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnC
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import { isProjectOnFreePlan } from "../../../Utils/PayAsYouGo";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
-import { ProbeConnectionStatus } from "Common/Models/DatabaseModels/Probe";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -92,8 +101,49 @@ export interface WebsiteDownPolicyRecord {
   isArchived?: boolean | undefined;
 }
 
+/*
+ * A monitor this person may read but did not make, that checks the address
+ * (#7254): a teammate's, or one the API, Terraform or an import made. Only
+ * ever one the server let them read.
+ */
+export interface WebsiteDownOtherMonitor {
+  id: string;
+  name: string;
+  // Who made it, when the records name a person; "" when they do not.
+  creatorName: string;
+}
+
+// What the project-wide look-up found (WebsiteDownApi.findOtherMonitor).
+export interface WebsiteDownFoundMonitor extends WebsiteDownOtherMonitor {
+  // This person made it after all: the setup goes on with it, as with theirs.
+  isOwn: boolean;
+  record: WebsiteDownMonitorRecord;
+}
+
 export const mayCreateMonitor: () => boolean = (): boolean => {
   return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
+};
+
+/*
+ * Whether this person may put a monitor on a status page that exists
+ * (#7053): read the pages, and add one of them a monitor - what step 4
+ * does. Making a page is the status page setup's (mayCreateStatusPage).
+ */
+export const mayAddToStatusPage: () => boolean = (): boolean => {
+  return (
+    PermissionGate.check(new StatusPage(), ModelAction.Read).isAllowed &&
+    PermissionGate.check(new StatusPageResource(), ModelAction.Create).isAllowed
+  );
+};
+
+/*
+ * Whether this person may use the on-call guided setup (#7370): the rule
+ * On-Call's own "Guided setup" button follows (ProductOnboarding's
+ * guidedSetup) - one who may create an on-call policy.
+ */
+export const mayUseOnCallSetup: () => boolean = (): boolean => {
+  return PermissionGate.check(new OnCallDutyPolicy(), ModelAction.Create)
+    .isAllowed;
 };
 
 // Whether this person may add an owner to a monitor: themselves, here.
@@ -127,6 +177,18 @@ export const isPaymentRequired: (error: unknown) => boolean = (
  * the guided setup is for has a handful.
  */
 export const OWN_MONITORS_READ_LIMIT: number = 100;
+
+/*
+ * How many of the project's newest Website and API monitors are read to
+ * find one a teammate made for an address (#7254). An address is in a
+ * monitor's steps, which no query can ask for, so the newest are read and
+ * matched here. A project with more than this misses an older one, and
+ * the setup then makes a monitor of the person's own, as it did before.
+ */
+export const OTHER_MONITORS_READ_LIMIT: number = 200;
+
+// How many status pages step 4 reads to offer (#7053).
+export const STATUS_PAGES_READ_LIMIT: number = 100;
 
 export default class WebsiteDownApi {
   /*
@@ -264,6 +326,121 @@ export default class WebsiteDownApi {
       monitoringInterval: found.monitoringInterval,
       minimumProbeAgreement: found.minimumProbeAgreement ?? null,
     };
+  }
+
+  /*
+   * A monitor this person did not make that checks the address now
+   * (#7254): a teammate's, or one the API, Terraform or an import made
+   * (no person made those). Read through the model API as any list is, so
+   * the server hands over only the monitors this person may read: one
+   * they may not is never seen here, and nothing says it exists - no
+   * count, no name, no sentence. The same matching rule as their own
+   * (isMonitorCheckingAddress): archived or turned off is not checking it.
+   * Asked only once findOwnMonitor found none of theirs; one of theirs
+   * older than its read, found here, is theirs (`isOwn`), and the setup
+   * goes on with it. A read that fails throws, so nothing is made on a
+   * guess.
+   */
+  public static async findOtherMonitor(data: {
+    address: WebsiteAddress;
+    userId: string;
+  }): Promise<WebsiteDownFoundMonitor | null> {
+    const monitors: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+      modelType: Monitor,
+      query: {
+        monitorType: new Includes([MonitorType.Website, MonitorType.API]),
+      },
+      limit: OTHER_MONITORS_READ_LIMIT,
+      skip: 0,
+      select: {
+        _id: true,
+        name: true,
+        monitorSteps: true,
+        monitoringInterval: true,
+        minimumProbeAgreement: true,
+        isArchived: true,
+        disableActiveMonitoring: true,
+        createdByUserId: true,
+        createdByUser: { name: true },
+      },
+      sort: { createdAt: SortOrder.Descending },
+    });
+
+    const found: Monitor | undefined = monitors.data.find(
+      (monitor: Monitor): boolean => {
+        return (
+          Boolean(monitor.id) &&
+          isMonitorCheckingAddress({ monitor: monitor, address: data.address })
+        );
+      },
+    );
+
+    if (!found?.id) {
+      return null;
+    }
+
+    const record: WebsiteDownMonitorRecord = {
+      id: found.id.toString(),
+      name: found.name || "",
+      monitorSteps: found.monitorSteps,
+      monitoringInterval: found.monitoringInterval,
+      minimumProbeAgreement: found.minimumProbeAgreement ?? null,
+    };
+
+    return {
+      id: record.id,
+      // A name the reader may not see is the address's host, never blank.
+      name: record.name || data.address.host,
+      creatorName: found.createdByUser?.name?.toString() || "",
+      isOwn:
+        Boolean(data.userId) &&
+        found.createdByUserId?.toString() === data.userId,
+      record: record,
+    };
+  }
+
+  /*
+   * How many locations a monitor made now would be checked from (#7461):
+   * the probes a new monitor starts with, by Create Monitor's own rule
+   * (MonitorProbeSelectionUtil, as MonitorService.addDefaultProbesToMonitor
+   * applies it) - the project's probes and the global ones that opt in,
+   * the global ones left out where the project says so. Null when it
+   * cannot be read: step 1 then says no number.
+   */
+  public static async loadDefaultLocationCount(): Promise<number | null> {
+    try {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const [probes, project]: [Array<Probe>, Project | null] =
+        await Promise.all([
+          ProbeUtil.getAllProbes(),
+          projectId
+            ? ModelAPI.getItem<Project>({
+                modelType: Project,
+                id: projectId,
+                select: { doNotAddGlobalProbesByDefaultOnNewMonitors: true },
+              }).catch(() => {
+                // Unread, the server's default: global probes are added.
+                return null;
+              })
+            : Promise.resolve(null),
+        ]);
+
+      return MonitorProbeSelectionUtil.getDefaultSelectedProbeIds({
+        probes: probes.map((probe: Probe) => {
+          return {
+            id: probe._id?.toString() || "",
+            isGlobalProbe: Boolean(probe.isGlobalProbe),
+            shouldAutoEnableProbeOnNewMonitors: Boolean(
+              probe.shouldAutoEnableProbeOnNewMonitors,
+            ),
+          };
+        }),
+        doNotAddGlobalProbesByDefaultOnNewMonitors:
+          project?.doNotAddGlobalProbesByDefaultOnNewMonitors,
+      }).length;
+    } catch {
+      return null;
+    }
   }
 
   // The run's monitor, or null when it is gone.
@@ -592,6 +769,101 @@ export default class WebsiteDownApi {
     }
 
     return await WebsiteDownApi.isMonitorOwner(data);
+  }
+
+  /*
+   * STEP 4, SHOW IT TO CUSTOMERS? (#7053): the project's status pages, by
+   * name, that the server lets this person read - none archived, as an
+   * archived page is offline. Asked only of someone who may put a monitor
+   * on one (mayAddToStatusPage).
+   */
+  public static async loadStatusPages(): Promise<
+    Array<WebsiteDownStatusPageChoice>
+  > {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    const pages: ListResult<StatusPage> = await ModelAPI.getList<StatusPage>({
+      modelType: StatusPage,
+      query: projectId ? { projectId: projectId } : {},
+      limit: STATUS_PAGES_READ_LIMIT,
+      skip: 0,
+      select: { _id: true, name: true, isArchived: true },
+      sort: { name: SortOrder.Ascending },
+    });
+
+    return pages.data
+      .filter((page: StatusPage): boolean => {
+        return Boolean(page._id) && !page.isArchived;
+      })
+      .map((page: StatusPage): WebsiteDownStatusPageChoice => {
+        return { id: page._id!.toString(), name: page.name || "" };
+      });
+  }
+
+  /*
+   * The page of `statusPages` that shows the monitor, read from the records:
+   * the one the run put it on, if it still does, else the first that does.
+   * Null when none does - so a monitor already on a page makes the step
+   * done, and nothing is added twice.
+   */
+  public static async findStatusPageShowing(data: {
+    monitorId: string;
+    statusPages: ReadonlyArray<WebsiteDownStatusPageChoice>;
+    preferredStatusPageId?: string | undefined;
+  }): Promise<WebsiteDownStatusPageChoice | null> {
+    if (data.statusPages.length === 0) {
+      return null;
+    }
+
+    const resources: ListResult<StatusPageResource> =
+      await ModelAPI.getList<StatusPageResource>({
+        modelType: StatusPageResource,
+        query: { monitorId: new ObjectID(data.monitorId) },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: { _id: true, statusPageId: true },
+        sort: {},
+      });
+
+    const showing: Set<string> = new Set<string>(
+      resources.data
+        .map((resource: StatusPageResource): string => {
+          return resource.statusPageId?.toString() || "";
+        })
+        .filter(Boolean),
+    );
+
+    const preferred: WebsiteDownStatusPageChoice | undefined =
+      data.preferredStatusPageId && showing.has(data.preferredStatusPageId)
+        ? data.statusPages.find((page: WebsiteDownStatusPageChoice) => {
+            return page.id === data.preferredStatusPageId;
+          })
+        : undefined;
+
+    return (
+      preferred ||
+      data.statusPages.find((page: WebsiteDownStatusPageChoice) => {
+        return showing.has(page.id);
+      }) ||
+      null
+    );
+  }
+
+  /*
+   * Puts the monitor on the page as the status page setup does (Add
+   * Multiple Monitors' resource, named after the monitor, with its status
+   * and uptime), and never twice: a page that lists it already is left as
+   * it is. Throws when it could not be added.
+   */
+  public static async addToStatusPage(data: {
+    statusPageId: string;
+    monitorId: string;
+    monitorName: string;
+  }): Promise<void> {
+    await StatusPageSetupApi.addMonitors({
+      statusPageId: data.statusPageId,
+      monitors: [{ id: data.monitorId, name: data.monitorName }],
+    });
   }
 
   /*

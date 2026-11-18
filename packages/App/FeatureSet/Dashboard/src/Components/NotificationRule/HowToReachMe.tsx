@@ -8,6 +8,7 @@ import {
   savePagingLadder,
 } from "./PagingLadder/PagingLadderApi";
 import PagingLadderEditor from "./PagingLadder/PagingLadderEditor";
+import AddWaysToReach from "./PagingLadder/AddWaysToReach";
 import {
   PagingMethodChoice,
   getMemberMethodChoices,
@@ -21,6 +22,11 @@ import {
   CARDS_DIFFER,
   PAGING_LADDER_COPY,
 } from "./PagingLadder/PagingLadderWords";
+import {
+  StepsNotSentNowNotice,
+  getChannelsNotSentNow,
+  getChannelsNotSentNowInSteps,
+} from "./PagingLadder/StepsNotSentNow";
 import TestPageCard from "../OnCallTestPage/TestPageCard";
 import VerificationCodeModal from "../NotificationMethods/VerificationCodeModal";
 import { VerificationCodeChannel } from "../NotificationMethods/VerificationCodeChannels";
@@ -43,7 +49,14 @@ import {
   getPagingLadderStepKey,
   readPagingLadder,
 } from "Common/Types/NotificationRule/PagingLadder";
+import {
+  PagingLadderFromDefault,
+  PagingLadderMethodReference,
+  getPagingLadderDefaultStart,
+} from "Common/Types/NotificationRule/PagingLadderDefault";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import ObjectID from "Common/Types/ObjectID";
+import { ProjectCanSendAnswer } from "Common/Types/ServerSending/ProjectCanSend";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -55,6 +68,7 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { useProjectCanSend } from "Common/UI/Utils/ServerSending";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
@@ -152,6 +166,14 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const isPushTurnedOff: boolean = usePushNotificationsTurnedOff() === true;
+  /*
+   * Whether this server can send email, SMS and calls right now, as
+   * Notification Methods reads it (#9446): a step of a channel it can't is
+   * marked. Not known yet, or yes, and nothing is.
+   */
+  const projectCanSend: ProjectCanSendAnswer | null = useProjectCanSend();
+  const channelsNotSentNow: Array<OnCallPageChannel> =
+    getChannelsNotSentNow(projectCanSend);
 
   const targetUserId: ObjectID | null = props.userId || User.getUserId();
   const isOwn: boolean =
@@ -223,6 +245,29 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     ? readPagingLadder(data)
     : null;
   const differences: Array<PagingLadderDifference> = reading?.differences || [];
+
+  /*
+   * The project's default ladder as these steps (#9445): offered beside the
+   * title while the steps are not what it gives, mapped to the verified
+   * methods the way Readiness's Apply Default Ladder maps it.
+   */
+  const defaultStart: PagingLadderFromDefault | null =
+    data && reading
+      ? getPagingLadderDefaultStart({
+          defaultSteps: data.defaultSteps || [],
+          methods: methods
+            .filter((choice: PagingMethodChoice): boolean => {
+              return choice.isVerified;
+            })
+            .map((choice: PagingMethodChoice): PagingLadderMethodReference => {
+              return {
+                methodColumn: choice.methodColumn,
+                methodId: choice.methodId,
+              };
+            }),
+          currentSteps: reading.steps,
+        })
+      : null;
 
   const loadFailure: ReactElement | null =
     error && !data ? (
@@ -399,6 +444,26 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+      {isOwn ? (
+        /*
+         * A phone, this browser or the app, added without leaving the page
+         * (#7451), and the project's ask for a phone method (#7449). Each
+         * reads the ladder again, keeping what is on screen.
+         */
+        <AddWaysToReach
+          methods={methods}
+          isPushTurnedOff={isPushTurnedOff}
+          isPhoneMethodRequired={data?.isPhoneMethodRequired === true}
+          canSendSms={projectCanSend ? projectCanSend.sms : null}
+          onAdded={() => {
+            load().catch(() => {
+              // load() reports its own failure.
+            });
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 
@@ -468,6 +533,22 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
                 className="flex flex-col gap-3"
                 data-testid="paging-ladder-summary"
               >
+                {/* Said once for the page, as on the steps (#9446). */}
+                <StepsNotSentNowNotice
+                  channels={getChannelsNotSentNowInSteps(
+                    [
+                      ...reading.steps,
+                      ...reading.differences.flatMap(
+                        (
+                          difference: PagingLadderDifference,
+                        ): Array<PagingLadderStep> => {
+                          return difference.extra;
+                        },
+                      ),
+                    ],
+                    channelsNotSentNow,
+                  )}
+                />
                 {reading.steps.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-1.5">
                     {reading.steps.map((step: PagingLadderStep) => {
@@ -476,6 +557,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
                           key={getPagingLadderStepKey(step)}
                           step={step}
                           methods={methods}
+                          channelsNotSentNow={channelsNotSentNow}
                         />
                       );
                     })}
@@ -492,6 +574,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
                       differences={reading.differences}
                       methods={methods}
                       severityColors={data?.severityColors || {}}
+                      channelsNotSentNow={channelsNotSentNow}
                     />
                   </div>
                 ) : (
@@ -539,6 +622,18 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
           }}
           setUpMoreMethodsRoute={isOwn && isEditable ? methodsPage : undefined}
           onSave={save}
+          defaultStart={defaultStart}
+          onStartFromDefault={(start: PagingLadderFromDefault) => {
+            ProductEvents.send(
+              ProductEventName.PagingLadderStartedFromDefault,
+              {
+                is_own: isOwn,
+                step_count: start.steps.length,
+                left_out_count: start.leftOutChannels.length,
+              },
+            );
+          }}
+          channelsNotSentNow={channelsNotSentNow}
           footer={
             isEditable ? (
               footer

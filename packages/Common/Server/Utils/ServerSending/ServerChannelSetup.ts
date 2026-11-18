@@ -28,6 +28,12 @@ import { isMailgunDomain } from "../../../Types/Email/MailgunDomain";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
 import { ServerSendingChannel } from "../../../Types/ServerSending/ServerSendingStatus";
+import ServerSetUpProblem, {
+  SERVER_EMAIL_SETTING_NAMES,
+  SERVER_SET_UP_PROBLEMS,
+  ServerSetUpProblemWords,
+} from "../../../Types/ServerSending/ServerSetUpProblem";
+import TwilioConfigUses from "../../../Types/CallAndSMS/TwilioConfigUse";
 import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 
 /*
@@ -164,30 +170,64 @@ export const SERVER_CHANNEL_SETTING_COLUMNS: Readonly<
   [ServerSendingChannel.Push]: ["disablePushNotifications"],
 };
 
-// The words a setting left blank is named in.
+/*
+ * The words a setting left blank is named in: sentences every language the
+ * Admin Dashboard speaks has (Types/ServerSending/ServerSetUpProblem, #9437).
+ */
 export const EMAIL_NOT_SET_UP_PROBLEM: string =
-  "Nothing is set up under Settings > Emails yet.";
+  SERVER_SET_UP_PROBLEMS.emailNotSetUp;
 
 export const SMS_NOT_SET_UP_PROBLEM: string =
-  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.";
+  SERVER_SET_UP_PROBLEMS.smsNotSetUp;
 
 export const CALL_NOT_SET_UP_PROBLEM: string =
-  "No Twilio account or call gateway is set up under Settings > Call and SMS.";
+  SERVER_SET_UP_PROBLEMS.callNotSetUp;
 
 // Before what is wrong with the GLOBAL_TWILIO_ environment variables.
 export const SERVER_TWILIO_ENVIRONMENT_PROBLEM: string =
   "The Twilio account set by environment variables cannot send:";
 
+/*
+ * Worded in every language the Admin Dashboard speaks: a test push answers
+ * with it too (Types/ServerSetup/ServerTestSend).
+ */
 export const PUSH_TURNED_OFF_PROBLEM: string =
-  "Push notifications are turned off under Settings > Push Notifications.";
+  SERVER_SET_UP_PROBLEMS.pushTurnedOff;
 
-// The provider's name, as the Email settings page shows it.
-const notSet: (provider: string, field: string) => string = (
+/*
+ * What a channel's settings are missing: the English sentence the server
+ * sends and logs, and - for a sentence of OneUptime's own - its words, for
+ * a page to say in the reader's language. What is wrong with environment
+ * variables, by the variables' names, has none: it is drawn as written.
+ */
+export interface ServerSetUpProblemReading {
+  english: string;
+  words: ServerSetUpProblemWords | null;
+}
+
+const inWords: (words: ServerSetUpProblemWords) => ServerSetUpProblemReading = (
+  words: ServerSetUpProblemWords,
+): ServerSetUpProblemReading => {
+  return { english: ServerSetUpProblem.toEnglish(words), words: words };
+};
+
+const asWritten: (english: string) => ServerSetUpProblemReading = (
+  english: string,
+): ServerSetUpProblemReading => {
+  return { english: english, words: null };
+};
+
+// The provider's name, as the Email settings page shows it, and the setting's.
+const notSet: (provider: string, field: string) => ServerSetUpProblemReading = (
   provider: string,
   field: string,
-): string => {
-  return `${provider}: the ${field} is not set under Settings > Emails.`;
+): ServerSetUpProblemReading => {
+  return inWords(ServerSetUpProblem.emailSettingNotSet(provider, field));
 };
+
+const NOTHING_SET_UP_FOR_EMAIL: ServerSetUpProblemReading = inWords(
+  ServerSetUpProblem.of(SERVER_SET_UP_PROBLEMS.emailNotSetUp),
+);
 
 // Set as Notification/Config reads a Custom SMTP or SendGrid setting: any value.
 const isPresent: (value: unknown) => boolean = (value: unknown): boolean => {
@@ -257,6 +297,13 @@ export default class ServerChannelSetup {
   public static getEmailSetUpProblem(
     row: ServerChannelSetupSettings | null | undefined,
   ): string | null {
+    return ServerChannelSetup.readEmailSetUpProblem(row)?.english || null;
+  }
+
+  // The same, with its words for a page to say in the reader's language.
+  public static readEmailSetUpProblem(
+    row: ServerChannelSetupSettings | null | undefined,
+  ): ServerSetUpProblemReading | null {
     /*
      * Settings the GLOBAL_EMAIL_ environment variables set (#7738) are fixed
      * where they are set, not under Settings > Emails: say what is wrong
@@ -269,7 +316,7 @@ export default class ServerChannelSetup {
       getServerEmailEnvironmentProblem(environment);
 
     if (environmentProblem) {
-      return environmentProblem;
+      return asWritten(environmentProblem);
     }
 
     const config: ServerChannelSetupSettings | null = toServerEmailSettings(
@@ -278,7 +325,7 @@ export default class ServerChannelSetup {
     );
 
     if (!config) {
-      return EMAIL_NOT_SET_UP_PROBLEM;
+      return NOTHING_SET_UP_FOR_EMAIL;
     }
 
     switch (config.emailServerType || EmailServerType.CustomSMTP) {
@@ -291,14 +338,14 @@ export default class ServerChannelSetup {
       case EmailServerType.Postmark:
         return ServerChannelSetup.getApiKeyProviderProblem({
           provider: "Postmark",
-          keyName: "Server API Token",
+          keyName: SERVER_EMAIL_SETTING_NAMES.serverApiToken,
           key: config.postmarkServerToken,
           fromEmail: config.postmarkFromEmail,
         });
       case EmailServerType.Resend:
         return ServerChannelSetup.getApiKeyProviderProblem({
           provider: "Resend",
-          keyName: "API Key",
+          keyName: SERVER_EMAIL_SETTING_NAMES.apiKey,
           key: config.resendApiKey,
           fromEmail: config.resendFromEmail,
         });
@@ -310,17 +357,17 @@ export default class ServerChannelSetup {
   // getSendgridConfig: all three, or no SendGrid at all.
   private static getSendgridProblem(
     config: ServerChannelSetupSettings,
-  ): string | null {
+  ): ServerSetUpProblemReading | null {
     if (!isPresent(config.sendgridApiKey)) {
-      return notSet("SendGrid", "API Key");
+      return notSet("SendGrid", SERVER_EMAIL_SETTING_NAMES.apiKey);
     }
 
     if (!isPresent(config.sendgridFromEmail)) {
-      return notSet("SendGrid", "From Email");
+      return notSet("SendGrid", SERVER_EMAIL_SETTING_NAMES.fromEmail);
     }
 
     if (!isPresent(config.sendgridFromName)) {
-      return notSet("SendGrid", "From Name");
+      return notSet("SendGrid", SERVER_EMAIL_SETTING_NAMES.fromName);
     }
 
     return null;
@@ -334,30 +381,27 @@ export default class ServerChannelSetup {
    */
   private static getAmazonSesProblem(
     config: ServerChannelSetupSettings,
-  ): string | null {
+  ): ServerSetUpProblemReading | null {
     const usesServerIamRole: boolean =
       toAmazonSesAuthenticationType(config.amazonSesAuthenticationType) ===
       AmazonSesAuthenticationType.ServerIamRole;
 
     if (!usesServerIamRole && !text(config.amazonSesAccessKeyId)) {
-      return notSet("Amazon SES", "Access Key ID");
+      return notSet("Amazon SES", SERVER_EMAIL_SETTING_NAMES.accessKeyId);
     }
 
     if (!usesServerIamRole && !text(config.amazonSesSecretAccessKey)) {
-      return notSet("Amazon SES", "Secret Access Key");
+      return notSet("Amazon SES", SERVER_EMAIL_SETTING_NAMES.secretAccessKey);
     }
 
     const region: string = text(config.amazonSesRegion).toLowerCase();
 
     if (!region || !isAwsRegion(region)) {
-      return notSet(
-        "Amazon SES",
-        "Region (an AWS Region code, such as us-east-1)",
-      );
+      return notSet("Amazon SES", SERVER_EMAIL_SETTING_NAMES.awsRegion);
     }
 
     if (!text(config.amazonSesFromEmail)) {
-      return notSet("Amazon SES", "From Email");
+      return notSet("Amazon SES", SERVER_EMAIL_SETTING_NAMES.fromEmail);
     }
 
     return null;
@@ -366,22 +410,19 @@ export default class ServerChannelSetup {
   // getGlobalEmailProviderServer, Mailgun.
   private static getMailgunProblem(
     config: ServerChannelSetupSettings,
-  ): string | null {
+  ): ServerSetUpProblemReading | null {
     if (!text(config.mailgunApiKey)) {
-      return notSet("Mailgun", "API Key");
+      return notSet("Mailgun", SERVER_EMAIL_SETTING_NAMES.apiKey);
     }
 
     const domain: string = text(config.mailgunDomain).toLowerCase();
 
     if (!domain || !isMailgunDomain(domain)) {
-      return notSet(
-        "Mailgun",
-        "Domain (the sending domain, such as mg.example.com)",
-      );
+      return notSet("Mailgun", SERVER_EMAIL_SETTING_NAMES.mailgunDomain);
     }
 
     if (!text(config.mailgunFromEmail)) {
-      return notSet("Mailgun", "From Email");
+      return notSet("Mailgun", SERVER_EMAIL_SETTING_NAMES.fromEmail);
     }
 
     return null;
@@ -393,13 +434,13 @@ export default class ServerChannelSetup {
     keyName: string;
     key: unknown;
     fromEmail: unknown;
-  }): string | null {
+  }): ServerSetUpProblemReading | null {
     if (!text(data.key)) {
       return notSet(data.provider, data.keyName);
     }
 
     if (!text(data.fromEmail)) {
-      return notSet(data.provider, "From Email");
+      return notSet(data.provider, SERVER_EMAIL_SETTING_NAMES.fromEmail);
     }
 
     return null;
@@ -419,7 +460,7 @@ export default class ServerChannelSetup {
    */
   private static getCustomSmtpProblem(
     config: ServerChannelSetupSettings,
-  ): string | null {
+  ): ServerSetUpProblemReading | null {
     const isMicrosoftGraph: boolean =
       config.smtpTransportType === MailTransportType.MicrosoftGraph;
 
@@ -437,7 +478,7 @@ export default class ServerChannelSetup {
         isPresent(config.smtpFromName);
 
     if (!isAnythingSet) {
-      return EMAIL_NOT_SET_UP_PROBLEM;
+      return NOTHING_SET_UP_FOR_EMAIL;
     }
 
     const authType: SMTPAuthenticationType = isMicrosoftGraph
@@ -446,20 +487,20 @@ export default class ServerChannelSetup {
         SMTPAuthenticationType.UsernamePassword;
 
     if (!isPresent(config.smtpFromEmail)) {
-      return notSet(provider, "From Email");
+      return notSet(provider, SERVER_EMAIL_SETTING_NAMES.fromEmail);
     }
 
     if (!isPresent(config.smtpFromName)) {
-      return notSet(provider, "From Name");
+      return notSet(provider, SERVER_EMAIL_SETTING_NAMES.fromName);
     }
 
     if (!isMicrosoftGraph) {
       if (!isPresent(config.smtpHost)) {
-        return notSet(provider, "Host");
+        return notSet(provider, SERVER_EMAIL_SETTING_NAMES.host);
       }
 
       if (!isPresent(config.smtpPort)) {
-        return notSet(provider, "Port");
+        return notSet(provider, SERVER_EMAIL_SETTING_NAMES.port);
       }
     }
 
@@ -470,23 +511,23 @@ export default class ServerChannelSetup {
        * Email, and needs none.
        */
       if (!isMicrosoftGraph && !isPresent(config.smtpUsername)) {
-        return notSet(provider, "Username");
+        return notSet(provider, SERVER_EMAIL_SETTING_NAMES.username);
       }
 
       if (!isPresent(config.smtpClientId)) {
-        return notSet(provider, "OAuth Client ID");
+        return notSet(provider, SERVER_EMAIL_SETTING_NAMES.oauthClientId);
       }
 
       if (!isPresent(config.smtpClientSecret)) {
-        return notSet(provider, "OAuth Client Secret");
+        return notSet(provider, SERVER_EMAIL_SETTING_NAMES.oauthClientSecret);
       }
 
       if (!isPresent(config.smtpTokenUrl)) {
-        return notSet(provider, "OAuth Token URL");
+        return notSet(provider, SERVER_EMAIL_SETTING_NAMES.oauthTokenUrl);
       }
 
       if (!isPresent(config.smtpScope)) {
-        return notSet(provider, "OAuth Scope");
+        return notSet(provider, SERVER_EMAIL_SETTING_NAMES.oauthScope);
       }
     }
 
@@ -503,10 +544,23 @@ export default class ServerChannelSetup {
     config: ServerChannelSetupSettings | null | undefined,
     kind: TwilioMessageKind,
   ): string | null {
-    const notSetUp: string =
-      kind === TwilioMessageKind.SMS
-        ? SMS_NOT_SET_UP_PROBLEM
-        : CALL_NOT_SET_UP_PROBLEM;
+    return (
+      ServerChannelSetup.readTwilioSetUpProblem(config, kind)?.english || null
+    );
+  }
+
+  // The same, with its words for a page to say in the reader's language.
+  public static readTwilioSetUpProblem(
+    config: ServerChannelSetupSettings | null | undefined,
+    kind: TwilioMessageKind,
+  ): ServerSetUpProblemReading | null {
+    const notSetUp: ServerSetUpProblemReading = inWords(
+      ServerSetUpProblem.of(
+        kind === TwilioMessageKind.SMS
+          ? SERVER_SET_UP_PROBLEMS.smsNotSetUp
+          : SERVER_SET_UP_PROBLEMS.callNotSetUp,
+      ),
+    );
 
     if (!config) {
       return notSetUp;
@@ -525,7 +579,9 @@ export default class ServerChannelSetup {
       getServerTwilioEnvironment();
 
     if (environment.isSet && environment.problems.length > 0) {
-      return `${SERVER_TWILIO_ENVIRONMENT_PROBLEM} ${environment.problems.join(" ")}`;
+      return asWritten(
+        `${SERVER_TWILIO_ENVIRONMENT_PROBLEM} ${environment.problems.join(" ")}`,
+      );
     }
 
     let twilioConfig: TwilioConfig | null = null;
@@ -545,7 +601,47 @@ export default class ServerChannelSetup {
       return notSetUp;
     }
 
-    return TwilioPhoneNumbers.getCannotSendReason(twilioConfig, kind);
+    return ServerChannelSetup.readTwilioCannotSend(twilioConfig, kind);
+  }
+
+  /*
+   * Why the server's Twilio account sends no message of this kind, as
+   * TwilioPhoneNumbers.getCannotSendReason says it, in its words: used for
+   * the other kind only, or with no number to send it from.
+   */
+  private static readTwilioCannotSend(
+    config: TwilioConfig,
+    kind: TwilioMessageKind,
+  ): ServerSetUpProblemReading | null {
+    const english: string | null = TwilioPhoneNumbers.getCannotSendReason(
+      config,
+      kind,
+    );
+
+    if (!english) {
+      return null;
+    }
+
+    const isSms: boolean = kind === TwilioMessageKind.SMS;
+    const isUsedForIt: boolean = isSms
+      ? TwilioConfigUses.sendsSms(config.use)
+      : TwilioConfigUses.makesCalls(config.use);
+
+    const template: string = !isUsedForIt
+      ? isSms
+        ? SERVER_SET_UP_PROBLEMS.twilioUsedForCallsOnly
+        : SERVER_SET_UP_PROBLEMS.twilioUsedForSmsOnly
+      : isSms
+        ? SERVER_SET_UP_PROBLEMS.twilioHasNoSmsNumber
+        : SERVER_SET_UP_PROBLEMS.twilioHasNoCallNumber;
+
+    /*
+     * The words say what the reason says, or there are none: a reason
+     * worded otherwise is drawn as written, never as another sentence.
+     */
+    return english === template
+      ? inWords(ServerSetUpProblem.of(template))
+      : asWritten(english);
   }
 
   /*
@@ -555,28 +651,49 @@ export default class ServerChannelSetup {
   public static getPushSetUpProblem(
     config: ServerChannelSetupSettings | null | undefined,
   ): string | null {
-    return config?.disablePushNotifications ? PUSH_TURNED_OFF_PROBLEM : null;
+    return ServerChannelSetup.readPushSetUpProblem(config)?.english || null;
+  }
+
+  public static readPushSetUpProblem(
+    config: ServerChannelSetupSettings | null | undefined,
+  ): ServerSetUpProblemReading | null {
+    return config?.disablePushNotifications
+      ? inWords(ServerSetUpProblem.of(SERVER_SET_UP_PROBLEMS.pushTurnedOff))
+      : null;
   }
 
   public static getSetUpProblem(
     channel: ServerSendingChannel,
     config: ServerChannelSetupSettings | null | undefined,
   ): string | null {
+    return (
+      ServerChannelSetup.readSetUpProblem(channel, config)?.english || null
+    );
+  }
+
+  /*
+   * What a channel's settings are missing, in English and - for a sentence
+   * of OneUptime's own - in words a page says in the reader's language.
+   */
+  public static readSetUpProblem(
+    channel: ServerSendingChannel,
+    config: ServerChannelSetupSettings | null | undefined,
+  ): ServerSetUpProblemReading | null {
     switch (channel) {
       case ServerSendingChannel.Email:
-        return ServerChannelSetup.getEmailSetUpProblem(config);
+        return ServerChannelSetup.readEmailSetUpProblem(config);
       case ServerSendingChannel.SMS:
-        return ServerChannelSetup.getTwilioSetUpProblem(
+        return ServerChannelSetup.readTwilioSetUpProblem(
           config,
           TwilioMessageKind.SMS,
         );
       case ServerSendingChannel.Call:
-        return ServerChannelSetup.getTwilioSetUpProblem(
+        return ServerChannelSetup.readTwilioSetUpProblem(
           config,
           TwilioMessageKind.Call,
         );
       case ServerSendingChannel.Push:
-        return ServerChannelSetup.getPushSetUpProblem(config);
+        return ServerChannelSetup.readPushSetUpProblem(config);
       default:
         return null;
     }

@@ -1,5 +1,5 @@
 import { RemoveSampleProject1809180800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180800000-RemoveSampleProject";
-import { KeepSampleProjectColumns1809183200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183200000-KeepSampleProjectColumns";
+import { KeepSampleProjectColumns1809183500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183500000-KeepSampleProjectColumns";
 import logger from "../../../../Server/Utils/Logger";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -413,7 +413,7 @@ describePostgres("RemoveSampleProject against Postgres", () => {
     );
 
     await withRunner((queryRunner: QueryRunner) => {
-      return new KeepSampleProjectColumns1809183200000().up(queryRunner);
+      return new KeepSampleProjectColumns1809183500000().up(queryRunner);
     });
 
     expect(await columnExists("User", "sampleProjectId")).toBe(true);
@@ -442,7 +442,7 @@ describePostgres("RemoveSampleProject against Postgres", () => {
     );
 
     await withRunner((queryRunner: QueryRunner) => {
-      return new KeepSampleProjectColumns1809183200000().up(queryRunner);
+      return new KeepSampleProjectColumns1809183500000().up(queryRunner);
     });
 
     expect(await columnExists("User", "sampleProjectId")).toBe(true);
@@ -473,7 +473,7 @@ describePostgres("RemoveSampleProject against Postgres", () => {
 
     // And a second run changes nothing.
     await withRunner((queryRunner: QueryRunner) => {
-      return new KeepSampleProjectColumns1809183200000().up(queryRunner);
+      return new KeepSampleProjectColumns1809183500000().up(queryRunner);
     });
 
     expect(await keyAndIndexExist()).toEqual({ key: 1, index: 1 });

@@ -32,11 +32,17 @@ Your server needs a hostname of its own with an A record that points at it, such
 
 On your project's **Home**, click **Publish a status page** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Tell my customers with a status page** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `status page` and choose **Publish a status page**.
 
+**Status Pages** opens it too: click **Guided setup** on its empty list, or under **How it works** once the project has a status page.
+
 ### Name it and pick what it shows
 
 ![The step "Name it, and pick what it shows", with "Create the status page" ringed](screen:status-page-pick)
 
 Under **Name it, and pick what it shows**, keep the **Status page name** it suggests or type your own. Under **What it shows**, tick the monitors your customers should see, or click **Select all**. Click **Create the status page**. The page is public at its link from this moment, showing only the monitors you ticked.
+
+If the project already has a status page, the step adds the monitors you tick to it, and marks those it shows already **On the page**. With several pages, pick one under **Status page**. For a new page, click **Make a new status page instead**.
+
+With many monitors, type part of a name in **Search by name**, or pick a label under **All labels**: **Select all** then ticks what the list shows. A monitor group goes on the page as one row.
 
 ### Look at what your customers see
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, jest, beforeEach } from "@jest/globals";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import ObjectID from "../../../Types/ObjectID";
@@ -98,9 +98,17 @@ const WAIT_TIMEOUT: number = 20000;
 
 const PROBE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 
-type RenderProbeCardFunction = () => void;
+type RenderProbeCardFunction = (options?: {
+  startsEditing?: boolean | undefined;
+  isEditable?: boolean | undefined;
+}) => void;
 
-const renderProbeCard: RenderProbeCardFunction = (): void => {
+const renderProbeCard: RenderProbeCardFunction = (
+  options: {
+    startsEditing?: boolean | undefined;
+    isEditable?: boolean | undefined;
+  } = {},
+): void => {
   render(
     <CardModelDetail<Probe>
       name="Probe Details"
@@ -108,7 +116,8 @@ const renderProbeCard: RenderProbeCardFunction = (): void => {
         title: "Probe Details",
         description: "Here are more details for this probe.",
       }}
-      isEditable={true}
+      isEditable={options.isEditable !== false}
+      startsEditing={options.startsEditing}
       formFields={[
         {
           field: { name: true },
@@ -293,5 +302,103 @@ describe("CardModelDetail edit modal", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
+  });
+});
+
+/*
+ * startsEditing: the card opens its Edit dialog once, as it is first drawn,
+ * as if Edit had been pressed - for a link that came to set the record up,
+ * as Server Setup's "Set up email" does for the mail server's card (#7460).
+ * Only where Edit could be pressed: never on a card that is not editable,
+ * nor for a viewer whose permissions lock Edit.
+ */
+describe("CardModelDetail startsEditing", () => {
+  beforeEach(() => {
+    getItemMock.mockReset();
+    createOrUpdateMock.mockReset();
+    createOrUpdateMock.mockResolvedValue({ data: {} });
+    getItemMock.mockResolvedValue(loadedProbe());
+  });
+
+  async function settle(): Promise<void> {
+    await act(async () => {
+      for (let index: number = 0; index < 20; index++) {
+        await Promise.resolve();
+      }
+    });
+  }
+
+  it("opens the Edit dialog, filled from the record, without Edit being pressed", async () => {
+    renderProbeCard({ startsEditing: true });
+
+    await waitFor(
+      () => {
+        expect(screen.getByDisplayValue("WBHQ")).toBeDefined();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.getByText("Save Changes")).toBeDefined();
+  });
+
+  it("opens it once: closed, it stays closed", async () => {
+    renderProbeCard({ startsEditing: true });
+
+    await waitFor(
+      () => {
+        expect(screen.getByDisplayValue("WBHQ")).toBeDefined();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await userEvent.click(screen.getByText("Cancel"));
+
+    await waitFor(
+      () => {
+        expect(screen.queryByText("Save Changes")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    await settle();
+    expect(screen.queryByText("Save Changes")).toBeNull();
+    expect(screen.getByText("Edit Probe")).toBeDefined();
+  });
+
+  it("without it, nothing opens until Edit is pressed", async () => {
+    renderProbeCard();
+
+    await screen.findByText("Edit Probe", {}, { timeout: WAIT_TIMEOUT });
+    await settle();
+
+    expect(screen.queryByText("Save Changes")).toBeNull();
+  });
+
+  it("a card that is not editable opens nothing", async () => {
+    renderProbeCard({ startsEditing: true, isEditable: false });
+
+    await screen.findByText("WBHQ", {}, { timeout: WAIT_TIMEOUT });
+    await settle();
+
+    expect(screen.queryByText("Save Changes")).toBeNull();
+  });
+
+  it("a viewer whose permissions lock Edit: nothing opens", async () => {
+    const granted: Array<Permission> = OWNER_PERMISSIONS.splice(
+      0,
+      OWNER_PERMISSIONS.length,
+      Permission.Public,
+    );
+
+    try {
+      renderProbeCard({ startsEditing: true });
+
+      await screen.findByText("Probe Details", {}, { timeout: WAIT_TIMEOUT });
+      await settle();
+
+      expect(screen.queryByText("Save Changes")).toBeNull();
+      // Edit stays where it is, locked.
+      expect(screen.getByText("Edit Probe")).toBeDefined();
+    } finally {
+      OWNER_PERMISSIONS.splice(0, OWNER_PERMISSIONS.length, ...granted);
+    }
   });
 });

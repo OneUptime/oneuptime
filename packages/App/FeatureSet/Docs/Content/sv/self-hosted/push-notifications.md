@@ -120,6 +120,10 @@ Enheternas anslutning är ett separat krav. iOS-enheter behöver åtkomst till A
 
 För mobila pushar läser OneUptime också Expos leveranskvitto ungefär 15 minuter efter varje push: en push som aldrig nådde enheten visas då som inte levererad i push-loggen och, för ett jourlarm, på jourtidslinjen.
 
+## Skicka en test-push
+
+En huvudadministratör kan kontrollera push från serverns sida: **Skicka test-push** under **Admin Dashboard > Inställningar > Push-aviseringar** skickar en test-push till de telefoner och webbläsare hen har registrerat, och till ingen annan. När inget kan skickas säger den varför: push är avstängt, inget är registrerat eller servern saknar VAPID-nycklar för en webbläsare.
+
 ## Stänga av push för hela servern
 
 Om ingenting får lämna ditt nätverk via Expo, push-reläet eller en webbläsares push-tjänst, kan en huvudadministratör stänga av push under **Admin Dashboard > Inställningar > Push-aviseringar**: stäng av **Send push notifications** och bekräfta.
@@ -251,6 +255,10 @@ För att få tillbaka enheten öppnar du mobilappen på den medan du är inlogga
 Via push-reläet (ingen `EXPO_ACCESS_TOKEN`) fungerar detta på samma sätt: reläet rapporterar `DeviceNotRegistered` när det skickar en push, och läser de leveranskvitton som din instans frågar efter.
 
 Om inget av detta hjälper kan du kontakta oss på [hello@oneuptime.com](mailto:hello@oneuptime.com) med felen från dina OneUptime-loggar.
+
+### Admin Dashboard säger att push misslyckas
+
+Admin Dashboard säger att push misslyckas när serverns egna push-aviseringar har slutat skickas: push-reläet, Expo Push eller Web Push avvisade dem, eller gick inte att nå. Det står sedan när, och vad som svarades. En push som en enda enhet avvisade, till exempel en till en app som avinstallerats, räknas inte. Så snart en push skickas igen visas push som fungerande. Skicka en test-push för att kontrollera.
 
 ## Nästa steg
 
