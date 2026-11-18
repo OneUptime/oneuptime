@@ -56908,7 +56908,7 @@
   "No alert open": "لا تنبيه مفتوح",
   "No issue matches these filters": "لا توجد مشكلات تطابق عوامل التصفية هذه",
   "Pipeline Late": "مسار البيانات متأخر",
-  "Pipeline Run Failed": "فشل تشغيل مسار البيانات",
+  "Pipeline Run Failed": "فشلت عملية تشغيل مسار المعالجة",
   "Pipeline Team Owner": "الفريق المالك لمسار البيانات",
   "Pipeline Team Owners": "الفرق المالكة لمسارات البيانات",
   "Pipeline User Owner": "المستخدم المالك لمسار البيانات",

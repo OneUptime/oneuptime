@@ -56908,7 +56908,7 @@
   "No alert open": "Nessun avviso aperto",
   "No issue matches these filters": "Nessun problema corrisponde a questi filtri",
   "Pipeline Late": "Pipeline in ritardo",
-  "Pipeline Run Failed": "Esecuzione della pipeline fallita",
+  "Pipeline Run Failed": "Esecuzione della pipeline non riuscita",
   "Pipeline Team Owner": "Team proprietario pipeline",
   "Pipeline Team Owners": "Team proprietari pipeline",
   "Pipeline User Owner": "Utente proprietario pipeline",
