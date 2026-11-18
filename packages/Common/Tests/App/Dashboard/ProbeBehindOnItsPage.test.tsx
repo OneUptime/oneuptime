@@ -297,6 +297,16 @@ describe("Network Device Polls, on the probe's page (#9499)", () => {
       "PROBE_NETWORK_DEVICE_POLL_CONCURRENCY",
     );
 
+    /*
+     * On a phone it breaks after its underscores, never at the letter
+     * that filled the line ("PR" / "OBE_NETWORK_..." in German).
+     */
+    expect(setting?.className).not.toContain("break-all");
+    expect(setting?.className).toContain("[overflow-wrap:anywhere]");
+    expect(setting?.innerHTML).toBe(
+      "PROBE_<wbr>NETWORK_<wbr>DEVICE_<wbr>POLL_<wbr>CONCURRENCY",
+    );
+
     const guide: HTMLElement = screen.getByRole("link", {
       name: "Read the guide",
     });

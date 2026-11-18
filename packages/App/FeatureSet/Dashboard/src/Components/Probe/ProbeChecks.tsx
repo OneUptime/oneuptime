@@ -7,6 +7,7 @@ import ProbeBehindUtil, {
   ProbeBehindWork,
 } from "Common/Types/Probe/ProbeBehind";
 import { translationKey } from "Common/Types/Translator";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Link from "Common/UI/Components/Link/Link";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -144,9 +145,14 @@ const ProbeChecksElement: FunctionComponent<ComponentProps> = (
         <TranslatedSentence
           template={copy.behindFix}
           slots={{
+            /*
+             * On a phone the setting takes a line of its own and breaks
+             * after its underscores ("PROBE_NETWORK_DEVICE_POLL_" /
+             * "CONCURRENCY"), never at the letter that filled the line.
+             */
             setting: (
-              <code className="break-all rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800">
-                {setting}
+              <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]">
+                <BreakableName text={setting} />
               </code>
             ),
           }}
