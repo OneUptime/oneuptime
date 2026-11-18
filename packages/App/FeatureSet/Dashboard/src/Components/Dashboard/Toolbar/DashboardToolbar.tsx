@@ -68,6 +68,10 @@ export const DASHBOARD_TOOLBAR_END_TEST_ID: string = "dashboard-toolbar-end";
 export const DASHBOARD_TOOLBAR_CONTROLS_TEST_ID: string =
   "dashboard-toolbar-controls";
 
+// Beside the name while editing: Editing, or Unsaved changes once the board differs.
+export const DASHBOARD_TOOLBAR_EDIT_STATE_TEST_ID: string =
+  "dashboard-toolbar-edit-state";
+
 export interface ComponentProps {
   onEditClick: () => void;
   onSaveClick: () => void;
@@ -612,8 +616,38 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     className={DASHBOARD_TOOLBAR_TEXT_CLASS_NAME}
                   />
                 </h2>
+                {/*
+                 * While editing, what the board holds, quietly, where an
+                 * editor's title says it (issue #7403): Editing while the
+                 * board is as editing found it, Unsaved changes - amber,
+                 * steady - once it differs (hasUnsavedChanges), and Editing
+                 * again should the change be undone. It used to say Editing
+                 * from Edit Dashboard to Save Changes, changed or not, so an
+                 * editor learnt there was something to save only by trying
+                 * to leave. One chip whose words change, kept whole (the
+                 * name gives way first), so no button moves. A screen
+                 * reader hears it once as the board first differs (a
+                 * status: polite), not at every change after.
+                 */}
                 {isEditMode && (
-                  <Pill text="Editing" tone={PillTone.Info} isPulsing={true} />
+                  <span
+                    role="status"
+                    className="flex shrink-0"
+                    data-testid={DASHBOARD_TOOLBAR_EDIT_STATE_TEST_ID}
+                    data-has-unsaved-changes={
+                      props.hasUnsavedChanges ? "true" : "false"
+                    }
+                  >
+                    {props.hasUnsavedChanges ? (
+                      <Pill text="Unsaved changes" tone={PillTone.Warning} />
+                    ) : (
+                      <Pill
+                        text="Editing"
+                        tone={PillTone.Info}
+                        isPulsing={true}
+                      />
+                    )}
+                  </span>
                 )}
               </div>
               {props.dashboardDescription && !isEditMode && (

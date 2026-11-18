@@ -40,10 +40,21 @@ import {
  * A board opened for editing and left as it was asks nothing, and nothing
  * asks after Save Changes or Discard Changes.
  *
+ * The question offers Save Changes too (issue #7402): it saves the board as
+ * the toolbar's Save Changes does, then goes where the reader was going -
+ * only once the save worked. A refused save keeps the board, still asking,
+ * and says why in the question.
+ *
+ * While editing, the toolbar says whether the board holds unsaved changes
+ * (issue #7403): Editing while it is as editing found it, Unsaved changes
+ * once it differs.
+ *
  * The real DashboardViewer, toolbar and side menu entry run inside a real
  * BrowserRouter on jsdom's history, against a fake dashboard API. The
  * canvas is stubbed (it is ~60 widget modules deep): it shows how many
- * widgets it holds and whether it is being edited.
+ * widgets it holds and whether it is being edited, and hands the board
+ * back as it was, as a widget's settings closed with Done and no change
+ * do.
  */
 
 jest.setTimeout(120000);
@@ -134,15 +145,42 @@ jest.mock(
       __esModule: true,
       default: (props: {
         isEditMode?: boolean | undefined;
-        dashboardViewConfig: { components: Array<unknown> };
+        dashboardViewConfig: { components: Array<Record<string, unknown>> };
+        onDashboardViewConfigChange: (config: unknown) => void;
       }) => {
-        return reactModule.createElement("div", {
-          "data-testid": "canvas-stub",
-          "data-is-edit-mode": props.isEditMode ? "true" : "false",
-          "data-widget-count": String(
-            props.dashboardViewConfig.components.length,
+        return reactModule.createElement(
+          "div",
+          {
+            "data-testid": "canvas-stub",
+            "data-is-edit-mode": props.isEditMode ? "true" : "false",
+            "data-widget-count": String(
+              props.dashboardViewConfig.components.length,
+            ),
+          },
+          /*
+           * A widget's settings closed with Done and nothing changed: the
+           * canvas hands the board back, each widget a new object holding
+           * what it held.
+           */
+          reactModule.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "canvas-stub-hand-back",
+              onClick: () => {
+                props.onDashboardViewConfigChange({
+                  ...props.dashboardViewConfig,
+                  components: props.dashboardViewConfig.components.map(
+                    (component: Record<string, unknown>) => {
+                      return { ...component };
+                    },
+                  ),
+                });
+              },
+            },
+            "Done",
           ),
-        });
+        );
       },
     };
   },
@@ -160,6 +198,8 @@ import LeaveGuard from "../../../UI/Utils/LeaveGuard";
 import Navigation from "../../../UI/Utils/Navigation";
 import UnsavedChanges from "../../../UI/Utils/NewVersion/UnsavedChanges";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
+import { DASHBOARD_TOOLBAR_EDIT_STATE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardToolbar";
 import { afterHistorySteps } from "../../Helpers/HistorySteps";
 
 const LEAVE_TITLE: string = "Leave without saving?";
@@ -315,7 +355,7 @@ async function pressBrowserBack(): Promise<void> {
 }
 
 async function answer(
-  button: "Keep Editing" | "Discard Changes",
+  button: "Keep Editing" | "Discard Changes" | "Save Changes",
 ): Promise<void> {
   await act(async () => {
     fireEvent.click(within(queryLeaveDialog()!).getByText(button));
@@ -323,9 +363,34 @@ async function answer(
   await settle();
 }
 
+// The editing toolbar's chip beside the name: Editing, or Unsaved changes.
+function queryEditState(): HTMLElement | null {
+  return screen.queryByTestId(DASHBOARD_TOOLBAR_EDIT_STATE_TEST_ID);
+}
+
+function toastTitles(): Array<string> {
+  return Toast.getToasts().map((toast: ToastItem): string => {
+    return toast.title;
+  });
+}
+
+// What the last save wrote: the widgets of the board it carried.
+function savedWidgetCount(): number {
+  const call: Array<unknown> | undefined =
+    updateByIdMock.mock.calls[updateByIdMock.mock.calls.length - 1];
+  const data: { dashboardViewConfig: { components: Array<unknown> } } = (
+    call![0] as {
+      data: { dashboardViewConfig: { components: Array<unknown> } };
+    }
+  ).data;
+
+  return data.dashboardViewConfig.components.length;
+}
+
 beforeEach(() => {
   LeaveGuard.reset();
   UnsavedChanges.reset();
+  Toast.dismissAll();
   PermissionGate.clearPermissionPropsCache();
   window.history.replaceState(null, "", DASHBOARDS_PATH);
 
@@ -353,6 +418,7 @@ afterEach(async () => {
   cleanup();
   LeaveGuard.reset();
   UnsavedChanges.reset();
+  Toast.dismissAll();
   jest.clearAllMocks();
   // A history step still in flight lands before the next test.
   await settle();
@@ -653,5 +719,243 @@ describe("after Save Changes or Discard Changes", () => {
     await clickSideMenuMonitors();
 
     expect(queryLeaveDialog()).not.toBeNull();
+  });
+});
+
+describe("Save Changes in the question (issue #7402)", () => {
+  test("the side menu asks, and Save Changes saves the board, its new widget with it, then opens the page that was clicked", async () => {
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+    await clickSideMenuMonitors();
+
+    const dialog: HTMLElement = queryLeaveDialog()!;
+
+    expect(within(dialog).getByText("Save Changes")).toBeInTheDocument();
+    expect(within(dialog).getByText("Keep Editing")).toBeInTheDocument();
+    expect(within(dialog).getByText("Discard Changes")).toBeInTheDocument();
+
+    await answer("Save Changes");
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(savedWidgetCount()).toBe(2);
+    expect(screen.getByText("All monitors")).toBeInTheDocument();
+    expect(window.location.pathname).toBe(MONITORS_PATH);
+    expect(queryLeaveDialog()).toBeNull();
+    expect(browserAsksBeforeUnload()).toBe(false);
+    expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    // Said where the reader arrives.
+    expect(toastTitles()).toEqual(["Changes saved"]);
+  });
+
+  test("while the save is on its way the question waits, saying Saving..., and leaves once it lands", async () => {
+    let land: () => void = (): void => {};
+
+    updateByIdMock.mockImplementation(() => {
+      return new Promise<void>((resolve: () => void) => {
+        land = resolve;
+      });
+    });
+
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+    await clickSideMenuMonitors();
+    await answer("Save Changes");
+
+    const dialog: HTMLElement = queryLeaveDialog()!;
+
+    expect(within(dialog).getByText("Saving...")).toBeInTheDocument();
+    expect(
+      within(dialog).getByTestId("modal-footer-close-button"),
+    ).toBeDisabled();
+    expect(window.location.pathname).toBe(BOARD_PATH);
+    expect(isEditing()).toBe(true);
+
+    await act(async () => {
+      land();
+    });
+    await settle();
+
+    expect(screen.getByText("All monitors")).toBeInTheDocument();
+    expect(window.location.pathname).toBe(MONITORS_PATH);
+  });
+
+  test("a refused save stays on the board, still asking, and says why; nothing is lost", async () => {
+    updateByIdMock.mockImplementation(() => {
+      return Promise.reject(
+        new Error("You no longer have permission to edit this dashboard."),
+      );
+    });
+
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+    await clickSideMenuMonitors();
+    await answer("Save Changes");
+
+    const dialog: HTMLElement | null = queryLeaveDialog();
+
+    expect(dialog).not.toBeNull();
+    expect(within(dialog!).getByTestId("modal-error")).toHaveTextContent(
+      "You no longer have permission to edit this dashboard.",
+    );
+    expect(window.location.pathname).toBe(BOARD_PATH);
+    expect(screen.queryByText("All monitors")).toBeNull();
+    expect(widgetCount()).toBe("2");
+    expect(isEditing()).toBe(true);
+    expect(browserAsksBeforeUnload()).toBe(true);
+    expect(toastTitles()).toEqual([]);
+
+    // Keep Editing: the board as it was being edited, which says why too.
+    await answer("Keep Editing");
+
+    expect(queryLeaveDialog()).toBeNull();
+    expect(widgetCount()).toBe("2");
+    expect(isEditing()).toBe(true);
+    expect(
+      screen.getByText("You no longer have permission to edit this dashboard."),
+    ).toBeInTheDocument();
+  });
+
+  test("a refused save, then Discard Changes, goes where the side menu was going", async () => {
+    updateByIdMock.mockImplementation(() => {
+      return Promise.reject(new Error("The dashboard was archived."));
+    });
+
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+    await clickSideMenuMonitors();
+    await answer("Save Changes");
+    await answer("Discard Changes");
+
+    expect(screen.getByText("All monitors")).toBeInTheDocument();
+    expect(window.location.pathname).toBe(MONITORS_PATH);
+    expect(browserAsksBeforeUnload()).toBe(false);
+  });
+
+  test("Back, then Save Changes, saves the board and goes back", async () => {
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+    await pressBrowserBack();
+
+    expect(queryLeaveDialog()).not.toBeNull();
+
+    await answer("Save Changes");
+    await act(async () => {
+      await afterHistorySteps();
+    });
+    await settle();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(savedWidgetCount()).toBe(2);
+    expect(screen.getByText("All dashboards")).toBeInTheDocument();
+    expect(window.location.pathname).toBe(DASHBOARDS_PATH);
+    expect(queryLeaveDialog()).toBeNull();
+  });
+});
+
+describe("the toolbar says when the board has unsaved changes (issue #7403)", () => {
+  test("editing a board and changing nothing says Editing, never Unsaved changes", async () => {
+    await openBoardFromList();
+    await enterEditMode();
+
+    const editState: HTMLElement = queryEditState()!;
+
+    expect(editState).toHaveTextContent("Editing");
+    expect(editState).toHaveAttribute("data-has-unsaved-changes", "false");
+    expect(screen.queryByText("Unsaved changes")).toBeNull();
+  });
+
+  test("a new widget turns it to Unsaved changes, amber, as a polite status", async () => {
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+
+    const editState: HTMLElement = queryEditState()!;
+
+    expect(editState).toHaveTextContent("Unsaved changes");
+    expect(editState).not.toHaveTextContent("Editing");
+    expect(editState).toHaveAttribute("data-has-unsaved-changes", "true");
+    // Heard once, as the board first differs: a status is polite.
+    expect(editState).toHaveAttribute("role", "status");
+    expect(within(editState).getByTestId("pill")).toHaveAttribute(
+      "data-tone",
+      "warning",
+    );
+  });
+
+  test("the board handed back as it was, as Done with no change does, says nothing", async () => {
+    await openBoardFromList();
+    await enterEditMode();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("canvas-stub-hand-back"));
+    });
+    await settle();
+
+    expect(queryEditState()).toHaveTextContent("Editing");
+    expect(screen.queryByText("Unsaved changes")).toBeNull();
+  });
+
+  test("Save Changes takes it away with edit mode, and editing again starts at Editing", async () => {
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Save Changes"));
+    });
+    await settle();
+
+    expect(isEditing()).toBe(false);
+    expect(queryEditState()).toBeNull();
+    expect(screen.queryByText("Unsaved changes")).toBeNull();
+
+    await enterEditMode();
+
+    expect(queryEditState()).toHaveTextContent("Editing");
+  });
+
+  test("Discard Changes takes it away, and editing again starts at Editing", async () => {
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+
+    await act(async () => {
+      fireEvent.click(toolbarCancel());
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Discard Changes"));
+    });
+    await settle();
+
+    expect(isEditing()).toBe(false);
+    expect(queryEditState()).toBeNull();
+
+    await enterEditMode();
+
+    expect(queryEditState()).toHaveTextContent("Editing");
+    expect(screen.queryByText("Unsaved changes")).toBeNull();
+  });
+
+  test("a refused save keeps saying Unsaved changes", async () => {
+    updateByIdMock.mockImplementation(() => {
+      return Promise.reject(new Error("You no longer have permission."));
+    });
+
+    await openBoardFromList();
+    await enterEditMode();
+    await addTextWidget();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Save Changes"));
+    });
+    await settle();
+
+    expect(isEditing()).toBe(true);
+    expect(queryEditState()).toHaveTextContent("Unsaved changes");
   });
 });
