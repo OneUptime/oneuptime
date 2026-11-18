@@ -2,8 +2,10 @@ import CallStatus from "../../../Types/Call/CallStatus";
 import MailStatus from "../../../Types/Mail/MailStatus";
 import {
   WHO_WAS_TOLD_LOG_KINDS,
+  WhoWasToldChannelGroup,
   WhoWasToldLogKind,
   WhoWasToldLogRow,
+  WhoWasToldPerson,
   WhoWasToldResult,
   WhoWasToldRun,
   WhoWasToldStatus,
@@ -665,5 +667,89 @@ describe("a webhook's host", () => {
     );
     expect(getWhoWasToldWebhookHost("")).toBe("");
     expect(getWhoWasToldWebhookHost(undefined)).toBe("");
+  });
+});
+
+/*
+ * Two told in the same millisecond keep one order, whichever order their
+ * logs arrive in. A rule that posts to Slack and calls a webhook in one
+ * request tells both within a millisecond; the database keeps microseconds,
+ * a Date does not, and the logs arrive latest first - so the two swapped
+ * places from one read to the next (WhoWasToldReadPostgres saw it on the
+ * 16.0.0 release pull request).
+ */
+describe("those told in the same millisecond", () => {
+  const SAME: string = AT(5);
+  const slack: WhoWasToldLogRow = log({
+    id: "slack",
+    kind: WhoWasToldLogKind.Workspace,
+    workspaceType: WorkspaceType.Slack,
+    channelId: "C123",
+    channelName: "#incidents",
+    status: WorkspaceNotificationStatus.Success,
+    createdAt: SAME,
+  });
+  const webhook: WhoWasToldLogRow = log({
+    id: "webhook",
+    kind: WhoWasToldLogKind.Webhook,
+    address: "hooks.example.com",
+    status: WebhookStatus.Success,
+    createdAt: SAME,
+  });
+
+  const channelNames: (logs: Array<WhoWasToldLogRow>) => Array<string> = (
+    logs: Array<WhoWasToldLogRow>,
+  ): Array<string> => {
+    return build({ logs: logs }).channels.map(
+      (group: WhoWasToldChannelGroup): string => {
+        return group.name;
+      },
+    );
+  };
+
+  test("channels come by name, read in either order", () => {
+    expect(channelNames([slack, webhook])).toEqual([
+      "#incidents",
+      "hooks.example.com",
+    ]);
+    expect(channelNames([webhook, slack])).toEqual([
+      "#incidents",
+      "hooks.example.com",
+    ]);
+  });
+
+  test("people come by name, read in either order", () => {
+    const ann: WhoWasToldLogRow = log({
+      id: "ann",
+      userId: "user-a",
+      userName: "Ann",
+      createdAt: SAME,
+    });
+    const bob: WhoWasToldLogRow = log({
+      id: "bob",
+      userId: "user-b",
+      userName: "Bob",
+      createdAt: SAME,
+    });
+
+    for (const logs of [
+      [ann, bob],
+      [bob, ann],
+    ]) {
+      expect(
+        build({ logs: logs }).people.map((person: WhoWasToldPerson): string => {
+          return person.name;
+        }),
+      ).toEqual(["Ann", "Bob"]);
+    }
+  });
+
+  test("one told earlier still comes first, whatever its name", () => {
+    const earlier: WhoWasToldLogRow = { ...webhook, createdAt: AT(4) };
+
+    expect(channelNames([slack, earlier])).toEqual([
+      "hooks.example.com",
+      "#incidents",
+    ]);
   });
 });
