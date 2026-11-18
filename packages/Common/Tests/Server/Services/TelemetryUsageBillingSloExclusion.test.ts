@@ -47,6 +47,10 @@ import {
   ProductAnalyticsDerivedMetric,
   isProductAnalyticsDerivedMetricName,
 } from "../../../Types/Rum/ProductAnalyticsEvents";
+import {
+  KubernetesCostMetric,
+  isKubernetesCostMetricName,
+} from "../../../Types/Kubernetes/KubernetesCostMetrics";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
@@ -357,10 +361,15 @@ const EVERY_BUDGET_METRIC_NAME: Array<string> = [
 const EVERY_EXCLUDED_METRIC_NAME: Array<string> = [
   ...EVERY_BUDGET_METRIC_NAME,
   ...(Object.values(ProductAnalyticsDerivedMetric) as Array<string>),
+  /*
+   * And the Kubernetes cost metrics (#9548), worked out from allocation rows
+   * the cluster already sent.
+   */
+  ...(Object.values(KubernetesCostMetric) as Array<string>),
 ].sort();
 
 describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
-  test("is exactly the session replay and ingestion budget series and the product analytics event counts, every one of them", () => {
+  test("is exactly the session replay and ingestion budget series, the product analytics event counts and the Kubernetes cost metrics, every one of them", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort()).toEqual(
       EVERY_EXCLUDED_METRIC_NAME,
     );
@@ -371,7 +380,8 @@ describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
       expect(
         SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name) ||
           TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name) ||
-          isProductAnalyticsDerivedMetricName(name),
+          isProductAnalyticsDerivedMetricName(name) ||
+          isKubernetesCostMetricName(name),
       ).toBe(true);
     }
   });

@@ -3,6 +3,10 @@ import {
   PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX,
   isProductAnalyticsDerivedMetricName,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
+import {
+  KUBERNETES_COST_METRIC_NAME_PREFIX,
+  isKubernetesCostMetricName,
+} from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import {
   OtelAggregationTemporality,
@@ -1791,6 +1795,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   }
 
                   /*
+                   * And the Kubernetes cost metrics the cost ingest writes
+                   * from a cluster's allocations (#9548): they are left out
+                   * of billing by name, so no sender may write one.
+                   */
+                  if (isKubernetesCostMetricName(metricName)) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics.`,
+                    );
+                    continue;
+                  }
+
+                  /*
                    * Likewise the ingestion budget sweep's readings: they
                    * open budget incidents and are left out of usage and
                    * billing by name, so no sender may write one.
@@ -2259,6 +2275,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         ) {
                           logger.debug(
                             `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX}" are reserved for OneUptime's product analytics event counts.`,
+                          );
+                          continue;
+                        }
+
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          isKubernetesCostMetricName(finalMetricName)
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics.`,
                           );
                           continue;
                         }
