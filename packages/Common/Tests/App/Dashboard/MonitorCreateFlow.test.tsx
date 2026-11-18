@@ -9,6 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import { MemoryRouter } from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -266,13 +267,18 @@ function list(data: Array<unknown>): Record<string, unknown> {
   return { data, count: data.length, skip: 0, limit: 50 };
 }
 
-// The query string the page opens with.
+// The query string the page opens with, read by name and whole.
 function openWith(params: Record<string, string>): void {
   getJestSpyOn(Navigation, "getQueryStringByName").mockImplementation(
     (name: string): string | null => {
       return params[name] ?? null;
     },
   );
+  getJestSpyOn(Navigation, "getQueryString").mockImplementation((): string => {
+    const query: string = new URLSearchParams(params).toString();
+
+    return query ? `?${query}` : "";
+  });
 }
 
 async function renderPage(
@@ -280,12 +286,18 @@ async function renderPage(
 ): Promise<HTMLElement> {
   openWith(params);
 
+  /*
+   * In a router, as the Dashboard draws every page: Website or API picked,
+   * the page links the guided setup (#7054).
+   */
   render(
-    <MonitorCreate
-      pageRoute={new Route("/dashboard/monitors/create")}
-      currentProject={null}
-      hasPaymentMethod={true}
-    />,
+    <MemoryRouter>
+      <MonitorCreate
+        pageRoute={new Route("/dashboard/monitors/create")}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />
+    </MemoryRouter>,
   );
 
   const form: HTMLElement = await waitFor(
@@ -662,6 +674,36 @@ describe("picking and changing the type", () => {
     expect(editor).toHaveAttribute("data-monitor-type", MonitorType.Ping);
     expect(editor).toHaveAttribute("data-monitor-name", "Office router");
   });
+
+  /*
+   * Website or API picked on a plain Create Monitor: one line under the
+   * picked type offers the guided setup, which does the whole job - who is
+   * told and a test page too (#7054). Another type is offered nothing.
+   */
+  test("Website or API picked: one line offers the guided setup; Ping, nothing", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+    expect(await screen.findByTestId("website-down-setup-offer")).toBeVisible();
+    expect(
+      screen.getByTestId("website-down-setup-offer-link").getAttribute("href"),
+    ).toContain("/monitors/setup?from=create_monitor");
+
+    fireEvent.click(screen.getByTestId("card-select-change"));
+    fireEvent.click(screen.getByTestId("card-select-option-Ping"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("website-down-setup-offer"),
+      ).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("card-select-change"));
+    fireEvent.click(screen.getByTestId("card-select-option-API"));
+
+    expect(await screen.findByTestId("website-down-setup-offer")).toBeVisible();
+  });
 });
 
 describe("the criteria and the last step", () => {
@@ -987,6 +1029,10 @@ describe("opening on a type a link or a template chose", () => {
       MonitorType.API,
     );
     expect(nameInput()).toHaveValue("Checkout API");
+    // The template's own job: the guided setup is not offered over it (#7054).
+    expect(
+      screen.queryByTestId("website-down-setup-offer"),
+    ).not.toBeInTheDocument();
   });
 
   test("a link naming a type that does not exist opens on the common types", async () => {

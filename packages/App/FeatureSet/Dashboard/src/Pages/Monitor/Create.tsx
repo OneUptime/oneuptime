@@ -397,11 +397,12 @@ const MonitorCreate: FunctionComponent<
    * it offers the guided setup (#7054).
    */
   const isPlainCreate: boolean = useMemo((): boolean => {
-    return Array.from(new URLSearchParams(window.location.search).keys()).every(
-      (key: string): boolean => {
-        return key === "monitorType";
-      },
-    );
+    // The address as the page reads its other parameters (Navigation).
+    return Array.from(
+      new URLSearchParams(Navigation.getQueryString()).keys(),
+    ).every((key: string): boolean => {
+      return key === "monitorType";
+    });
   }, []);
 
   const [isLoading, setIsLoading] = useState<boolean>(
