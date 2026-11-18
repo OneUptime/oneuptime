@@ -2,7 +2,14 @@ import crypto from "crypto";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import CredentialGuard from "../Utils/CredentialGuard";
 import SignupUser from "../Utils/SignupUser";
+import SignUpInvitationUtil from "../Utils/SignUpInvitation";
 import UserResponse from "../Utils/UserResponse";
+import {
+  SIGN_UP_INVITATION_PROJECT_KEY,
+  SIGN_UP_INVITATION_ROUTE,
+  SignUpInvitation,
+  toSignUpInvitationAnswerJSON,
+} from "Common/Types/Accounts/SignUpInvitation";
 import VerificationEmailResendPolicy, {
   VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
   VERIFICATION_EMAIL_RESEND_INVALID_MESSAGE,
@@ -593,6 +600,48 @@ router.post(
   },
 );
 
+/*
+ * POST /sign-up-invitation: the invitation a sign-up link is for (#7471,
+ * Common/Types/Accounts/SignUpInvitation) - which project, who invited
+ * them and the name the inviter typed - for the sign-up page an invitation
+ * opens, asked with the invited address and its registration token. Nobody
+ * is signed in to ask: the token is the proof of the invited mailbox, read
+ * and never spent (Utils/SignUpInvitation). Every answer but the invited
+ * address's own is { invitation: null }, so asking tells nobody else
+ * anything, not even whether the address has an account.
+ *
+ * Not rate limited: the token is a server-minted random UUID - 122 bits -
+ * so there is nothing to guess, and the answer costs a few reads by
+ * indexed columns, as /signup's own claim does. Beside /signup, whose page
+ * asks it; nothing is cached.
+ */
+router.post(
+  SIGN_UP_INVITATION_ROUTE,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      const invitation: SignUpInvitation | null =
+        await SignUpInvitationUtil.read({
+          email: req.body?.["email"],
+          token: req.body?.["token"],
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        toSignUpInvitationAnswerJSON(invitation),
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 router.post(
   "/signup",
   async (
@@ -878,6 +927,21 @@ router.post(
           props: {
             isRoot: true,
           },
+        });
+
+        /*
+         * The sign-up page said which project invited them, and that
+         * creating the account joins it (#7471, SignUpInvitation): the
+         * token this request spent proves it is the invited person, so the
+         * invitation is accepted now rather than asked about again on the
+         * next screen. Before the permissions below are refreshed, so the
+         * session opens with the project. A page that named no project -
+         * an older page, or one whose ask failed - accepts nothing, and the
+         * invitation waits in the Dashboard as before.
+         */
+        await SignUpInvitationUtil.acceptForClaimedAccount({
+          userId: alreadySavedUser.id!,
+          projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY],
         });
       } else {
         /*

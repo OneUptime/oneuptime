@@ -56857,7 +56857,19 @@
   "Checks Last Late At": "Última comprobación con retraso",
   "Checks Late Since": "Comprobaciones con retraso desde",
   "Monitor Checks": "Comprobaciones de monitores",
+  "Remove them from your teams on their Teams page instead.": "Quita a esta persona de tus equipos en su página Equipos.",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Desde {{time}}, sus monitores esperan más de un minuto después de su hora de comprobación, por lo que se comprueban con menos frecuencia de la configurada.",
   "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "Actualiza la sonda o deja que compruebe más monitores a la vez: aumenta {{setting}} en la sonda y reiníciala.",
-  "Whether this probe checks its monitors as often as they are set.": "Si esta sonda comprueba sus monitores con la frecuencia configurada."
+  "Whether this probe checks its monitors as often as they are set.": "Si esta sonda comprueba sus monitores con la frecuencia configurada.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "Tu rol no puede quitar personas de {{count}} de sus equipos, así que esta persona seguiría en este proyecto.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "Tu rol no puede quitar personas de {{count}} de sus equipos, así que esta persona seguiría en este proyecto.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "Tu rol no puede quitar personas de {{teams}}, así que esta persona seguiría en este proyecto.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "{{count}} de las personas seleccionadas siguen en este proyecto, porque tu rol no puede quitarlas de todos sus equipos:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} de las personas seleccionadas sigue en este proyecto, porque tu rol no puede quitarla de todos sus equipos:",
+  "{{teams}} and {{count}} other teams": "{{teams}} y {{count}} equipos más",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} y {{count}} equipo más",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "El correo de invitación a {{email}} no se envió. Copia este enlace y envíaselo tú. Funciona una sola vez, solo para esta dirección, durante 7 días.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "El correo de invitación a {{email}} no se envió. Ya tiene una cuenta y ahora es miembro: envíale este enlace para iniciar sesión.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "El correo de invitación a {{email}} no se envió. Ya tiene una cuenta: envíale este enlace para iniciar sesión y desde ahí aceptará la invitación.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "No se pudo leer el enlace de invitación. Quizá ya no esté invitado a este proyecto: vuelve a invitarlo desde su página Usuarios."
 }

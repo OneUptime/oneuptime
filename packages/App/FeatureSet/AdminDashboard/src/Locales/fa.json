@@ -4238,5 +4238,10 @@
   "{{field}} is any of {{count}} selected people or teams": "{{field}} یکی از {{count}} فرد یا تیم انتخاب‌شده است",
   "{{field}} is any of {{count}} selected people or teams_one": "{{field}} همان {{count}} فرد یا تیم انتخاب‌شده است",
   "{{field}} is none of {{count}} selected people or teams": "{{field}} هیچ‌یک از {{count}} فرد یا تیم انتخاب‌شده نیست",
-  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} آن {{count}} فرد یا تیم انتخاب‌شده نیست"
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} آن {{count}} فرد یا تیم انتخاب‌شده نیست",
+  "They can still join: send them their invitation link yourself.": "او همچنان می‌تواند بپیوندد: پیوند دعوتش را خودتان برایش بفرستید.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "ایمیل دعوت به {{email}} فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "ایمیل دعوت به {{email}} فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "ایمیل دعوت به {{email}} فرستاده نشد. آن‌ها از قبل حساب دارند و اکنون عضو هستند: این پیوند را برای ورود برایشان بفرستید.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "پیوند دعوت او خوانده نشد. شاید دیگر به این پروژه دعوت نشده باشد: از صفحهٔ کاربران پروژه دوباره دعوتش کنید."
 }

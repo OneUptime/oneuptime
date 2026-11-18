@@ -14,7 +14,15 @@ import ServerEmailLogUtil, {
 import { JSONObject } from "Common/Types/JSON";
 import ServerSendingWords from "Common/Types/ServerSending/ServerSendingWords";
 import { PluralTemplate } from "Common/Types/Translator";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import InvitationLinkModal, {
+  INVITATION_LINK_COPY,
+  InvitationLinkInvitee,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState, {
   EmptyStateSize,
@@ -65,6 +73,8 @@ export const SERVER_EMAIL_LOG_FAILED_ONLY_TEST_ID: string =
   "server-email-log-failed-only";
 export const SERVER_EMAIL_LOG_SHOW_MORE_TEST_ID: string =
   "server-email-log-show-more";
+export const SERVER_EMAIL_LOG_REASON_TEST_ID: string =
+  "server-email-log-reason";
 
 export const SERVER_EMAIL_LOG_COPY: {
   title: string;
@@ -80,6 +90,7 @@ export const SERVER_EMAIL_LOG_COPY: {
   noFailedEmails: string;
   showMore: string;
   couldNotLoad: string;
+  invitationStillJoins: string;
 } = {
   title: translationKey("Email Log"),
   description: {
@@ -100,6 +111,38 @@ export const SERVER_EMAIL_LOG_COPY: {
   noFailedEmails: translationKey("No failed emails."),
   showMore: translationKey("Show more"),
   couldNotLoad: translationKey("The email log could not be loaded."),
+  // Under an invitation email that was not sent: how the person still gets in (#7169).
+  invitationStillJoins: translationKey(
+    "They can still join: send them their invitation link yourself.",
+  ),
+};
+
+// An invitation email's template, as the log names it (ServerEmailLogReader).
+export const INVITATION_TEMPLATE_NAME: string =
+  EmailTemplateType.InviteMember.replace(/\.hbs$/i, "");
+
+export const SERVER_EMAIL_LOG_INVITATION_LINK_TEST_ID: string =
+  "server-email-log-invitation-link";
+
+/*
+ * An invitation email the server failed to send, to a project's invitee
+ * (#7169): the person never heard of it, so its row offers the link the
+ * email would have carried, for the master admin to send them.
+ */
+export const getUnsentInvitation: (
+  entry: ServerEmailLogEntry,
+) => InvitationLinkInvitee | null = (
+  entry: ServerEmailLogEntry,
+): InvitationLinkInvitee | null => {
+  if (
+    entry.status !== ServerEmailLogStatus.Failed ||
+    entry.templateName !== INVITATION_TEMPLATE_NAME ||
+    !entry.projectId
+  ) {
+    return null;
+  }
+
+  return { projectId: entry.projectId, email: entry.toEmail };
 };
 
 // What a row says it was: OneUptime's own subject, or a project's template.
@@ -209,6 +252,10 @@ const ServerEmailLogCard: FunctionComponent = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  // The unsent invitation whose link the dialog reads (#7169).
+  const [invitationLinkFor, setInvitationLinkFor] =
+    useState<InvitationLinkInvitee | null>(null);
 
   // Bumped by every first page asked for: a page for an older ask is dropped.
   const readRef: MutableRefObject<number> = useRef<number>(0);
@@ -345,6 +392,15 @@ const ServerEmailLogCard: FunctionComponent = (): ReactElement => {
               entry,
               translator,
             );
+            /*
+             * The mail service's own words read in their own direction:
+             * on a page read from the right, "535 5.7.8 Authentication
+             * failed" kept its numbers at the start, not at the end.
+             */
+            const isReasonAsSaid: boolean =
+              Boolean(reason) && reason === entry.statusMessage;
+            const unsentInvitation: InvitationLinkInvitee | null =
+              getUnsentInvitation(entry);
 
             return (
               <li
@@ -378,9 +434,34 @@ const ServerEmailLogCard: FunctionComponent = (): ReactElement => {
                   )}
                 </p>
                 {reason ? (
-                  <p className="mt-1 break-words text-xs text-gray-600">
+                  <p
+                    className="mt-1 break-words text-xs text-gray-600"
+                    dir={isReasonAsSaid ? "auto" : undefined}
+                    data-testid={SERVER_EMAIL_LOG_REASON_TEST_ID}
+                  >
                     {reason}
                   </p>
+                ) : (
+                  <></>
+                )}
+                {unsentInvitation ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <p className="text-xs text-gray-600">
+                      {translator.translateText(
+                        SERVER_EMAIL_LOG_COPY.invitationStillJoins,
+                      ) || SERVER_EMAIL_LOG_COPY.invitationStillJoins}
+                    </p>
+                    <Button
+                      title={INVITATION_LINK_COPY.getLink}
+                      buttonStyle={ButtonStyleType.OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      icon={IconProp.Link}
+                      dataTestId={SERVER_EMAIL_LOG_INVITATION_LINK_TEST_ID}
+                      onClick={() => {
+                        setInvitationLinkFor(unsentInvitation);
+                      }}
+                    />
+                  </div>
                 ) : (
                   <></>
                 )}
@@ -430,6 +511,16 @@ const ServerEmailLogCard: FunctionComponent = (): ReactElement => {
         </div>
         {getBody()}
       </div>
+      {invitationLinkFor ? (
+        <InvitationLinkModal
+          invitee={invitationLinkFor}
+          onClose={() => {
+            setInvitationLinkFor(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Card>
   );
 };

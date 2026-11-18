@@ -4238,5 +4238,10 @@
   "{{field}} is any of {{count}} selected people or teams": "{{field}} 是所選 {{count}} 個人員或團隊中的任一個",
   "{{field}} is any of {{count}} selected people or teams_one": "{{field}} 是所選 {{count}} 個人員或團隊中的任一個",
   "{{field}} is none of {{count}} selected people or teams": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個",
-  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個"
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個",
+  "They can still join: send them their invitation link yourself.": "對方仍可加入：請自行把邀請連結傳給對方。",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "寄給 {{email}} 的邀請郵件未傳送。請複製此連結並自行傳送給對方。此連結僅限此地址使用一次，有效期 7 天。",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "寄給 {{email}} 的邀請郵件未傳送。對方已有帳號：請傳送此連結讓其登入，並在那裡接受邀請。",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "寄給 {{email}} 的邀請郵件未傳送。對方已有帳號，現在已是成員：請傳送此連結讓其登入。",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "無法讀取邀請連結。對方可能已不再受邀加入此專案：請在該專案的「使用者」頁面重新邀請。"
 }

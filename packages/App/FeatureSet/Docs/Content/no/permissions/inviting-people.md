@@ -53,7 +53,7 @@ Skriv adressen i **E-post**. Hvis ingen OneUptime-konto bruker den ennå, ber di
 
 Klikk på **Inviter**. OneUptime sender invitasjonen på e-post og åpner personens side. Personen vises som **Invitasjon sendt** til invitasjonen er godtatt.
 
-På en selvhostet server som ikke kan sende e-post ennå, sendes ingen e-post, og personen vises som **Invitert**. En hovedadministrator ser først **Send dem invitasjonslenken**: kopier lenken, send den selv til personen, og klikk deretter på **Ferdig**. Alle andre ber serverens administrator om å [sette opp e-post](/docs/emails/smtp#åpne-skjemaet).
+På en selvhostet server som ikke kan sende e-post ennå, sendes ingen e-post, og personen vises som **Invitert**. En hovedadministrator ser først **Send dem invitasjonslenken**: kopier lenken, send den selv til personen, og klikk deretter på **Ferdig**. Alle andre ber serverens administrator om å [sette opp e-post](/docs/emails/smtp#åpne-skjemaet). E-post som settes opp senere, sender ikke invitasjonene som ble laget før: Personen kommer inn med invitasjonslenken sin, eller ved å registrere seg med den inviterte adressen.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ På en selvhostet server som ikke kan sende e-post ennå, sendes ingen e-post, o
 
 ## Godta en invitasjon
 
-Invitasjonsmeldingen nevner prosjektet. Knappen i den er **Create Your Account** for den som ikke har en OneUptime-konto ennå, og **Sign In to OneUptime** for den som har en. Etter innlogging godtar personen på ett av to steder:
+Invitasjonsmeldingen nevner prosjektet og hvem som inviterte personen. Knappen i den er **Create Your Account** for den som ikke har en OneUptime-konto ennå, og **Sign In to OneUptime** for den som har en.
+
+**Create Your Account** åpner registreringssiden med adressen og navnet du skrev inn allerede fylt ut, og sier hvilket prosjekt som inviterte personen, og hvem. Den som registrerer seg der, blir med i prosjektet uten mer å godta.
+
+På en selvhostet server som ikke kan sende e-post ennå, får ingen e-post: Invitasjonslenken personen får i stedet, åpner den samme registreringssiden, eller innloggingssiden for den som allerede har en konto.
+
+Den som logger inn, eller registrerer seg på en annen måte, godtar på ett av to steder:
 
 | Hvor personen er | Hva personen ser | Hva personen klikker på |
 | --- | --- | --- |
@@ -112,6 +118,8 @@ Owners-teamet beholder alltid minst ett medlem som har blitt med, så et prosjek
 
 Under **Brukere** åpner du radmenyen til personen, **⋯**, og klikker på **Fjern fra prosjekt**. Eller åpne personen og velg **Fjern fra prosjekt** i sidemenyen. For å fjerne flere personer samtidig merker du radene deres og sletter utvalget: hver av dem fjernes på samme måte.
 
+Hvis rollen din bare fjerner personer fra noen team, for eksempel dem du eier, er **Fjern fra prosjekt** låst for en person som også er i et team du ikke kan fjerne personen fra, og nevner teamene som holder personen i prosjektet, de du får se. Når du fjerner flere personer samtidig, hoppes personen over, og det blir sagt.
+
 Å fjerne noen tar personen ut av alle prosjektets team. Personen mister tilgangen med en gang, selv om den er innlogget, tas av vaktplaner og eskaleringsregler og får ikke lenger prosjektets varslinger. OneUptime-kontoen slettes ikke, og du kan invitere personen igjen. [Brukere, team og tillatelser](/docs/permissions/index#brukere) viser alt det tar med seg å forlate et prosjekt.
 
 ## Andre måter å bli med på
@@ -134,8 +142,14 @@ I OneUptime Cloud har et prosjekt på Free-abonnementet plass til én person. En
 Én adresse kan få 10 invitasjoner i timen, til prosjekter og private statussider til sammen, uansett hvem som sender dem. Vent en time, og inviter så personen på nytt.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Rollen din fjerner bare personer fra noen av prosjektets team, for eksempel dem du eier, og denne personen er også i andre. Fjern personen fra dine egne team på personens side **Team**, eller be en Prosjekteier eller Prosjektadministrator om å fjerne personen fra prosjektet.
+:::
+
 :::details Invitasjonsmeldingen kom ikke frem, eller lenken er utløpt
 Invitasjonen avhenger ikke av e-posten. Be personen registrere seg med den inviterte adressen: OneUptime sender den adressen en ny lenke for å fullføre kontoen. Den som allerede har en konto, logger inn og finner invitasjonen.
+
+For å se om den ble sendt, åpner du fanen **E-post** under prosjektets **Varslingslogger**: Raden for hver invitasjon sier om den ble sendt, og hvorfor ikke. På en selvhostet server finner en hovedadministrator også hver e-post serveren ikke klarte å sende, i [e-postloggen](/docs/emails/email-providers#se-hva-serveren-har-sendt) til serveren.
 
 På en selvhostet server som ikke kan sende e-post ennå, kan heller ikke registreringen sende en ny lenke på e-post: den ber i stedet personen spørre etter invitasjonslenken sin. Når serverens administrator har [satt opp e-post](/docs/emails/smtp#åpne-skjemaet), virker registreringen som over. Inntil da kan en hovedadministrator sende personen en ny lenke, som virker én gang, bare for den adressen, i 7 dager: under **Brukere** åpner du radmenyen til personen, **⋯**, og klikker på **Hent invitasjonslenke**.
 :::
