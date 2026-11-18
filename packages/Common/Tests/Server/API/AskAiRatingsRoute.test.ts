@@ -35,6 +35,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -132,7 +133,7 @@ function memberOf(
 }
 
 let props: DatabaseCommonInteractionProps;
-let getRatings: jest.SpiedFunction<
+let getRatings: SpyInstance<
   typeof ProductFeedbackService.getProjectAskAiRatings
 >;
 
@@ -154,7 +155,8 @@ afterEach(() => {
 });
 
 async function call(): Promise<unknown> {
-  const next: jest.Mock = jest.fn();
+  const next: Mock<(error?: unknown) => void> =
+    jest.fn<(error?: unknown) => void>();
 
   await ratingsRoute().handlerFunction(
     { query: {}, params: {}, headers: {}, body: {} } as never,

@@ -21,6 +21,7 @@ import {
   test,
 } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React from "react";
 
 /*
@@ -103,7 +104,7 @@ describe("docs/link_opened", () => {
   });
 
   test("a list's View Documentation opens its page in a new tab, and says which", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
     const link: URL = URL.fromString(
