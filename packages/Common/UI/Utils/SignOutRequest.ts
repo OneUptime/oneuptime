@@ -1,4 +1,8 @@
 import URL from "../../Types/API/URL";
+import {
+  IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD,
+  isUsableEndSessionEndpoint,
+} from "../../Types/SSO/IdentityProviderSignOut";
 
 /*
  * THE REQUEST THAT ENDS A SESSION ON THE SERVER, SENT SO THAT NO PAGE CHANGE
@@ -54,6 +58,17 @@ export enum SignOutAnswer {
 }
 
 /*
+ * What came of a sign-out, and where the server said the browser goes next:
+ * the identity provider's own sign-out, to end its session too (#9535,
+ * Types/SSO/IdentityProviderSignOut), or null - the sign-in page, as always.
+ * Only a sign-out the server answered can name one.
+ */
+export interface SignOutResult {
+  answer: SignOutAnswer;
+  identityProviderSignOutUrl: string | null;
+}
+
+/*
  * How long a page waits for the server to answer its sign-out before it
  * moves on anyway. A sign-out is answered in well under a second; this is
  * for a server that is slow, whose answer still arrives after the page has
@@ -66,7 +81,7 @@ export const SIGN_OUT_ANSWER_WAIT_IN_MS: number = 5000;
  * one is on its way - a burst of requests the server refused, each signing
  * out - shares it, instead of sending one each.
  */
-const signOutsOnTheirWay: Map<string, Promise<SignOutAnswer>> = new Map();
+const signOutsOnTheirWay: Map<string, Promise<SignOutResult>> = new Map();
 
 export default class SignOutRequest {
   /**
@@ -79,12 +94,24 @@ export default class SignOutRequest {
     url: URL,
     options?: { waitInMs?: number | undefined },
   ): Promise<SignOutAnswer> {
-    const signOut: Promise<SignOutAnswer> | null = SignOutRequest.start(
+    return (await SignOutRequest.sendAndRead(url, options)).answer;
+  }
+
+  /**
+   * Sends the sign-out as send does, and resolves with what came of it and
+   * where the server said the browser goes next (SignOutResult). Never
+   * rejects.
+   */
+  public static async sendAndRead(
+    url: URL,
+    options?: { waitInMs?: number | undefined },
+  ): Promise<SignOutResult> {
+    const signOut: Promise<SignOutResult> | null = SignOutRequest.start(
       url.toString(),
     );
 
     if (!signOut) {
-      return SignOutAnswer.NotSent;
+      return { answer: SignOutAnswer.NotSent, identityProviderSignOutUrl: null };
     }
 
     return await SignOutRequest.waitFor(
@@ -93,14 +120,40 @@ export default class SignOutRequest {
     );
   }
 
+  /*
+   * Where the server's answer says the browser goes next, or null: an
+   * http(s) address it names in IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD, and
+   * nothing else - no other scheme, whatever the answer holds. An answer
+   * with no body, or one that is not JSON, names none.
+   */
+  public static async readIdentityProviderSignOutUrl(
+    response: Response,
+  ): Promise<string | null> {
+    try {
+      const body: unknown = await response.json();
+
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return null;
+      }
+
+      const address: unknown = (body as Record<string, unknown>)[
+        IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD
+      ];
+
+      return isUsableEndSessionEndpoint(address) ? address : null;
+    } catch {
+      return null;
+    }
+  }
+
   // Forgets the sign-outs on their way. For tests.
   public static forgetSignOutsOnTheirWayForTests(): void {
     signOutsOnTheirWay.clear();
   }
 
   // The sign-out to `address` on its way, sent now if none is; null when nothing can send it.
-  private static start(address: string): Promise<SignOutAnswer> | null {
-    const onItsWay: Promise<SignOutAnswer> | undefined =
+  private static start(address: string): Promise<SignOutResult> | null {
+    const onItsWay: Promise<SignOutResult> | undefined =
       signOutsOnTheirWay.get(address);
 
     if (onItsWay) {
@@ -115,7 +168,7 @@ export default class SignOutRequest {
       return null;
     }
 
-    let answered: Promise<SignOutAnswer>;
+    let answered: Promise<SignOutResult>;
 
     try {
       answered = window
@@ -127,21 +180,36 @@ export default class SignOutRequest {
           headers: { Accept: "application/json" },
         })
         .then(
-          (response: Response): SignOutAnswer => {
-            return response.ok
-              ? SignOutAnswer.SignedOut
-              : SignOutAnswer.Refused;
+          async (response: Response): Promise<SignOutResult> => {
+            if (!response.ok) {
+              return {
+                answer: SignOutAnswer.Refused,
+                identityProviderSignOutUrl: null,
+              };
+            }
+
+            return {
+              answer: SignOutAnswer.SignedOut,
+              identityProviderSignOutUrl:
+                await SignOutRequest.readIdentityProviderSignOutUrl(response),
+            };
           },
-          (): SignOutAnswer => {
-            return SignOutAnswer.Unreachable;
+          (): SignOutResult => {
+            return {
+              answer: SignOutAnswer.Unreachable,
+              identityProviderSignOutUrl: null,
+            };
           },
         );
     } catch {
       // A fetch that throws before it sends anything (an address it refuses).
-      return Promise.resolve(SignOutAnswer.Unreachable);
+      return Promise.resolve({
+        answer: SignOutAnswer.Unreachable,
+        identityProviderSignOutUrl: null,
+      });
     }
 
-    const signOut: Promise<SignOutAnswer> = answered.finally((): void => {
+    const signOut: Promise<SignOutResult> = answered.finally((): void => {
       if (signOutsOnTheirWay.get(address) === signOut) {
         signOutsOnTheirWay.delete(address);
       }
@@ -157,16 +225,19 @@ export default class SignOutRequest {
    * request is never cancelled: it carries on after the wait, keepalive.
    */
   private static async waitFor(
-    signOut: Promise<SignOutAnswer>,
+    signOut: Promise<SignOutResult>,
     waitInMs: number,
-  ): Promise<SignOutAnswer> {
+  ): Promise<SignOutResult> {
     let timer: ReturnType<typeof setTimeout> | undefined = undefined;
 
-    const waitIsOver: Promise<SignOutAnswer> = new Promise<SignOutAnswer>(
-      (resolve: (answer: SignOutAnswer) => void): void => {
+    const waitIsOver: Promise<SignOutResult> = new Promise<SignOutResult>(
+      (resolve: (result: SignOutResult) => void): void => {
         timer = setTimeout(
           (): void => {
-            resolve(SignOutAnswer.StillOnItsWay);
+            resolve({
+              answer: SignOutAnswer.StillOnItsWay,
+              identityProviderSignOutUrl: null,
+            });
           },
           Math.max(0, waitInMs),
         );

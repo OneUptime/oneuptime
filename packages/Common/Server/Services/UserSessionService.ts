@@ -59,6 +59,10 @@ import {
   SessionSignInOrigin,
   toSessionSignInInfo,
 } from "../../Types/UserSession/SessionSignIn";
+import {
+  IdentityProviderSignOutRecord,
+  readIdentityProviderSignOutRecord,
+} from "../../Types/SSO/IdentityProviderSignOut";
 
 export interface SessionMetadata {
   session: Model;
@@ -223,6 +227,19 @@ export interface CreateSessionOptions {
    */
   signIn?: SessionSignIn | undefined;
   requestOrigin?: RequestOrigin | undefined;
+  /*
+   * What signing its person out of their identity provider too takes, for a
+   * browser sign-in through an OpenID Connect provider that asks for it
+   * (Types/SSO/IdentityProviderSignOut): kept with the session, its ID token
+   * encrypted, and read at the session's sign-out.
+   */
+  identityProviderSignOut?: IdentityProviderSignOutRecord | undefined;
+}
+
+// What a session about to be signed out kept to sign its person out of their provider too.
+export interface SessionIdentityProviderSignOut {
+  sessionId: ObjectID;
+  record: IdentityProviderSignOutRecord;
 }
 
 export interface RenewSessionOptions {
@@ -1823,7 +1840,85 @@ export class Service extends DatabaseService<Model> {
       isGlobalLogin: options.isGlobalLogin,
     } as JSONObject;
 
+    /*
+     * Kept only as a whole record of the shape a sign-out reads back
+     * (readIdentityProviderSignOutRecord); its ID token is encrypted on the
+     * way in (UserSession.identityProviderSignOut).
+     */
+    const identityProviderSignOut: IdentityProviderSignOutRecord | null =
+      readIdentityProviderSignOutRecord(options.identityProviderSignOut);
+
+    if (identityProviderSignOut) {
+      session.identityProviderSignOut = {
+        ...identityProviderSignOut,
+      } as unknown as JSONObject;
+    }
+
     return session;
+  }
+
+  /*
+   * What signing the person of a live session out of their identity
+   * provider too takes (Types/SSO/IdentityProviderSignOut), or null: the
+   * session a sign-out is about to end, named by its refresh token or by its
+   * id and person, as POST /identity/logout names it. Read before the
+   * session ends; a session ended already gives nothing.
+   */
+  @CaptureSpan()
+  public async findIdentityProviderSignOut(
+    data: { refreshToken: string } | { sessionId: ObjectID; userId: ObjectID },
+  ): Promise<SessionIdentityProviderSignOut | null> {
+    const query: Query<Model> =
+      "refreshToken" in data
+        ? {
+            refreshToken: new HashedString(
+              await HashedString.hashValue(data.refreshToken, EncryptionSecret),
+              true,
+            ),
+            isRevoked: false,
+          }
+        : {
+            _id: data.sessionId,
+            userId: data.userId,
+            isRevoked: false,
+          };
+
+    const session: Model | null = await this.findOneBy({
+      query: query,
+      select: {
+        _id: true,
+        identityProviderSignOut: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const record: IdentityProviderSignOutRecord | null =
+      readIdentityProviderSignOutRecord(session?.identityProviderSignOut);
+
+    if (!session?.id || !record) {
+      return null;
+    }
+
+    return { sessionId: session.id, record: record };
+  }
+
+  /*
+   * Clears what a session kept to sign its person out of their identity
+   * provider, once a sign-out has used it: the ID token is kept no longer
+   * than the session. A write of that column alone, which no hook reacts to.
+   */
+  @CaptureSpan()
+  public async forgetIdentityProviderSignOut(sessionId: ObjectID): Promise<void> {
+    await this.getRepository().update(
+      {
+        _id: sessionId.toString(),
+      } as any,
+      {
+        identityProviderSignOut: null,
+      } as any,
+    );
   }
 
   /*

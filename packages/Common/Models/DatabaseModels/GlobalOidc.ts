@@ -251,6 +251,34 @@ export default class GlobalOIDC extends BaseModel {
   })
   public restrictToAttachedProjects?: boolean = undefined;
 
+  /*
+   * Whether signing out of OneUptime signs the person out of this provider
+   * too (Types/SSO/IdentityProviderSignOut, #9535): for shared computers.
+   * Off by default, since on a single-user laptop it also signs the person
+   * out of every other app that uses the provider. Turning it on asks the
+   * provider's discovery document for its end_session_endpoint first
+   * (Utils/SSO/IdentityProviderSignOutCheck), and is refused without one.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Sign Out of the Identity Provider Too",
+    description:
+      "When enabled, signing out of OneUptime also signs the person out of this identity provider (OpenID Connect RP-initiated logout), so the next person on a shared computer signs in as themselves. It also signs them out of every other app that uses the provider. The provider must publish an end_session_endpoint and allow OneUptime's sign-in page as a post-logout redirect URI.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public signOutOfIdentityProvider?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

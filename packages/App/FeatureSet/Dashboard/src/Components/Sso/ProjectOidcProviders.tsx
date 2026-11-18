@@ -15,6 +15,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
+import { getPostLogoutRedirectUri } from "Common/Types/SSO/IdentityProviderSignOut";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import React, {
   Fragment,
@@ -114,6 +115,7 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
         formFields={getOidcProviderFormFields<ProjectOIDC>({
           withTeams: true,
           getTeamsFooterElement: getSsoTeamsGrantNote,
+          withIdentityProviderSignOut: true,
         })}
         createInitialValues={createInitialValues}
         onCreateSuccess={(
@@ -221,11 +223,27 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
                     label: "Identifier (audience):",
                     value: `${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`,
                   },
+                  {
+                    // Where the provider sends people once it has signed them out (#9535).
+                    label: "Post-logout Redirect URI:",
+                    value: getPostLogoutRedirectUri({
+                      httpProtocol: HTTP_PROTOCOL.toString(),
+                      host: HOST,
+                    }),
+                  },
                 ]}
               />
               <div className="text-sm text-gray-500">
                 {translator.translateText(
                   "Configure your identity provider to redirect to the URL above after authentication. The client must be permitted to use the authorization code flow with PKCE.",
+                )}
+              </div>
+              <div
+                className="text-sm text-gray-500"
+                data-testid="oidc-config-post-logout-note"
+              >
+                {translator.translateText(
+                  "If Sign Out of the Identity Provider Too is on, also register the post-logout redirect URI: the provider sends people there once it has signed them out.",
                 )}
               </div>
               {!oidcConfigTarget?.isEnabled && (
