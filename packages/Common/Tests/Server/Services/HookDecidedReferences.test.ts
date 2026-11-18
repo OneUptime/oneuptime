@@ -511,6 +511,16 @@ describe("an escalation rule is added to the policy it names, under either name"
         return new PositiveNumber(1);
       }) as never);
 
+    // The policy's last rule, at 1: the new one, given no number, goes after it.
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .mockImplementation((async (request: {
+        query: Record<string, unknown>;
+      }) => {
+        counted.push(request.query);
+        return { order: 1 };
+      }) as never);
+
     const data: Record<string, unknown> = {
       projectId: PROJECT_ID,
       escalateAfterInMinutes: 30,
