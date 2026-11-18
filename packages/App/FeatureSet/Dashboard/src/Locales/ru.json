@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Настройка для Android",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "События, доля ошибок и длительность p95, сбои и ANR, модели устройств и вкладки телеметрии."
 }

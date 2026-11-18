@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android 端设置",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "事件、错误率和 p95 时长、崩溃和 ANR、设备型号以及遥测标签页。"
 }

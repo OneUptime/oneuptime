@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-Agenten [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) legger automatisk instrumentering på toppen og setter enhetsattributter på sin egen ressurs. Hvis du bruker den, peker du eksportøren mot samme endepunkt og header, og sjekker at `device.model.identifier` når ressursen i din versjon.
+Agenten [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) legger krasj, ANR-er, trege og frosne rammer og appoppstarter på toppen, og setter `device.model.identifier` og `device.manufacturer` på sin egen ressurs. [Android-oppsett](/docs/rum/android-setup) setter den opp i stedet for koden ovenfor.
 @tab iOS
 Bruk [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), og sett enhetsattributtene selv: Ressursen hver versjon legger til av seg selv, har endret seg mellom utgivelser.
 
