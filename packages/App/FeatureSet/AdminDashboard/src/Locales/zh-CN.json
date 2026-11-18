@@ -4219,10 +4219,18 @@
   "The email log could not be loaded.": "无法加载邮件日志。",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此服务器未设置电子邮件，因此此邮件未发送。请联系服务器管理员设置电子邮件。",
   "Outage Notifications": "故障通知",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "当此服务器的邮件停止工作，或所有全局探测器都停止报告时，会通知主管理员，恢复正常时再通知一次：绝不通过已停止的渠道，且每小时最多一次。探测器的情况也会通知管理员通知邮箱。",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "当此服务器的邮件停止工作，或所有全局探测器都停止报告时，会通知主管理员，恢复正常时再通知一次：绝不通过已停止的渠道，且每小时最多一次。",
   "Edit Outage Notifications": "编辑故障通知",
   "Text This Number": "发送短信到此号码",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "通过此服务器自身的短信设置向此号码发送短信。留空则不发送。",
   "Push to Master Admins' Devices": "推送到主管理员的设备",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推送通知会发送到主管理员登录了 OneUptime 应用的每台设备。"
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推送通知会发送到主管理员登录了 OneUptime 应用的每台设备。",
+  "Search people or teams...": "搜索人员或团队...",
+  "Owners": "所有者",
+  "Is any of": "是以下任一项",
+  "Is none of": "不是以下任一项",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} 是所选 {{count}} 个人员或团队中的任一个",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} 是所选 {{count}} 个人员或团队中的任一个",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} 不是所选 {{count}} 个人员或团队中的任何一个",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所选 {{count}} 个人员或团队中的任何一个"
 }

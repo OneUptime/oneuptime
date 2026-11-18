@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "モニターグループを {{count}} 件追加しました",
   "{{count}} monitor groups added_one": "モニターグループを {{count}} 件追加しました",
   "{{count}} monitors added": "モニターを {{count}} 件追加しました",
-  "{{count}} monitors added_one": "モニターを {{count}} 件追加しました"
+  "{{count}} monitors added_one": "モニターを {{count}} 件追加しました",
+  "Is Sample Project": "サンプルプロジェクトかどうか",
+  "Sample Project": "サンプルプロジェクト",
+  "Sample Project ID": "サンプルプロジェクト ID"
 }

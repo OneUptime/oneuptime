@@ -101,6 +101,8 @@
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
  *            Failed, so the details cards offer a retry that is refused.
+ *            "who-was-told" refuses the Who Was Told card's read (GET
+ *            /who-was-told/<incident|alert>/<id>, see "Who was told").
  *   ?resources= default | many | none
  *            What Incident #1042 is attached to, for its Affected Resources
  *            card. "many" adds more monitors and services, two hosts, a
@@ -546,6 +548,21 @@ import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { getOnCallPolicyRunWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import {
+  ON_CALL_PAGE_SENT_STATUS_MESSAGE,
+  OnCallPageChannel,
+} from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
+import { NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallPageLine";
+import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  buildWhoWasTold,
+  WhoWasToldLogKind,
+} from "Common/Types/Notification/WhoWasTold";
+import CallStatus from "Common/Types/Call/CallStatus";
+import PushStatus from "Common/Types/PushNotification/PushStatus";
+import SmsStatus from "Common/Types/SmsStatus";
+import WorkspaceNotificationStatus from "Common/Types/Workspace/WorkspaceNotificationStatus";
 import {
   AiHoldHandOffReason,
   OnCallPolicyAiHoldOutcome,
@@ -2887,13 +2904,13 @@ function heldRun(createdAt) {
   };
 }
 
-insert(OnCallDutyPolicyExecutionLog, {
+const mainIncidentRun = insert(OnCallDutyPolicyExecutionLog, {
   onCallDutyPolicyId: policies.checkout.id,
   onCallDutyPolicy: policies.checkout,
   triggeredByIncidentId: mainIncident.id,
   ...(isAiHoldMode ? heldRun(at("18:01")) : pagedRun(at("18:01"))),
 });
-insert(OnCallDutyPolicyExecutionLog, {
+const mainAlertRun = insert(OnCallDutyPolicyExecutionLog, {
   onCallDutyPolicyId: policies.payments.id,
   onCallDutyPolicy: policies.payments,
   triggeredByAlertId: mainAlert.id,
@@ -2957,6 +2974,262 @@ function pageHeldRunsNow(body) {
   }
 
   return heldRuns.length;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Who was told (GET /who-was-told/<incident|alert>/<id>, #7075)
+ * ---------------------------------------------------------------------------
+ * Who OneUptime told about an incident or an alert, by what, and what
+ * failed, for the overview's Who Was Told card - as WhoWasToldService reads
+ * it: the record's on-call runs (above), their steps and the record's
+ * notification logs, handed to the real buildWhoWasTold. Maya Chen may read
+ * every row of them, so nothing is counted as hidden.
+ *
+ * Incident #1042, as its run tells it (?feed=oncall-run): Checkout primary
+ * on-call paged Sam Rivera at First responders (Level 1, schedule EU days)
+ * at 18:01:25, by SMS (delivered) and push, and he acknowledged the page
+ * when he acknowledged the incident, at 18:04 (?state=created: not yet);
+ * Platform leads (Level 2) paged nobody at 18:01:35: nobody was on call in
+ * schedule EU nights. The new incident was posted to #checkout-incidents in
+ * Slack at 18:01:10, and its status pages' subscribers were told as the
+ * incident keeps it: 1,284 of them (?fail=resend: the email provider
+ * rejected the batch).
+ * Alert #311: Payments on-call paged Alex Kim at Payments primary (Level 1)
+ * at 18:06:20, by push and a phone call, and he acknowledged it at 18:08.
+ *
+ * A run OneUptime AI holds (?hold=1) has paged nobody yet, so it has no
+ * steps and the card says why under Not paged; so does incident #1029's,
+ * whose hold Alex Kim ended by acknowledging the incident. Every other
+ * record answers its runs, if any, and nothing else; one that is no
+ * record of the project is not found, as the server says it.
+ * ?fail=who-was-told refuses the read.
+ */
+const WHO_WAS_TOLD_REFUSAL = "The notification logs could not be read.";
+const WHO_WAS_TOLD_SUBSCRIBERS_NOTIFIED = 1284;
+
+function whoWasToldTime(time, extraSeconds) {
+  return at(time, extraSeconds).toISOString();
+}
+
+// What each run that paged did: its steps, and who acknowledged it.
+const WHO_WAS_TOLD_PAGES = new Map([
+  [
+    String(mainIncidentRun._id),
+    {
+      acknowledgedAt: isAcknowledged ? whoWasToldTime("18:04") : undefined,
+      acknowledgedByName: people.sam.name.toString(),
+      steps: [
+        {
+          id: uuid("7a000000", 1),
+          userId: people.sam.id.toString(),
+          userName: people.sam.name.toString(),
+          status: isAcknowledged
+            ? OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
+            : OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+          statusMessage: ON_CALL_PAGE_SENT_STATUS_MESSAGE,
+          createdAt: whoWasToldTime("18:01", 25),
+          ...(isAcknowledged
+            ? { isAcknowledged: true, acknowledgedAt: whoWasToldTime("18:04") }
+            : {}),
+          levelOrder: 1,
+          levelName: "First responders",
+          scheduleName: "EU days",
+          channels: [OnCallPageChannel.SMS, OnCallPageChannel.Push],
+        },
+        {
+          id: uuid("7a000000", 2),
+          status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+          statusMessage: NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE,
+          createdAt: whoWasToldTime("18:01", 35),
+          levelOrder: 2,
+          levelName: "Platform leads",
+          scheduleName: "EU nights",
+          channels: [],
+        },
+      ],
+    },
+  ],
+  [
+    String(mainAlertRun._id),
+    {
+      acknowledgedAt: isAcknowledged ? whoWasToldTime("18:08") : undefined,
+      acknowledgedByName: people.alex.name.toString(),
+      steps: [
+        {
+          id: uuid("7a000000", 3),
+          userId: people.alex.id.toString(),
+          userName: people.alex.name.toString(),
+          status: isAcknowledged
+            ? OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
+            : OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+          statusMessage: ON_CALL_PAGE_SENT_STATUS_MESSAGE,
+          createdAt: whoWasToldTime("18:06", 20),
+          ...(isAcknowledged
+            ? { isAcknowledged: true, acknowledgedAt: whoWasToldTime("18:08") }
+            : {}),
+          levelOrder: 1,
+          levelName: "Payments primary",
+          channels: [OnCallPageChannel.Push, OnCallPageChannel.Call],
+        },
+      ],
+    },
+  ],
+]);
+
+// The notifications each record sent, as its logs keep them.
+const WHO_WAS_TOLD_LOGS = new Map([
+  [
+    String(mainIncident.id),
+    [
+      {
+        id: uuid("7b000000", 1),
+        kind: WhoWasToldLogKind.Workspace,
+        status: WorkspaceNotificationStatus.Success,
+        createdAt: whoWasToldTime("18:01", 10),
+        isOnCallPage: false,
+        workspaceType: WorkspaceType.Slack,
+        channelId: "C0ACME0100",
+        channelName: "#checkout-incidents",
+      },
+      {
+        id: uuid("7b000000", 2),
+        kind: WhoWasToldLogKind.SMS,
+        status: SmsStatus.Delivered,
+        createdAt: whoWasToldTime("18:01", 25),
+        userId: people.sam.id.toString(),
+        userName: people.sam.name.toString(),
+        isOnCallPage: true,
+      },
+      {
+        id: uuid("7b000000", 3),
+        kind: WhoWasToldLogKind.Push,
+        status: PushStatus.Success,
+        createdAt: whoWasToldTime("18:01", 25),
+        userId: people.sam.id.toString(),
+        userName: people.sam.name.toString(),
+        isOnCallPage: true,
+      },
+    ],
+  ],
+  [
+    String(mainAlert.id),
+    [
+      {
+        id: uuid("7b000000", 4),
+        kind: WhoWasToldLogKind.Push,
+        status: PushStatus.Success,
+        createdAt: whoWasToldTime("18:06", 20),
+        userId: people.alex.id.toString(),
+        userName: people.alex.name.toString(),
+        isOnCallPage: true,
+      },
+      {
+        id: uuid("7b000000", 5),
+        kind: WhoWasToldLogKind.Call,
+        status: CallStatus.Success,
+        createdAt: whoWasToldTime("18:06", 20),
+        userId: people.alex.id.toString(),
+        userName: people.alex.name.toString(),
+        isOnCallPage: true,
+      },
+    ],
+  ],
+]);
+
+/*
+ * The answer, or the server's error: answered, not thrown, as API.get
+ * answers an error response.
+ */
+function whoWasTold(url) {
+  if (failures.has("who-was-told")) {
+    return fail(500, WHO_WAS_TOLD_REFUSAL);
+  }
+
+  const [kind, recordId] = url
+    .split("/who-was-told/")[1]
+    .split("?")[0]
+    .split("/");
+  const isAlert = kind === "alert";
+  const record = table(isAlert ? Alert : Incident).find((row) => {
+    return String(row._id) === recordId;
+  });
+
+  if (!record) {
+    return fail(404, isAlert ? "Alert not found." : "Incident not found.");
+  }
+
+  const runColumn = isAlert ? "triggeredByAlertId" : "triggeredByIncidentId";
+  const runs = table(OnCallDutyPolicyExecutionLog)
+    .filter((run) => {
+      return String(run[runColumn]) === recordId;
+    })
+    .map((run) => {
+      const paged = WHO_WAS_TOLD_PAGES.get(String(run._id));
+      // A held run has paged nobody yet: it is told by its own line.
+      const hasPaged = Boolean(paged) && !run.aiHoldOutcome;
+      return {
+        run: {
+          id: String(run._id),
+          policyId: String(run.onCallDutyPolicyId),
+          policyName: run.onCallDutyPolicy.name,
+          isDirectPage: false,
+          status: run.status,
+          statusMessage: run.statusMessage || "",
+          startedAt: run.createdAt.toISOString(),
+          ...(hasPaged && paged.acknowledgedAt
+            ? {
+                acknowledgedAt: paged.acknowledgedAt,
+                acknowledgedByName: paged.acknowledgedByName,
+              }
+            : {}),
+        },
+        steps: hasPaged
+          ? paged.steps.map((step) => {
+              return { ...step, runId: String(run._id) };
+            })
+          : [],
+      };
+    });
+  const hasPagedAnybody = runs.some((read) => {
+    return read.steps.length > 0;
+  });
+  // A held page has told nobody, by any channel, yet.
+  const logs = hasPagedAnybody ? WHO_WAS_TOLD_LOGS.get(recordId) || [] : [];
+
+  return ok(
+    buildWhoWasTold({
+      recordKind: isAlert
+        ? OnCallTestPageRecordKind.Alert
+        : OnCallTestPageRecordKind.Incident,
+      recordId,
+      checkedAt: NOW.toISOString(),
+      runs: runs.map((read) => {
+        return read.run;
+      }),
+      steps: runs.flatMap((read) => {
+        return read.steps;
+      }),
+      logs,
+      // An incident's status page subscribers, as the incident keeps them.
+      subscribers: isAlert
+        ? undefined
+        : {
+            status: record.subscriberNotificationStatusOnIncidentCreated,
+            statusMessage: record.subscriberNotificationStatusMessage,
+            sentCount:
+              record.subscriberNotificationStatusOnIncidentCreated ===
+              StatusPageSubscriberNotificationStatus.Success
+                ? WHO_WAS_TOLD_SUBSCRIBERS_NOTIFIED
+                : 0,
+            failedCount: 0,
+            areCountsReadable: true,
+          },
+      hiddenNotificationCount: 0,
+      hiddenRunCount: 0,
+      isTruncated: false,
+    }),
+  );
 }
 
 /*
@@ -9541,6 +9814,15 @@ async function handleApi(method, options) {
       }
       return ok({ answers: passOnAnswers(recordType, recordId, body) });
     }
+  }
+
+  /*
+   * GET /who-was-told/<incident|alert>/<record id>: who OneUptime told about
+   * the record, by what, and what failed, for its Who Was Told card (see
+   * "Who was told" above). ?fail=who-was-told refuses it.
+   */
+  if (method === "GET" && url.includes("/who-was-told/")) {
+    return whoWasTold(url);
   }
 
   /*

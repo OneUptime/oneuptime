@@ -40,7 +40,7 @@ export const SERVER_ALERTS_COPY: {
 } = {
   title: translationKey("Outage Notifications"),
   description: translationKey(
-    "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.",
+    "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.",
   ),
   editButton: translationKey("Edit Outage Notifications"),
   phoneTitle: translationKey("Text This Number"),

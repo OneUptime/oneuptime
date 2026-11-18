@@ -56762,7 +56762,7 @@
   "No default ladder: a member is paged by every method they verify, at once.": "Ingen standardrækkefølge: et medlem tilkaldes straks via hver metode, det bekræfter.",
   "No phone method": "Ingen telefonmetode",
   "On-Call Readiness and Setup health name everyone on a policy without one, and a setup reminder asks them to add one. Nobody is locked out.": "Parathed til vagt og Opsætningens tilstand nævner alle i en politik uden en, og en påmindelse om opsætning beder dem tilføje en. Ingen bliver låst ude.",
-  "Only a Project Owner or Project Admin can change the default ladder.": "Kun en projektejer eller projektadministrator kan ændre standardrækkefølgen.",
+  "Only a Project Owner or Project Admin can change the default ladder.": "Kun en Projektejer eller Projektadministrator kan ændre standardrækkefølgen.",
   "Phone added. It can text and call you now: put it in your ladder.": "Telefon tilføjet. Du kan nu nås med sms og opkald: sæt den i din rækkefølge.",
   "Phone for People on Call": "Telefon for folk på vagt",
   "Require Phone Method for On-Call": "Kræv telefonmetode for vagt",
@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "{{count}} monitorgrupper tilføjet",
   "{{count}} monitor groups added_one": "{{count}} monitorgruppe tilføjet",
   "{{count}} monitors added": "{{count}} monitorer tilføjet",
-  "{{count}} monitors added_one": "{{count}} monitor tilføjet"
+  "{{count}} monitors added_one": "{{count}} monitor tilføjet",
+  "Is Sample Project": "Er eksempelprojekt",
+  "Sample Project": "Eksempelprojekt",
+  "Sample Project ID": "Eksempelprojektets ID"
 }

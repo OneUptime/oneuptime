@@ -56613,7 +56613,7 @@
   "Switch or router": "محوّل أو موجّه",
   "Network Endpoint Group": "مجموعة نقاط نهاية الشبكة",
   "Backend Bucket": "حاوية الخلفية",
-  "Target Pool": "مجموعة الاستهداف",
+  "Target Pool": "تجمّع الأهداف",
   "Couldn't read who was told. {{error}}": "تعذّرت قراءة من أُبلغ. {{error}}",
   "Nobody has been told about this alert yet.": "لم يُبلَّغ أحد بهذا التنبيه بعد.",
   "Nobody has been told about this incident yet.": "لم يُبلَّغ أحد بهذه الحادثة بعد.",
@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "مجموعات المراقبات المُضافة: {{count}}",
   "{{count}} monitor groups added_one": "أُضيفت {{count}} مجموعة مراقبات",
   "{{count}} monitors added": "المراقبات المُضافة: {{count}}",
-  "{{count}} monitors added_one": "أُضيفت {{count}} مراقبة"
+  "{{count}} monitors added_one": "أُضيفت {{count}} مراقبة",
+  "Is Sample Project": "مشروع تجريبي",
+  "Sample Project": "المشروع التجريبي",
+  "Sample Project ID": "معرّف المشروع التجريبي"
 }

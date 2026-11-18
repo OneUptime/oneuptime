@@ -37,7 +37,10 @@ import { MemoryRouter } from "react-router-dom";
  * are also words the Dashboard translates, and those two places looked
  * every label up. Now the menu, its chip, the rows and the cards all name a
  * kind by the catalog's label, and a type the catalog only names in words -
- * a subnet - reads in the reader's words ("Subred") wherever it shows.
+ * a subnet's route table - reads in the reader's words ("Tabla de rutas")
+ * wherever it shows. An Azure subnet is a type the catalog lists since
+ * #9375 (INVENTORY_ONLY_RESOURCE_TYPES): it reads "Virtual Network Subnet",
+ * in the cards and in the Type menu alike.
  *
  * The real account page and the real cards, in Spanish, over a fake
  * ModelAPI. CloudResourceTypeNamesGuard keeps every other place that names
@@ -98,7 +101,7 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudRelationshipKind } from "../../../Types/Cloud/CloudInventory";
 import {
-  AZURE_RESOURCE_TYPES,
+  CLOUD_RESOURCE_TYPES,
   CloudResourceTypeDescriptor,
 } from "../../../Types/Cloud/CloudResourceCatalog";
 import ObjectID from "../../../Types/ObjectID";
@@ -200,6 +203,27 @@ const LOAD_BALANCER: CloudResource = resource({
       kind: CloudRelationshipKind.RunsIn,
       target: SUBNET_ID,
       targetType: "Microsoft.Network/virtualNetworks/subnets",
+    },
+  ],
+});
+
+const ROUTE_TABLE_ID: string = `${GROUP}/providers/Microsoft.Network/routeTables/web-routes`;
+
+/*
+ * The load balancer's subnet, and the route table attached to it: a type
+ * the catalog only names in words. Not one of RESOURCES, so the load
+ * balancer's card names the subnet by its id.
+ */
+const SUBNET: CloudResource = resource({
+  id: "70000000-0000-4000-8000-000000000015",
+  name: "default",
+  type: "Microsoft.Network/virtualNetworks/subnets",
+  path: "Microsoft.Network/virtualNetworks/vnet/subnets/default",
+  relationships: [
+    {
+      kind: CloudRelationshipKind.AttachedTo,
+      target: ROUTE_TABLE_ID,
+      targetType: "Microsoft.Network/routeTables",
     },
   ],
 });
@@ -417,19 +441,25 @@ function kindNextTo(text: string): string {
   return within(item).queryByTestId("cloud-connection-type")?.textContent || "";
 }
 
-const AZURE_LABELS: Array<string> = AZURE_RESOURCE_TYPES.map(
-  (descriptor: CloudResourceTypeDescriptor): string => {
-    return descriptor.label;
+/*
+ * Every Azure type the catalog lists, as the Type menu offers them: those
+ * with metrics, and those listed only (a subnet, a network security group).
+ */
+const AZURE_LABELS: Array<string> = CLOUD_RESOURCE_TYPES.filter(
+  (descriptor: CloudResourceTypeDescriptor): boolean => {
+    return descriptor.provider === CloudProvider.Azure;
   },
-);
+).map((descriptor: CloudResourceTypeDescriptor): string => {
+  return descriptor.label;
+});
 
 describe("the words the cases below lean on", () => {
-  test("Spanish has its own words for some of the catalog's labels, and for a subnet", () => {
+  test("Spanish has its own words for some of the catalog's labels, and for a route table", () => {
     for (const label of [
       "Virtual Machine",
       "Load Balancer",
       "Network Interface",
-      "Subnet",
+      "Route Table",
     ]) {
       expect(SPANISH[label]).toBeTruthy();
       expect(SPANISH[label]).not.toBe(label);
@@ -439,10 +469,11 @@ describe("the words the cases below lean on", () => {
       "Virtual Machine",
       "Load Balancer",
       "Network Interface",
+      "Virtual Network Subnet",
     ]) {
       expect(AZURE_LABELS).toContain(label);
     }
-    expect(AZURE_LABELS).not.toContain("Subnet");
+    expect(AZURE_LABELS).not.toContain("Route Table");
   });
 });
 
@@ -482,7 +513,7 @@ describe("a Spanish cloud account's resources, filtered to a type", () => {
 });
 
 describe("a Spanish resource's connections", () => {
-  test("name each listed kind as the account's Type filter does, and a subnet in Spanish", async () => {
+  test("name each listed kind as the account's Type filter does, a subnet among them", async () => {
     await act(async () => {
       render(
         <MemoryRouter>
@@ -507,7 +538,7 @@ describe("a Spanish resource's connections", () => {
       "web-01": "Virtual Machine",
       "web-vmss": "Virtual Machine Scale Set",
       "web-01-nic": "Network Interface",
-      [SUBNET_ID]: SPANISH["Subnet"],
+      [SUBNET_ID]: "Virtual Network Subnet",
     });
 
     // The account's Type filter, in the same Spanish: the same words.
@@ -524,9 +555,38 @@ describe("a Spanish resource's connections", () => {
         kinds["web-01"],
         kinds["web-vmss"],
         kinds["web-01-nic"],
+        // A subnet is a type the catalog lists (#9375): offered by that name.
+        kinds[SUBNET_ID],
       ]),
     );
-    // A subnet is no type of its own in the catalog: never in the menu.
-    expect(menu.options).not.toContain(kinds[SUBNET_ID]);
+  });
+
+  test("name a subnet's route table, a type the catalog only names in words, in Spanish, and never offer it in the Type menu", async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudResourceInventoryCards resource={SUBNET} />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+
+    expect(
+      await screen.findByText(SPANISH["Connected Resources"]!),
+    ).toBeInTheDocument();
+
+    const routeTable: string = kindNextTo(ROUTE_TABLE_ID);
+
+    expect(routeTable).toBe(SPANISH["Route Table"]);
+
+    cleanup();
+    await renderAccountResourcesOfType(VIRTUAL_MACHINE);
+    expect(await screen.findByText("web-01")).toBeInTheDocument();
+
+    const menu: { picked: string; options: Array<string> } =
+      await openTypeMenu();
+
+    expect(menu.options).not.toContain(routeTable);
+    expect(menu.options).not.toContain("Route Table");
   });
 });

@@ -47,6 +47,34 @@
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. Here every affected copy is only reachable through devDependencies - jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) - so no production install has it, and jest walks this repository's own test and coverage paths."
     }
   ],
+  "agents/KubernetesAIAgent": [
+    {
+      "advisory": "GHSA-g3hv-75wg-m249",
+      "expires": "2026-12-04",
+      "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
+    }
+  ],
+  "agents/KubernetesCostAgent": [
+    {
+      "advisory": "GHSA-g3hv-75wg-m249",
+      "expires": "2026-12-04",
+      "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
+    }
+  ],
+  "agents/KubernetesLogTailer": [
+    {
+      "advisory": "GHSA-g3hv-75wg-m249",
+      "expires": "2026-12-04",
+      "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
+    }
+  ],
+  "agents/ResourceAIAgent": [
+    {
+      "advisory": "GHSA-g3hv-75wg-m249",
+      "expires": "2026-12-04",
+      "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
+    }
+  ],
   "packages/App": [
     {
       "advisory": "GHSA-g3hv-75wg-m249",
@@ -99,6 +127,13 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
+    }
+  ],
+  "packages/CLI": [
+    {
+      "advisory": "GHSA-g3hv-75wg-m249",
+      "expires": "2026-12-04",
+      "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
     }
   ],
   "packages/Common": [

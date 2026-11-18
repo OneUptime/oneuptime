@@ -41,7 +41,7 @@ export function describeSourceRows(
 
 // The same round pill the answer's marks are (CITATION_CHIP_CLASS_NAME).
 const ID_CLASS_NAME: string =
-  "inline-flex h-4 min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-semibold leading-none bg-gray-100 text-gray-600";
+  "inline-flex h-4 min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold leading-none bg-gray-100 text-gray-600";
 
 /*
  * What an answer in the AI Investigation card's conversation read, one line

@@ -169,6 +169,8 @@ async function open(
     fail?: "who-is-told" | "who-is-told-reference" | "who-is-told-recheck";
     // The reader is also the server's master admin (#7539).
     isServerAdmin?: boolean;
+    // The monitor's last fire drill (#9386): none by default.
+    fireDrill?: "last";
   } = {},
 ): Promise<Locator> {
   const width: number = options.width || 1440;
@@ -177,6 +179,9 @@ async function open(
   const query: URLSearchParams = new URLSearchParams({ type: "api" });
   if (options.isServerAdmin) {
     query.set("admin", "1");
+  }
+  if (options.fireDrill) {
+    query.set("fireDrill", options.fireDrill);
   }
   if (options.whoIsTold) {
     query.set("whoIsTold", options.whoIsTold);
@@ -1055,6 +1060,101 @@ test.describe("When this goes down", () => {
       message: "Persian where to look, 390",
     });
     await shoot(card, "where-to-look-fa-390");
+  });
+});
+
+/*
+ * ITS LAST FIRE DRILL (#9386): once the card's answer is in, it reads the
+ * monitor's last drill (GET /on-call-test-page/fire-drill/last/:id) and
+ * ends with it - what it rehearsed, when and by whom, how many of its tests
+ * were acknowledged, and each policy's test folded under Show details. A
+ * monitor nobody has drilled draws nothing of one.
+ */
+async function fireDrillReads(page: Page): Promise<Array<string>> {
+  return page.evaluate((): Array<string> => {
+    const state: { apiRequests?: Array<{ url: string }> } | undefined = (
+      window as unknown as {
+        __monitorOverviewFixture?: { apiRequests?: Array<{ url: string }> };
+      }
+    ).__monitorOverviewFixture;
+
+    return (state?.apiRequests || [])
+      .map((request: { url: string }): string => {
+        return new URL(request.url).pathname;
+      })
+      .filter((pathname: string): boolean => {
+        return pathname.includes("/fire-drill/last/");
+      });
+  });
+}
+
+test.describe("When this goes down: its last fire drill", () => {
+  test("a monitor nobody has drilled: the card asks, and draws no drill", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page);
+
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return fireDrillReads(page);
+      })
+      .toEqual([`/api/on-call-test-page/fire-drill/last/${MONITOR_ID}`]);
+    await expect(card.getByTestId("last-fire-drill")).toHaveCount(0);
+  });
+
+  test("ends the card with the drill: what it rehearsed, when and by whom, and each policy's test under Show details", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page, { fireDrill: "last" });
+    const drill: Locator = card.getByTestId("last-fire-drill");
+
+    await expect(drill.getByRole("heading", { level: 4 })).toHaveText(
+      "Last fire drill",
+    );
+    // At the card's end, below everything else on it, so nothing it says moves.
+    expect(
+      await card.evaluate((element: Element): string | null => {
+        return element.lastElementChild?.getAttribute("data-testid") || null;
+      }),
+    ).toBe("last-fire-drill");
+
+    await expect
+      .poll(async (): Promise<string> => {
+        return readText(drill.getByTestId("last-fire-drill-failure"));
+      })
+      .toBe("Offline · An incident (Critical)");
+    expect(await readText(drill.getByTestId("last-fire-drill-started"))).toBe(
+      "Started a day ago by Ben Ito",
+    );
+    expect(await readText(drill.getByTestId("last-fire-drill-outcome"))).toBe(
+      "1 of 1 test acknowledged.",
+    );
+
+    // Each policy's test, folded until wanted.
+    const toggle: Locator = drill.getByTestId("last-fire-drill-toggle");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(drill.getByTestId("last-fire-drill-details")).toHaveCount(0);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    const result: Locator = drill.getByTestId("last-fire-drill-result");
+    await expect(result).toHaveCount(1);
+    await expect(result).toHaveAttribute("data-status", "Acknowledged");
+    await expect(result.getByTestId("last-fire-drill-policy")).toHaveText(
+      "Primary On-Call",
+    );
+    await expect(result.getByTestId("pill-text")).toHaveText("It works");
+    expect(
+      await readText(result.getByTestId("last-fire-drill-acknowledged")),
+    ).toBe("Ana Lopez acknowledged it by SMS after 42 seconds.");
+    // It paged each policy's first level only: nothing says it walked them.
+    await expect(drill.getByTestId("last-fire-drill-walked")).toHaveCount(0);
+
+    await shoot(drill, "last-fire-drill");
   });
 });
 

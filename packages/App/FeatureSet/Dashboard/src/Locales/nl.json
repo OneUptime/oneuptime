@@ -56762,7 +56762,7 @@
   "No default ladder: a member is paged by every method they verify, at once.": "Geen standaardreeks: een lid wordt direct opgeroepen via elke methode die het verifieert.",
   "No phone method": "Geen telefoonmethode",
   "On-Call Readiness and Setup health name everyone on a policy without one, and a setup reminder asks them to add one. Nobody is locked out.": "Gereedheid voor bereikbaarheid en Inrichtingsstatus noemen iedereen in een beleid zonder zo'n methode, en een herinnering voor instellingen vraagt hen er een toe te voegen. Niemand wordt buitengesloten.",
-  "Only a Project Owner or Project Admin can change the default ladder.": "Alleen een projecteigenaar of projectbeheerder kan de standaardreeks wijzigen.",
+  "Only a Project Owner or Project Admin can change the default ladder.": "Alleen een Projecteigenaar of Projectbeheerder kan de standaardreeks wijzigen.",
   "Phone added. It can text and call you now: put it in your ladder.": "Telefoon toegevoegd. U kunt nu per sms en oproep worden bereikt: neem hem op in uw reeks.",
   "Phone for People on Call": "Telefoon voor mensen met dienst",
   "Require Phone Method for On-Call": "Telefoonmethode vereisen voor bereikbaarheid",
@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "{{count}} monitorgroepen toegevoegd",
   "{{count}} monitor groups added_one": "{{count}} monitorgroep toegevoegd",
   "{{count}} monitors added": "{{count}} monitoren toegevoegd",
-  "{{count}} monitors added_one": "{{count}} monitor toegevoegd"
+  "{{count}} monitors added_one": "{{count}} monitor toegevoegd",
+  "Is Sample Project": "Is voorbeeldproject",
+  "Sample Project": "Voorbeeldproject",
+  "Sample Project ID": "ID van voorbeeldproject"
 }

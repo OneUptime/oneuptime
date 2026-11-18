@@ -3447,15 +3447,23 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       await expect(
         cardTitled(page, wordIn(reader.locale, "Details")),
       ).toContainText(wordIn(reader.locale, "Infrastructure (IaaS)"));
-      // What it runs in and is protected by: named, never a cloud type.
+      /*
+       * What it runs in, what protects it and what it sends traffic to:
+       * named, never a cloud type. The account lists its subnets and
+       * security groups (#9375), so each kind is the catalog's label, the
+       * cloud's own product name, drawn as written in every language.
+       */
       const connected: Locator = cardTitled(
         page,
         wordIn(reader.locale, "Connected Resources"),
       );
-      await expect(connected).toContainText(wordIn(reader.locale, "Subnet"));
-      await expect(connected).toContainText(
-        wordIn(reader.locale, "Security Group"),
-      );
+      await expect(connected.getByTestId("cloud-connection-type")).toHaveText([
+        "VPC Subnet",
+        "VPC Subnet",
+        "Security Group",
+        "EC2 Instance",
+        "EC2 Instance",
+      ]);
       await expect(connected).not.toContainText("AWS::EC2::");
       /*
        * A name and its kind in reading order, with the gap between them:

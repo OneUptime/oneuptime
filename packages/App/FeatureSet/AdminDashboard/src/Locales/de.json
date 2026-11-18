@@ -4219,10 +4219,18 @@
   "The email log could not be loaded.": "Das E-Mail-Protokoll konnte nicht geladen werden.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Auf diesem Server ist keine E-Mail eingerichtet, daher wurde diese E-Mail nicht gesendet. Bitten Sie Ihren Server-Administrator, E-Mail einzurichten.",
   "Outage Notifications": "Ausfallbenachrichtigungen",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "Wenn die E-Mail dieses Servers nicht mehr funktioniert oder keine globale Sonde mehr meldet, werden die Master-Administratoren benachrichtigt, und noch einmal, sobald es wieder funktioniert: nie über den ausgefallenen Kanal und höchstens einmal pro Stunde. Die Admin-Benachrichtigungs-E-Mail erfährt es bei den Sonden ebenfalls.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "Wenn die E-Mail dieses Servers nicht mehr funktioniert oder keine globale Sonde mehr meldet, werden die Master-Administratoren benachrichtigt, und noch einmal, sobald es wieder funktioniert: nie über den ausgefallenen Kanal und höchstens einmal pro Stunde.",
   "Edit Outage Notifications": "Ausfallbenachrichtigungen bearbeiten",
   "Text This Number": "SMS an diese Nummer",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Eine SMS geht über die SMS-Einstellungen dieses Servers an diese Nummer. Leer lassen, um keine zu senden.",
   "Push to Master Admins' Devices": "Push an die Geräte der Master-Administratoren",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Eine Push-Benachrichtigung geht an jedes Gerät, auf dem ein Master-Administrator in der OneUptime-App angemeldet ist."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Eine Push-Benachrichtigung geht an jedes Gerät, auf dem ein Master-Administrator in der OneUptime-App angemeldet ist.",
+  "Search people or teams...": "Personen oder Teams suchen...",
+  "Owners": "Eigentümer",
+  "Is any of": "Ist eines von",
+  "Is none of": "Ist keines von",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} ist eine von {{count}} ausgewählten Personen oder Teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} ist {{count}} ausgewählte Person oder ausgewähltes Team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} ist keine von {{count}} ausgewählten Personen oder Teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} ist nicht {{count}} ausgewählte Person oder ausgewähltes Team"
 }

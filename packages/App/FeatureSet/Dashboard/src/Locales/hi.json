@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "{{count}} मॉनिटर समूह जोड़े गए",
   "{{count}} monitor groups added_one": "{{count}} मॉनिटर समूह जोड़ा गया",
   "{{count}} monitors added": "{{count}} मॉनिटर जोड़े गए",
-  "{{count}} monitors added_one": "{{count}} मॉनिटर जोड़ा गया"
+  "{{count}} monitors added_one": "{{count}} मॉनिटर जोड़ा गया",
+  "Is Sample Project": "नमूना प्रोजेक्ट है",
+  "Sample Project": "नमूना प्रोजेक्ट",
+  "Sample Project ID": "नमूना प्रोजेक्ट आईडी"
 }

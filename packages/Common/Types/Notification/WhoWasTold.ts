@@ -569,6 +569,33 @@ function byTime<T>(getTime: (item: T) => string): (a: T, b: T) => number {
   };
 }
 
+/*
+ * By time, and two of the same millisecond by a text that does not change
+ * between reads. A rule that posts to Slack and calls a webhook in one
+ * request tells both within a millisecond: the database keeps microseconds,
+ * a Date does not, and the logs arrive latest first - so without the text,
+ * the two would swap places from one read to the next.
+ */
+function byTimeThenText<T>(
+  getTime: (item: T) => string,
+  getText: (item: T) => string,
+): (a: T, b: T) => number {
+  const time: (a: T, b: T) => number = byTime(getTime);
+
+  return (a: T, b: T): number => {
+    const byWhen: number = time(a, b);
+
+    if (byWhen !== 0) {
+      return byWhen;
+    }
+
+    const first: string = getText(a);
+    const second: string = getText(b);
+
+    return first < second ? -1 : first > second ? 1 : 0;
+  };
+}
+
 function earliest(times: ReadonlyArray<string>): string {
   return (
     [...times].sort(
@@ -894,9 +921,14 @@ export function buildWhoWasTold(data: {
       return person;
     })
     .sort(
-      byTime((person: WhoWasToldPerson): string => {
-        return person.firstAt;
-      }),
+      byTimeThenText(
+        (person: WhoWasToldPerson): string => {
+          return person.firstAt;
+        },
+        (person: WhoWasToldPerson): string => {
+          return `${person.name}\u0000${person.userId}`;
+        },
+      ),
     );
 
   const channelsOut: Array<WhoWasToldChannelGroup> = Array.from(
@@ -938,9 +970,14 @@ export function buildWhoWasTold(data: {
       return group;
     })
     .sort(
-      byTime((group: WhoWasToldChannelGroup): string => {
-        return group.firstAt;
-      }),
+      byTimeThenText(
+        (group: WhoWasToldChannelGroup): string => {
+          return group.firstAt;
+        },
+        (group: WhoWasToldChannelGroup): string => {
+          return `${group.name}\u0000${group.key}`;
+        },
+      ),
     );
 
   const result: WhoWasToldResult = {

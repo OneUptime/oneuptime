@@ -1,4 +1,5 @@
-import OnCallRulesTable, { NotificationMethodChoice } from "./OnCallRulesTable";
+import { NotificationMethodChoice } from "./NotificationMethodChoice";
+import OnCallRulesTable from "./OnCallRulesTable";
 import {
   ON_CALL_RULE_KIND_DEFINITIONS,
   OnCallRuleKindDefinition,

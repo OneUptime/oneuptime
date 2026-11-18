@@ -25,7 +25,6 @@ resource "oneuptime_workspace_notification_rule" "key_updates" {
   workspace_type = "Slack"
 
   notification_rule = jsonencode({
-    _type                       = "OnCallDutyPolicyNotificationRule"
     filterCondition             = "All"
     filters                     = []
     shouldPostToExistingChannel = true
@@ -41,7 +40,6 @@ resource "oneuptime_workspace_notification_rule" "every_update" {
   workspace_type = "Slack"
 
   notification_rule = jsonencode({
-    _type                       = "OnCallDutyPolicyNotificationRule"
     filterCondition             = "All"
     filters                     = []
     shouldPostToExistingChannel = true

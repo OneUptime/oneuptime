@@ -96,6 +96,7 @@ import { NotificationRuleUpdateKind } from "../../../../../Types/Workspace/Notif
 import NotificationRuleWorkspaceChannel from "../../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -928,16 +929,40 @@ export default class QuietChannelsWorld {
           return this.ruleModel(script);
         });
       }) as never);
+    /*
+     * A rule read as the database answers it: of the policy's rules, those
+     * the query names - by their place, by their id - in the order it sorts
+     * them, the first. A run starts at the policy's first rule, the lowest
+     * place, which need not be 1: that read names no place and sorts by it
+     * (findFirstOfPolicy, #9369).
+     */
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
       .mockImplementation((async (data: {
-        query: { order?: number };
+        query: { order?: number; _id?: ObjectID | string };
+        sort?: { order?: SortOrder };
       }): Promise<OnCallDutyPolicyEscalationRule | null> => {
-        const script: RuleScript | undefined = this.rules.find(
+        const named: Array<RuleScript> = this.rules.filter(
           (candidate: RuleScript): boolean => {
-            return candidate.order === data.query.order;
+            return (
+              (data.query.order === undefined ||
+                candidate.order === data.query.order) &&
+              (data.query._id === undefined ||
+                candidate.id.toString() === data.query._id.toString())
+            );
           },
         );
+
+        if (data.sort?.order) {
+          const direction: number =
+            data.sort.order === SortOrder.Descending ? -1 : 1;
+
+          named.sort((a: RuleScript, b: RuleScript): number => {
+            return (a.order - b.order) * direction;
+          });
+        }
+
+        const script: RuleScript | undefined = named[0];
         return script ? this.ruleModel(script) : null;
       }) as never);
     /*

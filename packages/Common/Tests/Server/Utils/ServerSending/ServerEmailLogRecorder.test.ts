@@ -10,6 +10,18 @@ jest.mock("../../../../Server/Utils/Logger", () => {
   };
 });
 
+/*
+ * A self-hosted server, whatever config.env says: the suites run with
+ * BILLING_ENABLED=true, OneUptime Cloud, which keeps a row 3 days.
+ */
+jest.mock("../../../../Server/EnvironmentConfig", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../../Server/EnvironmentConfig",
+  ) as Record<string, unknown>;
+
+  return { ...actual, IsBillingEnabled: false };
+});
+
 import ServerEmailLog from "../../../../Models/DatabaseModels/ServerEmailLog";
 import ServerEmailLogService from "../../../../Server/Services/ServerEmailLogService";
 import ServicesIndex from "../../../../Server/Services/Index";

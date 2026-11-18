@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "已添加 {{count}} 个监视器组",
   "{{count}} monitor groups added_one": "已添加 {{count}} 个监视器组",
   "{{count}} monitors added": "已添加 {{count}} 个监视器",
-  "{{count}} monitors added_one": "已添加 {{count}} 个监视器"
+  "{{count}} monitors added_one": "已添加 {{count}} 个监视器",
+  "Is Sample Project": "是否为示例项目",
+  "Sample Project": "示例项目",
+  "Sample Project ID": "示例项目 ID"
 }

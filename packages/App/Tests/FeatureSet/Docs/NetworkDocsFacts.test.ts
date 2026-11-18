@@ -506,8 +506,12 @@ describe("the Network Device Monitor page: a device's maker on the Devices list"
     expect(DEVICES_LIST).toMatch(
       /field: \{\s*manufacturer: true,\s*\},\s*title: "Vendor",/,
     );
+    /*
+     * The column keeps the id it had while keyed by `vendor`, so a column
+     * someone hid or moved with Customize Columns stays hidden or moved.
+     */
     expect(DEVICES_LIST).toMatch(
-      /field: \{\s*manufacturer: true,\s*\},\s*title: "Vendor \/ Model",/,
+      /field: \{\s*manufacturer: true,\s*\},(?:\s*\/\*[\s\S]*?\*\/)?\s*id: "vendor",\s*title: "Vendor \/ Model",/,
     );
     expect(NETWORK_DEVICE_MODEL).toContain(
       "public manufacturer?: string = undefined;",

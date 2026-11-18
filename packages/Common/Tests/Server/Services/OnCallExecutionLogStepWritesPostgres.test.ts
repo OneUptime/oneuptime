@@ -32,10 +32,12 @@ import { DataSource } from "typeorm";
  *   - no index on the table names a column the claim or a pass's count
  *     writes (or updatedAt and version, which every update writes), and
  *     the rule a run is on keeps its index, which the ON DELETE SET NULL
- *     of an escalation rule reads (issue #9036);
+ *     of an escalation rule reads (issue #9036) - as a monitor's fire
+ *     drills keep theirs (#9386), partial, on no column a step writes;
  *   - a claim, and its give-back, are HOT: no index entry written;
  *   - a level's start, which changes the rule a run is on, is not - it
- *     writes the table's remaining indexes, ten with the key.
+ *     writes the table's remaining indexes, ten with the key (the fire
+ *     drills' holds a drill's tests alone).
  *
  * Opt in with RUN_POSTGRES_ON_CALL_EXECUTION_LOG_WRITES_TESTS=true against
  * a migrated database (ON_CALL_EXECUTION_LOG_WRITES_TEST_DATABASE_HOST,
@@ -151,22 +153,35 @@ describePostgres("an escalation step's writes, against Postgres", () => {
     }
   });
 
-  test("no index names a column a claim or a pass's count writes; the rule a run is on keeps its index", async () => {
-    const indexes: Array<{ indexname: string; columns: Array<string> }> =
-      await database.query(
-        `SELECT i.relname AS indexname, array_agg(a.attname::text) AS columns
-           FROM pg_index x
-           JOIN pg_class i ON i.oid = x.indexrelid
-           JOIN pg_class t ON t.oid = x.indrelid
-           JOIN pg_namespace n ON n.oid = t.relnamespace
-           JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY (x.indkey)
-          WHERE n.nspname = $1 AND t.relname = $2
-          GROUP BY i.relname`,
-        [schema, TABLE],
-      );
+  test("no index names a column a claim or a pass's count writes; the rule a run is on keeps its index, and a monitor's fire drills theirs", async () => {
+    // Each index's columns in its own order, and its WHERE when it is partial.
+    const indexes: Array<{
+      indexname: string;
+      columns: Array<string>;
+      predicate: string | null;
+    }> = await database.query(
+      `SELECT i.relname AS indexname,
+              ARRAY(
+                SELECT a.attname::text
+                  FROM unnest(x.indkey::int2[]) WITH ORDINALITY AS k(attnum, place)
+                  JOIN pg_attribute a ON a.attrelid = x.indrelid AND a.attnum = k.attnum
+                 ORDER BY k.place
+              ) AS columns,
+              pg_get_expr(x.indpred, x.indrelid) AS predicate
+         FROM pg_index x
+         JOIN pg_class i ON i.oid = x.indexrelid
+         JOIN pg_class t ON t.oid = x.indrelid
+         JOIN pg_namespace n ON n.oid = t.relnamespace
+        WHERE n.nspname = $1 AND t.relname = $2`,
+      [schema, TABLE],
+    );
 
-    // Ten, with the key: four went (DropOnCallExecutionLogStepIndexes1809182000000).
-    expect(indexes).toHaveLength(10);
+    /*
+     * Eleven, with the key: four went (DropOnCallExecutionLogStepIndexes
+     * 1809182000000), and a monitor's fire drills' came
+     * (AddOnCallFireDrillResultsIndexAndKey1809183110000).
+     */
+    expect(indexes).toHaveLength(11);
 
     for (const index of indexes) {
       for (const column of STEP_WRITTEN_COLUMNS) {
@@ -190,6 +205,32 @@ describePostgres("an escalation step's writes, against Postgres", () => {
         );
       }),
     ).toBe(true);
+
+    /*
+     * A monitor's fire drills, newest first (#9386): the monitor's last
+     * drill is read by it, and a deleted monitor's ON DELETE SET NULL finds
+     * its drills' tests by it. Partial - only a drill's tests name a
+     * monitor - so a level's start of any other run writes nothing to it.
+     */
+    expect(
+      indexes
+        .filter((index: { columns: Array<string> }): boolean => {
+          return index.columns.includes("testPageFireDrillMonitorId");
+        })
+        .map(
+          (index: {
+            columns: Array<string>;
+            predicate: string | null;
+          }): { columns: Array<string>; predicate: string | null } => {
+            return { columns: index.columns, predicate: index.predicate };
+          },
+        ),
+    ).toEqual([
+      {
+        columns: ["testPageFireDrillMonitorId", "createdAt"],
+        predicate: '("testPageFireDrillMonitorId" IS NOT NULL)',
+      },
+    ]);
   });
 
   test("a claim that moves a run on is a HOT update, and so is its give-back", async () => {

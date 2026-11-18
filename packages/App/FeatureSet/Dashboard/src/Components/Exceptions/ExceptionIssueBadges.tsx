@@ -97,7 +97,12 @@ const ExceptionIssueBadges: FunctionComponent<ComponentProps> = (
             key={badge.badge}
             title={badge.title}
             data-testid={`exception-badge-${badge.badge}`}
-            className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-xs font-medium ${badge.className}`}
+            /*
+             * 11px, as the chips beside them on the exception row's service
+             * line are (ExceptionRow): the size a chip's framed word is
+             * readable at (ReadableTextContrastGuard).
+             */
+            className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[11px] font-medium ${badge.className}`}
           >
             {badge.label}
           </span>

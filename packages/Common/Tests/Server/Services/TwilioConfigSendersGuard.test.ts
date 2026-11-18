@@ -26,7 +26,10 @@ import path from "path";
  *     handed, or the one being tested;
  *   - a master admin's test of the server's own settings goes through the
  *     server's own account, and says so: it passes no config
- *     (customTwilioConfig: undefined) and names no project.
+ *     (customTwilioConfig: undefined) and names no project;
+ *   - so does the server's alert to its master admins that its email or
+ *     global probes stopped working (#6879): a message about the server,
+ *     which no project sends or pays for.
  *
  * A file that starts sending SMS or calls has to be put on one of the lists
  * below, so whoever adds it decides which rule it follows.
@@ -78,6 +81,11 @@ const NOTIFICATION_ROUTES: Array<string> = [
 // A master admin's test SMS and call, through the server's own settings.
 const SERVER_SETTINGS_TESTS: Array<string> = [
   "App/FeatureSet/Notification/Services/ServerTestSendService.ts",
+];
+
+// The server's alerts to its master admins, about the server itself (#6879).
+const SERVER_ALERTS: Array<string> = [
+  "App/FeatureSet/Workers/Jobs/ServerAlerts/TellMasterAdmins.ts",
 ];
 
 const SEND_CALL: RegExp = /\b(SmsService\.sendSms|CallService\.makeCall)\(/g;
@@ -201,6 +209,7 @@ describe("the SMS and calls the server sends", () => {
       STATUS_PAGE_SENDERS,
       NOTIFICATION_ROUTES,
       SERVER_SETTINGS_TESTS,
+      SERVER_ALERTS,
     ];
 
     const unlisted: Array<string> = Array.from(filesSending).filter(
@@ -352,6 +361,35 @@ describe("the SMS and calls the server sends", () => {
 
     // The test SMS and the test call.
     expect(calls.length).toBeGreaterThanOrEqual(2);
+
+    expect(
+      calls
+        .filter((call: SendCall): boolean => {
+          return (
+            !call.text.includes("customTwilioConfig:undefined,") ||
+            call.text.includes("projectId")
+          );
+        })
+        .map(describeCall),
+    ).toEqual([]);
+  });
+
+  /*
+   * The server tells its master admins when its own email or global probes
+   * stop working, and work again (#6879). That is a message about the
+   * server, to the server's own people, which no project sends: a project's
+   * config in it would have a project's account carry it, and a project in
+   * it would have a project pay for it and keep it in its SMS log.
+   */
+  test("that tell master admins about the server go through the server's own account", () => {
+    const calls: Array<SendCall> = SEND_CALLS.filter(
+      (call: SendCall): boolean => {
+        return SERVER_ALERTS.includes(call.file);
+      },
+    );
+
+    // The alert's SMS.
+    expect(calls.length).toBeGreaterThanOrEqual(1);
 
     expect(
       calls

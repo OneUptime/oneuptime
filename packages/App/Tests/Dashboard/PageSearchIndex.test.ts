@@ -33,6 +33,12 @@ import {
   TWILIO_CONFIG_PLACE,
   TWILIO_CONFIG_TITLE,
 } from "../../FeatureSet/Dashboard/src/Components/NotificationMethods/OwnSendersFold";
+import {
+  DEFAULT_LADDER_PLACE,
+  DEFAULT_LADDER_TITLE,
+  PHONE_FOR_ON_CALL_PLACE,
+  PHONE_FOR_ON_CALL_TITLE,
+} from "../../FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
 import HeldPermissionsUtil from "Common/Types/HeldPermissions";
@@ -763,14 +769,26 @@ describe("what the maintainer asked for, through the real search", () => {
 });
 
 /*
- * The project's own mail servers and Twilio accounts wait folded under
- * Notification Channels' More settings (OwnSendersFold). Search finds each
+ * How members are paged by default - the project's default ladder and its
+ * ask for a phone (#7449, ProjectPagingDefaultsWords) - and the project's
+ * own mail servers and Twilio accounts (OwnSendersFold) wait folded under
+ * Notification Channels' More settings, in that order. Search finds each
  * by name - a thing on the page, as Delete Project is - and opens the page
- * at its table, where the fold opens by itself: a result never lands on a
+ * at its card, where the fold opens by itself: a result never lands on a
  * page with what it was for hidden.
  */
 describe("results for what is folded under More settings", () => {
   const FOLDED: Array<{ id: string; title: string; place: string }> = [
+    {
+      id: "default-ladder-for-new-members",
+      title: DEFAULT_LADDER_TITLE,
+      place: DEFAULT_LADDER_PLACE,
+    },
+    {
+      id: "phone-for-people-on-call",
+      title: PHONE_FOR_ON_CALL_TITLE,
+      place: PHONE_FOR_ON_CALL_PLACE,
+    },
     {
       id: "custom-smtp-configs",
       title: CUSTOM_SMTP_CONFIGS_TITLE,
@@ -784,7 +802,7 @@ describe("results for what is folded under More settings", () => {
   ];
 
   test.each(FOLDED)(
-    "$title opens Notification Channels at its table",
+    "$title opens Notification Channels at its card",
     (folded: { id: string; title: string; place: string }) => {
       const descriptor: PageSearchCommandDescriptor | undefined = build().find(
         (candidate: PageSearchCommandDescriptor) => {
@@ -826,7 +844,7 @@ describe("results for what is folded under More settings", () => {
       }),
     );
 
-    // Both on Notification Channels.
+    // Every one on Notification Channels.
     for (const entry of ENTRIES) {
       for (const action of entry.page.actions || []) {
         if (action.anchor) {

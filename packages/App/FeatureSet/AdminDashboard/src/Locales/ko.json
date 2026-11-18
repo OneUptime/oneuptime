@@ -4219,10 +4219,18 @@
   "The email log could not be loaded.": "이메일 로그를 불러올 수 없습니다.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "이 서버에는 이메일이 설정되지 않아 이 이메일을 보내지 못했습니다. 서버 관리자에게 이메일 설정을 요청하세요.",
   "Outage Notifications": "중단 알림",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "이 서버의 이메일이 작동을 멈추거나 모든 글로벌 프로브가 보고를 멈추면 마스터 관리자에게 알리고, 다시 작동하면 한 번 더 알립니다. 멈춘 채널로는 절대 알리지 않으며 최대 한 시간에 한 번만 알립니다. 프로브에 대해서는 관리자 알림 이메일에도 알립니다.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "이 서버의 이메일이 작동을 멈추거나 모든 글로벌 프로브가 보고를 멈추면 마스터 관리자에게 알리고, 다시 작동하면 한 번 더 알립니다. 멈춘 채널로는 절대 알리지 않으며 최대 한 시간에 한 번만 알립니다.",
   "Edit Outage Notifications": "중단 알림 편집",
   "Text This Number": "이 번호로 SMS 보내기",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "이 서버의 SMS 설정을 통해 이 번호로 SMS를 보냅니다. 보내지 않으려면 비워 두세요.",
   "Push to Master Admins' Devices": "마스터 관리자 기기로 푸시",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "마스터 관리자가 OneUptime 앱에 로그인한 모든 기기로 푸시 알림을 보냅니다."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "마스터 관리자가 OneUptime 앱에 로그인한 모든 기기로 푸시 알림을 보냅니다.",
+  "Search people or teams...": "사람 또는 팀 검색...",
+  "Owners": "소유자",
+  "Is any of": "다음 중 하나임",
+  "Is none of": "다음 중 어느 것도 아님",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님"
 }

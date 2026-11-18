@@ -4219,10 +4219,18 @@
   "The email log could not be loaded.": "The email log could not be loaded.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.",
   "Outage Notifications": "Outage Notifications",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.",
   "Edit Outage Notifications": "Edit Outage Notifications",
   "Text This Number": "Text This Number",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.",
   "Push to Master Admins' Devices": "Push to Master Admins' Devices",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "A push notification goes to every device a master admin signed in to the OneUptime app on."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "A push notification goes to every device a master admin signed in to the OneUptime app on.",
+  "Search people or teams...": "Search people or teams...",
+  "Owners": "Owners",
+  "Is any of": "Is any of",
+  "Is none of": "Is none of",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} is any of {{count}} selected people or teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} is any of {{count}} selected person or team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} is none of {{count}} selected people or teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is none of {{count}} selected person or team"
 }

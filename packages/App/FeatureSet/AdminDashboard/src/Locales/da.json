@@ -4219,10 +4219,18 @@
   "The email log could not be loaded.": "E-mailloggen kunne ikke indlæses.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Der er ikke sat e-mail op på denne server, så denne e-mail blev ikke sendt. Bed din serveradministrator om at sætte e-mail op.",
   "Outage Notifications": "Besked om nedbrud",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "Når denne servers e-mail holder op med at virke, eller alle globale sonder holder op med at rapportere, får hovedadministratorerne besked, og igen når det virker igen: aldrig gennem den kanal, der stoppede, og højst én gang i timen. Admin-notifikationsmailen får også besked om sonderne.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "Når denne servers e-mail holder op med at virke, eller alle globale sonder holder op med at rapportere, får hovedadministratorerne besked, og igen når det virker igen: aldrig gennem den kanal, der stoppede, og højst én gang i timen.",
   "Edit Outage Notifications": "Rediger besked om nedbrud",
   "Text This Number": "Send sms til dette nummer",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "En sms sendes til dette nummer gennem serverens egne sms-indstillinger. Lad feltet være tomt for ikke at sende nogen.",
   "Push to Master Admins' Devices": "Push til hovedadministratorernes enheder",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "En push-notifikation sendes til alle enheder, hvor en hovedadministrator er logget ind i OneUptime-appen."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "En push-notifikation sendes til alle enheder, hvor en hovedadministrator er logget ind i OneUptime-appen.",
+  "Search people or teams...": "Søg efter personer eller teams...",
+  "Owners": "Ejere",
+  "Is any of": "Er en af",
+  "Is none of": "Er ingen af",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} er en af {{count}} valgte personer eller teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} er {{count}} valgt person eller team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} er ingen af {{count}} valgte personer eller teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} er ikke {{count}} valgt person eller team"
 }

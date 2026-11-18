@@ -89,6 +89,8 @@ export interface ComponentProps {
    * Monitors, as Resources' Add Multiple opens it.
    */
   title?: string | undefined;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   /*
    * What the toast that says the monitors were added offers next, in the
@@ -1000,6 +1002,9 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         isMonitorGroupPicker
           ? "Add Multiple Monitor Groups"
           : props.title || "Add Multiple Monitors"
+      }
+      isTitleTranslated={
+        !isMonitorGroupPicker && Boolean(props.title) && props.isTitleTranslated
       }
       description={
         isMonitorGroupPicker

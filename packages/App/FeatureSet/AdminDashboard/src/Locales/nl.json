@@ -4219,10 +4219,18 @@
   "The email log could not be loaded.": "Het e-maillogboek kon niet worden geladen.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Op deze server is geen e-mail ingesteld, dus deze e-mail is niet verzonden. Vraag uw serverbeheerder om e-mail in te stellen.",
   "Outage Notifications": "Storingsmeldingen",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "Als de e-mail van deze server niet meer werkt, of geen enkele globale sonde meer rapporteert, krijgen de hoofdbeheerders bericht, en nog een keer zodra het weer werkt: nooit via het kanaal dat stopte, en hooguit één keer per uur. Het e-mailadres voor beheerdersmeldingen krijgt ook bericht over de sondes.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "Als de e-mail van deze server niet meer werkt, of geen enkele globale sonde meer rapporteert, krijgen de hoofdbeheerders bericht, en nog een keer zodra het weer werkt: nooit via het kanaal dat stopte, en hooguit één keer per uur.",
   "Edit Outage Notifications": "Storingsmeldingen bewerken",
   "Text This Number": "Sms naar dit nummer",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Er gaat een sms naar dit nummer via de sms-instellingen van deze server. Laat het leeg om er geen te sturen.",
   "Push to Master Admins' Devices": "Push naar de apparaten van hoofdbeheerders",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Er gaat een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Er gaat een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld.",
+  "Search people or teams...": "Personen of teams zoeken...",
+  "Owners": "Eigenaren",
+  "Is any of": "Is een van",
+  "Is none of": "Is geen van",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} is een van {{count}} geselecteerde personen of teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} is {{count}} geselecteerde persoon of team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} is geen van {{count}} geselecteerde personen of teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is niet {{count}} geselecteerde persoon of team"
 }

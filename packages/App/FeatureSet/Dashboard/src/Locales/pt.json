@@ -56762,7 +56762,7 @@
   "No default ladder: a member is paged by every method they verify, at once.": "Sem sequência padrão: um membro é acionado na hora por cada método que verifica.",
   "No phone method": "Sem método por telefone",
   "On-Call Readiness and Setup health name everyone on a policy without one, and a setup reminder asks them to add one. Nobody is locked out.": "Prontidão para o plantão e Saúde da configuração indicam todos em uma política que não têm um, e um lembrete de configuração pede que adicionem um. Ninguém fica bloqueado.",
-  "Only a Project Owner or Project Admin can change the default ladder.": "Somente um proprietário do projeto ou um administrador do projeto pode alterar a sequência padrão.",
+  "Only a Project Owner or Project Admin can change the default ladder.": "Somente um Proprietário do projeto ou um Administrador do projeto pode alterar a sequência padrão.",
   "Phone added. It can text and call you now: put it in your ladder.": "Telefone adicionado. Agora ele pode enviar SMS e ligar para você: coloque-o na sua sequência.",
   "Phone for People on Call": "Telefone para quem está de plantão",
   "Require Phone Method for On-Call": "Exigir método por telefone para o plantão",
@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "{{count}} grupos de monitores adicionados",
   "{{count}} monitor groups added_one": "{{count}} grupo de monitores adicionado",
   "{{count}} monitors added": "{{count}} monitores adicionados",
-  "{{count}} monitors added_one": "{{count}} monitor adicionado"
+  "{{count}} monitors added_one": "{{count}} monitor adicionado",
+  "Is Sample Project": "É um projeto de exemplo",
+  "Sample Project": "Projeto de exemplo",
+  "Sample Project ID": "ID do projeto de exemplo"
 }
