@@ -1506,6 +1506,56 @@ describe("StatusPageSubscriberService.unsubscribe - the one write that cancels",
       }),
     ).resolves.toBe(true);
   });
+
+  /*
+   * Nor does a workflow event that could not be posted (#9209): the cancel
+   * is committed, so it is logged, and the realtime event, the audit log
+   * entry and the email to the team still go.
+   */
+  test("a workflow event that cannot be posted does not fail the unsubscribe, nor keep what follows it", async () => {
+    const errors: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
+    jest
+      .spyOn(StatusPageSubscriberService, "onTriggerWorkflow")
+      .mockRejectedValue(
+        new Error("The workflow service could not be reached") as never,
+      );
+    const recordUpdate: jest.SpyInstance = jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockResolvedValue(undefined as never);
+
+    await expect(
+      StatusPageSubscriberService.unsubscribe({
+        subscriberId: SUBSCRIBER_ID,
+        source: StatusPageSubscriberUnsubscribeSource.UnsubscribeLink,
+      }),
+    ).resolves.toBe(true);
+
+    expect(StatusPageSubscriberService.onTriggerWorkflow).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(StatusPageSubscriberService.onTriggerRealtime).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(recordUpdate).toHaveBeenCalledTimes(1);
+    expect(sentMail().length).toBeGreaterThan(0);
+
+    const logged: Array<string> = errors.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return String(call[0]);
+      },
+    );
+
+    expect(
+      logged.some((message: string): boolean => {
+        return (
+          message.includes("The workflow service could not be reached") &&
+          message.includes(SUBSCRIBER_ID.toString())
+        );
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("telling the team when a subscriber it added unsubscribes", () => {
