@@ -72,6 +72,28 @@ export const DASHBOARD_TOOLBAR_CONTROLS_TEST_ID: string =
 export const DASHBOARD_TOOLBAR_EDIT_STATE_TEST_ID: string =
   "dashboard-toolbar-edit-state";
 
+/*
+ * The block that holds the icon and the name: a container, so the line in
+ * it lays itself out by the block's width, not the window's.
+ */
+export const DASHBOARD_TOOLBAR_NAME_BLOCK_CLASS_NAME: string =
+  "flex min-w-0 flex-1 basis-0 items-center gap-3 sm:basis-60 [container-type:inline-size]";
+
+/*
+ * The name and the editing chip. Where the block is narrower than 26rem - a
+ * phone, or the controls beside it - the chip goes under the name, in both
+ * of its states: beside it, the long state ("Nicht gespeicherte
+ * Änderungen") left a German phone's name at "O.", and a chip that moved
+ * under the name only once the board differed would push the board down
+ * at the first change. From 26rem it sits beside the name.
+ */
+export const DASHBOARD_TOOLBAR_NAME_LINE_CLASS_NAME: string =
+  "flex items-center gap-2 [@container(max-width:26rem)]:flex-col [@container(max-width:26rem)]:items-start [@container(max-width:26rem)]:gap-1";
+
+// The heading that holds the name: all of the line's width when the chip is under it.
+export const DASHBOARD_TOOLBAR_NAME_HEADING_CLASS_NAME: string =
+  "min-w-0 text-sm font-semibold text-gray-800 [@container(max-width:26rem)]:max-w-full";
+
 export interface ComponentProps {
   onEditClick: () => void;
   onSaveClick: () => void;
@@ -591,7 +613,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           data-testid={DASHBOARD_TOOLBAR_ROW_TEST_ID}
         >
           {/* Left: Icon + Title + Description */}
-          <div className="flex min-w-0 flex-1 basis-0 items-center gap-3 sm:basis-60">
+          <div className={DASHBOARD_TOOLBAR_NAME_BLOCK_CLASS_NAME}>
             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
               <Icon
                 icon={IconProp.Layout}
@@ -608,8 +630,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
              * is its first.
              */}
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="min-w-0 text-sm font-semibold text-gray-800">
+              <div className={DASHBOARD_TOOLBAR_NAME_LINE_CLASS_NAME}>
+                <h2 className={DASHBOARD_TOOLBAR_NAME_HEADING_CLASS_NAME}>
                   <IsolatedText
                     text={props.dashboardName}
                     title={props.dashboardName}
@@ -625,7 +647,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                  * from Edit Dashboard to Save Changes, changed or not, so an
                  * editor learnt there was something to save only by trying
                  * to leave. One chip whose words change, kept whole (the
-                 * name gives way first), so no button moves. A screen
+                 * name gives way first, or the chip goes under it where the
+                 * name's block is narrow), so no button moves. A screen
                  * reader hears it once as the board first differs (a
                  * status: polite), not at every change after.
                  */}
