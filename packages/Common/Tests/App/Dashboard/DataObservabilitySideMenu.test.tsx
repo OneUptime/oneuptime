@@ -1,7 +1,15 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import * as React from "react";
+import DataObservabilityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataObservabilityApi";
 import DataObservabilitySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/SideMenu";
 import {
   DATA_OBSERVABILITY_LANDING_PAGE,
@@ -19,30 +27,39 @@ import {
   isExpanded,
   linksIn,
   renderMenu,
+  sectionRoot,
   sectionTitlesInOrder,
   setViewportWidth,
 } from "./SideMenuHarness";
 
 /*
- * THE DATA OBSERVABILITY MENU: SEVENTEEN PAGES IN SECTIONS A DATA ENGINEER
+ * THE DATA OBSERVABILITY MENU: NINETEEN PAGES IN SECTIONS A DATA ENGINEER
  * READS IN ORDER.
  *
  * Eleven entries stood in one section, Unused Tables and the rules folded
- * under Advanced. Now: the everyday pages (is anything wrong, what is
- * watched and where it comes from), then Quality (the rules the data must
- * keep) and Usage (who relies on it, what it costs), open; Rules, Help and
- * Advanced folded to their titles, each opening by itself on its own
- * pages. Every page the menu had is still in it.
+ * under Advanced. Now: the everyday pages (is anything wrong - the Overview,
+ * with how many things need someone beside it, and every Issue (#6549,
+ * #6552) - what is watched and where it comes from), then Quality (the
+ * rules the data must keep) and Usage (who relies on it, what it costs),
+ * open; Rules, Help and Advanced folded to their titles, each opening by
+ * itself on its own pages. Every page the menu had is still in it.
  */
 
 const DO: string = `/dashboard/${PROJECT_ID}/data-observability`;
 
+// What the count route answers: nothing needs anyone, unless a test says so.
+let attentionCount: ReturnType<typeof jest.spyOn>;
+
 beforeEach(() => {
   setViewportWidth(DESKTOP_WIDTH);
+  attentionCount = jest
+    .spyOn(DataObservabilityApi, "getAttentionCount")
+    .mockResolvedValue(0);
 });
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
 describe("the sections and their pages", () => {
@@ -60,6 +77,7 @@ describe("the sections and their pages", () => {
     ]);
     expect(linksIn("Data Observability")).toEqual([
       { title: "Overview", href: `${DO}/overview` },
+      { title: "Issues", href: `${DO}/issues` },
       { title: "Tables", href: `${DO}/tables` },
       { title: "Pipelines", href: `${DO}/pipelines` },
       { title: "Schema Changes", href: `${DO}/schema-changes` },
@@ -122,7 +140,7 @@ describe("the sections and their pages", () => {
 });
 
 describe("the menu as data", () => {
-  test("eighteen pages, each once - every page the menu had before, and the Lineage Map (#9114)", () => {
+  test("nineteen pages, each once - every page the menu had before, the Lineage Map (#9114) and Issues (#6549)", () => {
     const pages: Array<PageMap> = getDataObservabilityMenuItems().map(
       (item: DataObservabilityMenuItem): PageMap => {
         return item.page;
@@ -133,6 +151,7 @@ describe("the menu as data", () => {
     expect([...pages].sort()).toEqual(
       [
         PageMap.DATA_OBSERVABILITY_OVERVIEW,
+        PageMap.DATA_OBSERVABILITY_ISSUES,
         PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
         PageMap.DATA_OBSERVABILITY_TABLES,
         PageMap.DATA_OBSERVABILITY_CHECKS,
@@ -154,9 +173,16 @@ describe("the menu as data", () => {
     );
   });
 
-  test("no section is longer than six entries, and the product opens on its Overview", () => {
+  /*
+   * The everyday section holds seven: Issues sits under the Overview it
+   * lists in full (#6549), and nothing anyone opens daily moved behind a
+   * fold to make room.
+   */
+  test("no section is longer than seven entries, the everyday one alone that long, and the product opens on its Overview", () => {
     for (const section of DATA_OBSERVABILITY_MENU) {
-      expect(section.items.length).toBeLessThanOrEqual(6);
+      expect(section.items.length).toBeLessThanOrEqual(
+        section === DATA_OBSERVABILITY_MENU[0] ? 7 : 6,
+      );
     }
 
     expect(DATA_OBSERVABILITY_LANDING_PAGE).toBe(
@@ -184,5 +210,59 @@ describe("the menu as data", () => {
       getDataObservabilityMenuSectionFor(PageMap.DATA_OBSERVABILITY_TABLE_VIEW),
     ).toBeUndefined();
     expect(getDataObservabilityMenuSectionFor(undefined)).toBeUndefined();
+  });
+});
+
+describe("the count beside Overview (#6552)", () => {
+  test("how many things need someone, beside Overview alone, named for a screen reader", async () => {
+    attentionCount.mockResolvedValue(23);
+    goTo(`${DO}/tables`);
+    await renderMenu(<DataObservabilitySideMenu />);
+
+    const overview: HTMLAnchorElement | null = sectionRoot(
+      "Data Observability",
+    ).querySelector(`a[href="${DO}/overview"]`);
+
+    expect(overview).not.toBeNull();
+    expect(overview!.textContent).toContain("23");
+    // The figure is for the eye; a screen reader hears what it counts.
+    expect(screen.getByText("23 need attention")).toHaveClass("sr-only");
+    expect(attentionCount).toHaveBeenCalledTimes(1);
+
+    // No other entry carries it.
+    const issues: HTMLAnchorElement | null = sectionRoot(
+      "Data Observability",
+    ).querySelector(`a[href="${DO}/issues"]`);
+
+    expect(issues!.textContent).not.toContain("23");
+  });
+
+  test("one thing reads in the singular", async () => {
+    attentionCount.mockResolvedValue(1);
+    goTo(`${DO}/overview`);
+    await renderMenu(<DataObservabilitySideMenu />);
+
+    expect(screen.getByText("1 needs attention")).toHaveClass("sr-only");
+  });
+
+  test("none is drawn at zero", async () => {
+    attentionCount.mockResolvedValue(0);
+    goTo(`${DO}/overview`);
+    await renderMenu(<DataObservabilitySideMenu />);
+
+    expect(screen.queryByText(/need(s)? attention/)).toBeNull();
+    expect(linksIn("Data Observability")[0]).toEqual({
+      title: "Overview",
+      href: `${DO}/overview`,
+    });
+  });
+
+  test("none is drawn when it cannot be counted: the menu stays as it is", async () => {
+    attentionCount.mockRejectedValue(new Error("The server did not answer."));
+    goTo(`${DO}/overview`);
+    await renderMenu(<DataObservabilitySideMenu />);
+
+    expect(screen.queryByText(/need(s)? attention/)).toBeNull();
+    expect(linksIn("Data Observability")).toHaveLength(7);
   });
 });

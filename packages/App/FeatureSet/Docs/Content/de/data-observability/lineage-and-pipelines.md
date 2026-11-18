@@ -136,6 +136,8 @@ Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit s
 - **Pipeline Run Unusually Long**: Ein Lauf dauert doppelt so lange wie üblich oder länger, geprüft alle fünf Minuten, während er läuft, sodass ein hängender Lauf erkannt wird, bevor er endet.
 - **Pipeline Is Late**: Seit längerer Zeit, als ihr Zeitplan erlaubt, hat kein Lauf begonnen.
 
+Der Tab **Eigentümer** einer Pipeline nennt die Personen und Teams, die sich um sie kümmern, und ihre Warnungen gehen an sie. Die **Übersicht** und **Probleme** nennen die Eigentümer einer fehlgeschlagenen oder verspäteten Pipeline, oder zeigen **Kein Eigentümer** und einen Weg, einen hinzuzufügen.
+
 Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen. Eine Zahl nicht gezeichneter Tabellen, auf der Karte der Pipeline oder einer Tabelle, zeichnet auch hier weitere davon an Ort und Stelle.
 
 ## Eine Meldung pro Ursache

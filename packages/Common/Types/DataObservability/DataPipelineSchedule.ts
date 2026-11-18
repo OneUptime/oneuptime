@@ -157,6 +157,43 @@ export interface DataPipelineLateness {
   overdueBySeconds: number;
 }
 
+/*
+ * WHEN A PIPELINE BECOMES LATE WITHOUT A NEW RUN - its expected interval
+ * after its last start, plus a quarter of it and at least fifteen minutes -
+ * or null while it has no schedule to judge by. Kept on the pipeline as its
+ * runs arrive (DataPipeline.lateAt), so the pipelines late now are counted
+ * by lateAt before now, with no row read; one not started for thirty days is
+ * retired (MAX_LATENESS_WATCH_IN_SECONDS), which the count asks of its last
+ * start.
+ */
+export function getDataPipelineLateAt(data: {
+  lastRunStartedAt: Date | string | undefined | null;
+  expectedRunIntervalInSeconds: number | undefined | null;
+}): Date | null {
+  if (
+    !data.lastRunStartedAt ||
+    !data.expectedRunIntervalInSeconds ||
+    data.expectedRunIntervalInSeconds <= 0
+  ) {
+    return null;
+  }
+
+  const lastStart: number = new Date(data.lastRunStartedAt).getTime();
+
+  if (!Number.isFinite(lastStart)) {
+    return null;
+  }
+
+  const allowedSeconds: number =
+    data.expectedRunIntervalInSeconds +
+    Math.max(
+      data.expectedRunIntervalInSeconds / 4,
+      MIN_PIPELINE_LATENESS_SLACK_IN_SECONDS,
+    );
+
+  return new Date(lastStart + allowedSeconds * 1000);
+}
+
 export function getDataPipelineLateness(data: {
   lastRunStartedAt: Date | undefined | null;
   expectedRunIntervalInSeconds: number | undefined | null;
@@ -168,11 +205,9 @@ export function getDataPipelineLateness(data: {
     overdueBySeconds: 0,
   };
 
-  if (
-    !data.lastRunStartedAt ||
-    !data.expectedRunIntervalInSeconds ||
-    data.expectedRunIntervalInSeconds <= 0
-  ) {
+  const lateAt: Date | null = getDataPipelineLateAt(data);
+
+  if (!lateAt || !data.lastRunStartedAt) {
     return unknown;
   }
 
@@ -182,13 +217,6 @@ export function getDataPipelineLateness(data: {
     return unknown;
   }
 
-  const allowedSeconds: number =
-    data.expectedRunIntervalInSeconds +
-    Math.max(
-      data.expectedRunIntervalInSeconds / 4,
-      MIN_PIPELINE_LATENESS_SLACK_IN_SECONDS,
-    );
-  const lateAt: Date = new Date(lastStart + allowedSeconds * 1000);
   const overdueBySeconds: number = Math.max(
     0,
     Math.floor((data.now.getTime() - lateAt.getTime()) / 1000),

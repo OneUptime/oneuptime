@@ -136,6 +136,8 @@ Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue es
 - **Pipeline Run Unusually Long**: un'esecuzione ha impiegato il doppio del tempo abituale o più, verificato ogni cinque minuti mentre è in corso, così un'esecuzione bloccata viene notata prima che finisca.
 - **Pipeline Is Late**: nessuna esecuzione è partita da più tempo di quanto la sua pianificazione consenta.
 
+La scheda **Proprietari** di una pipeline nomina le persone e i team che se ne occupano, e i suoi avvisi vanno a loro. La **Panoramica** e **Problemi** nominano i proprietari di una pipeline fallita o in ritardo, oppure mostrano **Nessun proprietario**, con un modo per aggiungerne uno.
+
 La pagina di una pipeline disegna la sua **Derivazione**, il primo posto in cui guardare quando un'esecuzione non riesce o è in ritardo: a sinistra le tabelle che legge, a destra le tabelle che scrive, la pipeline in mezzo, e ogni riquadro dice com'è adesso. Scegli più passi per vedere da cosa sono costruite quelle tabelle e cosa è costruito a partire da esse, e apri qualsiasi tabella per vedere la sua scheda **Derivazione**. Un numero di tabelle non disegnate, sul riquadro della pipeline o su quello di una tabella, ne disegna altre sul posto anche qui.
 
 ## Una segnalazione per causa

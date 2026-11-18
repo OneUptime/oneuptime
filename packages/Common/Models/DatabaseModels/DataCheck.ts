@@ -27,6 +27,7 @@ import {
   DataCheckType,
   DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
 } from "../../Types/DataObservability/DataCheckType";
+import { DataCheckHealth } from "../../Types/DataObservability/DataObservabilityAttention";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -533,7 +534,12 @@ export default class DataCheck extends BaseModel {
   @JoinColumn({ name: "monitorId" })
   public monitor?: Monitor = undefined;
 
+  /*
+   * Indexed: an alert's state changing asks which check, if any, its
+   * monitor alerts for (DataCheckHealthSync), on every alert of the server.
+   */
   @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
@@ -547,6 +553,47 @@ export default class DataCheck extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorId?: ObjectID = undefined;
+
+  /*
+   * HOW THE CHECK STANDS NOW, KEPT ON IT (#6554): written as it runs, as its
+   * alert opens and resolves, and as it is turned on or off
+   * (DataCheckHealthSync), by the rule the Status column reads
+   * (getDataCheckHealth). Only an alert every reader may see counts here, so
+   * a check whose open alert is private is not called failing to those it
+   * is private from; the Status column still reads each person's own.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    title: "Health",
+    description:
+      "How the check stands now: Failing while its alert is open, Could Not Run when its query failed, Passing, No Alert, Waiting before its first run, or Off.",
+    allowedValues: Object.values(DataCheckHealth),
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public health?: DataCheckHealth = undefined;
+
+  // Its health's place, worst first (DATA_CHECK_HEALTH_ORDER): what Checks sorts by.
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    computed: true,
+    title: "Health Rank",
+    description:
+      "The check's health as a number to sort by, worst first: 0 failing, 1 could not run, 2 passing, 3 no alert, 4 waiting, 5 off.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public healthRank?: number = undefined;
 
   /*
    * An id, not a relation: the reconciliation refers to its checks, and a

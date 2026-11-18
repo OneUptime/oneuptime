@@ -90,6 +90,7 @@ O script em `/v1/recorder.js` é um pequeno carregador. Ele verifica o Do Not Tr
 | `data-oneuptime-respect-do-not-track` | Não | Por padrão, respeita o Do Not Track e o Global Privacy Control. Defina como `"false"` para gravar independentemente do sinal; consulte [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | Não | `"true"` imprime as decisões do gravador no console. Consulte [Solução de problemas de reprodução de sessões](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | Não | Defina como `"false"` para manter só em memória os fragmentos gravados enquanto o visitante está offline, em vez de salvá-los também no IndexedDB do navegador. Consulte [Modo offline](#modo-offline). |
+| `data-oneuptime-app-version` | Não | A versão do seu aplicativo, como `2.3.1`, até 64 caracteres. A Análise de produto divide usuários e sessões por ela. |
 
 As mesmas opções podem ser passadas em um global em vez da tag, que é o que os gerenciadores de tags e as instalações empacotadas usam:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ Para atender a uma solicitação de exclusão, registre uma solicitação de apa
 
 Dois limites honestos de `ByIdentifiedUserKey`. A chave não aparece em lugar nenhum do painel: ela volta como `identifiedUserKey` em cada linha da API da lista de sessões (`POST /telemetry/rum/session-replay/list`), então hoje um apagamento por usuário começa com uma busca `user:` ali e uma cópia desse campo. E uma sessão gravada enquanto **Capturar a identidade do usuário final** estava desativado não tem chave nenhuma — nada sobre a pessoa foi armazenado —, então ela só pode ser alcançada pelo id da sessão, por intervalo de datas ou pela aplicação.
 
-Cada solicitação registra o seu `status` (`Pending`, `InProgress`, `Completed`, `Failed`), as contagens `sessionsDeleted` e `chunksDeleted` e qualquer `failureReason`; `ReadRumSessionErasureRequest` permite que alguém as revise. O apagamento remove a gravação e a telemetria vinculada a essas sessões, e qualquer gravação ainda em trânsito quando a solicitação termina é descartada em vez de gravada. Um link para uma sessão apagada responde «erased» em vez de «not found». A telemetria vinculada é:
+Cada solicitação registra o seu `status` (`Pending`, `InProgress`, `Completed`, `Failed`), as contagens `sessionsDeleted`, `chunksDeleted` e `productAnalyticsRowsDeleted` e qualquer `failureReason`; `ReadRumSessionErasureRequest` permite que alguém as revise. O apagamento remove a gravação e a telemetria vinculada a essas sessões, e qualquer gravação ainda em trânsito quando a solicitação termina é descartada em vez de gravada. Um link para uma sessão apagada responde «erased» em vez de «not found». A telemetria vinculada é:
 
 - cada span e cada exceção marcados com o id da sessão, incluindo os spans do backend marcados [automaticamente](#correlacionar-com-o-resto-da-sua-telemetria) em cada serviço que encaminhou o contexto de traço, e qualquer registro que carregue o próprio id;
 - os registros, as exceções e os spans de cada traço que pertence só às sessões apagadas: cada span marcado no traço carrega um dos ids delas, e nada no traço começou mais de dez minutos antes do primeiro ou depois do último desses spans. Isso cobre os registros do backend das requisições que as suas páginas fizeram para a própria origem, que compartilham um id de traço com esses spans marcados.

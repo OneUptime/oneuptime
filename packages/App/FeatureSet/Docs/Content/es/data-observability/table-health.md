@@ -17,6 +17,8 @@ Solo se lee el catálogo y, en MongoDB, los nombres de campo de los documentos m
 
 El **ritmo** de una tabla es la frecuencia con la que suele cambiar, aprendida a partir del tiempo entre sus cambios. Una tabla que supera con creces su ritmo aparece como **Con retraso**, en su página y en **Tablas**, e indica cuánto lo ha superado. Su frescura se conoce en cuanto ha cambiado dos veces: una tabla que se carga cada hora se aprende en unas horas, una que se carga cada noche en unos días.
 
+En **Tablas**, y en la pestaña **Tablas** de una base de datos, el filtro **Actualidad** muestra solo las tablas con retraso, o solo las actualizadas, y ordenar por **Actualidad** pone primero las más atrasadas. **Tablas con retraso** en la **Vista general**, y en la página propia de una base de datos, abre esa lista con **Actualidad** en **Con retraso**.
+
 Una vista no tiene filas propias, así que su frescura es la de sus fuentes: consulta [Linaje y pipelines](/docs/data-observability/lineage-and-pipelines).
 
 Un catálogo puede decir que una tabla cambió cuando solo cambió su mantenimiento interno, o no decir nada. En los **Ajustes** de una tabla, indica una **Columna de frescura** como `updated_at`, y su último cambio pasa a ser el valor más reciente de esa columna. El usuario necesita leer la columna, y se lee en cada recopilación, así que debería estar indexada; en BigQuery y Athena, que facturan por lo que lee una consulta, se lee una vez por hora. Las horas sin zona se toman como UTC.
@@ -85,7 +87,7 @@ La pestaña **Propietarios** de una tabla indica las personas y los equipos a lo
 
 No deberías tener que hacerlo cientos de veces. Las **Reglas del propietario** y las **Reglas de etiquetas** se aplican a cada tabla cuando aparece por primera vez, según sus etiquetas, o según una expresión regular sobre su nombre, esquema o base de datos: todo lo que esté en `finance` va al equipo de finanzas, y todo lo que se llame `*_pii` recibe una etiqueta.
 
-Un permiso limitado a `Owned` solo alcanza las tablas de las que son propietarios su titular o sus equipos, con sus comprobaciones, su actividad y los problemas notificados. Ser propietario de una base de datos no te hace propietario de sus tablas: usa una regla de propietarios para asignar una base de datos entera a un equipo.
+Un permiso limitado a `Owned` solo alcanza las tablas de las que son propietarios su titular o sus equipos, con sus comprobaciones, su actividad y los problemas notificados. Ser propietario de una base de datos no te hace propietario de sus tablas: usa una regla de propietarios para asignar una base de datos entera a un equipo. La **Vista general**, **Problemas** y el número junto a **Vista general** cuentan y listan solo las tablas a las que llega ese permiso, como hacen **Tablas** y **Comprobaciones**.
 
 ## Cuando se abre una alerta
 

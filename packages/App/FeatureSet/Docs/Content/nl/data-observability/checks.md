@@ -42,7 +42,7 @@ Stel **Waarschuwen wanneer** in om op een controle te waarschuwen:
 
 Bij het opslaan van de controle wordt er een metrics-monitor voor gemaakt, op jouw naam en met jouw machtigingen. Als je de voorwaarde wist, wordt de monitor verwijderd.
 
-De **Status** van een controle, op **Controles** en op het tabblad **Controles** van haar tabel, zegt hoe ze ervoor staat: **Mislukt** zolang haar waarschuwing openstaat, **Voldoet** zolang dat niet zo is, en **Kon niet uitvoeren** wanneer haar query mislukte. Een controle zonder waarschuwing toont alleen **Uitgevoerd**: haar query werkte. Een controle die mislukt, en een die niet kon draaien, staat ook op **Overzicht**.
+De **Status** van een controle, op **Controles** en op het tabblad **Controles** van haar tabel, zegt hoe ze ervoor staat: **Mislukt** zolang haar waarschuwing openstaat, **Voldoet** zolang dat niet zo is, en **Kon niet uitvoeren** wanneer haar query mislukte. Een controle zonder waarschuwing toont alleen **Uitgevoerd**: haar query werkte. Een controle die mislukt, en een die niet kon draaien, staat ook op **Overzicht**. **Controles** toont eerst de mislukte controles, dan de controles die niet konden worden uitgevoerd, dan de controles die voldoen, en het filter **Status** toont de controles met één status. **Mislukte controles** op het **Overzicht** opent **Controles** met alleen de mislukte.
 
 ## Wat een controle kost
 

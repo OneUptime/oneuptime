@@ -576,6 +576,8 @@ export interface ProvisionalSessionHeader {
   recorderKind: string;
   recorderVersion: string;
   rrwebVersion: string;
+  /* The web page's own app version (issue #6625); "" when it set none. */
+  appVersion: string;
   countryCode: string;
   identifiedUserKey: string;
   identifiedUserLabel: string;
@@ -1092,6 +1094,7 @@ export function buildProvisionalHeaderStatement(data: {
       recorderKind AS recorderKind,
       recorderVersion AS recorderVersion,
       rrwebVersion AS rrwebVersion,
+      appVersion AS appVersion,
       countryCode AS countryCode,
       /*
        * Who the session belongs to, and its tags, from the newest version
@@ -1391,6 +1394,7 @@ export function parseProvisionalHeaderRow(
     recorderKind: toTextValue(row["recorderKind"]),
     recorderVersion: toTextValue(row["recorderVersion"]),
     rrwebVersion: toTextValue(row["rrwebVersion"]),
+    appVersion: toTextValue(row["appVersion"]),
     countryCode: toTextValue(row["countryCode"]),
     /* See buildProvisionalHeaderStatement: the newest version that has them. */
     identifiedUserKey: toTextValue(row["latestIdentifiedUserKey"]),
@@ -1974,6 +1978,7 @@ export function buildFinalizedSessionRow(data: {
     recorderKind: aggregate.recorderKind || (header ? header.recorderKind : ""),
     recorderVersion: header ? header.recorderVersion : "",
     rrwebVersion: header ? header.rrwebVersion : "",
+    appVersion: header ? header.appVersion : "",
 
     countryCode: header ? header.countryCode : "",
     identifiedUserKey: header ? header.identifiedUserKey : "",

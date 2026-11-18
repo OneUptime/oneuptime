@@ -740,6 +740,72 @@ describe("SessionReplayEnvelopeParser.parse — additive fields", () => {
     );
   });
 
+  /*
+   * The page's own app version (issue #6625), kept as the recorder keeps it
+   * (toSessionReplayAppVersion): trimmed and cut to 64 characters, and
+   * dropped - never an error - when it holds a control character or is no
+   * string, so a hand-crafted POST cannot file a session under a version
+   * nobody typed.
+   */
+  test("an app version is kept, trimmed and cut to 64 characters", () => {
+    for (const [sent, kept] of [
+      ["2.3.1", "2.3.1"],
+      ["  2026.11.18-rc1+build.5 ", "2026.11.18-rc1+build.5"],
+      ["7".repeat(90), "7".repeat(64)],
+      ["1.0.0-β", "1.0.0-β"],
+    ] as Array<[string, string]>) {
+      const result: Extract<SessionReplayParseResult, { isValid: true }> =
+        parseValid(
+          frameBuffer({
+            envelope: baseEnvelope({
+              meta: {
+                entryUrl: "https://x.example/",
+                browserName: "Chrome",
+                appVersion: sent,
+              },
+            }),
+            payload: "x",
+          }),
+        );
+
+      expect(result.frames[0]!.envelope.meta?.appVersion).toBe(kept);
+    }
+  });
+
+  test("an unusable app version is dropped, and nothing beside it is disturbed", () => {
+    for (const appVersion of [
+      "2.3.1\n<b>",
+      "1\u0000",
+      "\u0085",
+      "",
+      "   ",
+      231,
+      null,
+      ["2.3.1"],
+    ]) {
+      const result: Extract<SessionReplayParseResult, { isValid: true }> =
+        parseValid(
+          frameBuffer({
+            envelope: baseEnvelope({
+              meta: {
+                entryUrl: "https://x.example/",
+                browserName: "Chrome",
+                appVersion: appVersion,
+              },
+            }),
+            payload: "x",
+          }),
+        );
+
+      const meta: NonNullable<(typeof result.frames)[0]["envelope"]["meta"]> =
+        result.frames[0]!.envelope.meta!;
+
+      expect("appVersion" in meta).toBe(false);
+      expect(meta.entryUrl).toBe("https://x.example/");
+      expect(meta.browserName).toBe("Chrome");
+    }
+  });
+
   test("clickCount / customEventCount are kept when sane and absent when garbled", () => {
     const sane: Extract<SessionReplayParseResult, { isValid: true }> =
       parseValid(

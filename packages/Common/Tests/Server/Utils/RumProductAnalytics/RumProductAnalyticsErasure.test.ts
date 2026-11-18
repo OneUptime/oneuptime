@@ -2,8 +2,11 @@ import {
   PRODUCT_ANALYTICS_ERASURE_IDS_PER_MUTATION,
   PRODUCT_ANALYTICS_SESSION_ID_TABLES,
   ProductAnalyticsErasureFilter,
+  buildProductAnalyticsBatchFilters,
+  buildProductAnalyticsCountStatement,
   buildProductAnalyticsDeleteStatement,
   buildProductAnalyticsErasureFilters,
+  buildProductAnalyticsSessionIdFilters,
   buildProductAnalyticsUserSessionLookup,
 } from "../../../../Server/Utils/RumProductAnalytics/RumProductAnalyticsErasure";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
@@ -436,5 +439,269 @@ describe("buildProductAnalyticsDeleteStatement", () => {
       expect(params(statement)).toContain(projectId.toString());
       expect(params(statement)).toContain(applicationId.toString());
     }
+  });
+});
+
+describe("buildProductAnalyticsErasureFilters - a user's pass that leaves more for the next (issue #6628)", () => {
+  test("takes only the sessions it found, by id: the rows by key wait for the last pass", () => {
+    const filters: Array<ProductAnalyticsErasureFilter> =
+      buildProductAnalyticsErasureFilters({
+        projectId: projectId,
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+        sessionIds: ["s1", "s2"],
+        isFinalPass: false,
+      });
+
+    expect(tablesOf(filters)).toEqual([
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
+
+    for (const filter of filters) {
+      expect(filter.where.query).toContain("sessionId IN ");
+      expect(filter.where.query).not.toContain("personKey");
+      expect(filter.where.query).not.toContain("identifiedUserKey");
+    }
+  });
+
+  test("the last pass, said or left out, takes the rows by key too", () => {
+    for (const isFinalPass of [true, undefined]) {
+      expect(
+        tablesOf(
+          buildProductAnalyticsErasureFilters({
+            projectId: projectId,
+            requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+            targetValue: userKey,
+            sessionIds: ["s1"],
+            isFinalPass: isFinalPass,
+          }),
+        ),
+      ).toEqual([
+        AnalyticsTableName.RumProductAnalyticsSession,
+        AnalyticsTableName.RumProductAnalyticsEvent,
+        AnalyticsTableName.RumProductAnalyticsUser,
+        AnalyticsTableName.RumProductAnalyticsEvent,
+      ]);
+    }
+  });
+
+  test("a pass that is not the last still refuses a request without a key", () => {
+    expect(() => {
+      return buildProductAnalyticsErasureFilters({
+        projectId: projectId,
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: " ",
+        isFinalPass: false,
+      });
+    }).toThrow("no user key");
+  });
+});
+
+describe("buildProductAnalyticsBatchFilters (issue #6628)", () => {
+  const ids: Array<string> = ["s1", "s2"];
+
+  test("an id list's and a user's batches take their sessions' summaries and events by id", () => {
+    for (const requestType of [
+      RumSessionErasureRequestType.BySessionId,
+      RumSessionErasureRequestType.ByIdentifiedUserKey,
+    ]) {
+      const filters: Array<ProductAnalyticsErasureFilter> =
+        buildProductAnalyticsBatchFilters({
+          projectId: projectId,
+          requestType: requestType,
+          sessionIds: ids,
+        });
+
+      expect(tablesOf(filters)).toEqual([
+        AnalyticsTableName.RumProductAnalyticsSession,
+        AnalyticsTableName.RumProductAnalyticsEvent,
+      ]);
+
+      for (const filter of filters) {
+        expect(filter.where.query).toContain("projectId = ");
+        expect(filter.where.query).toContain("sessionId IN ");
+        expect(boundArrays(filter.where)).toEqual([ids]);
+      }
+    }
+  });
+
+  test("an application's batches take nothing: its application-wide deletes take every row once", () => {
+    expect(
+      buildProductAnalyticsBatchFilters({
+        projectId: projectId,
+        requestType: RumSessionErasureRequestType.ByRumApplication,
+        sessionIds: ids,
+      }),
+    ).toEqual([]);
+  });
+
+  test("a date range's batches take their sessions' events outside the range, by id, and no summary", () => {
+    const startDate: Date = new Date("2026-01-01T00:00:00.000Z");
+    const endDate: Date = new Date("2026-01-31T23:59:59.000Z");
+
+    const filters: Array<ProductAnalyticsErasureFilter> =
+      buildProductAnalyticsBatchFilters({
+        projectId: projectId,
+        requestType: RumSessionErasureRequestType.ByDateRange,
+        sessionIds: ids,
+        startDate: startDate,
+        endDate: endDate,
+      });
+
+    expect(tablesOf(filters)).toEqual([
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
+
+    const where: Statement = filters[0]!.where;
+
+    expect(where.query).toContain("sessionId IN ");
+    expect(where.query).toContain(" AND (time < ");
+    expect(where.query).toContain(" OR time > ");
+    expect(params(where)).toContain("2026-01-01 00:00:00.000000000");
+    expect(params(where)).toContain("2026-01-31 23:59:59.000000000");
+  });
+
+  test("its events outside the range and the range deletes' events never meet", () => {
+    const startDate: Date = new Date("2026-01-01T00:00:00.000Z");
+    const endDate: Date = new Date("2026-01-31T23:59:59.000Z");
+
+    const batch: Statement = buildProductAnalyticsBatchFilters({
+      projectId: projectId,
+      requestType: RumSessionErasureRequestType.ByDateRange,
+      sessionIds: ids,
+      startDate: startDate,
+      endDate: endDate,
+    })[0]!.where;
+
+    const range: Statement = buildProductAnalyticsErasureFilters({
+      projectId: projectId,
+      requestType: RumSessionErasureRequestType.ByDateRange,
+      startDate: startDate,
+      endDate: endDate,
+    })[1]!.where;
+
+    /* One takes time < start OR time > end, the other start <= time <= end. */
+    expect(range.query).toContain("time >= ");
+    expect(range.query).toContain("time <= ");
+    expect(batch.query).toMatch(
+      /\(time < \{p\d+:[^}]+\} OR time > \{p\d+:[^}]+\}\)$/,
+    );
+  });
+
+  test("a date range batch without both ends is refused", () => {
+    expect(() => {
+      return buildProductAnalyticsBatchFilters({
+        projectId: projectId,
+        requestType: RumSessionErasureRequestType.ByDateRange,
+        sessionIds: ids,
+        startDate: new Date(),
+      });
+    }).toThrow("no start or end date");
+  });
+
+  test("a batch with no sessions takes nothing", () => {
+    expect(
+      buildProductAnalyticsBatchFilters({
+        projectId: projectId,
+        requestType: RumSessionErasureRequestType.BySessionId,
+        sessionIds: [],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("buildProductAnalyticsSessionIdFilters", () => {
+  test("names only the tables asked for, scoped, with what it is given added to every WHERE", () => {
+    const filters: Array<ProductAnalyticsErasureFilter> =
+      buildProductAnalyticsSessionIdFilters({
+        projectId: projectId,
+        rumApplicationId: applicationId,
+        sessionIds: idsOf(1500),
+        tableNames: [AnalyticsTableName.RumProductAnalyticsEvent],
+        extra: (): Statement => {
+          return new Statement([" AND 1 = 1"]);
+        },
+      });
+
+    expect(tablesOf(filters)).toEqual([
+      AnalyticsTableName.RumProductAnalyticsEvent,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]);
+
+    for (const filter of filters) {
+      expect(filter.where.query).toContain("AND rumApplicationId = ");
+      expect(filter.where.query).toMatch(/ AND 1 = 1$/);
+    }
+  });
+});
+
+describe("buildProductAnalyticsCountStatement (issue #6628)", () => {
+  function countFor(tableName: AnalyticsTableName): Statement {
+    const filter: ProductAnalyticsErasureFilter =
+      buildProductAnalyticsErasureFilters({
+        projectId: projectId,
+        requestType: RumSessionErasureRequestType.ByRumApplication,
+        targetValue: applicationId.toString(),
+      }).find((entry: ProductAnalyticsErasureFilter): boolean => {
+        return entry.tableName === tableName;
+      })!;
+
+    return buildProductAnalyticsCountStatement({
+      databaseName: databaseName,
+      filter: filter,
+    });
+  }
+
+  test("counts a session summary once, however many of its writes are unmerged", () => {
+    const statement: Statement = countFor(
+      AnalyticsTableName.RumProductAnalyticsSession,
+    );
+
+    expect(statement.query).toMatch(
+      /^SELECT toFloat64\(uniqExact\(sessionId\)\) AS paRows FROM /,
+    );
+  });
+
+  test("counts a person's month once", () => {
+    expect(countFor(AnalyticsTableName.RumProductAnalyticsUser).query).toMatch(
+      /^SELECT toFloat64\(uniqExact\(personKey, month\)\) AS paRows FROM /,
+    );
+  });
+
+  test("counts every event", () => {
+    expect(countFor(AnalyticsTableName.RumProductAnalyticsEvent).query).toMatch(
+      /^SELECT toFloat64\(count\(\)\) AS paRows FROM /,
+    );
+  });
+
+  test("reads the Distributed table under the delete's own WHERE, everything bound", () => {
+    for (const tableName of [
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsUser,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ]) {
+      const statement: Statement = countFor(tableName);
+
+      expect(statement.query).toContain(" WHERE projectId = ");
+      expect(statement.query).toContain("AND rumApplicationId = ");
+      expect(params(statement)).toContain(tableName);
+      expect(params(statement)).not.toContain(`${tableName}Local`);
+      expect(params(statement)).toContain(databaseName);
+      expect(params(statement)).toContain(projectId.toString());
+      expect(statement.query).not.toContain(projectId.toString());
+    }
+  });
+
+  test("refuses a table erasure does not count, rather than guess", () => {
+    expect(() => {
+      return buildProductAnalyticsCountStatement({
+        databaseName: databaseName,
+        filter: {
+          tableName: AnalyticsTableName.RumSession,
+          where: new Statement(["1 = 1"]),
+        },
+      });
+    }).toThrow("not a product analytics table");
   });
 });

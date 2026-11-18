@@ -40,6 +40,7 @@ import {
   MAX_CHECK_ERROR_LENGTH,
 } from "./DataCheckResults";
 import { IngestStore } from "./TableHealthIngest";
+import DataCheckHealthSync from "./DataCheckHealthSync";
 
 /*
  * WHAT A COLLECTION'S CHECKS READ, KEPT.
@@ -269,6 +270,18 @@ export default class DataCheckIngest {
     }
 
     await this.writeCheckMetricRows(data.store.projectId, rows);
+
+    /*
+     * How each check stands after its run, kept on it so Checks lists the
+     * failing ones first (DataCheckHealthSync, #6554): a query that failed is
+     * Could Not Run now, and each run reads its alert again. Never throws.
+     */
+    await DataCheckHealthSync.refreshChecks({
+      checkIds: checks.map((check: DataCheck): ObjectID => {
+        return check.id!;
+      }),
+      projectId: data.store.projectId,
+    });
 
     // A reconciliation compares its sides as soon as both have been read together.
     const reconciliationIds: Array<ObjectID> = checks

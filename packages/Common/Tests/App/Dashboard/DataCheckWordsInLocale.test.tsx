@@ -1657,11 +1657,12 @@ describe("the lists' columns fold where they do not fit their card (#7534)", () 
         showTitleWhenFolded: alert.showTitleWhenFolded,
       }).toEqual({
         hideBelowLargeScreen: true,
-        foldInto: "lastRunStatus",
+        // The Status column, which sorts by how each check stands (healthRank, #6554).
+        foldInto: "healthRank",
         showTitleWhenFolded: true,
       });
       // It folds into a column the list draws.
-      expect(byField("lastRunStatus").hideBelowLargeScreen).toBeFalsy();
+      expect(byField("healthRank").hideBelowLargeScreen).toBeFalsy();
       expect(
         columns()
           .filter((column: CapturedColumn): boolean => {
@@ -1679,7 +1680,7 @@ describe("the lists' columns fold where they do not fit their card (#7534)", () 
       render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
     });
 
-    expect(byField("alertCondition").foldInto).toBe("lastRunStatus");
+    expect(byField("alertCondition").foldInto).toBe("healthRank");
   });
 
   test.each(["en", ...LANGUAGES])(

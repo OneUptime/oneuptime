@@ -17,6 +17,7 @@ import {
   SessionReplayPayloadEncoding,
   SessionReplayRecorderKind,
   SessionReplaySignalCounts,
+  toSessionReplayAppVersion,
 } from "Common/Types/Rum/SessionReplay";
 import {
   SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK,
@@ -854,6 +855,19 @@ export default class SessionReplayEnvelopeParser {
 
     if (Object.keys(tags).length > 0) {
       meta.tags = tags;
+    }
+
+    /*
+     * The page's own app version (issue #6625), kept as the recorder keeps
+     * it (toSessionReplayAppVersion): a value with a control character is
+     * dropped, never an error. Left off when absent or unusable, like the
+     * maps above, so an envelope from a recorder that predates it parses to
+     * the object it always parsed to.
+     */
+    const appVersion: string = toSessionReplayAppVersion(raw["appVersion"]);
+
+    if (appVersion) {
+      meta.appVersion = appVersion;
     }
 
     return meta;

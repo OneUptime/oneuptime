@@ -90,15 +90,16 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * All five are overwritten unconditionally, never merged with what the
-     * client sent. Every one of them is declared `computed` on the model,
-     * which is what lets these assignments survive the create-column
+     * All of these are overwritten unconditionally, never merged with what
+     * the client sent. Every one of them is declared `computed` on the
+     * model, which is what lets these assignments survive the create-column
      * permission check that runs after this hook.
      */
     createBy.data.status = RumSessionErasureRequestStatus.Pending;
     createBy.data.requestedAt = OneUptimeDate.getCurrentDate();
     createBy.data.sessionsDeleted = 0;
     createBy.data.chunksDeleted = 0;
+    createBy.data.productAnalyticsRowsDeleted = 0;
 
     /*
      * Asked for by the person making the request. DatabaseService has
@@ -121,10 +122,10 @@ export class Service extends ProjectReferencesService<Model> {
    * Outstanding requests for the erasure worker, oldest first so a
    * request cannot be starved by newer ones.
    *
-   * sessionsDeleted / chunksDeleted are in the select list because a
-   * requeued request has to ACCUMULATE its counters across runs; omitting
-   * them is what made the worker stop using this helper and inline its own
-   * copy of the query.
+   * sessionsDeleted / chunksDeleted / productAnalyticsRowsDeleted are in
+   * the select list because a requeued request has to ACCUMULATE its
+   * counters across runs; omitting them is what made the worker stop using
+   * this helper and inline its own copy of the query.
    */
   @CaptureSpan()
   public async getPendingRequests(data: {
@@ -145,6 +146,7 @@ export class Service extends ProjectReferencesService<Model> {
         requestedAt: true,
         sessionsDeleted: true,
         chunksDeleted: true,
+        productAnalyticsRowsDeleted: true,
       },
       sort: {
         requestedAt: SortOrder.Ascending,
@@ -171,6 +173,7 @@ export class Service extends ProjectReferencesService<Model> {
     requestId: ObjectID;
     sessionsDeleted: number;
     chunksDeleted: number;
+    productAnalyticsRowsDeleted?: number | undefined;
   }): Promise<void> {
     await this.updateOneById({
       id: data.requestId,
@@ -179,6 +182,9 @@ export class Service extends ProjectReferencesService<Model> {
         completedAt: OneUptimeDate.getCurrentDate(),
         sessionsDeleted: data.sessionsDeleted,
         chunksDeleted: data.chunksDeleted,
+        ...(data.productAnalyticsRowsDeleted !== undefined
+          ? { productAnalyticsRowsDeleted: data.productAnalyticsRowsDeleted }
+          : {}),
       },
       props: { isRoot: true },
     });

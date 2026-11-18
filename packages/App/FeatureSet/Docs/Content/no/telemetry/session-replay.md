@@ -90,6 +90,7 @@ Skriptet på `/v1/recorder.js` er en liten loader. Den sjekker Do Not Track, hen
 | `data-oneuptime-respect-do-not-track` | Nei | Respekterer som standard Do Not Track og Global Privacy Control. Sett den til `"false"` for å ta opp uansett signalet; se [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | Nei | `"true"` skriver opptakerens beslutninger ut i konsollen. Se [Feilsøking av øktavspilling](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | Nei | Sett den til `"false"` for å holde chunker som tas opp mens den besøkende er offline, bare i minnet i stedet for også å lagre dem i nettleserens IndexedDB. Se [Offlinemodus](#offlinemodus). |
+| `data-oneuptime-app-version` | Nei | Appens versjon, for eksempel `2.3.1`, opptil 64 tegn. Produktanalyse deler brukere og økter opp etter den. |
 
 De samme alternativene kan gis i en global i stedet for på taggen, og det er det tag managers og pakkede installasjoner bruker:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ For å etterkomme en sletteforespørsel sender du inn en sletteforespørsel via 
 
 To ærlige begrensninger ved `ByIdentifiedUserKey`. Nøkkelen vises ingen steder i dashbordet: den kommer tilbake som `identifiedUserKey` på hver rad i øktlistens API (`POST /telemetry/rum/session-replay/list`), så i dag starter en sletting per bruker med et søk `user:` der og en kopi av det feltet. Og en økt som ble tatt opp mens **Registrer sluttbrukerens identitet** var slått av, har ingen nøkkel i det hele tatt — ingenting om personen ble lagret —, så den kan bare nås via økt-ID, datointervall eller applikasjon.
 
-Hver forespørsel registrerer sin `status` (`Pending`, `InProgress`, `Completed`, `Failed`), tallene `sessionsDeleted` og `chunksDeleted` og en eventuell `failureReason`; `ReadRumSessionErasureRequest` lar noen gjennomgå dem. Sletting fjerner opptaket og telemetrien som er koblet til de øktene, og ethvert opptak som fortsatt er underveis når forespørselen fullføres, kastes i stedet for å skrives. En lenke til en slettet økt svarer «erased» i stedet for «not found». Den koblede telemetrien er:
+Hver forespørsel registrerer sin `status` (`Pending`, `InProgress`, `Completed`, `Failed`), tallene `sessionsDeleted`, `chunksDeleted` og `productAnalyticsRowsDeleted` og en eventuell `failureReason`; `ReadRumSessionErasureRequest` lar noen gjennomgå dem. Sletting fjerner opptaket og telemetrien som er koblet til de øktene, og ethvert opptak som fortsatt er underveis når forespørselen fullføres, kastes i stedet for å skrives. En lenke til en slettet økt svarer «erased» i stedet for «not found». Den koblede telemetrien er:
 
 - hvert spenn og hvert unntak som er merket med øktens ID, inkludert backend-spennene som er merket [automatisk](#korreler-med-resten-av-telemetrien-din) i hver tjeneste som videresendte sporingskonteksten, og enhver logg som selv bærer ID-en;
 - loggene, unntakene og spennene i hvert spor som bare tilhører de slettede øktene: hvert merket spenn i sporet bærer en av ID-ene deres, og ingenting i sporet startet mer enn ti minutter før det første eller etter det siste av de spennene. Det dekker backend-loggene fra forespørslene sidene dine gjorde til sin egen opprinnelse, som deler en spor-ID med de merkede spennene.
