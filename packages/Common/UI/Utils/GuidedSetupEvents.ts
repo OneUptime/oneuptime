@@ -34,6 +34,11 @@ export enum GuidedSetupEntryPoint {
   CreateMonitor = "create_monitor",
   // The website-down setup's summary: paging by phone, a status page (#7370, #7053).
   WebsiteDownSummary = "website_down_summary",
+  /*
+   * Home's "Get paged by SMS or phone call", while only email pages the
+   * person who set the project up (#9442).
+   */
+  Home = "home",
 }
 
 export const GUIDED_SETUP_FROM_QUERY: string = "from";

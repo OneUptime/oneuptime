@@ -256,6 +256,10 @@ Via push-reläet (ingen `EXPO_ACCESS_TOKEN`) fungerar detta på samma sätt: rel
 
 Om inget av detta hjälper kan du kontakta oss på [hello@oneuptime.com](mailto:hello@oneuptime.com) med felen från dina OneUptime-loggar.
 
+### Admin Dashboard säger att push misslyckas
+
+Admin Dashboard säger att push misslyckas när serverns egna push-aviseringar har slutat skickas: push-reläet, Expo Push eller Web Push avvisade dem, eller gick inte att nå. Det står sedan när, och vad som svarades. En push som en enda enhet avvisade, till exempel en till en app som avinstallerats, räknas inte. Så snart en push skickas igen visas push som fungerande. Skicka en test-push för att kontrollera.
+
 ## Nästa steg
 
 :::cards

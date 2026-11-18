@@ -311,6 +311,16 @@ describe("what the server's sending status says SMS and calls are missing", () =
     expect(expected).toContain("GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER");
     // Not "set it up under Settings > Call and SMS": it is not changed there.
     expect(expected).not.toContain("Settings > Call and SMS");
+
+    /*
+     * #9437: no words of OneUptime's own to say it in another language - it
+     * names the variables - so a page draws it as it came.
+     */
+    for (const kind of [TwilioMessageKind.SMS, TwilioMessageKind.Call]) {
+      expect(
+        ServerChannelSetup.readTwilioSetUpProblem(savedAccount(), kind),
+      ).toEqual({ english: expected, words: null });
+    }
   });
 
   test("set with a problem, the status never says the auth token", () => {

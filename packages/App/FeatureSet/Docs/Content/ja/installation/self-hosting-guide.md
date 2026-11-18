@@ -167,6 +167,7 @@ Let's Encrypt には、インターネットから到達できるポート 80 �
 :::cards
 - [クイックスタート](/docs/introduction/quickstart): モニター、オンコールポリシー、ステータスページを 15 分で。
 - [Docker Compose](/docs/installation/docker-compose): 自前のプロキシ、バックアップ、更新、本番運用のチェックリスト。
+- [Kubernetes と Helm](/docs/installation/kubernetes): Kubernetes へのインストールのバックアップと、そのキーの保管。
 - [アップグレード](/docs/installation/upgrading): 新しいリリースへ、メジャーバージョンを 1 つずつ移行します。
 - [アーキテクチャ](/docs/self-hosted/architecture): OneUptime の各部分の組み合わさり方。
 :::

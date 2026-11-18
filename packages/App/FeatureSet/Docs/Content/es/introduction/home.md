@@ -15,7 +15,7 @@ Abre **Inicio** en la barra superior, o pulsa `g` y luego `h` desde cualquier si
 
 1. Un cuadro de búsqueda, con **Declarar incidente** y **Crear** al lado.
 2. Una línea que dice si algo va mal, sobre cinco números que cuentan lo que necesita atención.
-3. **Te damos la bienvenida a OneUptime 👋**, una lista para un proyecto nuevo, hasta que esté completa.
+3. **Te damos la bienvenida a OneUptime 👋**, una lista para un proyecto nuevo, hasta que esté completa, y luego **Más por configurar** mientras quede algo.
 4. **Requiere atención**, cada problema abierto ahora mismo, por su nombre.
 5. **Tu proyecto**, de qué se compone el proyecto, y **Próximos mantenimientos** cuando hay alguno programado.
 6. **Explora OneUptime**, todos los productos, una categoría cada vez.
@@ -40,7 +40,7 @@ La línea superior nombra lo más urgente que hay abierto, en un color acorde:
 
 Al lado, Inicio indica cuándo cargó el proyecto por última vez, y **Actualizar** lo vuelve a cargar. Inicio también sigue lo que cuenta a medida que cambia: cuando se crea, cambia o elimina un incidente, una alerta, un monitor, un evento de mantenimiento o un SLO, la línea, los números, **Requiere atención** y **Próximos mantenimientos** se ponen al día en segundos, sin recargar. Cuando vuelves a una pestaña de Inicio después de un minuto o más, se actualiza sola.
 
-Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre la configuración guiada **Saber cuándo cae mi sitio web o mi API**. Solo lo ven las personas que pueden crear monitores.
+Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre la configuración guiada **Saber cuándo cae mi sitio web o mi API**, salvo que la lista de debajo ya ofrezca ese paso. Solo lo ven las personas que pueden crear monitores.
 
 ### Los cinco números
 
@@ -68,13 +68,17 @@ Cada paso se marca solo cuando la cosa funciona, no cuando existe un registro, y
 | **Crea tu primer monitor** | Llega su primera comprobación. | La configuración guiada **Saber cuándo cae mi sitio web o mi API**, o la lista **Monitores** para quien no puede crear monitores. |
 | **Conecta un servidor o un clúster** | Llegan sus primeras métricas. | **Hosts** |
 | **Envía tus primeros logs, métricas o trazas** | Llegan los primeros logs, métricas, trazas, excepciones o perfiles del proyecto. | La configuración guiada **Envía registros, métricas y trazas, y recibe alertas** |
-| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia ejecuta una política que puede llegar a alguien. | La configuración guiada **Avisar a la persona adecuada cuando algo falle** |
+| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia o un monitor ejecuta una política que puede llegar a alguien. | La configuración guiada **Avisar a la persona adecuada cuando algo falle** |
 | **Publica una página de estado** | Una página de estado muestra un monitor. | La configuración guiada **Publica una página de estado**, o la lista **Páginas de estado** para quien no puede crear páginas de estado. |
 | **Invita a tu equipo** | Alguien acepta tu invitación. | **Usuarios** |
 
-El paso que toca primero está marcado con **Siguiente paso**. En el plan Free de OneUptime Cloud, que incluye una persona, **Invita a tu equipo** indica que necesita el plan Growth y abre **Facturación**. En un servidor autoalojado que aún no puede enviar correos, los administradores del servidor ven primero **Este servidor aún no puede enviar correos electrónicos**, que abre el panel de administración.
+El paso que toca primero está marcado con **Siguiente paso**. En el plan Free de OneUptime Cloud, que incluye una persona, **Invita a tu equipo** indica que necesita el plan Growth y abre **Facturación**. En un servidor autoalojado que aún no está configurado, sus administradores ven en su lugar la tarjeta del propio servidor encima de la lista, con **Terminar la configuración**, que abre el panel de administración.
 
 Cada paso indica cuánto tarda aproximadamente, la lista indica cuánto tiempo queda, y el siguiente paso tiene su propio botón **Iniciar**.
+
+Un paso cuyo registro existe pero todavía no funciona dice por qué debajo, con las palabras de **Salud de la configuración**: una página de estado que no muestra ningún monitor, un monitor que nada comprueba, una política de guardia que nada ejecuta o que no llega a nadie, una invitación que nadie ha aceptado. El paso abre entonces la página que lo corrige y, cuando es el siguiente, su botón nombra la corrección, como **Añadir monitores**.
+
+Una vez marcado **Configura una política de guardia**, y mientras solo el correo pueda avisarte, **Recibir avisos por SMS o llamada telefónica** sigue debajo: abre la configuración guiada **Avisar a la persona adecuada cuando algo falle**, para añadir tu teléfono o la app móvil. Solo lo ven las personas que pueden crear políticas de guardia.
 
 Una configuración guiada hace todo el trabajo en una sola página, paso a paso, y termina con lo que configuró y qué hacer después. Para volver a abrirla más tarde, busca su nombre.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Sí"| hidden{"¿La ocultaste<br/>tú?"}
     hidden -->|"Sí"| line["Una línea para<br/>volver a mostrarla"]
     hidden -->|"No"| done{"¿Todos los pasos<br/>hechos?"}
-    done -->|"Sí"| gone["Sin lista"]
+    done -->|"Sí"| gone["Más por configurar,<br/>mientras quede algo"]
     done -->|"No"| shown["La lista, con<br/>los pasos pendientes"]
 ```
 
 La lista desaparece para todos cuando todos los pasos están hechos. Para ocultarla antes, haz clic en **Ocultar**: se oculta solo para ti, en cada dispositivo, y queda una línea con **Mostrarlo** y **Cómo funciona OneUptime**. Las personas invitadas al proyecto como miembros no ven la lista. **Cómo funciona OneUptime** sigue a un clic, en cualquier proyecto: ábrelo desde **Ayuda** o con el botón junto a **Explora OneUptime**.
+
+Cuando la lista está completa, **Más por configurar** ocupa su lugar bajo el titular, como una tarjeta más: los pasos esenciales que tus objetivos no trajeron, como una página de estado y tu equipo, cada uno hasta que funcione, con **Recibir avisos por SMS o llamada telefónica** primero mientras solo el correo pueda avisarte. Su **Ocultar** la oculta para ti, sin dejar ninguna línea.
 
 **Cómo funciona OneUptime** se abre en **Cómo encaja todo**: los cuatro pasos por los que pasa un problema, **Detectar**, **Responder**, **Comunicar** y **Mejorar**, cada uno con los productos que lo hacen. Después vienen las categorías del menú **Productos**, cada una con sus productos y para qué sirve cada uno: elige una, o pasa a la siguiente con las flechas del teclado o **Siguiente**. Haz clic en un producto para abrirlo. Los productos que tu proyecto oculta no aparecen.
 
@@ -113,7 +119,7 @@ Cuando algo en la configuración del proyecto impediría avisar a las personas, 
 
 ### Explora OneUptime
 
-**Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él. Los productos que tu proyecto oculta no aparecen.
+**Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él. Los productos que tu proyecto oculta están en su última pestaña, **Más productos**, con una nota que dice que siguen funcionando.
 
 ## Orientarse
 

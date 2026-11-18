@@ -274,6 +274,16 @@ export const ROOT_ONLY_BACKUP_SCRIPT_COLUMNS: ReadonlyArray<keyof Model> = [
 ];
 
 /*
+ * What the server-alerts job last told the master admins (#6879, Types/
+ * ServerSending/ServerAlerts), written by that job only. Through the CRUD
+ * API a master admin could mark the server's email as told failing when
+ * nobody was told, and keep the alert from going out.
+ */
+export const ROOT_ONLY_SERVER_ALERT_COLUMNS: ReadonlyArray<keyof Model> = [
+  "serverAlertState",
+];
+
+/*
  * The products switched off for every project (Types/Product/
  * ServerProducts), written only through Admin Dashboard > Settings >
  * Products' own route (ServerProducts), which keeps the list to products a
@@ -1178,6 +1188,37 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of what the server-alerts job last told by anyone but
+   * OneUptime itself (ROOT_ONLY_SERVER_ALERT_COLUMNS). An explicit null
+   * counts as a write.
+   */
+  public assertServerAlertStateWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_SERVER_ALERT_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      "serverAlertState is written by OneUptime as it tells master admins, and cannot be changed.",
+    );
+  }
+
+  /*
    * Refuses a write of the server's products by anyone but OneUptime itself
    * (ROOT_ONLY_SERVER_PRODUCTS_COLUMNS): they are switched on Admin
    * Dashboard > Settings > Products, which says who switched them.
@@ -1792,6 +1833,7 @@ export class Service extends DatabaseService<Model> {
       createBy.props,
     );
     this.assertBackupScriptRunWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertServerAlertStateWrittenByRootOnly(createBy.data, createBy.props);
     this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
@@ -1830,6 +1872,7 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
     this.assertBackupScriptRunWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertServerAlertStateWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);

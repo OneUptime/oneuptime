@@ -171,6 +171,25 @@ Com o Docker Compose, defina as configurações `GLOBAL_EMAIL_` no `config.env` 
 
 O OneUptime lê as variáveis ao iniciar. Se alguma estiver errada, como uma porta que não é um número ou uma senha ausente, o servidor não envia e-mails até que isso seja corrigido; o log do servidor, as configurações de e-mail do Admin Dashboard e a lista de verificação em `/admin/setup` indicam a variável. Senhas e chaves nunca são exibidas. Para mudar as configurações, altere as variáveis e reinicie o OneUptime: o Admin Dashboard não as altera.
 
+## Ver o que o servidor enviou
+
+Em um servidor auto-hospedado, **Configurações > Notificações > E-mails** no Admin Dashboard termina com o cartão **Registro de e-mails**. Ele lista cada e-mail que o servidor enviou pelas próprias configurações e que não pertence a nenhum projeto, como uma redefinição de senha, um link de login ou um convite, e cada e-mail que ele não conseguiu enviar, inclusive o de um projeto: para quem foi, quando, o que era e o que o serviço de e-mail respondeu.
+
+- Ative **Somente e-mails com falha** para ver só os e-mails que não saíram.
+- O e-mail de um projeto que saiu fica nos registros do próprio projeto, não aqui. Um enviado pelo servidor de e-mail próprio de um projeto nunca fica aqui.
+- O registro nunca guarda a mensagem em si, porque uma redefinição de senha ou um link de login deixa entrar quem o tiver. Um link no assunto é guardado como `[link]`.
+- Só os administradores master podem lê-lo. Cada e-mail é mantido por 30 dias.
+
+## Ser avisado quando o e-mail ou as sondas param
+
+Quando o e-mail do servidor deixa de funcionar, ou nenhuma sonda global reporta, o OneUptime avisa os administradores master, e mais uma vez quando volta a funcionar. Escolha onde no cartão **Notificações de interrupção** da mesma página:
+
+- **Push para os dispositivos dos administradores principais** envia uma notificação push a cada dispositivo em que um administrador master entrou no app do OneUptime. Fica ativado até você desativá-lo.
+- **Enviar SMS para este número** envia um SMS pelas configurações de SMS do próprio servidor.
+- O **E-mail de notificação do admin** também é avisado sobre as sondas.
+
+Um aviso nunca passa pelo canal que parou, então um aviso sobre o e-mail nunca vai por e-mail, nem por um canal pelo qual o servidor não consegue enviar agora. Só uma mudança é avisada, no máximo uma vez por hora para cada uma, e os membros dos projetos nunca são avisados.
+
 ## Solução de problemas
 
 Um e-mail de teste que não é enviado diz o motivo. Para qualquer outro e-mail, abra a aba **E-mail** de **Configurações do projeto > Notificações > Logs de notificação** e selecione **Ver mensagem de status** na linha dele.

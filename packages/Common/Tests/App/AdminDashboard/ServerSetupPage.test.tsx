@@ -123,10 +123,16 @@ import ServerSetupChecklistUtil, {
 } from "../../../Types/ServerSetup/ServerSetupChecklist";
 import {
   SERVER_TEST_PUSH_REASONS,
+  SERVER_TEST_SEND_WORDS,
   ServerTestSendAnswer,
   ServerTestSendResult,
 } from "../../../Types/ServerSetup/ServerTestSend";
-import { createTranslator } from "../../../Types/Translator";
+import ServerSetUpProblem, {
+  SERVER_EMAIL_SETTING_NAMES,
+  SERVER_SET_UP_PROBLEMS,
+  ServerSetUpProblemWords,
+} from "../../../Types/ServerSending/ServerSetUpProblem";
+import { createTranslator, fillTemplate } from "../../../Types/Translator";
 import Navigation from "../../../UI/Utils/Navigation";
 import ServerSetupChecklistLoader, {
   UseServerSetupChecklistResult,
@@ -550,6 +556,132 @@ describe("a test send", () => {
       expect(sentence).not.toContain(LRI);
       expect(sentence).toContain("No Twilio account or SMS gateway is set up.");
     });
+  });
+});
+
+/*
+ * #9437: a test that sent nothing says what the settings are missing in
+ * the reader's language - the server sends it as words, which this page
+ * looks up - and a setting's name as the settings form names it. From an
+ * older server, with no words, the English sentence as it came.
+ */
+describe("a test that sent nothing, in the reader's language", () => {
+  function localeFor(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  }
+
+  function translatorFor(
+    language: string,
+  ): ReturnType<typeof createTranslator> {
+    const words: Record<string, string> = localeFor(language);
+
+    return createTranslator((text: string): string | undefined => {
+      return words[text];
+    }, language);
+  }
+
+  const withoutIsolates: (text: string) => string = (text: string): string => {
+    return text.replace(/[⁦-⁩]/g, "");
+  };
+
+  test.each(["de", "fa"])(
+    "in %s, SMS not set up: the whole sentence in the reader's words",
+    (language: string) => {
+      const locale: Record<string, string> = localeFor(language);
+      const words: ServerSetUpProblemWords = ServerSetUpProblem.of(
+        SERVER_SET_UP_PROBLEMS.smsNotSetUp,
+      );
+
+      const sentence: string = describeServerTestSend(translatorFor(language), {
+        channel: ServerSendingChannel.SMS,
+        result: ServerTestSendResult.NotSetUp,
+        to: "",
+        sentThrough: "Twilio",
+        message: ServerSetUpProblem.toEnglish(words),
+        messageWords: words,
+      });
+
+      expect(withoutIsolates(sentence)).toBe(
+        fillTemplate(locale[SERVER_TEST_SEND_WORDS.notSetUp] as string, {
+          reason: locale[SERVER_SET_UP_PROBLEMS.smsNotSetUp] as string,
+        }),
+      );
+      expect(sentence).not.toContain("No Twilio account");
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "in %s, a provider's setting left blank: the provider as written, the setting as the form names it",
+    (language: string) => {
+      const locale: Record<string, string> = localeFor(language);
+      const words: ServerSetUpProblemWords =
+        ServerSetUpProblem.emailSettingNotSet(
+          "SendGrid",
+          SERVER_EMAIL_SETTING_NAMES.fromEmail,
+        );
+
+      const sentence: string = withoutIsolates(
+        describeServerTestSend(translatorFor(language), {
+          channel: ServerSendingChannel.Email,
+          result: ServerTestSendResult.NotSetUp,
+          to: "ada@example.com",
+          sentThrough: null,
+          message: ServerSetUpProblem.toEnglish(words),
+          messageWords: words,
+        }),
+      );
+
+      expect(sentence).toContain("SendGrid");
+      expect(sentence).toContain(locale["From Email"] as string);
+      expect(sentence).toContain(
+        fillTemplate(
+          locale[SERVER_SET_UP_PROBLEMS.emailSettingNotSet] as string,
+          {
+            provider: "SendGrid",
+            field: locale["From Email"] as string,
+          },
+        ),
+      );
+      expect(sentence).not.toContain("is not set under");
+    },
+  );
+
+  test("from an older server, with no words: the English sentence as it came", () => {
+    const sentence: string = describeServerTestSend(translatorFor("de"), {
+      channel: ServerSendingChannel.SMS,
+      result: ServerTestSendResult.NotSetUp,
+      to: "",
+      sentThrough: null,
+      message:
+        "No Twilio account or SMS gateway is set up under Settings > Call and SMS.",
+    });
+
+    expect(sentence).toContain(
+      "No Twilio account or SMS gateway is set up under Settings > Call and SMS.",
+    );
+  });
+
+  test("in English, word for word what the server said", () => {
+    const words: ServerSetUpProblemWords =
+      ServerSetUpProblem.emailSettingNotSet(
+        "Amazon SES",
+        SERVER_EMAIL_SETTING_NAMES.awsRegion,
+      );
+
+    expect(
+      describeServerTestSend(translatorFor("en"), {
+        channel: ServerSendingChannel.Email,
+        result: ServerTestSendResult.NotSetUp,
+        to: "ada@example.com",
+        sentThrough: null,
+        message: ServerSetUpProblem.toEnglish(words),
+        messageWords: words,
+      }),
+    ).toBe(
+      "Nothing was sent: Amazon SES: the Region (an AWS Region code, such as us-east-1) is not set under Settings > Emails.",
+    );
   });
 });
 

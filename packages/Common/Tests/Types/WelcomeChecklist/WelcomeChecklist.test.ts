@@ -34,12 +34,29 @@ import {
   getWelcomeStepsMinutes,
   isGoalOffOnServer,
   isWelcomeStepOffOnServer,
+  PHONE_OR_APP_METHOD_TYPES,
+  WELCOME_STEP_GAP_CHECKS,
+  buildWelcomeMoreSteps,
+  canPageByPhoneOrApp,
+  getWelcomeMoreSteps,
+  getWelcomeStepGapFromFindings,
+  hasWelcomeStepGapChecks,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklist";
 import ProductKey from "../../../Types/Product/ProductKey";
 import {
   ServerProductsPreset,
   getOffByPreset,
 } from "../../../Types/Product/ServerProducts";
+import {
+  SETUP_HEALTH_WORDS,
+  SetupHealthCheck,
+  SetupHealthFinding,
+  SetupHealthFix,
+  SetupHealthLevel,
+  SetupHealthRecordKind,
+  SetupHealthResponderReason,
+  makeSetupHealthFinding,
+} from "../../../Types/SetupHealth/SetupHealth";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -51,9 +68,8 @@ import { describe, expect, test } from "@jest/globals";
 
 const NOTHING: WelcomeOutcomeFacts = {
   reached: [],
-  hasRuleThatPagesSomeone: false,
+  hasPolicyThatPagesSomeone: false,
   hasFinishedImport: false,
-  serverCanSendEmail: true,
 };
 
 const facts: (extra: Partial<WelcomeOutcomeFacts>) => WelcomeOutcomeFacts = (
@@ -144,12 +160,10 @@ describe("which steps a project gets", () => {
     ]);
   });
 
-  test("every goal at once is every project step, with the team last", () => {
-    expect(getStepsForGoals([...PROJECT_GOALS])).toEqual(
-      WELCOME_STEP_ORDER.filter((step: WelcomeStep): boolean => {
-        return step !== WelcomeStep.ServerEmail;
-      }),
-    );
+  test("every goal at once is every step, with the team last", () => {
+    expect(getStepsForGoals([...PROJECT_GOALS])).toEqual([
+      ...WELCOME_STEP_ORDER,
+    ]);
   });
 
   test("an unknown goal is ignored, and a list of only unknown ones is the default", () => {
@@ -170,7 +184,7 @@ describe("which steps a project gets", () => {
     expect(order.indexOf(WelcomeStep.OnCall)).toBeLessThan(
       order.indexOf(WelcomeStep.StatusPage),
     );
-    expect(order[0]).toBe(WelcomeStep.ServerEmail);
+    expect(order[0]).toBe(WelcomeStep.Import);
     expect(order[order.length - 1]).toBe(WelcomeStep.Team);
   });
 
@@ -247,11 +261,11 @@ describe("a step is done on its outcome, never because a record exists", () => {
     ).toBe(true);
   });
 
-  test("who is told: until then, a rule that runs a policy with someone reachable ticks it", () => {
+  test("who is told: until then, a rule or a monitor that runs a policy with someone reachable ticks it (#7017)", () => {
     expect(
       isWelcomeStepDone(
         WelcomeStep.OnCall,
-        facts({ hasRuleThatPagesSomeone: true }),
+        facts({ hasPolicyThatPagesSomeone: true }),
       ),
     ).toBe(true);
   });
@@ -301,16 +315,6 @@ describe("a step is done on its outcome, never because a record exists", () => {
     ).toBe(true);
   });
 
-  test("server email: the server can send", () => {
-    expect(
-      isWelcomeStepDone(
-        WelcomeStep.ServerEmail,
-        facts({ serverCanSendEmail: false }),
-      ),
-    ).toBe(false);
-    expect(isWelcomeStepDone(WelcomeStep.ServerEmail, NOTHING)).toBe(true);
-  });
-
   test("nothing but its own outcome ticks a step: every other milestone leaves it open", () => {
     for (const step of WELCOME_STEP_ORDER) {
       const own: ReadonlyArray<ActivationMilestone> =
@@ -324,13 +328,7 @@ describe("a step is done on its outcome, never because a record exists", () => {
 
       expect({
         step: step,
-        done: isWelcomeStepDone(
-          step,
-          facts({
-            reached: others,
-            serverCanSendEmail: step !== WelcomeStep.ServerEmail,
-          }),
-        ),
+        done: isWelcomeStepDone(step, facts({ reached: others })),
       }).toEqual({ step: step, done: false });
     }
   });
@@ -392,7 +390,6 @@ describe("the checklist a project sees", () => {
       goals: [],
       facts: NOTHING,
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
     });
 
     expect(stepsOf(checklist)).toEqual([...DEFAULT_WELCOME_STEPS]);
@@ -414,7 +411,6 @@ describe("the checklist a project sees", () => {
         reached: [ActivationMilestone.FirstCheckResultReceived],
       }),
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
     });
 
     expect(stepsOf(checklist)).toEqual([
@@ -440,7 +436,6 @@ describe("the checklist a project sees", () => {
         ],
       }),
       plan: { isFreePlan: true },
-      readerIsServerAdmin: false,
     });
 
     const team: WelcomeChecklistStepState = stateOf(
@@ -462,61 +457,48 @@ describe("the checklist a project sees", () => {
       goals: null,
       facts: facts({ reached: [ActivationMilestone.SecondMemberJoined] }),
       plan: { isFreePlan: true },
-      readerIsServerAdmin: false,
     });
 
     expect(stateOf(checklist, WelcomeStep.Team).needsPlan).toBeNull();
     expect(stateOf(checklist, WelcomeStep.Team).isDone).toBe(true);
   });
 
-  test("a master admin of a server that cannot send email sees that first, as the next step", () => {
-    const checklist: WelcomeChecklist = buildWelcomeChecklist({
-      goals: null,
-      facts: facts({ serverCanSendEmail: false }),
-      plan: { isFreePlan: false },
-      readerIsServerAdmin: true,
-    });
+  /*
+   * The server's setup is no step (#7018): its master admins see the Server
+   * setup card above the checklist, so Home asks for the server's email
+   * once. Whoever reads it, the checklist holds the project's steps only.
+   */
+  test("the server's email is never a step, whoever reads it", () => {
+    expect(isWelcomeStep("server_email")).toBe(false);
+    expect(WELCOME_STEP_ORDER as ReadonlyArray<string>).not.toContain(
+      "server_email",
+    );
 
-    expect(stepsOf(checklist)[0]).toBe(WelcomeStep.ServerEmail);
-    expect(stateOf(checklist, WelcomeStep.ServerEmail).isNext).toBe(true);
-    expect(checklist.totalCount).toBe(5);
+    for (const goals of [null, [], [ProjectGoal.Telemetry]]) {
+      expect(
+        (
+          stepsOf(
+            buildWelcomeChecklist({
+              goals: goals,
+              facts: NOTHING,
+              plan: { isFreePlan: false },
+            }),
+          ) as ReadonlyArray<string>
+        ).includes("server_email"),
+      ).toBe(false);
+    }
   });
 
-  test("nobody else sees the server's email step, and nobody once it can send", () => {
-    expect(
-      stepsOf(
-        buildWelcomeChecklist({
-          goals: null,
-          facts: facts({ serverCanSendEmail: false }),
-          plan: { isFreePlan: false },
-          readerIsServerAdmin: false,
-        }),
-      ),
-    ).not.toContain(WelcomeStep.ServerEmail);
-    expect(
-      stepsOf(
-        buildWelcomeChecklist({
-          goals: null,
-          facts: NOTHING,
-          plan: { isFreePlan: false },
-          readerIsServerAdmin: true,
-        }),
-      ),
-    ).not.toContain(WelcomeStep.ServerEmail);
-  });
-
-  test("the server's email is not the project's to finish: every project step done finishes it", () => {
+  test("every step of the project's done finishes it, with nothing of the server's held over", () => {
     const checklist: WelcomeChecklist = buildWelcomeChecklist({
       goals: [ProjectGoal.Telemetry],
       facts: facts({
         reached: [ActivationMilestone.FirstTracesReceived],
-        serverCanSendEmail: false,
       }),
       plan: { isFreePlan: false },
-      readerIsServerAdmin: true,
     });
 
-    expect(stateOf(checklist, WelcomeStep.ServerEmail).isDone).toBe(false);
+    expect(stepsOf(checklist)).toEqual([WelcomeStep.Telemetry]);
     expect(checklist.isProjectFinished).toBe(true);
   });
 
@@ -535,7 +517,6 @@ describe("the checklist a project sees", () => {
         goals: null,
         facts: allDone,
         plan: { isFreePlan: false },
-        readerIsServerAdmin: false,
       }).isProjectFinished,
     ).toBe(true);
 
@@ -544,46 +525,42 @@ describe("the checklist a project sees", () => {
         goals: [ProjectGoal.Telemetry],
         facts: allDone,
         plan: { isFreePlan: false },
-        readerIsServerAdmin: false,
       }).isProjectFinished,
     ).toBe(false);
   });
 
-  test("every goal, alone, on every plan and edition, gives a checklist with one next step and counts that add up", () => {
+  test("every goal, alone, on every plan, gives a checklist with one next step and counts that add up", () => {
     for (const goal of PROJECT_GOALS) {
       for (const isFreePlan of [false, true]) {
-        for (const readerIsServerAdmin of [false, true]) {
-          for (const serverCanSendEmail of [false, true]) {
-            const checklist: WelcomeChecklist = buildWelcomeChecklist({
-              goals: [goal],
-              facts: facts({ serverCanSendEmail: serverCanSendEmail }),
-              plan: { isFreePlan: isFreePlan },
-              readerIsServerAdmin: readerIsServerAdmin,
-            });
+        const checklist: WelcomeChecklist = buildWelcomeChecklist({
+          goals: [goal],
+          facts: NOTHING,
+          plan: { isFreePlan: isFreePlan },
+        });
 
-            const next: Array<WelcomeChecklistStepState> =
-              checklist.steps.filter(
-                (state: WelcomeChecklistStepState): boolean => {
-                  return state.isNext;
-                },
-              );
+        const next: Array<WelcomeChecklistStepState> = checklist.steps.filter(
+          (state: WelcomeChecklistStepState): boolean => {
+            return state.isNext;
+          },
+        );
 
-            expect(next).toHaveLength(1);
-            expect(next[0]!.needsPlan).toBeNull();
-            expect(checklist.doneCount).toBe(0);
-            expect(checklist.totalCount).toBe(
-              checklist.steps.filter(
-                (state: WelcomeChecklistStepState): boolean => {
-                  return state.needsPlan === null;
-                },
-              ).length,
-            );
-            expect(checklist.isProjectFinished).toBe(false);
-            expect(stepsOf(checklist).includes(WelcomeStep.ServerEmail)).toBe(
-              readerIsServerAdmin && !serverCanSendEmail,
-            );
-          }
-        }
+        expect(next).toHaveLength(1);
+        expect(next[0]!.needsPlan).toBeNull();
+        expect(checklist.doneCount).toBe(0);
+        expect(checklist.totalCount).toBe(
+          checklist.steps.filter(
+            (state: WelcomeChecklistStepState): boolean => {
+              return state.needsPlan === null;
+            },
+          ).length,
+        );
+        expect(checklist.isProjectFinished).toBe(false);
+        // The rules never say why a step is not done: the server reads that.
+        expect(
+          checklist.steps.every((state: WelcomeChecklistStepState): boolean => {
+            return state.gap === null;
+          }),
+        ).toBe(true);
       }
     }
   });
@@ -739,7 +716,6 @@ describe("products switched off on the server", () => {
       goals: [],
       facts: NOTHING,
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
       offProducts: [ProductKey.StatusPages],
     });
 
@@ -756,7 +732,6 @@ describe("products switched off on the server", () => {
       goals: [ProjectGoal.Telemetry, ProjectGoal.Uptime],
       facts: NOTHING,
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
       offProducts: [
         ProductKey.Logs,
         ProductKey.Metrics,
@@ -777,7 +752,6 @@ describe("products switched off on the server", () => {
           goals: [],
           facts: NOTHING,
           plan: { isFreePlan: false },
-          readerIsServerAdmin: false,
           offProducts: getOffByPreset(
             ServerProductsPreset.MonitoringAndStatusPages,
           ),
@@ -791,31 +765,28 @@ describe("products switched off on the server", () => {
       goals: [ProjectGoal.Infrastructure],
       facts: NOTHING,
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
     });
     const withNothingOff: WelcomeChecklist = buildWelcomeChecklist({
       goals: [ProjectGoal.Infrastructure],
       facts: NOTHING,
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
       offProducts: [],
     });
 
     expect(withNothingOff).toEqual(without);
   });
 
-  test("the server's email step stays: it is no product's", () => {
+  test("a goal whose product is off keeps its other steps", () => {
     expect(
       stepsOf(
         buildWelcomeChecklist({
           goals: [ProjectGoal.StatusPage],
-          facts: facts({ serverCanSendEmail: false }),
+          facts: NOTHING,
           plan: { isFreePlan: false },
-          readerIsServerAdmin: true,
           offProducts: [ProductKey.StatusPages],
         }),
       ),
-    ).toEqual([WelcomeStep.ServerEmail, WelcomeStep.Monitor]);
+    ).toEqual([WelcomeStep.Monitor]);
   });
 
   test("a goal whose product is off is not offered; Import and Explore always are", () => {
@@ -901,24 +872,28 @@ describe("about how long it takes", () => {
         isDone: true,
         needsPlan: null,
         isNext: false,
+        gap: null,
       },
       {
         step: WelcomeStep.OnCall,
         isDone: false,
         needsPlan: null,
         isNext: true,
+        gap: null,
       },
       {
         step: WelcomeStep.StatusPage,
         isDone: false,
         needsPlan: null,
         isNext: false,
+        gap: null,
       },
       {
         step: WelcomeStep.Team,
         isDone: false,
         needsPlan: PlanType.Growth,
         isNext: false,
+        gap: null,
       },
     ];
 
@@ -940,7 +915,6 @@ describe("about how long it takes", () => {
       goals: [ProjectGoal.Uptime, ProjectGoal.StatusPage],
       facts: NOTHING,
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
     });
 
     expect(getWelcomeMinutesLeft(checklist.steps)).toBe(
@@ -953,7 +927,6 @@ describe("about how long it takes", () => {
         reached: [ActivationMilestone.FirstCheckResultReceived],
       }),
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
     });
 
     expect(getWelcomeMinutesLeft(afterMonitor.steps)).toBe(
@@ -989,7 +962,6 @@ describe("the plan a choice of goals brings, before it is sent", () => {
         goals: [goal],
         facts: NOTHING,
         plan: { isFreePlan: false },
-        readerIsServerAdmin: false,
       });
 
       expect({ goal, steps: getPlanStepsForGoals([goal]) }).toEqual({
@@ -1010,7 +982,6 @@ describe("the plan a choice of goals brings, before it is sent", () => {
           goals: [ProjectGoal.Uptime, ProjectGoal.StatusPage],
           facts: NOTHING,
           plan: { isFreePlan: false },
-          readerIsServerAdmin: false,
           offProducts: off,
         }),
       ),
@@ -1020,11 +991,355 @@ describe("the plan a choice of goals brings, before it is sent", () => {
     );
   });
 
-  test("never names the server's email: it is no goal's", () => {
+  test("never names the server's email: it is no step at all (#7018)", () => {
     for (const goal of PROJECT_GOALS) {
-      expect(getPlanStepsForGoals([goal])).not.toContain(
-        WelcomeStep.ServerEmail,
+      expect(
+        getPlanStepsForGoals([goal]) as ReadonlyArray<string>,
+      ).not.toContain("server_email");
+    }
+  });
+});
+
+/*
+ * WHAT ELSE TO SET UP, ONCE THE GOALS' STEPS ARE DONE (#7986). A project
+ * that came for its website - a monitor and who is told - finished its
+ * checklist after the website setup, and Home never offered it a status
+ * page or its team. Once finished, the core steps no goal brought are
+ * offered, each until it works.
+ */
+describe("what else to set up, once the goals' steps are done", () => {
+  test.each([
+    [
+      "the website",
+      [ProjectGoal.Uptime],
+      [WelcomeStep.StatusPage, WelcomeStep.Team],
+    ],
+    ["paging", [ProjectGoal.OnCall], [WelcomeStep.StatusPage]],
+    [
+      "a status page",
+      [ProjectGoal.StatusPage],
+      [WelcomeStep.OnCall, WelcomeStep.Team],
+    ],
+    ["telemetry", [ProjectGoal.Telemetry], [...DEFAULT_WELCOME_STEPS]],
+    ["servers", [ProjectGoal.Infrastructure], [...DEFAULT_WELCOME_STEPS]],
+    [
+      "importing",
+      [ProjectGoal.Import],
+      [WelcomeStep.Monitor, WelcomeStep.StatusPage, WelcomeStep.Team],
+    ],
+    [
+      "just looking around",
+      [ProjectGoal.Explore],
+      [WelcomeStep.OnCall, WelcomeStep.StatusPage, WelcomeStep.Team],
+    ],
+    [
+      "the website and a status page",
+      [ProjectGoal.Uptime, ProjectGoal.StatusPage],
+      [WelcomeStep.Team],
+    ],
+    ["every goal", [...PROJECT_GOALS], []],
+  ])(
+    "a project that came for %s is offered the core steps its goals did not bring",
+    (
+      _name: string,
+      goals: Array<ProjectGoal>,
+      expected: Array<WelcomeStep>,
+    ) => {
+      expect(getWelcomeMoreSteps({ goals: goals })).toEqual(expected);
+    },
+  );
+
+  test("a project that never chose goals, or skipped them, had the four already: nothing more", () => {
+    expect(getWelcomeMoreSteps({ goals: null })).toEqual([]);
+    expect(getWelcomeMoreSteps({ goals: [] })).toEqual([]);
+  });
+
+  test("they are only ever the core steps, in the checklist's order", () => {
+    for (const goal of PROJECT_GOALS) {
+      const more: Array<WelcomeStep> = getWelcomeMoreSteps({ goals: [goal] });
+
+      for (const step of more) {
+        expect(DEFAULT_WELCOME_STEPS).toContain(step);
+        expect(getStepsForGoals([goal])).not.toContain(step);
+      }
+
+      expect(more).toEqual(
+        WELCOME_STEP_ORDER.filter((step: WelcomeStep): boolean => {
+          return more.includes(step);
+        }),
       );
     }
+  });
+
+  test("a step whose product is off on the server is never offered", () => {
+    expect(
+      getWelcomeMoreSteps({
+        goals: [ProjectGoal.Uptime],
+        offProducts: [ProductKey.StatusPages],
+      }),
+    ).toEqual([WelcomeStep.Team]);
+    expect(
+      getWelcomeMoreSteps({
+        goals: [ProjectGoal.Telemetry],
+        offProducts: [ProductKey.OnCall, ProductKey.Monitors],
+      }),
+    ).toEqual([WelcomeStep.StatusPage, WelcomeStep.Team]);
+  });
+
+  test("a step that already works is not offered; one left is, never as next", () => {
+    const more: Array<WelcomeChecklistStepState> = buildWelcomeMoreSteps({
+      goals: [ProjectGoal.Uptime],
+      facts: facts({ reached: [ActivationMilestone.SecondMemberJoined] }),
+      plan: { isFreePlan: false },
+    });
+
+    expect(more).toEqual([
+      {
+        step: WelcomeStep.StatusPage,
+        isDone: false,
+        needsPlan: null,
+        isNext: false,
+        gap: null,
+      },
+    ]);
+  });
+
+  test("every core step done: nothing is left to offer", () => {
+    expect(
+      buildWelcomeMoreSteps({
+        goals: [ProjectGoal.Telemetry],
+        facts: facts({
+          reached: [
+            ActivationMilestone.FirstCheckResultReceived,
+            ActivationMilestone.FirstTestPageAcknowledged,
+            ActivationMilestone.FirstStatusPageMonitorAdded,
+            ActivationMilestone.SecondMemberJoined,
+          ],
+        }),
+        plan: { isFreePlan: false },
+      }),
+    ).toEqual([]);
+  });
+
+  test("who is told is offered until a policy that reaches someone runs, as on the checklist (#7017)", () => {
+    const offered: (
+      hasPolicyThatPagesSomeone: boolean,
+    ) => Array<WelcomeStep> = (
+      hasPolicyThatPagesSomeone: boolean,
+    ): Array<WelcomeStep> => {
+      return buildWelcomeMoreSteps({
+        goals: [ProjectGoal.StatusPage],
+        facts: facts({
+          hasPolicyThatPagesSomeone: hasPolicyThatPagesSomeone,
+        }),
+        plan: { isFreePlan: false },
+      }).map((state: WelcomeChecklistStepState): WelcomeStep => {
+        return state.step;
+      });
+    };
+
+    expect(offered(false)).toEqual([WelcomeStep.OnCall, WelcomeStep.Team]);
+    expect(offered(true)).toEqual([WelcomeStep.Team]);
+  });
+
+  test("on the Free plan, inviting the team says which plan it needs, as on the checklist", () => {
+    const team: WelcomeChecklistStepState | undefined = buildWelcomeMoreSteps({
+      goals: [ProjectGoal.Uptime],
+      facts: NOTHING,
+      plan: { isFreePlan: true },
+    }).find((state: WelcomeChecklistStepState): boolean => {
+      return state.step === WelcomeStep.Team;
+    });
+
+    expect(team?.needsPlan).toBe(PlanType.Growth);
+    expect(team?.isNext).toBe(false);
+  });
+});
+
+/*
+ * WHY A STEP WHOSE RECORD EXISTS IS NOT DONE YET (#6938): Setup health's
+ * finding about its record, the first of the step's checks that has one.
+ */
+describe("why a step is not done although its record exists", () => {
+  const finding: (data: {
+    check: SetupHealthCheck;
+    words: string;
+    record: { kind: SetupHealthRecordKind; id: string; name: string };
+    fix: SetupHealthFix;
+    reason?: string | undefined;
+  }) => SetupHealthFinding = (data: {
+    check: SetupHealthCheck;
+    words: string;
+    record: { kind: SetupHealthRecordKind; id: string; name: string };
+    fix: SetupHealthFix;
+    reason?: string | undefined;
+  }): SetupHealthFinding => {
+    return makeSetupHealthFinding({
+      check: data.check,
+      level: SetupHealthLevel.WorthFixing,
+      record: data.record,
+      fix: data.fix,
+      fixRecordId: data.record.id,
+      words: data.words,
+      values: { name: data.record.name },
+      reason: data.reason,
+    });
+  };
+
+  const EMPTY_PAGE: SetupHealthFinding = finding({
+    check: SetupHealthCheck.StatusPageShowsNoMonitor,
+    words: SETUP_HEALTH_WORDS.statusPageShowsNoMonitor,
+    record: {
+      kind: SetupHealthRecordKind.StatusPage,
+      id: "status-page-1",
+      name: "Acme status",
+    },
+    fix: SetupHealthFix.StatusPageResources,
+  });
+
+  const NOT_RUN: SetupHealthFinding = finding({
+    check: SetupHealthCheck.PolicyNotRun,
+    words: SETUP_HEALTH_WORDS.policyNotRun,
+    record: {
+      kind: SetupHealthRecordKind.OnCallDutyPolicy,
+      id: "policy-1",
+      name: "Primary",
+    },
+    fix: SetupHealthFix.IncidentOnCallRules,
+  });
+
+  const UNREACHABLE: SetupHealthFinding = finding({
+    check: SetupHealthCheck.ResponderCannotBePaged,
+    words:
+      SETUP_HEALTH_WORDS.responderCannotBePaged[
+        SetupHealthResponderReason.NoVerifiedMethod
+      ],
+    record: { kind: SetupHealthRecordKind.User, id: "user-1", name: "Ada" },
+    fix: SetupHealthFix.OnCallReadiness,
+    reason: SetupHealthResponderReason.NoVerifiedMethod,
+  });
+
+  const NO_PROBE: SetupHealthFinding = finding({
+    check: SetupHealthCheck.MonitorNotChecked,
+    words: "{{monitor}} is not checked: it has no probe.",
+    record: {
+      kind: SetupHealthRecordKind.Monitor,
+      id: "monitor-1",
+      name: "Storefront",
+    },
+    fix: SetupHealthFix.MonitorProbes,
+  });
+
+  test("a status page that shows no monitor names the status page's break", () => {
+    expect(
+      getWelcomeStepGapFromFindings(WelcomeStep.StatusPage, [
+        NOT_RUN,
+        EMPTY_PAGE,
+      ]),
+    ).toEqual({
+      check: SetupHealthCheck.StatusPageShowsNoMonitor,
+      finding: EMPTY_PAGE,
+    });
+  });
+
+  test("a monitor no probe checks names the monitor's", () => {
+    expect(
+      getWelcomeStepGapFromFindings(WelcomeStep.Monitor, [NO_PROBE])?.finding,
+    ).toBe(NO_PROBE);
+  });
+
+  test("who is told says what runs the policy before whom it reaches", () => {
+    expect(
+      getWelcomeStepGapFromFindings(WelcomeStep.OnCall, [UNREACHABLE, NOT_RUN])
+        ?.check,
+    ).toBe(SetupHealthCheck.PolicyNotRun);
+    expect(
+      getWelcomeStepGapFromFindings(WelcomeStep.OnCall, [UNREACHABLE])?.check,
+    ).toBe(SetupHealthCheck.ResponderCannotBePaged);
+  });
+
+  test("another step's finding is never a step's gap", () => {
+    expect(
+      getWelcomeStepGapFromFindings(WelcomeStep.Monitor, [
+        EMPTY_PAGE,
+        NOT_RUN,
+        UNREACHABLE,
+      ]),
+    ).toBeNull();
+    expect(
+      getWelcomeStepGapFromFindings(WelcomeStep.StatusPage, [NO_PROBE]),
+    ).toBeNull();
+  });
+
+  test("nothing found: no gap", () => {
+    for (const step of WELCOME_STEP_ORDER) {
+      expect(getWelcomeStepGapFromFindings(step, [])).toBeNull();
+    }
+  });
+
+  test("only the steps whose record Setup health looks at have checks", () => {
+    expect(
+      WELCOME_STEP_ORDER.filter((step: WelcomeStep): boolean => {
+        return hasWelcomeStepGapChecks(step);
+      }),
+    ).toEqual([
+      WelcomeStep.Monitor,
+      WelcomeStep.OnCall,
+      WelcomeStep.StatusPage,
+    ]);
+
+    // Each check is one step's, never two steps'.
+    const seen: Array<SetupHealthCheck> = [];
+
+    for (const step of WELCOME_STEP_ORDER) {
+      for (const check of WELCOME_STEP_GAP_CHECKS[step]) {
+        expect(seen).not.toContain(check);
+        seen.push(check);
+      }
+    }
+  });
+});
+
+/*
+ * PAGED BY MORE THAN EMAIL (#9442): a verified phone number or push device.
+ */
+describe("whether a phone or the app can page the person", () => {
+  test.each([
+    ["a verified SMS number", "SMS", true, true],
+    ["a verified call number", "Call", true, true],
+    ["a verified WhatsApp number", "WhatsApp", true, true],
+    ["a push device: the app or a browser", "Push", true, true],
+    ["an SMS number not verified yet", "SMS", false, false],
+    ["email alone", "Email", true, false],
+    ["a Slack message", "Slack", true, false],
+    ["a webhook", "Webhook", true, false],
+  ])(
+    "%s",
+    (
+      _name: string,
+      methodType: string,
+      isVerified: boolean,
+      expected: boolean,
+    ) => {
+      expect(
+        canPageByPhoneOrApp([
+          { methodType: "Email", isVerified: true },
+          { methodType: methodType, isVerified: isVerified },
+        ]),
+      ).toBe(expected);
+    },
+  );
+
+  test("nothing verified at all: no", () => {
+    expect(canPageByPhoneOrApp([])).toBe(false);
+  });
+
+  test("the method types are Readiness's own words", () => {
+    expect([...PHONE_OR_APP_METHOD_TYPES]).toEqual([
+      "SMS",
+      "Call",
+      "WhatsApp",
+      "Push",
+    ]);
   });
 });

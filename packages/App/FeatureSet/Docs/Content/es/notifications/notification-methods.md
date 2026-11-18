@@ -199,6 +199,10 @@ Vincula primero tu cuenta en **Ajustes de usuario → Espacio de trabajo → Sla
 Comprueba que el teléfono aparece en **Dispositivos de notificaciones push**, y envíale una **Notificación de prueba**. Consulta [Preguntas frecuentes y solución de problemas](/docs/mobile-desktop-apps/faq-troubleshooting#notificaciones).
 :::
 
+### La página dice que este servidor no puede enviar SMS
+
+Tu servidor no tiene ahora ninguna forma de enviar SMS, o de hacer llamadas, que funcione: no hay nada configurado, o lo configurado está fallando. Hasta que funcione, la página lo indica y no puedes añadir un número para ello. Pregunta al administrador de tu servidor, que en su lugar ve un enlace a los ajustes. Un proyecto con su propia configuración de Twilio envía a través de ella y no se ve afectado. Con el correo pasa lo mismo.
+
 ## Próximos pasos
 
 :::cards

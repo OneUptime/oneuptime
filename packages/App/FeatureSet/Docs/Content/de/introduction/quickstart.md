@@ -74,7 +74,7 @@ Die Website-Einrichtung hat bereits die **Standard-Bereitschaftsrichtlinie** ang
 :::steps
 ### Die Bereitschafts-Einrichtung öffnen
 
-Klicken Sie in der Zusammenfassung der Website-Einrichtung auf **Per SMS oder Anruf alarmiert werden**: Der Link öffnet die geführte Einrichtung **Die richtige Person alarmieren, wenn etwas ausfällt**. Um sie später zu öffnen, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie sie aus. Solange die Checkliste **Bereitschaftsrichtlinie einrichten** nicht abgehakt hat, öffnet dieser Schritt dieselbe geführte Einrichtung.
+Klicken Sie in der Zusammenfassung der Website-Einrichtung auf **Per SMS oder Anruf alarmiert werden**: Der Link öffnet die geführte Einrichtung **Die richtige Person alarmieren, wenn etwas ausfällt**. Um sie später zu öffnen, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie sie aus. Solange die Checkliste **Bereitschaftsrichtlinie einrichten** nicht abgehakt hat, öffnet dieser Schritt dieselbe geführte Einrichtung. Hat sie ihn abgehakt und können Sie nur per E-Mail alarmiert werden, behält die Startseite **Per SMS oder Anruf alarmiert werden** darunter.
 
 ### Festlegen, wie Sie erreicht werden
 

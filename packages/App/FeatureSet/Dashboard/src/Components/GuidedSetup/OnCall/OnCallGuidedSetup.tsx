@@ -152,7 +152,11 @@ import GroupRadioButtons from "Common/UI/Components/RadioButtons/GroupRadioButto
 import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { useServerSendingStatus } from "Common/UI/Utils/ServerSending";
+import {
+  useProjectCanSend,
+  useServerSendingStatus,
+} from "Common/UI/Utils/ServerSending";
+import { ProjectCanSendAnswer } from "Common/Types/ServerSending/ProjectCanSend";
 import { joinList } from "Common/UI/Utils/ListSeparator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
@@ -235,6 +239,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const serverEmail: ServerEmail = useServerEmail();
   const sendingStatus: ServerSendingStatusAnswer | null =
     useServerSendingStatus();
+  /*
+   * Whether a page can reach this project's people by email, SMS and call,
+   * as any member reads it (#7151): a member is told the server cannot send
+   * SMS before typing a number, not only a master admin.
+   */
+  const projectCanSend: ProjectCanSendAnswer | null = useProjectCanSend();
   const userId: string = UserUtil.getUserId()?.toString() || "";
 
   const store: GuidedSetupRunStore = useMemo(() => {
@@ -686,8 +696,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     isSmsOn: phoneFacts.isSmsOn,
     isCallOn: phoneFacts.isCallOn,
     balanceInUSDCents: phoneFacts.balanceInUSDCents,
-    serverCanSendSms: canServerSend(sendingStatus, ServerSendingChannel.SMS),
-    serverCanCall: canServerSend(sendingStatus, ServerSendingChannel.Call),
+    // The project's own Twilio counts; a master admin's sending status while it is not read.
+    serverCanSendSms: projectCanSend
+      ? projectCanSend.sms
+      : canServerSend(sendingStatus, ServerSendingChannel.SMS),
+    serverCanCall: projectCanSend
+      ? projectCanSend.call
+      : canServerSend(sendingStatus, ServerSendingChannel.Call),
   };
   const phoneBreaks: Array<WhoIsToldBreak> = getPhoneBreaks(channelFacts);
   const channelsOff: Array<ProjectNotificationChannel> = [];
@@ -1149,21 +1164,23 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             emails.length > 0
               ? describeMethods(emails)
               : translator.translateText(ON_CALL_SETUP_COPY.emailNone) || "",
-          children: cannotSendEmail(serverEmail) ? (
-            <p
-              className="text-sm text-amber-700"
-              data-testid="on-call-setup-no-email"
-            >
-              {getBreakSentence(
-                makeWhoIsToldBreak({
-                  kind: WhoIsToldBreakKind.ServerCannotSend,
-                  fix: WhoIsToldFix.ServerSettings,
-                  channel: WhoIsToldServerChannel.Email,
-                }),
-                translator,
-              )}
-            </p>
-          ) : undefined,
+          // Not set up, never worked, or failing now: as Notification Methods says it (#6880).
+          children:
+            cannotSendEmail(serverEmail) || projectCanSend?.email === false ? (
+              <p
+                className="text-sm text-amber-700"
+                data-testid="on-call-setup-no-email"
+              >
+                {getBreakSentence(
+                  makeWhoIsToldBreak({
+                    kind: WhoIsToldBreakKind.ServerCannotSend,
+                    fix: WhoIsToldFix.ServerSettings,
+                    channel: WhoIsToldServerChannel.Email,
+                  }),
+                  translator,
+                )}
+              </p>
+            ) : undefined,
         })}
         {reachRow({
           key: "phone",

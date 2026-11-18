@@ -10,13 +10,20 @@ import {
   ServerTestSendResult,
 } from "Common/Types/ServerSetup/ServerTestSend";
 import { translationKey } from "Common/Types/Translator";
+import ServerSetUpProblem, {
+  ServerSetUpProblemWords,
+} from "Common/Types/ServerSending/ServerSetUpProblem";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import { sendServerTest } from "Common/UI/Utils/ServerSetupChecklist";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  TemplateValues,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -67,21 +74,39 @@ export const describeServerTestSend: (
 ): string => {
   const sentence: { template: string; values: Record<string, string> } =
     getServerTestSendSentence(answer);
-  const values: Record<string, string> = { ...sentence.values };
+  const values: TemplateValues = { ...sentence.values };
 
   // A number; a test push's `to` is the names of the admin's devices.
   if (
     (answer.channel === ServerSendingChannel.SMS ||
       answer.channel === ServerSendingChannel.Call) &&
-    values["to"]
+    sentence.values["to"]
   ) {
-    values["to"] = phoneNumberInLine(values["to"], translator.language);
+    values["to"] = phoneNumberInLine(
+      sentence.values["to"],
+      translator.language,
+    );
   }
 
-  // OneUptime's own reasons are worded in every language; a provider's are its own.
-  if (values["reason"] && isServerTestSendReasonKey(values["reason"])) {
-    values["reason"] =
-      translator.translateText(values["reason"]) || values["reason"];
+  const reason: string | undefined = sentence.values["reason"];
+  const reasonWords: ServerSetUpProblemWords | undefined = answer.messageWords;
+
+  /*
+   * What the settings are missing, in the words the server sent (#9437),
+   * and OneUptime's own reasons for a test push: each said in the language
+   * the sentence around it is said in. A provider's own words are its own.
+   */
+  if (reasonWords) {
+    values["reason"] = composedValue((inSentence: Translator): string => {
+      return inSentence.translateTemplate(
+        reasonWords.template,
+        ServerSetUpProblem.toValues(reasonWords),
+      );
+    });
+  } else if (reason && isServerTestSendReasonKey(reason)) {
+    values["reason"] = composedValue((inSentence: Translator): string => {
+      return inSentence.translateText(reason) || reason;
+    });
   }
 
   return translator.translateTemplate(sentence.template, values);

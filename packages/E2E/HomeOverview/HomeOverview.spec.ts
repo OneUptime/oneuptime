@@ -991,7 +991,7 @@ const NEWCOMER_STEPS: Array<string> = [
 const ON_CALL_STEP_TITLE: string = "Set up an on-call policy";
 
 const ON_CALL_STEP_SENTENCE: string =
-  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.";
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.";
 
 async function checklistSteps(page: Page): Promise<Array<string>> {
   return page
@@ -1435,6 +1435,326 @@ test.describe("what do you want to do first?", () => {
     await expectNoSidewaysScroll(page);
 
     await screenshot(page, "home-welcome-question-de-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Once a step's record exists, and once the first steps are done
+ * (#6938, #7986, #9442)
+ * ---------------------------------------------------------------------------
+ */
+
+// The rows of what else to set up, by the key each is drawn under.
+async function moreRows(page: Page): Promise<Array<string>> {
+  return page
+    .getByTestId("welcome-more")
+    .locator('[data-testid^="getting-started-task-"][data-done]')
+    .evaluateAll((elements: Array<Element>): Array<string> => {
+      return elements.map((element: Element): string => {
+        return (element.getAttribute("data-testid") || "").replace(
+          "getting-started-task-",
+          "",
+        );
+      });
+    });
+}
+
+/*
+ * Whether each row of what else to set up keeps its chevron beside its
+ * words - never on a line of its own under them, pointing at nothing - and
+ * whether anything in the card is cut off.
+ */
+async function moreCardShape(
+  page: Page,
+): Promise<{ besideWords: Array<boolean>; clipped: boolean }> {
+  return page
+    .getByTestId("welcome-more")
+    .evaluate(
+      (card: Element): { besideWords: Array<boolean>; clipped: boolean } => {
+        const rows: Array<Element> = Array.from(
+          card.querySelectorAll(
+            '[data-testid^="getting-started-task-"][data-done]',
+          ),
+        );
+
+        return {
+          besideWords: rows.map((row: Element): boolean => {
+            const words: DOMRect = row
+              .querySelector('[data-testid$="-description"]')!
+              .getBoundingClientRect();
+            // The row's last icon: the chevron it ends on.
+            const icons: NodeListOf<Element> = row.querySelectorAll("svg");
+            const chevron: DOMRect =
+              icons[icons.length - 1]!.getBoundingClientRect();
+            const isRightToLeft: boolean =
+              getComputedStyle(row).direction === "rtl";
+
+            return (
+              chevron.top < words.bottom &&
+              (isRightToLeft
+                ? chevron.right <= words.left + 1
+                : chevron.left >= words.right - 1)
+            );
+          }),
+          clipped: Array.from(card.querySelectorAll("span")).some(
+            (span: Element): boolean => {
+              return span.scrollWidth > span.clientWidth + 1;
+            },
+          ),
+        };
+      },
+    );
+}
+
+test.describe("what else to set up, once the first steps are done", () => {
+  test("at 1280px: the phone first, then the status page with what it is missing, then the team; each opens its page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, "scenario=healthy&welcome=more");
+
+    const card: Locator = page.getByTestId("welcome-more");
+
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("More to set up");
+    await expect(card).toContainText(
+      "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.",
+    );
+    expect(await moreRows(page)).toEqual([
+      "paged_by_phone",
+      "status_page",
+      "team",
+    ]);
+    await expect(
+      page.getByTestId("getting-started-task-paged_by_phone"),
+    ).toContainText("Get paged by SMS or phone call");
+    await expect(
+      page.getByTestId("getting-started-task-status_page-gap"),
+    ).toHaveText("Status page Acme Commerce status shows no monitors yet.");
+    await expect(page.getByTestId("getting-started-task-team-gap")).toHaveText(
+      "An invitation to this project hasn't been accepted yet.",
+    );
+
+    // A card among Home's others, never the whole of Home.
+    await expect(page.getByTestId("home-overview")).toHaveAttribute(
+      "data-home-mode",
+      "overview",
+    );
+    await expect(page.getByTestId("home-command-bar")).toBeVisible();
+    await expect(page.getByTestId("getting-started")).toHaveCount(0);
+
+    // Offers, not a path: nothing marked next, no line between them.
+    await expect(card.getByTestId("getting-started-next")).toHaveCount(0);
+    await expect(
+      card.locator('[data-testid^="getting-started-path-"]'),
+    ).toHaveCount(0);
+    expect(await moreCardShape(page)).toEqual({
+      besideWords: [true, true, true],
+      clipped: false,
+    });
+
+    await card.scrollIntoViewIfNeeded();
+    await screenshot(page, "home-welcome-more-1280", { fullPage: false });
+
+    // The phone opens the on-call guided setup, saying it came from Home.
+    await page.getByTestId("getting-started-task-paged_by_phone").click();
+    await expect(page.getByTestId("stub-page")).toHaveText(
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup`,
+    );
+    expect(new URL(page.url()).searchParams.get("from")).toBe("home");
+
+    // The status page's break opens where a monitor is added: its Monitors.
+    await page.goBack();
+    await page.getByTestId("getting-started-task-status_page").click();
+    await expect(page.getByTestId("stub-page")).toHaveText(
+      `/dashboard/${PROJECT_ID}/status-pages/50000000-0000-4000-8000-000000000001/resources`,
+    );
+  });
+
+  test("at 390px: one column, each chevron beside its words; Hide leaves no line behind", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, "scenario=healthy&welcome=more");
+
+    const card: Locator = page.getByTestId("welcome-more");
+    const lefts: Array<number> = await card
+      .locator('[data-testid^="getting-started-task-"][data-done]')
+      .evaluateAll((elements: Array<Element>): Array<number> => {
+        return elements.map((element: Element): number => {
+          return Math.round(element.getBoundingClientRect().left);
+        });
+      });
+
+    expect(new Set(lefts).size).toBe(1);
+    expect(await moreCardShape(page)).toEqual({
+      besideWords: [true, true, true],
+      clipped: false,
+    });
+    await expectNoSidewaysScroll(page);
+
+    await card.scrollIntoViewIfNeeded();
+    await screenshot(page, "home-welcome-more-390", { fullPage: false });
+
+    await page.getByTestId("welcome-more-hide").click();
+
+    await expect(card).toHaveCount(0);
+    await expect(page.getByTestId("welcome-checklist-hidden")).toHaveCount(0);
+    await expect(page.getByTestId("home-explore-products")).toBeVisible();
+  });
+
+  test("dark: the card and its breaks stay readable on a dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=healthy&welcome=more&theme=dark");
+
+    const colors: { gap: string; title: string; surface: string } = await page
+      .getByTestId("welcome-more")
+      .evaluate(
+        (card: Element): { gap: string; title: string; surface: string } => {
+          return {
+            gap: getComputedStyle(
+              card.querySelector(
+                '[data-testid="getting-started-task-status_page-gap"]',
+              )!,
+            ).color,
+            title: getComputedStyle(card.querySelector("h2")!).color,
+            surface: getComputedStyle(card).backgroundColor,
+          };
+        },
+      );
+
+    expect(colors.surface).not.toBe("rgb(255, 255, 255)");
+    expect(colors.gap).not.toBe(colors.surface);
+    expect(colors.title).not.toBe(colors.surface);
+
+    await page.getByTestId("welcome-more").scrollIntoViewIfNeeded();
+    await screenshot(page, "home-welcome-more-dark", { fullPage: false });
+  });
+
+  for (const { name, code, title, direction } of [
+    {
+      name: "German",
+      code: "de",
+      title: "Was Sie noch einrichten können",
+      direction: "ltr",
+    },
+    {
+      name: "Persian",
+      code: "fa",
+      title: "موارد دیگر برای راه‌اندازی",
+      direction: "rtl",
+    },
+  ]) {
+    test(`in ${name}, on a phone and a laptop: the card in the reader's language, whole`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openReady(page, `scenario=healthy&welcome=more&lang=${code}`);
+
+      const card: Locator = page.getByTestId("welcome-more");
+
+      await expect(card).toContainText(title);
+      await expect(page.locator("html")).toHaveAttribute("dir", direction);
+      await expect(card).not.toContainText("More to set up");
+      await expect(card).not.toContainText("Get paged by SMS or phone call");
+
+      for (const width of [390, 1280]) {
+        await page.setViewportSize({
+          width: width,
+          height: width === 390 ? 844 : 900,
+        });
+
+        expect({ width, shape: await moreCardShape(page) }).toEqual({
+          width,
+          shape: { besideWords: [true, true, true], clipped: false },
+        });
+        await expectNoSidewaysScroll(page);
+
+        await card.scrollIntoViewIfNeeded();
+        await screenshot(page, `home-welcome-more-${code}-${width}`, {
+          fullPage: false,
+        });
+      }
+    });
+  }
+});
+
+test.describe("a step whose record exists but does not work yet", () => {
+  test("on a laptop and a phone: each says what it is missing, the next one's button its fix, and the ticked on-call step keeps the phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openQuickstart(page, "scenario=healthy&welcome=gaps");
+
+    await expect(
+      page.getByTestId("getting-started-task-status_page-gap"),
+    ).toHaveText("Status page Acme Commerce status shows no monitors yet.");
+    await expect(page.getByTestId("getting-started-task-team-gap")).toHaveText(
+      "An invitation to this project hasn't been accepted yet.",
+    );
+    // Where the step's time was: what is left is the one fix.
+    await expect(
+      page.getByTestId("getting-started-task-status_page-minutes"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("getting-started-start")).toHaveText(
+      "Add Monitors",
+    );
+
+    const phone: Locator = page
+      .getByTestId("getting-started-task-on_call-footer")
+      .getByTestId("welcome-paged-by-phone");
+
+    await expect(phone).toHaveText("Get paged by SMS or phone call");
+    await expect(phone).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup?from=home`,
+    );
+
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({
+        width: width,
+        height: width === 390 ? 844 : 900,
+      });
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `home-welcome-gaps-${width}`);
+    }
+
+    // The phone, under the ticked step, opens the setup from Home.
+    await phone.click();
+    await expect(page.getByTestId("stub-page")).toHaveText(
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup`,
+    );
+    expect(new URL(page.url()).searchParams.get("from")).toBe("home");
+  });
+
+  test("dark and Persian: the breaks read right to left, on a dark card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openQuickstart(
+      page,
+      "scenario=healthy&welcome=gaps&theme=dark&lang=fa",
+    );
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByTestId("getting-started-task-team-gap")).toHaveText(
+      "یک دعوت به این پروژه هنوز پذیرفته نشده است.",
+    );
+
+    await screenshot(page, "home-welcome-gaps-fa-dark");
   });
 });
 

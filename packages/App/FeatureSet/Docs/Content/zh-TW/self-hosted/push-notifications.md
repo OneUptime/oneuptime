@@ -256,6 +256,10 @@ Expo 接受了推播，並不表示推播已到達裝置：Apple 或 Google 仍�
 
 如果以上都沒有幫助，請附上 OneUptime 記錄中的錯誤，透過 [hello@oneuptime.com](mailto:hello@oneuptime.com) 聯絡我們。
 
+### Admin Dashboard 顯示推播失敗
+
+當伺服器本身的推播通知不再送出時，Admin Dashboard 會顯示推播失敗：推播中繼、Expo Push 或 Web Push 拒絕了它們，或者無法連線。它會顯示從何時開始，以及得到了什麼回覆。只有一部裝置拒絕的推播，例如傳往已解除安裝之應用程式的推播，不計在內。一旦推播再次送出，推播就顯示為正常。傳送一則測試推播來確認。
+
 ## 後續步驟
 
 :::cards

@@ -167,6 +167,7 @@ Let's Encrypt ha bisogno delle porte 80 e 443 raggiungibili da internet, e del t
 :::cards
 - [Guida rapida](/docs/introduction/quickstart): Un monitor, una policy di reperibilità e una pagina di stato in quindici minuti.
 - [Docker Compose](/docs/installation/docker-compose): Il tuo proxy, i backup, gli aggiornamenti e la checklist per la produzione.
+- [Kubernetes e Helm](/docs/installation/kubernetes): Fare il backup di un'installazione Kubernetes e conservarne le chiavi.
 - [Aggiornamento](/docs/installation/upgrading): Passare a una nuova release, una versione principale alla volta.
 - [Architettura](/docs/self-hosted/architecture): Come si incastrano le parti di OneUptime.
 :::

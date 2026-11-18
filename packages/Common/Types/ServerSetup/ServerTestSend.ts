@@ -2,6 +2,10 @@ import { translationKey } from "../Translator";
 import ServerSendingStatusUtil, {
   ServerSendingChannel,
 } from "../ServerSending/ServerSendingStatus";
+import ServerSetUpProblem, {
+  SERVER_PUSH_TURNED_OFF_PROBLEM,
+  ServerSetUpProblemWords,
+} from "../ServerSending/ServerSetUpProblem";
 
 /*
  * A TEST SEND THROUGH THE SERVER'S OWN SETTINGS, AND WHAT IT ANSWERED.
@@ -66,6 +70,12 @@ export interface ServerTestSendAnswer {
   sentThrough: string | null;
   // What the provider said when it refused, or what the settings are missing.
   message: string | null;
+  /*
+   * What the settings are missing, in words every language has (#9437):
+   * not set up only, and only for a sentence of OneUptime's own. Left out
+   * by an older server, and for what is drawn as it came.
+   */
+  messageWords?: ServerSetUpProblemWords | undefined;
 }
 
 /*
@@ -79,10 +89,8 @@ export const SERVER_TEST_PUSH_REASONS: {
   noDevices: string;
   noVapidKeys: string;
 } = {
-  // As the checklist says it too (ServerChannelSetup's PUSH_TURNED_OFF_PROBLEM).
-  turnedOff: translationKey(
-    "Push notifications are turned off under Settings > Push Notifications.",
-  ),
+  // As the checklist says it too (ServerSetUpProblem's SERVER_PUSH_TURNED_OFF_PROBLEM).
+  turnedOff: SERVER_PUSH_TURNED_OFF_PROBLEM,
   noDevices: translationKey(
     "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.",
   ),
@@ -248,11 +256,23 @@ export const parseServerTestSendAnswer: (
     return null;
   }
 
-  return {
+  const answer: ServerTestSendAnswer = {
     channel: row["channel"],
     result: row["result"] as ServerTestSendResult,
     to: typeof row["to"] === "string" ? row["to"] : "",
     sentThrough: toServerTestSendMessage(row["sentThrough"]),
     message: toServerTestSendMessage(row["message"]),
   };
+
+  // Words for what the settings are missing, only when they are ones this page knows.
+  const messageWords: ServerSetUpProblemWords | null =
+    answer.result === ServerTestSendResult.NotSetUp
+      ? ServerSetUpProblem.parse(row["messageWords"])
+      : null;
+
+  if (messageWords) {
+    answer.messageWords = messageWords;
+  }
+
+  return answer;
 };

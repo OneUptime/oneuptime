@@ -199,6 +199,10 @@ Forbind først din konto under **Brugerindstillinger → Arbejdsområde → Slac
 Tjek, at telefonen står under **Enheder til push-notifikationer**, og send den en **Testnotifikation**. Se [Ofte stillede spørgsmål og fejlfinding](/docs/mobile-desktop-apps/faq-troubleshooting#notifikationer).
 :::
 
+### Siden siger, at serveren ikke kan sende sms
+
+Din server har lige nu ingen virkende måde at sende sms eller foretage opkald på: intet er sat op, eller det, der er sat op, fejler. Indtil det virker, står det på siden, og du kan ikke tilføje et nummer til det. Spørg din servers administrator, som i stedet ser et link til indstillingerne. Et projekt med sin egen Twilio-konfiguration sender gennem den og berøres ikke. E-mail fungerer på samme måde.
+
 ## Næste skridt
 
 :::cards

@@ -27,6 +27,7 @@ import ServerSetupChecklistUtil, {
   ServerSetupStatus,
 } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import { ServerTestSendAnswer } from "Common/Types/ServerSetup/ServerTestSend";
+import ServerSetUpProblem from "Common/Types/ServerSending/ServerSetUpProblem";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
@@ -38,7 +39,11 @@ import Link from "Common/UI/Components/Link/Link";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ServerSetupChecklistLoader from "Common/UI/Utils/ServerSetupChecklist";
-import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  Translator,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -263,9 +268,12 @@ export interface ServerSetupRow {
   isFinished: boolean;
   isFailing: boolean;
   // The status line: an English template and what fills it.
-  status: { template: string; values: Record<string, string> };
-  // What it was checked against, each an English template and its values.
-  checked: Array<{ template: string; values: Record<string, string> }>;
+  status: { template: string; values: TemplateValues };
+  /*
+   * What it was checked against, each an English template and its values:
+   * a setting's name among them is looked up with the sentence (#9437).
+   */
+  checked: Array<{ template: string; values: TemplateValues }>;
   actions: Array<ServerSetupAction>;
 }
 
@@ -378,7 +386,19 @@ export const getServerSetupRow: (data: {
       } else if (check.status === ServerSetupStatus.Failing) {
         providerSaid(check.sentThrough, check.reason);
       } else if (check.status === ServerSetupStatus.NotSetUp && check.reason) {
-        checked.push({ template: check.reason, values: {} });
+        /*
+         * What the settings are missing, in words the reader's language has
+         * (#9437); from an older server, or an environment variable's
+         * problem, the English sentence as it came.
+         */
+        checked.push(
+          check.reasonWords
+            ? {
+                template: check.reasonWords.template,
+                values: ServerSetUpProblem.toValues(check.reasonWords),
+              }
+            : { template: check.reason, values: {} },
+        );
       }
 
       if (check.status === ServerSetupStatus.NotSetUp) {
@@ -579,6 +599,11 @@ export const getServerSetupRow: (data: {
       break;
 
     case ServerSetupCheckId.BrowserPush:
+      // The server's own pushes fail (#6881): what the push service or relay said.
+      if (check.status === ServerSetupStatus.Failing) {
+        providerSaid(check.sentThrough, check.reason);
+      }
+
       if (!check.isFinished) {
         actions.push({
           kind: "guide",
@@ -589,7 +614,8 @@ export const getServerSetupRow: (data: {
 
       /*
        * A test push to this admin's own phones and browsers (#7028), done
-       * or not: nothing yet tells the server how its pushes go (#6881).
+       * or not: browsers set up says nothing of phones, and a push that
+       * goes out shows the server's pushes work again (#6881).
        */
       for (const channel of check.tests) {
         actions.push({ kind: "test", title: "", channel: channel });
@@ -758,10 +784,10 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
 
   const words: (sentence: {
     template: string;
-    values: Record<string, string>;
+    values: TemplateValues;
   }) => string = (sentence: {
     template: string;
-    values: Record<string, string>;
+    values: TemplateValues;
   }): string => {
     return translator.translateTemplate(sentence.template, sentence.values);
   };
@@ -928,7 +954,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
             </p>
             {row.checked.map(
               (
-                sentence: { template: string; values: Record<string, string> },
+                sentence: { template: string; values: TemplateValues },
                 index: number,
               ): ReactElement => {
                 return (

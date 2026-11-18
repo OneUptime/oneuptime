@@ -4,6 +4,7 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ServerChannelSetup, {
   SERVER_CHANNEL_SETUP_SELECT,
+  ServerSetUpProblemReading,
 } from "./ServerChannelSetup";
 import ServerSendingOutcomes, {
   ServerSendingOutcome,
@@ -138,9 +139,14 @@ export default class ServerSendingStatus {
       config?.serverSendingHealth,
     );
 
+    // What is missing, in English and in words a page says in its reader's language (#9437).
+    const setUpProblem: ServerSetUpProblemReading | null =
+      ServerChannelSetup.readSetUpProblem(channel, config);
+
     return ServerSendingStatusUtil.getStatus({
       channel: channel,
-      setUpProblem: ServerChannelSetup.getSetUpProblem(channel, config),
+      setUpProblem: setUpProblem?.english || null,
+      setUpProblemWords: setUpProblem?.words || null,
       entry: ServerSendingStatus.getCurrentEntry(health, channel, config),
     });
   }

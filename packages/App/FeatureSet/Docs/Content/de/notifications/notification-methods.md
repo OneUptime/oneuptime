@@ -199,6 +199,10 @@ Verknüpfen Sie zuerst Ihr Konto unter **Benutzereinstellungen → Arbeitsbereic
 Prüfen Sie, ob das Telefon unter **Geräte für Push-Benachrichtigungen** aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**. Siehe [FAQ & Fehlerbehebung](/docs/mobile-desktop-apps/faq-troubleshooting#benachrichtigungen).
 :::
 
+### Die Seite meldet, dass dieser Server keine SMS senden kann
+
+Ihr Server hat gerade keinen funktionierenden Weg, SMS zu senden oder Anrufe zu tätigen: Es ist nichts eingerichtet, oder das Eingerichtete schlägt fehl. Bis es funktioniert, sagt die Seite das, und Sie können keine Nummer dafür hinzufügen. Fragen Sie den Administrator Ihres Servers, der stattdessen einen Link zu den Einstellungen sieht. Ein Projekt mit eigener Twilio-Konfiguration sendet darüber und ist nicht betroffen. Für E-Mail gilt dasselbe.
+
 ## Nächste Schritte
 
 :::cards

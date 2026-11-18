@@ -2088,6 +2088,7 @@ import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WhoWasToldAPI from "Common/Server/API/WhoWasToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
+import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
@@ -6611,6 +6612,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupHealthAPI);
+
+    /*
+     * Whether a page can reach this project's people by email, SMS and call
+     * (ProjectCanSendAPI, #7151, #6880): three yes-or-noes for any member,
+     * never why. A bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProjectCanSendAPI);
 
     /*
      * What refers to a record (UsedByAPI, #6813): the status pages that

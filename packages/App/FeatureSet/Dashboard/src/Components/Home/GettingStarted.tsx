@@ -15,17 +15,27 @@ import {
   WELCOME_CHECKLIST_COPY,
   WELCOME_JUST_LOOKING_GOAL,
   WELCOME_MINUTES_COPY,
+  WELCOME_MORE_COPY,
   WELCOME_PLAN_PAGE,
   WelcomeStepEntry,
+  getPagedByPhoneRoute,
   getWelcomeGoalEntry,
   getWelcomeStepEntry,
   getWelcomeStepRoute,
+  mayUseOnCallGuidedSetup,
 } from "./WelcomeChecklist/WelcomeChecklistCatalog";
 import WelcomeGreeting, {
   getGreetingFirstName,
 } from "./WelcomeChecklist/WelcomeGreeting";
+import WelcomeMoreSteps from "./WelcomeChecklist/WelcomeMoreSteps";
 import WelcomePlanStep from "./WelcomeChecklist/WelcomePlanStep";
+import {
+  WelcomeStepGapSentence,
+  getWelcomeStepGapFix,
+  getWelcomeStepGapRoute,
+} from "./WelcomeChecklist/WelcomeStepGap";
 import { rememberWelcomeStepStarted } from "./WelcomeChecklist/WelcomeStepInProgress";
+import AppLink from "../AppLink/AppLink";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { ServerEmail, cannotSendEmail } from "../../Utils/ServerEmail";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
@@ -67,6 +77,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useId,
   useState,
@@ -92,10 +103,18 @@ import React, {
  *   - a step the plan cannot finish says which plan it needs before the click;
  *   - one step is marked next, with its own Start;
  *   - under the steps, one line opens "How OneUptime works" (#8995);
+ *   - a step whose record exists but does not work yet says why, and opens
+ *     the page that fixes it (#6938);
+ *   - once "who is told" is done, while only email can page the person, it
+ *     keeps a way to the on-call guided setup: "Get paged by SMS or phone
+ *     call" (#9442);
  *   - Hide hides the card for this person only, on every device, and leaves
  *     a line to show it again and to "How OneUptime works";
  *   - "Just looking around" keeps that goal and hides the card the same way;
- *   - once every step is done the card is gone, for everyone.
+ *   - once every step is done the checklist is gone, for everyone, and the
+ *     card offers what else to set up - the core steps no goal brought,
+ *     each until it works (WelcomeMoreSteps, #7986) - until this person
+ *     hides it.
  *
  * Invited members are not shown the owner's checklist: the server answers
  * with the invited-member audience, and the card draws their own first
@@ -111,10 +130,15 @@ export interface ComponentProps {
    * Which view the card draws, each time it changes: null until the answer
    * is read (or while a new project's is), then the view - and whether it
    * is a new project's quickstart, which is then the whole of Home
-   * (isQuickstartTakingHome). Home draws the rest of the page by them.
+   * (isQuickstartTakingHome), and whether it offers to create the first
+   * monitor (offersFirstMonitor). Home draws the rest of the page by them.
    */
   onViewChange?:
-    | ((view: WelcomeCardView | null, isTakingHome: boolean) => void)
+    | ((
+        view: WelcomeCardView | null,
+        isTakingHome: boolean,
+        offersFirstMonitor: boolean,
+      ) => void)
     | undefined;
 }
 
@@ -147,6 +171,11 @@ export enum WelcomeCardView {
   Hidden = "hidden",
   // An invited member: their own first steps (MemberFirstSteps, #6807).
   InvitedMember = "invited_member",
+  /*
+   * The checklist is finished, and core steps no goal brought are left, or
+   * only email pages the person: what else to set up (#7986, #9442).
+   */
+  More = "more",
 }
 
 /*
@@ -193,13 +222,50 @@ export const isQuickstartTakingHome: (data: {
   );
 };
 
+/*
+ * What else to set up, as the answer holds it: none from an answer that
+ * says nothing of it (one a server from before #7986 sent, or one made by
+ * hand), never a page that cannot draw.
+ */
+export const getMoreSteps: (
+  answer: WelcomeChecklistAnswer,
+) => ReadonlyArray<WelcomeChecklistStepState> = (
+  answer: WelcomeChecklistAnswer,
+): ReadonlyArray<WelcomeChecklistStepState> => {
+  return Array.isArray(answer.moreSteps) ? answer.moreSteps : [];
+};
+
+/*
+ * Whether the card offers "Get paged by SMS or phone call" (#9442): the
+ * server read that no verified phone number or push device pages this
+ * person - it reads it only once "who is told" is done - and they may use
+ * the on-call guided setup.
+ */
+export const isPhoneOffered: (data: {
+  answer: WelcomeChecklistAnswer | null;
+  mayUseOnCallSetup: boolean;
+}) => boolean = (data: {
+  answer: WelcomeChecklistAnswer | null;
+  mayUseOnCallSetup: boolean;
+}): boolean => {
+  return Boolean(
+    data.answer &&
+      data.answer.audience === WelcomeAudience.SetUp &&
+      data.answer.canBePagedByPhoneOrApp === false &&
+      data.mayUseOnCallSetup,
+  );
+};
+
 // What the card draws for an answer.
 export const getWelcomeCardView: (data: {
   answer: WelcomeChecklistAnswer | null;
   isChangingGoals: boolean;
+  // The card offers the person's phone and the app (isPhoneOffered).
+  offersPhone?: boolean | undefined;
 }) => WelcomeCardView = (data: {
   answer: WelcomeChecklistAnswer | null;
   isChangingGoals: boolean;
+  offersPhone?: boolean | undefined;
 }): WelcomeCardView => {
   const answer: WelcomeChecklistAnswer | null = data.answer;
 
@@ -211,8 +277,16 @@ export const getWelcomeCardView: (data: {
     return WelcomeCardView.InvitedMember;
   }
 
+  /*
+   * Finished: what else to set up, while there is any and this person has
+   * not hidden the card (#7986). Hidden, nothing is left behind: the line
+   * that shows the checklist again is the checklist's.
+   */
   if (answer.isFinished) {
-    return WelcomeCardView.None;
+    return !answer.isHiddenForMe &&
+      (getMoreSteps(answer).length > 0 || Boolean(data.offersPhone))
+      ? WelcomeCardView.More
+      : WelcomeCardView.None;
   }
 
   if (
@@ -231,6 +305,46 @@ export const getWelcomeCardView: (data: {
   }
 
   return WelcomeCardView.Checklist;
+};
+
+/*
+ * Whether the card it draws offers to create the first monitor (#7759): the
+ * monitor step is left to do, on the checklist or among what else to set
+ * up. Home's headline then leaves its own "Create your first monitor" out,
+ * so a page offers one start for that job, not two.
+ */
+export const offersFirstMonitor: (data: {
+  view: WelcomeCardView | null;
+  answer: WelcomeChecklistAnswer | null;
+}) => boolean = (data: {
+  view: WelcomeCardView | null;
+  answer: WelcomeChecklistAnswer | null;
+}): boolean => {
+  if (!data.answer) {
+    return false;
+  }
+
+  const isMonitorLeft: (
+    steps: ReadonlyArray<WelcomeChecklistStepState>,
+  ) => boolean = (steps: ReadonlyArray<WelcomeChecklistStepState>): boolean => {
+    return steps.some((state: WelcomeChecklistStepState): boolean => {
+      return (
+        state.step === WelcomeStep.Monitor &&
+        !state.isDone &&
+        state.needsPlan === null
+      );
+    });
+  };
+
+  if (data.view === WelcomeCardView.Checklist) {
+    return isMonitorLeft(data.answer.steps);
+  }
+
+  if (data.view === WelcomeCardView.More) {
+    return isMonitorLeft(getMoreSteps(data.answer));
+  }
+
+  return false;
 };
 
 /*
@@ -348,9 +462,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
     const counted: Array<WelcomeChecklistStepState> = answer.steps.filter(
       (state: WelcomeChecklistStepState): boolean => {
-        return (
-          state.needsPlan === null && state.step !== WelcomeStep.ServerEmail
-        );
+        return state.needsPlan === null;
       },
     );
     const current: Dictionary<boolean> = {};
@@ -369,9 +481,19 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     });
   }, [answer]);
 
+  /*
+   * Read at each draw, not once: the permission snapshot that says whether
+   * this person may use the on-call guided setup can arrive after the card.
+   */
+  const offersPhone: boolean = isPhoneOffered({
+    answer: answer,
+    mayUseOnCallSetup: mayUseOnCallGuidedSetup(),
+  });
+
   const view: WelcomeCardView = getWelcomeCardView({
     answer: answer,
     isChangingGoals: isChangingGoals,
+    offersPhone: offersPhone,
   });
 
   const isTakingHome: boolean = isQuickstartTakingHome({
@@ -379,10 +501,19 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     answer: answer,
   });
 
+  const isOfferingFirstMonitor: boolean = offersFirstMonitor({
+    view: view,
+    answer: answer,
+  });
+
   // Home draws the rest of the page by these.
   useEffect(() => {
-    props.onViewChange?.(isLoaded ? view : null, isLoaded && isTakingHome);
-  }, [isLoaded, view, isTakingHome]);
+    props.onViewChange?.(
+      isLoaded ? view : null,
+      isLoaded && isTakingHome,
+      isLoaded && isOfferingFirstMonitor,
+    );
+  }, [isLoaded, view, isTakingHome, isOfferingFirstMonitor]);
 
   if (!answer || view === WelcomeCardView.None) {
     return <></>;
@@ -636,8 +767,17 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    if (entry.externalUrl) {
-      Navigation.navigate(entry.externalUrl(), { openInNewTab: true });
+    /*
+     * A step whose record exists but does not work yet opens the page that
+     * fixes it (#6938): that is all that is left of it.
+     */
+    const fixRoute: Route | null = getWelcomeStepGapRoute({
+      gap: state.gap,
+      translator: translator,
+    });
+
+    if (fixRoute) {
+      Navigation.navigate(fixRoute);
       return;
     }
 
@@ -655,6 +795,28 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
     Navigation.navigate(route);
   };
+
+  // Why a step is not done although its record exists, as one line (#6938).
+  const gapOf: (state: WelcomeChecklistStepState) => ReactNode = (
+    state: WelcomeChecklistStepState,
+  ): ReactNode => {
+    return state.gap ? <WelcomeStepGapSentence gap={state.gap} /> : null;
+  };
+
+  /*
+   * The person's phone and the app (#9442): the on-call guided setup,
+   * opened from Home.
+   */
+  const pagedByPhoneLink: ReactElement = (
+    <AppLink
+      to={getPagedByPhoneRoute()}
+      dataTestId="welcome-paged-by-phone"
+      className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+    >
+      <span>{translator.translateText(WELCOME_MORE_COPY.phoneTitle)}</span>
+      <Icon icon={IconProp.ArrowRight} className="h-4 w-4 flex-none" />
+    </AppLink>
+  );
 
   const describe: (state: WelcomeChecklistStepState) => string = (
     state: WelcomeChecklistStepState,
@@ -677,6 +839,33 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
       ) || ""
     );
   };
+
+  /*
+   * What else to set up (#7986): a card among Home's others, never the
+   * whole of Home. Its Hide is this person's, as the checklist's is.
+   */
+  if (view === WelcomeCardView.More) {
+    return (
+      <WelcomeMoreSteps
+        moreSteps={getMoreSteps(answer)}
+        offersPhone={offersPhone}
+        className={props.className}
+        isSaving={isSaving}
+        error={error}
+        describe={describe}
+        gapOf={gapOf}
+        onOpenStep={openStep}
+        onOpenPhone={() => {
+          Navigation.navigate(getPagedByPhoneRoute());
+        }}
+        onHide={() => {
+          change(WELCOME_CHECKLIST_HIDE_ROUTE, {}).catch(() => {
+            // change() says so.
+          });
+        }}
+      />
+    );
+  }
 
   const goalsRow: ReactElement = answer.canChooseGoals ? (
     <div
@@ -808,6 +997,22 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                 state={state}
                 entry={getWelcomeStepEntry(state.step)}
                 description={describe(state)}
+                gap={gapOf(state)}
+                startTitle={
+                  getWelcomeStepGapFix({
+                    gap: state.gap,
+                    translator: translator,
+                  })?.text
+                }
+                /*
+                 * Who is told is done, but only email pages the person: a
+                 * way to their phone and the app stays (#9442).
+                 */
+                doneFooter={
+                  state.step === WelcomeStep.OnCall && offersPhone
+                    ? pagedByPhoneLink
+                    : undefined
+                }
                 isLast={index === answer.steps.length - 1}
                 onOpen={() => {
                   openStep(state);

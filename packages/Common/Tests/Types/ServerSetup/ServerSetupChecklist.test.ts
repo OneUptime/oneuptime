@@ -28,6 +28,10 @@ import ServerSetupChecklistUtil, {
   ServerSetupFacts,
   ServerSetupStatus,
 } from "../../../Types/ServerSetup/ServerSetupChecklist";
+import ServerSetUpProblem, {
+  SERVER_EMAIL_SETTING_NAMES,
+  ServerSetUpProblemWords,
+} from "../../../Types/ServerSending/ServerSetUpProblem";
 import { getTemplatePlaceholders } from "../../../Types/Translator";
 import { seededRandom, SeededRandom } from "../../Helpers/SeededRandom";
 
@@ -373,29 +377,44 @@ describe("the catalogue", () => {
     }
   });
 
-  test("every guide a check opens is a docs page, or the Helm chart's on GitHub, at a heading it has", () => {
+  /*
+   * #9438: every guide is a page this server serves itself, so an
+   * air-gapped server's admin can open it, and it describes the version
+   * the server runs. The Kubernetes backup steps were the Helm chart's
+   * production checklist on GitHub's main branch.
+   */
+  test("every guide a check opens is a docs page this server serves, at a heading it has", () => {
     const docs: string = path.join(
       __dirname,
       "../../../../App/FeatureSet/Docs/Content/en",
     );
-    const repository: string = path.join(__dirname, "../../../../..");
-    const onGitHub: string =
-      "https://github.com/OneUptime/oneuptime/blob/main/";
 
-    for (const guide of Object.values(SERVER_SETUP_GUIDES)) {
-      // A docs page this server serves, or a file of this repository on GitHub.
+    for (const guide of [
+      ...Object.values(SERVER_SETUP_GUIDES),
+      ...SERVER_SETUP_CHECKS.map((check: ServerSetupCheckDefinition) => {
+        return check.guidePath || "";
+      }).filter(Boolean),
+      ...[
+        ServerInstallKind.DockerCompose,
+        ServerInstallKind.Kubernetes,
+        ServerInstallKind.Unknown,
+      ].flatMap((installKind: ServerInstallKind) => {
+        return getServerSetupBackupGuides(installKind).map(
+          (backupGuide: { path: string }) => {
+            return backupGuide.path;
+          },
+        );
+      }),
+    ]) {
+      // A docs page this server serves: never an address off the server.
       expect({
         guide,
-        isKnown: guide.startsWith("/docs/") || guide.startsWith(onGitHub),
-      }).toEqual({ guide, isKnown: true });
+        isServed: guide.startsWith("/docs/"),
+      }).toEqual({ guide, isServed: true });
 
-      const [page, anchor] = guide.startsWith(onGitHub)
-        ? guide.replace(onGitHub, "").split("#")
-        : guide.replace("/docs/", "").split("#");
+      const [page, anchor] = guide.replace("/docs/", "").split("#");
       const markdown: string = fs.readFileSync(
-        guide.startsWith(onGitHub)
-          ? path.join(repository, page!)
-          : path.join(docs, `${page}.md`),
+        path.join(docs, `${page}.md`),
         "utf8",
       );
 
@@ -1321,11 +1340,12 @@ describe("the HTTPS item's guide", () => {
 /*
  * #9378: How to back up opens steps the install can run. npm run backup is
  * the Docker Compose server's; a Kubernetes install backs its volumes up
- * as the Helm chart's production checklist says. While the server cannot
- * tell which it is, both - never a guess.
+ * as the Helm chart's production checklist says, on the server's own
+ * Kubernetes and Helm page (#9438). While the server cannot tell which it
+ * is, both - never a guess.
  */
 describe("how to back up, by how the server was installed", () => {
-  test("Docker Compose: npm run backup's steps; Kubernetes: the chart's production checklist; unknown: both", () => {
+  test("Docker Compose: npm run backup's steps; Kubernetes: the server's own Kubernetes page; unknown: both", () => {
     expect(getServerSetupBackupGuides(ServerInstallKind.DockerCompose)).toEqual(
       [
         {
@@ -1337,7 +1357,7 @@ describe("how to back up, by how the server was installed", () => {
     expect(getServerSetupBackupGuides(ServerInstallKind.Kubernetes)).toEqual([
       {
         installKind: ServerInstallKind.Kubernetes,
-        path: "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
+        path: "/docs/installation/kubernetes#back-up-your-data",
       },
     ]);
 
@@ -1369,6 +1389,73 @@ describe("how to back up, by how the server was installed", () => {
 
     expect(section).toContain("persistent volumes");
     expect(section).not.toContain("npm run backup");
+  });
+
+  /*
+   * #9438: the page Server Setup opens on Kubernetes is the server's own,
+   * and its Back up your data says what the chart's production checklist
+   * says: the Enterprise Edition's scheduled backups, the cloud's backups
+   * of the persistent volumes, CloudNativePG's volume snapshots, and the
+   * keys kept with them - with values the chart's values.yaml has.
+   */
+  test("the server's own Kubernetes page backs up as the chart's checklist says, with the chart's own values", () => {
+    const repository: string = path.join(__dirname, "../../../../..");
+    const page: string = fs.readFileSync(
+      path.join(
+        repository,
+        "packages/App/FeatureSet/Docs/Content/en/installation/kubernetes.md",
+      ),
+      "utf8",
+    );
+    const checklist: string = fs.readFileSync(
+      path.join(
+        repository,
+        "HelmChart/Public/oneuptime/docs/production-checklist.md",
+      ),
+      "utf8",
+    );
+    const values: string = fs.readFileSync(
+      path.join(repository, "HelmChart/Public/oneuptime/values.yaml"),
+      "utf8",
+    );
+
+    const section: string = page
+      .split("\n## Back up your data\n")[1]!
+      .split("\n## ")[0]!;
+    const chartSection: string = checklist
+      .split("\n### Back up your data\n")[1]!
+      .split("\n### ")[0]!;
+
+    // What both say.
+    for (const fact of [
+      "persistent volumes",
+      "CloudNativePG",
+      "/installation/backups",
+    ]) {
+      expect({ fact, onPage: section.includes(fact) }).toEqual({
+        fact,
+        onPage: true,
+      });
+      expect({ fact, inChart: chartSection.includes(fact) }).toEqual({
+        fact,
+        inChart: true,
+      });
+    }
+
+    expect(section).not.toContain("npm run backup");
+
+    // The keys a backup cannot be read without, which the chart's checklist keeps with it.
+    expect(chartSection).toContain("encryptionSecret");
+    expect(page).toContain("## Keep your keys");
+    expect(page).toContain("encryptionSecret: <random string>");
+
+    // Every value the page sets is one the chart takes.
+    expect(values).toMatch(/^oneuptimeSecret:/m);
+    expect(values).toMatch(/^encryptionSecret:/m);
+    expect(values).toMatch(
+      /^postgresOperator:\n {2}cnpg:\n(?:.*\n)*? {4}backup:\n {6}enabled: false\n(?:.*\n)*? {6}schedule: "0 0 3 \* \* \*"/m,
+    );
+    expect(section).toContain('schedule: "0 0 3 * * *"');
   });
 
   test("the Backups check carries how the server was installed, and a browser reads it back", () => {
@@ -1647,7 +1734,7 @@ describe("backups npm run backup made", () => {
 
 /*
  * #7028: Send test push, on the push row, whenever push is not turned off
- * for the server - done or not, since nothing yet says how its pushes go.
+ * for the server - done or not: browsers set up says nothing of phones.
  */
 describe("the test push", () => {
   test("is offered while push is on, set up or not; never while it is off, or on a server that does not say", () => {
@@ -1693,5 +1780,201 @@ describe("the test push", () => {
 
     expect(read!.checks[0]!.tests).toEqual([ServerSendingChannel.Push]);
     expect(read!.checks[1]!.tests).toEqual([ServerSendingChannel.Email]);
+  });
+});
+
+/*
+ * #6881: the server now knows how its own pushes go. While they fail - the
+ * push relay out of reach, the server's keys refused - the push row says
+ * so, since when and why, whatever the VAPID keys, and offers the test push
+ * that shows they work again. It stays optional: the Dashboard's card is
+ * for the required checks.
+ */
+describe("the push row, while the server's pushes fail", () => {
+  const RELAY_DOWN: string =
+    "Request failed to https://oneuptime.com/api/notification/push-relay/send. Connection refused";
+
+  const failingPush: () => ServerChannelStatus = (): ServerChannelStatus => {
+    return channel(ServerSendingChannel.Push, ServerSendingState.Failing, {
+      lastFailure: RELAY_DOWN,
+    });
+  };
+
+  test("is failing, since when and why, with or without the VAPID keys", () => {
+    for (const isBrowserPushSetUp of [true, false]) {
+      const push: ServerSetupCheckResult = check(
+        freshFacts({
+          isBrowserPushSetUp: isBrowserPushSetUp,
+          push: failingPush(),
+        }),
+        ServerSetupCheckId.BrowserPush,
+      );
+
+      expect(push.status).toBe(ServerSetupStatus.Failing);
+      expect(push.isFinished).toBe(false);
+      expect(push.time).toBe(EARLIER);
+      expect(push.reason).toBe(RELAY_DOWN);
+      expect(push.tests).toEqual([ServerSendingChannel.Push]);
+      expect(ServerSetupChecklistUtil.getStatusWords(push)).toBe(
+        "Failing: push notifications have not gone out since {{time}}.",
+      );
+    }
+  });
+
+  test("is what the keys say while the pushes go out, or nothing is known yet", () => {
+    for (const state of [
+      ServerSendingState.Working,
+      ServerSendingState.Untested,
+    ]) {
+      expect(
+        check(
+          freshFacts({
+            isBrowserPushSetUp: true,
+            push: channel(ServerSendingChannel.Push, state),
+          }),
+          ServerSetupCheckId.BrowserPush,
+        ).status,
+      ).toBe(ServerSetupStatus.Done);
+      expect(
+        check(
+          freshFacts({ push: channel(ServerSendingChannel.Push, state) }),
+          ServerSetupCheckId.BrowserPush,
+        ).status,
+      ).toBe(ServerSetupStatus.NotSetUp);
+    }
+
+    // An older server says nothing of push: the keys alone.
+    expect(
+      check(
+        freshFacts({ isBrowserPushSetUp: true }),
+        ServerSetupCheckId.BrowserPush,
+      ).status,
+    ).toBe(ServerSetupStatus.Done);
+  });
+
+  test("stays optional: it never counts among the required checks the card counts", () => {
+    const answer: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.getAnswer({
+        facts: freshFacts({ push: failingPush() }),
+        readerUserId: null,
+        now: NOW,
+      });
+
+    expect(answer.openRequired).not.toContain(ServerSetupCheckId.BrowserPush);
+  });
+
+  test("a browser reads it back: failing, when and why", () => {
+    const push: ServerSetupCheckResult = check(
+      freshFacts({ push: failingPush() }),
+      ServerSetupCheckId.BrowserPush,
+    );
+
+    const read: ServerSetupChecklistAnswer | null =
+      ServerSetupChecklistUtil.parseAnswer(
+        JSON.parse(JSON.stringify({ checks: [push] })),
+      );
+
+    expect(read!.checks[0]!.status).toBe(ServerSetupStatus.Failing);
+    expect(read!.checks[0]!.reason).toBe(RELAY_DOWN);
+    expect(read!.checks[0]!.time).toBe(EARLIER);
+  });
+});
+
+/*
+ * #9437: what Email's settings are missing reaches a page as words too - a
+ * sentence every language the Admin Dashboard speaks has, and what fills
+ * it - beside the English sentence, which a page of an older version and
+ * `npm run doctor` keep reading. A failure's reason is the provider's own,
+ * and has none.
+ */
+describe("what is missing, in words a page says in its reader's language", () => {
+  const missingApiKey: ServerSetUpProblemWords =
+    ServerSetUpProblem.emailSettingNotSet(
+      "SendGrid",
+      SERVER_EMAIL_SETTING_NAMES.apiKey,
+    );
+
+  const notSetUpEmail: () => ServerChannelStatus = (): ServerChannelStatus => {
+    return channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp, {
+      setUpProblem: ServerSetUpProblem.toEnglish(missingApiKey),
+      setUpProblemWords: missingApiKey,
+    });
+  };
+
+  test("Email not set up carries the words of what its settings are missing", () => {
+    const email: ServerSetupCheckResult = check(
+      freshFacts({ email: notSetUpEmail() }),
+      ServerSetupCheckId.Email,
+    );
+
+    expect(email.reason).toBe(
+      "SendGrid: the API Key is not set under Settings > Emails.",
+    );
+    expect(email.reasonWords).toEqual(missingApiKey);
+  });
+
+  test("a failure's reason is the provider's own, with no words; nor has a problem sent without any", () => {
+    expect(
+      check(
+        freshFacts({
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Failing,
+            { setUpProblemWords: missingApiKey },
+          ),
+        }),
+        ServerSetupCheckId.Email,
+      ).reasonWords,
+    ).toBeUndefined();
+
+    // An older server's status, or an environment variable's problem: the sentence alone.
+    expect(
+      check(freshFacts(), ServerSetupCheckId.Email).reasonWords,
+    ).toBeUndefined();
+  });
+
+  test("a browser reads the words back beside their sentence, and only words it knows", () => {
+    const email: ServerSetupCheckResult = check(
+      freshFacts({ email: notSetUpEmail() }),
+      ServerSetupCheckId.Email,
+    );
+
+    const read: ServerSetupChecklistAnswer | null =
+      ServerSetupChecklistUtil.parseAnswer(
+        JSON.parse(JSON.stringify({ checks: [email] })),
+      );
+
+    expect(read!.checks[0]!.reasonWords).toEqual(missingApiKey);
+    expect(read!.checks[0]!.channels[0]!.setUpProblemWords).toEqual(
+      missingApiKey,
+    );
+
+    for (const reasonWords of [
+      { template: "Something new.", values: {} },
+      { ...missingApiKey, values: { provider: "Postfix", field: "API Key" } },
+      "SendGrid: the API Key is not set under Settings > Emails.",
+    ]) {
+      expect(
+        ServerSetupChecklistUtil.parseAnswer({
+          checks: [
+            {
+              id: "email",
+              status: "not-set-up",
+              reason: "SendGrid: the API Key is not set.",
+              reasonWords: reasonWords,
+            },
+          ],
+        })!.checks[0]!.reasonWords,
+      ).toBeUndefined();
+    }
+
+    // Words with no sentence beside them say nothing.
+    expect(
+      ServerSetupChecklistUtil.parseAnswer({
+        checks: [
+          { id: "email", status: "not-set-up", reasonWords: missingApiKey },
+        ],
+      })!.checks[0]!.reasonWords,
+    ).toBeUndefined();
   });
 });
