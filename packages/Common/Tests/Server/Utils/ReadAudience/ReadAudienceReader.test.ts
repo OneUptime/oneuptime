@@ -7,20 +7,26 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import ApiKeyPermission from "../../../../Models/DatabaseModels/ApiKeyPermission";
 import Host from "../../../../Models/DatabaseModels/Host";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import Service from "../../../../Models/DatabaseModels/Service";
 import TeamPermission from "../../../../Models/DatabaseModels/TeamPermission";
+import AIInsightService from "../../../../Server/Services/AIInsightService";
 import AlertService from "../../../../Server/Services/AlertService";
 import ApiKeyPermissionService from "../../../../Server/Services/ApiKeyPermissionService";
 import HostService from "../../../../Server/Services/HostService";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import SecurityCaseService from "../../../../Server/Services/SecurityCaseService";
 import ServiceService from "../../../../Server/Services/ServiceService";
 import TeamPermissionService from "../../../../Server/Services/TeamPermissionService";
 import LinkedAffectedResources, {
   LinkedAffectedResource,
   LinkedAffectedResourceType,
 } from "../../../../Server/Utils/AffectedResources/LinkedAffectedResources";
+import ReadAudiencePermission from "../../../../Server/Types/Database/Permissions/ReadAudiencePermission";
 import DataAlertLineageReader from "../../../../Server/Utils/DataObservability/DataAlertLineage";
 import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
@@ -33,8 +39,9 @@ import {
 } from "../../../Helpers/ReadAudienceFixtures";
 
 /*
- * WHO READS AN INCIDENT'S OR AN ALERT'S REPORT (#9576), worked out once per
- * run: what narrows somebody's reads in the project - the permissions a
+ * WHO READS AN INCIDENT'S OR AN ALERT'S REPORT (#9576) - and a fix's, a
+ * security case's triage, an AI insight's triage (#9612) - worked out once
+ * per run: what narrows somebody's reads in the project - the permissions a
  * team, a custom role on a team or an API key holds scoped to Owned, or
  * limited to or blocked from some labels - what the subject names itself,
  * and the telemetry-owning resources set apart. A project whose roles
@@ -358,5 +365,268 @@ describe("which of some records the audience reads", () => {
         })
       ).size,
     ).toBe(0);
+  });
+});
+
+/*
+ * A SECURITY CASE'S TRIAGE AND AN AI INSIGHT'S (#9612) are read by everyone
+ * who may see the case or the insight, so they are subjects too: a case
+ * names itself and the incident it declared - unless that incident is
+ * private, which its owners alone read, whoever may see the case - and an
+ * insight names itself and the service it is about.
+ */
+describe("what a security case names itself", () => {
+  const CASE_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-999999999999",
+  );
+  let caseReads: Array<{ query: Record<string, unknown>; props: unknown }>;
+  let incidentReads: Array<{ query: Record<string, unknown>; props: unknown }>;
+
+  function readsCase(declaredIncidentId: ObjectID | undefined): void {
+    jest
+      .spyOn(SecurityCaseService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: Record<string, unknown>;
+        props: unknown;
+      }): Promise<SecurityCase> => {
+        caseReads.push(findOneBy);
+        const row: SecurityCase = new SecurityCase(CASE_ID);
+        if (declaredIncidentId) {
+          row.incidentId = declaredIncidentId;
+        }
+        return row;
+      }) as never);
+  }
+
+  function readsIncident(isPrivate: boolean): void {
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: Record<string, unknown>;
+        props: unknown;
+      }): Promise<Incident> => {
+        incidentReads.push(findOneBy);
+        const row: Incident = new Incident(INCIDENT_ID);
+        row.isPrivate = isPrivate;
+        return row;
+      }) as never);
+  }
+
+  beforeEach(() => {
+    caseReads = [];
+    incidentReads = [];
+  });
+
+  test("the case, and the incident it declared: its header and timeline name it to every reader", async () => {
+    readsCase(INCIDENT_ID);
+    readsIncident(false);
+
+    expect(
+      await ReadAudienceReader.readNamed({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+      }),
+    ).toEqual({
+      Incident: [INCIDENT_ID.toString()],
+      SecurityCase: [CASE_ID.toString()],
+    });
+    // The case's own project only, and nothing linked is read for a case.
+    expect(caseReads[0]!.query).toEqual({
+      _id: CASE_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(incidentReads[0]!.query).toEqual({
+      _id: INCIDENT_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(LinkedAffectedResources.readForIncident).not.toHaveBeenCalled();
+  });
+
+  test("a private declared incident is never named: its owners alone read it, whoever may see the case", async () => {
+    readsCase(INCIDENT_ID);
+    readsIncident(true);
+
+    expect(
+      await ReadAudienceReader.readNamed({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+      }),
+    ).toEqual({ SecurityCase: [CASE_ID.toString()] });
+  });
+
+  test("a case that declared no incident names itself alone, and reads no incident", async () => {
+    readsCase(undefined);
+    readsIncident(false);
+
+    expect(
+      await ReadAudienceReader.readNamed({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+      }),
+    ).toEqual({ SecurityCase: [CASE_ID.toString()] });
+    expect(incidentReads).toHaveLength(0);
+  });
+
+  test("its readers' audience: narrowed as any subject's, the declared incident kept though some role reads incidents only by label", async () => {
+    rows.labelledTeam = [teamRow(Permission.ProjectMember)];
+    readsCase(INCIDENT_ID);
+    readsIncident(false);
+
+    const audience: ReadAudience = await ReadAudienceReader.forSubject(
+      { projectId: PROJECT_ID, securityCaseId: CASE_ID },
+      { withTelemetry: false },
+    );
+
+    expect(audience.labelledPermissions).toEqual([Permission.ProjectMember]);
+    expect(ReadAudiencePermission.isNarrowedByLabels(Incident, audience)).toBe(
+      true,
+    );
+    expect(
+      ReadAudiencePermission.isNamed(Incident, INCIDENT_ID, audience),
+    ).toBe(true);
+  });
+});
+
+describe("what an AI insight names itself", () => {
+  const INSIGHT_ID: ObjectID = new ObjectID(
+    "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
+
+  function readsInsight(
+    serviceId: ObjectID | undefined,
+  ): Array<{ query: Record<string, unknown> }> {
+    const reads: Array<{ query: Record<string, unknown> }> = [];
+
+    jest
+      .spyOn(AIInsightService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: Record<string, unknown>;
+      }): Promise<AIInsight> => {
+        reads.push(findOneBy);
+        const row: AIInsight = new AIInsight(INSIGHT_ID);
+        if (serviceId) {
+          row.telemetryServiceId = serviceId;
+        }
+        return row;
+      }) as never);
+
+    return reads;
+  }
+
+  test("the insight and the service it is about: who may read the service reads the insight", async () => {
+    const reads: Array<{ query: Record<string, unknown> }> = readsInsight(
+      new ObjectID(SERVICE_ID),
+    );
+
+    expect(
+      await ReadAudienceReader.readNamed({
+        projectId: PROJECT_ID,
+        aiInsightId: INSIGHT_ID,
+      }),
+    ).toEqual({
+      AIInsight: [INSIGHT_ID.toString()],
+      Service: [SERVICE_ID],
+    });
+    expect(reads[0]!.query).toEqual({
+      _id: INSIGHT_ID,
+      projectId: PROJECT_ID,
+    });
+  });
+
+  test("an insight about no service names itself alone: it is read across the project", async () => {
+    readsInsight(undefined);
+
+    expect(
+      await ReadAudienceReader.readNamed({
+        projectId: PROJECT_ID,
+        aiInsightId: INSIGHT_ID,
+      }),
+    ).toEqual({ AIInsight: [INSIGHT_ID.toString()] });
+  });
+
+  test("its service's telemetry stays in, though services are narrowed and others are set apart", async () => {
+    readsInsight(new ObjectID(SERVICE_ID));
+    rows.labelledTeam = [teamRow(Permission.ReadService)];
+    const reads: Array<{ query: Record<string, unknown> }> = [];
+
+    jest
+      .spyOn(ServiceService, "findAllBy")
+      .mockImplementation((async (findAllBy: {
+        query: Record<string, unknown>;
+      }): Promise<Array<Service>> => {
+        reads.push(findAllBy);
+        return [new Service(new ObjectID(SET_APART_SERVICE))];
+      }) as never);
+
+    const audience: ReadAudience = await ReadAudienceReader.forSubject({
+      projectId: PROJECT_ID,
+      aiInsightId: INSIGHT_ID,
+    });
+
+    expect(audience.telemetryBlockedIds).toEqual([SET_APART_SERVICE]);
+    expect(ReadAudiencePermission.isNamed(Service, SERVICE_ID, audience)).toBe(
+      true,
+    );
+
+    const sql: string = (reads[0]!.query["_id"] as FindOperator<unknown>)
+      .getSql!('"Service"."_id"');
+
+    // The insight's own service is the named exception to what is set apart.
+    expect(sql).toContain('"Service"."_id" IN (:...');
+  });
+});
+
+describe("what a run about the subject acts on", () => {
+  test("named beside what the subject names itself, lower case and each once", async () => {
+    const CLUSTER_ID: string = "BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB";
+
+    expect(
+      await ReadAudienceReader.readNamed({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        targets: {
+          KubernetesCluster: [CLUSTER_ID, CLUSTER_ID.toLowerCase()],
+          Host: [new ObjectID(HOST_ID)],
+          Runner: [],
+        },
+      }),
+    ).toEqual({
+      Host: [HOST_ID],
+      Incident: [INCIDENT_ID.toString()],
+      KubernetesCluster: [CLUSTER_ID.toLowerCase()],
+      Monitor: [MONITOR_ID.toLowerCase()],
+      Service: [SERVICE_ID],
+    });
+  });
+
+  test("a target is named before the telemetry set apart is looked up, so its telemetry stays in", async () => {
+    rows.labelledTeam = [teamRow(Permission.ReadService)];
+    const reads: Array<{ query: Record<string, unknown> }> = [];
+
+    jest
+      .spyOn(ServiceService, "findAllBy")
+      .mockImplementation((async (findAllBy: {
+        query: Record<string, unknown>;
+      }): Promise<Array<Service>> => {
+        reads.push(findAllBy);
+        return [];
+      }) as never);
+
+    const audience: ReadAudience = await ReadAudienceReader.forSubject({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      targets: { Service: [SET_APART_SERVICE] },
+    });
+
+    expect(
+      ReadAudiencePermission.isNamed(Service, SET_APART_SERVICE, audience),
+    ).toBe(true);
+    // The look-up of what is set apart keeps the named ones out of it.
+    expect(reads).toHaveLength(1);
+    expect(
+      (reads[0]!.query["_id"] as FindOperator<unknown>).getSql!(
+        '"Service"."_id"',
+      ),
+    ).toContain('"Service"."_id" IN (:...');
   });
 });

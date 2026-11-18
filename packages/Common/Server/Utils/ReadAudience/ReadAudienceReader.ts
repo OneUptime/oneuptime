@@ -5,9 +5,7 @@ import IncidentService from "../../Services/IncidentService";
 import SecurityCaseService from "../../Services/SecurityCaseService";
 import TeamPermissionService from "../../Services/TeamPermissionService";
 import QueryHelper from "../../Types/Database/QueryHelper";
-import OwnerTableRegistry, {
-  OwnerTablePair,
-} from "../../Types/Database/Permissions/OwnerTableRegistry";
+import type { OwnerTablePair } from "../../Types/Database/Permissions/OwnerTableRegistry";
 import ReadAudiencePermission from "../../Types/Database/Permissions/ReadAudiencePermission";
 import LinkedAffectedResources, {
   LinkedAffectedResource,
@@ -443,7 +441,8 @@ export default class ReadAudienceReader {
   ): Promise<Array<string>> {
     const blocked: Set<string> = new Set<string>();
 
-    const registry: Map<string, OwnerTablePair> = OwnerTableRegistry;
+    const registry: Map<string, OwnerTablePair> =
+      ReadAudienceReader.getOwnerTableRegistry();
 
     for (const [, entry] of registry) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -485,5 +484,19 @@ export default class ReadAudienceReader {
     }
 
     return Array.from(blocked).sort();
+  }
+
+  /*
+   * The owner table registry, read when first needed rather than imported,
+   * as OwnedScopePermission and ModelPermission read it: the registry
+   * imports every kind's services, which reach this module again. Imported
+   * while one of them was still loading, it would hold that kind's service
+   * as undefined, and readTelemetryBlockedIds would skip the kind - its
+   * resources set apart would keep their telemetry (#9612).
+   */
+  private static getOwnerTableRegistry(): Map<string, OwnerTablePair> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../../Types/Database/Permissions/OwnerTableRegistry")
+      .default;
   }
 }
