@@ -149,7 +149,7 @@ const THE_PERSONS_OWN: Record<string, string> = {
 type FetchAnswer = (address: string, init: RequestInit) => Promise<Response>;
 
 // The page's fetch, which the sign-out is sent with.
-let fetchSpy: jest.Mock<FetchAnswer>;
+let fetchSpy: ReturnType<typeof jest.fn<FetchAnswer>>;
 
 const installFetch: (answer: FetchAnswer) => void = (
   answer: FetchAnswer,

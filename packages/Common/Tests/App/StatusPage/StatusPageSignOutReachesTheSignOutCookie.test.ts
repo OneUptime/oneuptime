@@ -34,7 +34,7 @@ const STATUS_PAGE_ID: ObjectID = new ObjectID(
 
 type FetchAnswer = (address: string, init: RequestInit) => Promise<Response>;
 
-let fetchSpy: jest.Mock<FetchAnswer>;
+let fetchSpy: ReturnType<typeof jest.fn<FetchAnswer>>;
 
 beforeEach(() => {
   window.localStorage.clear();
