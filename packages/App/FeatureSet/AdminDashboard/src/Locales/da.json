@@ -4227,5 +4227,8 @@
   "Text This Number": "Send sms til dette nummer",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "En sms sendes til dette nummer gennem serverens egne sms-indstillinger. Lad feltet være tomt for ikke at sende nogen.",
   "Push to Master Admins' Devices": "Push til hovedadministratorernes enheder",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "En push-notifikation sendes til alle enheder, hvor en hovedadministrator er logget ind i OneUptime-appen."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "En push-notifikation sendes til alle enheder, hvor en hovedadministrator er logget ind i OneUptime-appen.",
+  "Behind": "Bagud",
+  "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} er bagud: siden {{time}} har dens monitorer ventet mere end et minut efter deres tjektidspunkt, så de tjekkes sjældnere end indstillet.",
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Giv sonden mere CPU og hukommelse, eller lad den tjekke flere monitorer ad gangen: hæv GLOBAL_PROBE_1_MONITORING_WORKERS i config.env, eller sondens monitoringWorkers i Helm-værdierne."
 }

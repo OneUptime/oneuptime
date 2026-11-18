@@ -496,7 +496,7 @@ Na die 30 minuten namen de gegevens van PostgreSQL 163 MiB in beslag en die van 
 
 Dit profiel draait dus op een server met 4 CPU-cores en 6 GB geheugen, met ruimte voor het systeem, Docker en een update. nginx in `ingress` start één worker per core, dus op een server met meer cores gebruikt het meer: ongeveer 510 MiB bij 32 cores.
 
-Eén sonde controleert met de standaardinstellingen hoogstens 50 monitors per minuut: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) van elk 10 monitors (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Om de 100 monitors elke minuut te laten controleren, zette de meting `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Verhoog die waarde, of het aantal workers, op dezelfde manier voor meer monitors.
+Eén sonde controleert met de standaardinstellingen tot 50 monitors tegelijk: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) van elk 10 monitors (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Ze vraagt om meer zodra er ruimte is, en is zo niet beperkt tot 50 monitors per minuut: gemeten met 252 website-, API- en poortmonitors die elke minuut controleren, controleerde ze elk daarvan elke minuut. De sonde van release 15.0.0 vroeg maar één keer per minuut, en controleerde dus hoogstens 50 monitors per minuut: om de 100 monitors elke minuut te laten controleren, zette de meting hierboven `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Een sonde die achterloopt, meldt dat in OneUptime-gezondheid in het Admin-dashboard: verhoog een van beide instellingen in `config.env` zodat ze meer tegelijk controleert.
 
 ## OneUptime bijwerken
 

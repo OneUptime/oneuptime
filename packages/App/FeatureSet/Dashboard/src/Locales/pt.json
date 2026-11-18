@@ -56852,5 +56852,12 @@
   "Is Sample Project": "É um projeto de exemplo",
   "Sample Project": "Projeto de exemplo",
   "Sample Project ID": "ID do projeto de exemplo",
-  "Your changes were not saved.": "Suas alterações não foram salvas."
+  "Your changes were not saved.": "Suas alterações não foram salvas.",
+  "Behind": "Atrasado",
+  "Checks Last Late At": "Última verificação atrasada",
+  "Checks Late Since": "Verificações atrasadas desde",
+  "Monitor Checks": "Verificações dos monitores",
+  "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Desde {{time}}, os monitores desta sonda esperam mais de um minuto além do horário de verificação, então são verificados com menos frequência do que o configurado.",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "Atualize a sonda ou deixe que ela verifique mais monitores ao mesmo tempo: aumente {{setting}} na sonda e reinicie-a.",
+  "Whether this probe checks its monitors as often as they are set.": "Se esta sonda verifica seus monitores com a frequência configurada."
 }

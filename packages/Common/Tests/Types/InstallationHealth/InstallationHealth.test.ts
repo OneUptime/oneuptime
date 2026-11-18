@@ -54,7 +54,8 @@ import path from "path";
  *     pending ones alone are worth a look;
  *   - ClickHouse's fullest disk under 10% free is something to fix, under
  *     20% worth a look;
- *   - a queue with a backlog, and a newer release, are worth a look;
+ *   - a queue with a backlog, a global probe that is behind (#9488) and a
+ *     newer release are worth a look;
  *   - the server setup checklist's open steps in its own words: required
  *     ones to fix, recommended ones worth a look, optional ones only when
  *     they fail.
@@ -685,6 +686,150 @@ describe("the queues", () => {
         }),
       ),
     ).toEqual([]);
+  });
+});
+
+/*
+ * #9488: a global probe that is behind - its monitors checked later than
+ * their interval - is worth a look, one finding a probe.
+ */
+describe("the global probes", () => {
+  const PROBE_ONE: string = "11111111-1111-4111-8111-111111111111";
+  const PROBE_TWO: string = "22222222-2222-4222-8222-222222222222";
+
+  test("one behind is worth a look: its name, since when, and the settings that let it check more at once", () => {
+    const finding: InstallationHealthFinding = only(
+      healthyFacts({
+        globalProbesBehind: [
+          { id: PROBE_ONE, name: "Probe-1", since: EARLIER },
+        ],
+      }),
+    );
+
+    expect(finding.id).toBe(
+      `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_ONE}`,
+    );
+    expect(finding.level).toBe(InstallationHealthLevel.Warn);
+    expect(finding.title).toBe("Global probes");
+    expect(finding.sentence).toBe(
+      "Probe-1 is behind: since 2026-11-10 09:30 UTC, its monitors have waited more than a minute past their check time, so they are checked less often than set.",
+    );
+    expect(finding.fixSentence).toContain("GLOBAL_PROBE_1_MONITORING_WORKERS");
+    expect(finding.fixSentence).toContain("config.env");
+    expect(finding.fixSentence).toContain("monitoringWorkers");
+    expect(finding.adminPath).toBe(INSTALLATION_HEALTH_ADMIN_PATHS.probes);
+    expect(finding.guidePath).toBe(INSTALLATION_HEALTH_GUIDES.probeBehind);
+  });
+
+  test("each probe behind is a finding of its own, the one behind longest first", () => {
+    const findings: Array<InstallationHealthFinding> =
+      InstallationHealthUtil.evaluate(
+        healthyFacts({
+          globalProbesBehind: [
+            {
+              id: PROBE_TWO,
+              name: "Probe-2",
+              since: "2026-11-10T09:45:00.000Z",
+            },
+            { id: PROBE_ONE, name: "Probe-1", since: EARLIER },
+          ],
+        }),
+      );
+
+    expect(ids(findings)).toEqual([
+      `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_ONE}`,
+      `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_TWO}`,
+    ]);
+  });
+
+  test("none behind, or none read, says nothing", () => {
+    expect(
+      InstallationHealthUtil.evaluate(healthyFacts({ globalProbesBehind: [] })),
+    ).toEqual([]);
+    expect(
+      InstallationHealthUtil.evaluate(
+        healthyFacts({ globalProbesBehind: null }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("comes after what is to fix, with the other things worth a look", () => {
+    const findings: Array<InstallationHealthFinding> =
+      InstallationHealthUtil.evaluate(
+        healthyFacts({
+          isValkeyConnected: false,
+          queues: [{ name: "Worker", waiting: QUEUE_BACKLOG_LIMIT + 1 }],
+          globalProbesBehind: [
+            { id: PROBE_ONE, name: "Probe-1", since: EARLIER },
+          ],
+        }),
+      );
+
+    expect(ids(findings)).toEqual([
+      InstallationHealthFindingId.Valkey,
+      InstallationHealthFindingId.QueueBacklog,
+      `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_ONE}`,
+    ]);
+  });
+
+  test("the answer says the global probes were looked at, and the finding reads back in a browser", () => {
+    const answer: InstallationHealthAnswer = InstallationHealthUtil.getAnswer({
+      facts: healthyFacts({
+        globalProbesBehind: [
+          { id: PROBE_ONE, name: "Probe-1", since: EARLIER },
+        ],
+      }),
+      addressProof: null,
+      checkedAt: EARLIER,
+    });
+
+    expect(answer.checked).toContain(InstallationHealthCheck.GlobalProbes);
+
+    const read: InstallationHealthAnswer | null =
+      InstallationHealthUtil.parseAnswer(JSON.parse(JSON.stringify(answer)));
+
+    expect(read!.findings).toEqual(answer.findings);
+    expect(read!.checked).toContain(InstallationHealthCheck.GlobalProbes);
+  });
+
+  test("npm run doctor prints it with its fix and the Health page to see it on", () => {
+    const doctor: {
+      serverFindings: (
+        response: unknown,
+        publicUrl: string,
+      ) => Array<{ level: string; message: string; fix: string | null }>;
+    } = requireScript("Scripts/Install/Doctor.js");
+
+    const answer: InstallationHealthAnswer = InstallationHealthUtil.getAnswer({
+      facts: healthyFacts({
+        globalProbesBehind: [
+          { id: PROBE_ONE, name: "Probe-1", since: EARLIER },
+        ],
+      }),
+      addressProof: null,
+      checkedAt: EARLIER,
+    });
+
+    const printed: Array<{
+      level: string;
+      message: string;
+      fix: string | null;
+    }> = doctor.serverFindings(
+      { status: 200, json: JSON.parse(JSON.stringify(answer)) },
+      "https://oneuptime.example.com",
+    );
+
+    const behind:
+      | { level: string; message: string; fix: string | null }
+      | undefined = printed.find((line: { message: string }) => {
+      return line.message.startsWith("Global probes: Probe-1 is behind");
+    });
+
+    expect(behind?.level).toBe("warn");
+    expect(behind?.fix).toContain("GLOBAL_PROBE_1_MONITORING_WORKERS");
+    expect(behind?.fix).toContain(
+      "https://oneuptime.example.com/admin/health/probes",
+    );
   });
 });
 

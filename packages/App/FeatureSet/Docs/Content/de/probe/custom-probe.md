@@ -384,6 +384,16 @@ Anfragen, die gelingen, aber länger als `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS
 
 Auch auf der Serverseite von OneUptime wird eine Sondenanfrage protokolliert, die langsam beantwortet wird – oder die die Sonde aufgegeben hat, bevor eine Antwort gesendet wurde –, mit der ID der Sonde. Beide Logs zusammen zeigen, auf welcher Seite der Verbindung der Fehler liegt.
 
+### Eine Sonde ist im Rückstand
+
+Eine Sonde ist **Im Rückstand**, wenn ihre Monitore mehr als eine Minute über ihre Prüfzeit hinaus warten und deshalb seltener geprüft werden als eingestellt. Ihr **Status** in der Tabelle **Benutzerdefinierte Sonden** zeigt dann **Im Rückstand**, und ihre Seite nennt unter **Monitorprüfungen**, seit wann. Für die Sonden, die ein selbst gehostetes OneUptime selbst betreibt, steht es unter OneUptime-Zustand im Admin-Dashboard.
+
+Eine Sonde prüft bis zu `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` Monitore gleichzeitig, mit ihren Standardwerten 10, und fragt nach weiteren, sobald sie Platz hat. Sie gerät in Rückstand, wenn mehr Monitore fällig sind, als sie prüfen kann, etwa wenn viele ihrer Prüfungen bis zum Timeout laufen. So holt sie auf:
+
+- Aktualisieren Sie die Sonde. Eine ältere Sonde fragt nur einmal pro Minute nach ihren Monitoren und prüft daher höchstens `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` Monitore pro Minute.
+- Lassen Sie sie mehr Monitore gleichzeitig prüfen: Erhöhen Sie `PROBE_MONITORING_WORKERS` und starten Sie die Sonde neu. Für die Sonden, die ein selbst gehostetes OneUptime betreibt, ist das `GLOBAL_PROBE_1_MONITORING_WORKERS` in `config.env` mit Docker Compose oder `monitoringWorkers` der Sonde in den Werten des Helm-Charts.
+- Geben Sie ihr mehr CPU und Arbeitsspeicher, oder betreiben Sie eine weitere Kopie mit derselben `PROBE_ID` und demselben `PROBE_KEY`: Die Kopien teilen sich ihre Monitore.
+
 ### Andere Probleme
 
 :::details Die Sonde hält gleich nach dem Start an

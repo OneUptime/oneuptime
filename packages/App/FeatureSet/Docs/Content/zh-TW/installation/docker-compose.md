@@ -496,7 +496,7 @@ MQTT_INGEST_ENABLED=false
 
 因此，這個設定組合可以在 4 個 CPU 核心、6 GB 記憶體的伺服器上執行，還為系統、Docker 和更新留有餘裕。`ingress` 中的 nginx 會為每個核心啟動一個 worker，因此在核心更多的伺服器上會用得更多：32 核心時約 510 MiB。
 
-在預設設定下，一個探測器每分鐘最多檢查 50 個監測器：5 個 worker（`GLOBAL_PROBE_1_MONITORING_WORKERS`），每個檢查 10 個監測器（`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`）。為了讓 100 個監測器每分鐘都被檢查，測量時在 `config.env` 中設定了 `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`。監測器更多時，同樣調高這個值或 worker 的數量。
+在預設設定下，一個探測器一次最多檢查 50 個監測器：5 個 worker（`GLOBAL_PROBE_1_MONITORING_WORKERS`），每個檢查 10 個監測器（`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`）。它一有空位就請求更多，因此每分鐘不限於 50 個監測器：用 252 個每分鐘檢查一次的網站、API 和連接埠監測器測量時，它每分鐘都檢查了其中每一個。版本 15.0.0 的探測器每分鐘只請求一次，所以每分鐘最多檢查 50 個監測器：為了讓 100 個監測器每分鐘都被檢查，上面的測量在 `config.env` 中設定了 `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`。落後的探測器會在管理員儀表板的 OneUptime 健康狀態中提示：在 `config.env` 中調高其中任一設定，讓它一次檢查更多。
 
 ## 更新 OneUptime
 

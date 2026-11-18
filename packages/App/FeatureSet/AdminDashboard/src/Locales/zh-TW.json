@@ -4227,5 +4227,8 @@
   "Text This Number": "傳送簡訊到此號碼",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "透過此伺服器本身的簡訊設定傳送簡訊到此號碼。留空則不傳送。",
   "Push to Master Admins' Devices": "推播到主要管理員的裝置",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推播通知會傳送到主要管理員登入了 OneUptime 應用程式的每部裝置。"
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推播通知會傳送到主要管理員登入了 OneUptime 應用程式的每部裝置。",
+  "Behind": "落後",
+  "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} 已落後：自 {{time}} 起，它的監測器已在檢查時間過後等待超過 1 分鐘，因此檢查頻率低於設定。",
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "為探測器提供更多 CPU 和記憶體，或讓它一次檢查更多監測器：在 config.env 中調高 GLOBAL_PROBE_1_MONITORING_WORKERS，或在 Helm 值中調高該探測器的 monitoringWorkers。"
 }

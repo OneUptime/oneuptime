@@ -331,9 +331,10 @@ describe("the English section", () => {
     expect(ENGLISH_SECTION).not.toContain("Size the server by the");
   });
 
-  test("says how many monitors one probe checks a minute, and what the measurement set", () => {
+  test("says how many monitors one probe checks at once, that it is not held to that many a minute, and what the measurement set", () => {
     const compose: string = read("docker-compose.base.yml");
     const example: string = read("config.example.env");
+    const fetchList: string = read("packages/Probe/Jobs/Monitor/FetchList.ts");
 
     expect(example).toMatch(/^GLOBAL_PROBE_1_MONITORING_WORKERS=5$/m);
     expect(example).toMatch(/^GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=10$/m);
@@ -343,11 +344,29 @@ describe("the English section", () => {
     expect(compose).toContain(
       "PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}",
     );
-    expect(ENGLISH_SECTION).toContain(
-      "One probe checks at most 50 monitors a minute with its default settings: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`).",
+    // At once: the workers times the monitors each asks for (#9488).
+    expect(fetchList).toContain(
+      "MONITOR_CHECKS_AT_ONCE: number =\n  PROBE_MONITORING_WORKERS * PROBE_MONITOR_FETCH_LIMIT;",
     );
     expect(ENGLISH_SECTION).toContain(
-      "`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`",
+      "With its default settings, one probe checks up to 50 monitors at once: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`).",
+    );
+    /*
+     * Measured for #9488 with the perf kit (Scripts/Perf): one probe with
+     * these defaults and 252 monitors due every minute - 126 Website, 84
+     * API and 42 Port; the seed's other 42 Website monitors were paused by
+     * manual incidents, so not due - checked each of them once every minute
+     * for 12 minutes. The probe before #9488 checked 50 a minute, and the
+     * rest waited longer and longer.
+     */
+    expect(ENGLISH_SECTION).toContain(
+      "It asks for more as soon as it has room, so it is not limited to 50 monitors a minute: measured with 252 Website, API and Port monitors that check every minute, it checked each of them every minute.",
+    );
+    expect(ENGLISH_SECTION).toContain(
+      "The probe of release 15.0.0 asked only once a minute, so it checked at most 50 monitors a minute: for the 100 monitors to be checked every minute, the measurement above set `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`.",
+    );
+    expect(ENGLISH_SECTION).toContain(
+      "A probe that falls behind says so on OneUptime Health in the Admin Dashboard",
     );
   });
 });
@@ -374,6 +393,20 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
 
     expect(compose).toContain("`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`");
     expect(compose).toContain("`docker stats`");
+  });
+
+  test("say how many monitors one probe checks at once, with its settings, and how many it kept up with (#9488)", () => {
+    const stated: Set<string> = statedNumbers(compose);
+
+    for (const value of [50, 252]) {
+      expect({ value, stated: true }).toEqual({
+        value,
+        stated: stated.has(String(value)),
+      });
+    }
+
+    expect(compose).toContain("`GLOBAL_PROBE_1_MONITORING_WORKERS`");
+    expect(compose).toContain("`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`");
   });
 
   test("carry the profile's settings word for word", () => {

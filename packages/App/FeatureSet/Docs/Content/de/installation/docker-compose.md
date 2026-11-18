@@ -496,7 +496,7 @@ Nach diesen 30 Minuten belegten die Daten von PostgreSQL 163 MiB und die von Cli
 
 Dieses Profil läuft also auf einem Server mit 4 CPU-Kernen und 6 GB Arbeitsspeicher, mit Platz für das System, Docker und ein Update. nginx in `ingress` startet einen Worker pro Kern, auf einem Server mit mehr Kernen braucht es also mehr: etwa 510 MiB bei 32 Kernen.
 
-Eine Sonde prüft mit ihren Standardeinstellungen höchstens 50 Monitore pro Minute: 5 Worker (`GLOBAL_PROBE_1_MONITORING_WORKERS`) mit je 10 Monitoren (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Damit die 100 Monitore jede Minute geprüft werden, setzte die Messung `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Erhöhen Sie den Wert oder die Zahl der Worker ebenso für mehr Monitore.
+Eine Sonde prüft mit ihren Standardeinstellungen bis zu 50 Monitore gleichzeitig: 5 Worker (`GLOBAL_PROBE_1_MONITORING_WORKERS`) mit je 10 Monitoren (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Sie fragt nach weiteren, sobald sie Platz hat, und ist so nicht auf 50 Monitore pro Minute begrenzt: Gemessen mit 252 Website-, API- und Port-Monitoren, die jede Minute prüfen, prüfte sie jeden davon jede Minute. Die Sonde von Release 15.0.0 fragte nur einmal pro Minute und prüfte daher höchstens 50 Monitore pro Minute: Damit die 100 Monitore jede Minute geprüft werden, setzte die Messung oben `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Eine Sonde, die in Rückstand gerät, zeigt das unter OneUptime-Zustand im Admin-Dashboard: Erhöhen Sie eine der beiden Einstellungen in `config.env`, damit sie mehr gleichzeitig prüft.
 
 ## OneUptime aktualisieren
 

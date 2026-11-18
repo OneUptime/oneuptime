@@ -56852,5 +56852,12 @@
   "Is Sample Project": "Er et eksempelprojekt",
   "Sample Project": "Eksempelprojekt",
   "Sample Project ID": "Eksempelprojekt-ID",
-  "Your changes were not saved.": "Dine ændringer blev ikke gemt."
+  "Your changes were not saved.": "Dine ændringer blev ikke gemt.",
+  "Behind": "Bagud",
+  "Checks Last Late At": "Seneste forsinkede tjek",
+  "Checks Late Since": "Tjek forsinket siden",
+  "Monitor Checks": "Monitortjek",
+  "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Siden {{time}} har dens monitorer ventet mere end et minut efter deres tjektidspunkt, så de tjekkes sjældnere end indstillet.",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "Opdater sonden, eller lad den tjekke flere monitorer ad gangen: hæv {{setting}} på sonden, og genstart den.",
+  "Whether this probe checks its monitors as often as they are set.": "Om denne sonde tjekker sine monitorer så ofte, som de er indstillet til."
 }

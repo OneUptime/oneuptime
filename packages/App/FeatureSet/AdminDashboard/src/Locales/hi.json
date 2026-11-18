@@ -4227,5 +4227,8 @@
   "Text This Number": "इस नंबर पर SMS भेजें",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "इस सर्वर की अपनी SMS सेटिंग्स से इस नंबर पर SMS भेजा जाता है। कोई SMS न भेजने के लिए इसे खाली छोड़ें।",
   "Push to Master Admins' Devices": "मास्टर एडमिन के डिवाइस पर पुश",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "हर उस डिवाइस पर पुश सूचना भेजी जाती है जिस पर कोई मास्टर एडमिन OneUptime ऐप में साइन इन है।"
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "हर उस डिवाइस पर पुश सूचना भेजी जाती है जिस पर कोई मास्टर एडमिन OneUptime ऐप में साइन इन है।",
+  "Behind": "पीछे चल रहा है",
+  "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} पीछे चल रहा है: {{time}} से इसके मॉनिटर अपने जाँच समय के बाद एक मिनट से ज़्यादा इंतज़ार कर रहे हैं, इसलिए वे तय से कम बार जाँचे जाते हैं।",
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "प्रोब को ज़्यादा CPU और मेमोरी दें, या उसे एक साथ ज़्यादा मॉनिटर जाँचने दें: config.env में GLOBAL_PROBE_1_MONITORING_WORKERS बढ़ाएँ, या Helm values में प्रोब का monitoringWorkers बढ़ाएँ।"
 }

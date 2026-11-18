@@ -56852,5 +56852,12 @@
   "Is Sample Project": "پروژه نمونه است",
   "Sample Project": "پروژه نمونه",
   "Sample Project ID": "شناسه پروژه نمونه",
-  "Your changes were not saved.": "تغییرات شما ذخیره نشد."
+  "Your changes were not saved.": "تغییرات شما ذخیره نشد.",
+  "Behind": "عقب‌مانده",
+  "Checks Last Late At": "آخرین تأخیر بررسی‌ها",
+  "Checks Late Since": "تأخیر بررسی‌ها از",
+  "Monitor Checks": "بررسی مانیتورها",
+  "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "از {{time}}، مانیتورهای آن بیش از یک دقیقه پس از زمان بررسی‌شان منتظر می‌مانند، بنابراین کمتر از مقدار تنظیم‌شده بررسی می‌شوند.",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "پراب را به‌روز کنید، یا بگذارید هم‌زمان مانیتورهای بیشتری را بررسی کند: {{setting}} را روی پراب افزایش دهید و آن را دوباره راه‌اندازی کنید.",
+  "Whether this probe checks its monitors as often as they are set.": "اینکه آیا این پراب مانیتورهایش را به همان دفعاتی که تنظیم شده بررسی می‌کند."
 }

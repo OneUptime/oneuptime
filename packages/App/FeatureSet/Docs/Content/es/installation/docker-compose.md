@@ -496,7 +496,7 @@ Pasados esos 30 minutos, los datos de PostgreSQL ocupaban 163 MiB y los de Click
 
 Así que este perfil funciona en un servidor con 4 núcleos de CPU y 6 GB de memoria, con margen para el sistema, Docker y una actualización. nginx en `ingress` arranca un worker por núcleo, así que en un servidor con más núcleos usa más: unos 510 MiB con 32 núcleos.
 
-Una sonda comprueba como mucho 50 monitores por minuto con su configuración predeterminada: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) de 10 monitores cada uno (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Para que los 100 monitores se comprobaran cada minuto, la medición estableció `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` en `config.env`. Súbelo, o el número de workers, del mismo modo para más monitores.
+Con su configuración predeterminada, una sonda comprueba hasta 50 monitores a la vez: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) de 10 monitores cada uno (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Pide más en cuanto tiene sitio, por lo que no está limitada a 50 monitores por minuto: medida con 252 monitores de sitio web, API y puerto que comprueban cada minuto, comprobó cada uno de ellos cada minuto. La sonda de la versión 15.0.0 pedía solo una vez por minuto, así que comprobaba como mucho 50 monitores por minuto: para que los 100 monitores se comprobaran cada minuto, la medición de arriba estableció `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` en `config.env`. Una sonda que se retrasa lo indica en Estado de OneUptime, en el Panel de administración: sube cualquiera de los dos ajustes en `config.env` para que compruebe más a la vez.
 
 ## Actualizar OneUptime
 

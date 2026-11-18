@@ -384,6 +384,16 @@ Forespørgsler, der lykkes, men tager længere end `PROBE_API_SLOW_REQUEST_THRES
 
 På OneUptime-serverens side logges også en sondeforespørgsel, der besvares langsomt, eller som sonden opgav, før der blev sendt et svar, med sondens id. Disse to logs tilsammen fortæller, hvilken side af forbindelsen fejlen ligger på.
 
+### En sonde er bagud
+
+En sonde er **Bagud**, når dens monitorer venter mere end et minut efter deres tjektidspunkt, så de tjekkes sjældnere end indstillet. Dens **Status** i tabellen **Brugerdefinerede sonder** viser så **Bagud**, og dens side siger under **Monitortjek**, siden hvornår. For de sonder, som en selvhostet OneUptime selv kører, siger OneUptime-tilstand i Admin-dashboardet det.
+
+En sonde tjekker op til `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer ad gangen, 10 med sine standardindstillinger, og beder om flere, så snart den har plads. Den kommer bagud, når flere monitorer står for tur, end den kan tjekke, for eksempel når mange af deres tjek løber, til de får timeout. Sådan indhenter den det:
+
+- Opdater sonden. En ældre sonde beder kun om sine monitorer én gang i minuttet, så den tjekker højst `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer i minuttet.
+- Lad den tjekke flere monitorer ad gangen: hæv `PROBE_MONITORING_WORKERS`, og genstart sonden. For de sonder, som en selvhostet OneUptime kører, er det `GLOBAL_PROBE_1_MONITORING_WORKERS` i `config.env` med Docker Compose eller sondens `monitoringWorkers` i Helm-chartets værdier.
+- Giv den mere CPU og hukommelse, eller kør endnu en kopi af den med samme `PROBE_ID` og samme `PROBE_KEY`: kopierne deler dens monitorer.
+
 ### Andre problemer
 
 :::details Sonden stopper lige efter start
