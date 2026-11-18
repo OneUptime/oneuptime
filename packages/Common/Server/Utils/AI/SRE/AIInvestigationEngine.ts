@@ -434,13 +434,15 @@ export interface InvestigationRequest {
    */
   recordForReplay?: boolean | undefined;
   /*
-   * Everyone who may see the subject reads the report: an incident's or an
-   * alert's investigation, and a follow-up check, read only what every one
-   * of them may read (Types/BaseDatabase/ReadAudience, #9576) - their
-   * runners work it out before reading the starting context, which reads
-   * the same way. Every tool reads with it (ReadAudiencePermission). Left
-   * out - remediation, insight and security case triage - the run reads the
-   * whole project as OneUptime.
+   * Everyone who may see the subject reads what the run posts: an
+   * incident's or an alert's investigation, a follow-up check and the fixes
+   * worked out for it, a security case's triage, an AI insight's triage -
+   * so each reads only what every one of them may read
+   * (Types/BaseDatabase/ReadAudience, #9576, #9612). Their runners work it
+   * out before reading the starting context, which reads the same way.
+   * Every tool reads with it (ReadAudiencePermission). Every runner passes
+   * it (EngineRunsReadForTheirReaders); left out, the run reads the whole
+   * project as OneUptime.
    */
   readAudience?: ReadAudience | undefined;
 }
@@ -999,8 +1001,8 @@ export default class AIInvestigationEngine {
            * this project only. The tenant is what holds a root read to one
            * project: the model layer adds it to every query of a model with
            * a project column, so a tool that does not name the project
-           * itself still reads only this one. An investigation reads only
-           * what everyone who may see its subject may read
+           * itself still reads only this one. A run reads only what
+           * everyone who may see its subject may read
            * (request.readAudience): the permission layer narrows every
            * tool's read by it.
            */

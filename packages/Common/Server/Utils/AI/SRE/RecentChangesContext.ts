@@ -520,13 +520,14 @@ export default class RecentChangesContext {
    * is what LinkedInfrastructureContext read for it, when it could; null
    * when the subject cannot be read.
    *
-   * An investigation reads them for the subject's readers (`readAudience`,
-   * #9576): a change of a service, host or cloud resource set apart by an
-   * owner or a label from somebody who reads its report - where some role
-   * reads those only by owner or label - is left out with the resource's
-   * telemetry (ReadAudiencePermission.getTelemetryScope), never listed or
-   * counted, and a service it names is named only when they may read it.
-   * Left out - a remediation round - every change is read as OneUptime.
+   * An investigation, and a remediation round, read them for the subject's
+   * readers (`readAudience`, #9576, #9612): a change of a service, host or
+   * cloud resource set apart by an owner or a label from somebody who reads
+   * its report - where some role reads those only by owner or label - is
+   * left out with the resource's telemetry
+   * (ReadAudiencePermission.getTelemetryScope), never listed or counted,
+   * and a service it names is named only when they may read it. Left out,
+   * every change is read as OneUptime.
    */
   @CaptureSpan()
   public static async read(data: {
