@@ -178,34 +178,31 @@ describe("in every language", () => {
     ...BANNER_SENTENCES,
     ...ADMIN_INVITE_SENTENCES,
     ...ADMIN_PENDING_ROW_SENTENCES,
-  ])(
-    "the Admin Dashboard says %p in every language",
-    (sentence: string) => {
-      expect(ADMIN_LOCALES["en"]![sentence]).toBe(sentence);
+  ])("the Admin Dashboard says %p in every language", (sentence: string) => {
+    expect(ADMIN_LOCALES["en"]![sentence]).toBe(sentence);
 
-      for (const code of NON_ENGLISH_ADMIN) {
-        const translated: unknown = ADMIN_LOCALES[code]![sentence];
+    for (const code of NON_ENGLISH_ADMIN) {
+      const translated: unknown = ADMIN_LOCALES[code]![sentence];
 
-        expect({ code, isString: typeof translated === "string" }).toEqual({
-          code,
-          isString: true,
-        });
-        expect({ code, translated }).not.toEqual({
-          code,
-          translated: sentence,
-        });
-        expect({
-          code,
-          placeholders: placeholders(String(translated)),
-        }).toEqual({ code, placeholders: placeholders(sentence) });
-        // The two dashboards say a shared sentence alike.
-        expect({ code, translated }).toEqual({
-          code,
-          translated: DASHBOARD_LOCALES[code]![sentence],
-        });
-      }
-    },
-  );
+      expect({ code, isString: typeof translated === "string" }).toEqual({
+        code,
+        isString: true,
+      });
+      expect({ code, translated }).not.toEqual({
+        code,
+        translated: sentence,
+      });
+      expect({
+        code,
+        placeholders: placeholders(String(translated)),
+      }).toEqual({ code, placeholders: placeholders(sentence) });
+      // The two dashboards say a shared sentence alike.
+      expect({ code, translated }).toEqual({
+        code,
+        translated: DASHBOARD_LOCALES[code]![sentence],
+      });
+    }
+  });
 });
 
 describe("the words", () => {
@@ -366,7 +363,15 @@ describe("where the pages say them", () => {
      * (#9518). The Dashboard's module keeps its path for it.
      */
     const reason: string = fs.readFileSync(
-      path.join(__dirname, "..", "..", "..", "UI", "Utils", "EmailLogReason.ts"),
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "UI",
+        "Utils",
+        "EmailLogReason.ts",
+      ),
       "utf8",
     );
 

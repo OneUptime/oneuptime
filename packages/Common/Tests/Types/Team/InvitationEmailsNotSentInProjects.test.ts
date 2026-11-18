@@ -154,17 +154,26 @@ describe("the answer", () => {
       { projectId: GLOBEX, userId: GRACE, statusMessage: "" },
     ];
 
-    const json: ReturnType<typeof toInvitationEmailsNotSentInProjectsAnswerJSON> =
-      toInvitationEmailsNotSentInProjectsAnswerJSON(invitees);
+    const json: ReturnType<
+      typeof toInvitationEmailsNotSentInProjectsAnswerJSON
+    > = toInvitationEmailsNotSentInProjectsAnswerJSON(invitees);
 
     expect(json).toEqual({
       invitees: [
-        { projectId: ACME, userId: GRACE, statusMessage: "550 Mailbox unavailable" },
+        {
+          projectId: ACME,
+          userId: GRACE,
+          statusMessage: "550 Mailbox unavailable",
+        },
         { projectId: GLOBEX, userId: GRACE, statusMessage: "" },
       ],
     });
     expect(readInvitationEmailsNotSentInProjectsAnswer(json)).toEqual([
-      { projectId: ACME, userId: GRACE, statusMessage: "550 Mailbox unavailable" },
+      {
+        projectId: ACME,
+        userId: GRACE,
+        statusMessage: "550 Mailbox unavailable",
+      },
       { projectId: GLOBEX, userId: GRACE, statusMessage: "" },
     ]);
   });
@@ -173,8 +182,16 @@ describe("the answer", () => {
     expect(
       readInvitationEmailsNotSentInProjectsAnswer({
         invitees: [
-          { projectId: ACME, userId: GRACE, statusMessage: "  Quota exceeded  " },
-          { projectId: ACME.toUpperCase(), userId: GRACE, statusMessage: "Twice" },
+          {
+            projectId: ACME,
+            userId: GRACE,
+            statusMessage: "  Quota exceeded  ",
+          },
+          {
+            projectId: ACME.toUpperCase(),
+            userId: GRACE,
+            statusMessage: "Twice",
+          },
           { userId: ALAN, statusMessage: "No project" },
           { projectId: ACME, statusMessage: "Nobody" },
           { projectId: GLOBEX, userId: ALAN, statusMessage: { message: "x" } },

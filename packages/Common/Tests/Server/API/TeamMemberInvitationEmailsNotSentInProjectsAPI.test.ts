@@ -62,9 +62,7 @@ const PROJECT_ID: string = "95210000-0000-4000-8000-000000000001";
 const OTHER_PROJECT_ID: string = "95210000-0000-4000-8000-000000000002";
 const GRACE: string = "95210000-0000-4000-8000-000000000003";
 const ALAN: string = "95210000-0000-4000-8000-000000000004";
-const ADMIN_ID: ObjectID = new ObjectID(
-  "95210000-0000-4000-8000-000000000005",
-);
+const ADMIN_ID: ObjectID = new ObjectID("95210000-0000-4000-8000-000000000005");
 
 function masterAdminProps(): DatabaseCommonInteractionProps {
   return {
@@ -211,7 +209,9 @@ describe("POST /team-member/invitation-emails-not-sent-in-projects", () => {
     ["an invitee with no project", { invitees: [{ userId: GRACE }] }],
     [
       "an id that is not one",
-      { invitees: [{ projectId: "'; DROP TABLE EmailLog; --", userId: GRACE }] },
+      {
+        invitees: [{ projectId: "'; DROP TABLE EmailLog; --", userId: GRACE }],
+      },
     ],
     [
       "more people than a page holds",

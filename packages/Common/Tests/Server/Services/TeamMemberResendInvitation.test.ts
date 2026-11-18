@@ -295,9 +295,7 @@ beforeEach(() => {
     .mockResolvedValue(Protocol.HTTPS);
   mintToken = jest
     .spyOn(EmailVerificationTokenService, "create")
-    .mockResolvedValue(
-      new EmailVerificationToken(),
-    ) as unknown as MockedFn;
+    .mockResolvedValue(new EmailVerificationToken()) as unknown as MockedFn;
 
   lock = jest
     .spyOn(Semaphore, "lock")
@@ -634,7 +632,9 @@ describe("what the mail service says", () => {
 
   test("no answer in time: it may still go out, so nobody is told it did not, and the count stays", async () => {
     sendMail.mockRejectedValue(
-      new Error("Request failed to notification. Connection timed out") as never,
+      new Error(
+        "Request failed to notification. Connection timed out",
+      ) as never,
     );
 
     const refusal: Error | undefined = await refusalOf(resend());

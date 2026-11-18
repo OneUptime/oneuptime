@@ -185,7 +185,10 @@ describe("the read", () => {
       Array.from(
         { length: MAX_PEOPLE_PER_INVITATION_EMAILS_READ },
         (): { projectId: ObjectID; userId: ObjectID } => {
-          return { projectId: ObjectID.generate(), userId: ObjectID.generate() };
+          return {
+            projectId: ObjectID.generate(),
+            userId: ObjectID.generate(),
+          };
         },
       );
 
@@ -211,7 +214,9 @@ describe("the read", () => {
 
   test("a caller who may not read the Email Logs is told about nobody", async () => {
     findBySpy.mockRejectedValue(
-      new NotAuthorizedException("You do not have permissions to read Email Log.") as never,
+      new NotAuthorizedException(
+        "You do not have permissions to read Email Log.",
+      ) as never,
     );
 
     await expect(
@@ -237,7 +242,9 @@ describe("the read", () => {
 
 describe("whose latest invitation email to their project failed", () => {
   test("a failure is named with its project and the mail service's answer", async () => {
-    findBySpy.mockResolvedValue([logRow(ACME, GRACE, MailStatus.Error, REFUSAL)]);
+    findBySpy.mockResolvedValue([
+      logRow(ACME, GRACE, MailStatus.Error, REFUSAL),
+    ]);
 
     await expect(
       InvitationEmailsNotSent.readInProjects({
@@ -323,7 +330,11 @@ describe("whose latest invitation email to their project failed", () => {
         invitees: [{ projectId: ACME.toString(), userId: GRACE.toString() }],
       }),
     ).toEqual([
-      { projectId: ACME.toString(), userId: GRACE.toString(), statusMessage: "" },
+      {
+        projectId: ACME.toString(),
+        userId: GRACE.toString(),
+        statusMessage: "",
+      },
     ]);
   });
 
