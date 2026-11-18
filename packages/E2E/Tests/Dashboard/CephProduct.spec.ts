@@ -126,7 +126,7 @@ test.describe.skip("Ceph Product Onboarding", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
-    // What to monitor comes first on Monitor Info, then the name.
+    // The type comes first on What to Monitor, then the name.
     await selectMonitorTypeCard({ page, cardValue: "Ceph" });
 
     await page
@@ -134,7 +134,7 @@ test.describe.skip("Ceph Product Onboarding", () => {
       .fill("E2E Ceph Monitor " + Faker.generateName().toString());
 
     /*
-     * Monitor Info is not the last step: its one way on is a plain Next
+     * What to Monitor is not the last step: its one way on is a plain Next
      * (Create Monitor is on the last step only), which opens the criteria.
      */
     await clickNext({ page });

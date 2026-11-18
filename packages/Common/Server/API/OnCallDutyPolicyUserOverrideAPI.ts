@@ -18,6 +18,8 @@ import UserOverrideAddAccessUtil, {
   UserOverrideAddAccess,
 } from "../../Types/OnCallDutyPolicy/UserOverrideAddAccess";
 import { USER_OVERRIDE_END_NOW_ROUTE } from "../../Types/OnCallDutyPolicy/UserOverrideEdit";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * The user override API: its table's routes, and
@@ -47,6 +49,7 @@ export default class OnCallDutyPolicyUserOverrideAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}${USER_OVERRIDE_ADD_ACCESS_ROUTE}`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -88,6 +91,7 @@ export default class OnCallDutyPolicyUserOverrideAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}${USER_OVERRIDE_END_NOW_ROUTE}`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

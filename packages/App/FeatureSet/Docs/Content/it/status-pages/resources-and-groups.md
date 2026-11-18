@@ -80,7 +80,7 @@ Fate clic su **Aggiungi monitor**. La riga compare nel gruppo e sulla pagina di 
 In un gruppo a griglia, la finestra di dialogo chiede anche la riga e la colonna in cui va il monitor, sopra **Altri campi**; vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia).
 
 > [!TIP]
-> Per mostrare più controlli come un'unica riga, aggiungete un [gruppo di monitor](/docs/monitor/monitor-groups). Con l'interruttore **Gruppi di monitor** attivo (**Impostazioni del progetto** > **Avanzato** > **Flag delle funzionalità**, che si salva non appena lo spostate), un link sotto l'elenco a discesa dice **Aggiungi invece un gruppo di monitor.** Fateci clic e **Monitor** diventa **Gruppo di monitor** (**Seleziona gruppo di monitor**); **Aggiungi invece un monitor.** torna indietro.
+> Per mostrare più controlli come un'unica riga, aggiungete un [gruppo di monitor](/docs/monitor/monitor-groups). Con l'interruttore **Gruppi di monitor** attivo (**Impostazioni del progetto** > **Base** > **Prodotti**, che si salva non appena lo spostate), un link sotto l'elenco a discesa dice **Aggiungi invece un gruppo di monitor.** Fateci clic e **Monitor** diventa **Gruppo di monitor** (**Seleziona gruppo di monitor**); **Aggiungi invece un monitor.** torna indietro.
 
 ### Aggiungerne diversi insieme
 

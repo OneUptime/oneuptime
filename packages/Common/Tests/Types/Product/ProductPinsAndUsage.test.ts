@@ -166,6 +166,8 @@ describe("what a project uses", () => {
       [ProductKey.Profiles]: [ActivationMilestone.FirstProfilesReceived],
       [ProductKey.Exceptions]: [ActivationMilestone.FirstExceptionsReceived],
       [ProductKey.Topology]: [ActivationMilestone.FirstTracesReceived],
+      // AI / LLM, by its first AI call (#7325).
+      [ProductKey.Llm]: [ActivationMilestone.FirstLlmCallsReceived],
     });
 
     expect(
@@ -201,10 +203,23 @@ describe("what a project uses", () => {
     }
   });
 
-  test("Settings and the products no cheap question answers have no mark", () => {
+  test("Settings and Chat, with nothing to set up, have no mark", () => {
+    for (const product of [...ALWAYS_SHOWN_PRODUCTS, ProductKey.AIChat]) {
+      expect(PRODUCTS_WITH_KNOWN_USAGE).not.toContain(product);
+    }
+  });
+
+  test("every other product of the menu says whether it is in use (#7325)", () => {
+    expect(PRODUCTS_WITH_KNOWN_USAGE).toEqual(
+      PRODUCT_KEYS.filter((product: ProductKey) => {
+        return (
+          !ALWAYS_SHOWN_PRODUCTS.includes(product) &&
+          product !== ProductKey.AIChat
+        );
+      }),
+    );
+
     for (const product of [
-      ...ALWAYS_SHOWN_PRODUCTS,
-      ProductKey.AIChat,
       ProductKey.Inventory,
       ProductKey.Llm,
       ProductKey.DataObservability,
@@ -212,7 +227,11 @@ describe("what a project uses", () => {
       ProductKey.DataSecurity,
       ProductKey.AppPlatforms,
     ]) {
-      expect(PRODUCTS_WITH_KNOWN_USAGE).not.toContain(product);
+      expect(PRODUCTS_WITH_KNOWN_USAGE).toContain(product);
+      // Each is something you set up: "Not set up" while it has nothing.
+      expect(toProductUsage({ product: product, hasSomething: false })).toBe(
+        ProductUsage.NotSetUp,
+      );
     }
   });
 

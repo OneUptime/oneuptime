@@ -45,17 +45,17 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **API**.
 
-### Hem een naam geven
-
-Vul een **Naam** in, zoals `Orders API`, en klik dan op **Volgende**.
-
 ### De aanvraag invullen
 
-Vul onder **API-URL** de volledige URL van het endpoint in, zoals `https://api.example.com/health`. Kies het **API-verzoektype** (**GET**, tenzij u het wijzigt). Om headers of een body toe te voegen, opent u **Meer velden** en vult u **Aanvraagheaders** en **Aanvraagtekst (in JSON)** in.
+Vul onder **API-URL** de volledige URL van het endpoint in, zoals `https://api.example.com/health`.
+
+### Hem een naam geven
+
+De **Naam** wordt ingevuld met wat u invulde, zoals `api.example.com/health`. Houd die of vul uw eigen naam in, zoals `Orders API`, en klik dan op **Volgende**.
 
 ### Hem testen
 
-Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. **Testresultaat van monitor** toont wat de API antwoordde.
+Kies onder **Monitordoel** het **API-verzoektype** (**GET**, tenzij u het wijzigt). Om headers of een body toe te voegen, opent u **Meer velden** en vult u **Aanvraagheaders** en **Aanvraagtekst (in JSON)** in. Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont wat de API antwoordde. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 

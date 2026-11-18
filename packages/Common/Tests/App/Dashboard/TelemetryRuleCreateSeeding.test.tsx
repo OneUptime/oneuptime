@@ -403,7 +403,7 @@ describe("a link's query: what the logs or traces explorer, or an exception, sho
   });
 });
 
-describe("Create Monitor, after a walk back to Monitor Info and another type", () => {
+describe("Create Monitor, after a walk back to What to Monitor and another type", () => {
   test("Logs, then Traces: the untouched Too many errors becomes Too many failed requests", async () => {
     const logs: MonitorSteps = await seededFor(MonitorType.Logs);
 

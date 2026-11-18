@@ -24,6 +24,8 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import RunRecordSearch from "Common/Server/Utils/Workflow/RunRecordSearch";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /**
  * The records Run Workflow can run a workflow with:
@@ -51,6 +53,7 @@ export default class RunRecordsAPI {
     this.router.post(
       `/run-records/:workflowId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Workflows),
       this.searchRunRecords,
     );
   }

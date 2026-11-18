@@ -80,7 +80,7 @@ Klik på **Tilføj monitor**. Rækken vises i gruppen og på statussiden.
 I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal stå i, over **Flere felter**; se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout).
 
 > [!TIP]
-> For at vise flere tjek som én række tilføjer du en [monitorgruppe](/docs/monitor/monitor-groups). Med kontakten **Monitorgrupper** slået til (**Projektindstillinger** > **Avanceret** > **Funktionsflag**, som gemmes, så snart du slår den om) står der et link under rullelisten: **Tilføj en monitorgruppe i stedet.** Klik på det, og **Monitor** bliver til **Monitorgruppe** (**Vælg monitorgruppe**); **Tilføj en monitor i stedet.** skifter tilbage.
+> For at vise flere tjek som én række tilføjer du en [monitorgruppe](/docs/monitor/monitor-groups). Med kontakten **Monitorgrupper** slået til (**Projektindstillinger** > **Grundlæggende** > **Produkter**, som gemmes, så snart du slår den om) står der et link under rullelisten: **Tilføj en monitorgruppe i stedet.** Klik på det, og **Monitor** bliver til **Monitorgruppe** (**Vælg monitorgruppe**); **Tilføj en monitor i stedet.** skifter tilbage.
 
 ### Tilføj flere på én gang
 

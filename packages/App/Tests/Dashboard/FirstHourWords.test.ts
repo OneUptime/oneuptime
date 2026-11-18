@@ -42,14 +42,19 @@ function read(...segments: Array<string>): string {
  * It said "... and emails the Project Owners." until #7055: wrong in a
  * project whose on-call rule pages somebody for every new incident, which
  * the newcomer walks met three times. Who is told depends on the project,
- * so the Criteria step says it for the monitor the form holds (When this
- * goes down, from the resolver a saved monitor's overview reads).
+ * so the step after the first says it for the monitor the form holds (When
+ * this goes down, from the resolver a saved monitor's overview reads). It
+ * named it "the Criteria step"; since the first step was named for what it
+ * holds (#7463), What to Monitor, the card says the next step.
  */
 const CREATE_MONITOR_DESCRIPTION: string =
-  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the Criteria step shows who is told.";
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.";
 
 const PREVIOUS_CREATE_MONITOR_DESCRIPTION: string =
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the Project Owners.";
+
+const CRITERIA_STEP_CREATE_MONITOR_DESCRIPTION: string =
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the Criteria step shows who is told.";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
@@ -88,6 +93,7 @@ const RETIRED_SENTENCES: Array<string> = [
   "Route alerts and incidents to the right person at the right time.",
   PREVIOUS_ON_CALL_STEP_DESCRIPTION,
   PREVIOUS_CREATE_MONITOR_DESCRIPTION,
+  CRITERIA_STEP_CREATE_MONITOR_DESCRIPTION,
   RULE_ON_CALL_STEP_DESCRIPTION,
 ];
 
@@ -124,7 +130,7 @@ describe("where the newcomer reads it", () => {
     const page: string = read(DASHBOARD_SRC, "Pages", "Monitor", "Create.tsx");
 
     expect(page).toContain(`"${CREATE_MONITOR_DESCRIPTION}"`);
-    // And the Criteria step does show it, for the monitor the form holds.
+    // And the next step, Criteria, does show it, for the monitor the form holds.
     expect(page).toContain("<MonitorDraftWhoIsTold");
     expect(page.indexOf("<MonitorDraftWhoIsTold")).toBeGreaterThan(
       page.indexOf('stepId: "criteria"'),

@@ -24,6 +24,8 @@ import MonitorGroupMonitoring, {
 } from "../../Utils/Monitor/MonitorGroupMonitoring";
 import MonitorGroupUptimeSummaryUtil from "../../Utils/Monitor/MonitorGroupUptimeSummaryUtil";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 export default class MonitorGroupAPI extends BaseAPI<
   MonitorGroup,
@@ -230,6 +232,7 @@ export default class MonitorGroupAPI extends BaseAPI<
           .getCrudApiPath()
           ?.toString()}/${route.path}/:monitorGroupId`,
         UserMiddleware.getUserMiddleware,
+        ServerProductRoutes.refuseWhileOff(ProductKey.Monitors),
         async (
           req: ExpressRequest,
           res: ExpressResponse,

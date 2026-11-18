@@ -424,10 +424,9 @@ describe("a setting is found by the name its card shows", () => {
       "require sso to sign in",
       "Require SSO to Sign In — Project Settings › Security › SSO",
     ],
-    [
-      "monitor groups",
-      "Monitor Groups — Project Settings › Advanced › Feature Flags",
-    ],
+    // On Products, under Monitors, since Feature Flags went (#7324).
+    ["monitor groups", "Monitor Groups — Project Settings › Basic › Products"],
+    ["feature flags", "Products — Project Settings › Basic"],
     [
       "customer support access",
       "Customer Support Access — Project Settings › Basic › Project",

@@ -147,7 +147,7 @@ import MonitorStepStorageArrayMonitor, {
   MonitorStepStorageArrayMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import Link from "Common/UI/Components/Link/Link";
-import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
+import MonitorAddressHelp from "./MonitorAddressHelp";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
 import ProfileMonitorStepForm from "./ProfileMonitor/ProfileMonitorStepForm";
 import MonitorStepProfileMonitor, {
@@ -209,6 +209,8 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   getMonitorDestinationFieldCopy,
+  getMonitorTargetAddress,
+  MONITOR_TYPES_WITH_ADDRESS,
   MONITOR_PORT_FIELD_DESCRIPTION,
   MonitorDestinationFieldCopy,
   NTP_PORT_FIELD_DESCRIPTION,
@@ -274,6 +276,19 @@ export interface ComponentProps {
   offerRecipes?: boolean | undefined;
   // Whether the form was sent with an error in these steps.
   showErrors?: boolean | undefined;
+  /*
+   * For Test Monitor: the probes that check this monitor, the likeliest
+   * first, which the test starts on (#7985), and the labels a monitor not
+   * created yet has, which who is told reads (#7074).
+   */
+  testProbeIds?: Array<string> | undefined;
+  monitorLabels?: Array<unknown> | undefined;
+  /*
+   * The address was asked on the form's first step, with the type
+   * (Create Monitor, #7463): the target says what it checks, and keeps
+   * only the type's other settings.
+   */
+  isAddressAskedFirst?: boolean | undefined;
 }
 
 /*
@@ -860,14 +875,9 @@ return {
   const destinationFieldCopy: MonitorDestinationFieldCopy | null =
     getMonitorDestinationFieldCopy(props.monitorType);
 
-  const hasMonitorDestination: boolean =
-    props.monitorType === MonitorType.IP ||
-    props.monitorType === MonitorType.Ping ||
-    props.monitorType === MonitorType.Port ||
-    props.monitorType === MonitorType.Website ||
-    props.monitorType === MonitorType.API ||
-    props.monitorType === MonitorType.SSLCertificate ||
-    props.monitorType === MonitorType.NTP;
+  const hasMonitorDestination: boolean = MONITOR_TYPES_WITH_ADDRESS.includes(
+    props.monitorType,
+  );
 
   const isCodeMonitor: boolean =
     props.monitorType === MonitorType.CustomJavaScriptCode ||
@@ -1066,169 +1076,121 @@ return {
       {hasMonitorDestination && (
         <Card title="Monitor Target">
           <div className="space-y-4">
-            <div>
-              <FieldLabelElement
-                title={destinationFieldCopy?.title || "URL"}
-                description={destinationFieldCopy?.description}
-                htmlFor={destinationFieldId}
-                descriptionId={
-                  destinationFieldCopy?.description
-                    ? destinationDescriptionId
-                    : undefined
-                }
-                required={true}
-              />
-              <Input
-                id={destinationFieldId}
-                ariaDescribedby={
-                  destinationFieldCopy?.description
-                    ? destinationDescriptionId
-                    : undefined
-                }
-                initialValue={destinationInputValue}
-                placeholder={destinationFieldCopy?.placeholder}
-                disableSpellCheck={true}
-                onBlur={() => {
-                  setTouched({
-                    ...touched,
-                    destination: true,
-                  });
-
-                  const parsed: ParsedMonitorDestination =
-                    MonitorDestinationUtil.parse({
-                      value: destinationInputValue,
-                      monitorType: props.monitorType,
-                    });
-
-                  setErrors({
-                    ...errors,
-                    destination: parsed.error || "",
-                  });
-
-                  /*
-                   * Only a value that PARSED is echoed back into the field.
-                   * This used to rewrite the input from the step whenever the
-                   * step held anything at all, which put the previously saved
-                   * address back over what the operator had just typed and
-                   * cleared the error explaining why it had not been kept.
-                   */
-                  if (parsed.destination) {
-                    setDestinationInputValue(parsed.destination.toString());
-                  }
-                }}
-                error={
-                  touched["destination"] && errors["destination"]
-                    ? errors["destination"]
-                    : undefined
-                }
-                onChange={(value: string) => {
-                  const parsed: ParsedMonitorDestination =
-                    MonitorDestinationUtil.parse({
-                      value: value,
-                      monitorType: props.monitorType,
-                    });
-
-                  setErrors({
-                    ...errors,
-                    destination: parsed.error || "",
-                  });
-
-                  /*
-                   * The step is written on EVERY keystroke, including the
-                   * ones that do not parse, where it is cleared.
-                   *
-                   * It used to be written only when a value parsed, and never
-                   * cleared — so a step kept whatever last parsed while the
-                   * field showed something else entirely. Editing a monitor's
-                   * address left the OLD one saved, and half-typed IPv6 made
-                   * that routine: "2001:518:2800:9::" parses (it is a real
-                   * address) one keystroke before the operator finishes
-                   * typing "2001:518:2800:9::2".
-                   */
-                  monitorStep.setMonitorDestination(parsed.destination);
-
-                  setDestinationInputValue(value);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-
-            {(props.monitorType === MonitorType.API ||
-              props.monitorType === MonitorType.Website) && (
-              <TinyFormDocumentation title="URL placeholder help">
-                <>
-                  <div>
-                    <TranslatedSentence
-                      template="{{placeholder}} — replaced with current Unix timestamp"
-                      slots={{
-                        placeholder: (
-                          <code className="bg-gray-100 px-1 rounded">
-                            {"{{timestamp}}"}
-                          </code>
-                        ),
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <TranslatedSentence
-                      template="{{placeholder}} — replaced with a random unique string"
-                      slots={{
-                        placeholder: (
-                          <code className="bg-gray-100 px-1 rounded">
-                            {"{{random}}"}
-                          </code>
-                        ),
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <TranslatedSentence
-                      template="Example: {{url}}"
-                      slots={{
-                        url: (
-                          <code className="bg-gray-100 px-1 rounded">
-                            {"https://example.com?cb={{timestamp}}"}
-                          </code>
-                        ),
-                      }}
-                    />
-                  </div>
-                  <div>
-                    {translator.translateText(
-                      "Useful for busting CDN or proxy caches on each check.",
-                    )}{" "}
-                    <Link
-                      className="underline"
-                      openInNewTab={true}
-                      to={URL.fromString(
-                        DOCS_URL.toString() +
-                          (props.monitorType === MonitorType.API
-                            ? "/monitor/api-monitor"
-                            : "/monitor/website-monitor"),
-                      )}
-                    >
-                      {translator.translateText("Learn more.")}
-                    </Link>
-                  </div>
-                </>
-              </TinyFormDocumentation>
+            {/*
+             * Asked with the type on Create Monitor's first step: here it
+             * is said, as the step checks it, beside the type's other
+             * settings.
+             */}
+            {props.isAddressAskedFirst ? (
+              <p
+                className="text-sm text-gray-700 [overflow-wrap:anywhere]"
+                data-testid="monitor-target-address"
+              >
+                <TranslatedSentence
+                  template="Checks {{address}}."
+                  slots={{
+                    address: (
+                      <span className="font-medium text-gray-900" dir="ltr">
+                        {getMonitorTargetAddress({
+                          monitorType: props.monitorType,
+                          destination:
+                            monitorStep.data?.monitorDestination?.toString() ||
+                            "",
+                          port: monitorStep.data?.monitorDestinationPort?.toString(),
+                        })}
+                      </span>
+                    ),
+                  }}
+                />
+              </p>
+            ) : (
+              <></>
             )}
-
-            {props.monitorType === MonitorType.Port && (
+            {props.isAddressAskedFirst ? (
+              <></>
+            ) : (
               <div>
                 <FieldLabelElement
-                  title={"Port"}
-                  description={MONITOR_PORT_FIELD_DESCRIPTION}
+                  title={destinationFieldCopy?.title || "URL"}
+                  description={destinationFieldCopy?.description}
+                  htmlFor={destinationFieldId}
+                  descriptionId={
+                    destinationFieldCopy?.description
+                      ? destinationDescriptionId
+                      : undefined
+                  }
                   required={true}
                 />
                 <Input
-                  initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
-                  placeholder="443"
+                  id={destinationFieldId}
+                  ariaDescribedby={
+                    destinationFieldCopy?.description
+                      ? destinationDescriptionId
+                      : undefined
+                  }
+                  initialValue={destinationInputValue}
+                  placeholder={destinationFieldCopy?.placeholder}
+                  disableSpellCheck={true}
+                  onBlur={() => {
+                    setTouched({
+                      ...touched,
+                      destination: true,
+                    });
+
+                    const parsed: ParsedMonitorDestination =
+                      MonitorDestinationUtil.parse({
+                        value: destinationInputValue,
+                        monitorType: props.monitorType,
+                      });
+
+                    setErrors({
+                      ...errors,
+                      destination: parsed.error || "",
+                    });
+
+                    /*
+                     * Only a value that PARSED is echoed back into the field.
+                     * This used to rewrite the input from the step whenever the
+                     * step held anything at all, which put the previously saved
+                     * address back over what the operator had just typed and
+                     * cleared the error explaining why it had not been kept.
+                     */
+                    if (parsed.destination) {
+                      setDestinationInputValue(parsed.destination.toString());
+                    }
+                  }}
+                  error={
+                    touched["destination"] && errors["destination"]
+                      ? errors["destination"]
+                      : undefined
+                  }
                   onChange={(value: string) => {
-                    const port: Port = new Port(value);
-                    monitorStep.setPort(port);
+                    const parsed: ParsedMonitorDestination =
+                      MonitorDestinationUtil.parse({
+                        value: value,
+                        monitorType: props.monitorType,
+                      });
+
+                    setErrors({
+                      ...errors,
+                      destination: parsed.error || "",
+                    });
+
+                    /*
+                     * The step is written on EVERY keystroke, including the
+                     * ones that do not parse, where it is cleared.
+                     *
+                     * It used to be written only when a value parsed, and never
+                     * cleared — so a step kept whatever last parsed while the
+                     * field showed something else entirely. Editing a monitor's
+                     * address left the OLD one saved, and half-typed IPv6 made
+                     * that routine: "2001:518:2800:9::" parses (it is a real
+                     * address) one keystroke before the operator finishes
+                     * typing "2001:518:2800:9::2".
+                     */
+                    monitorStep.setMonitorDestination(parsed.destination);
+
+                    setDestinationInputValue(value);
                     if (props.onChange) {
                       props.onChange(MonitorStep.clone(monitorStep));
                     }
@@ -1236,6 +1198,34 @@ return {
                 />
               </div>
             )}
+
+            {props.isAddressAskedFirst ? (
+              <></>
+            ) : (
+              <MonitorAddressHelp monitorType={props.monitorType} />
+            )}
+
+            {props.monitorType === MonitorType.Port &&
+              !props.isAddressAskedFirst && (
+                <div>
+                  <FieldLabelElement
+                    title={"Port"}
+                    description={MONITOR_PORT_FIELD_DESCRIPTION}
+                    required={true}
+                  />
+                  <Input
+                    initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
+                    placeholder="443"
+                    onChange={(value: string) => {
+                      const port: Port = new Port(value);
+                      monitorStep.setPort(port);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                  />
+                </div>
+              )}
 
             {props.monitorType === MonitorType.API && (
               <div>
@@ -2587,6 +2577,9 @@ return {
             monitorSteps={props.allMonitorSteps}
             monitorType={props.monitorType}
             probes={props.probes}
+            preferredProbeIds={props.testProbeIds}
+            monitorName={props.monitorName}
+            labels={props.monitorLabels}
             buttonSize={ButtonSize.Normal}
           />
         </Card>

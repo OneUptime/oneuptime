@@ -170,7 +170,7 @@ Clique em **Salvar alterações**. A próxima verificação é julgada pelos nov
 
 ### Testar o monitor
 
-Em um monitor verificado por sondas, clique em **Testar monitor** no cartão, escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a verificação encontrou.
+Em um monitor verificado por sondas, clique em **Testar monitor** no cartão: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a verificação encontrou. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 :::
 
 Um monitor manual não tem critérios: você mesmo define o status dele. Veja [Atualizar o status](/docs/monitor/manual-monitor#atualizar-o-status).

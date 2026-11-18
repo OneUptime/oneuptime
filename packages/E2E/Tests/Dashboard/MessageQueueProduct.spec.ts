@@ -1160,7 +1160,7 @@ test.describe.skip("Queues Product", () => {
     ).toHaveValue(`Created from queue ${DESTINATION}.`);
 
     /*
-     * Next - Monitor Info is not the last step, so it shows Next, not Create
+     * Next - What to Monitor is not the last step, so it shows Next, not Create
      * Monitor - opens the Metrics monitor's query: the metric, and the topic
      * filter under "Filters & grouping", open because the query has one.
      */

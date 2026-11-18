@@ -7,14 +7,14 @@ Für eine Website oder API führt Sie stattdessen eine geführte Einrichtung von
 > [!NOTE]
 > Um einen Monitor zu erstellen, brauchen Sie die Rolle Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 
-## Überwachungsinformationen
+## Was überwacht wird
 
-Der erste Schritt fragt, was überwacht werden soll und wie der Monitor heißt.
+Der erste Schritt fragt, was überwacht werden soll, wo es zu finden ist und wie der Monitor heißt.
 
 :::steps
 ### Monitor erstellen öffnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Das Formular öffnet sich auf seinem ersten Schritt, **Überwachungsinformationen**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Das Formular öffnet sich auf seinem ersten Schritt, **Was überwacht wird**.
 
 ### Den Monitortyp wählen
 
@@ -26,9 +26,13 @@ Die erste Frage ist der **Monitortyp**: Was möchten Sie überwachen?
 
 Der gewählte Typ schrumpft auf eine Zeile. Klicken Sie auf **Ändern**, um einen anderen zu wählen; drücken Sie während der Auswahl **Escape**, um den bisherigen Typ zu behalten.
 
+### Eingeben, wo es zu finden ist
+
+Ein Typ, dessen Prüfung einer Adresse gilt, fragt direkt nach dem Typ danach: die **Website-URL** einer Website oder eines SSL-Zertifikats, die **API-URL** einer API, der Host oder die IP-Adresse für einen Ping, ein Host mit seinem **Port** oder ein NTP-Server. Das Feld zeigt ein Beispiel. Unter der Adresse einer Website oder API zeigt **Caches bei jeder Prüfung umgehen**, wie Sie einen Wert einfügen, der sich bei jeder Prüfung ändert. Andere Typen fragen im nächsten Schritt, wo nachgesehen wird, etwa nach der Domain eines DNS-Monitors oder der Verbindung einer Datenbank.
+
 ### Den Monitor benennen
 
-Tragen Sie unter **Name** einen Namen ein. Er wird in Warnungen und in den Titeln von Vorfällen verwendet. **Beschreibung** und **Beschriftungen** sind optional und warten unter **Weitere Felder**.
+Tragen Sie unter **Name** einen Namen ein. Nach einer Adresse füllt er sich von selbst aus, etwa mit `example.com`, bis Sie einen eigenen schreiben. Er wird in Warnungen und in den Titeln von Vorfällen verwendet. **Beschreibung** und **Beschriftungen** sind optional und warten unter **Weitere Felder**.
 
 Ein Monitor vom Typ **Manuell** braucht nichts weiter, deshalb steht **Monitor erstellen** schon auf diesem Schritt. Klicken Sie bei jedem anderen Typ auf **Weiter**.
 :::
@@ -40,9 +44,9 @@ Der zweite Schritt fragt, was geprüft wird, und legt fest, was als Problem zäh
 :::steps
 ### Eingeben, was geprüft wird
 
-Dieser Schritt beginnt mit dem, was geprüft wird. Bei einer Website ist das ihre URL, mit einem Beispiel im Feld; andere Typen fragen nach einem Host, einer Abfrage, einem Cluster oder einem Log-Filter. Einstellungen, die die meisten Monitore nie ändern, etwa Zeitlimits und Wiederholungen, sind unter **Weitere Felder** eingeklappt.
+Dieser Schritt beginnt mit dem, was die Prüfung sonst noch liest. Ein Monitor für eine Adresse zeigt sie unter **Monitor-Ziel**, mit dem, was er sonst noch braucht, etwa der Anfragemethode einer API; andere Typen fragen hier nach einer Domain, einer Abfrage, einem Cluster oder einem Log-Filter. Einstellungen, die die meisten Monitore nie ändern, etwa Zeitlimits und Wiederholungen, sind unter **Weitere Felder** eingeklappt.
 
-Bei einem Monitor, den Sonden prüfen, führt **Monitor testen** die Prüfung einmal aus, bevor Sie speichern: Wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. Die Antwort öffnet sich in **Überwachungs-Testergebnis**.
+Bei einem Monitor, den Sonden prüfen, führt **Monitor testen** die Prüfung einmal aus, bevor Sie speichern, und zwar auf einer Sonde, die den Monitor prüft: Klicken Sie auf **Test ausführen**, oder wählen Sie vorher unter **Sonde auswählen** eine andere Sonde. **Überwachungs-Testergebnis** sagt, welches Kriterium die Antwort erfüllt und was folgen würde (der Status, der Vorfall oder die Warnung und wer benachrichtigt wird), und zeigt dann, was die Sonde gefunden hat.
 
 ### Die Kriterien prüfen
 

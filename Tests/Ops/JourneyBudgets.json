@@ -17,13 +17,13 @@
       "budget": {
         "screens": 2,
         "dialogs": 0,
-        "clicks": 9,
-        "fieldsTyped": 2,
+        "clicks": 8,
+        "fieldsTyped": 1,
         "products": 1,
-        "keystrokes": 41,
-        "defaultsKept": 2,
+        "keystrokes": 29,
+        "defaultsKept": 3,
         "choices": 13,
-        "words": 315
+        "words": 346
       }
     },
     "told-when-down": {

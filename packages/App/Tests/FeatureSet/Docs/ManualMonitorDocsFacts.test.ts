@@ -136,8 +136,11 @@ describe("creating a manual monitor", () => {
     const create: string = readRepoFile(CREATE_PAGE_FILE);
     const steps: string = sourceBetween(create, "steps={[", "]}");
 
-    // The Criteria step is skipped for Manual, Probes & Interval by the interval.
-    expect(steps).toContain('title: "Monitor Info"');
+    /*
+     * The Criteria step is skipped for Manual, Probes & Interval by the
+     * interval. The first step is What to Monitor (Monitor Info until #7463).
+     */
+    expect(steps).toContain('title: "What to Monitor"');
     expect(steps).toContain(
       'title: "Criteria",\n                  id: "criteria",\n                  showIf: (values: FormValues<Monitor>) => {\n                    return values.monitorType !== MonitorType.Manual;',
     );

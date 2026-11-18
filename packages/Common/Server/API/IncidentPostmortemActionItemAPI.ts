@@ -23,6 +23,8 @@ import PostmortemActionItemCodeTasks, {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * A postmortem's action items (issue #6801): the generic routes every
@@ -53,6 +55,7 @@ export default class IncidentPostmortemActionItemAPI extends BaseAPI<
     this.router.post(
       `${path}/track-from-postmortem`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -85,6 +88,7 @@ export default class IncidentPostmortemActionItemAPI extends BaseAPI<
     this.router.post(
       `${path}/start-code-task`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

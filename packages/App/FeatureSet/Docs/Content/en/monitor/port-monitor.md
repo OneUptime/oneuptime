@@ -41,17 +41,17 @@ When a check fails, the probe also traces the route to the host and looks up its
 
 Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, pick **Port**.
 
-### Name it
-
-Enter a **Name**, such as `Orders database`, then click **Next**.
-
 ### Enter the host and the port
 
 In **Hostname or IP Address**, enter the host the port is on, such as `db.example.com` or `10.0.0.12`. In **Port**, enter the port number, such as `5432`.
 
+### Name it
+
+The **Name** fills in from what you entered, such as `db.example.com:5432`. Keep it or enter your own, such as `Orders database`, then click **Next**.
+
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows whether the connection opened, and how long each part took.
+Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows whether the connection opened, and how long each part took. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 

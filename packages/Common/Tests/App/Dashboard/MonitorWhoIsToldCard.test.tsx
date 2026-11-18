@@ -67,6 +67,7 @@ import {
   getOwnersSentences,
   getPagedOwnersSentence,
   getPrivateSentences,
+  getWhoIsToldCriteriaSentences,
   getWhoIsToldSentences,
   getWhoIsToldSummary,
   WhoIsToldFixLink,
@@ -3027,5 +3028,136 @@ describe("When this goes down on Create Monitor", () => {
       }),
     ).toBeNull();
     expect(getDraftLabelIds(["not-an-id", 7, null])).toEqual([]);
+  });
+});
+
+/*
+ * WHAT ONE CRITERIA SETS OFF (#7074): a Test Monitor result says what the
+ * criteria it matched would do, in the card's own words - for that
+ * criteria, not the first one that opens something.
+ */
+describe("what one criteria sets off", () => {
+  test("the status, what opens and who it tells, as the card's first words say them", () => {
+    expect(getWhoIsToldCriteriaSentences(offline(), translator)).toEqual([
+      "OneUptime marks it Offline and opens an incident (Critical).",
+      "It emails the Project Owners (Owner One).",
+      "It pages Ana Lopez through Primary.",
+    ]);
+  });
+
+  test("the criteria asked for, not the first that opens something", () => {
+    const degraded: WhoIsToldCriteria = offline({
+      id: "slow",
+      name: "Slow",
+      statusName: "Degraded",
+      events: [
+        event({
+          kind: OnCallTestPageRecordKind.Alert,
+          severityName: "Low",
+          rules: [],
+          policies: [],
+        }),
+      ],
+    });
+
+    // The card speaks of the first; the test's result of the one matched.
+    expect(
+      getWhoIsToldSentences(result([offline(), degraded]), translator)[0],
+    ).toBe("OneUptime marks it Offline and opens an incident (Critical).");
+    expect(getWhoIsToldCriteriaSentences(degraded, translator)).toEqual([
+      "OneUptime marks it Degraded and opens an alert (Low).",
+      "It emails the Project Owners (Owner One).",
+      "Nobody is paged.",
+    ]);
+  });
+
+  test("an incident and an alert: each is said, the status once", () => {
+    const both: WhoIsToldCriteria = offline({
+      events: [
+        event(),
+        event({
+          kind: OnCallTestPageRecordKind.Alert,
+          severityName: "High",
+          rules: [],
+          policies: [],
+        }),
+      ],
+    });
+
+    const sentences: Array<string> = getWhoIsToldCriteriaSentences(
+      both,
+      translator,
+    );
+
+    expect(sentences[0]).toBe(
+      "OneUptime marks it Offline and opens an incident (Critical).",
+    );
+    expect(sentences).toContain("OneUptime opens an alert (High).");
+    expect(
+      sentences.filter((sentence: string) => {
+        return sentence.includes("marks it");
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a criteria that only sets a status says so, and who its owners are", () => {
+    expect(
+      getWhoIsToldCriteriaSentences(
+        {
+          id: "online",
+          name: "Online",
+          statusName: "Operational",
+          statusOwners: {
+            source: WhoIsToldOwnersSource.MonitorOwners,
+            userNames: ["Ben Ito"],
+            teamNames: [],
+          },
+          events: [],
+        },
+        translator,
+      ),
+    ).toEqual([
+      "OneUptime marks it Operational. It opens no incident or alert, so nobody is paged.",
+      "It emails the monitor's owners (Ben Ito).",
+    ]);
+  });
+
+  test("a private record the reader can't see says only that it is private", () => {
+    const hidden: WhoIsToldCriteria = offline({
+      events: [
+        {
+          ...event(),
+          owners: {
+            source: WhoIsToldOwnersSource.Named,
+            userNames: [],
+            teamNames: [],
+          },
+          policies: [],
+          rules: [],
+          isPrivate: true,
+          isHidden: true,
+        },
+      ],
+    });
+
+    const sentences: Array<string> = getWhoIsToldCriteriaSentences(
+      hidden,
+      translator,
+    );
+
+    expect(sentences).toEqual([
+      "OneUptime marks it Offline and opens an incident (Critical).",
+      "It's private, so you can't see who it tells.",
+    ]);
+    expect(sentences.join(" ")).not.toContain("Ana Lopez");
+  });
+
+  test("a criteria that sets nothing off has no sentences: its caller says so", () => {
+    expect(
+      getWhoIsToldCriteriaSentences(
+        { id: "none", name: "None", events: [] },
+        translator,
+      ),
+    ).toEqual([]);
   });
 });

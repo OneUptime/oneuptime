@@ -43,17 +43,17 @@ Um servidor que responde não é consultado de novo, mesmo quando responde sem u
 
 Acesse **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, digite `ntp` na caixa de pesquisa e escolha **NTP**. Ele também aparece em **Mais tipos de monitor**, no grupo Rede.
 
-### Dar um nome
-
-Informe um **Nome**, como `Servidor de hora GPS`, e clique em **Próximo**.
-
 ### Informar o servidor
 
-Em **Servidor NTP**, informe o nome do host ou o endereço IP do servidor, como `time.example.com` ou `192.168.1.10`. A solicitação vai para a porta 123. Para usar outra porta, abra **Mais campos** e defina a **Porta**.
+Em **Servidor NTP**, informe o nome do host ou o endereço IP do servidor, como `time.example.com` ou `192.168.1.10`. A solicitação vai para a porta 123.
+
+### Dar um nome
+
+O **Nome** é preenchido com o que você informou, como `time.example.com`. Mantenha-o ou informe um seu, como `Servidor de hora GPS`, e clique em **Próximo**.
 
 ### Testar
 
-Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. **Resultado do Teste do Monitor** mostra se o servidor respondeu, se está sincronizado, o seu estrato e o quanto o seu relógio está desviado.
+Para usar outra porta, abra **Mais campos** em **Alvo do monitor** e defina a **Porta**. Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra se o servidor respondeu, se está sincronizado, o seu estrato e o quanto o seu relógio está desviado. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 

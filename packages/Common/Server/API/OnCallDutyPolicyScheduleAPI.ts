@@ -20,6 +20,8 @@ import ScheduleLayersSaveUtil, {
   ScheduleLayersSaveRequest,
   ScheduleLayersSaveResult,
 } from "../../Types/OnCallDutyPolicy/ScheduleLayersSave";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * The on-call schedule API: its table's routes, and
@@ -53,6 +55,7 @@ export default class OnCallDutyPolicyScheduleAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}${SCHEDULE_LAYERS_SAVE_ROUTE}`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

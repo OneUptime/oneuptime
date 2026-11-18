@@ -45,17 +45,17 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **API** under **Monitortype**.
 
-### Gi den et navn
-
-Angi et **Navn**, som `Orders API`, og klikk så på **Neste**.
-
 ### Angi forespørselen
 
-Angi endepunktets fullstendige URL under **API-URL**, som `https://api.example.com/health`. Velg **API-forespørselstype** (**GET** med mindre du endrer den). For å legge til hoder eller en brødtekst åpner du **Flere felt** og fyller ut **Forespørselshoder** og **Forespørselstekst (i JSON)**.
+Angi endepunktets fullstendige URL under **API-URL**, som `https://api.example.com/health`.
+
+### Gi den et navn
+
+**Navn** fylles ut fra det du anga, som `api.example.com/health`. Behold det, eller angi ditt eget, som `Orders API`, og klikk så på **Neste**.
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva API-et svarte.
+Velg **API-forespørselstype** under **Monitor-mål** (**GET** med mindre du endrer den). For å legge til hoder eller en brødtekst åpner du **Flere felt** og fyller ut **Forespørselshoder** og **Forespørselstekst (i JSON)**. Klikk på **Test monitor**: testen starter på en sonde som sjekker monitoren. Velg en annen under **Velg sonde** om du vil, og klikk så på **Kjør test**. **Resultat av monitortest** viser hva API-et svarte. Det sier også hvilket kriterium svaret oppfyller og hva som ville fulgt: statusen, hendelsen eller varselet, og hvem som får beskjed.
 
 ### Gå gjennom kriteriene
 

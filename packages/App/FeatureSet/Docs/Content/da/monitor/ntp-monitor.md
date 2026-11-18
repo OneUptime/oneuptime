@@ -43,17 +43,17 @@ En server, der svarer, bliver ikke spurgt igen, heller ikke når den svarer uden
 
 Gå til **Monitorer** og klik på **Opret monitor**. Under **Monitortype** skriver du `ntp` i søgefeltet og vælger **NTP**. Den findes også under **Flere monitortyper** i gruppen Netværk.
 
-### Giv den et navn
-
-Indtast et **Navn**, f.eks. `GPS-tidsserver`, og klik på **Næste**.
-
 ### Indtast serveren
 
-I **NTP-server** indtaster du serverens værtsnavn eller IP-adresse, f.eks. `time.example.com` eller `192.168.1.10`. Anmodningen går til port 123. Åbn **Flere felter** og angiv **Port** for at bruge en anden port.
+I **NTP-server** indtaster du serverens værtsnavn eller IP-adresse, f.eks. `time.example.com` eller `192.168.1.10`. Anmodningen går til port 123.
+
+### Giv den et navn
+
+**Navn** udfyldes ud fra det, du angav, som `time.example.com`. Behold det, eller angiv dit eget, som `GPS-tidsserver`, og klik så på **Næste**.
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde** og klik på **Kør test**. **Monitortestresultat** viser, om serveren svarede, om den er synkroniseret, dens stratum, og hvor meget dens ur afviger.
+Åbn **Flere felter** under **Monitor-mål** og angiv **Port** for at bruge en anden port. Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, om serveren svarede, om den er synkroniseret, dens stratum, og hvor meget dens ur afviger. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 

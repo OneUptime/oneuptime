@@ -1,6 +1,6 @@
 # Projectinstellingen
 
-Projectinstellingen bevat wat voor het hele project geldt: de naam, de tools waarmee het is verbonden, de sleutels, hoe mensen inloggen, de facturering en het audittraject. Het meeste stelt u één keer in en bekijkt u zelden opnieuw. Deze pagina is er een kaart van, en behandelt de instellingen zonder eigen pagina: de projectdetails, labels, functievlaggen en het verwijderen van het project.
+Projectinstellingen bevat wat voor het hele project geldt: de naam, de tools waarmee het is verbonden, de sleutels, hoe mensen inloggen, de facturering en het audittraject. Het meeste stelt u één keer in en bekijkt u zelden opnieuw. Deze pagina is er een kaart van, en behandelt de instellingen zonder eigen pagina: de projectdetails, labels en het verwijderen van het project.
 
 :::cards
 - [Een instelling vinden](#een-instelling-vinden): Wat elke sectie van het zijmenu bevat.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetrie & APM** | **Ingestiesleutels**, **Gegevensbewaring**, **Gebruik** | [Ingestiesleutels](/docs/telemetry/ingestion-keys), [Gegevensbewaring](/docs/telemetry/data-retention), [Telemetriegebruik](/docs/telemetry/usage) |
 | **Meldingen** | **Meldingskanalen**, **Meldingslogboeken**, **Mobiele apps** | [Meldingen](#meldingen) |
 | **AI** | **AI-functies**, **LLM-providers**, **Externe MCP-servers**, **AI-tegoeden**, **AI-resultaten**, **AI-logboeken**, **MCP-server** | [LLM-providers](/docs/ai/llm-provider), [Externe MCP-servers](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenbeheersing) |
-| **Geavanceerd** | **Domeinen**, **API-sleutels**, **Functievlaggen**, **Importeren uit een andere tool** | [Eigen domeinen](/docs/status-pages/branding-and-domains#aangepaste-domeinen), [API-sleutels](/docs/permissions/index#api-sleutels), [Functievlaggen](#functievlaggen), [Overstappen van Opsgenie](/docs/moving-to-oneuptime/opsgenie) en de andere overstapgidsen |
+| **Geavanceerd** | **Domeinen**, **API-sleutels**, **Importeren uit een andere tool** | [Eigen domeinen](/docs/status-pages/branding-and-domains#aangepaste-domeinen), [API-sleutels](/docs/permissions/index#api-sleutels), [Overstappen van Opsgenie](/docs/moving-to-oneuptime/opsgenie) en de andere overstapgidsen |
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |
 | **Auditlogboeken** | **Auditlogboeken**, **Instellingen**, **Export** | [Auditlogboeken](/docs/configuration/audit-logs), [Export van auditlogboek](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Elk product zegt wat het voor dit project is: **In gebruik**, **Niet ingesteld**
 
 Projecteigenaren, Projectbeheerders en iedereen die het project mag bewerken, wijzigen hem; alle anderen in het project kunnen hem zien.
 
+Onder **Monitoren** voegt de schakelaar **Monitorgroepen** monitorgroepen toe aan het menu Monitoren. Hij staat uit in een nieuw project, wordt opgeslagen zodra u hem omzet, en uitzetten verwijdert geen enkele groep. Wijzigen vereist de rol Projecteigenaar, of een aangepaste rol met de machtiging Edit Project of Manage Billing. Zie [Monitorgroepen](/docs/monitor/monitor-groups).
+
 ## Labels
 
 Labels zijn markeringen die u op monitors, incidenten, statuspagina's en andere resources zet. Ze filteren en groeperen lijsten, en ze beperken hoe ver de machtigingen van een team en de regels van het project reiken.
@@ -101,10 +103,6 @@ Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in
 - **Meldingskanalen**: de kaart **Meldingskanalen** zet sms, telefoongesprekken, WhatsApp en Telegram aan of uit voor het project. Alle vier staan bij het begin uit. Een Projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan. De pagina bevat ook, ingeklapt onder **Meer instellingen**, hoe leden standaard worden opgeroepen, in **Standaardreeks voor nieuwe leden** en **Telefoon voor mensen met dienst** (zie [De standaardreeks](/docs/notifications/on-call-rules#de-standaardreeks)), de eigen mailservers van het project, in **Aangepaste SMTP-configuraties** (zie [SMTP](/docs/emails/smtp)), en het eigen Twilio-account (zie [Twilio-integratie](/docs/self-hosted/twilio-integration)). In OneUptime Cloud bevat ze het saldo waaruit deze berichten worden betaald: zie [Vooruitbetaalde saldi](/docs/configuration/billing#vooruitbetaalde-saldi).
 - **Meldingslogboeken**: elke melding die het project heeft verstuurd, met één tabblad per kanaal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Oproep**, **Push** en **Werkruimte**. Het tabblad **Webhook** bewaart van elk adres alleen het schema en de host: de rest is het geheim van de webhook.
 - **Mobiele apps**: waar u de apps voor iOS en Android vindt. Zie [Apps – Overzicht](/docs/mobile-desktop-apps/index).
-
-## Functievlaggen
-
-**Projectinstellingen → Geavanceerd → Functievlaggen** zet optionele functies voor het project aan of uit. Elke functie is een schakelaar die wordt opgeslagen zodra u hem omzet. Vandaag bevat de pagina **Monitorgroepen**, uit in een nieuw project: zet het aan om monitorgroepen aan het menu Monitors toe te voegen. Uitzetten verwijdert geen enkele groep. Zie [Monitorgroepen](/docs/monitor/monitor-groups).
 
 ## Het project verwijderen
 

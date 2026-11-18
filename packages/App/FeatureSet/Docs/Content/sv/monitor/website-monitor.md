@@ -46,17 +46,17 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Webbplats** under **Monitortyp**.
 
-### Namnge den
-
-Ange ett **Namn**, som `Marketing site`, och klicka sedan på **Nästa**.
-
 ### Ange URL:en
 
-Ange sidans fullständiga adress under **Webbplats-URL**, inklusive `https://`, som `https://example.com`. För att ändra omdirigeringar, certifikat, tidsgränsen eller återförsök öppnar du **Fler fält** nedanför (se [Konfigurationsalternativ](#konfigurationsalternativ)).
+Ange sidans fullständiga adress under **Webbplats-URL**, inklusive `https://`, som `https://example.com`.
+
+### Namnge den
+
+**Namn** fylls i utifrån det du angav, som `example.com`. Behåll det eller ange ett eget, som `Marketing site`, och klicka sedan på **Nästa**.
 
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar vad sonden fick tillbaka.
+För att ändra omdirigeringar, certifikat, tidsgränsen eller återförsök öppnar du **Fler fält** under **Monitor-mål** (se [Konfigurationsalternativ](#konfigurationsalternativ)). Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar vad sonden fick tillbaka. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 
@@ -99,7 +99,7 @@ Använd `{{random}}` på samma sätt: `https://example.com/health?nocache={{rand
 
 ### Fler fält
 
-De här inställningarna är hopfällda under **Fler fält**, under URL:en. Den hopfällda rubriken nämner dem och visar vilka du har ändrat.
+De här inställningarna är hopfällda under **Fler fält**, i **Monitor-mål**. Den hopfällda rubriken nämner dem och visar vilka du har ändrat.
 
 | Fält | Standard | Vad det gör |
 | --- | --- | --- |

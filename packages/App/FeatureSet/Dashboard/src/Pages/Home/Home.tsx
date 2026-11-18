@@ -7,8 +7,14 @@ import HomeCommandBar, {
 } from "../../Components/Home/HomeCommandBar";
 import {
   HomeCounts,
+  HomeOverviewData,
   getHomeCounts,
+  getHomeOverviewOnServer,
 } from "../../Components/Home/HomeOverviewData";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
 import NeedsAttention from "../../Components/Home/NeedsAttention";
 import {
   ProjectHealthKind,
@@ -199,6 +205,19 @@ const Home: FunctionComponent<ComponentProps> = (
 
   const overview: UseHomeOverviewResult = useHomeOverview(currentProjectId);
 
+  /*
+   * What Home shows of it on this server (#7478): a product switched off
+   * here has no rows in Needs attention and no number in the headline, as
+   * its cell is gone from the strip.
+   */
+  const products: ProjectProductsState = useProjectProducts();
+  const offProducts: Array<ProductKey> = getOffProducts(
+    products.answer.offOnServer || {},
+  );
+  const data: HomeOverviewData | null = overview.data
+    ? getHomeOverviewOnServer(overview.data, offProducts)
+    : null;
+
   // Re-read once a minute, so "2 minutes ago" does not stay "just now".
   const now: Date = useClockTick(false);
 
@@ -257,9 +276,7 @@ const Home: FunctionComponent<ComponentProps> = (
   };
 
   const mode: HomeMode = getHomeMode(welcome);
-  const counts: HomeCounts | null = overview.data
-    ? getHomeCounts(overview.data)
-    : null;
+  const counts: HomeCounts | null = data ? getHomeCounts(data) : null;
 
   const commandBar: ReactElement = (
     <HomeCommandBar projectId={currentProjectIdString} gates={gates} />
@@ -275,7 +292,9 @@ const Home: FunctionComponent<ComponentProps> = (
       now={now}
       onRefresh={refresh}
       canCreateMonitor={isCreateFirstMonitorShown({
-        canCreateMonitor: gates.canCreateMonitor,
+        // Monitors switched off on the server: no monitor to create (#7478).
+        canCreateMonitor:
+          gates.canCreateMonitor && !offProducts.includes(ProductKey.Monitors),
         welcome: welcome,
       })}
     />
@@ -352,10 +371,8 @@ const Home: FunctionComponent<ComponentProps> = (
             <SetupCheckInCard
               projectId={currentProjectIdString}
               isInIncident={
-                overview.data
-                  ? overview.data.activeIncidents.count +
-                      overview.data.activeAlerts.count >
-                    0
+                data
+                  ? data.activeIncidents.count + data.activeAlerts.count > 0
                   : null
               }
               setupHealthCount={setupHealthCount}
@@ -376,7 +393,7 @@ const Home: FunctionComponent<ComponentProps> = (
               className={HOME_ROW_MAIN_COLUMN_CLASS_NAME}
             >
               <NeedsAttention
-                data={overview.data}
+                data={data}
                 isLoading={overview.isLoading}
                 now={now}
                 setupHealthCount={setupHealthCount}

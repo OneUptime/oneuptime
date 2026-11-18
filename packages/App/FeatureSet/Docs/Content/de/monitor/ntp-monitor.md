@@ -43,17 +43,17 @@ Ein Server, der antwortet, wird nicht erneut gefragt, auch wenn er ohne gute Zei
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Geben Sie unter **Monitortyp** `ntp` in das Suchfeld ein und wählen Sie **NTP**. Der Typ steht auch unter **Weitere Monitortypen**, in der Gruppe Netzwerk.
 
-### Einen Namen vergeben
-
-Geben Sie einen **Name** ein, zum Beispiel `GPS-Zeitserver`, und klicken Sie auf **Weiter**.
-
 ### Den Server eingeben
 
-Geben Sie unter **NTP-Server** den Hostnamen oder die IP-Adresse des Servers ein, zum Beispiel `time.example.com` oder `192.168.1.10`. Die Anfrage geht an Port 123. Für einen anderen Port öffnen Sie **Weitere Felder** und setzen **Port**.
+Geben Sie unter **NTP-Server** den Hostnamen oder die IP-Adresse des Servers ein, zum Beispiel `time.example.com` oder `192.168.1.10`. Die Anfrage geht an Port 123.
+
+### Einen Namen vergeben
+
+Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `time.example.com`. Behalten Sie ihn oder geben Sie einen eigenen ein, etwa `GPS-Zeitserver`, und klicken Sie dann auf **Weiter**.
 
 ### Testen
 
-Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, ob der Server geantwortet hat, ob er synchronisiert ist, sein Stratum und wie weit seine Uhr abweicht.
+Für einen anderen Port öffnen Sie **Weitere Felder** unter **Monitor-Ziel** und setzen **Port**. Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, ob der Server geantwortet hat, ob er synchronisiert ist, sein Stratum und wie weit seine Uhr abweicht. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 

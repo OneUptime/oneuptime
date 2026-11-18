@@ -20,9 +20,11 @@ import { isHideableProduct } from "./ProjectProducts";
  * on Home, not found by Search, not under More products, not pinned, and on
  * Project Settings > Products it reads "Switched off on this server" instead
  * of a switch. Its pages say it is switched off and who can switch it on,
- * and the API refuses to create, change or delete its records
- * (Server/Utils/ServerProducts). Reads keep working: products that are on
- * show records of others (an incident names its monitors).
+ * and the API, workflows and the Slack, Microsoft Teams and Mattermost apps
+ * refuse to create, change or delete its records (Server/Utils/
+ * ServerProducts, ProductWriteRefusal, ServerProductRoutes,
+ * WorkspaceProductRefusal, #7479). Reads keep working: products that are
+ * on show records of others (an incident names its monitors).
  *
  * Off changes what people see and use, never what is kept or what runs:
  * nothing is deleted, monitors keep checking, published status pages stay

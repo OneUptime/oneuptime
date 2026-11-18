@@ -310,7 +310,11 @@ describe("Which One Do I Use?, in English", () => {
       "Ingestion Keys",
     );
     expect(sectionByTitle(settings, "Advanced").items).toEqual(
-      expect.arrayContaining(["API Keys", "Feature Flags"]),
+      expect.arrayContaining(["API Keys"]),
+    );
+    // Monitor Groups is a switch on Products, under Monitors (#7324).
+    expect(sectionByTitle(settings, "Basic").items).toEqual(
+      expect.arrayContaining(["Products"]),
     );
 
     const keys: string = sectionUnder(ENGLISH, "### Ingestion key or API key?");
@@ -330,7 +334,7 @@ describe("Which One Do I Use?, in English", () => {
     expect(
       sectionUnder(ENGLISH, "## Monitor group, service or label?"),
     ).toContain(
-      "Monitor groups start turned off: turn them on under **Project Settings → Advanced → Feature Flags**.",
+      "Monitor groups start turned off: turn them on under **Project Settings → Basic → Products**.",
     );
   });
 

@@ -60,6 +60,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallLookupFailedLine from "./OnCallLookupFailedLine";
+import { getBellItemsOnServer } from "./BellItemsOnServer";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
 import CurrentOnCallPolicyModal from "../OnCallPolicy/CurrentOnCallPolicyModal";
 import useNotificationSetupNudge, {
   NotificationSetupNudgeState,
@@ -119,6 +122,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
+  // The server's off list rides in the current project's products answer.
+  const products: ProjectProductsState = useProjectProducts();
   const [incidentsCount, setIncidentsCount] = useState<number>(0);
   const [alertsCount, setAlertsCount] = useState<number>(0);
   const [alertEpisodesCount, setAlertEpisodesCount] = useState<number>(0);
@@ -756,7 +761,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         });
       }
 
-      return items;
+      // A product switched off on the server has no item here (#7478).
+      return getBellItemsOnServer(items, products.answer.offOnServer || {});
     };
 
   const handleNotificationItemClick: (item: NotificationItem) => void = (

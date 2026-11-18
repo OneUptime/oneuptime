@@ -49,17 +49,17 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 
 Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **IP** sotto **Monitoraggio di base**.
 
-### Dargli un nome
-
-Inserite un **Nome**, come `Office gateway`, poi fate clic su **Avanti**.
-
 ### Inserire l'indirizzo
 
 In **Indirizzo IP**, inserite l'indirizzo IPv4 o IPv6 da controllare, come `192.168.1.1` o `2001:db8::1`. Un nome host non viene accettato: il campo mostra un errore. Per pingare un host per nome, usate un [monitor ping](/docs/monitor/ping-monitor).
 
+### Dargli un nome
+
+Il **Nome** si compila con ciò che avete inserito, ad esempio `192.168.1.1`. Tenetelo o inseritene uno vostro, come `Office gateway`, poi fate clic su **Avanti**.
+
 ### Testarlo
 
-Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e fate clic su **Esegui test**. **Risultato del test del monitor** mostra i tempi di andata e ritorno e la perdita di pacchetti rilevati dalla sonda.
+Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra i tempi di andata e ritorno e la perdita di pacchetti rilevati dalla sonda. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 

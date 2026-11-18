@@ -547,7 +547,10 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -602,7 +605,10 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })
@@ -5742,4 +5748,43 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public productSettings?: JSONObject = undefined;
+
+  /*
+   * KEPT FOR THE RELEASE BEFORE, AND READ BY NOTHING HERE.
+   *
+   * Whether this was a sample project (issue #6808), when OneUptime still
+   * made them. Every one was deleted (RemoveSampleProject1809180800000), and
+   * nothing sets this any more.
+   *
+   * The column stays until a later release drops it (expand, then
+   * contract): the pods of the release before keep serving while a
+   * release's migrations run, and they filter every probe's claim of its
+   * monitors on it, and name it in every insert into "Project" - dropped,
+   * no probe check ran until the last of them was gone.
+   * KeepSampleProjectColumns1809183500000 puts it back where 15.0.0 already
+   * dropped it. Read and written by nobody, hidden from the documentation.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Is Sample Project",
+    description:
+      "Kept for the release before: whether this was a sample project. Always false.",
+    hideColumnInDocumentation: true,
+    example: "false",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isSampleProject?: boolean = undefined;
 }

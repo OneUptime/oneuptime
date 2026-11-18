@@ -152,8 +152,9 @@ function journey(
 
 /*
  * 1. Create a website monitor: Monitors from the products menu, Create
- * Monitor, Website, a name, the address, and the probes and interval as
- * they come (the Quickstart's "Monitor your website").
+ * Monitor, Website and its address - which names the monitor (#7463) - the
+ * criteria, and the probes and interval as they come (the Quickstart's
+ * "Monitor your website").
  */
 journey(
   "website-monitor",
@@ -165,9 +166,8 @@ journey(
     await person.openProduct("Monitors");
     await person.press(/Create Monitor/);
     await person.choose(/^Website/);
-    await person.type("Name", "Acme website");
-    await person.submit("Next");
     await person.type("Website URL", "https://acme-commerce.example");
+    await person.submit("Next");
     await person.submit("Next");
     await person.submit("Create Monitor");
     await expect(page).toHaveURL(/\/monitors\/[0-9a-f-]{36}/);
@@ -175,6 +175,8 @@ journey(
   (log: FixtureLog) => {
     const [monitor] = writesTo(log, "Monitor");
     expect(monitor?.data["monitorType"]).toBe("Website");
+    // Named by its address, as nobody wrote a name of their own.
+    expect(monitor?.data["name"]).toBe("acme-commerce.example");
     expect(JSON.stringify(monitor?.data["monitorSteps"])).toContain(
       "https://acme-commerce.example",
     );

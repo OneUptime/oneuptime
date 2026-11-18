@@ -49,17 +49,17 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **IP** onder **Basisbewaking**.
 
-### Hem een naam geven
-
-Vul een **Naam** in, zoals `Office gateway`, en klik dan op **Volgende**.
-
 ### Het adres invullen
 
 Vul onder **IP-adres** het IPv4- of IPv6-adres in dat gecontroleerd moet worden, zoals `192.168.1.1` of `2001:db8::1`. Een hostnaam wordt niet geaccepteerd: het veld toont een fout. Om een host bij naam te pingen, gebruikt u een [pingmonitor](/docs/monitor/ping-monitor).
 
+### Hem een naam geven
+
+De **Naam** wordt ingevuld met wat u invulde, zoals `192.168.1.1`. Houd die of vul uw eigen naam in, zoals `Office gateway`, en klik dan op **Volgende**.
+
 ### Hem testen
 
-Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. **Testresultaat van monitor** toont de roundtriptijden en het pakketverlies dat de sonde zag.
+Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont de roundtriptijden en het pakketverlies dat de sonde zag. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 

@@ -60,7 +60,7 @@ Indtast **Domænenavn**, for eksempel `example.com`. Lad **Opslagsmetode** stå 
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser den registreringspost, sonden læste, og om RDAP eller WHOIS svarede.
+Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser den registreringspost, sonden læste, og om RDAP eller WHOIS svarede. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 

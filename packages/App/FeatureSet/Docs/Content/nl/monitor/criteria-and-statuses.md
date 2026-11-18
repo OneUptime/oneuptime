@@ -170,7 +170,7 @@ Klik op **Wijzigingen opslaan**. De volgende controle wordt met de nieuwe criter
 
 ### De monitor testen
 
-Bij een monitor die sondes controleren, klikt u op de kaart op **Monitor testen**, kiest u een sonde onder **Selecteer sonde** en klikt u op **Test uitvoeren**. **Testresultaat van monitor** toont wat de controle vond.
+Bij een monitor die sondes controleren, klikt u op de kaart op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont wat de controle vond. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 :::
 
 Een handmatige monitor heeft geen criteria: u stelt zijn status zelf in. Zie [Status bijwerken](/docs/monitor/manual-monitor#de-status-bijwerken).

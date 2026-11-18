@@ -41,17 +41,17 @@ Cuando una comprobación falla, la sonda también traza la ruta hasta el host y 
 
 Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, elija **Puerto**.
 
-### Ponerle nombre
-
-Introduzca un **Nombre**, como `Orders database`, y haga clic en **Siguiente**.
-
 ### Introducir el host y el puerto
 
 En **Nombre de host o dirección IP**, introduzca el host en el que está el puerto, como `db.example.com` o `10.0.0.12`. En **Puerto**, introduzca el número de puerto, como `5432`.
 
+### Ponerle nombre
+
+El **Nombre** se rellena con lo que introdujo, por ejemplo `db.example.com:5432`. Consérvelo o introduzca uno propio, como `Orders database`, y haga clic en **Siguiente**.
+
 ### Probarlo
 
-Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra si se abrió la conexión y cuánto tardó cada parte.
+Haga clic en **Probar monitor**: la prueba empieza en una sonda que comprueba el monitor. Si quiere, elija otra en **Seleccionar sonda** y luego haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra si se abrió la conexión y cuánto tardó cada parte. También dice qué criterio cumple la respuesta y qué vendría después: el estado, el incidente o la alerta, y a quién se avisa.
 
 ### Revisar los criterios
 

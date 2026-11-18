@@ -186,6 +186,9 @@ function hold(deviceId: string, sequence: number): () => void {
 }
 
 function startWorker(): BullWorker {
+  // As a started server does: its workers take jobs (QueueWorker).
+  QueueWorker.startProcessingJobs();
+
   const worker: BullWorker = QueueWorker.getWorker(
     QueueName.Telemetry,
     async (job: QueueJob): Promise<void> => {

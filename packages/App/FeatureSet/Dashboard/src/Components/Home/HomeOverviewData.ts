@@ -17,6 +17,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /*
  * Everything Home's health card, stat strip and "Needs attention" list show,
@@ -395,6 +396,49 @@ export const fetchHomeOverview: (
     slosNeedingAttention,
     totalMonitors,
     totalSlos,
+  };
+};
+
+/*
+ * What Home shows of the batch on this server (#7478): a product switched
+ * off on it has no rows in Needs attention and no number in the headline -
+ * its open incidents, its alerts, its monitors that are down, its SLOs at
+ * risk, its maintenance in progress - as the stat strip leaves its cell out
+ * (OverviewStats). Its records are still read and kept: nothing is deleted,
+ * and switched on again it shows them as before. What a project has set up
+ * (its monitors and SLOs, counted) stays, so Home never tells a project
+ * whose monitors still check that nothing is monitored.
+ */
+export const getHomeOverviewOnServer: (
+  data: HomeOverviewData,
+  offProducts: ReadonlyArray<ProductKey>,
+) => HomeOverviewData = (
+  data: HomeOverviewData,
+  offProducts: ReadonlyArray<ProductKey>,
+): HomeOverviewData => {
+  const isOff: (product: ProductKey) => boolean = (
+    product: ProductKey,
+  ): boolean => {
+    return offProducts.includes(product);
+  };
+
+  return {
+    ...data,
+    activeIncidents: isOff(ProductKey.Incidents)
+      ? emptyList<Incident>()
+      : data.activeIncidents,
+    activeAlerts: isOff(ProductKey.Alerts)
+      ? emptyList<Alert>()
+      : data.activeAlerts,
+    notOperationalMonitors: isOff(ProductKey.Monitors)
+      ? emptyList<Monitor>()
+      : data.notOperationalMonitors,
+    ongoingMaintenance: isOff(ProductKey.ScheduledMaintenance)
+      ? emptyList<ScheduledMaintenance>()
+      : data.ongoingMaintenance,
+    slosNeedingAttention: isOff(ProductKey.Slos)
+      ? emptyList<ServiceLevelObjective>()
+      : data.slosNeedingAttention,
   };
 };
 

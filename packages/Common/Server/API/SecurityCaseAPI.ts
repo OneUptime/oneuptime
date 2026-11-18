@@ -106,6 +106,8 @@ import ResourceSecurity from "../Utils/SecurityEvent/Connections/ResourceSecurit
 import IncidentSecurity from "../Utils/SecurityEvent/Connections/IncidentSecurity";
 import SecurityRiskiestEntitiesReader from "../Utils/SecurityEvent/EntityRisk/SecurityRiskiestEntities";
 import { SecurityRiskiestEntities } from "../../Types/SecurityCase/SecurityEntityRisk";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -680,6 +682,7 @@ export default class SecurityCaseAPI extends BaseAPI<
       `${basePath}/:caseId/declare-incident`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -820,6 +823,7 @@ export default class SecurityCaseAPI extends BaseAPI<
       `${basePath}/setup/turn-on-recommended`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -888,6 +892,7 @@ export default class SecurityCaseAPI extends BaseAPI<
       `${basePath}/setup/test`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -986,6 +991,7 @@ export default class SecurityCaseAPI extends BaseAPI<
       `${basePath}/:caseId/ai-triage/start`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

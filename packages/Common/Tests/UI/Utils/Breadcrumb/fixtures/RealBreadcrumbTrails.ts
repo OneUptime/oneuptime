@@ -2778,11 +2778,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getSettingsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/settings/feature-flags",
-    titles: ["Project", "Settings", "Feature Flags"],
-  },
-  {
-    getter: "getSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/settings/invoices",
     titles: ["Project", "Settings", "Invoices"],
   },

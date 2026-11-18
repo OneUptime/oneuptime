@@ -41,17 +41,17 @@ Wanneer een controle mislukt, traceert de sonde ook de route naar de host en zoe
 
 Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **Poort**.
 
-### Hem een naam geven
-
-Vul een **Naam** in, zoals `Orders database`, en klik dan op **Volgende**.
-
 ### De host en de poort invullen
 
 Vul onder **Hostnaam of IP-adres** de host in waarop de poort zit, zoals `db.example.com` of `10.0.0.12`. Vul onder **Poort** het poortnummer in, zoals `5432`.
 
+### Hem een naam geven
+
+De **Naam** wordt ingevuld met wat u invulde, zoals `db.example.com:5432`. Houd die of vul uw eigen naam in, zoals `Orders database`, en klik dan op **Volgende**.
+
 ### Hem testen
 
-Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. **Testresultaat van monitor** toont of de verbinding openging, en hoe lang elk deel duurde.
+Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont of de verbinding openging, en hoe lang elk deel duurde. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 

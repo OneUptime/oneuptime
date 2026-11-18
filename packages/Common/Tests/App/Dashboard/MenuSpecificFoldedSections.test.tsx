@@ -299,16 +299,12 @@ describe("project Settings: only Basic starts open", () => {
         { title: "Domains", href: routeFor(PageMap.SETTINGS_DOMAINS) },
         { title: "API Keys", href: routeFor(PageMap.SETTINGS_APIKEYS) },
         {
-          title: "Feature Flags",
-          href: routeFor(PageMap.SETTINGS_FEATURE_FLAGS),
-        },
-        {
           title: "Import from another tool",
           href: routeFor(PageMap.SETTINGS_IMPORT_FROM_TOOL),
         },
       ]);
       // Every entry keeps its icon: the import's inbox-with-arrow came along.
-      expect(iconCountIn("Advanced")).toBe(4);
+      expect(iconCountIn("Advanced")).toBe(3);
       // Opening one section leaves the others as they were.
       expect(isExpanded("Basic")).toBe(true);
       expect(isExpanded("Security")).toBe(false);

@@ -1,4 +1,5 @@
 import File from "./File";
+import Project from "./Project";
 import UserModel from "../../Models/DatabaseModels/DatabaseBaseModel/UserModel";
 import Route from "../../Types/API/Route";
 import CompanySize from "../../Types/Company/CompanySize";
@@ -1147,6 +1148,72 @@ class User extends UserModel {
     nullable: true,
   })
   public feedbackQuestionsAsked?: JSONObject = undefined;
+
+  /*
+   * KEPT FOR THE RELEASE BEFORE, AND READ BY NOTHING HERE.
+   *
+   * The sample project a made-up person belonged to (issue #6808), when
+   * OneUptime still made sample projects. Every one of them was deleted
+   * (RemoveSampleProject1809180800000), and nothing sets this any more.
+   *
+   * The column stays until a later release drops it (expand, then
+   * contract): the pods of the release before keep serving while a
+   * release's migrations run, and every insert into "User" they make names
+   * it - dropped, nobody could sign up until the last of them was gone.
+   * KeepSampleProjectColumns1809183500000 puts it back where 15.0.0 already
+   * dropped it. Read and written by nobody, hidden from the documentation.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "sampleProjectId",
+    type: TableColumnType.Entity,
+    // Lazy: Project imports User back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return Project;
+    },
+    title: "Sample Project",
+    description:
+      "Kept for the release before: the sample project a made-up person belonged to. Never set.",
+    hideColumnInDocumentation: true,
+  })
+  @ManyToOne(
+    () => {
+      return Project;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "delete",
+    },
+  )
+  @JoinColumn({ name: "sampleProjectId" })
+  public sampleProject?: Project = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Sample Project ID",
+    description:
+      "Kept for the release before: the ID of the sample project a made-up person belonged to. Never set.",
+    hideColumnInDocumentation: true,
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public sampleProjectId?: ObjectID = undefined;
 }
 
 export default User;

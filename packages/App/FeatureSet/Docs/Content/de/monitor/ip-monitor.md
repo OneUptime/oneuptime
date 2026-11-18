@@ -49,17 +49,17 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **IP** unter **Grundlegende Überwachung**.
 
-### Ihn benennen
-
-Geben Sie einen **Name** ein, etwa `Office gateway`, und klicken Sie dann auf **Weiter**.
-
 ### Die Adresse eingeben
 
 Geben Sie unter **IP-Adresse** die IPv4- oder IPv6-Adresse ein, die geprüft werden soll, etwa `192.168.1.1` oder `2001:db8::1`. Ein Hostname wird nicht akzeptiert: Das Feld zeigt einen Fehler. Um einen Host beim Namen anzupingen, verwenden Sie einen [Ping-Monitor](/docs/monitor/ping-monitor).
 
+### Ihn benennen
+
+Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `192.168.1.1`. Behalten Sie ihn oder geben Sie einen eigenen ein, etwa `Office gateway`, und klicken Sie dann auf **Weiter**.
+
 ### Ihn testen
 
-Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt die Umlaufzeiten und den Paketverlust, die die Sonde gesehen hat.
+Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt die Umlaufzeiten und den Paketverlust, die die Sonde gesehen hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 

@@ -138,7 +138,7 @@ See [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ### Monitor Group
 
-Several monitors rolled up into one status, the worst among them, with its own uptime. A status page can show the whole group as one row. Turn monitor groups on under **Project Settings → Advanced → Feature Flags**.
+Several monitors rolled up into one status, the worst among them, with its own uptime. A status page can show the whole group as one row. Turn monitor groups on under **Project Settings → Basic → Products**.
 
 See [Monitor Groups](/docs/monitor/monitor-groups).
 

@@ -42,17 +42,17 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 
 Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Ping** under **Monitortype**.
 
-### Navngiv den
-
-Angiv et **Navn**, som `Core router`, og klik så på **Næste**.
-
 ### Angiv værten
 
 Angiv under **Værtsnavn eller IP-adresse** det værtsnavn eller den IPv4- eller IPv6-adresse, der skal pinges, som `example.com` eller `192.168.1.1`. Angiv kun værten, uden `http://` og uden port.
 
+### Navngiv den
+
+**Navn** udfyldes ud fra det, du angav, som `example.com`. Behold det, eller angiv dit eget, som `Core router`, og klik så på **Næste**.
+
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser de rundturstider og det pakketab, sonden så.
+Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser de rundturstider og det pakketab, sonden så. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 

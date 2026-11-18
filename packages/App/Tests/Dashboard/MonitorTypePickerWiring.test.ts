@@ -172,18 +172,24 @@ describe("monitor type picker wiring", () => {
   describe("Create Monitor asks what to monitor first", () => {
     const source: string = read("Pages", "Monitor", "Create.tsx");
 
-    test("the picker comes before the name, on Monitor Info", () => {
+    test("the picker, then where it is, then the name, on What to Monitor", () => {
       // The form's own field list, not the selects of the prefill reads above it.
       const fields: number = source.indexOf("fields={[");
       const picker: number = source.indexOf(
         "getMonitorTypeFormField<Monitor>({",
         fields,
       );
+      // The address a type's check is of, asked with the type (#7463).
+      const address: number = source.indexOf(
+        '...getMonitorAddressFormFields({ stepId: "monitor-info" }),',
+        fields,
+      );
       const name: number = source.indexOf("name: true,", fields);
 
       expect(fields).toBeGreaterThan(-1);
       expect(picker).toBeGreaterThan(fields);
-      expect(name).toBeGreaterThan(picker);
+      expect(address).toBeGreaterThan(picker);
+      expect(name).toBeGreaterThan(address);
       expect(source.slice(picker, picker + 120)).toContain(
         'stepId: "monitor-info"',
       );

@@ -195,7 +195,6 @@ const settingsEagerLeafModules: Array<string> = [
   "Settings/TelemetryIngestionKeyView",
   "Settings/TelemetrySettings",
   "Settings/Labels",
-  "Settings/FeatureFlags",
   "Settings/Domains",
   "Settings/Billing",
   "Settings/SSO",

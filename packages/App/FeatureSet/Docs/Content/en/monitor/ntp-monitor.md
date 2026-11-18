@@ -43,17 +43,17 @@ A server that answers is not asked again, even when it answers without good time
 
 Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, type `ntp` into the search box and pick **NTP**. It is also listed under **More monitor types**, in the Network group.
 
-### Name it
-
-Enter a **Name**, such as `GPS time server`, then click **Next**.
-
 ### Enter the server
 
-In **NTP Server**, enter the server's host name or IP address, such as `time.example.com` or `192.168.1.10`. The request goes to port 123. To use another port, open **More fields** and set **Port**.
+In **NTP Server**, enter the server's host name or IP address, such as `time.example.com` or `192.168.1.10`. The request goes to port 123.
+
+### Name it
+
+The **Name** fills in from what you entered, such as `time.example.com`. Keep it or enter your own, such as `GPS time server`, then click **Next**.
 
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows whether the server answered, whether it is synchronized, its stratum and how far its clock is off.
+To use another port, open **More fields** under **Monitor Target** and set **Port**. Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows whether the server answered, whether it is synchronized, its stratum and how far its clock is off. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 

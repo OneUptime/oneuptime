@@ -1,3 +1,4 @@
+import ProductKey from "../../Types/Product/ProductKey";
 import ScheduledMaintenancePublicNote from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import File from "../../Models/DatabaseModels/File";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -43,6 +44,7 @@ export default class ScheduledMaintenancePublicNoteAPI extends BaseAPI<
     // Approve, reject, send again and withdraw an edit (PublicNoteApprovalRoutes).
     PublicNoteApprovalRoutes.register({
       router: this.router,
+      product: ProductKey.ScheduledMaintenance,
       basePath: new this.entityType().getCrudApiPath()?.toString() || "",
       getHost: () => {
         return ScheduledMaintenancePublicNoteService.getApprovalHost();

@@ -20,6 +20,8 @@ import Express, {
 import DiscoveredDevices from "../Utils/NetworkDevice/DiscoveredDevices";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * THE DISCOVERED DEVICES LIST, OVER HTTP (Network > Discovered Devices,
@@ -132,6 +134,7 @@ router.post(
 router.post(
   "/network-discovered-device/hide-from-map",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -164,6 +167,7 @@ router.post(
 router.post(
   "/network-discovered-device/show-on-map",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -196,6 +200,7 @@ router.post(
 router.post(
   "/network-discovered-device/show-everything-on-map",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

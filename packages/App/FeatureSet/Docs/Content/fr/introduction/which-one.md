@@ -46,7 +46,7 @@ Tous les trois rassemblent des choses, pour des lecteurs différents. Ils foncti
 | [Service](/docs/telemetry/services) | Une application que OneUptime a trouvée dans votre télémétrie, avec ses journaux, traces, métriques, incidents et propriétaires sur une seule page. | Vous voulez tout ce qui concerne une application au même endroit. Il apparaît tout seul à partir de son `service.name`. |
 | [Étiquette](/docs/configuration/label-and-owner-rules) | Un mot-clé que vous posez sur les moniteurs et la plupart des autres enregistrements. Un enregistrement peut en porter plusieurs. | Vous voulez filtrer des listes, limiter les autorisations d'une équipe ou cibler des enregistrements dans des règles. |
 
-Les groupes de moniteurs sont désactivés au départ : activez-les sous **Paramètres du projet → Avancé → Drapeaux de fonctionnalités**.
+Les groupes de moniteurs sont désactivés au départ : activez-les sous **Paramètres du projet → Basique → Produits**.
 
 ## Sonde, agent, collecteur ou agent Runbook ?
 

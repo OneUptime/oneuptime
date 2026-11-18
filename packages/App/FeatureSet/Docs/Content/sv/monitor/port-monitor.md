@@ -41,17 +41,17 @@ När en kontroll misslyckas spårar sonden också vägen till värden och slår 
 
 Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Port** under **Monitortyp**.
 
-### Namnge den
-
-Ange ett **Namn**, som `Orders database`, och klicka sedan på **Nästa**.
-
 ### Ange värden och porten
 
 Ange under **Värdnamn eller IP-adress** den värd som porten finns på, som `db.example.com` eller `10.0.0.12`. Ange portnumret under **Port**, som `5432`.
 
+### Namnge den
+
+**Namn** fylls i utifrån det du angav, som `db.example.com:5432`. Behåll det eller ange ett eget, som `Orders database`, och klicka sedan på **Nästa**.
+
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar om anslutningen öppnades och hur lång tid varje del tog.
+Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar om anslutningen öppnades och hur lång tid varje del tog. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 

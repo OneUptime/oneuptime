@@ -185,6 +185,13 @@ function nameInput(form: Locator): Locator {
   return form.locator("input[placeholder='Monitor Name']");
 }
 
+// Where a type whose check is of one address checks: asked with it (#7463).
+function addressInput(form: Locator): Locator {
+  return form.getByTestId("monitor-address-input");
+}
+
+const STOREFRONT_URL: string = "https://storefront.acme-commerce.example";
+
 async function createsRecorded(page: Page): Promise<Array<RecordedCreate>> {
   return page.evaluate((): Array<RecordedCreate> => {
     const state: { creates?: Array<RecordedCreate> } | undefined = (
@@ -360,7 +367,7 @@ test.describe("Create Monitor's first step", () => {
     await expect(page.getByTestId("card-select-change")).toBeFocused();
   });
 
-  test("the rows are one tab stop, arrows walk them, Space picks, and Tab goes on to the name", async ({
+  test("the rows are one tab stop, arrows walk them, Space picks, and Tab goes on to where it is, then the name", async ({
     page,
   }: {
     page: Page;
@@ -383,6 +390,9 @@ test.describe("Create Monitor's first step", () => {
     );
     await expect(page.getByTestId("card-select-change")).toBeFocused();
 
+    // A type of one address asks where it is first (#7463), then the name.
+    await page.keyboard.press("Tab");
+    await expect(addressInput(form)).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(nameInput(form)).toBeFocused();
   });
@@ -396,10 +406,11 @@ test.describe("Create Monitor's first step", () => {
 
     const before: number = (await boxOf(nameInput(form))).y;
 
-    await option(page, "Website").click();
+    // A heartbeat has no address to ask, so the name comes right after it.
+    await option(page, "Incoming Request").click();
 
     await expect(summary(page)).toBeVisible();
-    await expect(summary(page)).toContainText("Website");
+    await expect(summary(page)).toContainText("Incoming Request");
     await expect(page.getByTestId("card-select-change")).toHaveText("Change");
 
     const after: number = (await boxOf(nameInput(form))).y;
@@ -1496,6 +1507,350 @@ test.describe("A monitor template's More monitor types", () => {
   });
 });
 
+/*
+ * WHAT TO MONITOR ASKS WHERE IT IS, WITH THE TYPE (#7463).
+ *
+ * The walker picked Website, named the monitor, and found the address on
+ * the next step - named "Criteria" - beside a fold called "URL placeholder
+ * help". The address is asked right after the type now, the name follows
+ * it, and the fold under a website's or an API's address says what it is
+ * for. What only a browser can show: it fits a phone, sits on a dark
+ * surface in dark mode, and on a right-to-left page its label starts the
+ * line while the address reads left to right.
+ */
+test.describe("What to Monitor asks where it is", () => {
+  test("on a phone: the address, its help and the name fit, nothing wider than the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const form: Locator = await openCreate(page);
+
+    await option(page, "Website").click();
+    await addressInput(form).fill(STOREFRONT_URL);
+    await expect(nameInput(form)).toHaveValue(
+      "storefront.acme-commerce.example",
+    );
+
+    for (const shown of [
+      addressInput(form),
+      nameInput(form),
+      form.getByText("Bypass caches on every check", { exact: true }),
+    ]) {
+      const box: { x: number; width: number } = await boxOf(shown);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
+
+    await expectNoSidewaysScroll(page);
+    await atRest(page);
+    await screenshot(page, "create-monitor-address-phone");
+  });
+
+  test("dark mode: the address box sits on a dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const form: Locator = await openCreate(page, "?theme=dark");
+
+    await option(page, "API").click();
+    await addressInput(form).fill("https://api.acme-commerce.example/health");
+
+    const colors: { background: string; text: string } = await addressInput(
+      form,
+    ).evaluate((element: Element): { background: string; text: string } => {
+      return {
+        background: getComputedStyle(element).backgroundColor,
+        text: getComputedStyle(element).color,
+      };
+    });
+    expect(colors.background).not.toBe(WHITE_RGB);
+    expect(colors.text).not.toBe("rgb(17, 24, 39)");
+    await expect(nameInput(form)).toHaveValue(
+      "api.acme-commerce.example/health",
+    );
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-address-dark");
+  });
+
+  test("in Persian, on a phone: the label starts the line, and the address reads left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const form: Locator = await openCreate(page, "?lang=fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await option(page, "Website").click();
+
+    const address: Locator = addressInput(form);
+    await expect(address).toHaveAttribute("dir", "ltr");
+    await address.fill(STOREFRONT_URL);
+
+    const label: Locator = form
+      .getByTestId("monitor-address-field")
+      .getByText(dashboardWord("fa", "Website URL"), { exact: true });
+    await expect(label).toBeVisible();
+    await expect(
+      form.getByText(dashboardWord("fa", "Bypass caches on every check"), {
+        exact: true,
+      }),
+    ).toBeVisible();
+
+    // The start of a right-to-left line is its right edge.
+    const labelBox: { x: number; width: number } = await boxOf(label);
+    const addressBox: { x: number; width: number } = await boxOf(address);
+    expect(
+      Math.abs(labelBox.x + labelBox.width - (addressBox.x + addressBox.width)),
+    ).toBeLessThan(24);
+
+    await expectNoSidewaysScroll(page);
+    await atRest(page);
+    await screenshot(page, "create-monitor-address-fa-phone");
+  });
+
+  test("a Port monitor asks its port beside the host, is named after both, and the criteria step says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    const form: Locator = await openCreate(page);
+
+    await option(page, "Port").click();
+    await addressInput(form).fill("db.acme-commerce.example");
+
+    // No port yet: the step says so, by the field, and stays.
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(
+      form.getByText("Enter the port to check, like 443."),
+    ).toBeVisible();
+
+    await form.getByRole("textbox", { name: /^Port/ }).fill("5432");
+    await expect(nameInput(form)).toHaveValue("db.acme-commerce.example:5432");
+
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(form.getByTestId("monitor-target-address")).toHaveText(
+      "Checks db.acme-commerce.example:5432.",
+      { timeout: 60000 },
+    );
+    // Asked once: no second host or port box on the criteria step.
+    await expect(form.getByPlaceholder("443", { exact: true })).toHaveCount(0);
+  });
+});
+
+/*
+ * TEST MONITOR ON CREATE MONITOR'S CRITERIA STEP (#7985, #7074).
+ *
+ * Select Probe started empty, though the project had one probe or the form
+ * had picked its probes, and the result said what the probe found and
+ * nothing of what it meant. It starts on a probe the monitor is checked
+ * from - the only one, asking nothing - and the result says first which
+ * criteria the answer matched and what would follow: the status, the
+ * incident or alert, who is told.
+ *
+ * The fixture's probe answers on the first read of the test row
+ * (?monitorTest=), which the dialog polls every fifteen seconds.
+ */
+test.describe("Test Monitor on Create Monitor", () => {
+  async function openCriteriaOf(
+    page: Page,
+    query: string,
+    language: string = "en",
+  ): Promise<Locator> {
+    const form: Locator = await openCreate(
+      page,
+      `?monitorType=Website${query}`,
+    );
+
+    await addressInput(form).fill(STOREFRONT_URL);
+    await form
+      .getByPlaceholder(dashboardWord(language, "Monitor Name"), {
+        exact: true,
+      })
+      .fill("Storefront");
+    await form.getByTestId("form-next-button").click();
+    await expect(form.getByTestId("monitor-target-address")).toBeVisible({
+      timeout: 60000,
+    });
+
+    return form;
+  }
+
+  function verdict(page: Page): Locator {
+    return page.getByTestId("monitor-test-verdict");
+  }
+
+  /*
+   * Runs the test, and moves the page's clock past Test Monitor's poll -
+   * fifteen seconds (MONITOR_TEST_POLL_INTERVAL_IN_MS) - rather than wait
+   * it out: the probe's answer is read on the poll's first tick.
+   */
+  async function runTest(page: Page, buttonName: string): Promise<void> {
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: buttonName, exact: true })
+      .click();
+    await expect(page.getByTestId("modal")).toBeVisible();
+    await page.clock.fastForward("00:16");
+  }
+
+  test("with one probe in all it runs there and asks nothing; the result says which criteria matched and what follows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(150000);
+
+    await openCriteriaOf(page, "&probes=self-hosted");
+
+    await page.getByTestId("test-monitor-button").click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("test-monitor-only-probe")).toHaveText(
+      "The check runs from Self-hosted probe.",
+    );
+    await expect(dialog.getByText("Select Probe")).toHaveCount(0);
+
+    await runTest(page, "Run Test");
+
+    await expect(verdict(page)).toBeVisible({ timeout: 60000 });
+    await expect(verdict(page)).toHaveAttribute("data-matched", "true");
+    await expect(verdict(page)).toContainText(
+      "This result matches Check if Storefront is online.",
+    );
+    await expect(
+      page.getByTestId("monitor-test-verdict-follows"),
+    ).not.toBeEmpty();
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-test-result");
+  });
+
+  test("starts on the probe the form picked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(150000);
+
+    const form: Locator = await openCriteriaOf(page, "");
+
+    // Pick Frankfurt on Probes & Interval, then walk back to the criteria.
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    await page.getByRole("combobox", { name: /^Probes/ }).click();
+    await page
+      .getByRole("option", { name: "Frankfurt (eu-central-1)", exact: true })
+      .click();
+    await page.keyboard.press("Escape");
+    await page
+      .getByRole("navigation", { name: "Progress" })
+      .getByRole("button", { name: "Criteria", exact: true })
+      .click();
+    await expect(form.getByTestId("monitor-target-address")).toBeVisible({
+      timeout: 60000,
+    });
+
+    await page.getByTestId("test-monitor-button").click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("Frankfurt (eu-central-1)");
+
+    await runTest(page, "Run Test");
+    await expect(verdict(page)).toBeVisible({ timeout: 60000 });
+
+    const creates: Array<RecordedCreate> = await createsRecorded(page);
+    expect(creates[0]!.modelName).toBe("MonitorTest");
+    expect(JSON.stringify(creates[0]!.data["probeId"])).toContain(
+      FRANKFURT_PROBE_ID,
+    );
+  });
+
+  test("an answer that is down, in dark mode on a phone: the incident and who is told, inside the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(150000);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await openCriteriaOf(
+      page,
+      "&probes=self-hosted&monitorTest=offline&theme=dark",
+    );
+
+    await page.getByTestId("test-monitor-button").click();
+    await runTest(page, "Run Test");
+
+    await expect(verdict(page)).toBeVisible({ timeout: 60000 });
+    await expect(verdict(page)).toContainText(
+      "This result matches Check if Storefront is offline.",
+    );
+    await expect(
+      page.getByTestId("monitor-test-verdict-follows"),
+    ).toContainText("Ana Lopez");
+
+    const background: string = await verdict(page).evaluate(
+      (element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      },
+    );
+    expect(background).not.toBe(WHITE_RGB);
+
+    const box: { x: number; width: number } = await boxOf(verdict(page));
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-test-result-dark-phone");
+  });
+
+  test("in Persian: the result says it in Persian, right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(150000);
+
+    await openCriteriaOf(
+      page,
+      "&probes=self-hosted&monitorTest=offline&lang=fa",
+      "fa",
+    );
+
+    await page.getByTestId("test-monitor-button").click();
+    await runTest(page, dashboardWord("fa", "Run Test"));
+
+    await expect(verdict(page)).toBeVisible({ timeout: 60000 });
+    // Matched by what it does, whatever its name's language.
+    await expect(verdict(page)).toHaveAttribute("data-matched", "true");
+    await expect(
+      page.getByTestId("monitor-test-verdict-follows"),
+    ).toContainText("Ana Lopez");
+
+    // The sentence's own words, around the criteria's name.
+    const matches: string = dashboardWord(
+      "fa",
+      "This result matches {{criteria}}.",
+    );
+    const before: string = matches.split("{{criteria}}")[0]!.trim();
+    expect(before).not.toBe("");
+    await expect(verdict(page)).toContainText(before);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-test-result-fa");
+  });
+});
+
 test.describe("Create Monitor, start to finish", () => {
   test("a website monitor: folded default criteria, no early error, then Create Monitor", async ({
     page,
@@ -1507,10 +1862,44 @@ test.describe("Create Monitor, start to finish", () => {
     const form: Locator = await openCreate(page);
 
     await option(page, "Website").click();
+
+    /*
+     * Where it is comes right after the type, before the name (#7463): the
+     * field says what to type, with an example in the box, and the fold
+     * under it says what it is for.
+     */
+    const url: Locator = addressInput(form);
+    await expect(url).toBeVisible();
+    await expect(url).toHaveAttribute("placeholder", "https://example.com");
+    await expect(
+      form.getByText("The page to check, like https://example.com."),
+    ).toBeVisible();
+    await expect(
+      form.getByText("Bypass caches on every check", { exact: true }),
+    ).toBeVisible();
+    await expect(form.getByText("URL placeholder help")).toHaveCount(0);
+    expect((await boxOf(url)).y).toBeLessThan((await boxOf(nameInput(form))).y);
+
+    // No error before anything is typed.
+    await expect(form.getByText("Enter the address to check.")).toHaveCount(0);
+
+    await screenshot(page, "create-monitor-what-to-monitor");
+
+    // Next with no address: the step says what is missing, by the field.
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    const missing: Locator = form.getByText("Enter the address to check.");
+    await expect(missing).toBeVisible();
+    await expect(missing).toBeInViewport();
+
+    // The name follows the address, until one of the person's own is written.
+    await url.fill(STOREFRONT_URL);
+    await expect(nameInput(form)).toHaveValue(
+      "storefront.acme-commerce.example",
+    );
     await nameInput(form).fill("Storefront checkout");
     await form.getByRole("button", { name: "Next", exact: true }).click();
 
-    // The criteria step: what to check first, the criteria folded below.
+    // The criteria step: what it checks first, the criteria folded below.
     await expect(
       form
         .getByTestId("card-details-heading")
@@ -1551,29 +1940,19 @@ test.describe("Create Monitor, start to finish", () => {
     });
     expect(blankBelow).toBeLessThan(300);
 
-    // No error before anything is typed.
+    // No error, and no second box for the address: it says what it checks.
     await expect(
       form.getByText("Monitor Destination is required."),
     ).toHaveCount(0);
-
-    // The address field says what to type, with an example in the box.
-    const url: Locator = form.getByPlaceholder("https://example.com", {
-      exact: true,
-    });
-    await expect(url).toBeVisible();
     await expect(
-      form.getByText("The page to check, like https://example.com."),
-    ).toBeVisible();
+      form.getByPlaceholder("https://example.com", { exact: true }),
+    ).toHaveCount(0);
+    await expect(form.getByTestId("monitor-target-address")).toContainText(
+      `Checks ${STOREFRONT_URL}`,
+    );
 
     await screenshot(page, "create-monitor-criteria");
 
-    // Next with no address: now the step says what is missing, by Next.
-    await form.getByRole("button", { name: "Next", exact: true }).click();
-    const missing: Locator = form.getByText("Monitor Destination is required.");
-    await expect(missing).toBeVisible();
-    await expect(missing).toBeInViewport();
-
-    await url.fill("https://storefront.acme-commerce.example");
     await form.getByRole("button", { name: "Next", exact: true }).click();
 
     // Probes & Interval: the default interval, and one probe picked.
@@ -2109,8 +2488,9 @@ test.describe("Create Monitor's plainer fields", () => {
   /*
    * The step list beside the form is as wide as its titles. Only a step not
    * reached yet kept its title on one line, so on the last step "Probes &
-   * Interval" and "Monitor Info" wrapped and the form beside them moved, and
-   * a two-step form wrapped "Monitor Info" from the start.
+   * Interval" and "Monitor Info" - What to Monitor now (#7463) - wrapped and
+   * the form beside them moved, and a two-step form wrapped it from the
+   * start.
    */
   async function stepList(page: Page): Promise<{
     width: number;
@@ -2141,19 +2521,21 @@ test.describe("Create Monitor's plainer fields", () => {
     await page.setViewportSize({ width: 1280, height: 1000 });
 
     const form: Locator = await openCreate(page, "?monitorType=Website");
+    await addressInput(form).fill(STOREFRONT_URL);
     await nameInput(form).fill("Storefront");
+
+    const onFirstStep: { width: number; titleHeights: Array<number> } =
+      await stepList(page);
+
     await form.getByRole("button", { name: "Next", exact: true }).click();
-    await expect(
-      form.getByPlaceholder("https://example.com", { exact: true }),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(form.getByTestId("monitor-target-address")).toBeVisible({
+      timeout: 60000,
+    });
 
     const onCriteria: { width: number; titleHeights: Array<number> } =
       await stepList(page);
     expect(onCriteria.titleHeights).toHaveLength(3);
 
-    await form
-      .getByPlaceholder("https://example.com", { exact: true })
-      .fill("https://storefront.acme-commerce.example");
     await form.getByRole("button", { name: "Next", exact: true }).click();
     await expect(page.getByRole("combobox", { name: /^Probes/ })).toBeVisible({
       timeout: 30000,
@@ -2164,16 +2546,18 @@ test.describe("Create Monitor's plainer fields", () => {
 
     // One line each (a two-line title is about 40px tall).
     for (const height of [
+      ...onFirstStep.titleHeights,
       ...onCriteria.titleHeights,
       ...onLastStep.titleHeights,
     ]) {
       expect(height).toBeLessThan(28);
     }
     // The list, and so the form beside it, did not move.
+    expect(Math.abs(onCriteria.width - onFirstStep.width)).toBeLessThan(1);
     expect(Math.abs(onLastStep.width - onCriteria.width)).toBeLessThan(1);
   });
 
-  test("a two-step form keeps Monitor Info on one line", async ({
+  test("a two-step form keeps What to Monitor on one line", async ({
     page,
   }: {
     page: Page;
@@ -2396,6 +2780,7 @@ test.describe("Create Monitor's plainer fields", () => {
 
     const form: Locator = await openCreate(page, "?monitorType=Website");
 
+    await addressInput(form).fill(STOREFRONT_URL);
     await nameInput(form).fill("Storefront");
     await form.getByRole("button", { name: "Next", exact: true }).click();
 
@@ -2460,6 +2845,7 @@ test.describe("Create Monitor's plainer fields", () => {
 
     const form: Locator = await openCreate(page, "?monitorType=Website");
 
+    await addressInput(form).fill(STOREFRONT_URL);
     await nameInput(form).fill("Storefront");
     await form.getByRole("button", { name: "Next", exact: true }).click();
 
@@ -2468,9 +2854,9 @@ test.describe("Create Monitor's plainer fields", () => {
     await expect(moreFields).toHaveAttribute("data-variant", "line");
 
     /*
-     * In the Monitor Target card, under the URL: no card of its own any
-     * more, so drawn after the card it would open its fields loose between
-     * two cards.
+     * In the Monitor Target card, under what it checks - the URL asked
+     * with the type (#7463): no card of its own any more, so drawn after
+     * the card it would open its fields loose between two cards.
      */
     // The card nearest the title: the page's own card holds this one too.
     const target: Locator = page
@@ -2478,9 +2864,12 @@ test.describe("Create Monitor's plainer fields", () => {
       .locator("xpath=ancestor::*[@data-testid='card'][1]");
     await expect(target).toHaveCount(1);
     await expect(target.getByTestId("monitor-step-more-fields")).toHaveCount(1);
+    await expect(target.getByTestId("monitor-target-address")).toContainText(
+      `Checks ${STOREFRONT_URL}`,
+    );
 
     const [url, line] = await boxesInOneFrame([
-      target.getByPlaceholder("https://example.com"),
+      target.getByTestId("monitor-target-address"),
       moreFields,
     ]);
     expect(line!.y).toBeGreaterThan(url!.y);
@@ -2579,13 +2968,12 @@ test.describe("Create Monitor's Probes definition", () => {
     );
 
     const form: Locator = await openCreate(page, "?monitorType=Website");
+    await addressInput(form).fill(STOREFRONT_URL);
     await nameInput(form).fill("Storefront");
     await form.getByRole("button", { name: "Next", exact: true }).click();
-    const url: Locator = form.getByPlaceholder("https://example.com", {
-      exact: true,
+    await expect(form.getByTestId("monitor-target-address")).toBeVisible({
+      timeout: 60000,
     });
-    await expect(url).toBeVisible({ timeout: 60000 });
-    await url.fill("https://storefront.acme-commerce.example");
     await form.getByRole("button", { name: "Next", exact: true }).click();
 
     const probes: Locator = page.getByRole("combobox", { name: /^Probes/ });
@@ -2728,6 +3116,7 @@ test.describe("Create Monitor's Criteria definition", () => {
     );
 
     const form: Locator = await openCreate(page, "?monitorType=Website");
+    await addressInput(form).fill(STOREFRONT_URL);
     await nameInput(form).fill("Storefront");
     await form.getByRole("button", { name: "Next", exact: true }).click();
 

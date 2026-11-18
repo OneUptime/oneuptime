@@ -777,7 +777,6 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/settings/slack-integration",
   "/dashboard/:projectId/settings/microsoft-teams-integration",
   "/dashboard/:projectId/settings/domains",
-  "/dashboard/:projectId/settings/feature-flags",
   "/dashboard/:projectId/settings/sso",
   "/dashboard/:projectId/settings/oidc",
   "/dashboard/:projectId/settings/scim",

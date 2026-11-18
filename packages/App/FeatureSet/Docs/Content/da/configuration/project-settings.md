@@ -1,6 +1,6 @@
 # Projektindstillinger
 
-Projektindstillinger rummer det, der gælder for hele projektet: navnet, de værktøjer, det er forbundet til, nøglerne, hvordan folk logger ind, faktureringen og revisionssporet. Det meste sætter du op én gang og vender sjældent tilbage til. Denne side er et kort over det og dækker de indstillinger, der ikke har en side for sig selv: projektets detaljer, etiketter, funktionsflag og sletning af projektet.
+Projektindstillinger rummer det, der gælder for hele projektet: navnet, de værktøjer, det er forbundet til, nøglerne, hvordan folk logger ind, faktureringen og revisionssporet. Det meste sætter du op én gang og vender sjældent tilbage til. Denne side er et kort over det og dækker de indstillinger, der ikke har en side for sig selv: projektets detaljer, etiketter og sletning af projektet.
 
 :::cards
 - [Find en indstilling](#find-en-indstilling): Hvad hvert afsnit i sidemenuen rummer.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring**, **Forbrug** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention), [Telemetriforbrug](/docs/telemetry/usage) |
 | **Notifikationer** | **Notifikationskanaler**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
 | **AI** | **AI-funktioner**, **LLM-udbydere**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-resultater**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
-| **Avanceret** | **Domæner**, **API-nøgler**, **Funktionsflag**, **Importér fra et andet værktøj** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Funktionsflag](#funktionsflag), [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flyttevejledninger |
+| **Avanceret** | **Domæner**, **API-nøgler**, **Importér fra et andet værktøj** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flyttevejledninger |
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Fakturaer** | [Fakturering og forbrug](/docs/configuration/billing) |
 | **Auditlogs** | **Auditlogs**, **Indstillinger**, **Eksport** | [Auditlogs](/docs/configuration/audit-logs), [Eksport af auditlog](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Hvert produkt siger, hvad det er for dette projekt: **I brug**, **Ikke sat op** 
 
 Projektejere, Projektadministratorer og alle, der må redigere projektet, ændrer den; alle andre i projektet kan se den.
 
+Under **Monitorer** føjer kontakten **Monitorgrupper** monitorgrupper til menuen Monitorer. Den er slået fra i et nyt projekt og gemmes, når du slår den om, og at slå den fra sletter ingen gruppe. At ændre den kræver rollen Projektejer, eller en brugerdefineret rolle med tilladelsen Edit Project eller Manage Billing. Se [Monitorgrupper](/docs/monitor/monitor-groups).
+
 ## Etiketter
 
 Etiketter er mærker, du sætter på monitorer, hændelser, statussider og andre ressourcer. De filtrerer og grupperer lister, og de begrænser, hvor langt et teams tilladelser og projektets regler rækker.
@@ -101,10 +103,6 @@ For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet 
 - **Notifikationskanaler**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Projektejer, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, hvordan medlemmer tilkaldes som standard, i **Standardrækkefølge for nye medlemmer** og **Telefon for folk på vagt** (se [Standardrækkefølgen](/docs/notifications/on-call-rules#standardrækkefølgen)), projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
 - **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**. Fanen **Webhook** beholder kun skemaet og værten i hver adresse: resten er webhookens hemmelighed.
 - **Mobilapps**: hvor du får apps til iOS og Android. Se [Apps – Oversigt](/docs/mobile-desktop-apps/index).
-
-## Funktionsflag
-
-**Projektindstillinger → Avanceret → Funktionsflag** slår valgfrie funktioner til eller fra for projektet. Hver er en kontakt, der gemmes, når du slår den om. I dag rummer siden **Monitorgrupper**, slået fra i et nyt projekt: slå det til for at føje monitorgrupper til menuen Monitorer. At slå det fra sletter ingen gruppe. Se [Monitorgrupper](/docs/monitor/monitor-groups).
 
 ## Slet projektet
 

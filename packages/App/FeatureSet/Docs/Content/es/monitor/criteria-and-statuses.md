@@ -170,7 +170,7 @@ Haga clic en **Guardar cambios**. La siguiente comprobación se juzga con los nu
 
 ### Probar el monitor
 
-En un monitor que comprueban sondas, haga clic en **Probar monitor** en la tarjeta, elija una sonda en **Seleccionar sonda** y haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que encontró la comprobación.
+En un monitor que comprueban sondas, haga clic en **Probar monitor** en la tarjeta: la prueba empieza en una sonda que comprueba el monitor. Si quiere, elija otra en **Seleccionar sonda** y luego haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que encontró la comprobación. También dice qué criterio cumple la respuesta y qué vendría después: el estado, el incidente o la alerta, y a quién se avisa.
 :::
 
 Un monitor manual no tiene criterios: usted fija su estado. Consulte [Actualizar el estado](/docs/monitor/manual-monitor#actualizar-el-estado).

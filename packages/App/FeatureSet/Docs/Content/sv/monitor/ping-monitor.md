@@ -42,17 +42,17 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Ping** under **Monitortyp**.
 
-### Namnge den
-
-Ange ett **Namn**, som `Core router`, och klicka sedan på **Nästa**.
-
 ### Ange värden
 
 Ange under **Värdnamn eller IP-adress** värdnamnet eller den IPv4- eller IPv6-adress som ska pingas, som `example.com` eller `192.168.1.1`. Ange bara värden, utan `http://` och utan port.
 
+### Namnge den
+
+**Namn** fylls i utifrån det du angav, som `example.com`. Behåll det eller ange ett eget, som `Core router`, och klicka sedan på **Nästa**.
+
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar de tur och retur-tider och den paketförlust som sonden såg.
+Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar de tur och retur-tider och den paketförlust som sonden såg. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 

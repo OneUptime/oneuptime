@@ -11,6 +11,7 @@ import logger, { LogAttributes } from "../../Logger";
 import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES,
 } from "./MicrosoftTeamsMessageSize";
+import WorkspaceProductRefusal from "../WorkspaceProductRefusal";
 
 /*
  * Replies the Microsoft Teams bot sends, and the rule they follow: an inbound
@@ -210,7 +211,8 @@ export default class MicrosoftTeamsReplies {
     if (
       (error instanceof BadDataException ||
         error instanceof NotAuthorizedException ||
-        error instanceof PaymentRequiredException) &&
+        error instanceof PaymentRequiredException ||
+        WorkspaceProductRefusal.isRefusal(error)) &&
       error.message
     ) {
       return error.message;

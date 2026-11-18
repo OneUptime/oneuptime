@@ -75,6 +75,13 @@ enum ActivationMilestone {
   FirstMetricsReceived = "first_metrics_received",
   FirstExceptionsReceived = "first_exceptions_received",
   FirstProfilesReceived = "first_profiles_received",
+
+  /*
+   * The project's first AI call ClickHouse accepted: a span an AI / LLM
+   * app's instrumentation, or a company AI tool's connection, sent as a
+   * GenAI call (isLlmSpan) - what AI / LLM's Conversations lists (#7325).
+   */
+  FirstLlmCallsReceived = "first_llm_calls_received",
 }
 
 export default ActivationMilestone;
@@ -171,6 +178,11 @@ export const ACTIVATION_MILESTONE_DETAILS: ReadonlyArray<ActivationMilestoneDeta
       milestone: ActivationMilestone.FirstProfilesReceived,
       title: translationKey("First profiles received"),
       missingText: translationKey("No profiles yet"),
+    },
+    {
+      milestone: ActivationMilestone.FirstLlmCallsReceived,
+      title: translationKey("First AI calls received"),
+      missingText: translationKey("No AI calls yet"),
     },
   ];
 

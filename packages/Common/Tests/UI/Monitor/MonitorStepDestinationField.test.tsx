@@ -12,10 +12,14 @@ import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import MonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorStep";
 import { getMonitorDestinationFieldCopy } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitorDestinationFieldCopy";
+import Hostname from "../../../Types/API/Hostname";
+import URL from "../../../Types/API/URL";
+import IP from "../../../Types/IP/IP";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import Port from "../../../Types/Port";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -343,12 +347,16 @@ const DESTINATION_TYPES: Array<MonitorType> = [
   MonitorType.Port,
 ];
 
-function editor(monitorType: MonitorType): ReactElement {
+function editor(
+  monitorType: MonitorType,
+  options: { value?: MonitorStep; isAddressAskedFirst?: boolean } = {},
+): ReactElement {
   return (
     <MemoryRouter>
       <MonitorStepForm
-        value={new MonitorStep()}
+        value={options.value || new MonitorStep()}
         monitorType={monitorType}
+        isAddressAskedFirst={options.isAddressAskedFirst}
         onChange={() => {}}
         monitorStatusDropdownOptions={[]}
         incidentSeverityDropdownOptions={[]}
@@ -464,4 +472,149 @@ describe("the address field of a new probe check", () => {
       expect(input).toHaveAccessibleDescription(copy!.description);
     },
   );
+});
+
+/*
+ * #7463: Create Monitor asks the address with the type, on What to Monitor.
+ * Its Criteria step's Monitor Target then says what the step checks, and
+ * keeps only the type's other settings: no second box for the address, and
+ * no second Port box.
+ */
+describe("Monitor Target, when the address was asked with the type", () => {
+  function stepWith(data: {
+    destination: URL | IP | Hostname;
+    port?: Port;
+  }): MonitorStep {
+    const step: MonitorStep = new MonitorStep();
+    step.setMonitorDestination(data.destination);
+
+    if (data.port) {
+      step.setPort(data.port);
+    }
+
+    return step;
+  }
+
+  function target(): HTMLElement {
+    return screen.getByTestId("monitor-target-address");
+  }
+
+  test.each([
+    [
+      MonitorType.Website,
+      URL.fromString("https://example.com/shop"),
+      "https://example.com/shop",
+    ],
+    [
+      MonitorType.API,
+      URL.fromString("https://api.example.com/health"),
+      "https://api.example.com/health",
+    ],
+    // A bare host's URL, as it was typed: no slash before the full stop.
+    [
+      MonitorType.SSLCertificate,
+      URL.fromString("https://example.com"),
+      "https://example.com",
+    ],
+    [
+      MonitorType.Ping,
+      Hostname.fromString("router.example.com"),
+      "router.example.com",
+    ],
+    [MonitorType.IP, IP.fromString("192.168.1.1"), "192.168.1.1"],
+    [
+      MonitorType.NTP,
+      Hostname.fromString("time.example.com"),
+      "time.example.com",
+    ],
+  ] as Array<[MonitorType, URL | IP | Hostname, string]>)(
+    "%s says what it checks, and asks no address again",
+    async (
+      monitorType: MonitorType,
+      destination: URL | IP | Hostname,
+      shown: string,
+    ) => {
+      const copy: ReturnType<typeof getMonitorDestinationFieldCopy> =
+        getMonitorDestinationFieldCopy(monitorType);
+
+      render(
+        editor(monitorType, {
+          value: stepWith({ destination }),
+          isAddressAskedFirst: true,
+        }),
+      );
+
+      await screen.findByText("Monitor Target");
+
+      expect(target()).toHaveTextContent(`Checks ${shown}.`, {
+        normalizeWhitespace: true,
+      });
+      // An address reads left to right, on a right-to-left page too.
+      expect(target().querySelector("[dir='ltr']")).toHaveTextContent(shown);
+      expect(
+        screen.queryByPlaceholderText(copy!.placeholder),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(copy!.description)).not.toBeInTheDocument();
+      // The fold under the address went with it, to What to Monitor.
+      expect(
+        screen.queryByText("Bypass caches on every check"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("a Port monitor says its host and port, and asks neither again", async () => {
+    render(
+      editor(MonitorType.Port, {
+        value: stepWith({
+          destination: Hostname.fromString("db.example.com"),
+          port: new Port(5432),
+        }),
+        isAddressAskedFirst: true,
+      }),
+    );
+
+    await screen.findByText("Monitor Target");
+
+    expect(target()).toHaveTextContent("Checks db.example.com:5432.");
+    expect(screen.queryByPlaceholderText("443")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("The TCP or UDP port to check, like 443."),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an API keeps its request type, and More fields keep the rest", async () => {
+    render(
+      editor(MonitorType.API, {
+        value: stepWith({
+          destination: URL.fromString("https://api.example.com/health"),
+        }),
+        isAddressAskedFirst: true,
+      }),
+    );
+
+    await screen.findByText("Monitor Target");
+
+    expect(screen.getByText("API Request Type")).toBeInTheDocument();
+    expect(
+      screen.getAllByTestId("monitor-step-more-fields").length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("a saved monitor's Criteria page still asks the address in the box", async () => {
+    render(
+      editor(MonitorType.Website, {
+        value: stepWith({ destination: URL.fromString("https://example.com") }),
+      }),
+    );
+
+    expect(
+      await screen.findByPlaceholderText("https://example.com"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("monitor-target-address"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Bypass caches on every check"),
+    ).toBeInTheDocument();
+  });
 });

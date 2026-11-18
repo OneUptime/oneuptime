@@ -170,7 +170,7 @@ Fate clic su **Salva modifiche**. Il controllo successivo viene giudicato con i 
 
 ### Testare il monitor
 
-Su un monitor controllato dalle sonde, fate clic su **Testa il monitor** nella scheda, scegliete una sonda in **Seleziona sonda** e fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha trovato il controllo.
+Su un monitor controllato dalle sonde, fate clic su **Testa il monitor** nella scheda: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha trovato il controllo. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 :::
 
 Un monitor manuale non ha criteri: impostate voi il suo stato. Vedere [Aggiornare lo stato](/docs/monitor/manual-monitor#aggiornare-lo-stato).

@@ -30,6 +30,11 @@ import { useTheme } from "../theme";
 import ProjectSwitcher from "../components/ProjectSwitcher";
 import ProjectNavigationSync from "./ProjectNavigationSync";
 import GetReadyFirstRun from "./GetReadyFirstRun";
+import {
+  useProductsOffOnServer,
+  type ProductsOffOnServer,
+} from "../hooks/useProductsOffOnServer";
+import { AppProduct } from "../api/serverProducts";
 
 const Tab: ReturnType<typeof createBottomTabNavigator<MainTabParamList>> =
   createBottomTabNavigator<MainTabParamList>();
@@ -80,6 +85,22 @@ export default function MainTabNavigator(): React.JSX.Element {
    * the bar and the screens, so the screens keep their place in the tree.
    */
   const rail: boolean = windowLayout.navigation === "rail";
+
+  /*
+   * A product the server's admin switched off has no tab (#7478): Monitors
+   * and On-Call go, and the Inbox goes once nothing it lists is left on -
+   * Incidents, Alerts and Security Events all off.
+   */
+  const productsOff: ProductsOffOnServer = useProductsOffOnServer();
+  const showMonitors: boolean = !productsOff.isOff(AppProduct.Monitors);
+  const showOnCall: boolean = !productsOff.isOff(AppProduct.OnCall);
+  const showInbox: boolean = [
+    AppProduct.Incidents,
+    AppProduct.Alerts,
+    AppProduct.SecurityEvents,
+  ].some((product: AppProduct): boolean => {
+    return !productsOff.isOff(product);
+  });
 
   /*
    * The rail covers the window's left edge, so the screens beside it have no
@@ -223,82 +244,88 @@ export default function MainTabNavigator(): React.JSX.Element {
             },
           }}
         />
-        <Tab.Screen
-          name="Monitors"
-          component={MonitorsStackNavigator}
-          options={{
-            headerShown: false,
-            tabBarAccessibilityLabel: "Monitors",
-            tabBarIcon: ({
-              color,
-              focused,
-            }: {
-              color: string;
-              focused: boolean;
-            }) => {
-              return (
-                <TabIcon
-                  name="pulse-outline"
-                  focusedName="pulse"
-                  color={color}
-                  focused={focused}
-                  accentColor={theme.colors.cardAccent}
-                />
-              );
-            },
-          }}
-        />
-        <Tab.Screen
-          name="Inbox"
-          component={InboxStackNavigator}
-          options={{
-            headerShown: false,
-            tabBarAccessibilityLabel: "Inbox",
-            tabBarIcon: ({
-              color,
-              focused,
-            }: {
-              color: string;
-              focused: boolean;
-            }) => {
-              return (
-                <TabIcon
-                  name="file-tray-outline"
-                  focusedName="file-tray"
-                  color={color}
-                  focused={focused}
-                  accentColor={theme.colors.cardAccent}
-                />
-              );
-            },
-          }}
-        />
-        <Tab.Screen
-          name="OnCall"
-          component={OnCallStackNavigator}
-          options={{
-            headerShown: false,
-            title: "On-Call",
-            tabBarAccessibilityLabel: "On-Call",
-            tabBarIcon: ({
-              color,
-              focused,
-            }: {
-              color: string;
-              focused: boolean;
-            }) => {
-              return (
-                <TabIcon
-                  name="call-outline"
-                  focusedName="call"
-                  color={color}
-                  focused={focused}
-                  accentColor={theme.colors.cardAccent}
-                />
-              );
-            },
-          }}
-        />
+        {showMonitors ? (
+          <Tab.Screen
+            name="Monitors"
+            component={MonitorsStackNavigator}
+            options={{
+              headerShown: false,
+              tabBarAccessibilityLabel: "Monitors",
+              tabBarIcon: ({
+                color,
+                focused,
+              }: {
+                color: string;
+                focused: boolean;
+              }) => {
+                return (
+                  <TabIcon
+                    name="pulse-outline"
+                    focusedName="pulse"
+                    color={color}
+                    focused={focused}
+                    accentColor={theme.colors.cardAccent}
+                  />
+                );
+              },
+            }}
+          />
+        ) : null}
+        {showInbox ? (
+          <Tab.Screen
+            name="Inbox"
+            component={InboxStackNavigator}
+            options={{
+              headerShown: false,
+              tabBarAccessibilityLabel: "Inbox",
+              tabBarIcon: ({
+                color,
+                focused,
+              }: {
+                color: string;
+                focused: boolean;
+              }) => {
+                return (
+                  <TabIcon
+                    name="file-tray-outline"
+                    focusedName="file-tray"
+                    color={color}
+                    focused={focused}
+                    accentColor={theme.colors.cardAccent}
+                  />
+                );
+              },
+            }}
+          />
+        ) : null}
+        {showOnCall ? (
+          <Tab.Screen
+            name="OnCall"
+            component={OnCallStackNavigator}
+            options={{
+              headerShown: false,
+              title: "On-Call",
+              tabBarAccessibilityLabel: "On-Call",
+              tabBarIcon: ({
+                color,
+                focused,
+              }: {
+                color: string;
+                focused: boolean;
+              }) => {
+                return (
+                  <TabIcon
+                    name="call-outline"
+                    focusedName="call"
+                    color={color}
+                    focused={focused}
+                    accentColor={theme.colors.cardAccent}
+                  />
+                );
+              },
+            }}
+          />
+        ) : null}
         <Tab.Screen
           name="Settings"
           component={SettingsStackNavigator}

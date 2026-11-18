@@ -485,8 +485,8 @@ const App: () => JSX.Element = () => {
   };
 
   /*
-   * Monitor Groups (Settings -> Feature Flags) saves the moment its switch
-   * is flipped, and the menus read it off the selected project: take the
+   * Monitor Groups (Settings -> Products, under Monitors) saves the moment
+   * its switch is flipped, and the menus read it off the selected project: take the
    * new value into the selected project, the project list and ProjectUtil's
    * copy (which a status page's menu reads), so the menus follow at once
    * instead of after a reload. See Utils/SelectedProjectSwitches.

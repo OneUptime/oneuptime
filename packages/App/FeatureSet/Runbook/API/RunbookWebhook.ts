@@ -55,6 +55,8 @@ import RunbookWebhookRateLimit, {
   RunbookWebhookRateLimitOutcome,
 } from "Common/Server/Utils/Runbook/RunbookWebhookRateLimit";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /*
  * A RUNBOOK'S WEBHOOK URL, AND WHERE ITS TRIGGERS PAGE READS IT.
@@ -215,11 +217,13 @@ export default class RunbookWebhookAPI {
     this.router.post(
       RUNBOOK_WEBHOOK_SECRET_ROUTE,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.readSecretKey,
     );
     this.router.post(
       RUNBOOK_WEBHOOK_SECRET_RESET_ROUTE,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.resetSecretKey,
     );
   }

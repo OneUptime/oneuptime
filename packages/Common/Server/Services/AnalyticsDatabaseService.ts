@@ -98,6 +98,7 @@ import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CallerPlan from "../Utils/Billing/CallerPlan";
+import ProductWriteRefusal from "../Utils/ServerProducts/ProductWriteRefusal";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import PlanGates from "../Types/Database/Permissions/PlanGates";
 
@@ -605,12 +606,18 @@ export default class AnalyticsDatabaseService<
    * caller's, and the read stops with an error at the interactive time
    * limit (a QueryTimeoutException, answered as 504) rather than return a
    * partial count that would read as quiet windows.
+   *
+   * The windows start on a multiple of their length since the Unix epoch,
+   * or, with `windowsStartAt`, every `windowInSeconds` from that whole
+   * second: a rule's preview starts them so the newest ends at now, as the
+   * monitor's own check counts (TelemetryRulePreviewUtil.getRange, #7470).
    */
   @CaptureSpan()
   public async countPerWindow(data: {
     query: Query<TBaseModel>;
     timeColumnName: string;
     windowInSeconds: number;
+    windowsStartAt?: Date | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<{ time: Date; count: number }>> {
     try {
@@ -629,6 +636,17 @@ export default class AnalyticsDatabaseService<
         );
       }
 
+      const windowsStartAtMs: number | undefined = data.windowsStartAt
+        ? data.windowsStartAt.getTime()
+        : undefined;
+
+      if (
+        windowsStartAtMs !== undefined &&
+        (!Number.isFinite(windowsStartAtMs) || windowsStartAtMs % 1000 !== 0)
+      ) {
+        throw new BadDataException("windowsStartAt must be on a whole second");
+      }
+
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
@@ -644,7 +662,33 @@ export default class AnalyticsDatabaseService<
       const databaseName: string =
         this.database.getDatasourceOptions().database!;
 
-      const statement: Statement = SQL`
+      /*
+       * A window from an instant of the caller's is counted in whole seconds
+       * from it: the row's second, less the start's, rounded down to the
+       * window, read back as the second its window starts on. Plain integer
+       * arithmetic, so it reads the same on every ClickHouse version.
+       */
+      const statement: Statement =
+        windowsStartAtMs !== undefined
+          ? SQL`
+            SELECT
+                intDiv(toUnixTimestamp(${data.timeColumnName}) - ${{
+                  type: TableColumnType.BigNumber,
+                  value: windowsStartAtMs / 1000,
+                }}, ${{
+                  type: TableColumnType.Number,
+                  value: data.windowInSeconds,
+                }}) * ${{
+                  type: TableColumnType.Number,
+                  value: data.windowInSeconds,
+                }} + ${{
+                  type: TableColumnType.BigNumber,
+                  value: windowsStartAtMs / 1000,
+                }} AS windowStart,
+                count() AS windowCount
+            FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `
+          : SQL`
             SELECT
                 toStartOfInterval(${data.timeColumnName}, INTERVAL ${{
                   type: TableColumnType.Number,
@@ -671,7 +715,11 @@ export default class AnalyticsDatabaseService<
       return (resultInJSON.data || []).map(
         (row: JSONObject): { time: Date; count: number } => {
           return {
-            time: OneUptimeDate.fromString(row["windowStart"] as string),
+            // Seconds since the epoch, or ClickHouse's DateTime text.
+            time:
+              windowsStartAtMs !== undefined
+                ? new Date(Number(row["windowStart"]) * 1000)
+                : OneUptimeDate.fromString(row["windowStart"] as string),
             count: Number(row["windowCount"] || 0),
           };
         },
@@ -2519,6 +2567,12 @@ export default class AnalyticsDatabaseService<
         deleteBy.props,
       );
 
+      // So is a record of a product switched off on the server (#7479).
+      await ProductWriteRefusal.refuseWhileProductIsOff({
+        tableName: this.model.tableName,
+        props: deleteBy.props,
+      });
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -2734,6 +2788,12 @@ export default class AnalyticsDatabaseService<
       DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(
         updateBy.props,
       );
+
+      // So is a record of a product switched off on the server (#7479).
+      await ProductWriteRefusal.refuseWhileProductIsOff({
+        tableName: this.model.tableName,
+        props: updateBy.props,
+      });
 
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
@@ -3139,6 +3199,12 @@ export default class AnalyticsDatabaseService<
   ): Promise<Array<TBaseModel>> {
     // Refused before any hook runs; see assertCredentialCanWrite.
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(createBy.props);
+
+    // So is a record of a product switched off on the server (#7479).
+    await ProductWriteRefusal.refuseWhileProductIsOff({
+      tableName: this.model.tableName,
+      props: createBy.props,
+    });
 
     /*
      * The project's plan, read once when the props act in it without one and

@@ -138,7 +138,7 @@ Se [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ### Monitorgruppe
 
-Flere monitorer samlet i én status, den verste blant dem, med egen oppetid. En statusside kan vise hele gruppen som én rad. Slå på monitorgrupper under **Prosjektinnstillinger → Avansert → Funksjonsflagg**.
+Flere monitorer samlet i én status, den verste blant dem, med egen oppetid. En statusside kan vise hele gruppen som én rad. Slå på monitorgrupper under **Prosjektinnstillinger → Grunnleggende → Produkter**.
 
 Se [Monitorgrupper](/docs/monitor/monitor-groups).
 

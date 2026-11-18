@@ -45,17 +45,17 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **API** under **Monitortyp**.
 
-### Namnge den
-
-Ange ett **Namn**, som `Orders API`, och klicka sedan på **Nästa**.
-
 ### Ange begäran
 
-Ange slutpunktens fullständiga URL under **API-URL**, som `https://api.example.com/health`. Välj **API-begärantyp** (**GET** om du inte ändrar den). För att lägga till huvuden eller en kropp öppnar du **Fler fält** och fyller i **Begärandehuvuden** och **Begärandekropp (i JSON)**.
+Ange slutpunktens fullständiga URL under **API-URL**, som `https://api.example.com/health`.
+
+### Namnge den
+
+**Namn** fylls i utifrån det du angav, som `api.example.com/health`. Behåll det eller ange ett eget, som `Orders API`, och klicka sedan på **Nästa**.
 
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar vad API:et svarade.
+Välj **API-begärantyp** under **Monitor-mål** (**GET** om du inte ändrar den). För att lägga till huvuden eller en kropp öppnar du **Fler fält** och fyller i **Begärandehuvuden** och **Begärandekropp (i JSON)**. Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar vad API:et svarade. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 

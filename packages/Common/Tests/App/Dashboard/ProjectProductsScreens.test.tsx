@@ -32,10 +32,12 @@ import HiddenProductsWithData from "../../../../App/FeatureSet/Dashboard/src/Com
 import ProductsSettings from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
 import {
   HIDDEN_PRODUCTS_WITH_DATA_TEST_ID,
+  MONITORS_WITH_GROUPS_TEST_ID,
   PRODUCTS_SETTINGS_TEST_ID,
   SHOW_EVERY_PRODUCT_TEST_ID,
   getProductSwitchTestId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProjectProductsCopy";
+import { MONITOR_GROUPS_SWITCH_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchCopy";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { getListedDashboardGoToShortcuts } from "../../../../App/FeatureSet/Dashboard/src/Utils/KeyboardShortcuts";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -56,6 +58,7 @@ import { NAVBAR_PINNED_ITEM_TEST_ID } from "../../../UI/Components/Navbar/NavBar
 import { PRODUCT_PIN_BUTTON_TEST_ID } from "../../../UI/Components/Navbar/NavBarMenuModal";
 import Project from "../../../Models/DatabaseModels/Project";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProductEvents from "../../../UI/Utils/ProductEvents";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -82,6 +85,11 @@ import {
  *  - who asks the server: the navbar and Project Settings > Products, once
  *    per page load, and nothing else.
  */
+
+// ModelAPI's generic update, as jest.spyOn types a spy on it.
+type UpdateById = (
+  data: Parameters<typeof ModelAPI.updateById>[0],
+) => ReturnType<typeof ModelAPI.updateById>;
 
 const translation: i18n = createInstance();
 const ORIGINAL_WIDTH: number = window.innerWidth;
@@ -427,6 +435,93 @@ describe("Project Settings > Products", () => {
       screen.getByTestId(getProductSwitchTestId(ProductKey.Logs)),
     ).toHaveAttribute("aria-checked", "true");
     expect(sent).toEqual([]);
+  });
+
+  /*
+   * #7324: Feature Flags' one switch, Monitor Groups, is a row under
+   * Monitors, read off the project the page hands in.
+   */
+  test("Monitor Groups is a switch under Monitors, on with the project's groups on", () => {
+    given({ canChooseProducts: true });
+    jest.spyOn(PermissionGate, "checkColumnUpdate").mockReturnValue({
+      isAllowed: true,
+    });
+
+    const project: Project = new Project();
+    project._id = PROJECT_ID;
+    project.isFeatureFlagMonitorGroupsEnabled = true;
+
+    render(wrap(<ProductsSettings currentProject={project} />));
+
+    const monitors: HTMLElement = screen.getByTestId(
+      MONITORS_WITH_GROUPS_TEST_ID,
+    );
+
+    // Monitors' own switch first, then Monitor Groups', with no line between.
+    expect(
+      within(monitors).getByTestId(getProductSwitchTestId(ProductKey.Monitors)),
+    ).toBeInTheDocument();
+    expect(
+      within(monitors).getByTestId(MONITOR_GROUPS_SWITCH_TEST_ID),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      within(monitors).getByRole("switch", { name: "Monitor Groups" }),
+    ).not.toHaveAttribute("aria-disabled");
+    expect(screen.getAllByTestId(MONITOR_GROUPS_SWITCH_TEST_ID)).toHaveLength(
+      1,
+    );
+  });
+
+  test("flipping Monitor Groups saves the project's column, not the products", async () => {
+    given({ canChooseProducts: true });
+    jest.spyOn(PermissionGate, "checkColumnUpdate").mockReturnValue({
+      isAllowed: true,
+    });
+    const update: SpyInstance<UpdateById> = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue(undefined as never);
+    const post: SpyInstance<typeof ProjectProductsApi.postProductShown> =
+      jest.spyOn(ProjectProductsApi, "postProductShown");
+
+    const project: Project = new Project();
+    project._id = PROJECT_ID;
+
+    render(wrap(<ProductsSettings currentProject={project} />));
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(MONITOR_GROUPS_SWITCH_TEST_ID));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${MONITOR_GROUPS_SWITCH_TEST_ID}-status`),
+      ).toHaveTextContent("Saved");
+    });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(
+      (update.mock.calls[0]![0] as unknown as { data: unknown }).data,
+    ).toEqual({ isFeatureFlagMonitorGroupsEnabled: true });
+    expect(post).not.toHaveBeenCalled();
+    expect(sent).toEqual([]);
+  });
+
+  test("with Monitors switched off on the server, there is no Monitor Groups switch", () => {
+    given({
+      canChooseProducts: true,
+      offOnServer: {
+        [ProductKey.Monitors]: ServerProductOffReason.SwitchedOff,
+      },
+    });
+
+    const project: Project = new Project();
+    project._id = PROJECT_ID;
+
+    render(wrap(<ProductsSettings currentProject={project} />));
+
+    expect(screen.queryByTestId(MONITOR_GROUPS_SWITCH_TEST_ID)).toBeNull();
+    expect(
+      screen.getByTestId(`${getProductSwitchTestId(ProductKey.Monitors)}-off`),
+    ).toBeInTheDocument();
   });
 
   test("whoever may not choose sees the switches locked, and why", () => {

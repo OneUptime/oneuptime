@@ -61,6 +61,8 @@ import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 // The longest comment an approval keeps.
 export const APPROVAL_COMMENT_MAX_LENGTH: number = 2000;
@@ -164,6 +166,7 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
         `${basePath}/:runId/${decision === SecurityPlaybookApprovalDecision.Approved ? "approve" : "reject"}`,
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
+        ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
         async (
           req: ExpressRequest,
           res: ExpressResponse,
@@ -207,6 +210,7 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
       `${basePath}/:runId/undo`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const { props, projectId, runId } =

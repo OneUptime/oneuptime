@@ -284,9 +284,10 @@ describe("what people searched for, and found nothing, lands where the setting i
   });
 
   /*
-   * Monitor Groups are behind a switch. While it is off there is no Monitor
-   * Groups page, and the name finds the switch; once it is on, the page
-   * comes first and the switch still follows.
+   * Monitor Groups are behind a switch, on Products under Monitors (#7324).
+   * While it is off there is no Monitor Groups page, and the name finds the
+   * switch; once it is on, the page comes first and the switch still
+   * follows. Feature Flags, the page the switch was on, finds Products.
    */
   test('"monitor groups" finds the switch while monitor groups are off', () => {
     const off: Array<PaletteCommand> = toCommands(
@@ -296,7 +297,7 @@ describe("what people searched for, and found nothing, lands where the setting i
     );
 
     expect(pageKeyOf(results("monitor groups", off)[0]!)).toBe(
-      PageMap.SETTINGS_FEATURE_FLAGS,
+      PageMap.SETTINGS_PRODUCTS,
     );
   });
 
@@ -306,7 +307,13 @@ describe("what people searched for, and found nothing, lands where the setting i
     );
 
     expect(keys[0]).toBe(PageMap.MONITOR_GROUPS);
-    expect(keys).toContain(PageMap.SETTINGS_FEATURE_FLAGS);
+    expect(keys).toContain(PageMap.SETTINGS_PRODUCTS);
+  });
+
+  test('"feature flags", the old page\'s name, opens Products', () => {
+    expect(pageKeyOf(results("feature flags", commands)[0]!)).toBe(
+      PageMap.SETTINGS_PRODUCTS,
+    );
   });
 
   test('"timezone" no longer opens the on-call Schedule Timeline first', () => {

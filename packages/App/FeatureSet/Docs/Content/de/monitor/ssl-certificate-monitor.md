@@ -40,17 +40,17 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Wählen Sie unter **Monitortyp** den Typ **SSL-Zertifikat**.
 
-### Ihn benennen
-
-Geben Sie einen **Name** ein, etwa `example.com certificate`, und klicken Sie dann auf **Weiter**.
-
 ### Die URL eingeben
 
 Geben Sie unter **Website-URL** die Website ein, deren Zertifikat geprüft werden soll, etwa `https://example.com`. Für einen Dienst auf einem anderen Port geben Sie ihn mit an: `https://example.com:8443`.
 
+### Ihn benennen
+
+Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `example.com`. Behalten Sie ihn oder geben Sie einen eigenen ein, etwa `example.com certificate`, und klicken Sie dann auf **Weiter**.
+
 ### Ihn testen
 
-Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt das Zertifikat, das die Sonde erhalten hat, mit seiner ausstellenden Stelle und seinem Ablaufdatum.
+Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt das Zertifikat, das die Sonde erhalten hat, mit seiner ausstellenden Stelle und seinem Ablaufdatum. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 

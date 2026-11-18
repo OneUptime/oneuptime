@@ -1997,8 +1997,19 @@ describe("changing a monitor's criteria", () => {
       });
     }
 
+    /*
+     * The test starts on a probe that checks the monitor (#7985), and its
+     * result says which criteria the answer matches and what would follow
+     * (#7074).
+     */
+    expect(CRITERIA_PAGE).toContain("preferredProbeIds={monitorProbeIds}");
+    expect(MONITOR_TEST_FORM).toContain(
+      "initialValues: startingProbeId ? { probe: startingProbeId } : {},",
+    );
+    expect(MONITOR_TEST_FORM).toContain("<MonitorTestVerdict");
+
     expect(steps).toContain(
-      "On a monitor that probes check, click **Test Monitor** on the card, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows what the check found.",
+      "On a monitor that probes check, click **Test Monitor** on the card: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the check found. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.",
     );
   });
 
@@ -2843,17 +2854,17 @@ describe("turning monitor groups on", () => {
   const groupsPage: string = english(MONITOR_GROUPS);
   const turningOn: string = section(groupsPage, "## Turn on monitor groups");
 
-  it("is a switch on Feature Flags, under Project Settings' Advanced section, which starts folded", () => {
+  it("is a switch on Products, under Monitors, in Project Settings' Basic section, which starts open (#7324)", () => {
     const settings: Array<MenuSection> = menuSections(SETTINGS_MENU);
 
-    expect(sectionByTitle(settings, "Advanced").items).toContain(
+    expect(sectionByTitle(settings, "Basic").items).toContain("Products");
+    expect(sectionByTitle(settings, "Advanced").items).not.toContain(
       "Feature Flags",
     );
-    expect(startsCollapsed(SETTINGS_MENU, "Advanced")).toBe(true);
-    expect(MonitorGroupsSwitchCopy.cardTitle).toBe("Feature Flags");
+    expect(startsCollapsed(SETTINGS_MENU, "Basic")).toBe(false);
     expect(MonitorGroupsSwitchCopy.switchTitle).toBe("Monitor Groups");
     expect(turningOn).toContain(
-      "Go to **Project Settings → Advanced → Feature Flags**. **Advanced** starts collapsed in the side menu: expand it first.",
+      "### Open Products\n\nGo to **Project Settings → Basic → Products**.\n",
     );
   });
 
@@ -2865,7 +2876,7 @@ describe("turning monitor groups on", () => {
       'title: project?.isFeatureFlagMonitorGroupsEnabled\n              ? "Resources"\n              : "Monitors",',
     );
     expect(turningOn).toContain(
-      "Flip the **Monitor Groups** switch. It saves at once: **Monitor Groups** appears in the **Monitors** side menu, and each status page's **Monitors** item is renamed **Resources**, where you can add a group.",
+      "Flip the **Monitor Groups** switch, under **Monitors**. It saves at once: **Monitor Groups** appears in the **Monitors** side menu, and each status page's **Monitors** item is renamed **Resources**, where you can add a group.",
     );
   });
 

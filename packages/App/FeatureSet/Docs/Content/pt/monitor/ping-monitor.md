@@ -42,17 +42,17 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 
 Acesse **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, escolha **Ping**.
 
-### Dar um nome a ele
-
-Informe um **Nome**, como `Core router`, e clique em **Próximo**.
-
 ### Informar o host
 
 Em **Nome do host ou endereço IP**, informe o nome de host ou o endereço IPv4 ou IPv6 a pingar, como `example.com` ou `192.168.1.1`. Informe só o host, sem `http://` nem porta.
 
+### Dar um nome a ele
+
+O **Nome** é preenchido com o que você informou, como `example.com`. Mantenha-o ou informe um seu, como `Core router`, e clique em **Próximo**.
+
 ### Testá-lo
 
-Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. **Resultado do Teste do Monitor** mostra os tempos de ida e volta e a perda de pacotes que a sonda viu.
+Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra os tempos de ida e volta e a perda de pacotes que a sonda viu. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 
