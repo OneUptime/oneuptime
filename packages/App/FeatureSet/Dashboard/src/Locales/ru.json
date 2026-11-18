@@ -56783,6 +56783,9 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} ещё не подтвердил {{channels}}, поэтому эти шаги пропущены.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} на дежурстве, но у него нет подтверждённого телефонного метода, который этот проект просит иметь всех дежурных.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Установите приложение из App Store или Google Play, войдите на {{serverUrl}} и разрешите уведомления и критические оповещения, когда приложение попросит.",
+  "Check the endpoint and the key before you set up your app.": "Проверьте эндпоинт и ключ до настройки приложения.",
   "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "Данные поступили, но в них не указан сервис. Задайте {{attribute}} в приложении, чтобы завершить этот шаг.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "Выполните это в терминале. Будет отправлен один журнал от сервиса {{service}}, который потом можно удалить.",
+  "Send a test log": "Отправить тестовый журнал",
   "The first data arrived.": "Первые данные поступили."
 }

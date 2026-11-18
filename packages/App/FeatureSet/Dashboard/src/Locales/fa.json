@@ -56783,6 +56783,9 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شدند.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} آنکال است اما هیچ روش تلفنی تأییدشده‌ای ندارد، که این پروژه از همهٔ افراد آنکال می‌خواهد.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "برنامه را از App Store یا Google Play نصب کنید، به {{serverUrl}} وارد شوید و وقتی برنامه درخواست کرد، اجازهٔ اعلان‌ها و هشدارهای بحرانی را بدهید.",
+  "Check the endpoint and the key before you set up your app.": "پیش از راه‌اندازی برنامه خود، نقطه پایانی و کلید را بررسی کنید.",
   "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "داده‌ها رسیدند، اما نام هیچ سرویسی را ندارند. برای پایان این مرحله، {{attribute}} را در برنامه خود تنظیم کنید.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "این را در یک ترمینال اجرا کنید. یک لاگ از سرویس {{service}} می‌فرستد که بعداً می‌توانید آن را حذف کنید.",
+  "Send a test log": "ارسال یک لاگ آزمایشی",
   "The first data arrived.": "نخستین داده‌ها رسیدند."
 }

@@ -56783,6 +56783,9 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌습니다.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}}님은 온콜 담당이지만, 이 프로젝트가 모든 온콜 담당자에게 요청하는 인증된 전화 연락 방법이 없습니다.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store 또는 Google Play에서 앱을 설치하고 {{serverUrl}}에 로그인한 다음, 요청하면 알림과 중요 알림을 허용하세요.",
+  "Check the endpoint and the key before you set up your app.": "앱을 설정하기 전에 엔드포인트와 키를 확인하세요.",
   "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "데이터가 도착했지만 서비스 이름이 없습니다. 이 단계를 마치려면 앱에서 {{attribute}}을(를) 설정하세요.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "터미널에서 실행하세요. {{service}} 서비스에서 로그 하나를 보내며, 이 서비스는 나중에 삭제할 수 있습니다.",
+  "Send a test log": "테스트 로그 보내기",
   "The first data arrived.": "첫 데이터가 도착했습니다."
 }

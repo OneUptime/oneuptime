@@ -56783,6 +56783,9 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} non ha ancora verificato {{channels}}, quindi quei passaggi sono stati tralasciati.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} è reperibile ma non ha un metodo telefonico verificato, che questo progetto chiede a tutte le persone reperibili.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installa l'app dall'App Store o da Google Play, accedi a {{serverUrl}} e consenti notifiche e avvisi critici quando te lo chiede.",
+  "Check the endpoint and the key before you set up your app.": "Verifica l'endpoint e la chiave prima di configurare la tua app.",
   "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "Sono arrivati dati, ma non indicano alcun servizio. Imposta {{attribute}} nella tua app per completare questo passaggio.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "Eseguilo in un terminale. Invia un log dal servizio {{service}}, che potrai eliminare in seguito.",
+  "Send a test log": "Invia un log di prova",
   "The first data arrived.": "Sono arrivati i primi dati."
 }

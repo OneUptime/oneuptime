@@ -34,6 +34,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "./IngestionKeySelector";
+import TelemetryTestLogFold from "./TelemetryTestLogFold";
 import ResourceConnectionWatch from "../ResourceOnboarding/ResourceConnectionWatch";
 import Service from "Common/Models/DatabaseModels/Service";
 import FrameworkGuideLinks from "./FrameworkGuideLinks";
@@ -1010,7 +1011,31 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         ? getCompatibleIngestGuide(selectedMethod)
         : null;
 
-    return renderKeySelector(compatibleGuide);
+    /*
+     * "Send a test log" (#7760), under the endpoint and the key it uses:
+     * the logs guide's own ways (OpenTelemetry, FluentBit, Fluentd), whose
+     * step shows the OTLP endpoint, with a Server key picked. Not for a
+     * browser guide's key, which the server takes only from a page of its
+     * origins, nor for another tool's endpoint, nor in a guide for a whole
+     * service, whose wait is for that service.
+     */
+    const offersTestLog: boolean =
+      telemetryType === "logs" &&
+      !props.everySignal &&
+      !compatibleGuide &&
+      !isBrowserSdkGuide &&
+      Boolean(selectedKey?.secretKey);
+
+    return (
+      <>
+        {renderKeySelector(compatibleGuide)}
+        {offersTestLog ? (
+          <TelemetryTestLogFold otlpUrl={otlpUrlValue} token={tokenValue} />
+        ) : (
+          <></>
+        )}
+      </>
+    );
   };
 
   // The key picker, and the endpoint and the token of the key picked.
