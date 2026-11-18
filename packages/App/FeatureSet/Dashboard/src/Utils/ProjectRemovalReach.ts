@@ -190,19 +190,24 @@ const getKeepingTeams: (
   person: PersonKeptInProject,
   sentence: Translator,
 ) => string = (person: PersonKeptInProject, sentence: Translator): string => {
-  const names: string = TeamMembershipRemoval.formatNamesInLanguage(
-    person.teamNames,
-    sentence,
-  );
-
   if (person.hiddenTeamCount === 0) {
-    return names;
+    return TeamMembershipRemoval.formatNamesInLanguage(
+      person.teamNames,
+      sentence,
+    );
   }
+
+  /*
+   * The teams the reader may not read close the list, with any names past
+   * the list's length: "Database, On-call and 1 other team".
+   */
+  const listed: { names: string; leftOut: number } =
+    TeamMembershipRemoval.formatNamesBeforeCount(person.teamNames, sentence);
 
   return sentence.translatePlural(
     PROJECT_REMOVAL_LOCK_COPY.namedAndOtherTeams,
-    person.hiddenTeamCount,
-    { teams: names },
+    person.hiddenTeamCount + listed.leftOut,
+    { teams: listed.names },
   );
 };
 

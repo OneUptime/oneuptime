@@ -360,6 +360,34 @@ describe("the Users list, for someone who removes people only from the teams the
     );
   });
 
+  test("the counted teams close the list of named ones, as one list", async () => {
+    reachPeople = [
+      {
+        userId: GRACE,
+        teamNames: ["Platform", "Database"],
+        hiddenTeamCount: 1,
+        hasTeamInReach: true,
+      },
+      {
+        userId: ALAN,
+        teamNames: ["A", "B", "C", "D", "E", "F", "G"],
+        hiddenTeamCount: 1,
+        hasTeamInReach: false,
+      },
+    ];
+
+    await renderUsers();
+    await showRows([GRACE_ROW(), ALAN_ROW()]);
+
+    expect(capturedTableProps!.getDeleteDisabledReason!(GRACE_ROW())).toBe(
+      "Your role can't remove people from Database, Platform and 1 other team, so they would stay in this project. Remove them from your teams on their Teams page instead.",
+    );
+    // Names past the list's length are counted with the ones not readable.
+    expect(capturedTableProps!.getDeleteDisabledReason!(ALAN_ROW())).toBe(
+      "Your role can't remove people from A, B, C, D, E and 3 other teams, so they would stay in this project.",
+    );
+  });
+
   test.each([
     ["fails", "fails"],
     ["cannot be reached", "throws"],
