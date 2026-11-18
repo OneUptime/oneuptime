@@ -38,6 +38,12 @@ import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
 } from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
+import {
+  InvitationEmailsNotSent,
+  useInvitationEmailsNotSent,
+} from "Common/UI/Components/InvitationLink/InvitationEmailsNotSent";
+import { getResendInvitationRowAction } from "Common/UI/Components/InvitationLink/ResendInvitation";
+import PendingInvitationPill from "../../../Components/User/PendingInvitationPill";
 import React, {
   Fragment,
   FunctionComponent,
@@ -74,7 +80,18 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
   const [invitationLinkFor, setInvitationLinkFor] = useState<{
     teamMemberId: ObjectID;
     userPage: Route | null;
+    // Their latest invitation email was not sent, on a server that sends email.
+    isEmailNotSent: boolean;
   } | null>(null);
+
+  /*
+   * A pending person whose latest invitation email the mail service refused
+   * says Email Not Sent, not Invitation Sent (#9518), read from the
+   * project's Email Logs; their row offers the link, and Resend Invitation
+   * (#9519).
+   */
+  const invitationEmailsNotSent: InvitationEmailsNotSent =
+    useInvitationEmailsNotSent(!cannotSendEmail, { isAcrossProjects: true });
 
   /*
    * The team Invite User starts on: the project's members team, found by the
@@ -172,19 +189,36 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
           isEditable={false}
           isCreateable={false}
           isViewable={true}
+          // Whose invitation email a pending row asks about, and in which project (#9518).
+          selectMoreFields={{
+            userId: true,
+            projectId: true,
+          }}
           actionButtons={[
             getInvitationLinkRowAction<TeamMember>({
               isAvailable: cannotSendEmail,
               isNotSignedUp: membersNotSignedUp.isNotSignedUp,
-              onOpen: (teamMemberId: ObjectID) => {
+              isEmailNotSent: (item: TeamMember): boolean => {
+                return Boolean(invitationEmailsNotSent.getNotSent(item));
+              },
+              onOpen: (teamMemberId: ObjectID, item: TeamMember) => {
                 setInvitationLinkFor({
                   teamMemberId: teamMemberId,
                   userPage: null,
+                  isEmailNotSent:
+                    !cannotSendEmail &&
+                    Boolean(invitationEmailsNotSent.getNotSent(item)),
                 });
               },
             }),
+            getResendInvitationRowAction<TeamMember>({
+              isAvailable: !cannotSendEmail,
+            }),
           ]}
-          onFetchSuccess={membersNotSignedUp.onFetchSuccess}
+          onFetchSuccess={(rows: Array<TeamMember>) => {
+            membersNotSignedUp.onFetchSuccess(rows);
+            invitationEmailsNotSent.onFetchSuccess(rows);
+          }}
           onFilterApplied={(isApplied: boolean) => {
             setIsFilterApplied(isApplied);
           }}
@@ -397,15 +431,11 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     </div>
                   );
                 }
-                // Nothing was sent by a server that cannot send email.
+                // Invited, Email Not Sent (#9518) or Invitation Sent.
                 return (
-                  <Pill
-                    text={
-                      cannotSendEmail
-                        ? INVITATION_LINK_COPY.invitedPill
-                        : "Invitation Sent"
-                    }
-                    color={Yellow}
+                  <PendingInvitationPill
+                    cannotSendEmail={cannotSendEmail}
+                    notSent={invitationEmailsNotSent.getNotSent(item)}
                   />
                 );
               },
@@ -450,6 +480,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 setInvitationLinkFor({
                   teamMemberId: teamMember.id,
                   userPage: userPage,
+                  isEmailNotSent: false,
                 });
               } else if (userPage) {
                 Navigation.navigate(userPage);
@@ -566,6 +597,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
         {invitationLinkFor && (
           <InvitationLinkModal
             teamMemberId={invitationLinkFor.teamMemberId}
+            isEmailNotSent={invitationLinkFor.isEmailNotSent}
             onClose={() => {
               const userPage: Route | null = invitationLinkFor.userPage;
               setInvitationLinkFor(null);

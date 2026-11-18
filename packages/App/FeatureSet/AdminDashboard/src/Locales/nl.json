@@ -283,7 +283,6 @@
       "columnJoinedAt": "Lid geworden op",
       "columnInvitedAt": "Uitgenodigd op",
       "statusMember": "Lid",
-      "statusInvited": "Uitnodiging verstuurd",
       "pendingInvitations": "{{pending}} openstaande uitnodiging(en)",
       "teamsCardTitle": "Teamlidmaatschappen",
       "teamsCardDescription": "Alle teams waartoe deze gebruiker behoort, in alle projecten. Een rij verwijderen haalt hem alleen uit dat team.",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "De uitnodigingslink kon niet worden gelezen. Misschien zijn ze niet meer uitgenodigd voor dit project: nodig ze opnieuw uit via de pagina Gebruikers ervan.",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "De hoofdbeheerders krijgen bericht als de e-mail van deze server niet meer werkt, geen enkele globale sonde meer rapporteert of er een achterloopt, en nog een keer zodra alles weer goed is: nooit via het kanaal dat stopte, hooguit één keer per uur.",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} loopt achter met zijn netwerkapparaten: sinds {{time}} wachten ze meer dan een minuut na hun bevragingstijd, dus worden ze minder vaak bevraagd dan ingesteld.",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "Laat de sonde meer apparaten tegelijk bevragen: verhoog GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, of networkDevicePollConcurrency van de sonde in de Helm-waarden, en geef hem de CPU die daarbij past."
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "Laat de sonde meer apparaten tegelijk bevragen: verhoog GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, of networkDevicePollConcurrency van de sonde in de Helm-waarden, en geef hem de CPU die daarbij past.",
+  "Email Not Sent": "E-mail niet verzonden",
+  "Their invitation email was not sent.": "De uitnodigingsmail is niet verstuurd.",
+  "Resend Invitation": "Uitnodiging opnieuw verzenden",
+  "Send their invitation email to {{email}} again?": "De uitnodigingsmail opnieuw naar {{email}} verzenden?",
+  "Send their invitation email again?": "De uitnodigingsmail opnieuw verzenden?",
+  "Invitation sent to {{email}}": "Uitnodiging verzonden naar {{email}}",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Er zijn het afgelopen uur te veel uitnodigingen naar dit adres verzonden. U kunt de uitnodiging na {{time}} opnieuw verzenden."
 }

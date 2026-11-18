@@ -283,7 +283,6 @@
       "columnJoinedAt": "शामिल हुए",
       "columnInvitedAt": "आमंत्रित किया गया",
       "statusMember": "सदस्य",
-      "statusInvited": "निमंत्रण भेजा गया",
       "pendingInvitations": "{{pending}} लंबित निमंत्रण",
       "teamsCardTitle": "टीम सदस्यताएँ",
       "teamsCardDescription": "सभी परियोजनाओं में इस उपयोगकर्ता की टीमें। किसी पंक्ति को हटाने पर उन्हें केवल उसी टीम से हटाया जाएगा।",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "उनका निमंत्रण लिंक पढ़ा नहीं जा सका। हो सकता है वे अब इस प्रोजेक्ट में आमंत्रित न हों: प्रोजेक्ट के उपयोगकर्ता पेज से उन्हें फिर से आमंत्रित करें।",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "जब इस सर्वर का ईमेल काम करना बंद कर दे, कोई भी ग्लोबल प्रोब रिपोर्ट न करे, या कोई प्रोब पीछे चलने लगे, तो मास्टर एडमिन को बताया जाता है, और एक बार फिर जब सब ठीक हो जाए: कभी उस चैनल से नहीं जो बंद हुआ, और घंटे में अधिक से अधिक एक बार।",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} अपने नेटवर्क डिवाइस में पीछे चल रहा है: {{time}} से वे अपने पोल समय के बाद एक मिनट से ज़्यादा इंतज़ार कर रहे हैं, इसलिए वे तय से कम बार पोल किए जाते हैं।",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "प्रोब को एक साथ ज़्यादा डिवाइस पोल करने दें: config.env में GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY बढ़ाएँ, या Helm वैल्यू में प्रोब का networkDevicePollConcurrency बढ़ाएँ, और उसे उसके हिसाब से CPU दें।"
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "प्रोब को एक साथ ज़्यादा डिवाइस पोल करने दें: config.env में GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY बढ़ाएँ, या Helm वैल्यू में प्रोब का networkDevicePollConcurrency बढ़ाएँ, और उसे उसके हिसाब से CPU दें।",
+  "Email Not Sent": "ईमेल नहीं भेजा गया",
+  "Their invitation email was not sent.": "उनका आमंत्रण ईमेल नहीं भेजा गया।",
+  "Resend Invitation": "निमंत्रण फिर से भेजें",
+  "Send their invitation email to {{email}} again?": "उनका आमंत्रण ईमेल {{email}} पर फिर से भेजें?",
+  "Send their invitation email again?": "उनका आमंत्रण ईमेल फिर से भेजें?",
+  "Invitation sent to {{email}}": "निमंत्रण {{email}} पर भेजा गया",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "पिछले एक घंटे में इस पते पर बहुत ज़्यादा निमंत्रण भेजे गए। आप इसे {{time}} के बाद फिर से भेज सकते हैं।"
 }

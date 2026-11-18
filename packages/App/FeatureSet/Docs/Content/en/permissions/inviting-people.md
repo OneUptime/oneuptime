@@ -155,7 +155,7 @@ On a self-hosted server that cannot send email yet, signing up cannot email them
 :::
 
 :::details A person shows Email Not Sent
-The mail service refused their latest invitation email, so nothing reached them. Point at **Email Not Sent**, or tap it, to see why, as the **Email** tab of the project's **Notification Logs** says it. Check the address you invited, then, once email works, remove them and invite them again. On a self-hosted server, the server's admin can send them their invitation link instead: a master admin opens the person's row menu on **Users**, **⋯**, and clicks **Get Invitation Link**.
+The mail service refused their latest invitation email, so nothing reached them. Point at **Email Not Sent**, or tap it, to see why, as the **Email** tab of the project's **Notification Logs** says it. Check the address you invited, then, once email works, open the person's row menu on **Users**, **⋯**, and click **Resend Invitation**: they show as **Invitation Sent** again once it goes out. On a self-hosted server, the server's admin can send them their invitation link instead: a master admin clicks **Get Invitation Link** in the same menu.
 :::
 
 :::details Invite User says users are managed by SCIM Push Groups

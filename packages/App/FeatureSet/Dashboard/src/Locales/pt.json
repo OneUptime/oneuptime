@@ -56944,7 +56944,13 @@
   "pipeline": "pipeline",
   "Check their email address, then remove them and invite them again.": "Confira o endereço de e-mail da pessoa, depois remova-a e convide-a de novo.",
   "Email Not Sent": "E-mail não enviado",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Quando o e-mail funcionar, remova a pessoa e convide-a de novo, ou peça o link de convite dela ao administrador do servidor.",
   "Their invitation email was not sent.": "O e-mail de convite não foi enviado.",
-  "They can still join: send them their invitation link yourself.": "A pessoa ainda pode entrar: envie você mesmo o link de convite dela."
+  "They can still join: send them their invitation link yourself.": "A pessoa ainda pode entrar: envie você mesmo o link de convite dela.",
+  "Check their email address, then use Resend Invitation.": "Confira o endereço de e-mail da pessoa e depois use \"Reenviar convite\".",
+  "Invitation sent to {{email}}": "Convite enviado para {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "Quando o e-mail funcionar, use \"Reenviar convite\" ou peça o link de convite dela ao administrador do servidor.",
+  "Resend Invitation": "Reenviar convite",
+  "Send their invitation email again?": "Reenviar o e-mail de convite?",
+  "Send their invitation email to {{email}} again?": "Reenviar o e-mail de convite para {{email}}?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Foram enviados convites demais para este endereço na última hora. Você poderá reenviá-lo depois das {{time}}."
 }

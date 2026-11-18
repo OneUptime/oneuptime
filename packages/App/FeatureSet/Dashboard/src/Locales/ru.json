@@ -56944,7 +56944,13 @@
   "pipeline": "пайплайн",
   "Check their email address, then remove them and invite them again.": "Проверьте адрес электронной почты этого человека, затем удалите его и пригласите снова.",
   "Email Not Sent": "Письмо не отправлено",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Когда почта заработает, удалите этого человека и пригласите его снова или попросите у администратора сервера его ссылку-приглашение.",
   "Their invitation email was not sent.": "Письмо с приглашением не отправлено.",
-  "They can still join: send them their invitation link yourself.": "Этот человек всё ещё может присоединиться: отправьте ему ссылку-приглашение сами."
+  "They can still join: send them their invitation link yourself.": "Этот человек всё ещё может присоединиться: отправьте ему ссылку-приглашение сами.",
+  "Check their email address, then use Resend Invitation.": "Проверьте адрес электронной почты этого человека, затем выберите «Отправить приглашение повторно».",
+  "Invitation sent to {{email}}": "Приглашение отправлено на {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "Когда почта заработает, выберите «Отправить приглашение повторно» или попросите у администратора сервера его ссылку-приглашение.",
+  "Resend Invitation": "Отправить приглашение повторно",
+  "Send their invitation email again?": "Отправить письмо с приглашением ещё раз?",
+  "Send their invitation email to {{email}} again?": "Отправить письмо с приглашением на {{email}} ещё раз?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "За последний час на этот адрес отправлено слишком много приглашений. Отправить его снова можно будет после {{time}}."
 }

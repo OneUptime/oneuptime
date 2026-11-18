@@ -56944,7 +56944,13 @@
   "pipeline": "パイプライン",
   "Check their email address, then remove them and invite them again.": "メールアドレスを確認してから、このユーザーを外して再度招待してください。",
   "Email Not Sent": "メール未送信",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "メールが使えるようになったら、このユーザーを外してから再度招待するか、サーバー管理者に招待リンクを依頼してください。",
   "Their invitation email was not sent.": "招待メールは送信されませんでした。",
-  "They can still join: send them their invitation link yourself.": "招待リンクをご自身で送れば、まだ参加できます。"
+  "They can still join: send them their invitation link yourself.": "招待リンクをご自身で送れば、まだ参加できます。",
+  "Check their email address, then use Resend Invitation.": "メールアドレスを確認してから「招待を再送信」を使ってください。",
+  "Invitation sent to {{email}}": "{{email}} に招待を送信しました",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "メールが使えるようになったら「招待を再送信」を使うか、サーバー管理者に招待リンクを依頼してください。",
+  "Resend Invitation": "招待を再送信",
+  "Send their invitation email again?": "招待メールを再送信しますか？",
+  "Send their invitation email to {{email}} again?": "{{email}} に招待メールを再送信しますか？",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去1時間にこのアドレスへ送信された招待が多すぎます。{{time}} 以降に再送信できます。"
 }

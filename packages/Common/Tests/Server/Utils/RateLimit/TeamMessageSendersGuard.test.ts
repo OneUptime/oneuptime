@@ -61,6 +61,17 @@ const TEAM_SENDERS: Array<TeamSender> = [
     after: ["UserService.createByEmail(", "MailService.sendMail("],
   },
   {
+    /*
+     * Resend Invitation (#9519): asked before a registration token is
+     * minted for the email, and before the email - counted with every
+     * other invitation sent to the address.
+     */
+    file: TEAM_MEMBER_SERVICE,
+    asksIn: "resendInvitation",
+    kind: TeamMessageKind.Invitation,
+    after: ["this.buildInvitationEmail(", "MailService.sendMail("],
+  },
+  {
     file: PRIVATE_USER_SERVICE,
     asksIn: "onCreatePermitted",
     kind: TeamMessageKind.Invitation,
@@ -80,6 +91,21 @@ const TEAM_EMAILS: Record<string, string> = {
   "EmailTemplateType.ConfirmStatusPageSubscription": SUBSCRIBER_SERVICE,
   "EmailTemplateType.SubscribedToStatusPage": SUBSCRIBER_SERVICE,
 };
+
+/*
+ * The files that name one of those emails to read what was sent, by its
+ * template, and send nothing - each with why. Held to sending nothing below.
+ */
+const TEAM_EMAIL_READERS: Record<string, Record<string, string>> = {
+  "EmailTemplateType.InviteMember": {
+    "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/Email/ServerEmailLogCard.tsx":
+      "The Admin Dashboard's Email Log offers the link of an invitation email the server failed to send (#7169).",
+    "packages/Common/Server/Utils/TeamMember/InvitationEmailsNotSent.ts":
+      "Whose latest invitation email was not sent, read from the project's Email Logs by its template (#9511).",
+  },
+};
+
+const SENDS_MAIL: RegExp = /\.sendMail\s*\(/;
 
 const ASKS: string = "PublicMessageRateLimit.assertTeamMaySend(";
 const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;
@@ -250,12 +276,43 @@ describe("the team's emails go out from their services only", () => {
         },
       );
 
-      // The enum's own file names every template; it sends nothing.
+      const readers: Record<string, string> =
+        TEAM_EMAIL_READERS[template] || {};
+
+      /*
+       * The enum's own file names every template; it sends nothing. Nor
+       * does a file that only reads what was sent.
+       */
       expect(
         senders.filter((relativePath: string): boolean => {
-          return !relativePath.endsWith("Types/Email/EmailTemplateType.ts");
+          return (
+            !relativePath.endsWith("Types/Email/EmailTemplateType.ts") &&
+            !Object.prototype.hasOwnProperty.call(readers, relativePath)
+          );
         }),
       ).toEqual([sender]);
+    },
+  );
+
+  test.each(
+    Object.entries(TEAM_EMAIL_READERS).flatMap(
+      ([template, readers]: [string, Record<string, string>]): Array<
+        [string, string]
+      > => {
+        return Object.keys(readers).map(
+          (relativePath: string): [string, string] => {
+            return [template, relativePath];
+          },
+        );
+      },
+    ),
+  )(
+    "%s is only read in %s, which sends no email",
+    (template: string, relativePath: string) => {
+      const code: string = fileCode(relativePath);
+
+      expect(code).toContain(template);
+      expect(SENDS_MAIL.test(code)).toBe(false);
     },
   );
 });

@@ -283,7 +283,6 @@
       "columnJoinedAt": "加入時間",
       "columnInvitedAt": "邀請時間",
       "statusMember": "成員",
-      "statusInvited": "已發送邀請",
       "pendingInvitations": "{{pending}} 個待處理邀請",
       "teamsCardTitle": "團隊成員資格",
       "teamsCardDescription": "此使用者在所有專案中所屬的團隊。刪除某一列只會將其從該團隊中移除。",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "無法讀取邀請連結。對方可能已不再受邀加入此專案：請在該專案的「使用者」頁面重新邀請。",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "當此伺服器的電子郵件停止運作、所有全域探測器都停止回報，或其中一個探測器落後時，會通知主要管理員，恢復正常時再通知一次：絕不透過已停止的管道，且每小時最多一次。",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} 的網路裝置輪詢落後：自 {{time}} 起，這些裝置已在輪詢時間過後等待超過 1 分鐘，因此輪詢頻率低於設定。",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "讓探測器一次輪詢更多裝置：在 config.env 中調高 GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY，或在 Helm 值中調高該探測器的 networkDevicePollConcurrency，並為它分配相應的 CPU。"
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "讓探測器一次輪詢更多裝置：在 config.env 中調高 GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY，或在 Helm 值中調高該探測器的 networkDevicePollConcurrency，並為它分配相應的 CPU。",
+  "Email Not Sent": "郵件未傳送",
+  "Their invitation email was not sent.": "邀請郵件未傳送。",
+  "Resend Invitation": "重新傳送邀請",
+  "Send their invitation email to {{email}} again?": "要重新傳送邀請郵件給 {{email}} 嗎？",
+  "Send their invitation email again?": "要重新傳送邀請郵件嗎？",
+  "Invitation sent to {{email}}": "邀請已寄送至 {{email}}",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去一小時內寄送到此地址的邀請過多。您可以在 {{time}} 之後重新傳送。"
 }

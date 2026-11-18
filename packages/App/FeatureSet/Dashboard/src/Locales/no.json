@@ -56944,7 +56944,13 @@
   "pipeline": "pipeline",
   "Check their email address, then remove them and invite them again.": "Sjekk e-postadressen deres, fjern dem så og inviter dem på nytt.",
   "Email Not Sent": "E-post ikke sendt",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Når e-post virker, fjerner du dem og inviterer dem på nytt, eller ber serveradministratoren om invitasjonslenken deres.",
   "Their invitation email was not sent.": "Invitasjonsmeldingen ble ikke sendt.",
-  "They can still join: send them their invitation link yourself.": "De kan fortsatt bli med: send dem invitasjonslenken selv."
+  "They can still join: send them their invitation link yourself.": "De kan fortsatt bli med: send dem invitasjonslenken selv.",
+  "Check their email address, then use Resend Invitation.": "Sjekk e-postadressen deres, og bruk så «Send invitasjon på nytt».",
+  "Invitation sent to {{email}}": "Invitasjon sendt til {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "Når e-post virker, bruker du «Send invitasjon på nytt», eller ber serveradministratoren om invitasjonslenken deres.",
+  "Resend Invitation": "Send invitasjon på nytt",
+  "Send their invitation email again?": "Send invitasjonsmeldingen på nytt?",
+  "Send their invitation email to {{email}} again?": "Send invitasjonsmeldingen til {{email}} på nytt?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "For mange invitasjoner ble sendt til denne adressen den siste timen. Du kan sende den på nytt etter kl. {{time}}."
 }

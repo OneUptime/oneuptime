@@ -56944,7 +56944,13 @@
   "pipeline": "pipeline",
   "Check their email address, then remove them and invite them again.": "Controleer hun e-mailadres, verwijder ze daarna en nodig ze opnieuw uit.",
   "Email Not Sent": "E-mail niet verzonden",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Zodra e-mail werkt, verwijdert u ze en nodigt u ze opnieuw uit, of vraagt u uw serverbeheerder om hun uitnodigingslink.",
   "Their invitation email was not sent.": "De uitnodigingsmail is niet verstuurd.",
-  "They can still join: send them their invitation link yourself.": "Ze kunnen nog steeds lid worden: stuur ze zelf hun uitnodigingslink."
+  "They can still join: send them their invitation link yourself.": "Ze kunnen nog steeds lid worden: stuur ze zelf hun uitnodigingslink.",
+  "Check their email address, then use Resend Invitation.": "Controleer hun e-mailadres en gebruik daarna 'Uitnodiging opnieuw verzenden'.",
+  "Invitation sent to {{email}}": "Uitnodiging verzonden naar {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "Zodra e-mail werkt, gebruikt u 'Uitnodiging opnieuw verzenden', of vraagt u uw serverbeheerder om hun uitnodigingslink.",
+  "Resend Invitation": "Uitnodiging opnieuw verzenden",
+  "Send their invitation email again?": "De uitnodigingsmail opnieuw verzenden?",
+  "Send their invitation email to {{email}} again?": "De uitnodigingsmail opnieuw naar {{email}} verzenden?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Er zijn het afgelopen uur te veel uitnodigingen naar dit adres verzonden. U kunt de uitnodiging na {{time}} opnieuw verzenden."
 }

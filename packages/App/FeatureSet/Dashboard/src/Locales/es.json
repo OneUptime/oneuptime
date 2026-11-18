@@ -56944,7 +56944,13 @@
   "pipeline": "canalización",
   "Check their email address, then remove them and invite them again.": "Comprueba su dirección de correo y luego quita a esta persona y vuelve a invitarla.",
   "Email Not Sent": "Correo no enviado",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Cuando el correo funcione, quita a esta persona y vuelve a invitarla, o pide su enlace de invitación al administrador del servidor.",
   "Their invitation email was not sent.": "El correo de invitación no se envió.",
-  "They can still join: send them their invitation link yourself.": "Aún puede unirse: envíale tú su enlace de invitación."
+  "They can still join: send them their invitation link yourself.": "Aún puede unirse: envíale tú su enlace de invitación.",
+  "Check their email address, then use Resend Invitation.": "Comprueba su dirección de correo y luego usa «Reenviar invitación».",
+  "Invitation sent to {{email}}": "Invitación enviada a {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "Cuando el correo funcione, usa «Reenviar invitación» o pide su enlace de invitación al administrador del servidor.",
+  "Resend Invitation": "Reenviar invitación",
+  "Send their invitation email again?": "¿Reenviar el correo de invitación?",
+  "Send their invitation email to {{email}} again?": "¿Reenviar el correo de invitación a {{email}}?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Se enviaron demasiadas invitaciones a esta dirección en la última hora. Puedes volver a enviarla después de las {{time}}."
 }

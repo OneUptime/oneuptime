@@ -28,12 +28,15 @@ import {
   canGetInvitationLinks,
   canGetLinksOfInvitationsNotSent,
   canReadInvitationEmailsNotSent,
+  canResendInvitations,
   cannotSendEmail,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
 import InvitationLinkModal, {
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import { getResendInvitationRowAction } from "Common/UI/Components/InvitationLink/ResendInvitation";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
@@ -112,9 +115,15 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
           userId: userId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        // Whose invitation email a pending row asks about (#9511).
+        /*
+         * Whose invitation email a pending row asks about (#9511), and the
+         * address Resend Invitation names before it sends it (#9519).
+         */
         selectMoreFields={{
           userId: true,
+          user: {
+            email: true,
+          },
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
           if (!props.currentProject || !props.currentProject._id) {
@@ -211,6 +220,13 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
                   !cannotSendEmail(serverEmail) &&
                   Boolean(invitationEmailsNotSent.getNotSent(item)),
               });
+            },
+          }),
+          // A pending team's invitation email, sent again (#9519).
+          getResendInvitationRowAction<TeamMember>({
+            isAvailable: canResendInvitations(serverEmail),
+            getRequestHeaders: () => {
+              return ModelAPI.getCommonHeaders();
             },
           }),
         ]}

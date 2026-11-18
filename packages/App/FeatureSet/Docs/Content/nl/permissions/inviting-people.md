@@ -155,7 +155,7 @@ Op een zelfgehoste server die nog geen e-mail kan versturen, kan registreren ook
 :::
 
 :::details Iemand toont E-mail niet verzonden
-De maildienst heeft de laatste uitnodigingsmail geweigerd, dus er is niets bij die persoon aangekomen. Wijs **E-mail niet verzonden** aan, of tik erop, om de reden te zien, zoals het tabblad **E-mail** van de **Meldingslogboeken** van het project die geeft. Controleer het uitgenodigde adres, en verwijder die persoon zodra e-mail werkt en nodig hem of haar opnieuw uit. Op een zelfgehoste server kan de beheerder van de server die persoon in plaats daarvan de uitnodigingslink sturen: een hoofdbeheerder opent bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klikt op **Uitnodigingslink ophalen**.
+De maildienst heeft de laatste uitnodigingsmail geweigerd, dus er is niets bij die persoon aangekomen. Wijs **E-mail niet verzonden** aan, of tik erop, om de reden te zien, zoals het tabblad **E-mail** van de **Meldingslogboeken** van het project die geeft. Controleer het uitgenodigde adres, en open zodra e-mail werkt bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klik op **Uitnodiging opnieuw verzenden**: zodra de mail verstuurd is, staat die persoon weer als **Uitnodiging verzonden**. Op een zelfgehoste server kan de beheerder van de server die persoon in plaats daarvan de uitnodigingslink sturen: een hoofdbeheerder klikt in hetzelfde menu op **Uitnodigingslink ophalen**.
 :::
 
 :::details Gebruiker uitnodigen meldt dat gebruikers via SCIM Push Groups worden beheerd

@@ -56944,7 +56944,13 @@
   "pipeline": "خط لوله",
   "Check their email address, then remove them and invite them again.": "نشانی ایمیلش را بررسی کنید، سپس او را حذف کنید و دوباره دعوتش کنید.",
   "Email Not Sent": "ایمیل فرستاده نشد",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "وقتی ایمیل کار کرد، او را حذف کنید و دوباره دعوتش کنید، یا پیوند دعوتش را از مدیر سرور بخواهید.",
   "Their invitation email was not sent.": "ایمیل دعوتش فرستاده نشد.",
-  "They can still join: send them their invitation link yourself.": "او همچنان می‌تواند بپیوندد: پیوند دعوتش را خودتان برایش بفرستید."
+  "They can still join: send them their invitation link yourself.": "او همچنان می‌تواند بپیوندد: پیوند دعوتش را خودتان برایش بفرستید.",
+  "Check their email address, then use Resend Invitation.": "نشانی ایمیلش را بررسی کنید، سپس از «ارسال دوبارهٔ دعوت» استفاده کنید.",
+  "Invitation sent to {{email}}": "دعوت به {{email}} فرستاده شد",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "وقتی ایمیل کار کرد، از «ارسال دوبارهٔ دعوت» استفاده کنید، یا پیوند دعوتش را از مدیر سرور بخواهید.",
+  "Resend Invitation": "ارسال دوبارهٔ دعوت",
+  "Send their invitation email again?": "ایمیل دعوتش دوباره فرستاده شود؟",
+  "Send their invitation email to {{email}} again?": "ایمیل دعوتش دوباره به {{email}} فرستاده شود؟",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "در یک ساعت گذشته دعوت‌های زیادی به این نشانی فرستاده شده است. پس از {{time}} می‌توانید دوباره آن را بفرستید."
 }

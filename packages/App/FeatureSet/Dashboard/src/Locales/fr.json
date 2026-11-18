@@ -56944,7 +56944,13 @@
   "pipeline": "pipeline",
   "Check their email address, then remove them and invite them again.": "Vérifiez l'adresse e-mail de cette personne, puis retirez-la et invitez-la de nouveau.",
   "Email Not Sent": "E-mail non envoyé",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Une fois l'e-mail fonctionnel, retirez cette personne et invitez-la de nouveau, ou demandez son lien d'invitation à l'administrateur de votre serveur.",
   "Their invitation email was not sent.": "L'e-mail d'invitation n'a pas été envoyé.",
-  "They can still join: send them their invitation link yourself.": "Cette personne peut quand même rejoindre le projet : envoyez-lui vous-même son lien d'invitation."
+  "They can still join: send them their invitation link yourself.": "Cette personne peut quand même rejoindre le projet : envoyez-lui vous-même son lien d'invitation.",
+  "Check their email address, then use Resend Invitation.": "Vérifiez l'adresse e-mail de cette personne, puis utilisez « Renvoyer l'invitation ».",
+  "Invitation sent to {{email}}": "Invitation envoyée à {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "Une fois l'e-mail fonctionnel, utilisez « Renvoyer l'invitation », ou demandez son lien d'invitation à l'administrateur de votre serveur.",
+  "Resend Invitation": "Renvoyer l'invitation",
+  "Send their invitation email again?": "Renvoyer l'e-mail d'invitation ?",
+  "Send their invitation email to {{email}} again?": "Renvoyer l'e-mail d'invitation à {{email}} ?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Trop d'invitations ont été envoyées à cette adresse au cours de la dernière heure. Vous pourrez la renvoyer après {{time}}."
 }

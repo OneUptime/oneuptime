@@ -56944,7 +56944,13 @@
   "pipeline": "管道",
   "Check their email address, then remove them and invite them again.": "请核对对方的邮箱地址，然后将其移除并重新邀请。",
   "Email Not Sent": "邮件未发送",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "邮件可用后，请将对方移除并重新邀请，或向服务器管理员索取对方的邀请链接。",
   "Their invitation email was not sent.": "邀请邮件未发送。",
-  "They can still join: send them their invitation link yourself.": "对方仍可加入：请自行把邀请链接发给对方。"
+  "They can still join: send them their invitation link yourself.": "对方仍可加入：请自行把邀请链接发给对方。",
+  "Check their email address, then use Resend Invitation.": "请核对对方的邮箱地址，然后使用“重新发送邀请”。",
+  "Invitation sent to {{email}}": "邀请已发送至 {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "邮件可用后，请使用“重新发送邀请”，或向服务器管理员索取对方的邀请链接。",
+  "Resend Invitation": "重新发送邀请",
+  "Send their invitation email again?": "要重新发送邀请邮件吗？",
+  "Send their invitation email to {{email}} again?": "要重新向 {{email}} 发送邀请邮件吗？",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "过去一小时内向此地址发送的邀请过多。您可以在 {{time}} 之后重新发送。"
 }

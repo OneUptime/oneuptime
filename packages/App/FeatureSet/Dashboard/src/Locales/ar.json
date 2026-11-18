@@ -56944,7 +56944,13 @@
   "pipeline": "مسار البيانات",
   "Check their email address, then remove them and invite them again.": "تحقّق من عنوان بريدهم الإلكتروني، ثم أزلهم وادعُهم مرة أخرى.",
   "Email Not Sent": "لم يُرسَل البريد الإلكتروني",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "عندما يعمل البريد الإلكتروني، أزلهم وادعُهم مرة أخرى، أو اطلب رابط الدعوة الخاص بهم من مسؤول الخادم.",
   "Their invitation email was not sent.": "لم تُرسَل رسالة الدعوة إليهم.",
-  "They can still join: send them their invitation link yourself.": "لا يزال بإمكانهم الانضمام: أرسل إليهم رابط الدعوة بنفسك."
+  "They can still join: send them their invitation link yourself.": "لا يزال بإمكانهم الانضمام: أرسل إليهم رابط الدعوة بنفسك.",
+  "Check their email address, then use Resend Invitation.": "تحقّق من عنوان بريدهم الإلكتروني، ثم استخدم «إعادة إرسال الدعوة».",
+  "Invitation sent to {{email}}": "أُرسلت الدعوة إلى {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "عندما يعمل البريد الإلكتروني، استخدم «إعادة إرسال الدعوة»، أو اطلب رابط الدعوة الخاص بهم من مسؤول الخادم.",
+  "Resend Invitation": "إعادة إرسال الدعوة",
+  "Send their invitation email again?": "هل تريد إعادة إرسال رسالة الدعوة؟",
+  "Send their invitation email to {{email}} again?": "هل تريد إعادة إرسال رسالة الدعوة إلى {{email}}؟",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "أُرسل عدد كبير جدًا من الدعوات إلى هذا العنوان خلال الساعة الماضية. يمكنك إعادة إرسالها بعد {{time}}."
 }

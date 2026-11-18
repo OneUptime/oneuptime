@@ -35,12 +35,14 @@ import {
   canGetInvitationLinks,
   canGetLinksOfInvitationsNotSent,
   canReadInvitationEmailsNotSent,
+  canResendInvitations,
   cannotSendEmail,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
 import InvitationLinkModal, {
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import { getResendInvitationRowAction } from "Common/UI/Components/InvitationLink/ResendInvitation";
 import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
@@ -282,6 +284,13 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
                   !cannotSendEmail(serverEmail) &&
                   Boolean(invitationEmailsNotSent.getNotSent(item)),
               });
+            },
+          }),
+          // A pending member's invitation email, sent again (#9519).
+          getResendInvitationRowAction<TeamMember>({
+            isAvailable: canResendInvitations(serverEmail),
+            getRequestHeaders: () => {
+              return ModelAPI.getCommonHeaders();
             },
           }),
           {
