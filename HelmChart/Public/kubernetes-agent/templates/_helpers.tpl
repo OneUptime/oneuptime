@@ -1631,6 +1631,68 @@ Usage: {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
 {{- end -}}
 
 {{/*
+Whether Kubernetes cost monitoring runs: cost.enabled, read through this by
+every template that has a part in it - the cost agent, the bundled OpenCost
+and its Prometheus, their RBAC, the collector's cost-engine scrape and the
+notes - so a preset that leaves it out leaves no half of it behind.
+
+  true / false - what it says, on every preset.
+  auto (the default; also an empty or missing value) - on, except on the
+    gke-autopilot and eks-fargate presets. Those platforms bill every pod by
+    what it requests, so the three cost pods would add to the bill they
+    measure, and OpenCost prices nodes, which is not how either platform
+    charges: the figures would be wrong. Turn it on there with true.
+
+A value that is neither is refused while the chart renders (and by
+values.schema.json before that), instead of being read as on or off.
+Usage: {{- if eq (include "kubernetes-agent.costEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costEnabled" -}}
+{{- $enabled := (.Values.cost | default dict).enabled -}}
+{{- $preset := default "" .Values.preset -}}
+{{- if kindIs "bool" $enabled -}}
+{{- ternary "true" "false" $enabled -}}
+{{- else if or (kindIs "invalid" $enabled) (eq (toString $enabled | trim | lower) "auto") (eq (toString $enabled | trim) "") -}}
+{{- ternary "false" "true" (or (eq $preset "gke-autopilot") (eq $preset "eks-fargate")) -}}
+{{- else if eq (toString $enabled | trim | lower) "true" -}}
+true
+{{- else if eq (toString $enabled | trim | lower) "false" -}}
+false
+{{- else -}}
+{{- fail (printf "cost.enabled is %q. Set it to true, false or auto (the default: on, except on the gke-autopilot and eks-fargate presets)." (toString $enabled)) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether cost.enabled is left to the chart (auto) rather than set to true or
+false - for the notes, which say why cost is on or off.
+Usage: {{- if eq (include "kubernetes-agent.costAuto" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costAuto" -}}
+{{- $enabled := (.Values.cost | default dict).enabled -}}
+{{- if kindIs "bool" $enabled -}}
+false
+{{- else if or (kindIs "invalid" $enabled) (eq (toString $enabled | trim | lower) "auto") (eq (toString $enabled | trim) "") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the deployment collector scrapes the cost engine's metrics:
+cost.metrics.enabled, while cost monitoring runs.
+Usage: {{- if eq (include "kubernetes-agent.costMetricsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costMetricsEnabled" -}}
+{{- if and (eq (include "kubernetes-agent.costEnabled" .) "true") .Values.cost.metrics.enabled -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
 Whether the chart bundles its own cost engine (OpenCost + a minimal
 Prometheus). Bundling is the default when cost is enabled; providing
 `cost.engine.url` means "use my existing OpenCost / Kubecost" and turns
@@ -1638,7 +1700,11 @@ the bundle off. Usage:
   {{- if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}
 */}}
 {{- define "kubernetes-agent.costEngineBundled" -}}
-{{- and .Values.cost.enabled (not .Values.cost.engine.url) -}}
+{{- if and (eq (include "kubernetes-agent.costEnabled" .) "true") (not .Values.cost.engine.url) -}}
+true
+{{- else -}}
+false
+{{- end -}}
 {{- end -}}
 
 {{/*
