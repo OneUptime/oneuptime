@@ -967,6 +967,67 @@ export default class QueryHelper {
     );
   }
 
+  /**
+   * inRecordsWhere's counterpart: applied to a key naming a record of
+   * `tableName`, matches the keys that name no record meeting `condition` -
+   * an empty key among them, which names none. For the rows a read keeps
+   * unless a record they name is one it leaves out (ReadAudiencePermission:
+   * a monitor's status timeline is left out with a monitor set apart).
+   * Written as NOT IN, so a key whose record is of another kind - a
+   * telemetry row's resource id - matches as one naming none of these.
+   */
+  public static namesNoRecordWhere(data: {
+    tableName: string;
+    condition: FindWhereProperty<any>;
+  }): FindWhereProperty<any> {
+    const table: string = QueryHelper.escapeIdentifier(data.tableName);
+    // The record's own alias, so its columns are never read as the outer row's.
+    const recordAlias: string = `record${Text.generateRandomText(10)}`;
+    const getSql: (alias: string) => string = QueryHelper.getRawSql(
+      data.condition,
+    );
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IS NULL OR ${alias} NOT IN (SELECT "${recordAlias}"."_id" FROM "${table}" "${recordAlias}" WHERE ${getSql(`"${recordAlias}"."_id"`)}))`;
+      },
+      (data.condition as unknown as FindOperator<unknown>)
+        .objectLiteralParameters || {},
+    );
+  }
+
+  /**
+   * The records a condition this class writes does not match: for the
+   * records a read leaves out, written from the ones it keeps
+   * (ReadAudiencePermission.getSetApartCondition). The condition must be
+   * one that is never NULL - each of this class's is TRUE or FALSE - so
+   * that NOT of it is too.
+   */
+  public static notCondition(
+    condition: FindWhereProperty<any>,
+  ): FindWhereProperty<any> {
+    const getSql: (alias: string) => string = QueryHelper.getRawSql(condition);
+
+    return Raw(
+      (alias: string) => {
+        return `(NOT ${getSql(alias)})`;
+      },
+      (condition as unknown as FindOperator<unknown>).objectLiteralParameters ||
+        {},
+    );
+  }
+
+  /**
+   * A flag that is off: FALSE, or never set. For a record kept unless it is
+   * marked - an incident that is not private (ReadAudiencePermission) - as
+   * a condition other conditions of this class can hold.
+   */
+  public static isFalseOrNull(): FindWhereProperty<any> {
+    return Raw((alias: string) => {
+      return `(${alias} IS NULL OR ${alias} = FALSE)`;
+    }, {});
+  }
+
   /*
    * The SQL a condition this class builds writes for a column (a Raw's
    * generator). Any other condition cannot be written inside another one,

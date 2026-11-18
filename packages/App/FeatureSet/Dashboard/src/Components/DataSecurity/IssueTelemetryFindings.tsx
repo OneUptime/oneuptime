@@ -59,15 +59,19 @@ import React, {
  * WHAT A TELEMETRY ISSUE FOUND, WHERE, AND THE RECORDS IT WAS IN.
  *
  * "Please tell me what kind data it is, where is it coming from. Show me
- * actual data like traces / logs" (issue #5594). The findings behind a
- * telemetry issue, by the rules its check counts them with
- * (isUnscrubbedTelemetryFinding): each data type and the place it sits -
- * an attribute, a log's body, a prompt - with how many sampled values
- * matched, when a scan last saw it, its masked samples, Scrub It, and the
- * newest records that carry it (FindingOccurrences), which open in the
- * trace view, the logs explorer, the exception or the session replay. A
- * finding a scrub rule already masks stays on the list, marked, so a
- * person sees what is left.
+ * actual data like traces / logs" (issue #5594), and "show maybe actual
+ * log lines where things are found and highlight sections" (issue #9549).
+ * The findings behind a telemetry issue, by the rules its check counts
+ * them with (isUnscrubbedTelemetryFinding): each data type and the place
+ * it sits - an attribute, a log's body, a prompt - with how many sampled
+ * values matched, when a scan last saw it, Scrub It, and the records it
+ * was found in (FindingOccurrences): each log line, span, exception, AI
+ * call or session with its time and service, the line itself with the data
+ * marked and every sensitive value masked, opening in the logs explorer,
+ * the trace view, the exception or the session replay. Folded, a finding
+ * shows its masked samples instead. The first finding left to scrub shows
+ * its records when the page opens. A finding a scrub rule already masks
+ * stays on the list, marked, so a person sees what is left.
  *
  * Masked samples and the records they were seen in are evidence about
  * real records: only a reader who may read the masked samples is asked
@@ -186,6 +190,34 @@ export function getFindingsBehindIssue(
   ];
 }
 
+// A finding's masked samples, in a line of their own.
+const MaskedSamples: FunctionComponent<{ samples: Array<string> }> = (props: {
+  samples: Array<string>;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div data-testid="data-security-issue-finding-samples">
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {translator.translateText(MASKED_SAMPLES)}
+      </div>
+      <div className="mt-1 flex flex-wrap gap-1.5">
+        {props.samples.map((sample: string): ReactElement => {
+          return (
+            <code
+              key={sample}
+              className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]"
+              data-testid="data-security-issue-finding-sample"
+            >
+              {sample}
+            </code>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const FindingBlock: FunctionComponent<{
   finding: DataStoreFinding;
   namer: DataTypeNamer;
@@ -195,6 +227,8 @@ const FindingBlock: FunctionComponent<{
   scrubGate: PermissionGateResult;
   isScrubbing: boolean;
   onScrub: () => void;
+  // The service or RUM application the store's telemetry is sent under.
+  ownerName: string;
 }> = (props: {
   finding: DataStoreFinding;
   namer: DataTypeNamer;
@@ -204,6 +238,7 @@ const FindingBlock: FunctionComponent<{
   scrubGate: PermissionGateResult;
   isScrubbing: boolean;
   onScrub: () => void;
+  ownerName: string;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const finding: DataStoreFinding = props.finding;
@@ -314,24 +349,14 @@ const FindingBlock: FunctionComponent<{
         )}
       </div>
 
-      {props.canReadSamples && samples.length > 0 ? (
+      {/*
+       * The samples while the records are folded; open, the records show
+       * the same masked values in their lines, and the samples only when
+       * there is no record to show.
+       */}
+      {props.canReadSamples && samples.length > 0 && !props.isOpen ? (
         <div className="mt-3">
-          <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            {translator.translateText(MASKED_SAMPLES)}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {samples.map((sample: string): ReactElement => {
-              return (
-                <code
-                  key={sample}
-                  className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]"
-                  data-testid="data-security-issue-finding-sample"
-                >
-                  {sample}
-                </code>
-              );
-            })}
-          </div>
+          <MaskedSamples samples={samples} />
         </div>
       ) : (
         <></>
@@ -358,7 +383,15 @@ const FindingBlock: FunctionComponent<{
           </button>
           {props.isOpen ? (
             <div className="mt-2">
-              <FindingOccurrences findingId={new ObjectID(findingId)} />
+              <FindingOccurrences
+                findingId={new ObjectID(findingId)}
+                ownerName={props.ownerName}
+                fallback={
+                  samples.length > 0 ? (
+                    <MaskedSamples samples={samples} />
+                  ) : undefined
+                }
+              />
             </div>
           ) : (
             <></>
@@ -562,6 +595,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
                 setScrubError("");
                 setScrubbing(finding);
               }}
+              ownerName={ownerName}
             />
           );
         })}
@@ -572,7 +606,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Where It Was Found"
-      description="Each kind of data the check found, where it sits in this telemetry, and the newest records that carry it."
+      description="Each kind of data the check found, where it sits, and the records it was found in."
     >
       <div className="space-y-4" data-testid={ISSUE_TELEMETRY_FINDINGS_TEST_ID}>
         {notice ? (

@@ -149,29 +149,25 @@ describe("the bell", () => {
   });
 
   test("with Alerts off, shows no alert and no alert episode", () => {
-    expect(ids(getBellItemsOnServer(items, off([ProductKey.Alerts])))).toEqual(
-      [
-        "incidents",
-        "incidentEpisodes",
-        "oncall",
-        NOTIFICATION_SETUP_NUDGE_ITEM_ID,
-        "invitations",
-        "trial",
-      ],
-    );
+    expect(ids(getBellItemsOnServer(items, off([ProductKey.Alerts])))).toEqual([
+      "incidents",
+      "incidentEpisodes",
+      "oncall",
+      NOTIFICATION_SETUP_NUDGE_ITEM_ID,
+      "invitations",
+      "trial",
+    ]);
   });
 
   test("with On-Call off, shows no duty and does not ask to finish its setup", () => {
-    expect(ids(getBellItemsOnServer(items, off([ProductKey.OnCall])))).toEqual(
-      [
-        "incidents",
-        "alerts",
-        "alertEpisodes",
-        "incidentEpisodes",
-        "invitations",
-        "trial",
-      ],
-    );
+    expect(ids(getBellItemsOnServer(items, off([ProductKey.OnCall])))).toEqual([
+      "incidents",
+      "alerts",
+      "alertEpisodes",
+      "incidentEpisodes",
+      "invitations",
+      "trial",
+    ]);
   });
 
   test("with nothing off, every item stays", () => {
@@ -273,9 +269,7 @@ describe("the pages outside a project", () => {
 });
 
 describe("Home", () => {
-  const list: <T>(items: Array<T>) => { items: Array<T>; count: number } = <
-    T,
-  >(
+  const list: <T>(items: Array<T>) => { items: Array<T>; count: number } = <T,>(
     items: Array<T>,
   ): { items: Array<T>; count: number } => {
     return { items: items, count: items.length };

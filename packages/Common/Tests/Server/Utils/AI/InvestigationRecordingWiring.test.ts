@@ -26,6 +26,26 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import ReadAudienceReader, {
+  ReadAudienceSubject,
+} from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
+
+/*
+ * Who reads the report: everyone who may see its incident or alert, worked
+ * out before the starting context is read (ReadAudienceReader, #9576) - here
+ * a project whose roles narrow nobody.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockImplementation(
+      async (subject: ReadAudienceSubject): Promise<ReadAudience> => {
+        return readAudienceOf({ projectId: subject.projectId });
+      },
+    );
+});
 
 /*
  * WHO RECORDS, AND WHO MAY SKIP THE PROJECT'S MODEL (issue #6800).

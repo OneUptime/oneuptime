@@ -31,6 +31,9 @@ import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import AIMemory from "./AIMemory";
+import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import InvestigationAccessForAudience from "./InvestigationAccessForAudience";
 import FixFromIncidentTaskTrigger from "./FixFromIncidentTaskTrigger";
 import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
 import RemediationHandoff from "./RemediationHandoff";
@@ -561,7 +564,20 @@ export default class AIIncidentInvestigationRunner {
     let reportLead: MarkdownText | undefined = undefined;
     // When the incident started: where a check for its logs begins.
     let subjectStartedAt: Date | undefined = undefined;
+    /*
+     * Who reads the report: everyone who may see the incident. The starting
+     * context and every tool read only what all of them may read (#9576).
+     * Worked out first: a run that cannot tell who its readers are does not
+     * read for them as OneUptime - it is retried, as a context that cannot
+     * be read is.
+     */
+    let readAudience: ReadAudience;
     try {
+      readAudience = await ReadAudienceReader.forSubject({
+        projectId,
+        incidentId,
+      });
+
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
           incidentId,
@@ -593,6 +609,7 @@ export default class AIIncidentInvestigationRunner {
             .filter(Boolean),
           title: contextData.incident.title,
           description: contextData.incident.description,
+          readAudience,
         });
 
       contextSummary =
@@ -611,6 +628,7 @@ export default class AIIncidentInvestigationRunner {
         linked = await LinkedInfrastructureContext.readForIncident({
           projectId,
           incidentId,
+          readAudience,
         });
         const linkedNote: AIRunEventResultSummary | null =
           LinkedInfrastructureContext.buildActivityNote(linked);
@@ -637,6 +655,7 @@ export default class AIIncidentInvestigationRunner {
           await InvestigationImpactContext.readForIncident({
             projectId,
             incidentId,
+            readAudience,
           }),
         );
       } catch (error) {
@@ -658,6 +677,7 @@ export default class AIIncidentInvestigationRunner {
             subjectKind: "incident",
             subjectId: incidentId,
             linked,
+            readAudience,
           });
         const changesNote: AIRunEventResultSummary | null =
           RecentChangesContext.buildActivityNote(recentChanges);
@@ -684,6 +704,7 @@ export default class AIIncidentInvestigationRunner {
           await SecurityCaseIncidentContext.buildContextSectionFor({
             projectId,
             incidentId,
+            readAudience,
           });
       } catch (error) {
         logger.error(
@@ -704,6 +725,7 @@ export default class AIIncidentInvestigationRunner {
               projectId,
               incidentId,
               alertId: data.followUpForAlertId,
+              readAudience,
             });
 
           if (followUp) {
@@ -722,11 +744,14 @@ export default class AIIncidentInvestigationRunner {
 
       // Direct cluster access — enrichment only, never a prerequisite.
       try {
-        clusterStatuses =
-          await KubernetesClusterAiAccessService.getStatusesForSubject({
-            projectId,
-            incidentId,
-          });
+        clusterStatuses = await InvestigationAccessForAudience.keepClusters({
+          statuses:
+            await KubernetesClusterAiAccessService.getStatusesForSubject({
+              projectId,
+              incidentId,
+            }),
+          readAudience,
+        });
       } catch (error) {
         logger.error(
           `AI: could not resolve cluster access for incident ${incidentId.toString()}; investigating with OneUptime data only: ${error}`,
@@ -744,9 +769,12 @@ export default class AIIncidentInvestigationRunner {
        */
       try {
         const statuses: Array<ResourceAiAccessStatus> =
-          await ResourceAiAccessService.getStatusesForSubject({
-            projectId,
-            incidentId,
+          await InvestigationAccessForAudience.keepResources({
+            statuses: await ResourceAiAccessService.getStatusesForSubject({
+              projectId,
+              incidentId,
+            }),
+            readAudience,
           });
         const section: string =
           ResourceAccessContext.buildContextSection(statuses);
@@ -780,6 +808,7 @@ export default class AIIncidentInvestigationRunner {
             ),
           focusText: `${contextData.incident.title || ""}\n${contextData.incident.rootCause || ""}`,
           seriesLabels: contextData.incident.seriesLabels,
+          readAudience,
         });
       } catch (error) {
         logger.error(
@@ -954,6 +983,7 @@ export default class AIIncidentInvestigationRunner {
         extraTools,
         codeRepositoryAllowance,
         aiContextRules,
+        readAudience,
       });
     } finally {
       // Every session the run opened ends with it.
@@ -982,6 +1012,8 @@ export default class AIIncidentInvestigationRunner {
     codeRepositoryAllowance: CodeRepositoryAllowance;
     // The matching AI rules' AI context, read after the project's.
     aiContextRules: Array<AiContextRule>;
+    // Everyone who may see the incident: the tools read what all of them may.
+    readAudience: ReadAudience;
   }): Promise<void> {
     const {
       aiRunId,
@@ -999,6 +1031,7 @@ export default class AIIncidentInvestigationRunner {
       extraTools,
       codeRepositoryAllowance,
       aiContextRules,
+      readAudience,
     } = data;
 
     await AIInvestigationEngine.executeRun({
@@ -1026,6 +1059,8 @@ export default class AIIncidentInvestigationRunner {
         recordImpactNumbers: true,
         // What it saw, kept for a replay after a prompt or model change.
         recordForReplay: true,
+        // Everyone who may see the incident reads the report (#9576).
+        readAudience,
         // Says when the logs stood in the way, with a way forward.
         logStallSubject: {
           subjectType: "incident",

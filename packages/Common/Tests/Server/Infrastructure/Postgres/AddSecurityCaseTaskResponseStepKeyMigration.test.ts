@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSecurityCaseTaskResponseStepKey1809184690000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184690000-AddSecurityCaseTaskResponseStepKey";
+import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184690000-AddSecurityCaseTaskResponseStepKey";
 import SecurityCaseTask from "../../../../Models/DatabaseModels/SecurityCaseTask";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -22,13 +22,13 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * schema drift check holds its statement to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809184690000";
+const MIGRATION_TIMESTAMP: string = "1809184720000";
 const MIGRATION_BASE_NAME: string = "AddSecurityCaseTaskResponseStepKey";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "AddBiLineageSummaryAndDashboardUpstream1809184620000";
-const PREVIOUS_TIMESTAMP: number = 1809184620000;
+  "AddIdentityProviderSignOut1809184710000";
+const PREVIOUS_TIMESTAMP: number = 1809184710000;
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -43,7 +43,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddSecurityCaseTaskResponseStepKey1809184690000();
+    new AddSecurityCaseTaskResponseStepKey1809184720000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddSecurityCaseTaskResponseStepKey1809184690000", () => {
+describe("AddSecurityCaseTaskResponseStepKey1809184720000", () => {
   test("adds the step a task was made from to SecurityCaseTask, nullable", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "SecurityCaseTask" ADD "responseStepKey" character varying(100)`,
@@ -109,7 +109,7 @@ describe("AddSecurityCaseTaskResponseStepKey1809184690000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddSecurityCaseTaskResponseStepKey1809184690000().name).toBe(
+    expect(new AddSecurityCaseTaskResponseStepKey1809184720000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

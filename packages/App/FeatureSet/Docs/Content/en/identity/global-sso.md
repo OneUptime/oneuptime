@@ -91,6 +91,12 @@ Two questions on the provider change this, folded under **More fields**. Each st
 
 With **Every project**, signing in with the provider meets SSO enforcement in every project the person belongs to, and attached projects only decide where newcomers are added.
 
+## Signing out of the identity provider too
+
+Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer the next person who signs in with that provider gets in as the one who left. On an OpenID Connect provider, click **Edit Configuration** and turn on **Sign Out of the Identity Provider Too** under **More fields**: signing out of OneUptime then ends the provider's session too, and the provider sends the browser back to the OneUptime sign-in page. It is off by default, since on a personal laptop it would also sign the person out of every other app that uses the provider.
+
+Register the sign-out redirect URI that the **Identity Provider URL** card shows with your provider, as an allowed post-logout redirect URI. A provider whose discovery document names no `end_session_endpoint`, such as Google, cannot turn it on.
+
 ## Enforcing SSO
 
 Configuring a global provider does not force anyone to use it; password login still works. To require SSO, turn the requirement on for a project or for the whole instance:

@@ -1127,6 +1127,7 @@ const PodmanHostOverview: FunctionComponent<
                       <ContainerHostHealthPill
                         health={getContainerHostHealth(attentionItems)}
                         isConnected={isConnected}
+                        items={attentionItems}
                       />
                     ) : (
                       <></>

@@ -259,6 +259,12 @@ Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Googl
 6. Ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur, pour vous connecter avec lui avant d'exiger le SSO pour le projet.
 :::
 
+### Se déconnecter aussi du fournisseur d'identité
+
+Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, comme un écran de NOC ou une borne, la personne suivante qui choisit le fournisseur sur la page de connexion entre donc à la place de celle qui est partie. Activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** pour qu'une déconnexion de OneUptime mette aussi fin à la session chez le fournisseur. C'est désactivé par défaut : sur un ordinateur portable personnel, cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur.
+
+Une fois l'option activée, le navigateur passe par la déconnexion du fournisseur dès que OneUptime l'a déconnecté, et le fournisseur le renvoie vers la page de connexion de OneUptime. Enregistrez cette page auprès de votre fournisseur : la boîte de dialogue **Configuration OIDC** l'affiche comme URI de redirection après déconnexion, que les fournisseurs appellent post-logout redirect URI. Un fournisseur dont le document de découverte ne nomme aucun `end_session_endpoint`, comme Google, ne peut pas l'activer. Elle s'applique aux personnes qui se connectent dans un navigateur après son activation ; l'application mobile se déconnecte de OneUptime seulement. Les fournisseurs SAML ne déconnectent jamais personne du fournisseur d'identité.
+
 ## Rôles et équipes des utilisateurs SSO
 
 OneUptime ne reprend pas les rôles ni les groupes de votre fournisseur d'identité. Ce qu'une personne peut faire dépend des équipes dont elle fait partie : un fournisseur ajoute les nouveaux venus à ses **Équipes**, et vous gérez les équipes et leurs autorisations dans OneUptime, comme le décrit [Utilisateurs, équipes et autorisations](/docs/permissions/index). Pour garder l'appartenance aux équipes alignée sur votre fournisseur d'identité, utilisez [SCIM](/docs/identity/scim). Chaque équipe que quelqu'un rejoint en se connectant est enregistrée sur la page **Journaux d'audit** de cette équipe, comme une modification faite par la personne qui s'est connectée.

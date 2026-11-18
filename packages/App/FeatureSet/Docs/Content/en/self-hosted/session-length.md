@@ -53,7 +53,7 @@ flowchart TB
 - The server counts both lengths from the session itself: when it signed in, and when its person was last active. It checks them on every request, every renewal and every live update, and never leaves signing out to the browser.
 - The idle timeout counts from the last click, key press or scroll in any tab of the Dashboard or the Admin Dashboard. A tab left open does not keep a session alive. Opening OneUptime again does not bring it back either: someone away for longer than the idle timeout, with the browser closed or the computer asleep, signs in again.
 - In the mobile app, the idle timeout counts from the last tap or key press. Time the app spends in the background or closed counts as time without use: someone who opens it again after the idle timeout signs in again. Under the 15-minute idle timeout, the app needs a version newer than 1.6.0: version 1.6.0 and earlier are signed out every 15 minutes, however much they are used. Versions newer than 1.6.0 also say on their sign-in screen why the server signed the person out.
-- When a session ends, the browser goes to the sign-in page, which says why. After signing in again, the person is taken back to the page they were on.
+- When a session ends, the browser goes to the sign-in page, which says why. After signing in again, the person is taken back to the page they were on. A session that has ended, by its length or by a sign-out, a new password or a block, is refused at once on every server, from its next request.
 
 | Change | What happens to the people signed in now |
 | --- | --- |

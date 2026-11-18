@@ -65,6 +65,26 @@ export function kubernetesHealthTextInEnglish(
   return filled;
 }
 
+/*
+ * Why a row of a Kubernetes list reads as it does, under its status (the
+ * shared table's statusReasons): a crash-looping pod's "Last restart:
+ * OOMKilled", a failed pod's "Error, exit code 1" - so a list says what is
+ * wrong without opening the part (#9537). Only for what needs attention,
+ * and never the status's own word again ("CrashLoopBackOff" under
+ * "CrashLoopBackOff").
+ */
+export function getKubernetesListStatusReasons(
+  assessment: KubernetesHealthAssessment,
+): Array<KubernetesHealthText> {
+  if (!assessment.severity) {
+    return [];
+  }
+  const statusWords: string = kubernetesHealthTextInEnglish(assessment.status);
+  return assessment.reasons.filter((reason: KubernetesHealthText): boolean => {
+    return kubernetesHealthTextInEnglish(reason) !== statusWords;
+  });
+}
+
 export interface PodMetricAggregate {
   cpuPercent: number;
   memoryBytes: number;
@@ -92,6 +112,8 @@ export interface KubernetesResource {
   statusText?:
     | { text: string; values?: Record<string, string> | undefined }
     | undefined;
+  // Why, under the status, for what needs attention (ResourceTable).
+  statusReasons?: Array<KubernetesHealthText> | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
 }
@@ -571,6 +593,7 @@ export default class KubernetesResourceUtils {
         let displayStatus: string = "";
         let statusText: KubernetesResource["statusText"] = undefined;
         let statusTone: KubernetesResource["statusTone"] = undefined;
+        let statusReasons: Array<KubernetesHealthText> = [];
         if (
           KINDS_WITH_HEALTH_RULES.has(options.kind) &&
           (options.selectFullSpec || options.kind === "Node")
@@ -596,6 +619,7 @@ export default class KubernetesResourceUtils {
             ? { text: assessment.status.text, values: assessment.status.values }
             : { text: assessment.status.text };
           statusTone = assessment.tone;
+          statusReasons = getKubernetesListStatusReasons(assessment);
         } else if (options.kind === "Pod") {
           displayStatus = row.phase || "";
         } else {
@@ -646,6 +670,9 @@ export default class KubernetesResourceUtils {
         }
         if (statusTone) {
           resource.statusTone = statusTone;
+        }
+        if (statusReasons.length > 0) {
+          resource.statusReasons = statusReasons;
         }
 
         if (options.transform) {

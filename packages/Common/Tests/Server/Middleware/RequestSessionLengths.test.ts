@@ -27,6 +27,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -142,6 +143,7 @@ beforeEach(() => {
   isUserBlocked = jest
     .spyOn(UserService, "isUserBlocked")
     .mockResolvedValue(false as never);
+  treatEverySessionAsLive();
   jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true as never);
 });
 

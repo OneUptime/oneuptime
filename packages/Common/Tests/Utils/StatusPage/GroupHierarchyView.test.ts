@@ -740,29 +740,29 @@ describe("StatusPageGroupHierarchyViewUtil", () => {
       expect(marketTwo.canMoveUp).toBe(true);
     });
 
-    test("moving up targets the order of the sibling above", () => {
+    test("moving up takes the place of the sibling above", () => {
       expect(
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: makeHierarchy(),
           statusPageGroupId: MARKET_TWO.toString(),
           direction: "up",
         }),
-      ).toBe(3);
+      ).toBe(MARKET_ONE.toString());
     });
 
-    test("moving down targets the order of the sibling below", () => {
+    test("moving down takes the place of the sibling below", () => {
       expect(
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: makeHierarchy(),
           statusPageGroupId: REGION_ONE.toString(),
           direction: "down",
         }),
-      ).toBe(6);
+      ).toBe(REGION_TWO.toString());
     });
 
-    test("a group with no neighbour that way has nothing to write", () => {
+    test("a group with no neighbour that way has nowhere to go", () => {
       expect(
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: makeHierarchy(),
           statusPageGroupId: MARKET_ONE.toString(),
           direction: "up",
@@ -770,7 +770,7 @@ describe("StatusPageGroupHierarchyViewUtil", () => {
       ).toBeNull();
 
       expect(
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: makeHierarchy(),
           statusPageGroupId: STANDALONE.toString(),
           direction: "down",
@@ -778,9 +778,9 @@ describe("StatusPageGroupHierarchyViewUtil", () => {
       ).toBeNull();
     });
 
-    test("a group that is not in the list at all has nothing to write", () => {
+    test("a group that is not in the list at all has nowhere to go", () => {
       expect(
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: makeHierarchy(),
           statusPageGroupId: MISSING.toString(),
           direction: "up",
@@ -789,22 +789,52 @@ describe("StatusPageGroupHierarchyViewUtil", () => {
     });
 
     /*
-     * `order` is nullable in the database. Writing `undefined` as a target order
-     * would blank the column rather than move the row.
+     * `order` is nullable in the database, and a page numbered through the
+     * API can leave a group without one. The move names the neighbour by
+     * id, and the server numbers the page as it moves the group (issue
+     * #9573), so such a neighbour is still a place to move to.
      */
-    test("a neighbour with no order of its own is not a move target", () => {
+    test("a neighbour with no order of its own is still a place to move to", () => {
       const statusPageGroups: Array<StatusPageGroup> = [
-        makeGroup({ id: CORPORATE, name: "Corporate" }),
         makeGroup({ id: STANDALONE, name: "Standalone", order: 2 }),
+        makeGroup({ id: CORPORATE, name: "Corporate" }),
       ];
 
       expect(
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: statusPageGroups,
           statusPageGroupId: STANDALONE.toString(),
+          direction: "down",
+        }),
+      ).toBe(CORPORATE.toString());
+    });
+
+    /*
+     * Twins: a configuration that gives two groups one number, or a page
+     * caught mid-apply. Moving by numbers alone, the lower twin was "moved"
+     * to the number it already had, and nothing happened.
+     */
+    test("a twin takes the place of the twin beside it", () => {
+      const statusPageGroups: Array<StatusPageGroup> = [
+        makeGroup({ id: CORPORATE, name: "Corporate", order: 1 }),
+        makeGroup({ id: STANDALONE, name: "Standalone", order: 1 }),
+      ];
+
+      const rows: Array<StatusPageGroupHierarchyRow> =
+        StatusPageGroupHierarchyViewUtil.getRows({
+          statusPageGroups: statusPageGroups,
+        });
+
+      const second: StatusPageGroupHierarchyRow = rows[1]!;
+      const first: StatusPageGroupHierarchyRow = rows[0]!;
+
+      expect(
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
+          statusPageGroups: statusPageGroups,
+          statusPageGroupId: second.id,
           direction: "up",
         }),
-      ).toBeNull();
+      ).toBe(first.id);
     });
 
     test("top level neighbours are read from the top level, not from a parent bucket", () => {
@@ -1276,12 +1306,12 @@ describe("StatusPageGroupHierarchyViewUtil", () => {
 
       expect(rowById(rows, REGION_ONE).canMoveUp).toBe(true);
       expect(
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: statusPageGroups,
           statusPageGroupId: REGION_ONE.toString(),
           direction: "up",
         }),
-      ).toBe(1);
+      ).toBe(CORPORATE.toString());
     });
 
     test("a cycle neither hangs the walk nor loses a group", () => {

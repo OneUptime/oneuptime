@@ -95,9 +95,12 @@ import TwoFactorBackupCode from "Common/Server/Utils/TwoFactorBackupCode";
 import TwoFactorBackupCodeNotification from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import UserSessionService, {
   RevokeSessionOptions,
+  SessionIdentityProviderSignOut,
   SessionMetadata,
   SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
+import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import { IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD } from "Common/Types/SSO/IdentityProviderSignOut";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
@@ -2377,6 +2380,28 @@ router.post(
 );
 
 /*
+ * What the session a sign-out is about to end kept to sign its person out of
+ * their identity provider too (Types/SSO/IdentityProviderSignOut, #9535), or
+ * null. Never fails the sign-out: one that cannot read it signs out of
+ * OneUptime alone, as every sign-out did before.
+ */
+const findIdentityProviderSignOutBeforeSignOut: (
+  data: { refreshToken: string } | { sessionId: ObjectID; userId: ObjectID },
+) => Promise<SessionIdentityProviderSignOut | null> = async (
+  data: { refreshToken: string } | { sessionId: ObjectID; userId: ObjectID },
+): Promise<SessionIdentityProviderSignOut | null> => {
+  try {
+    return await UserSessionService.findIdentityProviderSignOut(data);
+  } catch (err) {
+    logger.warn(
+      "Could not read whether this session signs out of its identity provider too; it signs out of OneUptime alone.",
+    );
+    logger.warn(err);
+    return null;
+  }
+};
+
+/*
  * A refresh of a session that is no longer live. A session the server's session
  * lengths ended already - a master admin shortened them, and every session past
  * them was ended at once (UserSessionService.endSessionsPastLengths) - says why,
@@ -2645,12 +2670,30 @@ router.post(
         requestOrigin: RequestOriginUtil.fromRequest(req),
       };
 
+      /*
+       * What the session this sign-out ends kept to sign its person out of
+       * their identity provider too (#9535), read from it just before it
+       * ends, by whichever of its credentials ends it below - so it is the
+       * very session that ended.
+       */
+      let endedSessionProviderSignOut: SessionIdentityProviderSignOut | null =
+        null;
+
+      let providerSignOutBeforeEnd: SessionIdentityProviderSignOut | null =
+        refreshToken
+          ? await findIdentityProviderSignOutBeforeSignOut({ refreshToken })
+          : null;
+
       let hasEndedSession: boolean = refreshToken
         ? await UserSessionService.revokeSessionByRefreshToken(
             refreshToken,
             revokeOptions,
           )
         : false;
+
+      if (hasEndedSession) {
+        endedSessionProviderSignOut = providerSignOutBeforeEnd;
+      }
 
       /*
        * The refresh token matched no live session: the session it named
@@ -2689,6 +2732,12 @@ router.post(
         }
 
         if (sessionOfAccessToken) {
+          providerSignOutBeforeEnd =
+            await findIdentityProviderSignOutBeforeSignOut({
+              sessionId: sessionOfAccessToken.sessionId,
+              userId: sessionOfAccessToken.userId,
+            });
+
           hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
             {
               userId: sessionOfAccessToken.userId,
@@ -2696,6 +2745,10 @@ router.post(
             },
             revokeOptions,
           );
+
+          if (hasEndedSession) {
+            endedSessionProviderSignOut = providerSignOutBeforeEnd;
+          }
         }
       }
 
@@ -2724,17 +2777,48 @@ router.post(
         }
 
         if (sessionToSignOut) {
-          await UserSessionService.revokeLiveSessionOfUser(
+          providerSignOutBeforeEnd =
+            await findIdentityProviderSignOutBeforeSignOut({
+              sessionId: sessionToSignOut.sessionId,
+              userId: sessionToSignOut.userId,
+            });
+
+          hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
             {
               userId: sessionToSignOut.userId,
               sessionId: sessionToSignOut.sessionId,
             },
             revokeOptions,
           );
+
+          if (hasEndedSession) {
+            endedSessionProviderSignOut = providerSignOutBeforeEnd;
+          }
         }
       }
 
       CookieUtil.removeAllCookies(req, res);
+
+      /*
+       * The OneUptime session has ended, so the browser may now be sent on
+       * to the identity provider, to end its session there too: only for a
+       * session that kept what that takes, and while its provider is still
+       * on and still asks for it (IdentityProviderSignOut.getSignOutUrl).
+       * The sign-out page goes there instead of the sign-in page, and the
+       * provider sends the browser back to the sign-in page.
+       */
+      const identityProviderSignOutUrl: string | null =
+        endedSessionProviderSignOut
+          ? await IdentityProviderSignOut.getSignOutUrl(
+              endedSessionProviderSignOut,
+            )
+          : null;
+
+      if (identityProviderSignOutUrl) {
+        return Response.sendJsonObjectResponse(req, res, {
+          [IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD]: identityProviderSignOutUrl,
+        });
+      }
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {

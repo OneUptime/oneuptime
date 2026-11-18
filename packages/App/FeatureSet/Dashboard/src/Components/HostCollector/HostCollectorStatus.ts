@@ -107,6 +107,9 @@ export interface HostCollectorFields {
   collectorLastContactAt?: Date | string | null | undefined;
   collectorConfigStatus?: string | null | undefined;
   isCollectorHealthy?: boolean | null | undefined;
+  // Why its config did not start, and what error it reports, when read.
+  collectorConfigError?: string | null | undefined;
+  collectorHealthError?: string | null | undefined;
 }
 
 export function isHostCollectorManaged(host: HostCollectorFields): boolean {
@@ -195,6 +198,26 @@ export function summarizeCollectorError(
   }
 
   return summary || null;
+}
+
+/*
+ * Why a host's collector is in trouble, in its own one line: the config
+ * that did not start (Config failed), or the error a running collector
+ * reports (Collector error). Null in any other state, or before the error
+ * is read.
+ */
+export function getHostCollectorErrorSummary(
+  host: HostCollectorFields,
+  now: Date = new Date(),
+): string | null {
+  const state: HostCollectorState = getHostCollectorState(host, now);
+  if (state === HostCollectorState.Failed) {
+    return summarizeCollectorError(host.collectorConfigError);
+  }
+  if (state === HostCollectorState.Unhealthy) {
+    return summarizeCollectorError(host.collectorHealthError);
+  }
+  return null;
 }
 
 /*

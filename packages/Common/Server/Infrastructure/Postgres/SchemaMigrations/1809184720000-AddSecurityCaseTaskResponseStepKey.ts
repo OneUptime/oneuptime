@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewrites no row, a server of the release before ignores it, and a task
  * added by hand or by a playbook has none.
  */
-export class AddSecurityCaseTaskResponseStepKey1809184690000
+export class AddSecurityCaseTaskResponseStepKey1809184720000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityCaseTaskResponseStepKey1809184690000";
+  public name: string = "AddSecurityCaseTaskResponseStepKey1809184720000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

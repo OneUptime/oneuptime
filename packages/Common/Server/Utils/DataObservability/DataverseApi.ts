@@ -239,8 +239,15 @@ const HTML_HIDDEN: RegExp = /<(script|style)[^>]*>[\s\S]*?<\/\1>/gi;
 const HTML_TAG: RegExp = /<[^>]*>/g;
 // Credentials an answer could repeat: a bearer token, or a JSON web token on its own.
 const BEARER_TOKEN: RegExp = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+/*
+ * A JSON web token, looked for once per run of the characters it is made of
+ * (TokenPatternsGuard): from the first "eyJ" in the run, with the run's text
+ * before it put back ($1). A later "eyJ" in the same run has a shorter first
+ * segment and ends no better, so this masks the tokens a search from every
+ * "eyJ" did, in time in line with the answer's length rather than its square.
+ */
 const JSON_WEB_TOKEN: RegExp =
-  /eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g;
+  /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g;
 // The most of Dataverse's own message an error keeps, so the whole sentence around it fits.
 const MAX_ERROR_MESSAGE_LENGTH: number = 130;
 // The longest name of a table's collection an error names.
@@ -1116,7 +1123,7 @@ export default class DataverseApi {
   private redact(text: string): string {
     let redacted: string = text
       .replace(BEARER_TOKEN, "Bearer ****")
-      .replace(JSON_WEB_TOKEN, "****");
+      .replace(JSON_WEB_TOKEN, "$1****");
 
     for (const secret of [
       this.connection.clientSecret,

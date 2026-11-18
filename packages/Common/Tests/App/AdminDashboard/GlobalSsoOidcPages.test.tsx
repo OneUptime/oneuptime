@@ -371,6 +371,8 @@ const SAML_ISSUER_URL: string = `https://${TEST_HOST}/global-sso/${PROVIDER_ID}`
 const SAML_TEST_LOGIN_URL: string = `https://${TEST_HOST}/identity/global-sso/${PROVIDER_ID}`;
 const OIDC_REDIRECT_URI: string = `https://${TEST_HOST}/identity/global-oidc-callback/${PROVIDER_ID}`;
 const OIDC_TEST_LOGIN_URL: string = `https://${TEST_HOST}/identity/global-oidc/${PROVIDER_ID}`;
+// Where the provider sends people once it has signed them out: the sign-in page (#9535).
+const OIDC_SIGN_OUT_REDIRECT_URI: string = `https://${TEST_HOST}/accounts`;
 
 interface EditionCase {
   name: string;
@@ -767,6 +769,8 @@ const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
   "nameClaimName",
   "description",
   ...GLOBAL_SSO_QUESTION_FIELDS,
+  // Whether signing out signs people out of the provider too (#9535), last.
+  "signOutOfIdentityProvider",
 ];
 
 // The value next to a label in an "Identity Provider URLs" card, exactly.
@@ -1475,11 +1479,19 @@ describe("the Global OIDC provider page", () => {
       expect(printedValueFor("Redirect URI (Callback URL)")).toBe(
         OIDC_REDIRECT_URI,
       );
+      expect(printedValueFor("Sign-out Redirect URI")).toBe(
+        OIDC_SIGN_OUT_REDIRECT_URI,
+      );
 
-      // It is pasted into the identity provider: it copies.
+      // They are pasted into the identity provider: they copy.
       expect(
         screen.getByRole("button", {
           name: "Copy Redirect URI (Callback URL)",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", {
+          name: "Copy Sign-out Redirect URI",
         }),
       ).toBeInTheDocument();
 
@@ -1519,6 +1531,7 @@ describe("the Global OIDC provider page", () => {
       "nameClaimName",
       "disableSignUpWithSso",
       "restrictToAttachedProjects",
+      "signOutOfIdentityProvider",
       "isEnabled",
     ]);
     expectAnswerRows(

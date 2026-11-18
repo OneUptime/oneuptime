@@ -107,13 +107,17 @@ describe("Docker Swarm overview (Index.tsx)", () => {
   });
 
   test("the health pill's (i) is named Swarm health and explained by .clusterHealth", () => {
+    // The shared pill (ResourceHealthPill), which opens why when it is not Healthy.
     const pill: string = between(
       code,
-      'data-testid="docker-swarm-hero-health"',
+      'testId="docker-swarm-hero-health"',
       "</span> )}",
     );
     expect(pill).toContain(
       '<InfoTooltip label="Swarm health" text={DOCKER_SWARM_METRIC_DESCRIPTIONS.clusterHealth} />',
+    );
+    expect(code).toContain(
+      '<ResourceHealthPill health={clusterHealth} isConnected={isConnected} items={attentionItems} testId="docker-swarm-hero-health"',
     );
   });
 

@@ -1,6 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -23,9 +24,13 @@ const Logout: FunctionComponent = (): ReactElement => {
      * out, or the wait for it is over (issue #9508): opened at once, it
      * cancelled the sign-out in Firefox, which left the session's cookies
      * behind for the next person on the browser.
+     *
+     * A master admin who signed in through an identity provider set to sign
+     * people out of it too goes to the provider's sign-out instead, which
+     * ends their session there and comes back to the sign-in page (#9535).
      */
-    await UserUtil.logout();
-    Navigation.navigate(ACCOUNTS_URL);
+    const identityProviderSignOutUrl: URL | null = await UserUtil.logout();
+    Navigation.navigate(identityProviderSignOutUrl || ACCOUNTS_URL);
   };
 
   useEffect(() => {

@@ -171,6 +171,15 @@ next, and how to change it last.
 - **The hero is laid out one way.** Every resource's Overview opens with its icon, name and badges,
   when it was last seen, and the page's controls in one top row (`ResourceHeroLayout`). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
+- **A count or a state that says something is wrong opens what failed and why.** "3 Failed" on a
+  Kubernetes cluster's hero and "Degraded" beside a host's name said something was wrong and nothing
+  else: the reasons were a card further down, or nowhere (#9537). Pressed, each opens the list of
+  exactly what it counts (`ResourceAttentionDialog`), the most urgent first: why, in the resource's
+  own words (a container's reason and exit code, the scheduler's message), which one it is (its
+  namespace, its owner, its node), since when, what it reported lately, and View, a step from its
+  page. A hero's health is `ResourceHealthPill`, handed what needs attention; a count is
+  `ResourceAttentionPill`, which reads its parts only when it is pressed. Enforced by
+  [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by
   [RecordIdLineGuard](../../packages/App/Tests/RecordIdLineGuard.test.ts).

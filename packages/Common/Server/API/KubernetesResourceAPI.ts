@@ -376,6 +376,8 @@ export default class KubernetesResourceAPI extends BaseAPI<
     const responseBody: JSONObject = {
       countsByKind: summary.countsByKind as unknown as JSONObject,
       podPhaseCounts: summary.podPhaseCounts as unknown as JSONObject,
+      // Each pod once, as kubectl's STATUS says it: what the hero shows.
+      podStatusCounts: summary.podStatusCounts as unknown as JSONObject,
       nodeReadyCounts: summary.nodeReadyCounts as unknown as JSONObject,
       nodePressureCounts: summary.nodePressureCounts as unknown as JSONObject,
       // Convenience fields so the UI doesn't have to repeat COALESCE:

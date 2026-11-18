@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * WHY A BI TOOL'S TABLES MATCHED IS WHAT IT IS (#9507).
@@ -302,7 +303,7 @@ describe("the words of a tool's summary", () => {
 
 describe("Tables Matched on the BI Tools list", () => {
   test("the count, the first reason, and See Why", () => {
-    const explain: jest.Mock = jest.fn();
+    const explain: Mock = jest.fn();
 
     render(
       <BiTablesMatchedCell

@@ -45,6 +45,26 @@ import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ReadAudienceReader, {
+  ReadAudienceSubject,
+} from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
+
+/*
+ * Who reads the report: everyone who may see its incident or alert, worked
+ * out before the starting context is read (ReadAudienceReader, #9576) - here
+ * a project whose roles narrow nobody.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockImplementation(
+      async (subject: ReadAudienceSubject): Promise<ReadAudience> => {
+        return readAudienceOf({ projectId: subject.projectId });
+      },
+    );
+});
 
 /*
  * THE RUNNERS AND THE QUEUE WITH A RULE THAT WAITS (issue #5074).

@@ -405,7 +405,8 @@ describe("the rest of signing out is as it was", () => {
     });
     fillBrowser({ ...THE_BROWSERS_OWN, ...THE_PERSONS_OWN });
 
-    await expect(UserUtil.logout()).resolves.toBeUndefined();
+    // Never a rejection: the sign-in page follows, as no provider was named (#9535).
+    await expect(UserUtil.logout()).resolves.toBeNull();
 
     expect(whatTheBrowserKeeps()).toEqual(THE_BROWSERS_OWN);
   });

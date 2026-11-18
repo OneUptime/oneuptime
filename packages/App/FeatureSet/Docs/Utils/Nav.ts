@@ -1161,6 +1161,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/rum/mobile-setup",
       },
       {
+        title: "Android Setup",
+        url: "/docs/rum/android-setup",
+      },
+      {
         title: "Core Web Vitals",
         url: "/docs/rum/web-vitals",
       },

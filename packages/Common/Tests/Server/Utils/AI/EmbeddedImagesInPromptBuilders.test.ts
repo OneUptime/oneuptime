@@ -63,6 +63,7 @@ import PromptText, {
 } from "../../../../Utils/AI/PromptText";
 import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
@@ -443,11 +444,14 @@ describe("past incidents (recurrence memory)", () => {
       .mockResolvedValue([ObjectID.generate()]);
     jest.spyOn(IncidentService, "findBy").mockResolvedValue([past]);
 
+    const projectId: ObjectID = ObjectID.generate();
     const context: string = await AIMemory.getPriorSimilarIncidentsContext({
-      projectId: ObjectID.generate(),
+      projectId,
       currentIncidentId: ObjectID.generate(),
       monitorNames: [],
       labelNames: [],
+      // Everyone who may see the incident, in a project narrowing nobody (#9576).
+      readAudience: readAudienceOf({ projectId }),
     });
 
     expect(context).toContain(

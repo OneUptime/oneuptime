@@ -9,6 +9,7 @@ import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import SortValidator from "./SortValidator";
 import PermissionUtil from "./PermissionsUtil";
 import PrivateRecordPermission from "./PrivateRecordPermission";
+import ReadAudiencePermission from "./ReadAudiencePermission";
 import PrivateRecordReadFilter from "../../../Utils/Permission/PrivateRecordReadFilter";
 import TeamOwnedRulePermission from "./TeamOwnedRulePermission";
 import PublicPermission from "./PublicPermission";
@@ -21,6 +22,7 @@ import UserPermissions from "./UserPermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import { JSONObject } from "../../../../Types/JSON";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -69,6 +71,18 @@ export default class BasePermission {
         query,
         props,
       );
+
+      /*
+       * A run of OneUptime's own whose writing everyone who may see its
+       * subject reads - an AI investigation's report (#9576) - reads only
+       * what every one of them may read (ReadAudiencePermission).
+       */
+      const audience: ReadAudience | null =
+        ReadAudiencePermission.getAudience(props);
+
+      if (audience && type === DatabaseRequestType.Read) {
+        query = ReadAudiencePermission.addToQuery(modelType, query, audience);
+      }
     }
 
     if (!props.isRoot && !props.isMasterAdmin) {

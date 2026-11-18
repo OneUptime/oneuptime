@@ -1,4 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { MONITOR_PAUSE_FLAGS_SELECT } from "../../../Utils/Monitor/MonitorPauseState";
 import {
@@ -88,5 +91,30 @@ describe("areSloMonitorsWaitingForFirstCheck", () => {
         { ...NEVER_CHECKED, monitorType: MonitorType.Manual },
       ]),
     ).toBe(false);
+  });
+});
+
+/*
+ * The SLO page's notice banner reads these columns of an SLO's monitors
+ * through the SLO - `monitors: { _id: true, ...SLO_MONITOR_FIRST_CHECK_SELECT }`
+ * - and the server refuses a relation read of a column without
+ * canReadOnRelationQuery, failing the whole read for everyone. Three had
+ * none (firstMeasuredAt and two pause flags), so the banner's read failed
+ * and an archived SLO's Settings page lost "This SLO is archived": found by
+ * 16.0.0's release run.
+ */
+describe("SLO_MONITOR_FIRST_CHECK_SELECT, read through an SLO's monitors", () => {
+  test("names only columns a relation read may select", () => {
+    const monitors: TableColumnMetadata =
+      new ServiceLevelObjective().getTableColumnMetadata("monitors");
+    const monitor: BaseModel = new monitors.modelType!();
+
+    const unreadable: Array<string> = Object.keys(
+      SLO_MONITOR_FIRST_CHECK_SELECT,
+    ).filter((column: string): boolean => {
+      return !monitor.getTableColumnMetadata(column)?.canReadOnRelationQuery;
+    });
+
+    expect(unreadable).toEqual([]);
   });
 });

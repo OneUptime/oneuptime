@@ -1227,6 +1227,12 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
+      "A numbered list's move (issue #9573), the CRUD API of the tables it serves beside it: the move refuses a record of a product that is off before anything else (assertProductIsOn, see below), as the CRUD API's writes do.",
+      {
+        "packages/Common/Server/API/MoveInListAPI.ts": 1,
+      },
+    ),
+    ...decided(
       "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage.",
       {
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
@@ -1815,6 +1821,38 @@ describe("what the decisions stand on", () => {
       });
     },
   );
+
+  /*
+   * MoveInListAPI is decided as a whole for the same reason: its one write,
+   * a move in a numbered list, refuses first thing in moveItem.
+   */
+  test("packages/Common/Server/API/MoveInListAPI.ts: a move refuses a record of a product that is off before anything else", () => {
+    const source: ts.SourceFile = parse(
+      "packages/Common/Server/API/MoveInListAPI.ts",
+    );
+    const firstStatements: Record<string, string> = {};
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isMethodDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === "moveItem" &&
+        node.body
+      ) {
+        firstStatements[node.name.text] = squash(
+          node.body.statements[0]?.getText(source) || "",
+        );
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+
+    expect(firstStatements).toEqual({
+      moveItem: "await this.assertProductIsOn();",
+    });
+  });
 
   /*
    * The routes of a fix that name only the fix are refused once it is

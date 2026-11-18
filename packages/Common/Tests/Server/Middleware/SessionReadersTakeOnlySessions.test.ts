@@ -49,6 +49,7 @@ import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * EVERY PLACE THAT READS A SESSION TAKES ONLY A SESSION.
@@ -389,6 +390,7 @@ beforeEach(() => {
   isUserBlocked = getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(
     false,
   );
+  treatEverySessionAsLive();
   // The person is a master admin still, so a session that says so is one.
   getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(undefined);

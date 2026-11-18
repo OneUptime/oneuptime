@@ -22,6 +22,7 @@ import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import DataCategory from "../../Types/DataSecurity/DataCategory";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
 import DataConfidence from "../../Types/DataSecurity/DataConfidence";
+import { FindingSampleRecord } from "../../Types/DataSecurity/FindingSampleRecord";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -485,6 +486,26 @@ export default class DataStoreFinding extends BaseModel {
     nullable: true,
   })
   public maskedSamples?: Array<string> = undefined;
+
+  /*
+   * A telemetry finding's only: which records of the sample held it
+   * (FindingSampleRecord), so its records are read again exactly. Read like
+   * the masked samples: they point at real records.
+   */
+  @ColumnAccessControl(restrictedColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Sample Records",
+    description:
+      "Telemetry only: up to ten records the last scan found it in, by when each was written and its trace, span or session. Never a value.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public sampleRecords?: Array<FindingSampleRecord> = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

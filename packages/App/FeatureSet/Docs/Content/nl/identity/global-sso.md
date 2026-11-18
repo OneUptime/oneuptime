@@ -91,6 +91,12 @@ Twee vragen op de provider veranderen dit, ingeklapt onder **Meer velden**. Elke
 
 Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.
 
+## Ook afmelden bij de identiteitsprovider
+
+Afmelden bij OneUptime laat iemand aangemeld bij de identiteitsprovider, dus op een gedeelde computer komt de volgende persoon die zich met die provider aanmeldt binnen als degene die wegging. Klik bij een OpenID Connect-provider op **Configuratie bewerken** en zet **Ook afmelden bij de identiteitsprovider** aan onder **Meer velden**: een afmelding bij OneUptime beëindigt dan ook de sessie bij de provider, en de provider stuurt de browser terug naar de aanmeldpagina van OneUptime. Het staat standaard uit, omdat het op een persoonlijke laptop iemand ook zou afmelden bij elke andere app die de provider gebruikt.
+
+Registreer de omleidings-URI na afmelden die de kaart **URL van de identiteitsprovider** toont bij uw provider, als toegestane post-logout redirect URI. Een provider waarvan het discovery-document geen `end_session_endpoint` noemt, zoals Google, kan het niet aanzetten.
+
 ## SSO afdwingen
 
 Een globale provider instellen dwingt niemand om hem te gebruiken; aanmelden met een wachtwoord blijft werken. Om SSO te verplichten, zet u de verplichting aan voor een project of voor de hele instantie:

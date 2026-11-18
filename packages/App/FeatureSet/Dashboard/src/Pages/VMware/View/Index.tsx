@@ -77,10 +77,10 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
-import {
-  getResourceConnectionLabel,
-  getResourceHealthLabel,
-} from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import ResourceHealthPill, {
+  ResourceHealthDialogWords,
+} from "../../../Components/ResourcePart/ResourceHealthPill";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -144,7 +144,13 @@ import {
   getVMwarePartRoutes,
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+// What a Degraded or Unhealthy vCenter's pill opens (ResourceHealthPill).
+export const VMWARE_HEALTH_WORDS: ResourceHealthDialogWords = {
+  degradedTitle: translationKey("Why this vCenter is Degraded"),
+  unhealthyTitle: translationKey("Why this vCenter is Unhealthy"),
+};
 
 type VCenterHealth = "Healthy" | "Degraded" | "Unhealthy";
 
@@ -1391,34 +1397,6 @@ const VMwareVCenterOverview: FunctionComponent<
     });
 
     /*
-     * Health is derived from the last inventory snapshot, which goes stale
-     * once the collector disconnects. Reporting "Healthy" next to a
-     * "Disconnected" badge is contradictory and misleading, so while the
-     * vCenter is not connected the pill says "Health Unknown" (neutral grey),
-     * as a Ceph cluster's and a storage array's do, rather than the
-     * last-known live status.
-     */
-    const healthLabel: string = getResourceHealthLabel({
-      translator: translator,
-      health: vcenterHealth,
-      isConnected: isConnected,
-    });
-    const healthBadgeClass: string = !isConnected
-      ? "bg-gray-50 text-gray-600 ring-gray-200"
-      : vcenterHealth === "Healthy"
-        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-        : vcenterHealth === "Degraded"
-          ? "bg-amber-50 text-amber-700 ring-amber-200"
-          : "bg-red-50 text-red-700 ring-red-200";
-    const healthDotClass: string = !isConnected
-      ? "bg-gray-400"
-      : vcenterHealth === "Healthy"
-        ? "bg-emerald-500"
-        : vcenterHealth === "Degraded"
-          ? "bg-amber-500"
-          : "bg-red-500";
-
-    /*
      * The count chips open their list: the Overview's one step to the
      * hosts, the VMs, the datastores and the clusters (the side menu has
      * the rest).
@@ -1587,15 +1565,19 @@ const VMwareVCenterOverview: FunctionComponent<
                       !inventoryError &&
                       (inventory?.rows.length ?? 0) > 0 && (
                         <span className="inline-flex items-center gap-1">
-                          <span
-                            data-testid="vmware-hero-health"
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
-                            />
-                            {healthLabel}
-                          </span>
+                          {/*
+                           * Health Unknown in grey while the vCenter is not
+                           * connected (its last inventory is stale);
+                           * Degraded or Unhealthy opens why
+                           * (ResourceHealthPill).
+                           */}
+                          <ResourceHealthPill
+                            health={vcenterHealth}
+                            isConnected={isConnected}
+                            items={attentionItems}
+                            testId="vmware-hero-health"
+                            words={VMWARE_HEALTH_WORDS}
+                          />
                           <InfoTooltip
                             label="vCenter Health"
                             text={

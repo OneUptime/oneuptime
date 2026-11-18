@@ -1031,6 +1031,46 @@ describe("the databases", () => {
       "Not watched",
     ]);
   });
+
+  test("a failed read says why, in the database's own words, under its name - no other row does (#9537)", async () => {
+    overviewAnswer = busyOverview({
+      stores: [
+        store(STORE_ALERTED, { name: "orders-db", assetCount: 184 }),
+        store(STORE_SILENT, {
+          name: "warehouse",
+          status: "Failed",
+          message: "password authentication failed for user oneuptime_reader",
+        }),
+        // A message from an earlier read, now collected: history.
+        store("10000000-0000-4000-8000-000000000003", {
+          name: "billing-db",
+          status: "Collected",
+          message: "connection reset by peer",
+        }),
+      ],
+    });
+
+    await openPage();
+
+    await screen.findByTestId(NEEDS_ATTENTION_TEST_ID);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "data-observability-store-row",
+    );
+    const failures: Array<HTMLElement> = screen.getAllByTestId(
+      "data-observability-store-failure",
+    );
+    expect(failures).toHaveLength(1);
+    expect(rows[1]).toContainElement(failures[0]!);
+    expect(failures[0]).toHaveTextContent(
+      "password authentication failed for user oneuptime_reader",
+    );
+    // The whole of it on hover, where two lines cut it short.
+    expect(failures[0]).toHaveAttribute(
+      "title",
+      "password authentication failed for user oneuptime_reader",
+    );
+  });
 });
 
 describe("a read that fails, and a server a version behind", () => {
