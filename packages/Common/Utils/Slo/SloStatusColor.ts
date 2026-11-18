@@ -1,4 +1,4 @@
-import { Gray500, Green, Red, Yellow } from "../../Types/BrandColors";
+import { Blue500, Gray500, Green, Red, Yellow } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import { readSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
@@ -9,6 +9,9 @@ import { readSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
  * Healthy          -> Green
  * At Risk          -> Yellow
  * Budget Exhausted -> Red
+ * Waiting          -> Blue  (set up right, measured from its monitors' first
+ *                            check: worth knowing, needs nothing - the Info
+ *                            tone's blue)
  * Misconfigured    -> Gray  (nothing to measure — not a reliability signal)
  * Paused           -> Gray  (deliberately not being measured)
  * unknown/unset    -> Gray  (the worker has not evaluated the SLO yet, so
@@ -34,6 +37,10 @@ export const getSloStatusColor: GetSloStatusColorFunction = (
 
   if (status === SloStatus.BudgetExhausted) {
     return Red;
+  }
+
+  if (status === SloStatus.Waiting) {
+    return Blue500;
   }
 
   return Gray500;

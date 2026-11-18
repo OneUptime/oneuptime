@@ -167,6 +167,7 @@ export enum SloStatusSummaryTileKey {
   Healthy = "healthy",
   AtRisk = "at-risk",
   BudgetExhausted = "budget-exhausted",
+  Waiting = "waiting",
   Misconfigured = "misconfigured",
   Paused = "paused",
   Disabled = "disabled",
@@ -215,6 +216,19 @@ export const SLO_STATUS_SUMMARY_TILES: Array<SloStatusSummaryTile> = [
     sloStatus: SloStatus.BudgetExhausted,
     attentionClassName: "text-red-600",
   },
+  /*
+   * Set up right, and measured from its monitors' first check (#9354): a
+   * status of its own, so it is counted apart from the SLOs that are set up
+   * wrong, and its tile's click shows exactly those rows, in their pill.
+   */
+  {
+    key: SloStatusSummaryTileKey.Waiting,
+    label: "Waiting",
+    caption: "Measured from its monitors' first check.",
+    isEnabled: true,
+    sloStatus: SloStatus.Waiting,
+    attentionClassName: "text-gray-900",
+  },
   {
     key: SloStatusSummaryTileKey.Misconfigured,
     label: "Misconfigured",
@@ -244,7 +258,7 @@ export const SLO_STATUS_SUMMARY_TILES: Array<SloStatusSummaryTile> = [
 /*
  * Whether this browser last saw the project with a live SLO.
  *
- * While its counts load, the strip holds its place with six skeleton tiles,
+ * While its counts load, the strip holds its place with skeleton tiles,
  * so the list under it does not jump when the numbers land. On a project
  * with no SLO - every new project - those skeletons flashed over the empty
  * list's one next step for the moment the counts took, and then vanished.

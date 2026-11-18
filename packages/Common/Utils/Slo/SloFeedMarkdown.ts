@@ -1,5 +1,7 @@
 import SliType from "../../Types/ServiceLevelObjective/SliType";
-import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
+import SloStatus, {
+  isSloUnmeasuredStatus,
+} from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 import { formatSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
@@ -1344,6 +1346,8 @@ export const getSloStatusEmoji: GetSloStatusEmojiFunction = (
       return "🔴";
     case SloStatus.Paused:
       return "⏸️";
+    case SloStatus.Waiting:
+      return "⏳";
     default:
       return "⚠️";
   }
@@ -1417,10 +1421,7 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
       );
     }
 
-    if (
-      data.newStatus === SloStatus.Paused ||
-      data.newStatus === SloStatus.Misconfigured
-    ) {
+    if (isSloUnmeasuredStatus(data.newStatus)) {
       details.push(
         mdText`While the SLO is ${data.newStatus}, its SLI and error budget are not recalculated and its burn rate rules do not fire. Any burn rate alerts and incidents its rules had open were resolved.`,
       );

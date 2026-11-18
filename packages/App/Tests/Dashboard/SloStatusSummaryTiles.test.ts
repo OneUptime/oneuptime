@@ -229,7 +229,7 @@ describe("how an SLO row reads", () => {
 });
 
 describe("the summary tiles", () => {
-  test("are the six statuses a live SLO can be in, in severity-reading order", () => {
+  test("are the seven statuses a live SLO can be in, in severity-reading order", () => {
     expect(
       SLO_STATUS_SUMMARY_TILES.map((tile: SloStatusSummaryTile): string => {
         return tile.label;
@@ -238,6 +238,7 @@ describe("the summary tiles", () => {
       "Healthy",
       "At Risk",
       "Budget Exhausted",
+      "Waiting",
       "Misconfigured",
       "Paused",
       "Disabled",
@@ -286,6 +287,51 @@ describe("the summary tiles", () => {
       isArchived: false,
       isEnabled: false,
     });
+  });
+
+  /*
+   * An SLO waiting for its monitors' first check is set up right (#9354):
+   * it has a tile of its own, never Misconfigured's, so the Misconfigured
+   * count is only what someone has to fix.
+   */
+  test("an SLO waiting for its monitors' first check is counted by Waiting's tile, never by Misconfigured's", () => {
+    const waiting: SloRow = {
+      isArchived: false,
+      isEnabled: true,
+      sloStatus: SloStatus.Waiting,
+    };
+
+    expect(
+      tilesCounting(waiting).map((tile: SloStatusSummaryTile): string => {
+        return tile.key;
+      }),
+    ).toEqual([SloStatusSummaryTileKey.Waiting]);
+
+    expect(
+      getSloStatusSummaryTileQuery(tileByKey(SloStatusSummaryTileKey.Waiting)),
+    ).toEqual({
+      isArchived: false,
+      isEnabled: true,
+      sloStatus: SloStatus.Waiting,
+    });
+
+    // Its click shows exactly those rows: Enabled and Status: Waiting.
+    expect(
+      getSloStatusSummaryTileSelections(
+        tileByKey(SloStatusSummaryTileKey.Waiting),
+      ),
+    ).toEqual([
+      {
+        facetKey: SLO_ENABLED_FACET_KEY,
+        values: [SloEnabledFacetValue.Enabled],
+        operator: "is",
+      },
+      {
+        facetKey: SLO_STATUS_FACET_KEY,
+        values: [SloStatus.Waiting],
+        operator: "is",
+      },
+    ]);
   });
 
   test("no SLO is ever counted by two tiles", () => {

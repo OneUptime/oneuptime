@@ -94,6 +94,7 @@ const COUNTS: Record<SloStatusSummaryTileKey, number> = {
   [SloStatusSummaryTileKey.Healthy]: 12,
   [SloStatusSummaryTileKey.AtRisk]: 3,
   [SloStatusSummaryTileKey.BudgetExhausted]: 1,
+  [SloStatusSummaryTileKey.Waiting]: 5,
   [SloStatusSummaryTileKey.Misconfigured]: 2,
   [SloStatusSummaryTileKey.Paused]: 0,
   [SloStatusSummaryTileKey.Disabled]: 4,
@@ -104,6 +105,7 @@ function zeroCounts(): Record<SloStatusSummaryTileKey, number> {
     [SloStatusSummaryTileKey.Healthy]: 0,
     [SloStatusSummaryTileKey.AtRisk]: 0,
     [SloStatusSummaryTileKey.BudgetExhausted]: 0,
+    [SloStatusSummaryTileKey.Waiting]: 0,
     [SloStatusSummaryTileKey.Misconfigured]: 0,
     [SloStatusSummaryTileKey.Paused]: 0,
     [SloStatusSummaryTileKey.Disabled]: 0,
@@ -179,7 +181,7 @@ function tileButton(label: string, count: number): HTMLElement {
   });
 }
 
-// Six counts that answer only when the test says so.
+// One count per tile, each answering only when the test says so.
 function holdCounts(): Array<Deferred<number>> {
   const held: Array<Deferred<number>> = [];
 
@@ -523,7 +525,7 @@ describe("SloStatusSummaryCards", () => {
       refreshToken: "0",
     });
     await waitForCounts();
-    expect(countMock).toHaveBeenCalledTimes(6);
+    expect(countMock).toHaveBeenCalledTimes(SLO_STATUS_SUMMARY_TILES.length);
 
     view.rerender(
       <SloStatusSummaryCards
@@ -533,7 +535,7 @@ describe("SloStatusSummaryCards", () => {
         refreshToken="0"
       />,
     );
-    expect(countMock).toHaveBeenCalledTimes(6);
+    expect(countMock).toHaveBeenCalledTimes(SLO_STATUS_SUMMARY_TILES.length);
 
     countMock.mockImplementation(
       countsFrom({ ...COUNTS, [SloStatusSummaryTileKey.Healthy]: 11 }),
@@ -555,7 +557,9 @@ describe("SloStatusSummaryCards", () => {
         ),
       ).toHaveTextContent("11");
     });
-    expect(countMock).toHaveBeenCalledTimes(12);
+    expect(countMock).toHaveBeenCalledTimes(
+      SLO_STATUS_SUMMARY_TILES.length * 2,
+    );
   });
 
   test("a slow earlier count never overwrites a newer one", async () => {
@@ -571,7 +575,7 @@ describe("SloStatusSummaryCards", () => {
       refreshToken: "0",
     });
 
-    expect(slowFirstRound).toHaveLength(6);
+    expect(slowFirstRound).toHaveLength(SLO_STATUS_SUMMARY_TILES.length);
 
     countMock.mockImplementation(
       countsFrom({ ...COUNTS, [SloStatusSummaryTileKey.Healthy]: 7 }),

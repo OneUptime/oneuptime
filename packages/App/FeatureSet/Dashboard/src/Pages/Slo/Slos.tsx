@@ -118,7 +118,8 @@ To give older SLOs the rules a new one starts with, select them in this list and
 | **Healthy** | On target, with enough error budget left |
 | **At Risk** | Less error budget is left than the SLO's at-risk threshold (20% unless you change it) |
 | **Budget Exhausted** | The error budget is spent: the SLO is breached |
-| **Misconfigured** | It cannot be measured: no monitors, no data yet, or a target out of range |
+| **Waiting** | Nothing has checked its monitors yet. It is measured from their first check |
+| **Misconfigured** | It cannot be measured: no monitors, no data, or a target out of range |
 | **Paused** | Every monitor it measures is paused or disabled |
 | **Disabled** | It is turned off in its Settings, and is not evaluated |
 | **Unknown** | It has not been evaluated yet |
