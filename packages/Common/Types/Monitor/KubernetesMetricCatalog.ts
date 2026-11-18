@@ -79,6 +79,35 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Pod,
     unit: "bytes",
   },
+  /*
+   * A mounted volume's size and free space, from the kubeletstats volume
+   * group: a persistent volume claim's names its claim, which the PVC Almost
+   * Full template groups by (#9539).
+   */
+  {
+    id: "volume-capacity",
+    friendlyName: translationKey("Volume Capacity"),
+    description: translationKey(
+      "The size of a mounted volume's filesystem, in bytes, as the kubelet measures it. A persistent volume claim's volume names its claim in k8s.persistentvolumeclaim.name.",
+    ),
+    metricName: "k8s.volume.capacity",
+    category: "Pod",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Namespace,
+    unit: "bytes",
+  },
+  {
+    id: "volume-available",
+    friendlyName: translationKey("Volume Free Space"),
+    description: translationKey(
+      "Bytes still free to write on a mounted volume's filesystem. Falling is bad, so alert with a 'less than' threshold; for a share of the capacity, use the PVC Almost Full template.",
+    ),
+    metricName: "k8s.volume.available",
+    category: "Pod",
+    defaultAggregation: MetricsAggregationType.Min,
+    defaultResourceScope: KubernetesResourceScope.Namespace,
+    unit: "bytes",
+  },
   {
     id: "pod-memory-limit-utilization",
     friendlyName: translationKey("Pod Memory Limit Utilization"),

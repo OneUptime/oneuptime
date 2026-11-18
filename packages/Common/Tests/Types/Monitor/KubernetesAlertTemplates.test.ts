@@ -153,6 +153,26 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     groupBy: ["resource.k8s.node.name"],
     formula: "(used_disk / (used_disk + avail_disk)) * 100",
   },
+  /*
+   * A claim's fill — Avg/Avg, one series per pod that mounts the claim,
+   * every one the same filesystem, from the same kubeletstats volume scrape.
+   * Used is capacity minus available, as the claims list reads it.
+   */
+  {
+    id: "k8s-pvc-almost-full",
+    numerator: "k8s.volume.available",
+    denominator: "k8s.volume.capacity",
+    numAlias: "free_bytes",
+    denAlias: "capacity_bytes",
+    resultAlias: "pvc_usage",
+    aggregation: MetricsAggregationType.Avg,
+    threshold: 90,
+    groupBy: [
+      "resource.k8s.namespace.name",
+      "resource.k8s.persistentvolumeclaim.name",
+    ],
+    formula: "((capacity_bytes - free_bytes) / capacity_bytes) * 100",
+  },
   // Usage utilization — Avg/Avg (one series per node, cross-receiver).
   {
     id: "k8s-high-cpu",
@@ -769,7 +789,17 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
    * actually emits it.
    */
   test("no template filters on an attribute the agent does not stamp", () => {
-    const ALLOWED_ATTRIBUTE_KEYS: Set<string> = new Set<string>();
+    const ALLOWED_ATTRIBUTE_KEYS: Set<string> = new Set<string>([
+      /*
+       * PVC Almost Full reads only the volumes a claim backs. The agent's
+       * kubeletstats receiver stamps k8s.volume.type on every volume from
+       * the pod's spec (extra_metadata_labels, the chart's
+       * tests/volume-claim-usage_test.yaml), and with no k8s_api_config it
+       * is persistentVolumeClaim for every claim's volume, never the
+       * disk's type.
+       */
+      "resource.k8s.volume.type",
+    ]);
 
     for (const template of getAllKubernetesAlertTemplates()) {
       for (const query of getQueryConfigs(template.id)) {
@@ -2304,5 +2334,82 @@ describe("KubernetesAlertTemplates - HPA Saturated at Max Replicas", () => {
         ];
       }),
     );
+  });
+});
+
+/*
+ * A persistent volume claim filling up (#9539): the claims list's red bar,
+ * as a monitor. Its data is the kubeletstats volume group the agent names by
+ * claim; every other volume of a pod (a configMap, a token) names none.
+ */
+describe("KubernetesAlertTemplates - PVC Almost Full", () => {
+  const gib: number = 1024 * 1024 * 1024;
+
+  function claim(usedGiB: number, capacityGiB: number = 50): SamplesByAlias {
+    return {
+      free_bytes: Array(5).fill((capacityGiB - usedGiB) * gib),
+      capacity_bytes: Array(5).fill(capacityGiB * gib),
+    };
+  }
+
+  test("is a Storage warning the picker and the cluster's recommendations offer", () => {
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById("k8s-pvc-almost-full");
+
+    expect(template?.category).toBe("Storage");
+    expect(template?.severity).toBe("Warning");
+    expect(template?.summary).toBe(
+      "A persistent volume claim is more than 90% full.",
+    );
+  });
+
+  test("reads only the volumes a claim backs, on both sides of the ratio", () => {
+    for (const query of getQueryConfigs("k8s-pvc-almost-full")) {
+      expect(query.metricQueryData.filterData.attributes).toEqual({
+        "resource.k8s.volume.type": "persistentVolumeClaim",
+      });
+      expect(AGENT_EMITTED_METRIC_NAMES).toContain(
+        query.metricQueryData.filterData.metricName,
+      );
+    }
+  });
+
+  test("a claim more than 90% full fires, and one with room does not", async () => {
+    expect(await evaluate("k8s-pvc-almost-full", claim(46))).toEqual({
+      breached: true,
+      healthy: false,
+    });
+    expect(await evaluate("k8s-pvc-almost-full", claim(25))).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("weighs a claim by its own size: 4 GiB free is plenty on 40 GiB and nothing on 5000", async () => {
+    expect(await evaluate("k8s-pvc-almost-full", claim(4996, 5000))).toEqual({
+      breached: true,
+      healthy: false,
+    });
+    expect(await evaluate("k8s-pvc-almost-full", claim(30, 40))).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("says what it needs: a mounted claim, a filesystem, and an agent that names claims", () => {
+    const description: string = getKubernetesAlertTemplateById(
+      "k8s-pvc-almost-full",
+    )!.description;
+
+    expect(description).toContain("running pod mounts it");
+    expect(description).toContain("raw block device");
+    expect(description).toContain("kubeletstats.volumeMetrics.enabled");
+  });
+
+  test("tells the on-call engineer what to do about it", () => {
+    const incident: string = getIncidentDescription("k8s-pvc-almost-full");
+
+    expect(incident).toContain("expand the claim");
+    expect(incident).toContain('"Affected resource"');
   });
 });

@@ -157,6 +157,18 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "k8s.pod.cpu_request_utilization",
   "k8s.pod.memory_limit_utilization",
   "k8s.pod.memory_request_utilization",
+  /*
+   * The `volume` group, on while kubeletstats.volumeMetrics.enabled, which
+   * values.yaml defaults to true: each mounted volume's, a persistent volume
+   * claim's named by k8s.persistentvolumeclaim.name (the chart's
+   * extra_metadata_labels k8s.volume.type; tests/volume-claim-usage_test.yaml).
+   * The PVC Almost Full template reads the first two.
+   */
+  "k8s.volume.available",
+  "k8s.volume.capacity",
+  "k8s.volume.inodes",
+  "k8s.volume.inodes.free",
+  "k8s.volume.inodes.used",
 ];
 
 /*
