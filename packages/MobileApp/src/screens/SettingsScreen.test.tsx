@@ -416,15 +416,16 @@ describe("Settings groups", () => {
     expect(screen.queryByLabelText("Critical On-Call Alerts")).toBeNull();
   });
 
-  test("On-Call disappears on a server without calendar feeds", async () => {
+  test("On-Call keeps Get Ready for On-Call on a server without calendar feeds, and drops the feed's row", async () => {
     mockCalendarFeed.isAvailable = false;
     await render(<SettingsScreen />);
 
-    expect(headers()).not.toContain("On-Call");
+    expect(headers()).toContain("On-Call");
+    expect(screen.getByTestId("settings-row-get-ready")).toBeTruthy();
     expect(screen.queryByTestId("settings-row-calendar-feed")).toBeNull();
   });
 
-  test("Workspace, Appearance and Account are always there", async () => {
+  test("Workspace, Appearance, On-Call and Account are always there", async () => {
     mockBiometric.isAvailable = false;
     mockCriticalAlerts.isSupported = false;
     mockCalendarFeed.isAvailable = false;
@@ -434,8 +435,26 @@ describe("Settings groups", () => {
       "Settings",
       "Workspace",
       "Appearance",
+      "On-Call",
       "Account",
     ]);
+  });
+
+  /*
+   * The app's first steps (#7041) open by themselves only on a new
+   * install's first launch: Settings opens them any time after.
+   */
+  test("Get Ready for On-Call opens the first steps on the settings stack", async () => {
+    await render(<SettingsScreen />);
+
+    await fireEvent.press(
+      within(screen.getByTestId("settings-section-oncall")).getByRole(
+        "button",
+        { name: "Get Ready for On-Call" },
+      ),
+    );
+
+    expect(mockNavigate).toHaveBeenCalledWith("GetReady");
   });
 
   test("the calendar feed row opens its screen", async () => {
