@@ -93,6 +93,8 @@ const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
 const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};`;
 const headerHtml = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard header</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>${tailwindConfig}</script><style>${interFontFaces.join("")}${universalFontRule[0]}body{margin:0;background:#f9fafb}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
+const PROFILE_PICTURE = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#4f46e5"/><text x="32" y="41" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="600" fill="#fff" text-anchor="middle">ML</text></svg>`;
+
 async function main() {
   fs.mkdirSync(output, { recursive: true });
   await esbuild.build(config);
@@ -132,6 +134,16 @@ async function main() {
       }
       response.setHeader("Content-Type", "font/woff2");
       fs.createReadStream(file).pipe(response);
+      return;
+    }
+    /*
+     * The signed-in person's picture, which the header's profile button
+     * loads from /api/user/profile-picture/:userId: their initials (Morgan
+     * Lee), as a small generated SVG, never a broken image.
+     */
+    if (url.pathname.startsWith("/api/user/profile-picture/")) {
+      response.setHeader("Content-Type", "image/svg+xml");
+      response.end(PROFILE_PICTURE);
       return;
     }
     // The API: a project with nothing hidden or pinned, and no records.

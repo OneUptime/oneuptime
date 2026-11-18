@@ -287,6 +287,8 @@ Pollen staat op de pagina **Instellingen** van het apparaat, op de kaart **Polli
 
 Alles vanaf **Walk Interfaces** omlaag heeft SNMP-inloggegevens nodig: op een apparaat met alleen ping worden die instellingen bewaard en is er geen walk om ze op toe te passen.
 
+Een sonde bevraagt tot `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` apparaten tegelijk, standaard 25, en vraagt om meer zodra er ruimte is, zodat elk apparaat op zijn interval wordt bevraagd, hoe groot de vloot ook is. De volgende bevraging van een apparaat telt vanaf de hele minuut die het dichtst bij de vorige ligt. Als er meer apparaten aan de beurt zijn dan de sonde kan bevragen, toont haar **Status** **Loopt achter** en toont haar pagina **Bevragingen van netwerkapparaten**: [Een sonde loopt achter](/docs/probe/custom-probe#een-sonde-loopt-achter) zegt hoe ze de achterstand inhaalt.
+
 ### Interfaces walken
 
 Met **Walk Interfaces** aan en gevonden inloggegevens volgt elke poll per interface de operationele en administratieve status, bits in en uit, benutting en fouten. Dezelfde walk verzamelt de LLDP- en CDP-buren voor de kaart.

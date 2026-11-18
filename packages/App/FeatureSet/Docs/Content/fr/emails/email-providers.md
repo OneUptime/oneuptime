@@ -182,7 +182,7 @@ Sur un serveur auto-hébergé, **Paramètres > Notifications > E-mails** dans l'
 
 ## Être prévenu quand l'e-mail ou les sondes s'arrêtent
 
-Quand l'e-mail du serveur cesse de fonctionner, ou qu'aucune sonde globale ne rend plus compte, OneUptime prévient les administrateurs principaux, puis encore une fois quand cela refonctionne. Choisissez où dans la carte **Notifications de panne** de la même page :
+Quand l'e-mail du serveur cesse de fonctionner, qu'aucune sonde globale ne rend plus compte, ou qu'une sonde globale prend du retard (ses moniteurs sont vérifiés, ou ses équipements réseau interrogés, moins souvent que prévu), OneUptime prévient les administrateurs principaux, puis encore une fois quand tout est rétabli. Choisissez où dans la carte **Notifications de panne** de la même page :
 
 - **Push sur les appareils des administrateurs principaux** envoie une notification push à chaque appareil sur lequel un administrateur principal s'est connecté à l'app OneUptime. Elle est activée jusqu'à ce que vous la désactiviez.
 - **Envoyer un SMS à ce numéro** envoie un SMS par les paramètres SMS du serveur.

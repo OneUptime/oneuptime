@@ -19,6 +19,7 @@ import ProbeStatusMonitorResponse, {
   ProbeStatusMonitorProbe,
 } from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
+import { ProbeBehindWork } from "../../../Types/Probe/ProbeBehind";
 import MonitorLogSummaryUtil from "../../../Utils/Monitor/MonitorLogSummaryUtil";
 import MonitorSummarySnapshotUtil, {
   MonitorSummaryDataToProcess,
@@ -251,6 +252,90 @@ describe("ProbeStatusMonitorView", () => {
       )}`,
     );
   });
+
+  /*
+   * #9501: a probe that is connected but behind - its monitors checked, or
+   * its network devices polled, later than set - says Behind, in amber,
+   * after the disconnected ones and before those keeping up, with since
+   * when and on what.
+   */
+  it("says Behind, in amber, between the disconnected and the connected, with since when and on what", () => {
+    const VIRGINIA: ProbeStatusMonitorProbe = {
+      probeId: "79000000-0000-4000-8000-000000000004",
+      probeName: "Virginia",
+      isGlobalProbe: false,
+      isConnected: true,
+      lastAliveAt: new Date("2026-10-17T11:59:10.000Z"),
+      isBehind: true,
+      behindSince: new Date("2026-10-17T11:40:00.000Z"),
+      behindOn: [ProbeBehindWork.DevicePolls],
+    };
+
+    render(
+      <ProbeStatusMonitorView
+        probeStatusMonitorResponse={response([FRANKFURT, SINGAPORE, VIRGINIA])}
+      />,
+    );
+
+    expect(rowNames()).toEqual(["Singapore", "Virginia", "Frankfurt"]);
+
+    const virginia: HTMLElement = rows()[1]!;
+    expect(within(virginia).getByText("Behind")).toBeInTheDocument();
+    expect(
+      (
+        within(virginia).getAllByTestId("status-bubble-dot")[0]!
+          .firstElementChild as HTMLElement
+      ).style.backgroundColor,
+    ).toBe("rgb(255, 191, 83)");
+    expect(
+      within(virginia).getByTestId("probe-status-monitor-probe-behind"),
+    ).toHaveTextContent(
+      `Since ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        VIRGINIA.behindSince!,
+      )}, its network devices are polled less often than set.`,
+    );
+    // No silence: it is connected.
+    expect(detailOf(virginia)).toBeNull();
+    expect(within(rows()[2]!).getByText("Connected")).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      "its monitors",
+      [ProbeBehindWork.MonitorChecks],
+      "its monitors are checked less often than set.",
+    ],
+    [
+      "both",
+      [ProbeBehindWork.MonitorChecks, ProbeBehindWork.DevicePolls],
+      "its monitors and network devices are checked less often than set.",
+    ],
+    [
+      "nothing named (an evaluation that kept no work)",
+      [],
+      "its monitors are checked less often than set.",
+    ],
+  ])(
+    "a probe behind on %s says so",
+    (_label: string, behindOn: Array<ProbeBehindWork>, expected: string) => {
+      render(
+        <ProbeStatusMonitorView
+          probeStatusMonitorResponse={response([
+            {
+              ...FRANKFURT,
+              isBehind: true,
+              behindSince: new Date("2026-10-17T11:40:00.000Z"),
+              behindOn: behindOn,
+            },
+          ])}
+        />,
+      );
+
+      expect(
+        screen.getByTestId("probe-status-monitor-probe-behind"),
+      ).toHaveTextContent(expected);
+    },
+  );
 
   it("puts each status at the end from sm up, and under the name below it, by breakpoint", () => {
     render(

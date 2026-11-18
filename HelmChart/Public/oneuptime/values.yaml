@@ -1729,10 +1729,10 @@ probes:
     # step sets no retry count of its own. 0 checks once; 3 checks up to four
     # times. Unset uses 3.
     monitorRetryLimit: 3
-    # How many NetworkDevice SNMP walks this probe runs at once. Unset uses
-    # the probe's own default (25). Raise it together with the server's
-    # NETWORK_DEVICE_POLL_FETCH_LIMIT for fleets of many hundreds of devices
-    # — between them the two set how fast a fleet can be polled.
+    # How many network devices this probe polls at once. Unset uses the
+    # probe's own default (25). The probe asks for more as soon as it has
+    # room, so this sets how fast a fleet can be polled: raise it when the
+    # probe's page says it is Behind on its network device polls.
     networkDevicePollConcurrency:
     # How many SNMP OIDs this probe asks for in one GET. Unset uses the probe's
     # own default (20). Every configured OID used to go into a single UDP

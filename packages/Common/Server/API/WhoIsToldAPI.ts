@@ -40,7 +40,7 @@ export function readMonitorIdParam(req: ExpressRequest): ObjectID {
   const raw: string = ((req.params["monitorId"] as string) || "").trim();
 
   if (!raw || !ObjectID.isValidUUID(raw)) {
-    throw new BadDataException("monitorId is required.");
+    throw new BadDataException("Name the monitor by its ID.");
   }
 
   return new ObjectID(raw);
@@ -76,7 +76,7 @@ export function readDraftFromBody(req: ExpressRequest): WhoIsToldDraft {
     typeof monitorType !== "string" ||
     !Object.values(MonitorType).includes(monitorType as MonitorType)
   ) {
-    throw new BadDataException("monitorType is required.");
+    throw new BadDataException("Send the monitor's type as monitorType.");
   }
 
   const rawMonitorId: unknown = body["monitorId"];
@@ -91,7 +91,9 @@ export function readDraftFromBody(req: ExpressRequest): WhoIsToldDraft {
       typeof rawMonitorId !== "string" ||
       !ObjectID.isValidUUID(rawMonitorId)
     ) {
-      throw new BadDataException("monitorId is not a monitor's id.");
+      throw new BadDataException(
+        "Send monitorId as the monitor's ID, or leave it out for a monitor not saved yet.",
+      );
     }
 
     monitorId = new ObjectID(rawMonitorId);
@@ -100,7 +102,7 @@ export function readDraftFromBody(req: ExpressRequest): WhoIsToldDraft {
   const rawSteps: unknown = body["monitorSteps"];
 
   if (!rawSteps || typeof rawSteps !== "object" || Array.isArray(rawSteps)) {
-    throw new BadDataException("monitorSteps is required.");
+    throw new BadDataException("Send the monitor's steps as monitorSteps.");
   }
 
   let monitorSteps: MonitorSteps;
@@ -108,7 +110,9 @@ export function readDraftFromBody(req: ExpressRequest): WhoIsToldDraft {
   try {
     monitorSteps = MonitorSteps.fromJSON(rawSteps as JSONObject);
   } catch {
-    throw new BadDataException("monitorSteps could not be read.");
+    throw new BadDataException(
+      "OneUptime could not read monitorSteps. Send them as the Dashboard's monitor form does.",
+    );
   }
 
   const rawLabelIds: unknown = body["labelIds"];

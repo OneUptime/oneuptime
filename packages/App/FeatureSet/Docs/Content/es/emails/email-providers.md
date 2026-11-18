@@ -182,7 +182,7 @@ En un servidor autoalojado, **Ajustes > Notificaciones > Correos** del Admin Das
 
 ## Recibir un aviso cuando el correo o las sondas se detienen
 
-Cuando el correo del servidor deja de funcionar, o ninguna sonda global informa, OneUptime avisa a los administradores maestros, y una vez más cuando vuelve a funcionar. Elige dónde en la tarjeta **Avisos de caídas** de la misma página:
+Cuando el correo del servidor deja de funcionar, ninguna sonda global informa o una sonda global se retrasa (sus monitores se comprueban, o sus dispositivos de red se sondean, con menos frecuencia de la configurada), OneUptime avisa a los administradores maestros, y una vez más cuando todo vuelve a estar bien. Elige dónde en la tarjeta **Avisos de caídas** de la misma página:
 
 - **Push a los dispositivos de los administradores maestros** envía una notificación push a cada dispositivo en el que un administrador maestro inició sesión en la app de OneUptime. Está activado hasta que lo desactives.
 - **Enviar SMS a este número** envía un SMS con los ajustes de SMS del propio servidor.

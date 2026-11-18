@@ -68,6 +68,7 @@
     "feedbackYes": "हाँ",
     "feedbackNo": "नहीं",
     "feedbackThanks": "बताने के लिए धन्यवाद।",
+    "feedbackKeptForAdmins": "उत्तर पेज के पते के साथ इस सर्वर के एडमिन तक जाते हैं। और कुछ नहीं भेजा जाता, और कुछ भी इस सर्वर से बाहर नहीं जाता।",
     "feedbackWhatWentWrong": "धन्यवाद। क्या गड़बड़ थी?",
     "feedbackReasonUnclear": "समझना मुश्किल",
     "feedbackReasonMissing": "कुछ छूट गया है",

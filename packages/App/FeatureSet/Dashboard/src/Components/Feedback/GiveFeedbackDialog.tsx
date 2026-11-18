@@ -1,4 +1,5 @@
 import EventName from "../../Utils/EventName";
+import FeedbackGitHubLink from "./FeedbackGitHubLink";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { getFeedbackGitHubIssueUrl } from "./FeedbackPage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -62,8 +63,8 @@ import React, {
  *
  * Once sent, it says what happened and what happens next: to whom it went,
  * and where a copy is on its way - only what the server says it did. On a
- * self-hosted server, the person may also tell OneUptime on GitHub: a
- * pre-filled issue they read there before sending it, or not.
+ * self-hosted server, the person may also tell OneUptime in a public
+ * GitHub issue (FeedbackGitHubLink): pre-filled, and posted only by them.
  *
  * Mounted once in App.tsx, beside How OneUptime works, and opened with a
  * window event (openGiveFeedback), so an opener needs nothing but its name.
@@ -343,25 +344,20 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
                 <></>
               )}
               {!isOneUptimeTeam ? (
-                <p className="pt-2">
-                  <a
+                /*
+                 * After what was said of where it went: a public issue the
+                 * person may also post, which says it is public (#7462).
+                 */
+                <div className="pt-2">
+                  <FeedbackGitHubLink
                     href={getFeedbackGitHubIssueUrl({
                       details: sent.details,
                       page: page,
                       version: version,
                     })}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-800"
-                    data-testid={GIVE_FEEDBACK_GITHUB_TEST_ID}
-                  >
-                    {translator.translateText("Also tell OneUptime on GitHub")}
-                    <Icon
-                      icon={IconProp.ExternalLink}
-                      className="h-3.5 w-3.5"
-                    />
-                  </a>
-                </p>
+                    dataTestId={GIVE_FEEDBACK_GITHUB_TEST_ID}
+                  />
+                </div>
               ) : (
                 <></>
               )}

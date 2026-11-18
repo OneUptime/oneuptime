@@ -287,6 +287,8 @@ L'interrogation se règle sur la page **Paramètres** de l'équipement, dans la 
 
 Tout ce qui suit **Walk Interfaces** demande des identifiants SNMP : sur un équipement seulement pingué, ces paramètres sont conservés mais n'ont aucun parcours auquel s'appliquer.
 
+Une sonde interroge jusqu'à `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` équipements à la fois, 25 par défaut, et en demande d'autres dès qu'elle a de la place, si bien que chaque équipement est interrogé à son intervalle, quelle que soit la taille du parc. La prochaine interrogation d'un équipement compte à partir de la minute pleine la plus proche de la précédente. Quand plus d'équipements sont dus que la sonde ne peut en interroger, son **Statut** indique **En retard** et sa page affiche **Interrogations des équipements réseau** : [Une sonde est en retard](/docs/probe/custom-probe#une-sonde-est-en-retard) dit ce qui lui permet de rattraper son retard.
+
 ### Parcours des interfaces
 
 Avec **Walk Interfaces** activé et des identifiants trouvés, chaque interrogation suit pour chaque interface son statut opérationnel et administratif, les bits entrants et sortants, l'utilisation et les erreurs. Le même parcours collecte les voisins LLDP et CDP pour la carte.

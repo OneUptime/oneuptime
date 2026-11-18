@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * and one of this release reads a row without it as it read every row
  * before.
  */
-export class AddEmailLogTemplateType1809183730000
+export class AddEmailLogTemplateType1809183830000
   implements MigrationInterface
 {
-  public name: string = "AddEmailLogTemplateType1809183730000";
+  public name: string = "AddEmailLogTemplateType1809183830000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

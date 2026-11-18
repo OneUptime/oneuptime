@@ -287,6 +287,8 @@ Il polling si trova nella pagina **Impostazioni** del dispositivo, nella scheda 
 
 Tutto ciò che va da **Walk Interfaces** in giù richiede credenziali SNMP: su un dispositivo solo ping queste impostazioni vengono conservate e non hanno alcun walk a cui applicarsi.
 
+Una sonda interroga fino a `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` dispositivi alla volta, 25 per impostazione predefinita, e ne chiede altri appena ha spazio, così ogni dispositivo viene interrogato al suo intervallo, per quanto grande sia la flotta. La prossima interrogazione di un dispositivo si conta dal minuto intero più vicino alla precedente. Quando sono previsti più dispositivi di quanti la sonda possa interrogarne, il suo **Stato** mostra **In ritardo** e la sua pagina mostra **Interrogazioni dei dispositivi di rete**: [Una sonda è in ritardo](/docs/probe/custom-probe#una-sonda-è-in-ritardo) spiega come farla rimettere in pari.
+
 ### Walk delle interfacce
 
 Con **Walk Interfaces** attivo e credenziali trovate, ogni polling segue per ogni interfaccia lo stato operativo e amministrativo, i bit in entrata e in uscita, l'utilizzo e gli errori. Lo stesso walk raccoglie i vicini LLDP e CDP per la mappa.

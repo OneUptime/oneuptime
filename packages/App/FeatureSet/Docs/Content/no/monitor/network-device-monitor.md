@@ -287,6 +287,8 @@ Pollingen ligger på enhetens side **Innstillinger**, på kortet **Polling & Dat
 
 Alt fra **Walk Interfaces** og nedover krever SNMP-påloggingsinformasjon: på en enhet med bare ping beholdes de innstillingene og har ikke noe walk å gjelde for.
 
+En sonde poller opptil `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` enheter samtidig, 25 som standard, og ber om flere så snart den har plass, så hver enhet polles med intervallet sitt, uansett hvor stor flåten er. Neste polling av en enhet regnes fra det hele minuttet som ligger nærmest den forrige. Når flere enheter står for tur enn sonden kan polle, viser **Status** **På etterskudd**, og siden til sonden viser **Polling av nettverksenheter**: [En sonde er på etterskudd](/docs/probe/custom-probe#en-sonde-er-på-etterskudd) sier hva som får den til å ta igjen etterslepet.
+
 ### Walk av grensesnitt
 
 Med **Walk Interfaces** slått på og påloggingsinformasjon funnet følger hver polling hvert grensesnitts drifts- og administrative status, bits inn og ut, utnyttelse og feil. Det samme walket samler inn LLDP- og CDP-naboene for kartet.

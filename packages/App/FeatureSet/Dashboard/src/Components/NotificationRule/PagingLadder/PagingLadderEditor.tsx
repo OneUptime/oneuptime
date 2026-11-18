@@ -68,6 +68,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -219,8 +220,22 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
 
   const savedSignature: string = getStepsSignature(props.savedSteps);
 
-  // A save, or a change on the grid, gives the editor a new ladder to start from.
+  /*
+   * The saved ladder the draft was started from. The draft starts as it, so
+   * only a new one - a save, a change on the grid - starts the draft again.
+   * Started again on mount too, the first change made as the steps appear
+   * (Start From the Project's Default on an empty ladder) was undone by the
+   * mount's own reset, which ran after it.
+   */
+  const startedFromSignature: React.MutableRefObject<string> =
+    useRef<string>(savedSignature);
+
   useEffect(() => {
+    if (startedFromSignature.current === savedSignature) {
+      return;
+    }
+
+    startedFromSignature.current = savedSignature;
     setDraft(normalizePagingLadderSteps(props.savedSteps));
   }, [savedSignature]);
 

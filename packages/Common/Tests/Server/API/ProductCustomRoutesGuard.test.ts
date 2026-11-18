@@ -1047,11 +1047,16 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/TeamMemberAPI.ts": 8,
         "packages/Common/Server/API/UserAPI.ts": 7,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
-        "packages/Common/Server/API/ProductFeedbackAPI.ts": 3,
         "ee/Server/Identity/API/SCIM.ts": 9,
         "ee/Server/Identity/API/SCIMOAuthClientSecret.ts": 2,
         "ee/Server/AuditLogExport/API/AuditLogExportAPI.ts": 4,
         "ee/Server/SessionLength/API/SessionLengthAPI.ts": 1,
+      },
+    ),
+    ...decided(
+      "Asking people how OneUptime went - an answer, the words after it, may OneUptime ask - and a master admin deleting an answer (#7366): of no one product. Feedback has its own switch on the server (Admin Dashboard > Feedback), and its routes refuse an answer while it is off.",
+      {
+        "packages/Common/Server/API/ProductFeedbackAPI.ts": 4,
       },
     ),
     ...decided(
@@ -1237,9 +1242,9 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "The docs site's own: a reader's answer to Was this page helpful?, sent on to product analytics where it is set up.",
+      "The docs site's own: a reader's answer to Was this page helpful?, sent on to product analytics where it is set up and kept for the server's admins where they switched that on, and a docs search that found nothing, sent on to product analytics where it is set up.",
       {
-        "packages/App/FeatureSet/Docs/Index.ts": 1,
+        "packages/App/FeatureSet/Docs/Index.ts": 2,
       },
     ),
     ...decided(

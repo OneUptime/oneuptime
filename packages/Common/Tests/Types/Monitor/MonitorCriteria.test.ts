@@ -150,7 +150,13 @@ describe("MonitorCriteria", () => {
       },
     );
 
-    test("only SSL Certificate and Domain monitors start with an expiry warning", () => {
+    /*
+     * A warning: an alert that changes no status and opens no incident.
+     * SSL Certificate and Domain monitors warn that something expires
+     * soon; a Probe Status monitor warns that a probe it watches is
+     * behind (#9501).
+     */
+    test("only SSL Certificate, Domain and Probe Status monitors start with a warning", () => {
       const withWarning: Array<MonitorType> = (
         Object.values(MonitorType) as Array<MonitorType>
       ).filter((monitorType: MonitorType) => {
@@ -169,7 +175,11 @@ describe("MonitorCriteria", () => {
       });
 
       expect(withWarning.sort()).toEqual(
-        [MonitorType.Domain, MonitorType.SSLCertificate].sort(),
+        [
+          MonitorType.Domain,
+          MonitorType.SSLCertificate,
+          MonitorType.ProbeStatus,
+        ].sort(),
       );
     });
 

@@ -3,6 +3,7 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
+import { ProbeBehindWork } from "../../../Types/Probe/ProbeBehind";
 import ProbeStatusMonitorUtil, {
   ProbeStatusSource,
 } from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
@@ -513,5 +514,265 @@ describe("ProbeStatusMonitorUtil.parseResponse", () => {
     ]) {
       expect(ProbeStatusMonitorUtil.parseResponse(value)).toBeNull();
     }
+  });
+});
+
+/*
+ * A PROBE THAT IS CONNECTED BUT BEHIND (#9501): its monitors checked, or
+ * its network devices polled, later than their interval, as
+ * Probe:UpdateBehind keeps it on the probe (Types/Probe/ProbeBehind). A
+ * Probe Status monitor counts such probes for its Probes Behind check, and
+ * says which, on what and since when.
+ */
+describe("a probe that is behind", () => {
+  // Late at readings three minutes apart: behind since the first.
+  const BEHIND_ON_MONITORS: Partial<ProbeStatusSource> = {
+    checksLateSince: new Date("2026-09-21T11:50:00.000Z"),
+    checksLastLateAt: new Date("2026-09-21T11:53:00.000Z"),
+  };
+  const BEHIND_ON_DEVICES: Partial<ProbeStatusSource> = {
+    devicePollsLateSince: new Date("2026-09-21T11:40:00.000Z"),
+    devicePollsLastLateAt: new Date("2026-09-21T11:58:00.000Z"),
+  };
+
+  test("is counted, with since when and on what, while it is connected", () => {
+    const response: ProbeStatusMonitorResponse = build(
+      [FRANKFURT, VIRGINIA, SINGAPORE],
+      [
+        probe(
+          FRANKFURT,
+          "Frankfurt",
+          ProbeConnectionStatus.Connected,
+          BEHIND_ON_MONITORS,
+        ),
+        probe(VIRGINIA, "Virginia", ProbeConnectionStatus.Connected),
+        probe(SINGAPORE, "Singapore", ProbeConnectionStatus.Connected, {
+          ...BEHIND_ON_MONITORS,
+          ...BEHIND_ON_DEVICES,
+        }),
+      ],
+    );
+
+    expect(response.behindProbeCount).toBe(2);
+    expect(response.connectedProbeCount).toBe(3);
+    expect(response.disconnectedProbeCount).toBe(0);
+
+    expect(response.probes[0]).toMatchObject({
+      probeId: FRANKFURT,
+      isConnected: true,
+      isBehind: true,
+      behindSince: new Date("2026-09-21T11:50:00.000Z"),
+      behindOn: [ProbeBehindWork.MonitorChecks],
+    });
+    // Keeping up: nothing about being behind at all.
+    expect(Object.keys(response.probes[1]!)).not.toContain("isBehind");
+    // Behind on both: since the earlier of the two, monitors first.
+    expect(response.probes[2]).toMatchObject({
+      isBehind: true,
+      behindSince: new Date("2026-09-21T11:40:00.000Z"),
+      behindOn: [ProbeBehindWork.MonitorChecks, ProbeBehindWork.DevicePolls],
+    });
+  });
+
+  test("a disconnected probe is never behind, whatever was kept on it", () => {
+    const response: ProbeStatusMonitorResponse = build(
+      [FRANKFURT],
+      [
+        probe(FRANKFURT, "Frankfurt", ProbeConnectionStatus.Disconnected, {
+          ...BEHIND_ON_MONITORS,
+          ...BEHIND_ON_DEVICES,
+        }),
+      ],
+    );
+
+    expect(response.behindProbeCount).toBe(0);
+    expect(response.probes[0]!.isBehind).toBeUndefined();
+  });
+
+  test("one late reading is not behind yet: a probe that just restarted", () => {
+    const response: ProbeStatusMonitorResponse = build(
+      [FRANKFURT],
+      [
+        probe(FRANKFURT, "Frankfurt", ProbeConnectionStatus.Connected, {
+          checksLateSince: new Date("2026-09-21T11:58:00.000Z"),
+          checksLastLateAt: new Date("2026-09-21T11:58:00.000Z"),
+        }),
+      ],
+    );
+
+    expect(response.behindProbeCount).toBe(0);
+  });
+
+  test("reads the times as the database or a page hands them", () => {
+    const response: ProbeStatusMonitorResponse = build(
+      [FRANKFURT],
+      [
+        probe(FRANKFURT, "Frankfurt", ProbeConnectionStatus.Connected, {
+          devicePollsLateSince: "2026-09-21T11:40:00.000Z",
+          devicePollsLastLateAt: "2026-09-21T11:58:00.000Z",
+        }),
+      ],
+    );
+
+    expect(response.probes[0]!.behindOn).toEqual([ProbeBehindWork.DevicePolls]);
+  });
+
+  test("is said in plain words: which probe, and on what", () => {
+    expect(
+      ProbeStatusMonitorUtil.describe(
+        build(
+          [FRANKFURT],
+          [
+            probe(
+              FRANKFURT,
+              "Frankfurt",
+              ProbeConnectionStatus.Connected,
+              BEHIND_ON_MONITORS,
+            ),
+          ],
+        ),
+      ),
+    ).toBe(
+      "Frankfurt is connected, but behind: its monitors are checked less often than set.",
+    );
+
+    expect(
+      ProbeStatusMonitorUtil.describe(
+        build(
+          [FRANKFURT],
+          [
+            probe(
+              FRANKFURT,
+              "Frankfurt",
+              ProbeConnectionStatus.Connected,
+              BEHIND_ON_DEVICES,
+            ),
+          ],
+        ),
+      ),
+    ).toBe(
+      "Frankfurt is connected, but behind: its network devices are polled less often than set.",
+    );
+
+    expect(
+      ProbeStatusMonitorUtil.describe(
+        build(
+          [FRANKFURT, VIRGINIA, SINGAPORE],
+          [
+            probe(FRANKFURT, "Frankfurt", ProbeConnectionStatus.Connected, {
+              ...BEHIND_ON_MONITORS,
+              ...BEHIND_ON_DEVICES,
+            }),
+            probe(VIRGINIA, "Virginia", ProbeConnectionStatus.Connected),
+            probe(SINGAPORE, "Singapore", ProbeConnectionStatus.Connected),
+          ],
+        ),
+      ),
+    ).toBe("All 3 probes are connected; 1 is behind: Frankfurt.");
+  });
+
+  test("a probe disconnected is said first: it says more", () => {
+    expect(
+      ProbeStatusMonitorUtil.describe(
+        build(
+          [FRANKFURT, VIRGINIA],
+          [
+            probe(
+              FRANKFURT,
+              "Frankfurt",
+              ProbeConnectionStatus.Connected,
+              BEHIND_ON_MONITORS,
+            ),
+            probe(VIRGINIA, "Virginia", ProbeConnectionStatus.Disconnected),
+          ],
+        ),
+      ),
+    ).toBe("1 of 2 probes is disconnected: Virginia.");
+  });
+
+  test("reads back from a stored evaluation; one from before #9501 has none behind", () => {
+    const stored: ProbeStatusMonitorResponse = build(
+      [FRANKFURT, VIRGINIA],
+      [
+        probe(FRANKFURT, "Frankfurt", ProbeConnectionStatus.Connected, {
+          ...BEHIND_ON_DEVICES,
+        }),
+        probe(VIRGINIA, "Virginia", ProbeConnectionStatus.Connected),
+      ],
+    );
+
+    const parsed: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorUtil.parseResponse(JSON.parse(JSON.stringify(stored)));
+
+    expect(parsed!.behindProbeCount).toBe(1);
+    expect(parsed!.probes[0]).toMatchObject({
+      isBehind: true,
+      behindSince: new Date("2026-09-21T11:40:00.000Z"),
+      behindOn: [ProbeBehindWork.DevicePolls],
+    });
+
+    const older: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorUtil.parseResponse({
+        probes: [
+          { probeId: FRANKFURT, probeName: "Frankfurt", isConnected: true },
+        ],
+      });
+    expect(older!.behindProbeCount).toBe(0);
+    expect(ProbeStatusMonitorUtil.getBehindProbeCount(older!)).toBe(0);
+  });
+
+  test("a stored probe that says it is behind while disconnected is read as not behind, and unknown work is dropped", () => {
+    const parsed: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorUtil.parseResponse({
+        probes: [
+          {
+            probeId: FRANKFURT,
+            probeName: "Frankfurt",
+            isConnected: false,
+            isBehind: true,
+          },
+          {
+            probeId: VIRGINIA,
+            probeName: "Virginia",
+            isConnected: true,
+            isBehind: true,
+            behindOn: ["monitorChecks", "coffee"],
+            behindSince: "not a date",
+          },
+        ],
+      });
+
+    expect(parsed!.probes[0]!.isBehind).toBeUndefined();
+    expect(parsed!.probes[1]).toEqual({
+      probeId: VIRGINIA,
+      probeName: "Virginia",
+      isGlobalProbe: false,
+      isConnected: true,
+      isBehind: true,
+      behindOn: [ProbeBehindWork.MonitorChecks],
+    });
+    expect(parsed!.behindProbeCount).toBe(1);
+  });
+
+  test("the count kept on an evaluation is the one read; without it, the probes are counted", () => {
+    expect(
+      ProbeStatusMonitorUtil.getBehindProbeCount({
+        probes: [],
+        behindProbeCount: 3,
+      }),
+    ).toBe(3);
+    expect(
+      ProbeStatusMonitorUtil.getBehindProbeCount({
+        probes: [
+          {
+            probeId: FRANKFURT,
+            probeName: "Frankfurt",
+            isGlobalProbe: false,
+            isConnected: true,
+            isBehind: true,
+          },
+        ],
+      }),
+    ).toBe(1);
   });
 });

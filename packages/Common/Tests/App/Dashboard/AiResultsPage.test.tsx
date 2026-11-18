@@ -136,6 +136,8 @@ function deferred(): {
 }
 
 let postSpy: ReturnType<typeof jest.spyOn>;
+// The reads of how Ask AI's answers were rated (#7365).
+let ratingsReads: Array<JSONObject> = [];
 let answers: Array<Answer> = [];
 // Project.enableAi, as the AI readiness read finds it.
 let isAiOn: boolean = true;
@@ -250,6 +252,31 @@ beforeEach(() => {
   PermissionGate.clearPermissionPropsCache();
   answers = [];
   isAiOn = true;
+
+  ratingsReads = [];
+  jest
+    .spyOn(API, "get")
+    .mockImplementation(
+      async (request: unknown): Promise<HTTPResponse<JSONObject>> => {
+        const url: string = String((request as JSONObject)["url"]);
+
+        if (url.endsWith("/ai-chat/ratings")) {
+          ratingsReads.push(request as JSONObject);
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              sinceDays: 90,
+              helpful: 7,
+              notHelpful: 2,
+              ratedDownDrewOn: [{ source: "incidents", answers: 2 }],
+            },
+            {},
+          );
+        }
+
+        throw new Error(`Unexpected request to ${url}`);
+      },
+    );
 
   postSpy = jest.spyOn(API, "post");
   postSpy.mockImplementation(
@@ -416,10 +443,13 @@ describe("the cards", () => {
     for (const testId of CARD_TEST_IDS) {
       expect(screen.getByTestId(testId)).toBeInTheDocument();
     }
+    await findTestId("ask-ai-ratings-headline");
     expect(cardTitles()).toEqual([
       "Pages Avoided",
       "Fixes Verified",
       "Root Causes Confirmed",
+      // Last, for an owner: how the project's Ask AI answers were rated (#7365).
+      "Ask AI Answers",
     ]);
     // Each card's own description is under its title.
     expect(cardRoot(CARD_TEST_IDS[0]!)).toHaveTextContent(
@@ -839,6 +869,45 @@ describe("before there is anything to count", () => {
     ).toContain(
       "OneUptime AI finished 4 investigations, and none has been judged yet.",
     );
+  });
+});
+
+describe("Ask AI Answers, for the project's owners and admins (#7365)", () => {
+  test("an owner reads how the project's Ask AI answers were rated, after the results", async () => {
+    await openWith(makeOutcomes());
+
+    const card: HTMLElement = await findTestId("ask-ai-ratings");
+    const firstResult: HTMLElement = await findTestId(CARD_TEST_IDS[0]!);
+
+    expect(
+      firstResult.compareDocumentPosition(card) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(await findTestId("ask-ai-ratings-headline")).toHaveTextContent(
+      "7 of 9 rated answers were helpful.",
+    );
+    expect(ratingsReads).toHaveLength(1);
+    expect(ratingsReads[0]!["headers"]).toEqual({ tenantid: PROJECT_ID });
+  });
+
+  test("an admin reads it too", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ProjectAdmin]);
+    await openWith(makeOutcomes());
+
+    expect(await findTestId("ask-ai-ratings")).toBeInTheDocument();
+  });
+
+  test("a member sees no card, and nothing is asked of the server", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ProjectMember]);
+    await openWith(makeOutcomes());
+
+    await findTestId(CARD_TEST_IDS[0]!);
+    expect(screen.queryByTestId("ask-ai-ratings")).not.toBeInTheDocument();
+    expect(ratingsReads).toHaveLength(0);
   });
 });
 

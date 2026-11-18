@@ -195,6 +195,15 @@ function countTexts(): Array<string> {
     ...textsOf(screen.queryAllByTestId("ai-results-start")),
     ...textsOf(screen.queryAllByTestId("ai-results-partial")),
     ...textsOf(screen.queryAllByTestId("ai-results-window")),
+    // Ask AI Answers, for the project's owners and admins (#7365).
+    ...textsOf(screen.queryAllByTestId("ask-ai-ratings-headline")),
+    ...textsOf(
+      screen
+        .queryAllByTestId("ask-ai-ratings-source")
+        .map((source: HTMLElement) => {
+          return source.querySelector("dd")!;
+        }),
+    ),
     ...bars,
   ];
 }
@@ -523,6 +532,32 @@ describe("the real page, on a Persian reader's screen", () => {
           enableAi: true,
         });
       });
+    // How the project's Ask AI answers were rated (#7365): an owner reads it.
+    jest
+      .spyOn(API, "get")
+      .mockImplementation(
+        async (request: unknown): Promise<HTTPResponse<JSONObject>> => {
+          const url: string = String((request as JSONObject)["url"]);
+
+          if (url.endsWith("/ai-chat/ratings")) {
+            return new HTTPResponse<JSONObject>(
+              200,
+              {
+                sinceDays: 90,
+                helpful: 1234,
+                notHelpful: 56,
+                ratedDownDrewOn: [
+                  { source: "logs", answers: 31 },
+                  { source: "docs", answers: 12 },
+                ],
+              },
+              {},
+            );
+          }
+
+          throw new Error(`Unexpected request to ${url}`);
+        },
+      );
     jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
     jest
       .spyOn(PermissionUtil, "getAllPermissions")
@@ -558,6 +593,9 @@ describe("the real page, on a Persian reader's screen", () => {
       "۱۱",
     ]);
     expect(screen.getAllByTestId("ai-results-week")).toHaveLength(36);
+    // Ask AI Answers, last, for an owner: its counts in Persian too.
+    await screen.findByTestId("ask-ai-ratings-headline");
+    expect(screen.getAllByTestId("ask-ai-ratings-source")).toHaveLength(2);
 
     const texts: Array<string> = countTexts();
 

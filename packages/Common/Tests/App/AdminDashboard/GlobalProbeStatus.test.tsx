@@ -180,15 +180,58 @@ describe("OneUptime Health > Global Probes and Settings > Global Probes", () => 
   );
 });
 
+/*
+ * #9499: a global probe whose network devices wait past their poll time
+ * is Behind too, and OneUptime Health says so in a finding of its own.
+ */
+describe("a global probe behind on its network devices", () => {
+  test("is Behind, as one behind on its monitors is", () => {
+    const behind: Probe = probe({ lastAliveMinutesAgo: 1 });
+    behind.devicePollsLateSince = new Date(NOW.getTime() - 3 * MINUTE);
+    behind.devicePollsLastLateAt = new Date(NOW.getTime() - 30 * 1000);
+
+    expect(getGlobalProbeStatus(behind, NOW)).toBe(GlobalProbeStatus.Behind);
+  });
+
+  test("one late reading of its devices is not yet behind", () => {
+    const once: Probe = probe({ lastAliveMinutesAgo: 1 });
+    once.devicePollsLateSince = new Date(NOW.getTime() - 30 * 1000);
+    once.devicePollsLastLateAt = new Date(NOW.getTime() - 30 * 1000);
+
+    expect(getGlobalProbeStatus(once, NOW)).toBe(GlobalProbeStatus.Connected);
+  });
+
+  test.each(["Pages/Health/Probes.tsx", "Pages/Settings/Probes/Index.tsx"])(
+    "%s reads what says it is behind on its devices",
+    (page: string) => {
+      const source: string = fs.readFileSync(path.join(ADMIN, page), "utf8");
+
+      expect(source).toMatch(
+        /selectMoreFields=\{\{[^}]*devicePollsLateSince: true/,
+      );
+      expect(source).toMatch(
+        /selectMoreFields=\{\{[^}]*devicePollsLastLateAt: true/,
+      );
+    },
+  );
+});
+
 describe("in every language the Admin Dashboard speaks", () => {
   const behindWords: { title: string; words: string; fix: string } =
     INSTALLATION_HEALTH_WORDS[InstallationHealthFindingId.GlobalProbeBehind];
+  const devicesBehindWords: { title: string; words: string; fix: string } =
+    INSTALLATION_HEALTH_WORDS[
+      InstallationHealthFindingId.GlobalProbeDevicesBehind
+    ];
 
   const WORDS: Array<string> = [
     ...Object.values(GLOBAL_PROBE_STATUS_WORDS),
     behindWords.title,
     behindWords.words,
     behindWords.fix,
+    devicesBehindWords.title,
+    devicesBehindWords.words,
+    devicesBehindWords.fix,
   ];
 
   test.each([...ADMIN_DASHBOARD_LANGUAGES])(
@@ -222,6 +265,13 @@ describe("in every language the Admin Dashboard speaks", () => {
       expect(fix).toContain("GLOBAL_PROBE_1_MONITORING_WORKERS");
       expect(fix).toContain("config.env");
       expect(fix).toContain("monitoringWorkers");
+
+      const devicesFix: string = String(locale[devicesBehindWords.fix]);
+      expect(devicesFix).toContain(
+        "GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY",
+      );
+      expect(devicesFix).toContain("config.env");
+      expect(devicesFix).toContain("networkDevicePollConcurrency");
     },
   );
 

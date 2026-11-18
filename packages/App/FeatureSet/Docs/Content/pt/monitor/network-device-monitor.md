@@ -287,6 +287,8 @@ A sondagem fica na página **Configurações** do dispositivo, no cartão **Poll
 
 Tudo de **Walk Interfaces** para baixo precisa de credenciais SNMP: em um dispositivo só com ping essas configurações são mantidas e não têm nenhum walk ao qual se aplicar.
 
+Uma sonda consulta até `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` dispositivos ao mesmo tempo, 25 por padrão, e pede mais assim que tem espaço, então cada dispositivo é consultado no seu intervalo, por maior que seja a frota. A próxima consulta de um dispositivo é contada a partir do minuto cheio mais próximo da anterior. Quando há mais dispositivos pendentes do que a sonda consegue consultar, o **Status** dela mostra **Atrasado** e a página dela mostra **Consultas de dispositivos de rede**: [Uma sonda está atrasada](/docs/probe/custom-probe#uma-sonda-está-atrasada) diz o que a ajuda a se recuperar.
+
 ### Walk das interfaces
 
 Com **Walk Interfaces** ativado e credenciais encontradas, cada sondagem acompanha, em cada interface, o status operacional e administrativo, os bits de entrada e saída, a utilização e os erros. O mesmo walk coleta os vizinhos LLDP e CDP para o mapa.

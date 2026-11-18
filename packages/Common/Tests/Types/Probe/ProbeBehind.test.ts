@@ -3,7 +3,9 @@ import ProbeBehindUtil, {
   BEHIND_AFTER_MS,
   CHECK_LATE_AFTER_MS,
   ON_TIME_AFTER_MS,
+  ProbeBehindWork,
   ProbeLateChecks,
+  ProbeLateDevicePolls,
 } from "../../../Types/Probe/ProbeBehind";
 
 /*
@@ -239,6 +241,146 @@ describe("what the job writes", () => {
           checksLastLateAt: second!.checksLastLateAt!.toISOString(),
         },
         second!,
+      ),
+    ).toBe(false);
+  });
+});
+
+/*
+ * The network devices a probe polls, read by the same rules and kept in
+ * two times of their own (OneUptime issue #9499), so a page can say which
+ * of the two falls behind. A probe is behind when either is.
+ */
+describe("ProbeBehindUtil, for the network devices a probe polls", () => {
+  const checksBehind: ProbeLateChecks = {
+    checksLateSince: at(0),
+    checksLastLateAt: at(MINUTE),
+  };
+  const pollsBehind: ProbeLateDevicePolls = {
+    devicePollsLateSince: at(2 * MINUTE),
+    devicePollsLastLateAt: at(3 * MINUTE),
+  };
+
+  test("the device polls' times are judged as the checks' are, by the same rules", () => {
+    const [first, second] = readings([true, true]);
+
+    const polls: ProbeLateDevicePolls = ProbeBehindUtil.lateChecksAsDevicePolls(
+      second!,
+    );
+
+    expect(polls).toEqual({
+      devicePollsLateSince: first!.checksLateSince,
+      devicePollsLastLateAt: second!.checksLastLateAt,
+    });
+    expect(ProbeBehindUtil.devicePollsAsLateChecks(polls)).toEqual(second);
+    expect(ProbeBehindUtil.getDevicePollsBehindSince(polls)).toEqual(at(0));
+    expect(ProbeBehindUtil.isDevicePollsBehind(polls)).toBe(true);
+
+    // One late reading is not behind, as for checks.
+    expect(
+      ProbeBehindUtil.isDevicePollsBehind(
+        ProbeBehindUtil.lateChecksAsDevicePolls(first!),
+      ),
+    ).toBe(false);
+  });
+
+  test("devices behind do not make the monitors behind, nor the other way round", () => {
+    expect(ProbeBehindUtil.isBehind(pollsBehind)).toBe(false);
+    expect(ProbeBehindUtil.isDevicePollsBehind(checksBehind)).toBe(false);
+    expect(ProbeBehindUtil.isDevicePollsBehind(pollsBehind)).toBe(true);
+    expect(ProbeBehindUtil.isBehind(checksBehind)).toBe(true);
+  });
+
+  test("a probe is behind when either is, since the earlier of the two", () => {
+    expect(ProbeBehindUtil.isProbeBehind({})).toBe(false);
+    expect(ProbeBehindUtil.getProbeBehindSince({})).toBeNull();
+
+    expect(ProbeBehindUtil.isProbeBehind(checksBehind)).toBe(true);
+    expect(ProbeBehindUtil.isProbeBehind(pollsBehind)).toBe(true);
+    expect(ProbeBehindUtil.getProbeBehindSince(pollsBehind)).toEqual(
+      at(2 * MINUTE),
+    );
+
+    expect(
+      ProbeBehindUtil.getProbeBehindSince({ ...checksBehind, ...pollsBehind }),
+    ).toEqual(at(0));
+    expect(
+      ProbeBehindUtil.getProbeBehindSince({
+        checksLateSince: at(5 * MINUTE),
+        checksLastLateAt: at(6 * MINUTE),
+        ...pollsBehind,
+      }),
+    ).toEqual(at(2 * MINUTE));
+  });
+
+  test("says what the probe is behind on, monitors first", () => {
+    expect(ProbeBehindUtil.getBehindWork({})).toEqual([]);
+    expect(ProbeBehindUtil.getBehindWork(checksBehind)).toEqual([
+      ProbeBehindWork.MonitorChecks,
+    ]);
+    expect(ProbeBehindUtil.getBehindWork(pollsBehind)).toEqual([
+      ProbeBehindWork.DevicePolls,
+    ]);
+    expect(
+      ProbeBehindUtil.getBehindWork({ ...pollsBehind, ...checksBehind }),
+    ).toEqual([ProbeBehindWork.MonitorChecks, ProbeBehindWork.DevicePolls]);
+  });
+
+  test("reads the times as a page reads them: strings, or nothing", () => {
+    expect(
+      ProbeBehindUtil.isProbeBehind({
+        devicePollsLateSince: pollsBehind.devicePollsLateSince!.toISOString(),
+        devicePollsLastLateAt: pollsBehind.devicePollsLastLateAt!.toISOString(),
+      }),
+    ).toBe(true);
+    expect(
+      ProbeBehindUtil.isProbeBehind({
+        devicePollsLateSince: "not a date",
+        devicePollsLastLateAt: null,
+      }),
+    ).toBe(false);
+  });
+
+  test("a probe that is not connected keeps nothing of its devices", () => {
+    expect(ProbeBehindUtil.clearedDevicePolls()).toEqual({
+      devicePollsLateSince: null,
+      devicePollsLastLateAt: null,
+    });
+    expect(
+      ProbeBehindUtil.isDevicePollsBehind(ProbeBehindUtil.clearedDevicePolls()),
+    ).toBe(false);
+  });
+
+  test("the job writes the device polls' times only when they changed", () => {
+    expect(ProbeBehindUtil.hasDevicePollsChanged({}, pollsBehind)).toBe(true);
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        pollsBehind,
+        ProbeBehindUtil.clearedDevicePolls(),
+      ),
+    ).toBe(true);
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        {},
+        ProbeBehindUtil.clearedDevicePolls(),
+      ),
+    ).toBe(false);
+    // Read back as strings, the same times are no change.
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        {
+          devicePollsLateSince: pollsBehind.devicePollsLateSince!.toISOString(),
+          devicePollsLastLateAt:
+            pollsBehind.devicePollsLastLateAt!.toISOString(),
+        },
+        pollsBehind,
+      ),
+    ).toBe(false);
+    // The checks' times are not the device polls'.
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        { ...checksBehind },
+        ProbeBehindUtil.clearedDevicePolls(),
       ),
     ).toBe(false);
   });

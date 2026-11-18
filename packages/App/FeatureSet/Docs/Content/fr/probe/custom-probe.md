@@ -386,13 +386,19 @@ Côté serveur OneUptime, une requête de sonde à laquelle il est répondu lent
 
 ### Une sonde est en retard
 
-Une sonde est **En retard** quand ses moniteurs attendent plus d'une minute au-delà de leur heure de vérification : ils sont alors vérifiés moins souvent que prévu. Son **Statut** dans le tableau **Sondes personnalisées** indique alors **En retard**, et sa page dit depuis quand sous **Vérifications des moniteurs**. Pour les sondes qu'un OneUptime auto-hébergé fait tourner lui-même, Santé OneUptime le signale dans le tableau de bord admin.
+Une sonde est **En retard** quand ses moniteurs attendent plus d'une minute au-delà de leur heure de vérification : ils sont alors vérifiés moins souvent que prévu. Son **Statut** dans le tableau **Sondes personnalisées** indique alors **En retard**, et sa page dit depuis quand sous **Vérifications des moniteurs**. Pour les sondes qu'un OneUptime auto-hébergé fait tourner lui-même, Santé OneUptime le signale dans le tableau de bord admin. Il en va de même pour les équipements réseau qu'elle interroge : quand ils attendent plus d'une minute au-delà de leur heure d'interrogation, son **Statut** indique aussi **En retard**, et sa page affiche **Interrogations des équipements réseau** avec depuis quand. Les administrateurs principaux sont prévenus quand une sonde globale prend du retard, et un [moniteur d'état des sondes](/docs/monitor/probe-status-monitor) peut lever une alerte quand l'une des vôtres en prend.
 
 Une sonde vérifie jusqu'à `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` moniteurs à la fois, 10 avec ses réglages par défaut, et en demande d'autres dès qu'elle a de la place. Elle prend du retard quand plus de moniteurs sont dus qu'elle ne peut en vérifier, par exemple quand beaucoup de leurs vérifications vont jusqu'à leur délai d'expiration. Pour qu'elle rattrape son retard :
 
 - Mettez la sonde à jour. Une sonde plus ancienne ne demande ses moniteurs qu'une fois par minute, et vérifie donc au plus `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` moniteurs par minute.
 - Laissez-la vérifier plus de moniteurs à la fois : augmentez `PROBE_MONITORING_WORKERS`, puis redémarrez la sonde. Pour les sondes qu'un OneUptime auto-hébergé fait tourner, c'est `GLOBAL_PROBE_1_MONITORING_WORKERS` dans `config.env` avec Docker Compose, ou le `monitoringWorkers` de la sonde dans les valeurs du chart Helm.
 - Donnez-lui plus de CPU et de mémoire, ou lancez une autre copie avec le même `PROBE_ID` et le même `PROBE_KEY` : les copies se partagent ses moniteurs.
+
+Une sonde interroge jusqu'à `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` équipements réseau à la fois, 25 avec ses réglages par défaut, et en demande d'autres dès qu'elle a de la place. Elle prend du retard sur eux quand plus d'équipements sont dus qu'elle ne peut en interroger, par exemple quand beaucoup ne répondent pas et que leurs interrogations vont jusqu'à leur délai d'expiration. Pour qu'elle rattrape son retard :
+
+- Mettez la sonde à jour. Une sonde plus ancienne ne demande ses équipements qu'une fois par minute, et en interroge donc au plus `NETWORK_DEVICE_POLL_FETCH_LIMIT` par minute, 250 par défaut.
+- Laissez-la interroger plus d'équipements à la fois : augmentez `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY`, puis redémarrez la sonde. Pour les sondes qu'un OneUptime auto-hébergé fait tourner, c'est `GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY` dans `config.env` avec Docker Compose, ou le `networkDevicePollConcurrency` de la sonde dans les valeurs du chart Helm.
+- Déplacez une partie de ses équipements vers une autre sonde.
 
 ### Autres problèmes
 

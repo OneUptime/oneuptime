@@ -1,7 +1,7 @@
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import ProbeBehindUtil, {
-  ProbeLateChecksRead,
+  ProbeBehindRead,
 } from "Common/Types/Probe/ProbeBehind";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import Probe, {
@@ -20,9 +20,10 @@ export interface ComponentProps {
 
 /*
  * A probe's status: Connected; Behind when it is connected but its
- * monitors are checked later than their interval (OneUptime issue #9488,
- * Types/Probe/ProbeBehind) - a list that says so selects checksLateSince
- * and checksLastLateAt; Disconnected otherwise.
+ * monitors are checked, or its network devices polled, later than their
+ * interval (OneUptime issues #9488 and #9499, Types/Probe/ProbeBehind) - a
+ * list that says so selects checksLateSince, checksLastLateAt,
+ * devicePollsLateSince and devicePollsLastLateAt; Disconnected otherwise.
  */
 const ProbeStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -33,7 +34,7 @@ const ProbeStatusElement: FunctionComponent<ComponentProps> = (
   ) {
     if (
       !props.isConnectionOnly &&
-      ProbeBehindUtil.isBehind(props.probe as ProbeLateChecksRead)
+      ProbeBehindUtil.isProbeBehind(props.probe as ProbeBehindRead)
     ) {
       return (
         <Statusbubble text={"Behind"} color={Yellow} shouldAnimate={false} />

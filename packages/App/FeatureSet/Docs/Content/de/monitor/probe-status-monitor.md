@@ -1,16 +1,16 @@
 # Sondenstatus-Monitor
 
-Ein Sondenstatus-Monitor meldet Ihnen, wenn eine Sonde keine Daten mehr sendet: ein Vorfall, wenn sie getrennt wird, der sich von selbst löst, sobald sie zurück ist. Richten Sie ihn auf Ihre benutzerdefinierten Sonden oder, bei einem selbst gehosteten OneUptime, auf die globale Sonde, auf der jeder Monitor läuft. So bleiben die Monitore einer verstummten Sonde nie ungeprüft, ohne dass es jemand merkt.
+Ein Sondenstatus-Monitor meldet Ihnen, wenn eine Sonde keine Daten mehr sendet: ein Vorfall, wenn sie getrennt wird, der sich von selbst löst, sobald sie zurück ist. Richten Sie ihn auf Ihre benutzerdefinierten Sonden oder, bei einem selbst gehosteten OneUptime, auf die globale Sonde, auf der jeder Monitor läuft. So bleiben die Monitore einer verstummten Sonde nie ungeprüft, ohne dass es jemand merkt. Ein neuer Monitor löst außerdem eine Warnung aus, wenn eine seiner Sonden in Rückstand gerät, ihre Monitore seltener geprüft oder ihre Netzwerkgeräte seltener abgefragt werden als eingestellt.
 
 :::cards
 - [Einen erstellen](#einen-sondenstatus-monitor-erstellen): Die Sonden auswählen und die Standardkriterien behalten.
-- [Kriterien](#kriterien): Die verbundenen oder getrennten Sonden zählen, jetzt oder über ein Zeitfenster.
+- [Kriterien](#kriterien): Die verbundenen, getrennten oder im Rückstand befindlichen Sonden zählen, jetzt oder über ein Zeitfenster.
 - [Metriken](#metriken): Wie viele Sonden verbunden waren, Minute für Minute.
 :::
 
 ## So funktioniert es
 
-OneUptime wertet jeden Sondenstatus-Monitor einmal pro Minute aus, und noch einmal in dem Moment, in dem sich eine seiner Sonden verbindet oder trennt. Es liest den Verbindungsstatus jeder Sonde, den auch die Seite der Sonde zeigt: Eine Sonde gilt als getrennt, wenn drei Minuten lang nichts von ihr gekommen ist. War OneUptime selbst ausgefallen oder hat nichts empfangen, wartet es volle drei Minuten, bevor es eine Sonde als getrennt einstuft, sodass ein Upgrade von OneUptime nie einen Vorfall auslöst.
+OneUptime wertet jeden Sondenstatus-Monitor einmal pro Minute aus, und noch einmal in dem Moment, in dem sich eine seiner Sonden verbindet oder trennt. Es liest den Verbindungsstatus jeder Sonde, den auch die Seite der Sonde zeigt: Eine Sonde gilt als getrennt, wenn drei Minuten lang nichts von ihr gekommen ist. War OneUptime selbst ausgefallen oder hat nichts empfangen, wartet es volle drei Minuten, bevor es eine Sonde als getrennt einstuft, sodass ein Upgrade von OneUptime nie einen Vorfall auslöst. Es liest auch, ob jede verbundene Sonde im Rückstand ist, so wie die Seite der Sonde es sagt ([Eine Sonde ist im Rückstand](/docs/probe/custom-probe#eine-sonde-ist-im-rückstand)), und wertet den Monitor erneut aus, sobald eine in Rückstand gerät oder aufholt.
 
 ```mermaid title="Von einer stummen Sonde zu einem Vorfall"
 flowchart TB
@@ -55,13 +55,17 @@ Die Filter eines Sondenstatus-Monitors zählen Sonden:
 | --- | --- |
 | **Getrennte Sonden** | Die überwachten Sonden, die getrennt sind. |
 | **Verbundene Sonden** | Die überwachten Sonden, die verbunden sind. |
+| **Sonden im Rückstand** | Die überwachten Sonden, die verbunden, aber im Rückstand sind: Ihre Monitore werden seltener geprüft oder ihre Netzwerkgeräte seltener abgefragt als eingestellt. |
 
-Beide sind ganze Zahlen und werden mit **Größer als**, **Kleiner als**, **Gleich** und den übrigen Vergleichen geprüft. Ein neuer Monitor beginnt mit zwei Kriterien:
+Alle drei sind ganze Zahlen und werden mit **Größer als**, **Kleiner als**, **Gleich** und den übrigen Vergleichen geprüft. Ein neuer Monitor beginnt mit drei Kriterien:
 
 | Kriterium | Filter | Was es bewirkt |
 | --- | --- | --- |
 | Prüfen, ob eine Sonde getrennt ist | **Getrennte Sonden** größer als `0` | Setzt den Monitor auf offline und meldet einen Vorfall mit dem Titel „Sonde getrennt: {{disconnectedProbeNames}}“, der sich von selbst löst. |
+| Prüfen, ob eine Sonde im Rückstand ist | **Sonden im Rückstand** größer als `0` | Löst eine Warnung mit dem Titel „Sonde im Rückstand: {{behindProbeNames}}“ aus, die sich von selbst löst. Sie lässt den Status des Monitors unverändert und meldet keinen Vorfall: Die Sonde meldet sich ja noch. |
 | Prüfen, ob alle Sonden verbunden sind | **Getrennte Sonden** gleich `0` | Setzt den Monitor auf betriebsbereit. |
+
+Ein Monitor, der angelegt wurde, bevor es **Sonden im Rückstand** gab, behält seine Kriterien und erfährt daher nicht, wenn eine Sonde in Rückstand gerät, bis Sie die Prüfung zu seinen Kriterien hinzufügen.
 
 Der Filter **Verbundene Sonden** eignet sich für einen Monitor, der mehrere Sonden überwacht und eine verlieren darf: **Verbundene Sonden** kleiner als `2` meldet erst dann einen Vorfall, wenn weniger als zwei übrig sind.
 
@@ -71,7 +75,7 @@ Eine Sonde gilt erst nach drei Minuten Stille als getrennt, ein kurzer Neustart 
 
 ## Metriken
 
-Jede Auswertung zeichnet zwei Reihen am Monitor auf: `oneuptime.monitor.probes.connected` und `oneuptime.monitor.probes.disconnected`, die Zahl der überwachten Sonden, die verbunden und getrennt waren. Sie werden auf der Seite **Metriken** des Monitors dargestellt, und ein Dashboard oder ein Metrik-Monitor liest sie wie jede andere Reihe.
+Jede Auswertung zeichnet drei Reihen am Monitor auf: `oneuptime.monitor.probes.connected`, `oneuptime.monitor.probes.disconnected` und `oneuptime.monitor.probes.behind`, die Zahl der überwachten Sonden, die verbunden, getrennt und im Rückstand waren. Sie werden auf der Seite **Metriken** des Monitors dargestellt, und ein Dashboard oder ein Metrik-Monitor liest sie wie jede andere Reihe.
 
 ## Vorlagenvariablen
 
@@ -83,8 +87,10 @@ Die Vorfall- und Warnungsvorlagen eines Sondenstatus-Monitors können neben den 
 | `{{disconnectedProbeCount}}` | Wie viele der Sonden getrennt sind. |
 | `{{connectedProbeNames}}` | Die Namen der verbundenen Sonden, durch Kommas getrennt. |
 | `{{connectedProbeCount}}` | Wie viele der Sonden verbunden sind. |
-| `{{probeStatusSummary}}` | Ein Satz, der die getrennten Sonden nennt, etwa `1 of 3 probes is disconnected: EU Probe.`, oder sagt, dass alle Sonden verbunden sind. |
-| `{{probes}}` | Jede Sonde, jeweils mit `probeName`, `isConnected`, `isGlobalProbe` und `lastAliveAt`. |
+| `{{behindProbeNames}}` | Die Namen der verbundenen Sonden, die im Rückstand sind, durch Kommas getrennt. |
+| `{{behindProbeCount}}` | Wie viele der Sonden im Rückstand sind. |
+| `{{probeStatusSummary}}` | Ein Satz, der die getrennten Sonden nennt, etwa `1 of 3 probes is disconnected: EU Probe.`, sonst die im Rückstand, oder sagt, dass alle Sonden verbunden sind. |
+| `{{probes}}` | Jede Sonde, jeweils mit `probeName`, `isConnected`, `isBehind`, `isGlobalProbe` und `lastAliveAt`. |
 
 ## Fehlerbehebung
 

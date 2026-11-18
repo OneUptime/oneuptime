@@ -755,6 +755,8 @@ export function seedNewProject(options) {
     canSendEmail: options.canSendEmail !== false,
     // ?test=unanswered: a test page keeps paging, acknowledged by nobody.
     isTestPageAnswered: options.isTestPageAnswered !== false,
+    // ?billing=on: OneUptime Cloud, which can always send.
+    isBillingEnabled: Boolean(options.billing),
   };
 }
 
@@ -1416,6 +1418,30 @@ export function dashboardRoutes(project) {
           disablePushNotifications: false,
           // ?email=off: a server whose admin has not set email up yet.
           ...(project.canSendEmail ? {} : { canSendEmail: false }),
+        });
+      },
+    ],
+    /*
+     * Whether the server can send email, SMS and calls (GET
+     * /project-can-send, #7151), which any member of the project may ask
+     * before they set up a way to be reached: OneUptime Cloud always can;
+     * this self-hosted server sends SMS and calls, but for Ada's server as
+     * its master admin, which has no Twilio (?as=admin), and email unless
+     * its admin has not set it up (?email=off). Never why: that stays the
+     * master admins' (/global-config/sending-status, below).
+     */
+    [
+      "GET",
+      "/project-can-send",
+      () => {
+        if (project.isBillingEnabled) {
+          return ok({ email: true, sms: true, call: true });
+        }
+
+        return ok({
+          email: project.canSendEmail,
+          sms: !project.isMasterAdmin,
+          call: !project.isMasterAdmin,
         });
       },
     ],

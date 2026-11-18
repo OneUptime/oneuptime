@@ -13,6 +13,7 @@
     "Create Monitor's checks of 2026-11-18 - What to Monitor's address on a phone, in dark mode, in Persian and for a Port monitor, and Test Monitor's result (CreateMonitor.spec.ts, #7463, #7985, #7074: 8 tests, 15.4 s locally, the page's clock moved past Test Monitor's fifteen-second poll) - are added to its first half's minutes the same way, times 1.26: 8.3 to 8.6, until App Test's runs measure it.",
     "Products switched off on the server's suite of 2026-11-18 (#7480) took 45.9 s locally, its two bundles built, on a machine other work ran on: 0.8 minutes times 1.26, until App Test's runs measure it.",
     "The dashboard widget sort suite's checks of 2026-11-18 - the toolbar's Unsaved changes, Save Changes in the leave question, a honeycomb's legend and a widget's Live Preview (#7403, #7402, #7344, #7174: 6 tests, 14.5 s locally) - are added to its minutes the same way, times 1.26: 2.1 to 2.4, until App Test's runs measure it.",
+    "The questions OneUptime asks and Admin > Feedback's suite of 2026-11-18 (#7362: 17 tests) took 19 s locally, its two bundles built: 0.4 minutes times 1.26, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
   ],
   "measuredOn": "2026-11-17",
@@ -66,6 +67,7 @@
     "test-exception-detail-ui": 2.7,
     "test-exceptions-ai-ui": 2.4,
     "test-external-mcp-servers-ui": 1.1,
+    "test-feedback-questions-ui": 0.4,
     "test-first-on-call-policy-ui": 0.8,
     "test-give-feedback-ui": 0.5,
     "test-global-runners-ui": 3.3,

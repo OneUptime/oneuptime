@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import { BILLING_ENABLED } from "../../Config";
 import { ProductFeedbackKind } from "../../../Types/ProductFeedback/ProductFeedback";
 import ProductFeedback, {
   useProductFeedbackSettings,
@@ -20,7 +21,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * their own: ProductFeedback.isAskingMe), so a server or a person that
  * turned questions off never sees it, and nor does a page drawn without
  * the Dashboard around it. Once answered, the same explanation says thanks
- * for the rest of the page's life rather than asking again.
+ * for the rest of the page's life rather than asking again - as the
+ * OneUptime team on OneUptime Cloud ("Thanks for telling us."), and with no
+ * "us" on a self-hosted server, whose admins read it (#7462).
  */
 
 export interface ComponentProps {
@@ -40,6 +43,9 @@ export const WAS_THIS_CLEAR_YES: string = translationKey("Yes, it was clear");
 export const WAS_THIS_CLEAR_NO: string = translationKey("No, it was not clear");
 export const WAS_THIS_CLEAR_THANKS: string = translationKey(
   "Thanks for telling us.",
+);
+export const WAS_THIS_CLEAR_THANKS_SELF_HOSTED: string = translationKey(
+  "Thanks for your answer.",
 );
 
 // The explanations answered on this page, so each is asked once.
@@ -70,7 +76,11 @@ const WasThisClear: FunctionComponent<ComponentProps> = (
         data-testid={WAS_THIS_CLEAR_THANKS_TEST_ID}
         role="status"
       >
-        {translator.translateText(WAS_THIS_CLEAR_THANKS)}
+        {translator.translateText(
+          BILLING_ENABLED
+            ? WAS_THIS_CLEAR_THANKS
+            : WAS_THIS_CLEAR_THANKS_SELF_HOSTED,
+        )}
       </p>
     );
   }

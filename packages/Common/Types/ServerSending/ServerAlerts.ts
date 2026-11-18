@@ -1,4 +1,6 @@
+import { InstallationHealthProbeBehind } from "../InstallationHealth/InstallationHealth";
 import { JSONObject } from "../JSON";
+import { ProbeBehindWork } from "../Probe/ProbeBehind";
 import ServerSendingStatusUtil, {
   ServerChannelStatus,
   ServerSendingChannel,
@@ -15,14 +17,19 @@ import ServerSendingStatusUtil, {
  * the server's notices to its admins go by email, so they stop exactly when
  * email does. So a worker job (Workers/Jobs/ServerAlerts) reads where the
  * server stands (ServerSendingStatus) every few minutes, and tells the
- * master admins when one of two things changes:
+ * master admins when one of three things changes:
  *
  *   - email:          working -> failing, and failing -> working again;
- *   - global probes:  some reporting -> none, and none -> some again.
+ *   - global probes:  some reporting -> none, and none -> some again;
+ *   - global probes behind (#9500): all keeping up -> one behind, its
+ *     monitors checked or its network devices polled later than their
+ *     interval (Types/Probe/ProbeBehind, read by GlobalProbesBehind), and
+ *     one behind -> all keeping up again. Said of the reporting probes
+ *     only: while none reports, the line above says more.
  *
  * Through what, as master admins chose on Settings > Emails: a push to the
  * master admins' own devices, an SMS to the number they gave, and - for the
- * probes only - the Admin Notification Email. Never through the channel it
+ * probes only, both their lines - the Admin Notification Email. Never through the channel it
  * is about (email is never told by email), never through one the server
  * cannot send through right now, and never to anyone but the master admins:
  * no project member is ever paged.
@@ -42,6 +49,7 @@ import ServerSendingStatusUtil, {
 export enum ServerAlertSubject {
   Email = "email",
   GlobalProbes = "globalProbes",
+  GlobalProbesBehind = "globalProbesBehind",
 }
 
 export enum ServerAlertCondition {
@@ -57,6 +65,12 @@ export enum ServerAlertChannel {
 
 // At most one message about a thing in this long.
 export const SERVER_ALERT_MIN_INTERVAL_MS: number = 60 * 60 * 1000;
+
+/*
+ * Where a probe behind is explained, and its fix: the finding OneUptime
+ * Health lists for it. Short, so the message fits in one SMS.
+ */
+const BEHIND_SEE_WHY: string = "See OneUptime Health in the Admin Dashboard.";
 
 // What the job keeps of one thing: what it last told, when, and its last try.
 export interface ServerAlertSubjectState {
@@ -135,6 +149,7 @@ export interface ServerAlertPlan {
 const SUBJECTS: ReadonlyArray<ServerAlertSubject> = [
   ServerAlertSubject.Email,
   ServerAlertSubject.GlobalProbes,
+  ServerAlertSubject.GlobalProbesBehind,
 ];
 
 // The server's own channel each alert channel goes out through.
@@ -210,12 +225,36 @@ export default class ServerAlertsUtil {
   /*
    * Where a thing stands now, or null when there is nothing to say of it:
    * email not set up, or not tried since its settings changed; a server
-   * with no global probes.
+   * with no global probes; global probes behind that could not be read, or
+   * while none of them reports.
+   *
+   * globalProbesBehind: the reporting global probes that are behind
+   * (GlobalProbesBehind), each kind of work an entry; null or left out
+   * when they were not read.
    */
   public static getCondition(
     subject: ServerAlertSubject,
     answer: ServerSendingStatusAnswer,
+    globalProbesBehind?: Array<InstallationHealthProbeBehind> | null,
   ): ServerAlertCondition | null {
+    if (subject === ServerAlertSubject.GlobalProbesBehind) {
+      const probes: ServerSendingStatusAnswer["globalProbes"] =
+        answer.globalProbes;
+
+      // No global probe, or none reporting: there is nothing behind to say.
+      if (!probes || probes.total <= 0 || probes.reporting <= 0) {
+        return null;
+      }
+
+      if (!globalProbesBehind) {
+        return null;
+      }
+
+      return globalProbesBehind.length > 0
+        ? ServerAlertCondition.Failing
+        : ServerAlertCondition.Working;
+    }
+
     if (subject === ServerAlertSubject.GlobalProbes) {
       const probes: ServerSendingStatusAnswer["globalProbes"] =
         answer.globalProbes;
@@ -292,6 +331,8 @@ export default class ServerAlertsUtil {
     state: ServerAlertState;
     settings: ServerAlertSettings;
     now: Date;
+    // The global probes behind (GlobalProbesBehind); left out: not read.
+    globalProbesBehind?: Array<InstallationHealthProbeBehind> | null;
   }): ServerAlertPlan {
     const state: ServerAlertState = { ...data.state };
     const messages: Array<ServerAlertMessage> = [];
@@ -299,7 +340,11 @@ export default class ServerAlertsUtil {
 
     for (const subject of SUBJECTS) {
       const condition: ServerAlertCondition | null =
-        ServerAlertsUtil.getCondition(subject, data.answer);
+        ServerAlertsUtil.getCondition(
+          subject,
+          data.answer,
+          data.globalProbesBehind,
+        );
 
       if (!condition) {
         continue;
@@ -385,8 +430,19 @@ export default class ServerAlertsUtil {
     message: ServerAlertMessage;
     serverName: string;
     probes: ServerSendingStatusAnswer["globalProbes"];
+    // The global probes behind, for that subject's words.
+    globalProbesBehind?: Array<InstallationHealthProbeBehind> | null;
   }): { title: string; body: string } {
     const server: string = data.serverName;
+
+    if (data.message.subject === ServerAlertSubject.GlobalProbesBehind) {
+      return ServerAlertsUtil.getBehindText({
+        condition: data.message.condition,
+        server: server,
+        probes: data.probes,
+        behind: data.globalProbesBehind || [],
+      });
+    }
 
     if (data.message.subject === ServerAlertSubject.Email) {
       return data.message.condition === ServerAlertCondition.Failing
@@ -412,5 +468,81 @@ export default class ServerAlertsUtil {
           title: `Global probes of ${server} report again`,
           body: `Global probes of ${server} report again: ${reporting} of ${total}.`,
         };
+  }
+
+  /*
+   * A global probe behind, by name, and on what; or that they keep up
+   * again - with, while some do not report, how many, since a probe that
+   * stopped reporting is not one that caught up.
+   */
+  private static getBehindText(data: {
+    condition: ServerAlertCondition;
+    server: string;
+    probes: ServerSendingStatusAnswer["globalProbes"];
+    behind: Array<InstallationHealthProbeBehind>;
+  }): { title: string; body: string } {
+    const server: string = data.server;
+
+    if (data.condition !== ServerAlertCondition.Failing) {
+      const total: number = data.probes?.total || 0;
+      const silent: number = Math.max(0, total - (data.probes?.reporting || 0));
+
+      return {
+        title: `Global probes of ${server} keep up again`,
+        body:
+          silent > 0
+            ? `Global probes of ${server} keep up again: none that reports is behind. ${silent} of ${total} ${silent === 1 ? "does" : "do"} not report.`
+            : `Global probes of ${server} keep up again: none is behind.`,
+      };
+    }
+
+    // Each probe once, with what it is behind on, in the order read.
+    const byProbe: Map<string, { name: string; work: Set<ProbeBehindWork> }> =
+      new Map<string, { name: string; work: Set<ProbeBehindWork> }>();
+
+    for (const entry of data.behind) {
+      const probe: { name: string; work: Set<ProbeBehindWork> } = byProbe.get(
+        entry.id,
+      ) || { name: entry.name.trim() || "A global probe", work: new Set() };
+
+      probe.work.add(entry.work || ProbeBehindWork.MonitorChecks);
+      byProbe.set(entry.id, probe);
+    }
+
+    const probes: Array<{ name: string; work: Set<ProbeBehindWork> }> =
+      Array.from(byProbe.values());
+
+    if (probes.length !== 1) {
+      const names: string = probes
+        .map((probe: { name: string }): string => {
+          return probe.name;
+        })
+        .join(", ");
+
+      return {
+        title: `${probes.length} global probes of ${server} are behind`,
+        body: `${probes.length} global probes of ${server} are behind: ${names}. What they check is checked less often than set. ${BEHIND_SEE_WHY}`,
+      };
+    }
+
+    const probe: { name: string; work: Set<ProbeBehindWork> } = probes[0]!;
+    const isBehindOnMonitors: boolean = probe.work.has(
+      ProbeBehindWork.MonitorChecks,
+    );
+    const isBehindOnDevices: boolean = probe.work.has(
+      ProbeBehindWork.DevicePolls,
+    );
+
+    const what: string =
+      isBehindOnMonitors && isBehindOnDevices
+        ? "its monitors and devices are checked less often than set"
+        : isBehindOnDevices
+          ? "its network devices are polled less often than set"
+          : "its monitors are checked less often than set";
+
+    return {
+      title: `Global probe ${probe.name} of ${server} is behind`,
+      body: `Global probe ${probe.name} of ${server} is behind: ${what}. ${BEHIND_SEE_WHY}`,
+    };
   }
 }

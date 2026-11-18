@@ -5253,6 +5253,13 @@ html.docs-js .docs-tabs__panel:not(.is-active) {
   font-weight: 600;
   color: var(--docs-text);
 }
+/* Where an answer goes, said before anyone answers (#7209). */
+.docs-feedback__where {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--docs-text-muted);
+}
 .docs-feedback__answers,
 .docs-feedback__reasons {
   display: flex;
