@@ -91,6 +91,12 @@ Due domande del provider cambiano questo comportamento, raccolte sotto **Altri c
 
 Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati.
 
+## Uscire anche dal provider di identità
+
+Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso la persona successiva che accede con quel provider entra al posto di chi se n'è andato. Su un provider OpenID Connect, fai clic su **Modifica configurazione** e attiva **Esci anche dal provider di identità** in **Altri campi**: l'uscita da OneUptime chiude allora anche la sessione presso il provider, e il provider rimanda il browser alla pagina di accesso di OneUptime. È disattivato per impostazione predefinita, perché su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
+
+Registra presso il tuo provider l'URI di reindirizzamento dopo l'uscita che mostra la scheda **URL del provider di identità**, come post-logout redirect URI consentito. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla.
+
 ## Imporre l'SSO
 
 Configurare un provider globale non obbliga nessuno a usarlo; l'accesso con password continua a funzionare. Per richiedere l'SSO, attiva l'obbligo per un progetto o per l'intera istanza:

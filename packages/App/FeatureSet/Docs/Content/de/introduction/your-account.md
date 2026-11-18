@@ -26,7 +26,7 @@ Klicken Sie oben rechts im Dashboard auf Ihr Bild.
 | **Profil** | Öffnet **Benutzerprofil**: Ihren Namen, Ihre E-Mail-Adresse, Zeitzone, Sprache, Ihr Bild und die Sicherheit Ihrer Anmeldung. |
 | **Admin-Einstellungen** | Öffnet das Admin-Dashboard. Nur Master-Admins einer selbst gehosteten Installation sehen ihn. |
 | **Design** | Legt das Design des Dashboards fest: **Hell**, **Dunkel** oder **System**, das hell oder dunkel ist, je nachdem, wie Ihr Gerät eingestellt ist. |
-| **Abmelden** | Meldet Sie ab. |
+| **Abmelden** | Meldet Sie ab, sofort auf jedem OneUptime-Server. Wo Ihr Administrator es eingerichtet hat, meldet es Sie auch bei Ihrem Identitätsanbieter ab. |
 
 **Benutzerprofil** hat ein eigenes Seitenmenü. **Grundlegend** enthält **Übersicht** und **Profilbild**. **Sicherheit** und **Gefahrenzone** sind zugeklappt: Klicken Sie auf den Titel eines Abschnitts, um ihn zu öffnen.
 

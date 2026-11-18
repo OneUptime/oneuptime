@@ -259,6 +259,12 @@ Un proyecto también puede iniciar sesión mediante un proveedor OpenID Connect,
 6. Abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor, para iniciar sesión con él antes de exigir SSO en el proyecto.
 :::
 
+### Cerrar sesión también en el proveedor de identidad
+
+Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido, como una pantalla del NOC o un quiosco, la siguiente persona que elige el proveedor en la página de inicio de sesión entra como la que se fue. Activa **Cerrar sesión también en el proveedor de identidad** en **Más campos** para que cerrar sesión en OneUptime también termine la sesión en el proveedor. Está desactivado por defecto: en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor.
+
+Con la opción activada, el navegador pasa por el cierre de sesión del proveedor en cuanto OneUptime lo ha cerrado, y el proveedor lo devuelve a la página de inicio de sesión de OneUptime. Registra esa página en tu proveedor: el diálogo **Configuración de OIDC** la muestra como URI de redirección tras cerrar sesión, que los proveedores llaman post-logout redirect URI. Un proveedor cuyo documento de descubrimiento no nombra ningún `end_session_endpoint`, como Google, no puede activarla. Se aplica a las personas que inician sesión en un navegador después de activarla; la aplicación móvil solo cierra la sesión en OneUptime. Los proveedores SAML nunca cierran la sesión de nadie en el proveedor de identidad.
+
 ## Roles y equipos de los usuarios de SSO
 
 OneUptime no asigna roles ni grupos de tu proveedor de identidad. Lo que alguien puede hacer depende de los equipos a los que pertenece: un proveedor añade a los recién llegados a sus **Equipos**, y tú gestionas los equipos y sus permisos en OneUptime, como describe [Usuarios, equipos y permisos](/docs/permissions/index). Para mantener la pertenencia a los equipos alineada con tu proveedor de identidad, usa [SCIM](/docs/identity/scim). Cada equipo al que alguien se une al iniciar sesión queda registrado en la página **Registros de auditoría** de ese equipo, como un cambio de la persona que inició sesión.

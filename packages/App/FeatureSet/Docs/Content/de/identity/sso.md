@@ -259,6 +259,12 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 6. Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
+### Auch beim Identitätsanbieter abmelden
+
+Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt.
+
+Ist sie eingeschaltet, geht der Browser zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet hat, und der Anbieter schickt ihn zur Anmeldeseite von OneUptime zurück. Registrieren Sie diese Seite bei Ihrem Anbieter: Der Dialog **OIDC-Konfiguration** zeigt sie als Weiterleitungs-URI nach der Abmeldung, die Anbieter Post-Logout-Redirect-URI nennen. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab. SAML-Anbieter melden niemanden beim Identitätsanbieter ab.
+
 ## Rollen und Teams für SSO-Benutzer
 
 OneUptime übernimmt keine Rollen oder Gruppen aus Ihrem Identitätsanbieter. Was jemand tun darf, ergibt sich aus den Teams, in denen die Person ist: Ein Anbieter fügt Neue seinen **Teams** hinzu, und Teams und ihre Berechtigungen verwalten Sie in OneUptime, wie es [Benutzer, Teams & Berechtigungen](/docs/permissions/index) beschreibt. Um die Teammitgliedschaft mit Ihrem Identitätsanbieter abzugleichen, verwenden Sie [SCIM](/docs/identity/scim). Jedes Team, dem jemand bei der Anmeldung beitritt, wird auf der Seite **Audit-Protokolle** dieses Teams als Änderung der Person erfasst, die sich angemeldet hat.
