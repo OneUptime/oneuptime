@@ -111,6 +111,10 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LeaveGuard from "Common/UI/Utils/LeaveGuard";
 import { CREATE_FORM_QUERY_STRING } from "Common/Types/CreateFormAddress";
 import Navigation from "Common/UI/Utils/Navigation";
+import {
+  DocsLinkSource,
+  recordDocsLinkOpened,
+} from "Common/UI/Utils/DocsLinkEvents";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, {
   Theme,
@@ -392,6 +396,11 @@ export function createDocsSearchProvider(data: {
             iconColor: "indigo",
             onSelect: () => {
               data.onNavigate();
+              // Which docs page Search sent the person to (#7207).
+              recordDocsLinkOpened({
+                href: hit.url,
+                source: DocsLinkSource.Search,
+              });
               Navigation.navigate(URL.fromString(hit.url), {
                 openInNewTab: true,
               });

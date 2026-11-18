@@ -10,8 +10,10 @@ import {
   getProductEventDefinition,
   getPropertyNameWords,
   isForbiddenPropertyName,
+  isSearchWordThatIdentifies,
   toProductEventProperties,
   toProductEventToken,
+  toSearchQueryWords,
 } from "../../../Types/Analytics/ProductEvent";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
@@ -85,7 +87,7 @@ describe("the product event catalog", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("the one property that carries typed words is the search's, Cloud-only and cut to 40 characters", () => {
+  test("the one property that carries typed words is a search's: Cloud-only, scrubbed of what identifies a person, and cut to 40 characters", () => {
     const wordsCarriers: Array<string> = [];
 
     for (const event of PRODUCT_EVENTS) {
@@ -93,13 +95,23 @@ describe("the product event catalog", () => {
         if (spec.name === "query") {
           wordsCarriers.push(event.name);
           expect(spec.isCloudOnly).toBe(true);
+          expect(spec.isSearchWords).toBe(true);
           expect(spec.maxLength).toBe(SEARCH_QUERY_MAX_LENGTH);
           expect(SEARCH_QUERY_MAX_LENGTH).toBeLessThanOrEqual(40);
+        }
+
+        // Only a search's words are scrubbed as words: nothing else is typed.
+        if (spec.isSearchWords) {
+          expect(spec.name).toBe("query");
         }
       }
     }
 
-    expect(wordsCarriers).toEqual([ProductEventName.SearchFoundNothing]);
+    // The Dashboard's Search and the docs' search box (#7207).
+    expect(wordsCarriers).toEqual([
+      ProductEventName.SearchFoundNothing,
+      ProductEventName.DocsSearchFoundNothing,
+    ]);
   });
 
   test("only the events no page sends yet are reserved, each for its issue", () => {
@@ -272,8 +284,11 @@ describe("toProductEventProperties", () => {
       isCloud: true,
     });
 
-    expect(onCloud["query"]).toBe(longQuery.slice(0, SEARCH_QUERY_MAX_LENGTH));
-    expect((onCloud["query"] as string).length).toBe(SEARCH_QUERY_MAX_LENGTH);
+    // Cut at a word, never in the middle of one (#7207).
+    expect(onCloud["query"]).toBe("how do I page the person on call by");
+    expect((onCloud["query"] as string).length).toBeLessThanOrEqual(
+      SEARCH_QUERY_MAX_LENGTH,
+    );
     expect(onCloud["query_length"]).toBe(longQuery.length);
     expect(onCloud["source"]).toBe("command_palette");
 
@@ -330,5 +345,128 @@ describe("toProductEventProperties", () => {
         isCloud: true,
       }),
     ).toEqual({});
+  });
+});
+
+/*
+ * THE WORDS OF A SEARCH CARRY NO PERSONAL DATA (#7207). On OneUptime Cloud
+ * a search that found nothing - the Dashboard's (search/no_results) or the
+ * docs' (docs/search_found_nothing) - carries what was typed: the best
+ * sign of what people cannot find. Every word that could name or reach a
+ * person, or name a record, is taken out first.
+ */
+describe("the words of a search, as an event carries them", () => {
+  test("an email address, a web or IP address, a host name, a phone number or an id is taken out", () => {
+    for (const word of [
+      "maya@acme-commerce.example",
+      "@maya",
+      "https://status.acme.example/incidents",
+      "www.acme.example",
+      "status.acme.example",
+      "maya.chen",
+      "10.0.0.4",
+      "2001:db8::1",
+      "+4915123456789",
+      "555-0100",
+      "INC-1042",
+      "2026-11-18",
+      "a1b2c3d4",
+      "9f8e7d6c-5b4a-4321-8fed-cba987654321",
+    ]) {
+      expect({ word, isTakenOut: isSearchWordThatIdentifies(word) }).toEqual({
+        word,
+        isTakenOut: true,
+      });
+    }
+  });
+
+  test("the words people search the docs and the product with stay, a product's short names with a digit too", () => {
+    for (const word of [
+      "escalation",
+      "on-call",
+      "SSO",
+      "sentinelone",
+      "k8s",
+      "ec2",
+      "ipv6",
+      "oauth2",
+      "Überwachung",
+      "مانیتور",
+      "監視",
+    ]) {
+      expect({ word, isTakenOut: isSearchWordThatIdentifies(word) }).toEqual({
+        word,
+        isTakenOut: false,
+      });
+    }
+  });
+
+  test("what is left keeps its order, and is cut at a word", () => {
+    expect(toSearchQueryWords("maya@acme.example sso 10.0.0.4 setup")).toBe(
+      "sso setup",
+    );
+    expect(toSearchQueryWords("  page   me  ")).toBe("page me");
+    expect(
+      toSearchQueryWords(
+        "terraform provider for status page subscribers and announcements",
+      ),
+    ).toBe("terraform provider for status page");
+    // One long word is cut where it must be.
+    expect(toSearchQueryWords("x".repeat(60))).toBe("x".repeat(40));
+    expect(toSearchQueryWords("maya@acme.example 555-0100")).toBe("");
+  });
+
+  test("a search with nothing left carries no words at all, only how long it was", () => {
+    for (const name of [
+      ProductEventName.SearchFoundNothing,
+      ProductEventName.DocsSearchFoundNothing,
+    ]) {
+      expect(
+        toProductEventProperties({
+          name: name,
+          properties: {
+            query_length: 26,
+            query: "maya@acme-commerce.example",
+          },
+          isCloud: true,
+        }),
+      ).toEqual({ query_length: 26 });
+    }
+  });
+
+  test("the docs' search words leave only from Cloud, as the Dashboard's do", () => {
+    const properties: JSONObject = {
+      query_length: 21,
+      query: "sentinelone 10.0.0.4",
+    };
+
+    expect(
+      toProductEventProperties({
+        name: ProductEventName.DocsSearchFoundNothing,
+        properties: properties,
+        isCloud: true,
+      }),
+    ).toEqual({ query_length: 21, query: "sentinelone" });
+    expect(
+      toProductEventProperties({
+        name: ProductEventName.DocsSearchFoundNothing,
+        properties: properties,
+        isCloud: false,
+      }),
+    ).toEqual({ query_length: 21 });
+  });
+
+  test("a docs page opened from the product carries the page as a token, and where from", () => {
+    expect(
+      toProductEventProperties({
+        name: ProductEventName.DocsLinkOpened,
+        properties: {
+          page: "on-call/escalation-rules",
+          source: "learn_more",
+          title: "Escalation Rules",
+        },
+        isCloud: true,
+      }),
+    ).toEqual({ page: "on-call/escalation-rules", source: "learn_more" });
   });
 });
