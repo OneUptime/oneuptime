@@ -91,6 +91,8 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import {
@@ -447,7 +449,18 @@ describe("A monitor test run whose response held NUL", () => {
     )[0]![0]!;
 
     expect(read.id.toString()).toBe(TEST_ID);
-    expect(read.select).toEqual({ monitorSteps: true });
+    /*
+     * Its steps, and what judging the answer by its criteria takes
+     * (#7074): the type, the project, the monitor it is of and the probe
+     * it was handed to.
+     */
+    expect(read.select).toEqual({
+      monitorSteps: true,
+      monitorType: true,
+      projectId: true,
+      monitorId: true,
+      probeId: true,
+    });
     expect(read.props).toEqual({ isRoot: true });
 
     const stored: JSONObject = (
@@ -473,5 +486,128 @@ describe("A monitor test run whose response held NUL", () => {
     );
     expect(stored["responseCode"]).toBe(200);
     expect(JSON.stringify(stored)).not.toContain("acme-prod-7781");
+  });
+
+  /*
+   * #7074: the result says which criteria the answer matched and what
+   * would follow. The answer is judged as the monitor's checks are, by its
+   * criteria as the test was written, and the evaluation is kept with the
+   * result - masked by the same rules, as a monitor's logs keep theirs.
+   */
+  type StepsWithCriteriaFunction = () => {
+    monitorSteps: MonitorSteps;
+    offlineCriteriaId: string;
+  };
+
+  const websiteStepsDownOn500: StepsWithCriteriaFunction = (): {
+    monitorSteps: MonitorSteps;
+    offlineCriteriaId: string;
+  } => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: "Acme API",
+      monitorType: MonitorType.Website,
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+    });
+    step.id = new ObjectID(STEP_ID);
+
+    const monitorSteps: MonitorSteps = new MonitorSteps();
+    monitorSteps.data = {
+      monitorStepsInstanceArray: [step],
+      defaultMonitorStatusId: undefined,
+    };
+
+    const offline: MonitorCriteriaInstance | undefined = (
+      step.data?.monitorCriteria.data?.monitorCriteriaInstanceArray || []
+    ).find((instance: MonitorCriteriaInstance) => {
+      return instance.data?.createIncidents === true;
+    });
+
+    return { monitorSteps, offlineCriteriaId: offline!.data!.id };
+  };
+
+  const handedTest: (
+    monitorSteps: MonitorSteps,
+    probeId: string,
+  ) => MonitorTest = (
+    monitorSteps: MonitorSteps,
+    probeId: string,
+  ): MonitorTest => {
+    return Object.assign(new MonitorTest(), {
+      _id: TEST_ID,
+      projectId: new ObjectID(PROJECT_ID),
+      monitorType: MonitorType.Website,
+      monitorSteps: monitorSteps,
+      probeId: new ObjectID(probeId),
+    });
+  };
+
+  const storedStep: () => JSONObject = (): JSONObject => {
+    return (
+      (
+        mergeStepProbeResponse.mock.calls as unknown as Array<
+          Array<{ monitorStepProbeResponse: MonitorStepProbeResponse }>
+        >
+      )[0]![0]!.monitorStepProbeResponse as unknown as JSONObject
+    )[STEP_ID] as JSONObject;
+  };
+
+  it("keeps how its criteria judged the answer, the criteria it matched among them", async () => {
+    const { monitorSteps, offlineCriteriaId } = websiteStepsDownOn500();
+
+    findTestById.mockImplementation(() => {
+      return Promise.resolve(handedTest(monitorSteps, PROBE_ID));
+    });
+
+    await processProbeFromQueue(
+      monitorTestJob({
+        ...probeResponse,
+        isOnline: false,
+        responseCode: 503,
+        responseBody: "upstream down, token=abc123",
+        failureCause: "Server returned 503",
+      } as unknown as ProbeMonitorResponse),
+    );
+
+    const evaluation: JSONObject = storedStep()[
+      "evaluationSummary"
+    ] as JSONObject;
+
+    expect(evaluation).toBeDefined();
+
+    const met: Array<JSONObject> = (
+      evaluation["criteriaResults"] as Array<JSONObject>
+    ).filter((result: JSONObject) => {
+      return result["met"] === true;
+    });
+
+    expect(
+      met.map((result: JSONObject) => {
+        return result["criteriaId"];
+      }),
+    ).toEqual([offlineCriteriaId]);
+    // Judged, never acted on: no check of the monitor's was evaluated.
+    expect(monitorResource).not.toHaveBeenCalled();
+    // The evaluation's own words are masked as the result's are.
+    expect(JSON.stringify(evaluation)).not.toContain("abc123");
+  });
+
+  it("a test handed to another probe is not judged, and is refused as before", async () => {
+    const { monitorSteps } = websiteStepsDownOn500();
+
+    findTestById.mockImplementation(() => {
+      return Promise.resolve(
+        handedTest(monitorSteps, "55555555-5555-4555-8555-555555555555"),
+      );
+    });
+    mergeStepProbeResponse.mockResolvedValue(false as never);
+
+    await expect(
+      processProbeFromQueue(monitorTestJob(probeResponse)),
+    ).rejects.toThrow();
+
+    expect(storedStep()["evaluationSummary"]).toBeUndefined();
   });
 });

@@ -7,6 +7,7 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
@@ -63,7 +64,8 @@ import {
  *      fill in;
  *   2. the newest window is the very count the monitor's check makes
  *      (monitorLogs, monitorTrace, monitorException - the worker's own
- *      functions) when it evaluates at the end of that window;
+ *      functions) when it evaluates now: the windows end at now, so a new
+ *      service's first logs, younger than one window, are counted (#7470);
  *   3. the read keeps to the reader's services, the project, and resolved
  *      or archived exceptions left out as the check leaves them out;
  *   4. the read is bounded - at most PREVIEW_WINDOW_COUNT windows, never
@@ -156,10 +158,19 @@ const MINUTE: number = 60 * SECOND;
 const HOUR: number = 60 * MINUTE;
 
 /*
- * Now, on a five-minute boundary, so the preview's newest five-minute window
- * ends exactly where a check made now starts counting back from.
+ * Now, on a whole second but on no window's boundary - 2 minutes 43 seconds
+ * before the next five minutes - as a person opens the form: the preview's
+ * newest window ends here, where a check made now counts back from, and not
+ * on the last multiple of its length (#7470).
  */
-const NOW: Date = new Date(Math.floor(Date.now() / (5 * MINUTE)) * 5 * MINUTE);
+const NOW: Date = new Date(
+  Math.floor(Date.now() / (5 * MINUTE)) * 5 * MINUTE - 2 * MINUTE - 43 * SECOND,
+);
+
+// A service that started sending a minute and a half ago (#7470).
+const NEW_SERVICE: ObjectID = new ObjectID(
+  "5b000000-0000-4000-8000-000000000003",
+);
 
 // Twelve hours of a busy project, then the same again for its neighbours.
 const LOG_ROWS: number = 150000;
@@ -394,8 +405,11 @@ function expectedCounts(data: {
       continue;
     }
 
+    // Windows back from now: counted from the range's start.
     const windowStart: number =
-      Math.floor(time.getTime() / windowMs) * windowMs;
+      range.startTime.getTime() +
+      Math.floor((time.getTime() - range.startTime.getTime()) / windowMs) *
+        windowMs;
     counts.set(windowStart, (counts.get(windowStart) || 0) + 1);
   }
 
@@ -712,7 +726,7 @@ integration("A telemetry rule's preview against ClickHouse", () => {
       );
     });
 
-    test("the newest window is the count the monitor's check makes at its end", async () => {
+    test("the newest window is the count the monitor's check makes now", async () => {
       const answer: TelemetryRulePreviewAnswer =
         await TelemetryRulePreviewService.previewLogs({
           projectId: PROJECT_ID,
@@ -793,6 +807,81 @@ integration("A telemetry rule's preview against ClickHouse", () => {
           },
         }),
       );
+    });
+
+    /*
+     * #7470: a service whose first error logs came a minute and a half ago.
+     * The newest window used to end on the last five minutes before now,
+     * so they were in none: "Nothing matched in this time." beside a
+     * Matching logs list that showed them. Now the newest window holds
+     * them, and counts what the monitor's check counts.
+     */
+    test("a new service's first logs, younger than one window, are in the newest window", async () => {
+      const firstLogsAt: Date = new Date(NOW.getTime() - 90 * SECOND);
+      const firstLogs: Array<JSONObject> = [];
+
+      for (let index: number = 0; index < 23; index++) {
+        const row: JSONObject = logRow(index * 25);
+        const time: Date = new Date(firstLogsAt.getTime() + index * 1000 + 337);
+
+        row["primaryEntityId"] = NEW_SERVICE.toString();
+        row["severityText"] = LogSeverity.Error;
+        row["severityNumber"] = 17;
+        row["time"] = OneUptimeDate.toClickhouseDateTime64(time);
+        row["timeUnixNano"] = String(time.getTime() * 1000000);
+        firstLogs.push(row);
+      }
+
+      await client.insert({
+        table: `${database}.${new Log().tableName}`,
+        values: firstLogs,
+        format: "JSONEachRow",
+      });
+
+      const firstMinutes: MonitorStepLogMonitor = logMonitor({
+        severityTexts: [LogSeverity.Error, LogSeverity.Fatal],
+        telemetryServiceIds: [NEW_SERVICE],
+        lastXSecondsOfLogs: 300,
+      });
+
+      const answer: TelemetryRulePreviewAnswer =
+        await TelemetryRulePreviewService.previewLogs({
+          projectId: PROJECT_ID,
+          logMonitor: firstMinutes,
+          scope: EVERYTHING,
+          now: NOW,
+        });
+
+      expect(answer.buckets).toHaveLength(1);
+      expect(OneUptimeDate.fromString(answer.buckets[0]!.time).getTime()).toBe(
+        NOW.getTime() - 300 * SECOND,
+      );
+      expect(answer.buckets[0]!.value).toBe(23);
+
+      const step: MonitorStep = new MonitorStep();
+      step.setLogMonitor(firstMinutes);
+
+      const check: { logCount: number } = (await monitorLogs({
+        monitorStep: step,
+        monitorId: ObjectID.generate(),
+        projectId: PROJECT_ID,
+        evaluateUntil: NOW,
+      })) as unknown as { logCount: number };
+
+      expect(check.logCount).toBe(23);
+
+      // The preview's verdict reads it: the rule for "more than 10" matches.
+      const points: Array<TelemetryRulePreviewPoint> =
+        TelemetryRulePreviewUtil.toPoints(answer);
+
+      expect(points[points.length - 1]!.value).toBe(23);
+      expect(
+        TelemetryRulePreviewUtil.summarize({
+          points,
+          filterType: FilterType.GreaterThan,
+          threshold: 10,
+        }).timesItWouldHaveFired,
+      ).toBe(1);
     });
 
     test("a reader of no service gets nothing, not the whole project", async () => {
@@ -889,11 +978,10 @@ integration("A telemetry rule's preview against ClickHouse", () => {
       const step: MonitorStep = new MonitorStep();
       step.setExceptionMonitor(monitor);
 
-      /*
-       * Half-hour windows end on the half hour before now: the check made
-       * at that moment counts the newest of them.
-       */
+      // Half-hour windows end at now: the check made now counts the newest.
       const newestEnd: Date = OneUptimeDate.fromString(answer.endTime);
+
+      expect(newestEnd.getTime()).toBe(NOW.getTime());
 
       const check: { exceptionCount: number } = (await monitorException({
         monitorStep: step,
@@ -986,7 +1074,8 @@ integration("A telemetry rule's preview against ClickHouse", () => {
 
       // One statement a read: the windows are counted in ClickHouse.
       expect(statements).toHaveLength(3);
-      expect(statements[0]).toContain("toStartOfInterval(");
+      // Windows counted from the range's start, so the newest ends at now.
+      expect(statements[0]).toContain("intDiv(toUnixTimestamp(");
       expect(statements[0]).toContain("count()");
       expect(statements[0]).toContain("GROUP BY windowStart");
       expect(statements[0]).toContain("max_execution_time = 45");

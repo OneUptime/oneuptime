@@ -62,7 +62,7 @@ Geben Sie unter **Zone (Domänenname)** die zu validierende Zone ein, etwa `exam
 
 ### Ihn testen
 
-Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was jede Prüfung gefunden hat.
+Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was jede Prüfung gefunden hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 

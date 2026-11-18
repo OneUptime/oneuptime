@@ -41,17 +41,17 @@ Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, 
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Port** under **Monitortype**.
 
-### Gi den et navn
-
-Angi et **Navn**, som `Orders database`, og klikk så på **Neste**.
-
 ### Angi verten og porten
 
 Angi under **Vertsnavn eller IP-adresse** verten porten ligger på, som `db.example.com` eller `10.0.0.12`. Angi portnummeret under **Port**, som `5432`.
 
+### Gi den et navn
+
+**Navn** fylles ut fra det du anga, som `db.example.com:5432`. Behold det, eller angi ditt eget, som `Orders database`, og klikk så på **Neste**.
+
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok.
+Klikk på **Test monitor**: testen starter på en sonde som sjekker monitoren. Velg en annen under **Velg sonde** om du vil, og klikk så på **Kjør test**. **Resultat av monitortest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok. Det sier også hvilket kriterium svaret oppfyller og hva som ville fulgt: statusen, hendelsen eller varselet, og hvem som får beskjed.
 
 ### Gå gjennom kriteriene
 

@@ -268,17 +268,19 @@ describe("Monitor create labels", () => {
     const steps: string = sourceBetween("steps={[", "]} onBeforeCreate=");
     const monitorInfoStep: string = squash(`
       {
-        title: "Monitor Info",
+        title: "What to Monitor",
         id: "monitor-info",
-      },
     `);
 
     /*
-     * Monitor Info comes first and has no showIf, so Manual, criteria-only
-     * and probeable monitor types all walk it; the steps after it are the
-     * conditional ones.
+     * What to Monitor (it was Monitor Info, #7463) comes first and has no
+     * showIf, so Manual, criteria-only and probeable monitor types all walk
+     * it; the steps after it are the conditional ones.
      */
     expect(steps.trim().startsWith(monitorInfoStep)).toBe(true);
+    expect(sourceBetween('title: "What to Monitor",', "{")).not.toContain(
+      "showIf",
+    );
     expect(steps).toContain(
       squash(`
         showIf: (values: FormValues<Monitor>) => {

@@ -217,6 +217,7 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
       <SummaryFacts>
         <SummaryFact
           isWide={true}
+          readsLeftToRight={true}
           title="URL"
           value={props.probeMonitorResponse.monitorDestination?.toString()}
         />

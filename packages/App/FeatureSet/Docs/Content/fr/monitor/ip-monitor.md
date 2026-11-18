@@ -49,17 +49,17 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 
 Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **IP** sous **Surveillance de base**.
 
-### Le nommer
-
-Saisissez un **Nom**, comme `Office gateway`, puis cliquez sur **Suivant**.
-
 ### Saisir l'adresse
 
 Dans **Adresse IP**, saisissez l'adresse IPv4 ou IPv6 à vérifier, comme `192.168.1.1` ou `2001:db8::1`. Un nom d'hôte n'est pas accepté : le champ affiche une erreur. Pour pinger un hôte par son nom, utilisez un [moniteur ping](/docs/monitor/ping-monitor).
 
+### Le nommer
+
+Le **Nom** se remplit à partir de ce que vous avez saisi, par exemple `192.168.1.1`. Gardez-le ou saisissez le vôtre, comme `Office gateway`, puis cliquez sur **Suivant**.
+
 ### Le tester
 
-Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre les temps aller-retour et la perte de paquets que la sonde a constatés.
+Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre les temps aller-retour et la perte de paquets que la sonde a constatés. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 
 ### Passer en revue les critères
 

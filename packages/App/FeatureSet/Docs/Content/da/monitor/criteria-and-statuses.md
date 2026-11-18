@@ -170,7 +170,7 @@ Klik på **Gem ændringer**. Den næste kontrol vurderes efter de nye kriterier.
 
 ### Test monitoren
 
-På en monitor, som sonder kontrollerer, klikker du på **Test monitor** på kortet, vælger en sonde under **Vælg sonde** og klikker på **Kør test**. **Monitortestresultat** viser, hvad kontrollen fandt.
+På en monitor, som sonder kontrollerer, klikker du på **Test monitor** på kortet: testen starter på en sonde, der kontrollerer monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, hvad kontrollen fandt. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 :::
 
 En manuel monitor har ingen kriterier: du sætter selv dens status. Se [Opdatering af status](/docs/monitor/manual-monitor#opdater-status).

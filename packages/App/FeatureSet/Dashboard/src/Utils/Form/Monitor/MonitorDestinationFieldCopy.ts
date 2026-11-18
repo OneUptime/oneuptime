@@ -11,6 +11,53 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * at all. Each now says what to type, with an example, in the same words.
  * The examples are placeholders, so they read the same in every language.
  */
+/*
+ * The types whose check is of one address - a URL, a host, an IP address -
+ * which Create Monitor asks with the type (#7463), and which the step's
+ * Monitor Target holds.
+ */
+export const MONITOR_TYPES_WITH_ADDRESS: ReadonlyArray<MonitorType> = [
+  MonitorType.Website,
+  MonitorType.API,
+  MonitorType.SSLCertificate,
+  MonitorType.Ping,
+  MonitorType.IP,
+  MonitorType.Port,
+  MonitorType.NTP,
+];
+
+export function hasMonitorAddress(
+  monitorType: MonitorType | undefined | null,
+): boolean {
+  return Boolean(
+    monitorType && MONITOR_TYPES_WITH_ADDRESS.includes(monitorType),
+  );
+}
+
+// A URL whose path is its root alone: the slash a URL's root path adds.
+const URL_WITH_ROOT_PATH_ONLY: RegExp = /^([a-z][a-z0-9+.-]*:\/\/[^/?#]+)\/$/i;
+
+/*
+ * The address a monitor checks, as its Criteria step's Monitor Target says
+ * it ("Checks {{address}}.", #7463): a bare host's URL without the slash
+ * its root path adds - "https://example.com", as it was typed, not
+ * "https://example.com/." - and a Port monitor's host with its port.
+ */
+export function getMonitorTargetAddress(data: {
+  monitorType: MonitorType;
+  destination: string;
+  port?: string | undefined;
+}): string {
+  const address: string = data.destination.replace(
+    URL_WITH_ROOT_PATH_ONLY,
+    "$1",
+  );
+
+  return data.monitorType === MonitorType.Port && data.port
+    ? `${address}:${data.port}`
+    : address;
+}
+
 export interface MonitorDestinationFieldCopy {
   title: string;
   description: string;

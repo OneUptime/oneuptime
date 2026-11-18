@@ -46,17 +46,17 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 
 Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, scegliete **Sito web**.
 
-### Dargli un nome
-
-Inserite un **Nome**, come `Marketing site`, poi fate clic su **Avanti**.
-
 ### Inserire l'URL
 
-In **URL sito web**, inserite l'indirizzo completo della pagina, compreso `https://`, come `https://example.com`. Per cambiare reindirizzamenti, certificati, timeout o nuovi tentativi, aprite **Altri campi** sotto di esso (vedete [Opzioni di configurazione](#opzioni-di-configurazione)).
+In **URL sito web**, inserite l'indirizzo completo della pagina, compreso `https://`, come `https://example.com`.
+
+### Dargli un nome
+
+Il **Nome** si compila con ciò che avete inserito, ad esempio `example.com`. Tenetelo o inseritene uno vostro, come `Marketing site`, poi fate clic su **Avanti**.
 
 ### Testarlo
 
-Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha ricevuto la sonda.
+Per cambiare reindirizzamenti, certificati, timeout o nuovi tentativi, aprite **Altri campi** in **Destinazione del monitor** (vedete [Opzioni di configurazione](#opzioni-di-configurazione)). Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha ricevuto la sonda. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 
@@ -99,7 +99,7 @@ Usate `{{random}}` allo stesso modo: `https://example.com/health?nocache={{rando
 
 ### Altri campi
 
-Queste impostazioni sono ripiegate sotto **Altri campi**, sotto l'URL. L'intestazione ripiegata le elenca e mostra quali avete cambiato.
+Queste impostazioni sono ripiegate sotto **Altri campi**, in **Destinazione del monitor**. L'intestazione ripiegata le elenca e mostra quali avete cambiato.
 
 | Campo | Predefinito | Cosa fa |
 | --- | --- | --- |

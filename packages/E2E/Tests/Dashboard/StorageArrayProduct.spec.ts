@@ -193,7 +193,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
     await selectMonitorTypeCard({ page, cardValue: "Storage Array" });
 
     /*
-     * Monitor Info is not the last step: its one way on is a plain Next
+     * What to Monitor is not the last step: its one way on is a plain Next
      * (Create Monitor is on the last step only), which opens the criteria.
      */
     await clickNext({ page });

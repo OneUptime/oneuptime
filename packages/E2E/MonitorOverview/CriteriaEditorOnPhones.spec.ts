@@ -146,7 +146,10 @@ async function openCriteria(page: Page, query: string = ""): Promise<Locator> {
   await expect(form).toBeVisible({ timeout: 60000 });
 
   await page.getByTestId("card-select-option-Website").click();
-  await form.locator("input").first().fill("Storefront");
+  // Where it is, asked with the type (#7463): the name follows it.
+  await form
+    .getByTestId("monitor-address-input")
+    .fill("https://storefront.acme-commerce.example");
   await form.getByTestId("form-next-button").click();
 
   const box: Locator = page.getByTestId("monitor-criteria-box").first();

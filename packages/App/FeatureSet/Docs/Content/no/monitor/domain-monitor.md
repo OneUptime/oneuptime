@@ -60,7 +60,7 @@ Angi **Domenenavn**, som `example.com`. La **Oppslagsmetode** stå på **Auto** 
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser registreringsposten sonden leste, og om RDAP eller WHOIS svarte.
+Klikk på **Test monitor**: testen starter på en sonde som sjekker monitoren. Velg en annen under **Velg sonde** om du vil, og klikk så på **Kjør test**. **Resultat av monitortest** viser registreringsposten sonden leste, og om RDAP eller WHOIS svarte. Det sier også hvilket kriterium svaret oppfyller og hva som ville fulgt: statusen, hendelsen eller varselet, og hvem som får beskjed.
 
 ### Gå gjennom kriteriene
 

@@ -7,14 +7,14 @@ För en webbplats eller ett API leder en guidad installation dig i stället frå
 > [!NOTE]
 > För att skapa en monitor behöver du rollen Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 
-## Övervakningsinformation
+## Vad som ska övervakas
 
-Det första steget frågar vad som ska övervakas och vad monitorn ska heta.
+Det första steget frågar vad som ska övervakas, var det finns och vad monitorn ska heta.
 
 :::steps
 ### Öppna Skapa monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Formuläret öppnas på sitt första steg, **Övervakningsinformation**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Formuläret öppnas på sitt första steg, **Vad som ska övervakas**.
 
 ### Välj monitortyp
 
@@ -26,9 +26,13 @@ Den första frågan är **Monitortyp**: vad vill du övervaka?
 
 Den valda typen krymper till en rad. Klicka på **Ändra** för att välja en annan; tryck på **Escape** medan du väljer för att behålla den typ du hade.
 
+### Ange var det finns
+
+En typ vars kontroll gäller en adress frågar efter den direkt efter typen: **Webbplats-URL** för en webbplats eller ett SSL-certifikat, **API-URL** för ett API, värden eller IP-adressen att pinga, en värd och dess **Port**, eller en NTP-server. Rutan visar ett exempel. Under adressen till en webbplats eller ett API visar **Kringgå cacheminnen vid varje kontroll** hur du lägger in ett värde som ändras vid varje kontroll. Andra typer frågar i nästa steg var det ska letas, som domänen för en DNS-monitor eller anslutningen till en databas.
+
 ### Namnge monitorn
 
-Fyll i **Namn**. Det används i larm och i incidenternas rubriker. **Beskrivning** och **Etiketter** är valfria och väntar under **Fler fält**.
+Fyll i **Namn**. Efter en adress fylls det i av sig självt, till exempel med `example.com`, tills du skriver ett eget. Det används i larm och i incidenternas rubriker. **Beskrivning** och **Etiketter** är valfria och väntar under **Fler fält**.
 
 En **Manuell**-monitor behöver inget mer, så **Skapa monitor** finns på det här steget. För alla andra typer klickar du på **Nästa**.
 :::
@@ -40,9 +44,9 @@ Det andra steget frågar vad som ska kontrolleras och avgör vad som räknas som
 :::steps
 ### Ange vad som ska kontrolleras
 
-Det här steget öppnas på det som ska kontrolleras. För en webbplats är det dess URL, med ett exempel i rutan; andra typer frågar efter en värd, en fråga, ett kluster eller ett loggfilter. Inställningar som de flesta monitorer aldrig ändrar, som tidsgränser och återförsök, är hopfällda under **Fler fält**.
+Det här steget öppnas på resten av det som kontrollen läser. En monitor för en adress visar den under **Monitor-mål**, med det den mer behöver, som ett API:s förfrågningsmetod; andra typer frågar här efter en domän, en fråga, ett kluster eller ett loggfilter. Inställningar som de flesta monitorer aldrig ändrar, som tidsgränser och återförsök, är hopfällda under **Fler fält**.
 
-För en monitor som sonder kontrollerar kör **Testa monitor** kontrollen en gång innan du sparar: välj en sond under **Välj sond** och klicka på **Kör test**. Svaret öppnas i **Resultat av övervakningstest**.
+För en monitor som sonder kontrollerar kör **Testa monitor** kontrollen en gång innan du sparar, på en sond som kontrollerar monitorn: klicka på **Kör test**, eller välj först en annan sond under **Välj sond**. **Resultat av övervakningstest** säger vilket kriterium svaret uppfyller och vad som skulle följa (statusen, incidenten eller larmet och vem som får besked), och visar sedan vad sonden hittade.
 
 ### Gå igenom kriterierna
 

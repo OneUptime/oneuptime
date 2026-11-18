@@ -1249,6 +1249,10 @@ test.describe("When this goes down on Create Monitor", () => {
     });
 
     await page.getByText("Website", { exact: true }).first().click();
+    // Where it is, asked with the type (#7463), then the name.
+    await page
+      .getByTestId("monitor-address-input")
+      .fill("https://storefront.acme-commerce.example");
     await page.getByPlaceholder("Monitor Name").fill("Storefront checkout");
     await page.getByRole("button", { name: "Next" }).click();
 

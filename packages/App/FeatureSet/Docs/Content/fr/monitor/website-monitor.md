@@ -46,17 +46,17 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 
 Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, choisissez **Site web**.
 
-### Le nommer
-
-Saisissez un **Nom**, comme `Marketing site`, puis cliquez sur **Suivant**.
-
 ### Saisir l'URL
 
-Dans **URL du site web**, saisissez l'adresse complète de la page, y compris `https://`, comme `https://example.com`. Pour changer les redirections, les certificats, le délai d'expiration ou les nouvelles tentatives, ouvrez **Plus de champs** en dessous (voir [Options de configuration](#options-de-configuration)).
+Dans **URL du site web**, saisissez l'adresse complète de la page, y compris `https://`, comme `https://example.com`.
+
+### Le nommer
+
+Le **Nom** se remplit à partir de ce que vous avez saisi, par exemple `example.com`. Gardez-le ou saisissez le vôtre, comme `Marketing site`, puis cliquez sur **Suivant**.
 
 ### Le tester
 
-Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que la sonde a reçu.
+Pour changer les redirections, les certificats, le délai d'expiration ou les nouvelles tentatives, ouvrez **Plus de champs** sous **Cible du moniteur** (voir [Options de configuration](#options-de-configuration)). Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que la sonde a reçu. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 
 ### Passer en revue les critères
 
@@ -99,7 +99,7 @@ Utilisez `{{random}}` de la même façon : `https://example.com/health?nocache={
 
 ### Plus de champs
 
-Ces réglages sont repliés sous **Plus de champs**, sous l'URL. L'en-tête replié les nomme et montre ceux que vous avez changés.
+Ces réglages sont repliés sous **Plus de champs**, dans **Cible du moniteur**. L'en-tête replié les nomme et montre ceux que vous avez changés.
 
 | Champ | Par défaut | Ce qu'il fait |
 | --- | --- | --- |

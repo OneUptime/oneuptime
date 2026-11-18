@@ -22,7 +22,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * query (the one its check runs), with the preview's range in place of the
  * check's window, narrowed to what the reader may read, and counted per
  * window in one ClickHouse read that stops at the interactive time limit.
- * The statements are captured here instead of run.
+ * The windows are counted from the range's start, so the newest ends at
+ * now - the count the monitor's next check makes - and a service's first
+ * logs, younger than one window, are counted (#7470). The statements are
+ * captured here instead of run.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -33,6 +36,11 @@ const SERVICE_B: string = "0b000000-0000-4000-8000-0000000000b1";
 const NOW: Date = new Date("2026-10-27T12:07:31.000Z");
 
 const PROJECT_WIDE: TelemetryReadScope = { readableIds: null, blockedIds: [] };
+
+// A window's start as ClickHouse answers it: whole seconds since the epoch.
+function epochSeconds(iso: string): string {
+  return String(new Date(iso).getTime() / 1000);
+}
 const ONLY_SERVICE_A: TelemetryReadScope = {
   readableIds: [SERVICE_A],
   blockedIds: [],
@@ -99,8 +107,11 @@ afterEach(() => {
 describe("A Logs rule's preview", () => {
   test("counts the monitor's logs per window of its length, over the preview's range", async () => {
     const captured: Array<Statement> = captureStatements(LogService as never, [
-      { windowStart: "2026-10-27 11:55:00", windowCount: "17" },
-      { windowStart: "2026-10-27 12:00:00", windowCount: 4 },
+      {
+        windowStart: epochSeconds("2026-10-27T11:57:31.000Z"),
+        windowCount: "17",
+      },
+      { windowStart: epochSeconds("2026-10-27T12:02:31.000Z"), windowCount: 4 },
     ]);
 
     const answer: TelemetryRulePreviewAnswer =
@@ -118,17 +129,23 @@ describe("A Logs rule's preview", () => {
       });
 
     expect(answer.windowInSeconds).toBe(300);
-    expect(answer.startTime).toBe("2026-10-27T00:05:00.000Z");
-    expect(answer.endTime).toBe("2026-10-27T12:05:00.000Z");
+    // Twelve hours of five-minute windows, the newest ending at now.
+    expect(answer.startTime).toBe("2026-10-27T00:07:31.000Z");
+    expect(answer.endTime).toBe("2026-10-27T12:07:31.000Z");
     expect(answer.buckets).toEqual([
-      { time: "2026-10-27T11:55:00.000Z", value: 17 },
-      { time: "2026-10-27T12:00:00.000Z", value: 4 },
+      { time: "2026-10-27T11:57:31.000Z", value: 17 },
+      { time: "2026-10-27T12:02:31.000Z", value: 4 },
     ]);
 
     expect(captured).toHaveLength(1);
     const sql: string = inline(captured[0]!);
 
-    expect(sql).toContain("toStartOfInterval(`time`, INTERVAL 300 SECOND)");
+    // Each window counted from the range's start, in whole seconds.
+    const startSeconds: string = epochSeconds("2026-10-27T00:07:31.000Z");
+    expect(sql).toContain(
+      `intDiv(toUnixTimestamp(\`time\`) - ${startSeconds}, 300) * 300 + ${startSeconds} AS windowStart`,
+    );
+    expect(sql).not.toContain("toStartOfInterval");
     expect(sql).toContain("count() AS windowCount");
     expect(sql).toContain("GROUP BY windowStart ORDER BY windowStart ASC");
     expect(sql).toContain(PROJECT_ID.toString());
@@ -183,7 +200,7 @@ describe("A Logs rule's preview", () => {
 describe("A Traces rule's preview", () => {
   test("counts spans by when they started, with the monitor's name and status filters", async () => {
     const captured: Array<Statement> = captureStatements(SpanService as never, [
-      { windowStart: "2026-10-27 12:06:00", windowCount: 9 },
+      { windowStart: epochSeconds("2026-10-27T12:06:31.000Z"), windowCount: 9 },
     ]);
 
     const answer: TelemetryRulePreviewAnswer =
@@ -200,10 +217,14 @@ describe("A Traces rule's preview", () => {
       });
 
     expect(answer.windowInSeconds).toBe(60);
-    expect(answer.endTime).toBe("2026-10-27T12:07:00.000Z");
+    expect(answer.endTime).toBe("2026-10-27T12:07:31.000Z");
+    expect(answer.buckets).toEqual([
+      { time: "2026-10-27T12:06:31.000Z", value: 9 },
+    ]);
 
     const sql: string = inline(captured[0]!);
-    expect(sql).toContain("toStartOfInterval(`startTime`, INTERVAL 60 SECOND)");
+    expect(sql).toContain("intDiv(toUnixTimestamp(`startTime`) - ");
+    expect(sql).toContain(", 60) * 60 + ");
     expect(sql).toContain("POST /api/checkout");
     expect(sql).toContain("timeout_overflow_mode = 'throw'");
   });
@@ -242,7 +263,8 @@ describe("An Exceptions rule's preview", () => {
     );
 
     const sql: string = inline(captured[0]!);
-    expect(sql).toContain("toStartOfInterval(`time`, INTERVAL 300 SECOND)");
+    expect(sql).toContain("intDiv(toUnixTimestamp(`time`) - ");
+    expect(sql).toContain(", 300) * 300 + ");
     expect(sql).toContain("fingerprint-resolved-1");
     expect(sql).toContain("fingerprint-archived-2");
     expect(sql).toContain("TypeError");
@@ -273,6 +295,75 @@ describe("An Exceptions rule's preview", () => {
 });
 
 describe("Counting per window", () => {
+  test("without a start, the windows start on a multiple of their length, as they always did", async () => {
+    const captured: Array<Statement> = captureStatements(LogService as never, [
+      { windowStart: "2026-10-27 12:00:00", windowCount: "5" },
+    ]);
+
+    const windows: Array<{ time: Date; count: number }> =
+      await LogService.countPerWindow({
+        query: { projectId: PROJECT_ID },
+        timeColumnName: "time",
+        windowInSeconds: 300,
+        props: { isRoot: true },
+      });
+
+    expect(
+      windows.map((window: { time: Date; count: number }) => {
+        return [window.time.toISOString(), window.count];
+      }),
+    ).toEqual([["2026-10-27T12:00:00.000Z", 5]]);
+    expect(inline(captured[0]!)).toContain(
+      "toStartOfInterval(`time`, INTERVAL 300 SECOND) AS windowStart",
+    );
+  });
+
+  test("from a start, every window is counted from it and read back on its second", async () => {
+    const captured: Array<Statement> = captureStatements(LogService as never, [
+      { windowStart: "1793060251", windowCount: "23" },
+    ]);
+
+    const windows: Array<{ time: Date; count: number }> =
+      await LogService.countPerWindow({
+        query: { projectId: PROJECT_ID },
+        timeColumnName: "time",
+        windowInSeconds: 300,
+        windowsStartAt: new Date("2026-10-27T00:07:31.000Z"),
+        props: { isRoot: true },
+      });
+
+    expect(
+      windows.map((window: { time: Date; count: number }) => {
+        return [window.time.toISOString(), window.count];
+      }),
+    ).toEqual([["2026-10-27T00:17:31.000Z", 23]]);
+
+    const sql: string = inline(captured[0]!);
+    expect(sql).toContain(
+      "intDiv(toUnixTimestamp(`time`) - 1793059651, 300) * 300 + 1793059651 AS windowStart",
+    );
+    expect(sql).toContain("GROUP BY windowStart ORDER BY windowStart ASC");
+  });
+
+  test("refuses a start that is not on a whole second", async () => {
+    captureStatements(LogService as never, []);
+
+    for (const windowsStartAt of [
+      new Date("2026-10-27T00:07:31.250Z"),
+      new Date(Number.NaN),
+    ]) {
+      await expect(
+        LogService.countPerWindow({
+          query: { projectId: PROJECT_ID },
+          timeColumnName: "time",
+          windowInSeconds: 60,
+          windowsStartAt,
+          props: { isRoot: true },
+        }),
+      ).rejects.toBeInstanceOf(BadDataException);
+    }
+  });
+
   test("refuses a column the model does not have, and a window that is not whole seconds", async () => {
     captureStatements(LogService as never, []);
 

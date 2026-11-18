@@ -6,6 +6,9 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import URL from "Common/Types/API/URL";
+import Hostname from "Common/Types/API/Hostname";
+import IP from "Common/Types/IP/IP";
+import Port from "Common/Types/Port";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
@@ -69,15 +72,17 @@ import {
 } from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 
 /*
- * What a link fills in on a new monitor's step, besides the criteria the
- * form seeds for its type: where it checks, and whether it takes a
- * self-signed certificate - a network device's web UI ("Monitor web UI",
- * DeviceWebUiUtil). Only for the type it was made for: pick another type
- * and the step starts as that type's usually does.
+ * What a new monitor's step starts with, besides the criteria the form
+ * seeds for its type: where it checks - the address Create Monitor asks
+ * with the type (#7463), with a Port monitor's port, or a link's - and
+ * whether it takes a self-signed certificate, as a network device's web UI
+ * does ("Monitor web UI", DeviceWebUiUtil). Only for the type it was made
+ * for: pick another type and the step starts as that type's usually does.
  */
 export interface MonitorStepSeed {
   monitorType: MonitorType;
-  monitorDestination: URL;
+  monitorDestination: URL | IP | Hostname;
+  monitorDestinationPort?: Port | undefined;
   allowSelfSignedCertificates?: boolean | undefined;
 }
 
@@ -105,11 +110,23 @@ export interface ComponentProps extends CustomElementProps {
   /*
    * The form creates a monitor (Create Monitor, not from a template): its
    * steps may have been handed in - the form's own, after a walk back to
-   * Monitor Info, or a link's - but criteria nobody has worked on yet are
+   * What to Monitor, or a link's - but criteria nobody has worked on yet are
    * set up afresh for the monitor type, a telemetry monitor's on its
    * recipe, and a telemetry monitor's recipes are offered.
    */
   isCreating?: boolean | undefined;
+  /*
+   * For Test Monitor (MonitorTest): the probes that check this monitor,
+   * the likeliest first - the form's picks, or the monitor's own - and
+   * the labels a monitor not created yet has.
+   */
+  testProbeIds?: Array<string> | undefined;
+  monitorLabels?: Array<unknown> | undefined;
+  /*
+   * The address was asked with the type, on the form's first step
+   * (Create Monitor, #7463): the step says what it checks instead.
+   */
+  isAddressAskedFirst?: boolean | undefined;
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
@@ -272,6 +289,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
     if (stepSeed && seededFirstStep) {
       seededFirstStep.setMonitorDestination(stepSeed.monitorDestination);
+
+      if (stepSeed.monitorDestinationPort) {
+        seededFirstStep.setPort(stepSeed.monitorDestinationPort);
+      }
 
       if (stepSeed.allowSelfSignedCertificates !== undefined) {
         seededFirstStep.setAllowSelfSignedCertificates(
@@ -765,7 +786,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     /*
      * A new monitor's criteria nobody has worked on yet start afresh for
      * the type on screen: a recipe's rule, untouched (seeded here, or
-     * before a walk back to Monitor Info remounted this form), whatever the
+     * before a walk back to What to Monitor remounted this form), whatever the
      * type now is; and, for a telemetry monitor, the empty criteria a link
      * hands in with only a query, or another type's out-of-the-box
      * criteria. The repair below would keep such a rule's filters, half
@@ -1005,6 +1026,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               }}
               offerRecipes={isNewMonitor}
               showErrors={Boolean(error)}
+              testProbeIds={props.testProbeIds}
+              monitorLabels={props.monitorLabels}
+              isAddressAskedFirst={props.isAddressAskedFirst}
               /*
                * onDelete={() => {
                *     // remove the criteria filter

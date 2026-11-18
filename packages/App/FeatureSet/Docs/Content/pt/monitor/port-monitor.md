@@ -41,17 +41,17 @@ Quando uma verificação falha, a sonda também rastreia a rota até o host e pr
 
 Acesse **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, escolha **Porta**.
 
-### Dar um nome a ele
-
-Informe um **Nome**, como `Orders database`, e clique em **Próximo**.
-
 ### Informar o host e a porta
 
 Em **Nome do host ou endereço IP**, informe o host em que a porta está, como `db.example.com` ou `10.0.0.12`. Em **Porta**, informe o número da porta, como `5432`.
 
+### Dar um nome a ele
+
+O **Nome** é preenchido com o que você informou, como `db.example.com:5432`. Mantenha-o ou informe um seu, como `Orders database`, e clique em **Próximo**.
+
 ### Testá-lo
 
-Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. **Resultado do Teste do Monitor** mostra se a conexão abriu e quanto tempo cada parte levou.
+Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra se a conexão abriu e quanto tempo cada parte levou. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 

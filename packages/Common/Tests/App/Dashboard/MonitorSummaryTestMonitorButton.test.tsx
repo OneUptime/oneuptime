@@ -699,3 +699,48 @@ describe("the summary card's header and empty states", () => {
     );
   });
 });
+
+/*
+ * #7985: Test Monitor opened on an empty Select Probe. From the summary it
+ * starts on the probe whose check the card is showing - the one picked
+ * above it - and with none picked, on the first probe switched on.
+ */
+describe("the probe Test Monitor starts on", () => {
+  function dialog(): HTMLElement {
+    return screen.getByRole("dialog");
+  }
+
+  test("the probe the card shows, once another is picked above it", () => {
+    renderCard({ probes: TWO_PROBES, monitorSteps: stepsWith(1) });
+
+    pickProbe("London Probe");
+    fireEvent.click(screen.getByTestId("test-monitor-button"));
+
+    expect(within(dialog()).getByText("London Probe")).toBeInTheDocument();
+    expect(within(dialog()).queryByText("Ohio Probe")).not.toBeInTheDocument();
+  });
+
+  test("with the first probe switched off, it starts on the one the card shows, which is on", () => {
+    renderCard({
+      probes: TWO_PROBES,
+      disabledProbeIds: [PROBE_ID],
+      monitorSteps: stepsWith(1),
+    });
+
+    fireEvent.click(screen.getByTestId("test-monitor-button"));
+
+    expect(within(dialog()).getByText("London Probe")).toBeInTheDocument();
+    expect(within(dialog()).queryByText("Ohio Probe")).not.toBeInTheDocument();
+  });
+
+  test("one probe attached: no picker, the dialog names it", () => {
+    renderCard({ monitorSteps: stepsWith(1) });
+
+    fireEvent.click(screen.getByTestId("test-monitor-button"));
+
+    expect(within(dialog()).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(
+      within(dialog()).getByTestId("test-monitor-only-probe"),
+    ).toHaveTextContent("The check runs from Ohio Probe.");
+  });
+});

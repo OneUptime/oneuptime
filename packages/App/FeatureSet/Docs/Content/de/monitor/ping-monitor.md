@@ -42,17 +42,17 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Wählen Sie unter **Monitortyp** den Typ **Ping**.
 
-### Ihn benennen
-
-Geben Sie einen **Name** ein, etwa `Core router`, und klicken Sie dann auf **Weiter**.
-
 ### Den Host eingeben
 
 Geben Sie unter **Hostname oder IP-Adresse** den Hostnamen oder die IPv4- oder IPv6-Adresse ein, die angepingt werden soll, etwa `example.com` oder `192.168.1.1`. Geben Sie nur den Host ein, ohne `http://` und ohne Port.
 
+### Ihn benennen
+
+Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `example.com`. Behalten Sie ihn oder geben Sie einen eigenen ein, etwa `Core router`, und klicken Sie dann auf **Weiter**.
+
 ### Ihn testen
 
-Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt die Umlaufzeiten und den Paketverlust, die die Sonde gesehen hat.
+Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt die Umlaufzeiten und den Paketverlust, die die Sonde gesehen hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 

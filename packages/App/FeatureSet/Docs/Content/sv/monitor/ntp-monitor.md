@@ -43,17 +43,17 @@ En server som svarar tillfrågas inte igen, inte ens när den svarar utan tillf�
 
 Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** skriver du `ntp` i sökrutan och väljer **NTP**. Den finns också under **Fler monitortyper**, i gruppen Nätverk.
 
-### Ge den ett namn
-
-Ange ett **Namn**, till exempel `GPS-tidsserver`, och klicka på **Nästa**.
-
 ### Ange servern
 
-I **NTP-server** anger du serverns värdnamn eller IP-adress, till exempel `time.example.com` eller `192.168.1.10`. Begäran går till port 123. Öppna **Fler fält** och ange **Port** för att använda en annan port.
+I **NTP-server** anger du serverns värdnamn eller IP-adress, till exempel `time.example.com` eller `192.168.1.10`. Begäran går till port 123.
+
+### Ge den ett namn
+
+**Namn** fylls i utifrån det du angav, som `time.example.com`. Behåll det eller ange ett eget, som `GPS-tidsserver`, och klicka sedan på **Nästa**.
 
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar om servern svarade, om den är synkroniserad, dess stratum och hur mycket dess klocka avviker.
+Öppna **Fler fält** under **Monitor-mål** och ange **Port** för att använda en annan port. Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar om servern svarade, om den är synkroniserad, dess stratum och hur mycket dess klocka avviker. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 

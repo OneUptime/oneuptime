@@ -821,8 +821,12 @@ describe("Create Monitor", () => {
   });
 
   test("the form starts with the default interval and drops it for types without one", () => {
+    /*
+     * The values also carry the address the steps or a link hold, for the
+     * address Create Monitor asks with the type (#7463).
+     */
     expect(code).toMatch(
-      /initialValues=\{\s*withDefaultMonitoringInterval\(\s*seededProbes\s*\?\s*\{ \.\.\.initialValues, probes: seededProbes \}\s*:\s*initialValues,?\s*\)\s*\}/,
+      /initialValues=\{(?:\s*\/\*[\s\S]*?\*\/)?\s*withDefaultMonitoringInterval\((?:\s*\/\*[\s\S]*?\*\/)?\s*withMonitorAddressValues\(\{\s*values: seededProbes\s*\?\s*\{ \.\.\.initialValues, probes: seededProbes \}\s*:\s*initialValues,\s*linkSeed: seedStep,?\s*\}\),?\s*\)\s*\}/,
     );
     expect(code).toMatch(
       /shouldDropDefaultMonitoringInterval\(\{\s*monitorType: item\.monitorType,\s*isIntervalPrefilled: Object\.prototype\.hasOwnProperty\.call\(\s*initialValues,\s*"monitoringInterval",?\s*\),?\s*\}\)/,
