@@ -85,6 +85,10 @@ Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel
 | **Noch kann Sie nichts erreichen** | Keine Ihrer Methoden kann genutzt werden: Keine ist verifiziert, oder jede verifizierte liegt auf einem Kanal, den dieses Projekt ausgeschaltet hat |
 | **Sie sind eingerichtet und haben gerade keine Bereitschaft** | Alles ist bereit für den Tag, an dem eine Richtlinie Sie nennt |
 
+Solange ein Schritt offen ist, öffnen sich die **Benutzereinstellungen** auf dieser Checkliste, und auf **Benachrichtigungsmethoden**, sobald nichts Wesentliches mehr offen ist. Ein Link zu einer anderen Seite der **Benutzereinstellungen** öffnet weiterhin diese Seite.
+
+Wenn Sie in einer Bereitschaftsrichtlinie stehen und Ihre Einrichtung nicht fertig ist, zeigt die Glocke oben auf jeder Seite **Richten Sie Ihre Benachrichtigungen fertig ein**, und warum: Nichts kann Sie erreichen, ein Schweregrad hat keine Regel, oder Ihr Projekt verlangt eine Telefonmethode, die Sie nicht verifiziert haben. Sie öffnet diese Checkliste, oder **Wie ich erreichbar bin** für das Telefon. **Eine Woche ausblenden** blendet sie in diesem Browser aus, und sie verschwindet von selbst, sobald Ihre Einrichtung fertig ist.
+
 ## Wenn keine Regel passt
 
 Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie keine Regel haben, etwa für einen Schweregrad, der nach Ihrem Beitritt hinzugekommen ist. OneUptime alarmiert Sie trotzdem, über das, was Sie verifiziert haben:

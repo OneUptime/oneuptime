@@ -72,7 +72,7 @@ Dat is het hele formulier. De lijst **Statuspagina's** toont **Naam**, **Beschri
 
 ### De nieuwe pagina openen
 
-De nieuwe pagina opent op haar scherm **Overzicht**. Zolang de pagina geen resource heeft, begint het scherm met **Nog niets op deze statuspagina** en **Monitoren toevoegen**, dat haar scherm **Middelen** opent. Daarna volgen twee kaarten: **Link naar de statuspagina**, met de link naar de pagina zelf en **Link kopiëren**, en **Statuspaginadetails**, waar u de naam, de beschrijving en de labels die u net hebt ingesteld kunt bewerken. Als het project aangepaste velden voor statuspagina's heeft, volgt er een kaart **Aangepaste velden**.
+De nieuwe pagina opent op haar scherm **Overzicht**. Zolang de pagina geen resource heeft, begint het scherm met **Nog niets op deze statuspagina** en **Monitoren toevoegen**, dat daar meteen een dialoogvenster opent om de monitoren te kiezen die bezoekers zien. Daarna volgen twee kaarten: **Link naar de statuspagina**, met de link naar de pagina zelf en **Link kopiëren**, en **Statuspaginadetails**, waar u de naam, de beschrijving en de labels die u net hebt ingesteld kunt bewerken. Als het project aangepaste velden voor statuspagina's heeft, volgt er een kaart **Aangepaste velden**.
 :::
 
 Wilt u liever stap voor stap begeleid worden, van de monitoren die de pagina toont tot wat uw klanten zien, klik dan op **Begeleide installatie**: in de lege lijst **Statuspagina's** of onder **Hoe het werkt**. Zie [Een statuspagina publiceren](/docs/guides/status-page).

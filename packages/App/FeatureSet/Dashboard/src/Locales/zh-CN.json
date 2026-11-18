@@ -56815,5 +56815,21 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "在没有事件的情况下呼叫 {{policy}} 一次，确认该策略能通知到人。每条消息都会注明“测试”。",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "选择一个导入的策略，在没有事件的情况下呼叫一次，确认它能通知到人。每条消息都会注明“测试”。",
   "Some severities have no notification rule yet.": "部分严重程度还没有通知规则。",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此项目已在接收这些数据，因此此步骤会在新服务上报时完成。未指明服务的数据一送达就会显示在浏览器中。"
+  "Not sent right now": "目前不会发送",
+  "Start From the Project's Default": "从项目默认联系顺序开始",
+  "Started from the project's default ladder.": "已从项目的默认联系顺序开始。",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "此服务器目前无法发送短信或拨打电话，因此这些号码不会收到短信或电话。请联系服务器管理员设置短信和电话。",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "此服务器目前无法发送短信或拨打电话，因此这些号码不会收到短信或电话。请在 Admin Dashboard 中设置短信和电话。",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "你尚未验证{{channels}}，因此省略了这些步骤，在此期间保留你自己的{{kept}}步骤。",
+  "You have not verified {{channels}} yet, so those steps are left out.": "你尚未验证{{channels}}，因此省略了这些步骤。",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤，在此期间保留其自己的{{kept}}步骤。",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤。",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "此服务器目前无法发送短信，因此无法收到添加号码所需的验证码。请联系服务器管理员设置短信和电话。",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "此服务器目前无法发送短信，因此无法收到添加号码所需的验证码。请在 Admin Dashboard 中设置短信和电话。",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此项目已在接收这些数据，因此此步骤会在新服务上报时完成。未指明服务的数据一送达就会显示在浏览器中。",
+  "None. The status page's name is used.": "无。使用状态页的名称。",
+  "{{count}} monitor groups added": "已添加 {{count}} 个监视器组",
+  "{{count}} monitor groups added_one": "已添加 {{count}} 个监视器组",
+  "{{count}} monitors added": "已添加 {{count}} 个监视器",
+  "{{count}} monitors added_one": "已添加 {{count}} 个监视器"
 }

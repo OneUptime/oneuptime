@@ -56,7 +56,19 @@ import {
 export interface StatusPageSetupRecord {
   id: string;
   name: string;
+  /*
+   * Its Page Title, if it has one: with the name, what its visitors read it
+   * as (StatusPagePublicName), and what the preview shows (#7467).
+   */
+  pageTitle?: string | undefined;
 }
+
+// What a page's Page Title is read back as: nothing for none.
+const pageTitleOf: (page: StatusPage) => string | undefined = (
+  page: StatusPage,
+): string | undefined => {
+  return page.pageTitle?.trim() || undefined;
+};
 
 // Creating the page and putting monitors on it: both, or the setup cannot.
 export const mayCreateStatusPage: () => boolean = (): boolean => {
@@ -355,6 +367,7 @@ export default class StatusPageSetupApi {
       select: {
         _id: true,
         name: true,
+        pageTitle: true,
         isArchived: true,
         labels: {
           _id: true,
@@ -383,6 +396,7 @@ export default class StatusPageSetupApi {
         return {
           id: page._id!.toString(),
           name: page.name || "",
+          pageTitle: pageTitleOf(page),
           labelIds: (page.labels || [])
             .map((label: Label): string => {
               return idText(label._id);
@@ -521,7 +535,7 @@ export default class StatusPageSetupApi {
       },
       limit: OWN_STATUS_PAGES_READ_LIMIT,
       skip: 0,
-      select: { _id: true, name: true, isArchived: true },
+      select: { _id: true, name: true, pageTitle: true, isArchived: true },
       sort: { createdAt: SortOrder.Descending },
     });
 
@@ -539,7 +553,11 @@ export default class StatusPageSetupApi {
       return null;
     }
 
-    return { id: found._id.toString(), name: found.name || "" };
+    return {
+      id: found._id.toString(),
+      name: found.name || "",
+      pageTitle: pageTitleOf(found),
+    };
   }
 
   /*
@@ -643,14 +661,18 @@ export default class StatusPageSetupApi {
     const statusPage: StatusPage | null = await ModelAPI.getItem<StatusPage>({
       modelType: StatusPage,
       id: new ObjectID(id),
-      select: { _id: true, name: true },
+      select: { _id: true, name: true, pageTitle: true },
     });
 
     if (!statusPage?._id) {
       return null;
     }
 
-    return { id: statusPage._id.toString(), name: statusPage.name || "" };
+    return {
+      id: statusPage._id.toString(),
+      name: statusPage.name || "",
+      pageTitle: pageTitleOf(statusPage),
+    };
   }
 
   /*

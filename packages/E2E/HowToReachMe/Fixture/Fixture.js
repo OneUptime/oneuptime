@@ -24,6 +24,16 @@
  *   - page=default-ladder  Project Settings > Notification Channels' Default
  *                       Ladder for New Members and Phone for People on Call
  *                       (no default saved yet)
+ *   - default=on        the project has a default ladder (#9445) - push and
+ *                       SMS at once, then a call after 5 minutes - which
+ *                       Maya's ladder is not: How to Reach Me offers Start
+ *                       From the Project's Default
+ *   - default=left-out  push after 5 minutes, then Telegram, which Maya has
+ *                       not linked: started from, it names Telegram as left
+ *                       out and keeps her own steps meanwhile
+ *   - send=none         this server can send no email, SMS or calls right
+ *                       now (GET /project-can-send, #9446); left out, it
+ *                       can send everything, as OneUptime Cloud always can
  *   - theme=dark        the Dashboard's dark mode
  *   - lang=de           the Dashboard's German words (fa: Persian, right to
  *                       left, as the Dashboard draws it)
@@ -51,10 +61,8 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import OnCallRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallRules";
-import {
-  DefaultPagingLadderCard,
-  PhoneForOnCallCard,
-} from "../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaults";
+import DefaultPagingLadderCard from "../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
+import PhoneForOnCallCard from "../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PhoneForOnCallCard";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -82,6 +90,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { ProjectCanSendLoader } from "Common/UI/Utils/ServerSending";
+import { toPagingLadderDefaultJSON } from "Common/Types/NotificationRule/PagingLadderDefault";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000007453";
 const USER_ID = "80000000-0000-4000-8000-000000007453";
@@ -96,6 +107,24 @@ const person = ["one-ladder", "differing", "email-only"].includes(
 )
   ? params.get("person")
   : "one-ladder";
+// The project's default ladder (#9445), by `default=`.
+const DEFAULT_LADDERS = {
+  on: [
+    { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+    { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
+    { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+  ],
+  "left-out": [
+    { channel: OnCallPageChannel.Push, notifyAfterMinutes: 5 },
+    { channel: OnCallPageChannel.Telegram, notifyAfterMinutes: 10 },
+  ],
+};
+const defaultLadder = DEFAULT_LADDERS[params.get("default")] || null;
+// What this server can send right now (#9446), by `send=`.
+const canSend =
+  params.get("send") === "none"
+    ? { email: false, sms: false, call: false }
+    : { email: true, sms: true, call: true };
 const language = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -222,7 +251,9 @@ project.name = "Acme Commerce";
 project.enableSmsNotifications = true;
 project.enableCallNotifications = true;
 project.requirePhoneMethodForOnCall = person === "email-only";
-project.defaultPagingLadder = null;
+project.defaultPagingLadder = defaultLadder
+  ? toPagingLadderDefaultJSON(defaultLadder)
+  : null;
 RECORDS.Project.push(project);
 
 // The method each column of a rule names, by its id.
@@ -463,6 +494,10 @@ function fail(statusCode, message) {
 }
 
 User.isMasterAdmin = () => false;
+// GET /project-can-send's three yes-or-noes, as a member reads them (#9446).
+ProjectCanSendLoader.load = async () => {
+  return { ...canSend };
+};
 User.getUserId = () => new ObjectID(USER_ID);
 /*
  * The project's permissions and the global ones, as the Dashboard joins

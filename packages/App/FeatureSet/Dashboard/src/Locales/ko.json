@@ -56815,5 +56815,21 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "인시던트 없이 {{policy}}을(를) 한 번 호출해 정책이 사람들에게 전달되는지 확인하세요. 모든 메시지에 '테스트'라고 표시됩니다.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "가져온 정책을 골라 인시던트 없이 한 번 호출해 사람들에게 전달되는지 확인하세요. 모든 메시지에 '테스트'라고 표시됩니다.",
   "Some severities have no notification rule yet.": "일부 심각도에 아직 알림 규칙이 없습니다.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "이 프로젝트는 이미 이 데이터를 받고 있으므로, 새 서비스가 보고하면 이 단계가 완료됩니다. 서비스 이름이 없는 데이터는 도착하는 대로 탐색기에 표시됩니다."
+  "Not sent right now": "지금은 보내지 않음",
+  "Start From the Project's Default": "프로젝트 기본 연락 순서로 시작",
+  "Started from the project's default ladder.": "프로젝트의 기본 연락 순서로 시작했습니다.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "이 서버는 지금 SMS를 보내거나 전화를 걸 수 없어 이 번호들로 SMS와 전화가 가지 않습니다. 서버 관리자에게 SMS와 전화 설정을 요청하세요.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "이 서버는 지금 SMS를 보내거나 전화를 걸 수 없어 이 번호들로 SMS와 전화가 가지 않습니다. Admin Dashboard에서 SMS와 전화를 설정하세요.",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌으며, 그동안 내 {{kept}} 단계는 유지됩니다.",
+  "You have not verified {{channels}} yet, so those steps are left out.": "아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌습니다.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌으며, 그동안 본인의 {{kept}} 단계는 유지됩니다.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌습니다.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "이 서버는 지금 SMS를 보낼 수 없어 번호 추가에 필요한 코드를 받을 수 없습니다. 서버 관리자에게 SMS와 전화 설정을 요청하세요.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "이 서버는 지금 SMS를 보낼 수 없어 번호 추가에 필요한 코드를 받을 수 없습니다. Admin Dashboard에서 SMS와 전화를 설정하세요.",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "이 프로젝트는 이미 이 데이터를 받고 있으므로, 새 서비스가 보고하면 이 단계가 완료됩니다. 서비스 이름이 없는 데이터는 도착하는 대로 탐색기에 표시됩니다.",
+  "None. The status page's name is used.": "없음. 상태 페이지의 이름이 사용됩니다.",
+  "{{count}} monitor groups added": "모니터 그룹 {{count}}개를 추가했습니다",
+  "{{count}} monitor groups added_one": "모니터 그룹 {{count}}개를 추가했습니다",
+  "{{count}} monitors added": "모니터 {{count}}개를 추가했습니다",
+  "{{count}} monitors added_one": "모니터 {{count}}개를 추가했습니다"
 }

@@ -41,6 +41,8 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { ProjectCanSendLoader } from "../../../UI/Utils/ServerSending";
+import { PROJECT_CAN_SEND_EVERYTHING } from "../../../Types/ServerSending/ProjectCanSend";
 import User from "../../../UI/Utils/User";
 import {
   PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE,
@@ -100,14 +102,23 @@ jest.mock("../../../UI/Config", () => {
  * settings, is not about the balance: ProjectPagingDefaults tests it.
  */
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaults",
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard",
   () => {
     return {
       __esModule: true,
-      DefaultPagingLadderCard: (): null => {
+      default: (): null => {
         return null;
       },
-      PhoneForOnCallCard: (): null => {
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PhoneForOnCallCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
         return null;
       },
     };
@@ -264,6 +275,14 @@ beforeEach(() => {
       {},
     ) as unknown;
   }) as never);
+  /*
+   * The channel switches ask whether the server can send SMS and calls at
+   * all (GET /project-can-send, #6880): it can, as on OneUptime Cloud. What
+   * they say when it cannot is ServerCannotSendMethodLists' to test.
+   */
+  jest
+    .spyOn(ProjectCanSendLoader, "load")
+    .mockResolvedValue({ ...PROJECT_CAN_SEND_EVERYTHING });
 });
 
 afterEach(() => {

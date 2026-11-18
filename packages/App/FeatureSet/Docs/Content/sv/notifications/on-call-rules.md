@@ -47,6 +47,8 @@ Klicka på **Spara ändringar**, som visas så snart något har ändrats. Det sk
 
 **Testa dina larm**, längst ned på sidan, skickar ett testlarm till dig genom dem.
 
+När din server inte kan skicka e-post, sms eller telefonsamtal just nu är ett steg av det slaget märkt **Skickas inte just nu**, och sidan säger en gång vem som kan konfigurera det.
+
 När en allvarlighetsgrad förtjänar något annat öppnar **Annorlunda för vissa allvarlighetsgrader**, knappen bredvid rubriken, flikarna och korten som beskrivs nedan. Ett kort som avviker från din ordning är märkt **Avviker från ordningen**. Sidan öppnas fortfarande på dina steg och visar under dem varje kort som avviker och vad det gör i stället. **Spara ändringar** låter de korten vara som de är; **Använd den här ordningen för alla allvarlighetsgrader**, sist i listan, ger dem också din ordning, efter att ha nämnt de kort som förlorar sin avvikelse. En allvarlighetsgrad som ditt projekt har arkiverat behåller sina egna regler.
 
 En jourpolicy bestämmer vem som larmas och när dess nästa nivå kommer. Hur du nås är den här ordningen, för varje policy som larmar dig.
@@ -87,6 +89,8 @@ Ett projekt kan ha en standardordning: hur en medlem larmas när den verifierar 
 Med en standardordning får en metod som du verifierar en regel vid varje steg i sin kanal, på varje kort på varje flik, och en kanal som ordningen utelämnar får ingen. Regler som du redan har ändras aldrig, och ett larm som inte hittar någon regel faller fortfarande tillbaka på dina verifierade metoder.
 
 För att ge den till medlemmar som redan har regler använder en administratör **Använd standardordning** på sidan Beredskap: se [Använd standardordningen](/docs/on-call/readiness#använd-standardordningen). Var och en av dem får ett e-postmeddelande.
+
+För att följa den själv klickar du på **Börja från projektets standardordning**, bredvid **Annorlunda för vissa allvarlighetsgrader**. Dina steg blir standardens, med dina egna verifierade metoder: ett sätt som du inte har verifierat utelämnas och nämns, och du behåller dina egna steg i stället. Ingenting ändras förrän du klickar på **Spara ändringar**.
 
 **Telefon för personer i jour**, bredvid, ber alla i jour att ha ett verifierat nummer för SMS, telefonsamtal eller WhatsApp. Så länge du inte har något säger den här sidan det ovanför **Lägg till din telefon**, och Beredskap och Inställningarnas hälsa nämner dig. Ingen blir utelåst.
 
@@ -131,7 +135,7 @@ En push-regel, för en telefon eller en webbläsare, kan också skicka sin push 
 
 ## När en allvarlighetsgrad saknar regel
 
-En allvarlighetsgrad som ditt projekt lägger till senare får regler inom några minuter, skapade utifrån de val du redan har gjort på den fliken: samma metoder, efter samma väntetider, och en push som låter och upprepas på samma sätt. Hade du inga regler på den fliken får den din verifierade e-post, direkt.
+En allvarlighetsgrad som ditt projekt lägger till senare får regler inom några minuter, skapade utifrån de val du redan har gjort på den fliken: samma metoder, efter samma väntetider, och en push som låter och upprepas på samma sätt. Hade du inga regler på den fliken får den din verifierade e-post, direkt. När ditt projekt har en standardordning följer din e-post den i stället: se [Standardordningen](#standardordningen).
 
 Ett larm som ändå inte hittar någon regel skickas till dina verifierade metoder i alla fall, och du får ett e-postmeddelande om det; se [När ingen regel matchar](/docs/notifications/index#när-ingen-regel-matchar).
 

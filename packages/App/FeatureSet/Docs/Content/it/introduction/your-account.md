@@ -134,7 +134,7 @@ Puoi appartenere a quanti progetti vuoi. Il selettore di progetti in alto a sini
 
 ## Cosa conserva per te ogni progetto
 
-Le **Impostazioni utente**, a destra nella barra sotto la barra superiore, sono solo tue, e ogni progetto ha le sue. Aprile in ogni progetto in cui sei reperibile.
+Le **Impostazioni utente**, a destra nella barra sotto la barra superiore, sono solo tue, e ogni progetto ha le sue. Aprile in ogni progetto in cui sei reperibile. Si aprono su **Elenco di configurazione** finché resta qualcosa da configurare, e su **Metodi di notifica** quando non manca più nulla di essenziale.
 
 | Pagina | A cosa serve | Per saperne di più |
 | --- | --- | --- |

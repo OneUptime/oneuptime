@@ -154,6 +154,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import {
   getByTextOutsideFoldedHeaders,
   listedNames,
@@ -357,6 +358,21 @@ const names: NamesFunction = (
   });
 };
 
+// What each toast the dialog showed says.
+type ToastWordsFunction = () => Array<{
+  title: string;
+  description: unknown;
+}>;
+
+const toastWords: ToastWordsFunction = (): Array<{
+  title: string;
+  description: unknown;
+}> => {
+  return Toast.getToasts().map((toast: ToastItem) => {
+    return { title: toast.title, description: toast.description };
+  });
+};
+
 type ListCallForFunction = (modelType: unknown) => any;
 
 const listCallFor: ListCallForFunction = (modelType: unknown): any => {
@@ -372,6 +388,7 @@ const listCallFor: ListCallForFunction = (modelType: unknown): any => {
 describe("Add Multiple Monitor Groups", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    Toast.dismissAll();
     pickerProps.length = 0;
 
     mockLists();
@@ -704,22 +721,26 @@ describe("Add Multiple Monitor Groups", () => {
   });
 
   describe("the summary", () => {
+    /*
+     * Added as asked, the dialog closes and a toast says how many, in the
+     * monitor groups' own words: there is no report to click away (#7466).
+     */
     test("says how many were added, in the monitor groups' own words", async () => {
-      const view: ReturnType<typeof render> = renderModal();
+      const onClose: Mock<() => void> = jest.fn();
+      const view: ReturnType<typeof render> = renderModal({ onClose });
 
       pickGroups(view);
       await submit(view);
 
-      expect(await view.findByText("Monitor Groups Added")).toBeVisible();
-      expect(
-        view.getByText("Added 2 of 2 selected monitor groups."),
-      ).toBeVisible();
-      expect(view.getByText("Added (2)")).toBeVisible();
-      expect(view.getByText("Search Stack")).toBeVisible();
-      expect(view.getByText("Payments Stack")).toBeVisible();
-      expect(view.queryByTestId("bulk-add-result-skipped")).toBeNull();
-      expect(view.queryByTestId("bulk-add-result-failed")).toBeNull();
-      expect(view.getByRole("button", { name: "Done" })).toBeVisible();
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      expect(toastWords()).toEqual([
+        { title: "2 monitor groups added", description: undefined },
+      ]);
+      expect(view.queryByText("Monitor Groups Added")).toBeNull();
+      expect(view.queryByRole("button", { name: "Done" })).toBeNull();
     });
 
     test("lists the monitor groups already on the page apart, not as failures", async () => {
@@ -734,6 +755,7 @@ describe("Add Multiple Monitor Groups", () => {
       pickGroups(view);
       await submit(view);
 
+      // A report of what it added and what it skipped: no toast.
       expect(await view.findByText("Monitor Groups Added")).toBeVisible();
       expect(
         view.getByText(
@@ -746,6 +768,7 @@ describe("Add Multiple Monitor Groups", () => {
           "These monitor groups are already on this status page, so they were left as they are.",
         ),
       ).toBeVisible();
+      expect(toastWords()).toEqual([]);
     });
 
     test("says nothing was added when every monitor group was already there", async () => {
@@ -781,9 +804,11 @@ describe("Add Multiple Monitor Groups", () => {
       pickGroups(view);
       await submit(view);
 
-      expect(
-        await view.findByText("Added 1 of 1 selected monitor group."),
-      ).toBeVisible();
+      await waitFor(() => {
+        expect(toastWords()).toEqual([
+          { title: "1 monitor group added", description: undefined },
+        ]);
+      });
     });
 
     test("names each monitor group that failed, with the reason, and calls the dialog results", async () => {
@@ -886,9 +911,11 @@ describe("Add Multiple Monitor Groups", () => {
         "Billing Worker",
         "Checkout API",
       ]);
-      expect(
-        await view.findByText("Added 2 of 2 selected monitors."),
-      ).toBeVisible();
+      await waitFor(() => {
+        expect(toastWords()).toEqual([
+          { title: "2 monitors added", description: undefined },
+        ]);
+      });
     });
 
     test("swaps from monitors to monitor groups, and adds only the monitor groups", async () => {

@@ -6,7 +6,9 @@
  * 1.6:1 against it - so the dark theme moves only the ones that do not
  * read, and keeps their hue:
  *
- *   - text in a status colour reaches WCAG AA, 4.5:1, against the card;
+ *   - text in a status colour reaches WCAG AA, 4.5:1, against the card,
+ *     and against a public grid cell's pill - the card's surface at 85%
+ *     over the cell's 5% tint of the colour - which is lighter (#6989);
  *   - an uptime bar keeps its colour, and one under WCAG's 3:1 for graphical
  *     objects gets an edge in a lighter shade of itself that reaches it.
  *
@@ -16,10 +18,16 @@
 
 import { Moroon500, Red, Yellow, Green } from "../../../Types/BrandColors";
 import Color, { RGB } from "../../../Types/Color";
-import { getContrastRatio, parseColor } from "../../../Utils/ColorContrast";
+import {
+  composite,
+  getContrastRatio,
+  parseColor,
+} from "../../../Utils/ColorContrast";
+import { NOT_MONITORED_STATUS_COLOR } from "../../../Utils/StatusPage/FrozenMonitorResources";
 import {
   DARK_THEME_CARD,
   DARK_THEME_PAGE,
+  STATUS_TEXT_CONTRAST_ON_CARD,
   STATUS_TEXT_MINIMUM_CONTRAST,
   UPTIME_BAR_MINIMUM_CONTRAST,
   getStatusTextColorOnDark,
@@ -46,6 +54,27 @@ const rgb: (color: string) => RGB = (color: string): RGB => {
 
 const contrastOnCard: (color: string) => number = (color: string): number => {
   return getContrastRatio(rgb(color), DARK_THEME_CARD);
+};
+
+/*
+ * A public grid cell's pill on the dark theme (Overview.tsx's
+ * renderCellContent): the card's own surface at 85% over the cell's tint,
+ * 5% of the status colour over the card.
+ */
+const pillOf: (status: string) => RGB = (status: string): RGB => {
+  const tint: RGB = composite(rgb(status), 0.05, DARK_THEME_CARD);
+
+  return composite(DARK_THEME_CARD, 0.85, tint);
+};
+
+// Status text in a grid cell, against the pill it sits in.
+const contrastInGridCell: (status: string) => number = (
+  status: string,
+): number => {
+  return getContrastRatio(
+    rgb(getStatusTextColorOnDark(status)!),
+    pillOf(status),
+  );
 };
 
 // The hue of a colour, in degrees, for colours that have one.
@@ -111,6 +140,14 @@ describe("the dark card the colours are measured on", () => {
     expect(STATUS_TEXT_MINIMUM_CONTRAST).toBe(4.5);
     expect(UPTIME_BAR_MINIMUM_CONTRAST).toBe(3);
   });
+
+  // Room for the grounds lighter than the card that status text is drawn on.
+  test("status text aims a little above WCAG's 4.5:1 on the card", () => {
+    expect(STATUS_TEXT_CONTRAST_ON_CARD).toBe(4.6);
+    expect(STATUS_TEXT_CONTRAST_ON_CARD).toBeGreaterThan(
+      STATUS_TEXT_MINIMUM_CONTRAST,
+    );
+  });
 });
 
 describe("text in a status colour on the dark theme", () => {
@@ -154,11 +191,39 @@ describe("text in a status colour on the dark theme", () => {
       const dark: string = getStatusTextColorOnDark(color)!;
 
       expect([color, contrastOnCard(dark) >= 4.5]).toEqual([color, true]);
+      expect([color, contrastInGridCell(color) >= 4.5]).toEqual([color, true]);
 
-      if (contrastOnCard(color) >= 4.5) {
+      if (contrastOnCard(color) >= STATUS_TEXT_CONTRAST_ON_CARD) {
         expect(dark).toBe(color.toLowerCase());
       }
     }
+  });
+
+  /*
+   * #6989: a resource nothing checks reads Not monitored, in gray. Its dark
+   * shade was worked out to exactly 4.5:1 on the card, and read 4.47:1 in a
+   * grid cell, whose pill is a little lighter than the card.
+   */
+  test("Not monitored's gray reads at 4.5:1 on the card, and in a grid cell's pill", () => {
+    const gray: string = NOT_MONITORED_STATUS_COLOR.toString();
+
+    expect(
+      contrastOnCard(getStatusTextColorOnDark(gray)!),
+    ).toBeGreaterThanOrEqual(STATUS_TEXT_CONTRAST_ON_CARD);
+    expect(contrastInGridCell(gray)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test.each(PRODUCT_DEFAULTS)(
+    "%s (%s) reads at 4.5:1 in a grid cell's pill too",
+    (_name: string, color: string) => {
+      expect(contrastInGridCell(color)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  // The lightest colour lightens the pill most: white still reads.
+  test("text in the lightest status colour reads at 4.5:1 in its grid cell's pill", () => {
+    expect(contrastInGridCell("#ffffff")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastInGridCell("#fde047")).toBeGreaterThanOrEqual(4.5);
   });
 
   test("every spelling of a colour gets the same shade", () => {

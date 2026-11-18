@@ -128,6 +128,24 @@ export default class StatusPageUtil {
   }
 
   /*
+   * The name this tab's page goes by, as its visitors read it: its Page
+   * Title, else its name (StatusPageAPI.readMasterPage sends it as
+   * pageTitle). The master page keeps it once read, before any page of it
+   * is drawn, and every page names the browser tab after it
+   * (Components/Page): "Acme Status | Overview - Incidents", never
+   * OneUptime's name, and the Overview "Acme Status" (#7467).
+   */
+  private static statusPageName: string = "";
+
+  public static setStatusPageName(name: string | null | undefined): void {
+    StatusPageUtil.statusPageName = (name || "").trim();
+  }
+
+  public static getStatusPageName(): string {
+    return StatusPageUtil.statusPageName;
+  }
+
+  /*
    * Whether this tab's address names another status page than the one the
    * tab loaded: after a move inside the app to another page's address. The
    * tab then opens that address in full, its own master page and all,

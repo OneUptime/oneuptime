@@ -68,6 +68,8 @@ De app registreert de telefoon daarna in elk van uw projecten. Elk project toont
 
 De app toont één project tegelijk: tik bovenaan een scherm op de naam van het project om te wisselen. Een project dat single sign-on vereist, staat onder **Settings → Manage Projects** als **SSO Required** tot u daar op **Authenticate with SSO** tikt.
 
+Bij een nieuwe installatie opent de app daarna één keer **Get Ready for On-Call**: drie stappen zodat een oproep de telefoon bereikt, ook 's nachts met Niet storen aan. Sta meldingen toe, tik op **Turn On Critical Alerts**, daarna op **Send Test Page**, en bevestig de testoproep vanuit de melding. **Not Now** sluit het scherm, en **Settings → Get Ready for On-Call** opent het op elk moment opnieuw. Moet toegang tot Niet storen in de Android-instellingen worden toegestaan, dan worden kritieke meldingen ingeschakeld zodra u terugkeert naar de app.
+
 ## Controleren dat oproepen de telefoon bereiken
 
 :::steps

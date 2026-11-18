@@ -315,9 +315,14 @@ describe("the status page resource forms", () => {
       );
     });
 
+    /*
+     * Opened from a new status page's Overview, the monitor picker is the
+     * Overview's own "Add Monitors" (#7466): a title of its own, never the
+     * monitor group picker's.
+     */
     test("is titled for monitor groups", () => {
       expect(code).toMatch(
-        /title=\{\s*isMonitorGroupPicker\s*\?\s*"Add Multiple Monitor Groups"\s*:\s*"Add Multiple Monitors"\s*\}/,
+        /title=\{\s*isMonitorGroupPicker\s*\?\s*"Add Multiple Monitor Groups"\s*:\s*props\.title \|\| "Add Multiple Monitors"\s*\}/,
       );
     });
   });

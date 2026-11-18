@@ -58,6 +58,8 @@ Appen registrerer derefter din iPhone eller iPad i hvert af dine projekter. Hver
 
 Appen viser ét projekt ad gangen: tryk på projektets navn øverst på en skærm for at skifte. Et projekt, der kræver single sign-on, står som **SSO Required** under **Settings → Manage Projects**, indtil du trykker på **Authenticate with SSO** dér.
 
+Ved en ny installation åbner appen derefter **Get Ready for On-Call** én gang: tre trin, så en alarm når enheden, også om natten på lydløs. Tillad notifikationer, tryk på **Turn On Critical Alerts**, derefter på **Send Test Page**, og bekræft testalarmen fra dens notifikation. **Not Now** lægger skærmen væk, og **Settings → Get Ready for On-Call** åbner den igen når som helst. Skal kritiske advarsler tillades i iOS-indstillingerne, slås de til, så snart du vender tilbage til appen.
+
 ## Tjek, at alarmer når enheden
 
 :::steps

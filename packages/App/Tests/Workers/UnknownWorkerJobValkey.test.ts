@@ -147,6 +147,9 @@ async function waitFor(
 
 // The worker of the report: it has no job by the names below.
 function startWorker(): void {
+  // As a started server does: its workers take jobs (QueueWorker).
+  QueueWorker.startProcessingJobs();
+
   worker = QueueWorker.getWorker(
     QueueName.Worker,
     async (job: QueueJob, token?: string) => {

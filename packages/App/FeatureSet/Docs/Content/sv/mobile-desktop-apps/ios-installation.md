@@ -58,6 +58,8 @@ Appen registrerar sedan din iPhone eller iPad i vart och ett av dina projekt. Va
 
 Appen visar ett projekt i taget: tryck på projektets namn högst upp på en skärm för att byta. Ett projekt som kräver enkel inloggning står som **SSO Required** under **Settings → Manage Projects** tills du trycker på **Authenticate with SSO** där.
 
+Vid en ny installation öppnar appen sedan **Get Ready for On-Call** en gång: tre steg så att ett larm når enheten, även på natten i tyst läge. Tillåt notiser, tryck på **Turn On Critical Alerts**, sedan på **Send Test Page**, och bekräfta testlarmet från dess notis. **Not Now** lägger undan skärmen, och **Settings → Get Ready for On-Call** öppnar den igen när som helst. Måste kritiska larm tillåtas i iOS-inställningarna slås de på så fort du kommer tillbaka till appen.
+
 ## Kontrollera att larmen når enheten
 
 :::steps

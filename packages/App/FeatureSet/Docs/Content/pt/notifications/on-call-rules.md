@@ -47,6 +47,8 @@ Clique em **Salvar alterações**, que aparece assim que algo muda. As mesmas re
 
 **Teste suas chamadas**, no pé da página, envia a você uma chamada de teste por elas.
 
+Quando o seu servidor não consegue enviar e-mails, SMS ou chamadas telefônicas agora, uma etapa desse tipo aparece marcada com **Não enviado agora**, e a página diz uma única vez quem pode configurá-lo.
+
 Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades**, o botão ao lado do título, abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**. A página continua abrindo nas suas etapas e lista abaixo delas cada cartão que difere e o que ele faz no lugar. **Salvar alterações** deixa esses cartões como estão; **Usar esta sequência para cada gravidade**, no fim dessa lista, dá a eles também a sua sequência, depois de nomear os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
 
 Uma política de plantão decide quem é chamado e quando vem o próximo nível. Como você é contatado é esta sequência, para cada política que chama você.
@@ -87,6 +89,8 @@ Um projeto pode ter uma sequência padrão: como um membro é acionado depois qu
 Com uma sequência padrão, um método que você verifica recebe uma regra em cada etapa do seu canal, em cada cartão de cada aba, e um canal que a sequência deixa de fora não recebe nenhuma. As regras que você já tem nunca mudam, e um acionamento que não encontra nenhuma regra ainda recorre aos seus métodos verificados.
 
 Para dá-la a membros que já têm regras, um administrador usa **Aplicar sequência padrão** na página Prontidão: veja [Aplicar a sequência padrão](/docs/on-call/readiness#aplicar-a-sequência-padrão). Cada um deles recebe um e-mail.
+
+Para segui-la você mesmo, clique em **Começar pela sequência padrão**, ao lado de **Diferente para algumas gravidades**. As suas etapas passam a ser as da sequência, com os seus próprios métodos verificados: uma forma que você não verificou fica de fora e é nomeada, e você mantém as suas próprias etapas no lugar dela. Nada muda até você clicar em **Salvar alterações**.
 
 **Telefone para quem está de plantão**, ao lado, pede a todos de plantão um número verificado de SMS, chamada telefônica ou WhatsApp. Enquanto você não tiver nenhum, esta página diz isso acima de **Adicionar seu telefone**, e Prontidão e Saúde da configuração citam você. Ninguém fica bloqueado.
 
@@ -131,7 +135,7 @@ Uma regra de push, para um telefone ou um navegador, também pode reenviar o pus
 
 ## Quando uma gravidade não tem regra
 
-Uma gravidade que o seu projeto adiciona depois recebe regras em poucos minutos, feitas a partir do que você já escolheu nessa aba: os mesmos métodos, após os mesmos atrasos, e um push que toca e se repete do mesmo jeito. Se você não tinha regras nessa aba, ela recebe o seu e-mail verificado, na hora.
+Uma gravidade que o seu projeto adiciona depois recebe regras em poucos minutos, feitas a partir do que você já escolheu nessa aba: os mesmos métodos, após os mesmos atrasos, e um push que toca e se repete do mesmo jeito. Se você não tinha regras nessa aba, ela recebe o seu e-mail verificado, na hora. Quando o seu projeto tem uma sequência padrão, o seu e-mail a segue em vez disso: veja [A sequência padrão](#a-sequência-padrão).
 
 Um acionamento que mesmo assim não encontra regra é enviado aos seus métodos verificados de qualquer forma, e você recebe um e-mail sobre isso; veja [Quando nenhuma regra corresponde](/docs/notifications/index#quando-nenhuma-regra-corresponde).
 

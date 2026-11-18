@@ -317,6 +317,11 @@ const App: () => JSX.Element = () => {
 
         setAllowStatusPageCustomizations(serverAllowsStatusPageCustomizations);
 
+        /*
+         * The page's name as its visitors read it: its Page Title, else its
+         * name, which the server sends as pageTitle (#7467). A new page has
+         * no Page Title, and its tab read "Status Page".
+         */
         document.title =
           (JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -437,7 +442,11 @@ const App: () => JSX.Element = () => {
         setIsPrivateStatusPage(isPrivateStatusPage);
         StatusPageUtil.setRequiresMasterPassword(enableMasterPassword);
 
-        setStatusPageName(statusPageName || "Status Page");
+        /*
+         * Nothing for a page with no name: each page that names it says
+         * "Status Page" in the reader's language instead.
+         */
+        setStatusPageName(statusPageName || "");
 
         const fileId: string | null = JSONFunctions.getJSONValueInPath(
           masterpage || {},

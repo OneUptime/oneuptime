@@ -12,6 +12,8 @@ import {
   RESOURCE_GRID_COLUMN_WIDTH_IN_REM,
   RESOURCE_GRID_PARTS,
   RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM,
+  RESOURCE_GRID_TILE_WIDTH_IN_REM,
+  RESOURCE_GRID_TILES_CLASS_NAME,
   ResourceGridClassNames,
   ResourceGridPart,
 } from "../../../../UI/Components/StatusPage/ResourceGridLayout";
@@ -374,7 +376,13 @@ describe("ResourceGrid: a matrix where its columns fit its box, a stack where th
     }
   });
 
-  test("in the stack: each row a box of its own, its heading a line over its cells, each cell a line of the box, and no column headings", () => {
+  /*
+   * #7430: each cell was a line as wide as the row's box, one under the
+   * other, with a chip or two at its start and the rest empty - three tall
+   * lines a row for a three-column grid on a laptop. The row is a grid of
+   * tiles now, as many to a line as fit, its value across all of them.
+   */
+  test("in the stack: each row a box of its own, its heading across a grid of its cells' tiles, and no column headings", () => {
     expect(RESOURCE_GRID_PARTS.table.stack).toEqual(["block"]);
     expect(RESOURCE_GRID_PARTS.head.stack).toEqual(["hidden"]);
     expect(RESOURCE_GRID_PARTS.body.stack).toEqual([
@@ -382,25 +390,76 @@ describe("ResourceGrid: a matrix where its columns fit its box, a stack where th
       "flex-col",
       "gap-3",
     ]);
+    // A rounded box that clips what it holds, its cells' tiles a grid.
     expect(RESOURCE_GRID_PARTS.row.stack).toEqual([
-      "block",
+      "grid",
+      RESOURCE_GRID_TILES_CLASS_NAME,
+      "overflow-hidden",
       "rounded-lg",
       "border",
     ]);
-    // Held at the start of a matrix that scrolls; a heading in the stack.
+    // Held at the start of a matrix that scrolls; across the tiles in the stack.
     expect(RESOURCE_GRID_PARTS.rowHeading.stack).toEqual([
       "static",
-      "block",
+      "col-span-full",
       "rounded-t-lg",
+      "border-b-0",
       "border-r-0",
       "py-2",
     ]);
+    // A tile: ruled off above and at its start, a pixel before its place.
     expect(RESOURCE_GRID_PARTS.cell.stack).toEqual([
       "block",
-      "last:border-b-0",
+      "-ms-px",
+      "border-b-0",
+      "border-t",
+      "border-s",
     ]);
     // Drawn by default, so nothing to add in the stack.
     expect(RESOURCE_GRID_PARTS.cellLabel.stack).toEqual([]);
+  });
+
+  test("a tile is at least 17rem, as many to a line as the row's box has room for", () => {
+    expect(RESOURCE_GRID_TILE_WIDTH_IN_REM).toBe(17);
+    expect(RESOURCE_GRID_TILES_CLASS_NAME).toBe(
+      "grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))]",
+    );
+  });
+
+  /*
+   * How many tiles share a line in the boxes the Resources card leaves the
+   * grid, as measured in Chromium (packages/E2E/StatusPageTelemetryGuided
+   * Setups/StatusPageResourcesGrid.spec.ts): a phone's, a 1280px window's
+   * beside the side menu and a 1440px one's. auto-fill puts as many 17rem
+   * tracks in the row's box as fit, and never fewer than one.
+   */
+  test.each([
+    [316, 1],
+    [584, 2],
+    [744, 2],
+    [900, 3],
+  ])(
+    "a row %ipx wide has %i tile(s) to a line",
+    (boxWidthInPx: number, tilesPerLine: number) => {
+      // The row's border on each side is not room for tiles.
+      const room: number = boxWidthInPx - 2;
+      const tileInPx: number = RESOURCE_GRID_TILE_WIDTH_IN_REM * 16;
+
+      expect(Math.max(1, Math.floor(room / tileInPx))).toBe(tilesPerLine);
+    },
+  );
+
+  test("a tile leaves a chip's name at least 140px with its checkbox, Edit and ⋯ all drawn", () => {
+    const tileInPx: number = RESOURCE_GRID_TILE_WIDTH_IN_REM * 16;
+    // The tile's px-2, the chip's px-2 and border, its checkbox and the gap after it.
+    const aroundTheChip: number = 8 * 2 + (8 * 2 + 2);
+    const checkbox: number = 16 + 8;
+    // Edit and ⋯, 28px each, 2px apart, and the chip's gap before them.
+    const actions: number = 28 + 2 + 28 + 8;
+
+    expect(
+      tileInPx - aroundTheChip - checkbox - actions,
+    ).toBeGreaterThanOrEqual(140);
   });
 
   test("where it fits, the matrix keeps the classes it had", () => {

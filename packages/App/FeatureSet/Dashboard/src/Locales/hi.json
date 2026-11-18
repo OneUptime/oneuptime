@@ -56815,5 +56815,21 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "बिना किसी घटना के {{policy}} को एक बार पेज करें और देखें कि नीति लोगों तक पहुँचती है। हर संदेश में TEST लिखा होता है।",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "लाई गई कोई नीति चुनें और बिना किसी घटना के उसे एक बार पेज करें, ताकि देख सकें कि वह लोगों तक पहुँचती है। हर संदेश में TEST लिखा होता है।",
   "Some severities have no notification rule yet.": "कुछ गंभीरता स्तरों के लिए अभी तक कोई सूचना नियम नहीं है।",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "यह प्रोजेक्ट यह डेटा पहले से पा रहा है, इसलिए यह चरण तब पूरा होगा जब कोई नई सेवा रिपोर्ट करेगी। जिस डेटा में किसी सेवा का नाम नहीं है, वह पहुँचते ही एक्सप्लोरर में दिखता है।"
+  "Not sent right now": "अभी नहीं भेजा जा रहा",
+  "Start From the Project's Default": "प्रोजेक्ट के डिफ़ॉल्ट संपर्क क्रम से शुरू करें",
+  "Started from the project's default ladder.": "प्रोजेक्ट के डिफ़ॉल्ट संपर्क क्रम से शुरू किया गया।",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "यह सर्वर अभी न SMS भेज सकता है न कॉल कर सकता है, इसलिए इन नंबरों पर कोई SMS या कॉल नहीं आएगी। अपने सर्वर एडमिन से SMS और कॉल सेट करने के लिए कहें।",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "यह सर्वर अभी न SMS भेज सकता है न कॉल कर सकता है, इसलिए इन नंबरों पर कोई SMS या कॉल नहीं आएगी। Admin Dashboard में SMS और कॉल सेट करें।",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "आपने अभी तक {{channels}} सत्यापित नहीं किया है, इसलिए वे चरण छोड़ दिए गए हैं, और तब तक आपके अपने {{kept}} चरण बने रहते हैं।",
+  "You have not verified {{channels}} yet, so those steps are left out.": "आपने अभी तक {{channels}} सत्यापित नहीं किया है, इसलिए वे चरण छोड़ दिए गए हैं।",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} ने अभी तक {{channels}} सत्यापित नहीं किया है, इसलिए वे चरण छोड़ दिए गए हैं, और तब तक उनके अपने {{kept}} चरण बने रहते हैं।",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} ने अभी तक {{channels}} सत्यापित नहीं किया है, इसलिए वे चरण छोड़ दिए गए हैं।",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए आपका नंबर जोड़ने के लिए कोड आप तक नहीं पहुँच सकता। अपने सर्वर एडमिन से SMS और कॉल सेट करने के लिए कहें।",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए आपका नंबर जोड़ने के लिए कोड आप तक नहीं पहुँच सकता। Admin Dashboard में SMS और कॉल सेट करें।",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "यह प्रोजेक्ट यह डेटा पहले से पा रहा है, इसलिए यह चरण तब पूरा होगा जब कोई नई सेवा रिपोर्ट करेगी। जिस डेटा में किसी सेवा का नाम नहीं है, वह पहुँचते ही एक्सप्लोरर में दिखता है।",
+  "None. The status page's name is used.": "कोई नहीं। स्थिति पृष्ठ का नाम इस्तेमाल होता है।",
+  "{{count}} monitor groups added": "{{count}} मॉनिटर समूह जोड़े गए",
+  "{{count}} monitor groups added_one": "{{count}} मॉनिटर समूह जोड़ा गया",
+  "{{count}} monitors added": "{{count}} मॉनिटर जोड़े गए",
+  "{{count}} monitors added_one": "{{count}} मॉनिटर जोड़ा गया"
 }

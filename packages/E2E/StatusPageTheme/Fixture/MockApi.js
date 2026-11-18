@@ -21,8 +21,12 @@ const fixture = buildFixture({
   isPrivate: params.get("private") === "1",
   hasSso: params.get("sso") === "1",
   hasDarkLogo: params.get("darkLogo") === "1",
+  // A page with no logo, named in its header (#7467).
+  hasNoLogo: params.get("logo") === "none",
   language: params.get("lang") || null,
   wideGrid: params.get("grid") === "wide",
+  // Resources nothing checks, drawn as Not monitored (#6989).
+  notMonitored: params.get("notMonitored") === "1",
 });
 
 const record = {

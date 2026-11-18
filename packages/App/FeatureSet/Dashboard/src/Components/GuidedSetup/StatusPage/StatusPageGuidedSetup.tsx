@@ -44,6 +44,7 @@ import {
   WelcomeStep,
 } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import IconProp from "Common/Types/Icon/IconProp";
+import { getStatusPagePublicName } from "Common/Types/StatusPage/StatusPagePublicName";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
@@ -417,7 +418,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       setPickError("");
       setSaveError("");
       saveRun({ [StatusPageSetupRunValue.StatusPageId]: chosenPage.id });
-      setStatusPage({ id: chosenPage.id, name: chosenPage.name });
+      setStatusPage({
+        id: chosenPage.id,
+        name: chosenPage.name,
+        pageTitle: chosenPage.pageTitle,
+      });
       setShown(chosenShown);
       setOpenStepKey(StatusPageSetupStep.Review);
       return;
@@ -445,7 +450,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       let isFoundByName: boolean = false;
 
       if (!page && chosenPage) {
-        pageThere = { id: chosenPage.id, name: chosenPage.name };
+        pageThere = {
+          id: chosenPage.id,
+          name: chosenPage.name,
+          pageTitle: chosenPage.pageTitle,
+        };
         page = pageThere;
       } else if (!page) {
         /*
@@ -819,7 +828,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       <p className="text-sm text-gray-500">
         {translator.translateText(STATUS_PAGE_SETUP_COPY.reviewHelp)}
       </p>
-      {/* The page as a visitor reads it: its name, then each monitor. */}
+      {/*
+       * The page as a visitor reads it: its name, then each monitor. Its
+       * name as the public page names itself, in its header and its tab:
+       * its Page Title, else its name (#7467).
+       */}
       <div
         className="rounded-lg border border-gray-200 bg-gray-50 p-4"
         data-testid="guided-setup-preview"
@@ -829,7 +842,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           className="break-words text-base font-semibold text-gray-900"
           data-testid="guided-setup-preview-name"
         >
-          {statusPage?.name}
+          {statusPage ? getStatusPagePublicName(statusPage) : ""}
         </p>
         <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">
           {translator.translateText(STATUS_PAGE_SETUP_COPY.showsLabel)}

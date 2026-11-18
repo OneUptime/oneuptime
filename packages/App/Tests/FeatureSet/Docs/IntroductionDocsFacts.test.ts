@@ -4306,6 +4306,21 @@ describe("Your Account", () => {
     ).toEqual(rows);
   });
 
+  it("opens User Settings on its Setup Checklist while something is left, and on Notification Methods after (#7039)", () => {
+    expect(
+      dashboard(
+        "Components/UserSettings/SetupChecklist/UserSettingsLanding.ts",
+      ).replace(/\s+/g, " "),
+    ).toContain(
+      "return hasEssentialStepsLeft ? PageMap.USER_SETTINGS_SETUP : PageMap.USER_SETTINGS_NOTIFICATION_METHODS;",
+    );
+    expect(
+      sectionOf(YOUR_ACCOUNT, "## What each project keeps for you"),
+    ).toContain(
+      "It opens on **Setup Checklist** while something is left to set up, and on **Notification Methods** once nothing essential is.",
+    );
+  });
+
   it("keeps the theme in the browser and a picked language in the account: the browser's language first, the device's theme unless Light or Dark was picked", () => {
     const i18n: string = dashboard("Utils/i18n.ts");
 

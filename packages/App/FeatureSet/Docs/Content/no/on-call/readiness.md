@@ -81,6 +81,7 @@ En måte noen ikke har verifisert, utelates, og de beholder sine egne trinn i st
 - På **Eskaleringsregler** for en policy sier et nivå fra på kortet sitt hvis ikke alle mottakerne kan tilkalles. Se [Eskaleringsoversikten](/docs/on-call/escalation-rules#eskaleringsoversikten).
 - Under **Brukere** åpner du et medlem, og deretter **Beredskap** i seksjonen **Vakt**: statusen, metodene og dekningsrutenettet til personen.
 - For ditt eget oppsett leder **Brukerinnstillinger → Oppsettsjekkliste** deg gjennom det. Se [Oppsettsjekklisten](/docs/notifications/index#oppsettsjekklisten).
+- Alle i en policy som ikke er ferdige med sitt eget oppsett, ser **Fullfør oppsettet av varslene dine** i bjellen øverst på hver side, som åpner oppsettsjekklisten deres.
 
 ## Den ukentlige e-posten om beredskap
 

@@ -56815,5 +56815,21 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Tilkald {{policy}} én gang, uden en hændelse, for at se, at politikken når ud til folk. Hver besked siger TEST.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Vælg en overført politik, og tilkald den én gang, uden en hændelse, for at se, at den når ud til folk. Hver besked siger TEST.",
   "Some severities have no notification rule yet.": "Nogle alvorligheder har endnu ingen notifikationsregel.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Dette projekt modtager allerede disse data, så dette trin fuldføres, når en ny tjeneste melder sig. Data, der ikke angiver nogen tjeneste, vises i udforskeren, så snart de kommer ind."
+  "Not sent right now": "Sendes ikke lige nu",
+  "Start From the Project's Default": "Start fra projektets standardrækkefølge",
+  "Started from the project's default ladder.": "Startet fra projektets standardrækkefølge.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "Denne server kan ikke sende sms eller foretage opkald lige nu, så disse numre får hverken sms eller opkald. Bed din serveradministrator om at sætte sms og opkald op.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "Denne server kan ikke sende sms eller foretage opkald lige nu, så disse numre får hverken sms eller opkald. Sæt sms og opkald op i Admin Dashboard.",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "Du har endnu ikke bekræftet {{channels}}, så de trin er udeladt, og dine egne trin med {{kept}} bliver indtil videre.",
+  "You have not verified {{channels}} yet, so those steps are left out.": "Du har endnu ikke bekræftet {{channels}}, så de trin er udeladt.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin er udeladt, og deres egne trin med {{kept}} bliver indtil videre.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin er udeladt.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Denne server kan ikke sende sms lige nu, så du kan ikke få en kode på sms til at tilføje dit nummer. Bed din serveradministrator om at sætte sms og opkald op.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Denne server kan ikke sende sms lige nu, så du kan ikke få en kode på sms til at tilføje dit nummer. Sæt sms og opkald op i Admin Dashboard.",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Dette projekt modtager allerede disse data, så dette trin fuldføres, når en ny tjeneste melder sig. Data, der ikke angiver nogen tjeneste, vises i udforskeren, så snart de kommer ind.",
+  "None. The status page's name is used.": "Ingen. Statussidens navn bruges.",
+  "{{count}} monitor groups added": "{{count}} monitorgrupper tilføjet",
+  "{{count}} monitor groups added_one": "{{count}} monitorgruppe tilføjet",
+  "{{count}} monitors added": "{{count}} monitorer tilføjet",
+  "{{count}} monitors added_one": "{{count}} monitor tilføjet"
 }

@@ -58,6 +58,8 @@ OneUptime On-Call による通知の送信を許可するかを iOS が尋ねた
 
 アプリは一度に 1 つのプロジェクトを表示します。切り替えるには、画面上部のプロジェクト名をタップします。シングルサインオンが必須のプロジェクトは、**Settings → Manage Projects** で **Authenticate with SSO** をタップするまで **SSO Required** と表示されます。
 
+新しくインストールした場合、続いてアプリが **Get Ready for On-Call** を一度だけ開きます。夜間の消音モードでも呼び出しがデバイスに届くようにするための 3 つのステップです。通知を許可し、 **Turn On Critical Alerts** をタップしてから **Send Test Page** をタップし、通知からテスト呼び出しを確認します。 **Not Now** で閉じられ、 **Settings → Get Ready for On-Call** でいつでも開き直せます。重大なアラートを iOS の設定で許可する必要がある場合は、アプリに戻るとすぐにオンになります。
+
 ## 呼び出しがデバイスに届くことを確認する
 
 :::steps

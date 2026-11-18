@@ -41,6 +41,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import MonitorStepLimit from "../../Types/Monitor/MonitorStepLimit";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
@@ -840,6 +841,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isMonitorStepsWritten: boolean =
       updateDataKeys.includes("monitorSteps");
+
+    // Each step is a check a probe runs and reports (MonitorStepLimit).
+    if (isMonitorStepsWritten) {
+      MonitorStepLimit.assertWithinLimit(
+        updateBy.data.monitorSteps as MonitorSteps | JSONObject | undefined,
+      );
+    }
+
     const isMonitorTypeWritten: boolean =
       updateDataKeys.includes("monitorType");
     /*
@@ -2285,6 +2294,9 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
     }
+
+    // Each step is a check a probe runs and reports (MonitorStepLimit).
+    MonitorStepLimit.assertWithinLimit(createBy.data.monitorSteps);
 
     if (!Object.values(MonitorType).includes(createBy.data.monitorType)) {
       throw new BadDataException(

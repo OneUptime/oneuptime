@@ -58,6 +58,8 @@ De app registreert de iPhone of iPad daarna in elk van uw projecten. Elk project
 
 De app toont één project tegelijk: tik bovenaan een scherm op de naam van het project om te wisselen. Een project dat single sign-on vereist, staat onder **Settings → Manage Projects** als **SSO Required** tot u daar op **Authenticate with SSO** tikt.
 
+Bij een nieuwe installatie opent de app daarna één keer **Get Ready for On-Call**: drie stappen zodat een oproep het apparaat bereikt, ook 's nachts in de stille modus. Sta berichtgeving toe, tik op **Turn On Critical Alerts**, daarna op **Send Test Page**, en bevestig de testoproep vanuit de melding. **Not Now** sluit het scherm, en **Settings → Get Ready for On-Call** opent het op elk moment opnieuw. Moeten kritieke meldingen in de iOS-instellingen worden toegestaan, dan worden ze ingeschakeld zodra u terugkeert naar de app.
+
 ## Controleren dat oproepen het apparaat bereiken
 
 :::steps

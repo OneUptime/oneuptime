@@ -85,6 +85,10 @@ Varje metod som du verifierar senare får samma regler: en regel för varje allv
 | **Inget kan nå dig än** | Ingen av dina metoder kan användas: ingen är verifierad, eller varje verifierad metod ligger på en kanal som det här projektet har stängt av |
 | **Du är konfigurerad och har inte jour just nu** | Allt är klart för den dag en policy nämner dig |
 
+Så länge ett steg återstår öppnas **Användarinställningar** på den här checklistan, och på **Aviseringsmetoder** när inget väsentligt återstår. En länk till en annan sida i **Användarinställningar** öppnar fortfarande den sidan.
+
+När du ingår i en jourpolicy och din konfiguration inte är klar visar klockan högst upp på varje sida **Slutför inställningen av dina aviseringar**, och varför: inget kan nå dig, en allvarlighetsgrad saknar regel, eller ditt projekt ber om en telefonmetod som du inte har verifierat. Den öppnar den här checklistan, eller **Så når man mig** för telefonen. **Dölj i en vecka** lägger undan den i den här webbläsaren, och den försvinner av sig själv när din konfiguration är klar.
+
 ## När ingen regel matchar
 
 Ett larm kan nå dig för en typ och en allvarlighetsgrad som du inte har någon regel för, till exempel en allvarlighetsgrad som lades till efter att du gick med. OneUptime larmar dig ändå, via det du har verifierat:
