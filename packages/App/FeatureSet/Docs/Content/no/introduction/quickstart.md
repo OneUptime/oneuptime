@@ -74,7 +74,7 @@ Oppsettet for nettstedet har allerede opprettet **Standard vaktpolicy**, som til
 :::steps
 ### Åpne vaktoppsettet
 
-Klikk på **Få oppkall via SMS eller telefon** i oppsummeringen i oppsettet for nettstedet: Lenken åpner det veiledede oppsettet **Varsle rett person når noe går ned**. Vil du åpne det senere, trykker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger det. Så lenge sjekklisten ikke har krysset av **Sett opp en vaktpolicy**, åpner det steget det samme veiledede oppsettet.
+Klikk på **Få oppkall via SMS eller telefon** i oppsummeringen i oppsettet for nettstedet: Lenken åpner det veiledede oppsettet **Varsle rett person når noe går ned**. Vil du åpne det senere, trykker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger det. Så lenge sjekklisten ikke har krysset av **Sett opp en vaktpolicy**, åpner det steget det samme veiledede oppsettet. Når den har det, og så lenge bare e-post kan kalle deg opp, beholder Hjem **Få oppkall via SMS eller telefon** under det.
 
 ### Velg hvordan du nås
 

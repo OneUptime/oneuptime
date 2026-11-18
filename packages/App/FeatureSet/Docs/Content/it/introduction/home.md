@@ -15,7 +15,7 @@ Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto
 
 1. Una casella di ricerca, con accanto **Dichiara incidente** e **Crea**.
 2. Una riga che dice se qualcosa non va, sopra cinque numeri che contano ciò che richiede attenzione.
-3. **Benvenuto in OneUptime 👋**, un elenco per un nuovo progetto, finché non è completato.
+3. **Benvenuto in OneUptime 👋**, un elenco per un nuovo progetto, finché non è completato, poi **Altro da configurare** finché resta qualcosa.
 4. **Richiede attenzione**, ogni problema aperto in questo momento, per nome.
 5. **Il tuo progetto**, di cosa è fatto il progetto, e **Prossime manutenzioni** quando ce n'è qualcuna in programma.
 6. **Esplora OneUptime**, tutti i prodotti, una categoria alla volta.
@@ -40,7 +40,7 @@ La riga in alto nomina la cosa più urgente tra quelle aperte, in un colore corr
 
 Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. La home segue anche ciò che conta mentre cambia: quando un incidente, un avviso, un monitor, un evento di manutenzione o uno SLO viene creato, modificato o eliminato, la riga, i numeri, **Richiede attenzione** e **Prossime manutenzioni** si aggiornano in pochi secondi, senza ricaricare. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
 
-Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**. Lo vede solo chi può creare monitor.
+Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**, a meno che la checklist sotto offra già quel passaggio. Lo vede solo chi può creare monitor.
 
 ### I cinque numeri
 
@@ -68,13 +68,17 @@ Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un r
 | **Crea il tuo primo monitor** | Arriva il suo primo controllo. | La configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**, o l'elenco **Monitor** per chi non può creare monitor. |
 | **Collega un server o un cluster** | Arrivano le sue prime metriche. | **Host** |
 | **Invia i tuoi primi log, metriche o trace** | Arrivano i primi log, metriche, trace, eccezioni o profili del progetto. | La configurazione guidata **Invia log, metriche e tracce, poi ricevi avvisi** |
-| **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità esegue una policy che può raggiungere qualcuno. | La configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta** |
+| **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità o un monitor esegue una policy che può raggiungere qualcuno. | La configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta** |
 | **Pubblica una pagina di stato** | Una pagina di stato mostra un monitor. | La configurazione guidata **Pubblica una pagina di stato**, o l'elenco **Pagine di stato** per chi non può creare pagine di stato. |
 | **Invita il tuo team** | Qualcuno accetta il tuo invito. | **Utenti** |
 
-Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted che non può ancora inviare email, gli amministratori del server vedono prima **Questo server non può ancora inviare email**, che apre la dashboard di amministrazione.
+Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted non ancora configurato, i suoi amministratori vedono invece la scheda del server sopra la checklist, con **Completa la configurazione**, che apre la dashboard di amministrazione.
 
 Ogni passaggio indica quanto tempo richiede circa, la checklist quanto tempo resta circa, e il passaggio successivo ha un proprio pulsante **Avvia**.
+
+Un passaggio il cui record esiste ma non funziona ancora dice perché sotto di sé, con le parole di **Stato della configurazione**: una pagina di stato che non mostra alcun monitor, un monitor che niente controlla, una policy di reperibilità che niente esegue o che non raggiunge nessuno, un invito che nessuno ha accettato. Il passaggio apre allora la pagina che lo risolve e, quando è il prossimo, il suo pulsante indica la soluzione, ad esempio **Aggiungi monitor**.
+
+Una volta spuntato **Configura una policy di reperibilità**, e finché solo l'email può avvisarti, sotto resta **Ricevere chiamate via SMS o telefono**: apre la configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta**, per aggiungere il tuo telefono o l'app mobile. Lo vede solo chi può creare policy di reperibilità.
 
 Una configurazione guidata fa tutto il lavoro in una sola pagina, un passaggio alla volta, e termina con ciò che ha configurato e cosa fare dopo. Per riaprirne una più tardi, cerca il suo nome.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Sì"| hidden{"Nascosta<br/>da te?"}
     hidden -->|"Sì"| line["Una riga per<br/>mostrarla di nuovo"]
     hidden -->|"No"| done{"Tutti i passaggi<br/>fatti?"}
-    done -->|"Sì"| gone["Nessuna checklist"]
+    done -->|"Sì"| gone["Altro da configurare,<br/>finché resta qualcosa"]
     done -->|"No"| shown["La checklist, con<br/>i passaggi rimasti"]
 ```
 
 La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla prima, fai clic su **Nascondi**: resta nascosta solo per te, su ogni dispositivo, e rimane una riga con **Mostralo** e **Come funziona OneUptime**. Chi è stato invitato nel progetto come membro non vede la checklist. **Come funziona OneUptime** resta a un clic, in qualsiasi progetto: aprilo da **Aiuto** o con il pulsante accanto a **Esplora OneUptime**.
+
+Una volta completata la checklist, **Altro da configurare** prende il suo posto sotto il titolo, come una scheda tra le altre: i passaggi essenziali che i tuoi obiettivi non hanno portato, come una pagina di stato e il tuo team, ciascuno finché non funziona, con **Ricevere chiamate via SMS o telefono** per primo finché solo l'email può avvisarti. Il suo **Nascondi** la nasconde per te, senza lasciare alcuna riga.
 
 **Come funziona OneUptime** si apre su **Come si incastra tutto**: i quattro passaggi che un problema attraversa, **Rileva**, **Rispondi**, **Comunica** e **Migliora**, ognuno con i prodotti che lo svolgono. Poi vengono le categorie del menu **Prodotti**, ognuna con i suoi prodotti e a cosa serve ciascuno: scegline una, o passa alla successiva con i tasti freccia o **Avanti**. Fai clic su un prodotto per aprirlo. I prodotti che il tuo progetto nasconde non ci sono.
 
@@ -113,7 +119,7 @@ Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le per
 
 ### Esplora OneUptime
 
-**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic. I prodotti che il tuo progetto nasconde non compaiono.
+**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic. I prodotti che il tuo progetto nasconde sono nella sua ultima scheda, **Altri prodotti**, con una nota che dice che funzionano ancora.
 
 ## Orientarsi
 

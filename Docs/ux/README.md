@@ -64,11 +64,15 @@ learned one can find their way around the next.
   a banner to create a monitor, five zeros, the Welcome card and two empty lists, all asking for the
   same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
   that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
-  brings the rest of Home back, with the line that shows it again. Enforced by
+  brings the rest of Home back, with the line that shows it again; once finished, "More to set up" is
+  one card among Home's others while core steps no goal brought are left (#7986). Enforced by
   [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
-  setup. Not enforced: use judgement.
+  setup: Home's headline leaves out "Create your first monitor" while the Welcome card offers that
+  step (#7759). Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx) for Home; elsewhere, not
+  enforced: use judgement.
 - **A job that crosses products is a guided setup, on one page.** "Know when my website is down" needs a
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
