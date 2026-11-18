@@ -256,22 +256,40 @@ export default class ReadAudiencePermission {
   }
 
   /*
-   * THE RECORDS OF A KIND THE AUDIENCE READS, as a condition on their id:
-   * not private, owned by nobody where some read of the kind is limited to
-   * owners, carrying no label where some read of it is limited to or
-   * blocked from labels - or named by the subject. Null when it reads every
-   * record of the kind. `through`: the permissions of a record read through
-   * the kind narrow it by owners or labels themselves.
+   * THE RECORDS OF A MODEL THE AUDIENCE READS, as one condition on their
+   * id: not private; owned by nobody, where some read of the model is
+   * limited to owners; carrying no label, where some read of it is limited
+   * to or blocked from labels; and - with `followReferences` - naming no
+   * record the audience leaves out, of the kinds the label rule weighs a
+   * model without labels of its own by (a table by its data store) and of
+   * the one it takes its owners from (@OwnedThrough). Or named by the
+   * subject. Null when it reads every record of the model.
+   *
+   * `through`: the permissions of a record read through this one narrow it
+   * by owners or labels themselves (getNamesNoneLeftOutCondition). The
+   * records named inside a reference are weighed by their own owners,
+   * labels and privacy only, never their own references in turn: what the
+   * label rule follows, one record further than the one read.
    */
   public static getKeptCondition(
     modelType: ModelType,
     audience: ReadAudience,
-    through: NarrowedThrough = NOT_NARROWED_THROUGH,
+    options: {
+      through?: NarrowedThrough | undefined;
+      followReferences?: boolean | undefined;
+    } = {},
   ): FindWhereProperty<any> | null {
+    const through: NarrowedThrough = options.through || NOT_NARROWED_THROUGH;
     const parts: Array<{
       columnName?: string | undefined;
       condition: FindWhereProperty<any>;
     }> = [];
+
+    if (options.followReferences) {
+      parts.push(
+        ...ReadAudiencePermission.getReferenceParts(modelType, audience),
+      );
+    }
 
     if (ReadAudiencePermission.isPrivateKind(modelType)) {
       parts.push({
@@ -339,7 +357,9 @@ export default class ReadAudiencePermission {
     through: NarrowedThrough = NOT_NARROWED_THROUGH,
   ): FindWhereProperty<any> | null {
     const kept: FindWhereProperty<any> | null =
-      ReadAudiencePermission.getKeptCondition(modelType, audience, through);
+      ReadAudiencePermission.getKeptCondition(modelType, audience, {
+        through,
+      });
 
     if (!kept) {
       return null;
@@ -361,25 +381,38 @@ export default class ReadAudiencePermission {
   }
 
   /*
-   * THE CONDITIONS A READ OF A MODEL TAKES FOR AN AUDIENCE: for a kind, one
-   * on its id (getKeptCondition); for a record read through others, one on
-   * each key naming a kind it is weighed by - the key names no record of
-   * that kind the audience leaves out (or none at all). A key that can name
-   * a record of any kind (a resource id several kinds share) is weighed
-   * against every kind that leaves records out. Empty when the read keeps
-   * every row.
+   * THE CONDITIONS A READ OF A MODEL TAKES FOR AN AUDIENCE: the one on its
+   * id that keeps the records it reads (getKeptCondition, references
+   * followed). Empty when the read keeps every row.
    */
   public static getConditions(
     modelType: ModelType,
     audience: ReadAudience,
   ): Array<ReadAudienceCondition> {
-    if (ReadAudiencePermission.isKind(modelType)) {
-      const kept: FindWhereProperty<any> | null =
-        ReadAudiencePermission.getKeptCondition(modelType, audience);
+    const kept: FindWhereProperty<any> | null =
+      ReadAudiencePermission.getKeptCondition(modelType, audience, {
+        followReferences: true,
+      });
 
-      return kept ? [{ column: "_id", condition: kept }] : [];
-    }
+    return kept ? [{ column: "_id", condition: kept }] : [];
+  }
 
+  /*
+   * The parts of a model's condition that weigh it by the records it names,
+   * each on the key naming them: the key names no record of its kinds the
+   * audience leaves out, or none at all. Of a model without labels of its
+   * own, every record the label rule weighs it by
+   * (ReadPermission.getLabelledReferences) - a key that can name a record
+   * of any kind (a resource id several kinds share) against every kind that
+   * leaves records out; of a model without owners of its own, the record it
+   * takes its owners from (@OwnedThrough). A permission of the model's own
+   * held only by owner or label weighs those records by their owners or
+   * labels too (`through`).
+   */
+  private static getReferenceParts(
+    modelType: ModelType,
+    audience: ReadAudience,
+  ): Array<{ columnName: string; condition: FindWhereProperty<any> }> {
     const through: NarrowedThrough = {
       owners: ReadAudiencePermission.isReadWithAnyOf(
         modelType,
@@ -390,7 +423,10 @@ export default class ReadAudiencePermission {
         audience.labelledPermissions,
       ),
     };
-    const conditions: Array<ReadAudienceCondition> = [];
+    const parts: Array<{
+      columnName: string;
+      condition: FindWhereProperty<any>;
+    }> = [];
 
     for (const [column, kinds] of ReadAudiencePermission.getReferences(
       modelType,
@@ -403,8 +439,12 @@ export default class ReadAudiencePermission {
         );
 
       if (condition) {
-        conditions.push({ column, condition });
+        parts.push({ columnName: column, condition });
       }
+    }
+
+    if (new modelType().getAccessControlColumn()) {
+      return parts;
     }
 
     const references: LabelledReferences =
@@ -427,12 +467,12 @@ export default class ReadAudiencePermission {
           );
 
         if (condition) {
-          conditions.push({ column, condition });
+          parts.push({ columnName: column, condition });
         }
       }
     }
 
-    return conditions;
+    return parts;
   }
 
   /*
@@ -515,15 +555,21 @@ export default class ReadAudiencePermission {
       references.set(column, kinds);
     };
 
-    for (const reference of ReadPermission.getLabelledReferences(modelType)
-      .keys) {
-      for (const kind of reference.modelTypes) {
-        add(reference.column, kind);
+    // A model with labels of its own is weighed by them alone (the label rule).
+    if (!new modelType().getAccessControlColumn()) {
+      for (const reference of ReadPermission.getLabelledReferences(modelType)
+        .keys) {
+        for (const kind of reference.modelTypes) {
+          add(reference.column, kind);
+        }
       }
     }
 
+    // A model with owners of its own is owned by them alone.
     const ownedThrough: OwnedThroughMetadata | null =
-      OwnedScopePermission.getOwnedThrough(modelType);
+      OwnedScopePermission.hasOwnerTables(modelType)
+        ? null
+        : OwnedScopePermission.getOwnedThrough(modelType);
 
     if (ownedThrough) {
       for (const parent of ownedThrough.parentModels) {

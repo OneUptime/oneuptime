@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
+import DataAsset from "../../../../../Models/DatabaseModels/DataAsset";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import Log from "../../../../../Models/AnalyticsModels/Log";
@@ -289,15 +290,16 @@ describe("a record read through others", () => {
         audience({ ownedOnlyPermissions: [Permission.ReadProjectMonitor] }),
       );
 
+    // One condition on its id, written on the key beside it.
     expect(
       conditions.map((each: ReadAudienceCondition): string => {
         return each.column;
       }),
-    ).toEqual(["monitorId"]);
+    ).toEqual(["_id"]);
 
     const sql: string = sqlOf(
       conditions[0]!.condition,
-      '"MonitorStatusTimeline"."monitorId"',
+      '"MonitorStatusTimeline"."_id"',
     );
 
     expect(sql).toContain(
@@ -317,16 +319,17 @@ describe("a record read through others", () => {
     const conditions: Array<ReadAudienceCondition> =
       ReadAudiencePermission.getConditions(IncidentInternalNote, audience());
 
-    const incidentKey: ReadAudienceCondition | undefined = conditions.find(
-      (each: ReadAudienceCondition): boolean => {
-        return each.column === "incidentId";
-      },
+    expect(conditions).toHaveLength(1);
+
+    const sql: string = sqlOf(
+      conditions[0]!.condition,
+      '"IncidentInternalNote"."_id"',
     );
 
-    expect(incidentKey).toBeDefined();
-    expect(
-      sqlOf(incidentKey!.condition, '"IncidentInternalNote"."incidentId"'),
-    ).toContain('"isPrivate" IS NULL OR');
+    expect(sql).toContain(
+      '"IncidentInternalNote"."incidentId" IS NULL OR "IncidentInternalNote"."incidentId" NOT IN (SELECT',
+    );
+    expect(sql).toContain('"isPrivate" IS NULL OR');
   });
 
   test("an exception group goes with a service set apart by a label - whichever kind of resource its key names", () => {
@@ -340,11 +343,11 @@ describe("a record read through others", () => {
       conditions.map((each: ReadAudienceCondition): string => {
         return each.column;
       }),
-    ).toEqual(["primaryEntityId"]);
+    ).toEqual(["_id"]);
 
     const sql: string = sqlOf(
       conditions[0]!.condition,
-      '"TelemetryException"."primaryEntityId"',
+      '"TelemetryException"."_id"',
     );
 
     // Only services are narrowed: a key naming a host names none left out.
@@ -363,7 +366,7 @@ describe("a record read through others", () => {
       );
     const sql: string = sqlOf(
       conditions[0]!.condition,
-      '"TelemetryException"."primaryEntityId"',
+      '"TelemetryException"."_id"',
     );
 
     expect(sql).toContain('FROM "Service" "record');
@@ -378,10 +381,42 @@ describe("a record read through others", () => {
       );
 
     expect(
-      conditions.map((each: ReadAudienceCondition): string => {
-        return each.column;
-      }),
-    ).toContain("monitorId");
+      sqlOf(conditions[0]!.condition, '"MonitorOwnerTeam"."_id"'),
+    ).toContain(
+      '"MonitorOwnerTeam"."monitorId" IS NULL OR "MonitorOwnerTeam"."monitorId" NOT IN (SELECT',
+    );
+  });
+
+  test("a kind with owners but no labels of its own is weighed by owners itself, and by the labels of what it names", () => {
+    const sql: string = sqlOf(
+      ReadAudiencePermission.getConditions(
+        DataAsset,
+        audience({
+          ownedOnlyPermissions: [Permission.ReadDataAsset],
+          labelledPermissions: [Permission.ReadDataAsset],
+        }),
+      )[0]!.condition,
+      '"DataAsset"."_id"',
+    );
+
+    expect(sql).toContain('FROM "DataAssetOwnerUser"');
+    expect(sql).toContain(
+      '"DataAsset"."dataStoreId" IS NULL OR "DataAsset"."dataStoreId" NOT IN (SELECT',
+    );
+    expect(sql).toContain('"DataStoreLabel"."dataStoreId"');
+  });
+
+  test("a kind with labels of its own is weighed by them alone, never by what it names", () => {
+    const sql: string = sqlOf(
+      ReadAudiencePermission.getConditions(
+        Alert,
+        audience({ labelledPermissions: [Permission.ProjectMember] }),
+      )[0]!.condition,
+      '"Alert"."_id"',
+    );
+
+    expect(sql).toContain('"AlertLabel"."alertId"');
+    expect(sql).not.toContain('FROM "Monitor" "record');
   });
 });
 

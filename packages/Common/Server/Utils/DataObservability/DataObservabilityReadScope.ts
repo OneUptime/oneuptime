@@ -190,9 +190,13 @@ export default class DataObservabilityReadScope {
   public static forAudience(audience: ReadAudience): DataObservabilityScope {
     const projectId: ObjectID = new ObjectID(audience.projectId);
     const table: FindWhereProperty<any> | null =
-      ReadAudiencePermission.getKeptCondition(DataAsset, audience);
+      ReadAudiencePermission.getKeptCondition(DataAsset, audience, {
+        followReferences: true,
+      });
     const pipeline: FindWhereProperty<any> | null =
-      ReadAudiencePermission.getKeptCondition(DataPipeline, audience);
+      ReadAudiencePermission.getKeptCondition(DataPipeline, audience, {
+        followReferences: true,
+      });
 
     if (!table && !pipeline) {
       return this.wholeProject(projectId);
