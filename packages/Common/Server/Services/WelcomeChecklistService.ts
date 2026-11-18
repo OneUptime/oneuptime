@@ -61,6 +61,7 @@ import {
   parseWelcomeChecklistState,
   toWelcomeChecklistStateJSON,
   withTestPageAcknowledgedBy,
+  withTestPagesAcknowledgedBefore,
   withWelcomeChecklistFinished,
   withWelcomeChecklistHiddenFor,
 } from "../../Types/WelcomeChecklist/WelcomeChecklistState";
@@ -349,6 +350,48 @@ export default class WelcomeChecklistService {
         return withTestPageAcknowledgedBy(current, data.userId.toString());
       },
     );
+  }
+
+  /*
+   * Notes members who acknowledged a test page before the note was kept
+   * (#7042): the one-off backfill's write (TestPageAcknowledgementBackfill),
+   * oldest first. They go before the members noted since, and a member
+   * noted already is left as they are. Written as every write is
+   * (changeState), so a member noted live meanwhile is kept, and a project
+   * where every one of them is noted already is not locked at all. Returns
+   * how many members it noted.
+   */
+  public static async noteTestPagesAcknowledgedBefore(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+  }): Promise<number> {
+    const row: ProjectChecklistRow = await this.readProject(data.projectId);
+
+    if (
+      withTestPagesAcknowledgedBefore(row.state, data.userIds) === row.state
+    ) {
+      return 0;
+    }
+
+    let notedCount: number = 0;
+
+    await this.changeState(
+      data.projectId,
+      (current: WelcomeChecklistState): WelcomeChecklistState => {
+        const next: WelcomeChecklistState = withTestPagesAcknowledgedBefore(
+          current,
+          data.userIds,
+        );
+
+        notedCount =
+          (next.testPageAcknowledgedByUserIds || []).length -
+          (current.testPageAcknowledgedByUserIds || []).length;
+
+        return next;
+      },
+    );
+
+    return Math.max(notedCount, 0);
   }
 
   /*
