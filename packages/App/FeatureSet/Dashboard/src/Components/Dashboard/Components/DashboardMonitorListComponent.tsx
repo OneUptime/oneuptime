@@ -14,7 +14,10 @@ import DashboardResourceListBase, {
   ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
-import { HoneycombTile } from "./DashboardResourceHoneycomb";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -84,6 +87,114 @@ export const getMonitorListStatusName: (
     StateListType.MonitorStatus,
     status.text,
   );
+};
+
+/*
+ * The colour a row's dot and its tile are drawn in: its status's, or gray
+ * for a row read with no colour.
+ */
+export const MONITOR_LIST_NO_COLOR_STATUS_COLOR: string = "#9ca3af";
+
+export const getMonitorListStatusColor: (
+  status: MonitorListRowStatus,
+) => string = (status: MonitorListRowStatus): string => {
+  return status.color
+    ? status.color.toString()
+    : MONITOR_LIST_NO_COLOR_STATUS_COLOR;
+};
+
+/*
+ * THE LEGEND UNDER A HONEYCOMB'S TILES (issue #7344): what each colour the
+ * tiles draw means, in the words their tooltips and the table's rows say
+ * (getMonitorListRowStatus, getMonitorListStatusName), so the legend, a
+ * tile and its tooltip never disagree. A tooltip was the only place a gray
+ * tile said Disabled, so a board on a wall screen, where nobody hovers,
+ * showed gray tiles beside red and green ones with nothing to say gray is
+ * neither an outage nor a state nobody knows.
+ *
+ * One entry per colour the tiles show, in the order Status sorts the list
+ * worst first: the statuses by their priority, the highest first (a row
+ * that says why nothing stands behind its status - Waiting for data, No
+ * Probe Enabled - by the status it holds, as the sort reads it), then
+ * Disabled, last and gray, as a monitor whose monitoring is off comes
+ * after every checked one either way the list sorts. Two the same are the
+ * one first listed.
+ *
+ * Always drawn while there are tiles, one colour or several, as every list
+ * widget's legend is: a wall of green tiles says Operational, and a wall of
+ * gray ones Disabled.
+ */
+export const getMonitorListHoneycombLegend: (
+  monitors: Array<Monitor>,
+  translator: Translator,
+) => Array<HoneycombLegendItem> = (
+  monitors: Array<Monitor>,
+  translator: Translator,
+): Array<HoneycombLegendItem> => {
+  interface LegendEntry {
+    item: HoneycombLegendItem;
+    isMonitoringOff: boolean;
+    // The worst priority among its monitors' statuses; none when unknown.
+    priority: number | null;
+    firstIndex: number;
+  }
+
+  const entries: Map<string, LegendEntry> = new Map<string, LegendEntry>();
+
+  monitors.forEach((monitor: Monitor, index: number): void => {
+    const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
+    const label: string = getMonitorListStatusName(status, translator);
+    const color: string = getMonitorListStatusColor(status);
+    const storedPriority: unknown = monitor.currentMonitorStatus?.priority;
+    const priority: number | null =
+      typeof storedPriority === "number" && Number.isFinite(storedPriority)
+        ? storedPriority
+        : null;
+    const key: string = `${label}\u0000${color}`;
+    const entry: LegendEntry | undefined = entries.get(key);
+
+    if (!entry) {
+      entries.set(key, {
+        // In the reader's words already, as the tile's status is.
+        item: { label: label, color: color, isLabelUserContent: true },
+        isMonitoringOff: status.isMonitoringOff,
+        priority: priority,
+        firstIndex: index,
+      });
+      return;
+    }
+
+    if (
+      priority !== null &&
+      (entry.priority === null || priority > entry.priority)
+    ) {
+      entry.priority = priority;
+    }
+  });
+
+  return Array.from(entries.values())
+    .sort((first: LegendEntry, second: LegendEntry): number => {
+      if (first.isMonitoringOff !== second.isMonitoringOff) {
+        return first.isMonitoringOff ? 1 : -1;
+      }
+
+      if (first.priority !== second.priority) {
+        if (first.priority === null) {
+          return 1;
+        }
+
+        if (second.priority === null) {
+          return -1;
+        }
+
+        return second.priority - first.priority;
+      }
+
+      return first.firstIndex - second.firstIndex;
+    })
+    .map((entry: LegendEntry): HoneycombLegendItem => {
+      return entry.item;
+    });
 };
 
 /*
@@ -260,7 +371,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         // In the reader's words already, as the table's row reads it.
         status: statusName,
         isStatusUserContent: true,
-        color: status.color ? status.color.toString() : "#9ca3af",
+        color: getMonitorListStatusColor(status),
         route: detailRoute,
         tooltip: {
           title: name,
@@ -310,9 +421,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
               <span
                 className="inline-block w-2 h-2 rounded-full"
                 style={{
-                  backgroundColor: statusColor
-                    ? statusColor.toString()
-                    : "#9ca3af",
+                  backgroundColor: getMonitorListStatusColor(status),
                 }}
               ></span>
               {/*
@@ -351,6 +460,11 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       emptyIcon={IconProp.AltGlobe}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      honeycombLegend={
+        viewMode === "honeycomb"
+          ? getMonitorListHoneycombLegend(monitors, translator)
+          : undefined
+      }
       sort={widgetSort.listSort}
     >
       {rows}

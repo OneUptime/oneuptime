@@ -169,16 +169,27 @@ export const getMonitorListRowStatus: GetMonitorListRowStatusFunction = (
 
 /*
  * The fields a row draws: everything the row rule reads
- * (MONITOR_ROW_STATUS_SELECT), beside the name and type. The public endpoint
- * pins this same select server-side (PublicDashboardResourceListPolicy), so
- * a public page says what the board says of each monitor.
+ * (MONITOR_ROW_STATUS_SELECT), beside the name and type, and the status's
+ * priority, which orders a honeycomb's legend as Status sorts the list,
+ * worst first (#7344). The public endpoint pins this same select
+ * server-side (PublicDashboardResourceListPolicy), so a public page says
+ * what the board says of each monitor.
  */
-export const MONITOR_LIST_WIDGET_SELECT: typeof MONITOR_ROW_STATUS_SELECT & {
+export const MONITOR_LIST_WIDGET_SELECT: Omit<
+  typeof MONITOR_ROW_STATUS_SELECT,
+  "currentMonitorStatus"
+> & {
   _id: true;
   name: true;
+  currentMonitorStatus: (typeof MONITOR_ROW_STATUS_SELECT)["currentMonitorStatus"] & {
+    priority: true;
+  };
 } = {
   _id: true,
   name: true,
   ...MONITOR_ROW_STATUS_SELECT,
-  currentMonitorStatus: { ...MONITOR_ROW_STATUS_SELECT.currentMonitorStatus },
+  currentMonitorStatus: {
+    ...MONITOR_ROW_STATUS_SELECT.currentMonitorStatus,
+    priority: true,
+  },
 };

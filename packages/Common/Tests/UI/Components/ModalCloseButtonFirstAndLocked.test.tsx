@@ -5,7 +5,13 @@ import Modal, {
 } from "../../../UI/Components/Modal/Modal";
 import { afterEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
