@@ -136,6 +136,8 @@ Each job, dbt project and sync appears under **Pipelines**, with its runs: when 
 - **Pipeline Run Unusually Long**: a run has taken twice its typical time or more, checked every five minutes while it runs, so a run that hangs is seen before it ends.
 - **Pipeline Is Late**: no run has started for longer than its schedule allows.
 
+A pipeline's **Owners** tab names the people and teams who look after it, and its alerts go to them. The **Overview** and **Issues** name a failed or late pipeline's owners, or say it has **No owner**, with a way to add one.
+
 A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab. A count of tables not drawn, on the pipeline's card or a table's, draws more of them in place here too.
 
 ## One issue per cause

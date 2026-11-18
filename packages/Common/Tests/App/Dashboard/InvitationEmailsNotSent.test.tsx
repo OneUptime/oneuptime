@@ -194,6 +194,7 @@ import {
   useInvitationEmailsNotSent,
 } from "../../../UI/Components/InvitationLink/InvitationEmailsNotSent";
 import { PillTone } from "../../../UI/Components/Pill/PillTone";
+import { RESEND_INVITATION_COPY } from "../../../UI/Components/InvitationLink/ResendInvitation";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUsersModelAPI from "../../../UI/Utils/ModelAPI/ProjectUsersModelAPI";
@@ -453,8 +454,9 @@ function isOffered(item: TeamMember): boolean {
   return Boolean(linkAction().isVisible!(item));
 }
 
+// Resend Invitation, on the row, once email works (#9519).
 const ADVICE_FOR_OTHERS: string =
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.";
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.";
 const ADVICE_FOR_MASTER_ADMIN: string =
   "They can still join: send them their invitation link yourself.";
 
@@ -475,18 +477,26 @@ describe("the words", () => {
     ).toBe(ADVICE_FOR_MASTER_ADMIN);
   });
 
-  test("anybody else on a self-hosted server: invite them again once email works, or ask the server's admin", () => {
+  test("anybody else on a self-hosted server: resend it once email works, or ask the server's admin", () => {
     expect(
       getInvitationEmailNotSentAdvice({ isMasterAdmin: false, isCloud: false }),
     ).toBe(ADVICE_FOR_OTHERS);
   });
 
-  test("on OneUptime Cloud, which has no server's admin to ask: check the address and invite them again", () => {
+  test("on OneUptime Cloud, which has no server's admin to ask: check the address and resend it", () => {
     expect(
       getInvitationEmailNotSentAdvice({ isMasterAdmin: false, isCloud: true }),
-    ).toBe(
-      "Check their email address, then remove them and invite them again.",
-    );
+    ).toBe("Check their email address, then use Resend Invitation.");
+  });
+
+  test("the advice names the row's own action, as the row draws it - never removing and inviting again", () => {
+    for (const advice of [
+      getInvitationEmailNotSentAdvice({ isMasterAdmin: false, isCloud: false }),
+      getInvitationEmailNotSentAdvice({ isMasterAdmin: false, isCloud: true }),
+    ]) {
+      expect(advice).toContain(RESEND_INVITATION_COPY.action);
+      expect(advice).not.toContain("remove them");
+    }
   });
 
   test("the reason is the mail service's answer, as it said it", () => {

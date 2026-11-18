@@ -155,7 +155,7 @@ Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, kann auc
 :::
 
 :::details Bei einer Person steht E-Mail nicht gesendet
-Der Mail-Dienst hat die letzte Einladungs-E-Mail abgelehnt, also hat die Person nichts erhalten. Zeigen Sie auf **E-Mail nicht gesendet** oder tippen Sie darauf, um den Grund zu sehen, so wie ihn der Tab **E-Mail** der **Benachrichtigungsprotokolle** des Projekts nennt. Prüfen Sie die eingeladene Adresse, entfernen Sie die Person dann, sobald E-Mail funktioniert, und laden Sie sie erneut ein. Auf einem selbst gehosteten Server kann der Admin des Servers ihr stattdessen ihren Einladungslink senden: Ein Master-Admin öffnet unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klickt auf **Einladungslink abrufen**.
+Der Mail-Dienst hat die letzte Einladungs-E-Mail abgelehnt, also hat die Person nichts erhalten. Zeigen Sie auf **E-Mail nicht gesendet** oder tippen Sie darauf, um den Grund zu sehen, so wie ihn der Tab **E-Mail** der **Benachrichtigungsprotokolle** des Projekts nennt. Prüfen Sie die eingeladene Adresse, öffnen Sie dann, sobald E-Mail funktioniert, unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klicken Sie auf **Einladung erneut senden**: Sobald die E-Mail versendet ist, erscheint die Person wieder als **Einladung gesendet**. Auf einem selbst gehosteten Server kann der Admin des Servers ihr stattdessen ihren Einladungslink senden: Ein Master-Admin klickt im selben Menü auf **Einladungslink abrufen**.
 :::
 
 :::details Benutzer einladen meldet, dass Benutzer über SCIM Push Groups verwaltet werden

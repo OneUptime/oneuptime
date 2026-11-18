@@ -385,6 +385,18 @@ enum Permission {
   EditDataAssetOwnerTeam = "EditDataAssetOwnerTeam",
   ReadDataAssetOwnerTeam = "ReadDataAssetOwnerTeam",
 
+  // Pipeline User Owners
+  CreateDataPipelineOwnerUser = "CreateDataPipelineOwnerUser",
+  DeleteDataPipelineOwnerUser = "DeleteDataPipelineOwnerUser",
+  EditDataPipelineOwnerUser = "EditDataPipelineOwnerUser",
+  ReadDataPipelineOwnerUser = "ReadDataPipelineOwnerUser",
+
+  // Pipeline Team Owners
+  CreateDataPipelineOwnerTeam = "CreateDataPipelineOwnerTeam",
+  DeleteDataPipelineOwnerTeam = "DeleteDataPipelineOwnerTeam",
+  EditDataPipelineOwnerTeam = "EditDataPipelineOwnerTeam",
+  ReadDataPipelineOwnerTeam = "ReadDataPipelineOwnerTeam",
+
   // Table Owner Rules: owners assigned to matching stores
   CreateDataAssetOwnerRule = "CreateDataAssetOwnerRule",
   DeleteDataAssetOwnerRule = "DeleteDataAssetOwnerRule",
@@ -9716,6 +9728,90 @@ export class PermissionHelper {
         title: "Read Table Team Owner",
         description:
           "This permission can read Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Pipeline User Owner Permissions
+      {
+        permission: Permission.CreateDataPipelineOwnerUser,
+        title: "Create Pipeline User Owner",
+        description:
+          "This permission can create Pipeline User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataPipelineOwnerUser,
+        title: "Delete Pipeline User Owner",
+        description:
+          "This permission can delete Pipeline User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataPipelineOwnerUser,
+        title: "Edit Pipeline User Owner",
+        description:
+          "This permission can edit Pipeline User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataPipelineOwnerUser,
+        title: "Read Pipeline User Owner",
+        description:
+          "This permission can read Pipeline User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Pipeline Team Owner Permissions
+      {
+        permission: Permission.CreateDataPipelineOwnerTeam,
+        title: "Create Pipeline Team Owner",
+        description:
+          "This permission can create Pipeline Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataPipelineOwnerTeam,
+        title: "Delete Pipeline Team Owner",
+        description:
+          "This permission can delete Pipeline Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataPipelineOwnerTeam,
+        title: "Edit Pipeline Team Owner",
+        description:
+          "This permission can edit Pipeline Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataPipelineOwnerTeam,
+        title: "Read Pipeline Team Owner",
+        description:
+          "This permission can read Pipeline Team Owners of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -223,7 +223,7 @@ const WENT_OUT_ANSWER: string =
  * it means, where its reason comes from, and what to do, as the pill does.
  */
 const EMAIL_NOT_SENT_ANSWER: string =
-  "The mail service refused their latest invitation email, so nothing reached them. Point at **Email Not Sent**, or tap it, to see why, as the **Email** tab of the project's **Notification Logs** says it. Check the address you invited, then, once email works, remove them and invite them again. On a self-hosted server, the server's admin can send them their invitation link instead: a master admin opens the person's row menu on **Users**, **⋯**, and clicks **Get Invitation Link**.";
+  "The mail service refused their latest invitation email, so nothing reached them. Point at **Email Not Sent**, or tap it, to see why, as the **Email** tab of the project's **Notification Logs** says it. Check the address you invited, then, once email works, open the person's row menu on **Users**, **⋯**, and click **Resend Invitation**: they show as **Invitation Sent** again once it goes out. On a self-hosted server, the server's admin can send them their invitation link instead: a master admin clicks **Get Invitation Link** in the same menu.";
 
 /*
  * What Accept an invitation says of the sign-up page an invitation opens
@@ -1162,10 +1162,10 @@ describe("Inviting People", () => {
       /*
        * The Users list offers it on a pending row, to a master admin, on a
        * server that cannot send email - or whose latest invitation email
-       * was not sent (#9511).
+       * was not sent (#9511) - beside Resend Invitation (#9519).
        */
       expect(usersPage).toContain(
-        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail) ? (item: TeamMember): boolean => { return Boolean(invitationEmailsNotSent.getNotSent(item)); } : undefined, onOpen: (teamMemberId: ObjectID, item: TeamMember) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, isEmailNotSent: !cannotSendEmail(serverEmail) && Boolean(invitationEmailsNotSent.getNotSent(item)), }); }, }), ]}",
+        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail) ? (item: TeamMember): boolean => { return Boolean(invitationEmailsNotSent.getNotSent(item)); } : undefined, onOpen: (teamMemberId: ObjectID, item: TeamMember) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, isEmailNotSent: !cannotSendEmail(serverEmail) && Boolean(invitationEmailsNotSent.getNotSent(item)), }); }, }), getResendInvitationRowAction<TeamMember>({ isAvailable: canResendInvitations(serverEmail), getRequestHeaders: () => { return ModelAPI.getCommonHeaders(); }, }), ]}",
       );
       expect(serverEmail).toContain(
         "return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;",
@@ -1257,9 +1257,20 @@ describe("Inviting People", () => {
     expect(pill).toContain(
       'if (!props.notSent) { return ( <Pill text="Invitation Sent"',
     );
-    expect(pill).toContain("text={SERVER_EMAIL_COPY.emailNotSentPill}");
+    // Email Not Sent: one pill, which the Admin Dashboard draws too (#9518).
+    expect(pill).toContain("<InvitationEmailNotSentPill");
+    expect(
+      readCommonSource(
+        "UI/Components/InvitationLink/InvitationEmailNotSentPill.tsx",
+      ),
+    ).toContain("text={INVITATION_EMAIL_NOT_SENT_COPY.pill}");
+    expect(
+      readCommonSource(
+        "UI/Components/InvitationLink/InvitationEmailNotSentPill.tsx",
+      ),
+    ).toContain('pill: translationKey("Email Not Sent"),');
     expect(readDashboardSource("Utils/ServerEmail.ts")).toContain(
-      'emailNotSentPill: translationKey("Email Not Sent"),',
+      "emailNotSentPill: INVITATION_EMAIL_NOT_SENT_COPY.pill,",
     );
     expect(readDashboardSource("Utils/ServerEmail.ts")).toContain(
       "invitedPill: INVITATION_LINK_COPY.invitedPill,",
@@ -1310,8 +1321,11 @@ describe("Inviting People", () => {
    */
   it("answers Email Not Sent as the pill says it: why, in the Email Logs' words, and what to do", () => {
     const answer: string = detailsText(page, "A person shows Email Not Sent");
+    // The pill the Dashboard and the Admin Dashboard draw alike (#9518).
     const pill: string = collapsed(
-      readDashboardSource("Components/User/PendingInvitationPill.tsx"),
+      readCommonSource(
+        "UI/Components/InvitationLink/InvitationEmailNotSentPill.tsx",
+      ),
     );
     const serverEmail: string = collapsed(
       readDashboardSource("Utils/ServerEmail.ts"),
@@ -1322,6 +1336,9 @@ describe("Inviting People", () => {
     const modal: string = collapsed(
       readCommonSource("UI/Components/InvitationLink/InvitationLinkModal.tsx"),
     );
+    const resend: string = collapsed(
+      readCommonSource("UI/Components/InvitationLink/ResendInvitation.ts"),
+    );
 
     expect(answer).toBe(EMAIL_NOT_SENT_ANSWER);
     expect(boldNames(answer)).toEqual([
@@ -1330,8 +1347,26 @@ describe("Inviting People", () => {
       "Notification Logs",
       "Users",
       "⋯",
+      "Resend Invitation",
+      "Invitation Sent",
       "Get Invitation Link",
     ]);
+
+    // Resend Invitation (#9519): the row action, on a pending row, in the row's menu.
+    expect(resend).toContain('action: translationKey("Resend Invitation"),');
+    expect(resend).toContain("title: RESEND_INVITATION_COPY.action,");
+    expect(resend).toContain(
+      "return ( data.isAvailable && Boolean(item.id) && !item.hasAcceptedInvitation );",
+    );
+    expect(resend).not.toContain("ActionButtonPlacement.Primary");
+    // The row reads its status again once it went: Invitation Sent.
+    expect(resend).toContain("context?.refresh();");
+    expect(collapsed(users)).toContain(
+      "getResendInvitationRowAction<TeamMember>({",
+    );
+    expect(
+      collapsed(readCommonSource("Server/API/TeamMemberAPI.ts")),
+    ).toContain("/:id${RESEND_INVITATION_ROUTE_END}`");
 
     // The person's latest invitation email decides, and it was refused.
     expect(reader).toContain(
@@ -1351,13 +1386,14 @@ describe("Inviting People", () => {
       readDashboardSource("Components/NotificationLogs/EmailLogsTable.tsx"),
     ).toContain("getEmailLogReason(");
 
-    // What to do, as the pill tells anybody who is not a master admin.
+    // What to do, as the pill tells anybody who is not a master admin: Resend Invitation.
     expect(serverEmail).toContain(
-      '"Once email works, remove them and invite them again, or ask your server\'s admin for their invitation link."',
+      '"Once email works, use Resend Invitation, or ask your server\'s admin for their invitation link."',
     );
     expect(serverEmail).toContain(
-      '"Check their email address, then remove them and invite them again."',
+      '"Check their email address, then use Resend Invitation."',
     );
+    expect(serverEmail).not.toContain("remove them and invite them again");
 
     // A master admin's Get Invitation Link, on that row.
     expect(serverEmail).toContain(
@@ -1515,11 +1551,19 @@ describe("Inviting People", () => {
       return heading.text === "See what the server sent";
     });
 
-    // The invitation email is the project's, so its log row is too.
+    /*
+     * The invitation email is the project's, so its log row is too - sent
+     * again by Resend Invitation as well (#9519).
+     */
     expect(
       collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
     ).toContain(
-      "{ projectId: createBy.data.projectId!, userId: user.id!, }, ).catch(",
+      "MailService.sendMail(invitationEmail, { projectId: createBy.data.projectId!, userId: user.id!, }).catch(",
+    );
+    expect(
+      collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
+    ).toContain(
+      "await MailService.sendMail(invitationEmail, { projectId: projectId, userId: user.id, timeoutInMs: RESEND_INVITATION_SEND_TIMEOUT_IN_MS, });",
     );
     expect(sideMenu).toContain('title: "Notification Logs"');
     expect(tabs).toContain('name: "Email"');

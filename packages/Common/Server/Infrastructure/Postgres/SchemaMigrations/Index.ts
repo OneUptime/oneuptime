@@ -1065,6 +1065,8 @@ import { AddDocsFeedbackKeeping1809183800000 } from "./1809183800000-AddDocsFeed
 import { AddEmailLogTemplateType1809183830000 } from "./1809183830000-AddEmailLogTemplateType";
 import { AddRumSessionErasureRequestProductAnalyticsRowsDeleted1809183906628 } from "./1809183906628-AddRumSessionErasureRequestProductAnalyticsRowsDeleted";
 import { AddRumApplicationProductAnalyticsRetention1809183906630 } from "./1809183906630-AddRumApplicationProductAnalyticsRetention";
+import { AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000 } from "./1809184550000-AddDataObservabilityAttentionColumnsAndPipelineOwners";
+import { AddDataCheckMonitorIdIndex1809184560000 } from "./1809184560000-AddDataCheckMonitorIdIndex";
 
 export default [
   InitialMigration,
@@ -2134,4 +2136,6 @@ export default [
   AddEmailLogTemplateType1809183830000,
   AddRumSessionErasureRequestProductAnalyticsRowsDeleted1809183906628,
   AddRumApplicationProductAnalyticsRetention1809183906630,
+  AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000,
+  AddDataCheckMonitorIdIndex1809184560000,
 ];

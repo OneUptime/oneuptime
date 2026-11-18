@@ -32,6 +32,8 @@ import DataAssetOwnerTeamService from "../../../Services/DataAssetOwnerTeamServi
 import DataAssetOwnerUserService from "../../../Services/DataAssetOwnerUserService";
 import DataStoreOwnerTeamService from "../../../Services/DataStoreOwnerTeamService";
 import DataStoreOwnerUserService from "../../../Services/DataStoreOwnerUserService";
+import DataPipelineOwnerTeamService from "../../../Services/DataPipelineOwnerTeamService";
+import DataPipelineOwnerUserService from "../../../Services/DataPipelineOwnerUserService";
 import RumApplicationOwnerTeamService from "../../../Services/RumApplicationOwnerTeamService";
 import RumApplicationOwnerUserService from "../../../Services/RumApplicationOwnerUserService";
 import ProxmoxClusterOwnerTeamService from "../../../Services/ProxmoxClusterOwnerTeamService";
@@ -339,6 +341,20 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerTeamService: DataAssetOwnerTeamService,
       fkColumn: "dataAssetId",
       // A table is read through its store: telemetry rows name the store, not it.
+      canOwnTelemetry: false,
+    },
+  ],
+  [
+    /*
+     * A data pipeline (#6551): its runs take their owners from it
+     * (DataPipelineRun's @OwnedThrough). Its metrics name the pipeline in an
+     * attribute, never a telemetry row's serviceId.
+     */
+    "DataPipeline",
+    {
+      ownerUserService: DataPipelineOwnerUserService,
+      ownerTeamService: DataPipelineOwnerTeamService,
+      fkColumn: "dataPipelineId",
       canOwnTelemetry: false,
     },
   ],

@@ -37,6 +37,12 @@ import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
 } from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
+import {
+  InvitationEmailsNotSent,
+  useInvitationEmailsNotSent,
+} from "Common/UI/Components/InvitationLink/InvitationEmailsNotSent";
+import { getResendInvitationRowAction } from "Common/UI/Components/InvitationLink/ResendInvitation";
+import PendingInvitationPill from "../../../Components/User/PendingInvitationPill";
 import { translateText } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   Fragment,
@@ -83,9 +89,41 @@ const UserProjects: FunctionComponent = (): ReactElement => {
    */
   const membersNotSignedUp: MembersNotSignedUp =
     useMembersNotSignedUp(cannotSendEmail);
-  const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
-    null,
+  const [invitationLinkFor, setInvitationLinkFor] = useState<{
+    teamMemberId: ObjectID;
+    // Their latest invitation email was not sent, on a server that sends email.
+    isEmailNotSent: boolean;
+  } | null>(null);
+
+  /*
+   * A project this user is invited to and whose latest invitation email
+   * the mail service refused says Email Not Sent, not Invitation Sent
+   * (#9518), on both tables: read from each project's Email Logs, a page of
+   * each table at a time. Its rows offer the link, and Resend Invitation
+   * (#9519).
+   */
+  const projectsNotSent: InvitationEmailsNotSent = useInvitationEmailsNotSent(
+    !cannotSendEmail,
+    { isAcrossProjects: true },
   );
+  const membershipsNotSent: InvitationEmailsNotSent =
+    useInvitationEmailsNotSent(!cannotSendEmail, { isAcrossProjects: true });
+
+  // A pending row's Get Invitation Link, with whether its email was not sent.
+  type OpenInvitationLinkFunction = (
+    teamMemberId: ObjectID,
+    isEmailNotSent: boolean,
+  ) => void;
+
+  const openInvitationLink: OpenInvitationLinkFunction = (
+    teamMemberId: ObjectID,
+    isEmailNotSent: boolean,
+  ): void => {
+    setInvitationLinkFor({
+      teamMemberId: teamMemberId,
+      isEmailNotSent: !cannotSendEmail && isEmailNotSent,
+    });
+  };
 
   /*
    * Both tables read the same memberships, so any write to one has to refresh
@@ -206,6 +244,32 @@ const UserProjects: FunctionComponent = (): ReactElement => {
           onItemDeleted={() => {
             refreshTables();
           }}
+          /*
+           * A project whose latest invitation email was not sent (#9518):
+           * its link, and Resend Invitation (#9519). A server that cannot
+           * send email hands the links out on the memberships' rows below.
+           */
+          actionButtons={[
+            getInvitationLinkRowAction<TeamMember>({
+              isAvailable: false,
+              isEmailNotSent: (item: TeamMember): boolean => {
+                return Boolean(projectsNotSent.getNotSent(item));
+              },
+              onOpen: (teamMemberId: ObjectID, item: TeamMember) => {
+                openInvitationLink(
+                  teamMemberId,
+                  Boolean(projectsNotSent.getNotSent(item)),
+                );
+              },
+            }),
+            getResendInvitationRowAction<TeamMember>({
+              isAvailable: !cannotSendEmail,
+              onSent: () => {
+                refreshTables();
+              },
+            }),
+          ]}
+          onFetchSuccess={projectsNotSent.onFetchSuccess}
           cardProps={{
             title: t("pages.userProjects.cardTitle"),
             description: t("pages.userProjects.cardDescription"),
@@ -332,12 +396,12 @@ const UserProjects: FunctionComponent = (): ReactElement => {
               type: FieldType.Element,
               disableSort: true,
               getElement: (item: TeamMember): ReactElement => {
+                // Invited, Email Not Sent (#9518) or Invitation Sent.
                 if (!item.hasAcceptedInvitation) {
                   return (
-                    <Pill
-                      text={t("pages.userProjects.statusInvited")}
-                      isUserContent={true}
-                      color={Yellow}
+                    <PendingInvitationPill
+                      cannotSendEmail={cannotSendEmail}
+                      notSent={projectsNotSent.getNotSent(item)}
                     />
                   );
                 }
@@ -396,16 +460,36 @@ const UserProjects: FunctionComponent = (): ReactElement => {
           isEditable={false}
           isCreateable={false}
           isViewable={false}
+          // Whose invitation email a pending row asks about, and in which project (#9518).
+          selectMoreFields={{
+            userId: true,
+            projectId: true,
+          }}
           actionButtons={[
             getInvitationLinkRowAction<TeamMember>({
               isAvailable: cannotSendEmail,
               isNotSignedUp: membersNotSignedUp.isNotSignedUp,
-              onOpen: (teamMemberId: ObjectID) => {
-                setInvitationLinkFor(teamMemberId);
+              isEmailNotSent: (item: TeamMember): boolean => {
+                return Boolean(membershipsNotSent.getNotSent(item));
+              },
+              onOpen: (teamMemberId: ObjectID, item: TeamMember) => {
+                openInvitationLink(
+                  teamMemberId,
+                  Boolean(membershipsNotSent.getNotSent(item)),
+                );
+              },
+            }),
+            getResendInvitationRowAction<TeamMember>({
+              isAvailable: !cannotSendEmail,
+              onSent: () => {
+                refreshTables();
               },
             }),
           ]}
-          onFetchSuccess={membersNotSignedUp.onFetchSuccess}
+          onFetchSuccess={(rows: Array<TeamMember>) => {
+            membersNotSignedUp.onFetchSuccess(rows);
+            membershipsNotSent.onFetchSuccess(rows);
+          }}
           refreshToggle={refreshToggle}
           onItemDeleted={() => {
             refreshTables();
@@ -496,11 +580,11 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   );
                 }
 
+                // Invited, Email Not Sent (#9518) or Invitation Sent.
                 return (
-                  <Pill
-                    text={t("pages.userProjects.statusInvited")}
-                    isUserContent={true}
-                    color={Yellow}
+                  <PendingInvitationPill
+                    cannotSendEmail={cannotSendEmail}
+                    notSent={membershipsNotSent.getNotSent(item)}
                   />
                 );
               },
@@ -518,7 +602,8 @@ const UserProjects: FunctionComponent = (): ReactElement => {
 
         {invitationLinkFor && (
           <InvitationLinkModal
-            teamMemberId={invitationLinkFor}
+            teamMemberId={invitationLinkFor.teamMemberId}
+            isEmailNotSent={invitationLinkFor.isEmailNotSent}
             onClose={() => {
               setInvitationLinkFor(null);
             }}
@@ -570,7 +655,10 @@ const UserProjects: FunctionComponent = (): ReactElement => {
 
               // No email went out: the link to send (#8192).
               if (cannotSendEmail && teamMember?.id) {
-                setInvitationLinkFor(teamMember.id);
+                setInvitationLinkFor({
+                  teamMemberId: teamMember.id,
+                  isEmailNotSent: false,
+                });
               }
             }}
             formProps={{

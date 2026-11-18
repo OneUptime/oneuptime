@@ -70,12 +70,14 @@ import {
   canGetInvitationLinks,
   canGetLinksOfInvitationsNotSent,
   canReadInvitationEmailsNotSent,
+  canResendInvitations,
   cannotSendEmail,
   useServerEmail,
 } from "../../Utils/ServerEmail";
 import InvitationLinkModal, {
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import { getResendInvitationRowAction } from "Common/UI/Components/InvitationLink/ResendInvitation";
 import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
@@ -421,9 +423,11 @@ const Users: FunctionComponent<PageComponentProps> = (
         /*
          * A pending person's row: their invitation link, for a master admin
          * on a server that cannot send email - or whose latest invitation
-         * email was not sent (#9511). The row stands for every team the
+         * email was not sent (#9511) - and Resend Invitation, for whoever
+         * may invite people (#9519). The row stands for every team the
          * person is invited to, and its id is one of those invitations; the
-         * link is the person's, whichever one it is read from.
+         * link and the email are the person's, whichever one they are read
+         * from.
          */
         actionButtons={[
           getInvitationLinkRowAction<TeamMember>({
@@ -442,6 +446,12 @@ const Users: FunctionComponent<PageComponentProps> = (
                   !cannotSendEmail(serverEmail) &&
                   Boolean(invitationEmailsNotSent.getNotSent(item)),
               });
+            },
+          }),
+          getResendInvitationRowAction<TeamMember>({
+            isAvailable: canResendInvitations(serverEmail),
+            getRequestHeaders: () => {
+              return ModelAPI.getCommonHeaders();
             },
           }),
         ]}

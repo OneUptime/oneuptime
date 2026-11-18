@@ -155,7 +155,7 @@ En un servidor autoalojado que aún no puede enviar correos electrónicos, regis
 :::
 
 :::details Una persona muestra Correo no enviado
-El servicio de correo rechazó su último correo de invitación, así que no le llegó nada. Señale **Correo no enviado**, o tóquelo, para ver el motivo, tal como lo dice la pestaña **Correo electrónico** de los **Registros de notificación** del proyecto. Compruebe la dirección a la que invitó y, cuando el correo funcione, quite a esa persona y vuelva a invitarla. En un servidor autoalojado, el administrador del servidor puede enviarle su enlace de invitación en su lugar: un administrador maestro abre el menú de la fila de la persona en **Usuarios**, **⋯**, y hace clic en **Obtener enlace de invitación**.
+El servicio de correo rechazó su último correo de invitación, así que no le llegó nada. Señale **Correo no enviado**, o tóquelo, para ver el motivo, tal como lo dice la pestaña **Correo electrónico** de los **Registros de notificación** del proyecto. Compruebe la dirección a la que invitó y, cuando el correo funcione, abra el menú de la fila de la persona en **Usuarios**, **⋯**, y haga clic en **Reenviar invitación**: vuelve a aparecer como **Invitación enviada** en cuanto sale. En un servidor autoalojado, el administrador del servidor puede enviarle su enlace de invitación en su lugar: un administrador maestro hace clic en **Obtener enlace de invitación** en el mismo menú.
 :::
 
 :::details Invitar usuario dice que los usuarios se gestionan con SCIM Push Groups

@@ -283,7 +283,6 @@
       "columnJoinedAt": "参加日",
       "columnInvitedAt": "招待日",
       "statusMember": "メンバー",
-      "statusInvited": "招待済み",
       "pendingInvitations": "保留中の招待 {{pending}} 件",
       "teamsCardTitle": "チームメンバーシップ",
       "teamsCardDescription": "すべてのプロジェクトを通じて、このユーザーが所属するチームです。行を削除すると、そのチームからのみ削除されます。",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "招待リンクを読み取れませんでした。このプロジェクトへの招待はもうないのかもしれません。プロジェクトの「ユーザー」ページから再度招待してください。",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "このサーバーのメールが動かなくなったとき、グローバルプローブがひとつも報告しなくなったとき、またはいずれかが遅延したときにマスター管理者に知らせ、元に戻ったときにもう一度知らせます。止まったチャネルでは知らせず、知らせるのは 1 時間に 1 回までです。",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} はネットワークデバイスのポーリングが遅れています。{{time}} 以降、デバイスがポーリング時刻を 1 分以上過ぎても待っているため、設定より少ない頻度でしかポーリングされていません。",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "プローブが一度にポーリングするデバイスを増やしてください。config.env の GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY、または Helm の値でプローブの networkDevicePollConcurrency を引き上げ、それに見合う CPU を割り当てます。"
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "プローブが一度にポーリングするデバイスを増やしてください。config.env の GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY、または Helm の値でプローブの networkDevicePollConcurrency を引き上げ、それに見合う CPU を割り当てます。",
+  "Email Not Sent": "メール未送信",
+  "Their invitation email was not sent.": "招待メールは送信されませんでした。",
+  "Resend Invitation": "招待を再送信",
+  "Send their invitation email to {{email}} again?": "{{email}} に招待メールを再送信しますか？",
+  "Send their invitation email again?": "招待メールを再送信しますか？",
+  "Invitation sent to {{email}}": "{{email}} に招待を送信しました",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去1時間にこのアドレスへ送信された招待が多すぎます。{{time}} 以降に再送信できます。"
 }

@@ -279,13 +279,15 @@ describe("nothing names the old menu entry", () => {
   const OLD_NAME: RegExp = /Runs\s*(?:&|&amp;|and)\s*Logs/;
 
   // The line of Search's index that lists a record page's former titles.
+  const FORMER_TITLES_LINE: RegExp = /^formerTitles:\s*\[/;
+
   const isSearchFormerTitles: (offence: Offence) => boolean = (
     offence: Offence,
   ): boolean => {
     return (
       offence.file ===
         "packages/App/FeatureSet/Dashboard/src/Components/CommandPalette/RecordPageSearchIndex.ts" &&
-      /^formerTitles:\s*\[/.test(offence.text)
+      FORMER_TITLES_LINE.test(offence.text)
     );
   };
 

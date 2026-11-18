@@ -27,6 +27,13 @@ export interface ComponentProps {
   showWarning?: undefined | boolean;
   badge?: undefined | number;
   badgeType?: BadgeType | undefined;
+  /*
+   * What the badge's count means, for a screen reader, in the reader's
+   * language already ("23 need attention"): the count itself is drawn for
+   * the eye only (Badge is aria-hidden), so without it the entry is read as
+   * its title alone.
+   */
+  badgeLabel?: undefined | string;
   icon?: undefined | IconProp;
   className?: undefined | string;
   subItemLink?: undefined | Link;
@@ -211,6 +218,11 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
           >
             {props.badge !== undefined && (
               <Badge badgeCount={props.badge} badgeType={props.badgeType} />
+            )}
+            {props.badge && props.badgeLabel ? (
+              <span className="sr-only">{props.badgeLabel}</span>
+            ) : (
+              <></>
             )}
             {props.showAlert && (
               <Icon icon={IconProp.Error} className="text-red-500 h-4 w-4" />

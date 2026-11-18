@@ -283,7 +283,6 @@
       "columnJoinedAt": "가입일",
       "columnInvitedAt": "초대일",
       "statusMember": "멤버",
-      "statusInvited": "초대 발송됨",
       "pendingInvitations": "대기 중인 초대 {{pending}}건",
       "teamsCardTitle": "팀 멤버십",
       "teamsCardDescription": "모든 프로젝트에서 이 사용자가 속한 팀입니다. 행을 제거하면 해당 팀에서만 제거됩니다.",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "초대 링크를 읽을 수 없습니다. 더 이상 이 프로젝트에 초대되어 있지 않을 수 있습니다. 프로젝트의 사용자 페이지에서 다시 초대하세요.",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "이 서버의 이메일이 작동을 멈추거나, 모든 글로벌 프로브가 보고를 멈추거나, 그중 하나가 지연되면 마스터 관리자에게 알리고, 다시 정상이 되면 한 번 더 알립니다. 멈춘 채널로는 절대 알리지 않으며 최대 한 시간에 한 번만 알립니다.",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}}의 네트워크 디바이스 폴링이 지연되고 있습니다. {{time}}부터 디바이스가 폴링 시각을 1분 넘게 기다리고 있어, 설정보다 덜 자주 폴링됩니다.",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "프로브가 한 번에 더 많은 디바이스를 폴링하게 하세요. config.env의 GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY 또는 Helm 값에서 프로브의 networkDevicePollConcurrency를 높이고, 그에 맞는 CPU를 할당하세요."
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "프로브가 한 번에 더 많은 디바이스를 폴링하게 하세요. config.env의 GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY 또는 Helm 값에서 프로브의 networkDevicePollConcurrency를 높이고, 그에 맞는 CPU를 할당하세요.",
+  "Email Not Sent": "이메일 전송 안 됨",
+  "Their invitation email was not sent.": "초대 이메일이 전송되지 않았습니다.",
+  "Resend Invitation": "초대 다시 보내기",
+  "Send their invitation email to {{email}} again?": "{{email}}(으)로 초대 이메일을 다시 보낼까요?",
+  "Send their invitation email again?": "초대 이메일을 다시 보낼까요?",
+  "Invitation sent to {{email}}": "{{email}}(으)로 초대를 보냈습니다",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다."
 }

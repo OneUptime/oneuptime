@@ -155,7 +155,7 @@ På en egenvärdad server som inte kan skicka e-post ännu kan inte heller regis
 :::
 
 :::details En person visar Mejl inte skickat
-E-posttjänsten avvisade det senaste inbjudningsmejlet, så inget nådde personen. Peka på **Mejl inte skickat**, eller tryck på den, för att se varför, så som fliken **E-post** under projektets **Aviseringsloggar** säger det. Kontrollera adressen du bjöd in, och när e-posten fungerar tar du bort personen och bjuder in den igen. På en egenvärdad server kan serverns administratör i stället skicka personen dess inbjudningslänk: en huvudadministratör öppnar personens radmeny under **Användare**, **⋯**, och klickar på **Hämta inbjudningslänk**.
+E-posttjänsten avvisade det senaste inbjudningsmejlet, så inget nådde personen. Peka på **Mejl inte skickat**, eller tryck på den, för att se varför, så som fliken **E-post** under projektets **Aviseringsloggar** säger det. Kontrollera adressen du bjöd in, och när e-posten fungerar öppnar du personens radmeny under **Användare**, **⋯**, och klickar på **Skicka inbjudan igen**: personen visas som **Inbjudan skickad** igen när mejlet har skickats. På en egenvärdad server kan serverns administratör i stället skicka personen dess inbjudningslänk: en huvudadministratör klickar på **Hämta inbjudningslänk** i samma meny.
 :::
 
 :::details Bjud in användare säger att användarna hanteras av SCIM Push Groups

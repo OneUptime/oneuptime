@@ -1044,7 +1044,7 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
-        "packages/Common/Server/API/TeamMemberAPI.ts": 8,
+        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
         "packages/Common/Server/API/UserAPI.ts": 7,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
         "ee/Server/Identity/API/SCIM.ts": 9,
@@ -1666,6 +1666,36 @@ describe("what the decisions stand on", () => {
       expect(helper).toContain(
         `ServerProductRoutes.refuseWhileOff(ProductKey.${product})`,
       );
+    },
+  );
+
+  /*
+   * Data Observability's routes are decided by its helper (above): its reads
+   * keep working while it is switched off, as every read does, and
+   * everything else is refused. The count beside Overview (#6552) and the
+   * Issues page's list (#6549) only read - counted and listed from what
+   * each record keeps - so they are registered with READ_PERMISSIONS, and
+   * left working; the pages that ask for them are gone while the product is
+   * off (ServerProductGate), so nothing asks.
+   */
+  test.each([["attentionCount"], ["issues"]])(
+    "packages/Common/Server/API/DataObservabilityAPI.ts: %s is a read, left working while the product is off",
+    (route: string) => {
+      const source: string = fs.readFileSync(
+        path.join(
+          REPOSITORY,
+          "packages/Common/Server/API/DataObservabilityAPI.ts",
+        ),
+        "utf8",
+      );
+      const registration: number = source.indexOf(
+        `DATA_OBSERVABILITY_API_ROUTES.${route},`,
+      );
+
+      expect(registration).toBeGreaterThan(-1);
+      expect(
+        source.slice(registration, registration + 120).replace(/\s+/g, " "),
+      ).toContain(`DATA_OBSERVABILITY_API_ROUTES.${route}, READ_PERMISSIONS,`);
     },
   );
 

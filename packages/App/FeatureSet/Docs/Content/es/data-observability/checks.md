@@ -42,7 +42,7 @@ Configura **Alertar cuando** para alertar sobre una comprobación:
 
 Al guardar la comprobación se crea un monitor de métricas para ella, en tu nombre y con tus permisos. Si vacías la condición, se elimina el monitor.
 
-El **Estado** de una comprobación, en **Comprobaciones** y en la pestaña **Comprobaciones** de su tabla, dice cómo está: **Fallando** mientras su alerta está abierta, **Cumple** mientras no lo está, y **No se pudo ejecutar** cuando su consulta falló. Una comprobación sin alerta solo muestra **Ejecutó**: su consulta funcionó. Una comprobación que falla, y una que no se pudo ejecutar, aparece también en **Vista general**.
+El **Estado** de una comprobación, en **Comprobaciones** y en la pestaña **Comprobaciones** de su tabla, dice cómo está: **Fallando** mientras su alerta está abierta, **Cumple** mientras no lo está, y **No se pudo ejecutar** cuando su consulta falló. Una comprobación sin alerta solo muestra **Ejecutó**: su consulta funcionó. Una comprobación que falla, y una que no se pudo ejecutar, aparece también en **Vista general**. **Comprobaciones** lista primero las comprobaciones que fallan, luego las que no se pudieron ejecutar y después las que cumplen, y su filtro **Estado** muestra las comprobaciones de un estado. **Comprobaciones fallando** en la **Vista general** abre **Comprobaciones** mostrando solo las que fallan.
 
 ## Lo que cuesta una comprobación
 
