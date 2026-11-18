@@ -4,7 +4,11 @@ import DataPipelineOwnerTeam from "Common/Models/DatabaseModels/DataPipelineOwne
 import DataPipelineOwnerUser from "Common/Models/DatabaseModels/DataPipelineOwnerUser";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+
+// The pipeline as the Owners card's sentences name it, mid-sentence, in the reader's words.
+const PIPELINE_TERM: string = translationKey("pipeline");
 
 /*
  * Who fixes a pipeline (#6551): the people and teams named beside its failed
@@ -21,7 +25,7 @@ const DataPipelineOwners: FunctionComponent<
     <OwnersCard<DataPipelineOwnerUser, DataPipelineOwnerTeam>
       resourceId={modelId}
       resourceIdField="dataPipelineId"
-      resourceDisplayName="pipeline"
+      resourceDisplayName={PIPELINE_TERM}
       ownerUserModelType={DataPipelineOwnerUser}
       ownerTeamModelType={DataPipelineOwnerTeam}
     />
