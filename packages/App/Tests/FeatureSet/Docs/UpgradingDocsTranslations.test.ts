@@ -355,6 +355,9 @@ const PROSE_LEADS: Array<string> = [
   "Take the credentials 16 no longer gives out of your API scripts' reads.",
   "Update your Runners with the server.",
   "Replace every server of 15 soon, and roll back only within a day.",
+  // What you need to do for 17.
+  "If an API script moves a row by writing its `order`, have it send the move request instead.",
+  "If an API script adds a row in the middle of a list, have it create the row, then move it.",
   "Air-gapped installs",
   "Decide which edition this install runs.",
   "On Helm, set the edition in your values file:",
@@ -471,6 +474,8 @@ const PROSE_LEADS: Array<string> = [
   "From the release after 16.0.0, webhook addresses and SNMP credentials are encrypted a day after the upgrade, so a server of 15 keeps using them while it rolls out.",
   "A new on-call rule made through the API or with Terraform starts on Key updates only.",
   "The background check of Incoming Request monitors reads only the request as it came.",
+  // Other changes in 17.
+  "Rows that share a number are read in the order of their IDs, and a gap in the numbers changes nothing.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
@@ -1344,15 +1349,16 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
   });
 
   /*
-   * Every note of "Other changes in 14", "Other changes in 15" and "Other
-   * changes in 16", in the English order: the same code, the same pages
-   * linked and the same numbers, note by note, so no note is dropped, merged
-   * or cut short.
+   * Every note of "Other changes in 14", "Other changes in 15", "Other
+   * changes in 16" and "Other changes in 17", in the English order: the same
+   * code, the same pages linked and the same numbers, note by note, so no
+   * note is dropped, merged or cut short.
    */
   it.each([
     [13, 14],
     [14, 15],
     [15, 16],
+    [16, 17],
   ])(
     "carries every note of the %i → %i changes, in order, with its code, links and numbers",
     (_from: number, to: number) => {
