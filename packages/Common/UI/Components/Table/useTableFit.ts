@@ -81,6 +81,17 @@ const useTableFit: (data: {
     return { columnsKey: data.columnsKey, fit: getFreshFit(input) };
   });
 
+  /*
+   * The fit last asked for, which a measurement that cannot fit is read
+   * against: one that changes nothing - a table too wide even at its last
+   * step, measured again as each page of rows is drawn - asks for nothing
+   * (useTableBoxWidth says why).
+   */
+  const askedStored: React.MutableRefObject<{
+    columnsKey: string;
+    fit: TableFitState;
+  }> = useRef(stored);
+
   // Other columns than the ones measured: measured afresh.
   const base: TableFitState =
     stored.columnsKey === data.columnsKey ? stored.fit : getFreshFit(input);
@@ -109,60 +120,54 @@ const useTableFit: (data: {
 
   const onCannotFit: (cannotFit: TableCannotFit) => void = useCallback(
     (cannotFit: TableCannotFit): void => {
-      setStored(
-        (current: {
-          columnsKey: string;
-          fit: TableFitState;
-        }): { columnsKey: string; fit: TableFitState } => {
-          const latest: {
-            input: TableFitInput;
-            columnsKey: string;
-            rememberKey: string | undefined;
-          } = latestRef.current;
-          /*
-           * The box as the measuring read it, which is the box the table was
-           * just drawn in - the width this hook was last drawn with may not
-           * have been read yet (the first draw).
-           */
-          const measuredInput: TableFitInput = {
-            ...latest.input,
-            boxWidth:
-              cannotFit.boxWidth > 0
-                ? cannotFit.boxWidth
-                : latest.input.boxWidth,
-          };
-          const currentBase: TableFitState =
-            current.columnsKey === latest.columnsKey
-              ? current.fit
-              : getFreshFit(latest.input);
-          // The step the measured table was drawn at: what it was drawn with.
-          const drawn: TableFitState = getTableFitStateFor(
-            currentBase,
-            latest.input,
-          );
-          const next: TableFitState = getTableFitStateAfterCannotFit(
-            drawn,
-            measuredInput,
-            cannotFit.tightWidth,
-            cannotFit.boxWidth,
-          );
-
-          if (next === drawn) {
-            return current;
-          }
-
-          const stored: { columnsKey: string; fit: TableFitState } = {
-            columnsKey: latest.columnsKey,
-            fit: next,
-          };
-
-          if (latest.rememberKey) {
-            rememberedFits.set(latest.rememberKey, stored);
-          }
-
-          return stored;
-        },
+      const current: { columnsKey: string; fit: TableFitState } =
+        askedStored.current;
+      const latest: {
+        input: TableFitInput;
+        columnsKey: string;
+        rememberKey: string | undefined;
+      } = latestRef.current;
+      /*
+       * The box as the measuring read it, which is the box the table was
+       * just drawn in - the width this hook was last drawn with may not
+       * have been read yet (the first draw).
+       */
+      const measuredInput: TableFitInput = {
+        ...latest.input,
+        boxWidth:
+          cannotFit.boxWidth > 0 ? cannotFit.boxWidth : latest.input.boxWidth,
+      };
+      const currentBase: TableFitState =
+        current.columnsKey === latest.columnsKey
+          ? current.fit
+          : getFreshFit(latest.input);
+      // The step the measured table was drawn at: what it was drawn with.
+      const drawn: TableFitState = getTableFitStateFor(
+        currentBase,
+        latest.input,
       );
+      const next: TableFitState = getTableFitStateAfterCannotFit(
+        drawn,
+        measuredInput,
+        cannotFit.tightWidth,
+        cannotFit.boxWidth,
+      );
+
+      if (next === drawn) {
+        return;
+      }
+
+      const nextStored: { columnsKey: string; fit: TableFitState } = {
+        columnsKey: latest.columnsKey,
+        fit: next,
+      };
+
+      if (latest.rememberKey) {
+        rememberedFits.set(latest.rememberKey, nextStored);
+      }
+
+      askedStored.current = nextStored;
+      setStored(nextStored);
     },
     [],
   );
