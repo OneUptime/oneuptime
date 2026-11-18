@@ -332,7 +332,7 @@ async function pressBrowserBack(): Promise<void> {
 }
 
 async function answer(
-  button: "Keep Editing" | "Discard Changes",
+  button: "Keep Editing" | "Discard Changes" | "Save Changes",
 ): Promise<void> {
   await act(async () => {
     fireEvent.click(within(queryLeaveDialog()!).getByText(button));
@@ -635,6 +635,65 @@ describe("after Save Changes or the builder's Discard Changes", () => {
     await clickSideMenuMonitors();
 
     expect(queryLeaveDialog()).not.toBeNull();
+    expect(window.location.pathname).toBe(FORM_PATH);
+  });
+});
+
+describe("Save Changes in the question (issue #7402)", () => {
+  test("saves the questions as the builder's Save Changes does, then goes where the side menu was going", async () => {
+    await openBuilderFromList();
+    await addTextQuestion();
+    const drafted: Array<string> = questionIds();
+
+    await clickSideMenuMonitors();
+
+    expect(
+      within(queryLeaveDialog()!).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Save Changes");
+
+    await answer("Save Changes");
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    const saved: Array<{ id: string }> = (
+      updateByIdMock.mock.calls[0]![0] as {
+        data: { fields: Array<{ id: string }> };
+      }
+    ).data.fields;
+    expect(
+      saved.map((field: { id: string }): string => {
+        return field.id;
+      }),
+    ).toEqual(drafted);
+    expect(screen.getByText("All monitors")).toBeInTheDocument();
+    expect(window.location.pathname).toBe(MONITORS_PATH);
+    expect(queryLeaveDialog()).toBeNull();
+    expect(browserAsksBeforeUnload()).toBe(false);
+  });
+
+  test("a refused save stays with the draft, says why in the question, and loses nothing", async () => {
+    refuseSaves = true;
+
+    await openBuilderFromList();
+    await addTextQuestion();
+    const drafted: number = questionIds().length;
+
+    await clickSideMenuMonitors();
+    await answer("Save Changes");
+
+    const dialog: HTMLElement | null = queryLeaveDialog();
+
+    expect(dialog).not.toBeNull();
+    expect(within(dialog!).getByTestId("modal-error")).toHaveTextContent(
+      "Questions: two questions ask for the same field.",
+    );
+    expect(window.location.pathname).toBe(FORM_PATH);
+    expect(questionIds()).toHaveLength(drafted);
+    expect(browserAsksBeforeUnload()).toBe(true);
+
+    await answer("Keep Editing");
+
+    expect(queryLeaveDialog()).toBeNull();
+    expect(questionIds()).toHaveLength(drafted);
     expect(window.location.pathname).toBe(FORM_PATH);
   });
 });

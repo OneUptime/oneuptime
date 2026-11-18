@@ -8,6 +8,7 @@ import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
 import LayersSaveBar, {
+  LAYERS_CONFLICT_NOT_SAVED,
   LayersSaveStatus,
   getLayersChangeLines,
 } from "./LayersSaveBar";
@@ -88,6 +89,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
+import LeaveWithoutSavingQuestion from "../../UnsavedChanges/LeaveWithoutSavingQuestion";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
@@ -988,40 +990,66 @@ const Layers: FunctionComponent<ComponentProps> = (
    * again as they are now saved. A save refused because someone else
    * changed the layers first keeps the changes on the page and asks for a
    * reload; any other refusal says why and keeps them, to save again.
+   * Resolves with what the bar then says.
    */
-  const saveChanges: () => Promise<void> = async (): Promise<void> => {
-    if (saveStatus.kind === "saving") {
-      return;
-    }
+  const saveChanges: () => Promise<LayersSaveStatus> =
+    async (): Promise<LayersSaveStatus> => {
+      if (saveStatus.kind === "saving") {
+        return saveStatus;
+      }
 
-    setSaveStatus({ kind: "saving" });
-    setActionError("");
+      setSaveStatus({ kind: "saving" });
+      setActionError("");
 
-    try {
-      await saveScheduleLayers({
-        scheduleId: props.onCallDutyPolicyScheduleId,
-        projectId: props.projectId,
-        request: saveRequest,
-      });
-    } catch (err) {
-      setSaveStatus(
-        isScheduleLayersSaveConflict(err)
+      try {
+        await saveScheduleLayers({
+          scheduleId: props.onCallDutyPolicyScheduleId,
+          projectId: props.projectId,
+          request: saveRequest,
+        });
+      } catch (err) {
+        const refused: LayersSaveStatus = isScheduleLayersSaveConflict(err)
           ? { kind: "conflict" }
-          : { kind: "error", message: API.getFriendlyMessage(err) },
-      );
-      return;
-    }
+          : { kind: "error", message: API.getFriendlyMessage(err) };
 
-    try {
-      applyLoadedLayers(await loadLayers());
-      setSaveStatus({ kind: "saved" });
-    } catch (err) {
-      setSaveStatus({
-        kind: "reloadFailed",
-        message: API.getFriendlyMessage(err),
-      });
-    }
-  };
+        setSaveStatus(refused);
+        return refused;
+      }
+
+      let saved: LayersSaveStatus = { kind: "saved" };
+
+      try {
+        applyLoadedLayers(await loadLayers());
+      } catch (err) {
+        saved = {
+          kind: "reloadFailed",
+          message: API.getFriendlyMessage(err),
+        };
+      }
+
+      setSaveStatus(saved);
+      return saved;
+    };
+
+  /*
+   * Save Changes in the question leaving asks: the bar's own save. Saved -
+   * even if the layers could not be read back after - the page goes where
+   * the reader was going; refused, the question says why, in the bar's
+   * words when someone else changed the layers first, and the bar says it
+   * too once they keep editing.
+   */
+  const saveChangesBeforeLeaving: () => Promise<void> =
+    async (): Promise<void> => {
+      const status: LayersSaveStatus = await saveChanges();
+
+      if (status.kind === "conflict") {
+        throw new Error(LAYERS_CONFLICT_NOT_SAVED);
+      }
+
+      if (status.kind === "error") {
+        throw new Error(status.message);
+      }
+    };
 
   // Reload, after a conflict or a save the page could not read back: the page's changes go.
   const reloadLayers: () => Promise<void> = async (): Promise<void> => {
@@ -1746,23 +1774,17 @@ const Layers: FunctionComponent<ComponentProps> = (
       )}
 
       {/*
-       * Leaving the page with unsaved changes asks first (LeaveGuard): Keep
-       * Editing stays, Discard Changes goes where they were going. Last, so it
+       * Leaving the page with unsaved changes asks first (LeaveGuard), in
+       * the voice every editor asks in (LeaveWithoutSavingQuestion, #7973):
+       * Save Changes saves as the bar does, then goes where they were going;
+       * Keep Editing stays; Discard Changes goes without saving. Last, so it
        * opens above any dialog that is open on the page.
        */}
-      {leavePrompt.isAsking && (
-        <ConfirmModal
-          title={"Leave without saving?"}
-          description={
-            "You have unsaved changes to this schedule's layers. If you leave now, they will be lost."
-          }
-          submitButtonType={ButtonStyleType.DANGER}
-          submitButtonText={"Discard Changes"}
-          closeButtonText={"Keep Editing"}
-          onSubmit={leavePrompt.leave}
-          onClose={leavePrompt.stay}
-        />
-      )}
+      <LeaveWithoutSavingQuestion
+        prompt={leavePrompt}
+        description="You have unsaved changes to this schedule's layers. If you leave now, they will be lost."
+        onSaveChanges={saveChangesBeforeLeaving}
+      />
     </div>
   );
 };
