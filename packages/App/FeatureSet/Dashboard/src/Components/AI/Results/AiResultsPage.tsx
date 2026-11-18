@@ -12,6 +12,8 @@ import {
 } from "./AiResultsData";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AiResultsView from "./AiResultsView";
+import AskAiRatingsCard from "./AskAiRatingsCard";
+import { mayReadAskAiRatings } from "./AskAiRatingsData";
 import ProjectAiNotice from "../../AISettings/ProjectAiNotice";
 import { ProjectAiNoticeContext } from "../../AISettings/ProjectAiSettingsCopy";
 import { AI_OUTCOMES_PATH, AiOutcomes } from "Common/Types/AI/AiOutcomes";
@@ -48,6 +50,10 @@ import React, {
  * with an empty state while there is nothing to count yet, another when
  * the reader may read none of it, a loader, and an error with a retry.
  * With AI off for the project, a notice at the top says so.
+ *
+ * Last, for the project's owners and admins, how its Ask AI answers were
+ * rated and what the answers rated down read (AskAiRatingsCard, #7365):
+ * never anyone's words.
  */
 
 const AiResultsPage: FunctionComponent = (): ReactElement => {
@@ -158,6 +164,7 @@ const AiResultsPage: FunctionComponent = (): ReactElement => {
     <Fragment>
       <ProjectAiNotice context={ProjectAiNoticeContext.ActivityInsights} />
       {body}
+      {mayReadAskAiRatings() ? <AskAiRatingsCard /> : <></>}
     </Fragment>
   );
 };
