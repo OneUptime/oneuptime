@@ -11544,10 +11544,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         logger.getLogLevel() === ConfigLogLevel.DEBUG;
 
       /*
-       * Each affected row as its own write left it, in the order of
-       * affectedItems: what the write handed back (returnedColumns), for
-       * PublishedImages to decide the row's images by.
+       * Each affected row as it was read before its write, and as its own
+       * write left it - what the write handed back (returnedColumns) - for
+       * PublishedImages to decide the row's images by: every affected row
+       * but one whose stored row could not be read back (below), whose
+       * images are left as they were.
        */
+      const rowsBeforeForImages: Array<TBaseModel> = [];
       const rowsAsWritten: Array<Record<string, unknown>> = [];
 
       // The expressions the database works the columns out by. See getRowWriteSql.
@@ -11603,6 +11606,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         // The row as its write stored it, where the write handed it back.
         let storedByWrite: Record<string, unknown> | undefined = undefined;
+
+        // Whether the row, saved, could not be read back (below).
+        let isStoredRowUnread: boolean = false;
 
         if (hasRelationUpdates) {
           /*
@@ -11671,11 +11677,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             /*
              * Nothing to work out, but what the row shows to everyone is
              * still decided by what it holds once written - read back right
-             * after save(), never the read made before it.
+             * after save(), never the read made before it. A read back that
+             * fails - a dropped connection, a timeout - does not fail the
+             * update, whose row is saved (#9209): the row's images are left
+             * as they were, neither made public nor private on a guess, and
+             * its next write decides them.
              */
-            storedByWrite =
-              (await this.readStoredColumns(item, returnedColumns)) ||
-              undefined;
+            try {
+              storedByWrite =
+                (await this.readStoredColumns(item, returnedColumns)) ||
+                undefined;
+            } catch (err) {
+              isStoredRowUnread = true;
+
+              logger.error(
+                `Could not read ${this.model.tableName} ${String(item._id)} back once it was saved, so the images it shows are left as they were; the update itself is done: ${String(err)}`,
+                {
+                  projectId: updateBy.props.tenantId?.toString(),
+                } as LogAttributes,
+              );
+            }
           }
         } else {
           const { _id, ...updateData } = updatedItem;
@@ -11771,7 +11792,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         affectedItems.push(item);
-        rowsAsWritten.push(rowAsWritten);
+
+        // What decides its images, unless it could not be read back (above).
+        if (!isStoredRowUnread) {
+          rowsBeforeForImages.push(item);
+          rowsAsWritten.push(rowAsWritten);
+        }
 
         /*
          * What the write changed in this row, worked out once: an update
@@ -11864,13 +11890,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       /*
        * The images each row shows to everyone now are public, and those it
        * stopped showing private, unless another record still shows them -
-       * decided on each row as its own write stored it. Before
+       * decided on each row as its own write stored it (a row that could
+       * not be read back once saved keeps them as they were). Before
        * onUpdateSuccess, so nothing a hook sends links to an image that is
        * not public yet. See PublishedImages.
        */
       await PublishedImages.afterUpdate({
         tableName: this.model.tableName,
-        rowsBefore: affectedItems,
+        rowsBefore: rowsBeforeForImages,
         written: data,
         rowsAfter: rowsAsWritten,
       });

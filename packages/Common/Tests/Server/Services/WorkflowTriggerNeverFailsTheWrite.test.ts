@@ -20,6 +20,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import API from "../../../Utils/API";
 import { getJestSpyOn } from "../../Spy";
+import type { SpyInstance } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -73,6 +74,9 @@ const INCIDENT_ID: string = "6ba7b810-9dad-41d1-80b4-00c04fd4b303";
 
 // What the read failed with, as Postgres says it when the connection drops.
 const READ_FAILURE: string = "Connection terminated unexpectedly";
+
+// What the read back of a row saved failed with.
+const READ_BACK_FAILURE: string = "Query read timeout";
 
 // What the read of whether the record is private does, in a test.
 type PrivateRead = "fails" | "private" | "not private";
@@ -195,16 +199,18 @@ interface World {
 
 let posted: Array<string> = [];
 let audited: Array<string> = [];
-let errors: jest.SpiedFunction<typeof logger.error>;
+let errors: SpyInstance<typeof logger.error>;
 
 /*
  * A database that keeps nothing: the rows `rowIds` as a write reads them
- * before it writes, and the private-record read doing `privateRead`.
+ * before it writes, the private-record read doing `privateRead`, and the
+ * read back of each row of `readBackFailsFor` failing once it is saved.
  */
 function useDatabase(
   kind: Kind<BaseModel>,
   privateRead: PrivateRead,
   rowIds: Array<string> = [RECORD_ID],
+  readBackFailsFor: Array<string> = [],
 ): World {
   const service: RecordingService<BaseModel> = new RecordingService<BaseModel>(
     kind.modelType,
@@ -218,10 +224,18 @@ function useDatabase(
   };
 
   getJestSpyOn(service, "getRepository").mockReturnValue({
+    // A create's INSERT, or an update written through save() (it writes a list).
     save: async (entity: unknown): Promise<unknown> => {
+      const saved: BaseModel = entity as BaseModel;
+
+      if (saved._id) {
+        world.written.push(`save ${saved._id.toString()}`);
+        return saved;
+      }
+
       world.written.push("insert");
-      (entity as BaseModel)._id = RECORD_ID;
-      return entity;
+      saved._id = RECORD_ID;
+      return saved;
     },
     update: async (criteria: {
       _id?: unknown;
@@ -244,9 +258,18 @@ function useDatabase(
     findBy: { query: JSONObject },
     withDeleted?: boolean,
   ): Promise<Array<BaseModel>> => {
-    // The read before an update or a delete: the rows it writes.
+    // The read before an update or a delete - the rows it writes - or the read back of one saved.
     if (withDeleted !== true) {
-      return rowIds.map(kind.row);
+      const id: string = String(findBy.query["_id"] ?? "");
+
+      if (
+        readBackFailsFor.includes(id) &&
+        world.written.includes(`save ${id}`)
+      ) {
+        throw new Error(READ_BACK_FAILURE);
+      }
+
+      return rowIds.includes(id) ? [kind.row(id)] : rowIds.map(kind.row);
     }
 
     // isAboutPrivateRecord's read of the record's own row, deleted rows included.
@@ -259,7 +282,8 @@ function useDatabase(
         throw new Error(READ_FAILURE);
       }
 
-      row.setValue("isPrivate", privateRead === "private");
+      (row as unknown as { isPrivate: boolean }).isPrivate =
+        privateRead === "private";
     }
 
     return [row];
@@ -333,6 +357,17 @@ function loggedCauses(): Array<{ message: string; attributes: unknown }> {
     })
     .filter((logged: { message: string }): boolean => {
       return logged.message.includes(READ_FAILURE);
+    });
+}
+
+// What was logged with these words in it.
+function logged(words: string): Array<string> {
+  return errors.mock.calls
+    .map((call: Array<unknown>): string => {
+      return String(call[0]);
+    })
+    .filter((message: string): boolean => {
+      return message.includes(words);
     });
 }
 
@@ -664,17 +699,6 @@ describe("nothing else of the trigger fails a write that is done", () => {
     expect(world.service.errorHooks).toEqual([]);
   }
 
-  // What was logged with these words in it.
-  function logged(words: string): Array<string> {
-    return errors.mock.calls
-      .map((call: Array<unknown>): string => {
-        return String(call[0]);
-      })
-      .filter((message: string): boolean => {
-        return message.includes(words);
-      });
-  }
-
   test("a post the workflow service refuses is logged", async () => {
     const world: World = useDatabase(
       AN_INCIDENT as unknown as Kind<BaseModel>,
@@ -739,6 +763,116 @@ describe("nothing else of the trigger fails a write that is done", () => {
   });
 });
 
+/*
+ * An update that writes a list - an incident's labels, monitors - goes
+ * through save(), which hands nothing back: the row is read back once saved,
+ * for what it shows to everyone (PublishedImages). That read, too, came
+ * after the write with nothing around it.
+ */
+describe("an update written through save() whose row cannot be read back once saved", () => {
+  // A list, so save(); and the description, which the incident shows on status pages.
+  const CHANGE: JSONObject = {
+    description: "Rolled back the deploy.",
+    labels: [],
+  };
+
+  async function updateBoth(world: World): Promise<number> {
+    return await world.service.updateBy({
+      query: { projectId: PROJECT_ID } as never,
+      data: CHANGE as never,
+      limit: 10,
+      skip: 0,
+      props: rootProps(),
+    });
+  }
+
+  test("is kept: every row it names is written, with each row's workflow event, realtime event and audit log entry", async () => {
+    const world: World = useDatabase(
+      AN_INCIDENT as unknown as Kind<BaseModel>,
+      "not private",
+      [RECORD_ID, OTHER_RECORD_ID],
+      [RECORD_ID, OTHER_RECORD_ID],
+    );
+
+    await expect(updateBoth(world)).resolves.toBe(2);
+
+    expect(world.written).toEqual([
+      `save ${RECORD_ID}`,
+      `save ${OTHER_RECORD_ID}`,
+    ]);
+    expect(posted).toEqual([
+      `incident on-update ${RECORD_ID}`,
+      `incident on-update ${OTHER_RECORD_ID}`,
+    ]);
+    expect(world.realtime).toEqual([
+      `Update ${RECORD_ID}`,
+      `Update ${OTHER_RECORD_ID}`,
+    ]);
+    expect(audited).toEqual([
+      `update ${RECORD_ID}`,
+      `update ${OTHER_RECORD_ID}`,
+    ]);
+    expect(world.service.successHooks).toEqual(["update: 2"]);
+    expect(world.service.errorHooks).toEqual([]);
+
+    const messages: Array<string> = logged(READ_BACK_FAILURE);
+
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).toContain(RECORD_ID);
+    expect(messages[1]).toContain(OTHER_RECORD_ID);
+  });
+
+  test("leaves the images of a row it could not read back as they were, and decides the other rows' as before", async () => {
+    const world: World = useDatabase(
+      AN_INCIDENT as unknown as Kind<BaseModel>,
+      "not private",
+      [RECORD_ID, OTHER_RECORD_ID],
+      [RECORD_ID],
+    );
+    const imagesDecided: SpyInstance<typeof PublishedImages.afterUpdate> =
+      jest.spyOn(PublishedImages, "afterUpdate");
+
+    await expect(updateBoth(world)).resolves.toBe(2);
+
+    expect(imagesDecided).toHaveBeenCalledTimes(1);
+
+    const decided: Parameters<typeof PublishedImages.afterUpdate>[0] =
+      imagesDecided.mock.calls[0]![0];
+
+    // Never made public, nor private, on a guess: only the row read back is decided.
+    expect(
+      decided.rowsBefore.map((row: unknown): string => {
+        return String((row as BaseModel)._id);
+      }),
+    ).toEqual([OTHER_RECORD_ID]);
+    expect(decided.rowsAfter).toHaveLength(1);
+    expect(logged(READ_BACK_FAILURE)).toHaveLength(1);
+  });
+
+  test("a row read back decides its images as before", async () => {
+    const world: World = useDatabase(
+      AN_INCIDENT as unknown as Kind<BaseModel>,
+      "not private",
+      [RECORD_ID, OTHER_RECORD_ID],
+    );
+    const imagesDecided: SpyInstance<typeof PublishedImages.afterUpdate> =
+      jest.spyOn(PublishedImages, "afterUpdate");
+
+    await expect(updateBoth(world)).resolves.toBe(2);
+
+    const decided: Parameters<typeof PublishedImages.afterUpdate>[0] =
+      imagesDecided.mock.calls[0]![0];
+
+    expect(
+      decided.rowsBefore.map((row: unknown): string => {
+        return String((row as BaseModel)._id);
+      }),
+    ).toEqual([RECORD_ID, OTHER_RECORD_ID]);
+    expect(decided.rowsAfter).toHaveLength(2);
+    expect(logged(READ_BACK_FAILURE)).toEqual([]);
+  });
+});
+
 describe("onTriggerWorkflow called on its own - a note published, a reminder moved on, a subscriber unsubscribed", () => {
   test.each(KINDS)(
     "for $name whose private-record read fails: posts nothing, logs the cause, and does not throw",
@@ -784,7 +918,7 @@ describe("the trigger step", () => {
       AN_INCIDENT as unknown as Kind<BaseModel>,
       "fails",
     );
-    const findOneById: jest.SpiedFunction<typeof world.service.findOneById> =
+    const findOneById: SpyInstance<typeof world.service.findOneById> =
       jest.spyOn(world.service, "findOneById");
 
     const trigger: OnTriggerBaseModel<BaseModel> =
