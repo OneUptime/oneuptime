@@ -36,7 +36,10 @@ import { getUnexplainedServerErrorMessage } from "../../../../Types/Exception/Un
  * in the same task to take it up. Nobody saw it, but every list did the
  * work twice, and the focus code that runs as a failure is drawn ran
  * around a draw nobody asked for. A measurement that finds nothing new
- * asks for nothing now.
+ * asks for nothing now. Nor do the table's phone check, which read the
+ * window again on every resize, and its drag-and-drop loader, which said
+ * "no error" as the table was first drawn, so a click before the rows came
+ * drew it twice.
  *
  * Two things are counted. The table's own draws: each one works out its
  * footer's look once (TableLayout's getTableFooterClassName, which nothing
