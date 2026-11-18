@@ -252,7 +252,7 @@ Some changes always resolve what a rule has open, whatever its auto-resolve sett
 - changing **When it fires** to leave out the alert or the incident closes what that output opened;
 - turning the rule off or deleting it;
 - turning the SLO's evaluation off, archiving the SLO or deleting it;
-- the SLO turning **Paused** or **Misconfigured**, because it then measures nothing;
+- the SLO turning **Waiting**, **Paused** or **Misconfigured**, because it then measures nothing;
 - the rule losing its threshold or windows, or the SLO no longer having a full long window of history.
 
 ## Scheduled maintenance

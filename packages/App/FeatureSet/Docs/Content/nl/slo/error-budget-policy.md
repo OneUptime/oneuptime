@@ -6,7 +6,7 @@ Een foutbudgetbeleid legt vast wat uw team heeft afgesproken te doen terwijl het
 - [Hoe niveaus werken](#hoe-niveaus-werken): Welk niveau geldt, en wanneer de SLO het verlaat.
 - [Een beleid instellen](#een-beleid-instellen): Begin met het aanbevolen beleid of schrijf uw eigen niveaus.
 - [Waarschuwingen en incidenten](#waarschuwingen-en-incidenten): Waarschuw uw team wanneer de SLO een niveau binnengaat.
-- [Berichten plaatsen in Slack, Microsoft Teams en Mattermost](#berichten-plaatsen-in-slack-microsoft-teams-en-mattermost): Laat een kanaal weten wanneer een SLO een niveau binnengaat, zonder iemand te waarschuwen.
+- [Berichten plaatsen in Slack, Microsoft Teams en Mattermost](#berichten-plaatsen-in-slack-microsoft-teams-en-mattermost): Laat een kanaal weten wanneer een SLO een niveau binnengaat of van status verandert, zonder iemand te waarschuwen.
 - [Implementatiepoort](#implementatiepoort): Houd releases vanuit CI/CD tegen zolang een niveau implementaties bevriest.
 - [Het niveau via de API lezen](#het-niveau-via-de-api-lezen): Controleer het niveau vanuit CI en scripts.
 :::
@@ -84,6 +84,10 @@ Een niveau toevoegen, bewerken of verwijderen werkt meteen: OneUptime evalueert 
 
 Geen van hen geeft een waarschuwing of meldt een incident totdat u dat aanzet. **Budget exhausted** bevriest implementaties, zoals de afspraak ervan zegt, en de bevestiging geeft dat aan: zie [Implementatiepoort](#implementatiepoort). Niveaus die zijn toegevoegd voordat de poort bestond, bevriezen niets totdat u het bevriezen aanzet. Alleen de niveaus die de SLO niet heeft, worden toegevoegd: een niveau met dezelfde naam, of met dezelfde drempel, telt als aanwezig, of het nu aan of uit staat. Er twee keer om vragen, vanuit een tweede tabblad of via de API, voegt dus niets dubbel toe. Kan een van de niveaus niet worden toegevoegd, dan wordt er geen enkel toegevoegd: de SLO blijft zoals hij was, en u kunt het opnieuw proberen. Elk niveau dat zo wordt toegevoegd, wordt in de auditlogboeken van de SLO vastgelegd als toegevoegd door u.
 
+Een SLO die enkele van de aanbevolen niveaus heeft en geen eigen niveau, zoals een SLO die het aanbevolen beleid kreeg voordat het **Budget exhausted** bevatte, toont boven zijn niveaus een melding, **Aanbevolen beleid niet volledig**, die de niveaus noemt die hij mist. Klik op **Ontbrekende niveaus toevoegen** om te zien wat er wordt toegevoegd, en bevestig. Een SLO met een eigen niveau van u krijgt de rest nooit aangeboden: het beleid dat u hebt opgebouwd, blijft zoals het is. Wilt u dat de melding een niveau dat u niet wilt niet meer aanbiedt, houd het niveau dan en schakel het uit in plaats van het te verwijderen.
+
+Om het op veel SLO's tegelijk te gebruiken, selecteert u ze op de pagina **SLOs** en kiest u **Aanbevolen beleid gebruiken** in **Bulkacties**. Voordat er iets wordt toegevoegd, telt de bevestiging hoeveel ervan elk niveau krijgen, en hoeveel ongewijzigd blijven omdat ze het aanbevolen beleid al hebben of een eigen foutbudgetbeleid hebben. Elke SLO krijgt de niveaus die hij mist, zoals zijn eigen pagina ze zou toevoegen, en het resultaat zegt voor elke SLO of er niveaus zijn toegevoegd, of waarom niet. Het opnieuw uitvoeren op dezelfde SLO's voegt niets toe. Gearchiveerde SLO's staan niet in de lijst en krijgen het nooit aangeboden.
+
 ## Waar het niveau verschijnt
 
 - Het **Overzicht** van de SLO toont het niveau waarin hij zit en wat het team daar heeft afgesproken, zodat iedereen die de SLO opent de afspraak ziet die nu geldt. Zolang het niveau implementaties bevriest, toont een rode badge onder zijn naam sinds wanneer.
@@ -126,7 +130,7 @@ De ingebouwde beschrijving noemt het niveau, zet het resterende budget af tegen 
 
 ## Berichten plaatsen in Slack, Microsoft Teams en Mattermost
 
-Een regel kan elke wijziging in het foutbudgetbeleid van een SLO plaatsen in de kanalen in Slack, Microsoft Teams of Mattermost die uw team leest, zonder iemand te waarschuwen: wanneer de SLO een niveau binnengaat, herstelt naar een minder ernstig niveau of elk niveau verlaat, en wanneer zijn implementaties worden bevroren of weer toegestaan. Elke regel kiest de SLO's en de wijzigingen die hij plaatst. Koppel eerst de workspace aan het project: zie [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) of [Mattermost](/docs/workspace-connections/mattermost).
+Een regel kan elke wijziging in het foutbudgetbeleid van een SLO plaatsen in de kanalen in Slack, Microsoft Teams of Mattermost die uw team leest, zonder iemand te waarschuwen: wanneer de SLO een niveau binnengaat, herstelt naar een minder ernstig niveau of elk niveau verlaat, en wanneer zijn implementaties worden bevroren of weer toegestaan. Elke regel kiest de SLO's en de wijzigingen die hij plaatst, en een regel kan ook de statuswijzigingen van de SLO plaatsen: zie [Statuswijzigingen](#statuswijzigingen). Koppel eerst de workspace aan het project: zie [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) of [Mattermost](/docs/workspace-connections/mattermost).
 
 :::steps
 ### De sectie Werkruimte van SLO's openen
@@ -147,7 +151,7 @@ Het bericht beschrijft de wijziging in de woorden van de **Feed** van de SLO: he
 - Een wijziging wordt één keer geplaatst, nadat de evaluatie die haar veroorzaakte is opgeslagen. Een evaluatie die niet wordt opgeslagen, plaatst niets, en de volgende plaatst de wijziging.
 - Er wordt niets geplaatst zolang de SLO in zijn niveau blijft, hoe lang het budget ook rond een drempel schommelt: zie [Een niveau binnengaan en verlaten](#een-niveau-binnengaan-en-verlaten).
 - **Implementaties bevriezen** aan- of uitzetten voor het niveau waarin de SLO zit, plaatst een eigen bericht.
-- Een SLO die gepauzeerd, verkeerd geconfigureerd, uitgeschakeld of gearchiveerd is, houdt zijn niveau en plaatst niets.
+- Een SLO die wacht, gepauzeerd, verkeerd geconfigureerd, uitgeschakeld of gearchiveerd is, houdt zijn niveau en plaatst niets.
 - Een bericht dat niet kan worden verzonden, wordt gelogd, en de evaluatie, de feed van de SLO en wat het niveau geeft, gaan zonder dat bericht door.
 
 ### Waarvoor een regel geldt
@@ -158,13 +162,25 @@ Het bericht beschrijft de wijziging in de woorden van de **Feed** van de SLO: he
 | **SLO-labels** | De labels van de SLO: een van de labels die u kiest, ze allemaal, of geen ervan. |
 | **SLO-naam** | De naam van de SLO: wel of niet gelijk aan uw tekst, wel of niet met die tekst erin, of beginnend of eindigend met die tekst. |
 | **Wijziging in foutbudgetbeleid** | Wat er veranderde: **Strenger niveau binnengegaan**, **Hersteld naar een minder streng niveau**, **Alle niveaus verlaten**, **Implementaties bevroren** of **Implementaties weer toegestaan**. |
+| **Wijziging in SLO-status** | Hoe de status van de SLO veranderde: **Loopt nu risico**, **Budget uitgeput** of **Weer gezond**. Alleen een regel met deze voorwaarde plaatst statuswijzigingen: zie [Statuswijzigingen](#statuswijzigingen). |
 | **Eigenaar van SLO** | De mensen en teams die als eigenaren van de SLO zijn vastgelegd: een van degenen die u kiest, of geen ervan. Lid zijn van een team dat eigenaar is van de SLO telt niet. |
 
 Een niveauwijziging die implementaties bevroor, of weer toestond, is één bericht dat voor beide wijzigingen telt. Een regel voor **Implementaties bevroren** plaatst dus ook de wijziging waarmee de SLO een niveau binnenging dat ze bevriest: een releasekanaal hoort van elke bevriezing.
 
+### Statuswijzigingen
+
+Een regel plaatst de statuswijzigingen van de SLO alleen als hij een voorwaarde **Wijziging in SLO-status** heeft, en dan alleen de wijzigingen die die voorwaarde kiest. Zo'n regel plaatst de wijzigingen in het foutbudgetbeleid alleen als hij ook een voorwaarde **Wijziging in foutbudgetbeleid** heeft. Een regel die is gemaakt voordat statuswijzigingen werden geplaatst, plaatst dus nog steeds wat hij plaatste, en begint nooit statuswijzigingen te plaatsen die niemand koos.
+
+Het bericht beschrijft de wijziging in de woorden van de **Feed** van de SLO: de status waarin de SLO is en de status waarvan het kanaal het laatst hoorde, de SLI tegenover zijn doel, het resterende foutbudget, de huidige verbruikssnelheid en de risicodrempel.
+
+- Een kanaal hoort per uur hooguit één statuswijziging van een SLO, dus een SLO die heen en weer springt tussen **Risico** en **Gezond**, kan het niet overspoelen. Een wijziging binnen het uur wacht, en wordt geplaatst zodra het uur om is als de SLO er dan nog is. Heen en weer springen dat terugkomt bij de status waarvan het kanaal het laatst hoorde, plaatst niets.
+- Een uitgeput budget wordt meteen geplaatst, hoe ver het uur ook is.
+- Een overgang naar **Wachten**, **Verkeerd geconfigureerd** of **Gepauzeerd** plaatst niets: aan de betrouwbaarheid is niets veranderd. Zodra de SLO weer wordt gemeten, wordt een wijziging geplaatst tegenover de status waarvan het kanaal het laatst hoorde.
+- De eigenaren van de SLO krijgen nog steeds een melding van statuswijzigingen per e-mail, sms, oproep en pushmelding, wat de regels ook plaatsen.
+
 ## Als het budget niet wordt gemeten
 
-- Een SLO die **Gepauzeerd** of **Verkeerd geconfigureerd** is, meet geen budget, dus zijn niveau blijft waar het was, en wat het niveau gaf, blijft open totdat er weer wordt gemeten. Regels voor verbruikssnelheid lossen dan juist op wat ze open hebben.
+- Een SLO met de status **Wachten**, **Gepauzeerd** of **Verkeerd geconfigureerd** meet geen budget, dus zijn niveau blijft waar het was, en wat het niveau gaf, blijft open totdat er weer wordt gemeten. Regels voor verbruikssnelheid lossen dan juist op wat ze open hebben.
 - De evaluatie van de SLO uitzetten, of de SLO archiveren, lost op wat zijn niveaus gaven. Het niveau waarin de SLO zit, blijft zoals het was.
 - De SLO verwijderen verwijdert zijn niveaus en lost op wat ze gaven.
 - In elk van deze gevallen houdt de SLO het antwoord dat hij over implementaties gaf, omdat hij zijn niveau houdt: zie [Implementatiepoort](#implementatiepoort).
@@ -257,7 +273,7 @@ Hoe het antwoord verandert:
 
 - Implementaties worden bevroren door de evaluatie die de SLO in een niveau zet dat ze bevriest, en weer toegestaan door de evaluatie die hem eruit haalt, met de eigen herstelmarges van het niveau: zie [Een niveau binnengaan en verlaten](#een-niveau-binnengaan-en-verlaten). Van het ene bevriezende niveau naar het andere blijven ze bevroren, en `deploymentsFrozenAt` houdt zijn tijdstip.
 - **Implementaties bevriezen** aan- of uitzetten voor het niveau waarin de SLO zit, werkt binnen ongeveer een minuut. Om een release uit te brengen voordat het budget is hersteld, zet u het bevriezen uit: de wijziging wordt in de auditlogboeken van de SLO vastgelegd op uw naam.
-- Een SLO die **Gepauzeerd** of **Verkeerd geconfigureerd** is, houdt het antwoord dat hij had, zoals hij ook zijn niveau houdt: een onderhoudsvenster dat elke monitor pauzeert, heft geen bevriezing op en start er ook geen. Een uitgeschakelde of gearchiveerde SLO wordt helemaal niet geëvalueerd, dus ook die houdt zijn antwoord.
+- Een SLO met de status **Wachten**, **Gepauzeerd** of **Verkeerd geconfigureerd** houdt het antwoord dat hij had, zoals hij ook zijn niveau houdt: een onderhoudsvenster dat elke monitor pauzeert, heft geen bevriezing op en start er ook geen. Een uitgeschakelde of gearchiveerde SLO wordt helemaal niet geëvalueerd, dus ook die houdt zijn antwoord.
 - Zolang implementaties bevroren zijn, toont het **Overzicht** van de SLO sinds wanneer, en zegt zijn **Feed** wanneer ze worden bevroren en weer toegestaan.
 
 ## Het niveau via de API lezen
@@ -279,12 +295,14 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
   -d '{ "select": { "name": true, "errorBudgetRemainingPercentage": true, "currentErrorBudgetPolicyTierName": true, "currentErrorBudgetPolicyTierEnteredAt": true } }'
 ```
 
-De niveaus zelf zijn een eigen resource, `/api/service-level-objective-error-budget-policy-tier`, met de verzoeken om op te sommen, te lezen, aan te maken, te wijzigen en te verwijderen die elke resource heeft. Nog twee verzoeken dienen het aanbevolen beleid. Beide nemen `{ "serviceLevelObjectiveId": "..." }` aan en antwoorden met de niveaus in `tiers`:
+De niveaus zelf zijn een eigen resource, `/api/service-level-objective-error-budget-policy-tier`, met de verzoeken om op te sommen, te lezen, aan te maken, te wijzigen en te verwijderen die elke resource heeft. Nog vier verzoeken dienen het aanbevolen beleid. De verzoeken voor één SLO nemen `{ "serviceLevelObjectiveId": "..." }` aan en antwoorden met de niveaus in `tiers`. De bulkverzoeken nemen `{ "serviceLevelObjectiveIds": ["..."] }` aan, hooguit 100 SLO's per verzoek, en antwoorden met één item voor elke SLO in `results`, in de gevraagde volgorde:
 
 | Verzoek | Wat het doet |
 | --- | --- |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy` | Somt de aanbevolen niveaus op die de SLO mist. Het schrijft niets. |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/add` | Voegt ze toe en somt op wat het heeft toegevoegd. Opnieuw vragen voegt niets toe. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk` | Zegt wat elke SLO zou krijgen: `Missing` met de niveaus, `NothingMissing`, `OwnPolicy` voor een SLO met een eigen foutbudgetbeleid, of `Refused` voor een SLO die u niet mag lezen. Het schrijft niets. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk/add` | Voegt toe wat elke SLO mist, de ene SLO na de andere: `Added` met de niveaus, `NothingMissing`, `OwnPolicy`, `Refused`, of `Failed`, wanneer er niets aan is toegevoegd. Opnieuw vragen voegt alleen toe wat nog ontbreekt. |
 
 ## Machtigingen
 
@@ -299,7 +317,7 @@ Deze machtigingen staan in de SLO-groep van een rol. De rollen Projecteigenaar e
 
 ## Nog niet beschikbaar
 
-Sommige onderdelen van een foutbudgetbeleid zijn nog niet beschikbaar: een eigen workflowtrigger per niveau, een beleid dat meerdere SLO's delen, een niveau bevestigen of er een uitzondering op maken, en niveaus die de looptijd van het budget volgen in plaats van het resterende budget. OneUptime houdt een release niet zelf tegen: een pipeline die `deploymentsAllowed` controleert, doet dat, zoals [Implementatiepoort](#implementatiepoort) laat zien.
+Sommige onderdelen van een foutbudgetbeleid zijn nog niet beschikbaar: een beleid dat meerdere SLO's delen, een niveau bevestigen of er een uitzondering op maken, en niveaus die de looptijd van het budget volgen in plaats van het resterende budget. OneUptime houdt een release niet zelf tegen: een pipeline die `deploymentsAllowed` controleert, doet dat, zoals [Implementatiepoort](#implementatiepoort) laat zien. Een workflow kan starten wanneer een SLO een niveau binnengaat, of wanneer zijn implementaties worden bevroren of weer toegestaan: geef hem de trigger bij het bijwerken van de SLO, en kies **ID van het huidige niveau van het foutbudgetbeleid** of **Implementaties toegestaan** in zijn **Velden om te volgen**, zodat hij één keer per wijziging draait.
 
 ## Volgende stappen
 

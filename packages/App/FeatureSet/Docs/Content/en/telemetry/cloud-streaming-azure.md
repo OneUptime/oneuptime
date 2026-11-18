@@ -77,14 +77,7 @@ When the first subscription is not the one OneUptime reads the event hubs in, th
 
 The stream carries the key metrics the connection reads a minute at a time. The reads keep writing the rest on their schedule: a metric they read at a coarser grain, such as a container registry's storage used, and every key metric a diagnostic setting cannot send, which Azure Monitor's list of supported metrics marks No under DS Export:
 
-- Virtual machines and scale sets: `Network In Total`, `Network Out Total`.
-- Disks: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Azure Cosmos DB accounts: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Storage accounts: `UsedCapacity`.
-- AKS clusters: `kube_pod_status_ready`.
-- Application gateways: `ApplicationGatewayTotalTime`, `Throughput`.
-- Firewalls: `Throughput`.
-- NAT gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 A Service Bus or Event Hubs namespace streams no metrics. The reads read its key metrics for each queue, topic and event hub, and the namespace's own totals add those up, while a diagnostic setting sends only the namespace's totals, and not 4 of a Service Bus namespace's 6 key metrics, or 2 of an Event Hubs namespace's 4. So the reads write all of them, streaming or not, and no message is counted twice.
 

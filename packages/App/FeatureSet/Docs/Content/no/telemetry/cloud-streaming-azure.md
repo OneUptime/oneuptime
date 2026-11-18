@@ -77,14 +77,7 @@ Når det første abonnementet ikke er det OneUptime leser hendelseshubene i, sie
 
 Strømmen bærer nøkkelmålingene tilkoblingen leser minutt for minutt. Lesingene fortsetter å skrive resten etter tidsplanen sin: en måling de leser med grovere oppløsning, for eksempel brukt lagring i et containerregister, og hver nøkkelmåling en diagnoseinnstilling ikke kan sende, som Azure Monitors liste over støttede målinger markerer som ikke eksporterbar i kolonnen DS Export:
 
-- Virtuelle maskiner og skaleringssett: `Network In Total`, `Network Out Total`.
-- Disker: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Azure Cosmos DB-kontoer: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Lagringskontoer: `UsedCapacity`.
-- AKS-klynger: `kube_pod_status_ready`.
-- Applikasjonsgatewayer: `ApplicationGatewayTotalTime`, `Throughput`.
-- Brannmurer: `Throughput`.
-- NAT-gatewayer: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Et Service Bus- eller Event Hubs-navnerom strømmer ingen målinger. Lesingene leser nøkkelmålingene for hver kø, hvert topic og hver hendelseshub, og navnerommets egne totaler legger dem sammen, mens en diagnoseinnstilling bare sender navnerommets totaler, og ikke i det hele tatt 4 av et Service Bus-navneroms 6 nøkkelmålinger eller 2 av et Event Hubs-navneroms 4. Så lesingene skriver alle sammen, med eller uten strømming, og ingen melding telles to ganger.
 

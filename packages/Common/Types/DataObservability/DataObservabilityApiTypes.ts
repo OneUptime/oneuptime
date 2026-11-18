@@ -286,6 +286,12 @@ export interface DataObservabilityStoreSummary {
   status: string | null;
   message: string | null;
   collectedAt: string | null;
+  /*
+   * When the last collection ended, collected or failed: what Collect Now
+   * waits to pass the time it asked (requestedAt). Null for a store not
+   * collected since the server began keeping it; left out by an older one.
+   */
+  attemptedAt?: string | null | undefined;
   assetCount: number;
   lateAssetCount: number;
   // The monitors on, scoped to the whole database: its recommended alerts, or its own.
@@ -423,6 +429,15 @@ export interface DataObservabilityConnectStoreRequest {
   probeConnectionVariable?: string | undefined;
 }
 
+/*
+ * Collect Now's answer: when the server asked for the collection, by its
+ * own clock, so the page knows the collection it asked for has ended once
+ * the store's attemptedAt passes it.
+ */
+export interface DataObservabilityCollectNowResponse {
+  requestedAt: string;
+}
+
 export interface DataObservabilityConnectStoreResponse {
   dataStoreId: string;
 }
@@ -432,6 +447,8 @@ export enum DataObservabilitySourceOrigin {
   Traces = "Traces",
   DatabaseMonitoring = "Database Monitoring",
   CloudAccount = "Cloud Account",
+  // Read by a BI tool's dashboards (DataBiLineageSummary): offered from Tables Matched.
+  BiTool = "BI Tool",
 }
 
 export interface DataObservabilitySourceSuggestion {

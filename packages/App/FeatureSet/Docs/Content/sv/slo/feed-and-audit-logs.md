@@ -31,7 +31,7 @@ Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Senaste
 | SLO uppdaterat | Namnet, beskrivningen, etiketterna, målet, efterlevnadsfönstret, tidszonen, tröskeln för riskzon, läget för flera monitorer eller driftstoppsstatusarna ändras. Visar varje gammalt och nytt värde. |
 | SLO aktiverat eller inaktiverat | Utvärderingen slås på eller av. |
 | SLO arkiverat eller återställt | SLO:et arkiveras eller avarkiveras. |
-| Status ändrad | En utvärdering flyttar SLO:et till en ny status. Visar den SLI, den felbudget, den förbrukningstakt och den tröskel för riskzon som förklarar den, och orsaken vid **Pausad** eller **Felkonfigurerad**. |
+| Status ändrad | En utvärdering flyttar SLO:et till en ny status. Visar den SLI, den felbudget, den förbrukningstakt och den tröskel för riskzon som förklarar den, och orsaken vid **Väntar**, **Pausad** eller **Felkonfigurerad**. |
 | Nivå i felbudgetpolicyn bytt | En utvärdering flyttar SLO:et till en nivå i dess felbudgetpolicy, till en annan nivå eller ut ur alla nivåer. Visar nivån det lämnade och nivån det gick in i, återstående budget och vad teamet har kommit överens om att göra i den nya nivån, och anger när bytet frös distributioner eller tillät dem igen. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
 | Distributioner frysta eller tillåtna igen | Någon slog på eller av **Frys distributioner** för den nivå SLO:et är i, och nästa utvärdering frös distributioner eller tillät dem igen. Ett byte av nivå som gör det säger det i stället i sin egen post. Se [Distributionsspärr](/docs/slo/error-budget-policy#distributionsspärr). |
 | Larm för förbrukningstakt utlöst | En regel för förbrukningstakt skapar ett larm. Länkar till det och visar de förbrukningstakter som utlöste det. |

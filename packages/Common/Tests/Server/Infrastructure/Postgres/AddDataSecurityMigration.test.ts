@@ -6,6 +6,7 @@ import { AddDataObservability1808910000000 } from "../../../../Server/Infrastruc
 import { AddDataAssetOwnersAndFeedback1808992700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992700000-AddDataAssetOwnersAndFeedback";
 import { AddDataAssetUsage1808991300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808991300000-AddDataAssetUsage";
 import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182490000-AddRuleEmptiedLimits";
+import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -149,6 +150,12 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
   ],
   // The database a collection read, which ties services' spans to its tables.
   ["DataStore", "tableHealthTarget", AddDataAssetUsage1808991300000],
+  // When the last collection ended, collected or failed (#9506), which Collect Now waits for.
+  [
+    "DataStore",
+    "tableHealthAttemptedAt",
+    AddTableHealthAttemptedAt1809184570000,
+  ],
   // Why OneUptime switched a rule off (#9066), on every rule's table.
   ["DataStoreOwnerRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],
   ["DataStoreLabelRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],

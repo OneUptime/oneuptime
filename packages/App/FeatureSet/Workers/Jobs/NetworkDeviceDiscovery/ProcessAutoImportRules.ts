@@ -216,7 +216,7 @@ RunCron(
               result.monitorsFailed > 0)
           ) {
             logger.info(
-              `NetworkDeviceDiscovery:ProcessAutoImportRules - scan ${scan.id?.toString()}: ${result.devicesCreated} device(s) auto-imported, ${result.hostsSkippedAlreadyRegistered} already registered, ${result.hostsExcluded} excluded, ${result.devicesFailed} device import(s) failed; ${result.monitorsCreated} active Network Device monitor(s) created, ${result.monitorsSkippedAlreadyExisting} requested monitor(s) skipped because monitoring already existed, ${result.monitorsSkippedUnsupportedHost} requested monitor(s) unsupported, ${result.monitorsFailed} monitor create(s) failed${
+              `NetworkDeviceDiscovery:ProcessAutoImportRules - scan ${scan.id?.toString()}: ${result.devicesCreated} device(s) auto-imported, ${result.hostsSkippedAlreadyRegistered} already registered, ${result.hostsExcluded} excluded, ${result.devicesFailed} device import(s) failed; ${result.monitorsCreated} active monitor(s) created, ${result.monitorsSkippedAlreadyExisting} requested monitor(s) skipped because monitoring already existed, ${result.monitorsSkippedUnsupportedHost} requested monitor(s) unsupported, ${result.monitorsFailed} monitor create(s) failed${
                 result.isTruncated
                   ? "; capped — the next tick will resume this scan"
                   : ""

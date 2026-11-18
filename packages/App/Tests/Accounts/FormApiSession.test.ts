@@ -121,7 +121,7 @@ beforeEach(() => {
     .spyOn(Navigation, "navigate")
     .mockImplementation((): void => {});
 
-  logoutSpy = jest.spyOn(User, "logout").mockImplementation((): void => {});
+  logoutSpy = jest.spyOn(User, "logout").mockResolvedValue(undefined);
 });
 
 afterEach(async () => {

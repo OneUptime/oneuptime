@@ -435,6 +435,20 @@ export default class DataDashboard extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Built On",
+    description:
+      "What its tool says it is built on (Power BI): the datasets it charts, and where their data comes from - a database, a file, a web page or a dataflow - whether or not OneUptime watches it.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public upstream?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
     modelType: DataAsset,

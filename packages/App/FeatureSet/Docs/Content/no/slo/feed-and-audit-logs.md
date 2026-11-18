@@ -31,7 +31,7 @@ Feeden ligger på siden **Feed** til SLO-et, og de nyeste elementene under **Nyl
 | SLO oppdatert | Navnet, beskrivelsen, etikettene, målet, samsvarsvinduet, tidssonen, risikoterskelen, modusen for flere monitorer eller nedetidsstatusene endres. Viser hver gammel og ny verdi. |
 | SLO aktivert eller deaktivert | Evalueringen slås på eller av. |
 | SLO arkivert eller gjenopprettet | SLO-et arkiveres eller fjernes fra arkivet. |
-| Status endret | En evaluering flytter SLO-et til en ny status. Viser SLI-en, feilbudsjettet, forbruksraten og risikoterskelen som forklarer den, og årsaken ved **Pauset** eller **Feilkonfigurert**. |
+| Status endret | En evaluering flytter SLO-et til en ny status. Viser SLI-en, feilbudsjettet, forbruksraten og risikoterskelen som forklarer den, og årsaken ved **Venter**, **Pauset** eller **Feilkonfigurert**. |
 | Nivå i feilbudsjettpolicyen endret | En evaluering flytter SLO-et inn i et nivå i feilbudsjettpolicyen, til et annet nivå eller ut av alle nivåer. Viser nivået det forlot og nivået det gikk inn i, gjenværende budsjett og hva teamet har avtalt å gjøre i det nye nivået, og sier når endringen frøs distribusjoner eller tillot dem igjen. Se [Feilbudsjettpolicy](/docs/slo/error-budget-policy). |
 | Distribusjoner frosset eller tillatt igjen | Noen slo **Frys distribusjoner** på eller av for nivået SLO-et er i, og neste evaluering frøs distribusjoner eller tillot dem igjen. Når en endring av nivå gjør det, sier elementet for den endringen det i stedet. Se [Distribusjonssperre](/docs/slo/error-budget-policy#distribusjonssperre). |
 | Forbruksratevarsel utløst | En forbruksrateregel oppretter et varsel. Lenker til det og viser forbruksratene som utløste det. |

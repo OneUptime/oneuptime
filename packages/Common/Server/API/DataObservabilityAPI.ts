@@ -43,6 +43,7 @@ import {
   DataObservabilityAiAppTable,
   DataObservabilityAttentionCountResponse,
   DataObservabilityCheckHealthResponse,
+  DataObservabilityCollectNowResponse,
   DataObservabilityCollector,
   DataObservabilityConnectStoreResponse,
   DataObservabilityIssuesRequest,
@@ -109,7 +110,11 @@ import DataTableLineageAnswerer, {
 } from "../Utils/DataObservability/DataTableLineageAnswer";
 import DataAlertLineageReader from "../Utils/DataObservability/DataAlertLineage";
 import DataLineageMapReader from "../Utils/DataObservability/DataLineageMap";
-import { DataLineageMap } from "../../Types/DataObservability/DataLineageMap";
+import {
+  DataLineageMap,
+  DataLineageMapRequest,
+  readDataLineageMapRequest,
+} from "../../Types/DataObservability/DataLineageMap";
 import {
   DataLineageExpandRequest,
   DataLineageExpansion,
@@ -176,8 +181,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    (DataTableLineageAnswer): what the MCP server's get_data_table_lineage
  *    tool asks;
  *  - the project's lineage map (DataLineageMap): every flow it has seen,
- *    services, tables, pipelines and dashboards, for the same people and
- *    their API keys - what the Lineage Map page draws;
+ *    services, tables, pipelines and dashboards - or the flows of one
+ *    database, or of what a search of the whole project names - for the
+ *    same people and their API keys: what the Lineage Map page draws;
  *  - a data product's "data as of" badge, for anyone with its secret, so it
  *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
@@ -187,7 +193,10 @@ import ProductKey from "../../Types/Product/ProductKey";
  * what its members own, or to some labels, answers about those records only,
  * its counts counting the rows its lists show (DataObservabilityReadScope,
  * #6553) - and a route about one table or check answers only for one the
- * caller may read, or change.
+ * caller may read, or change. The lineage routes read through readers that
+ * narrow every row they read the same way (scopeDataLineageReader, #9526):
+ * a table or pipeline the caller may not read is not drawn, not named on
+ * an arrow and not counted, and a drawing about one is not found.
  *
  * A data store is Data Security's record, readable by the Security tiers
  * only, so these read stores as OneUptime and hand back only what table
@@ -486,11 +495,12 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           req,
         );
+        const requestedAt: Date = OneUptimeDate.getCurrentDate();
 
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id!,
           data: {
-            nextTableHealthCollectionAt: OneUptimeDate.getCurrentDate(),
+            nextTableHealthCollectionAt: requestedAt,
           } as never,
         });
 
@@ -502,7 +512,12 @@ export default class DataObservabilityAPI extends BaseAPI<
           });
         }
 
-        return {};
+        // The page waits for the store's attemptedAt to pass it: the collection asked for has ended.
+        const response: DataObservabilityCollectNowResponse = {
+          requestedAt: requestedAt.toISOString(),
+        };
+
+        return response as unknown as JSONObject;
       },
     );
 
@@ -794,21 +809,31 @@ export default class DataObservabilityAPI extends BaseAPI<
      * The project's lineage map: every flow it has seen, newest first, as
      * many as one map draws - which services write and read which tables,
      * what each table is built from, the pipelines that load them and the
-     * dashboards built on them. Open alerts as the person who asked may
-     * see them.
+     * dashboards built on them - or, asked for, the flows of one database's
+     * tables, or of what a search of the whole project names (#6547). Only
+     * the tables and pipelines the person who asked may read (#9526), and
+     * open alerts as they may see them.
      */
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.lineageMap,
       READ_PERMISSIONS,
       async (
         projectId: ObjectID,
-        _req: ExpressRequest,
+        req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
+        const request: DataLineageMapRequest | string =
+          readDataLineageMapRequest(req.body);
+
+        if (typeof request === "string") {
+          throw new BadDataException(request);
+        }
+
         const map: DataLineageMap = await DataLineageMapReader.read({
           projectId,
           now: OneUptimeDate.getCurrentDate(),
           reader: props,
+          request,
         });
 
         return map as unknown as JSONObject;
@@ -939,6 +964,8 @@ export default class DataObservabilityAPI extends BaseAPI<
             ),
             now: OneUptimeDate.getCurrentDate(),
             reader: props,
+            // The columns its arrows carry only when asked: its page's column picker (#6854).
+            withColumns: body["withColumns"] === true,
           });
 
         if (!lineage) {
@@ -1564,6 +1591,7 @@ export default class DataObservabilityAPI extends BaseAPI<
       tableHealthStatus: true,
       tableHealthMessage: true,
       tableHealthCollectedAt: true,
+      tableHealthAttemptedAt: true,
       tableHealthAssetCount: true,
       connectionString: true,
       cloudConnectionId: true,
@@ -1660,6 +1688,11 @@ export default class DataObservabilityAPI extends BaseAPI<
           collectedAt: store.tableHealthCollectedAt
             ? OneUptimeDate.fromString(
                 store.tableHealthCollectedAt,
+              ).toISOString()
+            : null,
+          attemptedAt: store.tableHealthAttemptedAt
+            ? OneUptimeDate.fromString(
+                store.tableHealthAttemptedAt,
               ).toISOString()
             : null,
           assetCount: store.tableHealthAssetCount || 0,

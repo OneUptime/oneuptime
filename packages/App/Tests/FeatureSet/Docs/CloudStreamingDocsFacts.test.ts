@@ -40,8 +40,14 @@ import {
   CLOUD_STREAM_MAX_REGIONS,
   CLOUD_STREAM_TEMPLATE_FILE,
   getAwsCloudStreamDeleteCommand,
+  getCloudStreamKeyMetricFilters,
   getCloudStreamNames,
 } from "Common/Types/CloudConnection/CloudStreamTemplate";
+import {
+  AWS_KEY_METRICS,
+  AwsKeyMetric,
+  AwsNamespaceKeyMetrics,
+} from "Common/Types/Cloud/CloudKeyMetrics";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -168,6 +174,48 @@ describe("Stream CloudWatch Metrics and Logs", () => {
     );
     expect(value("Retry duration")).toContain(
       `${CLOUD_STREAM_RETRY_DURATION_SECONDS} seconds`,
+    );
+  });
+
+  /*
+   * A stack's key-metric filters are made once, from the template of its
+   * day, so a key metric added after streams began is read whether the
+   * account streams or not (AwsKeyMetric.isStreamed false), as a daily one
+   * always was, and no stack's filters name it. The page says the reads
+   * still write them, with one of each kind.
+   */
+  it("says the reads still write the key metrics a stream leaves to them, as CloudKeyMetrics marks them", () => {
+    const leftToTheReads: Array<string> = [];
+
+    for (const entry of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
+      for (const metric of entry.metrics as ReadonlyArray<AwsKeyMetric>) {
+        if (!metric.isStreamed) {
+          leftToTheReads.push(`${entry.namespace}/${metric.metricName}`);
+        }
+      }
+    }
+
+    // A daily one, and one added after streams began.
+    expect(leftToTheReads).toContain("AWS/S3/BucketSizeBytes");
+    expect(leftToTheReads).toContain("AWS/EC2/CPUCreditBalance");
+
+    const filtered: Array<string> = getCloudStreamKeyMetricFilters().flatMap(
+      (filter: { Namespace: string; MetricNames: Array<string> }) => {
+        return filter.MetricNames.map((name: string): string => {
+          return `${filter.Namespace}/${name}`;
+        });
+      },
+    );
+
+    for (const metric of leftToTheReads) {
+      expect({ metric, filtered: filtered.includes(metric) }).toEqual({
+        metric,
+        filtered: false,
+      });
+    }
+
+    expect(prose()).toContain(
+      "They still write the key metrics a stream leaves to them, such as an S3 bucket's daily size and the key metrics added after streams began, which an older stack does not carry.",
     );
   });
 

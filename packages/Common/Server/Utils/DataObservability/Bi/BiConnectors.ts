@@ -1,3 +1,7 @@
+import {
+  DataBiDatasetFacts,
+  DataDashboardUpstream,
+} from "../../../../Types/DataObservability/DataBiLineage";
 import { DataBiDatasetRead } from "../../../../Types/DataObservability/DataBiRefreshAlert";
 import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
 import { DataDashboardRefreshHistory } from "../../../../Types/DataObservability/DataDashboardActivity";
@@ -7,6 +11,14 @@ import DataSourceHttpFetch, {
   DataSourceHttpResponse,
 } from "../../DataSource/HttpFetch";
 import BiRequestError from "./BiRequestError";
+import { BiSourceRead, BiSourceReader, collectBiSources } from "./BiSources";
+import {
+  BiTableRef,
+  MAX_BI_NAME_LENGTH,
+  readQualifiedName,
+  readSqlTables,
+  uniqueTables,
+} from "./BiTables";
 import { BiUsageRead } from "./BiUsage";
 import { PowerBiUsageCursor, readPowerBiUsage } from "./PowerBiActivity";
 import {
@@ -15,6 +27,15 @@ import {
   PowerBiRefreshTarget,
   readPowerBiRefreshes,
 } from "./PowerBiRefreshes";
+import {
+  getPowerBiDatasetFacts,
+  getPowerBiTables,
+  getPowerBiUpstream,
+  PowerBiDataset,
+  PowerBiItem,
+  PowerBiScanRead,
+  readPowerBiScan,
+} from "./PowerBiScan";
 
 /*
  * EACH BI TOOL'S DASHBOARDS, AND THE TABLES BEHIND THEM.
@@ -49,15 +70,6 @@ import {
  * afterwards (BiMatching). Only names and links are read, never a row.
  */
 
-export interface BiTableRef {
-  database: string | null;
-  schema: string | null;
-  table: string;
-  // The engine as the tool names it: postgres, snowflake, bigquery...
-  engine: string | null;
-  host: string | null;
-}
-
 export interface BiDashboardRead {
   externalId: string;
   name: string;
@@ -72,6 +84,11 @@ export interface BiDashboardRead {
    * was read before is kept.
    */
   refresh?: DataDashboardRefreshHistory | null | undefined;
+  /*
+   * What it is built on, where its tool says (Power BI): its datasets, and
+   * where their data comes from. Left out where the tool does not say.
+   */
+  upstream?: DataDashboardUpstream | undefined;
 }
 
 // What a tool says: its dashboards, the views read with them, and what could not be read.
@@ -86,6 +103,13 @@ export interface BiToolRead {
    * tool says (Power BI); left out otherwise.
    */
   datasets?: Array<DataBiDatasetRead> | undefined;
+  // What the tool said of those datasets' tables (Power BI); left out otherwise.
+  datasetFacts?: DataBiDatasetFacts | undefined;
+  /*
+   * Where those datasets' data comes from (Power BI), each source with how
+   * many datasets read it and the tables read from it; left out otherwise.
+   */
+  sources?: Array<BiSourceRead> | undefined;
 }
 
 export type BiTransport = (
@@ -103,9 +127,7 @@ export interface BiReadInput {
 
 // The most dashboards read from one tool, and tables kept of one.
 export const MAX_BI_DASHBOARDS: number = 2_000;
-const MAX_TABLES_PER_DASHBOARD: number = 200;
 const REQUEST_TIMEOUT_IN_MS: number = 30_000;
-const MAX_NAME_LENGTH: number = 240;
 const POWER_BI_API: string = "https://api.powerbi.com/v1.0/myorg";
 const HIGHTOUCH_API: string = "https://api.hightouch.com/api/v1";
 const HIGHTOUCH_PAGE_SIZE: number = 100;
@@ -116,7 +138,10 @@ const REVERSE_ETL_FOLDER: string = "Reverse ETL";
 const POWER_BI_SCAN_POLLS: number = 30;
 const POWER_BI_SCAN_WAIT_IN_MS: number = 2_000;
 
-function readText(value: unknown, maxLength: number = MAX_NAME_LENGTH): string {
+function readText(
+  value: unknown,
+  maxLength: number = MAX_BI_NAME_LENGTH,
+): string {
   return typeof value === "string" || typeof value === "number"
     ? String(value).trim().slice(0, maxLength)
     : "";
@@ -154,129 +179,6 @@ function requireText(
   }
 
   return value;
-}
-
-// A name as SQL writes it: bare, or quoted with "", `` or [].
-const IDENT: string =
-  '(?:"[^"]+"|`[^`]+`|\\[[^\\]]+\\]|[A-Za-z_][A-Za-z0-9_$]*)';
-const QUALIFIED: string = `${IDENT}(?:\\s*\\.\\s*${IDENT}){0,2}`;
-const FROM_OR_JOIN: RegExp = new RegExp(
-  `\\b(?:FROM|JOIN)\\s+(${QUALIFIED})`,
-  "gi",
-);
-const CTE_NAME: RegExp =
-  /(?:\bWITH\s+(?:RECURSIVE\s+)?|,\s*)([A-Za-z_][A-Za-z0-9_]*)\s+AS\s*\(/gi;
-
-// A name in quotes, backticks or brackets.
-const QUOTED_START: RegExp = /^["`[]/;
-
-function unquote(part: string): string {
-  const trimmed: string = part.trim();
-
-  return trimmed.length >= 2 && QUOTED_START.test(trimmed)
-    ? trimmed.slice(1, -1)
-    : trimmed;
-}
-
-/*
- * A qualified name as its parts, the last the table: db.schema.table,
- * schema.table or table. A BigQuery name in one pair of backticks
- * (`project.dataset.table`) is split on its dots.
- */
-export function readQualifiedName(
-  value: string,
-  defaults: {
-    database?: string | null;
-    engine?: string | null;
-    host?: string | null;
-  } = {},
-): BiTableRef | null {
-  const parts: Array<string> = (value.match(new RegExp(IDENT, "g")) || [])
-    .map(unquote)
-    .flatMap((part: string): Array<string> => {
-      return part.includes(".") ? part.split(".") : [part];
-    })
-    .filter(Boolean);
-
-  if (parts.length === 0 || parts.length > 3) {
-    return null;
-  }
-
-  const table: string = parts[parts.length - 1]!.slice(0, MAX_NAME_LENGTH);
-
-  return {
-    database:
-      parts.length === 3
-        ? parts[0]!.slice(0, MAX_NAME_LENGTH)
-        : defaults.database || null,
-    schema:
-      parts.length >= 2
-        ? parts[parts.length - 2]!.slice(0, MAX_NAME_LENGTH)
-        : null,
-    table,
-    engine: defaults.engine || null,
-    host: defaults.host || null,
-  };
-}
-
-/*
- * The tables a query reads: every name after FROM or JOIN, but a common
- * table expression's own name. Template tags ({{...}}) and subqueries are
- * not names.
- */
-export function readSqlTables(
-  sql: string,
-  defaults: {
-    database?: string | null;
-    engine?: string | null;
-    host?: string | null;
-  } = {},
-): Array<BiTableRef> {
-  const text: string = sql
-    .replace(/--[^\n]*/g, " ")
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/\{\{[^}]*\}\}/g, " ")
-    .replace(/'(?:[^']|'')*'/g, "''");
-  const ctes: Set<string> = new Set(
-    Array.from(text.matchAll(CTE_NAME)).map(
-      (match: RegExpMatchArray): string => {
-        return match[1]!.toLowerCase();
-      },
-    ),
-  );
-  const tables: Array<BiTableRef> = [];
-
-  for (const match of text.matchAll(FROM_OR_JOIN)) {
-    const ref: BiTableRef | null = readQualifiedName(match[1]!, defaults);
-
-    if (ref && !(ref.schema === null && ctes.has(ref.table.toLowerCase()))) {
-      tables.push(ref);
-    }
-  }
-
-  return tables;
-}
-
-// Each table once, by its parts in lower case.
-export function uniqueTables(tables: Array<BiTableRef>): Array<BiTableRef> {
-  const seen: Set<string> = new Set();
-
-  return tables
-    .filter((ref: BiTableRef): boolean => {
-      const key: string = [ref.database, ref.schema, ref.table]
-        .map((part: string | null): string => {
-          return (part || "").toLowerCase();
-        })
-        .join("\u0000");
-
-      if (seen.has(key)) {
-        return false;
-      }
-
-      seen.add(key);
-      return true;
-    })
-    .slice(0, MAX_TABLES_PER_DASHBOARD);
 }
 
 // One JSON request to a tool: its body, or an error naming the tool and status.
@@ -877,65 +779,6 @@ export class LookerConnector {
   }
 }
 
-/*
- * The tables a Power Query expression reads: a database's navigation steps
- * ([Schema="dbo",Item="orders"], or [Name="ORDERS",Kind="Table"] with its
- * schema and database steps), and a native query's SQL.
- */
-export function readPowerQueryTables(expression: string): Array<BiTableRef> {
-  const refs: Array<BiTableRef> = [];
-  const sqlDatabase: RegExpMatchArray | null = expression.match(
-    /Sql\.Databases?\(\s*"([^"]+)"\s*(?:,\s*"([^"]+)")?/i,
-  );
-  const host: string | null = sqlDatabase ? sqlDatabase[1]! : null;
-  let database: string | null = sqlDatabase?.[2] || null;
-  let schema: string | null = null;
-
-  for (const match of expression.matchAll(
-    /\[Schema\s*=\s*"([^"]+)"\s*,\s*Item\s*=\s*"([^"]+)"\]/gi,
-  )) {
-    refs.push({
-      database,
-      schema: match[1]!,
-      table: match[2]!,
-      engine: sqlDatabase ? "sqlserver" : null,
-      host,
-    });
-  }
-
-  for (const match of expression.matchAll(
-    /\[Name\s*=\s*"([^"]+)"\s*,\s*Kind\s*=\s*"(Database|Schema|Table|View)"\]/gi,
-  )) {
-    const kind: string = match[2]!.toLowerCase();
-
-    if (kind === "database") {
-      database = match[1]!;
-    } else if (kind === "schema") {
-      schema = match[1]!;
-    } else {
-      refs.push({ database, schema, table: match[1]!, engine: null, host });
-    }
-  }
-
-  const native: RegExpMatchArray | null = expression.match(
-    /Value\.NativeQuery\([^,]+,\s*"((?:[^"]|"")*)"/i,
-  );
-
-  if (native) {
-    refs.push(
-      ...readSqlTables(
-        native[1]!.replace(/""/g, '"').replace(/#\(lf\)/g, "\n"),
-        {
-          database,
-          host,
-        },
-      ),
-    );
-  }
-
-  return refs;
-}
-
 export class PowerBiConnector {
   public static async read(
     input: BiReadInput & { wait?: ((ms: number) => Promise<void>) | undefined },
@@ -988,7 +831,7 @@ export class PowerBiConnector {
         return readText(readObject(value)["id"], 100);
       })
       .filter(Boolean);
-    const workspaces: Array<JSONObject> = [];
+    const results: Array<JSONObject> = [];
 
     for (let start: number = 0; start < workspaceIds.length; start += 100) {
       const scan: JSONObject = readObject(
@@ -1016,59 +859,58 @@ export class PowerBiConnector {
           break;
         }
 
-        if (
-          poll >= POWER_BI_SCAN_POLLS ||
-          readText(status["status"]) === "Failed"
-        ) {
+        if (readText(status["status"]) === "Failed") {
+          const reason: string = readText(
+            readObject(status["error"])["message"],
+            300,
+          );
+
+          throw new Error(
+            `Power BI's workspace scan failed${reason ? `: ${reason}` : "."}`,
+          );
+        }
+
+        if (poll >= POWER_BI_SCAN_POLLS) {
           throw new Error("Power BI's workspace scan did not finish.");
         }
 
         await wait(POWER_BI_SCAN_WAIT_IN_MS);
       }
 
-      const result: JSONObject = readObject(
-        await get(`/admin/workspaces/scanResult/${encodeURIComponent(scanId)}`),
+      results.push(
+        readObject(
+          await get(
+            `/admin/workspaces/scanResult/${encodeURIComponent(scanId)}`,
+          ),
+        ),
       );
-
-      workspaces.push(...readArray(result["workspaces"]).map(readObject));
     }
 
-    // Every dataset scanned, by its id in lower case: a report's dataset can be in another workspace.
-    const datasets: Map<string, PowerBiDataset> = new Map();
-
-    for (const workspace of workspaces) {
-      const workspaceId: string = readText(workspace["id"], 100);
-
-      for (const datasetValue of readArray(workspace["datasets"])) {
-        const dataset: JSONObject = readObject(datasetValue);
-        const datasetId: string = readText(dataset["id"], 100);
-        const refs: Array<BiTableRef> = [];
-
-        for (const tableValue of readArray(dataset["tables"])) {
-          for (const source of readArray(readObject(tableValue)["source"])) {
-            refs.push(
-              ...readPowerQueryTables(
-                readText(readObject(source)["expression"], 100_000),
-              ),
-            );
-          }
-        }
-
-        if (datasetId) {
-          datasets.set(datasetId.toLowerCase(), {
-            datasetId,
-            name: readText(dataset["name"]) || datasetId,
-            workspaceId,
-            workspace: readText(workspace["name"]) || null,
-            onCapacity: workspace["isOnDedicatedCapacity"] === true,
-            tables: refs,
-          });
-        }
-      }
-    }
-
+    const scanned: PowerBiScanRead = readPowerBiScan(
+      results,
+      MAX_BI_DASHBOARDS,
+    );
+    const datasets: Map<string, PowerBiDataset> = scanned.datasets;
     const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> =
-      readPowerBiItems(workspaces, datasets);
+      scanned.items.map(
+        (
+          item: PowerBiItem,
+        ): { read: BiDashboardRead; datasetIds: Array<string> } => {
+          return {
+            read: {
+              externalId: item.externalId,
+              name: item.name,
+              url: item.url,
+              folder: item.folder,
+              owner: item.owner,
+              changedAt: item.changedAt,
+              tables: getPowerBiTables(datasets, item.datasetIds),
+              upstream: getPowerBiUpstream(datasets, item.datasetIds),
+            },
+            datasetIds: item.datasetIds,
+          };
+        },
+      );
     // Every dataset a report or dashboard read charts, in lower case.
     const chartedIds: Array<string> = Array.from(
       new Set(
@@ -1137,25 +979,30 @@ export class PowerBiConnector {
         return item.read;
       },
     );
-    // Each charted dataset with its refreshes: undefined where they were not read.
-    const datasetReads: Array<DataBiDatasetRead> = chartedIds
-      .map((datasetId: string): DataBiDatasetRead | null => {
-        const dataset: PowerBiDataset | undefined = datasets.get(datasetId);
-
-        return dataset
-          ? {
-              datasetId,
-              name: dataset.name,
-              workspace: dataset.workspace,
-              refresh: refreshRead.refreshes.has(datasetId)
-                ? refreshRead.refreshes.get(datasetId)
-                : undefined,
-            }
-          : null;
+    const chartedDatasets: Array<PowerBiDataset> = chartedIds
+      .map((datasetId: string): PowerBiDataset | undefined => {
+        return datasets.get(datasetId);
       })
-      .filter((read: DataBiDatasetRead | null): read is DataBiDatasetRead => {
-        return read !== null;
-      });
+      .filter(
+        (dataset: PowerBiDataset | undefined): dataset is PowerBiDataset => {
+          return dataset !== undefined;
+        },
+      );
+    // Each charted dataset with its refreshes: undefined where they were not read.
+    const datasetReads: Array<DataBiDatasetRead> = chartedDatasets.map(
+      (dataset: PowerBiDataset): DataBiDatasetRead => {
+        const datasetId: string = dataset.datasetId.toLowerCase();
+
+        return {
+          datasetId,
+          name: dataset.name,
+          workspace: dataset.workspace,
+          refresh: refreshRead.refreshes.has(datasetId)
+            ? refreshRead.refreshes.get(datasetId)
+            : undefined,
+        };
+      },
+    );
     let usage: BiUsageRead | null = null;
 
     try {
@@ -1187,108 +1034,14 @@ export class PowerBiConnector {
       usage,
       warnings: [...refreshRead.warnings, ...warnings],
       datasets: datasetReads,
+      datasetFacts: getPowerBiDatasetFacts(chartedDatasets),
+      sources: collectBiSources(
+        chartedDatasets.map((dataset: PowerBiDataset): BiSourceReader => {
+          return { sources: dataset.sources, tables: dataset.tables };
+        }),
+      ),
     };
   }
-}
-
-// A dataset scanned: its name, where it is, and the tables its Power Query reads.
-interface PowerBiDataset {
-  datasetId: string;
-  name: string;
-  workspaceId: string;
-  // Its workspace's name.
-  workspace: string | null;
-  onCapacity: boolean;
-  tables: Array<BiTableRef>;
-}
-
-/*
- * A scan's reports and dashboards, each workspace's in turn: a report
- * charts its dataset, a dashboard its tiles' datasets. Each with the ids of
- * its datasets, in lower case.
- */
-function readPowerBiItems(
-  workspaces: Array<JSONObject>,
-  datasets: Map<string, PowerBiDataset>,
-): Array<{ read: BiDashboardRead; datasetIds: Array<string> }> {
-  const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> = [];
-  const tablesOf: (datasetIds: Array<string>) => Array<BiTableRef> = (
-    datasetIds: Array<string>,
-  ): Array<BiTableRef> => {
-    return uniqueTables(
-      datasetIds.flatMap((datasetId: string): Array<BiTableRef> => {
-        return datasets.get(datasetId)?.tables || [];
-      }),
-    );
-  };
-
-  for (const workspace of workspaces) {
-    const workspaceId: string = readText(workspace["id"], 100);
-    const folder: string | null = readText(workspace["name"]) || null;
-
-    for (const reportValue of readArray(workspace["reports"])) {
-      const report: JSONObject = readObject(reportValue);
-      const id: string = readText(report["id"], 100);
-      const datasetId: string = readText(
-        report["datasetId"],
-        100,
-      ).toLowerCase();
-
-      if (!id || items.length >= MAX_BI_DASHBOARDS) {
-        continue;
-      }
-
-      items.push({
-        read: {
-          externalId: id,
-          name: readText(report["name"]) || `Report ${id}`,
-          url: `https://app.powerbi.com/groups/${encodeURIComponent(workspaceId)}/reports/${encodeURIComponent(id)}`,
-          folder,
-          owner:
-            readText(report["modifiedBy"]) ||
-            readText(report["createdBy"]) ||
-            null,
-          changedAt: readDate(report["modifiedDateTime"]),
-          tables: tablesOf(datasetId ? [datasetId] : []),
-        },
-        datasetIds: datasetId ? [datasetId] : [],
-      });
-    }
-
-    for (const dashboardValue of readArray(workspace["dashboards"])) {
-      const dashboard: JSONObject = readObject(dashboardValue);
-      const id: string = readText(dashboard["id"], 100);
-
-      if (!id || items.length >= MAX_BI_DASHBOARDS) {
-        continue;
-      }
-
-      const datasetIds: Array<string> = Array.from(
-        new Set(
-          readArray(dashboard["tiles"])
-            .map((tile: unknown): string => {
-              return readText(readObject(tile)["datasetId"], 100).toLowerCase();
-            })
-            .filter(Boolean),
-        ),
-      );
-
-      items.push({
-        read: {
-          externalId: id,
-          name: readText(dashboard["displayName"]) || `Dashboard ${id}`,
-          url: `https://app.powerbi.com/groups/${encodeURIComponent(workspaceId)}/dashboards/${encodeURIComponent(id)}`,
-          folder,
-          owner: null,
-          changedAt: null,
-          tables: tablesOf(datasetIds),
-        },
-        datasetIds,
-      });
-    }
-  }
-
-  return items;
 }
 
 // A tool's dashboards, by the tool's own reader.

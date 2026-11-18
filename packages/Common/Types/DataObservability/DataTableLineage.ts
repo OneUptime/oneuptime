@@ -187,6 +187,13 @@ export interface DataLineageHighlight {
    * card does on the card.
    */
   causeDataPipelineIds: Array<string>;
+  /*
+   * And those an alert it caused is on: a way down ends on the arrows each
+   * moves data along, and each of them says Consequence by its name, as a
+   * consequence drawn as a card does on the card. Left out by a server
+   * from before it was said: then no arrow says it.
+   */
+  consequenceDataPipelineIds?: Array<string> | undefined;
 }
 
 export interface DataTableLineage {
@@ -203,6 +210,17 @@ export interface DataTableLineage {
   // Dashboards built on the drawn tables that are not drawn.
   hiddenDashboardCount: number;
   /*
+   * The tables next to the drawn ones that are not drawn, on each side,
+   * each counted once however many drawn cards count it (#6734): a table
+   * next to two cards is on both their counts, and once here. Upstream
+   * from the drawing's own card and the cards upstream, downstream from it
+   * and the cards downstream. Only tables its reader may read. Left out by
+   * a server from before they were counted, and by a drawing grown in
+   * place, whose cards' counts have moved since.
+   */
+  hiddenUpstreamTotal?: number | undefined;
+  hiddenDownstreamTotal?: number | undefined;
+  /*
    * More lineage than one drawing holds: a side reached its most tables, or
    * a table had more edges than were read. What is drawn is still true; the
    * counts of tables not drawn are then at least what they say.
@@ -210,6 +228,12 @@ export interface DataTableLineage {
   isTruncated: boolean;
   // On a data alert's page: the ways to its cause and to the alerts it caused.
   highlight?: DataLineageHighlight | undefined;
+  /*
+   * A pipeline's drawing asked for with its columns: the columns of the
+   * first table it writes whose arrow names some, in that table's own
+   * order, so the column picker offers them in it (#6854).
+   */
+  columnOrder?: Array<string> | undefined;
 }
 
 export interface DataTableLineageRequest {
@@ -222,6 +246,13 @@ export interface DataTableLineageRequest {
 export interface DataPipelineLineageRequest {
   dataPipelineId: string;
   depth?: number | undefined;
+  /*
+   * The columns its own arrows carry - which columns of the tables it reads
+   * feed which of the tables it writes - and each arrow between two tables
+   * with its own (columnMappings), so a column can be followed across it
+   * (#6854): off unless asked for, so the answer stays small.
+   */
+  withColumns?: boolean | undefined;
 }
 
 /*
@@ -255,6 +286,13 @@ export interface DataAlertLineageAnswer {
    * when not known.
    */
   isAlertOpen?: boolean | undefined;
+  /*
+   * With a column: the columns of the table drawn, in its own order as its
+   * last collection read them, so the column picker offers the check's
+   * column first and then the rest as the table orders them (#6853). Left
+   * out by a server from before it was sent: the rest by name, then.
+   */
+  columnOrder?: Array<string> | undefined;
 }
 
 export function getLineageTableNodeId(dataAssetId: string): string {

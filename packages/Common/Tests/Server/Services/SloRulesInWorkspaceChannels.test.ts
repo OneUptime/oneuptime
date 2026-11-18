@@ -14,6 +14,7 @@ import WorkspaceRecordChannels from "../../../Server/Utils/Workspace/WorkspaceRe
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
 import SloErrorBudgetPolicyChange from "../../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import SloStatusChange from "../../../Types/ServiceLevelObjective/SloStatusChange";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import {
   ConditionType,
@@ -355,6 +356,107 @@ describe("an SLO's workspace rules match", () => {
     expect(
       await matching(forChange(SloErrorBudgetPolicyChange.LeftEveryTier)),
     ).toEqual(["every-slo"]);
+  });
+
+  /*
+   * An SLO's status changes (#6596) go only to the rules that pick them
+   * with their SLO Status Change condition: every rule saved before them
+   * goes on posting exactly what it did.
+   */
+  function forStatus(change: SloStatusChange): NotificationFor {
+    return {
+      serviceLevelObjectiveId: SLO_ID,
+      serviceLevelObjectiveStatusChange: change,
+    };
+  }
+
+  test("a status change reaches only the rules that pick it, never a rule that posts the policy's changes", async () => {
+    rules = [
+      rule({ channel: "every-slo" }),
+      when(
+        NotificationRuleConditionCheckOn.SloName,
+        ConditionType.Contains,
+        "Checkout",
+        "checkout",
+      ),
+      when(
+        NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+        ConditionType.NotContains,
+        [SloErrorBudgetPolicyChange.LeftEveryTier],
+        "no-recoveries",
+      ),
+      when(
+        NotificationRuleConditionCheckOn.SloStatusChange,
+        ConditionType.ContainsAny,
+        [SloStatusChange.BecameAtRisk, SloStatusChange.BudgetExhausted],
+        "status-escalations",
+      ),
+      when(
+        NotificationRuleConditionCheckOn.SloStatusChange,
+        ConditionType.ContainsAny,
+        [SloStatusChange.HealthyAgain],
+        "status-recoveries",
+      ),
+    ];
+
+    expect(await matching(forStatus(SloStatusChange.BecameAtRisk))).toEqual([
+      "status-escalations",
+    ]);
+    expect(await matching(forStatus(SloStatusChange.HealthyAgain))).toEqual([
+      "status-recoveries",
+    ]);
+  });
+
+  test("a policy change never reaches a rule that picks only status changes", async () => {
+    rules = [
+      rule({ channel: "every-slo" }),
+      when(
+        NotificationRuleConditionCheckOn.SloStatusChange,
+        ConditionType.NotContains,
+        [SloStatusChange.HealthyAgain],
+        "status-only",
+      ),
+    ];
+
+    expect(await matching()).toEqual(["every-slo"]);
+  });
+
+  test("a rule that picks both kinds posts each kind its own condition picks, whatever its other conditions", async () => {
+    rules = [
+      rule({
+        channel: "both",
+        conditions: [
+          {
+            checkOn:
+              NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+            conditionType: ConditionType.ContainsAny,
+            value: [SloErrorBudgetPolicyChange.DeploymentsFrozen],
+          },
+          {
+            checkOn: NotificationRuleConditionCheckOn.SloStatusChange,
+            conditionType: ConditionType.ContainsAny,
+            value: [SloStatusChange.BudgetExhausted],
+          },
+          {
+            checkOn: NotificationRuleConditionCheckOn.SloName,
+            conditionType: ConditionType.Contains,
+            value: "Checkout",
+          },
+        ],
+        filterCondition: FilterCondition.All,
+      }),
+    ];
+
+    expect(
+      await matching(forChange(SloErrorBudgetPolicyChange.DeploymentsFrozen)),
+    ).toEqual(["both"]);
+    expect(await matching(forStatus(SloStatusChange.BudgetExhausted))).toEqual([
+      "both",
+    ]);
+    expect(await matching(forStatus(SloStatusChange.BecameAtRisk))).toEqual([]);
+    expect(
+      await matching(forChange(SloErrorBudgetPolicyChange.LeftEveryTier)),
+    ).toEqual([]);
   });
 
   test("only the project's SLO rules are asked: a monitor or hunt rule never hears an SLO's policy", async () => {

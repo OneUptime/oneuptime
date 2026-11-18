@@ -37,6 +37,7 @@ import {
   DiscoveryImportStatus,
   DiscoveryImportView,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
+  isHostResultRetryable,
   readDiscoveryImportHostResults,
 } from "../../../../Types/NetworkDevice/DiscoveryImport";
 import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
@@ -49,6 +50,11 @@ import {
   DEVICE_ADDRESS_MONITOR_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
 } from "../../../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import {
+  DEVICE_MONITOR_BUSY_REASON,
+  DEVICE_MONITOR_LOCK_NAMESPACE,
+  deviceMonitorLockKey,
+} from "../../../../Server/Utils/NetworkDevice/DeviceMonitorDuplicateCheck";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -107,7 +113,7 @@ jest.mock("../../../../Server/Services/NetworkDeviceService", () => {
 jest.mock("../../../../Server/Services/MonitorService", () => {
   return {
     __esModule: true,
-    default: { create: jest.fn(), findOneBy: jest.fn() },
+    default: { create: jest.fn(), findOneBy: jest.fn(), findBy: jest.fn() },
   };
 });
 
@@ -261,6 +267,11 @@ interface FakeDatabase {
   devicesByHostname: Map<string, NetworkDevice>;
   createdDevices: Array<{ device: NetworkDevice; props: unknown }>;
   monitors: Map<string, Monitor>;
+  /*
+   * Monitors no template made for a device: the one bound to a
+   * monitor-backed device (NetworkDevice.monitorId), found by its id.
+   */
+  otherMonitors: Array<Monitor>;
   createdMonitors: Array<{ monitor: Monitor; props: unknown }>;
   template: MonitorTemplate | null;
   writes: Array<{ id: string; data: JSONObject }>;
@@ -312,6 +323,37 @@ function networkDeviceTemplate(): MonitorTemplate {
 
 function monitorKey(deviceId: unknown, templateId: unknown): string {
   return `${String(deviceId)}:${String(templateId)}`;
+}
+
+/*
+ * The monitors made for a device, as the duplicate check reads them: each
+ * stored under its (device, template) key, so its provenance and template
+ * are the key's when a test seeded only its id - of the import's template's
+ * kind, unless the test said otherwise.
+ */
+function monitorsMadeFor(deviceId: unknown): Array<Monitor> {
+  const found: Array<Monitor> = [];
+
+  for (const [key, stored] of db.monitors) {
+    const [keyDeviceId, keyTemplateId] = key.split(":");
+
+    if (keyDeviceId !== String(deviceId)) {
+      continue;
+    }
+
+    const read: Monitor = Object.assign(new Monitor(), stored);
+    read.id = stored.id;
+    read.monitorType = stored.monitorType || db.template?.monitorType;
+    read.monitorTemplateId =
+      stored.monitorTemplateId ||
+      (keyTemplateId && keyTemplateId !== "undefined"
+        ? new ObjectID(keyTemplateId)
+        : undefined);
+    read.autoProvisionedNetworkDeviceId = new ObjectID(String(deviceId));
+    found.push(read);
+  }
+
+  return found;
 }
 
 function installFakes(): void {
@@ -467,6 +509,18 @@ function installFakes(): void {
 
   (MonitorService.findOneBy as jest.Mock).mockImplementation(
     async (data: { query: Record<string, unknown> }) => {
+      if (data.query["_id"]) {
+        const id: string = String(data.query["_id"]).toLowerCase();
+
+        return (
+          [...db.monitors.values(), ...db.otherMonitors].find(
+            (monitor: Monitor): boolean => {
+              return monitor.id?.toString().toLowerCase() === id;
+            },
+          ) || null
+        );
+      }
+
       return (
         db.monitors.get(
           monitorKey(
@@ -475,6 +529,12 @@ function installFakes(): void {
           ),
         ) || null
       );
+    },
+  );
+
+  (MonitorService.findBy as jest.Mock).mockImplementation(
+    async (data: { query: Record<string, unknown> }) => {
+      return monitorsMadeFor(data.query["autoProvisionedNetworkDeviceId"]);
     },
   );
 
@@ -534,6 +594,7 @@ beforeEach(() => {
     devicesByHostname: new Map(),
     createdDevices: [],
     monitors: new Map(),
+    otherMonitors: [],
     createdMonitors: [],
     template: networkDeviceTemplate(),
     writes: [],
@@ -1585,6 +1646,392 @@ describe("a Ping, IP, Port or NTP template (issue #5145)", () => {
       "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
     );
     expect(db.createdMonitors).toHaveLength(0);
+  });
+});
+
+/*
+ * NO SECOND MONITOR OF THE SAME KIND FOR A DEVICE (issue #9509).
+ *
+ * The report: adding a monitor for a discovered device twice, or importing
+ * it again, left two Ping monitors called WB1567KSK02 with the same labels,
+ * and one device. The import found a device's monitor by the (device,
+ * template) pair alone, so another Ping template - or the same template once
+ * the first monitor lost its link to it - made a second. These drive the
+ * import against a device that already has a monitor of each such kind.
+ */
+const OTHER_PING_TEMPLATE_ID: ObjectID = new ObjectID(
+  "ee000000-0000-4000-8000-000000000002",
+);
+const ALERT_PACK_TEMPLATE_ID: ObjectID = new ObjectID(
+  "ee000000-0000-4000-8000-000000000003",
+);
+
+// A device already in the inventory at this address.
+function deviceAt(
+  address: string,
+  fields: Partial<NetworkDevice> = {},
+): NetworkDevice {
+  const device: NetworkDevice = new NetworkDevice();
+  device.id = ObjectID.generate();
+  device.projectId = PROJECT_ID;
+  device.name = "WB1567KSK02";
+  device.hostname = address;
+  Object.assign(device, fields);
+  db.devicesByHostname.set(address, device);
+  return device;
+}
+
+// A monitor made for the device, from this template (none: its link is gone).
+function monitorMadeFor(data: {
+  device: NetworkDevice;
+  monitorType: MonitorType;
+  templateId?: ObjectID | undefined;
+  port?: number | undefined;
+}): Monitor {
+  const monitor: Monitor = new Monitor();
+  monitor.id = ObjectID.generate();
+  monitor.name = data.device.name || "";
+  monitor.monitorType = data.monitorType;
+  monitor.monitorSteps =
+    data.monitorType === MonitorType.NetworkDevice
+      ? networkDeviceTemplate().monitorSteps
+      : addressTemplate(data.monitorType, data.port ? { port: data.port } : {})
+          .monitorSteps;
+
+  if (data.templateId) {
+    monitor.monitorTemplateId = data.templateId;
+  }
+
+  db.monitors.set(monitorKey(data.device.id, data.templateId), monitor);
+  return monitor;
+}
+
+function deviceLockCalls(): Array<{ key: string; namespace: string }> {
+  return (Semaphore.lock as jest.Mock).mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0] as { key: string; namespace: string };
+    })
+    .filter((lock: { namespace: string }): boolean => {
+      return lock.namespace === DEVICE_MONITOR_LOCK_NAMESPACE;
+    });
+}
+
+describe("no second monitor of the same kind for a device (issue #9509)", () => {
+  test("a device with a Ping monitor from another Ping template is not given a second", async () => {
+    const device: NetworkDevice = deviceAt("10.0.0.1");
+    const earlier: Monitor = monitorMadeFor({
+      device: device,
+      monitorType: MonitorType.Ping,
+      templateId: OTHER_PING_TEMPLATE_ID,
+    });
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+        monitor: DiscoveryImportMonitorOutcome.AlreadyThere,
+        monitorId: earlier.id!.toString(),
+      }),
+    );
+    expect(MonitorService.create).not.toHaveBeenCalled();
+    expect(stored(row).progress).toEqual(
+      expect.objectContaining({ monitorsCreated: 0, monitorsAlreadyThere: 1 }),
+    );
+  });
+
+  /*
+   * A template deleted (the link is set to null) or a monitor unlinked from
+   * it: the same template, picked again, no longer finds the pair.
+   */
+  test("a Ping monitor that lost its template still counts, so the template again makes none", async () => {
+    const device: NetworkDevice = deviceAt("10.0.0.1");
+    const orphaned: Monitor = monitorMadeFor({
+      device: device,
+      monitorType: MonitorType.Ping,
+    });
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        monitor: DiscoveryImportMonitorOutcome.AlreadyThere,
+        monitorId: orphaned.id!.toString(),
+      }),
+    );
+    expect(MonitorService.create).not.toHaveBeenCalled();
+  });
+
+  test("a monitor-backed device's bound Ping monitor is its Ping monitor", async () => {
+    const bound: Monitor = new Monitor();
+    bound.id = ObjectID.generate();
+    bound.name = "WB1567KSK02 Ping";
+    bound.monitorType = MonitorType.Ping;
+    bound.monitorSteps = addressTemplate(MonitorType.Ping).monitorSteps;
+    db.otherMonitors.push(bound);
+    deviceAt("10.0.0.1", {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+      monitorId: bound.id,
+    });
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        monitor: DiscoveryImportMonitorOutcome.AlreadyThere,
+        monitorId: bound.id.toString(),
+      }),
+    );
+    expect(MonitorService.create).not.toHaveBeenCalled();
+  });
+
+  test("importing the same hosts again - with the same or another Ping template - makes no second monitor", async () => {
+    db.template = addressTemplate(MonitorType.Ping);
+
+    await start({ settings: WITH_TEMPLATE });
+    await runAll();
+    expect(db.createdMonitors).toHaveLength(3);
+
+    const again: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+    });
+    await runAll();
+
+    const otherTemplate: MonitorTemplate = addressTemplate(MonitorType.Ping);
+    otherTemplate.id = OTHER_PING_TEMPLATE_ID;
+    db.template = otherTemplate;
+    const withAnother: NetworkDeviceDiscoveryImport = await start({
+      settings: {
+        ...WITH_TEMPLATE,
+        monitorTemplateId: OTHER_PING_TEMPLATE_ID.toString(),
+      },
+    });
+    await runAll();
+
+    expect(db.createdMonitors).toHaveLength(3);
+
+    for (const row of [again, withAnother]) {
+      for (const result of resultsOf(row)) {
+        expect(result.device).toBe(DiscoveryImportDeviceOutcome.AlreadyAdded);
+        expect(result.monitor).toBe(DiscoveryImportMonitorOutcome.AlreadyThere);
+        expect(
+          db.createdMonitors.some((created: { monitor: Monitor }): boolean => {
+            return created.monitor.id?.toString() === result.monitorId;
+          }),
+        ).toBe(true);
+      }
+    }
+  });
+
+  // The brief's own example: a Ping monitor alongside an SNMP one, on purpose.
+  test("a device with a Network Device monitor still gets the Ping template's: two kinds of check", async () => {
+    const device: NetworkDevice = deviceAt("10.0.0.1");
+    monitorMadeFor({
+      device: device,
+      monitorType: MonitorType.NetworkDevice,
+      templateId: ALERT_PACK_TEMPLATE_ID,
+    });
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1").monitor).toBe(
+      DiscoveryImportMonitorOutcome.Created,
+    );
+    expect(db.createdMonitors).toHaveLength(1);
+    expect(db.createdMonitors[0]!.monitor.monitorType).toBe(MonitorType.Ping);
+  });
+
+  test("a Port template on another port than the device's Port monitor makes its own, and one on the same port makes none", async () => {
+    const device: NetworkDevice = deviceAt("10.0.0.1");
+    const https: Monitor = monitorMadeFor({
+      device: device,
+      monitorType: MonitorType.Port,
+      templateId: OTHER_PING_TEMPLATE_ID,
+      port: 443,
+    });
+
+    db.template = addressTemplate(MonitorType.Port, { port: 22 });
+    const ssh: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(ssh, "10.0.0.1").monitor).toBe(
+      DiscoveryImportMonitorOutcome.Created,
+    );
+
+    // A third Port template, on the HTTPS monitor's port.
+    const sameAsHttps: MonitorTemplate = addressTemplate(MonitorType.Port, {
+      port: 443,
+    });
+    sameAsHttps.id = ALERT_PACK_TEMPLATE_ID;
+    db.template = sameAsHttps;
+    const onHttps: NetworkDeviceDiscoveryImport = await start({
+      settings: {
+        ...WITH_TEMPLATE,
+        monitorTemplateId: ALERT_PACK_TEMPLATE_ID.toString(),
+      },
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(onHttps, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        monitor: DiscoveryImportMonitorOutcome.AlreadyThere,
+        monitorId: https.id!.toString(),
+      }),
+    );
+    expect(db.createdMonitors).toHaveLength(1);
+  });
+
+  test("each address monitor is checked and created under its device's lock, and the lock is given back", async () => {
+    (Semaphore.lock as jest.Mock).mockImplementation(
+      async (data: { key: string }) => {
+        return { key: data.key };
+      },
+    );
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1", "10.0.0.2"],
+    });
+    await runAll();
+
+    const keys: Array<string> = deviceLockCalls().map(
+      (lock: { key: string }): string => {
+        return lock.key;
+      },
+    );
+
+    expect(keys).toEqual([
+      deviceMonitorLockKey(resultAt(row, "10.0.0.1").deviceId!),
+      deviceMonitorLockKey(resultAt(row, "10.0.0.2").deviceId!),
+    ]);
+
+    for (const key of keys) {
+      expect(Semaphore.release).toHaveBeenCalledWith({ key: key });
+    }
+  });
+
+  test("a Network Device template takes no device lock: the unique (device, template) pair holds it", async () => {
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1").monitor).toBe(
+      DiscoveryImportMonitorOutcome.Created,
+    );
+    expect(deviceLockCalls()).toHaveLength(0);
+  });
+
+  /*
+   * An auto import rule gives the same device a Ping monitor from its own
+   * template while this import waits for the device's lock: inside the
+   * lock, the import asks again and finds it.
+   */
+  test("a monitor another path made while the import waited for the device is found, not duplicated", async () => {
+    const device: NetworkDevice = deviceAt("10.0.0.1");
+    const theirs: Monitor = new Monitor();
+    theirs.id = ObjectID.generate();
+    theirs.monitorType = MonitorType.Ping;
+    theirs.monitorTemplateId = OTHER_PING_TEMPLATE_ID;
+
+    (Semaphore.lock as jest.Mock).mockImplementation(
+      async (data: { key: string; namespace: string }) => {
+        if (data.namespace === DEVICE_MONITOR_LOCK_NAMESPACE) {
+          db.monitors.set(
+            monitorKey(device.id, OTHER_PING_TEMPLATE_ID),
+            theirs,
+          );
+        }
+
+        return { key: data.key };
+      },
+    );
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        monitor: DiscoveryImportMonitorOutcome.AlreadyThere,
+        monitorId: theirs.id.toString(),
+      }),
+    );
+    expect(MonitorService.create).not.toHaveBeenCalled();
+  });
+
+  test("another path holding the device the whole while leaves its monitor to a retry, with why", async () => {
+    (Semaphore.lock as jest.Mock).mockImplementation(
+      async (data: { key: string; namespace: string }) => {
+        if (data.namespace === DEVICE_MONITOR_LOCK_NAMESPACE) {
+          throw new Error("acquire timeout");
+        }
+
+        return { key: data.key };
+      },
+    );
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const first: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.2"],
+    });
+    await runAll();
+
+    const refused: DiscoveryImportHostResult = resultAt(first, "10.0.0.2");
+    expect(refused).toEqual(
+      expect.objectContaining({
+        device: DiscoveryImportDeviceOutcome.Created,
+        monitor: DiscoveryImportMonitorOutcome.Failed,
+        monitorError: DEVICE_MONITOR_BUSY_REASON,
+      }),
+    );
+    expect(isHostResultRetryable(refused)).toBe(true);
+    expect(MonitorService.create).not.toHaveBeenCalled();
+
+    // The other path is done with the device.
+    installFakes();
+
+    const retry: NetworkDeviceDiscoveryImport =
+      await DiscoveryImportRunner.retry({
+        projectId: PROJECT_ID,
+        props: personProps,
+        importId: first.id!,
+      });
+    await runAll();
+
+    expect(resultAt(retry, "10.0.0.2").monitor).toBe(
+      DiscoveryImportMonitorOutcome.Created,
+    );
+    expect(db.createdMonitors).toHaveLength(1);
   });
 });
 

@@ -6,7 +6,7 @@ Una política de presupuesto de errores deja escrito lo que tu equipo acordó ha
 - [Cómo funcionan los niveles](#cómo-funcionan-los-niveles): Qué nivel se aplica y cuándo lo deja el SLO.
 - [Configura una política](#configura-una-política): Parte de la política recomendada o escribe tus propios niveles.
 - [Alertas e incidentes](#alertas-e-incidentes): Avisa a tu equipo cuando el SLO entra en un nivel.
-- [Publica en Slack, Microsoft Teams y Mattermost](#publica-en-slack-microsoft-teams-y-mattermost): Informa a un canal cuando un SLO entra en un nivel, sin avisar a nadie.
+- [Publica en Slack, Microsoft Teams y Mattermost](#publica-en-slack-microsoft-teams-y-mattermost): Informa a un canal cuando un SLO entra en un nivel o cambia de estado, sin avisar a nadie.
 - [Barrera de despliegue](#barrera-de-despliegue): Retén las publicaciones desde CI/CD mientras un nivel congela los despliegues.
 - [Lee el nivel desde la API](#lee-el-nivel-desde-la-api): Comprueba el nivel desde CI y scripts.
 :::
@@ -84,6 +84,10 @@ Añadir, editar o eliminar un nivel tiene efecto enseguida: OneUptime vuelve a e
 
 Ninguno genera una alerta ni declara un incidente hasta que lo actives. **Budget exhausted** congela los despliegues, como dice su acuerdo, y la confirmación lo indica: consulta [Barrera de despliegue](#barrera-de-despliegue). Los niveles añadidos antes de que existiera la barrera no congelan nada hasta que actives la congelación. Solo se añaden los niveles que el SLO no tiene: un nivel con el mismo nombre, o con el mismo umbral, cuenta como presente, esté activado o no. Pedirlo dos veces, desde una segunda pestaña o por la API, no añade nada dos veces. Si uno de los niveles no se puede añadir, no se añade ninguno: el SLO queda como estaba y puedes volver a intentarlo. Cada nivel que se añade así queda registrado en los registros de auditoría del SLO como añadido por ti.
 
+Un SLO que tiene algunos de los niveles recomendados y ningún nivel propio, como uno que recibió la política recomendada antes de que incluyera **Budget exhausted**, muestra sobre sus niveles una nota, **Política recomendada incompleta**, que nombra los niveles que le faltan. Haz clic en **Agregar niveles faltantes** para ver lo que se añade y confirma. A un SLO con un nivel propio nunca se le ofrece el resto: la política que creaste se queda como está. Para que la nota deje de ofrecer un nivel que no quieres, conserva el nivel y deshabilítalo en lugar de eliminarlo.
+
+Para usarla en muchos SLO a la vez, selecciónalos en la página **SLO** y elige **Usar la política recomendada** en **Acciones masivas**. Antes de añadir nada, la confirmación cuenta cuántos de ellos reciben cada nivel, y cuántos se quedan como están porque ya tienen la política recomendada o tienen una política de presupuesto de errores propia. Cada SLO recibe los niveles que le faltan, como los añadiría su propia página, y el resultado indica para cada SLO si se añadieron niveles, o por qué no. Volver a ejecutarla en los mismos SLO no añade nada. Los SLO archivados no están en la lista y nunca se les ofrece.
+
 ## Dónde aparece el nivel
 
 - La **Vista general** del SLO muestra el nivel en el que está y lo que el equipo acordó hacer en él, para que todo el que abra el SLO vea el acuerdo que rige ahora. Mientras el nivel congela los despliegues, una insignia roja bajo su nombre indica desde cuándo.
@@ -126,7 +130,7 @@ La descripción integrada nombra el nivel, compara el presupuesto restante con e
 
 ## Publica en Slack, Microsoft Teams y Mattermost
 
-Una regla puede publicar cada cambio de la política de presupuesto de errores de un SLO en los canales de Slack, Microsoft Teams o Mattermost que lee tu equipo, sin avisar a nadie: cuando el SLO entra en un nivel, se recupera a uno menos grave o sale de todos los niveles, y cuando sus despliegues se congelan o se vuelven a permitir. Cada regla elige los SLO y los cambios que publica. Primero conecta el espacio de trabajo al proyecto: consulta [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) o [Mattermost](/docs/workspace-connections/mattermost).
+Una regla puede publicar cada cambio de la política de presupuesto de errores de un SLO en los canales de Slack, Microsoft Teams o Mattermost que lee tu equipo, sin avisar a nadie: cuando el SLO entra en un nivel, se recupera a uno menos grave o sale de todos los niveles, y cuando sus despliegues se congelan o se vuelven a permitir. Cada regla elige los SLO y los cambios que publica, y una regla también puede publicar los cambios de estado del SLO: consulta [Cambios de estado](#cambios-de-estado). Primero conecta el espacio de trabajo al proyecto: consulta [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) o [Mattermost](/docs/workspace-connections/mattermost).
 
 :::steps
 ### Abre la sección Espacio de trabajo de los SLO
@@ -147,7 +151,7 @@ El mensaje cuenta el cambio con las palabras del **Feed** del SLO: el nivel que 
 - Un cambio se publica una sola vez, después de que se guarde la evaluación que lo produjo. Una evaluación que no se guarda no publica nada, y la siguiente publica el cambio.
 - No se publica nada mientras el SLO permanece en su nivel, por mucho tiempo que el presupuesto ronde un umbral: consulta [Entrar en un nivel y salir de él](#entrar-en-un-nivel-y-salir-de-él).
 - Activar o desactivar **Congelar despliegues** en el nivel en el que está el SLO publica un mensaje propio.
-- Un SLO pausado, mal configurado, deshabilitado o archivado mantiene su nivel y no publica nada.
+- Un SLO en espera, pausado, mal configurado, deshabilitado o archivado mantiene su nivel y no publica nada.
 - Un mensaje que no se puede enviar queda registrado, y la evaluación, el feed del SLO y lo que genera el nivel siguen adelante sin él.
 
 ### A qué se aplica una regla
@@ -158,13 +162,25 @@ El mensaje cuenta el cambio con las palabras del **Feed** del SLO: el nivel que 
 | **Etiquetas del SLO** | Las etiquetas del SLO: cualquiera de las que elijas, todas o ninguna. |
 | **Nombre del SLO** | El nombre del SLO: igual a tu texto o no, que lo contenga o no, que empiece o termine por él. |
 | **Cambio en la política de presupuesto de errores** | Qué cambió: **Entró en un nivel más grave**, **Se recuperó a un nivel menos grave**, **Salió de todos los niveles**, **Despliegues congelados** o **Despliegues permitidos de nuevo**. |
+| **Cambio de estado del SLO** | Cómo cambió el estado del SLO: **Pasó a estar en riesgo**, **Presupuesto agotado** o **De nuevo en buen estado**. Solo una regla con esta condición publica cambios de estado: consulta [Cambios de estado](#cambios-de-estado). |
 | **Propietario del SLO** | Las personas y los equipos registrados como propietarios del SLO: cualquiera de los que elijas, o ninguno. Pertenecer a un equipo propietario del SLO no cuenta. |
 
 Un cambio de nivel que congeló los despliegues, o volvió a permitirlos, es un único mensaje que reúne ambos cambios. Así, una regla para **Despliegues congelados** también publica el cambio por el que el SLO entra en un nivel que los congela: un canal de despliegues se entera de cada congelación.
 
+### Cambios de estado
+
+Una regla publica los cambios de estado del SLO solo cuando tiene una condición **Cambio de estado del SLO**, y entonces solo los que esa condición elige. Esa regla publica los cambios de la política de presupuesto de errores solo si también tiene una condición **Cambio en la política de presupuesto de errores**. Así, una regla creada antes de que se publicaran los cambios de estado sigue publicando lo que publicaba, y nunca empieza a publicar cambios de estado que nadie eligió.
+
+El mensaje cuenta el cambio con las palabras del **Feed** del SLO: el estado en el que está el SLO y el último que supo el canal, el SLI frente a su objetivo, el presupuesto de errores restante, la tasa de consumo actual y el umbral de riesgo.
+
+- Un canal se entera como mucho de un cambio de estado de un SLO por hora, así que un SLO que oscila entre **En riesgo** y **En buen estado** no puede inundarlo. Un cambio dentro de la hora espera, y se publica cuando pasa la hora si el SLO sigue ahí. Una oscilación que vuelve a lo último que supo el canal no publica nada.
+- Un presupuesto agotado se publica enseguida, sin importar la hora.
+- Pasar a **Esperando**, **Mal configurado** o **Pausado** no publica nada: nada cambió en la fiabilidad. Cuando el SLO vuelve a medirse, se publica un cambio frente a lo último que supo el canal.
+- Los propietarios del SLO siguen recibiendo los cambios de estado por correo electrónico, SMS, llamada y notificación push, publiquen lo que publiquen las reglas.
+
 ## Cuando no se mide el presupuesto
 
-- Un SLO **Pausado** o **Mal configurado** no mide ningún presupuesto, así que su nivel se queda donde estaba, y lo que generó el nivel sigue abierto hasta que se reanude la medición. Las reglas de tasa de consumo, en cambio, resuelven entonces lo que tienen abierto.
+- Un SLO **Esperando**, **Pausado** o **Mal configurado** no mide ningún presupuesto, así que su nivel se queda donde estaba, y lo que generó el nivel sigue abierto hasta que se reanude la medición. Las reglas de tasa de consumo, en cambio, resuelven entonces lo que tienen abierto.
 - Desactivar la evaluación del SLO, o archivar el SLO, resuelve lo que generaron sus niveles. El nivel en el que está el SLO se queda como estaba.
 - Eliminar el SLO elimina sus niveles y resuelve lo que generaron.
 - En cada uno de estos casos, el SLO mantiene la respuesta que daba sobre los despliegues, porque mantiene su nivel: consulta [Barrera de despliegue](#barrera-de-despliegue).
@@ -257,7 +273,7 @@ Cómo cambia la respuesta:
 
 - Los despliegues se congelan con la evaluación que pone el SLO en un nivel que los congela, y se vuelven a permitir con la que lo saca de él, con los márgenes de recuperación propios del nivel: consulta [Entrar en un nivel y salir de él](#entrar-en-un-nivel-y-salir-de-él). De un nivel que congela a otro siguen congelados, y `deploymentsFrozenAt` conserva su hora.
 - Activar o desactivar **Congelar despliegues** en el nivel en el que está el SLO tiene efecto en aproximadamente un minuto. Para publicar antes de que se recupere el presupuesto, desactívalo: el cambio queda registrado a tu nombre en los registros de auditoría del SLO.
-- Un SLO **Pausado** o **Mal configurado** mantiene la respuesta que tenía, igual que mantiene su nivel: una ventana de mantenimiento que pausa todos los monitores no levanta una congelación ni la inicia. Un SLO deshabilitado o archivado no se evalúa en absoluto, así que también mantiene su respuesta.
+- Un SLO **Esperando**, **Pausado** o **Mal configurado** mantiene la respuesta que tenía, igual que mantiene su nivel: una ventana de mantenimiento que pausa todos los monitores no levanta una congelación ni la inicia. Un SLO deshabilitado o archivado no se evalúa en absoluto, así que también mantiene su respuesta.
 - Mientras los despliegues están congelados, la **Vista general** del SLO muestra desde cuándo, y su **Feed** indica cuándo se congelan y cuándo se vuelven a permitir.
 
 ## Lee el nivel desde la API
@@ -279,12 +295,14 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
   -d '{ "select": { "name": true, "errorBudgetRemainingPercentage": true, "currentErrorBudgetPolicyTierName": true, "currentErrorBudgetPolicyTierEnteredAt": true } }'
 ```
 
-Los niveles en sí son un recurso propio, `/api/service-level-objective-error-budget-policy-tier`, con las solicitudes de listar, leer, crear, cambiar y eliminar que tiene cada recurso. Otras dos solicitudes sirven a la política recomendada. Las dos reciben `{ "serviceLevelObjectiveId": "..." }` y responden con los niveles en `tiers`:
+Los niveles en sí son un recurso propio, `/api/service-level-objective-error-budget-policy-tier`, con las solicitudes de listar, leer, crear, cambiar y eliminar que tiene cada recurso. Otras cuatro solicitudes sirven a la política recomendada. Las solicitudes para un SLO reciben `{ "serviceLevelObjectiveId": "..." }` y responden con los niveles en `tiers`. Las solicitudes masivas reciben `{ "serviceLevelObjectiveIds": ["..."] }`, como mucho 100 SLO por solicitud, y responden con una entrada para cada SLO en `results`, en el orden pedido:
 
 | Solicitud | Qué hace |
 | --- | --- |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy` | Lista los niveles recomendados que le faltan al SLO. No escribe nada. |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/add` | Los añade y lista lo que añadió. Volver a pedirlo no añade nada. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk` | Indica lo que recibiría cada SLO: `Missing` con los niveles, `NothingMissing`, `OwnPolicy` para un SLO con una política de presupuesto de errores propia, o `Refused` para un SLO que no puedes leer. No escribe nada. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk/add` | Añade lo que le falta a cada SLO, un SLO tras otro: `Added` con los niveles, `NothingMissing`, `OwnPolicy`, `Refused`, o `Failed`, cuando no se le añadió nada. Volver a pedirlo solo añade lo que aún falta. |
 
 ## Permisos
 
@@ -299,7 +317,7 @@ Estos permisos están en el grupo SLO de un rol. Los roles Propietario del proye
 
 ## Aún no disponible
 
-Algunas partes de una política de presupuesto de errores aún no están disponibles: un disparador de flujo de trabajo propio para cada nivel, una política compartida por varios SLO, reconocer un nivel o concederle una excepción, y niveles basados en la autonomía del presupuesto en lugar del presupuesto restante. OneUptime no detiene una publicación por sí solo: lo hace un pipeline que comprueba `deploymentsAllowed`, como muestra [Barrera de despliegue](#barrera-de-despliegue).
+Algunas partes de una política de presupuesto de errores aún no están disponibles: una política compartida por varios SLO, reconocer un nivel o concederle una excepción, y niveles basados en la autonomía del presupuesto en lugar del presupuesto restante. OneUptime no detiene una publicación por sí solo: lo hace un pipeline que comprueba `deploymentsAllowed`, como muestra [Barrera de despliegue](#barrera-de-despliegue). Un flujo de trabajo puede empezar cuando un SLO entra en un nivel, o cuando sus despliegues se congelan o se vuelven a permitir: dale el disparador de actualización del SLO y elige **ID del nivel actual de la política de presupuesto de errores** o **Despliegues permitidos** en sus **Campos que vigilar**, para que se ejecute una vez por cada cambio.
 
 ## Próximos pasos
 

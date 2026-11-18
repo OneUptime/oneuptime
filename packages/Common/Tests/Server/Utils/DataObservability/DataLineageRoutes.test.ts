@@ -406,6 +406,32 @@ describe("POST /data-observability/pipelines/lineage", () => {
     expect(asked.read).not.toHaveBeenCalled();
   });
 
+  test.each([
+    [true, true],
+    [false, false],
+    [undefined, false],
+    ["true", false],
+    [1, false],
+  ])(
+    "asked with withColumns %p, reads its arrows' columns: %p (#6854)",
+    async (withColumns: unknown, read: boolean) => {
+      const asked: Asked = await askPipeline(
+        withPermission(Permission.ProjectMember),
+        {
+          dataPipelineId: PIPELINE_ID,
+          ...(withColumns === undefined
+            ? {}
+            : { withColumns: withColumns as boolean }),
+        },
+      );
+
+      expect(asked.next).not.toHaveBeenCalled();
+      expect(
+        (asked.read.mock.calls[0]![0] as { withColumns: boolean }).withColumns,
+      ).toBe(read);
+    },
+  );
+
   test("a pipeline that is not the project's is not found", async () => {
     const asked: Asked = await askPipeline(
       withPermission(Permission.ProjectMember),

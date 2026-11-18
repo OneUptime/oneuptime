@@ -13,6 +13,10 @@ import DataTableLineageAnswerer, {
   DataTableLineageAnswer,
   formatDataTableLineageReply,
 } from "../../DataObservability/DataTableLineageAnswer";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+} from "../../DataObservability/DataObservabilityReadScope";
+import DataAssetService from "../../../Services/DataAssetService";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
   ObservabilityTool,
@@ -59,6 +63,41 @@ const DATA_ASSET_READ_PERMISSIONS: Array<Permission> = [
   Permission.ReadDataAsset,
 ];
 
+/*
+ * Of the tables a name matches, the ones the caller may read (#6553,
+ * #9526): a role limited to what its members own, or to some labels, is
+ * told only of those, as on Data Observability's own routes - never that
+ * another table of that name is there. OneUptime's own runs read them all.
+ */
+async function readableTables(data: {
+  tables: Array<DataAsset>;
+  ctx: ToolContext;
+}): Promise<Array<DataAsset>> {
+  const scope: DataObservabilityScope = await DataObservabilityReadScope.get(
+    data.ctx.projectId,
+    data.ctx.props,
+  );
+
+  if (scope.isWholeProject || data.tables.length === 0) {
+    return data.tables;
+  }
+
+  const readableIds: Set<string> =
+    await DataObservabilityReadScope.getReadableIds({
+      service: DataAssetService,
+      query: scope.assetQuery,
+      ids: data.tables
+        .map((table: DataAsset): string => {
+          return table.id?.toString() || "";
+        })
+        .filter(Boolean),
+    });
+
+  return data.tables.filter((table: DataAsset): boolean => {
+    return readableIds.has(table.id?.toString() || "");
+  });
+}
+
 export const GetDataTableFreshnessTool: ObservabilityTool = {
   name: "get_data_table_freshness",
   description:
@@ -88,10 +127,10 @@ export const GetDataTableFreshnessTool: ObservabilityTool = {
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
-    const tables: Array<DataAsset> = await DataTableAnswerer.findTables(
-      ctx.projectId,
-      reference,
-    );
+    const tables: Array<DataAsset> = await readableTables({
+      tables: await DataTableAnswerer.findTables(ctx.projectId, reference),
+      ctx,
+    });
     const answers: Array<DataTableAnswer> = [];
 
     for (const table of tables) {

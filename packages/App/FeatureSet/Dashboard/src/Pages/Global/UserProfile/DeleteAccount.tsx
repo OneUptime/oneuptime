@@ -3,6 +3,7 @@ import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -10,6 +11,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import User from "Common/Models/DatabaseModels/User";
@@ -105,9 +107,15 @@ const DeleteAccount: FunctionComponent<
         requestOptions: {},
       });
 
-      // Clear user session and force redirect to login page
-      UserUtil.logout();
-      window.location.href = "/accounts/login";
+      /*
+       * Signed out on the server first - its answer clears the session's
+       * cookies - and only then sent to the sign-in page (issue #9508): a
+       * page change at once cancelled the sign-out in Firefox.
+       */
+      await UserUtil.logout();
+      Navigation.navigate(new Route("/accounts/login"), {
+        forceNavigate: true,
+      });
     } catch (err) {
       setDeleteError(API.getFriendlyMessage(err));
       setShowDeleteErrorModal(true);

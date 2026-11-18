@@ -1,6 +1,7 @@
 import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -9,11 +10,25 @@ import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import {
   SLO_POLICY_TIER_WHAT_WE_DO_MAX_LENGTH,
+  SloRecommendedPolicyStanding,
+  SloRecommendedPolicyState,
   SloRecommendedPolicyTier,
   formatSloPolicyTierThreshold,
-  getMissingSloRecommendedPolicyTiers,
+  getSloRecommendedPolicyStanding,
+  isSloRecommendedPolicyOffered,
   readSloPolicyTierThreshold,
 } from "../../Utils/Slo/SloErrorBudgetPolicy";
+import {
+  SLO_BULK_POLICY_ADD_FAILED_MESSAGE,
+  SloBulkRecommendedPolicyStatus,
+} from "../../Utils/Slo/SloBulkRecommendedPolicy";
+import { getSloBulkResultKey } from "../../Utils/Slo/SloBulkRecommendedBurnRateRules";
+import {
+  getSloBulkErrorMessage,
+  getSloBulkIds,
+  isSloBulkRefusal,
+} from "../Utils/Slo/SloBulkRequest";
+import QueryHelper from "../Types/Database/QueryHelper";
 import {
   SLO_RECORD_OUTPUT_CHECKED_RELATIONS,
   SLO_RECORD_OUTPUT_RELATION_COLUMNS,
@@ -112,6 +127,8 @@ export interface SloMissingRecommendedPolicyTiers {
   serviceLevelObjectiveId: ObjectID;
   projectId: ObjectID;
   tiers: Array<SloRecommendedPolicyTier>;
+  // Where the SLO's policy stands against the recommended one.
+  state: SloRecommendedPolicyState;
 }
 
 export interface SloAddedRecommendedPolicyTier
@@ -122,6 +139,42 @@ export interface SloAddedRecommendedPolicyTier
 export interface SloAddedRecommendedPolicyTiers {
   serviceLevelObjectiveId: ObjectID;
   tiers: Array<SloAddedRecommendedPolicyTier>;
+  // Where the SLO's policy stood before anything was added.
+  state: SloRecommendedPolicyState;
+}
+
+/*
+ * One SLO of a bulk question (getMissingRecommendedTiersForMany): what it
+ * would get, that it has every recommended tier, that it has a policy of its
+ * own, or that it is not one the caller may read - with why.
+ */
+export interface SloBulkMissingRecommendedPolicy {
+  serviceLevelObjectiveId: ObjectID;
+  status:
+    | SloBulkRecommendedPolicyStatus.Missing
+    | SloBulkRecommendedPolicyStatus.NothingMissing
+    | SloBulkRecommendedPolicyStatus.OwnPolicy
+    | SloBulkRecommendedPolicyStatus.Refused;
+  tiers: Array<SloRecommendedPolicyTier>;
+  message: string | null;
+}
+
+/*
+ * One SLO of a bulk add (addMissingRecommendedTiersToMany): what was added,
+ * that nothing was missing, that it has a policy of its own, that the caller
+ * may not add to it, or that it failed - with nothing added, as the per-SLO
+ * add is all or nothing.
+ */
+export interface SloBulkAddedRecommendedPolicy {
+  serviceLevelObjectiveId: ObjectID;
+  status:
+    | SloBulkRecommendedPolicyStatus.Added
+    | SloBulkRecommendedPolicyStatus.NothingMissing
+    | SloBulkRecommendedPolicyStatus.OwnPolicy
+    | SloBulkRecommendedPolicyStatus.Refused
+    | SloBulkRecommendedPolicyStatus.Failed;
+  tiers: Array<SloAddedRecommendedPolicyTier>;
+  message: string | null;
 }
 
 /*
@@ -252,13 +305,222 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
+    const standing: SloRecommendedPolicyStanding =
+      getSloRecommendedPolicyStanding({
+        existingTiers: existingTiers,
+      });
+
     return {
       serviceLevelObjectiveId: slo.id,
       projectId: projectId,
-      tiers: getMissingSloRecommendedPolicyTiers({
-        existingTiers: existingTiers,
-      }),
+      tiers: standing.missingTiers,
+      state: standing.state,
     };
+  }
+
+  /*
+   * "Use the recommended policy" for many SLOs at once (the SLO list's Bulk
+   * Actions, #6358): what each SLO would get - what the confirmation counts.
+   * Nothing is written.
+   *
+   * The SLOs are read AS THE CALLER, in one read: one they may not read, or
+   * of another project, is Refused as not found and says nothing about
+   * itself. Then every tier of the SLOs found, as root and pinned to them
+   * and their project, for the reason the one-SLO read gives, and each SLO
+   * is answered by the Error Budget Policy page's rule
+   * (getSloRecommendedPolicyStanding): no policy, or part of the recommended
+   * one, gets what it is missing; every recommended tier is NothingMissing;
+   * a policy of the team's own is OwnPolicy, left as it is.
+   */
+  @CaptureSpan()
+  public async getMissingRecommendedTiersForMany(data: {
+    serviceLevelObjectiveIds: ReadonlyArray<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SloBulkMissingRecommendedPolicy>> {
+    const projectId: ObjectID | undefined = data.props.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const ids: Array<ObjectID> = getSloBulkIds(data.serviceLevelObjectiveIds);
+
+    const slos: Array<ServiceLevelObjective> =
+      await ServiceLevelObjectiveService.findBy({
+        query: {
+          _id: QueryHelper.any(ids),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: ids.length,
+        props: data.props,
+      });
+
+    const foundKeys: Set<string> = new Set<string>();
+
+    for (const slo of slos) {
+      if (slo.id) {
+        foundKeys.add(getSloBulkResultKey(slo.id.toString()));
+      }
+    }
+
+    const foundIds: Array<ObjectID> = ids.filter((id: ObjectID): boolean => {
+      return foundKeys.has(getSloBulkResultKey(id.toString()));
+    });
+
+    const tiersBySlo: Map<string, Array<Model>> = new Map();
+
+    if (foundIds.length > 0) {
+      // Every tier of them, page by page: a policy is judged from all of it.
+      const tiers: Array<Model> = await this.findAllBy({
+        query: {
+          serviceLevelObjectiveId: QueryHelper.any(foundIds),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          serviceLevelObjectiveId: true,
+          name: true,
+          thresholdPercentage: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const tier of tiers) {
+        const key: string = getSloBulkResultKey(
+          tier.serviceLevelObjectiveId?.toString() || "",
+        );
+        const ofSlo: Array<Model> = tiersBySlo.get(key) || [];
+        ofSlo.push(tier);
+        tiersBySlo.set(key, ofSlo);
+      }
+    }
+
+    return ids.map((id: ObjectID): SloBulkMissingRecommendedPolicy => {
+      const key: string = getSloBulkResultKey(id.toString());
+
+      if (!foundKeys.has(key)) {
+        return {
+          serviceLevelObjectiveId: id,
+          status: SloBulkRecommendedPolicyStatus.Refused,
+          tiers: [],
+          message: SLO_NOT_FOUND_MESSAGE,
+        };
+      }
+
+      const standing: SloRecommendedPolicyStanding =
+        getSloRecommendedPolicyStanding({
+          existingTiers: tiersBySlo.get(key) || [],
+        });
+
+      if (standing.state === SloRecommendedPolicyState.OwnPolicy) {
+        return {
+          serviceLevelObjectiveId: id,
+          status: SloBulkRecommendedPolicyStatus.OwnPolicy,
+          tiers: [],
+          message: null,
+        };
+      }
+
+      if (standing.missingTiers.length === 0) {
+        return {
+          serviceLevelObjectiveId: id,
+          status: SloBulkRecommendedPolicyStatus.NothingMissing,
+          tiers: [],
+          message: null,
+        };
+      }
+
+      return {
+        serviceLevelObjectiveId: id,
+        status: SloBulkRecommendedPolicyStatus.Missing,
+        tiers: standing.missingTiers,
+        message: null,
+      };
+    });
+  }
+
+  /*
+   * "Use the recommended policy" for many SLOs at once: each SLO through
+   * addMissingRecommendedTiers, one after another - its own lock, what it is
+   * missing and whether it is offered the recommended policy worked out
+   * again inside it, each tier created as the caller with its audit log, all
+   * of an SLO's tiers or none - exactly as the SLO's own Error Budget Policy
+   * page adds them. An SLO with a policy of its own is left as it is.
+   *
+   * Each SLO's answer is its own, and one SLO's refusal or failure never
+   * stops the next. Asking again adds only what is still missing, so a retry
+   * of the same SLOs is safe.
+   */
+  @CaptureSpan()
+  public async addMissingRecommendedTiersToMany(data: {
+    serviceLevelObjectiveIds: ReadonlyArray<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SloBulkAddedRecommendedPolicy>> {
+    if (!data.props.tenantId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const ids: Array<ObjectID> = getSloBulkIds(data.serviceLevelObjectiveIds);
+    const results: Array<SloBulkAddedRecommendedPolicy> = [];
+
+    for (const id of ids) {
+      try {
+        const added: SloAddedRecommendedPolicyTiers =
+          await this.addMissingRecommendedTiers({
+            serviceLevelObjectiveId: id,
+            props: data.props,
+            onlyWhenOffered: true,
+          });
+
+        let status: SloBulkAddedRecommendedPolicy["status"] =
+          SloBulkRecommendedPolicyStatus.NothingMissing;
+
+        if (added.tiers.length > 0) {
+          status = SloBulkRecommendedPolicyStatus.Added;
+        } else if (added.state === SloRecommendedPolicyState.OwnPolicy) {
+          status = SloBulkRecommendedPolicyStatus.OwnPolicy;
+        }
+
+        results.push({
+          serviceLevelObjectiveId: id,
+          status: status,
+          tiers: added.tiers,
+          message: null,
+        });
+      } catch (err) {
+        const isRefused: boolean = isSloBulkRefusal(err);
+
+        if (!isRefused) {
+          logger.error(
+            `Could not add the recommended error budget policy to SLO ${id.toString()}: ${err}`,
+            { projectId: data.props.tenantId.toString() } as LogAttributes,
+          );
+        }
+
+        results.push({
+          serviceLevelObjectiveId: id,
+          status: isRefused
+            ? SloBulkRecommendedPolicyStatus.Refused
+            : SloBulkRecommendedPolicyStatus.Failed,
+          tiers: [],
+          message: getSloBulkErrorMessage(
+            err,
+            SLO_BULK_POLICY_ADD_FAILED_MESSAGE,
+          ),
+        });
+      }
+    }
+
+    return results;
   }
 
   /*
@@ -301,11 +563,18 @@ export class Service extends ProjectReferencesService<Model> {
    * worse than none: the Error Budget Policy page offers the recommended
    * policy only to an SLO with no tier, so it could not be finished from
    * there, and a policy without its last tier never freezes deployments.
+   *
+   * `onlyWhenOffered` (the SLO list's bulk add) adds only where the Error
+   * Budget Policy page offers the recommended policy: to an SLO with no
+   * policy, or with part of the recommended one. An SLO with a policy of its
+   * own is answered with nothing added - decided inside the lock, from the
+   * tiers it has then.
    */
   @CaptureSpan()
   public async addMissingRecommendedTiers(data: {
     serviceLevelObjectiveId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    onlyWhenOffered?: boolean | undefined;
   }): Promise<SloAddedRecommendedPolicyTiers> {
     let mutex: SemaphoreMutex | null = null;
 
@@ -325,7 +594,21 @@ export class Service extends ProjectReferencesService<Model> {
 
     try {
       const missing: SloMissingRecommendedPolicyTiers =
-        await this.getMissingRecommendedTiers(data);
+        await this.getMissingRecommendedTiers({
+          serviceLevelObjectiveId: data.serviceLevelObjectiveId,
+          props: data.props,
+        });
+
+      if (
+        data.onlyWhenOffered &&
+        !isSloRecommendedPolicyOffered(missing.state)
+      ) {
+        return {
+          serviceLevelObjectiveId: missing.serviceLevelObjectiveId,
+          tiers: [],
+          state: missing.state,
+        };
+      }
 
       const added: Array<SloAddedRecommendedPolicyTier> = [];
 
@@ -365,6 +648,7 @@ export class Service extends ProjectReferencesService<Model> {
       return {
         serviceLevelObjectiveId: missing.serviceLevelObjectiveId,
         tiers: added,
+        state: missing.state,
       };
     } finally {
       if (mutex) {

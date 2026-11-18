@@ -924,6 +924,131 @@ describe("read", () => {
     ).toHaveLength(1);
   });
 
+  /*
+   * An Amazon MQ broker's CPU is CpuUtilization on ActiveMQ and
+   * SystemCpuUtilization on RabbitMQ: a Region with RabbitMQ brokers alone
+   * was never found by a sweep that asked for ActiveMQ's.
+   */
+  test("a Region of RabbitMQ brokers alone is found, and their metrics read", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            {
+              namespace: "AWS/AmazonMQ",
+              metricName: "SystemCpuUtilization",
+              dimensions: [["Broker", "orders-broker"]],
+              values: [[WINDOW_START_S, 12]],
+            },
+            {
+              namespace: "AWS/AmazonMQ",
+              metricName: "MessageCount",
+              dimensions: [["Broker", "orders-broker"]],
+              values: [[WINDOW_START_S, 340]],
+            },
+          ],
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    expect(result.nextState.activePairs).toContain("us-east-1|AWS/AmazonMQ");
+    expect(
+      resolvedFromPayloads(result)
+        .map((entry: { metricName: string }): string => {
+          return entry.metricName;
+        })
+        .sort(),
+    ).toEqual([
+      "amazonaws.com/AWS/AmazonMQ/MessageCount",
+      "amazonaws.com/AWS/AmazonMQ/SystemCpuUtilization",
+    ]);
+  });
+
+  test("a Region of no broker asks for both brokers' CPU, and reads nothing", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: { "us-east-1": { metrics: [] } },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+    const asked: Array<unknown> = fake.cloudWatchCalls
+      .filter((call: { action: string; body: JSONObject }): boolean => {
+        return (
+          call.action === "ListMetrics" &&
+          call.body["Namespace"] === "AWS/AmazonMQ"
+        );
+      })
+      .map((call: { body: JSONObject }): unknown => {
+        return call.body["MetricName"];
+      });
+
+    expect(asked).toEqual(["CpuUtilization", "SystemCpuUtilization"]);
+    expect(result.nextState.activePairs || []).not.toContain(
+      "us-east-1|AWS/AmazonMQ",
+    );
+  });
+
+  test("the key metrics added since streams began are read too, each with its own statistic", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            ...ec2("i-0aaa", [10]),
+            {
+              namespace: "AWS/EC2",
+              metricName: "CPUCreditBalance",
+              dimensions: [["InstanceId", "i-0aaa"]],
+              values: [[WINDOW_START_S, 144]],
+            },
+            {
+              namespace: "AWS/EC2",
+              metricName: "EBSReadBytes",
+              dimensions: [["InstanceId", "i-0aaa"]],
+              values: [[WINDOW_START_S, 4096]],
+            },
+          ],
+        },
+      },
+    });
+
+    await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const queries: Array<JSONObject> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      });
+    const statOf: (metricName: string) => unknown = (
+      metricName: string,
+    ): unknown => {
+      return (
+        queries.find((query: JSONObject): boolean => {
+          return (
+            ((query["MetricStat"] as JSONObject)["Metric"] as JSONObject)[
+              "MetricName"
+            ] === metricName
+          );
+        })?.["MetricStat"] as JSONObject | undefined
+      )?.["Stat"];
+    };
+
+    expect(statOf("CPUCreditBalance")).toBe("Average");
+    expect(statOf("EBSReadBytes")).toBe("Sum");
+    expect(statOf("CPUUtilization")).toBe("Average");
+  });
+
   test("S3's daily storage figures are read once a whole day has been published", async () => {
     // 12:07 on the 21st: the last whole day read is the 19th (a day and a half back).
     const day19: number = Date.UTC(2026, 9, 19) / 1000;

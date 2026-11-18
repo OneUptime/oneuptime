@@ -7,12 +7,23 @@ import {
   TimeAgo,
   VIEWS,
 } from "../../Components/DataObservability/DashboardActivity";
+import {
+  BiBuiltOnCell,
+  BiTablesMatchedCell,
+  getBiBuiltOnText,
+} from "../../Components/DataObservability/BiLineageCells";
+import BiLineageDialog from "../../Components/DataObservability/BiLineageDialog";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import DataBiConnection from "Common/Models/DatabaseModels/DataBiConnection";
 import DataDashboard from "Common/Models/DatabaseModels/DataDashboard";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import { DataObservabilityBiSyncResponse } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import {
+  DataBiLineageSummary,
+  readDataBiLineageSummary,
+  readDataDashboardUpstream,
+} from "Common/Types/DataObservability/DataBiLineage";
 import DataBiTool, {
   DATA_BI_TOOL_CREDENTIALS,
   DATA_BI_TOOLS,
@@ -54,6 +65,12 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  * most and its refreshes are columns to switch on. A Power BI tool can alert
  * on failed refreshes: saving it keeps its monitor in step, as the person
  * who saved it (DataBiRefreshAlerts).
+ *
+ * Tables Matched says why it is what it is (#9507): the first thing keeping
+ * a tool's dashboards off their tables - a Power BI tenant setting, a
+ * database not connected - with See Why for the steps and the data sources
+ * behind them (BiLineageDialog). A dashboard says what it is built on: its
+ * datasets and their data sources, as Power BI says.
  */
 
 // A dashboard's link, when its tool gave one that reads as a URL.
@@ -214,6 +231,11 @@ const BiDashboardsPage: FunctionComponent<
   const [readCount, setReadCount] = useState<number>(0);
   const [readError, setReadError] = useState<string>("");
   const [alertError, setAlertError] = useState<string>("");
+  // The tool whose Tables Matched is being explained.
+  const [explained, setExplained] = useState<{
+    name: string;
+    summary: DataBiLineageSummary;
+  } | null>(null);
 
   const readTool: (connection: DataBiConnection) => Promise<void> = async (
     connection: DataBiConnection,
@@ -409,7 +431,11 @@ const BiDashboardsPage: FunctionComponent<
             },
           },
         ]}
-        selectMoreFields={{ lastSyncError: true, lastSyncWarning: true }}
+        selectMoreFields={{
+          lastSyncError: true,
+          lastSyncWarning: true,
+          lineageSummary: true,
+        }}
         filters={[]}
         columns={[
           {
@@ -430,7 +456,30 @@ const BiDashboardsPage: FunctionComponent<
           {
             field: { matchedTableCount: true },
             title: "Tables Matched",
-            type: FieldType.Number,
+            type: FieldType.Element,
+            headerTooltip:
+              "How many tables OneUptime watches the tool's dashboards are built on, and what keeps the rest from matching.",
+            getExportValue: (item: DataBiConnection): string => {
+              return typeof item.matchedTableCount === "number"
+                ? String(item.matchedTableCount)
+                : "";
+            },
+            getElement: (item: DataBiConnection): ReactElement => {
+              const summary: DataBiLineageSummary | null =
+                readDataBiLineageSummary(item.lineageSummary);
+
+              return (
+                <BiTablesMatchedCell
+                  matchedTableCount={item.matchedTableCount}
+                  summary={summary}
+                  onExplain={(): void => {
+                    if (summary) {
+                      setExplained({ name: item.name || "", summary });
+                    }
+                  }}
+                />
+              );
+            },
           },
           {
             field: { lastSyncedAt: true },
@@ -496,6 +545,7 @@ const BiDashboardsPage: FunctionComponent<
           usageSummary: true,
           lastRefreshAt: true,
           refreshHistory: true,
+          upstream: true,
         }}
         filters={[
           {
@@ -604,6 +654,30 @@ const BiDashboardsPage: FunctionComponent<
             type: FieldType.Number,
           },
           {
+            field: { upstream: true },
+            title: "Built On",
+            type: FieldType.Element,
+            disableSort: true,
+            wrapContent: true,
+            hideBelowLargeScreen: true,
+            foldInto: "name",
+            headerTooltip:
+              "What its tool says it is built on (Power BI): the datasets it charts, and where their data comes from, whether or not OneUptime watches it.",
+            getExportValue: (item: DataDashboard): string => {
+              return getBiBuiltOnText(
+                translator,
+                readDataDashboardUpstream(item.upstream),
+              );
+            },
+            getElement: (item: DataDashboard): ReactElement => {
+              return (
+                <BiBuiltOnCell
+                  upstream={readDataDashboardUpstream(item.upstream)}
+                />
+              );
+            },
+          },
+          {
             field: { viewerCount: true },
             title: "Viewers",
             type: FieldType.Number,
@@ -651,6 +725,17 @@ const BiDashboardsPage: FunctionComponent<
           },
         ]}
       />
+      {explained ? (
+        <BiLineageDialog
+          name={explained.name}
+          summary={explained.summary}
+          onClose={(): void => {
+            setExplained(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

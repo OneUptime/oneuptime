@@ -13,17 +13,16 @@ import {
   pickSloRecommendedAlertSeverities,
 } from "../../Utils/Slo/SloRecommendedBurnRateRules";
 import {
-  SLO_BULK_ADD_FAILED_MESSAGE,
-  SLO_BULK_NO_IDS_MESSAGE,
-  SLO_BULK_TOO_MANY_MESSAGE,
-  SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS,
   SloBulkRecommendedRulesStatus,
   getSloBulkResultKey,
 } from "../../Utils/Slo/SloBulkRecommendedBurnRateRules";
+import {
+  getSloBulkErrorMessage,
+  getSloBulkIds,
+  isSloBulkRefusal,
+} from "../Utils/Slo/SloBulkRequest";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Exception from "../../Types/Exception/Exception";
-import ExceptionCode from "../../Types/Exception/ExceptionCode";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -151,62 +150,11 @@ export interface SloBulkAddedRecommendedRules {
 }
 
 /*
- * The answers that mean the caller may not - the SLO is not one they may
- * read, or they may not create its rules, or the plan does not allow it -
- * rather than that something broke.
+ * What a bulk request's SLOs and failures are read by, shared with the
+ * error budget policy's bulk add (Server/Utils/Slo/SloBulkRequest), and
+ * named here too for the callers that read them from this service.
  */
-const SLO_BULK_REFUSAL_CODES: ReadonlyArray<ExceptionCode> = [
-  ExceptionCode.NotFoundException,
-  ExceptionCode.NotAuthorizedException,
-  ExceptionCode.NotAuthenticatedException,
-  ExceptionCode.ForbiddenException,
-  ExceptionCode.PaymentRequiredException,
-];
-
-export function isSloBulkRefusal(error: unknown): boolean {
-  return (
-    error instanceof Exception && SLO_BULK_REFUSAL_CODES.includes(error.code)
-  );
-}
-
-// Why an SLO was not added to, in OneUptime's own words.
-export function getSloBulkErrorMessage(error: unknown): string {
-  if (error instanceof Exception && error.message.trim()) {
-    return error.message;
-  }
-
-  return SLO_BULK_ADD_FAILED_MESSAGE;
-}
-
-/*
- * The SLOs a bulk request names, each once, in the order first named:
- * between one and SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS of them.
- */
-export function getSloBulkIds(ids: ReadonlyArray<ObjectID>): Array<ObjectID> {
-  const unique: Array<ObjectID> = [];
-  const seen: Set<string> = new Set<string>();
-
-  for (const id of ids) {
-    const key: string = getSloBulkResultKey(id.toString());
-
-    if (!key || seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    unique.push(id);
-  }
-
-  if (unique.length === 0) {
-    throw new BadDataException(SLO_BULK_NO_IDS_MESSAGE);
-  }
-
-  if (unique.length > SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS) {
-    throw new BadDataException(SLO_BULK_TOO_MANY_MESSAGE);
-  }
-
-  return unique;
-}
+export { getSloBulkErrorMessage, getSloBulkIds, isSloBulkRefusal };
 
 /*
  * Mirrors the column defaults on the model. Every rule that predates incident

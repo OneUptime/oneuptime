@@ -2,7 +2,6 @@ import {
   AWS_KEY_METRICS,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
-  DAILY_PERIOD_SECONDS,
   getAwsStoredMetricName,
   isAzureStreamedKeyMetricStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
@@ -23,8 +22,10 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
  * them (CloudResourceReadings reads the read's own payloads), so a
  * resource's health reads the same whether its account streams or not. A
  * metric CloudWatch publishes once a day (S3's storage) never comes through
- * a stream, so the read keeps writing it. When a stream goes quiet the
- * read writes everything again.
+ * a stream, and a key metric added since streams began does not come
+ * through a stack made before it (AwsKeyMetric.isStreamed), so the read
+ * keeps writing those. When a stream goes quiet the read writes everything
+ * again.
  *
  * An Azure connection's read is the same, by subscription, region and
  * resource type (an Azure stream's "namespaces"): for each type its event
@@ -53,12 +54,19 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 const AZURE_SUBSCRIPTION_ATTRIBUTE: string = "azuremonitor.subscription_id";
 export const AZURE_STREAMED_TIME_GRAIN: string = "PT1M";
 
-const DAILY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
+/*
+ * The key metrics the read writes whether or not a stream delivers their
+ * namespace (AwsKeyMetric.isStreamed false): S3's daily storage, which no
+ * stream carries, and every key metric added since streams began, which a
+ * stack made before it does not carry - and which a stream of every metric
+ * leaves to the read (CloudWatchMetricStream).
+ */
+const READ_KEY_METRICS: ReadonlySet<string> = new Set<string>(
   (AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>).flatMap(
     (namespace: AwsNamespaceKeyMetrics): Array<string> => {
       return namespace.metrics
         .filter((metric: AwsKeyMetric): boolean => {
-          return metric.periodSeconds >= DAILY_PERIOD_SECONDS;
+          return !metric.isStreamed;
         })
         .map((metric: AwsKeyMetric): string => {
           return getAwsStoredMetricName(
@@ -182,7 +190,7 @@ export function withoutStreamedMetrics(data: {
             ? "sum"
             : null;
 
-        if (!shape || DAILY_KEY_METRICS.has(name.toLowerCase())) {
+        if (!shape || READ_KEY_METRICS.has(name.toLowerCase())) {
           keptMetrics.push(metric);
           continue;
         }

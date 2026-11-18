@@ -18,6 +18,15 @@ import {
   getCliResourcesByCommand,
 } from "../../../FeatureSet/Docs/Utils/CliCommandsTable";
 import { CliResource } from "Common/Utils/DeveloperDocs/CliResources";
+import {
+  AZURE_STREAM_KEPT_METRICS_PLACEHOLDER,
+  getAzureStreamKeptMetricsMarkdown,
+  getAzureStreamKeptMetricTypes,
+} from "../../../FeatureSet/Docs/Utils/CloudStreamKeptMetrics";
+import {
+  AZURE_KEY_METRICS,
+  AzureTypeKeyMetrics,
+} from "Common/Types/Cloud/CloudKeyMetrics";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -206,6 +215,65 @@ describe("DocsPlaceholders", () => {
     });
   });
 
+  /*
+   * Stream Azure Monitor Metrics and Logs lists, type by type, the key
+   * metrics a stream never carries, filled in from the catalog
+   * (CloudStreamKeptMetrics): the same code in every language.
+   */
+  describe("the key metrics an Azure stream never carries", () => {
+    it("is one line a type a stream does not carry whole, its metrics as Azure names them", () => {
+      const rendered: string = DocsPlaceholders.render(
+        AZURE_STREAM_KEPT_METRICS_PLACEHOLDER,
+      );
+      const lines: Array<string> = rendered.split("\n");
+      const types: Array<AzureTypeKeyMetrics> = getAzureStreamKeptMetricTypes();
+
+      expect(lines).toHaveLength(types.length);
+      expect(types.length).toBeGreaterThan(10);
+      types.forEach((entry: AzureTypeKeyMetrics, index: number) => {
+        expect(lines[index]).toBe(
+          `- \`${entry.type}\`: ${entry
+            .notExportedByDiagnosticSettings!.map((metric: string): string => {
+              return `\`${metric}\``;
+            })
+            .join(", ")}.`,
+        );
+      });
+    });
+
+    it("leaves out a namespace whose queues the read splits, and a type a stream carries whole", () => {
+      const listed: Array<string> = getAzureStreamKeptMetricTypes().map(
+        (entry: AzureTypeKeyMetrics): string => {
+          return entry.type;
+        },
+      );
+
+      for (const entry of AZURE_KEY_METRICS) {
+        expect({
+          type: entry.type,
+          listed: listed.includes(entry.type),
+        }).toEqual({
+          type: entry.type,
+          listed:
+            !entry.splitByDimension &&
+            (entry.notExportedByDiagnosticSettings || []).length > 0,
+        });
+      }
+
+      expect(listed).not.toContain("Microsoft.ServiceBus/namespaces");
+      expect(listed).toContain("Microsoft.Compute/virtualMachines");
+    });
+
+    it("reads the same in every language: it is code", () => {
+      expect(
+        DocsPlaceholders.render(AZURE_STREAM_KEPT_METRICS_PLACEHOLDER, "de"),
+      ).toBe(getAzureStreamKeptMetricsMarkdown());
+      expect(
+        DocsPlaceholders.render(AZURE_STREAM_KEPT_METRICS_PLACEHOLDER, "fa"),
+      ).toBe(getAzureStreamKeptMetricsMarkdown());
+    });
+  });
+
   describe("IP allow-list placeholder", () => {
     it("renders the configured-nothing message when IP_WHITELIST is unset", () => {
       /*
@@ -311,6 +379,7 @@ describe("DocsPlaceholders", () => {
       TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
       CROSSPLANE_PROVIDER_VERSION_PLACEHOLDER,
       CLI_RESOURCE_COMMANDS_PLACEHOLDER,
+      AZURE_STREAM_KEPT_METRICS_PLACEHOLDER,
       ...Object.values(PermissionPlaceholder),
     ]);
 

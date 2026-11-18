@@ -21,6 +21,9 @@ import { isArchivedValue } from "../../../Utils/ArchivableValues";
 import SloErrorBudgetPolicyChange, {
   SLO_ERROR_BUDGET_POLICY_CHANGES,
 } from "../../ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import SloStatusChange, {
+  SLO_STATUS_CHANGES,
+} from "../../ServiceLevelObjective/SloStatusChange";
 import WorkspaceType, { getWorkspaceTypeDisplayName } from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
@@ -82,12 +85,15 @@ export enum NotificationRuleConditionCheckOn {
   /*
    * Service Level Objective: the SLO whose error budget policy moved - by
    * its name, by the SLO itself, by its labels - and what moved
-   * (SloErrorBudgetPolicyChange).
+   * (SloErrorBudgetPolicyChange); or, for a rule that picks them, how its
+   * status changed (SloStatusChange, #6596). Each change condition picks
+   * the kind of change a rule posts (SloRuleChanges).
    */
   SloName = "SLO Name",
   Slos = "SLOs",
   SloLabels = "SLO Labels",
   SloErrorBudgetPolicyChange = "Error Budget Policy Change",
+  SloStatusChange = "SLO Status Change",
 
   /*
    * WHO OWNS THE RECORD (#7554, #7583): the people and teams on its list of
@@ -160,6 +166,7 @@ export const FIXED_LIST_CHECK_ONS: ReadonlyArray<NotificationRuleConditionCheckO
     NotificationRuleConditionCheckOn.MonitorType,
     NotificationRuleConditionCheckOn.SecurityCaseSource,
     NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+    NotificationRuleConditionCheckOn.SloStatusChange,
   ];
 
 /*
@@ -441,6 +448,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.Slos:
       case NotificationRuleConditionCheckOn.SloLabels:
       case NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange:
+      case NotificationRuleConditionCheckOn.SloStatusChange:
         return true;
       default:
         return false;
@@ -802,6 +810,19 @@ export class NotificationRuleConditionUtil {
       );
     }
 
+    /*
+     * How the SLO's status changed (#6596): a fixed list - became At Risk,
+     * its budget exhausted, healthy again - shown as it is stored, in the
+     * reader's language where the condition is drawn.
+     */
+    if (data.checkOn === NotificationRuleConditionCheckOn.SloStatusChange) {
+      return SLO_STATUS_CHANGES.map(
+        (change: SloStatusChange): DropdownOption => {
+          return { label: change, value: change };
+        },
+      );
+    }
+
     if (data.checkOn === NotificationRuleConditionCheckOn.Monitors) {
       return toOptions(data.monitors);
     }
@@ -949,11 +970,13 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleEventType.SecurityHunt:
         return [NotificationRuleConditionCheckOn.SecurityHuntName];
       /*
-       * Which SLOs a rule posts the error budget policy of - picked from
-       * the project's, which a new condition starts on, or by their labels
-       * or name - and which of the policy's changes (entered a tier,
-       * recovered, left every tier, deployments frozen or allowed again).
-       * A rule with no condition posts every change of every SLO.
+       * Which SLOs a rule posts about - picked from the project's, which a
+       * new condition starts on, or by their labels or name - and which of
+       * their changes: of the error budget policy (entered a tier,
+       * recovered, left every tier, deployments frozen or allowed again),
+       * and of the status (became At Risk, budget exhausted, healthy
+       * again), which a rule posts only when it picks them (#6596). A rule
+       * with no condition posts every policy change of every SLO.
        */
       case NotificationRuleEventType.ServiceLevelObjective:
         return [
@@ -961,6 +984,7 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.SloLabels,
           NotificationRuleConditionCheckOn.SloName,
           NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+          NotificationRuleConditionCheckOn.SloStatusChange,
           NotificationRuleConditionCheckOn.SloOwners,
         ];
       default:
@@ -1014,6 +1038,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.SecurityCaseStatus:
       case NotificationRuleConditionCheckOn.SecurityCaseSource:
       case NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange:
+      case NotificationRuleConditionCheckOn.SloStatusChange:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       // An SLO's rule names the SLOs it is for, by id, as a monitor's names monitors.
       case NotificationRuleConditionCheckOn.Slos:

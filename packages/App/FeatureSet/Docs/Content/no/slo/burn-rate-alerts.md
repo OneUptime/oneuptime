@@ -252,7 +252,7 @@ Noen endringer løser alltid det en regel har åpnet, uansett hva innstillingene
 - å endre **Når den utløses** slik at varselet eller hendelsen utelates, lukker det den utgangen hadde åpnet;
 - å slå av regelen eller slette den;
 - å slå av evalueringen av SLO-et, arkivere SLO-et eller slette det;
-- at SLO-et går over til **Pauset** eller **Feilkonfigurert**, fordi det da ikke måler noe;
+- at SLO-et går over til **Venter**, **Pauset** eller **Feilkonfigurert**, fordi det da ikke måler noe;
 - at regelen mister terskelen eller vinduene sine, eller at SLO-et ikke lenger har et helt langt vindu med historikk.
 
 ## Planlagt vedlikehold

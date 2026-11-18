@@ -13,10 +13,10 @@ import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Timezone from "../../Types/Timezone";
 import OneUptimeDate from "../../Types/Date";
-import API from "../Utils/API/API";
 import Cookie from "./Cookie";
 import CookieName from "../../Types/CookieName";
 import SessionStorage from "./SessionStorage";
+import SignOutRequest, { SignOutAnswer } from "./SignOutRequest";
 import { Logger } from "./Logger";
 
 export default class UserUtil {
@@ -206,19 +206,35 @@ export default class UserUtil {
     return Boolean(this.getEmail());
   }
 
-  public static logout(): void {
+  /*
+   * Signs this browser out: forgets the person here at once, then ends the
+   * session on the server, whose answer clears the session's HttpOnly
+   * cookies. Resolves once the server has answered, or once the wait for
+   * it is over (SignOutRequest), and never rejects.
+   *
+   * Await it before the page changes (issue #9508): a page change that
+   * follows at once cancels the sign-out in Firefox, and the next person
+   * on the browser is signed in as this one. The request is sent so that
+   * no page change cancels it (keepalive), so a server too slow to answer
+   * within the wait still ends the session.
+   */
+  public static async logout(): Promise<void> {
     UserUtil.clear();
     SessionStorage.clear();
     Cookie.clearAllCookies();
     // The next user on this browser must not inherit this user's timezone.
     OneUptimeDate.setUserTimezone(null);
 
-    API.post({
-      url: URL.fromString(IDENTITY_URL.toString()).addRoute("/logout"),
-    }).catch((err: Error) => {
-      Logger.error("Error during logout:");
-      Logger.error(err.message);
-    });
+    const answer: SignOutAnswer = await SignOutRequest.send(
+      URL.fromString(IDENTITY_URL.toString()).addRoute("/logout"),
+    );
+
+    if (
+      answer === SignOutAnswer.Refused ||
+      answer === SignOutAnswer.Unreachable
+    ) {
+      Logger.error(`Error during logout: ${answer}`);
+    }
   }
 
   public static getUtmParams(): Dictionary<string> {

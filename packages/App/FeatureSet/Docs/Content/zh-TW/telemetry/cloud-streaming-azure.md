@@ -77,14 +77,7 @@ flowchart TB
 
 串流傳送的是連線每分鐘讀取的關鍵指標。其餘的仍由讀取依排程繼續寫入：連線以較粗粒度讀取的指標，例如容器登錄的已用儲存體，以及診斷設定無法傳送的每個關鍵指標，也就是 Azure Monitor 支援的指標清單在 DS Export 欄中標示為無法匯出的指標：
 
-- 虛擬機器和擴展集：`Network In Total`、`Network Out Total`。
-- 磁碟：`Composite Disk Read Bytes/sec`、`Composite Disk Write Bytes/sec`、`Composite Disk Read Operations/sec`、`Composite Disk Write Operations/sec`。
-- Azure Cosmos DB 帳戶：`TotalRequests`、`TotalRequestUnits`、`NormalizedRUConsumption`、`ServerSideLatency`。
-- 儲存體帳戶：`UsedCapacity`。
-- AKS 叢集：`kube_pod_status_ready`。
-- 應用程式閘道：`ApplicationGatewayTotalTime`、`Throughput`。
-- 防火牆：`Throughput`。
-- NAT 閘道：`ByteCount`、`SNATConnectionCount`、`DatapathAvailability`。
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Service Bus 或 Event Hubs 命名空間不會串流任何指標。讀取依每個佇列、主題和事件中樞讀取它的關鍵指標，命名空間本身的總計是它們的總和；而診斷設定只傳送命名空間的總計，而且完全不傳送 Service Bus 命名空間 6 個關鍵指標中的 4 個，或 Event Hubs 命名空間 4 個中的 2 個。因此無論是否串流，讀取都會寫入全部這些指標，不會有訊息被計算兩次。
 

@@ -18,9 +18,15 @@ import {
 import {
   AZURE_KEY_METRICS,
   AzureTypeKeyMetrics,
+  getAzureKeyMetricNames,
   getAzureKeyMetrics,
   isAzureStreamedKeyMetric,
 } from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  AZURE_STREAM_KEPT_METRICS_PLACEHOLDER,
+  getAzureStreamKeptMetricsMarkdown,
+} from "../../../FeatureSet/Docs/Utils/CloudStreamKeptMetrics";
+import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import {
   CLOUD_STREAM_ACTIVE_WINDOW_MS,
   CLOUD_STREAM_MAX_PREVIOUS_KEYS,
@@ -357,9 +363,12 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
    * CloudKeyMetrics marks it, type by type, for every type the read does
    * not split by a dimension. The step and the bullet point at the list.
    *
-   * A list, not a table: a table cell cannot break a code name, so at
-   * phone width a table of them scrolled inside its frame and cut names
-   * off (23px in English, 54px in German at 390px); a list item wraps.
+   * The list is filled in from the catalog as the page is served
+   * ({{AZURE_STREAM_KEPT_METRICS}}, CloudStreamKeptMetrics): written down,
+   * it fell behind each time a type gained key metrics. A list, not a
+   * table: a table cell cannot break a code name, so at phone width a table
+   * of them scrolled inside its frame and cut names off (23px in English,
+   * 54px in German at 390px); a list item wraps.
    */
   it("names each key metric a diagnostic setting cannot send, by type, as CloudKeyMetrics marks it", () => {
     const text: string = prose(page);
@@ -367,24 +376,34 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
       page,
       "The stream carries the key metrics the connection reads a minute at a time.",
     );
-    const items: Array<string> = blockAfter(
+    const after: Array<string> = blockAfter(
       page,
       "The stream carries the key metrics the connection reads a minute at a time.",
     );
-    // Each item's resource types, as the page words them.
-    const typesOfRow: Record<string, Array<string>> = {
-      "Virtual machines and scale sets": [
-        "Microsoft.Compute/virtualMachines",
-        "Microsoft.Compute/virtualMachineScaleSets",
-      ],
-      Disks: ["Microsoft.Compute/disks"],
-      "Azure Cosmos DB accounts": ["Microsoft.DocumentDB/databaseAccounts"],
-      "Storage accounts": ["Microsoft.Storage/storageAccounts"],
-      "AKS clusters": ["Microsoft.ContainerService/managedClusters"],
-      "Application gateways": ["Microsoft.Network/applicationGateways"],
-      Firewalls: ["Microsoft.Network/azureFirewalls"],
-      "NAT gateways": ["Microsoft.Network/natGateways"],
-    };
+
+    expect(lead.endsWith("marks No under DS Export:")).toBe(true);
+    expect(after).toEqual([AZURE_STREAM_KEPT_METRICS_PLACEHOLDER]);
+
+    // What the page lists: one line a type, its metrics as Azure names them.
+    const items: Array<string> =
+      getAzureStreamKeptMetricsMarkdown().split("\n");
+    const rows: Array<{ type: string; named: Array<string> }> = items.map(
+      (item: string): { type: string; named: Array<string> } => {
+        const match: RegExpMatchArray | null = item.match(
+          /^- `([^`]+)`: (`[^`]+`(?:, `[^`]+`)*)\.$/,
+        );
+
+        expect({ item, listed: Boolean(match) }).toEqual({
+          item,
+          listed: true,
+        });
+
+        return {
+          type: match![1] as string,
+          named: codeSpans(match![2] as string),
+        };
+      },
+    );
     const marked: Array<string> = AZURE_KEY_METRICS.filter(
       (entry: AzureTypeKeyMetrics): boolean => {
         return (
@@ -396,54 +415,46 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
       return entry.type;
     });
 
-    // Each item: the resource type, a colon, and its metrics' names.
-    const rows: Array<{ worded: string; named: Array<string> }> = items.map(
-      (item: string): { worded: string; named: Array<string> } => {
-        const match: RegExpMatchArray | null = item.match(
-          /^- ([^:`]+): (`[^`]+`(?:, `[^`]+`)*)\.$/,
-        );
-
-        expect({ item, listed: Boolean(match) }).toEqual({
-          item,
-          listed: true,
-        });
-
-        return {
-          worded: match![1] as string,
-          named: codeSpans(match![2] as string),
-        };
-      },
-    );
-
-    expect(lead.endsWith("marks No under DS Export:")).toBe(true);
     expect(
-      rows.map((row: { worded: string }): string => {
-        return row.worded;
+      rows.map((row: { type: string }): string => {
+        return row.type;
       }),
-    ).toEqual(Object.keys(typesOfRow));
-    expect(Object.values(typesOfRow).flat().sort()).toEqual([...marked].sort());
+    ).toEqual(marked);
 
     for (const row of rows) {
-      const named: Array<string> = row.named;
+      const keyMetrics: AzureTypeKeyMetrics | undefined = getAzureKeyMetrics(
+        row.type,
+      );
 
-      for (const type of typesOfRow[row.worded] || []) {
-        const keyMetrics: AzureTypeKeyMetrics | undefined =
-          getAzureKeyMetrics(type);
+      expect({ type: row.type, named: row.named }).toEqual({
+        type: row.type,
+        named: keyMetrics?.notExportedByDiagnosticSettings,
+      });
 
-        expect({ type, named }).toEqual({
-          type,
-          named: keyMetrics?.notExportedByDiagnosticSettings,
+      // The stream writes every other key metric of the type.
+      for (const metric of getAzureKeyMetricNames(row.type)) {
+        expect({
+          type: row.type,
+          metric,
+          streamed: isAzureStreamedKeyMetric(row.type, metric),
+        }).toEqual({
+          type: row.type,
+          metric,
+          streamed: !row.named.includes(metric),
         });
-
-        // The stream writes every other key metric of the type.
-        for (const metric of keyMetrics?.metrics || []) {
-          expect({
-            type,
-            metric,
-            streamed: isAzureStreamedKeyMetric(type, metric),
-          }).toEqual({ type, metric, streamed: !named.includes(metric) });
-        }
       }
+    }
+
+    // As the page is served, in every language: the list, never the token.
+    for (const language of ["en", "de", "ja", "fa"]) {
+      const served: string = DocsPlaceholders.render(
+        readPage(language, page),
+        language,
+      );
+
+      expect(served).not.toContain(AZURE_STREAM_KEPT_METRICS_PLACEHOLDER);
+      expect(served).toContain(items[0]!);
+      expect(served).toContain(items[items.length - 1]!);
     }
 
     expect(text).toContain(
@@ -484,7 +495,7 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
     ).toEqual([eventHubs.type, serviceBus.type].sort());
 
     for (const keyMetrics of [serviceBus, eventHubs]) {
-      for (const metric of keyMetrics.metrics) {
+      for (const metric of getAzureKeyMetricNames(keyMetrics.type)) {
         expect({
           type: keyMetrics.type,
           metric,
