@@ -32,6 +32,7 @@ import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
 import { applyIncidentEpisodeSelfPrivacyFilter } from "../IncidentEpisode/IncidentEpisodePrivacyFilter";
 import { applyAlertEpisodeSelfPrivacyFilter } from "../AlertEpisode/AlertEpisodePrivacyFilter";
 import PrivateRecordWriteCheck from "../Permission/PrivateRecordWriteCheck";
+import ServerProducts from "../ServerProducts/ServerProducts";
 
 /*
  * A resource a chat action is performed against: the incident being
@@ -294,6 +295,13 @@ export default class WorkspaceActionAuthorization {
         `You do not have permission to ${action}.`,
       );
     }
+
+    /*
+     * A row of a product the server switched off is written by nobody
+     * (#7479): the chat says so in place (WorkspaceProductRefusal), before
+     * anything about the record is read out.
+     */
+    await ServerProducts.assertRecordTableIsOn(new modelType().tableName);
 
     try {
       /*
@@ -561,6 +569,9 @@ export default class WorkspaceActionAuthorization {
         `You do not have permission to ${action}.`,
       );
     }
+
+    // Nor changed, while its product is off (#7479).
+    await ServerProducts.assertRecordTableIsOn(new modelType().tableName);
 
     try {
       await ModelPermission.checkUpdateQueryPermissions(

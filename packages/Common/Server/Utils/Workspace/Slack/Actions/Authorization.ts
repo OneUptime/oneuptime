@@ -16,6 +16,10 @@ import { SlackRequest } from "./Auth";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import ObjectID from "../../../../../Types/ObjectID";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
+import WorkspaceProductRefusal from "../../WorkspaceProductRefusal";
+import ProductKey from "../../../../../Types/Product/ProductKey";
+import { ExpressRequest, ExpressResponse } from "../../../Express";
+import Response from "../../../Response";
 
 /*
  * Who pressed, and where: the member they act as, and the channel, thread
@@ -169,7 +173,8 @@ export default class SlackActionAuthorization {
     } catch (err) {
       if (
         !(err instanceof NotAuthorizedException) &&
-        !(err instanceof PaymentRequiredException)
+        !(err instanceof PaymentRequiredException) &&
+        !WorkspaceProductRefusal.isRefusal(err)
       ) {
         throw err;
       }
@@ -213,7 +218,8 @@ export default class SlackActionAuthorization {
       if (
         !(err instanceof NotAuthorizedException) &&
         !(err instanceof BadDataException) &&
-        !(err instanceof PaymentRequiredException)
+        !(err instanceof PaymentRequiredException) &&
+        !WorkspaceProductRefusal.isRefusal(err)
       ) {
         throw err;
       }
@@ -230,6 +236,37 @@ export default class SlackActionAuthorization {
 
       return null;
     }
+  }
+
+  /*
+   * A press of a product the server switched off (#7479), answered where it
+   * was pressed: Slack at once, then the person, with what happened and who
+   * can switch it on (WorkspaceProductRefusal). True when it was refused,
+   * and the caller must stop without opening, reading or writing anything.
+   */
+  @CaptureSpan()
+  public static async refuseWhileProductIsOff(data: {
+    requester: SlackActionRequester;
+    product: ProductKey | null;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<boolean> {
+    const refusal: string | null = await WorkspaceProductRefusal.getRefusal(
+      data.product,
+    );
+
+    if (!refusal) {
+      return false;
+    }
+
+    Response.sendTextResponse(data.req, data.res, "");
+
+    await this.sendRefusal({
+      requester: data.requester,
+      message: refusal,
+    });
+
+    return true;
   }
 
   /*

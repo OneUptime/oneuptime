@@ -37,6 +37,8 @@ import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
 import SlackIncidentEpisodeActions from "../Utils/Workspace/Slack/Actions/IncidentEpisode";
 import SlackScheduledMaintenanceActions from "../Utils/Workspace/Slack/Actions/ScheduledMaintenance";
+import SlackActionAuthorization from "../Utils/Workspace/Slack/Actions/Authorization";
+import { getProductOfSlackAction } from "../Utils/Workspace/Slack/Actions/ProductOfAction";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SlackMonitorActions from "../Utils/Workspace/Slack/Actions/Monitor";
 import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyPolicy";
@@ -1253,6 +1255,22 @@ export default class SlackAPI {
             action.actionType === SlackActionType.OpenInOneUptime
           ) {
             return Response.sendTextResponse(req, res, "");
+          }
+
+          /*
+           * A button, form or command of a product the server switched off
+           * (#7479): answered where it was pressed, and nothing is opened,
+           * read out or changed (WorkspaceProductRefusal).
+           */
+          if (
+            await SlackActionAuthorization.refuseWhileProductIsOff({
+              requester: authResult,
+              product: getProductOfSlackAction(action.actionType),
+              req: req,
+              res: res,
+            })
+          ) {
+            return;
           }
 
           // Who's on call, from the app's Home tab: answered in a modal.
