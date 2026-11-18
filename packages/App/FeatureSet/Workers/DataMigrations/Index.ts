@@ -134,6 +134,7 @@ import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChe
 import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
+import KeepProductAnalyticsForTheLongestRetention from "./KeepProductAnalyticsForTheLongestRetention";
 import ReadWebAppVersionsInProductAnalyticsSessions from "./ReadWebAppVersionsInProductAnalyticsSessions";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
@@ -1424,6 +1425,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new ReadWebAppVersionsInProductAnalyticsSessions(),
+  /*
+   * Each RUM application chooses how long product analytics keeps it
+   * (#6626): the three product analytics tables keep the longest choice,
+   * 25 months, and Rum:EnforceProductAnalyticsRetention deletes each
+   * application's older rows. Per table, ON CLUSTER: MODIFY SETTING
+   * materialize_ttl_recalculate_only = 1, then MODIFY TTL, whose
+   * recalculation of each part's expiry runs in the background and rewrites
+   * nothing else. Deletes nothing; idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new KeepProductAnalyticsForTheLongestRetention(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

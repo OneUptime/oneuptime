@@ -17,7 +17,11 @@ import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
-import { PRODUCT_ANALYTICS_RETENTION_MONTHS } from "../../../Types/Rum/ProductAnalytics";
+import {
+  DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS,
+} from "../../../Types/Rum/ProductAnalytics";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -125,7 +129,7 @@ describe.each(MODELS)("$name", ({ modelType }: { modelType: ModelType }) => {
     }
   });
 
-  test("creates its Replicated local table ON CLUSTER with a monthly partition and a 13 month TTL", () => {
+  test("creates its Replicated local table ON CLUSTER with a monthly partition and a TTL of the longest retention", () => {
     const statement: Statement = createStatementFor(modelType);
     const ddl: string = fullText(statement);
 
@@ -139,13 +143,22 @@ describe.each(MODELS)("$name", ({ modelType }: { modelType: ModelType }) => {
       /PARTITION BY \(toYYYYMM\((startTime|month)\)\)/,
     );
     expect(statement.query).toContain(`TTL ${model.ttlExpression}`);
+    /*
+     * The longest retention an application can choose (issue #6626); a
+     * shorter one, the default 13 months included, is kept by
+     * Rum:EnforceProductAnalyticsRetention.
+     */
     expect(model.ttlExpression).toContain(
-      `INTERVAL ${PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`,
+      `INTERVAL ${MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`,
     );
-    expect(PRODUCT_ANALYTICS_RETENTION_MONTHS).toBe(13);
+    expect(MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS).toBe(25);
+    expect(PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS).toEqual([3, 6, 13, 25]);
+    expect(DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS).toBe(13);
 
     /* Whole monthly parts expire together: dropped, never rewritten. */
     expect(statement.query).toContain("ttl_only_drop_parts = 1");
+    /* A TTL change recalculates each part's expiry, and rewrites nothing else. */
+    expect(statement.query).toContain("materialize_ttl_recalculate_only = 1");
     expect(statement.query).toContain("replicated_deduplication_window");
     expect(statement.query).not.toContain(
       "non_replicated_deduplication_window",
@@ -289,7 +302,7 @@ describe("RumProductAnalyticsSession", () => {
     ]);
     expect(model.partitionKey).toBe("toYYYYMM(startTime)");
     expect(model.ttlExpression).toBe(
-      "toStartOfMonth(startTime) + INTERVAL 13 MONTH DELETE",
+      "toStartOfMonth(startTime) + INTERVAL 25 MONTH DELETE",
     );
   });
 
@@ -323,7 +336,7 @@ describe("RumProductAnalyticsUser", () => {
       "month",
     ]);
     expect(model.partitionKey).toBe("toYYYYMM(month)");
-    expect(model.ttlExpression).toBe("month + INTERVAL 13 MONTH DELETE");
+    expect(model.ttlExpression).toBe("month + INTERVAL 25 MONTH DELETE");
   });
 
   test("files a person only from finished sessions that are not pinned copies, and only someone", () => {

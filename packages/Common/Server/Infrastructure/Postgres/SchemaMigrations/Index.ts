@@ -1064,6 +1064,7 @@ import { AddProbeDevicePollsLate1809183760000 } from "./1809183760000-AddProbeDe
 import { AddDocsFeedbackKeeping1809183800000 } from "./1809183800000-AddDocsFeedbackKeeping";
 import { AddEmailLogTemplateType1809183830000 } from "./1809183830000-AddEmailLogTemplateType";
 import { AddRumSessionErasureRequestProductAnalyticsRowsDeleted1809183906628 } from "./1809183906628-AddRumSessionErasureRequestProductAnalyticsRowsDeleted";
+import { AddRumApplicationProductAnalyticsRetention1809183906630 } from "./1809183906630-AddRumApplicationProductAnalyticsRetention";
 
 export default [
   InitialMigration,
@@ -2132,4 +2133,5 @@ export default [
   AddDocsFeedbackKeeping1809183800000,
   AddEmailLogTemplateType1809183830000,
   AddRumSessionErasureRequestProductAnalyticsRowsDeleted1809183906628,
+  AddRumApplicationProductAnalyticsRetention1809183906630,
 ];

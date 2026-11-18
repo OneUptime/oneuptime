@@ -25,6 +25,7 @@ import SessionReplayCaptureTrigger from "../../Types/Rum/SessionReplayCaptureTri
 import SessionReplayConsentMode from "../../Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "../../Types/Rum/SessionReplayMaskingMode";
 import { SessionReplayFrustrationSettings } from "../../Types/Rum/SessionReplayFrustrationSignals";
+import { DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS } from "../../Types/Rum/ProductAnalytics";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
@@ -1833,6 +1834,62 @@ export default class RumApplication extends BaseModel {
     },
   })
   public productAnalyticsUserPropertyKeys?: Array<string> = undefined;
+
+  /*
+   * How long product analytics keeps this application's numbers and events,
+   * in calendar months (issue #6626): one of
+   * PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS, 13 by default. The tables'
+   * TTL keeps the longest choice for everyone, and
+   * Rum:EnforceProductAnalyticsRetention deletes an application's older
+   * rows every day, so a shorter choice - lowered later too - reaches what
+   * is already kept. RumApplicationService refuses any other value.
+   * Separate from the replay retention and from retainTelemetryDataForDays,
+   * which keep the recordings and the telemetry.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Product Analytics Retention (months)",
+    description:
+      "How long product analytics keeps this application's numbers and events: 3, 6, 13 or 25 months, 13 by default. Separate from how long recordings are kept.",
+    defaultValue: DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  })
+  public productAnalyticsRetentionInMonths?: number = undefined;
 
   /*
    * The next two columns exist purely so a support engineer can answer

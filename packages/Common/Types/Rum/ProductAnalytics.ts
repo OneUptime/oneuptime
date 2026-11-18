@@ -37,20 +37,83 @@ export const PRODUCT_ANALYTICS_PEOPLE_ROUTE: string = `${PRODUCT_ANALYTICS_ROUTE
 export const PRODUCT_ANALYTICS_PERSON_ROUTE: string = `${PRODUCT_ANALYTICS_ROUTE_PREFIX}/person`;
 
 /*
- * How long a session's summary is kept, in calendar months: a month's rows
- * go on the first day of the thirteenth month after it (both tables drop
- * whole monthly partitions), so at least twelve full months are always
- * kept, and a month can be compared with the same month a year earlier
- * while it is still running. Both tables' TTLs read this.
+ * How long an application keeps its product analytics, in calendar months
+ * (issue #6626): a month's rows go on the first day of the Nth month after
+ * it, so N - 1 full months are always kept beside the running one. Each
+ * application chooses one of these on Analytics Settings
+ * (RumApplication.productAnalyticsRetentionInMonths): 3 or 6 for a privacy
+ * policy that promises less, 25 to compare a year with the year before.
  */
-export const PRODUCT_ANALYTICS_RETENTION_MONTHS: number = 13;
+export const PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS: ReadonlyArray<number> =
+  [3, 6, 13, 25];
+
+/*
+ * The default: twelve full months and the running one, so a month can be
+ * compared with the same month a year earlier while it is still running.
+ */
+export const DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS: number = 13;
+
+/* What an application keeps unless it chose otherwise: the default. */
+export const PRODUCT_ANALYTICS_RETENTION_MONTHS: number =
+  DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS;
+
+/*
+ * The longest choice, and what the tables' TTL keeps for everyone: every
+ * row of a monthly partition expires on the same day, so whole parts are
+ * dropped. A shorter choice is kept by Rum:EnforceProductAnalyticsRetention,
+ * which deletes an application's older rows every day.
+ */
+export const MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS: number = Math.max(
+  ...PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS,
+);
+
+/*
+ * An application's choice as it is kept: one of the options, or the
+ * default for anything else (an unset column, a value written before the
+ * choice existed).
+ */
+export function getProductAnalyticsRetentionMonths(value: unknown): number {
+  return typeof value === "number" &&
+    PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS.includes(value)
+    ? value
+    : DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS;
+}
+
+/*
+ * The first instant an application with this retention still keeps: the
+ * start (UTC) of the month N - 1 months before the running one. Rows of a
+ * month before it are past the retention and go.
+ */
+export function getProductAnalyticsRetentionCutoff(
+  months: number,
+  now: Date,
+): Date {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1),
+  );
+}
 
 /*
  * The longest range one read covers. A year and a month of days, what the
- * tables keep; the active-users trend reads 29 more days before it for the
+ * default keeps; the active-users trend reads 29 more days before it for the
  * first day's monthly count.
  */
 export const PRODUCT_ANALYTICS_MAX_RANGE_DAYS: number = 400;
+
+/*
+ * The longest range one read of an application covers: 400 days, or, for
+ * an application that keeps longer than the default, 31 days for each month
+ * it keeps - so one that keeps 25 months can read two years.
+ */
+export function getProductAnalyticsMaxRangeDays(
+  retentionMonths: number,
+): number {
+  const months: number = getProductAnalyticsRetentionMonths(retentionMonths);
+
+  return months > DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS
+    ? months * 31
+    : PRODUCT_ANALYTICS_MAX_RANGE_DAYS;
+}
 
 /* The windows the active-users trend counts over, in days. */
 export const PRODUCT_ANALYTICS_WEEKLY_WINDOW_DAYS: number = 7;
@@ -289,6 +352,12 @@ export interface ProductAnalyticsSummaryDto {
   dormantAfterDays: number;
   /* When the first session the tables still keep started; null when none is kept. */
   dataStartedAt: number | null;
+  /*
+   * How many months the application keeps these numbers (issue #6626), for
+   * the words that say how long; an older server leaves it out, and the
+   * page then reads the default.
+   */
+  retentionMonths?: number | undefined;
 }
 
 export interface ProductAnalyticsTrendDayDto {
@@ -355,6 +424,8 @@ export interface ProductAnalyticsPeopleDto {
   hasMore: boolean;
   /* Whether labels were in the answer at all: absent means hidden, not anonymous. */
   includesLabels: boolean;
+  /* How many months the application keeps these numbers, as on the summary. */
+  retentionMonths?: number | undefined;
 }
 
 export interface ProductAnalyticsPersonSessionDto {
@@ -381,4 +452,6 @@ export interface ProductAnalyticsPersonDetailDto {
   sessions: Array<ProductAnalyticsPersonSessionDto>;
   hasMore: boolean;
   includesLabels: boolean;
+  /* How many months the application keeps these numbers, as on the summary. */
+  retentionMonths?: number | undefined;
 }

@@ -386,6 +386,8 @@ describe("Product analytics API", () => {
   let querySpy: jest.SpyInstance;
   let findOneBySpy: jest.SpyInstance;
   let findBySpy: jest.SpyInstance;
+  /* What the application chose to keep (issue #6626); unset, the default. */
+  let applicationRetentionMonths: number | undefined;
 
   beforeAll(() => {
     recordedRoutes.length = 0;
@@ -407,6 +409,7 @@ describe("Product analytics API", () => {
     applicationBId = ObjectID.generate();
     labelAId = ObjectID.generate();
     labelBId = ObjectID.generate();
+    applicationRetentionMonths = undefined;
 
     querySpy = jest
       .spyOn(RumProductAnalyticsSessionService, "executeQuery")
@@ -441,6 +444,11 @@ describe("Product analytics API", () => {
     const application: RumApplication = new RumApplication();
     application.id = data.id;
     application.projectId = projectId;
+
+    if (applicationRetentionMonths !== undefined) {
+      application.productAnalyticsRetentionInMonths =
+        applicationRetentionMonths;
+    }
     application.labels = data.labelIds.map((labelId: ObjectID): Label => {
       const label: Label = new Label();
       label.id = labelId;
@@ -1037,6 +1045,76 @@ describe("Product analytics API", () => {
 
       expect((result.thrownToNext as Error).message).toContain("startTime");
     });
+
+    /*
+     * Issue #6626: an application that keeps 25 months reads up to two
+     * years, 31 days for each month it keeps; one that keeps the default or
+     * less reads the 400 days it always could.
+     */
+    test("an application that keeps 25 months reads two years, and no more", async () => {
+      applicationRetentionMonths = 25;
+
+      const twoYears: CallResult = await callAsOwner(
+        PRODUCT_ANALYTICS_SUMMARY_ROUTE,
+        {
+          startTime: new Date(
+            Date.parse("2026-03-01T00:00:00.000Z") - 25 * 31 * DAY_MS,
+          ).toISOString(),
+          endTime: "2026-03-01T00:00:00.000Z",
+        },
+      );
+
+      expect(twoYears.thrownToNext).toBeUndefined();
+      expect(querySpy).toHaveBeenCalled();
+
+      jest.clearAllMocks();
+
+      const tooLong: CallResult = await callAsOwner(
+        PRODUCT_ANALYTICS_SUMMARY_ROUTE,
+        {
+          startTime: new Date(
+            Date.parse("2026-03-01T00:00:00.000Z") - 25 * 31 * DAY_MS - 1,
+          ).toISOString(),
+          endTime: "2026-03-01T00:00:00.000Z",
+        },
+      );
+
+      expect(tooLong.thrownToNext).toBeInstanceOf(BadDataException);
+      expect((tooLong.thrownToNext as Error).message).toContain("775 days");
+      expect(querySpy).not.toHaveBeenCalled();
+    });
+
+    test("an application that keeps 3 months still reads the 400 days, and says it keeps 3", async () => {
+      applicationRetentionMonths = 3;
+
+      jest
+        .spyOn(RumProductAnalyticsReadService, "getSummary")
+        .mockResolvedValue({ totalUsers: 1 } as never);
+
+      const result: CallResult = await callAsOwner(
+        PRODUCT_ANALYTICS_SUMMARY_ROUTE,
+        {
+          startTime: new Date(
+            Date.parse("2026-03-01T00:00:00.000Z") -
+              PRODUCT_ANALYTICS_MAX_RANGE_DAYS * DAY_MS,
+          ).toISOString(),
+          endTime: "2026-03-01T00:00:00.000Z",
+        },
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody).toEqual({ totalUsers: 1, retentionMonths: 3 });
+    });
+
+    test("the application's months are read with its access check, in one lookup", async () => {
+      await callAsOwner(PRODUCT_ANALYTICS_SUMMARY_ROUTE, {});
+
+      const select: Record<string, unknown> = (
+        findOneBySpy.mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+
+      expect(select["productAnalyticsRetentionInMonths"]).toBe(true);
+    });
   });
 
   describe("summary", () => {
@@ -1080,7 +1158,7 @@ describe("Product analytics API", () => {
       },
     );
 
-    test("answers with what the read service found", async () => {
+    test("answers with what the read service found, and how many months the application keeps", async () => {
       const dto: JSONObject = { totalUsers: 12, dormantUsers: 3 };
 
       jest
@@ -1092,7 +1170,11 @@ describe("Product analytics API", () => {
         {},
       );
 
-      expect(result.jsonBody).toBe(dto);
+      /*
+       * The months (issue #6626) are the application's: the default for
+       * one that never chose.
+       */
+      expect(result.jsonBody).toEqual({ ...dto, retentionMonths: 13 });
     });
 
     test("every statement is bound to the project and the application, under the interactive time limit, and never names who anyone is", async () => {

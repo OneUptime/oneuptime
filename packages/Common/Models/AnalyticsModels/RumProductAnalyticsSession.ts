@@ -10,8 +10,8 @@ import Permission from "../../Types/Permission";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import RumApplication from "../DatabaseModels/RumApplication";
 import {
+  MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS,
   PRODUCT_ANALYTICS_IDENTIFIED_PREFIX,
-  PRODUCT_ANALYTICS_RETENTION_MONTHS,
   PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE,
   PRODUCT_ANALYTICS_VISITOR_PREFIX,
 } from "../../Types/Rum/ProductAnalytics";
@@ -37,8 +37,8 @@ import {
  * copied at all: it stays on the recording's own header, under the
  * recording's retention (see RumProductAnalyticsUserV1).
  *
- * Kept for PRODUCT_ANALYTICS_RETENTION_MONTHS calendar months by monthly
- * partition, apart from the recording's own retention - the point of the
+ * Kept for the application's product analytics retention (13 calendar
+ * months by default, issue #6626), apart from the recording's own retention - the point of the
  * table is to answer "how many people came this month" and "when did this
  * person first come" after the recordings are gone. replayRetentionDate
  * says until when the recording itself is kept, so a page can offer to
@@ -116,8 +116,13 @@ export const PRODUCT_ANALYTICS_SOURCE_ENTRY_PAGE_SQL: string =
  */
 export const PRODUCT_ANALYTICS_SOURCE_FRUSTRATION_SQL: string = `toInt32(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)`;
 
-/* TTL of both tables: the first day of the PRODUCT_ANALYTICS_RETENTION_MONTHS-th month after. */
-export const PRODUCT_ANALYTICS_SESSION_TTL: string = `toStartOfMonth(startTime) + INTERVAL ${PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`;
+/*
+ * TTL: the first day of the MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS-th month
+ * after, the longest retention an application can choose. A shorter choice
+ * is kept by Rum:EnforceProductAnalyticsRetention, which deletes the
+ * application's older rows every day (issue #6626).
+ */
+export const PRODUCT_ANALYTICS_SESSION_TTL: string = `toStartOfMonth(startTime) + INTERVAL ${MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`;
 
 /*
  * Reading product analytics is listing sessions: the same permissions as
@@ -429,10 +434,14 @@ GROUP BY projectId, rumApplicationId, startTime, sessionId`,
       shardingKey: "cityHash64(projectId, sessionId)",
       /*
        * Every row of a monthly partition expires on the same day, so whole
-       * parts are dropped rather than rewritten row by row.
+       * parts are dropped rather than rewritten row by row. A MATERIALIZE
+       * TTL (as a TTL change queues) recalculates each part's expiry without
+       * rewriting the part (materialize_ttl_recalculate_only), so raising
+       * the TTL reaches the parts already on disk at the cost of reading
+       * the one column it names.
        */
       tableSettings:
-        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
+        "ttl_only_drop_parts = 1, materialize_ttl_recalculate_only = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: PRODUCT_ANALYTICS_SESSION_TTL,
       includeBaseColumns: false,
       defaultSortColumn: "startTime",
