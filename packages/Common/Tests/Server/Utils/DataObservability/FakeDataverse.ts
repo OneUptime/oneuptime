@@ -279,12 +279,6 @@ export default class FakeDataverse {
 
     this.requests.push(read);
 
-    if (path === "/") {
-      return fakeJson({}, 401, {
-        "www-authenticate": `Bearer authorization_uri=https://login.microsoftonline.com/${FAKE_TENANT}/oauth2/authorize, resource_id=https://${FAKE_HOST}/`,
-      });
-    }
-
     if (isPreferRejectedByDataverse(read.headers)) {
       return fakeEmpty(500, { "x-ms-service-request-id": FAKE_REQUEST_ID });
     }
@@ -295,6 +289,13 @@ export default class FakeDataverse {
       if (answer) {
         return answer;
       }
+    }
+
+    // Asked without a token, the Web API names the tenant in its challenge.
+    if (path === "/") {
+      return fakeJson({}, 401, {
+        "www-authenticate": `Bearer authorization_uri=https://login.microsoftonline.com/${FAKE_TENANT}/oauth2/authorize, resource_id=https://${FAKE_HOST}/`,
+      });
     }
 
     return this.answerOwn(read);

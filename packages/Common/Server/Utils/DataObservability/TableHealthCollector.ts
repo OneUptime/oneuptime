@@ -5263,7 +5263,7 @@ class DataverseCatalog implements CatalogSession {
       const unasked: number = this.isThrottled ? 0 : watched.length - next;
 
       warnings.push(
-        `When ${countDataverseTables(failed.length)} last changed could not be read (${nameDataverseTables(failed)}): ${firstError}${unasked > 0 ? ` ${countDataverseTables(unasked)} more were not asked this time.` : ""}`,
+        `When ${countDataverseTables(failed.length)} last changed could not be read (${nameDataverseTables(failed)}): ${asSentence(firstError)}${unasked > 0 ? ` ${unasked === 1 ? "1 more table was" : `${unasked} more tables were`} not asked this time.` : ""}`,
       );
     }
 
