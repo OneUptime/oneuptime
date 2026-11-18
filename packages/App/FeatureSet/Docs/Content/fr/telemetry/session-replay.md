@@ -177,8 +177,9 @@ Importez `OneUptimeReplay` directement, ou appelez `useOneUptimeReplay()` sous l
 | `stop()` | Vide ce qui peut être envoyé, arrête la capture et détache les gestionnaires de cycle de vie. |
 | `identify(userRef, traits?)` | Attache l'utilisateur connecté et des attributs facultatifs, sous réserve de **Capturer l'identité de l'utilisateur final**. |
 | `setTags(tags)` / `addTag(key, value)` | Remplace tous les tags recherchables de la session, ou ajoute un tag sans remplacer les autres. |
-| `track(name, properties?)` | Place un événement d'application sur la chronologie de la relecture. |
-| `setRoute(route)` | Enregistre un écran ou une route logique nettoyé après une navigation. Appelez-le depuis le callback de changement de route de votre navigateur d'écrans. |
+| `track(name, properties?)` | Place un événement d'application sur la chronologie de la relecture. Quand les événements d'analyse produit sont activés, c'est aussi un événement que les pages d'[Analyse produit](/docs/rum/product-analytics#envoyer-des-événements-et-des-métriques) de l'application comptent, depuis chaque session, enregistrée ou non. |
+| `metric(name, value, attributes?)` | Quand les événements d'analyse produit sont activés, envoie une valeur mesurée par l'application comme point d'une métrique de l'application. Les valeurs de ses attributs sont masquées. |
+| `setRoute(route)` | Enregistre un écran ou une route logique nettoyé après une navigation. Appelez-le depuis le callback de changement de route de votre navigateur d'écrans. Quand les événements d'analyse produit sont activés, chaque nouvel écran est aussi une page vue. |
 | `captureSession(reason?)` | Avec _On error or frustration_, envoie le tampon tournant pour une raison propre à l'application, comme un utilisateur qui touche « Signaler un problème ». |
 | `captureError(error)` | Enregistre une erreur JavaScript gérée et active la capture déclenchée par les erreurs. |
 | `grantConsent()` / `revokeConsent()` | Autorise les envois, ou efface immédiatement le tampon en mémoire, la boîte d'envoi stockée, la session et l'id de visiteur. Un consentement ultérieur repart avec des identifiants neufs. |

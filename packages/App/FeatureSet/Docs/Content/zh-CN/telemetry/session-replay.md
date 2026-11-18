@@ -177,8 +177,9 @@ export default function App() {
 | `stop()` | 冲刷可以发送的内容，停止录制，并解除生命周期处理程序。 |
 | `identify(userRef, traits?)` | 关联已登录的用户和可选的特征，受 **捕获最终用户身份** 约束。 |
 | `setTags(tags)` / `addTag(key, value)` | 替换所有可搜索的会话标签，或在不替换其他标签的情况下添加一个标签。 |
-| `track(name, properties?)` | 在回放时间线上放置一个应用事件。 |
-| `setRoute(route)` | 在导航后记录经过清理的逻辑屏幕或路由。在导航器的路由变更回调中调用它。 |
+| `track(name, properties?)` | 在回放时间线上放置一个应用事件。开启产品分析事件后，它也是应用程序的 [产品分析](/docs/rum/product-analytics#发送事件和指标) 页面所统计的事件，来自每个会话，无论是否录制。 |
+| `metric(name, value, attributes?)` | 开启产品分析事件后，把应用测得的数值作为应用程序某个指标的数据点发送。其属性值会被遮盖。 |
+| `setRoute(route)` | 在导航后记录经过清理的逻辑屏幕或路由。在导航器的路由变更回调中调用它。开启产品分析事件后，每个新屏幕也是一次页面浏览。 |
 | `captureSession(reason?)` | 在 _On error or frustration_ 下，因应用自定义的原因（例如用户点击“报告问题”）上传滚动缓冲区。 |
 | `captureError(error)` | 记录一个已处理的 JavaScript 错误，并激活错误触发的录制。 |
 | `grantConsent()` / `revokeConsent()` | 允许上传，或立即清除内存缓冲区、已存储的发件箱、会话和访客 ID。之后再次同意会使用新的标识符开始。 |

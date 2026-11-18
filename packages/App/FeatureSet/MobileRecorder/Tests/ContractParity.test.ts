@@ -36,7 +36,9 @@ import {
   SESSION_REPLAY_USER_REF_HEADER as COMMON_USER_REF_HEADER,
   SESSION_REPLAY_SCHEMA_VERSION as COMMON_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION as COMMON_WIRE_VERSION,
+  SESSION_REPLAY_MAX_APP_VERSION_LENGTH as COMMON_MAX_APP_VERSION_LENGTH,
   SessionReplayFidelityNotice as CommonFidelityNotice,
+  toSessionReplayAppVersion,
 } from "../../../../Common/Types/Rum/SessionReplay";
 import {
   isSessionReplayCustomSignalPayload,
@@ -47,6 +49,72 @@ import {
   SessionReplayIdlePausedPayload as CommonIdlePausedPayload,
   SessionReplayIdleResumedPayload as CommonIdleResumedPayload,
 } from "../../../../Common/Types/Rum/SessionReplayCustomEvents";
+import {
+  PRODUCT_ANALYTICS_CONTENT_TYPE as COMMON_PA_CONTENT_TYPE,
+  PRODUCT_ANALYTICS_EVENTS_PATH as COMMON_PA_EVENTS_PATH,
+  PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS as COMMON_PA_FLUSH_INTERVAL_MS,
+  PRODUCT_ANALYTICS_MAX_BATCH_BYTES as COMMON_PA_MAX_BATCH_BYTES,
+  PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH as COMMON_PA_MAX_CONTEXT_VALUE_LENGTH,
+  PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS as COMMON_PA_MAX_EVENT_AGE_MS,
+  PRODUCT_ANALYTICS_MAX_EVENT_NAME_LENGTH as COMMON_PA_MAX_EVENT_NAME_LENGTH,
+  PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH as COMMON_PA_MAX_EVENTS_PER_BATCH,
+  PRODUCT_ANALYTICS_MAX_METRIC_NAME_LENGTH as COMMON_PA_MAX_METRIC_NAME_LENGTH,
+  PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH as COMMON_PA_MAX_METRICS_PER_BATCH,
+  PRODUCT_ANALYTICS_MAX_PENDING_EVENTS as COMMON_PA_MAX_PENDING_EVENTS,
+  PRODUCT_ANALYTICS_PROPERTY_LIMITS as COMMON_PA_PROPERTY_LIMITS,
+  PRODUCT_ANALYTICS_RESERVED_METRIC_PREFIX as COMMON_PA_RESERVED_METRIC_PREFIX,
+  PRODUCT_ANALYTICS_TARGET_BATCH_BYTES as COMMON_PA_TARGET_BATCH_BYTES,
+  PRODUCT_ANALYTICS_USER_PROPERTY_LIMITS as COMMON_PA_USER_PROPERTY_LIMITS,
+  PRODUCT_ANALYTICS_WIRE_VERSION as COMMON_PA_WIRE_VERSION,
+  ProductAnalyticsEventKind as CommonProductAnalyticsEventKind,
+  ProductAnalyticsRecorderConfig as CommonProductAnalyticsRecorderConfig,
+  ProductAnalyticsWireBatch as CommonProductAnalyticsWireBatch,
+  ProductAnalyticsWireContext as CommonProductAnalyticsWireContext,
+  ProductAnalyticsWireEvent as CommonProductAnalyticsWireEvent,
+  ProductAnalyticsWireMetric as CommonProductAnalyticsWireMetric,
+  isProductAnalyticsMetricName as commonIsProductAnalyticsMetricName,
+  normalizeProductAnalyticsUserPropertyKeys as commonNormalizeUserPropertyKeys,
+  readProductAnalyticsRecorderConfig as commonReadRecorderConfig,
+  toProductAnalyticsEventName as commonToProductAnalyticsEventName,
+} from "../../../../Common/Types/Rum/ProductAnalyticsEvents";
+import { PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE as COMMON_PA_TABLET_MIN_SHORT_SIDE } from "../../../../Common/Types/Rum/ProductAnalytics";
+import {
+  PRODUCT_ANALYTICS_CONTENT_TYPE,
+  PRODUCT_ANALYTICS_EVENTS_PATH,
+  PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
+  PRODUCT_ANALYTICS_MAX_APP_VERSION_LENGTH,
+  PRODUCT_ANALYTICS_MAX_BATCH_BYTES,
+  PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH,
+  PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS,
+  PRODUCT_ANALYTICS_MAX_EVENT_NAME_LENGTH,
+  PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH,
+  PRODUCT_ANALYTICS_MAX_METRIC_NAME_LENGTH,
+  PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH,
+  PRODUCT_ANALYTICS_MAX_PENDING_EVENTS,
+  PRODUCT_ANALYTICS_MAX_USER_PROPERTY_KEY_LENGTH,
+  PRODUCT_ANALYTICS_MAX_USER_PROPERTY_KEYS,
+  PRODUCT_ANALYTICS_RESERVED_METRIC_PREFIX,
+  PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE,
+  PRODUCT_ANALYTICS_TARGET_BATCH_BYTES,
+  PRODUCT_ANALYTICS_WIRE_VERSION,
+  ProductAnalyticsEventKind,
+  ProductAnalyticsRecorderConfig,
+  ProductAnalyticsWireBatch,
+  ProductAnalyticsWireContext,
+  ProductAnalyticsWireEvent,
+  ProductAnalyticsWireMetric,
+  isProductAnalyticsMetricName,
+  normalizeProductAnalyticsUserPropertyKeys,
+  readProductAnalyticsRecorderConfig,
+  toProductAnalyticsAppVersion,
+  toProductAnalyticsEventName,
+} from "../src/ProductAnalyticsContract";
+import {
+  MAX_CUSTOM_EVENT_PROPERTY_KEYS,
+  MAX_TRAIT_KEY_LENGTH,
+  MAX_TRAIT_VALUE_LENGTH,
+  sanitizeRoute,
+} from "../src/Sanitize";
 import {
   CUSTOM_EVENT_TAG,
   CUSTOM_SIGNAL_CUSTOM_EVENT_TAG,
@@ -97,7 +165,6 @@ import {
   readCustomSignals,
   readPathAsWritten,
 } from "../src/CustomSignals";
-import { sanitizeRoute } from "../src/Sanitize";
 import fs from "node:fs";
 import path from "node:path";
 import UrlScrubber from "../../../../Common/Utils/Rum/UrlScrubber";
@@ -529,6 +596,226 @@ describe("published SDK wire contract", () => {
         UrlScrubber.scrubPath(route),
       ]);
     }
+  });
+
+  /*
+   * Product analytics (issue #6629). The batch, its limits, its route and
+   * the config field that switches it on are copies of Common's
+   * ProductAnalyticsEvents, and so are the rules a name, a metric, an app
+   * version and the trait keys are read by, compared here on the same
+   * inputs: what the server takes is what the phone sends.
+   */
+  describe("product analytics", () => {
+    test("carries Common's batch, context, event and config types, type for type", () => {
+      /*
+       * The event kind is an enum on both sides, and two enums are never
+       * one type however alike: the rest of each type is compared whole,
+       * and the kinds value for value below.
+       */
+      const batchIsIdentical: IdenticalTypes<
+        Omit<ProductAnalyticsWireBatch, "events">,
+        Omit<CommonProductAnalyticsWireBatch, "events">
+      > = true;
+      const eventIsIdentical: IdenticalTypes<
+        Omit<ProductAnalyticsWireEvent, "kind">,
+        Omit<CommonProductAnalyticsWireEvent, "kind">
+      > = true;
+      const eventsAreIdentical: IdenticalTypes<
+        Omit<ProductAnalyticsWireBatch["events"][number], "kind">,
+        Omit<CommonProductAnalyticsWireBatch["events"][number], "kind">
+      > = true;
+      const metricIsIdentical: IdenticalTypes<
+        ProductAnalyticsWireMetric,
+        CommonProductAnalyticsWireMetric
+      > = true;
+      const contextIsIdentical: IdenticalTypes<
+        ProductAnalyticsWireContext,
+        CommonProductAnalyticsWireContext
+      > = true;
+      const configIsIdentical: IdenticalTypes<
+        ProductAnalyticsRecorderConfig,
+        CommonProductAnalyticsRecorderConfig
+      > = true;
+      const responseFieldIsIdentical: IdenticalTypes<
+        SessionReplayConfigResponse["productAnalytics"],
+        CommonConfigResponse["productAnalytics"]
+      > = true;
+      expect(
+        batchIsIdentical &&
+          eventIsIdentical &&
+          eventsAreIdentical &&
+          metricIsIdentical &&
+          contextIsIdentical &&
+          configIsIdentical &&
+          responseFieldIsIdentical,
+      ).toBe(true);
+
+      expect(Object.entries(ProductAnalyticsEventKind)).toEqual(
+        Object.entries(CommonProductAnalyticsEventKind),
+      );
+    });
+
+    test("posts to Common's route, under Common's limits", () => {
+      expect(PRODUCT_ANALYTICS_EVENTS_PATH).toBe(COMMON_PA_EVENTS_PATH);
+      expect(PRODUCT_ANALYTICS_WIRE_VERSION).toBe(COMMON_PA_WIRE_VERSION);
+      expect(PRODUCT_ANALYTICS_CONTENT_TYPE).toBe(COMMON_PA_CONTENT_TYPE);
+      expect(PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH).toBe(
+        COMMON_PA_MAX_EVENTS_PER_BATCH,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH).toBe(
+        COMMON_PA_MAX_METRICS_PER_BATCH,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_BATCH_BYTES).toBe(COMMON_PA_MAX_BATCH_BYTES);
+      expect(PRODUCT_ANALYTICS_TARGET_BATCH_BYTES).toBe(
+        COMMON_PA_TARGET_BATCH_BYTES,
+      );
+      expect(PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS).toBe(
+        COMMON_PA_FLUSH_INTERVAL_MS,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_PENDING_EVENTS).toBe(
+        COMMON_PA_MAX_PENDING_EVENTS,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_EVENT_NAME_LENGTH).toBe(
+        COMMON_PA_MAX_EVENT_NAME_LENGTH,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH).toBe(
+        COMMON_PA_MAX_CONTEXT_VALUE_LENGTH,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_EVENT_AGE_MS).toBe(
+        COMMON_PA_MAX_EVENT_AGE_MS,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_METRIC_NAME_LENGTH).toBe(
+        COMMON_PA_MAX_METRIC_NAME_LENGTH,
+      );
+      expect(PRODUCT_ANALYTICS_RESERVED_METRIC_PREFIX).toBe(
+        COMMON_PA_RESERVED_METRIC_PREFIX,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_APP_VERSION_LENGTH).toBe(
+        COMMON_MAX_APP_VERSION_LENGTH,
+      );
+      expect(PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE).toBe(
+        COMMON_PA_TABLET_MIN_SHORT_SIDE,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_USER_PROPERTY_KEYS).toBe(
+        COMMON_PA_USER_PROPERTY_LIMITS.maxKeys,
+      );
+      expect(PRODUCT_ANALYTICS_MAX_USER_PROPERTY_KEY_LENGTH).toBe(
+        COMMON_PA_USER_PROPERTY_LIMITS.maxKeyLength,
+      );
+      /* track() properties are capped as Common caps them. */
+      expect(MAX_CUSTOM_EVENT_PROPERTY_KEYS).toBe(
+        COMMON_PA_PROPERTY_LIMITS.maxKeys,
+      );
+      expect(MAX_TRAIT_KEY_LENGTH).toBe(COMMON_PA_PROPERTY_LIMITS.maxKeyLength);
+      expect(MAX_TRAIT_VALUE_LENGTH).toBe(
+        COMMON_PA_PROPERTY_LIMITS.maxValueLength,
+      );
+    });
+
+    test("reads an event name, a metric name and an app version exactly as Common does", () => {
+      const random: SeededRandom = seededRandom(6629);
+      const alphabet: string = "aZ09 ._-/\n\t\u0000\u007f\u0085oneuptime.é日😀";
+      const text: (maxLength: number) => string = (
+        maxLength: number,
+      ): string => {
+        let value: string = "";
+        const length: number = random(maxLength + 1);
+        for (let index: number = 0; index < length; index++) {
+          value += alphabet.charAt(random(alphabet.length));
+        }
+        return value;
+      };
+
+      for (let iteration: number = 0; iteration < 3000; iteration++) {
+        const value: string = text(iteration % 7 === 0 ? 140 : 20);
+
+        expect([value, toProductAnalyticsEventName(value)]).toEqual([
+          value,
+          commonToProductAnalyticsEventName(value),
+        ]);
+        expect([value, isProductAnalyticsMetricName(value)]).toEqual([
+          value,
+          commonIsProductAnalyticsMetricName(value),
+        ]);
+        expect([value, toProductAnalyticsAppVersion(value)]).toEqual([
+          value,
+          toSessionReplayAppVersion(value),
+        ]);
+      }
+
+      for (const value of [
+        "cart.value",
+        "Checkout/latency_ms",
+        "oneuptime.rum.product.events",
+        "OneUptime.anything",
+        "9lives",
+        "x".repeat(100),
+        "x".repeat(101),
+        undefined,
+        null,
+        42,
+        { name: "x" },
+      ] as Array<unknown>) {
+        expect([value, isProductAnalyticsMetricName(value)]).toEqual([
+          value,
+          commonIsProductAnalyticsMetricName(value),
+        ]);
+        expect([value, toProductAnalyticsEventName(value)]).toEqual([
+          value,
+          commonToProductAnalyticsEventName(value),
+        ]);
+        expect([value, toProductAnalyticsAppVersion(value)]).toEqual([
+          value,
+          toSessionReplayAppVersion(value),
+        ]);
+      }
+    });
+
+    test("reads the config field and its trait keys exactly as Common does", () => {
+      const random: SeededRandom = seededRandom(66);
+      const keys: Array<unknown> = [
+        "plan",
+        " plan ",
+        "Plan",
+        "role",
+        "",
+        "   ",
+        "__proto__",
+        "k".repeat(40),
+        "k".repeat(41),
+        7,
+        null,
+      ];
+
+      for (let iteration: number = 0; iteration < 500; iteration++) {
+        const list: Array<unknown> = [];
+        const length: number = random(26);
+        for (let index: number = 0; index < length; index++) {
+          list.push(keys[random(keys.length)]);
+        }
+        const field: unknown =
+          iteration % 11 === 0
+            ? "on"
+            : {
+                enabled: [true, false, "true", 1, undefined][random(5)],
+                userPropertyKeys: iteration % 13 === 0 ? "plan" : list,
+              };
+
+        expect(normalizeProductAnalyticsUserPropertyKeys(list)).toEqual(
+          commonNormalizeUserPropertyKeys(list),
+        );
+        expect(readProductAnalyticsRecorderConfig(field)).toEqual(
+          commonReadRecorderConfig(field),
+        );
+      }
+
+      expect(readProductAnalyticsRecorderConfig(undefined)).toEqual(
+        commonReadRecorderConfig(undefined),
+      );
+      expect(readProductAnalyticsRecorderConfig(null)).toEqual(
+        commonReadRecorderConfig(null),
+      );
+    });
   });
 
   test("marks a rotated session with the tag the browser recorder uses", () => {

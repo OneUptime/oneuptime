@@ -114,6 +114,17 @@ import {
   getDashboardWidgetSetupLine,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetSetupCopy";
 import { DASHBOARD_WIDGET_ERROR_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetError";
+import {
+  WIDGET_CATALOG,
+  WidgetCatalogCategory,
+  WidgetCatalogItem,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/WidgetCatalog";
+import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import {
+  PUBLIC_DASHBOARD_WIDGET_SETTINGS,
+  isPublicDashboardUndrawnWidgetType,
+} from "../../../Types/Dashboard/PublicDashboardServedSettings";
 
 const PROJECT_ID: string = "6a305555-0000-4000-8000-000000000001";
 
@@ -1344,4 +1355,104 @@ describe("a widget draws again only for what it shows", () => {
       ).toBe(false);
     },
   );
+});
+
+/*
+ * Issue #6717: a public dashboard never draws a saved funnel's or retention
+ * table's numbers - they count an application's end users, and a public
+ * page is anyone's with its link - so the editor says so before the widget
+ * is added (its catalog group, as External Data Sources says it) and where
+ * its saved one is picked. Pinned beside what the public page does, so the
+ * words cannot outlive the behaviour, or the other way round.
+ */
+describe("what the editor says of a public dashboard", () => {
+  const SAVED_ONE_ARGUMENTS: ReadonlyArray<
+    [DashboardComponentType, ComponentArgument<never>]
+  > = [
+    [
+      DashboardComponentType.ProductAnalyticsFunnel,
+      DashboardProductAnalyticsFunnelComponentUtil.getComponentConfigArguments().find(
+        (argument: { id: unknown }): boolean => {
+          return argument.id === "savedViewId";
+        },
+      ) as unknown as ComponentArgument<never>,
+    ],
+    [
+      DashboardComponentType.ProductAnalyticsRetention,
+      DashboardProductAnalyticsRetentionComponentUtil.getComponentConfigArguments().find(
+        (argument: { id: unknown }): boolean => {
+          return argument.id === "savedViewId";
+        },
+      ) as unknown as ComponentArgument<never>,
+    ],
+  ];
+
+  test("both widgets stay off a public dashboard: its title is all it is served", () => {
+    for (const [componentType] of SAVED_ONE_ARGUMENTS) {
+      expect(isPublicDashboardUndrawnWidgetType(componentType)).toBe(true);
+      expect(
+        PUBLIC_DASHBOARD_WIDGET_SETTINGS[
+          componentType as keyof typeof PUBLIC_DASHBOARD_WIDGET_SETTINGS
+        ],
+      ).toEqual({ served: ["title"], withheld: ["savedViewId"] });
+    }
+  });
+
+  test("the catalog's Product Analytics group says so before a widget is added", () => {
+    const group: WidgetCatalogCategory | undefined = WIDGET_CATALOG.find(
+      (category: WidgetCatalogCategory): boolean => {
+        return category.name === "Product Analytics";
+      },
+    );
+
+    expect(group?.description).toBe(
+      "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.",
+    );
+
+    /* Every widget of the group is one a public dashboard leaves undrawn. */
+    for (const item of group?.items || []) {
+      expect([
+        item.type,
+        isPublicDashboardUndrawnWidgetType((item as WidgetCatalogItem).type),
+      ]).toEqual([item.type, true]);
+    }
+
+    /* The words match External Data Sources', the other group a public page leaves out. */
+    const external: WidgetCatalogCategory | undefined = WIDGET_CATALOG.find(
+      (category: WidgetCatalogCategory): boolean => {
+        return category.name === "External Data Sources";
+      },
+    );
+
+    expect(
+      external?.description.endsWith("Not available on public dashboards."),
+    ).toBe(true);
+  });
+
+  test("where its saved one is picked, each widget says a public dashboard shows only its title", () => {
+    expect(
+      SAVED_ONE_ARGUMENTS.map(
+        ([componentType, argument]: [
+          DashboardComponentType,
+          ComponentArgument<never>,
+        ]): [DashboardComponentType, string] => {
+          return [componentType, argument.description];
+        },
+      ),
+    ).toEqual([
+      [
+        DashboardComponentType.ProductAnalyticsFunnel,
+        "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.",
+      ],
+      [
+        DashboardComponentType.ProductAnalyticsRetention,
+        "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.",
+      ],
+    ]);
+
+    /* Two short lines under the picker, as every field's help is held to. */
+    for (const [, argument] of SAVED_ONE_ARGUMENTS) {
+      expect(argument.description.length).toBeLessThanOrEqual(150);
+    }
+  });
 });

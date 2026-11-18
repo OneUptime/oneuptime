@@ -177,8 +177,9 @@ Importa `OneUptimeReplay` directamente, o llama a `useOneUptimeReplay()` debajo 
 | `stop()` | Vacía lo que se puede enviar, detiene la captura y desconecta los controladores del ciclo de vida. |
 | `identify(userRef, traits?)` | Adjunta el usuario con sesión iniciada y atributos opcionales, sujeto a **Capturar la identidad del usuario final**. |
 | `setTags(tags)` / `addTag(key, value)` | Sustituye todas las etiquetas buscables de la sesión, o añade una etiqueta sin sustituir las demás. |
-| `track(name, properties?)` | Pone un evento de la aplicación en la cronología de la reproducción. |
-| `setRoute(route)` | Graba una pantalla o ruta lógica saneada tras una navegación. Llámalo desde el callback de cambio de ruta de tu navegador de pantallas. |
+| `track(name, properties?)` | Pone un evento de la aplicación en la cronología de la reproducción. Con los eventos de analítica de producto activados, también es un evento que cuentan las páginas de [Analítica de producto](/docs/rum/product-analytics#enviar-eventos-y-métricas) de la aplicación, desde cada sesión, grabada o no. |
+| `metric(name, value, attributes?)` | Con los eventos de analítica de producto activados, envía un número que midió la aplicación como un punto de una métrica de la aplicación. Los valores de sus atributos se enmascaran. |
+| `setRoute(route)` | Graba una pantalla o ruta lógica saneada tras una navegación. Llámalo desde el callback de cambio de ruta de tu navegador de pantallas. Con los eventos de analítica de producto activados, cada pantalla nueva es también una vista de página. |
 | `captureSession(reason?)` | Con _On error or frustration_, sube el búfer circular por un motivo propio de la aplicación, como un usuario que toca «Informar de un problema». |
 | `captureError(error)` | Graba un error de JavaScript gestionado y activa la captura disparada por errores. |
 | `grantConsent()` / `revokeConsent()` | Permite las subidas, o borra de inmediato el búfer en memoria, la bandeja de salida almacenada, la sesión y el id de visitante. Un consentimiento posterior empieza con identificadores nuevos. |

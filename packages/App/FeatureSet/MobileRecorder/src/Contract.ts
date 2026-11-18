@@ -245,6 +245,14 @@ export interface SessionReplayConfigResponse {
   budgetResetsAt?: string;
   debug?: boolean;
   frustrationSignals?: SessionReplayFrustrationSignalsConfig;
+  /*
+   * Product analytics events (Common's SessionReplayConfigResponse
+   * .productAnalytics, issue #6629): absent reads as off.
+   */
+  productAnalytics?: {
+    enabled: boolean;
+    userPropertyKeys: Array<string>;
+  };
 }
 
 export interface SessionReplaySignalCounts {

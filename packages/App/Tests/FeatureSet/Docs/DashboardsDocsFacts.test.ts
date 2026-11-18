@@ -86,6 +86,7 @@ import { ComponentArgument } from "Common/Types/Dashboard/DashboardComponents/Co
 import { DataSourceValueReduce } from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceValueComponent";
 import { DashboardValueTrendDirection } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES } from "Common/Types/Dashboard/PublicDashboardServedSettings";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import {
   DashboardTemplate,
@@ -1844,6 +1845,26 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     );
     expect(section).toContain(
       "(/docs/rum/product-analytics#saved-funnels-and-retention-tables)",
+    );
+
+    /*
+     * Issue #6717: their numbers count an application's end users, so a
+     * public dashboard serves both only their titles, and the section says
+     * so, as the widget's editor does.
+     */
+    for (const componentType of [
+      DashboardComponentType.ProductAnalyticsFunnel,
+      DashboardComponentType.ProductAnalyticsRetention,
+    ]) {
+      expect(
+        PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.includes(componentType),
+      ).toBe(true);
+    }
+    expect(section).toContain(
+      "Seeing it takes what seeing the page takes. A public dashboard shows only its title: its numbers count your application's end users.",
+    );
+    expect(catalogCategory("Product Analytics").description).toContain(
+      "Not available on public dashboards.",
     );
   });
 

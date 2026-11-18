@@ -177,8 +177,9 @@ Importieren Sie `OneUptimeReplay` direkt, oder rufen Sie unterhalb des Providers
 | `stop()` | Leert, was gesendet werden kann, stoppt die Aufnahme und löst die Lebenszyklus-Handler. |
 | `identify(userRef, traits?)` | Hängt den angemeldeten Benutzer und optionale Merkmale an, abhängig von **Endbenutzeridentität erfassen**. |
 | `setTags(tags)` / `addTag(key, value)` | Ersetzt alle durchsuchbaren Sitzungs-Tags oder fügt ein Tag hinzu, ohne die anderen zu ersetzen. |
-| `track(name, properties?)` | Setzt ein Anwendungsereignis auf die Zeitleiste der Wiedergabe. |
-| `setRoute(route)` | Hält nach einer Navigation einen bereinigten logischen Bildschirm oder eine Route fest. Rufen Sie es aus dem Routenwechsel-Callback Ihres Navigators auf. |
+| `track(name, properties?)` | Setzt ein Anwendungsereignis auf die Zeitleiste der Wiedergabe. Sind die Produktanalyse-Ereignisse eingeschaltet, ist es zugleich ein Ereignis, das die Seiten der [Produktanalyse](/docs/rum/product-analytics#ereignisse-und-metriken-senden) der Anwendung zählen, aus jeder Sitzung, ob aufgezeichnet oder nicht. |
+| `metric(name, value, attributes?)` | Sind die Produktanalyse-Ereignisse eingeschaltet, sendet es eine Zahl, die die App gemessen hat, als Punkt einer Metrik der Anwendung. Seine Attributwerte werden maskiert. |
+| `setRoute(route)` | Hält nach einer Navigation einen bereinigten logischen Bildschirm oder eine Route fest. Rufen Sie es aus dem Routenwechsel-Callback Ihres Navigators auf. Sind die Produktanalyse-Ereignisse eingeschaltet, ist jeder neue Bildschirm zugleich ein Seitenaufruf. |
 | `captureSession(reason?)` | Lädt unter _On error or frustration_ den rollierenden Puffer aus einem app-spezifischen Grund hoch, etwa wenn ein Benutzer auf „Problem melden“ tippt. |
 | `captureError(error)` | Hält einen behandelten JavaScript-Fehler fest und aktiviert die fehlergesteuerte Aufnahme. |
 | `grantConsent()` / `revokeConsent()` | Erlaubt Uploads, oder leert sofort den Puffer im Speicher, den gespeicherten Postausgang, die Sitzung und die Besucher-ID. Eine spätere Erlaubnis beginnt mit neuen Kennungen. |

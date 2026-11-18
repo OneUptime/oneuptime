@@ -177,8 +177,9 @@ Import `OneUptimeReplay` directly, or call `useOneUptimeReplay()` below the prov
 | `stop()` | Flush what can be sent, stop capture and detach lifecycle handlers. |
 | `identify(userRef, traits?)` | Attach the signed-in user and optional traits, subject to **Capture end-user identity**. |
 | `setTags(tags)` / `addTag(key, value)` | Replace all searchable session tags, or add one tag without replacing the others. |
-| `track(name, properties?)` | Put an application event on the replay timeline. |
-| `setRoute(route)` | Record a sanitized logical screen or route after navigation. Call it from your navigator's route-change callback. |
+| `track(name, properties?)` | Put an application event on the replay timeline. With product analytics events on, it is also an event the application's [Product Analytics](/docs/rum/product-analytics#send-events-and-metrics) pages count, from every session, recorded or not. |
+| `metric(name, value, attributes?)` | With product analytics events on, send a number the app measured as a point of a metric of the application's. Its attribute values are masked. |
+| `setRoute(route)` | Record a sanitized logical screen or route after navigation. Call it from your navigator's route-change callback. With product analytics events on, each new screen is also a page view. |
 | `captureSession(reason?)` | Under _On error or frustration_, upload the rolling buffer for an app-specific reason such as a user tapping “Report a problem”. |
 | `captureError(error)` | Record a handled JavaScript error and activate error-triggered capture. |
 | `grantConsent()` / `revokeConsent()` | Allow uploads, or immediately clear the in-memory buffer, stored outbox, session and visitor id. A later grant starts with fresh identifiers. |

@@ -177,8 +177,9 @@ Importa `OneUptimeReplay` direttamente, oppure chiama `useOneUptimeReplay()` sot
 | `stop()` | Svuota ciò che può essere inviato, ferma la cattura e scollega i gestori del ciclo di vita. |
 | `identify(userRef, traits?)` | Associa l'utente che ha effettuato l'accesso e attributi facoltativi, soggetto a **Acquisisci l'identità dell'utente finale**. |
 | `setTags(tags)` / `addTag(key, value)` | Sostituisce tutti i tag ricercabili della sessione, oppure aggiunge un tag senza sostituire gli altri. |
-| `track(name, properties?)` | Mette un evento dell'app sulla cronologia della riproduzione. |
-| `setRoute(route)` | Registra una schermata o una route logica ripulita dopo una navigazione. Chiamalo dal callback di cambio route del tuo navigatore. |
+| `track(name, properties?)` | Mette un evento dell'app sulla cronologia della riproduzione. Con gli eventi di analisi del prodotto attivi, è anche un evento che le pagine di [Analisi del prodotto](/docs/rum/product-analytics#inviare-eventi-e-metriche) dell'applicazione contano, da ogni sessione, registrata o no. |
+| `metric(name, value, attributes?)` | Con gli eventi di analisi del prodotto attivi, invia un numero misurato dall'app come punto di una metrica dell'applicazione. I valori dei suoi attributi vengono mascherati. |
+| `setRoute(route)` | Registra una schermata o una route logica ripulita dopo una navigazione. Chiamalo dal callback di cambio route del tuo navigatore. Con gli eventi di analisi del prodotto attivi, ogni nuova schermata è anche una visualizzazione di pagina. |
 | `captureSession(reason?)` | Con _On error or frustration_, invia il buffer circolare per un motivo proprio dell'app, come un utente che tocca «Segnala un problema». |
 | `captureError(error)` | Registra un errore JavaScript gestito e attiva la cattura scatenata dagli errori. |
 | `grantConsent()` / `revokeConsent()` | Consente gli invii, oppure cancella subito il buffer in memoria, la outbox archiviata, la sessione e l'id visitatore. Un consenso successivo inizia con nuovi identificatori. |

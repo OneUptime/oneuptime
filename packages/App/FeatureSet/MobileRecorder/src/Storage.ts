@@ -92,6 +92,8 @@ export default class ReplaySessionStore {
   private readonly sessionKey: string;
   private readonly visitorKey: string;
   private identity: ReplaySessionIdentity | null = null;
+  /* When the session's last activity was, as the stored record says. */
+  private lastActivityUnixMs: number = 0;
 
   public constructor(storage: ReplayStorage, namespace: string) {
     this.storage = storage;
@@ -140,7 +142,45 @@ export default class ReplaySessionStore {
       sessionStartUnixMs: session.sessionStartUnixMs,
       chunkIndex: session.nextChunkIndex,
     };
+    this.lastActivityUnixMs = nowUnixMs;
     return { ...this.identity };
+  }
+
+  /*
+   * The session a product analytics event belongs to while the replay
+   * records nothing of it (an unsampled session, issue #6629): nothing else
+   * moves the session then, so the event is its activity. The session
+   * carries on, or - past the idle window or the longest a session lasts -
+   * the next one starts, as resolve() would decide at the next launch.
+   * Synchronous: decided in memory and written in the background, where a
+   * failed write costs only a relaunch's resume. Null before resolve().
+   */
+  public continueSession(nowUnixMs: number): ReplaySessionIdentity | null {
+    const identity: ReplaySessionIdentity | null = this.identity;
+
+    if (!identity) {
+      return null;
+    }
+
+    if (
+      nowUnixMs - this.lastActivityUnixMs >= SESSION_REPLAY_IDLE_ROLLOVER_MS ||
+      nowUnixMs - identity.sessionStartUnixMs >= SESSION_REPLAY_MAX_SESSION_MS
+    ) {
+      identity.sessionId = generateReplayId();
+      identity.tabId = generateReplayId();
+      identity.sessionStartUnixMs = nowUnixMs;
+      identity.chunkIndex = 0;
+    }
+
+    this.lastActivityUnixMs = Math.max(this.lastActivityUnixMs, nowUnixMs);
+    const state: StoredSession = {
+      sessionId: identity.sessionId,
+      sessionStartUnixMs: identity.sessionStartUnixMs,
+      lastActivityUnixMs: this.lastActivityUnixMs,
+      nextChunkIndex: identity.chunkIndex,
+    };
+    void this.safeSet(this.sessionKey, JSON.stringify(state));
+    return { ...identity };
   }
 
   public async takeChunkIndex(nowUnixMs: number): Promise<number> {
@@ -152,6 +192,7 @@ export default class ReplaySessionStore {
       .identity as ReplaySessionIdentity;
     const index: number = identity.chunkIndex;
     identity.chunkIndex += 1;
+    this.lastActivityUnixMs = Math.max(this.lastActivityUnixMs, nowUnixMs);
     const state: StoredSession = {
       sessionId: identity.sessionId,
       sessionStartUnixMs: identity.sessionStartUnixMs,
@@ -186,6 +227,7 @@ export default class ReplaySessionStore {
       sessionStartUnixMs: nowUnixMs,
       chunkIndex: 0,
     };
+    this.lastActivityUnixMs = nowUnixMs;
     return { ...this.identity };
   }
 
