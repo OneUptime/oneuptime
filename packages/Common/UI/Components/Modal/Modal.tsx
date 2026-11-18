@@ -111,7 +111,9 @@ export interface ComponentProps {
    * Starts the focus on the dialog itself, not on its button: for a dialog
    * whose one button stops something already running - a bulk action's
    * Stop - so that a stray Enter (the one that confirmed the action, held a
-   * moment too long) never presses it. Tab still reaches the button.
+   * moment too long) never presses it. Tab still reaches the button. And
+   * it stays there when a form draws in the dialog late: a widget's
+   * settings open on their Live Preview, above the fields (#7174).
    */
   isInitialFocusOnDialog?: boolean | undefined;
   /*
@@ -561,9 +563,14 @@ const Modal: FunctionComponent<ComponentProps> = (
       initialFocusElement && content && content.contains(initialFocusElement),
     );
 
+    /*
+     * A dialog asked to start on itself keeps the focus there: a form that
+     * draws late does not take it (isInitialFocusOnDialog).
+     */
     if (
       content &&
       !isFocusPlacedInBody &&
+      !isInitialFocusOnDialogRef.current &&
       typeof MutationObserver !== "undefined"
     ) {
       lateFieldWatcher = new MutationObserver((): void => {

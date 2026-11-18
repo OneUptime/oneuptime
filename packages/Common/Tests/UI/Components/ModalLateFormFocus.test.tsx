@@ -309,6 +309,33 @@ describe("what never takes the focus late", () => {
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveFocus();
   });
 
+  /*
+   * A widget's settings open on their Live Preview, above the fields: the
+   * dialog starts on itself, and the form that draws after it leaves it
+   * there - focused, its first field took the browser's scroll past the
+   * preview (#7174).
+   */
+  test("a dialog asked to start on itself keeps the focus when a form draws in it late", async () => {
+    renderDialog(
+      <LateForm>
+        <input aria-label="Title" />
+      </LateForm>,
+      {
+        title: "Component Settings",
+        isInitialFocusOnDialog: true,
+        onSubmit: undefined,
+        closeButtonText: "Done",
+      },
+    );
+
+    expect(screen.getByRole("dialog")).toHaveFocus();
+
+    await drawTheForm();
+
+    expect(screen.getByLabelText("Title")).not.toHaveFocus();
+    expect(screen.getByRole("dialog")).toHaveFocus();
+  });
+
   test("a dialog whose field was there at once keeps the focus on it", async () => {
     renderDialog(
       <div>
