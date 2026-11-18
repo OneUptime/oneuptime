@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   darkColors,
@@ -376,6 +376,29 @@ export default function SettingsScreen(): React.JSX.Element {
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
   }, []);
+
+  /*
+   * Get Ready for On-Call and Alarm sound open over Settings, which stays
+   * mounted under them, and either can change what critical alerts do: the
+   * switch is read again each time Settings is shown again (#9461), so it
+   * says what is in force. Its first showing is read as it mounts
+   * (useCriticalAlerts).
+   */
+  const hasBeenShown: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const refreshCriticalAlerts: () => Promise<void> = criticalAlerts.refresh;
+
+  useFocusEffect(
+    useCallback((): void => {
+      if (!hasBeenShown.current) {
+        hasBeenShown.current = true;
+        return;
+      }
+
+      refreshCriticalAlerts().catch((): void => {
+        // A read that fails leaves the switch as it was read last.
+      });
+    }, [refreshCriticalAlerts]),
+  );
 
   const handleBiometricToggle: (value: boolean) => Promise<void> = async (
     value: boolean,
