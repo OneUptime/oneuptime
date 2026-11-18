@@ -28,6 +28,7 @@ import HostServiceView from "../Pages/Host/View/ServiceView";
 import HostSystemdUnits from "../Pages/Host/View/SystemdUnits";
 import HostSystemdUnitView from "../Pages/Host/View/SystemdUnitView";
 import HostLogs from "../Pages/Host/View/Logs";
+import HostSecurityEvents from "../Pages/Host/View/SecurityEvents";
 import HostTraces from "../Pages/Host/View/Traces";
 import HostProfiles from "../Pages/Host/View/Profiles";
 import HostIncidents from "../Pages/Host/View/Incidents";
@@ -288,6 +289,16 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostLogs
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_SECURITY_EVENTS)}
+          element={
+            <HostSecurityEvents
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_SECURITY_EVENTS] as Route}
             />
           }
         />

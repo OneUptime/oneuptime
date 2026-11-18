@@ -1,8 +1,11 @@
-import { ResourceSecurityScopeJson } from "Common/Types/SecurityCase/SecurityConnection";
 import {
-  SECURITY_EVENT_SCOPE_QUERY_KEY,
-  hasSecurityEventScopeMatch,
-} from "Common/Types/SecurityEvent/SecurityEventScope";
+  RESOURCE_SECURITY_EVENTS_NAMING_DESCRIPTION,
+  RESOURCE_SECURITY_EVENTS_NAMING_LABEL,
+  RESOURCE_SECURITY_EVENTS_OWN_LOGS_LABEL,
+  getResourceSecurityEventsChip,
+  isResourceSecurityEventsScopeReadable,
+} from "../ResourceSecurity/ResourceSecurityEventsScope";
+import { ResourceSecurityScopeJson } from "Common/Types/SecurityCase/SecurityConnection";
 import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
 
 /*
@@ -36,7 +39,7 @@ export const DEVICE_SECURITY_EVENTS_SCOPE_SUMMARY: string = translationKey(
 );
 
 export const DEVICE_SECURITY_EVENTS_OWN_LOGS_LABEL: string =
-  translationKey("Its own logs");
+  RESOURCE_SECURITY_EVENTS_OWN_LOGS_LABEL;
 
 export const DEVICE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTION: string =
   translationKey(
@@ -44,11 +47,10 @@ export const DEVICE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTION: string =
   );
 
 export const DEVICE_SECURITY_EVENTS_NAMING_LABEL: string =
-  translationKey("Naming it");
+  RESOURCE_SECURITY_EVENTS_NAMING_LABEL;
 
-export const DEVICE_SECURITY_EVENTS_NAMING_DESCRIPTION: string = translationKey(
-  "Events from any source that name one of these. A private address is left out: another network can use it too.",
-);
+export const DEVICE_SECURITY_EVENTS_NAMING_DESCRIPTION: string =
+  RESOURCE_SECURITY_EVENTS_NAMING_DESCRIPTION;
 
 export const DEVICE_SECURITY_EVENTS_NO_SEARCH_REASON: string = translationKey(
   "The Events search cannot spell this as one search: it reads the device's own logs, or what names it.",
@@ -57,55 +59,24 @@ export const DEVICE_SECURITY_EVENTS_NO_SEARCH_REASON: string = translationKey(
 /*
  * The locked chip for the device's scope: its name, and in its tooltip
  * the two ways an event is the device's - read from its own logs, and
- * naming one of its identities (only when it has one to name).
+ * naming one of its identities (only when it has one to name). The shared
+ * chip of a record's Security Events page (ResourceSecurityEventsScope),
+ * in a device's own words: its logs are the syslog it sends the probe.
  */
 export function getDeviceSecurityEventsChip(
   scope: ResourceSecurityScopeJson,
 ): ActiveFilter {
-  const name: string = scope.name.trim() || scope.id;
-  const matches: Array<{
-    label: string;
-    description: string;
-    values: Array<string>;
-  }> = [];
-
-  if (
-    scope.scope.attributeKey &&
-    scope.scope.attributeValues &&
-    scope.scope.attributeValues.length > 0
-  ) {
-    matches.push({
-      label: DEVICE_SECURITY_EVENTS_OWN_LOGS_LABEL,
-      description: DEVICE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTION,
-      values: [name],
-    });
-  }
-
-  if (scope.values.length > 0 && scope.scope.observables.length > 0) {
-    matches.push({
-      label: DEVICE_SECURITY_EVENTS_NAMING_LABEL,
-      description: DEVICE_SECURITY_EVENTS_NAMING_DESCRIPTION,
-      values: [...scope.values],
-    });
-  }
-
-  return {
-    facetKey: SECURITY_EVENT_SCOPE_QUERY_KEY,
-    value: scope.id,
-    displayKey: DEVICE_SECURITY_EVENTS_CHIP_KEY,
-    displayValue: name,
-    readOnly: true,
-    lockedDetail: {
-      searchTokenUnavailableReason: DEVICE_SECURITY_EVENTS_NO_SEARCH_REASON,
-      scopeSummary: DEVICE_SECURITY_EVENTS_SCOPE_SUMMARY,
-      scopeMatches: matches,
-    },
-  };
+  return getResourceSecurityEventsChip(scope, {
+    chipKey: DEVICE_SECURITY_EVENTS_CHIP_KEY,
+    summary: DEVICE_SECURITY_EVENTS_SCOPE_SUMMARY,
+    ownLogsDescription: DEVICE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTION,
+    noSearchReason: DEVICE_SECURITY_EVENTS_NO_SEARCH_REASON,
+  });
 }
 
 // Whether the device's scope can match anything at all.
 export function isDeviceSecurityEventsScopeReadable(
   scope: ResourceSecurityScopeJson,
 ): boolean {
-  return hasSecurityEventScopeMatch(scope.scope);
+  return isResourceSecurityEventsScopeReadable(scope);
 }

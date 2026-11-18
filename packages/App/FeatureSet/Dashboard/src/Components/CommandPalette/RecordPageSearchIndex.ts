@@ -843,6 +843,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
       },
       { page: PageMap.HOST_VIEW_LOGS, section: "Observability", title: "Logs" },
       {
+        page: PageMap.HOST_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
+      {
         page: PageMap.HOST_VIEW_TRACES,
         section: "Observability",
         title: "Traces",
@@ -1945,6 +1951,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Events",
       },
       {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
+        section: "Telemetry",
+        title: "Security Events",
+        keywords: ["security", "audit log", "siem", "threats"],
+      },
+      {
         page: PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES,
         section: "Telemetry",
         title: "Profiles",
@@ -2040,6 +2052,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
         section: "Activity",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data stores", "databases"],
+      },
+      {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS,
