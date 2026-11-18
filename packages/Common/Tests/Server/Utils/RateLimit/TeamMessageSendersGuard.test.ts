@@ -61,6 +61,17 @@ const TEAM_SENDERS: Array<TeamSender> = [
     after: ["UserService.createByEmail(", "MailService.sendMail("],
   },
   {
+    /*
+     * Resend Invitation (#9519): asked before a registration token is
+     * minted for the email, and before the email - counted with every
+     * other invitation sent to the address.
+     */
+    file: TEAM_MEMBER_SERVICE,
+    asksIn: "resendInvitation",
+    kind: TeamMessageKind.Invitation,
+    after: ["this.buildInvitationEmail(", "MailService.sendMail("],
+  },
+  {
     file: PRIVATE_USER_SERVICE,
     asksIn: "onCreatePermitted",
     kind: TeamMessageKind.Invitation,
