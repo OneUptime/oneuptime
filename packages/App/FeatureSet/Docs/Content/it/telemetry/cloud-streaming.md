@@ -24,7 +24,7 @@ flowchart TB
 
 - **Uno stack in ogni regione.** Il comando distribuisce uno stack CloudFormation in ogni regione da cui trasmetti. Il suo flusso di metriche e i suoi filtri di sottoscrizione ai log passano tutto a due flussi Firehose, e Firehose lo consegna a OneUptime su HTTPS.
 - **La chiave del flusso dice di chi è.** Firehose invia la chiave del flusso della connessione con ogni consegna. La chiave indica la connessione, e quindi il progetto: nulla in una consegna decide dove viene scritta. OneUptime conserva solo lo SHA-256 della chiave.
-- **Le letture lasciano al flusso le metriche trasmesse.** Finché un flusso consegna un namespace di una regione, le letture della connessione smettono di scrivere le metriche di quel namespace, così nessun punto dati viene contato due volte. Le letture continuano a trovare le risorse, il loro stato e le loro modifiche, e riprendono un namespace dopo 15 minuti senza consegne.
+- **Le letture lasciano al flusso le metriche trasmesse.** Finché un flusso consegna un namespace di una regione, le letture della connessione smettono di scrivere le metriche di quel namespace, così nessun punto dati viene contato due volte. Continuano a scrivere le metriche principali che un flusso lascia loro, come la dimensione giornaliera di un bucket S3 e le metriche principali aggiunte dopo l'avvio dei flussi, che uno stack più vecchio non contiene. Le letture continuano a trovare le risorse, il loro stato e le loro modifiche, e riprendono un namespace dopo 15 minuti senza consegne.
 - **Non si perde nulla mentre OneUptime non può accettarlo.** Firehose invia di nuovo un lotto rifiutato per un'ora al massimo, poi lo conserva per 30 giorni nel bucket S3 dello stack.
 
 ## Prima di iniziare
