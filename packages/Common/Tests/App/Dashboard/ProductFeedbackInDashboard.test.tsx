@@ -224,6 +224,11 @@ import { publishPageTrail } from "../../../UI/Utils/PageTrail";
 import Route from "../../../Types/API/Route";
 import Email from "../../../Types/Email";
 import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
+import {
+  FEEDBACK_SENT_LINE_TEST_ID,
+  FEEDBACK_WHERE_IT_GOES_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Feedback/FeedbackWhereItGoes";
+import { FEEDBACK_GITHUB_HINT_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Feedback/FeedbackGitHubLink";
 import SetupCheckInCard, {
   SETUP_CHECK_IN_CLOSE_TEST_ID,
   SETUP_CHECK_IN_DETAILS_TEST_ID,
@@ -495,6 +500,86 @@ describe("the end of a guided setup asks once", () => {
       "Page: /dashboard/:projectId/monitors/setup",
     );
     expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  test("self-hosted: once sent, says where the answer went first, then that the GitHub issue is public and posted only by them - and no longer that nothing leaves the server (#7462)", async () => {
+    drawSetup(true);
+    fireEvent.click(
+      await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-2`),
+    );
+
+    // Before the words: where they go, said where they are given.
+    await screen.findByTestId(EASE_QUESTION_DETAILS_TEST_ID);
+    expect(
+      screen.getByTestId(FEEDBACK_WHERE_IT_GOES_TEST_ID),
+    ).toHaveTextContent("nothing leaves this server");
+
+    fireEvent.change(
+      screen
+        .getByTestId(EASE_QUESTION_DETAILS_TEST_ID)
+        .querySelector("textarea") ||
+        screen.getByTestId(EASE_QUESTION_DETAILS_TEST_ID),
+      { target: { value: "The test page never came." } },
+    );
+    fireEvent.click(screen.getByTestId(EASE_QUESTION_SEND_TEST_ID));
+
+    const thanks: HTMLElement = await screen.findByTestId(
+      EASE_QUESTION_THANKS_TEST_ID,
+    );
+    const card: HTMLElement = screen.getByTestId(EASE_QUESTION_TEST_ID);
+    const sentLine: HTMLElement = screen.getByTestId(
+      FEEDBACK_SENT_LINE_TEST_ID,
+    );
+    const link: HTMLElement = screen.getByTestId(EASE_QUESTION_GITHUB_TEST_ID);
+
+    expect(card).toHaveTextContent("Thanks for your answer.");
+    expect(card).not.toHaveTextContent("Thanks for telling us.");
+    expect(sentLine).toHaveTextContent(
+      "This server's admins can read it in the Admin Dashboard, under Feedback.",
+    );
+    expect(link).toHaveTextContent(
+      "Also tell OneUptime in a public GitHub issue",
+    );
+    expect(screen.getByTestId(FEEDBACK_GITHUB_HINT_TEST_ID)).toHaveTextContent(
+      "It opens with your words filled in, and nothing is posted until you post it.",
+    );
+
+    // Where it went comes first; the link to a public issue after it.
+    expect(
+      sentLine.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(thanks).toContainElement(link);
+
+    // "Nothing leaves this server" is not left under a public link.
+    expect(screen.queryByTestId(FEEDBACK_WHERE_IT_GOES_TEST_ID)).toBeNull();
+    expect(card).not.toHaveTextContent("nothing leaves this server");
+  });
+
+  test("on OneUptime Cloud, once sent, says it went to the OneUptime team, and thanks as the team", async () => {
+    billingEnabled = true;
+    drawSetup(true);
+    fireEvent.click(
+      await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-5`),
+    );
+    await screen.findByTestId(EASE_QUESTION_DETAILS_TEST_ID);
+    fireEvent.change(
+      screen
+        .getByTestId(EASE_QUESTION_DETAILS_TEST_ID)
+        .querySelector("textarea") ||
+        screen.getByTestId(EASE_QUESTION_DETAILS_TEST_ID),
+      { target: { value: "Smooth." } },
+    );
+    fireEvent.click(screen.getByTestId(EASE_QUESTION_SEND_TEST_ID));
+
+    await screen.findByTestId(EASE_QUESTION_THANKS_TEST_ID);
+
+    expect(screen.getByTestId(EASE_QUESTION_TEST_ID)).toHaveTextContent(
+      "Thanks for telling us.",
+    );
+    expect(screen.getByTestId(FEEDBACK_SENT_LINE_TEST_ID)).toHaveTextContent(
+      "Sent to the OneUptime team.",
+    );
+    expect(screen.queryByTestId(FEEDBACK_WHERE_IT_GOES_TEST_ID)).toBeNull();
   });
 
   test("on OneUptime Cloud there is no GitHub link: the answer already reached the team", async () => {
@@ -916,6 +1001,13 @@ describe("Give feedback, from any page", () => {
       "href",
       expect.stringContaining("github.com/OneUptime/oneuptime/issues/new"),
     );
+    // ...and the link says the issue is public, and posted only by them (#7462).
+    expect(screen.getByTestId(GIVE_FEEDBACK_GITHUB_TEST_ID)).toHaveTextContent(
+      "Also tell OneUptime in a public GitHub issue",
+    );
+    expect(screen.getByTestId(FEEDBACK_GITHUB_HINT_TEST_ID)).toHaveTextContent(
+      "nothing is posted until you post it",
+    );
   });
 
   test("self-hosted with an Admin Notification Email: says it goes to this server's admins with your name and email, and nothing to OneUptime", async () => {
@@ -1320,7 +1412,11 @@ describe("the first-week check-in on Home", () => {
 
     fireEvent.click(await screen.findByTestId(SETUP_CHECK_IN_YES_TEST_ID));
 
+    // Self-hosted: no "us", which read as OneUptime (#7462).
     expect(screen.getByTestId(SETUP_CHECK_IN_TEST_ID)).toHaveTextContent(
+      "Thanks for your answer.",
+    );
+    expect(screen.getByTestId(SETUP_CHECK_IN_TEST_ID)).not.toHaveTextContent(
       "Thanks for telling us.",
     );
     await waitFor(() => {
@@ -1372,6 +1468,33 @@ describe("the first-week check-in on Home", () => {
     expect(postsTo(PRODUCT_FEEDBACK_DETAILS_ROUTE)).toEqual([
       { answerId: ANSWER_ID, details: "Nobody on my team gets paged yet." },
     ]);
+  });
+
+  test("says, before the one click, who it tells: this server's admins, or the OneUptime team on Cloud (#7462)", async () => {
+    projectMadeDaysAgo(8);
+    drawCheckIn(false);
+
+    const card: HTMLElement = await screen.findByTestId(SETUP_CHECK_IN_TEST_ID);
+
+    expect(card).toHaveTextContent(
+      "Your project is a week old. One click tells this server's admins how it went.",
+    );
+    expect(card).not.toHaveTextContent("tells us");
+    cleanup();
+
+    billingEnabled = true;
+    drawCheckIn(false);
+
+    expect(await screen.findByTestId(SETUP_CHECK_IN_TEST_ID)).toHaveTextContent(
+      "Your project is a week old. One click tells us how it went.",
+    );
+
+    fireEvent.click(screen.getByTestId(SETUP_CHECK_IN_YES_TEST_ID));
+
+    // On Cloud the OneUptime team reads it: "us" is who it is.
+    expect(screen.getByTestId(SETUP_CHECK_IN_TEST_ID)).toHaveTextContent(
+      "Thanks for telling us.",
+    );
   });
 
   test("the X puts it away", async () => {

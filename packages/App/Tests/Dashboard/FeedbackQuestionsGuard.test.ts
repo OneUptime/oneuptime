@@ -30,7 +30,12 @@ import {
  *     person it reads from who is signed in, to the OneUptime team on Cloud
  *     and to a self-hosted server's own admins - never to OneUptime from a
  *     self-hosted server - and the dialog says to whom and with what, for
- *     every place it can go, before anything is sent.
+ *     every place it can go, before anything is sent;
+ *   - once an answer is given, the card says where it went, and only then
+ *     offers the GitHub issue, which says it is public (#7462): the line
+ *     that says where an answer goes, "nothing leaves this server", is said
+ *     before it is given and never left under the link to a public issue;
+ *   - an answer is kept a set time, then deleted (#7366).
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -180,6 +185,11 @@ describe("an answer carries the answer, the page and the version - nothing else"
       "score",
       "isPositive",
       "details",
+      /*
+       * A docs page's no: one of four words the page offers (#7209,
+       * DocsFeedbackReason), never words anyone wrote.
+       */
+      "reason",
       "page",
       "productVersion",
     ]);
@@ -339,5 +349,70 @@ describe("Give feedback is a message, and reaches someone who can answer it (#88
     // The line is drawn from the server's word on where it goes.
     expect(dialog).toContain("ProductFeedback.getGiveFeedbackDestination()");
     expect(dialog).toContain("WHAT_IS_SENT[destination]");
+  });
+});
+
+describe("once an answer is given, the card says where it went (#7462)", () => {
+  const readCode: (file: string) => string = (file: string): string => {
+    return withoutComments(fs.readFileSync(file, "utf8"));
+  };
+
+  const FEEDBACK: string = path.join(DASHBOARD_SRC, "Components/Feedback");
+
+  test("the ease question says where it goes only before it is given, and where it went after", () => {
+    const ease: string = readCode(path.join(FEEDBACK, "EaseQuestion.tsx"));
+
+    // The line of where it goes is drawn only before the answer is sent...
+    expect(ease).toMatch(
+      /\{stage !== "sent" \? \(\s*<div[^>]*>\s*<FeedbackWhereItGoes \/>/,
+    );
+    // ...and, once sent, where it went comes before the GitHub link.
+    const sent: string = ease.slice(
+      ease.indexOf("EASE_QUESTION_THANKS_TEST_ID}"),
+    );
+
+    expect(sent.indexOf("<FeedbackSentLine />")).toBeGreaterThan(-1);
+    expect(sent.indexOf("<FeedbackSentLine />")).toBeLessThan(
+      sent.indexOf("<FeedbackGitHubLink"),
+    );
+  });
+
+  test("every link to a GitHub issue after an answer is the one that says the issue is public", () => {
+    const link: string = readCode(
+      path.join(FEEDBACK, "FeedbackGitHubLink.tsx"),
+    );
+
+    expect(link).toContain("Also tell OneUptime in a public GitHub issue");
+    expect(link).toContain("nothing is posted until you post it");
+
+    for (const file of ["EaseQuestion.tsx", "GiveFeedbackDialog.tsx"]) {
+      const source: string = readCode(path.join(FEEDBACK, file));
+
+      expect({ file, drawsItsOwnLink: source.includes("github.com") }).toEqual({
+        file,
+        drawsItsOwnLink: false,
+      });
+      expect(source).toContain("<FeedbackGitHubLink");
+      expect(source).not.toContain("Also tell OneUptime on GitHub");
+    }
+  });
+
+  test("a self-hosted server's thanks names nobody as us: only Cloud's team says it", () => {
+    const words: string = readCode(
+      path.join(FEEDBACK, "FeedbackWhereItGoes.tsx"),
+    );
+
+    expect(words).toMatch(
+      /BILLING_ENABLED\s*\?\s*translator\.translateText\("Thanks for telling us\."\)\s*:\s*translator\.translateText\("Thanks for your answer\."\)/,
+    );
+
+    for (const file of ["EaseQuestion.tsx", "SetupCheckInCard.tsx"]) {
+      expect({
+        file,
+        thanksAsUs: readCode(path.join(FEEDBACK, file)).includes(
+          '"Thanks for telling us."',
+        ),
+      }).toEqual({ file, thanksAsUs: false });
+    }
   });
 });
