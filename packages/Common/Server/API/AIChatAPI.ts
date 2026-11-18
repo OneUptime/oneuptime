@@ -60,6 +60,12 @@ import logger from "../Utils/Logger";
 import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 import ProductKey from "../../Types/Product/ProductKey";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductFeedbackService from "../Services/ProductFeedbackService";
+import Permission from "../../Types/Permission";
+import {
+  ASK_AI_RATINGS_ROUTE,
+  AskAiProjectRatings,
+} from "../../Types/AI/AskAiRatings";
 
 const MAX_USER_MESSAGE_LENGTH: number = 8000;
 const MAX_CONCURRENT_RUNS_PER_PROJECT: number = 3;
@@ -975,6 +981,65 @@ router.post(
         messageId: messageId.toString(),
         feedback: feedback,
       });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * How the project's Ask AI answers were rated (#7365, Types/AI/
+ * AskAiRatings): the last 90 days' helpful and not helpful counts, and what
+ * the answers rated down drew on, for the project's owners and admins
+ * (Project Settings > AI > AI Results). Never a word of a question or an
+ * answer: each conversation is private to the person who had it (the
+ * privacy pin of AIConversationMessageService), so the service reads, as
+ * the server, only the thumbs and the names of the tools each answer ran.
+ */
+export const ASK_AI_RATINGS_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+];
+
+export const ASK_AI_RATINGS_REFUSED_MESSAGE: string =
+  "Only the project's owners and admins see how Ask AI's answers were rated. Ask one of them, or ask for the Project Admin role.";
+
+router.get(
+  ASK_AI_RATINGS_ROUTE,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+
+      CommonAPI.assertPermittedInProject({
+        databaseProps: props,
+        allowedPermissions: ASK_AI_RATINGS_PERMISSIONS,
+        errorMessage: ASK_AI_RATINGS_REFUSED_MESSAGE,
+      });
+
+      Response.setNoCacheHeaders(res);
+
+      const ratings: AskAiProjectRatings =
+        await ProductFeedbackService.getProjectAskAiRatings({
+          projectId: projectId,
+          now: new Date(),
+        });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        ratings as unknown as JSONObject,
+      );
       return;
     } catch (err) {
       next(err);

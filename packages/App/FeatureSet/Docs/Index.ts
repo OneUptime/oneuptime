@@ -15,6 +15,9 @@ import DocsSearchIndex, {
 import DocsSitemap from "./Utils/Sitemap";
 import DocsSearch, { DocsSearchAnswer } from "./Utils/DocsSearch";
 import DocsFeedback, { DocsFeedbackAnswer } from "./Utils/DocsFeedback";
+import DocsSearchReport, {
+  DocsSearchFoundNothing,
+} from "./Utils/DocsSearchReport";
 import DocsAIReader from "./Utils/AIDocsReader";
 import AIDocsLibrary from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DocsTranslations from "./Utils/Translations";
@@ -184,6 +187,8 @@ function renderNotFound(
     enableGoogleTagManager: GoogleTagManagerEnabled,
     link: null,
     currentPath: req.originalUrl,
+    // A search that finds nothing is reported where analytics is set up (#7207).
+    searchReport: DocsSearchReport.isReported(),
   });
 }
 
@@ -336,9 +341,11 @@ const DocsFeatureSet: FeatureSet = {
 
     /*
      * "Was this page helpful?": a page's answer, which goes on to product
-     * analytics only where it is set up (OneUptime Cloud). Anywhere else
-     * the page never posts here, and an answer that arrives is dropped: it
-     * answers 204 either way, and 400 for anything that is not an answer
+     * analytics only where it is set up (OneUptime Cloud), and is kept for
+     * this server's admins only where a master admin switched that on
+     * (#7209, Utils/DocsFeedbackStore.ts). Anywhere else the page never
+     * posts here, and an answer that arrives is dropped: it answers 204
+     * either way, and 400 for anything that is not an answer
      * (Utils/DocsFeedback.ts). Its body is a few dozen bytes.
      */
     app.post(
@@ -351,7 +358,32 @@ const DocsFeatureSet: FeatureSet = {
           return res.status(400).json({});
         }
 
-        await DocsFeedback.send(answer);
+        await DocsFeedback.take(answer);
+
+        return res.status(204).end();
+      },
+    );
+
+    /*
+     * A docs search that found nothing (#7207), as the search box reports
+     * it once it settled: sent on to product analytics only where it is set
+     * up (OneUptime Cloud) - the box posts nothing anywhere else - with no
+     * word that could name or reach a person (Utils/DocsSearchReport.ts).
+     * It answers 204 either way, and 400 for anything that is not one.
+     */
+    app.post(
+      "/docs/search/found-nothing",
+      ExpressJson({ limit: "2kb" }),
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const report: DocsSearchFoundNothing | null = DocsSearchReport.read(
+          req.body,
+        );
+
+        if (!report) {
+          return res.status(400).json({});
+        }
+
+        await DocsSearchReport.send(report);
 
         return res.status(204).end();
       },
@@ -1008,7 +1040,7 @@ const DocsFeatureSet: FeatureSet = {
             // "Was this page helpful?" (Views/Partials/PageFeedback.ejs, Utils/DocsFeedback.ts).
             feedback: {
               page: fullPath,
-              isSent: DocsFeedback.isSent(),
+              mode: await DocsFeedback.getMode(),
               githubIssueUrl: DocsFeedback.getGitHubIssueUrl({
                 page: fullPath,
                 title: currentNavLink.title,
@@ -1016,6 +1048,8 @@ const DocsFeatureSet: FeatureSet = {
               }),
             },
             enableGoogleTagManager: GoogleTagManagerEnabled,
+            // A search that finds nothing is reported where analytics is set up (#7207).
+            searchReport: DocsSearchReport.isReported(),
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,
             nextLink: nextRaw ? translateFlatLink(nextRaw) : null,
             currentPath: req.originalUrl,

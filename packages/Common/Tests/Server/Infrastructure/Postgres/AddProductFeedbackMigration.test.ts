@@ -54,12 +54,23 @@ describe("AddProductFeedback1809123000000", () => {
       return match[1]!;
     });
 
+    /*
+     * Every column of the model, but those a later migration adds: a docs
+     * answer's reason (AddDocsFeedbackKeeping1809183800000, #7209).
+     */
+    const addedLater: Array<string> = ["reason"];
     const modelColumns: Array<string> = Object.keys(
       getTableColumns(new ProductFeedback()),
-    );
+    ).filter((column: string): boolean => {
+      return !addedLater.includes(column);
+    });
 
     for (const column of modelColumns) {
       expect(created).toContain(column);
+    }
+
+    for (const column of addedLater) {
+      expect(created).not.toContain(column);
     }
 
     for (const column of [

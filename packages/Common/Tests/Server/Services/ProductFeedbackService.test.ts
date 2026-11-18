@@ -20,7 +20,13 @@ import type { SpyInstance } from "jest-mock";
  *  - An answer keeps only its own fields; words are added only to a fresh
  *    one-click answer that has none yet.
  *  - Ask AI's rated-down questions are listed on a self-hosted server and
- *    never on OneUptime Cloud.
+ *    never on OneUptime Cloud; what the answers rated down read is counted
+ *    everywhere, from their tools' names alone (#7365), and for a project
+ *    only its own (getProjectAskAiRatings).
+ *  - An answer is kept a year, then the daily purge deletes it; a master
+ *    admin may delete one sooner, for good (#7366).
+ *  - "Was this page helpful?" is kept only once a master admin switched
+ *    keeping it on (#7209), and summed up by page.
  */
 
 let mockIsBillingEnabled: boolean = false;
@@ -60,10 +66,20 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Email from "../../../Types/Email";
 import {
+  DocsFeedbackReason,
   FeedbackQuestionDecision,
   GiveFeedbackDestination,
+  PRODUCT_FEEDBACK_RETENTION_IN_DAYS,
   ProductFeedbackKind,
+  toDocsFeedbackSubmission,
 } from "../../../Types/ProductFeedback/ProductFeedback";
+import OlderRowsPurge from "../../../Server/Utils/Retention/OlderRowsPurge";
+import {
+  AskAiSourceOfNoProduct,
+  ASK_AI_RATINGS_DAYS,
+} from "../../../Types/AI/AskAiRatings";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { AIChatCitation } from "../../../Types/AI/AIChatTypes";
 
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -498,8 +514,339 @@ describe("Ask AI's thumbs", () => {
       new Date(NOW.getTime() - 90 * DAY_MS),
     );
 
-    expect(ratings).toEqual({ helpful: 7, notHelpful: 3, ratedDown: null });
-    expect(AIConversationMessageService.findBy).not.toHaveBeenCalled();
+    expect(ratings).toEqual({
+      helpful: 7,
+      notHelpful: 3,
+      ratedDown: null,
+      // What they read, from their tools' names: no question.
+      ratedDownDrewOn: [{ source: AskAiSourceOfNoProduct.Nothing, answers: 1 }],
+    });
     expect(AIConversationMessageService.findOneBy).not.toHaveBeenCalled();
+
+    // The one read of the answers rated down asks for their citations alone.
+    const reads: Array<{ select: JSONObject }> = (
+      AIConversationMessageService.findBy as unknown as {
+        mock: { calls: Array<[{ select: JSONObject }]> };
+      }
+    ).mock.calls.map((call: [{ select: JSONObject }]) => {
+      return call[0];
+    });
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.select).toEqual({ _id: true, citations: true });
+  });
+});
+
+const citationOf: (toolName: string) => AIChatCitation = (
+  toolName: string,
+): AIChatCitation => {
+  return {
+    id: "C1",
+    toolName: toolName,
+    label: `Ran ${toolName}`,
+    queryArguments: { query: "maya@acme.example checkout errors" },
+    rowCount: 3,
+  };
+};
+
+describe("what Ask AI's answers rated down read (#7365)", () => {
+  let reads: Array<{ query: JSONObject; select: JSONObject; limit: number }>;
+  let counts: Array<{ query: JSONObject }>;
+
+  const answerWith: (
+    toolNames: Array<string> | null,
+  ) => AIConversationMessage = (
+    toolNames: Array<string> | null,
+  ): AIConversationMessage => {
+    const answer: AIConversationMessage = new AIConversationMessage();
+    answer.id = ANSWER_ID;
+
+    if (toolNames) {
+      answer.citations = toolNames.map(citationOf);
+    }
+
+    return answer;
+  };
+
+  beforeEach(() => {
+    reads = [];
+    counts = [];
+    jest
+      .spyOn(AIConversationMessageService, "countBy")
+      .mockImplementation((async (data: { query: JSONObject }) => {
+        counts.push(data);
+        return new PositiveNumber(
+          data.query["userFeedback"] === AIConversationMessageFeedback.Up
+            ? 12
+            : 4,
+        );
+      }) as never);
+    jest
+      .spyOn(AIConversationMessageService, "findBy")
+      .mockImplementation((async (data: {
+        query: JSONObject;
+        select: JSONObject;
+        limit: number;
+      }) => {
+        reads.push(data);
+        return [
+          answerWith(["search_logs", "log_histogram"]),
+          answerWith(["search_logs", "query_incidents"]),
+          answerWith(["read_docs"]),
+          answerWith(["query_probes"]),
+          answerWith(null),
+        ];
+      }) as never);
+    jest.spyOn(AIConversationMessageService, "findOneBy");
+  });
+
+  test("a project's owners read its counts and what its answers rated down read: each source once an answer, most first", async () => {
+    const ratings: Awaited<
+      ReturnType<typeof ProductFeedbackService.getProjectAskAiRatings>
+    > = await ProductFeedbackService.getProjectAskAiRatings({
+      projectId: PROJECT_ID,
+      now: NOW,
+    });
+
+    expect(ratings).toEqual({
+      sinceDays: ASK_AI_RATINGS_DAYS,
+      helpful: 12,
+      notHelpful: 4,
+      ratedDownDrewOn: [
+        { source: ProductKey.Logs, answers: 2 },
+        { source: ProductKey.Incidents, answers: 1 },
+        { source: AskAiSourceOfNoProduct.Docs, answers: 1 },
+        { source: AskAiSourceOfNoProduct.OtherData, answers: 1 },
+        { source: AskAiSourceOfNoProduct.Nothing, answers: 1 },
+      ],
+    });
+  });
+
+  test("only the project's own answers are counted or read, over the last 90 days, and never a question, an answer or a tool's arguments", async () => {
+    await ProductFeedbackService.getProjectAskAiRatings({
+      projectId: PROJECT_ID,
+      now: NOW,
+    });
+
+    const since: Date = new Date(NOW.getTime() - 90 * DAY_MS);
+
+    for (const read of [...counts, ...reads]) {
+      expect(read.query["projectId"]).toEqual(PROJECT_ID);
+      expect(JSON.stringify(read.query["updatedAt"])).toContain(
+        since.toISOString(),
+      );
+    }
+
+    expect(counts).toHaveLength(2);
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.query["userFeedback"]).toBe(
+      AIConversationMessageFeedback.Down,
+    );
+    expect(reads[0]!.select).toEqual({ _id: true, citations: true });
+    expect(reads[0]!.limit).toBe(1000);
+    expect(AIConversationMessageService.findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("the Admin Dashboard's count reads every project's", async () => {
+    await ProductFeedbackService.getAskAiRatedDownSources({
+      since: new Date(NOW.getTime() - 90 * DAY_MS),
+      projectId: null,
+    });
+
+    expect(reads[0]!.query["projectId"]).toBeUndefined();
+  });
+});
+
+describe("how long an answer is kept, and deleting one (#7366)", () => {
+  test("a year, by when it was given: the daily purge deletes the older ones", () => {
+    expect(PRODUCT_FEEDBACK_RETENTION_IN_DAYS).toBe(365);
+    expect(ProductFeedbackService.hardDeleteItemByColumnName).toBe("createdAt");
+    expect(ProductFeedbackService.hardDeleteItemsOlderThanDays).toBe(365);
+    // Read by HardDelete:HardDeleteOlderItemsInDatabase's walk, on every server.
+    expect(OlderRowsPurge.isPurged(ProductFeedbackService)).toBe(true);
+  });
+
+  test("the cut-off is a year before now", () => {
+    jest.spyOn(OlderRowsPurge, "now").mockReturnValue(NOW);
+
+    expect(
+      OlderRowsPurge.getCutoff(ProductFeedbackService as never).getTime(),
+    ).toBe(NOW.getTime() - 365 * DAY_MS);
+  });
+
+  test("a master admin's delete removes the answer for good, at once, by its id", async () => {
+    const hardDelete: SpyInstance<typeof ProductFeedbackService.hardDeleteBy> =
+      jest.spyOn(ProductFeedbackService, "hardDeleteBy").mockResolvedValue(1);
+
+    expect(await ProductFeedbackService.deleteAnswer(ANSWER_ID)).toBe(true);
+    expect(hardDelete).toHaveBeenCalledWith({
+      query: { _id: ANSWER_ID.toString() },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  });
+
+  test("an answer that is not there is not pretended away", async () => {
+    jest.spyOn(ProductFeedbackService, "hardDeleteBy").mockResolvedValue(0);
+
+    expect(await ProductFeedbackService.deleteAnswer(ANSWER_ID)).toBe(false);
+  });
+});
+
+describe("Was this page helpful?, kept on the server (#7209)", () => {
+  const submission: ReturnType<typeof toDocsFeedbackSubmission> =
+    toDocsFeedbackSubmission({
+      page: "monitor/website-monitor",
+      language: "de",
+      isHelpful: false,
+      reason: DocsFeedbackReason.Missing,
+      version: "16.0.0",
+    });
+
+  beforeEach(() => {
+    ProductFeedbackService.forgetDocsFeedbackSetting();
+  });
+
+  afterEach(() => {
+    ProductFeedbackService.forgetDocsFeedbackSetting();
+  });
+
+  test("off unless a master admin switched it on: nothing is kept", async () => {
+    config = new GlobalConfig();
+
+    expect(await ProductFeedbackService.isDocsFeedbackKept()).toBe(false);
+    expect(await ProductFeedbackService.keepDocsAnswer(submission!)).toBe(
+      false,
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("on: the page, its language, the no and its reason are kept, as a docs page's answer", async () => {
+    config = new GlobalConfig();
+    config.keepDocsFeedback = true;
+
+    expect(await ProductFeedbackService.keepDocsAnswer(submission!)).toBe(true);
+
+    const kept: ProductFeedback = (
+      create.mock.calls[0]![0] as unknown as { data: ProductFeedback }
+    ).data;
+
+    expect(kept.kind).toBe(ProductFeedbackKind.DocsPage);
+    expect(kept.topic).toBe("monitor/website-monitor");
+    expect(kept.isPositive).toBe(false);
+    expect(kept.reason).toBe(DocsFeedbackReason.Missing);
+    expect(kept.page).toBe("/docs/de/monitor/website-monitor");
+    expect(kept.productVersion).toBe("16.0.0");
+    expect(kept.details).toBeUndefined();
+  });
+
+  test("the setting is read once for the docs pages that ask within half a minute, and a failed read keeps nothing", async () => {
+    config = new GlobalConfig();
+    config.keepDocsFeedback = true;
+
+    const read: SpyInstance<typeof GlobalConfigService.findOneById> =
+      jest.spyOn(GlobalConfigService, "findOneById");
+
+    expect(await ProductFeedbackService.isDocsFeedbackKept()).toBe(true);
+    expect(await ProductFeedbackService.isDocsFeedbackKept()).toBe(true);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(read.mock.calls[0]![0]).toMatchObject({
+      select: { keepDocsFeedback: true },
+      props: { isRoot: true },
+    });
+
+    ProductFeedbackService.forgetDocsFeedbackSetting();
+    read.mockRejectedValueOnce(new Error("The database is asleep."));
+
+    expect(await ProductFeedbackService.isDocsFeedbackKept()).toBe(false);
+  });
+
+  test("only a docs page's answer goes through the docs' door", async () => {
+    config = new GlobalConfig();
+    config.keepDocsFeedback = true;
+
+    expect(
+      await ProductFeedbackService.keepDocsAnswer({
+        ...submission!,
+        kind: ProductFeedbackKind.General,
+      }),
+    ).toBe(false);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("a reason is kept only for a docs page's answer, never for another kind", async () => {
+    await ProductFeedbackService.submit({
+      kind: ProductFeedbackKind.CheckIn,
+      topic: "first_week",
+      score: null,
+      isPositive: false,
+      details: null,
+      page: "/dashboard/:projectId/home",
+      version: "16.0.0",
+      reason: DocsFeedbackReason.Wrong,
+    });
+
+    expect(
+      (create.mock.calls[0]![0] as unknown as { data: ProductFeedback }).data
+        .reason,
+    ).toBeUndefined();
+  });
+
+  test("the Admin Dashboard's summary sums docs answers up by page, apart from the questions, and says how long answers are kept", async () => {
+    jest
+      .spyOn(ProductFeedbackService, "findBy")
+      .mockImplementation((async () => {
+        const docs: (
+          helpful: boolean,
+          reason?: DocsFeedbackReason,
+        ) => ProductFeedback = (
+          helpful: boolean,
+          reason?: DocsFeedbackReason,
+        ): ProductFeedback => {
+          const answer: ProductFeedback = new ProductFeedback();
+          answer.kind = ProductFeedbackKind.DocsPage;
+          answer.topic = "monitor/website-monitor";
+          answer.isPositive = helpful;
+          if (reason) {
+            answer.reason = reason;
+          }
+          return answer;
+        };
+        const setup: ProductFeedback = new ProductFeedback();
+        setup.kind = ProductFeedbackKind.SetupFlow;
+        setup.topic = "website_down";
+        setup.score = 4;
+
+        return [
+          docs(false, DocsFeedbackReason.Unclear),
+          docs(false, DocsFeedbackReason.Unclear),
+          docs(true),
+          setup,
+        ];
+      }) as never);
+    jest
+      .spyOn(ProductFeedbackService, "getAskAiRatings")
+      .mockResolvedValue({ helpful: 0, notHelpful: 0, ratedDown: null });
+
+    const summary: Awaited<
+      ReturnType<typeof ProductFeedbackService.getAdminSummary>
+    > = await ProductFeedbackService.getAdminSummary(NOW);
+
+    expect(summary.retentionInDays).toBe(365);
+    expect(
+      summary.topics.map((topic: { kind: ProductFeedbackKind }) => {
+        return topic.kind;
+      }),
+    ).toEqual([ProductFeedbackKind.SetupFlow]);
+    expect(summary.docsPages).toEqual([
+      {
+        page: "monitor/website-monitor",
+        answers: 3,
+        helpful: 1,
+        notHelpful: 2,
+        reasons: [{ reason: DocsFeedbackReason.Unclear, answers: 2 }],
+      },
+    ]);
   });
 });

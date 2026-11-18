@@ -1,55 +1,57 @@
 import DocsNav, { NavGroup, NavLink } from "./Nav";
 import { DEFAULT_DOCS_LANGUAGE, isSupportedDocsLanguage } from "./I18n";
-import {
-  AnalyticsHost,
-  AnalyticsKey,
-  IsBillingEnabled,
-  IsEnterpriseEdition,
-} from "Common/Server/EnvironmentConfig";
-import logger from "Common/Server/Utils/Logger";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
+import DocsAnalytics from "./DocsAnalytics";
+import DocsFeedbackStore from "./DocsFeedbackStore";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ProductEventName,
   toProductEventProperties,
 } from "Common/Types/Analytics/ProductEvent";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { getNewGitHubIssueUrl } from "Common/Types/ProductFeedback/NewGitHubIssue";
-import API from "Common/Utils/API";
-import crypto from "crypto";
+import { DOCS_FEEDBACK_REASONS as REASONS } from "Common/Types/ProductFeedback/ProductFeedback";
 
 /*
- * "WAS THIS PAGE HELPFUL?" (issue #6822).
+ * "WAS THIS PAGE HELPFUL?" (issues #6822, #7209).
  *
  * Every docs page ends with the question: yes or no, and after a no, what
  * went wrong, in one click. Where the answer goes depends on the
- * installation, and the page knows before anyone answers (isSent, passed
+ * installation, and the page knows before anyone answers (getMode, passed
  * to Views/Partials/PageFeedback.ejs):
  *
- *   - Where product analytics is set up - ANALYTICS_KEY and ANALYTICS_HOST,
- *     which OneUptime Cloud sets and a self-hosted server does not - the
- *     page posts the answer to /docs/feedback, and this sends it on as
- *     `docs/feedback_given` (Common/Types/Analytics/ProductEvent), with the
- *     same rules as every product event: only the properties the catalog
- *     lists, the page's address and a reason the page chose, never words
- *     anyone wrote. The page asks only with the reader's consent (no
- *     "Reject all", no Global Privacy Control), as the Dashboard does.
- *   - Anywhere else nothing leaves the server, an air-gapped one included:
- *     the page posts nothing, and a no offers "Tell us on GitHub" with the
- *     page's name filled in, which the reader may send or not.
+ *   - send: where product analytics is set up - ANALYTICS_KEY and
+ *     ANALYTICS_HOST, which OneUptime Cloud sets and a self-hosted server
+ *     does not - the page posts the answer to /docs/feedback, only with the
+ *     reader's consent (no "Reject all", no Global Privacy Control), as the
+ *     Dashboard does, and this sends it on as `docs/feedback_given`
+ *     (Common/Types/Analytics/ProductEvent), with the same rules as every
+ *     product event: only the properties the catalog lists, the page's
+ *     address and a reason the page chose, never words anyone wrote.
+ *   - keep: where a master admin switched keeping them on (#7209, Admin
+ *     Dashboard > Feedback, Utils/DocsFeedbackStore), the page posts the
+ *     answer and says, under the question, that it goes to this server's
+ *     admins: it is kept in this server's own database, for them, and sent
+ *     nowhere else. It names nobody and no address, so the page needs no
+ *     consent to post it; it is the answer the reader chose to give.
+ *   - local: anywhere else nothing leaves the page, an air-gapped server
+ *     included: a no offers "Tell us on GitHub" with the page's name filled
+ *     in, which the reader may send or not.
+ *
+ * Where analytics is set up and the answers are kept too, the page posts as
+ * it sends, with consent, and the server keeps what it was sent.
  *
  * A reader is never identified: each answer goes under an id of its own,
- * and PostHog keeps no person profile for it.
+ * and PostHog keeps no person profile for it (Utils/DocsAnalytics).
  */
 
 // What went wrong, as a no can say it in one click (Locales: ui.feedbackReason*).
-export const DOCS_FEEDBACK_REASONS: ReadonlyArray<string> = [
-  "unclear",
-  "missing",
-  "wrong",
-  "not_found",
-];
+export const DOCS_FEEDBACK_REASONS: ReadonlyArray<string> = REASONS;
+
+export enum DocsFeedbackMode {
+  Send = "send",
+  Keep = "keep",
+  Local = "local",
+}
 
 export interface DocsFeedbackAnswer {
   // The page's address under /docs/<lang>/: "monitor/website-monitor".
@@ -74,9 +76,24 @@ const NAV_PAGES: Set<string> = new Set<string>(
 );
 
 export default class DocsFeedback {
-  // Whether an answer leaves the server: only where product analytics is set up.
+  // Whether an answer goes to product analytics: only where it is set up.
   public static isSent(): boolean {
-    return Boolean(AnalyticsKey && AnalyticsHost);
+    return DocsAnalytics.isSetUp();
+  }
+
+  /*
+   * What the page does with an answer (see the header): send it where
+   * analytics is set up, keep it where a master admin switched that on, or
+   * nothing.
+   */
+  public static async getMode(): Promise<DocsFeedbackMode> {
+    if (DocsFeedback.isSent()) {
+      return DocsFeedbackMode.Send;
+    }
+
+    return (await DocsFeedbackStore.isKept())
+      ? DocsFeedbackMode.Keep
+      : DocsFeedbackMode.Local;
   }
 
   /*
@@ -106,11 +123,7 @@ export default class DocsFeedback {
   }
 
   public static getEdition(): string {
-    if (IsBillingEnabled) {
-      return "cloud";
-    }
-
-    return IsEnterpriseEdition ? "enterprise" : "community";
+    return DocsAnalytics.getEdition();
   }
 
   /*
@@ -180,38 +193,21 @@ export default class DocsFeedback {
    * anywhere else. Never throws: an answer is never worth an error.
    */
   public static async send(answer: DocsFeedbackAnswer): Promise<boolean> {
-    if (!DocsFeedback.isSent()) {
-      return false;
-    }
+    return await DocsAnalytics.capture({
+      event: ProductEventName.DocsFeedbackGiven,
+      properties: DocsFeedback.toEventProperties(answer),
+      what: "Docs feedback",
+    });
+  }
 
-    try {
-      const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: URL.fromString(AnalyticsHost.toString()).addRoute("/capture/"),
-          data: {
-            api_key: AnalyticsKey,
-            event: ProductEventName.DocsFeedbackGiven,
-            distinct_id: crypto.randomUUID(),
-            properties: {
-              source: "oneuptime-docs",
-              $process_person_profile: false,
-              ...DocsFeedback.toEventProperties(answer),
-            },
-          },
-        });
-
-      if (result instanceof HTTPErrorResponse) {
-        logger.error(
-          `Docs feedback could not be sent: HTTP ${result.statusCode} ${result.message}`,
-        );
-        return false;
-      }
-
-      return true;
-    } catch (err) {
-      logger.error("Docs feedback could not be sent:");
-      logger.error(err as Error);
-      return false;
-    }
+  /*
+   * What /docs/feedback does with an answer: sends it where analytics is
+   * set up, and keeps it where the server keeps answers - each only there.
+   */
+  public static async take(answer: DocsFeedbackAnswer): Promise<void> {
+    await Promise.all([
+      DocsFeedback.send(answer),
+      DocsFeedbackStore.keep(answer),
+    ]);
   }
 }

@@ -1416,6 +1416,28 @@ person writes in Give Feedback also reaches whoever can answer it.
   breadcrumbs do ("SLOs", never the route it sends, "/dashboard/:projectId/slos"), and once sent says
   only what the server did: "A copy is on its way to you@example.com". Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Once an answer is given, say where it went before offering anything else.** On a self-hosted
+  server the thanks says "This server's admins can read it in the Admin Dashboard, under Feedback.",
+  and only then offers the GitHub issue, which says it is public and that nothing is posted until
+  the person posts it (#7462). "Nothing leaves this server" is said before an answer is given, never
+  under a link to a public issue, and a self-hosted server's thanks never says "us". Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Answers are kept a set time, said where they are read.** A year, then the daily purge deletes
+  them; Admin Dashboard > Feedback says so over the answers, and a master admin can delete one after
+  a question that quotes its words (#7366). Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **The docs keep "Was this page helpful?" only once a server's admin switches it on, and say so
+  under the question.** A self-hosted server's docs keep nothing until a master admin switches on
+  Docs Feedback in Admin Dashboard > Feedback; then each page says its answers go to this server's
+  admins, and nothing is sent anywhere else (#7209). On Cloud, docs answers, searches that find
+  nothing (with any word that could name someone dropped) and docs links opened from the product
+  go to product analytics only with consent (#7207). Enforced by
+  [DocsSearchAndFeedbackRoutes](../../packages/App/Tests/FeatureSet/Docs/DocsSearchAndFeedbackRoutes.test.ts).
+- **How Ask AI's answers were rated is counts, never words, and only for whom may read it.** A
+  project's owners and admins see its answers' ratings and what the answers rated down read (a
+  product, the docs, nothing), never a question or an answer: a conversation stays its person's
+  (#7365). Enforced by
+  [AskAiRatingsRoute](../../packages/Common/Tests/Server/API/AskAiRatingsRoute.test.ts).
 - **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
   and posts what made them hesitate, guess or go back on the epic #6802:
   [the newcomer walkthrough](newcomer-walkthrough.md). Not enforced: use judgement.

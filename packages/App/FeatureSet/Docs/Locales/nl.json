@@ -68,6 +68,7 @@
     "feedbackYes": "Ja",
     "feedbackNo": "Nee",
     "feedbackThanks": "Bedankt voor uw reactie.",
+    "feedbackKeptForAdmins": "Antwoorden gaan naar de beheerders van deze server, met het adres van de pagina. Er wordt niets anders verstuurd en niets verlaat deze server.",
     "feedbackWhatWentWrong": "Bedankt. Wat ging er mis?",
     "feedbackReasonUnclear": "Moeilijk te volgen",
     "feedbackReasonMissing": "Er ontbreekt iets",

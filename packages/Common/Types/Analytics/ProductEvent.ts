@@ -29,9 +29,13 @@ import { GOALS_EVENT_VALUE_MAX_LENGTH } from "../WelcomeChecklist/ProjectGoal";
  *   A name (of a person, a project, a monitor, anything), an email or any
  *   other address, a phone number, or text somebody wrote - a message, a
  *   note, a title, a description, a question to Ask AI. The one exception
- *   is the words of a search that found nothing, on OneUptime Cloud only,
- *   cut to SEARCH_QUERY_MAX_LENGTH characters: the best sign of what people
- *   cannot find (issue #6830's decision). FORBIDDEN_PROPERTY_WORDS is the
+ *   is the words of a search that found nothing - in the Dashboard's Search
+ *   or the docs' search box - on OneUptime Cloud only: the best sign of
+ *   what people cannot find (issue #6830's decision). Even those carry no
+ *   personal data (#7207): every word that could name or reach a person or
+ *   a record is taken out first - an email address, a web or IP address, a
+ *   host name, a number (toSearchQueryWords) - and what is left is cut to
+ *   SEARCH_QUERY_MAX_LENGTH characters. FORBIDDEN_PROPERTY_WORDS is the
  *   list the tests scan every event's property names with.
  *
  * WHERE EVENTS GO
@@ -85,6 +89,10 @@ export enum ProductEventName {
 
   // "Was this page helpful?" on a docs page (#6822): sent by the docs server.
   DocsFeedbackGiven = "docs/feedback_given",
+  // A docs search that found nothing (#7207): sent by the docs server.
+  DocsSearchFoundNothing = "docs/search_found_nothing",
+  // A docs page opened from the product (#7207): its link, button or Search.
+  DocsLinkOpened = "docs/link_opened",
 
   // The guided setups (#6804, #6805, #6806).
   GuidedSetupStarted = "guided_setup/started",
@@ -149,6 +157,65 @@ export enum ProductEventName {
 // The words of a search that found nothing, at most this long (Cloud only).
 export const SEARCH_QUERY_MAX_LENGTH: number = 40;
 
+/*
+ * Whether a word of a search could name or reach a person, or name a
+ * record (#7207). It does when it holds:
+ *
+ *   - an @: an email address, a handle;
+ *   - a scheme ("https://") or starts with "www.": a web address;
+ *   - a dot between two letters: a host or a file's name, a first.last
+ *     user name;
+ *   - two digits in a row: a phone number, an IP or a postal address, a
+ *     date, an id;
+ *   - a digit, in a word longer than 6 characters: an id or a key
+ *     ("a1b2c3d4").
+ *
+ * A product's own short names with a digit stay: k8s, ec2, ipv6, oauth2.
+ */
+const WEB_ADDRESS_START: RegExp = /^www\./i;
+const DOT_BETWEEN_LETTERS: RegExp = /\p{L}\.\p{L}/u;
+const TWO_DIGITS: RegExp = /\d\d/;
+const A_DIGIT: RegExp = /\d/;
+
+export const isSearchWordThatIdentifies: (word: string) => boolean = (
+  word: string,
+): boolean => {
+  return (
+    word.includes("@") ||
+    word.includes("://") ||
+    WEB_ADDRESS_START.test(word) ||
+    DOT_BETWEEN_LETTERS.test(word) ||
+    TWO_DIGITS.test(word) ||
+    (A_DIGIT.test(word) && word.length > 6)
+  );
+};
+
+/*
+ * The words of a search as an event may carry them (#7207): each word that
+ * could name or reach a person or a record taken out (see above), and what
+ * is left cut to SEARCH_QUERY_MAX_LENGTH characters, at a word where it
+ * can. "maya@acme.example sso 10.0.0.4 setup" is "sso setup".
+ */
+export const toSearchQueryWords: (value: string) => string = (
+  value: string,
+): string => {
+  const words: string = value
+    .split(/\s+/)
+    .filter((word: string): boolean => {
+      return word.length > 0 && !isSearchWordThatIdentifies(word);
+    })
+    .join(" ");
+
+  if (words.length <= SEARCH_QUERY_MAX_LENGTH) {
+    return words;
+  }
+
+  const cut: string = words.slice(0, SEARCH_QUERY_MAX_LENGTH);
+  const lastSpace: number = cut.lastIndexOf(" ");
+
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim();
+};
+
 // A word-like value (a step's key, where something was opened from) is cut to this.
 export const PRODUCT_EVENT_TOKEN_MAX_LENGTH: number = 60;
 
@@ -176,6 +243,11 @@ export interface ProductEventPropertySpec {
    * a-z, 0-9, _, -, . and / becomes _ (toProductEventToken).
    */
   isToken?: boolean | undefined;
+  /*
+   * The words of a search: every word that could name or reach a person
+   * taken out first (toSearchQueryWords), and left out when none is left.
+   */
+  isSearchWords?: boolean | undefined;
 }
 
 export interface ProductEventDefinition {
@@ -237,6 +309,17 @@ const goalsProperty: ProductEventPropertySpec = {
   maxLength: GOALS_EVENT_VALUE_MAX_LENGTH,
 };
 
+/*
+ * The words of a search that found nothing: on Cloud only, with no word
+ * that could name or reach a person (toSearchQueryWords), cut short.
+ */
+const searchWordsProperty: ProductEventPropertySpec = {
+  name: "query",
+  isCloudOnly: true,
+  isSearchWords: true,
+  maxLength: SEARCH_QUERY_MAX_LENGTH,
+};
+
 export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.GoalsChosen,
@@ -295,15 +378,11 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.SearchFoundNothing,
     description:
-      "A search in the command palette settled with no result. On Cloud, with the words typed, cut short.",
+      "A search in the command palette settled with no result. On Cloud, with the words typed, cut short, and none that could name or reach a person.",
     properties: [
       token("source"),
       { name: "query_length" },
-      {
-        name: "query",
-        isCloudOnly: true,
-        maxLength: SEARCH_QUERY_MAX_LENGTH,
-      },
+      searchWordsProperty,
     ],
   },
   {
@@ -355,6 +434,25 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       'A docs page was rated by "Was this page helpful?", on docs where product analytics is set up (OneUptime Cloud), with what went wrong when a no says (reason). Sent by the docs server (Docs/Utils/DocsFeedback).',
     properties: [token("page"), { name: "is_helpful" }, token("reason")],
+  },
+  {
+    name: ProductEventName.DocsSearchFoundNothing,
+    description:
+      "A search in the docs' search box settled with nothing found: 2 characters or more, a second after the docs server answered with no page, or when the box closed on it. Sent by the docs server (Docs/Utils/DocsSearchReport), only where product analytics is set up and with the reader's consent. On Cloud, with the words typed, cut short, and none that could name or reach a person.",
+    properties: [{ name: "query_length" }, searchWordsProperty],
+  },
+  {
+    name: ProductEventName.DocsLinkOpened,
+    description:
+      'A docs page was opened from the product: a "Learn more" link (source learn_more), a list\'s View Documentation (view_documentation) or a docs result of Search (search). The page is its address under /docs/, without its language or anchor.',
+    properties: [
+      {
+        name: "page",
+        isToken: true,
+        maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH,
+      },
+      token("source"),
+    ],
   },
   {
     name: ProductEventName.GuidedSetupStarted,
@@ -622,7 +720,7 @@ export const ALLOWED_PROPERTY_NAMES_WITH_FORBIDDEN_WORDS: Readonly<
 > = {
   has_password:
     "Whether the person signed up with a password (server/user_created): true or false.",
-  query: `The words of a search that found nothing: on Cloud only, cut to ${SEARCH_QUERY_MAX_LENGTH} characters (search/no_results, issue #6830's decision).`,
+  query: `The words of a search that found nothing: on Cloud only, with every word that could name or reach a person taken out, cut to ${SEARCH_QUERY_MAX_LENGTH} characters (search/no_results and docs/search_found_nothing, issue #6830's decision and #7207).`,
   utm_content:
     "The utm_content of the link a person signed up through: the ad or link variant a campaign named, not text anyone wrote.",
   utmContent:
@@ -698,6 +796,20 @@ export const toProductEventProperties: (data: {
     const value: JSONValue | undefined = data.properties[spec.name];
 
     if (typeof value === "string") {
+      if (spec.isSearchWords) {
+        const words: string = toSearchQueryWords(value);
+
+        // Nothing left that could be sent: the property is left out.
+        if (words) {
+          allowed[spec.name] =
+            spec.maxLength !== undefined
+              ? words.slice(0, spec.maxLength)
+              : words;
+        }
+
+        continue;
+      }
+
       const text: string = spec.isToken
         ? toProductEventToken(value, spec.maxLength)
         : value;

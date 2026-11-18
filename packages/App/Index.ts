@@ -1,6 +1,8 @@
 import APIReferenceRoutes from "./FeatureSet/APIReference/Index";
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 import DocsRoutes from "./FeatureSet/Docs/Index";
+import DocsFeedbackStore from "./FeatureSet/Docs/Utils/DocsFeedbackStore";
+import ProductFeedbackService from "Common/Server/Services/ProductFeedbackService";
 import InstallRoutes from "./FeatureSet/Install/Index";
 import FrontendRoutes from "./FeatureSet/Frontend/Index";
 // import FeatureSets.
@@ -324,6 +326,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await BaseAPIRoutes.init();
     await MCPRoutes.init();
     await FrontendRoutes.init();
+    /*
+     * "Was this page helpful?" kept for this server's admins, once a master
+     * admin switches that on (#7209): the docs keep answers through this,
+     * and keep nothing without it.
+     */
+    DocsFeedbackStore.useKeeper(ProductFeedbackService);
     await DocsRoutes.init();
     // The agents' install scripts, at /install/<agent>.
     await InstallRoutes.init();

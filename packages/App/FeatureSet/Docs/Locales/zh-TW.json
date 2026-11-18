@@ -68,6 +68,7 @@
     "feedbackYes": "是",
     "feedbackNo": "否",
     "feedbackThanks": "感謝你的回饋。",
+    "feedbackKeptForAdmins": "回答會連同頁面位址傳送給此伺服器的管理員。不會傳送其他任何內容，也不會有任何內容離開此伺服器。",
     "feedbackWhatWentWrong": "謝謝。哪裡有問題?",
     "feedbackReasonUnclear": "難以理解",
     "feedbackReasonMissing": "缺少內容",

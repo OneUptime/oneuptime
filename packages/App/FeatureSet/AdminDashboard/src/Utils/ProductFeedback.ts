@@ -8,13 +8,15 @@ import {
   ProductFeedbackAdminSummary,
   ProductFeedbackKind,
   ProductFeedbackListPage,
+  getProductFeedbackAdminAnswerRoute,
 } from "Common/Types/ProductFeedback/ProductFeedback";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 
 /*
  * The Feedback page's reads (issue #6832): what people told this server,
- * from ProductFeedbackAPI's master-admin routes.
+ * from ProductFeedbackAPI's master-admin routes - and deleting one answer
+ * (#7366).
  */
 
 const getJson: (url: URL) => Promise<JSONObject> = async (
@@ -57,4 +59,24 @@ export const fetchFeedbackList: (data: {
         limit: String(data.limit),
       }),
   )) as unknown as ProductFeedbackListPage;
+};
+
+/*
+ * Deletes one answer for good (#7366): DELETE
+ * /product-feedback/admin/answer/:answerId. Throws what the server said
+ * when it refused, for the dialog to show in place.
+ */
+export const deleteFeedbackAnswer: (answerId: string) => Promise<void> = async (
+  answerId: string,
+): Promise<void> => {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.delete<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        getProductFeedbackAdminAnswerRoute(answerId),
+      ),
+    });
+
+  if (response instanceof HTTPErrorResponse || response.isFailure()) {
+    throw response;
+  }
 };

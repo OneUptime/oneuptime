@@ -68,6 +68,7 @@
     "feedbackYes": "Да",
     "feedbackNo": "Нет",
     "feedbackThanks": "Спасибо, что сообщили.",
+    "feedbackKeptForAdmins": "Ответы получают администраторы этого сервера вместе с адресом страницы. Больше ничего не отправляется, и ничто не покидает этот сервер.",
     "feedbackWhatWentWrong": "Спасибо. Что было не так?",
     "feedbackReasonUnclear": "Трудно разобраться",
     "feedbackReasonMissing": "Чего-то не хватает",
