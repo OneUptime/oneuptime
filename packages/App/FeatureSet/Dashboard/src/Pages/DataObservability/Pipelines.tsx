@@ -1,10 +1,14 @@
 import PageComponentProps from "../PageComponentProps";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ConnectSyncToolModal from "../../Components/DataObservability/ConnectSyncToolModal";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
+import DataPipelineOwnerTeam from "Common/Models/DatabaseModels/DataPipelineOwnerTeam";
+import DataPipelineOwnerUser from "Common/Models/DatabaseModels/DataPipelineOwnerUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   Blue500,
@@ -179,7 +183,8 @@ export function isLastRunUnusuallyLong(pipeline: DataPipeline): boolean {
  * dbt models - and every Fivetran connector and Airbyte connection that
  * sends its syncs, with how its latest run went, failing first. A pipeline
  * appears with its first event; see Documentation to send them, or Connect
- * Fivetran or Airbyte for the webhooks.
+ * Fivetran or Airbyte for the webhooks. Filtered by who owns each pipeline
+ * (#6551), with its owners in a column of their own.
  */
 const DataObservabilityPipelinesPage: FunctionComponent<
   PageComponentProps
@@ -188,6 +193,21 @@ const DataObservabilityPipelinesPage: FunctionComponent<
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const [isConnectingSyncTool, setIsConnectingSyncTool] =
     useState<boolean>(false);
+  const {
+    onResourcesFetched,
+    getOwnersForResource,
+    isLoadingOwners,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<DataPipeline>({
+    persistKey: "data-observability-pipelines",
+    ownerUserModelType: DataPipelineOwnerUser,
+    ownerTeamModelType: DataPipelineOwnerTeam,
+    resourceIdField: "dataPipelineId",
+  });
 
   return (
     <>
@@ -196,7 +216,16 @@ const DataObservabilityPipelinesPage: FunctionComponent<
         id="data-observability-pipelines"
         name="Data Observability > Pipelines"
         userPreferencesKey="data-observability-pipelines"
-        query={{ ...(projectId ? { projectId: projectId } : {}) }}
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
+          ...(projectId ? { projectId: projectId } : {}),
+        })}
+        onFetchSuccess={(data: Array<DataPipeline>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={true}
         isEditable={false}
         isCreateable={false}
@@ -398,6 +427,21 @@ const DataObservabilityPipelinesPage: FunctionComponent<
                 <span className="text-sm text-gray-700">
                   {translator.formatNumber(pipeline.runCount || 0)}
                 </span>
+              );
+            },
+          },
+          {
+            field: { _id: true },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            isHiddenByDefault: true,
+            getElement: (item: DataPipeline): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
               );
             },
           },

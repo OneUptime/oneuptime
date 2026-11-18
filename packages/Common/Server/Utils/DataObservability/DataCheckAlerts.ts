@@ -22,6 +22,7 @@ import DataCheckService from "../../Services/DataCheckService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import MonitorService from "../../Services/MonitorService";
 import MonitorStatusService from "../../Services/MonitorStatusService";
+import DataCheckHealthSync from "./DataCheckHealthSync";
 
 /*
  * A DATA CHECK'S ALERT: ONE METRICS MONITOR, KEPT IN STEP WITH THE CHECK.
@@ -187,6 +188,9 @@ export default class DataCheckAlerts {
       id: checkId,
       data: { monitorId } as never,
     });
+
+    // With an alert, a check that ran says Passing; without one, No Alert (#6554).
+    await DataCheckHealthSync.refreshChecks({ checkIds: [checkId] });
   }
 
   private static async readSeed(projectId: ObjectID): Promise<ProjectSeed> {

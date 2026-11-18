@@ -217,9 +217,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import OnCallRulesTable, {
-  NotificationMethodChoice,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTable";
+import { NotificationMethodChoice } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/NotificationMethodChoice";
+import OnCallRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTable";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import UserSettingsOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallRules";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";

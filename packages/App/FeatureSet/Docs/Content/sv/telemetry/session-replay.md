@@ -90,6 +90,7 @@ Skriptet på `/v1/recorder.js` är en liten laddare. Den kontrollerar Do Not Tra
 | `data-oneuptime-respect-do-not-track` | Nej | Respekterar som standard Do Not Track och Global Privacy Control. Sätt det till `"false"` för att spela in oavsett signalen; se [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | Nej | `"true"` skriver ut inspelarens beslut i konsolen. Se [Felsökning av sessionsuppspelning](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | Nej | Sätt det till `"false"` för att bara hålla chunkar som spelas in medan besökaren är offline i minnet, i stället för att även spara dem i webbläsarens IndexedDB. Se [Offlineläge](#offlineläge). |
+| `data-oneuptime-app-version` | Nej | Appens version, till exempel `2.3.1`, upp till 64 tecken. Produktanalys delar upp användare och sessioner efter den. |
 
 Samma alternativ kan ges i en global i stället för på taggen, vilket är vad tagghanterare och paketerade installationer använder:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ För att tillgodose en raderingsbegäran skickar du in en raderingsbegäran via 
 
 Två ärliga begränsningar för `ByIdentifiedUserKey`. Nyckeln visas ingenstans i instrumentpanelen: den kommer tillbaka som `identifiedUserKey` på varje rad i sessionslistans API (`POST /telemetry/rum/session-replay/list`), så i dag börjar en radering per användare med en sökning `user:` där och en kopia av det fältet. Och en session som spelades in medan **Registrera slutanvändarens identitet** var avstängd har ingen nyckel alls — ingenting om personen lagrades — så den kan bara nås via sessions-ID, datumintervall eller applikation.
 
-Varje begäran registrerar sin `status` (`Pending`, `InProgress`, `Completed`, `Failed`), siffrorna `sessionsDeleted` och `chunksDeleted` och en eventuell `failureReason`; `ReadRumSessionErasureRequest` låter någon granska dem. Radering tar bort inspelningen och telemetrin som är kopplad till de sessionerna, och varje inspelning som fortfarande är på väg när begäran slutförs kastas i stället för att skrivas. En länk till en raderad session svarar «erased» i stället för «not found». Den kopplade telemetrin är:
+Varje begäran registrerar sin `status` (`Pending`, `InProgress`, `Completed`, `Failed`), siffrorna `sessionsDeleted`, `chunksDeleted` och `productAnalyticsRowsDeleted` och en eventuell `failureReason`; `ReadRumSessionErasureRequest` låter någon granska dem. Radering tar bort inspelningen och telemetrin som är kopplad till de sessionerna, och varje inspelning som fortfarande är på väg när begäran slutförs kastas i stället för att skrivas. En länk till en raderad session svarar «erased» i stället för «not found». Den kopplade telemetrin är:
 
 - varje span och varje undantag som är märkt med sessionens ID, inklusive de backend-spans som märks [automatiskt](#korrelera-med-resten-av-din-telemetri) i varje tjänst som vidarebefordrade spårningskontexten, och varje logg som själv bär ID:t;
 - loggarna, undantagen och spansen i varje spår som bara tillhör de raderade sessionerna: varje märkt span i spåret bär ett av deras ID:n, och ingenting i spåret startade mer än tio minuter före det första eller efter det sista av de spansen. Det täcker backend-loggarna från de förfrågningar som dina sidor gjorde till sitt eget ursprung, som delar ett spår-ID med de märkta spansen.

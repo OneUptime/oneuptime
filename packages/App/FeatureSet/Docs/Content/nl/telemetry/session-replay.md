@@ -90,6 +90,7 @@ Het script op `/v1/recorder.js` is een kleine loader. Hij controleert Do Not Tra
 | `data-oneuptime-respect-do-not-track` | Nee | Respecteert standaard Do Not Track en Global Privacy Control. Zet het op `"false"` om ongeacht het signaal op te nemen; zie [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | Nee | `"true"` drukt de beslissingen van de recorder af in de console. Zie [Probleemoplossing voor sessieherhaling](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | Nee | Zet het op `"false"` om chunks die worden opgenomen terwijl de bezoeker offline is alleen in het geheugen te houden, in plaats van ze ook in de IndexedDB van de browser op te slaan. Zie [Offlinemodus](#offlinemodus). |
+| `data-oneuptime-app-version` | Nee | De versie van je app, zoals `2.3.1`, tot 64 tekens. Productanalyse splitst gebruikers en sessies erop uit. |
 
 Dezelfde opties kunnen in een global worden meegegeven in plaats van op de tag, en dat gebruiken tagmanagers en gebundelde installaties:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ Om aan een verwijderverzoek te voldoen, dien je via de OneUptime-API een wisverz
 
 Twee eerlijke grenzen van `ByIdentifiedUserKey`. De sleutel wordt nergens in het dashboard getoond: hij komt terug als `identifiedUserKey` op elke rij van de API van de sessielijst (`POST /telemetry/rum/session-replay/list`), dus vandaag begint wissen per gebruiker met een `user:`-zoekopdracht daar en een kopie van dat veld. En een sessie die is opgenomen terwijl **Identiteit van eindgebruiker vastleggen** uit stond, heeft helemaal geen sleutel — er is niets over de persoon opgeslagen —, dus ze is alleen te bereiken via sessie-id, datumbereik of applicatie.
 
-Elk verzoek legt zijn `status` (`Pending`, `InProgress`, `Completed`, `Failed`), de aantallen `sessionsDeleted` en `chunksDeleted` en een eventuele `failureReason` vast; met `ReadRumSessionErasureRequest` kan iemand ze bekijken. Wissen verwijdert de opname en de telemetrie die aan die sessies gekoppeld is, en elke opname die nog onderweg is wanneer het verzoek klaar is, wordt weggegooid in plaats van geschreven. Een link naar een gewiste sessie antwoordt «erased» in plaats van «not found». De gekoppelde telemetrie is:
+Elk verzoek legt zijn `status` (`Pending`, `InProgress`, `Completed`, `Failed`), de aantallen `sessionsDeleted`, `chunksDeleted` en `productAnalyticsRowsDeleted` en een eventuele `failureReason` vast; met `ReadRumSessionErasureRequest` kan iemand ze bekijken. Wissen verwijdert de opname en de telemetrie die aan die sessies gekoppeld is, en elke opname die nog onderweg is wanneer het verzoek klaar is, wordt weggegooid in plaats van geschreven. Een link naar een gewiste sessie antwoordt «erased» in plaats van «not found». De gekoppelde telemetrie is:
 
 - elke span en uitzondering die met de id van de sessie is gemarkeerd, inclusief de backend-spans die [automatisch](#correleren-met-de-rest-van-je-telemetrie) zijn gemarkeerd in elke service die de tracecontext doorstuurde, en elke log die de id zelf draagt;
 - de logs, uitzonderingen en spans van elke trace die uitsluitend bij de gewiste sessies hoort: elke gemarkeerde span in de trace draagt een van hun id's, en niets in de trace begon meer dan tien minuten vóór de eerste of na de laatste van die spans. Dat dekt de backendlogs van de verzoeken die je pagina's naar hun eigen origin deden, die een trace-id delen met die gemarkeerde spans.

@@ -278,7 +278,6 @@ import {
   PRODUCT_ANALYTICS_BREAKDOWN_LIMIT,
   PRODUCT_ANALYTICS_DIMENSIONS,
   PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS_OPTIONS,
-  PRODUCT_ANALYTICS_MAX_RANGE_DAYS,
   PRODUCT_ANALYTICS_PEOPLE_FILTERS,
   PRODUCT_ANALYTICS_SEARCH_MAX_LENGTH,
   ProductAnalyticsBreakdownDto,
@@ -288,6 +287,8 @@ import {
   ProductAnalyticsPersonDetailDto,
   ProductAnalyticsSummaryDto,
   ProductAnalyticsTrendDto,
+  getProductAnalyticsMaxRangeDays,
+  getProductAnalyticsRetentionMonths,
   isProductAnalyticsPersonKey,
   toProductAnalyticsTimeZone,
 } from "../../Types/Rum/ProductAnalytics";
@@ -5822,6 +5823,11 @@ const loadRumApplicationForAccess: LoadRumApplicationForAccessFunction =
           labels: {
             _id: true,
           },
+          /*
+           * How long product analytics keeps the application (issue #6626):
+           * its reads' longest range, and the months its pages say.
+           */
+          productAnalyticsRetentionInMonths: true,
         },
         props: {
           isRoot: true,
@@ -7495,19 +7501,25 @@ const readProductAnalyticsRequest: ReadProductAnalyticsRequestFunction = async (
 
 /*
  * The range: the last 7 days by default, never inverted, and no longer than
- * PRODUCT_ANALYTICS_MAX_RANGE_DAYS - what the tables keep, and a bound on
- * what one read scans. The 7 days are 7 x 24 hours before the end, whatever
- * zone the server runs in: in the server's calendar they would be an hour
- * short or long across a clock change (issue #7623). Every other read here
- * that defaults to the last 7 days counts them the same way.
+ * the application keeps - PRODUCT_ANALYTICS_MAX_RANGE_DAYS, or the days of
+ * its retention when it keeps longer (getProductAnalyticsMaxRangeDays, issue
+ * #6626) - which also bounds what one read scans. The 7 days are 7 x 24
+ * hours before the end, whatever zone the server runs in: in the server's
+ * calendar they would be an hour short or long across a clock change (issue
+ * #7623). Every other read here that defaults to the last 7 days counts them
+ * the same way.
  */
-type ReadProductAnalyticsRangeFunction = (body: JSONObject) => {
+type ReadProductAnalyticsRangeFunction = (
+  body: JSONObject,
+  application?: RumApplication | undefined,
+) => {
   startTime: Date;
   endTime: Date;
 };
 
 const readProductAnalyticsRange: ReadProductAnalyticsRangeFunction = (
   body: JSONObject,
+  application?: RumApplication | undefined,
 ): { startTime: Date; endTime: Date } => {
   const endTime: Date =
     readOptionalDateFromBody(body, "endTime") || OneUptimeDate.getCurrentDate();
@@ -7519,17 +7531,33 @@ const readProductAnalyticsRange: ReadProductAnalyticsRangeFunction = (
     throw new BadDataException("startTime must not be after endTime");
   }
 
+  const maxRangeDays: number = getProductAnalyticsMaxRangeDays(
+    readProductAnalyticsRetentionMonths(application),
+  );
+
   if (
     endTime.getTime() - startTime.getTime() >
-    PRODUCT_ANALYTICS_MAX_RANGE_DAYS * 24 * 60 * 60 * 1000
+    maxRangeDays * 24 * 60 * 60 * 1000
   ) {
     throw new BadDataException(
-      `A range can cover at most ${PRODUCT_ANALYTICS_MAX_RANGE_DAYS} days.`,
+      `A range can cover at most ${maxRangeDays} days.`,
     );
   }
 
   return { startTime: startTime, endTime: endTime };
 };
+
+/* How many months the application keeps its product analytics (issue #6626). */
+type ReadProductAnalyticsRetentionMonthsFunction = (
+  application: RumApplication | undefined,
+) => number;
+
+const readProductAnalyticsRetentionMonths: ReadProductAnalyticsRetentionMonthsFunction =
+  (application: RumApplication | undefined): number => {
+    return getProductAnalyticsRetentionMonths(
+      application?.productAnalyticsRetentionInMonths,
+    );
+  };
 
 /* One of the windows the page offers; anything else is refused. */
 type ReadDormantAfterDaysFunction = (body: JSONObject) => number;
@@ -7595,7 +7623,7 @@ router.post(
         await readProductAnalyticsRequest(req);
 
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const summary: ProductAnalyticsSummaryDto =
         await RumProductAnalyticsReadService.getSummary({
@@ -7607,11 +7635,12 @@ router.post(
           now: OneUptimeDate.getCurrentDate(),
         });
 
-      return Response.sendJsonObjectResponse(
-        req,
-        res,
-        summary as unknown as JSONObject,
-      );
+      return Response.sendJsonObjectResponse(req, res, {
+        ...summary,
+        retentionMonths: readProductAnalyticsRetentionMonths(
+          request.application,
+        ),
+      } as unknown as JSONObject);
     } catch (err: unknown) {
       next(err);
     }
@@ -7632,7 +7661,7 @@ router.post(
         await readProductAnalyticsRequest(req);
 
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const rawTimeZone: unknown = request.body["timeZone"];
       const timeZone: string | null =
@@ -7692,7 +7721,7 @@ router.post(
       }
 
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const breakdown: ProductAnalyticsBreakdownDto =
         await RumProductAnalyticsReadService.getBreakdown({
@@ -7760,7 +7789,7 @@ router.post(
         typeof rawSearch === "string" ? rawSearch.trim() : "";
 
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
       const dormantAfterDays: number = readDormantAfterDays(request.body);
       const limit: number = readLimitFromBody(
         request.body,
@@ -7799,11 +7828,12 @@ router.post(
           search: search || undefined,
         });
 
-      return Response.sendJsonObjectResponse(
-        req,
-        res,
-        people as unknown as JSONObject,
-      );
+      return Response.sendJsonObjectResponse(req, res, {
+        ...people,
+        retentionMonths: readProductAnalyticsRetentionMonths(
+          request.application,
+        ),
+      } as unknown as JSONObject);
     } catch (err: unknown) {
       next(err);
     }
@@ -7854,11 +7884,12 @@ router.post(
           includeLabel: includeLabel,
         });
 
-      return Response.sendJsonObjectResponse(
-        req,
-        res,
-        person as unknown as JSONObject,
-      );
+      return Response.sendJsonObjectResponse(req, res, {
+        ...person,
+        retentionMonths: readProductAnalyticsRetentionMonths(
+          request.application,
+        ),
+      } as unknown as JSONObject);
     } catch (err: unknown) {
       next(err);
     }
@@ -7992,7 +8023,7 @@ router.post(
       }
 
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const names: ProductAnalyticsEventNamesDto =
         await RumProductAnalyticsEventReadService.listEventNames({
@@ -8038,7 +8069,7 @@ router.post(
         readSegmentFiltersFromBody(request.body);
       const timeZone: string = readTimeZoneFromBody(request.body);
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const trend: ProductAnalyticsEventTrendDto =
         await RumProductAnalyticsEventReadService.getEventTrend({
@@ -8096,7 +8127,7 @@ router.post(
         PRODUCT_ANALYTICS_BREAKDOWN_LIMIT,
       );
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const result: ProductAnalyticsEventBreakdownDto =
         await RumProductAnalyticsEventReadService.getEventBreakdown({
@@ -8139,7 +8170,7 @@ router.post(
         "event",
       );
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const properties: ProductAnalyticsEventPropertiesDto =
         await RumProductAnalyticsEventReadService.getEventProperties({
@@ -8219,7 +8250,7 @@ router.post(
       const filters: Array<ProductAnalyticsSegmentFilter> =
         readSegmentFiltersFromBody(request.body);
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const funnel: ProductAnalyticsFunnelDto =
         await RumProductAnalyticsEventReadService.getFunnel({
@@ -8282,7 +8313,7 @@ router.post(
         readSegmentFiltersFromBody(request.body);
       const timeZone: string = readTimeZoneFromBody(request.body);
       const range: { startTime: Date; endTime: Date } =
-        readProductAnalyticsRange(request.body);
+        readProductAnalyticsRange(request.body, request.application);
 
       const retention: ProductAnalyticsRetentionDto =
         await RumProductAnalyticsEventReadService.getRetention({

@@ -562,6 +562,7 @@ describe("RumSessionErasureRequest", () => {
       "completedAt",
       "sessionsDeleted",
       "chunksDeleted",
+      "productAnalyticsRowsDeleted",
       "failureReason",
     ]) {
       expect(accessControl[columnName]?.create || []).toEqual([]);

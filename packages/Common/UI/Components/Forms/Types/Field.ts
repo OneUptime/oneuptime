@@ -229,6 +229,15 @@ export default interface Field<TEntity> {
         item: FormValues<TEntity>,
       ) => Promise<Array<DropdownOption | DropdownOptionGroup>>)
     | undefined;
+  /*
+   * What a dropdown's open list says when it has nothing to pick at all, in
+   * English (a translationKey), looked up where it is drawn: what is missing
+   * and how to add one - an auto import rule's Monitor Template says which
+   * templates it lists and where to create one (issue #9510). Left out, the
+   * list says "No options available". A search that matches nothing still
+   * says "No matches found".
+   */
+  noOptionsText?: string | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;
   /*

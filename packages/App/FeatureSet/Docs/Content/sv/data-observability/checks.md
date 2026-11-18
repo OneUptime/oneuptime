@@ -42,7 +42,7 @@ Ställ in **Larma när** för att larma på en kontroll:
 
 När du sparar kontrollen skapas en metrikövervakning för den, i ditt namn och med dina behörigheter. Om du rensar villkoret tas monitorn bort.
 
-En kontrolls **Status**, under **Kontroller** och på fliken **Kontroller** för dess tabell, säger hur den står till: **Misslyckas** medan dess larm är öppet, **Godkänns** medan det inte är det, och **Kunde inte köra** när dess fråga misslyckades. En kontroll utan larm visar bara **Kördes**: dess fråga fungerade. En kontroll som misslyckas, och en som inte kunde köras, finns också på **Översikt**.
+En kontrolls **Status**, under **Kontroller** och på fliken **Kontroller** för dess tabell, säger hur den står till: **Misslyckas** medan dess larm är öppet, **Godkänns** medan det inte är det, och **Kunde inte köra** när dess fråga misslyckades. En kontroll utan larm visar bara **Kördes**: dess fråga fungerade. En kontroll som misslyckas, och en som inte kunde köras, finns också på **Översikt**. **Kontroller** visar de kontroller som misslyckas först, sedan de som inte kunde köra, sedan de som godkänns, och filtret **Status** visar kontrollerna med en status. **Misslyckade kontroller** på **Översikt** öppnar **Kontroller** med bara de som misslyckas.
 
 ## Vad en kontroll kostar
 

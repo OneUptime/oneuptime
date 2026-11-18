@@ -90,6 +90,7 @@ flowchart TB
 | `data-oneuptime-respect-do-not-track` | いいえ | 既定で Do Not Track と Global Privacy Control を尊重します。シグナルにかかわらず録画するには `"false"` に設定します。 [Do Not Track](#do-not-track) を参照してください。 |
 | `data-oneuptime-debug` | いいえ | `"true"` にすると、レコーダーの判断をコンソールに出力します。 [セッションリプレイのトラブルシューティング](/docs/rum/session-replay-troubleshooting) を参照してください。 |
 | `data-oneuptime-offline-storage` | いいえ | `"false"` に設定すると、訪問者がオフラインの間に録画したチャンクを、ブラウザーの IndexedDB にも保存せず、メモリーにだけ保持します。 [オフラインモード](#オフラインモード) を参照してください。 |
+| `data-oneuptime-app-version` | いいえ | アプリのバージョンです ( `2.3.1` など、最大 64 文字)。プロダクト分析はユーザーとセッションをこれで分類します。 |
 
 同じオプションはタグではなくグローバルで渡すこともできます。タグマネージャーやバンドルしたインストールではこちらを使います。
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ SVG スプライトファイルから描かれるアイコン ( `<use href="/ico
 
 `ByIdentifiedUserKey` には正直に言って 2 つの制限があります。キーはダッシュボードのどこにも表示されません。セッション一覧の API ( `POST /telemetry/rum/session-replay/list`) の各行で `identifiedUserKey` として返されるため、現時点でユーザー単位の消去は、そこでの `user:` の検索と、そのフィールドのコピーから始まります。また、 **エンドユーザーの身元をキャプチャ** がオフの間に録画されたセッションには、キーがまったくありません。その人については何も保存されていないため、セッション ID、日付の範囲、アプリケーションでしか対象にできません。
 
-各リクエストは、その `status` ( `Pending`、 `InProgress`、 `Completed`、 `Failed`)、 `sessionsDeleted` と `chunksDeleted` の件数、 `failureReason` (ある場合) を記録します。 `ReadRumSessionErasureRequest` を持つ人はそれらを確認できます。消去は、録画と、それらのセッションに関連付けられたテレメトリを削除し、リクエストの完了時にまだ届いていない録画は書き込まれずに破棄されます。消去されたセッションへのリンクは、「not found」ではなく「erased」と応答します。関連付けられたテレメトリとは次のものです。
+各リクエストは、その `status` ( `Pending`、 `InProgress`、 `Completed`、 `Failed`)、 `sessionsDeleted`、 `chunksDeleted` と `productAnalyticsRowsDeleted` の件数、 `failureReason` (ある場合) を記録します。 `ReadRumSessionErasureRequest` を持つ人はそれらを確認できます。消去は、録画と、それらのセッションに関連付けられたテレメトリを削除し、リクエストの完了時にまだ届いていない録画は書き込まれずに破棄されます。消去されたセッションへのリンクは、「not found」ではなく「erased」と応答します。関連付けられたテレメトリとは次のものです。
 
 - セッションの ID の印が付いたすべてのスパンとすべての例外。トレースコンテキストを転送した各サービスで [自動的に](#ほかのテレメトリとの関連付け) 印が付いたバックエンドのスパンや、その ID 自体を持つログを含みます。
 - 消去されるセッションだけに属する各トレースのログ、例外、スパン。つまり、トレース内の印が付いたすべてのスパンがそれらの ID のいずれかを持ち、トレース内のどれもが、それらのスパンの最初のものより 10 分以上前に、または最後のものより 10 分以上後に始まっていないトレースです。これには、ページが自身のオリジンに行ったリクエストのバックエンドのログが含まれ、それらは印が付いたスパンとトレース ID を共有しています。

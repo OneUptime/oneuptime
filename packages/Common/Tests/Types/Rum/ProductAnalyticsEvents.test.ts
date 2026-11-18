@@ -26,7 +26,12 @@ import {
   toProductAnalyticsPage,
   toProductAnalyticsProperties,
   toProductAnalyticsPropertyValue,
+  PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH,
 } from "../../../Types/Rum/ProductAnalyticsEvents";
+import {
+  SESSION_REPLAY_MAX_APP_VERSION_LENGTH,
+  toSessionReplayAppVersion,
+} from "../../../Types/Rum/SessionReplay";
 import {
   CAFE_PAGE,
   CAFE_SPELLINGS,
@@ -1216,6 +1221,75 @@ describe("who sent it", () => {
       osName: "",
       appVersion: "",
     });
+  });
+
+  /*
+   * A web page's own app version (issue #6625) is kept as the browser
+   * recorder keeps it: cut to 64 characters, and dropped whole when it
+   * holds a control character, so an event never names a version nobody
+   * typed.
+   */
+  test("the context's app version is cut to 64 characters, and dropped when it holds a control character", () => {
+    expect(
+      toProductAnalyticsContext({ appVersion: "8".repeat(70) }).appVersion,
+    ).toBe("8".repeat(64));
+    expect(
+      toProductAnalyticsContext({ appVersion: "2026.11.18-rc1+build.5" })
+        .appVersion,
+    ).toBe("2026.11.18-rc1+build.5");
+
+    for (const appVersion of ["2.3.1\n<script>", "1\u0000", "\u009b2", 2.3]) {
+      expect(toProductAnalyticsContext({ appVersion: appVersion })).toEqual({
+        deviceType: "",
+        browserName: "",
+        osName: "",
+        appVersion: "",
+      });
+    }
+  });
+});
+
+describe("toSessionReplayAppVersion", () => {
+  test("keeps a version as written, trimmed, in any script", () => {
+    expect(toSessionReplayAppVersion("2.3.1")).toBe("2.3.1");
+    expect(toSessionReplayAppVersion("  v2.3.1 (beta) ")).toBe("v2.3.1 (beta)");
+    expect(toSessionReplayAppVersion("1.0.0-β")).toBe("1.0.0-β");
+  });
+
+  test("cuts it to SESSION_REPLAY_MAX_APP_VERSION_LENGTH, the events' cap on a context value", () => {
+    expect(SESSION_REPLAY_MAX_APP_VERSION_LENGTH).toBe(64);
+    expect(SESSION_REPLAY_MAX_APP_VERSION_LENGTH).toBe(
+      PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH,
+    );
+    expect(toSessionReplayAppVersion("a".repeat(65))).toBe("a".repeat(64));
+    // A cut that leaves a trailing space does not keep it.
+    expect(toSessionReplayAppVersion(`${"a".repeat(63)} b`)).toBe(
+      "a".repeat(63),
+    );
+  });
+
+  test("drops anything holding a control character, empty or not a string", () => {
+    // Whitespace around it is trimmed first, a line break included.
+    expect(toSessionReplayAppVersion("2.3.1\n")).toBe("2.3.1");
+
+    for (const value of [
+      "2.3.1\n<b>",
+      "2.3\r.1",
+      "2\t3",
+      "\u0000",
+      "\u007f",
+      "\u0085",
+      "",
+      "   ",
+      undefined,
+      null,
+      231,
+      true,
+      ["2.3.1"],
+      { version: "2.3.1" },
+    ]) {
+      expect(toSessionReplayAppVersion(value)).toBe("");
+    }
   });
 });
 

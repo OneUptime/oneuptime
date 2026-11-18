@@ -899,6 +899,7 @@ describe("what needs someone, worst first", () => {
       failingCheckCount: 0,
       checkCount: 0,
       pipelineCount: 0,
+      storeIdByCheckId: new Map(),
     });
   });
 });

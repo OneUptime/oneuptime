@@ -3656,6 +3656,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Recommendations",
       },
       {
+        page: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS,
+        section: "Pipeline",
+        title: "Owners",
+      },
+      {
         page: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS,
         section: "Advanced",
         title: "Audit Logs",
