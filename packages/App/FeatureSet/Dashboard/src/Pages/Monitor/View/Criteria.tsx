@@ -9,7 +9,9 @@ import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -100,8 +102,17 @@ const MonitorCriteria: FunctionComponent<
 
       setProbes(probes);
 
-      // The probes this monitor is checked from, which Test Monitor starts on.
-      setMonitorProbeIds(await getCheckingProbeIds(modelId));
+      /*
+       * The probes this monitor is checked from, which Test Monitor starts
+       * on: read only for a monitor probes check, the one Test Monitor
+       * shows for.
+       */
+      setMonitorProbeIds(
+        item.monitorType &&
+          MonitorTypeHelper.isProbableMonitor(item.monitorType)
+          ? await getCheckingProbeIds(modelId)
+          : [],
+      );
 
       setMonitorType(item.monitorType);
     } catch (err) {

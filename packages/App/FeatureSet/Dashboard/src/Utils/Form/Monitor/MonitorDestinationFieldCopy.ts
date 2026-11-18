@@ -34,6 +34,30 @@ export function hasMonitorAddress(
   );
 }
 
+// A URL whose path is its root alone: the slash a URL's root path adds.
+const URL_WITH_ROOT_PATH_ONLY: RegExp = /^([a-z][a-z0-9+.-]*:\/\/[^/?#]+)\/$/i;
+
+/*
+ * The address a monitor checks, as its Criteria step's Monitor Target says
+ * it ("Checks {{address}}.", #7463): a bare host's URL without the slash
+ * its root path adds - "https://example.com", as it was typed, not
+ * "https://example.com/." - and a Port monitor's host with its port.
+ */
+export function getMonitorTargetAddress(data: {
+  monitorType: MonitorType;
+  destination: string;
+  port?: string | undefined;
+}): string {
+  const address: string = data.destination.replace(
+    URL_WITH_ROOT_PATH_ONLY,
+    "$1",
+  );
+
+  return data.monitorType === MonitorType.Port && data.port
+    ? `${address}:${data.port}`
+    : address;
+}
+
 export interface MonitorDestinationFieldCopy {
   title: string;
   description: string;

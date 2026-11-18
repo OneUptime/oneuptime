@@ -152,6 +152,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
       <SummaryFacts>
         <SummaryFact
           isWide={true}
+          readsLeftToRight={true}
           title="NTP Server"
           value={serverAddress ? `${server} (${serverAddress})` : server}
         />

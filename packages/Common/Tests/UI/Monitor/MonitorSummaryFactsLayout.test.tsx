@@ -670,6 +670,50 @@ describe("every monitor type's summary lays its facts out by its own width", () 
 });
 
 describe("what a fact is drawn with", () => {
+  /*
+   * On a right-to-left page a URL's root slash was drawn before it
+   * ("/https://..."), in Test Monitor's result too: an address reads left
+   * to right on every page, whatever the page's own direction.
+   */
+  test.each([
+    ["Website", "URL", LONG_URL],
+    ["API", "URL", LONG_URL],
+    ["Ping", "Hostname or IP address", "orders-db.internal.acme.example"],
+    ["Port", "Hostname or IP address", "orders-db.internal.acme.example:5432"],
+  ])(
+    "%s: the address reads left to right on every page",
+    (name: string, title: string, address: string) => {
+      const scenario: Scenario = SCENARIOS.find((candidate: Scenario) => {
+        return candidate.name === name;
+      })!;
+
+      renderScenario(scenario);
+
+      const card: HTMLElement = screen
+        .getByText(title)
+        .closest("div.rounded-xl") as HTMLElement;
+      const value: HTMLElement | null = card.querySelector("[dir='ltr']");
+
+      expect(value).not.toBeNull();
+      expect(value).toHaveTextContent(address);
+    },
+  );
+
+  test("the facts that are not addresses keep the page's own direction", () => {
+    renderScenario(SCENARIOS[0]!);
+
+    for (const title of ["Probe", "Response Status Code"]) {
+      const card: HTMLElement = screen
+        .getByText(title)
+        .closest("div.rounded-xl") as HTMLElement;
+
+      expect({ title, ltr: card.querySelector("[dir='ltr']") }).toEqual({
+        title,
+        ltr: null,
+      });
+    }
+  });
+
   test("a fact that reads as a sentence takes the whole row", () => {
     renderScenario(SCENARIOS[0]!);
 
@@ -755,10 +799,15 @@ describe("what a fact is drawn with", () => {
   test("a value breaks rather than run out of its card, a size smaller in a narrow summary", () => {
     renderScenario(SCENARIOS[0]!);
 
-    const url: HTMLElement = screen.getByText(LONG_URL);
+    // The value's box: the address in it reads left to right.
+    const url: HTMLElement = screen
+      .getByText(LONG_URL)
+      .closest("[data-testid='info-card-value']") as HTMLElement;
 
     expect(url).toHaveClass(...SUMMARY_FACT_VALUE_CLASS_NAME.split(" "));
     expect(url).toHaveClass("break-words", "text-sm");
+    // It still breaks after its own slashes and dots first (BreakableName).
+    expect(url.querySelectorAll("wbr").length).toBeGreaterThan(0);
   });
 
   test("why a check failed comes right after what it found, before where its time went", () => {

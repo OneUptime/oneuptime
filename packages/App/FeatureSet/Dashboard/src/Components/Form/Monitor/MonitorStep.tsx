@@ -209,6 +209,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   getMonitorDestinationFieldCopy,
+  getMonitorTargetAddress,
   MONITOR_TYPES_WITH_ADDRESS,
   MONITOR_PORT_FIELD_DESCRIPTION,
   MonitorDestinationFieldCopy,
@@ -1090,11 +1091,13 @@ return {
                   slots={{
                     address: (
                       <span className="font-medium text-gray-900" dir="ltr">
-                        {monitorStep.data?.monitorDestination?.toString() || ""}
-                        {props.monitorType === MonitorType.Port &&
-                        monitorStep.data?.monitorDestinationPort
-                          ? `:${monitorStep.data.monitorDestinationPort.toString()}`
-                          : ""}
+                        {getMonitorTargetAddress({
+                          monitorType: props.monitorType,
+                          destination:
+                            monitorStep.data?.monitorDestination?.toString() ||
+                            "",
+                          port: monitorStep.data?.monitorDestinationPort?.toString(),
+                        })}
                       </span>
                     ),
                   }}
