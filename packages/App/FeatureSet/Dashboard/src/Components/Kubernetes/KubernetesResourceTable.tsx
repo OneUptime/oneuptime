@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ResourceTable, {
   BuiltInColumnDescriptions,
+  ResourceStorageUsageColumns,
 } from "../Infrastructure/ResourceTable";
 import { KubernetesResource } from "../../Pages/Kubernetes/Utils/KubernetesResourceUtils";
 import Route from "Common/Types/API/Route";
@@ -24,6 +25,11 @@ export interface ResourceColumn {
   description?: string | undefined;
   // A count, drawn in the reader's digits (ResourceTable's isCount).
   isCount?: boolean | undefined;
+  // Under this column while the table runs out of room (ResourceTable's).
+  foldInto?: string | undefined;
+  showTitleWhenFolded?: boolean | undefined;
+  // A long name, drawn whole on as many lines as it needs (ResourceTable's).
+  isName?: boolean | undefined;
 }
 
 export interface ComponentProps {
@@ -39,6 +45,8 @@ export interface ComponentProps {
   isLoading?: boolean;
   onRefreshClick?: (() => void) | undefined;
   builtInColumnDescriptions?: BuiltInColumnDescriptions | undefined;
+  // A list of claims or volumes: their Used and Free columns.
+  storageUsageColumns?: ResourceStorageUsageColumns | undefined;
 }
 
 const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
@@ -64,6 +72,7 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
       onRefreshClick={props.onRefreshClick}
       tableIdPrefix="kubernetes"
       builtInColumnDescriptions={props.builtInColumnDescriptions}
+      storageUsageColumns={props.storageUsageColumns}
     />
   );
 };
