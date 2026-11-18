@@ -73,6 +73,8 @@ export const SERVER_EMAIL_LOG_FAILED_ONLY_TEST_ID: string =
   "server-email-log-failed-only";
 export const SERVER_EMAIL_LOG_SHOW_MORE_TEST_ID: string =
   "server-email-log-show-more";
+export const SERVER_EMAIL_LOG_REASON_TEST_ID: string =
+  "server-email-log-reason";
 
 export const SERVER_EMAIL_LOG_COPY: {
   title: string;
@@ -390,6 +392,13 @@ const ServerEmailLogCard: FunctionComponent = (): ReactElement => {
               entry,
               translator,
             );
+            /*
+             * The mail service's own words read in their own direction:
+             * on a page read from the right, "535 5.7.8 Authentication
+             * failed" kept its numbers at the start, not at the end.
+             */
+            const isReasonAsSaid: boolean =
+              Boolean(reason) && reason === entry.statusMessage;
             const unsentInvitation: InvitationLinkInvitee | null =
               getUnsentInvitation(entry);
 
@@ -425,7 +434,11 @@ const ServerEmailLogCard: FunctionComponent = (): ReactElement => {
                   )}
                 </p>
                 {reason ? (
-                  <p className="mt-1 break-words text-xs text-gray-600">
+                  <p
+                    className="mt-1 break-words text-xs text-gray-600"
+                    dir={isReasonAsSaid ? "auto" : undefined}
+                    data-testid={SERVER_EMAIL_LOG_REASON_TEST_ID}
+                  >
                     {reason}
                   </p>
                 ) : (

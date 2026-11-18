@@ -27,6 +27,7 @@ import ServerEmailLogCard, {
   SERVER_EMAIL_LOG_ENTRY_TEST_ID,
   SERVER_EMAIL_LOG_FAILED_ONLY_TEST_ID,
   SERVER_EMAIL_LOG_INVITATION_LINK_TEST_ID,
+  SERVER_EMAIL_LOG_REASON_TEST_ID,
   SERVER_EMAIL_LOG_SHOW_MORE_TEST_ID,
   getUnsentInvitation,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Email/ServerEmailLogCard";
@@ -248,6 +249,39 @@ describe("reading the log", () => {
     expect(rows()[0]).toHaveTextContent("Checkout");
     expect(rows()[0]).toHaveTextContent("535 5.7.8 Authentication failed");
     expect(rows()[0]).not.toHaveTextContent("No project");
+  });
+
+  /*
+   * The mail service's words keep their own direction on a page read from
+   * the right: "535 5.7.8 Authentication failed" never ends in its numbers.
+   * The card's own words about email that is not set up are the reader's
+   * language, and read in the page's direction.
+   */
+  test("the mail service's answer reads in its own direction; the card's own words in the page's", async () => {
+    pages = [
+      page([
+        entry("bob", {
+          status: ServerEmailLogStatus.Failed,
+          statusMessage: "535 5.7.8 Authentication failed",
+        }),
+        entry("dave", {
+          status: ServerEmailLogStatus.Failed,
+          statusMessage: SERVER_EMAIL_NOT_SET_UP_MESSAGE,
+        }),
+      ]),
+    ];
+
+    await renderIn();
+
+    const reasons: Array<HTMLElement> = screen.getAllByTestId(
+      SERVER_EMAIL_LOG_REASON_TEST_ID,
+    );
+
+    expect(reasons).toHaveLength(2);
+    expect(reasons[0]).toHaveTextContent("535 5.7.8 Authentication failed");
+    expect(reasons[0]).toHaveAttribute("dir", "auto");
+    expect(reasons[1]).toHaveTextContent(SERVER_EMAIL_LOG_COPY.notSetUp);
+    expect(reasons[1]).not.toHaveAttribute("dir");
   });
 
   test("a project that no longer exists is said to be deleted", async () => {
