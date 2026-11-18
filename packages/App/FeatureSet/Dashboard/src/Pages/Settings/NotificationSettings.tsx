@@ -3,10 +3,8 @@ import CustomSMTPTable from "../../Components/CustomSMTP/CustomSMTPTable";
 import { getOwnSendersFoldedItems } from "../../Components/NotificationMethods/OwnSendersFold";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import ProjectNotificationChannelsCard from "../../Components/NotificationMethods/ProjectNotificationChannelsCard";
-import {
-  DefaultPagingLadderCard,
-  PhoneForOnCallCard,
-} from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaults";
+import DefaultPagingLadderCard from "../../Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
+import PhoneForOnCallCard from "../../Components/NotificationRule/PagingLadder/PhoneForOnCallCard";
 import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import {
   getCurrentProjectBillingMarketplace,
@@ -78,8 +76,10 @@ import React, {
  * projects never add one (Components/NotificationMethods/OwnSendersFold).
  * So do how members are paged by default (#7449): the project's default
  * ladder for new members, and its ask for a phone method from everyone on
- * call (Components/NotificationRule/PagingLadder/ProjectPagingDefaults) -
- * first, as what an on-call admin comes for.
+ * call (Components/NotificationRule/PagingLadder/DefaultPagingLadderCard and
+ * PhoneForOnCallCard) - first, as what an on-call admin comes for. Each is a
+ * card of its own module, so the card-in-card guard reads it as a whole card
+ * drawn as a section of the fold (#9464).
  */
 export const NOTIFICATION_SETTINGS_MORE_TEST_ID: string =
   "notification-settings-more";

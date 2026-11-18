@@ -161,6 +161,13 @@ describe("no card inside a card, anywhere in the product", () => {
       "packages/App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx",
       "packages/Common/UI/Components/ModelSwitch/ModelSwitchCard.tsx",
       "packages/Common/UI/Components/ResetObjectID/ResetObjectID.tsx",
+      /*
+       * Notification Channels' More settings (#7449): a card through the
+       * ladder editor it wraps, and a switch card. Each is its own module's
+       * default export, which is how the scan knows a card (#9464).
+       */
+      "packages/App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PhoneForOnCallCard.tsx",
     ]) {
       expect([file, cardModules.includes(file)]).toEqual([file, true]);
     }
@@ -308,6 +315,8 @@ describe("what More settings and CardSections hold", () => {
     "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
     "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/AuthenticationSettings.tsx",
     "packages/App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Sharing.tsx",
+    // The default ladder, the phone ask and the project's own senders (#9464).
+    "packages/App/FeatureSet/Dashboard/src/Pages/Settings/NotificationSettings.tsx",
   ];
 
   function sectionsChildren(): Array<CardSectionsChild> {
@@ -695,6 +704,70 @@ export default Chart;
     ).toEqual([
       ["Card", true],
       ["p", false],
+    ]);
+  });
+
+  /*
+   * A card is known by its module's default export. Notification Channels'
+   * two cards of #7449 were exported by name from one module, so the scan
+   * read them as bare elements in More settings (#9464): each is now a
+   * module of its own. A component exported by name is not read.
+   */
+  test("knows a card by its module's default export, not by a name it is exported by", () => {
+    const files: Record<string, string> = {
+      "app/Cards.tsx": `
+export const LadderCard = () => {
+  return <Card title="Default Ladder for New Members" />;
+};
+`,
+      "app/PhoneCard.tsx": `
+import ModelSwitchCard from "./ModelSwitchCard";
+const PhoneCard = () => {
+  return (
+    <div data-testid="phone-card">
+      <ModelSwitchCard cardTitle="Phone for People on Call" />
+    </div>
+  );
+};
+export default PhoneCard;
+`,
+      "app/ModelSwitchCard.tsx": `
+const ModelSwitchCard = () => {
+  return <Card title="Switch" />;
+};
+export default ModelSwitchCard;
+`,
+      "app/Page.tsx": `
+import { LadderCard } from "./Cards";
+import PhoneCard from "./PhoneCard";
+const Page = () => {
+  return (
+    <AdvancedPageSection>
+      <LadderCard />
+      <PhoneCard />
+    </AdvancedPageSection>
+  );
+};
+export default Page;
+`,
+    };
+    const children: Array<CardSectionsChild> = scanCardSectionsChildren(
+      Object.entries(files).map(
+        ([file, text]: [string, string]): CardNestingSource => {
+          return { file, text };
+        },
+      ),
+      makeImportResolver(new Set<string>(Object.keys(files))),
+    );
+
+    expect(
+      children.map((child: CardSectionsChild): [string, boolean] => {
+        return [child.element, child.isCard];
+      }),
+    ).toEqual([
+      ["LadderCard", false],
+      // Through the plain div it returns, to the card module it draws.
+      ["PhoneCard", true],
     ]);
   });
 

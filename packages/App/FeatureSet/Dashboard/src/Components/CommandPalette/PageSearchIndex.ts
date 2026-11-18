@@ -707,7 +707,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             /*
              * How members are paged by default (#7449), and the project's
              * own mail servers and Twilio accounts, folded under the page's
-             * More settings (ProjectPagingDefaults, OwnSendersFold): each
+             * More settings (ProjectPagingDefaultsWords, OwnSendersFold): each
              * result opens the fold at its card.
              */
             actions: [

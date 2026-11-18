@@ -51,10 +51,8 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import OnCallRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallRules";
-import {
-  DefaultPagingLadderCard,
-  PhoneForOnCallCard,
-} from "../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaults";
+import DefaultPagingLadderCard from "../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
+import PhoneForOnCallCard from "../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PhoneForOnCallCard";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Project from "Common/Models/DatabaseModels/Project";

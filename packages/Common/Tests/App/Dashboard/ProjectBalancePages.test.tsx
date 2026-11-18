@@ -100,14 +100,23 @@ jest.mock("../../../UI/Config", () => {
  * settings, is not about the balance: ProjectPagingDefaults tests it.
  */
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaults",
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard",
   () => {
     return {
       __esModule: true,
-      DefaultPagingLadderCard: (): null => {
+      default: (): null => {
         return null;
       },
-      PhoneForOnCallCard: (): null => {
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PhoneForOnCallCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
         return null;
       },
     };

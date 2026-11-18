@@ -4,7 +4,8 @@ An offline harness for How to Reach Me's ladder (#6820, #7453): the real User
 Settings > How to Reach Me page (`Pages/UserSettings/OnCallRules.tsx`, drawn by
 `Components/NotificationRule/HowToReachMe.tsx`), its inline add (#7451), and the
 real Default Ladder for New Members and Phone for People on Call cards of Project
-Settings > Notification Channels (`PagingLadder/ProjectPagingDefaults.tsx`, #7449).
+Settings > Notification Channels (`PagingLadder/DefaultPagingLadderCard.tsx` and
+`PagingLadder/PhoneForOnCallCard.tsx`, #7449).
 It bundles the production components with esbuild, replaces only the `ModelAPI` /
 `API` data boundary and the synthetic user's permissions, and serves them on
 `127.0.0.1:4738`. No Docker, no database, no sign-in.
