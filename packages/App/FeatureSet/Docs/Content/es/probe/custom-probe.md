@@ -386,13 +386,19 @@ En el lado del servidor de OneUptime, una solicitud de sonda que se responde des
 
 ### Una sonda va con retraso
 
-Una sonda está **Con retraso** cuando sus monitores esperan más de un minuto después de su hora de comprobación, por lo que se comprueban con menos frecuencia de la configurada. Su **Estado** en la tabla **Sondas personalizadas** muestra entonces **Con retraso**, y su página indica desde cuándo en **Comprobaciones de monitores**. Para las sondas que un OneUptime autoalojado ejecuta por sí mismo, lo indica Estado de OneUptime en el Panel de administración.
+Una sonda está **Con retraso** cuando sus monitores esperan más de un minuto después de su hora de comprobación, por lo que se comprueban con menos frecuencia de la configurada. Su **Estado** en la tabla **Sondas personalizadas** muestra entonces **Con retraso**, y su página indica desde cuándo en **Comprobaciones de monitores**. Para las sondas que un OneUptime autoalojado ejecuta por sí mismo, lo indica Estado de OneUptime en el Panel de administración. Lo mismo ocurre con los dispositivos de red que sondea: cuando esperan más de un minuto después de su hora de sondeo, su **Estado** también muestra **Con retraso**, y su página muestra **Sondeos de dispositivos de red** con desde cuándo. Se avisa a los administradores maestros cuando una sonda global se retrasa, y un [monitor de estado de sondas](/docs/monitor/probe-status-monitor) puede crear una alerta cuando una de las tuyas se retrasa.
 
 Una sonda comprueba hasta `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitores a la vez, 10 con su configuración predeterminada, y pide más en cuanto tiene sitio. Se retrasa cuando hay más monitores pendientes de los que puede comprobar, por ejemplo cuando muchas de sus comprobaciones duran hasta agotar su tiempo de espera. Para que se ponga al día:
 
 - Actualiza la sonda. Una sonda más antigua pide sus monitores solo una vez por minuto, así que comprueba como mucho `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitores por minuto.
 - Deja que compruebe más monitores a la vez: aumenta `PROBE_MONITORING_WORKERS` y reinicia la sonda. Para las sondas que ejecuta un OneUptime autoalojado, es `GLOBAL_PROBE_1_MONITORING_WORKERS` en `config.env` con Docker Compose, o el `monitoringWorkers` de la sonda en los valores del chart de Helm.
 - Dale más CPU y memoria, o ejecuta otra copia con el mismo `PROBE_ID` y el mismo `PROBE_KEY`: las copias se reparten sus monitores.
+
+Una sonda sondea hasta `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` dispositivos de red a la vez, 25 con su configuración predeterminada, y pide más en cuanto tiene sitio. Se retrasa con ellos cuando hay más dispositivos pendientes de los que puede sondear, por ejemplo cuando muchos no responden y sus sondeos duran hasta agotar su tiempo de espera. Para que se ponga al día:
+
+- Actualiza la sonda. Una sonda más antigua pide sus dispositivos solo una vez por minuto, así que sondea como mucho `NETWORK_DEVICE_POLL_FETCH_LIMIT` dispositivos por minuto, 250 de forma predeterminada.
+- Deja que sondee más dispositivos a la vez: aumenta `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` y reinicia la sonda. Para las sondas que ejecuta un OneUptime autoalojado, es `GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY` en `config.env` con Docker Compose, o `networkDevicePollConcurrency` de la sonda en los valores del chart de Helm.
+- Mueve algunos de sus dispositivos a otra sonda.
 
 ### Otros problemas
 

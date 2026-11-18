@@ -386,13 +386,19 @@ På OneUptime-serverens side logges også en sondeforespørgsel, der besvares la
 
 ### En sonde er bagud
 
-En sonde er **Bagud**, når dens monitorer venter mere end et minut efter deres tjektidspunkt, så de tjekkes sjældnere end indstillet. Dens **Status** i tabellen **Brugerdefinerede sonder** viser så **Bagud**, og dens side siger under **Monitortjek**, siden hvornår. For de sonder, som en selvhostet OneUptime selv kører, siger OneUptime-tilstand i Admin-dashboardet det.
+En sonde er **Bagud**, når dens monitorer venter mere end et minut efter deres tjektidspunkt, så de tjekkes sjældnere end indstillet. Dens **Status** i tabellen **Brugerdefinerede sonder** viser så **Bagud**, og dens side siger under **Monitortjek**, siden hvornår. For de sonder, som en selvhostet OneUptime selv kører, siger OneUptime-tilstand i Admin-dashboardet det. Det samme gælder de netværksenheder, den poller: Når de venter mere end et minut efter deres pollingtidspunkt, viser dens **Status** også **Bagud**, og dens side viser **Polling af netværksenheder** med siden hvornår. Hovedadministratorer får besked, når en global sonde kommer bagud, og en [sondestatusmonitor](/docs/monitor/probe-status-monitor) kan udløse en advarsel, når en af dine gør.
 
 En sonde tjekker op til `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer ad gangen, 10 med sine standardindstillinger, og beder om flere, så snart den har plads. Den kommer bagud, når flere monitorer står for tur, end den kan tjekke, for eksempel når mange af deres tjek løber, til de får timeout. Sådan indhenter den det:
 
 - Opdater sonden. En ældre sonde beder kun om sine monitorer én gang i minuttet, så den tjekker højst `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer i minuttet.
 - Lad den tjekke flere monitorer ad gangen: hæv `PROBE_MONITORING_WORKERS`, og genstart sonden. For de sonder, som en selvhostet OneUptime kører, er det `GLOBAL_PROBE_1_MONITORING_WORKERS` i `config.env` med Docker Compose eller sondens `monitoringWorkers` i Helm-chartets værdier.
 - Giv den mere CPU og hukommelse, eller kør endnu en kopi af den med samme `PROBE_ID` og samme `PROBE_KEY`: kopierne deler dens monitorer.
+
+En sonde poller op til `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` netværksenheder ad gangen, 25 med sine standardindstillinger, og beder om flere, så snart den har plads. Den kommer bagud med dem, når flere enheder står for tur, end den kan polle, for eksempel når mange af dem ikke svarer, og deres polling løber, til den får timeout. Sådan indhenter den det:
+
+- Opdater sonden. En ældre sonde beder kun om sine enheder én gang i minuttet og poller derfor højst `NETWORK_DEVICE_POLL_FETCH_LIMIT` enheder i minuttet, 250 som standard.
+- Lad den polle flere enheder ad gangen: Hæv `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY`, og genstart så sonden. For de sonder, en selvhostet OneUptime kører, er det `GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY` i `config.env` med Docker Compose eller sondens `networkDevicePollConcurrency` i Helm-chartets værdier.
+- Flyt nogle af dens enheder til en anden sonde.
 
 ### Andre problemer
 

@@ -1,16 +1,16 @@
 # Sondestatusmonitor
 
-En sondestatusmonitor gir deg beskjed når en sonde slutter å melde seg: én hendelse når den mister forbindelsen, som løser seg selv når den er tilbake. Rett den mot dine egendefinerte sonder eller, på en selvdriftet OneUptime, mot den globale sonden som alle monitorer kjører på, så en sonde som blir stille aldri lar monitorene sine stå usjekket uten at noen vet det.
+En sondestatusmonitor gir deg beskjed når en sonde slutter å melde seg: én hendelse når den mister forbindelsen, som løser seg selv når den er tilbake. Rett den mot dine egendefinerte sonder eller, på en selvdriftet OneUptime, mot den globale sonden som alle monitorer kjører på, så en sonde som blir stille aldri lar monitorene sine stå usjekket uten at noen vet det. En ny monitor utløser også et varsel når en av sondene kommer på etterskudd, så monitorene sjekkes, eller nettverksenhetene polles, sjeldnere enn innstilt.
 
 :::cards
 - [Opprett en](#opprett-en-sondestatusmonitor): Velg sondene og behold standardkriteriene.
-- [Kriterier](#kriterier): Tell de tilkoblede eller frakoblede sondene, nå eller over et tidsvindu.
+- [Kriterier](#kriterier): Tell de tilkoblede, frakoblede eller etterslepende sondene, nå eller over et tidsvindu.
 - [Målinger](#målinger): Hvor mange sonder som var tilkoblet, minutt for minutt.
 :::
 
 ## Slik fungerer det
 
-OneUptime evaluerer hver sondestatusmonitor én gang i minuttet, og igjen i det øyeblikket en av sondene kobler seg til eller fra. Den leser tilkoblingsstatusen til hver sonde, den samme som sondens side viser: en sonde er frakoblet når det ikke er hørt fra den på tre minutter. Etter at OneUptime selv har vært nede eller ikke har mottatt data, venter den tre hele minutter før den kaller noen sonde frakoblet, så en oppgradering av OneUptime åpner aldri en hendelse.
+OneUptime evaluerer hver sondestatusmonitor én gang i minuttet, og igjen i det øyeblikket en av sondene kobler seg til eller fra. Den leser tilkoblingsstatusen til hver sonde, den samme som sondens side viser: en sonde er frakoblet når det ikke er hørt fra den på tre minutter. Etter at OneUptime selv har vært nede eller ikke har mottatt data, venter den tre hele minutter før den kaller noen sonde frakoblet, så en oppgradering av OneUptime åpner aldri en hendelse. Den leser også om hver tilkoblede sonde er på etterskudd, slik sondens side sier det ([En sonde er på etterskudd](/docs/probe/custom-probe#en-sonde-er-på-etterskudd)), og evaluerer monitoren på nytt i det øyeblikket en kommer på etterskudd eller tar igjen etterslepet.
 
 ```mermaid title="Fra en stille sonde til én hendelse"
 flowchart TB
@@ -55,13 +55,17 @@ Filtrene til en sondestatusmonitor teller sonder:
 | --- | --- |
 | **Frakoblede sonder** | De overvåkede sondene som er frakoblet. |
 | **Tilkoblede sonder** | De overvåkede sondene som er tilkoblet. |
+| **Sonder på etterskudd** | De overvåkede sondene som er tilkoblet, men på etterskudd: monitorene deres sjekkes, eller nettverksenhetene deres polles, sjeldnere enn innstilt. |
 
-Begge er heltall, som sammenlignes med **Større enn**, **Mindre enn**, **Lik** og de andre sammenligningene. En ny monitor starter med to kriterier:
+Alle tre er heltall, som sammenlignes med **Større enn**, **Mindre enn**, **Lik** og de andre sammenligningene. En ny monitor starter med tre kriterier:
 
 | Kriterium | Filter | Hva det gjør |
 | --- | --- | --- |
 | Sjekk om en sonde er frakoblet | **Frakoblede sonder** større enn `0` | Setter monitoren offline og erklærer en hendelse med tittelen "Sonde frakoblet: {{disconnectedProbeNames}}", som løser seg selv. |
+| Sjekk om en sonde er på etterskudd | **Sonder på etterskudd** større enn `0` | Utløser et varsel med tittelen "Sonde på etterskudd: {{behindProbeNames}}", som løser seg selv. Det endrer ikke monitorens status og erklærer ingen hendelse: Sonden melder seg fortsatt. |
 | Sjekk om alle sonder er tilkoblet | **Frakoblede sonder** lik `0` | Setter monitoren til operasjonell. |
+
+En monitor som ble opprettet før **Sonder på etterskudd** fantes, beholder kriteriene sine, og får derfor ikke beskjed når en sonde kommer på etterskudd før du legger sjekken til kriteriene.
 
 Filteret **Tilkoblede sonder** passer for en monitor som overvåker flere sonder og kan klare seg uten én: **Tilkoblede sonder** mindre enn `2` erklærer en hendelse først når det er færre enn to igjen.
 
@@ -71,7 +75,7 @@ En sonde er først frakoblet etter tre minutter med stillhet, så en rask omstar
 
 ## Målinger
 
-Hver evaluering registrerer to serier på monitoren: `oneuptime.monitor.probes.connected` og `oneuptime.monitor.probes.disconnected`, antallet overvåkede sonder som var tilkoblet og frakoblet. De vises i grafer på monitorens side **Målinger**, og et dashbord eller en målingsmonitor leser dem som enhver annen serie.
+Hver evaluering registrerer tre serier på monitoren: `oneuptime.monitor.probes.connected`, `oneuptime.monitor.probes.disconnected` og `oneuptime.monitor.probes.behind`, antallet overvåkede sonder som var tilkoblet, frakoblet og på etterskudd. De vises i grafer på monitorens side **Målinger**, og et dashbord eller en målingsmonitor leser dem som enhver annen serie.
 
 ## Malvariabler
 
@@ -83,8 +87,10 @@ Hendelses- og varselmalene til en sondestatusmonitor kan bruke disse variablene 
 | `{{disconnectedProbeCount}}` | Hvor mange av sondene som er frakoblet. |
 | `{{connectedProbeNames}}` | Navnene på de tilkoblede sondene, skilt med komma. |
 | `{{connectedProbeCount}}` | Hvor mange av sondene som er tilkoblet. |
-| `{{probeStatusSummary}}` | Én setning som nevner de frakoblede sondene, som `1 of 3 probes is disconnected: EU Probe.`, eller sier at alle sondene er tilkoblet. |
-| `{{probes}}` | Hver sonde, med `probeName`, `isConnected`, `isGlobalProbe` og `lastAliveAt`. |
+| `{{behindProbeNames}}` | Navnene på de tilkoblede sondene som er på etterskudd, skilt med komma. |
+| `{{behindProbeCount}}` | Hvor mange av sondene som er på etterskudd. |
+| `{{probeStatusSummary}}` | Én setning som nevner de frakoblede sondene, som `1 of 3 probes is disconnected: EU Probe.`, ellers de som er på etterskudd, eller sier at alle sondene er tilkoblet. |
+| `{{probes}}` | Hver sonde, med `probeName`, `isConnected`, `isBehind`, `isGlobalProbe` og `lastAliveAt`. |
 
 ## Feilsøking
 

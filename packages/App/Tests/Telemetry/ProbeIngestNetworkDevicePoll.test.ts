@@ -143,10 +143,10 @@ const loggerMock: { warn: jest.Mock; debug: jest.Mock } = logger as unknown as {
 /*
  * The claim batch size, restated here rather than imported: it is not
  * exported, and it is precisely the number these tests exist to hold
- * still. It is also the ceiling on how fast one probe's fleet can be
- * polled — the probe fetches once a minute, so a probe can never poll more
- * than this many devices per minute (see the constant's comment in
- * NetworkDevicePoll.ts and issue #3220).
+ * still. For a probe from before #9499, which fetches once a minute and
+ * sends no limit, it is also the ceiling on how fast its fleet can be
+ * polled (see the constant's comment in NetworkDevicePoll.ts and issue
+ * #3220); a probe of this release asks again while devices are due.
  */
 const DEVICE_POLL_FETCH_LIMIT: number = 250;
 

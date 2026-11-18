@@ -182,7 +182,7 @@ Em um servidor auto-hospedado, **Configurações > Notificações > E-mails** no
 
 ## Ser avisado quando o e-mail ou as sondas param
 
-Quando o e-mail do servidor deixa de funcionar, ou nenhuma sonda global reporta, o OneUptime avisa os administradores master, e mais uma vez quando volta a funcionar. Escolha onde no cartão **Notificações de interrupção** da mesma página:
+Quando o e-mail do servidor deixa de funcionar, nenhuma sonda global reporta, ou uma sonda global fica atrasada (seus monitores são verificados, ou seus dispositivos de rede consultados, com menos frequência do que o configurado), o OneUptime avisa os administradores master, e mais uma vez quando tudo volta ao normal. Escolha onde no cartão **Notificações de interrupção** da mesma página:
 
 - **Push para os dispositivos dos administradores principais** envia uma notificação push a cada dispositivo em que um administrador master entrou no app do OneUptime. Fica ativado até você desativá-lo.
 - **Enviar SMS para este número** envia um SMS pelas configurações de SMS do próprio servidor.

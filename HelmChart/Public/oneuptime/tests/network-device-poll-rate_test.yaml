@@ -1,11 +1,10 @@
-# How fast a NetworkDevice fleet gets polled is set by two knobs that have to
-# be raised together: the server hands a probe a bounded batch per fetch
-# (NETWORK_DEVICE_POLL_FETCH_LIMIT) and the probe walks a bounded number of
-# those at once (PROBE_NETWORK_DEVICE_POLL_CONCURRENCY). A probe fetches once
-# a minute, so the batch size is a hard ceiling on that probe's poll rate —
-# and claiming advances every claimed device's schedule whether the walk
-# happens or not, so a batch bigger than the probe can walk skips devices
-# rather than polling them sooner.
+# How fast a NetworkDevice fleet gets polled is set by two knobs: the server
+# hands a probe a bounded batch per fetch (NETWORK_DEVICE_POLL_FETCH_LIMIT)
+# and the probe polls a bounded number of devices at once
+# (PROBE_NETWORK_DEVICE_POLL_CONCURRENCY). A probe asks for as many as it has
+# room for and asks again while devices are due, so the concurrency sets its
+# rate; for a probe of an earlier release, which fetches once a minute, the
+# batch size is still a hard ceiling on its poll rate.
 #
 # Both are optional overrides: unset, each service uses its own in-code
 # default. These assertions keep the wiring honest in both states, because an

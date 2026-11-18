@@ -182,7 +182,7 @@ På en selvhostet server slutter **Indstillinger > Notifikationer > E-mails** i 
 
 ## Få besked, når e-mail eller sonderne stopper
 
-Når serverens e-mail holder op med at virke, eller alle globale sonder holder op med at rapportere, giver OneUptime masteradministratorerne besked, og igen når det virker igen. Vælg hvor i kortet **Besked om nedbrud** på samme side:
+Når serverens e-mail holder op med at virke, alle globale sonder holder op med at rapportere, eller en global sonde kommer bagud (dens monitorer tjekkes, eller dens netværksenheder polles, sjældnere end indstillet), giver OneUptime masteradministratorerne besked, og igen når alt er i orden. Vælg hvor i kortet **Besked om nedbrud** på samme side:
 
 - **Push til hovedadministratorernes enheder** sender en push-notifikation til alle enheder, hvor en masteradministrator er logget ind i OneUptime-appen. Den er slået til, indtil du slår den fra.
 - **Send sms til dette nummer** sender en sms gennem serverens egne sms-indstillinger.

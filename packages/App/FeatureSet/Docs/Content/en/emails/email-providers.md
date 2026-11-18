@@ -182,7 +182,7 @@ On a self-hosted server, **Settings > Notifications > Emails** in the Admin Dash
 
 ## Be told when email or the probes stop
 
-When the server's email stops working, or every global probe stops reporting, OneUptime tells the master admins, and once more when it works again. Choose where in the **Outage Notifications** card on the same page:
+When the server's email stops working, every global probe stops reporting, or a global probe falls behind (its monitors checked, or its network devices polled, less often than set), OneUptime tells the master admins, and once more when it is right again. Choose where in the **Outage Notifications** card on the same page:
 
 - **Push to Master Admins' Devices** sends a push notification to every device a master admin signed in to the OneUptime app on. It is on until you turn it off.
 - **Text This Number** sends an SMS through the server's own SMS settings.

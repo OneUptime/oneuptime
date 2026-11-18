@@ -182,7 +182,7 @@ Su un server self-hosted, **Impostazioni > Notifiche > E-mail** nell'Admin Dashb
 
 ## Essere avvisati quando l'email o le sonde si fermano
 
-Quando l'email del server smette di funzionare, o nessuna sonda globale invia più dati, OneUptime avvisa gli amministratori principali, e ancora una volta quando torna a funzionare. Scegli dove nella scheda **Notifiche di interruzione** della stessa pagina:
+Quando l'email del server smette di funzionare, nessuna sonda globale invia più dati o una sonda globale resta indietro (i suoi monitor vengono controllati, o i suoi dispositivi di rete interrogati, meno spesso di quanto impostato), OneUptime avvisa gli amministratori principali, e ancora una volta quando tutto è a posto. Scegli dove nella scheda **Notifiche di interruzione** della stessa pagina:
 
 - **Push sui dispositivi degli amministratori principali** invia una notifica push a ogni dispositivo su cui un amministratore principale ha effettuato l'accesso all'app OneUptime. È attivo finché non lo disattivi.
 - **Invia SMS a questo numero** invia un SMS tramite le impostazioni SMS del server.

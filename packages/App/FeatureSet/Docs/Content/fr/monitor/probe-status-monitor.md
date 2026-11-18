@@ -1,16 +1,16 @@
 # Moniteur d'état des sondes
 
-Un moniteur d'état des sondes vous prévient quand une sonde cesse de se manifester : un incident lorsqu'elle se déconnecte, résolu de lui-même dès qu'elle revient. Pointez-le sur vos sondes personnalisées ou, sur un OneUptime auto-hébergé, sur la sonde globale qui exécute chaque moniteur, afin qu'une sonde silencieuse ne laisse jamais ses moniteurs sans vérification à l'insu de tous.
+Un moniteur d'état des sondes vous prévient quand une sonde cesse de se manifester : un incident lorsqu'elle se déconnecte, résolu de lui-même dès qu'elle revient. Pointez-le sur vos sondes personnalisées ou, sur un OneUptime auto-hébergé, sur la sonde globale qui exécute chaque moniteur, afin qu'une sonde silencieuse ne laisse jamais ses moniteurs sans vérification à l'insu de tous. Un nouveau moniteur lève aussi une alerte quand l'une de ses sondes prend du retard, ses moniteurs vérifiés ou ses équipements réseau interrogés moins souvent que prévu.
 
 :::cards
 - [En créer un](#créer-un-moniteur-détat-des-sondes): Choisir les sondes et garder les critères par défaut.
-- [Critères](#critères): Compter les sondes connectées ou déconnectées, maintenant ou sur une période.
+- [Critères](#critères): Compter les sondes connectées, déconnectées ou en retard, maintenant ou sur une période.
 - [Métriques](#métriques): Combien de sondes étaient connectées, minute par minute.
 :::
 
 ## Comment ça marche
 
-OneUptime évalue chaque moniteur d'état des sondes une fois par minute, et à nouveau dès qu'une de ses sondes se connecte ou se déconnecte. Il lit l'état de connexion de chaque sonde, celui qu'affiche la page de la sonde : une sonde est déconnectée lorsque rien n'a été reçu d'elle pendant trois minutes. Après une panne de OneUptime lui-même, ou une période sans réception, il attend trois minutes entières avant de déclarer une sonde déconnectée, si bien qu'une mise à niveau de OneUptime n'ouvre jamais d'incident.
+OneUptime évalue chaque moniteur d'état des sondes une fois par minute, et à nouveau dès qu'une de ses sondes se connecte ou se déconnecte. Il lit l'état de connexion de chaque sonde, celui qu'affiche la page de la sonde : une sonde est déconnectée lorsque rien n'a été reçu d'elle pendant trois minutes. Après une panne de OneUptime lui-même, ou une période sans réception, il attend trois minutes entières avant de déclarer une sonde déconnectée, si bien qu'une mise à niveau de OneUptime n'ouvre jamais d'incident. Il lit aussi si chaque sonde connectée est en retard, comme le dit la page de la sonde ([Une sonde est en retard](/docs/probe/custom-probe#une-sonde-est-en-retard)), et évalue de nouveau le moniteur dès qu'une sonde prend du retard ou le rattrape.
 
 ```mermaid title="D'une sonde silencieuse à un seul incident"
 flowchart TB
@@ -55,13 +55,17 @@ Les filtres d'un moniteur d'état des sondes comptent des sondes :
 | --- | --- |
 | **Sondes déconnectées** | Les sondes surveillées qui sont déconnectées. |
 | **Sondes connectées** | Les sondes surveillées qui sont connectées. |
+| **Sondes en retard** | Les sondes surveillées qui sont connectées mais en retard : leurs moniteurs sont vérifiés, ou leurs équipements réseau interrogés, moins souvent que prévu. |
 
-Ce sont des nombres entiers, comparés avec **Supérieur à**, **Inférieur à**, **Égal à** et les autres comparaisons. Un nouveau moniteur commence avec deux critères :
+Ce sont trois nombres entiers, comparés avec **Supérieur à**, **Inférieur à**, **Égal à** et les autres comparaisons. Un nouveau moniteur commence avec trois critères :
 
 | Critère | Filtre | Ce qu'il fait |
 | --- | --- | --- |
 | Vérifier si une sonde est déconnectée | **Sondes déconnectées** supérieur à `0` | Met le moniteur hors ligne et déclare un incident intitulé « Sonde déconnectée : {{disconnectedProbeNames}} », qui se résout de lui-même. |
+| Vérifier si une sonde est en retard | **Sondes en retard** supérieur à `0` | Lève une alerte intitulée « Sonde en retard : {{behindProbeNames}} », qui se résout d'elle-même. Elle ne change pas l'état du moniteur et ne déclare aucun incident : la sonde se manifeste toujours. |
 | Vérifier si toutes les sondes sont connectées | **Sondes déconnectées** égal à `0` | Met le moniteur en état opérationnel. |
+
+Un moniteur créé avant que **Sondes en retard** n'existe garde ses critères : il n'est donc pas prévenu quand une sonde prend du retard tant que vous n'ajoutez pas cette vérification à ses critères.
 
 Le filtre **Sondes connectées** convient à un moniteur qui surveille plusieurs sondes et peut en perdre une : **Sondes connectées** inférieur à `2` ne déclare un incident que lorsqu'il en reste moins de deux.
 
@@ -71,7 +75,7 @@ Une sonde n'est déconnectée qu'après trois minutes de silence, donc un redém
 
 ## Métriques
 
-Chaque évaluation enregistre deux séries sur le moniteur : `oneuptime.monitor.probes.connected` et `oneuptime.monitor.probes.disconnected`, le nombre de sondes surveillées qui étaient connectées et déconnectées. Elles sont tracées sur la page **Métriques** du moniteur, et un tableau de bord ou un moniteur de métriques les lit comme n'importe quelle autre série.
+Chaque évaluation enregistre trois séries sur le moniteur : `oneuptime.monitor.probes.connected`, `oneuptime.monitor.probes.disconnected` et `oneuptime.monitor.probes.behind`, le nombre de sondes surveillées qui étaient connectées, déconnectées et en retard. Elles sont tracées sur la page **Métriques** du moniteur, et un tableau de bord ou un moniteur de métriques les lit comme n'importe quelle autre série.
 
 ## Variables de modèle
 
@@ -83,8 +87,10 @@ Les modèles d'incident et d'alerte d'un moniteur d'état des sondes peuvent uti
 | `{{disconnectedProbeCount}}` | Le nombre de sondes déconnectées. |
 | `{{connectedProbeNames}}` | Les noms des sondes connectées, séparés par des virgules. |
 | `{{connectedProbeCount}}` | Le nombre de sondes connectées. |
-| `{{probeStatusSummary}}` | Une phrase qui nomme les sondes déconnectées, comme `1 of 3 probes is disconnected: EU Probe.`, ou qui indique que toutes les sondes sont connectées. |
-| `{{probes}}` | Chaque sonde, avec `probeName`, `isConnected`, `isGlobalProbe` et `lastAliveAt`. |
+| `{{behindProbeNames}}` | Les noms des sondes connectées qui sont en retard, séparés par des virgules. |
+| `{{behindProbeCount}}` | Le nombre de sondes en retard. |
+| `{{probeStatusSummary}}` | Une phrase qui nomme les sondes déconnectées, comme `1 of 3 probes is disconnected: EU Probe.`, sinon celles en retard, ou qui indique que toutes les sondes sont connectées. |
+| `{{probes}}` | Chaque sonde, avec `probeName`, `isConnected`, `isBehind`, `isGlobalProbe` et `lastAliveAt`. |
 
 ## Dépannage
 
