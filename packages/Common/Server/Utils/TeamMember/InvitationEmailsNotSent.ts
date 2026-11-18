@@ -270,7 +270,10 @@ export default class InvitationEmailsNotSent {
     return InvitationEmailsNotSent.getLatestFailuresInProjects({
       rows: rows,
       invitees: invitees.map(
-        (invitee: { projectId: ObjectID; userId: ObjectID }): ProjectInvitee => {
+        (invitee: {
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): ProjectInvitee => {
           return {
             projectId: invitee.projectId.toString(),
             userId: invitee.userId.toString(),

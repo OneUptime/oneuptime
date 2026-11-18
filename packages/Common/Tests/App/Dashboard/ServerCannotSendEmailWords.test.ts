@@ -5,6 +5,8 @@ import { SERVER_EMAIL_COPY } from "../../../../App/FeatureSet/Dashboard/src/Util
 import { SERVER_SENDING_ALERT_COPY } from "../../../UI/Components/ServerSending/ServerSendingTopAlert";
 import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "../../../Types/ServerSending/ServerSendingWords";
 import { INVITATION_LINK_COPY } from "../../../UI/Components/InvitationLink/InvitationLinkModal";
+import { INVITATION_EMAIL_NOT_SENT_COPY } from "../../../UI/Components/InvitationLink/InvitationEmailNotSentPill";
+import { RESEND_INVITATION_COPY } from "../../../UI/Components/InvitationLink/ResendInvitation";
 
 /*
  * WHAT THE DASHBOARD AND THE ADMIN DASHBOARD SAY WHEN THE SERVER CANNOT
@@ -100,6 +102,8 @@ const DASHBOARD_SENTENCES: Array<string> = [
   SERVER_EMAIL_COPY.emailNotSentForAdmin,
   SERVER_EMAIL_COPY.emailNotSentAskAdmin,
   SERVER_EMAIL_COPY.emailNotSentCheckAddress,
+  // Resend Invitation, which that advice names (#9519).
+  ...Object.values(RESEND_INVITATION_COPY),
 ];
 
 const BANNER_SENTENCES: Array<string> = Object.values(
@@ -112,6 +116,20 @@ const ADMIN_INVITE_SENTENCES: Array<string> = Object.values(
 ).filter((sentence: string): boolean => {
   return sentence !== INVITATION_LINK_COPY.done;
 });
+
+/*
+ * What a pending row of the Admin Dashboard's lists says too (#9518,
+ * #9519): Email Not Sent and why, and Resend Invitation - but "Invitation
+ * Sent", which both said before, and is worded apart.
+ */
+const ADMIN_PENDING_ROW_SENTENCES: Array<string> = [
+  ...Object.values(INVITATION_EMAIL_NOT_SENT_COPY),
+  ...Object.values(RESEND_INVITATION_COPY).filter(
+    (sentence: string): boolean => {
+      return sentence !== RESEND_INVITATION_COPY.sentWithoutAddress;
+    },
+  ),
+];
 
 const NON_ENGLISH_DASHBOARD: Array<string> = Object.keys(DASHBOARD_LOCALES)
   .filter((code: string): boolean => {
@@ -156,7 +174,11 @@ describe("in every language", () => {
     },
   );
 
-  test.each([...BANNER_SENTENCES, ...ADMIN_INVITE_SENTENCES])(
+  test.each([
+    ...BANNER_SENTENCES,
+    ...ADMIN_INVITE_SENTENCES,
+    ...ADMIN_PENDING_ROW_SENTENCES,
+  ])(
     "the Admin Dashboard says %p in every language",
     (sentence: string) => {
       expect(ADMIN_LOCALES["en"]![sentence]).toBe(sentence);
@@ -338,10 +360,20 @@ describe("where the pages say them", () => {
       "NotificationLogs",
       "EmailLogsTable.tsx",
     );
-    // Worded once, for the Email Logs and the Users list's Email Not Sent (#9511).
-    const reason: string = read("Utils", "EmailLogReason.ts");
+    /*
+     * Worded once, for the Email Logs and Email Not Sent (#9511) - in
+     * Common, since the Admin Dashboard's lists say Email Not Sent too
+     * (#9518). The Dashboard's module keeps its path for it.
+     */
+    const reason: string = fs.readFileSync(
+      path.join(__dirname, "..", "..", "..", "UI", "Utils", "EmailLogReason.ts"),
+      "utf8",
+    );
 
     expect(table).toContain("getEmailLogReason(");
+    expect(read("Utils", "EmailLogReason.ts")).toContain(
+      'export * from "Common/UI/Utils/EmailLogReason";',
+    );
     expect(reason).toContain("ServerSendingWords.isServerEmailNotSetUpMessage");
     expect(reason).toContain(
       "translator.translateText(SERVER_EMAIL_NOT_SET_UP_MESSAGE)",
@@ -375,9 +407,37 @@ describe("where the pages say them", () => {
       expect(source).toContain("useServerCanSendEmail() === false");
     }
 
+    /*
+     * A pending row's pill: Invited when nothing was sent, Email Not Sent
+     * when the mail service refused it (#9518), Invitation Sent otherwise -
+     * one pill, the Admin Dashboard's PendingInvitationPill.
+     */
     for (const file of ["Users.tsx", "TeamView.tsx", "UserView.tsx"]) {
-      expect(adminPage(file)).toContain("INVITATION_LINK_COPY.invitedPill");
+      expect(adminPage(file)).toMatch(
+        /<PendingInvitationPill\s+cannotSendEmail=\{cannotSendEmail\}\s+notSent=\{invitationEmailsNotSent\.getNotSent\(item\)\}\s+\/>/,
+      );
+      expect(adminPage(file)).not.toContain("INVITATION_LINK_COPY.invitedPill");
     }
+
+    const adminPill: string = fs.readFileSync(
+      path.join(
+        FEATURE_SET,
+        "AdminDashboard",
+        "src",
+        "Components",
+        "User",
+        "PendingInvitationPill.tsx",
+      ),
+      "utf8",
+    );
+    const invited: string = adminPill.slice(
+      adminPill.indexOf("INVITATION_LINK_COPY.invitedPill") - 200,
+      adminPill.indexOf("INVITATION_LINK_COPY.invitedPill") + 200,
+    );
+
+    expect(invited).toContain("if (props.cannotSendEmail) {");
+    expect(adminPill).toContain('text="Invitation Sent"');
+    expect(adminPill).toContain("<InvitationEmailNotSentPill");
   });
 
   test("both dashboards draw the banner above every page", () => {

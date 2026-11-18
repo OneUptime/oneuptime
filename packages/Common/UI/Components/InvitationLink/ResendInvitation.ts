@@ -64,9 +64,7 @@ export const RESEND_INVITATION_COPY: {
   action: translationKey("Resend Invitation"),
   question: translationKey("Send their invitation email to {{email}} again?"),
   // A row that does not name the person's address.
-  questionWithoutAddress: translationKey(
-    "Send their invitation email again?",
-  ),
+  questionWithoutAddress: translationKey("Send their invitation email again?"),
   // Where it went, once the mail service has taken it.
   sent: translationKey("Invitation sent to {{email}}"),
   // An answer that names no address: the pending pill's words.
@@ -188,8 +186,9 @@ export const getInvitationResentToastTitle: (data: {
 
   if (!email) {
     return (
-      data.translator.translateText(RESEND_INVITATION_COPY.sentWithoutAddress) ||
-      RESEND_INVITATION_COPY.sentWithoutAddress
+      data.translator.translateText(
+        RESEND_INVITATION_COPY.sentWithoutAddress,
+      ) || RESEND_INVITATION_COPY.sentWithoutAddress
     );
   }
 
@@ -218,7 +217,9 @@ export const getResendInvitationRowAction: <T extends TeamMember>(data: {
     icon: IconProp.Email,
     // Only a pending row: someone who has joined has no invitation waiting.
     isVisible: (item: T): boolean => {
-      return data.isAvailable && Boolean(item.id) && !item.hasAcceptedInvitation;
+      return (
+        data.isAvailable && Boolean(item.id) && !item.hasAcceptedInvitation
+      );
     },
     getConfirmation: (item: T): RowActionConfirmation => {
       const translator: Translator = getGlobalTranslator();

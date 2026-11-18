@@ -435,13 +435,11 @@ export default class TeamMemberAPI extends BaseAPI<
             req.params["id"],
           );
 
-          const resent: ResentInvitation = await this.service.resendInvitation(
-            {
-              teamMemberId: teamMemberId,
-              projectId: projectId,
-              props: props,
-            },
-          );
+          const resent: ResentInvitation = await this.service.resendInvitation({
+            teamMemberId: teamMemberId,
+            projectId: projectId,
+            props: props,
+          });
 
           Response.setNoCacheHeaders(res);
 

@@ -108,7 +108,9 @@ export const getPendingPeopleToAskAbout: (
  */
 export const getPendingInviteesToAskAbout: (
   rows: Array<TeamMember>,
-) => Array<ProjectInvitee> = (rows: Array<TeamMember>): Array<ProjectInvitee> => {
+) => Array<ProjectInvitee> = (
+  rows: Array<TeamMember>,
+): Array<ProjectInvitee> => {
   const invitees: Map<string, ProjectInvitee> = new Map<
     string,
     ProjectInvitee

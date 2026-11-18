@@ -744,8 +744,8 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   }
 
   /*
-   * THE INVITATION EMAIL (EmailTemplateType.InviteMember), as it is sent to
-   * a new invitation (onBeforeCreate) and to one sent again
+   * THE INVITATION EMAIL (the InviteMember template), as it is sent to a
+   * new invitation (onBeforeCreate) and to one sent again
    * (resendInvitation, #9519) alike. Null when the project is gone.
    * Sending it is the caller's: a new invitation does not wait for the mail
    * service, a resend does.
@@ -823,12 +823,10 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      * OneUptime, an API key or a workflow makes. For an invitation sent
      * again, the person sending it now.
      */
-    const inviter: InvitationInviter | null = await InvitationInviterUtil.read(
-      {
-        props: data.props,
-        inviteeUserId: user.id,
-      },
-    );
+    const inviter: InvitationInviter | null = await InvitationInviterUtil.read({
+      props: data.props,
+      inviteeUserId: user.id,
+    });
 
     return {
       toEmail: email,
