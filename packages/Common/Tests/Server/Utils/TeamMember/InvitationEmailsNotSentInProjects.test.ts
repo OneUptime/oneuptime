@@ -49,16 +49,20 @@ const MASTER_ADMIN: DatabaseCommonInteractionProps = {
 
 const REFUSAL: string = "535 5.7.8 Authentication failed";
 
-// An Email Log row, newest first as the read sorts them.
+// An Email Log row, newest first as the read sorts them. No project: none.
 function logRow(
-  projectId: ObjectID,
+  projectId: ObjectID | null,
   userId: ObjectID,
   status: MailStatus,
   statusMessage?: string,
 ): EmailLog {
   const row: EmailLog = new EmailLog();
   row._id = ObjectID.generate().toString();
-  row.projectId = projectId;
+
+  if (projectId) {
+    row.projectId = projectId;
+  }
+
   row.userId = userId;
   row.status = status;
 
@@ -321,8 +325,7 @@ describe("whose latest invitation email to their project failed", () => {
   });
 
   test("a row with no project or no person, and a reason of nothing but spaces, read as they should", () => {
-    const noProject: EmailLog = logRow(ACME, GRACE, MailStatus.Error, "x");
-    noProject.projectId = undefined;
+    const noProject: EmailLog = logRow(null, GRACE, MailStatus.Error, "x");
 
     expect(
       InvitationEmailsNotSent.getLatestFailuresInProjects({

@@ -8,7 +8,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import React, { FunctionComponent } from "react";
 import {
   afterEach,
@@ -218,12 +218,17 @@ const currentProject: Project = new Project();
 currentProject._id = PROJECT_ID.toString();
 
 function row(
-  id: string,
+  // None for a row read without its ID.
+  id: string | null,
   hasAcceptedInvitation: boolean,
   email: string | null = GRACE_EMAIL,
 ): TeamMember {
   const membership: TeamMember = new TeamMember();
-  membership._id = id;
+
+  if (id) {
+    membership._id = id;
+  }
+
   membership.projectId = PROJECT_ID;
   membership.hasAcceptedInvitation = hasAcceptedInvitation;
 
@@ -367,11 +372,7 @@ describe("the row action", () => {
       hasId: boolean,
       isShown: boolean,
     ) => {
-      const item: TeamMember = row(PENDING_ID, hasAccepted);
-
-      if (!hasId) {
-        item._id = undefined;
-      }
+      const item: TeamMember = row(hasId ? PENDING_ID : null, hasAccepted);
 
       expect(Boolean(action(isAvailable).isVisible!(item))).toBe(isShown);
     },
@@ -397,10 +398,10 @@ describe("the row action", () => {
   });
 
   test("sends it for the row's invitation, with the page's project, then says where it went and reads the rows again", async () => {
-    const onComplete: jest.Mock = jest.fn();
-    const onError: jest.Mock = jest.fn();
-    const refresh: jest.Mock = jest.fn();
-    const onSent: jest.Mock = jest.fn();
+    const onComplete: Mock = jest.fn();
+    const onError: Mock = jest.fn();
+    const refresh: Mock = jest.fn();
+    const onSent: Mock = jest.fn();
 
     await act(async (): Promise<void> => {
       action(true, onSent as unknown as (item: TeamMember) => void).onClick(
@@ -438,8 +439,8 @@ describe("the row action", () => {
       );
     };
 
-    const onComplete: jest.Mock = jest.fn();
-    const onError: jest.Mock = jest.fn();
+    const onComplete: Mock = jest.fn();
+    const onError: Mock = jest.fn();
 
     await act(async (): Promise<void> => {
       action().onClick(
@@ -467,7 +468,7 @@ describe("the row action", () => {
       return tooMany(1500);
     };
 
-    const onError: jest.Mock = jest.fn();
+    const onError: Mock = jest.fn();
 
     await act(async (): Promise<void> => {
       action().onClick(
