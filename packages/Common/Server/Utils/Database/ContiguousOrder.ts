@@ -1,5 +1,7 @@
 import type DatabaseService from "../../Services/DatabaseService";
-import AuditLogService from "../../Services/AuditLogService";
+import type AuditLogServiceType from "../../Services/AuditLogService";
+import RuleSetCache from "../Rules/RuleSetCache";
+import StatusPageOverviewCache from "../StatusPage/StatusPageOverviewCache";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -9,6 +11,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import MoveInListUtil, {
   ListPlace,
   MoveInListChanges,
@@ -56,6 +59,15 @@ import { EntityManager } from "typeorm";
  * moves at once run one after the other, each on the list as the other left
  * it, and a write of one row waits for a move holding it; nothing can leave
  * the list half moved, or two rows at one number.
+ *
+ * The drag-ordered lists (@ListOrderColumn: severities, states, custom
+ * fields, rules, pipelines, status page links...) are moved here too, by
+ * ListOrderMaintainer (issue #9609): numbered by a column of their own
+ * (orderColumn), their rows put in order and moved as Common/Utils/ListOrder
+ * puts them (getChanges: the older of two rows at one number first, and a
+ * list may count down), a list named by a kind as well as by ids (a public
+ * note approval step's event type), and a move a list's own rules may
+ * refuse (beforeWrite).
  */
 
 // What a statement read or wrote, however the driver handed it over.
@@ -93,6 +105,11 @@ const assertSafeName: (name: string) => void = (name: string): void => {
 export interface ListColumnValue {
   column: string;
   value: string | null;
+  /*
+   * What the column holds: an id (the default), or a short text naming a
+   * kind of row - a public note approval step's event type.
+   */
+  isText?: boolean | undefined;
 }
 
 export interface ContiguousOrderMoved<TBaseModel extends BaseModel> {
@@ -101,6 +118,41 @@ export interface ContiguousOrderMoved<TBaseModel extends BaseModel> {
   // The rows given another number, the moved row among them.
   changedRows: Array<{ id: string; order: number }>;
 }
+
+/*
+ * How a list's rows are put in order and moved: from the rows as the move's
+ * lock hands them over, the moved row's id and the id of the row whose place
+ * it takes. MoveInListUtil.getChanges by default - by number, then id.
+ */
+export type ListMoveChangesFunction = (data: {
+  places: Array<ListPlace>;
+  rowId: string;
+  placeOfId: string;
+}) => MoveInListChanges;
+
+/*
+ * Asked inside a move's transaction, the list held, with the rows the move
+ * would give another number, before any is written. A refusal it throws
+ * undoes the move.
+ */
+export type ListMoveCheckFunction = (
+  changedRows: Array<{ id: string; order: number }>,
+) => Promise<void>;
+
+// The column the five numbered lists are numbered by.
+const DEFAULT_ORDER_COLUMN: string = "order";
+
+const getDefaultChanges: ListMoveChangesFunction = (data: {
+  places: Array<ListPlace>;
+  rowId: string;
+  placeOfId: string;
+}): MoveInListChanges => {
+  return MoveInListUtil.getChanges({
+    rows: data.places,
+    rowId: data.rowId,
+    placeOfId: data.placeOfId,
+  });
+};
 
 export default class ContiguousOrder {
   /*
@@ -144,10 +196,12 @@ export default class ContiguousOrder {
   /*
    * Moves a row to the place another row of its list holds
    * (Types/Database/MoveInList): the caller must be allowed to give the row
-   * another order, as a write of its `order` asks; the rows that step aside
-   * are the move's own bookkeeping. `listColumns` are the columns that name
-   * the row's list - its project among them - and `alsoSelect` the other
-   * columns of the moved row its service needs afterwards.
+   * another number, as a write of its number column asks; the rows that step
+   * aside are the move's own bookkeeping. `listColumns` are the columns that
+   * name the row's list - its project among them - and `alsoSelect` the
+   * other columns of the moved row its service needs afterwards.
+   * `orderColumn`, `getChanges` and `beforeWrite` are a drag-ordered list's
+   * (ListOrderMaintainer.move); the five numbered lists leave them out.
    */
   public static async move<TBaseModel extends BaseModel>(data: {
     service: DatabaseService<TBaseModel>;
@@ -156,12 +210,17 @@ export default class ContiguousOrder {
     listColumns: Array<string>;
     alsoSelect?: Array<string> | undefined;
     props: DatabaseCommonInteractionProps;
+    // The column the list is numbered by: `order` when left out.
+    orderColumn?: string | undefined;
+    getChanges?: ListMoveChangesFunction | undefined;
+    beforeWrite?: ListMoveCheckFunction | undefined;
   }): Promise<ContiguousOrderMoved<TBaseModel>> {
     const model: TBaseModel = data.service.getModel();
     const name: string = (model.singularName || "row").toLowerCase();
     const tableName: string = model.tableName || "";
     const tenantColumn: string | null = model.getTenantColumn();
     const projectId: ObjectID | undefined = data.props.tenantId;
+    const orderColumn: string = data.orderColumn || DEFAULT_ORDER_COLUMN;
 
     if (!projectId || !tenantColumn) {
       throw new BadDataException("Project ID is required.");
@@ -174,12 +233,13 @@ export default class ContiguousOrder {
     }
 
     assertSafeName(tableName);
+    assertSafeName(orderColumn);
 
     for (const column of data.listColumns) {
       assertSafeName(column);
     }
 
-    // The row, as the caller may give it another order.
+    // The row, as the caller may give it another number.
     const permitted: Query<TBaseModel> =
       await ModelPermission.checkUpdateQueryPermissions(
         data.service.modelType,
@@ -187,11 +247,11 @@ export default class ContiguousOrder {
           _id: data.rowId,
           [tenantColumn]: projectId,
         } as Query<TBaseModel>,
-        { order: 1 } as never,
+        { [orderColumn]: 1 } as never,
         data.props,
       );
 
-    const select: Record<string, boolean> = { _id: true, order: true };
+    const select: Record<string, boolean> = { _id: true, [orderColumn]: true };
 
     for (const column of [...data.listColumns, ...(data.alsoSelect || [])]) {
       select[column] = true;
@@ -223,6 +283,10 @@ export default class ContiguousOrder {
           column: column,
           value:
             value === null || value === undefined ? null : value.toString(),
+          isText:
+            column !== tenantColumn &&
+            model.getTableColumnMetadata(column)?.type !==
+              TableColumnType.ObjectID,
         };
       },
     );
@@ -244,26 +308,76 @@ export default class ContiguousOrder {
           rowId: data.rowId,
           placeOfId: data.placeOfId,
           name: name,
+          orderColumn: orderColumn,
+          getChanges: data.getChanges,
+          beforeWrite: data.beforeWrite,
         });
       },
     );
 
     await ContiguousOrder.recordInAuditLog({
       service: data.service,
+      orderColumn: orderColumn,
       changedRows: written.changedRows,
       previousOrders: written.previousOrders,
       props: data.props,
+    });
+
+    await ContiguousOrder.refreshCachesOfList({
+      tableName: tableName,
+      projectId: projectId,
+      orderColumn: orderColumn,
+      changedRows: written.changedRows,
     });
 
     return { row: row, changedRows: written.changedRows };
   }
 
   /*
+   * What a write of the rows' numbers would have every process read again,
+   * as DatabaseService refreshes after an update: a project's rules, in the
+   * order they are evaluated (RuleSetCache: grouping rules, alert-to-
+   * incident rules), and what its status pages show (StatusPageOverviewCache:
+   * groups, resources, header and footer links). Neither ever fails the
+   * move, which is written.
+   */
+  private static async refreshCachesOfList(data: {
+    tableName: string;
+    projectId: ObjectID;
+    orderColumn: string;
+    changedRows: Array<{ id: string; order: number }>;
+  }): Promise<void> {
+    if (data.changedRows.length === 0) {
+      return;
+    }
+
+    const rows: Array<Record<string, unknown>> = [
+      { projectId: data.projectId.toString() },
+    ];
+    const written: Record<string, unknown> = {
+      [data.orderColumn]: data.changedRows[0]!.order,
+    };
+
+    await RuleSetCache.afterUpdate({
+      tableName: data.tableName,
+      rows: rows,
+      written: written,
+    });
+
+    await StatusPageOverviewCache.afterUpdate({
+      tableName: data.tableName,
+      rows: rows,
+      written: written,
+    });
+  }
+
+  /*
    * The move itself, in the transaction it is handed: every row of the list
    * locked (in id order, as the schedule's save of its layers locks them,
    * so the two never wait for each other in a circle), read as they are
-   * once the lock is had, and the rows given another number written in one
-   * statement.
+   * once the lock is had - its number (under `orderColumn`, `order` when
+   * left out) and when it was created - and the rows given another number
+   * written in one statement, once `beforeWrite` lets them be.
    */
   public static async moveWithinTransaction(data: {
     manager: EntityManager;
@@ -272,10 +386,17 @@ export default class ContiguousOrder {
     rowId: ObjectID;
     placeOfId: ObjectID;
     name: string;
+    orderColumn?: string | undefined;
+    getChanges?: ListMoveChangesFunction | undefined;
+    beforeWrite?: ListMoveCheckFunction | undefined;
   }): Promise<{
     changedRows: Array<{ id: string; order: number }>;
     previousOrders: Map<string, number | null>;
   }> {
+    const orderColumn: string = data.orderColumn || DEFAULT_ORDER_COLUMN;
+    assertSafeName(data.tableName);
+    assertSafeName(orderColumn);
+
     const parameters: Array<unknown> = [];
     const where: Array<string> = ContiguousOrder.getListConditions(
       data.list,
@@ -284,25 +405,32 @@ export default class ContiguousOrder {
 
     const locked: Array<RawRow> = getReturnedRows(
       await data.manager.query(
-        `SELECT "_id", "order" FROM "${data.tableName}" WHERE ${where.join(" AND ")} AND "deletedAt" IS NULL ORDER BY "_id" ASC FOR UPDATE`,
+        `SELECT "_id", "${orderColumn}" AS "order", "createdAt" FROM "${data.tableName}" WHERE ${where.join(" AND ")} AND "deletedAt" IS NULL ORDER BY "_id" ASC FOR UPDATE`,
         parameters,
       ),
     );
 
     const places: Array<ListPlace> = locked.map((row: RawRow): ListPlace => {
       const order: unknown = row["order"];
+      const createdAt: unknown = row["createdAt"];
 
       return {
         id: String(row["_id"]),
         order: order === null || order === undefined ? null : Number(order),
+        createdAt:
+          createdAt instanceof Date || typeof createdAt === "string"
+            ? createdAt
+            : null,
       };
     });
 
-    const changes: MoveInListChanges = MoveInListUtil.getChanges({
-      rows: places,
-      rowId: data.rowId.toString(),
-      placeOfId: data.placeOfId.toString(),
-    });
+    const changes: MoveInListChanges = (data.getChanges || getDefaultChanges)(
+      {
+        places: places,
+        rowId: data.rowId.toString(),
+        placeOfId: data.placeOfId.toString(),
+      },
+    );
 
     if (changes.kind === "rowNotInList") {
       throw new NotFoundException(
@@ -328,6 +456,10 @@ export default class ContiguousOrder {
       );
     }
 
+    if (changes.changedRows.length > 0 && data.beforeWrite) {
+      await data.beforeWrite(changes.changedRows);
+    }
+
     if (changes.changedRows.length > 0) {
       const updateParameters: Array<unknown> = [];
       const updateWhere: Array<string> = ContiguousOrder.getListConditions(
@@ -344,7 +476,7 @@ export default class ContiguousOrder {
       }
 
       await data.manager.query(
-        `UPDATE "${data.tableName}" AS "row" SET "order" = "moved"."order", "updatedAt" = now(), "version" = "row"."version" + 1 FROM (VALUES ${values.join(", ")}) AS "moved"("_id", "order") WHERE "row"."_id" = "moved"."_id" AND ${updateWhere
+        `UPDATE "${data.tableName}" AS "row" SET "${orderColumn}" = "moved"."order", "updatedAt" = now(), "version" = "row"."version" + 1 FROM (VALUES ${values.join(", ")}) AS "moved"("_id", "order") WHERE "row"."_id" = "moved"."_id" AND ${updateWhere
           .map((condition: string): string => {
             return `"row".${condition}`;
           })
@@ -373,7 +505,10 @@ export default class ContiguousOrder {
 
       parameters.push(entry.value);
 
-      return `"${entry.column}" = $${parameters.length}::uuid`;
+      // A kind is compared as the column holds it, an id as a uuid.
+      return entry.isText
+        ? `"${entry.column}" = $${parameters.length}`
+        : `"${entry.column}" = $${parameters.length}::uuid`;
     });
   }
 
@@ -385,6 +520,7 @@ export default class ContiguousOrder {
    */
   private static async recordInAuditLog<TBaseModel extends BaseModel>(data: {
     service: DatabaseService<TBaseModel>;
+    orderColumn: string;
     changedRows: Array<{ id: string; order: number }>;
     previousOrders: Map<string, number | null>;
     props: DatabaseCommonInteractionProps;
@@ -394,6 +530,17 @@ export default class ContiguousOrder {
     if (!model.enableAuditLogOn?.update || data.changedRows.length === 0) {
       return;
     }
+
+    /*
+     * Lazy require, as DatabaseService requires it: DatabaseService moves
+     * the drag-ordered lists through here (ListOrderMaintainer), and
+     * AuditLogService depends on services that extend DatabaseService, so
+     * a top-level import would leave DatabaseService undefined at
+     * class-extension time for them.
+     */
+    const auditLogService: typeof AuditLogServiceType =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../../Services/AuditLogService").default;
 
     const select: Record<string, boolean> = {};
 
@@ -433,13 +580,13 @@ export default class ContiguousOrder {
       }
 
       // The row as it was before the move: its number then.
-      (row as unknown as Record<string, unknown>)["order"] =
+      (row as unknown as Record<string, unknown>)[data.orderColumn] =
         data.previousOrders.get(id) ?? null;
 
-      await AuditLogService.recordUpdate({
+      await auditLogService.recordUpdate({
         model: model,
         before: row,
-        updatedFields: { order: changed.order } as JSONObject,
+        updatedFields: { [data.orderColumn]: changed.order } as JSONObject,
         itemId: row.id,
         props: data.props,
       });

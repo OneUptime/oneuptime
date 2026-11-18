@@ -40,12 +40,15 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
  * the services and DatabaseService (@ListOrderColumn) put them together:
  *
  *   - a new incident state lands just above the resolved state, and the
- *     resolved state (and anything below it) steps down once it is saved;
- *   - a severity created with a number another one holds takes its place -
- *     no "same order already exists" refusal - and a severity created without
- *     one goes to the end (it used to fail: "order is required");
- *   - a signed-in drag of a state is written, and the states in the way
- *     step aside; a drag that would put the resolved state above the
+ *     resolved state (and anything below it) steps down once it is saved:
+ *     the server picked its place;
+ *   - a severity created with a number another one holds keeps it, beside
+ *     that one, and no severity moves - no "same order already exists"
+ *     refusal - and a severity created without one goes to the end (it used
+ *     to fail: "order is required");
+ *   - a signed-in write of a state's number places it and moves no other
+ *     state (issue #9609: Terraform writes every changed row's number at
+ *     once); a write that would put the resolved state above the
  *     acknowledged one is refused before anything is written;
  *   - a monitor status's priority can be changed by a signed-in caller (it
  *     used to be refused outright);
@@ -270,7 +273,7 @@ describe("IncidentStateService", () => {
     ]);
   });
 
-  test("a new state with a number takes that place: no 'same order already exists' refusal", async () => {
+  test("a new state with a number keeps it beside the state holding it: no 'same order already exists' refusal, and no state moves", async () => {
     const created: IncidentState = new IncidentState();
     created.name = "Investigating";
     created.color = Red;
@@ -281,15 +284,10 @@ describe("IncidentStateService", () => {
     ).resolves.toBeDefined();
 
     expect(harness.saved[0]!["order"]).toBe(2);
-    expect(harness.written).toEqual([
-      { id: id(2), data: { order: 3 } },
-      { id: id(3), data: { order: 4 } },
-      { id: id(4), data: { order: 5 } },
-    ]);
+    expect(harness.written).toEqual([]);
   });
 
-  test("a drag of a state is written, and the states in the way step aside", async () => {
-    // Postmortem dropped onto Resolved's place: the dashboard sends 3.
+  test("a state given another number is placed there, and no state moves", async () => {
     await IncidentStateService.updateOneById({
       id: new ObjectID(id(4)),
       data: { order: 3 },
@@ -299,10 +297,24 @@ describe("IncidentStateService", () => {
     expect(harness.repositoryUpdates).toEqual([
       expect.objectContaining({ order: 3 }),
     ]);
-    expect(harness.written).toEqual([{ id: id(3), data: { order: 4 } }]);
+    expect(harness.written).toEqual([]);
   });
 
-  test("a drag that would put Resolved above Acknowledged is refused before anything is written", async () => {
+  test("Acknowledged given Resolved's number is refused: the two would mean the same", async () => {
+    await expect(
+      IncidentStateService.updateOneById({
+        id: new ObjectID(id(2)),
+        data: { order: 3 },
+        props: SIGNED_IN,
+      }),
+    ).rejects.toThrow(
+      'Incidents only ever move down this list, so the resolved state ("Resolved") has to stay below the acknowledged state ("Acknowledged").',
+    );
+
+    expect(harness.repositoryUpdates).toEqual([]);
+  });
+
+  test("a write that would put Resolved above Acknowledged is refused before anything is written", async () => {
     await expect(
       IncidentStateService.updateOneById({
         id: new ObjectID(id(3)),
@@ -375,7 +387,7 @@ describe("IncidentSeverityService", () => {
     expect(harness.written).toEqual([]);
   });
 
-  test("a severity created with the number another holds takes its place", async () => {
+  test("a severity created with the number another holds keeps it, and no severity moves", async () => {
     const created: IncidentSeverity = new IncidentSeverity();
     created.name = "Severe";
     created.color = Red;
@@ -384,13 +396,10 @@ describe("IncidentSeverityService", () => {
     await IncidentSeverityService.create({ data: created, props: SIGNED_IN });
 
     expect(harness.saved[0]!["order"]).toBe(2);
-    expect(harness.written).toEqual([
-      { id: id(2), data: { order: 3 } },
-      { id: id(3), data: { order: 4 } },
-    ]);
+    expect(harness.written).toEqual([]);
   });
 
-  test("a severity can be dragged to any rank", async () => {
+  test("a severity can be given any rank, and no other severity moves", async () => {
     await IncidentSeverityService.updateOneById({
       id: new ObjectID(id(3)),
       data: { order: 1 },
@@ -400,10 +409,7 @@ describe("IncidentSeverityService", () => {
     expect(harness.repositoryUpdates).toEqual([
       expect.objectContaining({ order: 1 }),
     ]);
-    expect(harness.written).toEqual([
-      { id: id(1), data: { order: 2 } },
-      { id: id(2), data: { order: 3 } },
-    ]);
+    expect(harness.written).toEqual([]);
   });
 });
 
@@ -451,7 +457,7 @@ describe("MonitorStatusService", () => {
     expect(harness.written).toEqual([{ id: id(3), data: { priority: 4 } }]);
   });
 
-  test("a signed-in caller can change a status's priority - dragging it", async () => {
+  test("a signed-in caller can change a status's priority, and no other status moves", async () => {
     await MonitorStatusService.updateOneById({
       id: new ObjectID(id(2)),
       data: { priority: 3 },
@@ -461,7 +467,7 @@ describe("MonitorStatusService", () => {
     expect(harness.repositoryUpdates).toEqual([
       expect.objectContaining({ priority: 3 }),
     ]);
-    expect(harness.written).toEqual([{ id: id(3), data: { priority: 2 } }]);
+    expect(harness.written).toEqual([]);
   });
 });
 
@@ -511,7 +517,7 @@ describe("IncidentPostmortemStatusService", () => {
     expect(harness.written).toEqual([]);
   });
 
-  test("Not Needed is the project's own: it can be dragged above Completed", async () => {
+  test("Not Needed is the project's own: it can be given Completed's number", async () => {
     await IncidentPostmortemStatusService.updateOneById({
       id: new ObjectID(id(4)),
       data: { order: 3 },
@@ -521,7 +527,7 @@ describe("IncidentPostmortemStatusService", () => {
     expect(harness.repositoryUpdates).toEqual([
       expect.objectContaining({ order: 3 }),
     ]);
-    expect(harness.written).toEqual([{ id: id(3), data: { order: 4 } }]);
+    expect(harness.written).toEqual([]);
   });
 
   test("renaming a built-in status is just an edit", async () => {

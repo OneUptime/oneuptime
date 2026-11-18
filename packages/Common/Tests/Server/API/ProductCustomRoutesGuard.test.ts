@@ -1219,16 +1219,10 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Every table's CRUD API: a write refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 8,
+        "packages/Common/Server/API/BaseAPI.ts": 9,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
-      },
-    ),
-    ...decided(
-      "A numbered list's move (issue #9573), the CRUD API of the tables it serves beside it: the move refuses a record of a product that is off before anything else (assertProductIsOn, see below), as the CRUD API's writes do.",
-      {
-        "packages/Common/Server/API/MoveInListAPI.ts": 1,
       },
     ),
     ...decided(
@@ -1822,13 +1816,12 @@ describe("what the decisions stand on", () => {
   );
 
   /*
-   * MoveInListAPI is decided as a whole for the same reason: its one write,
-   * a move in a numbered list, refuses first thing in moveItem.
+   * The move of an ordered list's row (issues #9573, #9609), the one write
+   * BaseAPI answers beside the CRUD routes, refuses first thing in moveItem
+   * for the same reason.
    */
-  test("packages/Common/Server/API/MoveInListAPI.ts: a move refuses a record of a product that is off before anything else", () => {
-    const source: ts.SourceFile = parse(
-      "packages/Common/Server/API/MoveInListAPI.ts",
-    );
+  test("packages/Common/Server/API/BaseAPI.ts: a move refuses a record of a product that is off before anything else", () => {
+    const source: ts.SourceFile = parse("packages/Common/Server/API/BaseAPI.ts");
     const firstStatements: Record<string, string> = {};
 
     const visit: (node: ts.Node) => void = (node: ts.Node): void => {

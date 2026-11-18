@@ -1209,7 +1209,6 @@ import MonitorTimelineStatusService, {
 // user override
 import OnCallDutyPolicyUserOverrideAPI from "Common/Server/API/OnCallDutyPolicyUserOverrideAPI";
 import OnCallDutyPolicyScheduleAPI from "Common/Server/API/OnCallDutyPolicyScheduleAPI";
-import MoveInListAPI from "Common/Server/API/MoveInListAPI";
 import OnCallDutyPolicyCustomFieldService, {
   Service as OnCallDutyPolicyCustomFieldServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyCustomFieldService";
@@ -4327,7 +4326,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A schedule's layers, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyScheduleLayer,
         OnCallDutyPolicyScheduleLayerServiceType
       >(
@@ -4339,7 +4338,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A layer's people, and moving one to another's turn (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyScheduleLayerUser,
         OnCallDutyPolicyScheduleLayerUserServiceType
       >(
@@ -5194,7 +5193,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A status page's resources, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<StatusPageResource, StatusPageResourceServiceType>(
+      new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
         StatusPageResource,
         StatusPageResourceService,
       ).getRouter(),
@@ -5400,7 +5399,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A status page's groups, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<StatusPageGroup, StatusPageGroupServiceType>(
+      new BaseAPI<StatusPageGroup, StatusPageGroupServiceType>(
         StatusPageGroup,
         StatusPageGroupService,
       ).getRouter(),
@@ -7453,7 +7452,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // An on-call policy's escalation rules, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyEscalationRule,
         OnCallDutyPolicyEscalationRuleServiceType
       >(

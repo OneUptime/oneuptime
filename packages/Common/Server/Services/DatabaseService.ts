@@ -206,7 +206,9 @@ import ListOrderMaintainer, {
   ListOrderCreatePlan,
   ListOrderScope,
 } from "../Utils/Database/ListOrderMaintainer";
+import { ContiguousOrderMoved } from "../Utils/Database/ContiguousOrder";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
 import { toListOrderNumber } from "../../Utils/ListOrder";
 import CustomFieldFiles, {
   CustomFieldFileQuery,
@@ -8000,12 +8002,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * ---------------------------------------------------------------------
    *
    * A model marked with @ListOrderColumn is a list people put in order by
-   * dragging its rows, and its number column is kept here for every caller:
-   * a new row without a number goes to the end of its list, and a row given a
-   * number another row of its list holds takes that place while the rows in
-   * the way step aside. Numbers nobody collides with are kept as written. The
-   * arithmetic is Common/Utils/ListOrder, the database work
-   * ListOrderMaintainer. None of it runs for any other model.
+   * dragging its rows, and its number column is kept here for every caller
+   * (issue #9609): a new row without a number goes to the end of its list,
+   * and a row created or given a number keeps it and moves no other row -
+   * even when another row of its list holds it, so Terraform's writes, every
+   * changed row's number at once, land exactly as written. Moving a row past
+   * others is a request of its own (moveInList), which renumbers the list in
+   * one transaction. The arithmetic is Common/Utils/ListOrder, the database
+   * work ListOrderMaintainer. None of it runs for any other model.
    */
   private async planListOrderForCreate(
     data: TBaseModel,
@@ -8033,9 +8037,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The new row is saved; now the rows in its way step aside. Never fails the
-   * create that already happened: a list left with a shared number still
-   * shows every row, and the next move in it sorts the pair out.
+   * The new row is saved; now the rows in its way step aside - only for a
+   * row whose place the server picked (ListOrderMaintainer.placeOnCreate).
+   * Never fails the create that already happened: a list left with a shared
+   * number still shows every row, and the next move in it sorts the pair
+   * out.
    */
   private async applyListOrderCreatePlan(
     plan: ListOrderCreatePlan | null,
@@ -8115,10 +8121,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * After an update wrote a row's number: the rows of its list that held that
-   * number step aside. A row that moved to another list takes the number it
-   * was given there (with the same stepping aside), or the end of that list
-   * when it was given none.
+   * After an update: a row whose number was cleared goes to the end of its
+   * list, and a row that moved to another list without a number goes to the
+   * end of that list. A number written is kept as written, and no other row
+   * moves for it.
    *
    * Like the create, it never fails the update that already happened.
    */
@@ -8184,43 +8190,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           continue;
         }
 
-        const previousValue: unknown = isNewToList
-          ? null
-          : before[settings.column];
-
-        const requestedValue: unknown = dataRecord[settings.column];
-
-        if (
-          !isNewToList &&
-          toListOrderNumber(requestedValue) !== null &&
-          toListOrderNumber(requestedValue) === toListOrderNumber(previousValue)
-        ) {
-          // Saved where it already was - an edit form re-sending it, say.
+        /*
+         * A number written stays as written, whoever else holds it: the
+         * row is placed, and no other row moves (issue #9609).
+         */
+        if (toListOrderNumber(dataRecord[settings.column]) !== null) {
           continue;
         }
 
-        if (toListOrderNumber(requestedValue) === null) {
-          /*
-           * The number was cleared: the row goes to the end of its list, as
-           * a row created without one does.
-           */
-          await ListOrderMaintainer.appendRow({
-            service: this,
-            settings: settings,
-            scope: nextScope,
-            id: id,
-          });
-
-          continue;
-        }
-
-        await ListOrderMaintainer.makeRoomForRow({
+        /*
+         * The number was cleared: the row goes to the end of its list, as a
+         * row created without one does.
+         */
+        await ListOrderMaintainer.appendRow({
           service: this,
           settings: settings,
           scope: nextScope,
           id: id,
-          previousValue: previousValue,
-          requestedValue: requestedValue,
         });
       } catch (err) {
         logger.error(
@@ -8253,6 +8239,93 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       service: this,
       settings: settings,
     });
+  }
+
+  /*
+   * Moves a row of one of this table's lists to the place of another row of
+   * its list (POST <list>/:id/move, Types/Database/MoveInList): the rows
+   * between step one place towards where it was, and the list is numbered
+   * 1..n (n..1 for a list that counts down) in its new order, in one
+   * transaction holding the list's rows. What the Dashboard's drag sends; a
+   * write of the row's number places it alone. The caller must be allowed to
+   * give the row another number. This is a drag-ordered list's move
+   * (@ListOrderColumn); the services of the five numbered lists move their
+   * rows their own way (ContiguousOrder), and a table that is no list
+   * refuses.
+   */
+  @CaptureSpan()
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const settings: ListOrderSettings | null = ListOrderMaintainer.getSettings(
+      this.getModel(),
+    );
+
+    if (!settings) {
+      throw new BadDataException(
+        `The rows of ${this.getModel().pluralName || "this table"} are not a list that can be put in another order.`,
+      );
+    }
+
+    const moved: ContiguousOrderMoved<TBaseModel> =
+      await ListOrderMaintainer.move({
+        service: this,
+        settings: settings,
+        rowId: data.id,
+        placeOfId: data.placeOfId,
+        props: data.props,
+        beforeWrite: async (
+          changedRows: Array<{ id: string; order: number }>,
+        ): Promise<void> => {
+          await this.onBeforeMoveInList({
+            id: data.id,
+            changedRows: changedRows,
+            props: data.props,
+          });
+        },
+      });
+
+    if (moved.changedRows.length > 0) {
+      await this.onMoveInListSuccess({
+        row: moved.row,
+        changedRows: moved.changedRows,
+        props: data.props,
+      });
+    }
+
+    return { changedRows: moved.changedRows };
+  }
+
+  /*
+   * Before a move in one of this table's lists is written - inside its
+   * transaction, the list held - with the rows the move would give another
+   * number, the moved row among them. A refusal thrown here undoes the
+   * move. Nothing by default: a project's states keep their built-in ones
+   * in order (StateOrderGuard.beforeMove).
+   */
+  protected async onBeforeMoveInList(_data: {
+    id: ObjectID;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    // Most lists take any order.
+  }
+
+  /*
+   * After a move in one of this table's lists gave `changedRows` another
+   * number: what a write of their numbers sets off beside the list itself
+   * (as onUpdateSuccess does for a write) - a cache of the list to forget,
+   * schedules to work out again. `row` is the moved row, as read before it
+   * moved: its list and project. Nothing by default.
+   */
+  protected async onMoveInListSuccess(_data: {
+    row: TBaseModel;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    // Most lists are read as they are.
   }
 
   private async checkTotalItemsBy(

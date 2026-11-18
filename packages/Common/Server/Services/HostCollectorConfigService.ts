@@ -6,6 +6,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
@@ -265,6 +266,22 @@ export class Service extends ProjectReferencesService<Model> {
     await this.forgetConfigsOf(updatedItemIds);
 
     return super.onUpdateSuccess(onUpdate, updatedItemIds);
+  }
+
+  /*
+   * A config moved in its list: a host runs the first config in the list
+   * that applies to it, so the project's hosts read the list again with
+   * their next poll in this process, as after a saved config.
+   */
+  @CaptureSpan()
+  protected override async onMoveInListSuccess(data: {
+    row: Model;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.row.projectId) {
+      HostCollectorProjectConfigsMemo.forget(data.row.projectId.toString());
+    }
   }
 
   /*

@@ -219,7 +219,7 @@ import URL from "../../../Types/API/URL";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
-import { getDropTargetValue, moveListItem } from "../../../Utils/ListOrder";
+import { moveListItem } from "../../../Utils/ListOrder";
 import Alert, { AlertType } from "../Alerts/Alert";
 import SubscriptionPlan, {
   PlanType,
@@ -372,6 +372,16 @@ export interface BaseTableCallbacks<
   }) => Promise<ListResult<TBaseModel>>;
   toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
   updateById: (data: { id: ObjectID; data: JSONObject }) => Promise<void>;
+  /*
+   * Moves a row of a list people drag into order to the place of the row it
+   * was dropped on (POST <path>/:id/move, Types/Database/MoveInList): the
+   * rows between step aside. A write of the row's number would only put it
+   * beside that row (issue #9609). ModelTable passes it; a table without it
+   * cannot be dragged.
+   */
+  moveInList?:
+    | ((data: { id: ObjectID; placeOfId: ObjectID }) => Promise<void>)
+    | undefined;
   showCreateEditModal: (data: {
     modalType: ModalType;
     modelIdToEdit?: ObjectID | undefined;
@@ -4800,8 +4810,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const isReorderDeniedByPermission: boolean =
     isManuallyOrdered && (!reorderGate.show || reorderGate.disabled);
 
+  // A table with no way to move a row has nothing a drop could save.
+  const cannotMoveRows: boolean =
+    isManuallyOrdered && !props.callbacks.moveInList;
+
   const isDragDisabled: boolean =
-    isReorderDeniedByPermission || isReorderBlockedByFilter || isReordering;
+    isReorderDeniedByPermission ||
+    isReorderBlockedByFilter ||
+    isReordering ||
+    cannotMoveRows;
 
   const dragDisabledReason: string | undefined = isReorderDeniedByPermission
     ? reorderGate.tooltip
@@ -4830,27 +4847,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     const rowsBeforeDrop: Array<TBaseModel> = data;
 
-    let value: number | null = getDropTargetValue<TBaseModel>({
-      items: rowsBeforeDrop,
-      sourceIndex: sourceIndex,
-      destinationIndex: destinationIndex,
-      getValue: (item: TBaseModel): unknown => {
-        return (item as unknown as Dictionary<unknown>)[orderField as string];
-      },
-    });
+    /*
+     * The row it was dropped on, by its id: the server moves the dragged row
+     * to that row's place, the rows between stepping aside, and numbers the
+     * list again (POST <path>/:id/move). Named by id rather than by its
+     * number, a drop lands where it was dropped in a list with gaps, rows
+     * without a number or two rows at one number too (issue #9609).
+     */
+    const placeOfId: string | undefined =
+      rowsBeforeDrop[destinationIndex]?._id?.toString();
+    const moveInList:
+      | ((data: { id: ObjectID; placeOfId: ObjectID }) => Promise<void>)
+      | undefined = props.callbacks.moveInList;
 
-    if (value === null) {
-      /*
-       * The row it landed on has no number yet - a list saved before the
-       * server kept them. Its place on screen is the best there is.
-       */
-      const position: number =
-        (currentPageNumber - 1) * itemsOnPage + destinationIndex + 1;
-
-      value =
-        getManualSortOrder() === SortOrder.Descending
-          ? Math.max(totalItemsCount - position + 1, 1)
-          : position;
+    if (!placeOfId || !moveInList) {
+      return;
     }
 
     setReorderError("");
@@ -4859,11 +4870,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setIsReordering(true);
 
     try {
-      await props.callbacks.updateById({
+      await moveInList({
         id: new ObjectID(id),
-        data: {
-          [orderField]: value,
-        },
+        placeOfId: new ObjectID(placeOfId),
       });
     } catch (err) {
       setData(rowsBeforeDrop);
