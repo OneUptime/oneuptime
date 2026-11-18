@@ -1535,12 +1535,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (rowValues.length === 0 || columnValues.length === 0) {
       return (
         <div className="mb-5">
-          <ErrorMessage
-            message={t("overview.gridAxesNotConfigured", {
-              defaultValue:
-                "This group is set to grid view but no row or column values are configured.",
-            })}
-          />
+          <ErrorMessage message={t("overview.gridAxesNotConfigured")} />
         </div>
       );
     }
@@ -1720,10 +1715,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const renderCellContent: RenderCellContentFunction = (
       meta: CellMeta,
     ): ReactElement => {
+      /*
+       * A cell with nothing in it: a quiet dash for the eye, and for a
+       * screen reader the words the dash stands for. The dash is read as
+       * nothing, so a listener heard the column's name in the stack and
+       * then the next cell, and a blank cell in the matrix: nothing to tell
+       * an empty cell from a status that did not load (#7431).
+       */
       if (meta.isEmpty) {
         return (
-          <div className={layout.cellEmpty} aria-hidden="true">
-            <span className="block w-3 h-0.5 bg-gray-200 rounded-full select-none" />
+          <div
+            className={layout.cellEmpty}
+            data-testid="status-page-grid-cell-empty"
+          >
+            <span
+              className="block w-3 h-0.5 bg-gray-200 rounded-full select-none"
+              aria-hidden="true"
+            />
+            <span className="sr-only">{t("overview.gridCellEmpty")}</span>
           </div>
         );
       }
@@ -1783,10 +1792,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     };
 
     const rowAxisDisplay: string =
-      group.rowAxisLabel ||
-      t("overview.gridRowAxisDefaultLabel", {
-        defaultValue: "Resource",
-      });
+      group.rowAxisLabel || t("overview.gridRowAxisDefaultLabel");
 
     type StatBucket = { color: string; count: number; label: string };
 

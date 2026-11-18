@@ -56826,5 +56826,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "لم يتحقق {{name}} من {{channels}} بعد، لذا تُستبعد تلك الخطوات.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن يصلك رمز لإضافة رقمك. اطلب من مسؤول الخادم إعداد الرسائل النصية والمكالمات.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن يصلك رمز لإضافة رقمك. أعِدّ الرسائل النصية والمكالمات في Admin Dashboard.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "يستقبل هذا المشروع هذه البيانات بالفعل، لذا تنتهي هذه الخطوة عندما تُبلِغ خدمة جديدة. تظهر البيانات التي لا تسمّي أي خدمة في المستكشف فور وصولها."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "يستقبل هذا المشروع هذه البيانات بالفعل، لذا تنتهي هذه الخطوة عندما تُبلِغ خدمة جديدة. تظهر البيانات التي لا تسمّي أي خدمة في المستكشف فور وصولها.",
+  "None. The status page's name is used.": "لا يوجد. يُستخدم اسم صفحة الحالة.",
+  "{{count}} monitor groups added": "مجموعات المراقبات المُضافة: {{count}}",
+  "{{count}} monitor groups added_one": "أُضيفت {{count}} مجموعة مراقبات",
+  "{{count}} monitors added": "المراقبات المُضافة: {{count}}",
+  "{{count}} monitors added_one": "أُضيفت {{count}} مراقبة"
 }

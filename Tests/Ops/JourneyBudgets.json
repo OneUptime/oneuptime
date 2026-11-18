@@ -100,15 +100,15 @@
       "startsAt": "Home, with the website monitor",
       "endsWhen": "the status page shows the website monitor",
       "budget": {
-        "screens": 3,
+        "screens": 2,
         "dialogs": 2,
-        "clicks": 10,
+        "clicks": 9,
         "fieldsTyped": 1,
         "products": 1,
         "keystrokes": 11,
-        "defaultsKept": 1,
+        "defaultsKept": 0,
         "choices": 8,
-        "words": 376
+        "words": 334
       }
     },
     "status-page-guided": {

@@ -72,7 +72,7 @@ That's the whole create form. The **Status Pages** list shows **Name**, **Descri
 
 ### Open the new page
 
-The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens its **Resources** screen. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.
+The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens a dialog right there to pick the monitors visitors see. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.
 :::
 
 To be walked through it instead, from the monitors the page shows to what your customers see, click **Guided setup**: on the empty **Status Pages** list, or under **How it works**. See [Publish a Status Page](/docs/guides/status-page).

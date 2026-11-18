@@ -72,7 +72,7 @@ Det er hele formularen. Listen **Statussider** viser **Navn**, **Beskrivelse**, 
 
 ### Åbn den nye side
 
-Den nye side åbner på sin skærm **Oversigt**. Indtil siden har en ressource, begynder skærmen med **Intet på denne statusside endnu** og **Tilføj monitorer**, som åbner dens skærm **Ressourcer**. Derefter kommer to kort: **Link til statussiden** med linket til selve siden og **Kopiér link**, og **Statussidedetaljer**, hvor du kan redigere det navn, den beskrivelse og de etiketter, du lige har angivet. Når projektet har brugerdefinerede felter til statussider, følger et kort **Brugerdefinerede felter**.
+Den nye side åbner på sin skærm **Oversigt**. Indtil siden har en ressource, begynder skærmen med **Intet på denne statusside endnu** og **Tilføj monitorer**, som åbner en dialog lige der, hvor du vælger de monitorer, besøgende ser. Derefter kommer to kort: **Link til statussiden** med linket til selve siden og **Kopiér link**, og **Statussidedetaljer**, hvor du kan redigere det navn, den beskrivelse og de etiketter, du lige har angivet. Når projektet har brugerdefinerede felter til statussider, følger et kort **Brugerdefinerede felter**.
 :::
 
 Vil du hellere guides trin for trin, fra de monitorer siden viser til det, dine kunder ser, så klik på **Guidet opsætning**: på den tomme liste **Statussider** eller under **Sådan fungerer det**. Se [Udgiv en statusside](/docs/guides/status-page).

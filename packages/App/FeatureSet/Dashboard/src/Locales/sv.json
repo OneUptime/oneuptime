@@ -56826,5 +56826,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har inte verifierat {{channels}} än, så de stegen är utelämnade.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Den här servern kan inte skicka sms just nu, så du kan inte få en kod via sms för att lägga till ditt nummer. Be serveradministratören att konfigurera sms och samtal.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Den här servern kan inte skicka sms just nu, så du kan inte få en kod via sms för att lägga till ditt nummer. Konfigurera sms och samtal i Admin Dashboard.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Det här projektet tar redan emot dessa data, så det här steget slutförs när en ny tjänst rapporterar. Data som inte anger någon tjänst visas i utforskaren så snart de kommer in."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Det här projektet tar redan emot dessa data, så det här steget slutförs när en ny tjänst rapporterar. Data som inte anger någon tjänst visas i utforskaren så snart de kommer in.",
+  "None. The status page's name is used.": "Ingen. Statussidans namn används.",
+  "{{count}} monitor groups added": "{{count}} monitorgrupper tillagda",
+  "{{count}} monitor groups added_one": "{{count}} monitorgrupp tillagd",
+  "{{count}} monitors added": "{{count}} monitorer tillagda",
+  "{{count}} monitors added_one": "{{count}} monitor tillagd"
 }

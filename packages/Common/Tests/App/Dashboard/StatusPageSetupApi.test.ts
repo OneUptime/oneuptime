@@ -10,6 +10,7 @@ import type { SpyInstance } from "jest-mock";
 import StatusPageSetupApi, {
   OWN_STATUS_PAGES_READ_LIMIT,
   PROJECT_STATUS_PAGES_READ_LIMIT,
+  StatusPageSetupRecord,
   getStatusPageEditReach,
   mayCreateStatusPage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi";
@@ -213,6 +214,49 @@ describe("the page", () => {
     ).toBeNull();
   });
 
+  /*
+   * #7467: the preview names the page as its visitors read it - its Page
+   * Title, else its name - so the run's page is read with its Page Title.
+   */
+  test("the run's page is read with its Page Title, the name its visitors read", async () => {
+    getItemSpy.mockResolvedValue(
+      model(StatusPage, {
+        _id: id(50).toString(),
+        name: "acme-prod",
+        pageTitle: "  Acme Status  ",
+      }) as never,
+    );
+
+    const page: StatusPageSetupRecord | null =
+      await StatusPageSetupApi.loadStatusPage(id(50).toString());
+
+    expect(page).toEqual({
+      id: id(50).toString(),
+      name: "acme-prod",
+      pageTitle: "Acme Status",
+    });
+    expect(
+      (getItemSpy.mock.calls[0]![0] as unknown as Record<string, unknown>)[
+        "select"
+      ],
+    ).toEqual({ _id: true, name: true, pageTitle: true });
+
+    // A blank Page Title is none: the page goes by its name.
+    getItemSpy.mockResolvedValue(
+      model(StatusPage, {
+        _id: id(51).toString(),
+        name: "Acme",
+        pageTitle: "   ",
+      }) as never,
+    );
+
+    const untitled: StatusPageSetupRecord | null =
+      await StatusPageSetupApi.loadStatusPage(id(51).toString());
+
+    expect(untitled?.pageTitle).toBeUndefined();
+    expect(untitled?.name).toBe("Acme");
+  });
+
   test("what it shows is its resources' names, in the page's order, with the server's count", async () => {
     getListSpy.mockResolvedValue({
       data: [
@@ -275,7 +319,12 @@ describe("this person's own status page with a name", () => {
       projectId: PROJECT_ID,
       createdByUserId: USER,
     });
-    expect(args["select"]).toEqual({ _id: true, name: true, isArchived: true });
+    expect(args["select"]).toEqual({
+      _id: true,
+      name: true,
+      pageTitle: true,
+      isArchived: true,
+    });
     expect(args["sort"]).toEqual({ createdAt: "DESC" });
     expect(args["limit"]).toBe(OWN_STATUS_PAGES_READ_LIMIT);
     expect(OWN_STATUS_PAGES_READ_LIMIT).toBe(100);
@@ -779,6 +828,7 @@ describe("the project's status pages this person may change (#7517)", () => {
     expect(args["select"]).toEqual({
       _id: true,
       name: true,
+      pageTitle: true,
       isArchived: true,
       labels: { _id: true },
     });

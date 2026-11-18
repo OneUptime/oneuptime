@@ -56826,5 +56826,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} ने अभी तक {{channels}} सत्यापित नहीं किया है, इसलिए वे चरण छोड़ दिए गए हैं।",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए आपका नंबर जोड़ने के लिए कोड आप तक नहीं पहुँच सकता। अपने सर्वर एडमिन से SMS और कॉल सेट करने के लिए कहें।",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए आपका नंबर जोड़ने के लिए कोड आप तक नहीं पहुँच सकता। Admin Dashboard में SMS और कॉल सेट करें।",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "यह प्रोजेक्ट यह डेटा पहले से पा रहा है, इसलिए यह चरण तब पूरा होगा जब कोई नई सेवा रिपोर्ट करेगी। जिस डेटा में किसी सेवा का नाम नहीं है, वह पहुँचते ही एक्सप्लोरर में दिखता है।"
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "यह प्रोजेक्ट यह डेटा पहले से पा रहा है, इसलिए यह चरण तब पूरा होगा जब कोई नई सेवा रिपोर्ट करेगी। जिस डेटा में किसी सेवा का नाम नहीं है, वह पहुँचते ही एक्सप्लोरर में दिखता है।",
+  "None. The status page's name is used.": "कोई नहीं। स्थिति पृष्ठ का नाम इस्तेमाल होता है।",
+  "{{count}} monitor groups added": "{{count}} मॉनिटर समूह जोड़े गए",
+  "{{count}} monitor groups added_one": "{{count}} मॉनिटर समूह जोड़ा गया",
+  "{{count}} monitors added": "{{count}} मॉनिटर जोड़े गए",
+  "{{count}} monitors added_one": "{{count}} मॉनिटर जोड़ा गया"
 }

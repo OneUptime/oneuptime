@@ -166,7 +166,9 @@ const shoot: (
 /*
  * Every box drawn in a light colour on the page: a background whose
  * luminance is near white, on an element the visitor can see. In the dark
- * theme there is none, but the logo's own backdrop and what is inside it.
+ * theme there is none, but the logo's own backdrop and what is inside it. A
+ * ground Chrome reports as color(srgb r g b / a) - a color-mix(), such as a
+ * grid cell's pill - is read as well as one it reports as rgb() (#6989).
  */
 const lightBoxes: (page: Page) => Promise<Array<string>> = async (
   page: Page,
@@ -174,6 +176,36 @@ const lightBoxes: (page: Page) => Promise<Array<string>> = async (
   return page.evaluate((): Array<string> => {
     const RGB: RegExp =
       /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/;
+    const SRGB: RegExp =
+      /color\(\s*srgb\s+([\d.e+-]+)\s+([\d.e+-]+)\s+([\d.e+-]+)(?:\s*\/\s*([\d.e+-]+))?\s*\)/;
+    // [red, green, blue] from 0 to 255, then alpha, or null for neither.
+    const read: (value: string) => [number, number, number, number] | null = (
+      value: string,
+    ): [number, number, number, number] | null => {
+      const rgb: RegExpExecArray | null = RGB.exec(value);
+
+      if (rgb) {
+        return [
+          Number(rgb[1]),
+          Number(rgb[2]),
+          Number(rgb[3]),
+          rgb[4] === undefined ? 1 : Number(rgb[4]),
+        ];
+      }
+
+      const srgb: RegExpExecArray | null = SRGB.exec(value);
+
+      if (srgb) {
+        return [
+          Number(srgb[1]) * 255,
+          Number(srgb[2]) * 255,
+          Number(srgb[3]) * 255,
+          srgb[4] === undefined ? 1 : Number(srgb[4]),
+        ];
+      }
+
+      return null;
+    };
     const linear: (channel: number) => number = (channel: number): number => {
       const value: number = channel / 255;
       return value <= 0.03928
@@ -199,22 +231,22 @@ const lightBoxes: (page: Page) => Promise<Array<string>> = async (
         continue;
       }
 
-      const match: RegExpExecArray | null = RGB.exec(style.backgroundColor);
+      const colour: [number, number, number, number] | null = read(
+        style.backgroundColor,
+      );
 
-      if (!match) {
+      if (!colour) {
         continue;
       }
 
-      const alpha: number = match[4] === undefined ? 1 : Number(match[4]);
-
-      if (alpha < 0.5) {
+      if (colour[3] < 0.5) {
         continue;
       }
 
       const luminance: number =
-        0.2126 * linear(Number(match[1])) +
-        0.7152 * linear(Number(match[2])) +
-        0.0722 * linear(Number(match[3]));
+        0.2126 * linear(colour[0]) +
+        0.7152 * linear(colour[1]) +
+        0.0722 * linear(colour[2]);
 
       if (luminance > 0.8) {
         const testId: string | null = element.getAttribute("data-testid");
@@ -228,32 +260,97 @@ const lightBoxes: (page: Page) => Promise<Array<string>> = async (
   });
 };
 
-// Each status text against the opaque ground behind it, as WCAG measures it.
-const statusTextContrasts: (page: Page) => Promise<Array<number>> = async (
-  page: Page,
-): Promise<Array<number>> => {
-  return page.evaluate((): Array<number> => {
-    const RGB: RegExp =
-      /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/;
-    const parse: (value: string) => Array<number> | null = (
-      value: string,
-    ): Array<number> | null => {
-      const match: RegExpExecArray | null = RGB.exec(value);
+/*
+ * Where a status text is drawn: a grid cell, a group's rollup, or a row of
+ * the page (a resource's status, or its Not monitored).
+ */
+type StatusTextPlace = "grid" | "rollup" | "row";
 
-      if (!match) {
-        return null;
+interface StatusTextContrast {
+  text: string;
+  place: StatusTextPlace;
+  contrast: number;
+}
+
+/*
+ * Each status text against the ground behind it, as WCAG measures it: the
+ * text's colour over every layer behind it, blended down to the first
+ * opaque one. A grid cell's pill is the card's own surface at 85% over the
+ * cell's tint (color-mix in Overview.tsx), which Chrome reports as
+ * color(srgb r g b / a), not rgba(): a reader of rgb() and rgba() alone
+ * walked past the pill and measured the text against the card (#6989).
+ */
+const statusTextContrasts: (
+  page: Page,
+) => Promise<Array<StatusTextContrast>> = async (
+  page: Page,
+): Promise<Array<StatusTextContrast>> => {
+  return page.evaluate((): Array<StatusTextContrast> => {
+    // [red, green, blue] from 0 to 255, and alpha from 0 to 1.
+    type Colour = [number, number, number, number];
+
+    const RGB: RegExp =
+      /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/;
+    const SRGB: RegExp =
+      /^color\(\s*srgb\s+([\d.e+-]+%?)\s+([\d.e+-]+%?)\s+([\d.e+-]+%?)(?:\s*\/\s*([\d.e+-]+%?))?\s*\)$/;
+
+    // A number of a colour, a percentage as its share.
+    const share: (value: string) => number = (value: string): number => {
+      return value.endsWith("%")
+        ? Number(value.slice(0, -1)) / 100
+        : Number(value);
+    };
+
+    const parse: (value: string) => Colour | null = (
+      value: string,
+    ): Colour | null => {
+      const css: string = value.trim();
+
+      if (css === "transparent") {
+        return [0, 0, 0, 0];
       }
 
+      const rgb: RegExpExecArray | null = RGB.exec(css);
+
+      if (rgb) {
+        return [
+          Number(rgb[1]),
+          Number(rgb[2]),
+          Number(rgb[3]),
+          rgb[4] === undefined ? 1 : share(rgb[4]),
+        ];
+      }
+
+      const srgb: RegExpExecArray | null = SRGB.exec(css);
+
+      if (srgb) {
+        return [
+          share(srgb[1]!) * 255,
+          share(srgb[2]!) * 255,
+          share(srgb[3]!) * 255,
+          srgb[4] === undefined ? 1 : share(srgb[4]),
+        ];
+      }
+
+      return null;
+    };
+
+    // A colour over another, as the browser composites the two.
+    const over: (top: Colour, bottom: Colour) => Colour = (
+      top: Colour,
+      bottom: Colour,
+    ): Colour => {
+      const alpha: number = top[3];
+
       return [
-        Number(match[1]),
-        Number(match[2]),
-        Number(match[3]),
-        match[4] === undefined ? 1 : Number(match[4]),
+        top[0] * alpha + bottom[0] * (1 - alpha),
+        top[1] * alpha + bottom[1] * (1 - alpha),
+        top[2] * alpha + bottom[2] * (1 - alpha),
+        1,
       ];
     };
-    const luminance: (rgb: Array<number>) => number = (
-      rgb: Array<number>,
-    ): number => {
+
+    const luminance: (rgb: Colour) => number = (rgb: Colour): number => {
       const linear: (channel: number) => number = (channel: number): number => {
         const value: number = channel / 255;
         return value <= 0.03928
@@ -262,46 +359,83 @@ const statusTextContrasts: (page: Page) => Promise<Array<number>> = async (
       };
 
       return (
-        0.2126 * linear(rgb[0]!) +
-        0.7152 * linear(rgb[1]!) +
-        0.0722 * linear(rgb[2]!)
+        0.2126 * linear(rgb[0]) +
+        0.7152 * linear(rgb[1]) +
+        0.0722 * linear(rgb[2])
       );
     };
 
-    const contrasts: Array<number> = [];
+    const unread: Array<string> = [];
+    const measured: Array<StatusTextContrast> = [];
 
     for (const element of Array.from(
       document.querySelectorAll("[data-ou-status-text]"),
     )) {
-      const text: Array<number> | null = parse(getComputedStyle(element).color);
-      let ground: Array<number> | null = null;
+      const box: DOMRect = element.getBoundingClientRect();
+
+      // Not drawn: nothing to read.
+      if (box.width === 0 || box.height === 0) {
+        continue;
+      }
+
+      const text: Colour | null = parse(getComputedStyle(element).color);
+
+      /*
+       * Every layer behind the text, nearest first, down to the first
+       * opaque one; the page's canvas when none is.
+       */
+      const layers: Array<Colour> = [];
       let ancestor: Element | null = element;
+      let isOpaque: boolean = false;
 
-      while (ancestor && !ground) {
-        const candidate: Array<number> | null = parse(
-          getComputedStyle(ancestor).backgroundColor,
-        );
+      while (ancestor && !isOpaque) {
+        const background: string = getComputedStyle(ancestor).backgroundColor;
+        const layer: Colour | null = parse(background);
 
-        if (candidate && candidate[3]! >= 0.95) {
-          ground = candidate;
+        if (!layer) {
+          unread.push(background);
+        } else if (layer[3] > 0) {
+          layers.push(layer);
+          isOpaque = layer[3] >= 0.999;
         }
 
         ancestor = ancestor.parentElement;
       }
 
-      if (!text || !ground) {
+      if (!text) {
+        unread.push(getComputedStyle(element).color);
         continue;
       }
 
-      const first: number = luminance(text);
+      let ground: Colour = isOpaque
+        ? (layers.pop() as Colour)
+        : [255, 255, 255, 1];
+
+      while (layers.length > 0) {
+        ground = over(layers.pop() as Colour, ground);
+      }
+
+      const first: number = luminance(over(text, ground));
       const second: number = luminance(ground);
 
-      contrasts.push(
-        (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05),
-      );
+      measured.push({
+        text: (element.textContent || "").trim(),
+        place: element.closest("[data-testid='status-page-grid']")
+          ? "grid"
+          : element.closest("[data-testid='status-page-group-rollup']")
+            ? "rollup"
+            : "row",
+        contrast:
+          (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05),
+      });
     }
 
-    return contrasts;
+    // A colour this cannot read would be skipped, and its contrast unmeasured.
+    if (unread.length > 0) {
+      throw new Error(`Colours not read: ${unread.join(", ")}`);
+    }
+
+    return measured;
   });
 };
 
@@ -784,14 +918,66 @@ test.describe("the dark theme on every surface", () => {
   }) => {
     await openPage(page, PAGE, "theme=Dark");
 
-    const contrasts: Array<number> = await statusTextContrasts(page);
+    const contrasts: Array<StatusTextContrast> =
+      await statusTextContrasts(page);
 
     // The resources' statuses, the groups' rollups and the grid's cells.
     expect(contrasts.length).toBeGreaterThan(5);
+    expect(
+      new Set(
+        contrasts.map((measured: StatusTextContrast): StatusTextPlace => {
+          return measured.place;
+        }),
+      ),
+    ).toEqual(new Set<StatusTextPlace>(["grid", "rollup", "row"]));
 
-    for (const contrast of contrasts) {
-      expect(contrast).toBeGreaterThanOrEqual(4.5);
+    for (const measured of contrasts) {
+      expect(
+        measured.contrast,
+        `${measured.text} (${measured.place})`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  /*
+   * #6989: a resource whose monitoring is off is drawn as Not monitored, in
+   * gray, in its row, in its group's rollup and in a grid cell. Its dark
+   * shade is right at 4.5:1, so each of the three is measured, on the
+   * layers it is drawn over - the grid cell's pill among them.
+   */
+  test("Not monitored reads at 4.5:1 in a row, a group's rollup and a grid cell, in the dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, PAGE, "theme=Dark&notMonitored=1");
+
+    const notMonitored: Array<StatusTextContrast> = (
+      await statusTextContrasts(page)
+    ).filter((measured: StatusTextContrast): boolean => {
+      return measured.text === "Not monitored";
+    });
+
+    expect(
+      notMonitored
+        .map((measured: StatusTextContrast): StatusTextPlace => {
+          return measured.place;
+        })
+        .sort(),
+    ).toEqual(["grid", "rollup", "row"]);
+
+    for (const measured of notMonitored) {
+      expect(
+        measured.contrast,
+        `Not monitored (${measured.place})`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+
+    await expect(
+      page
+        .getByTestId("status-page-grid-cell-status")
+        .filter({ hasText: "Not monitored" }),
+    ).toHaveCount(1);
   });
 
   test("the very dark red of a long outage has an edge that stands out from the card", async ({

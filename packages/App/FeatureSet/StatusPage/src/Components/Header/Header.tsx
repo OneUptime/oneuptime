@@ -1,6 +1,8 @@
 import Logo from "../Logo/Logo";
 import LogoPlate from "../Logo/LogoPlate";
+import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import UILink from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -20,8 +22,27 @@ export interface ComponentProps {
   // The logo made for the dark theme, shown instead while the page is dark.
   darkLogo?: File | undefined;
   logoAltText?: string | undefined;
+  /*
+   * The page's name as its visitors read it (Common/Types/StatusPage/
+   * StatusPagePublicName), drawn where the logo would be on a page with
+   * none (#7467).
+   */
+  name?: string | undefined;
+  // The page's Overview, where its name leads, as its logo does.
+  overviewRoute?: Route | undefined;
   onLogoClicked: () => void;
 }
+
+// The page's name, where a page with no logo has its logo (#7467).
+export const STATUS_PAGE_NAME_TEST_ID: string = "status-page-name";
+
+/*
+ * The name, as large as a logo is tall beside the header's links, and a
+ * link to the page's Overview, as the logo is. A long name wraps under
+ * itself rather than pushing the links off the line.
+ */
+export const STATUS_PAGE_NAME_CLASS_NAME: string =
+  "rounded break-words text-xl font-semibold tracking-tight text-gray-900 hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-500 sm:text-2xl";
 
 const StatusPageHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,7 +87,15 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
 
   const hasLogo: boolean = Boolean(props.logo || props.darkLogo);
 
-  if (!hasLogo && !hasLinks) {
+  /*
+   * A page with no logo names itself here: a new page has none, and its
+   * header was empty - a visitor could not tell whose status it was
+   * (#7467). A page with a logo is named by the logo, and its alt text.
+   */
+  const name: string = (props.name || "").trim();
+  const hasName: boolean = !hasLogo && Boolean(name);
+
+  if (!hasLogo && !hasLinks && !hasName) {
     return <></>;
   }
 
@@ -79,7 +108,21 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
    */
   return (
     <div className="mt-5 flex items-start justify-between gap-4">
-      <div className="flex min-h-[3rem] items-center">
+      <div className="flex min-h-[3rem] min-w-0 items-center">
+        {hasName ? (
+          <UILink
+            className={STATUS_PAGE_NAME_CLASS_NAME}
+            dataTestId={STATUS_PAGE_NAME_TEST_ID}
+            {...(props.overviewRoute
+              ? { to: props.overviewRoute }
+              : { onClick: props.onLogoClicked })}
+          >
+            {/* The page owner's words, read the way they are written. */}
+            <IsolatedText text={name} />
+          </UILink>
+        ) : (
+          <></>
+        )}
         {hasLogo && (
           <LogoPlate
             id="status-page-logo"

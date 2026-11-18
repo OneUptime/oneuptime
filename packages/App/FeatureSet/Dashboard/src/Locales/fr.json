@@ -56826,5 +56826,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} n'a pas encore vérifié {{channels}} : ces étapes sont laissées de côté.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Ce serveur ne peut pas envoyer de SMS pour le moment : vous ne pouvez donc pas recevoir de code pour ajouter votre numéro. Demandez à l'administrateur de votre serveur de configurer les SMS et les appels.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Ce serveur ne peut pas envoyer de SMS pour le moment : vous ne pouvez donc pas recevoir de code pour ajouter votre numéro. Configurez les SMS et les appels dans l'Admin Dashboard.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Ce projet reçoit déjà ces données, donc cette étape se termine quand un nouveau service se signale. Les données qui ne nomment aucun service apparaissent dans l'explorateur dès leur arrivée."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Ce projet reçoit déjà ces données, donc cette étape se termine quand un nouveau service se signale. Les données qui ne nomment aucun service apparaissent dans l'explorateur dès leur arrivée.",
+  "None. The status page's name is used.": "Aucun. Le nom de la page de statut est utilisé.",
+  "{{count}} monitor groups added": "{{count}} groupes de moniteurs ajoutés",
+  "{{count}} monitor groups added_one": "{{count}} groupe de moniteurs ajouté",
+  "{{count}} monitors added": "{{count}} moniteurs ajoutés",
+  "{{count}} monitors added_one": "{{count}} moniteur ajouté"
 }

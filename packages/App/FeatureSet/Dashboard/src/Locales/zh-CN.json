@@ -56826,5 +56826,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤。",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "此服务器目前无法发送短信，因此无法收到添加号码所需的验证码。请联系服务器管理员设置短信和电话。",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "此服务器目前无法发送短信，因此无法收到添加号码所需的验证码。请在 Admin Dashboard 中设置短信和电话。",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此项目已在接收这些数据，因此此步骤会在新服务上报时完成。未指明服务的数据一送达就会显示在浏览器中。"
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此项目已在接收这些数据，因此此步骤会在新服务上报时完成。未指明服务的数据一送达就会显示在浏览器中。",
+  "None. The status page's name is used.": "无。使用状态页的名称。",
+  "{{count}} monitor groups added": "已添加 {{count}} 个监视器组",
+  "{{count}} monitor groups added_one": "已添加 {{count}} 个监视器组",
+  "{{count}} monitors added": "已添加 {{count}} 个监视器",
+  "{{count}} monitors added_one": "已添加 {{count}} 个监视器"
 }

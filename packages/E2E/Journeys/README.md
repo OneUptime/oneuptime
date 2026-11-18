@@ -147,7 +147,9 @@ same pages.
 money in the balance, `?seed=teammate-monitor` adds Ada's monitor of
 `https://acme-commerce.example`, `?seed=status-page` a status page showing nothing yet,
 `?seed=busy` a project in use (a hundred monitors carrying labels, three monitor groups,
-two status pages and five services that report), `?as=viewer` signs in as Grace, a
+two status pages and five services that report), `?seed=status-page-grid` a status page
+whose Resources are two grids, Service by three Regions and by six, with long monitor
+names and two resources off the grid, `?as=viewer` signs in as Grace, a
 Project Viewer who may create nothing,
 `?as=member` signs in as Grace, `?as=admin` signs Ada in as the master admin of a
 self-hosted server with no Twilio, `?email=off` makes it a server that cannot send email

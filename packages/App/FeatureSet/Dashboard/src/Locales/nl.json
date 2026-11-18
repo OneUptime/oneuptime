@@ -56826,5 +56826,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Deze server kan nu geen sms versturen, dus u krijgt geen code om uw nummer toe te voegen. Vraag uw serverbeheerder om sms en oproepen in te richten.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Deze server kan nu geen sms versturen, dus u krijgt geen code om uw nummer toe te voegen. Richt sms en oproepen in via het Admin Dashboard.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Dit project ontvangt deze gegevens al, dus deze stap is klaar zodra een nieuwe service zich meldt. Gegevens die geen service noemen, verschijnen in de verkenner zodra ze binnenkomen."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Dit project ontvangt deze gegevens al, dus deze stap is klaar zodra een nieuwe service zich meldt. Gegevens die geen service noemen, verschijnen in de verkenner zodra ze binnenkomen.",
+  "None. The status page's name is used.": "Geen. De naam van de statuspagina wordt gebruikt.",
+  "{{count}} monitor groups added": "{{count}} monitorgroepen toegevoegd",
+  "{{count}} monitor groups added_one": "{{count}} monitorgroep toegevoegd",
+  "{{count}} monitors added": "{{count}} monitoren toegevoegd",
+  "{{count}} monitors added_one": "{{count}} monitor toegevoegd"
 }
