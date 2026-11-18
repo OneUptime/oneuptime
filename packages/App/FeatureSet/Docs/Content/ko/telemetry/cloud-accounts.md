@@ -269,7 +269,7 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | 리소스 | 사용하는 모든 리전에서 OneUptime이 아는 유형의 모든 리소스(Cloud Control에서) | 구독의 모든 리소스(Resource Graph에서) | 프로젝트의 모든 리소스(Cloud Asset Inventory에서) |
-| 메트릭 | 각 서비스의 주요 메트릭(예: 인스턴스의 CPU, 네트워크, 상태 검사) | 리소스당 최대 8개의 주요 메트릭 | 각 리소스 유형의 주요 메트릭 |
+| 메트릭 | 각 서비스의 주요 메트릭(예: 인스턴스의 CPU, 네트워크, 상태 검사) | 리소스당 최대 20개의 주요 메트릭 | 각 리소스 유형의 주요 메트릭 |
 | 변경 사항 | CloudTrail 관리 이벤트 | 활동 로그의 관리 이벤트 | Admin Activity 감사 로그 |
 | 상태 이벤트 | AWS Health | Service Health 및 Resource Health | Service Health |
 | 비용 | 매일의 비용을 서비스와 리전별로, 리소스별 비용이 켜져 있으면 리소스별로도 Cost Explorer에서 | 매일의 비용을 리소스와 서비스별로 Cost Management에서 | 매일의 비용을 서비스, 리전, 리소스별로 BigQuery 결제 내보내기에서 |

@@ -18,7 +18,7 @@ import {
   GCP_KEY_METRICS,
   GcpKeyMetric,
   GcpTypeKeyMetrics,
-  getAzureKeyMetrics,
+  getAzureKeyMetricNames,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
   CLOUD_AVAILABILITY_LOW_PERCENT,
@@ -463,8 +463,7 @@ describe("the cloud alert template library", () => {
     })) {
       for (const query of cloudTemplate.queries) {
         for (const type of cloudTemplate.resourceTypes) {
-          const metrics: Array<string> =
-            getAzureKeyMetrics(type)?.metrics || [];
+          const metrics: Array<string> = getAzureKeyMetricNames(type);
 
           expect(
             `${cloudTemplate.id} ${type}: ${metrics.includes(query.metric.metricName)}`,

@@ -77,14 +77,7 @@ flowchart TB
 
 Поток несёт ключевые метрики, которые подключение читает поминутно. Остальное чтения продолжают записывать по своему расписанию: метрику, которую они читают с более крупным шагом, например использованное хранилище реестра контейнеров, и каждую ключевую метрику, которую параметр диагностики отправить не может и которую список поддерживаемых метрик Azure Monitor отмечает как неэкспортируемую в столбце DS Export:
 
-- Виртуальные машины и масштабируемые наборы: `Network In Total`, `Network Out Total`.
-- Диски: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Учётные записи Azure Cosmos DB: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Учётные записи хранения: `UsedCapacity`.
-- Кластеры AKS: `kube_pod_status_ready`.
-- Шлюзы приложений: `ApplicationGatewayTotalTime`, `Throughput`.
-- Брандмауэры: `Throughput`.
-- Шлюзы NAT: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Пространство имён Service Bus или Event Hubs не передаёт метрик. Чтения читают его ключевые метрики для каждой очереди, каждого топика и каждого концентратора событий, а собственные итоги пространства имён складывают их, тогда как параметр диагностики отправляет только итоги пространства имён, а 4 из 6 ключевых метрик пространства имён Service Bus и 2 из 4 пространства имён Event Hubs не отправляет вовсе. Поэтому чтения записывают их все, с потоком или без, и ни одно сообщение не учитывается дважды.
 

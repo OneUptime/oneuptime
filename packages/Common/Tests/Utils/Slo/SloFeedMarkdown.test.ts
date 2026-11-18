@@ -1075,6 +1075,7 @@ describe("SloFeedMarkdown - status changes", () => {
     [SloStatus.AtRisk, "🟡"],
     [SloStatus.BudgetExhausted, "🔴"],
     [SloStatus.Paused, "⏸️"],
+    [SloStatus.Waiting, "⏳"],
     [SloStatus.Misconfigured, "⚠️"],
   ])("%p is marked %p", (status: SloStatus, emoji: string) => {
     expect(getSloStatusEmoji(status)).toBe(emoji);

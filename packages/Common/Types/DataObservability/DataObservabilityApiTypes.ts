@@ -447,6 +447,8 @@ export enum DataObservabilitySourceOrigin {
   Traces = "Traces",
   DatabaseMonitoring = "Database Monitoring",
   CloudAccount = "Cloud Account",
+  // Read by a BI tool's dashboards (DataBiLineageSummary): offered from Tables Matched.
+  BiTool = "BI Tool",
 }
 
 export interface DataObservabilitySourceSuggestion {

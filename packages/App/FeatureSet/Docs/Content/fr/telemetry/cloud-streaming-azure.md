@@ -77,14 +77,7 @@ Quand le premier abonnement n'est pas celui où OneUptime lit les hubs d'événe
 
 Le flux transporte les métriques clés que la connexion lit minute par minute. Les lectures continuent d'écrire le reste selon leur calendrier : une métrique qu'elles lisent à une granularité plus grossière, comme le stockage utilisé d'un registre de conteneurs, et chaque métrique clé qu'un paramètre de diagnostic ne peut pas envoyer, que la liste des métriques prises en charge par Azure Monitor marque comme non exportable dans la colonne DS Export :
 
-- Machines virtuelles et groupes identiques : `Network In Total`, `Network Out Total`.
-- Disques : `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Comptes Azure Cosmos DB : `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Comptes de stockage : `UsedCapacity`.
-- Clusters AKS : `kube_pod_status_ready`.
-- Passerelles d'application : `ApplicationGatewayTotalTime`, `Throughput`.
-- Pare-feu : `Throughput`.
-- Passerelles NAT : `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Un espace de noms Service Bus ou Event Hubs ne diffuse aucune métrique. Les lectures lisent ses métriques clés pour chaque file, topic et hub d'événements, et les totaux propres à l'espace de noms les additionnent, alors qu'un paramètre de diagnostic n'envoie que les totaux de l'espace de noms, et n'envoie pas du tout 4 des 6 métriques clés d'un espace de noms Service Bus, ni 2 des 4 d'un espace de noms Event Hubs. Les lectures les écrivent donc toutes, avec ou sans diffusion, et aucun message n'est compté deux fois.
 

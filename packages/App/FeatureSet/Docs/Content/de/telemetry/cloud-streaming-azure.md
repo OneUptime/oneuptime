@@ -77,14 +77,7 @@ Wenn das erste Abonnement nicht das ist, in dem OneUptime die Event Hubs liest, 
 
 Der Stream trägt die Schlüsselmetriken, die die Verbindung minutengenau liest. Den Rest schreiben die Lesevorgänge weiter nach ihrem Zeitplan: eine Metrik, die sie gröber lesen, etwa den belegten Speicher einer Container Registry, und jede Schlüsselmetrik, die eine Diagnoseeinstellung nicht senden kann und die die Liste der von Azure Monitor unterstützten Metriken in der Spalte DS Export als nicht exportierbar führt:
 
-- Virtuelle Computer und Skalierungsgruppen: `Network In Total`, `Network Out Total`.
-- Datenträger: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Azure Cosmos DB-Konten: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Speicherkonten: `UsedCapacity`.
-- AKS-Cluster: `kube_pod_status_ready`.
-- Application Gateways: `ApplicationGatewayTotalTime`, `Throughput`.
-- Firewalls: `Throughput`.
-- NAT-Gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Ein Service-Bus- oder Event-Hubs-Namespace streamt keine Metriken. Die Lesevorgänge lesen seine Schlüsselmetriken für jede Warteschlange, jedes Topic und jeden Event Hub, und die eigenen Summen des Namespace zählen diese zusammen, während eine Diagnoseeinstellung nur die Summen des Namespace sendet, und 4 der 6 Schlüsselmetriken eines Service-Bus-Namespace oder 2 der 4 eines Event-Hubs-Namespace gar nicht. Deshalb schreiben die Lesevorgänge sie alle, ob gestreamt wird oder nicht, und keine Nachricht wird doppelt gezählt.
 

@@ -269,7 +269,7 @@ Et lavere niveaus kommando erstatter AWS-politikken med den lavere. **Fra** tilf
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Ressourcer | Hver ressource af de typer, OneUptime kender, i hver region, du bruger, fra Cloud Control | Hver ressource i abonnementerne, fra Resource Graph | Hver ressource i projekterne, fra Cloud Asset Inventory |
-| Metrikker | De vigtigste metrikker for hver tjeneste, såsom en instans' CPU, netværk og statustjek | Op til 8 vigtige metrikker pr. ressource | De vigtigste metrikker for hver ressourcetype |
+| Metrikker | De vigtigste metrikker for hver tjeneste, såsom en instans' CPU, netværk og statustjek | Op til 20 vigtige metrikker pr. ressource | De vigtigste metrikker for hver ressourcetype |
 | Ændringer | CloudTrails administrationshændelser | Aktivitetsloggens administrative hændelser | Auditloggen Admin Activity |
 | Sundhedshændelser | AWS Health | Service Health og Resource Health | Service Health |
 | Omkostninger | Hver dags, efter tjeneste og region, og efter ressource med Omkostninger pr. ressource slået til, fra Cost Explorer | Hver dags, efter ressource og tjeneste, fra Cost Management | Hver dags, efter tjeneste, region og ressource, fra din faktureringseksport til BigQuery |

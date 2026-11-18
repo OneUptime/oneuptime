@@ -180,6 +180,7 @@ export const SLO_OVERVIEW_FIXED_TEXTS: ReadonlyArray<string> = [
   // getSloHeadline
   translationKey("Archived — not being measured"),
   translationKey("Disabled — not being measured"),
+  translationKey("Waiting for the first check"),
   translationKey("Cannot be evaluated"),
   translationKey("Measurement paused"),
   translationKey("Waiting for the first evaluation"),

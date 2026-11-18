@@ -35,11 +35,13 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
+import { GetMetricRowGroup } from "../../../Components/Metrics/Utils/MetricRowScope";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
   getCloudMonitoredResourceRowAggregation,
+  getCloudMonitoredResourceRowGroup,
 } from "../Utils/CloudMonitoredResourceScope";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -216,6 +218,14 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     useMemo(() => {
       return getCloudMonitoredResourceRowAggregation(cloudResource);
     }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
+
+  /*
+   * Its key metrics in sections - Availability, Traffic, Errors, Latency
+   * and the rest, most telling first - and its other metrics after them.
+   */
+  const getRowGroup: GetMetricRowGroup | undefined = useMemo(() => {
+    return getCloudMonitoredResourceRowGroup(cloudResource);
+  }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -475,6 +485,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
                 attributeFilterDisplayKeys={attributeFilterDisplayKeys}
                 eventScope={eventScope}
                 getRowAggregation={rowAggregation?.getRowAggregation}
+                getRowGroup={getRowGroup}
                 defaultRowValueCaption={rowAggregation?.defaultRowValueCaption}
                 disableUrlSync={true}
               />

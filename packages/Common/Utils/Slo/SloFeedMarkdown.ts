@@ -1,5 +1,7 @@
 import SliType from "../../Types/ServiceLevelObjective/SliType";
-import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
+import SloStatus, {
+  isSloUnmeasuredStatus,
+} from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 import { formatSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
@@ -1344,6 +1346,8 @@ export const getSloStatusEmoji: GetSloStatusEmojiFunction = (
       return "🔴";
     case SloStatus.Paused:
       return "⏸️";
+    case SloStatus.Waiting:
+      return "⏳";
     default:
       return "⚠️";
   }
@@ -1361,7 +1365,7 @@ export interface SloFeedStatusMeasurement {
   atRiskThresholdPercentage: number;
 }
 
-export type GetSloStatusChangedFeedMarkdownFunction = (data: {
+export interface SloStatusChangedFeedData {
   sloMarkdownLink: MarkdownText;
   // The status before this transition; unset for an SLO never evaluated.
   previousStatus?: SloStatus | undefined | null;
@@ -1370,16 +1374,30 @@ export type GetSloStatusChangedFeedMarkdownFunction = (data: {
   measurement?: SloFeedStatusMeasurement | undefined;
   // ... or why there is none (the Paused / Misconfigured guards).
   reason?: string | undefined;
-}) => SloFeedMarkdown;
+}
 
+export type GetSloStatusChangedFeedMarkdownFunction = (
+  data: SloStatusChangedFeedData,
+) => SloFeedMarkdown;
+
+// The StatusChanged item as the feed stores it.
 export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFunction =
-  (data: {
-    sloMarkdownLink: MarkdownText;
-    previousStatus?: SloStatus | undefined | null;
-    newStatus: SloStatus;
-    measurement?: SloFeedStatusMeasurement | undefined;
-    reason?: string | undefined;
-  }): SloFeedMarkdown => {
+  (data: SloStatusChangedFeedData): SloFeedMarkdown => {
+    return toSloFeedMarkdown(getSloStatusChangedFeedParts(data));
+  };
+
+export type GetSloStatusChangedFeedPartsFunction = (
+  data: SloStatusChangedFeedData,
+) => SloFeedMarkdownParts;
+
+/*
+ * The StatusChanged item's parts: its line and its details, which the feed
+ * stores (getSloStatusChangedFeedMarkdown) and the Slack, Microsoft Teams
+ * and Mattermost rules that pick status changes post as one message
+ * (getSloFeedChatMarkdown, #6596), in the same words.
+ */
+export const getSloStatusChangedFeedParts: GetSloStatusChangedFeedPartsFunction =
+  (data: SloStatusChangedFeedData): SloFeedMarkdownParts => {
     const details: Array<MarkdownText> = [
       mdText`**Status**: ${data.previousStatus || "Not evaluated yet"} → ${data.newStatus}`,
     ];
@@ -1417,10 +1435,7 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
       );
     }
 
-    if (
-      data.newStatus === SloStatus.Paused ||
-      data.newStatus === SloStatus.Misconfigured
-    ) {
+    if (isSloUnmeasuredStatus(data.newStatus)) {
       details.push(
         mdText`While the SLO is ${data.newStatus}, its SLI and error budget are not recalculated and its burn rate rules do not fire. Any burn rate alerts and incidents its rules had open were resolved.`,
       );
@@ -1431,9 +1446,8 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
       : FeedMarkdown.empty();
 
     return {
-      feedInfoInMarkdown:
-        mdText`${getSloStatusEmoji(data.newStatus)} ${data.sloMarkdownLink} is now **${data.newStatus}**${was}.`.toString(),
-      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
+      feedInfo: mdText`${getSloStatusEmoji(data.newStatus)} ${data.sloMarkdownLink} is now **${data.newStatus}**${was}.`,
+      details: details,
     };
   };
 

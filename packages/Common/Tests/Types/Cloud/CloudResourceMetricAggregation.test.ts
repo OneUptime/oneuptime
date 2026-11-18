@@ -7,11 +7,12 @@ import { RangeStartAndEndDateTimeUtil } from "../../../Types/Time/RangeStartAndE
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   AWS_KEY_METRICS,
-  AZURE_KEY_METRICS,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
+  AZURE_KEY_METRICS,
   AzureTypeKeyMetrics,
   getAwsStoredMetricName,
+  getAzureKeyMetricNames,
   getAzureStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
@@ -112,7 +113,7 @@ describe("a namespace's metrics that arrive once per queue", () => {
     ).toEqual([SERVICE_BUS, EVENT_HUBS]);
 
     for (const entry of splitTypes) {
-      for (const metric of entry.metrics) {
+      for (const metric of getAzureKeyMetricNames(entry.type)) {
         // Whichever aggregation Azure calls the metric's primary one.
         const summedUnder: Array<string> = ["average", "total"]
           .map((aggregation: string): string => {
@@ -256,7 +257,7 @@ describe("every other resource keeps the average", () => {
         }),
       ]).toEqual([entry.type, false]);
 
-      for (const metric of entry.metrics) {
+      for (const metric of getAzureKeyMetricNames(entry.type)) {
         for (const aggregation of ["average", "total", "maximum", "count"]) {
           const storedName: string = getAzureStoredMetricName(
             metric,

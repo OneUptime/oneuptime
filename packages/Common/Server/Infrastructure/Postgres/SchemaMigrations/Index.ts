@@ -1068,6 +1068,7 @@ import { AddRumApplicationProductAnalyticsRetention1809183906630 } from "./18091
 import { AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000 } from "./1809184550000-AddDataObservabilityAttentionColumnsAndPipelineOwners";
 import { AddDataCheckMonitorIdIndex1809184560000 } from "./1809184560000-AddDataCheckMonitorIdIndex";
 import { AddTableHealthAttemptedAt1809184570000 } from "./1809184570000-AddTableHealthAttemptedAt";
+import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "./1809184620000-AddBiLineageSummaryAndDashboardUpstream";
 
 export default [
   InitialMigration,
@@ -2140,4 +2141,5 @@ export default [
   AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000,
   AddDataCheckMonitorIdIndex1809184560000,
   AddTableHealthAttemptedAt1809184570000,
+  AddBiLineageSummaryAndDashboardUpstream1809184620000,
 ];

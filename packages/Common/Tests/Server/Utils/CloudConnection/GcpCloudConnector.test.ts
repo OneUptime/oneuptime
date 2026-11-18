@@ -8,11 +8,20 @@ import {
   CloudDiscoveredResource,
   CloudReadResult,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
-import GcpCloudConnector from "../../../../Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
+import GcpCloudConnector, {
+  GCP_RESOURCE_TYPE_SEEN_MS,
+  getGcpMetricTypesToAsk,
+  getGcpSeenResourceTypes,
+} from "../../../../Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
 import GcpMonitoring from "../../../../Server/Utils/CloudConnection/Gcp/GcpMonitoring";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
-import { getGcpKeyMetricTypes } from "../../../../Types/Cloud/CloudKeyMetrics";
+import {
+  GCP_KEY_METRICS,
+  GcpKeyMetric,
+  GcpTypeKeyMetrics,
+  getGcpKeyMetricTypes,
+} from "../../../../Types/Cloud/CloudKeyMetrics";
 import {
   CloudMonitoredResource,
   resolveCloudMonitoredResource,
@@ -223,6 +232,37 @@ function readOptions(
   };
 }
 
+// Each resource type's first metric: what every read asks of every project.
+function probeMetricTypes(): Array<string> {
+  return GCP_KEY_METRICS.map((entry: GcpTypeKeyMetrics): string => {
+    return entry.metrics[0]!.metricType;
+  });
+}
+
+function metricTypesOf(resourceType: string): Array<string> {
+  return (
+    GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
+      return entry.resourceType === resourceType;
+    })?.metrics || []
+  ).map((metric: GcpKeyMetric): string => {
+    return metric.metricType;
+  });
+}
+
+function gceMetricTypes(): Array<string> {
+  return metricTypesOf("gce_instance");
+}
+
+// The metric type of each timeSeries.list call made, in order.
+function calledMetricTypes(fake: FakeGcp): Array<string> {
+  return fake.seriesCalls.map((url: URL): string => {
+    return (url.searchParams.get("filter") || "").slice(
+      'metric.type="'.length,
+      -1,
+    );
+  });
+}
+
 describe("validateSettings", () => {
   test("a service account key is enough: the project is the key's own", () => {
     expect(() => {
@@ -400,7 +440,16 @@ describe("read", () => {
       readOptions(fake),
     );
 
-    expect(fake.seriesCalls).toHaveLength(getGcpKeyMetricTypes().length);
+    /*
+     * Each resource type's first metric, then - the project reported a VM -
+     * a VM's other metrics, in the same read: no other type's.
+     */
+    expect(fake.seriesCalls).toHaveLength(
+      GCP_KEY_METRICS.length + gceMetricTypes().length - 1,
+    );
+    expect(calledMetricTypes(fake).sort()).toEqual(
+      [...probeMetricTypes(), ...gceMetricTypes().slice(1)].sort(),
+    );
 
     const cpuCall: URL = fake.seriesCalls.find((url: URL): boolean => {
       return (url.searchParams.get("filter") || "").includes(CPU);
@@ -500,9 +549,16 @@ describe("read", () => {
       },
     });
 
+    // A project that reported a VM lately is asked a VM's every metric.
     const result: CloudReadResult = await connector.read(
       settings(),
-      readOptions(fake),
+      readOptions(fake, {
+        gcpResourceTypesSeen: {
+          [PROJECT_ID]: {
+            gce_instance: new Date(NOW.getTime() - 3600000).toISOString(),
+          },
+        },
+      }),
     );
     const rm: JSONObject = (
       result.payloads[0]!["resourceMetrics"] as JSONArray
@@ -702,5 +758,206 @@ describe("reading Cloud Monitoring's answer", () => {
         ],
       },
     ]);
+  });
+});
+
+/*
+ * One call per metric type answers it for every resource of a project, so
+ * a read asks each resource type's first metric of every project - how a
+ * new resource is found - and a type's others only of the projects that
+ * have such a resource (getGcpMetricTypesToAsk).
+ */
+describe("which metrics a read asks a project for", () => {
+  test("every type's first metric, and every metric of the types it has", () => {
+    const asked: Array<string> = getGcpMetricTypesToAsk({
+      seenResourceTypes: new Set<string>(["cloudsql_database"]),
+    }).map((metric: GcpKeyMetric): string => {
+      return metric.metricType;
+    });
+
+    expect(asked.sort()).toEqual(
+      Array.from(
+        new Set<string>([
+          ...probeMetricTypes(),
+          ...metricTypesOf("cloudsql_database"),
+        ]),
+      ).sort(),
+    );
+  });
+
+  test("a project with nothing yet is asked the first metrics alone", () => {
+    expect(
+      getGcpMetricTypesToAsk({ seenResourceTypes: new Set<string>() }).map(
+        (metric: GcpKeyMetric): string => {
+          return metric.metricType;
+        },
+      ),
+    ).toEqual(probeMetricTypes());
+  });
+
+  test("a second pass asks the rest of the types found, nothing asked already", () => {
+    const first: Set<string> = new Set<string>(probeMetricTypes());
+    const second: Array<string> = getGcpMetricTypesToAsk({
+      seenResourceTypes: new Set<string>(["gce_instance"]),
+      asked: first,
+    }).map((metric: GcpKeyMetric): string => {
+      return metric.metricType;
+    });
+
+    expect(second).toEqual(gceMetricTypes().slice(1));
+  });
+
+  test("a metric two resource types report is asked once, when either is there", () => {
+    const shared: string = "run.googleapis.com/container/cpu/utilizations";
+
+    for (const seen of [
+      ["cloud_run_revision"],
+      ["cloud_run_job"],
+      ["cloud_run_revision", "cloud_run_job"],
+    ]) {
+      expect(
+        getGcpMetricTypesToAsk({
+          seenResourceTypes: new Set<string>(seen),
+        }).filter((metric: GcpKeyMetric): boolean => {
+          return metric.metricType === shared;
+        }),
+      ).toHaveLength(1);
+    }
+
+    expect(
+      getGcpMetricTypesToAsk({
+        seenResourceTypes: new Set<string>(["gce_instance"]),
+      }).some((metric: GcpKeyMetric): boolean => {
+        return metric.metricType === shared;
+      }),
+    ).toBe(false);
+    expect(getGcpKeyMetricTypes().length).toBeLessThan(
+      GCP_KEY_METRICS.reduce(
+        (count: number, entry: GcpTypeKeyMetrics): number => {
+          return count + entry.metrics.length;
+        },
+        0,
+      ),
+    );
+  });
+
+  test("a type counts as there for a day after it last reported", () => {
+    const seen: Set<string> = getGcpSeenResourceTypes({
+      seen: {
+        gce_instance: new Date(NOW.getTime() - 60000).toISOString(),
+        cloudsql_database: new Date(
+          NOW.getTime() - GCP_RESOURCE_TYPE_SEEN_MS + 60000,
+        ).toISOString(),
+        redis_instance: new Date(
+          NOW.getTime() - GCP_RESOURCE_TYPE_SEEN_MS,
+        ).toISOString(),
+        gcs_bucket: "not a time",
+      },
+      now: NOW,
+    });
+
+    expect(Array.from(seen).sort()).toEqual([
+      "cloudsql_database",
+      "gce_instance",
+    ]);
+    expect(getGcpSeenResourceTypes({ seen: undefined, now: NOW }).size).toBe(0);
+  });
+});
+
+describe("a read keeps which resource types each project has", () => {
+  test("found this read: the type is kept, and its metrics asked in the same read", async () => {
+    const fake: FakeGcp = createFakeGcp({
+      series: {
+        [CPU]: [vmSeries(CPU, "1001", "web-1")],
+        [RECEIVED]: [
+          vmSeries(RECEIVED, "1001", "web-1", { loadbalanced: "false" }),
+        ],
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(result.nextState.gcpResourceTypesSeen).toEqual({
+      [PROJECT_ID]: { gce_instance: NOW.toISOString() },
+    });
+    // The VM's network bytes were read in this read's second pass.
+    expect(calledMetricTypes(fake)).toContain(RECEIVED);
+    expect(result.pointsWritten).toBe(4);
+  });
+
+  test("a type the project had lately is asked whole from the first pass: no second pass", async () => {
+    const fake: FakeGcp = createFakeGcp({
+      series: { [CPU]: [vmSeries(CPU, "1001", "web-1")] },
+    });
+    const seenAt: string = new Date(NOW.getTime() - 3600000).toISOString();
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {
+        gcpResourceTypesSeen: {
+          [PROJECT_ID]: { gce_instance: seenAt, cloudsql_database: seenAt },
+        },
+      }),
+    );
+
+    expect(calledMetricTypes(fake).sort()).toEqual(
+      Array.from(
+        new Set<string>([
+          ...probeMetricTypes(),
+          ...gceMetricTypes(),
+          ...metricTypesOf("cloudsql_database"),
+        ]),
+      ).sort(),
+    );
+    // The VM reported again; the database, not this read, keeps its time.
+    expect(result.nextState.gcpResourceTypesSeen).toEqual({
+      [PROJECT_ID]: {
+        gce_instance: NOW.toISOString(),
+        cloudsql_database: seenAt,
+      },
+    });
+  });
+
+  test("a type quiet for a day is forgotten, and asked its first metric alone", async () => {
+    const fake: FakeGcp = createFakeGcp({});
+    const longAgo: string = new Date(
+      NOW.getTime() - GCP_RESOURCE_TYPE_SEEN_MS - 60000,
+    ).toISOString();
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {
+        gcpResourceTypesSeen: { [PROJECT_ID]: { gce_instance: longAgo } },
+      }),
+    );
+
+    expect(calledMetricTypes(fake).sort()).toEqual(probeMetricTypes().sort());
+    expect(result.nextState.gcpResourceTypesSeen).toEqual({ [PROJECT_ID]: {} });
+  });
+
+  test("each project is asked by what it has: a project with nothing costs the first metrics alone", async () => {
+    const fake: FakeGcp = createFakeGcp({
+      series: { [CPU]: [vmSeries(CPU, "1001", "web-1")] },
+    });
+
+    await connector.read(
+      settings({ projectIds: `${PROJECT_ID}, ${OTHER_PROJECT}` }),
+      readOptions(fake),
+    );
+
+    const byProject: Record<string, number> = {};
+
+    for (const url of fake.seriesCalls) {
+      const project: string = url.pathname.split("/")[3]!;
+      byProject[project] = (byProject[project] || 0) + 1;
+    }
+
+    expect(byProject).toEqual({
+      [PROJECT_ID]: GCP_KEY_METRICS.length + gceMetricTypes().length - 1,
+      [OTHER_PROJECT]: GCP_KEY_METRICS.length,
+    });
   });
 });

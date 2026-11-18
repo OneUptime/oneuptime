@@ -36,7 +36,7 @@ En un SLO en modo **Promedio de segundos del monitor**, `oneuptime.slo.error.bud
 ### Cuándo no se escribe ningún punto
 
 - Un SLO desactivado o archivado no se evalúa, así que no publica nada.
-- Un SLO **Pausado** o **Mal configurado** no mide nada, así que solo publica `oneuptime.slo.target.percent`, que es configuración y no una medición. Sus gráficos de SLI, presupuesto, tasa de consumo y estado muestran un hueco.
+- Un SLO **Esperando**, **Pausado** o **Mal configurado** no mide nada, así que solo publica `oneuptime.slo.target.percent`, que es configuración y no una medición. Sus gráficos de SLI, presupuesto, tasa de consumo y estado muestran un hueco.
 - Un valor que no es un número real, como una tasa de consumo en una ventana sin datos, se omite y nunca se escribe como 0.
 
 ### Atributos
@@ -115,7 +115,7 @@ Una variable SLO en la barra de herramientas delimita todo el panel. Es una vari
 ## Solución de problemas
 
 :::details Falta un SLO en el selector de SLO de la barra de herramientas
-El selector muestra los nombres de SLO publicados en el último día. Un SLO nuevo aparece tras su primera evaluación; un SLO **Pausado** o **Mal configurado** sigue disponible porque sigue publicando su objetivo; un SLO desactivado o archivado desaparece aproximadamente un día después de su último punto.
+El selector muestra los nombres de SLO publicados en el último día. Un SLO nuevo aparece tras su primera evaluación; un SLO **Esperando**, **Pausado** o **Mal configurado** sigue disponible porque sigue publicando su objetivo; un SLO desactivado o archivado desaparece aproximadamente un día después de su último punto.
 :::
 
 :::details Elegir un nombre muestra dos SLO

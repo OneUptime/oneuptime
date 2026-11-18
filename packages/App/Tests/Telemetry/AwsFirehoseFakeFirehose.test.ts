@@ -725,7 +725,7 @@ describe("a metric stream in JSON", () => {
         jsonMetricRecord([
           jsonMetricUpdate({
             namespace: "AWS/EC2",
-            metricName: "CPUCreditBalance",
+            metricName: "MetadataNoToken",
             dimensions: { InstanceId: "i-0abc123def" },
             unit: "Count",
             value: { max: 80, min: 76, sum: 390, count: 5, p99: 79.5 },
@@ -975,6 +975,51 @@ describe("the key metrics, as the connection's read writes them", () => {
   });
 });
 
+/*
+ * A key metric added since streams began (AwsKeyMetric.isStreamed false):
+ * a stack's key-metric filters were made before it, so the connection's
+ * read writes it whether the account streams or not, and a stream of every
+ * metric that brings it leaves it to the read - one series, of one shape.
+ */
+describe("a key metric the read writes, in a stream of every metric", () => {
+  test("is left to the read: the delivery queues the rest and none of it", async () => {
+    const reply: FirehoseReply = await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "CPUCreditBalance",
+              dimensions: { InstanceId: "i-0abc123def" },
+              unit: "1",
+              count: 5,
+              sum: 390,
+              min: 76,
+              max: 80,
+            }),
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "CPUUtilization",
+              dimensions: { InstanceId: "i-0abc123def" },
+              count: 1,
+              sum: 12.5,
+              min: 12.5,
+              max: 12.5,
+            }),
+          ]),
+        ]),
+      ],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+
+    const points: Map<string, Array<JSONObject>> = queuedPoints();
+
+    expect(points.has("amazonaws.com/AWS/EC2/CPUCreditBalance")).toBe(false);
+    expect(points.get("amazonaws.com/AWS/EC2/CPUUtilization")).toHaveLength(1);
+  });
+});
+
 describe("Every metric: a resource's chart without a group-by", () => {
   const FUNCTION: Record<string, string> = { FunctionName: "checkout" };
   const ALIAS: Record<string, string> = {
@@ -1087,9 +1132,9 @@ describe("Every metric: a resource's chart without a group-by", () => {
             lambda("Invocations", ALIAS, 100),
             lambda("Invocations", VERSION, 100),
             // Not a key one (Every metric): CloudWatch says the function ran 8 at once.
-            lambda("ConcurrentExecutions", ALIAS, 6),
-            lambda("ConcurrentExecutions", FUNCTION, 8),
-            lambda("ConcurrentExecutions", VERSION, 6),
+            lambda("ProvisionedConcurrentExecutions", ALIAS, 6),
+            lambda("ProvisionedConcurrentExecutions", FUNCTION, 8),
+            lambda("ProvisionedConcurrentExecutions", VERSION, 6),
           ]),
         ]),
       ],
@@ -1104,7 +1149,10 @@ describe("Every metric: a resource's chart without a group-by", () => {
       series: 1,
     });
     expect(
-      chartOf(filter, "amazonaws.com/AWS/Lambda/ConcurrentExecutions"),
+      chartOf(
+        filter,
+        "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
+      ),
     ).toEqual({ total: 8, series: 1 });
   });
 
@@ -1112,7 +1160,9 @@ describe("Every metric: a resource's chart without a group-by", () => {
     await deliver({
       records: [
         openTelemetryRecord([
-          openTelemetryRequest([lambda("ConcurrentExecutions", FUNCTION, 8)]),
+          openTelemetryRequest([
+            lambda("ProvisionedConcurrentExecutions", FUNCTION, 8),
+          ]),
         ]),
       ],
     });
@@ -1120,8 +1170,8 @@ describe("Every metric: a resource's chart without a group-by", () => {
       records: [
         openTelemetryRecord([
           openTelemetryRequest([
-            lambda("ConcurrentExecutions", ALIAS, 6),
-            lambda("ConcurrentExecutions", VERSION, 6),
+            lambda("ProvisionedConcurrentExecutions", ALIAS, 6),
+            lambda("ProvisionedConcurrentExecutions", VERSION, 6),
           ]),
         ]),
       ],
@@ -1130,7 +1180,7 @@ describe("Every metric: a resource's chart without a group-by", () => {
     expect(
       chartOf(
         functionFilter(),
-        "amazonaws.com/AWS/Lambda/ConcurrentExecutions",
+        "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
       ),
     ).toEqual({ total: 8, series: 1 });
   });
@@ -1150,7 +1200,7 @@ describe("Every metric: a resource's chart without a group-by", () => {
               min: 10,
               max: 20,
             }),
-            lambda("ConcurrentExecutions", {}, 9),
+            lambda("ProvisionedConcurrentExecutions", {}, 9),
           ]),
         ]),
       ],
@@ -1160,12 +1210,12 @@ describe("Every metric: a resource's chart without a group-by", () => {
 
     expect(points.get("amazonaws.com/Checkout/Orders/Placed")).toHaveLength(1);
     expect(
-      points.get("amazonaws.com/AWS/Lambda/ConcurrentExecutions"),
+      points.get("amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions"),
     ).toHaveLength(1);
     expect(
       chartOf(
         functionFilter(),
-        "amazonaws.com/AWS/Lambda/ConcurrentExecutions",
+        "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
       ),
     ).toEqual({ total: 0, series: 0 });
   });

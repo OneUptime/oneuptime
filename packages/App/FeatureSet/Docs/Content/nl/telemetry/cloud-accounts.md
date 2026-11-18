@@ -269,7 +269,7 @@ De opdracht van een lager niveau vervangt het AWS-beleid door het lagere. **Uit*
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Resources | Elke resource van de typen die OneUptime kent, in elke regio die je gebruikt, uit Cloud Control | Elke resource in de abonnementen, uit Resource Graph | Elke resource in de projecten, uit Cloud Asset Inventory |
-| Metrieken | De belangrijkste metrieken van elke service, zoals de CPU, het netwerk en de statuscontroles van een instance | Maximaal 8 belangrijke metrieken per resource | De belangrijkste metrieken van elk resourcetype |
+| Metrieken | De belangrijkste metrieken van elke service, zoals de CPU, het netwerk en de statuscontroles van een instance | Maximaal 20 belangrijke metrieken per resource | De belangrijkste metrieken van elk resourcetype |
 | Wijzigingen | De beheergebeurtenissen van CloudTrail | De beheergebeurtenissen van het activiteitenlogboek | Het auditlogboek Admin Activity |
 | Statusgebeurtenissen | AWS Health | Service Health en Resource Health | Service Health |
 | Kosten | Die van elke dag, per dienst en regio, en per resource met Kosten per resource aan, uit Cost Explorer | Die van elke dag, per resource en dienst, uit Cost Management | Die van elke dag, per dienst, regio en resource, uit je factuurexport naar BigQuery |

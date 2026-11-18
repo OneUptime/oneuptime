@@ -24,7 +24,7 @@ flowchart TB
 
 - **Uma pilha em cada região.** O comando implanta uma pilha do CloudFormation em cada região de onde você transmite. O fluxo de métricas e os filtros de assinatura de logs dela passam tudo para dois fluxos do Firehose, e o Firehose entrega ao OneUptime por HTTPS.
 - **A chave de fluxo diz de quem é.** O Firehose envia a chave de fluxo da conexão em cada entrega. A chave identifica a conexão, e portanto o projeto: nada em uma entrega decide onde ela é gravada. O OneUptime guarda só o SHA-256 da chave.
-- **As leituras deixam as métricas transmitidas para o fluxo.** Enquanto um fluxo entrega um namespace de uma região, as leituras da conexão deixam de gravar as métricas desse namespace, então nenhum ponto de dados é contado duas vezes. As leituras continuam encontrando recursos, a integridade e as mudanças deles, e retomam um namespace depois de 15 minutos sem entregas.
+- **As leituras deixam as métricas transmitidas para o fluxo.** Enquanto um fluxo entrega um namespace de uma região, as leituras da conexão deixam de gravar as métricas desse namespace, então nenhum ponto de dados é contado duas vezes. Elas continuam gravando as métricas principais que um fluxo deixa para elas, como o tamanho diário de um bucket do S3 e as métricas principais adicionadas depois que os fluxos começaram, que uma pilha mais antiga não inclui. As leituras continuam encontrando recursos, a integridade e as mudanças deles, e retomam um namespace depois de 15 minutos sem entregas.
 - **Nada se perde enquanto o OneUptime não pode aceitar.** O Firehose reenvia um lote recusado por até uma hora e depois o guarda por 30 dias no bucket do S3 da pilha.
 
 ## Antes de começar

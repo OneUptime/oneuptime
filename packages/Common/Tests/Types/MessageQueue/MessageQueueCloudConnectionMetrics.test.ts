@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
-  getAzureKeyMetrics,
+  getAzureKeyMetricNames,
   getAzureStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
@@ -139,7 +139,7 @@ describe("which of a queue's metrics a cloud connection reads", () => {
       ["servicebus", "Microsoft.ServiceBus/namespaces"],
       ["eventhubs", "Microsoft.EventHub/namespaces"],
     ] as Array<[string, string]>) {
-      const stored: Array<string> = getAzureKeyMetrics(type)!.metrics.flatMap(
+      const stored: Array<string> = getAzureKeyMetricNames(type).flatMap(
         (metric: string): Array<string> => {
           return ["Total", "Average", "Minimum", "Maximum", "Count"].map(
             (aggregation: string): string => {

@@ -77,14 +77,7 @@ flowchart TB
 
 ストリームが運ぶのは、接続が 1 分ごとに読み取る主要メトリクスです。残りは読み取りがスケジュールどおり書き込み続けます。コンテナー レジストリの使用ストレージのように、より粗い間隔で読み取るメトリクスと、診断設定が送れない主要メトリクスのすべてです。後者は、Azure Monitor のサポートされているメトリクスの一覧で DS Export 列がエクスポート不可としているもので、次のとおりです。
 
-- 仮想マシンとスケール セット: `Network In Total`、`Network Out Total`。
-- ディスク: `Composite Disk Read Bytes/sec`、`Composite Disk Write Bytes/sec`、`Composite Disk Read Operations/sec`、`Composite Disk Write Operations/sec`。
-- Azure Cosmos DB アカウント: `TotalRequests`、`TotalRequestUnits`、`NormalizedRUConsumption`、`ServerSideLatency`。
-- ストレージ アカウント: `UsedCapacity`。
-- AKS クラスター: `kube_pod_status_ready`。
-- アプリケーション ゲートウェイ: `ApplicationGatewayTotalTime`、`Throughput`。
-- ファイアウォール: `Throughput`。
-- NAT ゲートウェイ: `ByteCount`、`SNATConnectionCount`、`DatapathAvailability`。
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Service Bus または Event Hubs の名前空間は、メトリクスを何もストリーミングしません。読み取りはその主要メトリクスをキュー、トピック、イベント ハブごとに読み取り、名前空間自身の合計はそれらを足し合わせたものです。一方、診断設定が送るのは名前空間の合計だけで、Service Bus 名前空間の主要メトリクス 6 個のうち 4 個、Event Hubs 名前空間の 4 個のうち 2 個はまったく送りません。そのため、ストリーミングの有無にかかわらず読み取りがすべてを書き込み、メッセージが二重に数えられることはありません。
 

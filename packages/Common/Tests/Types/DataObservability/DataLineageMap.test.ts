@@ -4,8 +4,14 @@ import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import { DataAssetAccessKind } from "../../../Types/DataObservability/DataAssetUsage";
 import {
+  DataBiSource,
+  DataDashboardUpstream,
+} from "../../../Types/DataObservability/DataBiLineage";
+import {
   DataLineageMap,
+  DataLineageMapBiChoice,
   DataLineageMapChoice,
+  DataLineageMapDashboardRow,
   DataLineageMapEdge,
   DataLineageMapEdgeKind,
   DataLineageMapEvidence,
@@ -17,12 +23,18 @@ import {
   DataLineageMapUsageRow,
   DataLineageMapRequest,
   MAX_DATA_LINEAGE_MAP_DASHBOARDS,
+  MAX_DATA_LINEAGE_MAP_DATASETS_PER_DASHBOARD,
   MAX_DATA_LINEAGE_MAP_NODES,
   MAX_DATA_LINEAGE_MAP_OPERATIONS,
   MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH,
+  MAX_DATA_LINEAGE_MAP_SOURCES_PER_DATASET,
   assembleDataLineageMap,
+  chooseDataLineageMapBiDashboards,
   chooseDataLineageMapFlows,
+  getLineageMapDatasetNodeId,
   getLineageMapServiceNodeId,
+  getLineageMapSourceNodeId,
+  getLineageMapUpstreamCards,
   hasFailedLineageMapPipeline,
   isFocusedDataLineageMapRequest,
   isLineageMapNodeInTrouble,
@@ -764,5 +776,311 @@ describe("traceDataLineageMap", () => {
     expect(trace.upstream.size).toBe(0);
     expect(trace.downstream.size).toBe(0);
     expect(trace.edgeIds.size).toBe(0);
+  });
+});
+
+/*
+ * A BI tool's dashboards need no other flow to be on the map (#9507): one
+ * built on watched tables nothing else touches is drawn with them, and one
+ * on no watched table with the datasets and data sources its tool says it
+ * is built on, in the room the flows leave.
+ */
+describe("BI dashboards in the room the flows leave", () => {
+  const SALES_DB: DataBiSource = {
+    type: "SQL Server",
+    engine: "sqlserver",
+    server: "sql01",
+    database: "Facilities",
+    location: null,
+  };
+  const CHECKLIST: DataBiSource = {
+    type: "SharePoint",
+    engine: null,
+    server: null,
+    database: null,
+    location: "https://acme.sharepoint.com/sites/facilities",
+  };
+
+  function biRow(
+    id: string,
+    fields: Partial<DataLineageMapDashboardRow> = {},
+  ): DataLineageMapDashboardRow {
+    return {
+      dataDashboardId: id,
+      name: id,
+      tool: "Power BI",
+      url: `https://app.powerbi.com/groups/w1/reports/${id}`,
+      dataAssetIds: [],
+      ...fields,
+    };
+  }
+
+  function upstream(
+    datasets: Array<{ id: string; sources: Array<DataBiSource> }>,
+  ): DataDashboardUpstream {
+    return {
+      datasets: datasets.map(
+        (dataset: { id: string; sources: Array<DataBiSource> }) => {
+          return {
+            id: dataset.id,
+            name: `Model ${dataset.id}`,
+            workspace: "Facilities",
+            sources: dataset.sources,
+          };
+        },
+      ),
+      sources: datasets.flatMap((dataset: { sources: Array<DataBiSource> }) => {
+        return dataset.sources;
+      }),
+    };
+  }
+
+  function draw(data: {
+    rows: Array<DataLineageMapDashboardRow>;
+    tables?: Array<DataLineageMapTableRow>;
+    lineage?: Array<DataLineageMapLineageRow>;
+    maxNodes?: number;
+  }): { map: DataLineageMap; bi: DataLineageMapBiChoice } {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: data.lineage || [],
+      usages: [],
+      maxNodes: data.maxNodes,
+    });
+    const bi: DataLineageMapBiChoice = chooseDataLineageMapBiDashboards({
+      rows: data.rows,
+      drawnDataAssetIds: new Set(choice.dataAssetIds),
+      drawnDashboardIds: new Set(),
+      nodeRoom:
+        (data.maxNodes ?? MAX_DATA_LINEAGE_MAP_NODES) - choice.nodeCount,
+      dashboardRoom: choice.dashboardRoom,
+    });
+
+    return {
+      bi,
+      map: assembleDataLineageMap({
+        choice,
+        tables: data.tables || [],
+        pipelines: [],
+        dashboards: [],
+        bi,
+        openAlertCounts: new Map(),
+        now: NOW,
+      }),
+    };
+  }
+
+  test("a dashboard on a watched table no flow touches is drawn with its table (it was never drawn)", () => {
+    const { map, bi } = draw({
+      rows: [biRow("revenue", { dataAssetIds: ["orders", "orders"] })],
+      tables: [table("orders")],
+    });
+
+    expect(bi.dataAssetIds).toEqual(["orders"]);
+    expect(nodeIds(map)).toEqual(["dashboard:revenue", "table:orders"]);
+    expect(edgeOf(map, "Reads:table:orders>dashboard:revenue")).toMatchObject({
+      kind: DataLineageMapEdgeKind.Reads,
+      seenIn: [DataLineageMapEvidence.BiTool],
+    });
+    expect(map.isTruncated).toBe(false);
+  });
+
+  test("a dashboard on no watched table: its datasets, and the data sources they are loaded from", () => {
+    const { map } = draw({
+      rows: [
+        biRow("checklist", {
+          upstream: upstream([{ id: "DS1", sources: [SALES_DB, CHECKLIST] }]),
+        }),
+        // A second report on the same dataset: one dataset card, read twice.
+        biRow("gantt", {
+          upstream: upstream([{ id: "ds1", sources: [SALES_DB] }]),
+        }),
+      ],
+    });
+    const salesNode: string = getLineageMapSourceNodeId(SALES_DB);
+
+    expect(nodeIds(map)).toEqual(
+      [
+        "dashboard:checklist",
+        "dashboard:gantt",
+        "dataset:ds1",
+        salesNode,
+        getLineageMapSourceNodeId(CHECKLIST),
+      ].sort(),
+    );
+    expect(
+      map.nodes.find((node: DataLineageMapNode): boolean => {
+        return node.id === "dataset:ds1";
+      }),
+    ).toMatchObject({
+      kind: DataLineageMapNodeKind.Dataset,
+      name: "Model DS1",
+      tool: "Power BI",
+      workspace: "Facilities",
+    });
+    expect(
+      map.nodes.find((node: DataLineageMapNode): boolean => {
+        return node.id === salesNode;
+      }),
+    ).toMatchObject({
+      kind: DataLineageMapNodeKind.Source,
+      name: "sql01 / Facilities",
+      sourceType: "SQL Server",
+      isDatabaseSource: true,
+    });
+    expect(edgeOf(map, `Feeds:${salesNode}>dataset:ds1`).seenIn).toEqual([
+      DataLineageMapEvidence.BiTool,
+    ]);
+    expect(edgeOf(map, "Reads:dataset:ds1>dashboard:checklist").kind).toBe(
+      DataLineageMapEdgeKind.Reads,
+    );
+    expect(edgeOf(map, "Reads:dataset:ds1>dashboard:gantt").kind).toBe(
+      DataLineageMapEdgeKind.Reads,
+    );
+    // Following a report up its lineage reaches where its data comes from.
+    expect(traceDataLineageMap(map, "dashboard:gantt").upstream).toEqual(
+      new Set(["dataset:ds1", salesNode, getLineageMapSourceNodeId(CHECKLIST)]),
+    );
+  });
+
+  test("a tool naming sources with no dataset between: each reads straight into the dashboard", () => {
+    expect(
+      getLineageMapUpstreamCards({ datasets: [], sources: [CHECKLIST] }),
+    ).toEqual({
+      datasets: [],
+      sources: [
+        { nodeId: getLineageMapSourceNodeId(CHECKLIST), source: CHECKLIST },
+      ],
+    });
+
+    const { map } = draw({
+      rows: [
+        biRow("sheet", { upstream: { datasets: [], sources: [CHECKLIST] } }),
+      ],
+    });
+
+    expect(
+      edgeOf(
+        map,
+        `Reads:${getLineageMapSourceNodeId(CHECKLIST)}>dashboard:sheet`,
+      ).kind,
+    ).toBe(DataLineageMapEdgeKind.Reads);
+  });
+
+  test("a dataset's cards are capped: so many datasets, so many sources each", () => {
+    const cards: ReturnType<typeof getLineageMapUpstreamCards> =
+      getLineageMapUpstreamCards(
+        upstream(
+          Array.from({ length: 8 }, (_value: unknown, index: number) => {
+            return {
+              id: `ds${index}`,
+              sources: Array.from({ length: 9 }, (_v: unknown, s: number) => {
+                return {
+                  ...CHECKLIST,
+                  location: `https://acme.sharepoint.com/${s}`,
+                };
+              }),
+            };
+          }),
+        ),
+      );
+
+    expect(cards.datasets.length).toBe(
+      MAX_DATA_LINEAGE_MAP_DATASETS_PER_DASHBOARD,
+    );
+    expect(cards.datasets[0]!.sources.length).toBe(
+      MAX_DATA_LINEAGE_MAP_SOURCES_PER_DATASET,
+    );
+    expect(
+      getLineageMapDatasetNodeId({ id: null, name: "Sales", workspace: "Ops" }),
+    ).toBe("dataset-name:ops|sales");
+  });
+
+  test("dashboards on watched tables first, then those on none; nothing with neither", () => {
+    const { bi } = draw({
+      rows: [
+        biRow("upstream-only", {
+          upstream: upstream([{ id: "ds1", sources: [CHECKLIST] }]),
+        }),
+        biRow("nothing"),
+        biRow("on-tables", { dataAssetIds: ["orders"] }),
+      ],
+      tables: [table("orders")],
+    });
+
+    expect(
+      bi.tableDashboards.map((row: DataLineageMapDashboardRow): string => {
+        return row.dataDashboardId;
+      }),
+    ).toEqual(["on-tables"]);
+    expect(
+      bi.upstreamDashboards.map((row: DataLineageMapDashboardRow): string => {
+        return row.dataDashboardId;
+      }),
+    ).toEqual(["upstream-only"]);
+  });
+
+  test("the room left is kept to: a dashboard too big for it is passed over, and the map says there were more", () => {
+    const bi: DataLineageMapBiChoice = chooseDataLineageMapBiDashboards({
+      rows: [
+        biRow("big", { dataAssetIds: ["a", "b", "c", "d"] }),
+        biRow("small", { dataAssetIds: ["e"] }),
+        biRow("on-drawn", { dataAssetIds: ["drawn"] }),
+        biRow("again", { dataAssetIds: ["e"] }),
+      ],
+      drawnDataAssetIds: new Set(["drawn"]),
+      drawnDashboardIds: new Set(["again"]),
+      nodeRoom: 3,
+      dashboardRoom: 10,
+    });
+
+    // "small" takes e and itself, "on-drawn" only itself; "big" needs five, and "again" is drawn already.
+    expect(
+      bi.tableDashboards.map((row: DataLineageMapDashboardRow): string => {
+        return row.dataDashboardId;
+      }),
+    ).toEqual(["small", "on-drawn"]);
+    expect(bi.dataAssetIds).toEqual(["e"]);
+    expect(bi.isTruncated).toBe(true);
+
+    expect(
+      chooseDataLineageMapBiDashboards({
+        rows: [
+          biRow("one", { dataAssetIds: ["a"] }),
+          biRow("two", { dataAssetIds: ["b"] }),
+        ],
+        drawnDataAssetIds: new Set(),
+        drawnDashboardIds: new Set(),
+        nodeRoom: 100,
+        dashboardRoom: 1,
+      }),
+    ).toMatchObject({ dataAssetIds: ["a"], isTruncated: true });
+  });
+
+  test("more dashboards than were read make the map truncated", () => {
+    expect(
+      chooseDataLineageMapBiDashboards({
+        rows: [],
+        drawnDataAssetIds: new Set(),
+        drawnDashboardIds: new Set(),
+        nodeRoom: 100,
+        dashboardRoom: 100,
+        hadMoreRows: true,
+      }).isTruncated,
+    ).toBe(true);
+  });
+
+  test("with flows on the map, the BI dashboards share the room they leave", () => {
+    const { map } = draw({
+      lineage: [feeds("raw", "orders")],
+      rows: [biRow("refunds-board", { dataAssetIds: ["refunds"] })],
+      tables: [table("raw"), table("orders"), table("refunds")],
+    });
+
+    expect(nodeIds(map)).toEqual([
+      "dashboard:refunds-board",
+      "table:orders",
+      "table:raw",
+      "table:refunds",
+    ]);
   });
 });

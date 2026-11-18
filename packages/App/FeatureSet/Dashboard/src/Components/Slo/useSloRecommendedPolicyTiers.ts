@@ -1,6 +1,11 @@
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ObjectID from "Common/Types/ObjectID";
-import { SloRecommendedPolicyTierToAdd } from "Common/Utils/Slo/SloErrorBudgetPolicy";
+import {
+  SloRecommendedPolicyState,
+  SloRecommendedPolicyTierToAdd,
+  getSloRecommendedPolicyStanding,
+  isSloRecommendedPolicyOffered,
+} from "Common/Utils/Slo/SloErrorBudgetPolicy";
 import {
   MutableRefObject,
   useCallback,
@@ -12,14 +17,27 @@ import RecommendedPolicyTiersApi from "../../Pages/Slo/Utils/RecommendedPolicyTi
 
 export interface UseSloRecommendedPolicyTiersResult {
   /*
-   * The recommended tiers the SLO does not have yet, while it has no tier
-   * at all: empty until the server has said, and empty once it has one.
+   * The recommended tiers the SLO does not have yet, while it is offered
+   * them: empty until the server has said, and empty for an SLO with every
+   * recommended tier or with a policy of its own.
    */
   missingTiers: Array<SloRecommendedPolicyTierToAdd>;
   /*
-   * The tiers table read its rows. What is missing is asked only while the
-   * table has none - "Use the recommended policy" starts a policy - and
-   * only when the rows are not the ones it was last asked for.
+   * Whether the SLO's tiers are part of the recommended policy (#7351): the
+   * rest of it is offered above the tiers. False for an SLO with no tier,
+   * whose table's empty state offers the whole of it.
+   */
+  isPolicyPartial: boolean;
+  /*
+   * Whether a tier the table holds freezes deployments, so the offer can say
+   * when the policy freezes nothing until it has the missing tiers.
+   */
+  isAnyTierFreezing: boolean;
+  /*
+   * The tiers table read its rows. What is missing is asked when the rows
+   * show no tier, or only recommended ones with some missing - the Error
+   * Budget Policy page offers the recommended policy, or the rest of it -
+   * and only when the rows are not the ones it was last asked for.
    */
   onTiersFetched: (
     tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>,
@@ -53,14 +71,32 @@ export function getRecommendedPolicySignature(
 }
 
 /*
+ * Where the rows the table read stand against the recommended policy, or
+ * null when they cannot say: a table that shows only some of the SLO's
+ * tiers cannot tell a policy of the team's own from the recommended one.
+ */
+export function getRecommendedPolicyStateOfRows(
+  tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>,
+  totalCount: number,
+): SloRecommendedPolicyState | null {
+  if (totalCount > tiers.length) {
+    return null;
+  }
+
+  return getSloRecommendedPolicyStanding({ existingTiers: tiers }).state;
+}
+
+/*
  * "Use the recommended policy" for the Error Budget Policy page: the
- * recommended tiers a policy-less SLO would start with, and the call that
+ * recommended tiers a policy-less SLO would start with, or the ones an SLO
+ * with part of the recommended policy is missing (#7351), and the call that
  * adds them.
  *
- * Asked only while the table is empty and only when its rows change, so an
- * SLO with a policy never asks, and an empty one asks once. A failure to ask
- * leaves the list empty: the starter is offered only once the server has
- * said what it would add, and the table shows its own errors.
+ * Asked only while the table offers them - no tier, or recommended tiers
+ * with some missing - and only when its rows change, so an SLO with a policy
+ * of its own never asks, and an empty one asks once. A failure to ask leaves
+ * the list empty: the offer is made only once the server has said what it
+ * would add, and the table shows its own errors.
  */
 export default function useSloRecommendedPolicyTiers(
   serviceLevelObjectiveId: ObjectID,
@@ -68,6 +104,8 @@ export default function useSloRecommendedPolicyTiers(
   const [missingTiers, setMissingTiers] = useState<
     Array<SloRecommendedPolicyTierToAdd>
   >([]);
+  const [isPolicyPartial, setIsPolicyPartial] = useState<boolean>(false);
+  const [isAnyTierFreezing, setIsAnyTierFreezing] = useState<boolean>(false);
 
   const signatureRef: MutableRefObject<string | null> = useRef<string | null>(
     null,
@@ -112,6 +150,8 @@ export default function useSloRecommendedPolicyTiers(
     signatureRef.current = null;
     requestRef.current += 1;
     setMissingTiers([]);
+    setIsPolicyPartial(false);
+    setIsAnyTierFreezing(false);
   }, [sloKey]);
 
   const onTiersFetched: (
@@ -122,6 +162,15 @@ export default function useSloRecommendedPolicyTiers(
       tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>,
       totalCount: number,
     ): void => {
+      // A switch flipped on a row changes no signature: read on every fetch.
+      setIsAnyTierFreezing(
+        tiers.some(
+          (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+            return tier.freezesDeployments === true;
+          },
+        ),
+      );
+
       const signature: string = getRecommendedPolicySignature(
         tiers,
         totalCount,
@@ -133,12 +182,18 @@ export default function useSloRecommendedPolicyTiers(
 
       signatureRef.current = signature;
 
-      // A policy has been started: there is nothing to start it with.
-      if (totalCount > 0 || tiers.length > 0) {
+      const state: SloRecommendedPolicyState | null =
+        getRecommendedPolicyStateOfRows(tiers, totalCount);
+
+      // A policy of the team's own, the whole recommended one, or rows that cannot say.
+      if (!state || !isSloRecommendedPolicyOffered(state)) {
         requestRef.current += 1;
         setMissingTiers([]);
+        setIsPolicyPartial(false);
         return;
       }
+
+      setIsPolicyPartial(state === SloRecommendedPolicyState.Partial);
 
       load().catch(() => {
         // load() handles its own errors.
@@ -161,6 +216,8 @@ export default function useSloRecommendedPolicyTiers(
 
   return {
     missingTiers: missingTiers,
+    isPolicyPartial: isPolicyPartial,
+    isAnyTierFreezing: isAnyTierFreezing,
     onTiersFetched: onTiersFetched,
     addMissingTiers: addMissingTiers,
   };

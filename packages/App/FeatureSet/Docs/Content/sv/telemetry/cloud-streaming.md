@@ -24,7 +24,7 @@ flowchart TB
 
 - **En stack i varje region.** Kommandot distribuerar en CloudFormation-stack i varje region du strömmar från. Dess mätvärdesström och prenumerationsfilter för loggar lämnar allt vidare till två Firehose-strömmar, och Firehose levererar det till OneUptime över HTTPS.
 - **Strömnyckeln säger vems det är.** Firehose skickar anslutningens strömnyckel med varje leverans. Nyckeln namnger anslutningen, och därmed projektet: ingenting i en leverans avgör var den skrivs. OneUptime sparar bara nyckelns SHA-256.
-- **Läsningarna överlåter strömmade mätvärden till strömmen.** Så länge en ström levererar en namnrymd i en region slutar anslutningens läsningar att skriva den namnrymdens mätvärden, så att ingen datapunkt räknas två gånger. Läsningarna fortsätter att hitta resurser, deras tillstånd och deras ändringar, och tar tillbaka en namnrymd efter 15 minuter utan leverans.
+- **Läsningarna överlåter strömmade mätvärden till strömmen.** Så länge en ström levererar en namnrymd i en region slutar anslutningens läsningar att skriva den namnrymdens mätvärden, så att ingen datapunkt räknas två gånger. De skriver fortfarande de viktiga mätvärden som en ström överlåter till dem, som en S3-buckets dagliga storlek och de viktiga mätvärden som tillkommit sedan strömmarna började och som en äldre stack inte innehåller. Läsningarna fortsätter att hitta resurser, deras tillstånd och deras ändringar, och tar tillbaka en namnrymd efter 15 minuter utan leverans.
 - **Ingenting går förlorat medan OneUptime inte kan ta emot det.** Firehose skickar en avvisad batch igen i upp till en timme och sparar den sedan i 30 dagar i stackens S3-bucket.
 
 ## Innan du börjar

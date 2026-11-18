@@ -1,0 +1,368 @@
+{
+  "source": "The CloudWatch metrics pages of each service's AWS user guide (docs.aws.amazon.com), as each metric's page names it",
+  "readOn": "2026-11-18",
+  "namespaces": {
+    "AWS/EC2": {
+      "pages": ["https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html", "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/US_SingleMetricPerInstance.html", "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/manage-detailed-monitoring.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html"},
+        "NetworkIn": {"exists": true, "exactName": "NetworkIn", "unit": "Bytes", "statistics": ["Sum", "Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html"},
+        "NetworkOut": {"exists": true, "exactName": "NetworkOut", "unit": "Bytes", "statistics": ["Sum", "Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html"},
+        "StatusCheckFailed": {"exists": true, "exactName": "StatusCheckFailed", "unit": "Count", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html"},
+        "CPUCreditBalance": {"exists": true, "exactName": "CPUCreditBalance", "unit": "Credits (vCPU-minutes)", "statistics": ["Sum", "Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html"},
+        "EBSReadBytes": {"exists": true, "exactName": "EBSReadBytes", "unit": "Bytes", "statistics": ["Sum", "Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html"},
+        "EBSWriteBytes": {"exists": true, "exactName": "EBSWriteBytes", "unit": "Bytes", "statistics": ["Sum", "Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html"}
+      }
+    },
+    "AWS/EBS": {
+      "pages": ["https://docs.aws.amazon.com/ebs/latest/userguide/using_cloudwatch_ebs.html"],
+      "metrics": {
+        "VolumeReadOps": {"exists": true, "exactName": "VolumeReadOps", "unit": "Count", "statistics": ["Average", "Sum", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/ebs/latest/userguide/using_cloudwatch_ebs.html"},
+        "VolumeWriteOps": {"exists": true, "exactName": "VolumeWriteOps", "unit": "Count", "statistics": ["Average", "Sum", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/ebs/latest/userguide/using_cloudwatch_ebs.html"},
+        "VolumeQueueLength": {"exists": true, "exactName": "VolumeQueueLength", "unit": "Count", "statistics": ["Average", "Sum", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/ebs/latest/userguide/using_cloudwatch_ebs.html"},
+        "VolumeReadBytes": {"exists": true, "exactName": "VolumeReadBytes", "unit": "Bytes", "statistics": ["Average", "Sum", "SampleCount", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/ebs/latest/userguide/using_cloudwatch_ebs.html"},
+        "VolumeWriteBytes": {"exists": true, "exactName": "VolumeWriteBytes", "unit": "Bytes", "statistics": ["Average", "Sum", "SampleCount", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/ebs/latest/userguide/using_cloudwatch_ebs.html"},
+        "BurstBalance": {"exists": true, "exactName": "BurstBalance", "unit": "Percent", "statistics": ["Average", "Sum", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/ebs/latest/userguide/using_cloudwatch_ebs.html"}
+      }
+    },
+    "AWS/ELB": {
+      "pages": ["https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"],
+      "metrics": {
+        "RequestCount": {"exists": true, "exactName": "RequestCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"},
+        "Latency": {"exists": true, "exactName": "Latency", "unit": null, "statistics": ["Average", "Maximum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"},
+        "HTTPCode_Backend_5XX": {"exists": true, "exactName": "HTTPCode_Backend_5XX", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"},
+        "UnHealthyHostCount": {"exists": true, "exactName": "UnHealthyHostCount", "unit": null, "statistics": ["Average", "Minimum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"},
+        "HealthyHostCount": {"exists": true, "exactName": "HealthyHostCount", "unit": null, "statistics": ["Average", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"},
+        "HTTPCode_ELB_5XX": {"exists": true, "exactName": "HTTPCode_ELB_5XX", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"},
+        "SurgeQueueLength": {"exists": true, "exactName": "SurgeQueueLength", "unit": null, "statistics": ["Maximum", "Average", "Minimum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"},
+        "SpilloverCount": {"exists": true, "exactName": "SpilloverCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/ApplicationELB": {
+      "pages": ["https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"],
+      "metrics": {
+        "RequestCount": {"exists": true, "exactName": "RequestCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "TargetResponseTime": {"exists": true, "exactName": "TargetResponseTime", "unit": null, "statistics": ["Average", "pNN.NN"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "HTTPCode_Target_5XX_Count": {"exists": true, "exactName": "HTTPCode_Target_5XX_Count", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "HTTPCode_ELB_5XX_Count": {"exists": true, "exactName": "HTTPCode_ELB_5XX_Count", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "HTTPCode_Target_4XX_Count": {"exists": true, "exactName": "HTTPCode_Target_4XX_Count", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "RejectedConnectionCount": {"exists": true, "exactName": "RejectedConnectionCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "TargetConnectionErrorCount": {"exists": true, "exactName": "TargetConnectionErrorCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "ActiveConnectionCount": {"exists": true, "exactName": "ActiveConnectionCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"},
+        "ProcessedBytes": {"exists": true, "exactName": "ProcessedBytes", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/NetworkELB": {
+      "pages": ["https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"],
+      "metrics": {
+        "ActiveFlowCount": {"exists": true, "exactName": "ActiveFlowCount", "unit": null, "statistics": ["Average", "Maximum", "Minimum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"},
+        "NewFlowCount": {"exists": true, "exactName": "NewFlowCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"},
+        "ProcessedBytes": {"exists": true, "exactName": "ProcessedBytes", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"},
+        "TCP_Client_Reset_Count": {"exists": true, "exactName": "TCP_Client_Reset_Count", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"},
+        "TCP_Target_Reset_Count": {"exists": true, "exactName": "TCP_Target_Reset_Count", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"},
+        "TCP_ELB_Reset_Count": {"exists": true, "exactName": "TCP_ELB_Reset_Count", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"},
+        "PortAllocationErrorCount": {"exists": true, "exactName": "PortAllocationErrorCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/NATGateway": {
+      "pages": ["https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html", "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway-cloudwatch.html"],
+      "metrics": {
+        "ActiveConnectionCount": {"exists": true, "exactName": "ActiveConnectionCount", "unit": "Count", "statistics": ["Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html"},
+        "BytesOutToDestination": {"exists": true, "exactName": "BytesOutToDestination", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html"},
+        "ErrorPortAllocation": {"exists": true, "exactName": "ErrorPortAllocation", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html"},
+        "PacketsDropCount": {"exists": true, "exactName": "PacketsDropCount", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html"},
+        "BytesInFromDestination": {"exists": true, "exactName": "BytesInFromDestination", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html"},
+        "ConnectionAttemptCount": {"exists": true, "exactName": "ConnectionAttemptCount", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html"},
+        "IdleTimeoutCount": {"exists": true, "exactName": "IdleTimeoutCount", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/userguide/metrics-dimensions-nat-gateway.html"}
+      }
+    },
+    "AWS/VPN": {
+      "pages": ["https://docs.aws.amazon.com/vpn/latest/s2svpn/monitoring-cloudwatch-vpn.html", "https://docs.aws.amazon.com/vpn/latest/s2svpn/creating-alarms-vpn.html"],
+      "metrics": {
+        "TunnelState": {"exists": true, "exactName": "TunnelState", "unit": "Fractional value between 0 and 1", "statistics": ["Maximum", "Minimum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpn/latest/s2svpn/monitoring-cloudwatch-vpn.html"},
+        "TunnelDataIn": {"exists": true, "exactName": "TunnelDataIn", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpn/latest/s2svpn/monitoring-cloudwatch-vpn.html"},
+        "TunnelDataOut": {"exists": true, "exactName": "TunnelDataOut", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpn/latest/s2svpn/monitoring-cloudwatch-vpn.html"}
+      }
+    },
+    "AWS/TransitGateway": {
+      "pages": ["https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-cloudwatch-metrics.html"],
+      "metrics": {
+        "BytesIn": {"exists": true, "exactName": "BytesIn", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-cloudwatch-metrics.html"},
+        "BytesOut": {"exists": true, "exactName": "BytesOut", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-cloudwatch-metrics.html"},
+        "PacketDropCountBlackhole": {"exists": true, "exactName": "PacketDropCountBlackhole", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-cloudwatch-metrics.html"},
+        "PacketDropCountNoRoute": {"exists": true, "exactName": "PacketDropCountNoRoute", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/DX": {
+      "pages": ["https://docs.aws.amazon.com/directconnect/latest/UserGuide/monitoring-cloudwatch.html", "https://docs.aws.amazon.com/directconnect/latest/UserGuide/viewing-metrics.html"],
+      "metrics": {
+        "ConnectionState": {"exists": true, "exactName": "ConnectionState", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/monitoring-cloudwatch.html"},
+        "ConnectionBpsEgress": {"exists": true, "exactName": "ConnectionBpsEgress", "unit": "Bits/Second", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/monitoring-cloudwatch.html"},
+        "ConnectionBpsIngress": {"exists": true, "exactName": "ConnectionBpsIngress", "unit": "Bits/Second", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/monitoring-cloudwatch.html"},
+        "ConnectionErrorCount": {"exists": true, "exactName": "ConnectionErrorCount", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/monitoring-cloudwatch.html"}
+      }
+    },
+    "AWS/CloudFront": {
+      "pages": ["https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html", "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/viewing-cloudfront-metrics.html"],
+      "metrics": {
+        "Requests": {"exists": true, "exactName": "Requests", "unit": "None", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html"},
+        "4xxErrorRate": {"exists": true, "exactName": "4xxErrorRate", "unit": "Percent", "statistics": ["Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html"},
+        "5xxErrorRate": {"exists": true, "exactName": "5xxErrorRate", "unit": "Percent", "statistics": ["Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html"},
+        "BytesDownloaded": {"exists": true, "exactName": "BytesDownloaded", "unit": "None", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html"},
+        "TotalErrorRate": {"exists": true, "exactName": "TotalErrorRate", "unit": "Percent", "statistics": ["Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html"},
+        "BytesUploaded": {"exists": true, "exactName": "BytesUploaded", "unit": "None", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/Route53": {
+      "pages": ["https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/monitoring-cloudwatch.html", "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/monitoring-health-checks.html", "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/monitoring-health-check-latency.html", "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-creating-values.html"],
+      "metrics": {
+        "HealthCheckStatus": {"exists": true, "exactName": "HealthCheckStatus", "unit": "None", "statistics": ["Minimum", "Average", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/monitoring-cloudwatch.html"},
+        "HealthCheckPercentageHealthy": {"exists": true, "exactName": "HealthCheckPercentageHealthy", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/monitoring-cloudwatch.html"}
+      }
+    },
+    "AWS/S3": {
+      "pages": ["https://docs.aws.amazon.com/AmazonS3/latest/userguide/metrics-dimensions.html", "https://docs.aws.amazon.com/AmazonS3/latest/userguide/cloudwatch-monitoring.html"],
+      "metrics": {
+        "BucketSizeBytes": {"exists": true, "exactName": "BucketSizeBytes", "unit": "Bytes", "statistics": ["Average"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/metrics-dimensions.html"},
+        "NumberOfObjects": {"exists": true, "exactName": "NumberOfObjects", "unit": "Count", "statistics": ["Average"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/metrics-dimensions.html"}
+      }
+    },
+    "AWS/EFS": {
+      "pages": ["https://docs.aws.amazon.com/efs/latest/ug/efs-metrics.html", "https://docs.aws.amazon.com/efs/latest/ug/accessingmetrics.html", "https://docs.aws.amazon.com/efs/latest/ug/monitoring-metric-math.html"],
+      "metrics": {
+        "ClientConnections": {"exists": true, "exactName": "ClientConnections", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/efs/latest/ug/efs-metrics.html"},
+        "PercentIOLimit": {"exists": true, "exactName": "PercentIOLimit", "unit": "Percent", "statistics": ["Minimum", "Maximum", "Average"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/efs/latest/ug/efs-metrics.html"},
+        "BurstCreditBalance": {"exists": true, "exactName": "BurstCreditBalance", "unit": "Bytes", "statistics": ["Minimum", "Maximum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/efs/latest/ug/efs-metrics.html"},
+        "DataReadIOBytes": {"exists": true, "exactName": "DataReadIOBytes", "unit": "Bytes", "statistics": ["Minimum", "Maximum", "Average", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/efs/latest/ug/efs-metrics.html"},
+        "DataWriteIOBytes": {"exists": true, "exactName": "DataWriteIOBytes", "unit": "Bytes", "statistics": ["Minimum", "Maximum", "Average", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/efs/latest/ug/efs-metrics.html"}
+      }
+    },
+    "AWS/FSx": {
+      "pages": ["https://docs.aws.amazon.com/fsx/latest/WindowsGuide/monitoring-cloudwatch.html", "https://docs.aws.amazon.com/fsx/latest/LustreGuide/fs-metrics.html", "https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/file-system-metrics.html", "https://docs.aws.amazon.com/fsx/latest/OpenZFSGuide/fsx-openzfs-metrics.html"],
+      "metrics": {
+        "DataReadBytes": {"exists": true, "exactName": "DataReadBytes", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/monitoring-cloudwatch.html"},
+        "DataWriteBytes": {"exists": true, "exactName": "DataWriteBytes", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/monitoring-cloudwatch.html"},
+        "DataReadOperations": {"exists": true, "exactName": "DataReadOperations", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/monitoring-cloudwatch.html"},
+        "DataWriteOperations": {"exists": true, "exactName": "DataWriteOperations", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/monitoring-cloudwatch.html"},
+        "FreeStorageCapacity": {"exists": true, "exactName": "FreeStorageCapacity", "unit": "Bytes", "statistics": ["Average", "Minimum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/monitoring-cloudwatch.html"}
+      }
+    },
+    "AWS/ECS": {
+      "pages": ["https://docs.aws.amazon.com/AmazonECS/latest/developerguide/available-metrics.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/available-metrics.html"},
+        "MemoryUtilization": {"exists": true, "exactName": "MemoryUtilization", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/available-metrics.html"},
+        "CPUReservation": {"exists": true, "exactName": "CPUReservation", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/available-metrics.html"},
+        "MemoryReservation": {"exists": true, "exactName": "MemoryReservation", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/available-metrics.html"}
+      }
+    },
+    "AWS/Lambda": {
+      "pages": ["https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html", "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-view.html"],
+      "metrics": {
+        "Invocations": {"exists": true, "exactName": "Invocations", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html"},
+        "Errors": {"exists": true, "exactName": "Errors", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html"},
+        "Duration": {"exists": true, "exactName": "Duration", "unit": null, "statistics": ["Average", "Maximum", "pNN"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html"},
+        "Throttles": {"exists": true, "exactName": "Throttles", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html"},
+        "ConcurrentExecutions": {"exists": true, "exactName": "ConcurrentExecutions", "unit": null, "statistics": ["Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html"},
+        "IteratorAge": {"exists": true, "exactName": "IteratorAge", "unit": null, "statistics": ["Average", "Maximum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html"},
+        "DeadLetterErrors": {"exists": true, "exactName": "DeadLetterErrors", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html"}
+      }
+    },
+    "AWS/States": {
+      "pages": ["https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"],
+      "metrics": {
+        "ExecutionsStarted": {"exists": true, "exactName": "ExecutionsStarted", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"},
+        "ExecutionsFailed": {"exists": true, "exactName": "ExecutionsFailed", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"},
+        "ExecutionTime": {"exists": true, "exactName": "ExecutionTime", "unit": null, "statistics": ["Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"},
+        "ExecutionsSucceeded": {"exists": true, "exactName": "ExecutionsSucceeded", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"},
+        "ExecutionsTimedOut": {"exists": true, "exactName": "ExecutionsTimedOut", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"},
+        "ExecutionsAborted": {"exists": true, "exactName": "ExecutionsAborted", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"},
+        "ExecutionThrottled": {"exists": true, "exactName": "ExecutionThrottled", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html"}
+      }
+    },
+    "AWS/RDS": {
+      "pages": ["https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html", "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/dimensions.html", "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/monitoring-cloudwatch.html", "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.AuroraMonitoring.Metrics.html", "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/dimensions.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "DatabaseConnections": {"exists": true, "exactName": "DatabaseConnections", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "FreeStorageSpace": {"exists": true, "exactName": "FreeStorageSpace", "unit": "Bytes", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "FreeableMemory": {"exists": true, "exactName": "FreeableMemory", "unit": "Bytes", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "ReadLatency": {"exists": true, "exactName": "ReadLatency", "unit": "Seconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "WriteLatency": {"exists": true, "exactName": "WriteLatency", "unit": "Seconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "ReadIOPS": {"exists": true, "exactName": "ReadIOPS", "unit": "Count/Second", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "WriteIOPS": {"exists": true, "exactName": "WriteIOPS", "unit": "Count/Second", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "DiskQueueDepth": {"exists": true, "exactName": "DiskQueueDepth", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "NetworkReceiveThroughput": {"exists": true, "exactName": "NetworkReceiveThroughput", "unit": "Bytes/Second", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "NetworkTransmitThroughput": {"exists": true, "exactName": "NetworkTransmitThroughput", "unit": "Bytes/Second", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"},
+        "ReplicaLag": {"exists": true, "exactName": "ReplicaLag", "unit": "Seconds", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html"}
+      }
+    },
+    "AWS/DocDB": {
+      "pages": ["https://docs.aws.amazon.com/documentdb/latest/devguide/cloud_watch.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/documentdb/latest/devguide/cloud_watch.html"},
+        "DatabaseConnections": {"exists": true, "exactName": "DatabaseConnections", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/documentdb/latest/devguide/cloud_watch.html"},
+        "FreeableMemory": {"exists": true, "exactName": "FreeableMemory", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/documentdb/latest/devguide/cloud_watch.html"},
+        "ReadLatency": {"exists": true, "exactName": "ReadLatency", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/documentdb/latest/devguide/cloud_watch.html"},
+        "WriteLatency": {"exists": true, "exactName": "WriteLatency", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/documentdb/latest/devguide/cloud_watch.html"},
+        "DBInstanceReplicaLag": {"exists": true, "exactName": "DBInstanceReplicaLag", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/documentdb/latest/devguide/cloud_watch.html"}
+      }
+    },
+    "AWS/Neptune": {
+      "pages": ["https://docs.aws.amazon.com/neptune/latest/userguide/cw-metrics.html", "https://docs.aws.amazon.com/neptune/latest/userguide/cw-dimensions.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": null, "statistics": ["Average", "p99"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/neptune/latest/userguide/cw-metrics.html"},
+        "FreeableMemory": {"exists": true, "exactName": "FreeableMemory", "unit": null, "statistics": ["Average"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/neptune/latest/userguide/cw-metrics.html"},
+        "MainRequestQueuePendingRequests": {"exists": true, "exactName": "MainRequestQueuePendingRequests", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/neptune/latest/userguide/cw-metrics.html"},
+        "TotalServerErrorsPerSec": {"exists": true, "exactName": "TotalServerErrorsPerSec", "unit": null, "statistics": ["Average"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/neptune/latest/userguide/cw-metrics.html"},
+        "TotalClientErrorsPerSec": {"exists": true, "exactName": "TotalClientErrorsPerSec", "unit": null, "statistics": ["Average"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/neptune/latest/userguide/cw-metrics.html"},
+        "ClusterReplicaLag": {"exists": true, "exactName": "ClusterReplicaLag", "unit": null, "statistics": ["Average"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/neptune/latest/userguide/cw-metrics.html"}
+      }
+    },
+    "AWS/DynamoDB": {
+      "pages": ["https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html"],
+      "metrics": {
+        "ConsumedReadCapacityUnits": {"exists": true, "exactName": "ConsumedReadCapacityUnits", "unit": "Count", "statistics": ["Sum", "Minimum", "Maximum", "Average", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html"},
+        "ConsumedWriteCapacityUnits": {"exists": true, "exactName": "ConsumedWriteCapacityUnits", "unit": "Count", "statistics": ["Sum", "Minimum", "Maximum", "Average", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html"},
+        "ReadThrottleEvents": {"exists": true, "exactName": "ReadThrottleEvents", "unit": "Count", "statistics": ["SampleCount", "Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html"},
+        "WriteThrottleEvents": {"exists": true, "exactName": "WriteThrottleEvents", "unit": "Count", "statistics": ["Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html"},
+        "ProvisionedReadCapacityUnits": {"exists": true, "exactName": "ProvisionedReadCapacityUnits", "unit": "Count", "statistics": ["Minimum", "Maximum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html"},
+        "ProvisionedWriteCapacityUnits": {"exists": true, "exactName": "ProvisionedWriteCapacityUnits", "unit": "Count", "statistics": ["Minimum", "Maximum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html"}
+      }
+    },
+    "AWS/ElastiCache": {
+      "pages": ["https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.HostLevel.html", "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html", "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Memcached.html", "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.ChoosingStatisticsAndPeriods.html", "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CloudWatchMetrics.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.HostLevel.html"},
+        "CurrConnections": {"exists": true, "exactName": "CurrConnections", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"},
+        "Evictions": {"exists": true, "exactName": "Evictions", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"},
+        "DatabaseMemoryUsagePercentage": {"exists": true, "exactName": "DatabaseMemoryUsagePercentage", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"},
+        "EngineCPUUtilization": {"exists": true, "exactName": "EngineCPUUtilization", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"},
+        "CacheHits": {"exists": true, "exactName": "CacheHits", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"},
+        "CacheMisses": {"exists": true, "exactName": "CacheMisses", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"},
+        "ReplicationLag": {"exists": true, "exactName": "ReplicationLag", "unit": "Seconds", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"}
+      }
+    },
+    "AWS/MemoryDB": {
+      "pages": ["https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.memorydb.html", "https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.HostLevel.html", "https://docs.aws.amazon.com/memorydb/latest/devguide/cloudwatchmetrics.html", "https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.ChoosingStatisticsAndPeriods.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": "Percent", "statistics": ["Average", "Minimum", "Maximum"], "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.HostLevel.html"},
+        "EngineCPUUtilization": {"exists": true, "exactName": "EngineCPUUtilization", "unit": "Percent", "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.memorydb.html"},
+        "DatabaseMemoryUsagePercentage": {"exists": true, "exactName": "DatabaseMemoryUsagePercentage", "unit": "Percent", "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.memorydb.html"},
+        "CurrConnections": {"exists": true, "exactName": "CurrConnections", "unit": "Count", "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.memorydb.html"},
+        "Evictions": {"exists": true, "exactName": "Evictions", "unit": "Count", "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/memorydb/latest/devguide/metrics.memorydb.html"}
+      }
+    },
+    "AWS/Redshift": {
+      "pages": ["https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html"},
+        "PercentageDiskSpaceUsed": {"exists": true, "exactName": "PercentageDiskSpaceUsed", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html"},
+        "DatabaseConnections": {"exists": true, "exactName": "DatabaseConnections", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html"},
+        "HealthStatus": {"exists": true, "exactName": "HealthStatus", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html"},
+        "ReadLatency": {"exists": true, "exactName": "ReadLatency", "unit": "Seconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html"},
+        "WriteLatency": {"exists": true, "exactName": "WriteLatency", "unit": "Seconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/redshift/latest/mgmt/metrics-listing.html"}
+      }
+    },
+    "AWS/ES": {
+      "pages": ["https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": null, "statistics": ["Maximum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "FreeStorageSpace": {"exists": true, "exactName": "FreeStorageSpace", "unit": null, "statistics": ["Minimum", "Maximum", "Average", "Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "ClusterStatus.red": {"exists": true, "exactName": "ClusterStatus.red", "unit": null, "statistics": ["Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "ClusterStatus.yellow": {"exists": true, "exactName": "ClusterStatus.yellow", "unit": null, "statistics": ["Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "ClusterIndexWritesBlocked": {"exists": true, "exactName": "ClusterIndexWritesBlocked", "unit": null, "statistics": ["Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "5xx": {"exists": true, "exactName": "5xx", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "SearchLatency": {"exists": true, "exactName": "SearchLatency", "unit": null, "statistics": ["Average", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "IndexingLatency": {"exists": true, "exactName": "IndexingLatency", "unit": null, "statistics": ["Average", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"},
+        "JVMMemoryPressure": {"exists": true, "exactName": "JVMMemoryPressure", "unit": null, "statistics": ["Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-cloudwatchmetrics.html"}
+      }
+    },
+    "AWS/SQS": {
+      "pages": ["https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html", "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/monitoring-using-cloudwatch.html"],
+      "metrics": {
+        "ApproximateNumberOfMessagesVisible": {"exists": true, "exactName": "ApproximateNumberOfMessagesVisible", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html"},
+        "ApproximateAgeOfOldestMessage": {"exists": true, "exactName": "ApproximateAgeOfOldestMessage", "unit": "Seconds", "statistics": null, "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html"},
+        "NumberOfMessagesSent": {"exists": true, "exactName": "NumberOfMessagesSent", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html"},
+        "ApproximateNumberOfMessagesNotVisible": {"exists": true, "exactName": "ApproximateNumberOfMessagesNotVisible", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html"},
+        "NumberOfMessagesDeleted": {"exists": true, "exactName": "NumberOfMessagesDeleted", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/SNS": {
+      "pages": ["https://docs.aws.amazon.com/sns/latest/dg/sns-monitoring-using-cloudwatch.html"],
+      "metrics": {
+        "NumberOfMessagesPublished": {"exists": true, "exactName": "NumberOfMessagesPublished", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sns/latest/dg/sns-monitoring-using-cloudwatch.html"},
+        "NumberOfNotificationsFailed": {"exists": true, "exactName": "NumberOfNotificationsFailed", "unit": "Count", "statistics": ["Sum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sns/latest/dg/sns-monitoring-using-cloudwatch.html"},
+        "NumberOfNotificationsDelivered": {"exists": true, "exactName": "NumberOfNotificationsDelivered", "unit": "Count", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sns/latest/dg/sns-monitoring-using-cloudwatch.html"}
+      }
+    },
+    "AWS/Kinesis": {
+      "pages": ["https://docs.aws.amazon.com/streams/latest/dev/monitoring-with-cloudwatch.html"],
+      "metrics": {
+        "IncomingRecords": {"exists": true, "exactName": "IncomingRecords", "unit": "Count", "statistics": ["Minimum", "Maximum", "Average", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/streams/latest/dev/monitoring-with-cloudwatch.html"},
+        "GetRecords.IteratorAgeMilliseconds": {"exists": true, "exactName": "GetRecords.IteratorAgeMilliseconds", "unit": "Milliseconds", "statistics": ["Minimum", "Maximum", "Average", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/streams/latest/dev/monitoring-with-cloudwatch.html"},
+        "IncomingBytes": {"exists": true, "exactName": "IncomingBytes", "unit": "Bytes", "statistics": ["Minimum", "Maximum", "Average", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/streams/latest/dev/monitoring-with-cloudwatch.html"},
+        "WriteProvisionedThroughputExceeded": {"exists": true, "exactName": "WriteProvisionedThroughputExceeded", "unit": "Count", "statistics": ["Average", "Minimum", "Maximum", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/streams/latest/dev/monitoring-with-cloudwatch.html"},
+        "ReadProvisionedThroughputExceeded": {"exists": true, "exactName": "ReadProvisionedThroughputExceeded", "unit": "Count", "statistics": ["Average", "Minimum", "Maximum", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/streams/latest/dev/monitoring-with-cloudwatch.html"}
+      }
+    },
+    "AWS/Firehose": {
+      "pages": ["https://docs.aws.amazon.com/firehose/latest/dev/monitoring-with-cloudwatch-metrics.html"],
+      "metrics": {
+        "IncomingRecords": {"exists": true, "exactName": "IncomingRecords", "unit": "Count", "statistics": ["Minimum", "Maximum", "Average", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/firehose/latest/dev/monitoring-with-cloudwatch-metrics.html"},
+        "DeliveryToS3.Success": {"exists": true, "exactName": "DeliveryToS3.Success", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/firehose/latest/dev/monitoring-with-cloudwatch-metrics.html"},
+        "IncomingBytes": {"exists": true, "exactName": "IncomingBytes", "unit": "Bytes", "statistics": ["Minimum", "Maximum", "Average", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/firehose/latest/dev/monitoring-with-cloudwatch-metrics.html"},
+        "ThrottledRecords": {"exists": true, "exactName": "ThrottledRecords", "unit": "Count", "statistics": ["Minimum", "Maximum", "Average", "Sum", "SampleCount"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/firehose/latest/dev/monitoring-with-cloudwatch-metrics.html"},
+        "DeliveryToS3.DataFreshness": {"exists": true, "exactName": "DeliveryToS3.DataFreshness", "unit": "Seconds", "statistics": ["Minimum", "Maximum", "Average", "SampleCount"], "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/firehose/latest/dev/monitoring-with-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/ApiGateway": {
+      "pages": ["https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html", "https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-metrics.html", "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-caching.html"],
+      "metrics": {
+        "Count": {"exists": true, "exactName": "Count", "unit": "Count", "statistics": ["SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
+        "5XXError": {"exists": true, "exactName": "5XXError", "unit": "Count", "statistics": ["Sum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
+        "Latency": {"exists": true, "exactName": "Latency", "unit": "Milliseconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
+        "4XXError": {"exists": true, "exactName": "4XXError", "unit": "Count", "statistics": ["Sum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
+        "IntegrationLatency": {"exists": true, "exactName": "IntegrationLatency", "unit": "Milliseconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"}
+      }
+    },
+    "AWS/Events": {
+      "pages": ["https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-monitoring.html"],
+      "metrics": {
+        "Invocations": {"exists": true, "exactName": "Invocations", "unit": "Count", "statistics": ["Sum", "SampleCount"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-monitoring.html"},
+        "FailedInvocations": {"exists": true, "exactName": "FailedInvocations", "unit": "Count", "statistics": ["Sum", "SampleCount"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-monitoring.html"},
+        "TriggeredRules": {"exists": true, "exactName": "TriggeredRules", "unit": "Count", "statistics": ["Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-monitoring.html"},
+        "ThrottledRules": {"exists": true, "exactName": "ThrottledRules", "unit": "Count", "statistics": ["Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-monitoring.html"},
+        "DeadLetterInvocations": {"exists": true, "exactName": "DeadLetterInvocations", "unit": "Count", "statistics": ["Sum", "SampleCount"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-monitoring.html"}
+      }
+    },
+    "AWS/AmazonMQ": {
+      "pages": ["https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/activemq-logging-monitoring.html", "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rabbitmq-logging-monitoring.html"],
+      "metrics": {
+        "CpuUtilization": {"exists": true, "exactName": "CpuUtilization", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/activemq-logging-monitoring.html"},
+        "SystemCpuUtilization": {"exists": true, "exactName": "SystemCpuUtilization", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rabbitmq-logging-monitoring.html"},
+        "MessageCount": {"exists": true, "exactName": "MessageCount", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rabbitmq-logging-monitoring.html"},
+        "ConnectionCount": {"exists": true, "exactName": "ConnectionCount", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rabbitmq-logging-monitoring.html"},
+        "HeapUsage": {"exists": true, "exactName": "HeapUsage", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/activemq-logging-monitoring.html"},
+        "StorePercentUsage": {"exists": true, "exactName": "StorePercentUsage", "unit": "Percent", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/activemq-logging-monitoring.html"},
+        "CurrentConnectionsCount": {"exists": true, "exactName": "CurrentConnectionsCount", "unit": "Count", "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/activemq-logging-monitoring.html"}
+      }
+    },
+    "AWS/Kafka": {
+      "pages": ["https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"],
+      "metrics": {
+        "ActiveControllerCount": {"exists": true, "exactName": "ActiveControllerCount", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"},
+        "OfflinePartitionsCount": {"exists": true, "exactName": "OfflinePartitionsCount", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"},
+        "UnderReplicatedPartitions": {"exists": true, "exactName": "UnderReplicatedPartitions", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"},
+        "KafkaDataLogsDiskUsed": {"exists": true, "exactName": "KafkaDataLogsDiskUsed", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"},
+        "CpuUser": {"exists": true, "exactName": "CpuUser", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"}
+      }
+    },
+    "AWS/CertificateManager": {
+      "pages": ["https://docs.aws.amazon.com/acm/latest/userguide/cloudwatch-metrics.html"],
+      "metrics": {
+        "DaysToExpiry": {"exists": true, "exactName": "DaysToExpiry", "unit": "Integer", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/acm/latest/userguide/cloudwatch-metrics.html"}
+      }
+    }
+  }
+}
