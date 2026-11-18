@@ -607,18 +607,13 @@
       "4 में से 1-4 दिखाए जा रहे हैं",
       "प्रति पृष्ठ पंक्तियाँ",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: नाम, विवरण से इंजेशन कुंजियाँ खोजें…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: इंजेशन कुंजियाँ",
@@ -644,13 +639,13 @@
       "field checkbox: इंजेशन कुंजी: Marketing site चुनें",
       "button: इंजेशन कुंजी देखें",
       "button: इंजेशन कुंजी: Marketing site के लिए और क्रियाएँ",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: पिछले पृष्ठ पर जाएँ",
       "button: पृष्ठ 1",
       "button: अगले पृष्ठ पर जाएँ"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

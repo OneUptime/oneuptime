@@ -607,18 +607,13 @@
       "4개 중 1-4개 표시",
       "페이지당 행 수",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: 이름, 설명으로 수집 키 검색…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: 수집 키",
@@ -644,13 +639,13 @@
       "field checkbox: 수집 키: Marketing site 선택",
       "button: 수집 키 보기",
       "button: 수집 키: Marketing site에 대한 추가 작업",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: 이전 페이지로 이동",
       "button: 1페이지",
       "button: 다음 페이지로 이동"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

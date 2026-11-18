@@ -607,18 +607,13 @@
       "Items 1-4 van 4",
       "Rijen per pagina",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Ingestiesleutels zoeken op naam, beschrijving…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Ingestiesleutels",
@@ -644,13 +639,13 @@
       "field checkbox: Ingestiesleutel: Marketing site selecteren",
       "button: Ingestiesleutel bekijken",
       "button: Meer acties voor Ingestiesleutel: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Ga naar de vorige pagina",
       "button: Pagina 1",
       "button: Ga naar de volgende pagina"
     ],
     "width": 940,
-    "height": 516
+    "height": 518
   },
   "incident-feed": {
     "text": [

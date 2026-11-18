@@ -607,18 +607,13 @@
       "Elementi 1-4 di 4",
       "Righe per pagina",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Cerca: chiavi di acquisizione per nome, descrizione…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Chiavi di acquisizione",
@@ -644,13 +639,13 @@
       "field checkbox: Seleziona Chiave di acquisizione: Marketing site",
       "button: Visualizza: Chiave di acquisizione",
       "button: Altre azioni per Chiave di acquisizione: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Vai alla pagina precedente",
       "button: Pagina 1",
       "button: Vai alla pagina successiva"
     ],
     "width": 940,
-    "height": 516
+    "height": 518
   },
   "incident-feed": {
     "text": [

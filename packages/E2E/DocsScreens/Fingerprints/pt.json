@@ -607,18 +607,13 @@
       "Mostrando 1-4 de 4",
       "Linhas por página",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Pesquisar: chaves de ingestão por nome, descrição…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Chaves de ingestão",
@@ -644,13 +639,13 @@
       "field checkbox: Selecionar Chave de ingestão: Marketing site",
       "button: Ver Chave de ingestão",
       "button: Mais ações para Chave de ingestão: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Ir para a página anterior",
       "button: Página 1",
       "button: Ir para a próxima página"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

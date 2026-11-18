@@ -607,18 +607,13 @@
       "Visar 1-4 av 4",
       "Rader per sida",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Sök i intagningsnycklar efter namn, beskrivning…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Intagningsnycklar",
@@ -644,13 +639,13 @@
       "field checkbox: Markera Intagningsnyckel: Marketing site",
       "button: Visa Intagningsnyckel",
       "button: Fler åtgärder för Intagningsnyckel: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Gå till föregående sida",
       "button: Sida 1",
       "button: Gå till nästa sida"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

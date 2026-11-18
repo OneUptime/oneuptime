@@ -607,18 +607,13 @@
       "Viser 1-4 af 4",
       "Rækker pr. side",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Søg i indtagelsesnøgler efter navn, beskrivelse…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Indtagelsesnøgler",
@@ -644,13 +639,13 @@
       "field checkbox: Vælg Indtagelsesnøgle: Marketing site",
       "button: Vis Indtagelsesnøgle",
       "button: Flere handlinger for Indtagelsesnøgle: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Gå til forrige side",
       "button: Side 1",
       "button: Gå til næste side"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

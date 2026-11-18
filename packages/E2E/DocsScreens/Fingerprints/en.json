@@ -607,18 +607,13 @@
       "Showing 1-4 of 4 ingestion keys",
       "Rows per page",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Search ingestion keys by name, description…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Ingestion Keys",
@@ -644,13 +639,13 @@
       "field checkbox: Select Ingestion Key: Marketing site",
       "button: View Ingestion Key",
       "button: More actions for Ingestion Key: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Go to previous page",
       "button: Page 1",
       "button: Go to next page"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

@@ -607,18 +607,13 @@
       "Viser 1-4 av 4",
       "Rader per side",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Søk i inntaksnøkler etter navn, beskrivelse…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Inntaksnøkler",
@@ -644,13 +639,13 @@
       "field checkbox: Velg Inntaksnøkkel: Marketing site",
       "button: Vis Inntaksnøkkel",
       "button: Flere handlinger for Inntaksnøkkel: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Gå til forrige side",
       "button: Side 1",
       "button: Gå til neste side"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

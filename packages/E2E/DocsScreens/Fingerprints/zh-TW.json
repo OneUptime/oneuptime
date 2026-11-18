@@ -607,18 +607,13 @@
       "第 1-4 筆，共 4 筆",
       "每頁列數",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: 依名稱、說明搜尋擷取金鑰…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: 擷取金鑰",
@@ -644,13 +639,13 @@
       "field checkbox: 選取 擷取金鑰：Marketing site",
       "button: 檢視擷取金鑰",
       "button: 擷取金鑰：Marketing site 的更多操作",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: 前往上一頁",
       "button: 第 1 頁",
       "button: 前往下一頁"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

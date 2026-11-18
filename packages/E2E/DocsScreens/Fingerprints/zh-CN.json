@@ -607,18 +607,13 @@
       "第 1-4 条，共 4 条",
       "每页行数",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: 按名称、描述搜索摄取密钥…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: 摄取密钥",
@@ -644,13 +639,13 @@
       "field checkbox: 选择 摄取密钥：Marketing site",
       "button: 查看摄取密钥",
       "button: 摄取密钥：Marketing site 的更多操作",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: 转到上一页",
       "button: 第 1 页",
       "button: 转到下一页"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

@@ -607,18 +607,13 @@
       "Показаны 1-4 из 4",
       "Строк на странице",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Поиск: ключи приёма по названию, описанию…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Ключи приёма",
@@ -644,13 +639,13 @@
       "field checkbox: Выбрать Ключ приёма: Marketing site",
       "button: Просмотр: Ключ приёма",
       "button: Другие действия для Ключ приёма: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Перейти на предыдущую страницу",
       "button: Страница 1",
       "button: Перейти на следующую страницу"
     ],
     "width": 940,
-    "height": 564
+    "height": 566
   },
   "incident-feed": {
     "text": [

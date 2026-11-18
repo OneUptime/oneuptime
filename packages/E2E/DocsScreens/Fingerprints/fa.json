@@ -607,18 +607,13 @@
       "نمایش ۱-۴ از ۴",
       "ردیف در هر صفحه",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "۱",
       "placeholder: جستجوی کلیدهای دریافت داده بر اساس نام، توضیحات…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: کلیدهای دریافت داده",
@@ -644,13 +639,13 @@
       "field checkbox: انتخاب کلید دریافت داده: Marketing site",
       "button: مشاهدهٔ کلید دریافت داده",
       "button: اقدامات بیشتر برای کلید دریافت داده: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: رفتن به صفحه قبل",
       "button: صفحه ۱",
       "button: رفتن به صفحه بعد"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

@@ -607,18 +607,13 @@
       "4 件中 1-4 件を表示",
       "1 ページの行数",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: 名前や説明で取り込みキーを検索…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: 取り込みキー",
@@ -644,13 +639,13 @@
       "field checkbox: 取り込みキー: Marketing site を選択",
       "button: 取り込みキーを表示",
       "button: 取り込みキー: Marketing site のその他のアクション",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: 前のページへ移動",
       "button: 1 ページ",
       "button: 次のページへ移動"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

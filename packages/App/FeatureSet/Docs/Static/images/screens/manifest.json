@@ -493,72 +493,72 @@
     },
     "ingestion-keys": {
       "da": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "de": {
-        "width": 952,
-        "height": 552
+        "width": 940,
+        "height": 542
       },
       "en": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "es": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "fa": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "fr": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "hi": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "it": {
-        "width": 952,
-        "height": 528
+        "width": 940,
+        "height": 518
       },
       "ja": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "ko": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "nl": {
-        "width": 952,
-        "height": 528
+        "width": 940,
+        "height": 518
       },
       "no": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "pt": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "ru": {
-        "width": 952,
-        "height": 576
+        "width": 940,
+        "height": 566
       },
       "sv": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "zh-CN": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "zh-TW": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       }
     },
     "on-call-policies-guided-setup": {
