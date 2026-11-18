@@ -1,4 +1,6 @@
+import { PRODUCT_TITLES } from "../Product/ProductCatalog";
 import ProductKey, { PRODUCT_KEYS } from "../Product/ProductKey";
+import { translationKey } from "../Translator";
 
 /*
  * HOW ASK AI'S ANSWERS WERE RATED, WITHOUT ANYONE'S WORDS (#7365).
@@ -23,7 +25,8 @@ import ProductKey, { PRODUCT_KEYS } from "../Product/ProductKey";
  * customer's words leaving their project.
  *
  * React-free and server-free: the server, both dashboards and the tests read
- * it.
+ * it. The words it marks (translationKey) are keys of both dashboards'
+ * locales: each dashboard's extractor reads this file for them.
  */
 
 // The days the ratings are counted over: the Admin Dashboard's window too.
@@ -216,4 +219,32 @@ export const readAskAiProjectRatings: (
     notHelpful: notHelpful,
     ratedDownDrewOn: readAskAiSourceCounts(data["ratedDownDrewOn"]),
   };
+};
+
+// What an answer drew on that is no product, in the dashboards' words.
+export const ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES: Readonly<
+  Record<AskAiSourceOfNoProduct, string>
+> = {
+  [AskAiSourceOfNoProduct.Docs]: translationKey("OneUptime docs"),
+  [AskAiSourceOfNoProduct.OtherData]: translationKey("Other OneUptime data"),
+  [AskAiSourceOfNoProduct.Nothing]: translationKey("No data read"),
+};
+
+/*
+ * A source's name, in English: a product by its menu's name (ProductCatalog,
+ * a key of both dashboards' locales), else the words above.
+ */
+export const getAskAiSourceTitle: (source: AskAiSource) => string = (
+  source: AskAiSource,
+): string => {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES,
+      source,
+    )
+  ) {
+    return ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES[source as AskAiSourceOfNoProduct];
+  }
+
+  return PRODUCT_TITLES[source as ProductKey] || source;
 };

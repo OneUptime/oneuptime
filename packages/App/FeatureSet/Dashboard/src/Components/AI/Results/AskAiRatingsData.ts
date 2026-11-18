@@ -1,8 +1,8 @@
 import {
   ASK_AI_RATINGS_ROUTE,
+  ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES,
   AskAiProjectRatings,
-  AskAiSource,
-  AskAiSourceOfNoProduct,
+  getAskAiSourceTitle,
   readAskAiProjectRatings,
 } from "Common/Types/AI/AskAiRatings";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -10,13 +10,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
-import { PRODUCT_TITLES } from "Common/Types/Product/ProductCatalog";
-import ProductKey from "Common/Types/Product/ProductKey";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * ASK AI'S ANSWERS, AS THIS PROJECT RATED THEM (#7365), for Settings > AI >
@@ -40,33 +37,8 @@ export const mayReadAskAiRatings: () => boolean = (): boolean => {
   return PermissionGate.holdsAnyOf(ASK_AI_RATINGS_READERS);
 };
 
-// What an answer drew on that is no product, in the card's words.
-export const ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES: Readonly<
-  Record<AskAiSourceOfNoProduct, string>
-> = {
-  [AskAiSourceOfNoProduct.Docs]: translationKey("OneUptime docs"),
-  [AskAiSourceOfNoProduct.OtherData]: translationKey("Other OneUptime data"),
-  [AskAiSourceOfNoProduct.Nothing]: translationKey("No data read"),
-};
-
-/*
- * A source's name, in English: a product by its menu's name (ProductCatalog,
- * a key of the Dashboard's locales), else the card's own words.
- */
-export const getAskAiSourceTitle: (source: AskAiSource) => string = (
-  source: AskAiSource,
-): string => {
-  if (
-    Object.prototype.hasOwnProperty.call(
-      ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES,
-      source,
-    )
-  ) {
-    return ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES[source as AskAiSourceOfNoProduct];
-  }
-
-  return PRODUCT_TITLES[source as ProductKey] || source;
-};
+// A source's name and the words for what is no product (Types/AI/AskAiRatings).
+export { ASK_AI_SOURCE_OF_NO_PRODUCT_TITLES, getAskAiSourceTitle };
 
 // GET /ai-chat/ratings, for the project the Dashboard is on.
 export const fetchAskAiRatings: () => Promise<AskAiProjectRatings> =

@@ -136,6 +136,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
   fr: [
     "Question",
     "Page",
+    // The Feedback page's docs pages (#7209): French says "Pages" too.
+    "Pages",
     "Version",
     "Questions",
     "Notifications",

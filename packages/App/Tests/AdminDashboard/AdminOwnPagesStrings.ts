@@ -169,6 +169,11 @@ export const ADMIN_DASHBOARD_CATALOGS: ReadonlyArray<string> = [
    * up by the answer's kind and topic (#8893).
    */
   "packages/Common/Types/ProductFeedback/ProductFeedback.ts",
+  /*
+   * What Ask AI's answers rated down drew on that is no product - the docs,
+   * other data, nothing - on the Feedback page's Ask AI card (#7365).
+   */
+  "packages/Common/Types/AI/AskAiRatings.ts",
 ];
 
 export function readAdminCatalogStrings(): OwnStrings {
