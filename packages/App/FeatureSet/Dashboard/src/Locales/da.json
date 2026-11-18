@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "{{count}} medlem tilkaldes nu efter standardrækkefølgen",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin blev udeladt, og de beholder indtil videre deres egne trin med {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin blev udeladt.",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} er på vagt, men har ingen bekræftet telefonmetode, som dette projekt beder alle på vagt om at have."
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} er på vagt, men har ingen bekræftet telefonmetode, som dette projekt beder alle på vagt om at have.",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installér appen fra App Store eller Google Play, log ind på {{serverUrl}}, og tillad notifikationer og kritiske advarsler, når den spørger."
 }

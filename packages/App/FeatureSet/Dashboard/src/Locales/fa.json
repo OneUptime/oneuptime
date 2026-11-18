@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "اکنون {{count}} عضو با ترتیب تماس پیش‌فرض فراخوانده می‌شود",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شدند و تا آن زمان گام‌های {{kept}} خودش می‌ماند.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شدند.",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} آنکال است اما هیچ روش تلفنی تأییدشده‌ای ندارد، که این پروژه از همهٔ افراد آنکال می‌خواهد."
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} آنکال است اما هیچ روش تلفنی تأییدشده‌ای ندارد، که این پروژه از همهٔ افراد آنکال می‌خواهد.",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "برنامه را از App Store یا Google Play نصب کنید، به {{serverUrl}} وارد شوید و وقتی برنامه درخواست کرد، اجازهٔ اعلان‌ها و هشدارهای بحرانی را بدهید."
 }

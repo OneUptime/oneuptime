@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "{{count}} miembro recibe ahora avisos según la secuencia predeterminada",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} aún no ha verificado {{channels}}, así que esos pasos se han omitido, y conserva mientras tanto sus propios pasos por {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} aún no ha verificado {{channels}}, así que esos pasos se han omitido.",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} está de guardia pero no tiene ningún método telefónico verificado, que este proyecto pide a todas las personas de guardia."
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} está de guardia pero no tiene ningún método telefónico verificado, que este proyecto pide a todas las personas de guardia.",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Instala la app desde App Store o Google Play, inicia sesión en {{serverUrl}} y permite las notificaciones y las alertas críticas cuando te lo pida."
 }

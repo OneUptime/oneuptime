@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "{{count}} membro agora é acionado pela sequência padrão",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} ainda não verificou {{channels}}, então essas etapas ficaram de fora, e enquanto isso mantém as próprias etapas por {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} ainda não verificou {{channels}}, então essas etapas ficaram de fora.",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} está de plantão, mas não tem nenhum método por telefone verificado, que este projeto pede a todos de plantão."
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} está de plantão, mas não tem nenhum método por telefone verificado, que este projeto pede a todos de plantão.",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Instale o app pela App Store ou pelo Google Play, entre em {{serverUrl}} e permita notificações e alertas críticos quando ele pedir."
 }

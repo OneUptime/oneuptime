@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "{{count}} 名成員現在按預設聯絡順序呼叫",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟，在此期間保留其自己的{{kept}}步驟。",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟。",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} 正在待命，但沒有此專案要求每位待命人員都具備的已驗證電話聯絡方式。"
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} 正在待命，但沒有此專案要求每位待命人員都具備的已驗證電話聯絡方式。",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "從 App Store 或 Google Play 安裝 App，登入 {{serverUrl}}，並在 App 要求時允許通知和重大警示。"
 }

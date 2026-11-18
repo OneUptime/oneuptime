@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "{{count}} lid wordt nu opgeroepen volgens de standaardreeks",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten, en de eigen stappen via {{kept}} blijven intussen behouden.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten.",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} heeft dienst maar geen geverifieerde telefoonmethode, waar dit project iedereen met dienst om vraagt."
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} heeft dienst maar geen geverifieerde telefoonmethode, waar dit project iedereen met dienst om vraagt.",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installeer de app via de App Store of Google Play, log in op {{serverUrl}} en sta meldingen en kritieke waarschuwingen toe als de app erom vraagt."
 }

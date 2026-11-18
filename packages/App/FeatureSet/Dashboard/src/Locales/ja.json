@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "{{count}} 人のメンバーがデフォルトの連絡手順で呼び出されるようになりました",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されました。それまでは本人の {{kept}} のステップが残ります。",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されました。",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} はオンコール担当ですが、このプロジェクトがオンコール担当者全員に求めている確認済みの電話の連絡方法がありません。"
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} はオンコール担当ですが、このプロジェクトがオンコール担当者全員に求めている確認済みの電話の連絡方法がありません。",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store または Google Play からアプリをインストールし、{{serverUrl}} にサインインして、求められたら通知と重大なアラートを許可してください。"
 }

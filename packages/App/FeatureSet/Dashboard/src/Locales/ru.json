@@ -56772,5 +56772,6 @@
   "{{count}} members now page by the default ladder_one": "{{count}} участника теперь вызывают по последовательности по умолчанию",
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} ещё не подтвердил {{channels}}, поэтому эти шаги пропущены, а пока сохраняются его собственные шаги через {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} ещё не подтвердил {{channels}}, поэтому эти шаги пропущены.",
-  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} на дежурстве, но у него нет подтверждённого телефонного метода, который этот проект просит иметь всех дежурных."
+  "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} на дежурстве, но у него нет подтверждённого телефонного метода, который этот проект просит иметь всех дежурных.",
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Установите приложение из App Store или Google Play, войдите на {{serverUrl}} и разрешите уведомления и критические оповещения, когда приложение попросит."
 }
