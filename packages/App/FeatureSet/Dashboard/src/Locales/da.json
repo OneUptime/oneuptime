@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Invitationsmailen til {{email}} blev ikke sendt. Kopiér dette link, og send det selv til dem. Det virker én gang, kun for denne adresse, i 7 dage.",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "Invitationsmailen til {{email}} blev ikke sendt. De har allerede en konto og er nu medlem: send dem dette link til at logge ind.",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "Invitationsmailen til {{email}} blev ikke sendt. De har allerede en konto: send dem dette link til at logge ind, så accepterer de invitationen derfra.",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Invitationslinket kunne ikke læses. De er måske ikke længere inviteret til dette projekt: Invitér dem igen fra projektets side Brugere."
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Invitationslinket kunne ikke læses. De er måske ikke længere inviteret til dette projekt: Invitér dem igen fra projektets side Brugere.",
+  "Check their email address, then remove them and invite them again.": "Tjek deres e-mailadresse, og fjern dem derefter og invitér dem igen.",
+  "Email Not Sent": "E-mail ikke sendt",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Når e-mail virker, så fjern dem og invitér dem igen, eller bed din serveradministrator om deres invitationslink.",
+  "Their invitation email was not sent.": "Invitationsmailen blev ikke sendt.",
+  "They can still join: send them their invitation link yourself.": "De kan stadig deltage: send dem selv deres invitationslink."
 }

@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "{{email}} への招待メールは送信されませんでした。このリンクをコピーして、ご自身で送ってください。このアドレス専用で、7 日以内に 1 回だけ使えます。",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "{{email}} への招待メールは送信されませんでした。すでにアカウントをお持ちで、メンバーになっています。このリンクを送ってサインインしてもらってください。",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "{{email}} への招待メールは送信されませんでした。すでにアカウントをお持ちです。このリンクを送ってサインインしてもらうと、そこから招待を承諾できます。",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "招待リンクを読み取れませんでした。このプロジェクトへの招待はもうないのかもしれません。プロジェクトの「ユーザー」ページから再度招待してください。"
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "招待リンクを読み取れませんでした。このプロジェクトへの招待はもうないのかもしれません。プロジェクトの「ユーザー」ページから再度招待してください。",
+  "Check their email address, then remove them and invite them again.": "メールアドレスを確認してから、このユーザーを外して再度招待してください。",
+  "Email Not Sent": "メール未送信",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "メールが使えるようになったら、このユーザーを外してから再度招待するか、サーバー管理者に招待リンクを依頼してください。",
+  "Their invitation email was not sent.": "招待メールは送信されませんでした。",
+  "They can still join: send them their invitation link yourself.": "招待リンクをご自身で送れば、まだ参加できます。"
 }

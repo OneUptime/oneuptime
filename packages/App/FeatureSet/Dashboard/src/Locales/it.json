@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "L'email di invito a {{email}} non è stata inviata. Copia questo link e invialo tu stesso. Funziona una sola volta, solo per questo indirizzo, per 7 giorni.",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "L'email di invito a {{email}} non è stata inviata. Ha già un account ed è ora un membro: inviagli questo link per accedere.",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "L'email di invito a {{email}} non è stata inviata. Ha già un account: inviagli questo link per accedere, da lì accetterà l'invito.",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Non è stato possibile leggere il link di invito. Forse non è più invitato a questo progetto: invitalo di nuovo dalla sua pagina Utenti."
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Non è stato possibile leggere il link di invito. Forse non è più invitato a questo progetto: invitalo di nuovo dalla sua pagina Utenti.",
+  "Check their email address, then remove them and invite them again.": "Controlla il suo indirizzo email, poi rimuovi questa persona e invitala di nuovo.",
+  "Email Not Sent": "Email non inviata",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Quando l'email funziona, rimuovi questa persona e invitala di nuovo, oppure chiedi il suo link di invito all'amministratore del server.",
+  "Their invitation email was not sent.": "L'email di invito non è stata inviata.",
+  "They can still join: send them their invitation link yourself.": "Può comunque unirsi: inviagli tu il suo link di invito."
 }

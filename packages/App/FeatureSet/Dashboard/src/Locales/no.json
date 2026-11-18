@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Invitasjonsmeldingen til {{email}} ble ikke sendt. Kopier denne lenken og send den til dem selv. Den virker én gang, bare for denne adressen, i 7 dager.",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "Invitasjonsmeldingen til {{email}} ble ikke sendt. De har allerede en konto og er nå medlem: send dem denne lenken for å logge på.",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "Invitasjonsmeldingen til {{email}} ble ikke sendt. De har allerede en konto: send dem denne lenken for å logge på, så godtar de invitasjonen derfra.",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Invitasjonslenken kunne ikke leses. De er kanskje ikke lenger invitert til dette prosjektet: inviter dem på nytt fra siden Brukere i prosjektet."
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Invitasjonslenken kunne ikke leses. De er kanskje ikke lenger invitert til dette prosjektet: inviter dem på nytt fra siden Brukere i prosjektet.",
+  "Check their email address, then remove them and invite them again.": "Sjekk e-postadressen deres, fjern dem så og inviter dem på nytt.",
+  "Email Not Sent": "E-post ikke sendt",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Når e-post virker, fjerner du dem og inviterer dem på nytt, eller ber serveradministratoren om invitasjonslenken deres.",
+  "Their invitation email was not sent.": "Invitasjonsmeldingen ble ikke sendt.",
+  "They can still join: send them their invitation link yourself.": "De kan fortsatt bli med: send dem invitasjonslenken selv."
 }

@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "لم تُرسَل رسالة الدعوة إلى {{email}}. انسخ هذا الرابط وأرسله إليهم بنفسك. يعمل مرة واحدة، لهذا العنوان فقط، لمدة 7 أيام.",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "لم تُرسَل رسالة الدعوة إلى {{email}}. لديهم حساب بالفعل وهم أعضاء الآن: أرسل إليهم هذا الرابط لتسجيل الدخول.",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "لم تُرسَل رسالة الدعوة إلى {{email}}. لديهم حساب بالفعل: أرسل إليهم هذا الرابط لتسجيل الدخول، ومن هناك يقبلون الدعوة.",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "تعذّرت قراءة رابط الدعوة. ربما لم يعودوا مدعوين إلى هذا المشروع: ادعُهم مرة أخرى من صفحة المستخدمين الخاصة به."
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "تعذّرت قراءة رابط الدعوة. ربما لم يعودوا مدعوين إلى هذا المشروع: ادعُهم مرة أخرى من صفحة المستخدمين الخاصة به.",
+  "Check their email address, then remove them and invite them again.": "تحقّق من عنوان بريدهم الإلكتروني، ثم أزلهم وادعُهم مرة أخرى.",
+  "Email Not Sent": "لم يُرسَل البريد الإلكتروني",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "عندما يعمل البريد الإلكتروني، أزلهم وادعُهم مرة أخرى، أو اطلب رابط الدعوة الخاص بهم من مسؤول الخادم.",
+  "Their invitation email was not sent.": "لم تُرسَل رسالة الدعوة إليهم.",
+  "They can still join: send them their invitation link yourself.": "لا يزال بإمكانهم الانضمام: أرسل إليهم رابط الدعوة بنفسك."
 }

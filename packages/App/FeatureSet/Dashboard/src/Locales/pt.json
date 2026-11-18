@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "O e-mail de convite para {{email}} não foi enviado. Copie este link e envie você mesmo. Ele funciona uma vez, só para este endereço, por 7 dias.",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "O e-mail de convite para {{email}} não foi enviado. A pessoa já tem uma conta e agora é membro: envie este link para ela entrar.",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "O e-mail de convite para {{email}} não foi enviado. A pessoa já tem uma conta: envie este link para ela entrar, e ela aceita o convite por lá.",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Não foi possível ler o link de convite. Talvez a pessoa não esteja mais convidada para este projeto: convide-a de novo pela página Usuários dele."
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Não foi possível ler o link de convite. Talvez a pessoa não esteja mais convidada para este projeto: convide-a de novo pela página Usuários dele.",
+  "Check their email address, then remove them and invite them again.": "Confira o endereço de e-mail da pessoa, depois remova-a e convide-a de novo.",
+  "Email Not Sent": "E-mail não enviado",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Quando o e-mail funcionar, remova a pessoa e convide-a de novo, ou peça o link de convite dela ao administrador do servidor.",
+  "Their invitation email was not sent.": "O e-mail de convite não foi enviado.",
+  "They can still join: send them their invitation link yourself.": "A pessoa ainda pode entrar: envie você mesmo o link de convite dela."
 }

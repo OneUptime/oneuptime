@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "发给 {{email}} 的邀请邮件未发送。请复制此链接并自行发送给对方。该链接仅限此地址使用一次，有效期 7 天。",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "发给 {{email}} 的邀请邮件未发送。对方已有账号，现在已是成员：请发送此链接让其登录。",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "发给 {{email}} 的邀请邮件未发送。对方已有账号：请发送此链接让其登录，并在那里接受邀请。",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "无法读取邀请链接。对方可能已不再受邀加入此项目：请在该项目的“用户”页面重新邀请。"
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "无法读取邀请链接。对方可能已不再受邀加入此项目：请在该项目的“用户”页面重新邀请。",
+  "Check their email address, then remove them and invite them again.": "请核对对方的邮箱地址，然后将其移除并重新邀请。",
+  "Email Not Sent": "邮件未发送",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "邮件可用后，请将对方移除并重新邀请，或向服务器管理员索取对方的邀请链接。",
+  "Their invitation email was not sent.": "邀请邮件未发送。",
+  "They can still join: send them their invitation link yourself.": "对方仍可加入：请自行把邀请链接发给对方。"
 }

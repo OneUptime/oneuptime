@@ -56871,5 +56871,10 @@
   "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "L'e-mail d'invitation à {{email}} n'a pas été envoyé. Copiez ce lien et envoyez-le-lui vous-même. Il ne fonctionne qu'une fois, uniquement pour cette adresse, pendant 7 jours.",
   "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "L'e-mail d'invitation à {{email}} n'a pas été envoyé. Cette personne a déjà un compte et est maintenant membre : envoyez-lui ce lien pour se connecter.",
   "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "L'e-mail d'invitation à {{email}} n'a pas été envoyé. Cette personne a déjà un compte : envoyez-lui ce lien pour se connecter, elle acceptera l'invitation à partir de là.",
-  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Le lien d'invitation n'a pas pu être lu. Cette personne n'est peut-être plus invitée à ce projet : invitez-la de nouveau depuis sa page Utilisateurs."
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Le lien d'invitation n'a pas pu être lu. Cette personne n'est peut-être plus invitée à ce projet : invitez-la de nouveau depuis sa page Utilisateurs.",
+  "Check their email address, then remove them and invite them again.": "Vérifiez l'adresse e-mail de cette personne, puis retirez-la et invitez-la de nouveau.",
+  "Email Not Sent": "E-mail non envoyé",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Une fois l'e-mail fonctionnel, retirez cette personne et invitez-la de nouveau, ou demandez son lien d'invitation à l'administrateur de votre serveur.",
+  "Their invitation email was not sent.": "L'e-mail d'invitation n'a pas été envoyé.",
+  "They can still join: send them their invitation link yourself.": "Cette personne peut quand même rejoindre le projet : envoyez-lui vous-même son lien d'invitation."
 }
