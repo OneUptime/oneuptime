@@ -76,11 +76,20 @@ const HEALTH_KEYS: Array<string> = [
 ];
 
 /*
- * What each screen's first state shows: the in-card loader while its request
- * is outstanding, or, for the screens that render before any request, a
- * piece of their own content. An import or render failure unmounts the tree,
- * so it can never satisfy this.
+ * What each screen's first state shows: while its request is outstanding,
+ * the skeleton of the content it waits for (#9220) - the overview's stat
+ * tiles, the queues' table, a cluster's names and values - or, for the
+ * screens that render before any request, a piece of their own content. An
+ * import or render failure unmounts the tree, so it can never satisfy this.
  */
+const FIRST_STATE_SKELETON: Record<string, string> = {
+  HealthOverview: "stat-tiles-skeleton",
+  HealthQueues: "table-skeleton",
+  HealthPostgres: "detail-skeleton",
+  HealthRedis: "detail-skeleton",
+  HealthClickhouseCluster: "detail-skeleton",
+};
+
 const FIRST_STATE_TEXT: Record<string, string> = {
   HealthLogs: "Diagnostic logs",
   HealthTelemetry: "By signal",
@@ -126,6 +135,9 @@ describe("the enterprise Health plugins", () => {
   test.each(HEALTH_KEYS)(
     "%s loads and renders its first state",
     async (key: string) => {
+      // A screen added to HEALTH_KEYS says what it first draws.
+      expect(FIRST_STATE_TEXT[key] ?? FIRST_STATE_SKELETON[key]).toBeDefined();
+
       const { container } = TestingLibraryModule.render(
         React.createElement(
           Router.MemoryRouter,
@@ -146,7 +158,9 @@ describe("the enterprise Health plugins", () => {
             expect(container.textContent).toContain(text);
           } else {
             expect(
-              container.querySelector('[data-testid="component-loader"]'),
+              container.querySelector(
+                `[data-testid="${FIRST_STATE_SKELETON[key]}"]`,
+              ),
             ).not.toBeNull();
           }
         },
