@@ -22,6 +22,11 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  *
  * The fixture records every ladder saved, every update and every number
  * added, so the tests check what the page sent as well as what it drew.
+ *
+ * In a project with a default ladder, Start From the Project's Default
+ * fills the steps with it (#9445); on a server that can't send email, SMS
+ * or calls, each such step is marked and the page says once who can set it
+ * up (#9446) - both drawn in every language, width and theme too.
  */
 
 const PROJECT: string = "10000000-0000-4000-8000-000000007453";
@@ -444,6 +449,104 @@ test.describe("the project's default ladder", () => {
   });
 });
 
+test.describe("starting from the project's default ladder", () => {
+  test("fills the steps with the default as Maya's own methods, and Save Changes sends them in one request", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?person=one-ladder&default=on");
+    await expectStepsInOrder(page, MAYAS_STEPS);
+
+    await page.getByTestId("paging-ladder-start-from-default").click();
+
+    // Push and SMS at once, then a call after 5 minutes.
+    await expectStepsInOrder(page, {
+      waits: ["At once", "After 5 minutes"],
+      numbers: ["1", "2"],
+      methodCounts: [2, 1],
+    });
+    await expect(
+      page.getByTestId("paging-ladder-started-from-default"),
+    ).toHaveText("Started from the project's default ladder.");
+    await expect(
+      page.getByTestId("paging-ladder-start-from-default"),
+    ).toHaveCount(0);
+    expect((await recorded(page)).ladderSaves).toEqual([]);
+
+    await page.getByTestId("paging-ladder-save").click();
+    await expect(page.getByTestId("paging-ladder-saved")).toBeVisible();
+
+    const saves: Array<LadderSave> = (await recorded(page)).ladderSaves;
+
+    expect(saves).toHaveLength(1);
+    expect(
+      saves[0]!.steps.map((step: LadderStepSent): string => {
+        return `${step.methodColumn}@${step.notifyAfterMinutes}`;
+      }),
+    ).toEqual(["userPushId@0", "userSmsId@0", "userCallId@5"]);
+    // Their ladder is the default now: nothing more to start from.
+    await expect(
+      page.getByTestId("paging-ladder-start-from-default"),
+    ).toHaveCount(0);
+  });
+
+  test("names a way it leaves out, and keeps Maya's own steps in its place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?person=one-ladder&default=left-out");
+    await page.getByTestId("paging-ladder-start-from-default").click();
+
+    await expect(page.getByTestId("paging-ladder-default-left-out")).toHaveText(
+      "You have not verified Telegram yet, so those steps are left out, and your own email, SMS, phone call steps stay meanwhile.",
+    );
+  });
+});
+
+test.describe("steps this server can't send right now", () => {
+  test("are marked, and the page says once who can set it up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?person=one-ladder&send=none");
+
+    // Email, SMS and the call; never the push.
+    await expect(
+      page.getByTestId("paging-ladder-not-sent-now-mark"),
+    ).toHaveCount(3);
+
+    const notice: Locator = page.getByTestId("paging-ladder-not-sent-now");
+
+    await expect(notice).toHaveCount(1);
+    await expect(notice.locator("p")).toHaveText([
+      "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.",
+      "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.",
+    ]);
+
+    await openGrid(page);
+    await expect(
+      page
+        .getByTestId("paging-ladder-summary")
+        .getByTestId("paging-ladder-not-sent-now"),
+    ).toHaveCount(1);
+  });
+
+  test("leave Add your phone saying why, rather than asking for a number no code could reach", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?person=email-only&send=none");
+    await page.getByTestId("paging-ladder-add-phone").click();
+
+    await expect(page.getByTestId("paging-ladder-sms-not-sent")).toBeVisible();
+    await expect(page.getByTestId("paging-ladder-phone-form")).toHaveCount(0);
+  });
+});
+
 interface LanguageCase {
   lang: "de" | "fa";
   // The steps' waits, in the order they page, and their numbers.
@@ -644,6 +747,71 @@ for (const language of LANGUAGES) {
           ).toHaveCount(2);
           await expectNoSidewaysScroll(page);
           await screenshot(page, `default-ladder-${shot}`);
+        });
+
+        test(`the project's default and steps the server can't send at ${width}px`, async ({
+          page,
+        }: {
+          page: Page;
+        }) => {
+          await page.setViewportSize({
+            width: width,
+            height: width === 390 ? 844 : 900,
+          });
+
+          // A server that can send nothing, in a project with a default.
+          await open(
+            page,
+            `${query("one-ladder", language.lang, theme)}&default=on&send=none`,
+          );
+          await expect(
+            page.getByTestId("paging-ladder-not-sent-now"),
+          ).toHaveCount(1);
+          await expect(
+            page.getByTestId("paging-ladder-not-sent-now-mark"),
+          ).toHaveCount(3);
+          await expect(
+            page.getByTestId("paging-ladder-start-from-default"),
+          ).toBeVisible();
+          await expectNoSidewaysScroll(page);
+          await screenshot(page, `ladder-not-sent-${shot}`);
+
+          // Started from the default: two steps, said where they came from.
+          await page.getByTestId("paging-ladder-start-from-default").click();
+          await expectStepsInOrder(page, {
+            waits: [language.waits[0]!, language.waits[1]!],
+            numbers: [language.numbers[0]!, language.numbers[1]!],
+            methodCounts: [2, 1],
+          });
+          await expect(
+            page.getByTestId("paging-ladder-started-from-default"),
+          ).toBeVisible();
+          await expectNoSidewaysScroll(page);
+          await screenshot(page, `ladder-from-default-${shot}`);
+
+          // A way the default uses that Maya has not linked: named.
+          await open(
+            page,
+            `${query("one-ladder", language.lang, theme)}&default=left-out`,
+          );
+          await page.getByTestId("paging-ladder-start-from-default").click();
+          await expect(
+            page.getByTestId("paging-ladder-default-left-out"),
+          ).toBeVisible();
+          await expectNoSidewaysScroll(page);
+          await screenshot(page, `ladder-left-out-${shot}`);
+
+          // Add your phone, on a server that can't send SMS.
+          await open(
+            page,
+            `${query("email-only", language.lang, theme)}&send=none`,
+          );
+          await page.getByTestId("paging-ladder-add-phone").click();
+          await expect(
+            page.getByTestId("paging-ladder-sms-not-sent"),
+          ).toBeVisible();
+          await expectNoSidewaysScroll(page);
+          await screenshot(page, `add-phone-not-sent-${shot}`);
         });
       }
     });

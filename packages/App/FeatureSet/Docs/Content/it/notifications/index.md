@@ -85,6 +85,10 @@ Ogni metodo che verificate in seguito riceve le stesse regole: una regola per og
 | **Per ora niente può raggiungerti** | Nessuno dei vostri metodi è utilizzabile: nessuno è verificato, oppure ogni metodo verificato è su un canale che questo progetto ha disattivato |
 | **Sei configurato e al momento non sei di reperibilità** | Tutto è pronto per il giorno in cui una politica vi nominerà |
 
+Finché resta un passaggio, le **Impostazioni utente** si aprono su questo elenco, e su **Metodi di notifica** quando non resta più nulla di essenziale. Un link a un'altra pagina delle **Impostazioni utente** apre comunque quella pagina.
+
+Quando siete in una politica di reperibilità e la vostra configurazione non è finita, la campanella in alto in ogni pagina mostra **Completa la configurazione delle tue notifiche**, e perché: nulla può raggiungervi, una gravità non ha una regola, o il vostro progetto chiede un metodo telefonico che non avete verificato. Apre questo elenco, oppure **Come contattarmi** per il telefono. **Nascondi per una settimana** la nasconde in questo browser, e sparisce da sola appena la vostra configurazione è finita.
+
 ## Quando nessuna regola corrisponde
 
 Una chiamata può raggiungervi per un tipo e una gravità per cui non avete una regola: per esempio una gravità aggiunta dopo il vostro arrivo. OneUptime vi chiama comunque, con ciò che avete verificato:

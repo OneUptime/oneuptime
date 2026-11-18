@@ -4,6 +4,7 @@ import {
   SKIPPED_FOLDER_NAMES,
 } from "../../Helpers/TagStripScan";
 import escapeRegExp from "../../../Utils/RegExpEscape";
+import { isShippedSecretValue } from "../../../Server/EnvironmentConfig";
 import { INSTALLATION_CLUSTER_KEY_LABEL } from "../../../Server/Middleware/ClusterKeyAuthorization";
 import {
   CLUSTER_KEY_MIDDLEWARES,
@@ -25,6 +26,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import vm from "vm";
 
 /*
  * ONE PLACE DECIDES WHICH CLUSTER KEY IS PRESENTED AND ACCEPTED.
@@ -1057,13 +1059,18 @@ function namesTheHeaderAsAKedaParameterAlone(
   );
 }
 
-// A tool's script - its file, or what one of its shell variables holds (NAME='...') - and the shell around it.
-function scriptOfTool(entry: ClusterKeyRouteToolCaller): {
+/*
+ * A tool's script - its file, or what one of its shell variables holds
+ * (NAME='...') - and the shell around it. The tool's file as it is, unless
+ * a test hands it another text.
+ */
+function scriptOfTool(
+  entry: ClusterKeyRouteToolCaller,
+  text: string = textOf(entry.tool),
+): {
   script: string;
   shell: string;
 } {
-  const text: string = textOf(entry.tool);
-
   if (entry.script === null) {
     return { script: text, shell: "" };
   }
@@ -1147,10 +1154,11 @@ function declarationOf(name: string, from: ts.Node): ts.Node | null {
   return null;
 }
 
-// The statement that makes a declaration, as written, on one line.
+// The statement that makes a declaration, as written, on one line (its first `limit` characters).
 function statementTextOf(
   declaration: ts.Node | null,
   sourceFile: ts.SourceFile,
+  limit: number = 160,
 ): string {
   if (!declaration) {
     return "(not declared)";
@@ -1166,7 +1174,34 @@ function statementTextOf(
     statement = statement.parent;
   }
 
-  return oneLine(statement.getText(sourceFile)).slice(0, 160);
+  return oneLine(statement.getText(sourceFile)).slice(0, limit);
+}
+
+// The parts of a condition that must all hold: `a && (b && !c)` is a, b and !c.
+function conjunctsOf(expression: ts.Expression): Array<ts.Expression> {
+  if (ts.isParenthesizedExpression(expression)) {
+    return conjunctsOf(expression.expression);
+  }
+
+  if (
+    ts.isBinaryExpression(expression) &&
+    expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+  ) {
+    return [...conjunctsOf(expression.left), ...conjunctsOf(expression.right)];
+  }
+
+  return [expression];
+}
+
+// The nearest `if` a node sits in the then-branch of.
+function ifGuarding(node: ts.Node): ts.IfStatement | undefined {
+  for (let at: ts.Node | undefined = node; at; at = at.parent) {
+    if (ts.isIfStatement(at) && isWithin(node, at.thenStatement)) {
+      return at;
+    }
+  }
+
+  return undefined;
 }
 
 function isWithin(node: ts.Node, ancestor: ts.Node): boolean {
@@ -1236,11 +1271,18 @@ function namesDeclaredBy(line: string): Array<string> {
 
 /*
  * What is wrong with how a tool presents the key, against how it is listed:
- * nothing, or each rule it breaks.
+ * nothing, or each rule it breaks. The tool's file as it is, unless a test
+ * hands it another text.
  */
-function problemsOfTool(entry: ClusterKeyRouteToolCaller): Array<string> {
+function problemsOfTool(
+  entry: ClusterKeyRouteToolCaller,
+  text?: string | undefined,
+): Array<string> {
   const problems: Array<string> = [];
-  const scripted: { script: string; shell: string } = scriptOfTool(entry);
+  const scripted: { script: string; shell: string } = scriptOfTool(
+    entry,
+    text === undefined ? textOf(entry.tool) : text,
+  );
   const script: string = scripted.script;
   const shell: string = scripted.shell;
 
@@ -1609,53 +1651,160 @@ function problemsOfTool(entry: ClusterKeyRouteToolCaller): Array<string> {
     );
   }
 
-  if (keyDeclaration && ts.isIdentifier(keyDeclaration.name)) {
-    const name: string = keyDeclaration.name.text;
-    const declaration: ts.VariableDeclaration = keyDeclaration;
+  if (!keyDeclaration || !ts.isIdentifier(keyDeclaration.name)) {
+    problems.push(
+      `it presents the key without asking ${entry.check} first: the header's value is not a const it can ask about`,
+    );
+    return problems;
+  }
 
-    // Only the check made before the request, that there is a key that is no placeholder.
-    let guard: ts.IfStatement | undefined = undefined;
+  const name: string = keyDeclaration.name.text;
+  const declaration: ts.VariableDeclaration = keyDeclaration;
 
-    for (let at: ts.Node | undefined = request; at; at = at.parent) {
-      if (ts.isIfStatement(at) && isWithin(request, at.thenStatement)) {
-        guard = at;
-        break;
+  // Only the check made before the request, that there is a key that is no value this repository ships.
+  const guard: ts.IfStatement | undefined = ifGuarding(request);
+
+  /*
+   * And the request is made only when the key is no such value (#7588):
+   * in the then-branch of an `if` whose condition, a chain of &&, holds
+   * !<check>(<the key>).
+   */
+  const isAskedFirst: boolean = (
+    guard ? conjunctsOf(guard.expression) : []
+  ).some((conjunct: ts.Expression): boolean => {
+    if (
+      !ts.isPrefixUnaryExpression(conjunct) ||
+      conjunct.operator !== ts.SyntaxKind.ExclamationToken
+    ) {
+      return false;
+    }
+
+    const asked: ts.Expression = conjunct.operand;
+
+    return (
+      ts.isCallExpression(asked) &&
+      asked.questionDotToken === undefined &&
+      asked.expression.getText(sourceFile) === entry.check &&
+      asked.arguments.length === 1 &&
+      ts.isIdentifier(asked.arguments[0]!) &&
+      asked.arguments[0].text === name &&
+      declarationOf(name, asked.arguments[0]) === declaration
+    );
+  });
+
+  if (!isAskedFirst) {
+    problems.push(
+      `it presents the key without asking ${entry.check} first: its request is not in the branch of an if whose condition holds !${entry.check}(${name})`,
+    );
+  }
+
+  /*
+   * The check is the one listed: declared in the script as written there
+   * (diagnose.sh's copy of EnvironmentConfig.isShippedSecretValue, which a
+   * test below runs beside the original), or else taken from
+   * ReplacePlaceholderSecrets, whose rule Tests/Ops/ReplacePlaceholderSecrets
+   * ties to EnvironmentConfig's.
+   */
+  const checkDeclaration: ts.Node | null = declarationOf(entry.check, request);
+
+  if (entry.checkDeclaration) {
+    const written: string = statementTextOf(
+      checkDeclaration,
+      sourceFile,
+      Number.MAX_SAFE_INTEGER,
+    );
+
+    if (written !== oneLine(entry.checkDeclaration)) {
+      problems.push(
+        `${entry.check}, which it asks before the request, is declared as ${written.slice(0, 200)}, not ${entry.checkDeclaration}`,
+      );
+    }
+  } else if (
+    !checkDeclaration ||
+    !ts.isVariableDeclaration(checkDeclaration) ||
+    !ts.isObjectBindingPattern(checkDeclaration.name) ||
+    checkDeclaration.initializer?.getText(sourceFile) !==
+      'require("./ReplacePlaceholderSecrets")'
+  ) {
+    problems.push(
+      `${entry.check}, which it asks before the request, is not ReplacePlaceholderSecrets': ${statementTextOf(checkDeclaration, sourceFile)}`,
+    );
+  }
+
+  const checkUse: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isIdentifier(node) &&
+      node.text === name &&
+      node !== presented &&
+      usesAName(node) &&
+      declarationOf(name, node) === declaration
+    ) {
+      const parent: ts.Node = node.parent;
+      const isTheCheck: boolean =
+        guard !== undefined &&
+        isWithin(node, guard.expression) &&
+        ((ts.isBinaryExpression(parent) &&
+          parent.operatorToken.kind ===
+            ts.SyntaxKind.AmpersandAmpersandToken) ||
+          (ts.isCallExpression(parent) &&
+            parent.expression.getText(sourceFile) === entry.check &&
+            parent.arguments.length === 1));
+
+      if (!isTheCheck) {
+        problems.push(
+          `the key is used besides its header and the check before the request: ${where(parent)}`,
+        );
       }
     }
 
-    const checkUse: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (
-        ts.isIdentifier(node) &&
-        node.text === name &&
-        node !== presented &&
-        usesAName(node) &&
-        declarationOf(name, node) === declaration
-      ) {
-        const parent: ts.Node = node.parent;
-        const isTheCheck: boolean =
-          guard !== undefined &&
-          isWithin(node, guard.expression) &&
-          ((ts.isBinaryExpression(parent) &&
-            parent.operatorToken.kind ===
-              ts.SyntaxKind.AmpersandAmpersandToken) ||
-            (ts.isCallExpression(parent) &&
-              parent.expression.getText(sourceFile) === "isPlaceholderValue" &&
-              parent.arguments.length === 1));
+    ts.forEachChild(node, checkUse);
+  };
 
-        if (!isTheCheck) {
-          problems.push(
-            `the key is used besides its header and the check before the request: ${where(parent)}`,
-          );
-        }
-      }
-
-      ts.forEachChild(node, checkUse);
-    };
-
-    checkUse(sourceFile);
-  }
+  checkUse(sourceFile);
 
   return problems;
+}
+
+/*
+ * The copy a tool keeps of EnvironmentConfig.isShippedSecretValue, as its
+ * script declares it, run on its own: null when the script declares none.
+ */
+function shippedValueCheckOfTool(
+  entry: ClusterKeyRouteToolCaller,
+): ((value: unknown) => boolean) | null {
+  if (!entry.checkDeclaration) {
+    return null;
+  }
+
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    `${entry.script || "tool"}.js`,
+    scriptOfTool(entry).script,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS,
+  );
+  let found: ts.VariableStatement | null = null;
+
+  for (const statement of sourceFile.statements) {
+    if (
+      ts.isVariableStatement(statement) &&
+      statement.declarationList.declarations.some(
+        (declaration: ts.VariableDeclaration): boolean => {
+          return bindsName(declaration.name, entry.check);
+        },
+      )
+    ) {
+      found = statement;
+    }
+  }
+
+  if (!found) {
+    return null;
+  }
+
+  return vm.runInNewContext(
+    `(() => { ${found.getText(sourceFile)} return ${entry.check}; })()`,
+  ) as (value: unknown) => boolean;
 }
 
 describe("the installation's own tools present the key to the doctor alone, on the server", () => {
@@ -1748,6 +1897,239 @@ describe("the installation's own tools present the key to the doctor alone, on t
     expect(oneLine(presentsItsOwn)).toBe(
       `return ${URI_ENCODING}(ClusterKeyAuthorization.getInstallationClusterKey());`,
     );
+  });
+
+  /*
+   * #7588: diagnose.sh's pod script asks the app nothing when the pod's key
+   * is one the app refuses from every caller. It cannot import
+   * EnvironmentConfig, so it keeps a copy of isShippedSecretValue: run here
+   * beside the original, over the values this repository ships and keys an
+   * operator chooses, so the two never drift apart.
+   */
+  test("diagnose.sh's pod script holds back exactly the keys the app refuses, by EnvironmentConfig's own rule", () => {
+    const placeholders: Array<string> = textOf("config.example.env")
+      .split("\n")
+      .filter((line: string): boolean => {
+        return !line.trim().startsWith("#") && line.includes("=");
+      })
+      .map((line: string): string => {
+        return line.slice(line.indexOf("=") + 1).trim();
+      })
+      .filter((value: string): boolean => {
+        return value.includes("change-this");
+      });
+
+    expect(placeholders.length).toBeGreaterThan(0);
+
+    const values: Array<unknown> = [
+      undefined,
+      null,
+      "",
+      " ",
+      "\n",
+      "secret",
+      " secret ",
+      "secret\n",
+      "Secret",
+      "secretive",
+      "please-change-this-to-random-value",
+      "please-change-this-to-random-value-2",
+      "probe-1-please-change-this-to-random-value",
+      "Please-Change-This-To-Random-Value",
+      "3b9f1c7e5a2d48f6b0e9c3a7d1f5b8e2",
+      "Ab+c/d=e@f&g%h",
+      "clé-du-cluster-ä-ø-漢字-🔑",
+      ...placeholders,
+    ];
+
+    const copies: Array<ClusterKeyRouteToolCaller> =
+      CLUSTER_KEY_ROUTE_TOOL_CALLERS.filter(
+        (entry: ClusterKeyRouteToolCaller): boolean => {
+          return Boolean(entry.checkDeclaration);
+        },
+      );
+
+    expect(
+      copies.map((entry: ClusterKeyRouteToolCaller): string => {
+        return entry.tool;
+      }),
+    ).toEqual(["HelmChart/Public/diagnose.sh"]);
+
+    for (const entry of copies) {
+      const check: ((value: unknown) => boolean) | null =
+        shippedValueCheckOfTool(entry);
+
+      expect({ tool: entry.tool, declares: check !== null }).toEqual({
+        tool: entry.tool,
+        declares: true,
+      });
+
+      for (const value of values) {
+        expect({ value, refused: check!(value) }).toEqual({
+          value,
+          refused: isShippedSecretValue(value as string | null | undefined),
+        });
+      }
+    }
+  });
+
+  // Guards the guard: each rule above fails a tool that breaks it.
+  describe("a tool that breaks a rule fails it", () => {
+    const diagnose: ClusterKeyRouteToolCaller =
+      CLUSTER_KEY_ROUTE_TOOL_CALLERS.find(
+        (entry: ClusterKeyRouteToolCaller): boolean => {
+          return entry.tool === "HelmChart/Public/diagnose.sh";
+        },
+      )!;
+    const doctor: ClusterKeyRouteToolCaller =
+      CLUSTER_KEY_ROUTE_TOOL_CALLERS.find(
+        (entry: ClusterKeyRouteToolCaller): boolean => {
+          return entry.tool === "Scripts/Install/Doctor.js";
+        },
+      )!;
+
+    const changed: (
+      entry: ClusterKeyRouteToolCaller,
+      from: string,
+      to: string,
+    ) => string = (
+      entry: ClusterKeyRouteToolCaller,
+      from: string,
+      to: string,
+    ): string => {
+      const text: string = textOf(entry.tool);
+
+      // The change applies where it is meant to, once.
+      expect(text.split(from).length - 1).toBe(1);
+
+      return text.replace(from, to);
+    };
+
+    test("as they are, they break none", () => {
+      expect(problemsOfTool(diagnose)).toEqual([]);
+      expect(problemsOfTool(doctor)).toEqual([]);
+    });
+
+    test("diagnose.sh presenting the key without asking whether the app refuses it", () => {
+      expect(
+        problemsOfTool(
+          diagnose,
+          changed(diagnose, "if (!isShippedSecretValue(secret)) {", "{"),
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          "it presents the key without asking isShippedSecretValue first: its request is not in the branch of an if whose condition holds !isShippedSecretValue(secret)",
+        ]),
+      );
+    });
+
+    test("diagnose.sh asking only in the other branch", () => {
+      expect(
+        problemsOfTool(
+          diagnose,
+          changed(
+            diagnose,
+            "if (!isShippedSecretValue(secret)) {",
+            "if (isShippedSecretValue(secret)) {",
+          ),
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          "it presents the key without asking isShippedSecretValue first: its request is not in the branch of an if whose condition holds !isShippedSecretValue(secret)",
+        ]),
+      );
+    });
+
+    test("diagnose.sh with a copy of the rule that lets a shipped value through", () => {
+      expect(
+        problemsOfTool(
+          diagnose,
+          changed(diagnose, 'trimmed === "" || trimmed === "secret" || ', ""),
+        ).join("\n"),
+      ).toContain(
+        "isShippedSecretValue, which it asks before the request, is declared as",
+      );
+    });
+
+    test("diagnose.sh presenting the key as the environment holds it, with nothing to ask about", () => {
+      expect(
+        problemsOfTool(
+          diagnose,
+          changed(
+            diagnose,
+            "headers: { clusterkey: encodeURIComponent(secret) },",
+            'headers: { clusterkey: encodeURIComponent(process.env.ONEUPTIME_SECRET || "") },',
+          ),
+        ).join("\n"),
+      ).toContain("it presents the key without asking isShippedSecretValue");
+    });
+
+    test("diagnose.sh naming the key in the shell around its script", () => {
+      expect(
+        problemsOfTool(
+          diagnose,
+          changed(
+            diagnose,
+            'SERVER_ADDRESS_PROOF=""',
+            'SERVER_ADDRESS_PROOF=""\nKEY_IN_THE_SHELL="$(kc_exec "$pod" printenv ONEUPTIME_SECRET)"',
+          ),
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          "HelmChart/Public/diagnose.sh names the key or its header outside SERVER_FINDINGS_SCRIPT",
+        ]),
+      );
+    });
+
+    test("diagnose.sh using the key besides its header and the check", () => {
+      expect(
+        problemsOfTool(
+          diagnose,
+          changed(
+            diagnose,
+            'console.log("VERSION|" + clean(answer.version && answer.version.current));',
+            'console.log("VERSION|" + clean(answer.version && answer.version.current) + secret);',
+          ),
+        ).join("\n"),
+      ).toContain(
+        "the key is used besides its header and the check before the request",
+      );
+    });
+
+    test("npm run doctor presenting the key without asking whether it is a placeholder", () => {
+      expect(
+        problemsOfTool(
+          doctor,
+          changed(
+            doctor,
+            "if (ready && ready.status === 200 && secret && !isPlaceholderValue(secret)) {",
+            "if (ready && ready.status === 200 && secret) {",
+          ),
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          "it presents the key without asking isPlaceholderValue first: its request is not in the branch of an if whose condition holds !isPlaceholderValue(secret)",
+        ]),
+      );
+    });
+
+    test("npm run doctor asking a check of its own instead of ReplacePlaceholderSecrets'", () => {
+      expect(
+        problemsOfTool(
+          doctor,
+          changed(
+            doctor,
+            "\n  isPlaceholderValue,\n",
+            "\n  isPlaceholderValue: _isPlaceholderValue,\n",
+          ).replace(
+            'const { ingressUrlOf } = require("./FollowIngressPort");',
+            'const { ingressUrlOf } = require("./FollowIngressPort");\nconst isPlaceholderValue = () => false;',
+          ),
+        ).join("\n"),
+      ).toContain(
+        "isPlaceholderValue, which it asks before the request, is not ReplacePlaceholderSecrets'",
+      );
+    });
   });
 
   test("the tools call the doctor's POST or the backup run's, and no other route that takes the key", () => {

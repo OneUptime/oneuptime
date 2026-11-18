@@ -2480,6 +2480,7 @@
   "Checked just now, worst first. On the server, npm run doctor also checks the containers, the address and the certificate.": "방금 확인했으며 심각한 항목부터 표시합니다. 서버에서 npm run doctor를 실행하면 컨테이너, 주소, 인증서도 확인합니다.",
   "Everything looks right.": "모두 정상입니다.",
   "What needs attention could not be read. Reload the page to try again.": "확인이 필요한 항목을 읽지 못했습니다. 페이지를 새로 고쳐 다시 시도하세요.",
+  "What needs attention could not be read.": "확인이 필요한 항목을 읽지 못했습니다.",
   "Valkey": "Valkey",
   "Database migrations": "데이터베이스 마이그레이션",
   "Background jobs": "백그라운드 작업",

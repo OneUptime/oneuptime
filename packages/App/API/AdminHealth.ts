@@ -40,6 +40,8 @@ import { getClickhouseDiskSnapshots } from "Common/Server/Utils/AnalyticsDatabas
 import CustomDomainServerReadiness from "Common/Server/Utils/CustomDomain/CustomDomainServerReadiness";
 import ServerSetupChecklist from "Common/Server/Utils/ServerSetup/ServerSetupChecklist";
 import BackupScriptRuns from "Common/Server/Utils/ServerSetup/BackupScriptRuns";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
+import { ServerProductsAnswer } from "Common/Types/Product/ServerProductsAnswer";
 import {
   BackupScriptCheckIn,
   BackupScriptRun,
@@ -1021,6 +1023,8 @@ export interface InstallationHealthReaders {
   queues: () => Promise<JSONArray>;
   latestVersion: () => Promise<string | null>;
   serverSetup: () => Promise<ServerSetupChecklistAnswer>;
+  // Which products the server switches off (#7481): what Settings > Products reads.
+  serverProducts: () => Promise<ServerProductsAnswer>;
 }
 
 /*
@@ -1094,6 +1098,9 @@ const DEFAULT_INSTALLATION_HEALTH_READERS: InstallationHealthReaders = {
   serverSetup: (): Promise<ServerSetupChecklistAnswer> => {
     return ServerSetupChecklist.getAnswer();
   },
+  serverProducts: (): Promise<ServerProductsAnswer> => {
+    return ServerProducts.getAnswer();
+  },
 };
 
 // A reader that fails answers its fallback: one datastore down must not hide the rest.
@@ -1161,28 +1168,42 @@ export async function getInstallationHealthFacts(
       readOr(readers.isValkeyConnected, false, "Valkey"),
     ]);
 
-  const [migrations, clickhouseDisks, queues, latestVersion, serverSetup] =
-    await Promise.all([
-      isPostgresConnected
-        ? readOr<JSONObject | null>(readers.migrations, null, "migrations")
-        : Promise.resolve(null),
-      isClickhouseConnected
-        ? readOr(readers.clickhouseDisks, [], "ClickHouse's disks")
-        : Promise.resolve([]),
-      isValkeyConnected
-        ? readOr<JSONArray>(readers.queues, [], "the queues")
-        : Promise.resolve([] as JSONArray),
-      isPostgresConnected
-        ? readOr<string | null>(readers.latestVersion, null, "the version")
-        : Promise.resolve(null),
-      isPostgresConnected
-        ? readOr<ServerSetupChecklistAnswer | null>(
-            readers.serverSetup,
-            null,
-            "the server setup checklist",
-          )
-        : Promise.resolve(null),
-    ]);
+  const [
+    migrations,
+    clickhouseDisks,
+    queues,
+    latestVersion,
+    serverSetup,
+    serverProducts,
+  ] = await Promise.all([
+    isPostgresConnected
+      ? readOr<JSONObject | null>(readers.migrations, null, "migrations")
+      : Promise.resolve(null),
+    isClickhouseConnected
+      ? readOr(readers.clickhouseDisks, [], "ClickHouse's disks")
+      : Promise.resolve([]),
+    isValkeyConnected
+      ? readOr<JSONArray>(readers.queues, [], "the queues")
+      : Promise.resolve([] as JSONArray),
+    isPostgresConnected
+      ? readOr<string | null>(readers.latestVersion, null, "the version")
+      : Promise.resolve(null),
+    isPostgresConnected
+      ? readOr<ServerSetupChecklistAnswer | null>(
+          readers.serverSetup,
+          null,
+          "the server setup checklist",
+        )
+      : Promise.resolve(null),
+    // What an admin saved is in PostgreSQL.
+    isPostgresConnected
+      ? readOr<ServerProductsAnswer | null>(
+          readers.serverProducts,
+          null,
+          "the products switched off on this server",
+        )
+      : Promise.resolve(null),
+  ]);
 
   const postgresMigrations: JSONObject | undefined = migrations?.[
     "postgres"
@@ -1233,6 +1254,7 @@ export async function getInstallationHealthFacts(
       isUpdateCheckDisabled: DisableUpdateCheck,
     },
     serverSetup: serverSetup,
+    serverProducts: serverProducts,
   };
 }
 

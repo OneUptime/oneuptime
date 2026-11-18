@@ -1,4 +1,17 @@
 import { fillTemplate, translationKey } from "../Translator";
+import { getProductTitle } from "../Product/ProductCatalog";
+import ProductKey, { PRODUCT_KEYS, isProductKey } from "../Product/ProductKey";
+import {
+  PRESET_TITLES,
+  SWITCHABLE_PRODUCTS,
+  ServerProductOffReason,
+  ServerProductsPreset,
+  isServerProductsPreset,
+} from "../Product/ServerProducts";
+import {
+  ServerProductsAnswer,
+  ServerProductsSource,
+} from "../Product/ServerProductsAnswer";
 import ServerSetupChecklistUtil, {
   ServerSetupCheckDefinition,
   ServerSetupCheckResult,
@@ -23,6 +36,9 @@ import ServerSetupChecklistUtil, {
  *   - the server setup checklist (#6824): email, HTTPS, sign-ups, SMS and
  *     calls, probes, backups, update checks. Its words are reused here, so
  *     the checklist and this list never say a thing two ways.
+ *
+ * Beside the findings, the answer says which products the server switches
+ * off (#7481): facts a terminal prints, not faults.
  *
  * Three readers print the same findings:
  *
@@ -247,13 +263,65 @@ export interface InstallationHealthFacts {
   };
   // Null when it could not be read (PostgreSQL does not answer).
   serverSetup: ServerSetupChecklistAnswer | null;
+  /*
+   * What Admin Dashboard > Settings > Products reads (Server/Utils/
+   * ServerProducts): null when it could not be read, left out by a reader
+   * that does not ask.
+   */
+  serverProducts?: ServerProductsAnswer | null | undefined;
 }
+
+// A product, by its key and its English name, for a terminal.
+export interface InstallationHealthProduct {
+  product: ProductKey;
+  title: string;
+}
+
+/*
+ * WHICH PRODUCTS THIS SERVER SWITCHES OFF (#7481), for `npm run doctor`:
+ * someone debugging a server from the command line ("where did Logs go?")
+ * sees that a product is switched off, and what SERVER_PRODUCTS held that
+ * the server did not know. Read from what Admin Dashboard > Settings >
+ * Products reads (Types/Product/ServerProductsAnswer), with the products'
+ * English names, as a terminal prints them. Facts, not findings: a product
+ * an admin switched off is a choice, not a fault. SERVER_PRODUCTS itself is
+ * not repeated - the answer carries no setting's value - only the names in
+ * it the server did not know.
+ */
+export interface InstallationHealthProducts {
+  // How many products a server can switch off, and how many of them are on.
+  switchableCount: number;
+  onCount: number;
+  // The preset the switches match exactly, with its English name; null for a choice of one's own.
+  preset: ServerProductsPreset | null;
+  presetTitle: string | null;
+  // Saved on the Admin Dashboard, or SERVER_PRODUCTS (every product on when it is unset).
+  source: ServerProductsSource;
+  // The products the switches leave off, in the menu's order.
+  switchedOff: Array<InstallationHealthProduct>;
+  // Names SERVER_PRODUCTS held that are neither a preset nor a product.
+  unknownNames: Array<string>;
+  // DISABLE_TELEMETRY_INGESTION is set, and the products it turns off.
+  isTelemetryIngestionStopped: boolean;
+  offByIngestion: Array<InstallationHealthProduct>;
+  // Every telemetry product is switched off while ingestion still runs.
+  shouldSuggestStoppingIngestion: boolean;
+}
+
+// At most this many unknown names, each at most this long: they are an operator's typing.
+const MAX_UNKNOWN_NAMES: number = 10;
+const MAX_UNKNOWN_NAME_LENGTH: number = 60;
 
 // The body of /api/admin/health/doctor's answer, to a GET and to a POST.
 export interface InstallationHealthAnswer {
   findings: Array<InstallationHealthFinding>;
   checked: Array<InstallationHealthCheck>;
   version: InstallationHealthFacts["version"];
+  /*
+   * Which products this server switches off (#7481). Null when it could not
+   * be read, and from a server older than this field.
+   */
+  products: InstallationHealthProducts | null;
   /*
    * A proof this installation answers at its custom-domain-readiness
    * address (CustomDomainServerReadiness): `npm run doctor` asks HOST for
@@ -637,8 +705,138 @@ export default class InstallationHealthUtil {
       findings: InstallationHealthUtil.evaluate(data.facts),
       checked: Object.values(InstallationHealthCheck),
       version: data.facts.version,
+      products: InstallationHealthUtil.getProducts(data.facts.serverProducts),
       addressProof: data.addressProof,
       checkedAt: data.checkedAt,
+    };
+  }
+
+  // Which products the server switches off, for a terminal (#7481); null without an answer.
+  public static getProducts(
+    answer: ServerProductsAnswer | null | undefined,
+  ): InstallationHealthProducts | null {
+    if (!answer) {
+      return null;
+    }
+
+    const titled: (product: ProductKey) => InstallationHealthProduct = (
+      product: ProductKey,
+    ): InstallationHealthProduct => {
+      return { product: product, title: getProductTitle(product) };
+    };
+
+    const switchedOff: Array<ProductKey> = SWITCHABLE_PRODUCTS.filter(
+      (product: ProductKey): boolean => {
+        return answer.switchedOff.includes(product);
+      },
+    );
+
+    return {
+      switchableCount: SWITCHABLE_PRODUCTS.length,
+      onCount: SWITCHABLE_PRODUCTS.length - switchedOff.length,
+      preset: answer.preset,
+      presetTitle: answer.preset ? PRESET_TITLES[answer.preset] : null,
+      source: answer.source,
+      switchedOff: switchedOff.map(titled),
+      unknownNames: InstallationHealthUtil.readNames(
+        answer.startingValueUnknownNames,
+      ),
+      isTelemetryIngestionStopped: answer.isTelemetryIngestionStopped,
+      offByIngestion: PRODUCT_KEYS.filter((product: ProductKey): boolean => {
+        return (
+          answer.off[product] ===
+          ServerProductOffReason.TelemetryIngestionStopped
+        );
+      }).map(titled),
+      shouldSuggestStoppingIngestion: answer.shouldSuggestStoppingIngestion,
+    };
+  }
+
+  // Names an operator typed, as many and as long as a terminal line takes.
+  private static readNames(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return (value as Array<unknown>)
+      .map((name: unknown): string => {
+        // No control character reaches a terminal.
+        return typeof name === "string"
+          ? Array.from(name)
+              .filter((character: string): boolean => {
+                return character >= " " && character !== "\u007f";
+              })
+              .join("")
+              .trim()
+              .slice(0, MAX_UNKNOWN_NAME_LENGTH)
+          : "";
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      })
+      .slice(0, MAX_UNKNOWN_NAMES);
+  }
+
+  // Products as a browser reads them back: known keys, with their names.
+  private static readProducts(
+    value: unknown,
+  ): Array<InstallationHealthProduct> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const products: Array<InstallationHealthProduct> = [];
+
+    for (const entry of value as Array<unknown>) {
+      const product: unknown = isObject(entry) ? entry["product"] : null;
+
+      if (
+        isProductKey(product) &&
+        !products.some((known: InstallationHealthProduct): boolean => {
+          return known.product === product;
+        })
+      ) {
+        products.push({ product: product, title: getProductTitle(product) });
+      }
+    }
+
+    return products;
+  }
+
+  // What the doctor's answer says of the products, or null when it says nothing (an older server).
+  public static parseProducts(
+    value: unknown,
+  ): InstallationHealthProducts | null {
+    if (!isObject(value)) {
+      return null;
+    }
+
+    const switchedOff: Array<InstallationHealthProduct> =
+      InstallationHealthUtil.readProducts(value["switchedOff"]);
+    const preset: ServerProductsPreset | null = isServerProductsPreset(
+      value["preset"],
+    )
+      ? value["preset"]
+      : null;
+
+    return {
+      switchableCount: SWITCHABLE_PRODUCTS.length,
+      onCount: SWITCHABLE_PRODUCTS.length - switchedOff.length,
+      preset: preset,
+      presetTitle: preset ? PRESET_TITLES[preset] : null,
+      source:
+        value["source"] === ServerProductsSource.Saved
+          ? ServerProductsSource.Saved
+          : ServerProductsSource.StartingValue,
+      switchedOff: switchedOff,
+      unknownNames: InstallationHealthUtil.readNames(value["unknownNames"]),
+      isTelemetryIngestionStopped:
+        value["isTelemetryIngestionStopped"] === true,
+      offByIngestion: InstallationHealthUtil.readProducts(
+        value["offByIngestion"],
+      ),
+      shouldSuggestStoppingIngestion:
+        value["shouldSuggestStoppingIngestion"] === true,
     };
   }
 
@@ -716,6 +914,7 @@ export default class InstallationHealthUtil {
         isUpdateAvailable: version["isUpdateAvailable"] === true,
         isUpdateCheckDisabled: version["isUpdateCheckDisabled"] === true,
       },
+      products: InstallationHealthUtil.parseProducts(value["products"]),
       addressProof: readText(value["addressProof"], 200),
       checkedAt: readText(value["checkedAt"], 100) || "",
     };

@@ -81,6 +81,7 @@ Uma forma que alguém não verificou fica de fora, e a pessoa mantém as própri
 - Nas **Regras de escalonamento** de uma política, um nível cujos destinatários não podem ser todos acionados diz isso no seu cartão. Veja [O resumo do escalonamento](/docs/on-call/escalation-rules#o-resumo-do-escalonamento).
 - Em **Usuários**, abra um membro e depois **Prontidão** na seção **Plantão**: o status, os métodos e a grade de cobertura da pessoa.
 - Para a sua própria configuração, **Configurações do usuário → Lista de configuração** guia você. Veja [A lista de configuração](/docs/notifications/index#a-lista-de-configuração).
+- Quem está em uma política e não concluiu a própria configuração vê **Conclua a configuração das suas notificações** no sino no topo de cada página, que abre a sua lista de configuração.
 
 ## O e-mail semanal de prontidão
 

@@ -243,6 +243,55 @@ export const UnexplainedErrorWords: {
   pageDidNotLoadTitle: translationKey("Page Did Not Load"),
 };
 
+/*
+ * The commands where-to-look names (#7539), drawn as commands: one unbroken
+ * box of code, left to right in every script, with a copy button beside it,
+ * like the reference. Drawn as words, "npm run doctor -- --logs" broke
+ * across lines in a narrow card, its halves sat at opposite ends of two
+ * lines on an Arabic or Persian page, and there was nothing to copy.
+ *
+ * Each sentence stays one translation key: every locale writes the command
+ * exactly as it is here (Locales/ARABIC.md), so the translated sentence is
+ * split at it. Longest first: one holds the other.
+ */
+export const WHERE_TO_LOOK_COMMANDS: ReadonlyArray<string> = [
+  "npm run doctor -- --logs",
+  "npm run doctor",
+];
+
+export interface WhereToLookParts {
+  before: string;
+  command: string;
+  after: string;
+}
+
+/*
+ * A where-to-look sentence, in any language, split at the command it names;
+ * null when it names none (a proxy's limit, or a locale that wrote the
+ * command some other way), which is then drawn as words.
+ */
+export const splitAtWhereToLookCommand: (
+  text: string | null | undefined,
+) => WhereToLookParts | null = (
+  text: string | null | undefined,
+): WhereToLookParts | null => {
+  const sentence: string = text || "";
+
+  for (const command of WHERE_TO_LOOK_COMMANDS) {
+    const at: number = sentence.indexOf(command);
+
+    if (at !== -1) {
+      return {
+        before: sentence.substring(0, at),
+        command: command,
+        after: sentence.substring(at + command.length),
+      };
+    }
+  }
+
+  return null;
+};
+
 // The server's answer for a failure it could not explain, in English.
 export const getUnexplainedServerErrorMessage: (
   reference: string | null | undefined,

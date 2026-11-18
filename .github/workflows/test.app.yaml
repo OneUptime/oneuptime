@@ -514,6 +514,7 @@ jobs:
               test-server-setup-ui
           - group: 13
             suites: >-
+              test-admin-health-ui
               test-status-page-telemetry-guided-setups-ui
               test-product-onboarding-ui
     steps:
@@ -782,6 +783,8 @@ jobs:
             output/playwright/side-by-side-pages-ui/test-results
             output/playwright/server-setup-ui/*.png
             output/playwright/server-setup-ui/test-results
+            output/playwright/admin-health-ui/*.png
+            output/playwright/admin-health-ui/test-results
             output/playwright/permissions-per-tab-ui/*.png
             output/playwright/permissions-per-tab-ui/test-results
             output/playwright/resource-overviews-ui/*.png

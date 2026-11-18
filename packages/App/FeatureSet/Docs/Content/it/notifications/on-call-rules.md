@@ -47,6 +47,8 @@ Fai clic su **Salva modifiche**, che compare appena qualcosa cambia. Scrive le s
 
 **Testa le tue chiamate**, in fondo alla pagina, ti invia una chiamata di prova attraverso di esse.
 
+Quando il vostro server al momento non può inviare e-mail, SMS o chiamate telefoniche, un passaggio di quel tipo è segnato con **Non inviato al momento**, e la pagina dice una sola volta chi può configurarlo.
+
 Quando una gravità merita altro, **Diverso per alcune gravità**, il pulsante accanto al titolo, apre i tab e le schede descritti più sotto. Una scheda diversa dalla tua sequenza è segnata con **Diverso dalla sequenza**. La pagina si apre comunque sui tuoi passaggi ed elenca sotto di essi ogni scheda diversa e cosa fa al suo posto. **Salva modifiche** lascia quelle schede come sono; **Usa questa sequenza per ogni gravità**, alla fine di quell'elenco, dà anche a loro la tua sequenza, dopo aver nominato le schede che perdono la loro differenza. Una gravità che il tuo progetto ha archiviato mantiene le sue regole.
 
 Una policy di reperibilità decide chi viene chiamato e quando arriva il suo livello successivo. Come vieni raggiunto è questa sequenza, per ogni policy che ti chiama.
@@ -87,6 +89,8 @@ Un progetto può avere una sequenza predefinita: come viene chiamato un membro a
 Con una sequenza predefinita, un metodo che verificate riceve una regola a ogni passaggio del suo canale, su ogni riquadro di ogni scheda, e un canale che la sequenza esclude non ne riceve nessuna. Le regole che avete già non cambiano mai, e una chiamata che non trova alcuna regola ricade comunque sui vostri metodi verificati.
 
 Per darla ai membri che hanno già delle regole, un amministratore usa **Applica sequenza predefinita** nella pagina Prontezza: vedete [Applicare la sequenza predefinita](/docs/on-call/readiness#applicare-la-sequenza-predefinita). Ognuno di loro riceve un'e-mail.
+
+Per seguirla voi stessi, fate clic su **Parti dalla sequenza predefinita**, accanto a **Diverso per alcune gravità**. I vostri passaggi diventano quelli della sequenza, con i vostri metodi verificati: un modo che non avete verificato viene escluso e nominato, e al suo posto tenete i vostri passaggi. Nulla cambia finché non fate clic su **Salva modifiche**.
 
 **Telefono per le persone reperibili**, accanto, chiede a tutte le persone reperibili un numero verificato per SMS, chiamate telefoniche o WhatsApp. Finché non ne avete uno, questa pagina lo dice sopra **Aggiungi il tuo telefono**, e Prontezza e Stato della configurazione vi nominano. Nessuno resta escluso.
 
@@ -131,7 +135,7 @@ Una regola push, per un telefono o un browser, può anche reinviare il suo push 
 
 ## Quando una gravità non ha una regola
 
-Una gravità che il vostro progetto aggiunge in seguito riceve regole entro pochi minuti, ricavate dalle scelte che avete già fatto in quella scheda: gli stessi metodi, dopo gli stessi ritardi, e un push che suona e si ripete allo stesso modo. Se in quella scheda non avevate regole, riceve la vostra e-mail verificata, subito.
+Una gravità che il vostro progetto aggiunge in seguito riceve regole entro pochi minuti, ricavate dalle scelte che avete già fatto in quella scheda: gli stessi metodi, dopo gli stessi ritardi, e un push che suona e si ripete allo stesso modo. Se in quella scheda non avevate regole, riceve la vostra e-mail verificata, subito. Quando il vostro progetto ha una sequenza predefinita, la vostra e-mail la segue invece: vedete [La sequenza predefinita](#la-sequenza-predefinita).
 
 Una chiamata che non trova comunque una regola viene inviata lo stesso ai vostri metodi verificati, e ricevete un'e-mail al riguardo; vedete [Quando nessuna regola corrisponde](/docs/notifications/index#quando-nessuna-regola-corrisponde).
 

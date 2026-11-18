@@ -2480,6 +2480,7 @@
   "Checked just now, worst first. On the server, npm run doctor also checks the containers, the address and the certificate.": "今確認しました。重要なものから順に表示します。サーバー上では npm run doctor がコンテナー、アドレス、証明書も確認します。",
   "Everything looks right.": "問題は見つかりませんでした。",
   "What needs attention could not be read. Reload the page to try again.": "対応が必要な項目を読み込めませんでした。ページを再読み込みしてもう一度お試しください。",
+  "What needs attention could not be read.": "対応が必要な項目を読み込めませんでした。",
   "Valkey": "Valkey",
   "Database migrations": "データベースの移行",
   "Background jobs": "バックグラウンドジョブ",

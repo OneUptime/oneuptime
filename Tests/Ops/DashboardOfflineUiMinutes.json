@@ -6,6 +6,8 @@
     "A new suite's minutes come from a local run (CI=1, its bundle built, nothing else running), times 1.26, until App Test's runs measure it.",
     "Journeys' two guided journeys of 2026-11-18 (#7141, 21.6 s locally) are added to its minutes the same way, times 1.26: 4.4 to 4.9, until App Test's runs measure it.",
     "The status page and telemetry guided setups' two looks at Logs' setup dialog of 2026-11-18 (#7760, #6876, 18.6 s locally) are added to its minutes the same way, times 1.26: 2.9 to 3.3, until App Test's runs measure it.",
+    "Admin > OneUptime Health's suite of 2026-11-18 (#7048) took 13.3 s locally, its bundle built: 0.3 minutes times 1.26, until App Test's runs measure it.",
+    "How to Reach Me's twelve looks at the project's default ladder and at steps the server can't send, of 2026-11-18 (#9445, #9446, 30.0 s locally), are added to its minutes the same way, times 1.26: 1.2 to 1.8, until App Test's runs measure it.",
     "The status page and telemetry guided setups' suite also measures a status page's Resources grid since 2026-11-18 (StatusPageResourcesGrid.spec.ts, #7239, #7430: 20 tests, 57.2 s locally beside its fixture, built once): added to its minutes the same way, times 1.26, 3.3 to 4.5, until App Test's runs measure it.",
     "The status page theme suite's checks of 2026-11-18 - a page with no logo named in its header, and Not monitored's contrast (StatusPageName.spec.ts, #7467, #6989: 11 tests, 13.5 s locally) - are added to its minutes the same way, times 1.26: 4.8 to 5.1, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
@@ -18,6 +20,7 @@
   "minutes": {
     "test-accounts-theme-ui": 2.6,
     "test-acknowledgement-timeout-ui": 0.6,
+    "test-admin-health-ui": 0.3,
     "test-ai-context-ui": 1.5,
     "test-ai-insights-ui": 1.5,
     "test-alerts-ui": 1.3,
@@ -66,7 +69,7 @@
     "test-home-overview-ui": 4.6,
     "test-host-collectors-ui": 1.7,
     "test-host-pages-ui": 2.1,
-    "test-how-to-reach-me-ui": 1.2,
+    "test-how-to-reach-me-ui": 1.8,
     "test-incoming-call-policies-ui": 0.4,
     "test-infrastructure-first-run-ui": 0.7,
     "test-journeys-ui": 4.9,

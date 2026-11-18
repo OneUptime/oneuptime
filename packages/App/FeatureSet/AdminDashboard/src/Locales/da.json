@@ -2480,6 +2480,7 @@
   "Checked just now, worst first. On the server, npm run doctor also checks the containers, the address and the certificate.": "Tjekket lige nu, det alvorligste først. På serveren tjekker npm run doctor også containerne, adressen og certifikatet.",
   "Everything looks right.": "Alt ser rigtigt ud.",
   "What needs attention could not be read. Reload the page to try again.": "Det, der kræver opmærksomhed, kunne ikke læses. Genindlæs siden for at prøve igen.",
+  "What needs attention could not be read.": "Det, der kræver opmærksomhed, kunne ikke læses.",
   "Valkey": "Valkey",
   "Database migrations": "Databasemigreringer",
   "Background jobs": "Baggrundsjob",

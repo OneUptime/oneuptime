@@ -47,6 +47,8 @@ Klicken Sie auf **Änderungen speichern**, das erscheint, sobald sich etwas geä
 
 **Ihre Alarmierungen testen**, am Fuß der Seite, sendet Ihnen einen Testalarm durch sie.
 
+Kann Ihr Server gerade keine E-Mails, SMS oder Telefonanrufe senden, ist ein Schritt dieser Art mit **Wird gerade nicht gesendet** markiert, und die Seite sagt einmal, wer es einrichten kann.
+
 Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders**, die Schaltfläche neben dem Titel, die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert. Die Seite öffnet sich weiterhin mit Ihren Schritten und nennt darunter jede abweichende Karte und was sie stattdessen tut. **Änderungen speichern** lässt diese Karten, wie sie sind; **Diesen Ablauf für jeden Schweregrad verwenden** am Ende dieser Liste gibt auch ihnen Ihren Ablauf, nachdem es die Karten genannt hat, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
 
 Eine Bereitschaftsrichtlinie entscheidet, wer alarmiert wird und wann ihre nächste Stufe kommt. Wie Sie erreicht werden, ist dieser Ablauf, für jede Richtlinie, die Sie alarmiert.
@@ -87,6 +89,8 @@ Ein Projekt kann einen Standardablauf haben: wie ein Mitglied alarmiert wird, so
 Mit einem Standardablauf erhält eine Methode, die Sie verifizieren, eine Regel bei jedem Schritt ihres Kanals, auf jeder Karte jedes Tabs, und ein Kanal, den der Ablauf auslässt, erhält keine. Regeln, die Sie bereits haben, werden nie geändert, und ein Alarm, der keine Regel findet, fällt weiterhin auf Ihre verifizierten Methoden zurück.
 
 Um ihn Mitgliedern zu geben, die bereits Regeln haben, verwendet ein Administrator **Standardablauf anwenden** auf der Seite Einsatzbereitschaft: siehe [Den Standardablauf anwenden](/docs/on-call/readiness#den-standardablauf-anwenden). Jedes von ihnen erhält eine E-Mail.
+
+Um ihm selbst zu folgen, klicken Sie auf **Mit dem Standardablauf beginnen**, neben **Für einige Schweregrade anders**. Ihre Schritte werden die des Standardablaufs, mit Ihren eigenen verifizierten Methoden: Ein Weg, den Sie nicht verifiziert haben, wird ausgelassen und genannt, und an seiner Stelle behalten Sie Ihre eigenen Schritte. Nichts ändert sich, bevor Sie auf **Änderungen speichern** klicken.
 
 **Telefon für Personen im Bereitschaftsdienst**, daneben, verlangt von allen im Bereitschaftsdienst eine verifizierte Nummer für SMS, Telefonanrufe oder WhatsApp. Solange Sie keine haben, sagt diese Seite es über **Telefon hinzufügen**, und Einsatzbereitschaft und Einrichtungsstatus nennen Sie. Niemand wird ausgesperrt.
 
@@ -131,7 +135,7 @@ Eine Push-Regel, für ein Telefon oder einen Browser, kann ihren Push auch wiede
 
 ## Wenn ein Schweregrad keine Regel hat
 
-Ein Schweregrad, den Ihr Projekt später hinzufügt, erhält innerhalb weniger Minuten Regeln, gebildet aus dem, was Sie auf diesem Tab bereits gewählt haben: dieselben Methoden, nach denselben Wartezeiten, und ein Push, der genauso klingt und sich genauso wiederholt. Hatten Sie auf diesem Tab keine Regeln, erhält er Ihre verifizierte E-Mail, sofort.
+Ein Schweregrad, den Ihr Projekt später hinzufügt, erhält innerhalb weniger Minuten Regeln, gebildet aus dem, was Sie auf diesem Tab bereits gewählt haben: dieselben Methoden, nach denselben Wartezeiten, und ein Push, der genauso klingt und sich genauso wiederholt. Hatten Sie auf diesem Tab keine Regeln, erhält er Ihre verifizierte E-Mail, sofort. Hat Ihr Projekt einen Standardablauf, folgt Ihre E-Mail stattdessen ihm: siehe [Der Standardablauf](#der-standardablauf).
 
 Ein Alarm, der trotzdem keine Regel findet, geht dennoch an Ihre verifizierten Methoden, und Sie erhalten darüber eine E-Mail; siehe [Wenn keine Regel passt](/docs/notifications/index#wenn-keine-regel-passt).
 

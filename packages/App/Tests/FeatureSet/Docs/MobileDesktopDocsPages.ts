@@ -70,6 +70,11 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Alarm sound",
     "Biometric Unlock",
     "Appearance",
+    // Get Ready for On-Call, the app's first steps (#7041, #9462).
+    "Get Ready for On-Call",
+    "Turn On Critical Alerts",
+    "Send Test Page",
+    "Not Now",
   ],
   [IOS]: [
     "OneUptime On-Call",
@@ -88,6 +93,11 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Alarm sound",
     "Biometric Unlock",
     "Appearance",
+    // Get Ready for On-Call, the app's first steps (#7041, #9462).
+    "Get Ready for On-Call",
+    "Turn On Critical Alerts",
+    "Send Test Page",
+    "Not Now",
   ],
   [FAQ]: [
     "Change Server",
@@ -114,8 +124,16 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
 
 // Paths through the app's own menus, kept segment for segment.
 export const APP_PATHS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  [ANDROID]: ["Settings → Manage Projects", "Settings → Sign Out"],
-  [IOS]: ["Settings → Manage Projects", "Settings → Sign Out"],
+  [ANDROID]: [
+    "Settings → Manage Projects",
+    "Settings → Sign Out",
+    "Settings → Get Ready for On-Call",
+  ],
+  [IOS]: [
+    "Settings → Manage Projects",
+    "Settings → Sign Out",
+    "Settings → Get Ready for On-Call",
+  ],
 };
 
 /*

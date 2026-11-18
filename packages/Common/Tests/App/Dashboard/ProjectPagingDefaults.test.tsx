@@ -97,7 +97,7 @@ jest.mock("react-i18next", () => {
   };
 });
 
-import { DefaultPagingLadderCard } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaults";
+import DefaultPagingLadderCard from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
 import {
   DEFAULT_LADDER_PLACE,
   DEFAULT_LADDER_TITLE,

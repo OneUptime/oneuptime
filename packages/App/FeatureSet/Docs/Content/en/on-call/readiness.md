@@ -81,6 +81,7 @@ A way someone has not verified is left out, and they keep their own steps in its
 - On a policy's **Escalation Rules**, a level whose responders cannot all be paged says so on its card. See [The escalation summary](/docs/on-call/escalation-rules#the-escalation-summary).
 - Under **Users**, open a member, then **Readiness** in the **On-Call** section: their status, their methods and their coverage grid.
 - For your own setup, **User Settings → Setup Checklist** walks you through it. See [The setup checklist](/docs/notifications/index#the-setup-checklist).
+- Anyone on a policy whose own setup is not finished sees **Finish setting up your notifications** in the bell at the top of every page, which opens their setup checklist.
 
 ## The weekly readiness email
 

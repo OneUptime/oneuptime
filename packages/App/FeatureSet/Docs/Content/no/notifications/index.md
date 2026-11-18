@@ -85,6 +85,10 @@ Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvo
 | **Ingenting kan nå deg ennå** | Ingen av metodene dine kan brukes: ingen er verifisert, eller hver verifisert metode er på en kanal dette prosjektet har slått av |
 | **Du er satt opp og har ikke vakt akkurat nå** | Alt er klart for dagen en policy nevner deg |
 
+Så lenge et steg gjenstår, åpner **Brukerinnstillinger** på denne sjekklisten, og på **Varslingsmetoder** når ingenting vesentlig gjenstår. En lenke til en annen side i **Brukerinnstillinger** åpner fortsatt den siden.
+
+Når du står i en vaktpolicy og oppsettet ditt ikke er ferdig, viser bjellen øverst på hver side **Fullfør oppsettet av varslene dine**, og hvorfor: ingenting kan nå deg, en alvorlighetsgrad har ingen regel, eller prosjektet ditt ber om en telefonmetode du ikke har verifisert. Den åpner denne sjekklisten, eller **Slik når man meg** for telefonen. **Skjul i en uke** legger den bort i denne nettleseren, og den forsvinner av seg selv når oppsettet ditt er ferdig.
+
 ## Når ingen regel passer
 
 En tilkalling kan nå deg for en type og en alvorlighetsgrad du ikke har noen regel for, for eksempel en alvorlighetsgrad som ble lagt til etter at du ble medlem. OneUptime tilkaller deg likevel, via det du har verifisert:

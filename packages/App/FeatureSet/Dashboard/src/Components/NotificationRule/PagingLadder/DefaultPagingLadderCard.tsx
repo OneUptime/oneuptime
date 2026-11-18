@@ -1,7 +1,6 @@
 import PagingLadderEditor from "./PagingLadderEditor";
 import {
   DEFAULT_LADDER_TITLE,
-  PHONE_FOR_ON_CALL_TITLE,
   PROJECT_PAGING_DEFAULTS_COPY,
   getDefaultLadderChannelChoices,
   toDefaultLadderSteps,
@@ -20,7 +19,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -36,16 +34,20 @@ import React, {
 
 /*
  * HOW MEMBERS ARE PAGED BY DEFAULT (#7449), in Project Settings >
- * Notification Channels' More settings:
+ * Notification Channels' More settings: the project's default ladder, how a
+ * member is paged once they verify a way to be reached, by channel, edited
+ * with How to Reach Me's own editor. Saving it changes nobody's rules; On-Call
+ * Readiness applies it to the members an admin picks (#7450), and a member
+ * can start their own ladder from it on How to Reach Me (#9445). Its ask for
+ * a phone method is PhoneForOnCallCard, beside it.
  *
- *   - the project's default ladder: how a member is paged once they verify
- *     a way to be reached, by channel, edited with How to Reach Me's own
- *     editor. Saving it changes nobody's rules; On-Call Readiness applies
- *     it to the members an admin picks (#7450);
- *   - its ask for a phone method: a switch that saves when flipped.
+ * Who may change it is the column's own update list (Project Owner and
+ * Project Admin): anybody else sees it read only.
  *
- * Who may change them is the columns' own update list (Project Owner and
- * Project Admin): anybody else sees them read only.
+ * A card of its own module, with a default export, as every card folded under
+ * a page's More settings is: the card-in-card guard reads a module's default
+ * export to know it draws a whole card, and so a section with its divider
+ * there (Common/Tests/UI/Components/CardInCardGuard.test.ts, #9464).
  */
 
 export const DEFAULT_LADDER_COLUMNS: Array<string> = ["defaultPagingLadder"];
@@ -56,7 +58,7 @@ export interface DefaultPagingLadderCardProps {
   onStepCountChange?: ((count: number) => void) | undefined;
 }
 
-export const DefaultPagingLadderCard: FunctionComponent<
+const DefaultPagingLadderCard: FunctionComponent<
   DefaultPagingLadderCardProps
 > = (props: DefaultPagingLadderCardProps): ReactElement => {
   const translator: Translator = useTranslator();
@@ -201,28 +203,4 @@ export const DefaultPagingLadderCard: FunctionComponent<
   );
 };
 
-export interface PhoneForOnCallCardProps {
-  projectId: ObjectID;
-  onChange?: ((isOn: boolean) => void) | undefined;
-}
-
-// The project's ask for a phone method: one switch, saved when flipped.
-export const PhoneForOnCallCard: FunctionComponent<PhoneForOnCallCardProps> = (
-  props: PhoneForOnCallCardProps,
-): ReactElement => {
-  return (
-    <ModelSwitchCard<Project>
-      modelType={Project}
-      modelId={props.projectId}
-      column="requirePhoneMethodForOnCall"
-      cardTitle={PHONE_FOR_ON_CALL_TITLE}
-      cardDescription={PROJECT_PAGING_DEFAULTS_COPY.phoneCardDescription}
-      title={PROJECT_PAGING_DEFAULTS_COPY.phoneTitle}
-      getDescription={(): string => {
-        return PROJECT_PAGING_DEFAULTS_COPY.phoneDescription;
-      }}
-      onChange={props.onChange}
-      dataTestId="phone-for-on-call"
-    />
-  );
-};
+export default DefaultPagingLadderCard;

@@ -10,9 +10,14 @@ import {
   PagingMethodColumn,
   getPagingLadderStepsForNewCell,
 } from "Common/Types/NotificationRule/PagingLadder";
+import {
+  PagingLadderDefaultStep,
+  getPagingLadderDefaultStepsForChannel,
+} from "Common/Types/NotificationRule/PagingLadderDefault";
 import PushNotificationLevel, {
   DEFAULT_PUSH_NOTIFICATION_LEVEL,
 } from "Common/Types/NotificationRule/PushNotificationLevel";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import ObjectID from "Common/Types/ObjectID";
 import Query from "Common/Types/BaseDatabase/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -379,6 +384,17 @@ const backfillSeverity: BackfillSeverityFunction = async (
   );
 
   /*
+   * The project's default ladder (#7449), read once per severity, however
+   * many responders there are: when to email a responder who has said
+   * nothing about a rule type (getNewSeverityEmailWaits). A default that
+   * cannot be read is no reason to write rules it might leave out: the
+   * severity is retried by the next sweep, as for any read here.
+   */
+  const emailWaits: Array<number> = getNewSeverityEmailWaits(
+    await PagingLadderService.getProjectDefault(severity.projectId),
+  );
+
+  /*
    * The rules of each rule type next, then the project's verified emails -
    * in that order, and both before anything is written.
    *
@@ -423,8 +439,39 @@ const backfillSeverity: BackfillSeverityFunction = async (
       existingRules: existingRules,
       cells: cells,
       verifiedEmailByUserId: verifiedEmailByUserId,
+      emailWaits: emailWaits,
     });
   }
+};
+
+type GetNewSeverityEmailWaitsFunction = (
+  defaultSteps: ReadonlyArray<PagingLadderDefaultStep>,
+) => Array<number>;
+
+/*
+ * When a responder who has said nothing about a rule type is emailed on the
+ * new severity's card: what their sign-in email got on every card when they
+ * joined (UserNotificationRuleService.addDefaultNotificationRulesForVerified
+ * Method), had the severity existed then.
+ *
+ *   - no default ladder: at once, as it always was;
+ *   - a default with email steps: at each of their waits;
+ *   - a default that leaves email out: never - no rule, and the project's
+ *     fallback still reaches somebody a page finds no rule for (#9444).
+ */
+const getNewSeverityEmailWaits: GetNewSeverityEmailWaitsFunction = (
+  defaultSteps: ReadonlyArray<PagingLadderDefaultStep>,
+): Array<number> => {
+  if (defaultSteps.length === 0) {
+    return [0];
+  }
+
+  return getPagingLadderDefaultStepsForChannel({
+    defaultSteps: defaultSteps,
+    channel: OnCallPageChannel.Email,
+  }).map((step: PagingLadderDefaultStep): number => {
+    return step.notifyAfterMinutes;
+  });
 };
 
 type HasJoinedSinceSeverityFunction = (data: {
@@ -576,6 +623,8 @@ type BackfillSeverityForRuleTypeFunction = (data: {
   existingRules: Array<UserNotificationRule>;
   cells: ReadonlyArray<PagingLadderCell>;
   verifiedEmailByUserId: Map<string, VerifiedEmail>;
+  // When a responder who has said nothing is emailed (getNewSeverityEmailWaits).
+  emailWaits: ReadonlyArray<number>;
 }) => Promise<void>;
 
 const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction =
@@ -585,6 +634,7 @@ const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction =
     existingRules: Array<UserNotificationRule>;
     cells: ReadonlyArray<PagingLadderCell>;
     verifiedEmailByUserId: Map<string, VerifiedEmail>;
+    emailWaits: ReadonlyArray<number>;
   }): Promise<void> => {
     const severity: NewSeverity = data.severity;
     const ruleType: NotificationRuleType = data.ruleType;
@@ -652,26 +702,31 @@ const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction =
     }
 
     /*
-     * Responders who have said nothing at all about this rule type get today's
-     * default: their verified email, immediately. That is exactly what
+     * Responders who have said nothing at all about this rule type get what
      * addDefaultNotificationRuleForUser would have written for them had this
-     * severity existed when they joined.
+     * severity existed when they joined: their verified email - at once, or,
+     * in a project with a default ladder (#7449, #9444), at each wait the
+     * default gives email, or not at all when it leaves email out
+     * (data.emailWaits). Never a channel they have not verified: the default
+     * only ever decides when their email goes.
      */
     for (const [userId, verifiedEmail] of data.verifiedEmailByUserId) {
       if (intentByUserId.has(userId) || joinedSince(userId)) {
         continue;
       }
 
-      await createRule({
-        severity: severity,
-        ruleType: ruleType,
-        userId: new ObjectID(userId),
-        mirroredRule: {
-          methodColumn: "userEmailId",
-          methodId: verifiedEmail.emailId,
-          notifyAfterMinutes: 0,
-        },
-      });
+      for (const notifyAfterMinutes of data.emailWaits) {
+        await createRule({
+          severity: severity,
+          ruleType: ruleType,
+          userId: new ObjectID(userId),
+          mirroredRule: {
+            methodColumn: "userEmailId",
+            methodId: verifiedEmail.emailId,
+            notifyAfterMinutes: notifyAfterMinutes,
+          },
+        });
+      }
     }
   };
 
@@ -1102,6 +1157,7 @@ export {
   backfillSeveritiesUntilDeadline,
   buildResponderIntents,
   findRecentlyCreatedSeverities,
+  getNewSeverityEmailWaits,
   hasJoinedSinceSeverity,
 };
 export type { MirroredRule, NewSeverity, ResponderIntent, VerifiedEmail };

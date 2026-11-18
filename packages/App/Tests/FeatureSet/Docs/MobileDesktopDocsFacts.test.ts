@@ -1325,3 +1325,66 @@ describe("the desktop app", () => {
     }
   });
 });
+
+/*
+ * Get Ready for On-Call, the app's first steps (#7041), as the iOS and
+ * Android pages say them after Sign in (#9462).
+ */
+describe("the app's first steps", () => {
+  it("names Get Ready for On-Call, its buttons and its row in Settings as the app draws them", () => {
+    const words: string = flat(mobile("src/onboarding/getReady.ts"));
+
+    expect(words).toContain('screenTitle: "Get Ready for On-Call"');
+    expect(words).toContain(
+      'intro: "Three steps so a page reaches this phone, even at night on silent."',
+    );
+    expect(words).toContain('turnOnCriticalAlerts: "Turn On Critical Alerts"');
+    expect(words).toContain('sendTestPage: "Send Test Page"');
+    expect(words).toContain('notNow: "Not Now"');
+    expect(words).toContain('settingsRowTitle: "Get Ready for On-Call"');
+
+    const settings: string = flat(mobile("src/screens/SettingsScreen.tsx"));
+
+    expect(settings).toContain("title={GET_READY_TEXT.settingsRowTitle}");
+    expect(settings).toContain('navigation.navigate("GetReady");');
+
+    for (const page of MOBILE_PAGES) {
+      expect(englishPage(page)).toContain(
+        "On a new install, the app then opens **Get Ready for On-Call** once: three steps so a page reaches the",
+      );
+      expect(englishPage(page)).toContain(
+        "Allow notifications, tap **Turn On Critical Alerts**, then **Send Test Page**, and acknowledge the test page from its notification. **Not Now** puts it away, and **Settings → Get Ready for On-Call** opens it again any time.",
+      );
+    }
+  });
+
+  it("opens by itself once, on a new install signed in to a project, and never on an updated one", () => {
+    const firstRun: string = flat(mobile("src/onboarding/firstRun.ts"));
+
+    expect(firstRun).toContain(
+      "if (await hasSeenGetReady()) { return false; }",
+    );
+    // A push token kept: a phone set up by a version from before the first steps.
+    expect(firstRun).toContain(
+      "if (await AsyncStorage.getItem(PUSH_TOKEN_KEY)) { await markGetReadySeen(); return false; }",
+    );
+    expect(flat(mobile("src/navigation/GetReadyFirstRun.tsx"))).toContain(
+      "if (hasOpened.current || isLoadingProjects || !hasProject) {",
+    );
+  });
+
+  it("turns critical alerts on when the person comes back with the phone allowing them", () => {
+    const hook: string = flat(mobile("src/hooks/useCriticalAlerts.ts"));
+
+    expect(hook).toContain(
+      "turnOnWhenAllowedRef.current = status.availability === CriticalAlertAvailability.Denied;",
+    );
+    expect(hook).toContain("void setEnabledRef.current?.(true);");
+    expect(englishPage(IOS)).toContain(
+      "When critical alerts have to be allowed in iOS Settings, they turn on as soon as you come back to the app.",
+    );
+    expect(englishPage(ANDROID)).toContain(
+      "When Do Not Disturb access has to be allowed in Android's settings, critical alerts turn on as soon as you come back to the app.",
+    );
+  });
+});

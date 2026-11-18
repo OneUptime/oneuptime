@@ -81,6 +81,7 @@ Una forma que alguien no ha verificado queda fuera, y esa persona conserva sus p
 - En las **Reglas de escalado** de una política, un nivel cuyos respondedores no se pueden avisar a todos lo indica en su tarjeta. Consulta [El resumen de escalado](/docs/on-call/escalation-rules#el-resumen-de-escalado).
 - En **Usuarios**, abre un miembro y luego **Preparación** en la sección **Guardia**: su estado, sus métodos y su cuadrícula de cobertura.
 - Para tu propia configuración, **Ajustes de usuario → Lista de configuración** te guía. Consulta [La lista de configuración](/docs/notifications/index#la-lista-de-configuración).
+- Quien está en una política y no ha terminado su propia configuración ve **Termina de configurar tus notificaciones** en la campana de la parte superior de cada página, que abre su lista de configuración.
 
 ## El correo semanal de preparación
 

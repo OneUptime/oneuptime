@@ -146,12 +146,21 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 
 // How members are paged by default (#7449): ProjectPagingDefaults tests them.
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaults",
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard",
   () => {
     return {
       __esModule: true,
-      DefaultPagingLadderCard: mockRecorder("default-ladder-card"),
-      PhoneForOnCallCard: mockRecorder("phone-for-on-call-card"),
+      default: mockRecorder("default-ladder-card"),
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PhoneForOnCallCard",
+  () => {
+    return {
+      __esModule: true,
+      default: mockRecorder("phone-for-on-call-card"),
     };
   },
 );
