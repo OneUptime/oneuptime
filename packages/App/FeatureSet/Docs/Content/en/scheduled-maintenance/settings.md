@@ -45,12 +45,12 @@ A new rule starts enabled; switch **Enabled** off on its edit form to pause it, 
 
 **Owner Rules** add owner users and teams to new events that match, and **Label Rules** add labels. Creating one takes two steps: **Match**, the conditions, then **Owners** or **Labels**, what the rule adds.
 
-| Condition                                                       | Matches                                                                    |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitors**, **Event Labels**, **Monitor Labels**              | Events with any of the monitors or labels you pick.                        |
-| **Event Title**, **Event Description**, **Monitor Name**, **Monitor Description** | A pattern, as a regular expression, ignoring case.        |
+On **Match**, **Applies to** starts on **All maintenance events**: the rule acts on every new event. To narrow it down, pick **Only maintenance events that match conditions** and fill in the condition that opens, then click **Add condition** for each other one. With two or more conditions, choose **Match all**, where every condition must hold, or **Match any**, where one is enough.
 
-A rule matches only when every condition you fill in holds; a condition left empty is skipped.
+| Condition                                                       | Compares with                                                              |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitors**, **Event Labels**, **Monitor Labels**              | **Has any of**, **Has all of** or **Has none of** the monitors or labels you pick. |
+| **Event Title**, **Event Description**, **Monitor Name**, **Monitor Description** | **Contains**, **Does not contain**, **Equals**, **Does not equal**, **Starts with**, **Ends with**, ignoring case, or **Matches pattern** and **Does not match pattern**, for a regular expression or a `*` wildcard. |
 
 - **A rule can inherit.** Folded under **Inherit Owners** or **Inherit Labels**, six switches hand on the owners or labels of the event's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services.
 - **A new rule has to add something**: pick at least one owner or label, or turn on a switch.
@@ -132,7 +132,7 @@ Rules, custom fields and measurements take **Project Owner** or **Project Admin*
 ## Troubleshooting
 
 :::details An owner rule did not add anyone to a new event
-Open the rule and check its conditions: every condition you filled in must hold. A title pattern is a regular expression, so `db upgrade` does not match "DB-Upgrade"; write `db.upgrade`. A rule also acts only on events created after it was saved: use **Run Now** for the ones you already have.
+Open the rule and check its conditions: under **Match all**, every one must hold. Text is compared as written, apart from case, so **Contains** `db upgrade` does not match "DB-Upgrade"; pick **Matches pattern** and write `db.upgrade`. A rule also acts only on events created after it was saved: use **Run Now** for the ones you already have.
 :::
 
 :::details Owners got no reminder

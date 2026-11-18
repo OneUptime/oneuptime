@@ -81,6 +81,8 @@ Todo o resto só se conecta para fora quando você o ativa, e cada um tem uma p�
 | Slack e Microsoft Teams | Notificações e ações no workspace | [Integração com o Slack](/docs/self-hosted/slack-integration) |
 | Um provedor de LLM, como OpenAI, Anthropic, Microsoft Foundry ou um modelo que você mesmo executa | OneUptime AI | [Provedores de LLM](/docs/ai/llm-provider) |
 | `oneuptime.com` | Ativar uma licença Enterprise online | [Edição Enterprise](/docs/self-hosted/enterprise) |
+| Let's Encrypt | Certificados que o OneUptime pede por conta própria: para o endereço da sua instalação com `PROVISION_SSL=true` (`ssl.provision` no chart do Helm) e para os domínios próprios das páginas de status | [Certificados das páginas de status](/docs/status-pages/branding-and-domains#certificados-ssl) |
+| Atualizações das assinaturas do ClamAV, de `database.clamav.net` | Verificação de malware dos arquivos que as pessoas enviam, quando você ativa o ClamAV incluído no OneUptime | [Verificação de malware](/docs/forms/sharing-and-security#verificação-de-malware) |
 
 As conexões no sentido contrário – o SendGrid entregando e-mails recebidos, o Slack e o Microsoft Teams chamando de volta – exigem que o ingress seja acessível pela internet. Quais endereços privados a aplicação e as sondas podem alcançar é você quem decide: veja [Acesso à rede privada](/docs/self-hosted/private-network-access).
 

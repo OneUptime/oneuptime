@@ -191,6 +191,8 @@ Når OneUptime-instansen din har hCaptcha slått på, viser skjemaet en captcha,
 
 En selvhostet installasjon kan la ClamAV skanne hver fil folk sender, etter skadevare, før den lagres: filene i et skjema, og filene folk laster opp når de er logget inn eller med en API-nøkkel. Sett `CLAMAV_HOST` (og `CLAMAV_PORT`, `3310` som standard) til en ClamAV-daemon. Med Docker Compose starter `COMPOSE_PROFILES=clamav` og `CLAMAV_HOST=clamav` i `config.env` ClamAV-en som følger med OneUptime; med Helm slår du på `clamav.enabled`. En fil ClamAV flagger, avvises med navnet på filen, og ingenting fra innsendingen lagres. Så lenge ClamAV ikke svarer, avvises hver fil med "Filer kan ikke sjekkes for virus akkurat nå, så de ble ikke tatt imot. Prøv igjen om noen minutter." (503), slik at ingen fil lagres uten å være sjekket. Uten `CLAMAV_HOST` skannes ikke filer, som før.
 
+ClamAV-en som følger med OneUptime, henter signaturene sine fra `database.clamav.net` når den starter, og holder dem oppdatert: en tilkobling ut av nettverket ditt. På et nettverk uten internettilgang setter du `CLAMAV_HOST` (`clamav.host` i Helm-chartet) til en egen ClamAV-daemon som du holder oppdatert fra et speil inne i nettverket: se [Air-gapped installasjon](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Feilsøking
 
 :::details Lenken sier at skjemaet ikke er tilgjengelig

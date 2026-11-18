@@ -45,12 +45,12 @@ Una regla nueva empieza habilitada; desactiva **Habilitado** en su formulario de
 
 Las **Reglas del propietario** añaden usuarios y equipos propietarios a los eventos nuevos que coinciden, y las **Reglas de etiquetas** añaden etiquetas. Crear una lleva dos pasos: **Coincidencia**, las condiciones, y luego **Propietarios** o **Etiquetas**, lo que añade la regla.
 
-| Condición                                                       | Coincide con                                                               |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitores**, **Etiquetas del evento**, **Etiquetas del monitor** | Eventos con cualquiera de los monitores o etiquetas que elijas.         |
-| **Título del evento**, **Descripción del evento**, **Nombre del monitor**, **Descripción del monitor** | Un patrón, como expresión regular, sin distinguir mayúsculas y minúsculas. |
+En el paso **Coincidencia**, **Se aplica a** empieza en **Todos los eventos de mantenimiento**: la regla actúa sobre cada evento nuevo. Para acotarla, elige **Solo los eventos de mantenimiento que cumplen las condiciones**, rellena la condición que se abre y haz clic en **Añadir condición** por cada una de las demás. Con dos o más condiciones, elige **Coincidir con todas**, donde deben cumplirse todas, o **Coincidir con cualquiera**, donde basta con una.
 
-Una regla solo coincide cuando se cumple cada condición que rellenas; una condición vacía se omite.
+| Condición                                                       | Compara con                                                                |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitores**, **Etiquetas del evento**, **Etiquetas del monitor** | **Tiene alguno de**, **Tiene todos los** o **No tiene ninguno de** los monitores o etiquetas que elijas. |
+| **Título del evento**, **Descripción del evento**, **Nombre del monitor**, **Descripción del monitor** | **Contiene**, **No contiene**, **Es igual a**, **No es igual a**, **Empieza por**, **Termina en**, sin distinguir mayúsculas, o **Coincide con el patrón** y **No coincide con el patrón**, para una expresión regular o un comodín `*`. |
 
 - **Una regla puede heredar.** Plegados en **Heredar propietarios** o **Heredar etiquetas**, seis interruptores transmiten los propietarios o las etiquetas de los monitores, hosts, clústeres de Kubernetes, hosts de Docker, hosts de Podman y servicios del evento.
 - **Una regla nueva tiene que añadir algo**: elige al menos un propietario o una etiqueta, o activa un interruptor.
@@ -132,7 +132,7 @@ Las reglas, los campos personalizados y las mediciones requieren **Propietario d
 ## Solución de problemas
 
 :::details Una regla del propietario no añadió a nadie a un evento nuevo
-Abre la regla y revisa sus condiciones: cada condición que rellenaste debe cumplirse. Un patrón de título es una expresión regular, así que `db upgrade` no coincide con «DB-Upgrade»; escribe `db.upgrade`. Además, una regla solo actúa sobre los eventos creados después de guardarla: usa **Ejecutar ahora** para los que ya tienes.
+Abre la regla y revisa sus condiciones: con **Coincidir con todas**, deben cumplirse todas. El texto se compara tal como está escrito, salvo por las mayúsculas, así que **Contiene** `db upgrade` no coincide con «DB-Upgrade»; elige **Coincide con el patrón** y escribe `db.upgrade`. Además, una regla solo actúa sobre los eventos creados después de guardarla: usa **Ejecutar ahora** para los que ya tienes.
 :::
 
 :::details Los propietarios no recibieron ningún recordatorio

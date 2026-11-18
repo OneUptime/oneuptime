@@ -45,12 +45,12 @@ En ny regel börjar aktiverad; stäng av **Aktiverad** i dess redigeringsformul�
 
 **Ägarregler** lägger till ägaranvändare och ägarteam på nya händelser som matchar, och **Etikettregler** lägger till etiketter. Att skapa en tar två steg: **Matcha**, villkoren, och sedan **Ägare** eller **Etiketter**, det som regeln lägger till.
 
-| Villkor                                                         | Matchar                                                                    |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitorer**, **Händelseetiketter**, **Övervakningsetiketter** | Händelser med någon av de monitorer eller etiketter du väljer.             |
-| **Händelsetitel**, **Händelsebeskrivning**, **Övervakningsnamn**, **Övervakningsbeskrivning** | Ett mönster, som ett reguljärt uttryck, utan hänsyn till skiftläge. |
+I steget **Matcha** börjar **Gäller för** på **Alla underhållshändelser**: regeln verkar på varje ny händelse. För att snäva in den väljer du **Endast underhållshändelser som uppfyller villkoren**, fyller i villkoret som öppnas och klickar sedan på **Lägg till villkor** för vart och ett av de andra. Med två eller fler villkor väljer du **Matcha alla**, där vart och ett måste gälla, eller **Matcha något**, där ett räcker.
 
-En regel matchar bara när varje villkor du fyller i stämmer; ett villkor som lämnas tomt hoppas över.
+| Villkor                                                         | Jämför med                                                                 |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitorer**, **Händelseetiketter**, **Övervakningsetiketter** | **Har någon av**, **Har alla** eller **Har ingen av** de monitorer eller etiketter som du väljer. |
+| **Händelsetitel**, **Händelsebeskrivning**, **Övervakningsnamn**, **Övervakningsbeskrivning** | **Innehåller**, **Innehåller inte**, **Lika med**, **Inte lika med**, **Börjar med**, **Slutar med**, utan hänsyn till skiftläge, eller **Matchar mönster** och **Matchar inte mönster**, för ett reguljärt uttryck eller ett jokertecken `*`. |
 
 - **En regel kan ärva.** Hopfällda under **Ärv ägare** eller **Ärv etiketter** för sex reglage vidare ägarna eller etiketterna från händelsens monitorer, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster.
 - **En ny regel måste lägga till något**: välj minst en ägare eller etikett, eller slå på ett reglage.
@@ -132,7 +132,7 @@ Regler, anpassade fält och mätningar kräver **Projektägare** eller **Projekt
 ## Felsökning
 
 :::details En ägarregel lade inte till någon på en ny händelse
-Öppna regeln och kontrollera dess villkor: varje villkor du har fyllt i måste stämma. Ett titelmönster är ett reguljärt uttryck, så `db upgrade` matchar inte "DB-Upgrade"; skriv `db.upgrade`. En regel verkar också bara på händelser som skapats efter att den sparades: använd **Kör nu** för dem du redan har.
+Öppna regeln och kontrollera dess villkor: med **Matcha alla** måste vart och ett stämma. Text jämförs som den är skriven, bortsett från skiftläge, så **Innehåller** `db upgrade` matchar inte "DB-Upgrade"; välj **Matchar mönster** och skriv `db.upgrade`. En regel verkar också bara på händelser som skapats efter att den sparades: använd **Kör nu** för dem du redan har.
 :::
 
 :::details Ägarna fick ingen påminnelse
