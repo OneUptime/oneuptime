@@ -350,4 +350,38 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
       ProbeBehindUtil.isDevicePollsBehind(ProbeBehindUtil.clearedDevicePolls()),
     ).toBe(false);
   });
+
+  test("the job writes the device polls' times only when they changed", () => {
+    expect(ProbeBehindUtil.hasDevicePollsChanged({}, pollsBehind)).toBe(true);
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        pollsBehind,
+        ProbeBehindUtil.clearedDevicePolls(),
+      ),
+    ).toBe(true);
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        {},
+        ProbeBehindUtil.clearedDevicePolls(),
+      ),
+    ).toBe(false);
+    // Read back as strings, the same times are no change.
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        {
+          devicePollsLateSince: pollsBehind.devicePollsLateSince!.toISOString(),
+          devicePollsLastLateAt:
+            pollsBehind.devicePollsLastLateAt!.toISOString(),
+        },
+        pollsBehind,
+      ),
+    ).toBe(false);
+    // The checks' times are not the device polls'.
+    expect(
+      ProbeBehindUtil.hasDevicePollsChanged(
+        { ...checksBehind },
+        ProbeBehindUtil.clearedDevicePolls(),
+      ),
+    ).toBe(false);
+  });
 });

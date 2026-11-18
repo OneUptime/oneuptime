@@ -213,6 +213,20 @@ export default class ProbeBehindUtil {
     return { devicePollsLateSince: null, devicePollsLastLateAt: null };
   }
 
+  // Whether the device polls' two times differ, as hasChanged for checks.
+  public static hasDevicePollsChanged(
+    before: ProbeLateDevicePollsRead,
+    after: ProbeLateDevicePolls,
+  ): boolean {
+    return ProbeBehindUtil.hasChanged(
+      ProbeBehindUtil.devicePollsAsLateChecks(before),
+      {
+        checksLateSince: after.devicePollsLateSince,
+        checksLastLateAt: after.devicePollsLastLateAt,
+      },
+    );
+  }
+
   /*
    * Since when the probe is behind on its network devices - polled later
    * than their interval - or null when it is not.

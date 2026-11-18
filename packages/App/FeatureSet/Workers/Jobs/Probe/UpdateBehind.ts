@@ -208,11 +208,7 @@ export const updateProbesBehind: (options?: {
       lateChecks && ProbeBehindUtil.hasChanged(probe, lateChecks),
     );
     const havePollsChanged: boolean = Boolean(
-      latePolls &&
-        ProbeBehindUtil.hasChanged(
-          ProbeBehindUtil.devicePollsAsLateChecks(probe),
-          ProbeBehindUtil.devicePollsAsLateChecks(latePolls),
-        ),
+      latePolls && ProbeBehindUtil.hasDevicePollsChanged(probe, latePolls),
     );
 
     if (!haveChecksChanged && !havePollsChanged) {
