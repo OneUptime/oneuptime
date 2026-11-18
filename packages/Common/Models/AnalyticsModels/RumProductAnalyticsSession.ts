@@ -72,8 +72,13 @@ export const PRODUCT_ANALYTICS_SOURCE_BROWSER_SQL: string = `if(recorderKind = '
 /* The family alone: a mobile app reports "iOS 17.2", the browser "iOS". */
 export const PRODUCT_ANALYTICS_SOURCE_OS_SQL: string = `multiIf(osName = 'Unknown', '', recorderKind = 'rn-view-tree', splitByChar(' ', toString(osName))[1], toString(osName))`;
 
-/* A mobile app reports its version as the browser version; a web page has none. */
-export const PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL: string = `if(recorderKind = 'rn-view-tree' AND browserVersion != 'unknown', toString(browserVersion), '')`;
+/*
+ * The app's version: the one a web page gave the browser recorder (its
+ * appVersion option, issue #6625), else a mobile app's, which it reports as
+ * the browser version. A web page that set none, and a session recorded
+ * before the option, have none ('').
+ */
+export const PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL: string = `multiIf(appVersion != '', toString(appVersion), recorderKind = 'rn-view-tree' AND browserVersion != 'unknown', toString(browserVersion), '')`;
 
 /*
  * The page a stored URL is, as product analytics names a page everywhere
@@ -233,7 +238,8 @@ const MEASURES: Array<MeasureDefinition> = [
   {
     key: "appVersion",
     title: "App Version",
-    description: "The mobile app's version; '' for a web page",
+    description:
+      "The app's version: a mobile app's own, or the web page's appVersion recorder option; '' when not reported",
     type: TableColumnType.Text,
     simpleAggregateFunction: "max",
   },

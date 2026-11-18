@@ -134,6 +134,7 @@ import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChe
 import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
+import ReadWebAppVersionsInProductAnalyticsSessions from "./ReadWebAppVersionsInProductAnalyticsSessions";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
@@ -1412,6 +1413,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new BackfillTelemetryMilestonesFromClickhouse(),
+  /*
+   * A web app's own version in Product Analytics (#6625): the browser
+   * recorder's appVersion option reaches RumSessionV1.appVersion, and
+   * RumProductAnalyticsSessionV1_mv's query is replaced in place (ALTER
+   * TABLE ... MODIFY QUERY, ON CLUSTER) with the model's, which reads it
+   * before a mobile app's browser version. Atomic, so no session header
+   * goes by unfiled; idempotent; after ReadHashRoutesInProductAnalyticsEntryPages,
+   * which set the query before it, and before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ReadWebAppVersionsInProductAnalyticsSessions(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

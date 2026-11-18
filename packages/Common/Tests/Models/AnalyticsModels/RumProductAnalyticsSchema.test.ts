@@ -8,6 +8,7 @@ import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseMod
 import RumSession from "../../../Models/AnalyticsModels/RumSession";
 import RumProductAnalyticsSession, {
   PRODUCT_ANALYTICS_READ_PERMISSIONS,
+  PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL,
 } from "../../../Models/AnalyticsModels/RumProductAnalyticsSession";
 import RumProductAnalyticsUser from "../../../Models/AnalyticsModels/RumProductAnalyticsUser";
 import RumProductAnalyticsSessionService from "../../../Server/Services/RumProductAnalyticsSessionService";
@@ -253,6 +254,30 @@ describe.each(MODELS)("$name", ({ modelType }: { modelType: ModelType }) => {
 
 describe("RumProductAnalyticsSession", () => {
   const model: RumProductAnalyticsSession = new RumProductAnalyticsSession();
+
+  /*
+   * A web page's own app version (issue #6625): the recorder's appVersion
+   * option lands in RumSessionV1.appVersion, and the view reads it before a
+   * mobile app's version, which it reports as the browser version.
+   */
+  test("files a web page's own app version, else a mobile app's", () => {
+    const query: string = model.materializedViews[0]!.query;
+
+    expect(query).toContain(
+      `maxSimpleState(${PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL}) AS appVersion`,
+    );
+    expect(PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL).toBe(
+      "multiIf(appVersion != '', toString(appVersion), recorderKind = 'rn-view-tree' AND browserVersion != 'unknown', toString(browserVersion), '')",
+    );
+
+    const source: AnalyticsTableColumn | null = new RumSession().getTableColumn(
+      "appVersion",
+    );
+
+    expect(source?.type).toBe(TableColumnType.Text);
+    expect(source?.isLowCardinality).toBe(true);
+    expect(source?.defaultValue).toBe("");
+  });
 
   test("is keyed by the session, ordered by its start within one application", () => {
     expect(model.tableName).toBe("RumProductAnalyticsSessionV1");

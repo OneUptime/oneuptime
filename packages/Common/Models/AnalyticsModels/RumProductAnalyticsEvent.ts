@@ -118,7 +118,8 @@ const TEXT_COLUMNS: Array<TextColumnDefinition> = [
   {
     key: "appVersion",
     title: "App Version",
-    description: "The mobile app's version; '' for a web page",
+    description:
+      "The app's version: a mobile app's own, or the web page's appVersion recorder option; '' when not reported",
     isLowCardinality: true,
   },
 ];
