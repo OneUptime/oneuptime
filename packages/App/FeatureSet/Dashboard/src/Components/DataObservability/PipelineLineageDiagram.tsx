@@ -32,6 +32,12 @@ const READ_FAILED: string = translationKey(
  * the first thing to look at when a run fails or is late. One step each
  * way unless the reader picks more: then what those tables are built from,
  * and what is built from them. Each table opens its own Lineage tab.
+ *
+ * It is read with the columns its runs moved (#6854), so a column it
+ * writes can be picked - offered in the order of the first table it writes
+ * them to - and followed across it: down to the tables it writes it to,
+ * up to the columns it was built from, and on along the arrows between
+ * tables. Nothing is followed until the reader picks a column.
  */
 const PipelineLineageDiagram: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -43,9 +49,11 @@ const PipelineLineageDiagram: FunctionComponent<ComponentProps> = (
   const read: LineageRead<DataTableLineage> = useLineageRead<DataTableLineage>(
     `${props.dataPipelineId.toString()}:${depth}`,
     (): Promise<DataTableLineage> => {
+      // With the columns its runs moved, so one of them can be followed across it (#6854).
       return DataObservabilityApi.getPipelineLineage(
         props.dataPipelineId,
         depth,
+        true,
       );
     },
     READ_FAILED,
@@ -69,14 +77,19 @@ const PipelineLineageDiagram: FunctionComponent<ComponentProps> = (
     );
   } else {
     body = (
-      <LineageDiagramBody lineage={read.answer} place={LineagePlace.Pipeline} />
+      <LineageDiagramBody
+        lineage={read.answer}
+        place={LineagePlace.Pipeline}
+        withColumns={true}
+        columnOrder={read.answer.columnOrder}
+      />
     );
   }
 
   return (
     <Card
       title="Lineage"
-      description="The tables this pipeline reads and the tables it writes, with how each is now. Pick more steps to see what they are built from and what is built from them."
+      description="The tables this pipeline reads and the tables it writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them."
       rightElement={<LineageStepSwitch depth={depth} onChange={setDepth} />}
     >
       <div data-testid="pipeline-lineage-diagram">{body}</div>

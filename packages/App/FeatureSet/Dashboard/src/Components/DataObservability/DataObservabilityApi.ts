@@ -46,7 +46,10 @@ import {
   DataLineageExpandRequest,
   DataLineageExpansion,
 } from "Common/Types/DataObservability/DataLineageExpansion";
-import { DataLineageMap } from "Common/Types/DataObservability/DataLineageMap";
+import {
+  DataLineageMap,
+  DataLineageMapRequest,
+} from "Common/Types/DataObservability/DataLineageMap";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -329,14 +332,20 @@ export default class DataObservabilityApi {
     )) as unknown as DataTableLineage;
   }
 
-  // A pipeline's lineage: the tables it reads and writes, and the steps beyond them.
+  /*
+   * A pipeline's lineage: the tables it reads and writes, and the steps
+   * beyond them - and, asked for, the columns its runs moved and each
+   * arrow between two tables carries.
+   */
   public static async getPipelineLineage(
     dataPipelineId: ObjectID,
     depth: number,
+    withColumns: boolean = false,
   ): Promise<DataTableLineage> {
     const request: DataPipelineLineageRequest = {
       dataPipelineId: dataPipelineId.toString(),
       depth,
+      ...(withColumns ? { withColumns: true } : {}),
     };
 
     return (await post(
@@ -345,12 +354,18 @@ export default class DataObservabilityApi {
     )) as unknown as DataTableLineage;
   }
 
-  // The project's lineage map: who writes and reads which tables, and what feeds what.
-  public static async getLineageMap(): Promise<DataLineageMap> {
-    return (await post(
-      DATA_OBSERVABILITY_API_ROUTES.lineageMap,
-      {},
-    )) as unknown as DataLineageMap;
+  /*
+   * The project's lineage map: who writes and reads which tables, and what
+   * feeds what - or, asked for, the flows of one database's tables, or of
+   * what a search of the whole project names.
+   */
+  public static async getLineageMap(
+    request: DataLineageMapRequest = {},
+  ): Promise<DataLineageMap> {
+    return (await post(DATA_OBSERVABILITY_API_ROUTES.lineageMap, {
+      ...(request.dataStoreId ? { dataStoreId: request.dataStoreId } : {}),
+      ...(request.search ? { search: request.search } : {}),
+    })) as unknown as DataLineageMap;
   }
 
   // The next tables a card of a lineage diagram does not draw: what pressing its count asks.

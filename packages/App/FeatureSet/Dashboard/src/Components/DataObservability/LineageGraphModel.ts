@@ -52,7 +52,7 @@ export const LINEAGE_CARD_HEIGHT: number = 84;
 // Room between columns for a failed pipeline's name on its arrow.
 export const LINEAGE_COLUMN_GAP: number = 96;
 export const LINEAGE_EDGE_LABEL_MAX_WIDTH: number = LINEAGE_COLUMN_GAP - 12;
-// The tallest an arrow's label is: a pipeline's name with Cause under it.
+// The tallest an arrow's label is: a pipeline's name with Cause, or Consequence, under it - never both.
 export const LINEAGE_EDGE_LABEL_MAX_HEIGHT: number = 32;
 // How far over a level arrow its label sits: clear of the arrow's halo.
 export const LINEAGE_EDGE_LABEL_CLEARANCE: number = 6;
@@ -139,6 +139,11 @@ export interface LineageEdgeLabel {
   isFailed: boolean;
   // It is the alert's cause, on an arrow the way up ends on: it says Cause, as a cause's card does.
   isCause: boolean;
+  /*
+   * An alert it caused is on it, on an arrow a way down ends on: it says
+   * Consequence, as a consequence's card does (#6853). Never with Cause.
+   */
+  isConsequence: boolean;
 }
 
 // How an arrow is drawn, all told.
@@ -163,6 +168,9 @@ export interface LineageHighlightSets {
   // The cause's pipelines drawn on arrows, and the arrows on the way up that carry them: those say Cause.
   causeDataPipelineIds: Set<string>;
   causeEdgeIds: Set<string>;
+  // The pipelines of the alerts it caused drawn on arrows, and the arrows on the ways down that carry them: those say Consequence.
+  consequenceDataPipelineIds: Set<string>;
+  consequenceEdgeIds: Set<string>;
 }
 
 export const LINEAGE_NEUTRAL_COLOR: string = "#94a3b8";
@@ -278,7 +286,10 @@ export function getLineageEdgeStyle(
  * on a pipeline drawn on the arrows it moves data along is said on those
  * of its arrows the way up ends on: picked out, into the drawing's own
  * card or a card upstream of it. The same pipeline on a way down - a run
- * that builds the tables on both sides - is not the way to the cause.
+ * that builds the tables on both sides - is not the way to the cause. An
+ * alert it caused on a pipeline is said the same way on the arrows a way
+ * down ends on: picked out, out of the drawing's own card or a card
+ * downstream of it (#6853).
  */
 export function getLineageHighlightSets(
   lineage: DataTableLineage,
@@ -294,31 +305,57 @@ export function getLineageHighlightSets(
   const causeDataPipelineIds: Set<string> = new Set(
     highlight.causeDataPipelineIds || [],
   );
-  const causeEdgeIds: Set<string> = new Set();
-
-  if (causeDataPipelineIds.size > 0) {
-    const upstream: Set<string> = new Set(
+  // And one from before the consequences' were sent names none of theirs.
+  const consequenceDataPipelineIds: Set<string> = new Set(
+    highlight.consequenceDataPipelineIds || [],
+  );
+  const sideOf: (side: DataLineageSide) => Set<string> = (
+    side: DataLineageSide,
+  ): Set<string> => {
+    return new Set(
       lineage.nodes
         .filter((node: DataTableLineageNode): boolean => {
-          return node.side === DataLineageSide.Upstream;
+          return node.side === side;
         })
         .map((node: DataTableLineageNode): string => {
           return node.id;
         }),
     );
+  };
+  // The highlighted arrows carrying one of these pipelines whose end is the drawing's own card or one on that side.
+  const arrowsCarrying: (data: {
+    pipelineIds: Set<string>;
+    side: DataLineageSide;
+    endOf: (edge: DataTableLineageEdge) => string;
+  }) => Set<string> = (data: {
+    pipelineIds: Set<string>;
+    side: DataLineageSide;
+    endOf: (edge: DataTableLineageEdge) => string;
+  }): Set<string> => {
+    const carrying: Set<string> = new Set();
+
+    if (data.pipelineIds.size === 0) {
+      return carrying;
+    }
+
+    const cards: Set<string> = sideOf(data.side);
 
     for (const edge of lineage.edges) {
+      const end: string = data.endOf(edge);
+
       if (
         edgeIds.has(edge.id) &&
-        (edge.target === lineage.focusNodeId || upstream.has(edge.target)) &&
+        (end === lineage.focusNodeId || cards.has(end)) &&
         edge.pipelines.some((pipeline: DataTableLineagePipeline): boolean => {
-          return causeDataPipelineIds.has(pipeline.dataPipelineId);
+          return data.pipelineIds.has(pipeline.dataPipelineId);
         })
       ) {
-        causeEdgeIds.add(edge.id);
+        carrying.add(edge.id);
       }
     }
-  }
+
+    return carrying;
+  };
 
   return {
     nodeIds: new Set(highlight.nodeIds),
@@ -327,7 +364,21 @@ export function getLineageHighlightSets(
     consequenceNodeIds: new Set(highlight.consequenceNodeIds),
     dataPipelineIds: new Set(highlight.dataPipelineIds),
     causeDataPipelineIds,
-    causeEdgeIds,
+    causeEdgeIds: arrowsCarrying({
+      pipelineIds: causeDataPipelineIds,
+      side: DataLineageSide.Upstream,
+      endOf: (edge: DataTableLineageEdge): string => {
+        return edge.target;
+      },
+    }),
+    consequenceDataPipelineIds,
+    consequenceEdgeIds: arrowsCarrying({
+      pipelineIds: consequenceDataPipelineIds,
+      side: DataLineageSide.Downstream,
+      endOf: (edge: DataTableLineageEdge): string => {
+        return edge.source;
+      },
+    }),
   };
 }
 
@@ -366,6 +417,14 @@ export function joinLineageHighlightSets(
       column.causeDataPipelineIds,
     ),
     causeEdgeIds: join(ways.causeEdgeIds, column.causeEdgeIds),
+    consequenceDataPipelineIds: join(
+      ways.consequenceDataPipelineIds,
+      column.consequenceDataPipelineIds,
+    ),
+    consequenceEdgeIds: join(
+      ways.consequenceEdgeIds,
+      column.consequenceEdgeIds,
+    ),
   };
 }
 
@@ -400,7 +459,9 @@ export function isLineageCardDimmed(
  * drawing is about: its card already says how it is. On an arrow the way
  * up to the cause ends on, the cause's pipeline also says Cause - red
  * still, when its run failed; a failed run of another pipeline is named
- * first, and says nothing of the cause.
+ * first, and says nothing of the cause. On an arrow a way down to an alert
+ * it caused ends on, that alert's pipeline says Consequence the same way
+ * (#6853) - never with Cause, which an arrow back up a loop would say.
  */
 export function getLineageEdgeLabel(
   edge: DataTableLineageEdge,
@@ -424,6 +485,16 @@ export function getLineageEdgeLabel(
     );
   };
 
+  const isConsequence: (pipeline: DataTableLineagePipeline) => boolean = (
+    pipeline: DataTableLineagePipeline,
+  ): boolean => {
+    return Boolean(
+      !isCause(pipeline) &&
+        sets?.consequenceEdgeIds.has(edge.id) &&
+        sets.consequenceDataPipelineIds.has(pipeline.dataPipelineId),
+    );
+  };
+
   const failed: DataTableLineagePipeline | undefined = edge.pipelines.find(
     (pipeline: DataTableLineagePipeline): boolean => {
       return (
@@ -433,7 +504,12 @@ export function getLineageEdgeLabel(
   );
 
   if (failed) {
-    return { pipeline: failed, isFailed: true, isCause: isCause(failed) };
+    return {
+      pipeline: failed,
+      isFailed: true,
+      isCause: isCause(failed),
+      isConsequence: isConsequence(failed),
+    };
   }
 
   if (sets?.edgeIds.has(edge.id)) {
@@ -447,7 +523,12 @@ export function getLineageEdgeLabel(
     );
 
     if (named) {
-      return { pipeline: named, isFailed: false, isCause: isCause(named) };
+      return {
+        pipeline: named,
+        isFailed: false,
+        isCause: isCause(named),
+        isConsequence: isConsequence(named),
+      };
     }
   }
 
@@ -1658,5 +1739,7 @@ export function getLineageColumnHighlightSets(
     dataPipelineIds: new Set(),
     causeDataPipelineIds: new Set(),
     causeEdgeIds: new Set(),
+    consequenceDataPipelineIds: new Set(),
+    consequenceEdgeIds: new Set(),
   };
 }
