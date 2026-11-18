@@ -477,7 +477,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.PagingLadderDefaultSaved,
     description:
-      "The project's default ladder for new members was saved in Project Settings > Notification Channels: how many steps it has (0: turned off).",
+      "The project's default ladder for new members was saved in Project Settings > Notifications > Notification Channels: how many steps it has (0: turned off).",
     properties: [{ name: "step_count" }],
   },
   {
