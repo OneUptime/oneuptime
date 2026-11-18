@@ -26,19 +26,13 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import HeldPermissionsUtil, {
-  HeldPermissions,
-} from "Common/Types/HeldPermissions";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "Common/Types/Permission";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateActionReach,
+} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import {
@@ -157,66 +151,18 @@ export const getStatusPageEditReach: () => StatusPageEditReach =
       return NO_STATUS_PAGE_EDIT_REACH;
     }
 
-    const updatePermissions: Array<Permission> =
-      PermissionGate.getModelPermissions(new StatusPage(), ModelAction.Update);
-    const wildcard: Permission | null = HeldPermissionsUtil.getModelWildcard({
-      isOperationalResource: new StatusPage().isOperationalResource,
-      operation: "update",
-    });
-    const held: HeldPermissions = PermissionGate.getHeldPermissions();
-    const granting: Array<Permission> =
-      HeldPermissionsUtil.getGrantingPermissions(held, {
-        modelPermissions: updatePermissions,
-        wildcard: wildcard,
-      });
-    const blocking: Array<Permission> =
-      HeldPermissionsUtil.getLabelBlockingPermissions(held, {
-        modelPermissions: updatePermissions,
-        wildcard: wildcard,
-      });
-    const reach: StatusPageEditReach = {
-      isProjectWide: granting.some((permission: Permission): boolean => {
-        return held.allowedProjectWide.includes(permission);
-      }),
-      labelIds: [],
-      reachesOwned: false,
-      blockedLabelIds: [],
+    // Read off the permission rows where PermissionGate reads them.
+    const reach: PermissionGateActionReach = PermissionGate.getActionReach(
+      new StatusPage(),
+      ModelAction.Update,
+    );
+
+    return {
+      isProjectWide: reach.isProjectWide,
+      labelIds: reach.labelIds,
+      reachesOwned: reach.reachesOwned,
+      blockedLabelIds: reach.blockedLabelIds,
     };
-
-    const rows: Array<UserPermission> =
-      PermissionUtil.getProjectPermissions()?.permissions || [];
-
-    for (const row of rows) {
-      if (!row || !row.permission) {
-        continue;
-      }
-
-      const labelIds: Array<string> = (row.labelIds || [])
-        .map(idText)
-        .filter(Boolean);
-
-      if (HeldPermissionsUtil.isBlockRow(row)) {
-        if (blocking.includes(row.permission)) {
-          reach.blockedLabelIds.push(...labelIds);
-        }
-        continue;
-      }
-
-      if (!granting.includes(row.permission)) {
-        continue;
-      }
-
-      if (PermissionHelper.isLimitedToLabels(row)) {
-        reach.labelIds.push(...labelIds);
-      } else if (
-        row.scope === PermissionScope.Owned &&
-        PermissionHelper.isScopeApplicable(row.permission)
-      ) {
-        reach.reachesOwned = true;
-      }
-    }
-
-    return reach;
   };
 
 /*
@@ -225,27 +171,8 @@ export const getStatusPageEditReach: () => StatusPageEditReach =
  * (UserPermission.scope).
  */
 const getOwnedScopeTeamIds: () => Array<string> = (): Array<string> => {
-  const updatePermissions: Array<Permission> =
-    PermissionGate.getModelPermissions(new StatusPage(), ModelAction.Update);
-  const teamIds: Array<string> = [];
-
-  for (const row of PermissionUtil.getProjectPermissions()?.permissions || []) {
-    const teamId: string = idText(row?.teamId);
-
-    if (
-      row &&
-      HeldPermissionsUtil.isAllowRow(row) &&
-      row.scope === PermissionScope.Owned &&
-      (updatePermissions.includes(row.permission) ||
-        row.permission === Permission.EditAllOperationalResources) &&
-      teamId &&
-      !teamIds.includes(teamId)
-    ) {
-      teamIds.push(teamId);
-    }
-  }
-
-  return teamIds;
+  return PermissionGate.getActionReach(new StatusPage(), ModelAction.Update)
+    .ownedScopeTeamIds;
 };
 
 export default class StatusPageSetupApi {
