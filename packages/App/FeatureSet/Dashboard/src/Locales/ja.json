@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "さらに {{count}} 件のレコードを表示",
   "Show {{count}} more records_one": "さらに {{count}} 件のレコードを表示",
   "The records it was found in {{time}} are no longer kept.": "{{time}} にこのデータが見つかったレコードは、もう保持されていません。",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "最後のスキャンでこのデータが見つかったレコードです。値はマスクされています。全体を見るにはレコードを開いてください。"
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "最後のスキャンでこのデータが見つかったレコードです。値はマスクされています。全体を見るにはレコードを開いてください。",
+  "Android setup": "Android のセットアップ",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "イベント、エラー率、p95 の期間、クラッシュと ANR、デバイスのモデル、テレメトリのタブ。"
 }

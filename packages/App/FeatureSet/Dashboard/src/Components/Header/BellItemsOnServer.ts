@@ -34,12 +34,10 @@ export const getBellItemsOnServer: <TItem extends { id: string }>(
   offOnServer: ServerProductsOff,
 ): Array<TItem> => {
   return items.filter((item: TItem): boolean => {
-    const product: ProductKey | undefined = Object.prototype.hasOwnProperty.call(
-      BELL_ITEM_PRODUCTS,
-      item.id,
-    )
-      ? BELL_ITEM_PRODUCTS[item.id]
-      : undefined;
+    const product: ProductKey | undefined =
+      Object.prototype.hasOwnProperty.call(BELL_ITEM_PRODUCTS, item.id)
+        ? BELL_ITEM_PRODUCTS[item.id]
+        : undefined;
 
     return !product || !offOnServer[product];
   });

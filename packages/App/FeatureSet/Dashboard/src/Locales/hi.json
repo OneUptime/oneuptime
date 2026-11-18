@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "{{count}} और रिकॉर्ड दिखाएँ",
   "Show {{count}} more records_one": "{{count}} और रिकॉर्ड दिखाएँ",
   "The records it was found in {{time}} are no longer kept.": "जिन रिकॉर्ड में यह डेटा {{time}} मिला था, वे अब नहीं रखे जाते।",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "वे रिकॉर्ड जिनमें अंतिम स्कैन को यह डेटा मिला। मान मास्क किए गए हैं: पूरा देखने के लिए कोई रिकॉर्ड खोलें।"
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "वे रिकॉर्ड जिनमें अंतिम स्कैन को यह डेटा मिला। मान मास्क किए गए हैं: पूरा देखने के लिए कोई रिकॉर्ड खोलें।",
+  "Android setup": "Android सेटअप",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "इवेंट, त्रुटि दर और p95 अवधि, क्रैश और ANR, डिवाइस मॉडल और टेलीमेट्री टैब।"
 }

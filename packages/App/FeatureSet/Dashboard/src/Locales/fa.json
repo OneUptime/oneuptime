@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "نمایش {{count}} رکورد دیگر",
   "Show {{count}} more records_one": "نمایش {{count}} رکورد دیگر",
   "The records it was found in {{time}} are no longer kept.": "رکوردهایی که این داده {{time}} در آن‌ها پیدا شد، دیگر نگه داشته نمی‌شوند.",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "رکوردهایی که آخرین اسکن این داده را در آن‌ها پیدا کرد. مقدارها پوشانده شده‌اند: برای دیدن کامل، یک رکورد را باز کنید."
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "رکوردهایی که آخرین اسکن این داده را در آن‌ها پیدا کرد. مقدارها پوشانده شده‌اند: برای دیدن کامل، یک رکورد را باز کنید.",
+  "Android setup": "راه‌اندازی اندروید",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "رویدادها، نرخ خطا و مدت p95، خرابی‌ها و ANRها، مدل‌های دستگاه و زبانه‌های تله‌متری."
 }

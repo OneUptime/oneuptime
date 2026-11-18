@@ -17,7 +17,7 @@ import {
   WORDED_HEADING_LINE_CLASS_NAME,
 } from "../TableWords";
 import ToolActionSentence from "../ToolActionSentence";
-import ChartWidget from "./ChartWidget";
+import LazyChartWidget from "./LazyChartWidget";
 import DataTableWidget from "./DataTableWidget";
 import EntityListWidget from "./EntityListWidget";
 import ResourceCardWidget from "./ResourceCardWidget";
@@ -44,7 +44,8 @@ function renderBody(widget: AIChatWidget): ReactElement {
   switch (widget.type) {
     case AIChatWidgetType.TimeSeriesChart:
     case AIChatWidgetType.BarChart:
-      return <ChartWidget widget={widget} />;
+      // A file of its own, which recharts comes with (LazyChartWidget).
+      return <LazyChartWidget widget={widget} />;
     case AIChatWidgetType.Table:
       return <DataTableWidget widget={widget} />;
     case AIChatWidgetType.TraceWaterfall:

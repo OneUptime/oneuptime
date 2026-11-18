@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "再显示 {{count}} 条记录",
   "Show {{count}} more records_one": "再显示 {{count}} 条记录",
   "The records it was found in {{time}} are no longer kept.": "{{time}} 发现它的记录已不再保留。",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "上次扫描发现它的记录。值已脱敏：打开记录即可查看完整内容。"
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "上次扫描发现它的记录。值已脱敏：打开记录即可查看完整内容。",
+  "Android setup": "Android 端设置",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "事件、错误率和 p95 时长、崩溃和 ANR、设备型号以及遥测标签页。"
 }

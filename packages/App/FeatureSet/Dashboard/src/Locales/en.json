@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "Show {{count}} more records",
   "Show {{count}} more records_one": "Show {{count}} more record",
   "The records it was found in {{time}} are no longer kept.": "The records it was found in {{time}} are no longer kept.",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "The records the last scan found it in. Values are masked: open a record to see it in full."
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "The records the last scan found it in. Values are masked: open a record to see it in full.",
+  "Android setup": "Android setup",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs."
 }

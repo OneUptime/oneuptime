@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "Показать ещё записи: {{count}}",
   "Show {{count}} more records_one": "Показать ещё {{count}} запись",
   "The records it was found in {{time}} are no longer kept.": "Записи, в которых эти данные нашли {{time}}, больше не хранятся.",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "Записи, в которых последнее сканирование нашло эти данные. Значения замаскированы: откройте запись, чтобы увидеть её полностью."
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "Записи, в которых последнее сканирование нашло эти данные. Значения замаскированы: откройте запись, чтобы увидеть её полностью.",
+  "Android setup": "Настройка для Android",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "События, доля ошибок и длительность p95, сбои и ANR, модели устройств и вкладки телеметрии."
 }

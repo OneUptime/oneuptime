@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "再顯示 {{count}} 筆記錄",
   "Show {{count}} more records_one": "再顯示 {{count}} 筆記錄",
   "The records it was found in {{time}} are no longer kept.": "{{time}} 發現它的記錄已不再保留。",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "上次掃描發現它的記錄。值已遮罩：開啟記錄即可查看完整內容。"
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "上次掃描發現它的記錄。值已遮罩：開啟記錄即可查看完整內容。",
+  "Android setup": "Android 端設定",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "事件、錯誤率與 p95 時長、當機與 ANR、裝置型號以及遙測分頁。"
 }

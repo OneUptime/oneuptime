@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -124,6 +125,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import ChartWidget from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/ChartWidget";
+import { loadChartWidget } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/LazyChartWidget";
 import WidgetRenderer from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/WidgetRenderer";
 import InvestigationEvidenceList from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationEvidenceList";
 import {
@@ -340,6 +342,15 @@ function ZoomingPage(props: { children: React.ReactNode }): React.ReactElement {
     </TimeRangeZoomScope>
   );
 }
+
+/*
+ * A chart in an answer or an evidence row is a file of its own
+ * (LazyChartWidget), which the Ask AI panel asks for as it opens: here it is
+ * there before the first render, so every chart draws from its first frame.
+ */
+beforeAll(async () => {
+  await loadChartWidget();
+});
 
 beforeEach(() => {
   pageRangeChange = getJestMockFunction();

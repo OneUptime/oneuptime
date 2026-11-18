@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "Vis {{count}} poster mere",
   "Show {{count}} more records_one": "Vis {{count}} post mere",
   "The records it was found in {{time}} are no longer kept.": "De poster, de blev fundet i {{time}}, gemmes ikke længere.",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "De poster, den seneste scanning fandt dem i. Værdierne er maskeret: åbn en post for at se den helt."
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "De poster, den seneste scanning fandt dem i. Værdierne er maskeret: åbn en post for at se den helt.",
+  "Android setup": "Android-opsætning",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Hændelser, fejlrate og p95-varighed, nedbrud og ANR'er, enhedsmodeller og telemetrifanerne."
 }

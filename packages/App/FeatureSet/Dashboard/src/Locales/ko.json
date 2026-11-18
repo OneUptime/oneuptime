@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "레코드 {{count}}개 더 보기",
   "Show {{count}} more records_one": "레코드 {{count}}개 더 보기",
   "The records it was found in {{time}} are no longer kept.": "{{time}}에 이 데이터가 발견된 레코드는 더 이상 보관되지 않습니다.",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "마지막 스캔에서 이 데이터가 발견된 레코드입니다. 값은 마스킹되어 있습니다. 전체를 보려면 레코드를 여세요."
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "마지막 스캔에서 이 데이터가 발견된 레코드입니다. 값은 마스킹되어 있습니다. 전체를 보려면 레코드를 여세요.",
+  "Android setup": "Android 설정",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "이벤트, 오류율과 p95 지속 시간, 충돌과 ANR, 기기 모델 및 텔레메트리 탭."
 }

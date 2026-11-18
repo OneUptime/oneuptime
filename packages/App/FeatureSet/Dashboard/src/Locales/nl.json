@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "{{count}} records meer tonen",
   "Show {{count}} more records_one": "{{count}} record meer tonen",
   "The records it was found in {{time}} are no longer kept.": "De records waarin ze {{time}} werden gevonden, worden niet meer bewaard.",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "De records waarin de laatste scan ze vond. Waarden zijn gemaskeerd: open een record om het volledig te zien."
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "De records waarin de laatste scan ze vond. Waarden zijn gemaskeerd: open een record om het volledig te zien.",
+  "Android setup": "Android-configuratie",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Gebeurtenissen, foutpercentage en p95-duur, crashes en ANR's, apparaatmodellen en de telemetrietabbladen."
 }

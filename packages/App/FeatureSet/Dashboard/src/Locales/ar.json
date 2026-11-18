@@ -57094,5 +57094,7 @@
   "Show {{count}} more records": "إظهار سجلات أخرى: {{count}}",
   "Show {{count}} more records_one": "إظهار سجل آخر: {{count}}",
   "The records it was found in {{time}} are no longer kept.": "السجلات التي وُجد فيها {{time}} لم تعد محفوظة.",
-  "The records the last scan found it in. Values are masked: open a record to see it in full.": "السجلات التي وجده فيها آخر فحص. القيم مخفية: افتح سجلًا لرؤيته كاملًا."
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "السجلات التي وجده فيها آخر فحص. القيم مخفية: افتح سجلًا لرؤيته كاملًا.",
+  "Android setup": "إعداد Android",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "الأحداث، ومعدل الأخطاء والمدة p95، وحالات التعطل وحالات ANR، وطُرز الأجهزة، وعلامات تبويب القياس عن بُعد."
 }
