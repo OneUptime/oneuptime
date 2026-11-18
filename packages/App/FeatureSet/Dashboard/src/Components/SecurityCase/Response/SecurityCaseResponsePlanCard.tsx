@@ -517,122 +517,128 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 cursor-pointer rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600 disabled:cursor-not-allowed"
           />
         </span>
-        <div className="min-w-0 flex-1 space-y-1">
-          <p
-            id={textId}
-            className={`break-words text-sm leading-6 ${
-              step.isDone ? "text-gray-500 line-through" : "text-gray-900"
-            }`}
-            data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.stepText}
-          >
-            {step.aiText ? <IsolatedText text={step.aiText} /> : text}
-          </p>
-          {step.detail ? (
+        {/*
+         * The step's words, and beside them what it can press - under them on
+         * a phone, so the words keep the row's width.
+         */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
+          <div className="min-w-0 flex-1 space-y-1">
             <p
-              className={`text-xs ${
-                step.isDetailWarning ? "text-amber-700" : "text-gray-500"
+              id={textId}
+              className={`break-words text-sm leading-6 ${
+                step.isDone ? "text-gray-500 line-through" : "text-gray-900"
               }`}
+              data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.stepText}
             >
-              {readText(step.detail, translator)}
+              {step.aiText ? <IsolatedText text={step.aiText} /> : text}
             </p>
-          ) : (
-            <></>
-          )}
-          {isHighlighted ? (
-            <p
-              className="text-xs text-indigo-700"
-              data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.readyToContain}
-            >
-              {translator.translateText(RESPONSE_READY_TO_CONTAIN)}
-            </p>
-          ) : (
-            <></>
-          )}
-          {step.quotes.length > 0 ? (
-            <div
-              className="text-xs text-gray-500"
-              data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.falsePositives}
-            >
-              <p>{translator.translateText(RESPONSE_RULE_FALSE_POSITIVES)}</p>
-              <ul className="ms-4 list-disc">
-                {step.quotes.map((quote: string): ReactElement => {
-                  return (
-                    <li key={quote}>
-                      <IsolatedText text={quote} />
-                    </li>
-                  );
-                })}
-              </ul>
+            {step.detail ? (
+              <p
+                className={`text-xs ${
+                  step.isDetailWarning ? "text-amber-700" : "text-gray-500"
+                }`}
+              >
+                {readText(step.detail, translator)}
+              </p>
+            ) : (
+              <></>
+            )}
+            {isHighlighted ? (
+              <p
+                className="text-xs text-indigo-700"
+                data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.readyToContain}
+              >
+                {translator.translateText(RESPONSE_READY_TO_CONTAIN)}
+              </p>
+            ) : (
+              <></>
+            )}
+            {step.quotes.length > 0 ? (
+              <div
+                className="text-xs text-gray-500"
+                data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.falsePositives}
+              >
+                <p>{translator.translateText(RESPONSE_RULE_FALSE_POSITIVES)}</p>
+                <ul className="ms-4 list-disc">
+                  {step.quotes.map((quote: string): ReactElement => {
+                    return (
+                      <li key={quote}>
+                        <IsolatedText text={quote} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : (
+              <></>
+            )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {step.isOutsideOneUptime ? (
+                <span data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.byHand}>
+                  <Pill
+                    text={RESPONSE_BY_HAND}
+                    tone={PillTone.Neutral}
+                    isDotHidden={true}
+                    tooltip={RESPONSE_BY_HAND_TOOLTIP}
+                  />
+                </span>
+              ) : (
+                <></>
+              )}
+              {step.isDone && step.doneAt ? (
+                <span
+                  className="text-xs text-gray-500"
+                  data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.doneLine}
+                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    step.doneAt,
+                  )}
+                >
+                  {step.doneByName
+                    ? translator.translateTemplate(RESPONSE_DONE_BY, {
+                        name: step.doneByName,
+                        time: OneUptimeDate.fromNow(step.doneAt),
+                      })
+                    : translator.translateTemplate(RESPONSE_DONE_AT, {
+                        time: OneUptimeDate.fromNow(step.doneAt),
+                      })}
+                </span>
+              ) : (
+                <></>
+              )}
+            </div>
+          </div>
+          {(step.action || (step.copyValue && !step.isDone)) && !isClosed ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+              {step.copyValue && !step.isDone ? (
+                <CopyTextButton
+                  textToBeCopied={step.copyValue}
+                  label={translator.translateText(ACTION_COPY) || ACTION_COPY}
+                  size="sm"
+                  variant="soft"
+                />
+              ) : (
+                <></>
+              )}
+              {step.action ? (
+                <Button
+                  title={step.action.title}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  disabled={actionLock !== undefined || props.isWorking}
+                  tooltip={actionLock || undefined}
+                  dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.action}
+                  onClick={() => {
+                    runAction(step.action!);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
             </div>
           ) : (
             <></>
           )}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {step.isOutsideOneUptime ? (
-              <span data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.byHand}>
-                <Pill
-                  text={RESPONSE_BY_HAND}
-                  tone={PillTone.Neutral}
-                  isDotHidden={true}
-                  tooltip={RESPONSE_BY_HAND_TOOLTIP}
-                />
-              </span>
-            ) : (
-              <></>
-            )}
-            {step.isDone && step.doneAt ? (
-              <span
-                className="text-xs text-gray-500"
-                data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.doneLine}
-                title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                  step.doneAt,
-                )}
-              >
-                {step.doneByName
-                  ? translator.translateTemplate(RESPONSE_DONE_BY, {
-                      name: step.doneByName,
-                      time: OneUptimeDate.fromNow(step.doneAt),
-                    })
-                  : translator.translateTemplate(RESPONSE_DONE_AT, {
-                      time: OneUptimeDate.fromNow(step.doneAt),
-                    })}
-              </span>
-            ) : (
-              <></>
-            )}
-          </div>
         </div>
-        {(step.action || (step.copyValue && !step.isDone)) && !isClosed ? (
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            {step.copyValue && !step.isDone ? (
-              <CopyTextButton
-                textToBeCopied={step.copyValue}
-                label={translator.translateText(ACTION_COPY) || ACTION_COPY}
-                size="sm"
-                variant="soft"
-              />
-            ) : (
-              <></>
-            )}
-            {step.action ? (
-              <Button
-                title={step.action.title}
-                buttonStyle={ButtonStyleType.NORMAL}
-                buttonSize={ButtonSize.Small}
-                disabled={actionLock !== undefined || props.isWorking}
-                tooltip={actionLock || undefined}
-                dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.action}
-                onClick={() => {
-                  runAction(step.action!);
-                }}
-              />
-            ) : (
-              <></>
-            )}
-          </div>
-        ) : (
-          <></>
-        )}
       </li>
     );
   };

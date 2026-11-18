@@ -774,17 +774,20 @@ const OtherDetection: FunctionComponent<{
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">
-      <div className="flex min-w-0 items-center gap-2">
-        <Icon
-          icon={getSecurityDetectionSourceIcon(detection.source as never)}
-          className="h-4 w-4 flex-shrink-0 text-gray-400"
-        />
-        <span className="min-w-0 truncate text-sm font-medium text-gray-900">
-          <bdi>{detection.rule?.name || detection.title}</bdi>
+      {/* On a phone the name wraps and the pill and count follow it, each kept whole. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="flex min-w-0 items-center gap-2">
+          <Icon
+            icon={getSecurityDetectionSourceIcon(detection.source as never)}
+            className="h-4 w-4 flex-shrink-0 text-gray-400"
+          />
+          <span className="min-w-0 break-words text-sm font-medium text-gray-900">
+            <bdi>{detection.rule?.name || detection.title}</bdi>
+          </span>
         </span>
         <SecurityEventSeverityPill severityName={detection.severity} />
         {detection.fireCount > 1 ? (
-          <span className="text-xs text-gray-500">
+          <span className="whitespace-nowrap text-xs text-gray-500">
             {translator.translatePlural(FIRED, detection.fireCount)}
           </span>
         ) : (
