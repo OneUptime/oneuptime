@@ -74,7 +74,7 @@ Oppsettet for nettstedet har allerede opprettet **Standard vaktpolicy**, som til
 :::steps
 ### Åpne vaktoppsettet
 
-Trykk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged` og velg **Varsle rett person når noe går ned**. Så lenge sjekklisten ikke har krysset av **Sett opp en vaktpolicy**, åpner det steget det samme veiledede oppsettet.
+Klikk på **Få oppkall via SMS eller telefon** i oppsummeringen i oppsettet for nettstedet: Lenken åpner det veiledede oppsettet **Varsle rett person når noe går ned**. Vil du åpne det senere, trykker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger det. Så lenge sjekklisten ikke har krysset av **Sett opp en vaktpolicy**, åpner det steget det samme veiledede oppsettet.
 
 ### Velg hvordan du nås
 

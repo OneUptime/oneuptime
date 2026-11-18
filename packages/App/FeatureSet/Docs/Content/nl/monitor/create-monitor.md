@@ -2,6 +2,8 @@
 
 Een monitor controleert iets wat u beheert, zoals een website, een API, een host of een Kubernetes-cluster, en laat het u weten wanneer het niet meer werkt. **Monitor maken** vraagt eerst wat u wilt bewaken, dan wat er gecontroleerd wordt en daarna hoe vaak. Alles behalve het type, de naam en wat er gecontroleerd wordt, begint met standaardwaarden die bij de meeste monitoren passen.
 
+Voor een website of API leidt een begeleide installatie u in plaats daarvan van het adres tot een testoproep: klik op **Begeleide installatie** in de lege lijst **Monitoren**, of onder **Hoe het werkt**. Ook **Monitor maken** biedt die aan, zodra u **Website** of **API** kiest. Zie [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+
 > [!NOTE]
 > Om een monitor te maken hebt u de rol Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid nodig, of een aangepaste rol met de machtiging Create Monitor.
 

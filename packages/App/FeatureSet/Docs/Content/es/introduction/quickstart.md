@@ -74,7 +74,7 @@ La configuración del sitio web ya creó la **Política de guardia predeterminad
 :::steps
 ### Abrir la configuración de guardia
 
-Pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elige **Avisar a la persona adecuada cuando algo falle**. Mientras la lista no haya marcado **Configura una política de guardia**, ese paso abre la misma configuración guiada.
+En el resumen de la configuración del sitio web, haz clic en **Recibir avisos por SMS o llamada telefónica**: el enlace abre la configuración guiada **Avisar a la persona adecuada cuando algo falle**. Para abrirla más tarde, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elígela. Mientras la lista no haya marcado **Configura una política de guardia**, ese paso abre la misma configuración guiada.
 
 ### Elegir cómo se te localiza
 

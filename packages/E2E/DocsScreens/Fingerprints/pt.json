@@ -179,7 +179,7 @@
     "text": [
       "1",
       "O que devemos verificar?",
-      "O OneUptime verifica isso a cada 5 minutos. Um incidente é aberto quando todos os locais que o verificam o encontram fora do ar: sem resposta, ou com uma resposta de erro.",
+      "O OneUptime cria um monitor que o verifica a cada 5 minutos de 2 locais. Um incidente é aberto quando todos o encontram fora do ar: sem resposta, ou com uma resposta de erro.",
       "Endereço do site ou da API",
       "Este é um endpoint de API",
       "Começar a verificar",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incidente",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Começar a verificar",
@@ -209,8 +211,10 @@
       "Salvar e continuar"
     ],
     "outline": [
+      "link: Como me contatar",
       "button: Adicionar membros da equipe",
       "button: Remover Ada Lovelace",
+      "button: política de plantão",
       "button: Salvar e continuar"
     ],
     "width": 768,

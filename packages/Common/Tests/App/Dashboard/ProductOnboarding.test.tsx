@@ -802,8 +802,9 @@ describe("a product's guided setup (#7148)", () => {
     fireEvent.click(setup);
 
     expect(navigateSpy).toHaveBeenCalledTimes(1);
+    // Saying where it was opened from (guided_setup/started's from, #7054).
     expect(String(navigateSpy.mock.calls[0]![0])).toBe(
-      `/dashboard/${PROJECT_ID}/on-call-duty/setup`,
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup?from=empty_list`,
     );
   });
 
@@ -832,7 +833,7 @@ describe("a product's guided setup (#7148)", () => {
     });
 
     expect(String(navigateSpy.mock.calls[0]![0])).toBe(
-      `/dashboard/${PROJECT_ID}/on-call-duty/setup`,
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup?from=how_it_works`,
     );
     expect(screen.queryByTestId(PRODUCT_ABOUT_DIALOG_TEST_ID)).toBeNull();
   });
@@ -920,6 +921,118 @@ describe("a product's guided setup (#7148)", () => {
     expect(
       screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
     ).toHaveClass("bg-indigo-600");
+  });
+});
+
+/*
+ * ISSUE #7054: the guided setup "Know when my website or API is down" was
+ * opened from Home's button, its checklist and Search, and never from
+ * Monitors itself: the empty list and How it works offered only Create
+ * Monitor, beside the importer's quiet link. Monitors names its setup as
+ * On-Call names its own (#7148), to whoever may create a monitor.
+ */
+describe("Monitors' guided setup (#7054)", () => {
+  const createMonitor: ShowcaseAddButton = {
+    title: "Create Monitor",
+    onClick: jest.fn() as unknown as () => void,
+  };
+
+  test("Monitors names its guided setup, for whoever may create a monitor", () => {
+    expect(PRODUCT_ONBOARDINGS[ProductKey.Monitors].guidedSetup).toEqual({
+      page: PageMap.MONITOR_GUIDED_SETUP,
+      buttonTitle: "Guided setup",
+      modelType: Monitor,
+    });
+  });
+
+  test("the empty Monitors list offers it first, with Create Monitor beside it, plain, saying where it was opened from", async () => {
+    await renderInRouter(
+      <ProductShowcase
+        product={ProductKey.Monitors}
+        startButton={createMonitor}
+      />,
+    );
+
+    const showcase: HTMLElement = screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID);
+    const setup: HTMLElement = within(showcase).getByTestId(
+      RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
+    );
+    const create: HTMLElement = within(showcase).getByTestId(
+      RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+    );
+
+    expect(setup).toHaveTextContent("Guided setup");
+    expect(create).toHaveTextContent("Create Monitor");
+    expect(setup).toHaveClass("bg-indigo-600");
+    expect(create).not.toHaveClass("bg-indigo-600");
+
+    fireEvent.click(setup);
+
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/monitors/setup?from=empty_list`,
+    );
+  });
+
+  test("How it works on Monitors offers it too", async () => {
+    await renderInRouter(<ProductAboutButton product={ProductKey.Monitors} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    });
+
+    const setup: HTMLElement = within(
+      screen.getByTestId(PRODUCT_ABOUT_DIALOG_TEST_ID),
+    ).getByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID);
+
+    expect(setup).toHaveTextContent("Guided setup");
+
+    await act(async () => {
+      fireEvent.click(setup);
+    });
+
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/monitors/setup?from=how_it_works`,
+    );
+    expect(screen.queryByTestId(PRODUCT_ABOUT_DIALOG_TEST_ID)).toBeNull();
+  });
+
+  test("someone who may not create a monitor is offered it nowhere", async () => {
+    asViewer();
+
+    await renderInRouter(<ProductShowcase product={ProductKey.Monitors} />);
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+    cleanup();
+
+    await renderInRouter(<ProductAboutButton product={ProductKey.Monitors} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    });
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("its words name the page it opens, as the page's breadcrumb does", () => {
+    const title: string =
+      PRODUCT_ONBOARDINGS[ProductKey.Monitors].guidedSetup!.buttonTitle;
+    const breadcrumbs: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs.ts",
+      ),
+      "utf8",
+    );
+    const setupCrumbs: string = breadcrumbs.slice(
+      breadcrumbs.indexOf("PageMap.MONITOR_GUIDED_SETUP"),
+    );
+
+    expect(setupCrumbs.slice(0, setupCrumbs.indexOf("]"))).toContain(
+      `"${title}"`,
+    );
   });
 });
 

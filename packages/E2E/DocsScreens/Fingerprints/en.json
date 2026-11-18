@@ -179,7 +179,7 @@
     "text": [
       "1",
       "What should we check?",
-      "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.",
+      "OneUptime makes a monitor that checks it every 5 minutes from 2 locations. An incident opens when all of them find it down: no answer, or an answer with an error.",
       "Website or API address",
       "This is an API endpoint",
       "Start checking",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incident",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Start checking",
@@ -209,8 +211,10 @@
       "Save and continue"
     ],
     "outline": [
+      "link: How to Reach Me",
       "button: Add teammates",
       "button: Remove Ada Lovelace",
+      "button: on-call policy",
       "button: Save and continue"
     ],
     "width": 768,

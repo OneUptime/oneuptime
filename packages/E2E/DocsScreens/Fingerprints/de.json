@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Was sollen wir prüfen?",
-      "OneUptime prüft es alle 5 Minuten. Ein Vorfall wird eröffnet, wenn jeder Standort, der es prüft, einen Ausfall feststellt: keine Antwort oder eine Fehlerantwort.",
+      "OneUptime erstellt einen Monitor, der es alle 5 Minuten von 2 Standorten aus prüft. Ein Vorfall wird eröffnet, wenn alle einen Ausfall feststellen: keine Antwort oder eine Fehlerantwort.",
       "Adresse der Website oder API",
       "Dies ist ein API-Endpunkt",
       "Prüfung starten",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: Monitor",
+      "button: Vorfall",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Prüfung starten",
@@ -209,8 +211,10 @@
       "Speichern und weiter"
     ],
     "outline": [
+      "link: Wie ich erreichbar bin",
       "button: Teammitglieder hinzufügen",
       "button: Ada Lovelace entfernen",
+      "button: Bereitschaftsrichtlinie",
       "button: Speichern und weiter"
     ],
     "width": 768,

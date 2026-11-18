@@ -136,6 +136,7 @@
     "test-value-picker-ui": 3.5,
     "test-vmware-host-page-ui": 1.7,
     "test-vmware-pages-ui": 2.6,
+    "test-website-down-guided-setup-ui": 1.7,
     "test-workflow-builder-ui 1/2": 11.7,
     "test-workflow-builder-ui 2/2": 15.6
   }

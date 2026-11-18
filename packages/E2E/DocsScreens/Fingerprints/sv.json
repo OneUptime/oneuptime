@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Vad ska vi kontrollera?",
-      "OneUptime kontrollerar den var 5:e minut. En incident öppnas när alla platser som kontrollerar den finner den nere: inget svar, eller ett svar med ett fel.",
+      "OneUptime skapar en monitor som kontrollerar den var 5:e minut från 2 platser. En incident öppnas när alla finner den nere: inget svar, eller ett svar med ett fel.",
       "Adress till webbplats eller API",
       "Det här är en API-endpoint",
       "Börja kontrollera",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incident",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Börja kontrollera",
@@ -205,12 +207,14 @@
       "Lägg till teammedlemmar",
       "AL",
       "Ada Lovelace",
-      "Detta skapar jourpolicyn ”Standardjourpolicy”, som larmar dem vid varje ny incident och varje nytt larm i det här projektet.",
+      "Detta skapar en jourpolicy, ”Standardjourpolicy”, som larmar dem vid varje ny incident och varje nytt larm i det här projektet.",
       "Spara och fortsätt"
     ],
     "outline": [
+      "link: Så når man mig",
       "button: Lägg till teammedlemmar",
       "button: Ta bort Ada Lovelace",
+      "button: jourpolicy",
       "button: Spara och fortsätt"
     ],
     "width": 768,

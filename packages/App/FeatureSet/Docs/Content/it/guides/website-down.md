@@ -28,13 +28,15 @@ L'indirizzo viene controllato dalla sonda del tuo server stesso, quindi deve ess
 
 ![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con «Sapere quando il mio sito web o la mia API non funziona» selezionato](screen:home-goal-website)
 
-In un nuovo progetto, la **Home** chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona** e fai clic su **Continua**. Poi fai clic su **Crea il tuo primo monitor** nell'elenco **Benvenuto in OneUptime 👋**. Se l'elenco non mostra questo passaggio, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `website down` e scegli **Sapere quando il mio sito web o la mia API non funziona**.
+In un nuovo progetto, la **Home** chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona** e fai clic su **Continua**. Poi fai clic su **Crea il tuo primo monitor** nell'elenco **Benvenuto in OneUptime 👋**. Se l'elenco non mostra questo passaggio, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `website down` e scegli **Sapere quando il mio sito web o la mia API non funziona**. Anche **Monitor** la propone: **Configurazione guidata** nell'elenco vuoto e in **Come funziona**, e una riga in **Crea monitor** quando scegli **Sito web** o **API**.
 
 ### Inserire l'indirizzo
 
 ![Il passaggio «Cosa dobbiamo controllare?», con «Inizia il controllo» evidenziato](screen:website-down-address)
 
-In **Cosa dobbiamo controllare?**, digita l'indirizzo in **Indirizzo del sito web o dell'API**. Per un endpoint API, spunta **Questo è un endpoint API**. Fai clic su **Inizia il controllo**: le sonde lo controllano subito, e una frase dice cosa hanno trovato. Fai clic su **Continua**.
+In **Cosa dobbiamo controllare?**, il passaggio dice da quante posizioni verrà controllato l'indirizzo. Digitalo in **Indirizzo del sito web o dell'API**. Per un endpoint API, spunta **Questo è un endpoint API**. Fai clic su **Inizia il controllo**: le sonde lo controllano subito, e una frase dice cosa hanno trovato. Fai clic su **Continua**.
+
+Quando il monitor di un collega controlla già l'indirizzo, o uno creato dall'API, da Terraform o da un'importazione, il passaggio lo dice prima di creare qualsiasi cosa. Fai clic su **Apri il monitor** per vedere chi avvisa, oppure su **Crea il mio monitor** per continuare con uno tuo. Nomina solo un monitor che puoi aprire.
 
 ### Scegliere chi viene avvisato
 
@@ -42,7 +44,7 @@ In **Cosa dobbiamo controllare?**, digita l'indirizzo in **Indirizzo del sito we
 
 In **Chi deve essere avvisato?**, ciò che vedi dipende dal progetto:
 
-- Se il progetto non ha ancora né una policy di reperibilità né una regola di reperibilità, sei già in **Chi viene chiamato**. Fai clic su **Aggiungi membri del team** per aggiungere persone che fanno già parte del progetto, poi fai clic su **Salva e continua**. Questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso del progetto.
+- Se il progetto non ha ancora né una policy di reperibilità né una regola di reperibilità, sei già in **Chi viene chiamato**. Fai clic su **Aggiungi membri del team** per aggiungere persone che fanno già parte del progetto, poi fai clic su **Salva e continua**. Questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso del progetto. Ogni persona viene chiamata come dice il suo **Come contattarmi**: il link apre il tuo in una nuova scheda.
 - Se il progetto ha una policy o una regola di reperibilità, sono le sue regole a decidere chi viene chiamato: fai clic su **Continua**.
 - Se sei un membro, e quindi non puoi configurare le chiamate, ti viene detto che riceverai un'email come proprietario del monitor: fai clic su **Continua**.
 
@@ -50,18 +52,23 @@ In **Chi deve essere avvisato?**, ciò che vedi dipende dal progetto:
 
 ![Il passaggio «Invia un test», con «Inviami una chiamata di test» evidenziato](screen:website-down-test)
 
-In **Invia un test**, fai clic su **Inviami una chiamata di test**. Scegli una **Gravità** e fai clic su **Invia chiamata di test**. Il test ti raggiunge come farebbe una chiamata reale, e ogni messaggio dice TEST. Non viene creato alcun incidente.
+In **Invia un test**, fai clic su **Inviami una chiamata di test**. Scegli una **Gravità**: la riga sotto dice che il test ti raggiunge come dice il tuo **Come contattarmi** per quella gravità. Fai clic su **Invia chiamata di test**. Il test ti raggiunge come farebbe una chiamata reale, e ogni messaggio dice TEST. Non viene creato alcun incidente.
 
 ### Riconoscere la chiamata di test
 
 Riconosci la chiamata di test dal link nell'email. Funziona anche un numero di telefono verificato, una volta attivati SMS e chiamate per il progetto: apri il link nell'SMS, oppure premi 1 durante la telefonata. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**.
+
+### Mostrarlo ai clienti
+
+Se il progetto ha una pagina di stato e puoi aggiungervi monitor, segue un altro passaggio. In **Mostrarlo ai clienti?**, scegli la pagina in **Pagina di stato** e fai clic su **Aggiungi alla pagina di stato**, oppure fai clic su **Non ora**. Un progetto che non ha ancora una pagina di stato lo salta: il riepilogo propone invece **Mostralo su una pagina di stato**, con il tuo monitor già spuntato.
 :::
 
 ## Controllare che funzioni
 
 ![Il riepilogo, letto dai record: «Controllato», «In caso di interruzione», «Chi viene avvisato» e «Testato»](screen:website-down-summary)
 
-- La configurazione termina sul suo riepilogo, ricavato da ciò che è stato salvato: **Controllato**, **In caso di interruzione**, **Chi viene avvisato** e **Testato**.
+- La configurazione termina sul suo riepilogo, ricavato da ciò che è stato salvato: **Controllato**, **In caso di interruzione**, **Chi viene avvisato** e **Testato**, e **Pagina di stato** quando una pagina mostra il monitor.
+- In **Prossimi passi**, **Ricevere chiamate via SMS o telefono** apre la configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta**, che aggiunge il tuo telefono.
 - Fai clic su **Apri il monitor**, poi su **Mostra la catena** nella sua scheda **Quando va giù**: la scheda mostra la catena che va dal monitor alle persone che raggiunge, e dice **Niente interrompe la catena.** quando niente la interromperebbe.
 - Nella **Home**, l'elenco segna il passaggio **Crea il tuo primo monitor** come completato non appena arriva il risultato del primo controllo. Se era l'ultimo passaggio, l'elenco scompare.
 

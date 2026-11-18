@@ -108,6 +108,9 @@ import StatusPageGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Comp
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import {
   STATUS_PAGE_SETUP_COPY,
+  STATUS_PAGE_SETUP_MONITOR_QUERY,
+  StatusPageSetupMonitor,
+  getMonitorPickedOnOpen,
   isSameStatusPageName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -312,6 +315,93 @@ describe("a brand-new run", () => {
     expect(screen.getByTestId("guided-setup-public-notice")).toHaveTextContent(
       STATUS_PAGE_SETUP_COPY.publicNotice,
     );
+  });
+});
+
+/*
+ * OPENED FOR ONE MONITOR (#7053): the website-down setup's summary offers
+ * this setup for the monitor it set up, while the project has no status
+ * page to add it to, and the person chose to show that monitor: it starts
+ * ticked, and nothing else is.
+ */
+describe("opened for one monitor, from the website setup's summary (#7053)", () => {
+  const openedFor: (search: string) => void = (search: string): void => {
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/status-pages/setup${search}`,
+    );
+  };
+
+  afterEach(() => {
+    openedFor("");
+  });
+
+  test("that monitor starts ticked, and nothing else", async () => {
+    const chosen: string = MONITORS[1]!["id"] as string;
+
+    openedFor(`?monitorId=${chosen}&from=website_down_summary`);
+    await renderSetup();
+
+    for (const monitor of MONITORS) {
+      const box: HTMLElement = screen.getByTestId(
+        `guided-setup-monitor-${monitor["id"]}`,
+      );
+
+      if (monitor["id"] === chosen) {
+        expect(box).toBeChecked();
+      } else {
+        expect(box).not.toBeChecked();
+      }
+    }
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "1 of 3 picked",
+    );
+    // Opened from the website setup's summary, and started says so.
+    expect(sent(ProductEventName.GuidedSetupStarted)).toEqual([
+      { setup: "status_page", from: "website_down_summary" },
+    ]);
+  });
+
+  test("an id that names none of the project's monitors ticks nothing", async () => {
+    openedFor("?monitorId=50000000-0000-4000-8000-00000000dead");
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 3 picked",
+    );
+  });
+
+  test("Create the status page puts that monitor on it", async () => {
+    const chosen: string = MONITORS[0]!["id"] as string;
+
+    openedFor(`?monitorId=${chosen}`);
+    await renderSetup();
+    await press("guided-setup-create-status-page");
+
+    expect(api["addMonitors"]).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        api["addMonitors"]!.mock.calls[0]![0] as {
+          monitors: Array<{ id: string }>;
+        }
+      ).monitors.map((monitor: { id: string }): string => {
+        return monitor.id;
+      }),
+    ).toEqual([chosen]);
+  });
+
+  test("the rule: the monitor named, among the project's, or nothing", () => {
+    const monitors: Array<StatusPageSetupMonitor> = [
+      { id: "a", name: "API" },
+      { id: "b", name: "Database" },
+    ];
+
+    expect(getMonitorPickedOnOpen({ monitorId: "b", monitors })).toEqual(["b"]);
+    expect(getMonitorPickedOnOpen({ monitorId: "z", monitors })).toEqual([]);
+    expect(getMonitorPickedOnOpen({ monitorId: null, monitors })).toEqual([]);
+    expect(getMonitorPickedOnOpen({ monitorId: "", monitors })).toEqual([]);
+    expect(STATUS_PAGE_SETUP_MONITOR_QUERY).toBe("monitorId");
   });
 });
 

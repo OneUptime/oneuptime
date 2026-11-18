@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Que devons-nous vérifier ?",
-      "OneUptime le vérifie toutes les 5 minutes. Un incident est ouvert lorsque chaque emplacement qui le vérifie le trouve en panne : aucune réponse, ou une réponse en erreur.",
+      "OneUptime crée un moniteur qui le vérifie toutes les 5 minutes depuis 2 emplacements. Un incident est ouvert lorsque tous le trouvent en panne : aucune réponse, ou une réponse en erreur.",
       "Adresse du site web ou de l'API",
       "Il s'agit d'un point de terminaison d'API",
       "Lancer la vérification",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: moniteur",
+      "button: incident",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Lancer la vérification",
@@ -209,8 +211,10 @@
       "Enregistrer et continuer"
     ],
     "outline": [
+      "link: Comment me joindre",
       "button: Ajouter des membres de l'équipe",
       "button: Retirer Ada Lovelace",
+      "button: politique d'astreinte",
       "button: Enregistrer et continuer"
     ],
     "width": 768,

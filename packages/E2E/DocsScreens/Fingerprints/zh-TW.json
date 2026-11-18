@@ -179,7 +179,7 @@
     "text": [
       "1",
       "我們要檢查什麼？",
-      "OneUptime 每 5 分鐘檢查一次。當檢查它的每個位置都發現它當機（沒有回應，或回應錯誤）時，就會建立事件。",
+      "OneUptime 會建立一個監測器，每 5 分鐘從 2 個位置檢查一次。當所有位置都發現它當機（沒有回應，或回應錯誤）時，就會建立事件。",
       "網站或 API 位址",
       "這是一個 API 端點",
       "開始檢查",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: 監測器",
+      "button: 事件",
       "field text: https://example.com",
       "field checkbox: ",
       "button: 開始檢查",
@@ -209,8 +211,10 @@
       "儲存並繼續"
     ],
     "outline": [
+      "link: 如何聯絡我",
       "button: 新增團隊成員",
       "button: 移除 Ada Lovelace",
+      "button: 待命策略",
       "button: 儲存並繼續"
     ],
     "width": 768,

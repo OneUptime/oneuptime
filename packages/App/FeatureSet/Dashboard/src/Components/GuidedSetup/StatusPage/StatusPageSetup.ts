@@ -282,6 +282,31 @@ export interface StatusPageSetupMonitor {
   statusColor?: string | undefined;
 }
 
+/*
+ * Opened for one monitor - the website-down setup's summary offers this
+ * setup for the monitor it set up, while the project has no status page to
+ * add it to (#7053) - that monitor starts ticked: the person chose to show
+ * it. Nothing else is ticked, and an id that names none of the project's
+ * monitors ticks nothing.
+ */
+export const STATUS_PAGE_SETUP_MONITOR_QUERY: string = "monitorId";
+
+export const getMonitorPickedOnOpen: (data: {
+  monitorId: string | null | undefined;
+  monitors: ReadonlyArray<StatusPageSetupMonitor>;
+}) => Array<string> = (data: {
+  monitorId: string | null | undefined;
+  monitors: ReadonlyArray<StatusPageSetupMonitor>;
+}): Array<string> => {
+  const found: StatusPageSetupMonitor | undefined = data.monitorId
+    ? data.monitors.find((monitor: StatusPageSetupMonitor): boolean => {
+        return monitor.id === data.monitorId;
+      })
+    : undefined;
+
+  return found ? [found.id] : [];
+};
+
 export const togglePickedMonitor: (data: {
   picked: ReadonlyArray<string>;
   monitorId: string;

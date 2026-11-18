@@ -74,7 +74,7 @@ The website setup already made **Default on-call policy**, which pages you by em
 :::steps
 ### Open the on-call setup
 
-Press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose **Page the right person when something breaks**. While the checklist has not ticked **Set up an on-call policy**, that step opens the same guided setup.
+On the website setup's summary, click **Get paged by SMS or phone call**: it opens the guided setup **Page the right person when something breaks**. To open it later, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose it. While the checklist has not ticked **Set up an on-call policy**, that step opens the same guided setup.
 
 ### Choose how you are reached
 
