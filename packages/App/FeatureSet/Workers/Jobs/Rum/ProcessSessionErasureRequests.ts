@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import { SESSION_REPLAY_ERASURE_JOB_NAME } from "../../Utils/SessionReplayErasureLock";
 import { getActiveSessionsKey, getEndedSessionsKey } from "./FinalizeSessions";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import {
@@ -155,7 +156,12 @@ import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
  * ------------------------------------------------------------------
  */
 
-const JOB_NAME: string = "Rum:ProcessSessionErasureRequests";
+/*
+ * The name its run lock is taken by, too: work that must not run beside an
+ * erasure - the product analytics backfill (#6624) - holds that lock
+ * (Utils/SessionReplayErasureLock).
+ */
+const JOB_NAME: string = SESSION_REPLAY_ERASURE_JOB_NAME;
 
 /*
  * Session ids per ALTER ... DELETE. One mutation per 1000 ids keeps each

@@ -26,7 +26,10 @@ import {
  * a session's rows into one, every measure by max (or by union for the
  * pages), so a later, fuller write always wins and a repeated one changes
  * nothing. The session's start is part of the key: ingest clamps it once and
- * every write of a session carries the same value.
+ * every write of a session carries the same value. The sessions an install
+ * recorded before it had the view were copied in once, with the view's own
+ * SELECT, by the BackfillProductAnalyticsFromKeptSessions data migration
+ * (issue #6624), as were their person-month rows.
  *
  * What is copied is the session's summary, never its recording: who (the
  * signed-in user's key - an HMAC, never the reference itself - and the

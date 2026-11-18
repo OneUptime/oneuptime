@@ -134,6 +134,7 @@ import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChe
 import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
+import BackfillProductAnalyticsFromKeptSessions from "./BackfillProductAnalyticsFromKeptSessions";
 import KeepProductAnalyticsForTheLongestRetention from "./KeepProductAnalyticsForTheLongestRetention";
 import ReadWebAppVersionsInProductAnalyticsSessions from "./ReadWebAppVersionsInProductAnalyticsSessions";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
@@ -1436,6 +1437,20 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new KeepProductAnalyticsForTheLongestRetention(),
+  /*
+   * Product Analytics after an upgrade (#6624): copies the sessions
+   * RumSessionV1 still keeps into RumProductAnalyticsSessionV1 and
+   * RumProductAnalyticsUserV1 with each view's own SELECT, a day partition
+   * at a time, newest first, so the Users and Sessions pages count back to
+   * the oldest recording kept. Re-filing a session folds into its row;
+   * progress is kept in Valkey, so a retried run resumes and a finished one
+   * copies nothing. Each day runs under the erasure job's lock, once the
+   * deletes of RumSessionV1 have landed, so no erased session is copied.
+   * After KeepProductAnalyticsForTheLongestRetention, so what it copies is
+   * kept for its application's retention, and before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillProductAnalyticsFromKeptSessions(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

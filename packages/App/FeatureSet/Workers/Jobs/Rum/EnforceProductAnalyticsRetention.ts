@@ -1,14 +1,11 @@
 import RunCron from "../../Utils/Cron";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import AnalyticsDatabaseService, {
   MigrationExecuteOptions,
 } from "Common/Server/Services/AnalyticsDatabaseService";
-import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumProductAnalyticsEventService from "Common/Server/Services/RumProductAnalyticsEventService";
 import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
 import RumProductAnalyticsUserService from "Common/Server/Services/RumProductAnalyticsUserService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import {
   getStorageTableName,
   onClusterClause,
@@ -18,19 +15,33 @@ import {
   Statement,
 } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import logger from "Common/Server/Utils/Logger";
+import {
+  ProductAnalyticsRetentionBucket,
+  ProductAnalyticsRetentionTimeColumn,
+  buildProductAnalyticsRetentionBuckets,
+  buildProductAnalyticsRetentionWheres,
+  readProductAnalyticsRetentionChoices,
+} from "Common/Server/Utils/RumProductAnalytics/RumProductAnalyticsRetention";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
-import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
-import {
-  DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
-  MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS,
-  PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS,
-  getProductAnalyticsRetentionCutoff,
-  getProductAnalyticsRetentionMonths,
-} from "Common/Types/Rum/ProductAnalytics";
 import { EVERY_DAY } from "Common/Utils/CronTime";
+
+/*
+ * The choices' buckets and their WHEREs live in Common, where the backfill
+ * of issue #6624 reads them too; re-exported for this job's callers.
+ */
+export {
+  PRODUCT_ANALYTICS_RETENTION_IDS_PER_STATEMENT,
+  buildProductAnalyticsRetentionBuckets,
+  buildProductAnalyticsRetentionWheres,
+} from "Common/Server/Utils/RumProductAnalytics/RumProductAnalyticsRetention";
+
+export type {
+  ProductAnalyticsRetentionBucket,
+  ProductAnalyticsRetentionChoice,
+} from "Common/Server/Utils/RumProductAnalytics/RumProductAnalyticsRetention";
 
 /*
  * ------------------------------------------------------------------
@@ -74,14 +85,10 @@ const JOB_NAME: string = "Rum:EnforceProductAnalyticsRetention";
 /* Once a day: a month's rows reach their cutoff together, on its first day. */
 export const PRODUCT_ANALYTICS_RETENTION_SCHEDULE: string = EVERY_DAY;
 
-/* Applications one statement names, as the erasure job's deletes do. */
-export const PRODUCT_ANALYTICS_RETENTION_IDS_PER_STATEMENT: number = 1000;
-
 /* A product analytics table, and the column its rows are aged by. */
-export interface ProductAnalyticsRetentionTable {
+export interface ProductAnalyticsRetentionTable
+  extends ProductAnalyticsRetentionTimeColumn {
   tableName: AnalyticsTableName;
-  timeColumn: string;
-  timeType: TableColumnType;
   service: AnalyticsDatabaseService<AnalyticsBaseModel>;
 }
 
@@ -110,158 +117,6 @@ export const PRODUCT_ANALYTICS_RETENTION_TABLES: Array<ProductAnalyticsRetention
     },
   ];
 
-/* An application that chose other than the default, and what it chose. */
-export interface ProductAnalyticsRetentionChoice {
-  rumApplicationId: string;
-  months: number;
-}
-
-/*
- * One choice's deletes: the rows older than its cutoff, of the applications
- * listed ("only"), or of every application but those listed ("allBut").
- */
-export interface ProductAnalyticsRetentionBucket {
-  months: number;
-  cutoff: Date;
-  mode: "only" | "allBut";
-  rumApplicationIds: Array<string>;
-}
-
-/*
- * The choices' deletes, shortest first. The longest is the TTL's, and has
- * none. The default names the applications that chose more and takes
- * every other one's rows: the default is what an application keeps unless
- * it chose otherwise, an application deleted since included, and its
- * cutoff is past every shorter choice's, whose rows are gone already. Any
- * other choice names its own applications, and is left out when nobody
- * made it.
- */
-export function buildProductAnalyticsRetentionBuckets(data: {
-  choices: Array<ProductAnalyticsRetentionChoice>;
-  now: Date;
-}): Array<ProductAnalyticsRetentionBucket> {
-  const buckets: Array<ProductAnalyticsRetentionBucket> = [];
-
-  const sortedOptions: Array<number> = [
-    ...PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS,
-  ].sort((left: number, right: number): number => {
-    return left - right;
-  });
-
-  for (const months of sortedOptions) {
-    if (months === MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS) {
-      continue;
-    }
-
-    const cutoff: Date = getProductAnalyticsRetentionCutoff(months, data.now);
-
-    if (months === DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS) {
-      buckets.push({
-        months: months,
-        cutoff: cutoff,
-        mode: "allBut",
-        rumApplicationIds: distinct(
-          data.choices
-            .filter((choice: ProductAnalyticsRetentionChoice): boolean => {
-              return choice.months > months;
-            })
-            .map((choice: ProductAnalyticsRetentionChoice): string => {
-              return choice.rumApplicationId;
-            }),
-        ),
-      });
-      continue;
-    }
-
-    const rumApplicationIds: Array<string> = distinct(
-      data.choices
-        .filter((choice: ProductAnalyticsRetentionChoice): boolean => {
-          return choice.months === months;
-        })
-        .map((choice: ProductAnalyticsRetentionChoice): string => {
-          return choice.rumApplicationId;
-        }),
-    );
-
-    if (rumApplicationIds.length > 0) {
-      buckets.push({
-        months: months,
-        cutoff: cutoff,
-        mode: "only",
-        rumApplicationIds: rumApplicationIds,
-      });
-    }
-  }
-
-  return buckets;
-}
-
-function distinct(values: Array<string>): Array<string> {
-  return Array.from(new Set<string>(values)).sort();
-}
-
-function chunk(values: Array<string>, size: number): Array<Array<string>> {
-  const chunks: Array<Array<string>> = [];
-
-  for (let index: number = 0; index < values.length; index += size) {
-    chunks.push(values.slice(index, index + size));
-  }
-
-  return chunks;
-}
-
-/*
- * The WHEREs of one bucket on one table: the rows older than the cutoff, of
- * a thousand applications each ("only"), or of every application but those
- * the bucket names - all of them in one WHERE, a thousand to a bound list
- * ("allBut"). Ids and the cutoff are bound, never written into the SQL.
- */
-export function buildProductAnalyticsRetentionWheres(data: {
-  table: ProductAnalyticsRetentionTable;
-  bucket: ProductAnalyticsRetentionBucket;
-}): Array<Statement> {
-  const older: () => Statement = (): Statement => {
-    const statement: Statement = SQL``;
-    statement.append(`${data.table.timeColumn} < `);
-    statement.append(
-      SQL`${{
-        type: data.table.timeType,
-        value: data.bucket.cutoff,
-      }}`,
-    );
-    return statement;
-  };
-
-  const lists: Array<Array<string>> = chunk(
-    data.bucket.rumApplicationIds,
-    PRODUCT_ANALYTICS_RETENTION_IDS_PER_STATEMENT,
-  );
-
-  if (data.bucket.mode === "only") {
-    return lists.map((ids: Array<string>): Statement => {
-      return older().append(
-        SQL` AND rumApplicationId IN ${{
-          type: TableColumnType.Text,
-          value: new Includes(ids),
-        }}`,
-      );
-    });
-  }
-
-  const where: Statement = older();
-
-  for (const ids of lists) {
-    where.append(
-      SQL` AND rumApplicationId NOT IN ${{
-        type: TableColumnType.Text,
-        value: new Includes(ids),
-      }}`,
-    );
-  }
-
-  return [where];
-}
-
 /* Whether a WHERE matches any row, across the cluster: SELECT 1 ... LIMIT 1. */
 export function buildProductAnalyticsRetentionProbe(data: {
   databaseName: string;
@@ -286,44 +141,6 @@ export function buildProductAnalyticsRetentionDelete(data: {
     .append(onClusterClause())
     .append(" DELETE WHERE ")
     .append(data.where);
-}
-
-/*
- * The applications whose choice is not the default, as they are kept:
- * every other application keeps the default, by the bucket that names
- * none of them.
- */
-async function readRetentionChoices(): Promise<
-  Array<ProductAnalyticsRetentionChoice>
-> {
-  const applications: Array<RumApplication> =
-    await RumApplicationService.findAllBy({
-      query: {
-        productAnalyticsRetentionInMonths: QueryHelper.notEquals(
-          String(DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS),
-        ) as never,
-      },
-      select: {
-        _id: true,
-        productAnalyticsRetentionInMonths: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-  return applications
-    .filter((application: RumApplication): boolean => {
-      return Boolean(application.id);
-    })
-    .map((application: RumApplication): ProductAnalyticsRetentionChoice => {
-      return {
-        rumApplicationId: application.id!.toString(),
-        months: getProductAnalyticsRetentionMonths(
-          application.productAnalyticsRetentionInMonths,
-        ),
-      };
-    });
 }
 
 interface ClickhouseJsonResultSet {
@@ -364,7 +181,7 @@ export async function enforceProductAnalyticsRetention(data: {
 }): Promise<ProductAnalyticsRetentionResult> {
   const buckets: Array<ProductAnalyticsRetentionBucket> =
     buildProductAnalyticsRetentionBuckets({
-      choices: await readRetentionChoices(),
+      choices: await readProductAnalyticsRetentionChoices(),
       now: data.now,
     });
 
