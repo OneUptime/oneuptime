@@ -7,9 +7,12 @@ import React, {
   useState,
 } from "react";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import Route from "Common/Types/API/Route";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -30,9 +33,12 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   RESOURCE_CONNECTION_CONNECTED,
   RESOURCE_CONNECTION_DATA_ARRIVED,
+  RESOURCE_CONNECTION_DATA_NAMES_NO_SERVICE,
+  RESOURCE_CONNECTION_FIRST_DATA_ARRIVED,
   RESOURCE_CONNECTION_POLL_INTERVAL_MS,
   RESOURCE_CONNECTION_WAITING,
   RESOURCE_CONNECTION_WAITING_FOR_NAME,
+  SERVICE_NAME_ATTRIBUTE,
   hasKeySentFirstData,
   hasReportedSince,
   pickConnectedRecord,
@@ -61,6 +67,21 @@ import {
  * key's first data finishes the step instead, linking to the product's
  * explorer (`dataPage`). A service that registers after that still takes
  * over, with its own link.
+ *
+ * Only a key's first data counts, so a key that already sends - traces,
+ * say, now joined by FluentBit's logs - finishes nothing that way. The
+ * guide's signals' first-data marks do (`firstDataMilestones`, #7888): the
+ * project's first logs, kept by the server once they are stored, whichever
+ * key sent them and whether or not they name a service. The first look
+ * notes the marks the project has, and one that arrives after it finishes
+ * the step, with the explorer's link. Read before the services, so a
+ * service the data names - registered before the data is stored, and so
+ * before its mark - wins.
+ *
+ * The telemetry guided setup alerts on the service that reports, so data
+ * alone does not finish its step (`isServiceRequired`): a mark that arrives
+ * with no service says the data names none, and how to name one, and the
+ * step waits on.
  *
  * Either moment tells the products menu (#8204), so it does not say
  * "Logs - Not set up" beside a guide that says the data is in: the record
@@ -108,6 +129,17 @@ export interface ComponentProps {
   // The key's first data arrived; a service may still connect after it.
   onDataArrived?: (() => void) | undefined;
   /*
+   * The project's first-data marks of the guide's signals
+   * (getFirstDataMilestonesOfProducts): one that arrives after the step
+   * first looked is the guide's first data (#7888).
+   */
+  firstDataMilestones?: ReadonlyArray<ActivationMilestone> | undefined;
+  /*
+   * Only a service finishes the step: data that names none says so, and
+   * how to name one, and the step waits on (the telemetry guided setup).
+   */
+  isServiceRequired?: boolean | undefined;
+  /*
    * The products the guide sets up (Logs for the Logs guide): once its data
    * arrives, the products menu asks until they are in use.
    */
@@ -124,9 +156,12 @@ interface ConnectedResource {
   name: string;
 }
 
-// The guide's key sent its first data.
+/*
+ * The guide's first data, with no service: the key's first data (its name
+ * said), or the project's first data of the guide's signal (no key named).
+ */
 interface ArrivedData {
-  keyName: string;
+  keyName: string | null;
 }
 
 // The project's newest records when the step first looked.
@@ -177,6 +212,9 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [connected, setConnected] = useState<ConnectedResource | null>(null);
   const [arrived, setArrived] = useState<ArrivedData | null>(null);
+  // Data arrived that names no service, where only a service will do.
+  const [hasDataWithoutService, setHasDataWithoutService] =
+    useState<boolean>(false);
 
   // The latest name and callback, without restarting the watch on each key.
   const nameRef: MutableRefObject<string | undefined> = useRef<
@@ -199,6 +237,29 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     ReadonlyArray<ProductKey>
   >(props.products || []);
   productsRef.current = props.products || [];
+  const firstDataMilestonesRef: MutableRefObject<
+    ReadonlyArray<ActivationMilestone>
+  > = useRef<ReadonlyArray<ActivationMilestone>>(
+    props.firstDataMilestones || [],
+  );
+  firstDataMilestonesRef.current = props.firstDataMilestones || [];
+  const isServiceRequiredRef: MutableRefObject<boolean> = useRef<boolean>(
+    Boolean(props.isServiceRequired),
+  );
+  isServiceRequiredRef.current = Boolean(props.isServiceRequired);
+  /*
+   * The first-data marks the project had when the step first looked, and
+   * whether one has arrived since: kept across the checks, as knownRef is.
+   */
+  const firstDataLookRef: MutableRefObject<Set<string> | null> =
+    useRef<Set<string> | null>(null);
+  const hasFirstDataArrivedRef: MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  // The guide's first data was said: the products told, the callback called.
+  const hasToldDataArrivedRef: MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  // The resource connected: the page told.
+  const hasConnectedRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
   /*
    * The products menu hears the moment (#8204): the record that arrived is
@@ -221,6 +282,30 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
       // The menu catches up on its next look; the guide goes on.
     }
   };
+  /*
+   * The guide's first data, with no service (yet): said once - the
+   * products menu told, the page's callback called. The key's own sentence
+   * names it; the first-data mark's does not know which key sent it.
+   */
+  const dataArrived: (data: ArrivedData) => void = (
+    data: ArrivedData,
+  ): void => {
+    if (hasToldDataArrivedRef.current) {
+      return;
+    }
+
+    hasToldDataArrivedRef.current = true;
+    tellProducts(null);
+
+    if (isServiceRequiredRef.current) {
+      setHasDataWithoutService(true);
+      return;
+    }
+
+    setArrived(data);
+    onDataArrivedRef.current?.();
+  };
+
   /*
    * Kept across the checks, and across a new name or a new existing record:
    * what the project had when the step first looked.
@@ -259,10 +344,15 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
       createdAt: true,
     } as Select<BaseModel>;
 
+    /*
+     * Once: two checks in flight together (a slow answer outlasting the
+     * interval) both find the record, and the page hears of it once.
+     */
     const found: (record: BaseModel) => void = (record: BaseModel): void => {
-      if (!isMounted) {
+      if (!isMounted || hasConnectedRef.current) {
         return;
       }
+      hasConnectedRef.current = true;
       tellProducts(record);
       setConnected({
         id: new ObjectID(record._id as string),
@@ -356,6 +446,61 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
       return false;
     };
 
+    /*
+     * The guide's signals' first-data marks: whether one arrived since the
+     * step first looked (that first look only notes them). A read that
+     * fails says no, and the services are checked all the same.
+     */
+    const checkFirstData: () => Promise<boolean> =
+      async (): Promise<boolean> => {
+        const milestones: ReadonlyArray<ActivationMilestone> =
+          firstDataMilestonesRef.current;
+
+        if (milestones.length === 0) {
+          return false;
+        }
+
+        if (hasFirstDataArrivedRef.current) {
+          return true;
+        }
+
+        try {
+          const result: ListResult<ProjectMilestone> =
+            await ModelAPI.getList<ProjectMilestone>({
+              modelType: ProjectMilestone,
+              query: {
+                milestone: new Includes([...milestones]),
+              },
+              select: { _id: true, milestone: true },
+              sort: {},
+              limit: milestones.length,
+              skip: 0,
+            });
+
+          const reached: Set<string> = new Set<string>(
+            result.data.map((mark: ProjectMilestone): string => {
+              return String(mark.milestone || "");
+            }),
+          );
+          const firstLook: Set<string> | null = firstDataLookRef.current;
+
+          if (!firstLook) {
+            firstDataLookRef.current = reached;
+            return false;
+          }
+
+          hasFirstDataArrivedRef.current = Array.from(reached).some(
+            (milestone: string): boolean => {
+              return milestone.length > 0 && !firstLook.has(milestone);
+            },
+          );
+
+          return hasFirstDataArrivedRef.current;
+        } catch {
+          return false;
+        }
+      };
+
     // The project's record of that name, reporting again.
     const checkExisting: (id: string) => Promise<boolean> = async (
       id: string,
@@ -395,12 +540,19 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
           return;
         }
 
+        // First: a service the data names is registered before its mark.
+        const hasFirstData: boolean = await checkFirstData();
+
         if (await checkNew()) {
           return;
         }
 
-        if (existingId) {
-          await checkExisting(existingId);
+        if (existingId && (await checkExisting(existingId))) {
+          return;
+        }
+
+        if (hasFirstData && isMounted) {
+          dataArrived({ keyName: null });
         }
       } catch {
         // A failed check waits for the next one; the step keeps waiting.
@@ -431,7 +583,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
    * service connects first; the services are checked on until one does.
    */
   useEffect(() => {
-    if (connected || arrived || !ingestionKeyId) {
+    if (connected || arrived || hasDataWithoutService || !ingestionKeyId) {
       return;
     }
 
@@ -470,9 +622,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
             lastUsedAtNow: key.lastUsedAt,
           })
         ) {
-          tellProducts(null);
-          setArrived({ keyName: key.name || keyNameRef.current || "" });
-          onDataArrivedRef.current?.();
+          dataArrived({ keyName: key.name || keyNameRef.current || "" });
         }
       } catch {
         // A failed check waits for the next one; the step keeps waiting.
@@ -488,7 +638,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
       isMounted = false;
       clearInterval(timer);
     };
-  }, [connected, arrived, ingestionKeyId]);
+  }, [connected, arrived, hasDataWithoutService, ingestionKeyId]);
 
   // The step done: what arrived, and a link to it.
   const renderDone: (data: {
@@ -536,26 +686,69 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // The key's first data, and no service has connected: it names none.
+  /*
+   * The guide's first data, and no service has connected: the key's (it
+   * names none), or the project's first data of the guide's signal.
+   */
   if (!connected && arrived) {
     return renderDone({
       dataTestId: "resource-connection-data-arrived",
       route: props.dataPage
         ? RouteUtil.populateRouteParams(RouteMap[props.dataPage] as Route)
         : null,
-      sentence: (
-        <TranslatedSentence
-          template={RESOURCE_CONNECTION_DATA_ARRIVED}
-          slots={{
-            name: (
-              <span className="font-semibold" data-testid="arrived-key-name">
-                {arrived.keyName}
-              </span>
-            ),
-          }}
-        />
-      ),
+      sentence:
+        arrived.keyName === null ? (
+          <span data-testid="resource-connection-first-data">
+            {translator.translateText(RESOURCE_CONNECTION_FIRST_DATA_ARRIVED)}
+          </span>
+        ) : (
+          <TranslatedSentence
+            template={RESOURCE_CONNECTION_DATA_ARRIVED}
+            slots={{
+              name: (
+                <span className="font-semibold" data-testid="arrived-key-name">
+                  {arrived.keyName}
+                </span>
+              ),
+            }}
+          />
+        ),
     });
+  }
+
+  /*
+   * Data arrived that names no service, where only a service finishes the
+   * step: what to do, in amber, while the step keeps waiting.
+   */
+  if (!connected && hasDataWithoutService) {
+    return (
+      <div
+        className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        role="status"
+        aria-live="polite"
+        data-testid="resource-connection-waiting"
+      >
+        <span className="relative mt-1.5 flex h-2.5 w-2.5 flex-shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75 motion-reduce:animate-none" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+        </span>
+        <span
+          className="min-w-0 break-words"
+          data-testid="resource-connection-names-no-service"
+        >
+          <TranslatedSentence
+            template={RESOURCE_CONNECTION_DATA_NAMES_NO_SERVICE}
+            slots={{
+              attribute: (
+                <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs text-amber-900">
+                  {SERVICE_NAME_ATTRIBUTE}
+                </code>
+              ),
+            }}
+          />
+        </span>
+      </div>
+    );
   }
 
   if (!connected) {

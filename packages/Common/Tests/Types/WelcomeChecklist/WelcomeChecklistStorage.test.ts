@@ -44,6 +44,7 @@ import {
   parseWelcomeChecklistState,
   toWelcomeChecklistStateJSON,
   withTestPageAcknowledgedBy,
+  withTestPagesAcknowledgedBefore,
   withWelcomeChecklistFinished,
   withWelcomeChecklistHiddenFor,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklistState";
@@ -288,6 +289,74 @@ describe("the checklist's state", () => {
       MAX_HIDDEN_FOR_USER_IDS,
     );
     expect(hasAcknowledgedTestPage(state, "user-0")).toBe(false);
+  });
+
+  test("notes members who acknowledged a test page before the note was kept, before the ones noted since (#7042)", () => {
+    const USER_C: string = "33333333-3333-4333-8333-333333333333";
+    const live: WelcomeChecklistState = withTestPageAcknowledgedBy(
+      { startedWithOutcomes: true, hiddenForUserIds: [USER_C] },
+      USER_A,
+    );
+
+    const backfilled: WelcomeChecklistState = withTestPagesAcknowledgedBefore(
+      live,
+      [USER_C.toUpperCase(), USER_A, USER_B, USER_C, "", "  "],
+    );
+
+    // Oldest first, each once, before the member noted live.
+    expect(backfilled.testPageAcknowledgedByUserIds).toEqual([
+      USER_C,
+      USER_B,
+      USER_A,
+    ]);
+    expect(hasAcknowledgedTestPage(backfilled, USER_B)).toBe(true);
+    // Nothing else of the state moves: who hid it is another list.
+    expect(backfilled.startedWithOutcomes).toBe(true);
+    expect(backfilled.hiddenForUserIds).toEqual([USER_C]);
+    // The state it was handed is left as it was.
+    expect(live.testPageAcknowledgedByUserIds).toEqual([USER_A]);
+  });
+
+  test("noting members already noted is the same state, so a second run writes nothing", () => {
+    const state: WelcomeChecklistState = withTestPagesAcknowledgedBefore({}, [
+      USER_A,
+      USER_B,
+    ]);
+
+    expect(state.testPageAcknowledgedByUserIds).toEqual([USER_A, USER_B]);
+    expect(
+      withTestPagesAcknowledgedBefore(state, [USER_B, USER_A.toUpperCase()]),
+    ).toBe(state);
+    expect(withTestPagesAcknowledgedBefore(state, [])).toBe(state);
+    expect(withTestPagesAcknowledgedBefore({}, [])).toEqual({});
+    // Stored and read back, it is the same list.
+    expect(
+      parseWelcomeChecklistState(
+        JSON.parse(JSON.stringify(toWelcomeChecklistStateJSON(state))),
+      ).testPageAcknowledgedByUserIds,
+    ).toEqual([USER_A, USER_B]);
+  });
+
+  test("a full list keeps the newest: members noted before go first, so they are the ones let go", () => {
+    let state: WelcomeChecklistState = {};
+
+    for (let index: number = 0; index < MAX_HIDDEN_FOR_USER_IDS; index++) {
+      state = withTestPageAcknowledgedBy(state, `user-${index}`);
+    }
+
+    const backfilled: WelcomeChecklistState = withTestPagesAcknowledgedBefore(
+      state,
+      [USER_A],
+    );
+
+    expect(backfilled.testPageAcknowledgedByUserIds).toHaveLength(
+      MAX_HIDDEN_FOR_USER_IDS,
+    );
+    // Every member noted live is kept; the older one does not fit.
+    expect(backfilled.testPageAcknowledgedByUserIds).toEqual(
+      state.testPageAcknowledgedByUserIds,
+    );
+    expect(hasAcknowledgedTestPage(backfilled, USER_A)).toBe(false);
   });
 
   test("finishes once, keeping the first reason and time", () => {

@@ -16,7 +16,9 @@ import { MemoryRouter } from "react-router-dom";
  * #6806): it ends with the wait the first-run dialog has, watching for the
  * first service to report and linking to that service's page for the
  * signal - and, for data that names no service (#7754), for the first data
- * of the key the snippets carry, linking to the product's explorer.
+ * of the key the snippets carry, or the project's first data of the
+ * guide's signal, whichever key sent it (#7888), linking to the product's
+ * explorer.
  * Profiles listen for their first profile in the guide itself, and the
  * bare guide (in a dialog or a guided setup) draws its own wait, so
  * neither gets a second one.
@@ -34,6 +36,8 @@ jest.mock(
         ingestionKey?: { name?: string } | null;
         dataPage?: string;
         products?: ReadonlyArray<string>;
+        firstDataMilestones?: ReadonlyArray<string>;
+        isServiceRequired?: boolean;
       }) => {
         return (
           <div
@@ -43,6 +47,8 @@ jest.mock(
             data-key={props.ingestionKey?.name || ""}
             data-data-page={props.dataPage || ""}
             data-products={(props.products || []).join(",")}
+            data-first-data={(props.firstDataMilestones || []).join(",")}
+            data-service-required={String(Boolean(props.isServiceRequired))}
           >
             {props.viewText}
           </div>
@@ -177,6 +183,28 @@ describe("the Setup Guide tab's last step", () => {
     },
   );
 
+  /*
+   * #7888: the project's first data of the guide's signal finishes it,
+   * whichever key sent it - a key that already sends traces too - and
+   * data alone does, unlike the telemetry guided setup's.
+   */
+  test.each([
+    ["logs", "first_logs_received"],
+    ["metrics", "first_metrics_received"],
+    ["traces", "first_traces_received"],
+    ["exceptions", "first_exceptions_received"],
+  ])(
+    "%s: the step also waits for the project's %s",
+    (telemetryType: string, milestone: string) => {
+      renderGuide({ telemetryType: telemetryType as TelemetryType });
+
+      const watch: HTMLElement = screen.getByTestId("first-data-watch");
+
+      expect(watch).toHaveAttribute("data-first-data", milestone);
+      expect(watch).toHaveAttribute("data-service-required", "false");
+    },
+  );
+
   test("a guide for a whole service waits for every signal's products", () => {
     render(
       <MemoryRouter>
@@ -187,6 +215,11 @@ describe("the Setup Guide tab's last step", () => {
     expect(screen.getByTestId("first-data-watch")).toHaveAttribute(
       "data-products",
       "logs,traces,topology,metrics",
+    );
+    // ...and the project's first logs, traces or metrics, each once.
+    expect(screen.getByTestId("first-data-watch")).toHaveAttribute(
+      "data-first-data",
+      "first_logs_received,first_traces_received,first_metrics_received",
     );
   });
 

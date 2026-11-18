@@ -4,6 +4,7 @@ import {
   APPLY_DEFAULT_LADDER_TITLE,
 } from "./ApplyDefaultLadderWords";
 import { StepChip } from "../../NotificationRule/PagingLadder/PagingLadderParts";
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import { getDefaultLadderChannelChoices } from "../../NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -304,7 +305,7 @@ export function useApplyDefaultLadderBulkAction<T extends GenericObject>(
           data-testid="apply-default-ladder-confirm"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
               {translator.translateText(
                 APPLY_DEFAULT_LADDER_COPY.ladderHeading,
               )}
@@ -327,7 +328,7 @@ export function useApplyDefaultLadderBulkAction<T extends GenericObject>(
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
               {translator.translateText(
                 APPLY_DEFAULT_LADDER_COPY.membersHeading,
               )}

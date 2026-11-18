@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} ainda não verificou {{channels}}, então essas etapas ficaram de fora.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} está de plantão, mas não tem nenhum método por telefone verificado, que este projeto pede a todos de plantão.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Instale o app pela App Store ou pelo Google Play, entre em {{serverUrl}} e permita notificações e alertas críticos quando ele pedir.",
+  "Check the endpoint and the key before you set up your app.": "Verifique o endpoint e a chave antes de configurar seu aplicativo.",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "Chegaram dados, mas eles não indicam nenhum serviço. Defina {{attribute}} no seu aplicativo para concluir esta etapa.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "Execute isto em um terminal. Ele envia um registro do serviço {{service}}, que você pode excluir depois.",
+  "Send a test log": "Enviar um registro de teste",
+  "The first data arrived.": "Os primeiros dados chegaram.",
   "An invitation to this project hasn't been accepted yet.": "Um convite para este projeto ainda não foi aceito.",
   "More to set up": "Mais para configurar",
   "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Por enquanto, só o e-mail pode acionar você. Adicione seu telefone ou o app móvel e envie uma chamada de teste para você mesmo.",
@@ -56803,7 +56808,11 @@
   "Server Alerts by Push": "Alertas do servidor por push",
   "Server Email Log": "Log de e-mails do servidor",
   "Server Email Logs": "Logs de e-mails do servidor",
+  "Finish setting up your notifications": "Conclua a configuração das suas notificações",
+  "Hide for a week": "Ocultar por uma semana",
   "Moving from another tool?": "Vindo de outra ferramenta?",
+  "Nothing can reach you yet.": "Ainda não há como entrar em contato com você.",
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Acione {{policy}} uma vez, sem um incidente, para ver que a política alcança as pessoas. Cada mensagem diz TESTE.",
-  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Escolha uma política que você trouxe e acione-a uma vez, sem um incidente, para ver que ela alcança as pessoas. Cada mensagem diz TESTE."
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Escolha uma política que você trouxe e acione-a uma vez, sem um incidente, para ver que ela alcança as pessoas. Cada mensagem diz TESTE.",
+  "Some severities have no notification rule yet.": "Algumas gravidades ainda não têm uma regra de notificação."
 }

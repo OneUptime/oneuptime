@@ -23,8 +23,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  *
  * On the way: the busy project's status pages offered first (#7517), its
  * list searched, narrowed by a label and given a monitor group (#7147); the
- * ways in from Status Pages and Logs (#7142); the monitor the website setup
- * hands in; and a Project Viewer, who is offered neither setup.
+ * ways in from Status Pages and Logs (#7142); Logs' setup dialog beside the
+ * setup, with its test log (#7760) and its View logs to the service's Logs,
+ * which offers Create monitor (#6876); the monitor the website setup hands
+ * in; and a Project Viewer, who is offered neither setup.
  */
 
 const PORT: string =
@@ -39,6 +41,10 @@ const NOW: Date = new Date("2026-11-11T10:00:00.000Z");
 const LANGUAGE_KEY: string = "oneuptimeLang";
 // ?seed=monitor's website monitor (Journeys/Fixture/NewProject.js).
 const MONITOR_ID: string = "50000000-0000-4000-8000-000000000001";
+// The service a new project's app reports as (Journeys/Fixture/NewProject.js).
+const NEW_SERVICE: string = "50000000-0000-4000-8000-000000000002";
+// The secret the fixture's server gives every new ingestion key.
+const NEW_KEY_SECRET: string = "a0000000-0000-4000-8000-000000006831";
 // ?seed=busy's records (Journeys/Fixture/NewProject.js).
 const BUSY_OLDER_PAGE: string = "Acme Commerce Status";
 const BUSY_NEWER_PAGE: string = "Acme Partner Status";
@@ -285,8 +291,9 @@ for (const each of LOOKS) {
 /*
  * SEND LOGS, METRICS AND TRACES, THEN GET ALERTED, AS A NEW PROJECT: the
  * guide's ingestion key, made in its dialog; the first data arrives (the
- * person's app sends it as the key is made) and the setup goes on to the
- * service that reported; three recommended monitors, made in one click.
+ * person's app sends its traces, metrics and logs as the key is made) and
+ * the setup goes on to the service that reported; the four monitors
+ * recommended for that data (#7146), made in one click.
  */
 for (const each of LOOKS) {
   test(`telemetry setup, ${nameOf(each)}: every step and the summary fit the window`, async ({
@@ -329,11 +336,11 @@ for (const each of LOOKS) {
     await expect(page.getByTestId("guided-setup-summary")).toBeVisible();
     await expect(
       page.getByTestId("guided-setup-summary-watched-by").getByRole("link"),
-    ).toHaveCount(3);
+    ).toHaveCount(4);
     await look(page, each, "telemetry-3-summary");
 
     expect(await writesTo(page, "TelemetryIngestionKey")).toHaveLength(1);
-    expect(await writesTo(page, "Monitor")).toHaveLength(3);
+    expect(await writesTo(page, "Monitor")).toHaveLength(4);
   });
 }
 
@@ -523,6 +530,89 @@ test("the ways in: Status Pages and Logs open their guided setups in one click",
   await expect(page).toHaveURL(/\/service\/setup\?from=empty_list$/);
   await expect(page.getByTestId("guided-setup")).toBeVisible();
 });
+
+/*
+ * LOGS' SETUP DIALOG, BESIDE THE GUIDED SETUP: the key made in it, its test
+ * log under the endpoint and the key (#7760) - folded to one line, and
+ * opened, a command that fits the dialog - then the first data, and View
+ * logs to the service's own Logs, which offers Create monitor for that
+ * service (#6876): the next step, without going back to Logs.
+ */
+for (const each of [
+  { lang: "de", theme: "light", width: 1280 },
+  { lang: "fa", theme: "dark", width: 390 },
+] as Array<Look>) {
+  test(`Logs' setup dialog, ${nameOf(each)}: a test log beside the key, then View logs, where Create monitor watches the service`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, each, `${DASHBOARD}/logs`);
+    await page
+      .getByTestId("product-showcase")
+      .getByTestId("resource-showcase-add-button")
+      .click();
+
+    const setup: Locator = page.getByTestId("telemetry-setup-dialog");
+
+    await expect(setup).toBeVisible();
+    // No key yet: nothing to send a test log with.
+    await expect(setup.getByTestId("telemetry-test-log")).toHaveCount(0);
+
+    await setup
+      .getByRole("button", {
+        name: words(each.lang, "Create Ingestion Key"),
+        exact: true,
+      })
+      .click();
+    const keyForm: Locator = page.getByRole("dialog").last();
+    await keyForm.getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+
+    // The key's step: the test log, folded to one line under it.
+    const fold: Locator = setup.getByTestId("telemetry-test-log");
+
+    await expect(fold).toBeVisible();
+    await expect(fold).toContainText(words(each.lang, "Send a test log"));
+    await expect(setup.getByTestId("telemetry-test-log-body")).toHaveCount(0);
+
+    await setup.getByTestId("telemetry-test-log-toggle").click();
+    const body: Locator = setup.getByTestId("telemetry-test-log-body");
+
+    await expect(body).toContainText(`/otlp/v1/logs`);
+    await expect(body).toContainText(`x-oneuptime-token: ${NEW_KEY_SECRET}`);
+    await expect(body).toContainText("oneuptime-test");
+    await body.scrollIntoViewIfNeeded();
+    await look(page, each, "logs-dialog-test-log");
+
+    // The app's first data: its service reports, and View logs leads to it.
+    const connected: Locator = setup.getByTestId(
+      "resource-connection-connected",
+    );
+
+    await expect(connected).toBeVisible({ timeout: 30000 });
+    await connected.getByRole("link").click();
+    await expect(page).toHaveURL(
+      new RegExp(`/service/${NEW_SERVICE}/logs(\\?|$)`),
+    );
+    await expect(page.getByTestId("telemetry-setup-dialog")).toHaveCount(0);
+
+    // The service's Logs: Create monitor, for a Logs monitor on this service.
+    const createMonitor: Locator = page.getByTestId("logs-create-monitor");
+
+    await expect(createMonitor).toBeVisible();
+    await look(page, each, "logs-service-create-monitor");
+    await createMonitor.click();
+
+    await expect(page).toHaveURL(/\/monitors\/create\?/);
+    const created: URL = new URL(page.url());
+
+    expect(created.searchParams.get("monitorType")).toBe("Logs");
+    expect(
+      JSON.parse(created.searchParams.get("telemetryQuery") || "{}"),
+    ).toMatchObject({ serviceIds: [NEW_SERVICE] });
+  });
+}
 
 /*
  * THE MONITOR THE WEBSITE SETUP HANDS IN (#7053): with no status page yet,

@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されました。",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} はオンコール担当ですが、このプロジェクトがオンコール担当者全員に求めている確認済みの電話の連絡方法がありません。",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store または Google Play からアプリをインストールし、{{serverUrl}} にサインインして、求められたら通知と重大なアラートを許可してください。",
+  "Check the endpoint and the key before you set up your app.": "アプリを設定する前に、エンドポイントとキーを確認します。",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "データは届きましたが、サービス名がありません。このステップを完了するには、アプリで {{attribute}} を設定してください。",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "ターミナルで実行してください。サービス {{service}} からログを1件送信します。このサービスは後で削除できます。",
+  "Send a test log": "テストログを送信",
+  "The first data arrived.": "最初のデータが届きました。",
   "An invitation to this project hasn't been accepted yet.": "このプロジェクトへの招待がまだ承諾されていません。",
   "More to set up": "次に設定できること",
   "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "現在、あなたを呼び出せるのはメールだけです。電話かモバイルアプリを追加して、自分にテスト呼び出しを送信してください。",
@@ -56803,7 +56808,11 @@
   "Server Alerts by Push": "プッシュによるサーバーアラート",
   "Server Email Log": "サーバーのメールのログ",
   "Server Email Logs": "サーバーのメールのログ",
+  "Finish setting up your notifications": "通知の設定を完了してください",
+  "Hide for a week": "1週間非表示にする",
   "Moving from another tool?": "別のツールから移行しますか？",
+  "Nothing can reach you yet.": "まだ連絡を受け取れる方法がありません。",
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "インシデントなしで {{policy}} を一度呼び出し、ポリシーが担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。",
-  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "取り込んだポリシーを選び、インシデントなしで一度呼び出して、担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。"
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "取り込んだポリシーを選び、インシデントなしで一度呼び出して、担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。",
+  "Some severities have no notification rule yet.": "一部の重大度にはまだ通知ルールがありません。"
 }

@@ -29,6 +29,11 @@ const ServiceTraces: FunctionComponent<
       <TracesViewer
         primaryEntityId={modelId}
         scopeEntityType={ServiceType.OpenTelemetry}
+        /*
+         * Create monitor: a Traces monitor on this service's requests,
+         * where a setup guide's View traces lands (#6876).
+         */
+        offersCreateMonitor={true}
       />
       {/*
        * Only when it can do something (AI on, a repository, no improvement

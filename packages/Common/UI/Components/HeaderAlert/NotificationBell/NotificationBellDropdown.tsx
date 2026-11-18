@@ -1,5 +1,10 @@
 import React, { ReactElement } from "react";
-import { NotificationItem } from "./NotificationItem";
+import {
+  NOTIFICATION_BELL_SECTIONS,
+  NotificationBellSection as NotificationBellSectionName,
+  NotificationItem,
+  getNotificationBellSection,
+} from "./NotificationItem";
 import NotificationBellItem from "./NotificationBellItem";
 import NotificationBellSection from "./NotificationBellSection";
 import { HeaderAlertType } from "../HeaderAlert";
@@ -13,30 +18,49 @@ export interface ComponentProps {
   notice?: ReactElement | undefined;
 }
 
+// The colour each section's heading is drawn in.
+const SECTION_ALERT_TYPES: Record<
+  NotificationBellSectionName,
+  HeaderAlertType
+> = {
+  [NotificationBellSectionName.Critical]: HeaderAlertType.ERROR,
+  [NotificationBellSectionName.OnCall]: HeaderAlertType.SUCCESS,
+  [NotificationBellSectionName.Information]: HeaderAlertType.INFO,
+};
+
 const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const errorItems: Array<NotificationItem> = props.items.filter(
-    (item: NotificationItem) => {
-      return item.alertType === HeaderAlertType.ERROR && item.count > 0;
+
+  // Each section's items with something to show, in the order given.
+  const sections: Array<{
+    section: NotificationBellSectionName;
+    items: Array<NotificationItem>;
+  }> = NOTIFICATION_BELL_SECTIONS.map(
+    (
+      section: NotificationBellSectionName,
+    ): {
+      section: NotificationBellSectionName;
+      items: Array<NotificationItem>;
+    } => {
+      return {
+        section: section,
+        items: props.items.filter((item: NotificationItem): boolean => {
+          return item.count > 0 && getNotificationBellSection(item) === section;
+        }),
+      };
+    },
+  ).filter(
+    (group: {
+      section: NotificationBellSectionName;
+      items: Array<NotificationItem>;
+    }): boolean => {
+      return group.items.length > 0;
     },
   );
 
-  const infoItems: Array<NotificationItem> = props.items.filter(
-    (item: NotificationItem) => {
-      return item.alertType === HeaderAlertType.INFO && item.count > 0;
-    },
-  );
-
-  const successItems: Array<NotificationItem> = props.items.filter(
-    (item: NotificationItem) => {
-      return item.alertType === HeaderAlertType.SUCCESS && item.count > 0;
-    },
-  );
-
-  const hasItems: boolean =
-    errorItems.length > 0 || infoItems.length > 0 || successItems.length > 0;
+  const hasItems: boolean = sections.length > 0;
 
   return (
     /*
@@ -69,61 +93,31 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
           </div>
         )}
 
-        {errorItems.length > 0 && (
-          <NotificationBellSection
-            title="Critical"
-            alertType={HeaderAlertType.ERROR}
-          >
-            {errorItems.map((item: NotificationItem) => {
-              return (
-                <NotificationBellItem
-                  key={item.id}
-                  item={item}
-                  onClick={() => {
-                    props.onItemClick(item);
-                  }}
-                />
-              );
-            })}
-          </NotificationBellSection>
-        )}
-
-        {successItems.length > 0 && (
-          <NotificationBellSection
-            title="On-Call"
-            alertType={HeaderAlertType.SUCCESS}
-          >
-            {successItems.map((item: NotificationItem) => {
-              return (
-                <NotificationBellItem
-                  key={item.id}
-                  item={item}
-                  onClick={() => {
-                    props.onItemClick(item);
-                  }}
-                />
-              );
-            })}
-          </NotificationBellSection>
-        )}
-
-        {infoItems.length > 0 && (
-          <NotificationBellSection
-            title="Information"
-            alertType={HeaderAlertType.INFO}
-          >
-            {infoItems.map((item: NotificationItem) => {
-              return (
-                <NotificationBellItem
-                  key={item.id}
-                  item={item}
-                  onClick={() => {
-                    props.onItemClick(item);
-                  }}
-                />
-              );
-            })}
-          </NotificationBellSection>
+        {sections.map(
+          (group: {
+            section: NotificationBellSectionName;
+            items: Array<NotificationItem>;
+          }): ReactElement => {
+            return (
+              <NotificationBellSection
+                key={group.section}
+                title={group.section}
+                alertType={SECTION_ALERT_TYPES[group.section]}
+              >
+                {group.items.map((item: NotificationItem) => {
+                  return (
+                    <NotificationBellItem
+                      key={item.id}
+                      item={item}
+                      onClick={() => {
+                        props.onItemClick(item);
+                      }}
+                    />
+                  );
+                })}
+              </NotificationBellSection>
+            );
+          },
         )}
       </div>
     </div>

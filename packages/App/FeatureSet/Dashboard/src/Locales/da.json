@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin blev udeladt.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} er på vagt, men har ingen bekræftet telefonmetode, som dette projekt beder alle på vagt om at have.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installér appen fra App Store eller Google Play, log ind på {{serverUrl}}, og tillad notifikationer og kritiske advarsler, når den spørger.",
+  "Check the endpoint and the key before you set up your app.": "Tjek endpointet og nøglen, før du sætter din app op.",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "Der er kommet data ind, men de angiver ingen tjeneste. Angiv {{attribute}} i din app for at fuldføre dette trin.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "Kør dette i en terminal. Det sender én protokol fra tjenesten {{service}}, som du kan slette bagefter.",
+  "Send a test log": "Send en testprotokol",
+  "The first data arrived.": "De første data er kommet ind.",
   "An invitation to this project hasn't been accepted yet.": "En invitation til dette projekt er ikke accepteret endnu.",
   "More to set up": "Mere at sætte op",
   "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Lige nu kan kun e-mail tilkalde dig. Tilføj din telefon eller mobilappen, og send dig selv et testkald.",
@@ -56803,7 +56808,11 @@
   "Server Alerts by Push": "Serveradvarsler via push",
   "Server Email Log": "Serverens e-mail-log",
   "Server Email Logs": "Serverens e-mail-logs",
+  "Finish setting up your notifications": "Gør opsætningen af dine notifikationer færdig",
+  "Hide for a week": "Skjul i en uge",
   "Moving from another tool?": "Skifter du fra et andet værktøj?",
+  "Nothing can reach you yet.": "Intet kan nå dig endnu.",
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Tilkald {{policy}} én gang, uden en hændelse, for at se, at politikken når ud til folk. Hver besked siger TEST.",
-  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Vælg en overført politik, og tilkald den én gang, uden en hændelse, for at se, at den når ud til folk. Hver besked siger TEST."
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Vælg en overført politik, og tilkald den én gang, uden en hændelse, for at se, at den når ud til folk. Hver besked siger TEST.",
+  "Some severities have no notification rule yet.": "Nogle alvorligheder har endnu ingen notifikationsregel."
 }

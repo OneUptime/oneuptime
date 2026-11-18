@@ -194,6 +194,7 @@ import MoveLegacySnmpV3AuthToColumns from "./MoveLegacySnmpV3AuthToColumns";
 import MaskWebhookAddressesInLogs from "./MaskWebhookAddressesInLogs";
 import RestoreCutMicrosoftTeamsChatIds from "./RestoreCutMicrosoftTeamsChatIds";
 import BackfillNetworkDeviceManufacturer from "./BackfillNetworkDeviceManufacturer";
+import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledgedBeforeFirstSteps";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1386,6 +1387,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillNetworkDeviceManufacturer(),
+  /*
+   * The members who acknowledged a test page before the Welcome checklist
+   * noted it (#7042): an invited member's first steps on Home end when a
+   * test page has reached them (#6807), and a member who acknowledged one
+   * before that note was kept - or whose note a write lost before #7043 -
+   * still saw the test page as a step to do. Read from each test page's
+   * own acknowledgement (UserOnCallLog, OnCallDutyPolicyExecutionLog).
+   * Postgres only, batched and idempotent; no other ordering requirement,
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new NoteTestPagesAcknowledgedBeforeFirstSteps(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

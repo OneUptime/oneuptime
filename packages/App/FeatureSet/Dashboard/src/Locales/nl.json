@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} heeft dienst maar geen geverifieerde telefoonmethode, waar dit project iedereen met dienst om vraagt.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installeer de app via de App Store of Google Play, log in op {{serverUrl}} en sta meldingen en kritieke waarschuwingen toe als de app erom vraagt.",
+  "Check the endpoint and the key before you set up your app.": "Controleer het endpoint en de sleutel voordat u uw app instelt.",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "Er zijn gegevens binnengekomen, maar ze noemen geen service. Stel {{attribute}} in uw app in om deze stap af te ronden.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "Voer dit uit in een terminal. Het stuurt één logboek van de service {{service}}, die u daarna kunt verwijderen.",
+  "Send a test log": "Een testlogboek sturen",
+  "The first data arrived.": "De eerste gegevens zijn binnengekomen.",
   "An invitation to this project hasn't been accepted yet.": "Een uitnodiging voor dit project is nog niet geaccepteerd.",
   "More to set up": "Meer om in te stellen",
   "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Nu kan alleen e-mail je oproepen. Voeg je telefoon of de mobiele app toe, en stuur jezelf een testoproep.",
@@ -56803,7 +56808,11 @@
   "Server Alerts by Push": "Serverwaarschuwingen via push",
   "Server Email Log": "E-maillogboek van de server",
   "Server Email Logs": "E-maillogboeken van de server",
+  "Finish setting up your notifications": "Rond het instellen van je meldingen af",
+  "Hide for a week": "Een week verbergen",
   "Moving from another tool?": "Stapt u over van een andere tool?",
+  "Nothing can reach you yet.": "Nog niets kan je bereiken.",
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Roep {{policy}} één keer op, zonder incident, om te zien dat het beleid mensen bereikt. Elk bericht zegt TEST.",
-  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Kies een overgenomen beleid en roep het één keer op, zonder incident, om te zien dat het mensen bereikt. Elk bericht zegt TEST."
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Kies een overgenomen beleid en roep het één keer op, zonder incident, om te zien dat het mensen bereikt. Elk bericht zegt TEST.",
+  "Some severities have no notification rule yet.": "Sommige ernstniveaus hebben nog geen meldingsregel."
 }

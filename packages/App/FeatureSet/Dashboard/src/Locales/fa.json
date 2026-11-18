@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شدند.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} آنکال است اما هیچ روش تلفنی تأییدشده‌ای ندارد، که این پروژه از همهٔ افراد آنکال می‌خواهد.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "برنامه را از App Store یا Google Play نصب کنید، به {{serverUrl}} وارد شوید و وقتی برنامه درخواست کرد، اجازهٔ اعلان‌ها و هشدارهای بحرانی را بدهید.",
+  "Check the endpoint and the key before you set up your app.": "پیش از راه‌اندازی برنامه خود، نقطه پایانی و کلید را بررسی کنید.",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "داده‌ها رسیدند، اما نام هیچ سرویسی را ندارند. برای پایان این مرحله، {{attribute}} را در برنامه خود تنظیم کنید.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "این را در یک ترمینال اجرا کنید. یک لاگ از سرویس {{service}} می‌فرستد که بعداً می‌توانید آن را حذف کنید.",
+  "Send a test log": "ارسال یک لاگ آزمایشی",
+  "The first data arrived.": "نخستین داده‌ها رسیدند.",
   "An invitation to this project hasn't been accepted yet.": "یک دعوت به این پروژه هنوز پذیرفته نشده است.",
   "More to set up": "موارد دیگر برای راه‌اندازی",
   "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "اکنون فقط ایمیل می‌تواند به شما فراخوان برساند. تلفن خود یا برنامهٔ موبایل را اضافه کنید و یک فراخوان آزمایشی برای خودتان بفرستید.",
@@ -56803,7 +56808,11 @@
   "Server Alerts by Push": "هشدارهای سرور با پوش",
   "Server Email Log": "گزارش ایمیل سرور",
   "Server Email Logs": "گزارش‌های ایمیل سرور",
+  "Finish setting up your notifications": "راه‌اندازی اعلان‌های خود را کامل کنید",
+  "Hide for a week": "پنهان کردن برای یک هفته",
   "Moving from another tool?": "از ابزار دیگری می‌آیید؟",
+  "Nothing can reach you yet.": "هنوز هیچ راهی برای رسیدن به شما نیست.",
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "{{policy}} را یک بار، بدون هیچ حادثه‌ای، فرا بخوانید تا ببینید سیاست به افراد می‌رسد. هر پیام می‌گوید آزمایشی.",
-  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "سیاستی را که منتقل کرده‌اید انتخاب کنید و آن را یک بار، بدون هیچ حادثه‌ای، فرا بخوانید تا ببینید به افراد می‌رسد. هر پیام می‌گوید آزمایشی."
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "سیاستی را که منتقل کرده‌اید انتخاب کنید و آن را یک بار، بدون هیچ حادثه‌ای، فرا بخوانید تا ببینید به افراد می‌رسد. هر پیام می‌گوید آزمایشی.",
+  "Some severities have no notification rule yet.": "برخی سطح‌های شدت هنوز قاعدهٔ اعلان ندارند."
 }

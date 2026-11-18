@@ -45,6 +45,23 @@ interface Listener {
 
 const listeners: Array<Listener> = [];
 
+/*
+ * The bell's "Finish setting up your notifications" reads the person's own
+ * readiness through API.get as well; NotificationSetupBell covers it, so
+ * here it asks nothing and shows nothing.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Header/useNotificationSetupNudge",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return { reason: null, hide: () => {} };
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,

@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "لم يتحقق {{name}} من {{channels}} بعد، لذا استُبعدت تلك الخطوات.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} في المناوبة لكن ليست لديه طريقة هاتفية مُتحقق منها، وهي ما يطلبه هذا المشروع من كل المناوبين.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "ثبّت التطبيق من App Store أو Google Play، وسجّل الدخول إلى {{serverUrl}}، واسمح بالإشعارات والتنبيهات الحرجة عندما يطلب التطبيق ذلك.",
+  "Check the endpoint and the key before you set up your app.": "تحقّق من نقطة النهاية والمفتاح قبل إعداد تطبيقك.",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "وصلت بيانات، لكنها لا تسمّي أي خدمة. اضبط {{attribute}} في تطبيقك لإنهاء هذه الخطوة.",
+  "Run this in a terminal. It sends one log from the service {{service}}, which you can delete afterwards.": "شغّل هذا في طرفية. يرسل سجلًا واحدًا من الخدمة {{service}}، ويمكنك حذفها لاحقًا.",
+  "Send a test log": "إرسال سجل تجريبي",
+  "The first data arrived.": "وصلت البيانات الأولى.",
   "An invitation to this project hasn't been accepted yet.": "لم تُقبل بعدُ دعوة إلى هذا المشروع.",
   "More to set up": "المزيد لإعداده",
   "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "لا يمكن استدعاؤك الآن إلا بالبريد الإلكتروني. أضف هاتفك أو تطبيق الهاتف المحمول، وأرسل لنفسك استدعاء اختبار.",
@@ -56803,7 +56808,11 @@
   "Server Alerts by Push": "تنبيهات الخادم عبر الإشعارات الفورية",
   "Server Email Log": "سجل البريد الإلكتروني للخادم",
   "Server Email Logs": "سجلات البريد الإلكتروني للخادم",
+  "Finish setting up your notifications": "أكمل إعداد إشعاراتك",
+  "Hide for a week": "إخفاء لمدة أسبوع",
   "Moving from another tool?": "هل تنتقل من أداة أخرى؟",
+  "Nothing can reach you yet.": "لا يمكن أن يصل إليك أي شيء بعد.",
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "استدعِ {{policy}} مرة واحدة، دون حادثة، لترى أن السياسة تصل إلى الأشخاص. تقول كل رسالة اختبار.",
-  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "اختر سياسة نقلتها واستدعها مرة واحدة، دون حادثة، لترى أنها تصل إلى الأشخاص. تقول كل رسالة اختبار."
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "اختر سياسة نقلتها واستدعها مرة واحدة، دون حادثة، لترى أنها تصل إلى الأشخاص. تقول كل رسالة اختبار.",
+  "Some severities have no notification rule yet.": "بعض درجات الخطورة ليس لها قاعدة إشعارات بعد."
 }

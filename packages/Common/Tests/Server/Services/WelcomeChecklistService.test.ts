@@ -1487,6 +1487,115 @@ describe("every person who acknowledges a test is noted", () => {
 });
 
 /*
+ * THE MEMBERS WHO ACKNOWLEDGED A TEST PAGE BEFORE THE NOTE WAS KEPT (#7042):
+ * the one-off backfill's write. They go before the members noted since,
+ * each once, under the row's lock as every write; a project where every
+ * one of them is noted already is not written, nor locked.
+ */
+describe("members who acknowledged a test page before the note was kept", () => {
+  const EARLIER_ID: ObjectID = new ObjectID(
+    "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
+
+  const noteBefore: (userIds: Array<string>) => Promise<number> = (
+    userIds: Array<string>,
+  ): Promise<number> => {
+    return WelcomeChecklistService.noteTestPagesAcknowledgedBefore({
+      projectId: PROJECT_ID,
+      userIds: userIds,
+    });
+  };
+
+  test("are noted before the members noted since, and their first steps are done", async () => {
+    await WelcomeChecklistService.noteTestPageAcknowledged({
+      projectId: PROJECT_ID,
+      userId: MEMBER_ID,
+    });
+    writes = [];
+
+    expect(
+      await noteBefore([EARLIER_ID.toString(), MEMBER_ID.toString()]),
+    ).toBe(1);
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.holdsRowLock).toBe(true);
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      EARLIER_ID.toString(),
+      MEMBER_ID.toString(),
+    ]);
+    // What else the state held is kept.
+    expect(storedState().startedWithOutcomes).toBe(true);
+    expect(
+      (
+        await WelcomeChecklistService.getAnswer(
+          caller(EARLIER_ID, [Permission.ProjectMember]),
+        )
+      ).hasAcknowledgedTestPage,
+    ).toBe(true);
+  });
+
+  test("a second run notes nobody, and writes and locks nothing", async () => {
+    expect(await noteBefore([EARLIER_ID.toString()])).toBe(1);
+    writes = [];
+
+    let isLocked: boolean = false;
+
+    jest.spyOn(ProjectService, "getRepository").mockReturnValue({
+      manager: {
+        query: fakeQuery(null),
+        transaction: async (): Promise<unknown> => {
+          isLocked = true;
+          throw new Error("A run with nothing to note took the row's lock.");
+        },
+      },
+    } as never);
+
+    expect(await noteBefore([EARLIER_ID.toString().toUpperCase()])).toBe(0);
+    expect(writes).toHaveLength(0);
+    expect(isLocked).toBe(false);
+  });
+
+  test("a member noted live while the backfill writes is kept", async () => {
+    await Promise.all([
+      noteBefore([EARLIER_ID.toString()]),
+      WelcomeChecklistService.noteTestPageAcknowledged({
+        projectId: PROJECT_ID,
+        userId: MEMBER_ID,
+      }),
+    ]);
+
+    expect(
+      [...(storedState().testPageAcknowledgedByUserIds || [])].sort(),
+    ).toEqual([EARLIER_ID.toString(), MEMBER_ID.toString()].sort());
+    // The member noted before comes first, whichever write landed first.
+    expect(storedState().testPageAcknowledgedByUserIds![0]).toBe(
+      EARLIER_ID.toString(),
+    );
+  });
+
+  test("a project with no state yet takes its first list", async () => {
+    row.welcomeChecklistState = null;
+
+    expect(
+      await noteBefore([EARLIER_ID.toString(), MEMBER_ID.toString()]),
+    ).toBe(2);
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      EARLIER_ID.toString(),
+      MEMBER_ID.toString(),
+    ]);
+  });
+
+  test("a project that is gone is not written: the caller hears so", async () => {
+    isRowThere = false;
+
+    await expect(noteBefore([EARLIER_ID.toString()])).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(writes).toHaveLength(0);
+  });
+});
+
+/*
  * WHO IS TOLD, FROM WHAT RUNS A POLICY (#7017). A monitor whose criteria
  * page an on-call policy directly runs it as surely as an on-call rule:
  * Setup health counts it so, and now so does the checklist. An archived
