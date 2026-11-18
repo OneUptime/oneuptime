@@ -459,6 +459,38 @@ describe("the search", () => {
 
     expect(findBySpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * Every signed-in person holds Current User in any project they open
+   * (getDefaultUserTenantAccessPermission). The table lets it read their own
+   * memberships, but a membership's user column leaves it out - so the read
+   * with their props would be refused. One who holds nothing more is
+   * refused here instead, before anything is read
+   * (CallerReadsReadableColumns relies on it).
+   */
+  test("someone who holds only what every signed-in person holds is refused, and nothing is read", async () => {
+    const props: DatabaseCommonInteractionProps = propsHolding([
+      Permission.CurrentUser,
+      Permission.UnAuthorizedSsoUser,
+    ]);
+
+    expect(
+      ProjectMemberSearch.canSeeMembers({ projectId: PROJECT_ID, props }),
+    ).toBe(false);
+    expect(
+      ProjectMemberSearch.canSeeEmails({ projectId: PROJECT_ID, props }),
+    ).toBe(false);
+
+    await expect(
+      ProjectMemberSearch.search({
+        projectId: PROJECT_ID,
+        text: "ada",
+        props: props,
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
 });
 
 /*

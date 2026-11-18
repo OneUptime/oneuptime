@@ -107,6 +107,10 @@ const ALLOWED_NARROW_READS: Record<string, string> = {
     "The commands AI ran are read with the reader's props through readIfPermitted: a Viewer, who may read the commands' runs but not what they ran, is shown the rest of the AI log without them - a refusal the reader handles, not one it meets.",
   "packages/Common/Server/Utils/AI/Toolbox/TeamTools.ts#select#TeamMember.user":
     "The team tool is offered to Team's readers alone (its requiredPermissions), and every one of them may read a member's user: Current User, the one permission the column leaves out, reaches nobody's memberships but the caller's own.",
+  "packages/Common/Server/Utils/Team/ProjectMemberSearch.ts#select#TeamMember.user":
+    "Search reads the project's people only once canSeeMembers - and, for emails, canSeeEmails - has passed the very checks this read makes: the table's read and its blocks, the user column's read, the relation query. Current User, the one reader the column leaves out, is what every signed-in person holds in any project; one who holds nothing more there is refused before anything is read.",
+  "packages/Common/Server/Utils/Team/ProjectMemberSearch.ts#query#TeamMember.user":
+    "Search filters the project's people by their user's name or email only once canSeeMembers - and, for emails, canSeeEmails - has passed the very checks this read makes: the table's read and its blocks, the user column's read, the relation query. Current User, the one reader the column leaves out, is what every signed-in person holds in any project; one who holds nothing more there is refused before anything is read.",
 };
 
 /*
