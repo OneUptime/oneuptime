@@ -47,6 +47,9 @@ import { DataSource, QueryRunner } from "typeorm";
  *     workers claiming again while they are handed full batches, several
  *     at once (#9488), to another probe's beside them, and to a probe that
  *     restarted after a claim - never what it lost, in that interval;
+ *   - reads, for many probes in a few statements, when each one's
+ *     longest-waiting check was due, by the same rule (what says a probe
+ *     is behind, #9488);
  *   - does not hand out a row another instance claimed between this one's
  *     read and its claim;
  *   - sets aside the due rows nothing may probe that its read stepped over,
@@ -1094,6 +1097,114 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
       [...handedOut, ...(await workersClaimUntilShort(1))],
       [...first, ...late],
     );
+  });
+
+  /*
+   * What says a probe is behind (#9488, Types/Probe/ProbeBehind): when its
+   * longest-waiting check was due, by the claim's own rule of what may be
+   * checked, for every probe in one statement.
+   */
+  test("reads when each probe's longest-waiting check was due, by the claim's own rule", async () => {
+    const IDLE_PROBE_ID: ObjectID = ObjectID.generate();
+    const UNKNOWN_PROBE_ID: ObjectID = ObjectID.generate();
+
+    // Nothing may check these: never the longest-waiting check.
+    await insertMonitorProbe({
+      nextPingAt: minutesAgo(30),
+      monitor: { disableActiveMonitoring: true },
+    });
+    await insertMonitorProbe({ nextPingAt: minutesAgo(25), isEnabled: false });
+    await insertMonitorProbe({
+      nextPingAt: minutesAgo(20),
+      deletedAt: minutesAgo(21),
+    });
+
+    const longest: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(5),
+    });
+    await insertMonitorProbe({ nextPingAt: minutesAgo(1) });
+    // Not due yet.
+    await insertMonitorProbe({ nextPingAt: minutesAgo(-3) });
+    // Another probe's, due only in the future.
+    await insertMonitorProbe({
+      nextPingAt: minutesAgo(-1),
+      probeId: IDLE_PROBE_ID,
+    });
+
+    const read: () => Promise<Map<string, Date | null>> = (): Promise<
+      Map<string, Date | null>
+    > => {
+      return MonitorProbeService.getOldestWaitingCheckDueAt({
+        probeIds: [PROBE_ID, IDLE_PROBE_ID, UNKNOWN_PROBE_ID, PROBE_ID],
+        dueAt: new Date(),
+      });
+    };
+
+    let oldest: Map<string, Date | null> = await read();
+    const dueAt: Date | null = (await scheduleOf(longest)).nextPingAt;
+
+    expect(oldest.size).toBe(3);
+    expect(oldest.get(PROBE_ID.toString())?.getTime()).toBe(dueAt!.getTime());
+    expect(oldest.get(IDLE_PROBE_ID.toString())).toBeNull();
+    expect(oldest.get(UNKNOWN_PROBE_ID.toString())).toBeNull();
+
+    // Once it is handed out, the next one waits longest.
+    expect(await claim(1)).toEqual([longest.toString()]);
+
+    oldest = await read();
+    expect(
+      Date.now() - oldest.get(PROBE_ID.toString())!.getTime(),
+    ).toBeGreaterThanOrEqual(MINUTE_IN_MS - 1000);
+    expect(
+      Date.now() - oldest.get(PROBE_ID.toString())!.getTime(),
+    ).toBeLessThan(2 * MINUTE_IN_MS);
+
+    // Everything handed out: nothing waits.
+    await claim(50);
+    oldest = await read();
+    expect(oldest.get(PROBE_ID.toString())).toBeNull();
+  });
+
+  test("reads hundreds of probes in a few statements", async () => {
+    const probeIds: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 1100; index++) {
+      probeIds.push(ObjectID.generate());
+    }
+
+    await insertMonitorProbe({
+      nextPingAt: minutesAgo(3),
+      probeId: probeIds[1099]!,
+    });
+
+    const realQuery: (
+      sql: string,
+      params?: Array<unknown>,
+    ) => Promise<unknown> = database.manager.query.bind(database.manager);
+    let statements: number = 0;
+
+    jest.spyOn(MonitorProbeService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (
+          sql: string,
+          params?: Array<unknown>,
+        ): Promise<unknown> => {
+          statements++;
+          return await realQuery(sql, params);
+        },
+      },
+    } as never);
+
+    const oldest: Map<string, Date | null> =
+      await MonitorProbeService.getOldestWaitingCheckDueAt({
+        probeIds: probeIds,
+        dueAt: new Date(),
+      });
+
+    expect(statements).toBe(3);
+    expect(oldest.size).toBe(1100);
+    expect(oldest.get(probeIds[1099]!.toString())).not.toBeNull();
+    expect(oldest.get(probeIds[0]!.toString())).toBeNull();
   });
 
   test("the pending count counts what may be probed and is due by the time asked", async () => {
