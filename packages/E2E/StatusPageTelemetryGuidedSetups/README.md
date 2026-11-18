@@ -23,6 +23,9 @@ and `first-telemetry-guided` count what each job costs a newcomer. This suite lo
   - the telemetry setup offers the five services that report, and one is picked
 - the ways in (#7142): the empty **Status Pages** list and a new project's **Logs** open their
   setups with **Guided setup**, the manual way beside it
+- Logs' setup dialog, the manual way, in two looks: its **Send a test log** under the key it makes,
+  folded and then opened (#7760), the first data, and **View logs** to the service's own Logs,
+  whose **Create monitor** starts a Logs monitor on that service (#6876)
 - the website setup's summary, **Show it on a status page**, opening this setup with its new
   monitor ticked and nothing else
 - a Project Viewer (`?as=viewer`): offered neither setup, and told why at the setup's address

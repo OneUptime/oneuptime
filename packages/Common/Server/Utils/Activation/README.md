@@ -25,7 +25,7 @@ ProjectMilestoneService.reachInBackground({
   3. Add a `reachInBackground` call where it happens.
   4. Add a row to `Docs/analytics/activation.md`. Add a backfill source in `ProjectMilestoneBackfill.ts` too, if old data can show it.
 
-Telemetry milestones (first logs, traces, metrics, exceptions and profiles) are set in one place, `TelemetryFanInWriter.submit`, once ClickHouse accepts the rows. See `TelemetryMilestones.ts`.
+Telemetry milestones (first logs, traces, metrics, exceptions and profiles) are set by `TelemetryFanInWriter.submit`, once ClickHouse accepts the rows. A writer that inserts telemetry itself, outside the fan-in writer, calls `TelemetryMilestones.markInserted(tableName, rows)` after its insert succeeds: the network device syslog and trap writers (`ProbeSyslogIngestService`, `SnmpTrapLogWriter`) do. See `TelemetryMilestones.ts`.
 
 ## Read milestones
 

@@ -41,6 +41,8 @@ import {
   mapSyslogSeverity,
 } from "Common/Utils/Syslog/SyslogSeverity";
 import LogService from "Common/Server/Services/LogService";
+import TelemetryMilestones from "Common/Server/Utils/Activation/TelemetryMilestones";
+import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import OTelIngestService, {
   TelemetryServiceMetadata,
   getScalarEntityKeyColumns,
@@ -328,6 +330,12 @@ export default class ProbeSyslogIngestService {
 
     if (dbLogs.length > 0) {
       await LogService.insertJsonRows(dbLogs);
+      /*
+       * The project's first logs, once ClickHouse took them, as the fan-in
+       * writer keeps them for every other log (#6897): a network device's
+       * syslog is in the Logs explorer like any app's.
+       */
+      TelemetryMilestones.markInserted(AnalyticsTableName.Log, dbLogs);
     }
 
     result.written = dbLogs.length;

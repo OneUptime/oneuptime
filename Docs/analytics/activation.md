@@ -49,7 +49,7 @@ Each milestone is set once per project, on the server, the first time it becomes
 | `activation/first_status_page_monitor_added` | A status page first shows a monitor or a monitor group | `StatusPageResourceService.onCreateSuccess` | `StatusPageResource` |
 | `activation/first_status_page_subscriber_added` | A status page has its first subscriber who can be sent updates (confirmed) | `StatusPageSubscriberService` (create and confirmation) | Confirmed `StatusPageSubscriber` rows |
 | `activation/first_on_call_policy_executed` | An on-call policy runs for the first time. A direct page, a test of the policy, or an archived policy's log, does not count | `OnCallDutyPolicyExecutionLogService.onCreateSuccess` | `OnCallDutyPolicyExecutionLog` |
-| `activation/first_logs_received` | ClickHouse accepts the project's first logs | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
+| `activation/first_logs_received` | ClickHouse accepts the project's first logs | `TelemetryFanInWriter.submit`, and for a network device's syslog and SNMP traps `ProbeSyslogIngestService` and `SnmpTrapLogWriter` (`TelemetryMilestones.markInserted`) | `TelemetryUsageBilling` (billing on) |
 | `activation/first_traces_received` | ClickHouse accepts the project's first spans | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
 | `activation/first_metrics_received` | ClickHouse accepts the project's first metrics | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
 | `activation/first_exceptions_received` | ClickHouse accepts the project's first exceptions | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |

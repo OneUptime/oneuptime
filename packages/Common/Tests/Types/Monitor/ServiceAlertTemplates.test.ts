@@ -1,4 +1,5 @@
 import {
+  SERVICE_ERROR_LOG_SPIKE_TEMPLATE_ID,
   ServiceAlertTemplate,
   ServiceAlertTemplateArgs,
   getAllServiceAlertTemplates,
@@ -13,6 +14,8 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorStepMetricMonitor from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import MonitorStepTraceMonitor from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import MonitorStepExceptionMonitor from "../../../Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorStepLogMonitor from "../../../Types/Monitor/MonitorStepLogMonitor";
+import LogSeverity from "../../../Types/Log/LogSeverity";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import {
@@ -56,7 +59,8 @@ const ARGS: ServiceAlertTemplateArgs = {
 
 /*
  * The counts are canaries. Update them deliberately when adding a template.
- * The RED signals, plus new, regressed and spiking exceptions.
+ * The RED signals, plus new, regressed and spiking exceptions, and a spike in
+ * the service's error logs (#7146).
  * The exception templates that alert on another measure than the count.
  */
 const EXCEPTION_CHECK_ON_BY_TEMPLATE: Record<string, CheckOn> = {
@@ -65,7 +69,7 @@ const EXCEPTION_CHECK_ON_BY_TEMPLATE: Record<string, CheckOn> = {
   "service-exception-spike": CheckOn.ExceptionCount,
 };
 
-const AGNOSTIC_COUNT: number = 11;
+const AGNOSTIC_COUNT: number = 12;
 
 const TEMPLATE_COUNT_BY_LANGUAGE: Partial<Record<ServiceLanguage, number>> = {
   java: 6,
@@ -102,6 +106,7 @@ const ALL_TEMPLATES: Array<ServiceAlertTemplate> =
 const CHECK_ON_BY_MONITOR_TYPE: Record<string, CheckOn> = {
   [MonitorType.Metrics]: CheckOn.MetricValue,
   [MonitorType.Traces]: CheckOn.SpanCount,
+  [MonitorType.Logs]: CheckOn.LogCount,
   [MonitorType.Exceptions]: CheckOn.ExceptionCount,
 };
 
@@ -175,11 +180,12 @@ describe("ServiceAlertTemplates", () => {
       }
     });
 
-    it("uses only the three telemetry monitor types", () => {
+    it("uses only the four telemetry monitor types", () => {
       for (const template of ALL_TEMPLATES) {
         expect([
           MonitorType.Metrics,
           MonitorType.Traces,
+          MonitorType.Logs,
           MonitorType.Exceptions,
         ]).toContain(template.monitorType);
       }
@@ -360,6 +366,10 @@ describe("ServiceAlertTemplates", () => {
         if (template.monitorType === MonitorType.Exceptions) {
           expect(step.data?.exceptionMonitor).toBeDefined();
         }
+
+        if (template.monitorType === MonitorType.Logs) {
+          expect(step.data?.logMonitor).toBeDefined();
+        }
       }
     });
 
@@ -370,10 +380,12 @@ describe("ServiceAlertTemplates", () => {
         const config:
           | MonitorStepMetricMonitor
           | MonitorStepTraceMonitor
+          | MonitorStepLogMonitor
           | MonitorStepExceptionMonitor
           | undefined =
           step.data?.metricMonitor ||
           step.data?.traceMonitor ||
+          step.data?.logMonitor ||
           step.data?.exceptionMonitor;
 
         const telemetryServiceIds: Array<ObjectID> =
@@ -557,6 +569,71 @@ describe("ServiceAlertTemplates", () => {
       });
       expect(healthy!.metricMonitorOptions).toBeUndefined();
       expect(template.description).not.toContain("day before");
+    });
+
+    /*
+     * A spike in the service's error logs (#7146): a Logs monitor on the
+     * service's own Error and Fatal logs, over five minutes, alerting above
+     * 25 - Error Burst's bar - and healthy again at 25 or fewer.
+     */
+    it("service-error-log-spike counts the service's error and fatal logs over five minutes", () => {
+      const template: ServiceAlertTemplate = getServiceAlertTemplateById(
+        SERVICE_ERROR_LOG_SPIKE_TEMPLATE_ID,
+      )!;
+
+      expect(template.monitorType).toBe(MonitorType.Logs);
+      expect(template.category).toBe("Errors");
+      expect(template.severity).toBe("Warning");
+      // Every service may send logs, whatever it runs.
+      expect(template.language).toBeUndefined();
+
+      const step: MonitorStep = buildStep(template);
+      const logMonitor: MonitorStepLogMonitor = step.data!.logMonitor!;
+
+      expect(logMonitor.severityTexts).toEqual([
+        LogSeverity.Error,
+        LogSeverity.Fatal,
+      ]);
+      expect(logMonitor.lastXSecondsOfLogs).toBe(300);
+      expect(logMonitor.body).toBe("");
+      expect(logMonitor.attributes).toEqual({});
+      // Not split per anything: the service is what broke.
+      expect(logMonitor.groupByAttributes || []).toEqual([]);
+      expect(
+        logMonitor.telemetryServiceIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ).toEqual([ARGS.serviceId]);
+      // Only a Logs step: nothing else is evaluated for it.
+      expect(step.data?.traceMonitor).toBeUndefined();
+      expect(step.data?.metricMonitor).toBeUndefined();
+      expect(step.data?.exceptionMonitor).toBeUndefined();
+
+      const [unhealthy, healthy]: Array<CriteriaFilter> = getFilters(step);
+
+      expect(unhealthy).toMatchObject({
+        checkOn: CheckOn.LogCount,
+        filterType: FilterType.GreaterThan,
+        value: 25,
+      });
+      expect(healthy).toMatchObject({
+        checkOn: CheckOn.LogCount,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 25,
+      });
+    });
+
+    it("gives the error-log template the same bar as the error-span burst", () => {
+      const burstThreshold: unknown = getFilters(
+        buildStep(getServiceAlertTemplateById("service-error-burst")!),
+      )[0]!.value;
+      const logThreshold: unknown = getFilters(
+        buildStep(
+          getServiceAlertTemplateById(SERVICE_ERROR_LOG_SPIKE_TEMPLATE_ID)!,
+        ),
+      )[0]!.value;
+
+      expect(logThreshold).toBe(burstThreshold);
     });
 
     it("uses only comparators the numeric evaluator implements", () => {

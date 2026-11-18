@@ -1,6 +1,8 @@
 import type { TelemetryType } from "./Documentation";
 import { OTEL_SIGNALS } from "./OtelSdkLanguages/Shared";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import ProductKey from "Common/Types/Product/ProductKey";
+import { PRODUCT_USAGE_MILESTONES } from "Common/Types/Product/ProductUsage";
 
 /*
  * THE PRODUCTS A TELEMETRY GUIDE SETS UP (#8204).
@@ -46,6 +48,31 @@ export const getProductsSetUpByGuide: (data: {
       types.flatMap((type: TelemetryType): ReadonlyArray<ProductKey> => {
         return PRODUCTS_SET_UP_BY_TYPE[type] || [];
       }),
+    ),
+  );
+};
+
+/*
+ * THE FIRST DATA A GUIDE WAITS FOR (#7888): the project's first-data mark of
+ * each product the guide sets up (PRODUCT_USAGE_MILESTONES, the marks the
+ * products menu reads): the first logs for the logs guide, the first traces
+ * for the traces guide, all three for a guide of a whole service. The
+ * guide's last step finishes when one arrives, whichever key sent the data
+ * and whether or not it names a service. Each mark once, in the order the
+ * products come.
+ */
+export const getFirstDataMilestonesOfProducts: (
+  products: ReadonlyArray<ProductKey>,
+) => Array<ActivationMilestone> = (
+  products: ReadonlyArray<ProductKey>,
+): Array<ActivationMilestone> => {
+  return Array.from(
+    new Set<ActivationMilestone>(
+      products.flatMap(
+        (product: ProductKey): ReadonlyArray<ActivationMilestone> => {
+          return PRODUCT_USAGE_MILESTONES[product] || [];
+        },
+      ),
     ),
   );
 };
