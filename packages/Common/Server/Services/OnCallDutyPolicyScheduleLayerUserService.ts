@@ -1,35 +1,33 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService from "./ProjectReferencesService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import PositiveNumber from "../../Types/PositiveNumber";
+import QueryHelper from "../Types/Database/QueryHelper";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import logger from "../Utils/Logger";
-import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+import ContiguousOrder, {
+  ContiguousOrderMoved,
+} from "../Utils/Database/ContiguousOrder";
 import ScheduleLayerChanges from "../Utils/OnCall/ScheduleLayerChanges";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
 
 /*
- * A layer user moved to another place by a non-root update: where it was,
- * where it goes, and its layer. Read before the update (onBeforeUpdate) and
- * acted on after it (onUpdateSuccess), only if the update wrote that row.
+ * The columns that name the list a layer user is numbered in: its layer, in
+ * its project. The number is the person's turn in the layer.
  */
-interface LayerUserMove {
-  layerUserId: ObjectID;
-  previousOrder: number;
-  newOrder: number;
-  onCallDutyPolicyScheduleLayerId: ObjectID;
-  projectId: ObjectID;
-}
+const ORDER_LIST_COLUMNS: Array<string> = [
+  "onCallDutyPolicyScheduleLayerId",
+  "projectId",
+];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -47,7 +45,7 @@ export class Service extends ProjectReferencesService<Model> {
   private async propagateLayerUserChange(
     scheduleId: ObjectID | null | undefined,
     projectId: ObjectID | null | undefined,
-    userId: ObjectID | null | undefined,
+    userIds: Array<ObjectID | null | undefined>,
   ): Promise<void> {
     if (!scheduleId) {
       return;
@@ -56,7 +54,11 @@ export class Service extends ProjectReferencesService<Model> {
     await OnCallDutyPolicyScheduleService.propagateShiftConfigChange({
       scheduleIds: [scheduleId],
       projectId: projectId || null,
-      userIds: userId ? [userId] : [],
+      userIds: userIds.filter(
+        (userId: ObjectID | null | undefined): userId is ObjectID => {
+          return Boolean(userId);
+        },
+      ),
       reason: OnCallShiftChangeReason.LayerUserChanged,
     });
   }
@@ -96,7 +98,7 @@ export class Service extends ProjectReferencesService<Model> {
   private async tellLayerUserChange(data: {
     scheduleId: ObjectID;
     projectId: ObjectID | null | undefined;
-    userId: ObjectID | null | undefined;
+    userIds: Array<ObjectID | null | undefined>;
     props: DatabaseCommonInteractionProps | null | undefined;
   }): Promise<void> {
     await ScheduleLayerChanges.afterLayersWritten({
@@ -108,18 +110,17 @@ export class Service extends ProjectReferencesService<Model> {
         await this.propagateLayerUserChange(
           data.scheduleId,
           data.projectId,
-          data.userId,
+          data.userIds,
         );
       },
     });
   }
 
   /**
-   * Renumber the users of a layer 1..n by their current order. Used by the
-   * team-member cleanup, which deletes layer-user rows as root (the per-row
-   * re-sequencing in onDeleteSuccess only runs for non-root deletes) and
-   * must restore the contiguous 1-based order the create-default (count + 1)
-   * and delete paths rely on. Idempotent.
+   * Renumber the users of a layer 1..n by their current order (twins by
+   * id, as they are read). Used by the team-member cleanup, which deletes
+   * layer-user rows as root, to leave the layers it took people out of
+   * numbered without gaps. Idempotent.
    */
   @CaptureSpan()
   public async resequenceOrderInLayer(
@@ -193,20 +194,23 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("userId is required");
     }
 
+    /*
+     * A person added at a number keeps it, and moves nobody else
+     * (ContiguousOrder): one added without a number takes the last turn of
+     * the layer.
+     */
     if (!createBy.data.order) {
-      // count number of users in this layer.
+      const projectId: ObjectID | undefined =
+        createBy.props.tenantId || createBy.data.projectId;
 
-      const count: PositiveNumber = await this.countBy({
-        query: {
+      createBy.data.order = await ContiguousOrder.getAppendOrder({
+        service: this,
+        list: {
           onCallDutyPolicyScheduleLayerId:
-            createBy.data.onCallDutyPolicyScheduleLayerId!,
-        },
-        props: {
-          isRoot: true,
+            createBy.data.onCallDutyPolicyScheduleLayerId,
+          ...(projectId ? { projectId: projectId } : {}),
         },
       });
-
-      createBy.data.order = count.toNumber() + 1;
     }
 
     return {
@@ -216,9 +220,9 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Only for a layer user the delete actually removed: the users after it
-   * close its gap (within its layer and project) and the roster is
-   * refreshed.
+   * Only for a layer user the delete actually removed: the roster is
+   * refreshed. The users after it keep their numbers (ContiguousOrder): the
+   * rotation goes by turn order, gap or none.
    */
   @CaptureSpan()
   protected override async onDeleteSuccess(
@@ -236,31 +240,18 @@ export class Service extends ProjectReferencesService<Model> {
         }),
     );
 
-    if (!deleteBy.props.isRoot && resource && wasDeleted) {
-      if (
-        resource.order &&
-        resource.onCallDutyPolicyScheduleLayerId &&
-        resource.projectId
-      ) {
-        await ContiguousOrder.afterDelete({
-          service: this,
-          list: {
-            onCallDutyPolicyScheduleLayerId:
-              resource.onCallDutyPolicyScheduleLayerId,
-            projectId: resource.projectId,
-          },
-          order: resource.order,
-        });
-
-        if (resource.onCallDutyPolicyScheduleId) {
-          await this.tellLayerUserChange({
-            scheduleId: resource.onCallDutyPolicyScheduleId,
-            projectId: resource.projectId,
-            userId: resource.userId,
-            props: deleteBy.props,
-          });
-        }
-      }
+    if (
+      !deleteBy.props.isRoot &&
+      resource &&
+      wasDeleted &&
+      resource.onCallDutyPolicyScheduleId
+    ) {
+      await this.tellLayerUserChange({
+        scheduleId: resource.onCallDutyPolicyScheduleId,
+        projectId: resource.projectId,
+        userIds: [resource.userId],
+        props: deleteBy.props,
+      });
     }
 
     return {
@@ -284,12 +275,10 @@ export class Service extends ProjectReferencesService<Model> {
     if (!deleteBy.props.isRoot) {
       /*
        * The one layer user the delete removes, and the delete held to
-       * it: the users after it move up a place once it is gone.
+       * it: the roster is refreshed once it is gone.
        */
       const found: { row: Model | null; deletesMore: boolean } =
         await this.findOneRowAndHoldDeleteToIt(deleteBy, {
-          order: true,
-          onCallDutyPolicyScheduleLayerId: true,
           onCallDutyPolicyScheduleId: true,
           projectId: true,
           userId: true,
@@ -318,38 +307,13 @@ export class Service extends ProjectReferencesService<Model> {
       id: createdItem.id!,
       select: {
         onCallDutyPolicyScheduleId: true,
-        onCallDutyPolicyScheduleLayerId: true,
         projectId: true,
         userId: true,
-        order: true,
       },
       props: {
         isRoot: true,
       },
     });
-
-    /*
-     * The users at the new user's place and after it move one place down -
-     * now that it exists, so a create that is refused or fails leaves the
-     * layer's order as it was.
-     */
-    if (
-      resource &&
-      resource.order &&
-      resource.onCallDutyPolicyScheduleLayerId &&
-      resource.projectId
-    ) {
-      await ContiguousOrder.afterCreate({
-        service: this,
-        list: {
-          onCallDutyPolicyScheduleLayerId:
-            resource.onCallDutyPolicyScheduleLayerId,
-          projectId: resource.projectId,
-        },
-        createdItemId: createdItem.id!,
-        order: resource.order,
-      });
-    }
 
     if (!resource || !resource.onCallDutyPolicyScheduleId) {
       return createdItem;
@@ -358,39 +322,22 @@ export class Service extends ProjectReferencesService<Model> {
     await this.tellLayerUserChange({
       scheduleId: resource.onCallDutyPolicyScheduleId,
       projectId: resource.projectId,
-      userId: resource.userId,
+      userIds: [resource.userId],
       props: onCreate?.createBy?.props,
     });
 
     return createdItem;
   }
 
+  /*
+   * A person given another turn takes it, and nobody else moves
+   * (ContiguousOrder): Terraform numbers a layer's people one write each,
+   * all at once. Moving a person past others is moveInList.
+   */
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    const move: LayerUserMove | null =
-      (onUpdate.carryForward as LayerUserMove) || null;
-
-    // The users the moved one passed step aside, now that it has moved.
-    if (
-      move &&
-      updatedItemIds.some((id: ObjectID): boolean => {
-        return id.toString() === move.layerUserId.toString();
-      })
-    ) {
-      await ContiguousOrder.afterMove({
-        service: this,
-        list: {
-          onCallDutyPolicyScheduleLayerId: move.onCallDutyPolicyScheduleLayerId,
-          projectId: move.projectId,
-        },
-        movedItemId: move.layerUserId,
-        previousOrder: move.previousOrder,
-        newOrder: move.newOrder,
-      });
-    }
-
     for (const item of updatedItemIds) {
       const resource: Model | null = await this.findOneById({
         id: item,
@@ -411,7 +358,7 @@ export class Service extends ProjectReferencesService<Model> {
       await this.tellLayerUserChange({
         scheduleId: resource.onCallDutyPolicyScheduleId,
         projectId: resource.projectId,
-        userId: resource.userId,
+        userIds: [resource.userId],
         props: onUpdate?.updateBy?.props,
       });
     }
@@ -423,57 +370,63 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A user moved to another place: where it is now is read here, and the
-   * users it passes step aside once the update has moved it - only the rows
-   * strictly between its old and new place (ContiguousOrder.afterMove).
-   * Nothing is written before the update.
+   * Moves a person to the turn another person of the layer has (POST
+   * /on-call-duty-policy-schedule-layer-user/:id/move,
+   * Types/Database/MoveInList): the people between them step one turn
+   * towards where they were, in one transaction holding the layer's people,
+   * and who is on call is worked out again - each person whose turn changed
+   * hears of it. The Layers page saves a new turn order with the rest of its
+   * changes (save-layers); a write of `order` places the person alone.
    */
   @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    await super.onBeforeUpdate(updateBy);
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const moved: ContiguousOrderMoved<Model> = await ContiguousOrder.move({
+      service: this,
+      rowId: data.id,
+      placeOfId: data.placeOfId,
+      listColumns: ORDER_LIST_COLUMNS,
+      alsoSelect: ["onCallDutyPolicyScheduleId"],
+      props: data.props,
+    });
 
-    let move: LayerUserMove | null = null;
+    const scheduleId: ObjectID | undefined =
+      moved.row.onCallDutyPolicyScheduleId;
 
-    // The one row an update names by its id is the one it moves.
-    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
-
-    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
-      const resource: Model | null = await this.findOneBy({
+    if (moved.changedRows.length > 0 && scheduleId) {
+      const people: Array<Model> = await this.findBy({
         query: {
-          _id: movedId,
+          _id: QueryHelper.any(
+            moved.changedRows.map((row: { id: string }): ObjectID => {
+              return new ObjectID(row.id);
+            }),
+          ),
         },
+        select: {
+          _id: true,
+          userId: true,
+        },
+        limit: moved.changedRows.length,
+        skip: 0,
         props: {
           isRoot: true,
         },
-        select: {
-          order: true,
-          onCallDutyPolicyScheduleLayerId: true,
-          projectId: true,
-          _id: true,
-        },
       });
 
-      if (
-        resource &&
-        resource.id &&
-        resource.order &&
-        resource.onCallDutyPolicyScheduleLayerId &&
-        resource.projectId
-      ) {
-        move = {
-          layerUserId: resource.id,
-          previousOrder: resource.order,
-          newOrder: updateBy.data.order as number,
-          onCallDutyPolicyScheduleLayerId:
-            resource.onCallDutyPolicyScheduleLayerId,
-          projectId: resource.projectId,
-        };
-      }
+      await this.tellLayerUserChange({
+        scheduleId: scheduleId,
+        projectId: moved.row.projectId,
+        userIds: people.map((person: Model): ObjectID | undefined => {
+          return person.userId;
+        }),
+        props: data.props,
+      });
     }
 
-    return { updateBy, carryForward: move };
+    return { changedRows: moved.changedRows };
   }
 }
 

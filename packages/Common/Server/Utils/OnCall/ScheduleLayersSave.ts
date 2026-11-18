@@ -55,8 +55,8 @@ import { EntityManager } from "typeorm";
  *      (a member of the project, to a layer of this schedule, by someone
  *      who may create the row), and moving a layer or a person - an edit of
  *      their order. The orders a deletion or an addition moves along are the
- *      save's own bookkeeping, as they are when each is made on its own
- *      (ContiguousOrder).
+ *      save's own bookkeeping, as the rows a move steps aside are when one
+ *      row is moved on its own (ContiguousOrder.move).
  *   5. One transaction: the schedule's row is locked, so another save of its
  *      layers waits, and so does anything added to it - a layer or a person
  *      names the schedule, and its foreign key reads the row. The layers and

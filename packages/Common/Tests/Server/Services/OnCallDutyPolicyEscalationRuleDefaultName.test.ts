@@ -44,6 +44,13 @@ interface CountCall {
 let countCalls: Array<CountCall>;
 let rulesInPolicy: number;
 let rulesBeforeOrder: number;
+/*
+ * The number of the policy's last rule, which a rule created without one
+ * goes after (ContiguousOrder.getAppendOrder): the count of its rules, for a
+ * policy numbered 1..n, unless a test says otherwise.
+ */
+let lastOrderInPolicy: number | null;
+let appendReads: Array<CountCall>;
 
 function makeRule(fields: Partial<OnCallDutyPolicyEscalationRule> = {}): {
   createBy: CreateBy<OnCallDutyPolicyEscalationRule>;
@@ -96,8 +103,10 @@ interface RawOperator {
 
 beforeEach(() => {
   countCalls = [];
+  appendReads = [];
   rulesInPolicy = 0;
   rulesBeforeOrder = 0;
+  lastOrderInPolicy = null;
 
   jest
     .spyOn(EscalationRuleService, "countBy")
@@ -109,7 +118,30 @@ beforeEach(() => {
       );
     });
 
-  // The rules that make room for a rule inserted in the middle: none here.
+  // The policy's last rule, by its number.
+  jest
+    .spyOn(EscalationRuleService, "findOneBy")
+    .mockImplementation(async (request: any) => {
+      appendReads.push({ query: request.query, props: request.props });
+
+      const order: number | null =
+        lastOrderInPolicy !== null
+          ? lastOrderInPolicy
+          : rulesInPolicy > 0
+            ? rulesInPolicy
+            : null;
+
+      if (order === null) {
+        return null;
+      }
+
+      const last: OnCallDutyPolicyEscalationRule =
+        new OnCallDutyPolicyEscalationRule();
+      last.order = order;
+      return last;
+    });
+
+  // Nothing reads the policy's other rules to move them: none here.
   jest.spyOn(EscalationRuleService, "findBy").mockResolvedValue([] as never);
   jest
     .spyOn(EscalationRuleService, "updateOneBy")
@@ -141,6 +173,41 @@ describe("a rule created without a name", () => {
 
     expect(result.createBy.data.order).toBe(1);
     expect(result.createBy.data.name).toBe("Level 1");
+  });
+
+  /*
+   * A deleted rule leaves its gap (ContiguousOrder), so a policy of two rules
+   * can be numbered 1 and 5: the new rule goes after the last of them, never
+   * at 3, between them.
+   */
+  test("goes after the policy's last rule when its rules have gaps, and is named by its place", async () => {
+    rulesInPolicy = 2;
+    rulesBeforeOrder = 2;
+    lastOrderInPolicy = 5;
+
+    const { createBy } = makeRule();
+    const result: OnCreate<OnCallDutyPolicyEscalationRule> =
+      await runOnBeforeCreate(createBy);
+
+    expect(result.createBy.data.order).toBe(6);
+    expect(result.createBy.data.name).toBe("Level 3");
+  });
+
+  test("reads the last rule of its own policy, in its project, as root", async () => {
+    rulesInPolicy = 2;
+
+    const { createBy } = makeRule();
+    createBy.props = { isRoot: true };
+    await runOnBeforeCreate(createBy);
+
+    expect(appendReads).toHaveLength(1);
+    expect(String(appendReads[0]!.query["onCallDutyPolicyId"])).toBe(
+      POLICY_ID.toString(),
+    );
+    expect(String(appendReads[0]!.query["projectId"])).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(appendReads[0]!.props["isRoot"]).toBe(true);
   });
 
   test("counts the rules ordered before it, of its own policy, as root", async () => {
@@ -324,16 +391,22 @@ describe("a rule created with a name", () => {
 });
 
 describe("the rest of the create hook", () => {
-  test("makes room for a rule inserted in the middle only once it is saved", async () => {
+  /*
+   * A rule created at a number keeps it and moves no other rule, before or
+   * after it is saved (ContiguousOrder, #9573): Terraform numbers a
+   * policy's rules one write each, all at once.
+   */
+  test("moves no other rule for a rule put in the middle, before or after it is saved", async () => {
     rulesInPolicy = 3;
     rulesBeforeOrder = 1;
 
     const { createBy, rule } = makeRule({ order: 2 });
-    await runOnBeforeCreate(createBy);
+    const result: OnCreate<OnCallDutyPolicyEscalationRule> =
+      await runOnBeforeCreate(createBy);
 
-    // Nothing is moved before the rule exists.
-    expect(EscalationRuleService.findBy).not.toHaveBeenCalled();
-    expect(EscalationRuleService.updateOneBy).not.toHaveBeenCalled();
+    expect(result.createBy.data.order).toBe(2);
+    // A rule given a number is numbered by nobody else.
+    expect(appendReads).toHaveLength(0);
 
     rule._id = "30000000-0000-4000-8000-000000000001";
 
@@ -346,15 +419,8 @@ describe("the rest of the create hook", () => {
       }
     ).onCreateSuccess({ createBy, carryForward: null }, rule);
 
-    // The rules of the same policy, in the rule's own project.
-    expect(EscalationRuleService.findBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          onCallDutyPolicyId: POLICY_ID,
-          projectId: PROJECT_ID,
-        }),
-      }),
-    );
+    expect(EscalationRuleService.findBy).not.toHaveBeenCalled();
+    expect(EscalationRuleService.updateOneBy).not.toHaveBeenCalled();
   });
 
   test("still refuses a rule with no policy", async () => {
