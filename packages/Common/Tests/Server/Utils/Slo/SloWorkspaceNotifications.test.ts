@@ -24,6 +24,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+// jest-mock's own mock type, what jest.fn from @jest/globals returns (#8598).
+import { Mock } from "jest-mock";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -185,7 +187,7 @@ describe("SloWorkspaceNotifications.postStatusChange", () => {
   const NOW: Date = new Date("2026-11-18T12:00:00.000Z");
 
   let cache: Map<string, JSONObject>;
-  let buildMarkdown: jest.Mock;
+  let buildMarkdown: Mock<(from: unknown) => Promise<MarkdownText>>;
   let readSpy: ReturnType<typeof jest.spyOn>;
   let writeSpy: ReturnType<typeof jest.spyOn>;
 
