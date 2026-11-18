@@ -191,9 +191,7 @@ describe("the read", () => {
     });
 
     expect(
-      parametersOf(
-        (askedWith().query as Record<string, unknown>)["userId"],
-      ),
+      parametersOf((askedWith().query as Record<string, unknown>)["userId"]),
     ).toHaveLength(MAX_PEOPLE_PER_INVITATION_EMAILS_READ);
   });
 
