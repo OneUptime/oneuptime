@@ -133,10 +133,10 @@ async function recordOf(page: Page): Promise<FixtureRecord> {
 async function open(
   page: Page,
   options: {
-    scene?: "attention" | "all-right" | "reference" | "down";
-    lang?: "de" | "fa";
-    theme?: "dark";
-    size?: { width: number; height: number };
+    scene?: "attention" | "all-right" | "reference" | "down" | undefined;
+    lang?: "de" | "fa" | undefined;
+    theme?: "dark" | undefined;
+    size?: { width: number; height: number } | undefined;
   } = {},
 ): Promise<Locator> {
   await page.setViewportSize(options.size || LAPTOP);
