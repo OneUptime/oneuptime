@@ -48,7 +48,8 @@ const SloDeploymentsCell: FunctionComponent<ComponentProps> = (
                 freeze.frozenAt,
               ),
             })
-          : translator.translateText(POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT)
+          : translator.translateText(POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT) ||
+            POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT
       }
       isUserContent={true}
       tooltip={
