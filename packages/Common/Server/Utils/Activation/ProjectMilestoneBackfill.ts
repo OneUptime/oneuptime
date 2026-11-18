@@ -26,8 +26,8 @@ import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../../Types/OnC
  *     result is kept in ClickHouse for only a day or so;
  *   - telemetry of each kind: the first day it was metered
  *     (TelemetryUsageBilling), which only an installation with billing on
- *     keeps - OneUptime Cloud. Elsewhere a project's first batch after the
- *     upgrade keeps it, at that time;
+ *     keeps - OneUptime Cloud, for what it bills. What that misses is read
+ *     from ClickHouse itself by TelemetryMilestoneBackfill (#9454);
  *   - a test page acknowledged: nothing to fill it from (#6811 is new).
  *
  * Walks the projects in primary key order, a batch at a time, so each

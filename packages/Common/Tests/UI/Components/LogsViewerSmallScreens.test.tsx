@@ -355,17 +355,22 @@ describe("the facets + list area below md", () => {
 });
 
 describe("the toolbar row below md", () => {
-  test("wraps its two groups onto their own rows below md, and is one row from md up", async () => {
+  test("wraps its two groups onto their own rows below md, and from md up shares one row while both fit", async () => {
     await renderViewer();
 
-    expect(toolbar()).toHaveClass(
-      "flex",
-      "flex-wrap",
-      "justify-between",
-      "md:flex-nowrap",
-    );
-    // A bare flex-nowrap is the regression: both groups on one phone row.
-    expect(classTokens(toolbar())).not.toContain("flex-nowrap");
+    expect(toolbar()).toHaveClass("flex", "flex-wrap", "justify-between");
+    /*
+     * A bare flex-nowrap is the regression: both groups on one phone row.
+     * And md:flex-nowrap, which held them to one row from md up, broke each
+     * group into ragged lines where both did not fit, and kept Create
+     * monitor's words hidden there to make room (#9455): the display
+     * controls take a row of their own instead.
+     */
+    expect(
+      classTokens(toolbar()).filter((token: string): boolean => {
+        return token.endsWith("flex-nowrap");
+      }),
+    ).toEqual([]);
 
     const groups: Array<Element> = Array.from(toolbar().children);
     expect(groups).toHaveLength(2);
@@ -377,9 +382,14 @@ describe("the toolbar row below md", () => {
       "flex-wrap",
       "justify-start",
       "md:justify-end",
+      "md:ms-auto",
     );
-    // From md up the right group hugs the right edge, as it always did.
+    /*
+     * From md up the right group hugs the end of its row, as it always did,
+     * on the left group's row or on its own.
+     */
     expect(classTokens(rightGroup)).not.toContain("justify-end");
+    expect(classTokens(rightGroup)).not.toContain("ms-auto");
   });
 
   test("the toggle is the first control, so on a phone it sits right under the search", async () => {

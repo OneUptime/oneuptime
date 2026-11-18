@@ -520,7 +520,7 @@ When something does not work, run the doctor in the `oneuptime` folder:
 npm run doctor
 ```
 
-It lists what is wrong, worst first, each line with the exact fix, and ends with **Everything looks right.** or the number of things to fix. It checks every container and shows the last lines of the log of any that is not running, `config.env`, that `HOST` reaches this server, the certificate when `PROVISION_SSL` is on, and free disk. It also asks OneUptime what it sees of itself: PostgreSQL, ClickHouse and Valkey, the migrations, the queues, the version, and the server's setup steps, such as email and probes. `npm start` ends with the same checks, and says only what needs attention.
+It lists what is wrong, worst first, each line with the exact fix, and ends with **Everything looks right.** or the number of things to fix. It checks every container and shows the last lines of the log of any that is not running, `config.env`, that `HOST` reaches this server and that a proxy in front of it passes on the host name and `X-Forwarded-Proto`, the certificate when `PROVISION_SSL` is on, and free disk. It also asks OneUptime what it sees of itself: PostgreSQL, ClickHouse and Valkey, the migrations, the queues, the version, and the server's setup steps, such as email and probes. Lines marked • are worth knowing but no fault, and are not counted: which products are switched off on this server, and where that was set. A name in `SERVER_PRODUCTS` that OneUptime does not know is marked ! as worth a look. `npm start` ends with the same checks, and says only what needs attention.
 
 To see the recent errors of every service as well, each with the service named:
 
@@ -528,7 +528,7 @@ To see the recent errors of every service as well, each with the service named:
 npm run doctor -- --logs
 ```
 
-It exits with `1` when something marked ✗ needs fixing, so a script can run it. The Admin Dashboard shows what OneUptime sees of itself at the top of **OneUptime Health**, and on Kubernetes `HelmChart/Public/diagnose.sh` prints it.
+It exits with `1` when something marked ✗ needs fixing, so a script can run it. The Admin Dashboard shows what OneUptime sees of itself at the top of **OneUptime Health**, and on Kubernetes `HelmChart/Public/diagnose.sh` prints it, then checks the address people open and its certificate.
 
 ## Troubleshooting
 

@@ -59,8 +59,10 @@ import AddResourceGuide, {
 import AddResourceModal from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOnboarding/AddResourceModal";
 import {
   RESOURCE_ADDED,
+  RESOURCE_CONNECTION_ALREADY_RECEIVING,
   RESOURCE_CONNECTION_POLL_INTERVAL_MS,
   RESOURCE_NAME_FIELD_HINT,
+  canOnlySpotNewService,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOnboarding/ResourceOnboarding";
 import KUBERNETES_CLUSTER_ONBOARDING from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesClusterOnboarding";
 import SERVERLESS_FUNCTION_ONBOARDING from "../../../../App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessFunctionOnboarding";
@@ -1546,9 +1548,114 @@ describe("a telemetry guide's last step, for the project's first data of its sig
     await openLogsGuide();
     await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 3);
 
-    expect(screen.getByTestId("resource-connection-waiting")).toHaveTextContent(
-      "Waiting for the first data. This step updates by itself.",
-    );
+    expect(
+      screen.getByTestId("resource-connection-waiting"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("resource-connection-data-arrived")).toBeNull();
+  });
+
+  /*
+   * #9456: the project has its logs, the key sends already, and a second
+   * shipper's logs name no service - FluentBit for another host. Neither the
+   * mark nor the key's first data is still to come, so nothing can tell its
+   * lines from the ones before them, and the step said "Waiting for the
+   * first data" for good while they were in the explorer. It says what it
+   * can still see, and links to where the rest shows.
+   */
+  describe("in a project that receives the guide's data already, on a key that sends already", () => {
+    test("says only a new service finishes it, and links to the explorer, where data that names none shows", async () => {
+      keep(ActivationMilestone.FirstLogsReceived);
+      const step: HTMLElement = await openLogsGuide();
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      const waiting: HTMLElement = within(step).getByTestId(
+        "resource-connection-waiting",
+      );
+
+      expect(
+        within(waiting).getByTestId("resource-connection-already-receiving"),
+      ).toHaveTextContent(RESOURCE_CONNECTION_ALREADY_RECEIVING);
+      expect(waiting).not.toHaveTextContent("Waiting for the first data");
+      expect(
+        within(waiting).getByRole("link", { name: "View logs" }),
+      ).toHaveAttribute("href", `/dashboard/${PROJECT_ID.toString()}/logs`);
+      // Still a step that waits: it updates by itself when a service reports.
+      expect(waiting).toHaveAttribute("role", "status");
+    });
+
+    test("a second shipper's lines finish nothing, and a new service still does, with its own link", async () => {
+      keep(ActivationMilestone.FirstLogsReceived);
+      await openLogsGuide();
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      // FluentBit's lines: the key is stamped again, and no service registers.
+      rowsOf(TelemetryIngestionKey).find((row: Row): boolean => {
+        return String(row["_id"]) === PRODUCTION_KEY_ID;
+      })!["lastUsedAt"] = new Date(Date.now() + 60000);
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 2);
+
+      expect(
+        screen.getByTestId("resource-connection-already-receiving"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("resource-connection-data-arrived"),
+      ).toBeNull();
+
+      arrive({
+        modelType: Service,
+        id: 21,
+        name: "billing-worker",
+        nameField: "name",
+      });
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      expect(
+        screen.getByTestId("resource-connection-connected"),
+      ).toHaveTextContent(
+        "billing-worker is connected. Its data arrives within a minute or two.",
+      );
+      expect(
+        screen.queryByTestId("resource-connection-already-receiving"),
+      ).toBeNull();
+    });
+
+    test("a key that has sent nothing yet: its first data is still to come, so the step waits for it", async () => {
+      keep(ActivationMilestone.FirstLogsReceived);
+      await show(<TelemetryDocumentation telemetryType="logs" />);
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      expect(
+        screen.getByTestId("resource-connection-waiting"),
+      ).toHaveTextContent(
+        "Waiting for the first data. This step updates by itself.",
+      );
+      expect(
+        screen.queryByTestId("resource-connection-already-receiving"),
+      ).toBeNull();
+
+      rowsOf(TelemetryIngestionKey).find((row: Row): boolean => {
+        return String(row["_id"]) === PRODUCTION_KEY_ID;
+      })!["lastUsedAt"] = new Date();
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      expect(
+        screen.getByTestId("resource-connection-data-arrived"),
+      ).toHaveTextContent(
+        "The first data arrived with the key Production. It shows up within a minute or two.",
+      );
+    });
+
+    test("a project without the guide's first logs waits for them, whatever its key has sent", async () => {
+      keep(ActivationMilestone.FirstTracesReceived);
+      await openLogsGuide();
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 2);
+
+      expect(
+        screen.getByTestId("resource-connection-waiting"),
+      ).toHaveTextContent(
+        "Waiting for the first data. This step updates by itself.",
+      );
+    });
   });
 
   test("another signal's first data finishes nothing: the project's first traces are not the logs", async () => {
@@ -1759,6 +1866,23 @@ describe("a telemetry guide's last step, for the project's first data of its sig
       ).toBeNull();
     });
 
+    test("a project that has every mark already keeps the setup's own line: a service is what it asks for anyway", async () => {
+      keep(ActivationMilestone.FirstTracesReceived);
+      keep(ActivationMilestone.FirstMetricsReceived);
+      keep(ActivationMilestone.FirstLogsReceived);
+      await show(watch());
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 2);
+
+      expect(
+        screen.getByTestId("resource-connection-waiting"),
+      ).toHaveTextContent(
+        "Waiting for the first data. This step updates by itself.",
+      );
+      expect(
+        screen.queryByTestId("resource-connection-already-receiving"),
+      ).toBeNull();
+    });
+
     test("a read of the marks that fails says nothing, and the services are still checked", async () => {
       jest.spyOn(ModelAPI, "getList").mockImplementation(((data: {
         modelType: { new (): BaseModel };
@@ -1806,6 +1930,66 @@ describe("a telemetry guide's last step, for the project's first data of its sig
         screen.getByTestId("resource-connection-connected"),
       ).toBeInTheDocument();
     });
+  });
+});
+
+describe("canOnlySpotNewService (#9456)", () => {
+  test("only once the project had every mark, and the key watched had sent, before the step looked", () => {
+    const sent: Date = new Date("2026-11-17T10:00:00.000Z");
+
+    expect(
+      canOnlySpotNewService({
+        hadEveryMarkAtFirstLook: true,
+        isWatchingKey: true,
+        keyLastUsedAtFirstLook: sent,
+      }),
+    ).toBe(true);
+    expect(
+      canOnlySpotNewService({
+        hadEveryMarkAtFirstLook: true,
+        isWatchingKey: true,
+        keyLastUsedAtFirstLook: sent.toISOString(),
+      }),
+    ).toBe(true);
+    // No key watched: only a mark could have told, and every mark is in.
+    expect(
+      canOnlySpotNewService({
+        hadEveryMarkAtFirstLook: true,
+        isWatchingKey: false,
+        keyLastUsedAtFirstLook: undefined,
+      }),
+    ).toBe(true);
+  });
+
+  test("a key that had sent nothing, or was not looked at yet, still has its first data to come", () => {
+    for (const keyLastUsedAtFirstLook of [null, undefined]) {
+      expect(
+        canOnlySpotNewService({
+          hadEveryMarkAtFirstLook: true,
+          isWatchingKey: true,
+          keyLastUsedAtFirstLook,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("a mark missing at the first look, or a look not made yet, is still to come", () => {
+    for (const hadEveryMarkAtFirstLook of [false, null]) {
+      expect(
+        canOnlySpotNewService({
+          hadEveryMarkAtFirstLook,
+          isWatchingKey: true,
+          keyLastUsedAtFirstLook: new Date(),
+        }),
+      ).toBe(false);
+      expect(
+        canOnlySpotNewService({
+          hadEveryMarkAtFirstLook,
+          isWatchingKey: false,
+          keyLastUsedAtFirstLook: undefined,
+        }),
+      ).toBe(false);
+    }
   });
 });
 

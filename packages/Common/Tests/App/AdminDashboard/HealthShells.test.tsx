@@ -569,9 +569,22 @@ describe("Health > Overview (the landing page)", () => {
 
     render(<HealthLanding />);
 
+    /*
+     * The capacity card says it - and so does What needs attention above
+     * it, whose read failed the same way and says the server's answer too.
+     */
+    const shown: Array<HTMLElement> = await screen.findAllByText(
+      "ClickHouse capacity is unavailable",
+    );
+    const whatNeedsAttention: HTMLElement = await screen.findByTestId(
+      "installation-health",
+    );
+
     expect(
-      await screen.findByText("ClickHouse capacity is unavailable"),
-    ).toBeInTheDocument();
+      shown.filter((element: HTMLElement): boolean => {
+        return !whatNeedsAttention.contains(element);
+      }),
+    ).toHaveLength(1);
   });
 
   test("says when ClickHouse cannot be reached", async () => {

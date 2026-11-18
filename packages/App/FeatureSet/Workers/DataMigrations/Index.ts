@@ -195,6 +195,7 @@ import MaskWebhookAddressesInLogs from "./MaskWebhookAddressesInLogs";
 import RestoreCutMicrosoftTeamsChatIds from "./RestoreCutMicrosoftTeamsChatIds";
 import BackfillNetworkDeviceManufacturer from "./BackfillNetworkDeviceManufacturer";
 import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledgedBeforeFirstSteps";
+import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilestonesFromClickhouse";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1398,6 +1399,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new NoteTestPagesAcknowledgedBeforeFirstSteps(),
+  /*
+   * The first-data marks of telemetry sent before the marks were kept
+   * (#9454): each project whose logs, traces, metrics, exceptions or
+   * profiles ClickHouse holds gets the mark of that kind, at its earliest
+   * row, so its Logs page does not explain itself over its own logs and the
+   * products menu does not call Logs "Not set up". After
+   * BackfillProjectMilestones, whose metered usage missed them; a batch of
+   * projects at a time, every statement and the whole run bounded, a table
+   * the install never had skipped, a failed read logged and never thrown.
+   * Idempotent; before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new BackfillTelemetryMilestonesFromClickhouse(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

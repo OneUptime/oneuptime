@@ -29,6 +29,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 import ErrorMessage from "../../../UI/Components/ErrorMessage/ErrorMessage";
+import { getUnexplainedServerErrorMessage } from "../../../Types/Exception/UnexplainedError";
 
 describe("ErrorMessage refresh control", () => {
   afterEach(() => {
@@ -79,5 +80,21 @@ describe("ErrorMessage refresh control", () => {
     render(<ErrorMessage message="Nothing here" />);
 
     expect(screen.queryByTestId("refresh-button")).not.toBeInTheDocument();
+  });
+
+  /*
+   * Its lines are centred, so a failure the server could not explain has
+   * its reference's row centred under them too: it sat at their start, under
+   * a centred "Try again", in every list that failed.
+   */
+  test("centres the reference of a failure nobody explained under its centred lines", () => {
+    render(
+      <ErrorMessage
+        message={getUnexplainedServerErrorMessage("9c4e1a07")}
+        onRefreshClick={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("error-reference")).toHaveClass("justify-center");
   });
 });

@@ -56825,5 +56825,6 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されています。それまでは本人の {{kept}} のステップが残ります。",
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されています。",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "このサーバーは現在 SMS を送信できないため、番号を追加するためのコードが届きません。サーバー管理者に SMS と電話の設定を依頼してください。",
-  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "このサーバーは現在 SMS を送信できないため、番号を追加するためのコードが届きません。Admin Dashboard で SMS と電話を設定してください。"
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "このサーバーは現在 SMS を送信できないため、番号を追加するためのコードが届きません。Admin Dashboard で SMS と電話を設定してください。",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "このプロジェクトはすでにこのデータを受信しているため、このステップは新しいサービスがデータを送信すると完了します。サービス名のないデータは、届きしだいエクスプローラーに表示されます。"
 }

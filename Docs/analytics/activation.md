@@ -49,17 +49,17 @@ Each milestone is set once per project, on the server, the first time it becomes
 | `activation/first_status_page_monitor_added` | A status page first shows a monitor or a monitor group | `StatusPageResourceService.onCreateSuccess` | `StatusPageResource` |
 | `activation/first_status_page_subscriber_added` | A status page has its first subscriber who can be sent updates (confirmed) | `StatusPageSubscriberService` (create and confirmation) | Confirmed `StatusPageSubscriber` rows |
 | `activation/first_on_call_policy_executed` | An on-call policy runs for the first time. A direct page, a test of the policy, or an archived policy's log, does not count | `OnCallDutyPolicyExecutionLogService.onCreateSuccess` | `OnCallDutyPolicyExecutionLog` |
-| `activation/first_logs_received` | ClickHouse accepts the project's first logs | `TelemetryFanInWriter.submit`, and for a network device's syslog and SNMP traps `ProbeSyslogIngestService` and `SnmpTrapLogWriter` (`TelemetryMilestones.markInserted`) | `TelemetryUsageBilling` (billing on) |
-| `activation/first_traces_received` | ClickHouse accepts the project's first spans | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
-| `activation/first_metrics_received` | ClickHouse accepts the project's first metrics | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
-| `activation/first_exceptions_received` | ClickHouse accepts the project's first exceptions | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
-| `activation/first_profiles_received` | ClickHouse accepts the project's first profiles | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
+| `activation/first_logs_received` | ClickHouse accepts the project's first logs | `TelemetryFanInWriter.submit`, and for a network device's syslog and SNMP traps `ProbeSyslogIngestService` and `SnmpTrapLogWriter` (`TelemetryMilestones.markInserted`) | `TelemetryUsageBilling` (billing on), then the earliest row of `LogItemV3` in ClickHouse |
+| `activation/first_traces_received` | ClickHouse accepts the project's first spans | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on), then the earliest row of `SpanItemV3` in ClickHouse |
+| `activation/first_metrics_received` | ClickHouse accepts the project's first metrics | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on), then the earliest row of `MetricItemV3` in ClickHouse |
+| `activation/first_exceptions_received` | ClickHouse accepts the project's first exceptions | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on), then the earliest row of `ExceptionItemV3` in ClickHouse |
+| `activation/first_profiles_received` | ClickHouse accepts the project's first profiles | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on), then the earliest row of `ProfileItemV3` and `ProfileSampleItemV3` in ClickHouse |
 
-**The backfill.** A one-off data migration, `BackfillProjectMilestones`, filled the milestones of projects that existed before milestones were kept, from the data they already had. Those rows have `wasBackfilled = true`, and no event was sent for them. Their times are the best the data has:
+**The backfill.** A one-off data migration, `BackfillProjectMilestones`, filled the milestones of projects that existed before milestones were kept, from the data they already had. A second, `BackfillTelemetryMilestonesFromClickhouse` (#9454), filled the telemetry milestones it could not: metered usage holds nothing on a self-hosted server that had not metered yet, and on OneUptime Cloud only what was billed. Those rows have `wasBackfilled = true`, and no event was sent for them. Their times are the best the data has:
 
 - Monitors, status pages, subscribers, acknowledgements, on-call runs and pages: exact, unless the record has since been deleted.
 - Check results: approximate. A stored result is kept for only about a day.
-- Telemetry: the first day it was metered, which only an installation with billing on keeps.
+- Telemetry: the first day it was metered, which only an installation with billing on keeps; otherwise the earliest row of the kind ClickHouse still held at the upgrade, within the telemetry's retention, never before the project was created.
 
 ## Server events
 

@@ -92,6 +92,10 @@
  *   ?lang=     de | fa: the page in German or Persian, from the Dashboard's
  *              own locale files, its <html lang> and dir set by the
  *              production helper. English without it.
+ *   ?admin=1   the signed-in user is also this self-hosted server's master
+ *              admin, who is told where to look when the server fails: the
+ *              doctor's command, in code with a copy button (#7539), and
+ *              OneUptime Health. Not one without it.
  *   ?security= what Security Events says about the hosts the subject
  *              monitor checks, on its Security card (POST /security-case/
  *              resource-security): news (an open case, a week of events
@@ -2759,8 +2763,11 @@ function metricRows(aggregateBy) {
  * Identity and data-layer stubs
  * ---------------------------------------------------------------------------
  */
+// The server's master admin too, with ?admin=1 (#7539).
+const isServerMasterAdmin = params.get("admin") === "1";
+
 UserUtil.isMasterAdmin = () => {
-  return false;
+  return isServerMasterAdmin;
 };
 UserUtil.getUserId = () => {
   return people.maya.id;

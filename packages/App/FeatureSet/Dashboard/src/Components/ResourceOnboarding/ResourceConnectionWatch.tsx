@@ -31,6 +31,7 @@ import PageMap from "../../Utils/PageMap";
 import ProjectProducts from "../../Utils/ProjectProducts/ProjectProductsStore";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
+  RESOURCE_CONNECTION_ALREADY_RECEIVING,
   RESOURCE_CONNECTION_CONNECTED,
   RESOURCE_CONNECTION_DATA_ARRIVED,
   RESOURCE_CONNECTION_DATA_NAMES_NO_SERVICE,
@@ -39,6 +40,7 @@ import {
   RESOURCE_CONNECTION_WAITING,
   RESOURCE_CONNECTION_WAITING_FOR_NAME,
   SERVICE_NAME_ATTRIBUTE,
+  canOnlySpotNewService,
   hasKeySentFirstData,
   hasReportedSince,
   pickConnectedRecord,
@@ -82,6 +84,13 @@ import {
  * alone does not finish its step (`isServiceRequired`): a mark that arrives
  * with no service says the data names none, and how to name one, and the
  * step waits on.
+ *
+ * A project that has the guide's data already, on a key that sends already
+ * - the Logs Setup Guide opened to add a second shipper - has neither a
+ * mark nor a key's first data still to come, so data that names no service
+ * cannot be told from what came before it (#9456). The step says so: only
+ * a new service finishes it, and such data shows in the explorer, which it
+ * links to (canOnlySpotNewService).
  *
  * Either moment tells the products menu (#8204), so it does not say
  * "Logs - Not set up" beside a guide that says the data is in: the record
@@ -215,6 +224,12 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
   // Data arrived that names no service, where only a service will do.
   const [hasDataWithoutService, setHasDataWithoutService] =
     useState<boolean>(false);
+  /*
+   * The project receives the guide's data already, on the key watched:
+   * only a new service is still to come (canOnlySpotNewService).
+   */
+  const [isOnlyNewServiceToCome, setIsOnlyNewServiceToCome] =
+    useState<boolean>(false);
 
   // The latest name and callback, without restarting the watch on each key.
   const nameRef: MutableRefObject<string | undefined> = useRef<
@@ -253,6 +268,10 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
    */
   const firstDataLookRef: MutableRefObject<Set<string> | null> =
     useRef<Set<string> | null>(null);
+  // Every one of the guide's marks was kept at that first look.
+  const hadEveryMarkAtFirstLookRef: MutableRefObject<boolean | null> = useRef<
+    boolean | null
+  >(null);
   const hasFirstDataArrivedRef: MutableRefObject<boolean> =
     useRef<boolean>(false);
   // The guide's first data was said: the products told, the callback called.
@@ -322,6 +341,34 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     );
   const ingestionKeyId: string | undefined =
     props.ingestionKey?.id?.toString() || undefined;
+  const ingestionKeyIdRef: MutableRefObject<string | undefined> = useRef<
+    string | undefined
+  >(ingestionKeyId);
+  ingestionKeyIdRef.current = ingestionKeyId;
+
+  /*
+   * Whether only a new service is still to come, once the first looks are
+   * in: the marks', and the watched key's.
+   */
+  const noteWhatIsStillToCome: () => void = (): void => {
+    const keyId: string | undefined = ingestionKeyIdRef.current;
+
+    setIsOnlyNewServiceToCome(
+      canOnlySpotNewService({
+        hadEveryMarkAtFirstLook: hadEveryMarkAtFirstLookRef.current,
+        isWatchingKey: Boolean(keyId),
+        keyLastUsedAtFirstLook:
+          keyId && keyFirstLooksRef.current.has(keyId)
+            ? keyFirstLooksRef.current.get(keyId)
+            : undefined,
+      }),
+    );
+  };
+
+  // Another key watched: what it had sent decides again.
+  useEffect(() => {
+    noteWhatIsStillToCome();
+  }, [ingestionKeyId]);
 
   const existingId: string | undefined = props.existing?.id.toString();
   const existingLastSeenAt: number | undefined =
@@ -486,6 +533,16 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
 
           if (!firstLook) {
             firstDataLookRef.current = reached;
+            hadEveryMarkAtFirstLookRef.current = milestones.every(
+              (milestone: ActivationMilestone): boolean => {
+                return reached.has(milestone);
+              },
+            );
+
+            if (isMounted) {
+              noteWhatIsStillToCome();
+            }
+
             return false;
           }
 
@@ -613,6 +670,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
 
         if (!firstLooks.has(keyId)) {
           firstLooks.set(keyId, key.lastUsedAt || null);
+          noteWhatIsStillToCome();
           return;
         }
 
@@ -747,6 +805,58 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
             }}
           />
         </span>
+      </div>
+    );
+  }
+
+  /*
+   * The project receives the guide's data already, on the key watched: the
+   * step waits for a new service, and says where data that names none
+   * shows (#9456), instead of waiting for "the first data" for good.
+   */
+  if (
+    !connected &&
+    isOnlyNewServiceToCome &&
+    !props.isServiceRequired &&
+    !props.name
+  ) {
+    return (
+      <div
+        className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+        role="status"
+        aria-live="polite"
+        data-testid="resource-connection-waiting"
+      >
+        <span className="relative mt-1.5 flex h-2.5 w-2.5 flex-shrink-0">
+          {/* The dot's own indigo: a mid-tone reads the same in the dark theme. */}
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-75 motion-reduce:animate-none" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-500" />
+        </span>
+        {/*
+         * The sentence keeps at least 14rem, as the step's other lines do:
+         * in a narrow box the link goes under it.
+         */}
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <span
+            className="min-w-0 flex-1 basis-56 break-words"
+            data-testid="resource-connection-already-receiving"
+          >
+            {translator.translateText(RESOURCE_CONNECTION_ALREADY_RECEIVING)}
+          </span>
+          {props.dataPage ? (
+            <AppLink
+              to={RouteUtil.populateRouteParams(
+                RouteMap[props.dataPage] as Route,
+              )}
+              className="font-medium text-indigo-600 underline hover:text-indigo-800"
+              onNavigateComplete={props.onView}
+            >
+              {translator.translateText(props.viewText) || props.viewText}
+            </AppLink>
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
     );
   }

@@ -56825,5 +56825,6 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌으며, 그동안 본인의 {{kept}} 단계는 유지됩니다.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌습니다.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "이 서버는 지금 SMS를 보낼 수 없어 번호 추가에 필요한 코드를 받을 수 없습니다. 서버 관리자에게 SMS와 전화 설정을 요청하세요.",
-  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "이 서버는 지금 SMS를 보낼 수 없어 번호 추가에 필요한 코드를 받을 수 없습니다. Admin Dashboard에서 SMS와 전화를 설정하세요."
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "이 서버는 지금 SMS를 보낼 수 없어 번호 추가에 필요한 코드를 받을 수 없습니다. Admin Dashboard에서 SMS와 전화를 설정하세요.",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "이 프로젝트는 이미 이 데이터를 받고 있으므로, 새 서비스가 보고하면 이 단계가 완료됩니다. 서비스 이름이 없는 데이터는 도착하는 대로 탐색기에 표시됩니다."
 }

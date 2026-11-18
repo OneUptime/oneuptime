@@ -1127,7 +1127,11 @@ export default class StatusPageAPI extends BaseAPI<
      * The custom domain readiness proof: answers 200 only to a proof signed
      * with this installation's secret (CustomDomainServerReadiness), so the
      * readiness check can tell a request that reached this OneUptime from
-     * one a proxy in front of it answered itself. Reads and writes nothing.
+     * one a proxy in front of it answered itself. The answer also says how
+     * the request arrived - its host name and whether it came over HTTPS -
+     * so `npm run doctor` and diagnose.sh can tell whether a proxy in front
+     * passes those on (CustomDomainServerReadiness.answerTo). Reads and
+     * writes nothing.
      */
     this.router.get(
       `${new this.entityType()
@@ -1146,7 +1150,11 @@ export default class StatusPageAPI extends BaseAPI<
 
         Response.setNoCacheHeaders(res);
 
-        return Response.sendJsonObjectResponse(req, res, { proof: proof });
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          CustomDomainServerReadiness.answerTo({ proof: proof, req: req }),
+        );
       },
     );
 

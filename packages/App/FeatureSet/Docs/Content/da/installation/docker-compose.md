@@ -520,7 +520,7 @@ Når noget ikke virker, så kør doctor i mappen `oneuptime`:
 npm run doctor
 ```
 
-Den viser, hvad der er galt, det alvorligste først, hver linje med den præcise løsning, og slutter med **Everything looks right.** eller antallet af ting, der skal rettes. Den tjekker hver container og viser de sidste linjer af loggen for dem, der ikke kører, `config.env`, at `HOST` når denne server, certifikatet, når `PROVISION_SSL` er slået til, og ledig diskplads. Den spørger også OneUptime, hvad den ser af sig selv: PostgreSQL, ClickHouse og Valkey, migreringerne, køerne, versionen og serverens opsætningstrin, såsom e-mail og sonder. `npm start` slutter med de samme tjek og nævner kun det, der kræver opmærksomhed.
+Den viser, hvad der er galt, det alvorligste først, hver linje med den præcise løsning, og slutter med **Everything looks right.** eller antallet af ting, der skal rettes. Den tjekker hver container og viser de sidste linjer af loggen for dem, der ikke kører, `config.env`, at `HOST` når denne server, og at en proxy foran den sender værtsnavnet og `X-Forwarded-Proto` videre, certifikatet, når `PROVISION_SSL` er slået til, og ledig diskplads. Den spørger også OneUptime, hvad den ser af sig selv: PostgreSQL, ClickHouse og Valkey, migreringerne, køerne, versionen og serverens opsætningstrin, såsom e-mail og sonder. Linjer markeret med • er gode at vide, men ikke en fejl, og tælles ikke med: hvilke produkter der er slået fra på denne server, og hvor det blev valgt. Et navn i `SERVER_PRODUCTS`, som OneUptime ikke kender, markeres med ! som værd at se på. `npm start` slutter med de samme tjek og nævner kun det, der kræver opmærksomhed.
 
 For også at se de seneste fejl fra hver tjeneste, hver med tjenestens navn:
 
@@ -528,7 +528,7 @@ For også at se de seneste fejl fra hver tjeneste, hver med tjenestens navn:
 npm run doctor -- --logs
 ```
 
-Den afslutter med koden `1`, når noget markeret med ✗ skal rettes, så et script kan køre den. Admin Dashboard viser øverst på **OneUptime-tilstand**, hvad OneUptime ser af sig selv, og på Kubernetes udskriver `HelmChart/Public/diagnose.sh` det.
+Den afslutter med koden `1`, når noget markeret med ✗ skal rettes, så et script kan køre den. Admin Dashboard viser øverst på **OneUptime-tilstand**, hvad OneUptime ser af sig selv, og på Kubernetes udskriver `HelmChart/Public/diagnose.sh` det og tjekker derefter den adresse, folk åbner, og dens certifikat.
 
 ## Fejlfinding
 
