@@ -245,6 +245,11 @@ describe("findWatchableProbes", () => {
         isGlobalProbe: true,
         connectionStatus: true,
         lastAlive: true,
+        // Whether it is behind (#9501), as its page reads it.
+        checksLateSince: true,
+        checksLastLateAt: true,
+        devicePollsLateSince: true,
+        devicePollsLastLateAt: true,
       });
       expect((call[0] as FindByArgs).props.isRoot).toBe(true);
     }

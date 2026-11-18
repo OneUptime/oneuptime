@@ -193,6 +193,7 @@ enum MonitorMetricType {
    */
   ConnectedProbes = "oneuptime.monitor.probes.connected",
   DisconnectedProbes = "oneuptime.monitor.probes.disconnected",
+  ProbesBehind = "oneuptime.monitor.probes.behind",
 }
 
 export default MonitorMetricType;

@@ -135,6 +135,7 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.ConnectedProbes:
         return AggregationType.Min;
       case MonitorMetricType.DisconnectedProbes:
+      case MonitorMetricType.ProbesBehind:
         return AggregationType.Max;
 
       default:
@@ -232,6 +233,8 @@ class MonitorMetricTypeUtil {
         return MonitorMetricType.ConnectedProbes;
       case CheckOn.DisconnectedProbes:
         return MonitorMetricType.DisconnectedProbes;
+      case CheckOn.ProbesBehind:
+        return MonitorMetricType.ProbesBehind;
       default:
         throw new Error("Invalid CheckOn value");
     }
@@ -351,6 +354,7 @@ class MonitorMetricTypeUtil {
       return [
         MonitorMetricType.ConnectedProbes,
         MonitorMetricType.DisconnectedProbes,
+        MonitorMetricType.ProbesBehind,
       ];
     }
 
@@ -530,10 +534,11 @@ class MonitorMetricTypeUtil {
         {
           title: "Probes",
           description:
-            "How many of the probes this monitor watches were connected and disconnected, minute by minute.",
+            "How many of the probes this monitor watches were connected, disconnected and behind, minute by minute.",
           metrics: [
             MonitorMetricType.ConnectedProbes,
             MonitorMetricType.DisconnectedProbes,
+            MonitorMetricType.ProbesBehind,
           ],
         },
       ];
@@ -681,6 +686,8 @@ class MonitorMetricTypeUtil {
         return translationKey("Connected Probes");
       case MonitorMetricType.DisconnectedProbes:
         return translationKey("Disconnected Probes");
+      case MonitorMetricType.ProbesBehind:
+        return translationKey("Probes Behind");
       default:
         return "";
     }
@@ -785,6 +792,7 @@ class MonitorMetricTypeUtil {
         return "processes";
       case MonitorMetricType.ConnectedProbes:
       case MonitorMetricType.DisconnectedProbes:
+      case MonitorMetricType.ProbesBehind:
         return "probes";
       default:
         return "";
@@ -1011,6 +1019,10 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.DisconnectedProbes:
         return translationKey(
           "Probes with no heartbeat for three minutes, at each evaluation.",
+        );
+      case MonitorMetricType.ProbesBehind:
+        return translationKey(
+          "Connected probes whose monitors or network devices wait more than a minute past their time, at each evaluation.",
         );
       default:
         return "";

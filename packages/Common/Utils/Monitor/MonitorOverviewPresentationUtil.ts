@@ -2434,9 +2434,9 @@ export default class MonitorOverviewPresentationUtil {
 
   /*
    * A Probe Status monitor's newest evaluation, in the hero: which of its
-   * probes are disconnected, by name, or that they all are connected. It
-   * reads the same log row as the pulse's "Last evaluated", so the two
-   * never describe different evaluations.
+   * probes are disconnected, by name; else which are behind (#9501); or
+   * that they all are connected. It reads the same log row as the pulse's
+   * "Last evaluated", so the two never describe different evaluations.
    */
   private static getProbeStatusResultFact(
     input: MonitorOverviewPresentationInput,
@@ -2513,6 +2513,28 @@ export default class MonitorOverviewPresentationUtil {
           ProbeStatusMonitorUtil.getDisconnectedProbes({ probes: probes }),
         ),
         tone: "danger",
+      };
+    }
+
+    /*
+     * Connected, but some do not keep up (#9501): which, by name - their
+     * monitors checked, or network devices polled, later than set.
+     */
+    const behind: Array<ProbeStatusMonitorProbe> =
+      ProbeStatusMonitorUtil.getBehindProbes({ probes: probes });
+
+    if (behind.length > 0) {
+      return {
+        ...base,
+        value:
+          total === 1
+            ? t.translateTemplate("Behind")
+            : t.translateTemplate("{{behind}} of {{total}} behind", {
+                behind: t.formatNumber(behind.length),
+                total: t.formatNumber(total),
+              }),
+        secondary: ProbeStatusMonitorUtil.joinProbeNames(behind),
+        tone: "warning",
       };
     }
 

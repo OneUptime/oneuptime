@@ -199,6 +199,103 @@ describe("ProbeStatusMonitorCriteria: Connected Probes", () => {
   });
 });
 
+/*
+ * #9501: Probes Behind counts the connected probes whose monitors are
+ * checked, or network devices polled, later than their interval.
+ */
+describe("ProbeStatusMonitorCriteria: Probes Behind", () => {
+  function behindProbe(name: string): ProbeStatusMonitorProbe {
+    return {
+      ...probe(name, true),
+      isBehind: true,
+      behindSince: new Date("2026-11-18T09:00:00.000Z"),
+    };
+  }
+
+  const oneBehind: ProbeStatusMonitorResponse = {
+    ...response([behindProbe("Frankfurt"), probe("Singapore", true)]),
+    behindProbeCount: 1,
+  };
+
+  test("a probe behind: 'greater than 0' is met, and the cause names it", async () => {
+    const result: string | null = await evaluate(
+      oneBehind,
+      filter(CheckOn.ProbesBehind, FilterType.GreaterThan, 0),
+    );
+
+    expect(result).not.toBeNull();
+    expect(result).toContain("Probes Behind");
+    expect(
+      result!.endsWith("All 2 probes are connected; 1 is behind: Frankfurt."),
+    ).toBe(true);
+  });
+
+  test("every probe keeping up: 'greater than 0' is not met", async () => {
+    expect(
+      await evaluate(
+        { ...allUp, behindProbeCount: 0 },
+        filter(CheckOn.ProbesBehind, FilterType.GreaterThan, 0),
+      ),
+    ).toBeNull();
+  });
+
+  test("an evaluation from before #9501 has none behind, and does not break", async () => {
+    expect(
+      await evaluate(
+        allUp,
+        filter(CheckOn.ProbesBehind, FilterType.GreaterThan, 0),
+      ),
+    ).toBeNull();
+    expect(
+      await evaluate(
+        allUp,
+        filter(CheckOn.ProbesBehind, FilterType.EqualTo, 0),
+      ),
+    ).not.toBeNull();
+  });
+
+  test("its count is read from the probes when the evaluation kept none", async () => {
+    expect(
+      ProbeStatusMonitorCriteria.getValue({
+        response: response([behindProbe("Frankfurt"), behindProbe("Virginia")]),
+        checkOn: CheckOn.ProbesBehind,
+      }),
+    ).toBe(2);
+  });
+
+  test("a disconnected probe is not behind: Disconnected Probes counts it", async () => {
+    expect(
+      await evaluate(
+        response([
+          { ...behindProbe("Frankfurt"), isConnected: false },
+          probe("Singapore", true),
+        ]),
+        filter(CheckOn.ProbesBehind, FilterType.GreaterThan, 0),
+      ),
+    ).toBeNull();
+  });
+
+  test("is judged over a window as the other counts are", async () => {
+    const overTime: MockInstance<
+      typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
+    > = jest
+      .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
+      .mockResolvedValue({ earlyReturn: null, value: [1, 1, 1] });
+
+    const result: string | null = await evaluate(oneBehind, {
+      ...filter(CheckOn.ProbesBehind, FilterType.GreaterThan, 0),
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        timeValueInMinutes: 10,
+        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+      },
+    });
+
+    expect(overTime).toHaveBeenCalled();
+    expect(result).not.toBeNull();
+  });
+});
+
 describe("ProbeStatusMonitorCriteria: what it does not judge", () => {
   test("a check of another monitor type is not claimed", async () => {
     expect(

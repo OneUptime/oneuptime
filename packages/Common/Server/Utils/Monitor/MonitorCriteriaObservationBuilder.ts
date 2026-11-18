@@ -336,6 +336,7 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeNtpObservation(input);
       case CheckOn.ConnectedProbes:
       case CheckOn.DisconnectedProbes:
+      case CheckOn.ProbesBehind:
         return MonitorCriteriaObservationBuilder.describeProbeStatusObservation(
           input,
         );
@@ -373,6 +374,16 @@ export default class MonitorCriteriaObservationBuilder {
       return `${response.connectedProbeCount} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
         total,
       )} connected${connected ? `: ${connected}` : ""}.`;
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.ProbesBehind) {
+      const behind: string = ProbeStatusMonitorUtil.joinProbeNames(
+        ProbeStatusMonitorUtil.getBehindProbes(response),
+      );
+
+      return `${ProbeStatusMonitorUtil.getBehindProbeCount(response)} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
+        total,
+      )} behind${behind ? `: ${behind}` : ""}.`;
     }
 
     const disconnected: string = ProbeStatusMonitorUtil.joinProbeNames(

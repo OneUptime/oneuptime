@@ -438,12 +438,62 @@ describe("MonitorCriteriaInstance", () => {
       },
     );
 
+    /*
+     * #9501: a new Probe Status monitor raises an alert when a probe it
+     * watches is behind - its monitors checked, or network devices polled,
+     * later than set. A heads-up, never an incident: the probe still
+     * reports, so the monitor's status is left alone.
+     */
+    test("Probe Status monitor raises an alert, and changes no status, while a probe it watches is behind", () => {
+      const instance: MonitorCriteriaInstance | null =
+        MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+          monitorType: MonitorType.ProbeStatus,
+          alertSeverityId,
+          monitorName: "Probe health",
+        });
+
+      expect(instance).not.toBeNull();
+      expect(instance?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.ProbesBehind,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+        },
+      ]);
+      expect(instance?.data?.changeMonitorStatus).toBe(false);
+      expect(instance?.data?.monitorStatusId).toBeUndefined();
+      expect(instance?.data?.createIncidents).toBe(false);
+      expect(instance?.data?.incidents).toEqual([]);
+      expect(instance?.data?.createAlerts).toBe(true);
+      expect(instance?.data?.name).toBe("Check if a probe is behind");
+      expect(instance?.data?.description).toBe(
+        "This criteria checks if any probe this monitor watches is behind on its monitors or network devices",
+      );
+
+      const alert: NonNullable<MonitorCriteriaInstance["data"]>["alerts"][0] =
+        instance!.data!.alerts[0]!;
+      expect(alert.title).toBe("Probe behind: {{behindProbeNames}}");
+      expect(alert.title).toBe(MonitorCriteriaInstance.PROBE_BEHIND_TITLE);
+      expect(alert.description).toBe(
+        MonitorCriteriaInstance.PROBE_BEHIND_DESCRIPTION,
+      );
+      expect(alert.description).toContain("{{probeStatusSummary}}");
+      expect(alert.alertSeverityId?.toString()).toBe(
+        alertSeverityId.toString(),
+      );
+      expect(alert.autoResolveAlert).toBe(true);
+      expect(alert.onCallPolicyIds).toEqual([]);
+      // It names no monitor: a renamed monitor would keep its old name.
+      expect(JSON.stringify(instance!.data)).not.toContain("Probe health");
+    });
+
     test.each(
       (Object.values(MonitorType) as Array<MonitorType>).filter(
         (monitorType: MonitorType) => {
           return (
             monitorType !== MonitorType.SSLCertificate &&
-            monitorType !== MonitorType.Domain
+            monitorType !== MonitorType.Domain &&
+            monitorType !== MonitorType.ProbeStatus
           );
         },
       ),

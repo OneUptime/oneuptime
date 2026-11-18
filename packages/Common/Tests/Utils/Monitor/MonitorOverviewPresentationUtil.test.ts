@@ -3311,6 +3311,64 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
     });
   });
 
+  /*
+   * #9501: connected, but some probes do not keep up - their monitors
+   * checked, or network devices polled, later than set. Said by name, in
+   * amber; a probe disconnected still says more.
+   */
+  it("its latest result names the probes that are behind, when none is disconnected", () => {
+    const behind: NonNullable<MonitorOverviewPresentationInput["probeStatus"]> =
+      evaluated([true, true, true]);
+    behind.probes[1] = { ...behind.probes[1]!, isBehind: true };
+
+    expect(
+      fact(build(probeStatus({ probeStatus: behind })), "latest-result"),
+    ).toEqual({
+      key: "latest-result",
+      label: "Latest result",
+      value: "1 of 3 behind",
+      secondary: "Probe 2",
+      tone: "warning",
+    });
+
+    const oneProbe: NonNullable<
+      MonitorOverviewPresentationInput["probeStatus"]
+    > = evaluated([true]);
+    oneProbe.probes[0] = { ...oneProbe.probes[0]!, isBehind: true };
+
+    expect(
+      fact(
+        build(
+          probeStatus({
+            monitorSteps: watchingSteps([WATCHED_PROBE_IDS[0]!]),
+            probeStatus: oneProbe,
+          }),
+        ),
+        "latest-result",
+      ),
+    ).toMatchObject({ value: "Behind", secondary: "Probe 1", tone: "warning" });
+
+    const disconnectedToo: NonNullable<
+      MonitorOverviewPresentationInput["probeStatus"]
+    > = evaluated([true, false]);
+    disconnectedToo.probes[0] = {
+      ...disconnectedToo.probes[0]!,
+      isBehind: true,
+    };
+
+    expect(
+      fact(
+        build(
+          probeStatus({
+            currentStatus: OFFLINE,
+            probeStatus: disconnectedToo,
+          }),
+        ),
+        "latest-result",
+      ),
+    ).toMatchObject({ value: "1 of 2 disconnected", tone: "danger" });
+  });
+
   it("watching one probe, the latest result names it, connected or not", () => {
     expect(
       fact(

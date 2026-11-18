@@ -930,6 +930,17 @@
       ]
     },
     {
+      "name": "Check if a probe is behind",
+      "description": "This criteria checks if any probe this monitor watches is behind on its monitors or network devices",
+      "incidents": [],
+      "alerts": [
+        {
+          "title": "Probe behind: {{behindProbeNames}}",
+          "description": "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind."
+        }
+      ]
+    },
+    {
       "name": "Check if every probe is connected",
       "description": "This criteria checks if every probe this monitor watches is connected",
       "incidents": [],

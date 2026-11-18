@@ -169,6 +169,7 @@ export const CHECK_ON_TERMS: Readonly<Record<CheckOn, string>> = {
   ),
   [CheckOn.ConnectedProbes]: translationKey("Connected Probes"),
   [CheckOn.DisconnectedProbes]: translationKey("Disconnected Probes"),
+  [CheckOn.ProbesBehind]: translationKey("Probes Behind"),
 };
 
 export const FILTER_TYPE_TERMS: Readonly<Record<FilterType, string>> = {

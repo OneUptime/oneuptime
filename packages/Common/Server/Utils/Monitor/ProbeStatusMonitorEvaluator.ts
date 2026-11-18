@@ -41,6 +41,12 @@ import { logMonitorEvaluationError } from "./NonActionableIngestError";
  * waits out OneUptime's own downtime (ProbeConnectionDowntimeGrace,
  * ReceivingCoverage). A restart shorter than that, or an upgrade of
  * OneUptime itself, never opens an incident.
+ *
+ * Whether a connected probe is behind - its monitors checked, or its
+ * network devices polled, later than their interval - is what
+ * Probe:UpdateBehind keeps on it (Types/Probe/ProbeBehind, #9501), read
+ * here as the probe's page reads it; a probe that falls behind or catches
+ * up has its watchers evaluated at once too.
  */
 export default class ProbeStatusMonitorEvaluator {
   // A page of monitors read at a time when looking for watchers.
@@ -84,6 +90,11 @@ export default class ProbeStatusMonitorEvaluator {
       isGlobalProbe: true,
       connectionStatus: true,
       lastAlive: true,
+      // Whether it is behind (#9501).
+      checksLateSince: true,
+      checksLastLateAt: true,
+      devicePollsLateSince: true,
+      devicePollsLastLateAt: true,
     };
 
     const [globalProbes, projectProbes]: [Array<Probe>, Array<Probe>] =
@@ -171,6 +182,10 @@ export default class ProbeStatusMonitorEvaluator {
               isGlobalProbe: probe.isGlobalProbe,
               connectionStatus: probe.connectionStatus,
               lastAlive: probe.lastAlive,
+              checksLateSince: probe.checksLateSince,
+              checksLastLateAt: probe.checksLastLateAt,
+              devicePollsLateSince: probe.devicePollsLateSince,
+              devicePollsLastLateAt: probe.devicePollsLastLateAt,
             };
           }),
           checkedAt: data.checkedAt || OneUptimeDate.getCurrentDate(),
