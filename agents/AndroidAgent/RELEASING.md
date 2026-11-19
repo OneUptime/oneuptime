@@ -429,7 +429,10 @@ are what they follow; what matters for a release:
   open it once on each device: Android keeps a newly installed app from
   starting at boot until it has been opened once. Each new version is
   uploaded and set in the blueprint the same way. READ_LOGS is granted with
-  Esper's Secure Remote ADB.
+  Esper's Secure Remote ADB, or with adb when the devices are staged: no
+  Esper command or blueprint grants it (the docs' "Grant them across a
+  fleet" says why), and Inventory's Agent Permissions filter lists the
+  devices that still need it.
 - **Intune, Workspace ONE, SOTI and other EMMs.** As a line-of-business or
   internal Android app, from the same APK, with the managed configuration
   the console reads from the APK's `app_restrictions.xml`.
