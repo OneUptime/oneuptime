@@ -1310,6 +1310,32 @@ describe("availability zones and aggregates", () => {
     expect(call?.query["regionName"]).toBe("RegionOne");
   });
 
+  test("a zone's Unhealthy opens why: the nova-compute down in it, a step from its page", async () => {
+    server.rows = MANY;
+
+    await renderPage(
+      OpenStackCloudAvailabilityZoneDetail,
+      partPath("availability-zones", "RegionOne/az1"),
+    );
+
+    const status: HTMLElement = await screen.findByTestId(
+      "openstack-zone-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const row: HTMLElement = screen.getByTestId(
+      "openstack-zone-hero-status-dialog-item",
+    );
+    expect(
+      within(row).getByTestId("openstack-zone-hero-status-dialog-name"),
+    ).toHaveTextContent("nova-compute");
+    expect(row).toHaveTextContent("Down, with 7 instances on it");
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What on these hypervisors is broken or needs a look, the most urgent first.",
+    );
+  });
+
   test("a zone nothing says it is in says that", async () => {
     server.rows = MANY;
 
