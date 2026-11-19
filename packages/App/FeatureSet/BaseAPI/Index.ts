@@ -2090,6 +2090,11 @@ import ServiceFeed from "Common/Models/DatabaseModels/ServiceFeed";
 import ServiceFeedService, {
   Service as ServiceFeedServiceType,
 } from "Common/Server/Services/ServiceFeedService";
+import ServiceAINote from "Common/Models/DatabaseModels/ServiceAINote";
+import ServiceAINoteService, {
+  Service as ServiceAINoteServiceType,
+} from "Common/Server/Services/ServiceAINoteService";
+import ServiceKnowledgeAPI from "Common/Server/API/ServiceKnowledgeAPI";
 
 // MetricType.
 import MetricTypeService, {
@@ -2838,6 +2843,21 @@ const BaseAPIFeatureSet: FeatureSet = {
         ServiceFeedService,
       ).getRouter(),
     );
+
+    // What a service's team tells OneUptime AI about it (#7672).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceAINote, ServiceAINoteServiceType>(
+        ServiceAINote,
+        ServiceAINoteService,
+      ).getRouter(),
+    );
+
+    /*
+     * What OneUptime AI learned about a service (ServiceKnowledgeAPI,
+     * #7672): its recurring failures, read with the viewer's permissions.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ServiceKnowledgeAPI);
 
     // MetricType
     app.use(

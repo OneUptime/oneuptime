@@ -1092,6 +1092,7 @@ import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRu
 import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
 import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
 import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddServiceAINote1809185318000 } from "./1809185318000-AddServiceAINote";
 
 export default [
   InitialMigration,
@@ -2188,4 +2189,5 @@ export default [
   AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
   MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
   DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddServiceAINote1809185318000,
 ];

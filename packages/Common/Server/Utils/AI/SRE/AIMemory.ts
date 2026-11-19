@@ -33,6 +33,7 @@ import {
 import ServiceKnowledge, { NamedService } from "./ServiceKnowledge";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import MemoryReads, { MemoryReader } from "./MemoryReader";
 
 /*
  * AI SRE — episodic memory (Phase 4, "I've seen this before").
@@ -130,6 +131,17 @@ const CONFIRMED_ANALYSIS_LABEL: string =
 
 // The kinds of subject OneUptime AI investigates and remembers.
 export type MemorySubjectKind = "incident" | "alert";
+
+/*
+ * How OneUptime AI fixed a record, when its fix was verified: the line a
+ * prompt reads (describeFix), and what a page draws in the reader's
+ * language - the runbook it started, or the commands of its plan that ran.
+ */
+export interface VerifiedFix {
+  text: string;
+  runbookName: string | null;
+  commands: Array<string>;
+}
 
 // What a past case shares with the subject, for its "Matched on" line.
 interface MatchReasons {
@@ -264,12 +276,13 @@ export default class AIMemory {
    * verdict is Confirmed. Empty when none was, or on any error - what is
    * remembered stands without it.
    */
-  public static async readConfirmedAnalyses(data: {
-    projectId: ObjectID;
-    kind: MemorySubjectKind;
-    ids: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
+  public static async readConfirmedAnalyses(
+    data: {
+      projectId: ObjectID;
+      kind: MemorySubjectKind;
+      ids: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, string>> {
     const analyses: Map<string, string> = new Map<string, string>();
 
     if (data.ids.length === 0) {
@@ -280,25 +293,27 @@ export default class AIMemory {
       data.kind === "incident" ? "triggeredByIncidentId" : "triggeredByAlertId";
 
     try {
-      const runs: Array<AIRun> = await AIRunService.findBy({
-        query: {
-          projectId: data.projectId,
-          [column]: QueryHelper.any(data.ids),
-          runType: AIRunType.Investigation,
-          humanVerdict: AIRunHumanVerdict.Confirmed,
-          analysisTldr: QueryHelper.notNull(),
-        } as never,
-        select: {
-          _id: true,
-          triggeredByIncidentId: true,
-          triggeredByAlertId: true,
-          analysisTldr: true,
-          createdAt: true,
-        },
-        sort: { createdAt: SortOrder.Descending },
-        limit: MAX_ANALYSES_READ,
-        skip: 0,
-        props: ReadAudiencePermission.getReadProps(data.readAudience),
+      const runs: Array<AIRun> = await MemoryReads.orNothing(() => {
+        return AIRunService.findBy({
+          query: {
+            projectId: data.projectId,
+            [column]: QueryHelper.any(data.ids),
+            runType: AIRunType.Investigation,
+            humanVerdict: AIRunHumanVerdict.Confirmed,
+            analysisTldr: QueryHelper.notNull(),
+          } as never,
+          select: {
+            _id: true,
+            triggeredByIncidentId: true,
+            triggeredByAlertId: true,
+            analysisTldr: true,
+            createdAt: true,
+          },
+          sort: { createdAt: SortOrder.Descending },
+          limit: MAX_ANALYSES_READ,
+          skip: 0,
+          props: MemoryReads.propsOf(data),
+        });
       });
 
       for (const run of runs) {
@@ -325,30 +340,57 @@ export default class AIMemory {
    * commands of its plan that ran. Empty when nothing was, or on any error -
    * the recurrence context stands without it.
    */
-  public static async readVerifiedFixes(data: {
-    projectId: ObjectID;
-    incidentIds: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
-    return await AIMemory.readVerifiedFixesOf({
-      projectId: data.projectId,
-      column: "incidentId",
-      ids: data.incidentIds,
-      readAudience: data.readAudience,
-    });
+  public static async readVerifiedFixes(
+    data: {
+      projectId: ObjectID;
+      incidentIds: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, string>> {
+    return AIMemory.textsOf(
+      await AIMemory.readVerifiedFixDetails({
+        ...MemoryReads.readerOf(data),
+        projectId: data.projectId,
+        kind: "incident",
+        ids: data.incidentIds,
+      }),
+    );
   }
 
   // The alert twin of readVerifiedFixes, by alert id (lower case).
-  public static async readVerifiedAlertFixes(data: {
-    projectId: ObjectID;
-    alertIds: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
+  public static async readVerifiedAlertFixes(
+    data: {
+      projectId: ObjectID;
+      alertIds: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, string>> {
+    return AIMemory.textsOf(
+      await AIMemory.readVerifiedFixDetails({
+        ...MemoryReads.readerOf(data),
+        projectId: data.projectId,
+        kind: "alert",
+        ids: data.alertIds,
+      }),
+    );
+  }
+
+  /*
+   * How OneUptime AI fixed each of `ids` - incidents or alerts - by id
+   * (lower case), when its fix was verified: the line a prompt reads, and
+   * the runbook or the commands a page draws. Empty when nothing was, or
+   * on any error.
+   */
+  public static async readVerifiedFixDetails(
+    data: {
+      projectId: ObjectID;
+      kind: MemorySubjectKind;
+      ids: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, VerifiedFix>> {
     return await AIMemory.readVerifiedFixesOf({
+      ...MemoryReads.readerOf(data),
       projectId: data.projectId,
-      column: "alertId",
-      ids: data.alertIds,
-      readAudience: data.readAudience,
+      column: data.kind === "incident" ? "incidentId" : "alertId",
+      ids: data.ids,
     });
   }
 
@@ -356,12 +398,22 @@ export default class AIMemory {
   public static describeFix(
     suggestion: AutoRemediationSuggestion,
   ): string | null {
+    return AIMemory.describeFixDetails(suggestion)?.text || null;
+  }
+
+  /*
+   * One fix: its runbook, or the commands of its plan that ran - in a line
+   * for a prompt, and apart for a page. Null when it ran neither.
+   */
+  public static describeFixDetails(
+    suggestion: AutoRemediationSuggestion,
+  ): VerifiedFix | null {
     if (
       suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
     ) {
       const plan: AiRemediationCommandPlan | null =
         AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
-      const ran: Array<string> = (plan?.commands || [])
+      const commands: Array<string> = (plan?.commands || [])
         .filter((command: AiRemediationCommand): boolean => {
           return (
             command.execution?.status ===
@@ -370,21 +422,40 @@ export default class AIMemory {
         })
         .slice(0, MAX_FIX_COMMANDS)
         .map((command: AiRemediationCommand): string => {
-          return `\`${PromptText.field(command.command, {
+          return PromptText.field(command.command, {
             maxLength: MAX_FIX_COMMAND_CHARS,
-          })
-            .split("`")
-            .join("'")}\``;
+          });
         });
 
-      return ran.length > 0 ? `ran ${ran.join("; ")}` : null;
+      if (commands.length === 0) {
+        return null;
+      }
+
+      return {
+        text: `ran ${commands
+          .map((command: string): string => {
+            return `\`${command.split("`").join("'")}\``;
+          })
+          .join("; ")}`,
+        runbookName: null,
+        commands,
+      };
     }
 
     if (
       suggestion.suggestionType === AutoRemediationSuggestionType.Runbook &&
       suggestion.runbookNameSnapshot
     ) {
-      return `ran the runbook "${PromptText.field(suggestion.runbookNameSnapshot, { maxLength: 120 })}"`;
+      const runbookName: string = PromptText.field(
+        suggestion.runbookNameSnapshot,
+        { maxLength: 120 },
+      );
+
+      return {
+        text: `ran the runbook "${runbookName}"`,
+        runbookName,
+        commands: [],
+      };
     }
 
     return null;
@@ -999,6 +1070,19 @@ export default class AIMemory {
     );
   }
 
+  // The line each fix reads as in a prompt, by the same key.
+  private static textsOf(
+    fixes: Map<string, VerifiedFix>,
+  ): Map<string, string> {
+    const texts: Map<string, string> = new Map<string, string>();
+
+    for (const [key, fix] of fixes) {
+      texts.set(key, fix.text);
+    }
+
+    return texts;
+  }
+
   private static lowerCased(names: Array<string>): Set<string> {
     return new Set<string>(
       names
@@ -1009,13 +1093,14 @@ export default class AIMemory {
     );
   }
 
-  private static async readVerifiedFixesOf(data: {
-    projectId: ObjectID;
-    column: "incidentId" | "alertId";
-    ids: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
-    const fixes: Map<string, string> = new Map<string, string>();
+  private static async readVerifiedFixesOf(
+    data: {
+      projectId: ObjectID;
+      column: "incidentId" | "alertId";
+      ids: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, VerifiedFix>> {
+    const fixes: Map<string, VerifiedFix> = new Map<string, VerifiedFix>();
 
     if (data.ids.length === 0) {
       return fixes;
@@ -1023,25 +1108,27 @@ export default class AIMemory {
 
     try {
       const suggestions: Array<AutoRemediationSuggestion> =
-        await AutoRemediationSuggestionService.findBy({
-          query: {
-            projectId: data.projectId,
-            [data.column]: QueryHelper.any(data.ids),
-            verificationStatus: AutoRemediationVerificationStatus.Verified,
-          } as never,
-          select: {
-            _id: true,
-            incidentId: true,
-            alertId: true,
-            suggestionType: true,
-            runbookNameSnapshot: true,
-            commandPlan: true,
-            createdAt: true,
-          },
-          sort: { createdAt: SortOrder.Descending },
-          limit: MAX_FIXES_READ,
-          skip: 0,
-          props: ReadAudiencePermission.getReadProps(data.readAudience),
+        await MemoryReads.orNothing(() => {
+          return AutoRemediationSuggestionService.findBy({
+            query: {
+              projectId: data.projectId,
+              [data.column]: QueryHelper.any(data.ids),
+              verificationStatus: AutoRemediationVerificationStatus.Verified,
+            } as never,
+            select: {
+              _id: true,
+              incidentId: true,
+              alertId: true,
+              suggestionType: true,
+              runbookNameSnapshot: true,
+              commandPlan: true,
+              createdAt: true,
+            },
+            sort: { createdAt: SortOrder.Descending },
+            limit: MAX_FIXES_READ,
+            skip: 0,
+            props: MemoryReads.propsOf(data),
+          });
         });
 
       for (const suggestion of suggestions) {
@@ -1053,7 +1140,8 @@ export default class AIMemory {
           continue;
         }
 
-        const described: string | null = AIMemory.describeFix(suggestion);
+        const described: VerifiedFix | null =
+          AIMemory.describeFixDetails(suggestion);
 
         if (described) {
           fixes.set(key, described);

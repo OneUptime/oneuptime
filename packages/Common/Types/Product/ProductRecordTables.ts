@@ -395,6 +395,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   ],
   [ProductKey.Services]: [
     "Service",
+    "ServiceAINote",
     "ServiceFeed",
     "ServiceLabelRule",
     "ServiceOwnerRule",

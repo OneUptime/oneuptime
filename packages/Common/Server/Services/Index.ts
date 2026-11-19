@@ -204,6 +204,7 @@ import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import ServiceFeedService from "./ServiceFeedService";
+import ServiceAINoteService from "./ServiceAINoteService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import NotificationService from "./NotificationService";
@@ -829,6 +830,7 @@ const services: Array<BaseService> = [
   HostFeedService,
   CloudResourceFeedService,
   ServiceFeedService,
+  ServiceAINoteService,
 
   NotificationService,
 

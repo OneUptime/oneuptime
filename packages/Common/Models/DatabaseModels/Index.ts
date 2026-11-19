@@ -648,6 +648,7 @@ import VMwareVCenterFeed from "./VMwareVCenterFeed";
 import HostFeed from "./HostFeed";
 import CloudResourceFeed from "./CloudResourceFeed";
 import ServiceFeed from "./ServiceFeed";
+import ServiceAINote from "./ServiceAINote";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
@@ -1200,6 +1201,7 @@ const AllModelTypes: Array<{
   HostFeed,
   CloudResourceFeed,
   ServiceFeed,
+  ServiceAINote,
 
   MetricType,
 
