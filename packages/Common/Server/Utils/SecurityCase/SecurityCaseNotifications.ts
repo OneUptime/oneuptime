@@ -1035,10 +1035,13 @@ export default class SecurityCaseNotifications {
       );
 
       // Someone who switched every channel off is not asked about.
-      if (setting && !this.hasChannelOn(
+      if (
+        setting &&
+        !this.hasChannelOn(
           setting,
           NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
-        )) {
+        )
+      ) {
         continue;
       }
 
@@ -1603,10 +1606,13 @@ export default class SecurityCaseNotifications {
         member.userId.toString(),
       );
 
-      if (setting && !this.hasChannelOn(
+      if (
+        setting &&
+        !this.hasChannelOn(
           setting,
           NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
-        )) {
+        )
+      ) {
         continue;
       }
 

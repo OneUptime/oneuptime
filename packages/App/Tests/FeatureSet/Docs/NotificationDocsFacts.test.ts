@@ -2462,7 +2462,9 @@ describe("notification settings", () => {
     expect(settings).toContain(
       "- WhatsApp delivers only messages Meta has approved, and OneUptime has them for updates about incidents, alerts, episodes, monitors, probes, AI agents, status pages, maintenance events and most on-call shifts. Other updates, such as an SLO's status, a missed call, a security case or being made an owner of a service, have no WhatsApp switch, and their card says WhatsApp is not available.",
     );
-    expect(settings).toContain(":::details There is no WhatsApp switch for an update");
+    expect(settings).toContain(
+      ":::details There is no WhatsApp switch for an update",
+    );
   });
 
   // #9758: a monitor group's and a Runner's new owners are told, each on its card.

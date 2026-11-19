@@ -272,7 +272,8 @@ describe("DropIncidentTemplateOwnerNotifiedFlag1809185110000", () => {
           return (
             (index.target === IncidentTemplateOwnerUser ||
               index.target === IncidentTemplateOwnerTeam) &&
-            JSON.stringify(index.columns) === JSON.stringify(["isOwnerNotified"])
+            JSON.stringify(index.columns) ===
+              JSON.stringify(["isOwnerNotified"])
           );
         },
       );

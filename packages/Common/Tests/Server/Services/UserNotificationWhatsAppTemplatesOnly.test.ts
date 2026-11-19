@@ -151,12 +151,12 @@ beforeEach(() => {
   jest.spyOn(SmsService, "sendSms").mockImplementation((async () => {
     reached.push("sms");
   }) as never);
-  jest
-    .spyOn(WhatsAppService, "sendWhatsAppMessage")
-    .mockImplementation((async (message: WhatsAppMessage) => {
-      reached.push("whatsapp");
-      whatsAppSent.push(message);
-    }) as never);
+  jest.spyOn(WhatsAppService, "sendWhatsAppMessage").mockImplementation((async (
+    message: WhatsAppMessage,
+  ) => {
+    reached.push("whatsapp");
+    whatsAppSent.push(message);
+  }) as never);
   jest
     .spyOn(TelegramService, "sendTelegramMessage")
     .mockImplementation((async () => {

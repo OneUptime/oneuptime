@@ -237,11 +237,12 @@ export const isOnForEveryEvent: (data: {
   rowsByEvent: RowsByEvent;
   channel: NotificationChannelKey;
 }): boolean => {
-  const sentEvents: Array<NotificationSettingEventType> =
-    getEventsChannelSends({
+  const sentEvents: Array<NotificationSettingEventType> = getEventsChannelSends(
+    {
       eventTypes: data.eventTypes,
       channel: data.channel,
-    });
+    },
+  );
 
   return (
     sentEvents.length > 0 &&

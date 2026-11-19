@@ -301,10 +301,14 @@ describe.each([
 
     test("the resource column really is a column of both owner tables", () => {
       expect(
-        template.ownerUserService.getModel().hasColumn(template.resourceIdColumn),
+        template.ownerUserService
+          .getModel()
+          .hasColumn(template.resourceIdColumn),
       ).toBe(true);
       expect(
-        template.ownerTeamService.getModel().hasColumn(template.resourceIdColumn),
+        template.ownerTeamService
+          .getModel()
+          .hasColumn(template.resourceIdColumn),
       ).toBe(true);
     });
   },

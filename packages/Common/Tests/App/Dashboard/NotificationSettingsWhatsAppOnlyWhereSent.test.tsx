@@ -122,7 +122,8 @@ const TABS: ReadonlyArray<string> = [
   "Security",
 ];
 
-const NOT_AVAILABLE_FOR_EVENT: string = "WhatsApp is not available for this event.";
+const NOT_AVAILABLE_FOR_EVENT: string =
+  "WhatsApp is not available for this event.";
 const NOT_AVAILABLE_FOR_EVENTS: string =
   "WhatsApp is not available for these events.";
 
@@ -368,20 +369,24 @@ describe("every event of every tab", () => {
           );
 
           if (hasWhatsAppTemplate(event.type)) {
-            expect({ event: event.label, offered: Boolean(whatsApp) }).toEqual(
-              { event: event.label, offered: true },
-            );
+            expect({ event: event.label, offered: Boolean(whatsApp) }).toEqual({
+              event: event.label,
+              offered: true,
+            });
             expect(
               within(row).queryByTestId(
                 NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID,
               ),
             ).not.toBeInTheDocument();
           } else {
-            expect({ event: event.label, offered: Boolean(whatsApp) }).toEqual(
-              { event: event.label, offered: false },
-            );
+            expect({ event: event.label, offered: Boolean(whatsApp) }).toEqual({
+              event: event.label,
+              offered: false,
+            });
             expect(
-              within(row).getByTestId(NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID),
+              within(row).getByTestId(
+                NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID,
+              ),
             ).toHaveTextContent(NOT_AVAILABLE_FOR_EVENT);
             // Every other channel is still offered for it.
             expect(
@@ -435,7 +440,9 @@ describe("a card none of whose events WhatsApp can send", () => {
     await openTab("Security");
 
     expect(
-      screen.queryAllByTestId(NOTIFICATION_CHANNEL_NOT_AVAILABLE_ON_CARD_TEST_ID),
+      screen.queryAllByTestId(
+        NOTIFICATION_CHANNEL_NOT_AVAILABLE_ON_CARD_TEST_ID,
+      ),
     ).toHaveLength(0);
   });
 
@@ -483,16 +490,19 @@ describe("the On-Call card, where WhatsApp sends all but a reassigned shift", ()
       NOT_AVAILABLE_FOR_EVENT,
     );
     expect(
-      within(reassigned).getByTestId(NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID),
+      within(reassigned).getByTestId(
+        NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID,
+      ),
     ).toHaveTextContent(NOT_AVAILABLE_FOR_EVENT);
 
     // The reminder goes out on the approved "you are next on-call" template.
     expect(
-      within(
-        eventRowIn(onCall, "Before my on-call shift starts"),
-      ).getByRole("switch", {
-        name: "WhatsApp for Before my on-call shift starts",
-      }),
+      within(eventRowIn(onCall, "Before my on-call shift starts")).getByRole(
+        "switch",
+        {
+          name: "WhatsApp for Before my on-call shift starts",
+        },
+      ),
     ).toBeInTheDocument();
   });
 
@@ -603,7 +613,9 @@ describe("on a phone", () => {
       within(reassigned).getByRole("switch", { name: "Email" }),
     ).toBeInTheDocument();
     expect(
-      within(reassigned).getByTestId(NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID),
+      within(reassigned).getByTestId(
+        NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID,
+      ),
     ).toHaveTextContent(NOT_AVAILABLE_FOR_EVENT);
 
     expect(
@@ -695,7 +707,10 @@ describe("the rules, without a page", () => {
 
   test("the events a channel sends: every one, but WhatsApp's only those with a template", () => {
     expect(
-      getEventsChannelSends({ eventTypes: MIXED_CARD, channel: "alertByEmail" }),
+      getEventsChannelSends({
+        eventTypes: MIXED_CARD,
+        channel: "alertByEmail",
+      }),
     ).toEqual(MIXED_CARD);
     expect(
       getEventsChannelSends({
@@ -704,7 +719,10 @@ describe("the rules, without a page", () => {
       }),
     ).toEqual([E.SEND_WHEN_USER_IS_ON_CALL_ROSTER]);
     expect(
-      getEventsChannelSends({ eventTypes: SLO_CARD, channel: "alertByWhatsApp" }),
+      getEventsChannelSends({
+        eventTypes: SLO_CARD,
+        channel: "alertByWhatsApp",
+      }),
     ).toEqual([]);
   });
 
@@ -815,7 +833,10 @@ describe("the rules, without a page", () => {
     const facts: TabSummaryFacts = getTabSummaryFacts({
       eventTypes: [...SLO_CARD, ...MIXED_CARD],
       rowsByEvent: rowsOf([
-        [E.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION, { alertByWhatsApp: true }],
+        [
+          E.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
+          { alertByWhatsApp: true },
+        ],
         [
           E.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
           { alertByWhatsApp: true },

@@ -51,21 +51,23 @@ function channel(column: ChannelColumn): SettingChannel {
 
 describe("a WhatsApp switch", () => {
   test("is on for an event WhatsApp can send", () => {
-    expect(hasWhatsAppTemplate(E.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION)).toBe(
-      true,
-    );
+    expect(
+      hasWhatsAppTemplate(E.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION),
+    ).toBe(true);
     expect(
       isSettingSwitchOn(
-        setting(E.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, ["alertByWhatsApp"]),
+        setting(E.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, [
+          "alertByWhatsApp",
+        ]),
         channel("alertByWhatsApp"),
       ),
     ).toBe(true);
   });
 
   test("is no switch at all for an event WhatsApp cannot send", () => {
-    expect(hasWhatsAppTemplate(E.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION)).toBe(
-      false,
-    );
+    expect(
+      hasWhatsAppTemplate(E.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION),
+    ).toBe(false);
     expect(
       isSettingSwitchOn(
         setting(E.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION, [
@@ -111,7 +113,9 @@ describe("You switched on ..., but have no verified method there", () => {
             "alertByEmail",
             "alertByWhatsApp",
           ]),
-          setting(E.SEND_SECURITY_CASE_OPENED_NOTIFICATION, ["alertByWhatsApp"]),
+          setting(E.SEND_SECURITY_CASE_OPENED_NOTIFICATION, [
+            "alertByWhatsApp",
+          ]),
         ],
         usableMethodTypes: new Set<string>(["Email"]),
       }),

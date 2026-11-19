@@ -342,7 +342,8 @@ describe("every owner table with a told-yet column (#9758)", () => {
 
       expect({
         record,
-        started: Boolean(file) &&
+        started:
+          Boolean(file) &&
           workers.includes(`import "./Jobs/${file!.replace(/\.ts$/, "")}";`),
       }).toEqual({ record, started: true });
     }
@@ -394,9 +395,9 @@ describe("every owner table with a told-yet column (#9758)", () => {
       expect(records).not.toContain(entry.record);
 
       for (const owner of ["OwnerUser", "OwnerTeam"]) {
-        expect(fs.existsSync(path.join(MODELS, `${entry.record}${owner}.ts`))).toBe(
-          true,
-        );
+        expect(
+          fs.existsSync(path.join(MODELS, `${entry.record}${owner}.ts`)),
+        ).toBe(true);
         expect({
           model: `${entry.record}${owner}`,
           hasFlag: hasToldYetColumn(entry.record, owner),

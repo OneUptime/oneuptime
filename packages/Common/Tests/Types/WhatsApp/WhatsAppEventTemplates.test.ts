@@ -159,9 +159,11 @@ describe("the events WhatsApp can send", () => {
 });
 
 describe("whether a channel is offered for an event", () => {
-  test.each(CHANNELS.filter((channel: string): boolean => {
-    return channel !== "alertByWhatsApp";
-  }))("%s is offered for every event", (channel: string) => {
+  test.each(
+    CHANNELS.filter((channel: string): boolean => {
+      return channel !== "alertByWhatsApp";
+    }),
+  )("%s is offered for every event", (channel: string) => {
     for (const eventType of EVERY_EVENT) {
       expect(
         isNotificationChannelOfferedForEvent({

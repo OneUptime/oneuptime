@@ -1049,7 +1049,9 @@ export const NOTIFICATION_SETTINGS_CARDS: ReadonlyArray<NotificationMatrixSectio
 // Every event the page lists, read in one go.
 const ALL_EVENT_TYPES: Array<NotificationSettingEventType> =
   NOTIFICATION_SETTINGS_CARDS.flatMap(
-    (section: NotificationMatrixSection): Array<NotificationSettingEventType> => {
+    (
+      section: NotificationMatrixSection,
+    ): Array<NotificationSettingEventType> => {
       return section.events.map(
         (event: NotificationMatrixEvent): NotificationSettingEventType => {
           return event.type;

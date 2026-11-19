@@ -115,9 +115,7 @@ function whatsAppMessageLiterals(source: string): Array<string> {
   let match: RegExpExecArray | null = starts.exec(source);
 
   while (match) {
-    literals.push(
-      objectLiteralAt(source, match.index + match[0].length - 1),
-    );
+    literals.push(objectLiteralAt(source, match.index + match[0].length - 1));
     match = starts.exec(source);
   }
 
@@ -194,6 +192,8 @@ describe("the code that sends notifications", () => {
 
   test("builds every event's WhatsApp message from that event's approved template, never one picked by hand", () => {
     const pickedByHand: Array<string> = [];
+    const namesItsEvent: RegExp = /\beventType\b/;
+    const picksATemplate: RegExp = /\btemplateKey\s*:/;
 
     for (const each of sources) {
       if (each.file === BUILDER) {
@@ -201,7 +201,7 @@ describe("the code that sends notifications", () => {
       }
 
       for (const call of builderCalls(each.source)) {
-        if (!/\beventType\b/.test(call) || /\btemplateKey\s*:/.test(call)) {
+        if (!namesItsEvent.test(call) || picksATemplate.test(call)) {
           pickedByHand.push(`${each.file}: ${call.replace(/\s+/g, " ")}`);
         }
       }
