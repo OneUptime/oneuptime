@@ -192,7 +192,10 @@ next, and how to change it last.
   was the one tile with no link, beside a Requests tile that opened the traces: it said something
   failed, never what (#9593). It opens the resource's traces on exactly the spans it counted that
   failed (`FailedSpansRoute`): the failed status as a chip the reader can take off, the kind of span
-  it counted (every span, entry spans, a database's client calls) and its window. Enforced by
+  it counted (every span, entry spans, a database's client calls) and its window. LLM Usage's "AI
+  calls" tile said its error rate with nothing to open either (#9750): it opens Calls, every AI
+  call as the tile counts them, on those of its range that failed, Status and Seen At set in the
+  list's own filters (`LlmCallsRoute`), each failed call saying its error under its status. Enforced by
   [ErrorRateTilesOpenFailuresGuard](../../packages/App/Tests/Dashboard/ErrorRateTilesOpenFailuresGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by

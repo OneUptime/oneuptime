@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import Route from "Common/Types/API/Route";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import IconProp from "Common/Types/Icon/IconProp";
 import { LlmConversationSummary } from "Common/Types/Telemetry/LlmConversationApi";
@@ -41,6 +43,14 @@ export interface LlmTileProps {
    * on a phone).
    */
   wrapHint?: boolean | undefined;
+  /*
+   * Where the hint leads: the AI calls an error rate counted that failed
+   * (#9750). The hint is a link of its own, never the whole tile, so the
+   * tile is no control around another; leave out onClick with it.
+   */
+  hintRoute?: Route | undefined;
+  // What the hint's link opens, in English: its tooltip and its name.
+  hintRouteTitle?: string | undefined;
   icon: IconProp;
   iconClassName: string;
   iconTileClassName: string;
@@ -84,7 +94,29 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
             {getFigure(props.value)}
           </div>
         )}
-        {props.hint && !props.isLoading ? (
+        {props.hint && !props.isLoading && props.hintRoute ? (
+          <div
+            className={`mt-0.5 text-xs ${
+              props.wrapHint ? "break-words" : "truncate"
+            }`}
+          >
+            <Link
+              to={props.hintRoute}
+              dataTestId={`${props.dataTestId}-hint`}
+              // Looked up by the link, in the reader's language.
+              title={props.hintRouteTitle}
+              className="inline-flex items-center gap-0.5 rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11"
+            >
+              <>
+                {props.hint}
+                <Icon
+                  icon={IconProp.ChevronRight}
+                  className="h-3 w-3 flex-none rtl:-scale-x-100"
+                />
+              </>
+            </Link>
+          </div>
+        ) : props.hint && !props.isLoading ? (
           <div
             className={`mt-0.5 text-xs text-gray-500 ${
               props.wrapHint ? "break-words" : "truncate"
