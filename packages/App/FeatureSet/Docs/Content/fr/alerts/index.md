@@ -126,7 +126,7 @@ Ouvrez l'alerte. Son en-tête affiche son état, sa gravité, sa durée, ses pro
 - **Changer l'état en**, dans le menu **⋯** à côté, la fait passer dans un état à vous, comme « En investigation ».
 - **Déclarer un incident** ouvre un nouvel incident prérempli à partir de l'alerte, quand le problème s'avère toucher les utilisateurs. Voir [Alertes liées](/docs/incidents/linked-alerts).
 
-Passer à un autre état demande une confirmation, avec une note privée facultative repliée sous **Ajouter une note privée**. Ce que fait chaque état est expliqué dans [États et sévérités des alertes](/docs/alerts/states-and-severities).
+Passer à un autre état demande une confirmation, avec une note privée facultative repliée sous **Ajouter une note privée**. La résoudre depuis son en-tête replie aussi **Ajouter la cause racine** : la raison de l'alerte, qui devient sa cause racine et sert à évaluer l'investigation de OneUptime AI. Ce que fait chaque état est expliqué dans [États et sévérités des alertes](/docs/alerts/states-and-severities).
 
 Pendant que vous la traitez, consignez ce que vous apprenez dans les **Notes privées**, remplissez ses pages **Cause racine** et **Remédiation**, et ajoutez des **Propriétaires**. Le menu **Actions** du **Fil d'activité de l'alerte** exécute aussi un runbook avec **Exécuter le runbook**, ou alerte d'autres personnes avec **Exécuter la politique d'astreinte**.
 

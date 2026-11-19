@@ -110,7 +110,10 @@ AI_EVAL_LLM_API_KEY=... npm run ai-eval -- --replay --llm-type=Anthropic --model
 
 The replay takes the most recent recorded investigations (20 by default, `--limit=<n>`, one project with
 `--project=<id>`), and skips those whose incident or alert has no root cause written yet: there is nothing to grade
-against. For each of the others, it builds today's prompt around the recorded context, runs the model you name, and
+against. A root cause that is still what OneUptime wrote when it opened the record, such as the criteria a monitor
+matched (`**Created because the following criteria was met**`), counts as none: graded against it, a right analysis
+reads as a miss. Responders write one as they resolve an incident or alert (**Add the root cause** in the Resolve
+dialog), or on its **Root Cause** page. For each of the others, it builds today's prompt around the recorded context, runs the model you name, and
 answers each tool call from the recording: never from live data, which has moved on by then. A call the original run
 never made is answered _not recorded_; the report counts those, since the more a case has, the less its grade says.
 One judge (the model under test, unless `--judge-llm-type` names another) then grades the original analysis and the
@@ -120,6 +123,20 @@ with the benchmark.
 
 The replay sends the recorded tool results — a project's telemetry — to the model you name. Run it only where that is
 allowed: on your own installation's data, with a provider you may send it to.
+
+## Can the automatic grade be trusted?
+
+When an incident or alert resolves with a root cause people wrote, the production grader (`InvestigationGrader`)
+grades its investigation MATCH, PARTIAL or MISMATCH against it, and **AI Results** counts that grade when no responder
+judged the investigation. It grades only the root cause people wrote: the one written under **Add the root cause** as
+the record was resolved or, on a record a person created, the one it holds; never a monitor's criteria.
+
+`npm run ai-eval` (the score mode) says how far to trust it: of the runs a responder confirmed or rejected and the
+grader graded, how often the two agree (MATCH with confirmed, MISMATCH with rejected), for incidents and alerts apart,
+with how many it graded too generously (MATCH, but rejected) or too strictly (MISMATCH, but confirmed). PARTIAL is
+counted apart. Under 20 runs judged both ways the report says the number is too few to rely on. Alert investigations
+are graded since alerts ask for a root cause as they resolve: run it once alerts have such runs, before relying on
+their grade.
 
 `npm run ai-eval` reaches the Postgres the dev stack publishes (`localhost:DATABASE_PUBLISHED_PORT`, 5400 unless
 `config.env` moves it), never runs migrations, and writes every case to `./eval-replays.json` (the score mode writes
