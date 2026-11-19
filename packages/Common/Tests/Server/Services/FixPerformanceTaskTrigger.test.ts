@@ -57,6 +57,7 @@ import {
   TraceFixture,
   WORTH_FIXING_TRACES,
 } from "../../Utils/Suggestions/TraceFixtures";
+import FixTurnsTable from "../Utils/AI/CodeFix/FixTurnsTable";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -126,6 +127,26 @@ function fakeRun(taskContext?: CodeFixTaskContext): AIRun {
     id: ObjectID.generate(),
     taskContext,
   } as unknown as AIRun;
+}
+
+/*
+ * The project's runs: a performance fix still working for each trace named,
+ * read by the one rule every fix holds to (CodeFixOnItsWay, FixTurnsTable).
+ */
+function runsWorking(traceIds: Array<string>): FixTurnsTable {
+  const table: FixTurnsTable = new FixTurnsTable(projectId);
+
+  for (const workingTraceId of traceIds) {
+    table.addFirstTurn({
+      codeFixTaskType: CodeFixTaskType.FixPerformance,
+      status: AIRunStatus.Running,
+      taskContext: { traceId: workingTraceId },
+    });
+  }
+
+  table.install();
+
+  return table;
 }
 
 // A trace with a textbook N+1: root + 5 near-identical 100 ms children.
@@ -324,9 +345,44 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
-    const findBy: jest.SpyInstance = jest
-      .spyOn(AIRunService, "findBy")
-      .mockResolvedValue([fakeRun({ traceId })]);
+    const runs: FixTurnsTable = runsWorking([traceId]);
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
+        projectId,
+        traceId,
+        spans: spansWithNPlusOne(),
+        userId,
+      }),
+    ).rejects.toThrow(
+      "A performance fix task is already queued or running for this trace. Track its progress in Code.",
+    );
+
+    // The dedupe asks of FixPerformance tasks of the project with this trace.
+    expect(runs.statements[0]!.parameters[0]).toBe(projectId.toString());
+    expect(runs.statements[0]!.parameters[3]).toEqual([
+      CodeFixTaskType.FixPerformance,
+    ]);
+    expect(JSON.parse(String(runs.statements[0]!.parameters[4]))).toEqual({
+      traceId,
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("dedupe: a reply working in Code on the trace's fix whose first turn failed blocks a second one", async () => {
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    const runs: FixTurnsTable = runsWorking([]);
+    runs.addReply(
+      runs.addFirstTurn({
+        codeFixTaskType: CodeFixTaskType.FixPerformance,
+        status: AIRunStatus.Error,
+        taskContext: { traceId },
+      }),
+      AIRunStatus.Running,
+    );
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
     await expect(
@@ -338,16 +394,6 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
       }),
     ).rejects.toThrow(/already queued or running/);
 
-    // The dedupe scan is scoped to non-terminal FixPerformance runs.
-    expect(findBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          projectId: projectId,
-          runType: AIRunType.CodeFix,
-          codeFixTaskType: CodeFixTaskType.FixPerformance,
-        }),
-      }),
-    );
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -355,9 +401,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
-    jest
-      .spyOn(AIRunService, "findBy")
-      .mockResolvedValue([fakeRun({ traceId: "some-other-trace" })]);
+    runsWorking(["some-other-trace"]);
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue(fakeRun());
@@ -376,7 +420,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    runsWorking([]);
     const createdRun: AIRun = fakeRun();
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
@@ -435,7 +479,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    runsWorking([]);
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue(fakeRun());

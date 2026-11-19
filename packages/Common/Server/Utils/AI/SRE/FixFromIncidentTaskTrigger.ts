@@ -1,8 +1,6 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import AIRunStatus, {
-  AIRunStatusHelper,
-} from "../../../../Types/AI/AIRunStatus";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import CodeFixTaskContext, {
   getInvestigationCodeFixTaskSnapshot,
@@ -293,6 +291,7 @@ export default class FixFromIncidentTaskTrigger {
      */
     const existingRun: AIRun | null =
       await SubjectCodeFixRun.findNonTerminalRunForSubject({
+        projectId: data.projectId,
         taskType: CodeFixTaskType.FixFromIncident,
         incidentId: data.incidentId,
         alertId: data.alertId,
@@ -395,24 +394,21 @@ export default class FixFromIncidentTaskTrigger {
 
     /*
      * The fix on its way, or the newest that did its work: a turn of a fix
-     * task of this record - its first, or the fix asked again from Code
-     * (Try again, #6509), which is a later turn of the same task with the
-     * same recipe and record. Read by its turns, so a fix asked again is on
-     * its way here too, and done once it did its work: the step never
-     * offers a second fix beside it.
+     * task of this record - its first, the fix asked again from Code (Try
+     * again, #6509), which is a later turn of the same task with the same
+     * recipe and record, or a reply someone sent in Code, which carries
+     * neither. On its way is the rule the create path holds to
+     * (SubjectCodeFixRun.findNonTerminalRunForSubject, CodeFixOnItsWay), so
+     * a fix asked again or a reply working is on its way here too, and the
+     * step never offers a second fix beside it.
      */
-    const activeRun: AIRun | null = await AIRunService.findOneBy({
-      query: {
+    const activeRun: AIRun | null =
+      await SubjectCodeFixRun.findNonTerminalRunForSubject({
         projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: CodeFixTaskType.FixFromIncident,
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-        ...subjectQuery,
-      },
-      select: { _id: true, userId: true, codeTaskId: true },
-      sort: { createdAt: SortOrder.Descending },
-      props: { isRoot: true },
-    });
+        taskType: CodeFixTaskType.FixFromIncident,
+        incidentId: data.incidentId,
+        alertId: data.incidentId ? undefined : data.alertId,
+      });
 
     const finishedRun: AIRun | null = activeRun
       ? null
@@ -873,6 +869,7 @@ export default class FixFromIncidentTaskTrigger {
 
       const existingRun: AIRun | null =
         await SubjectCodeFixRun.findNonTerminalRunForSubject({
+          projectId,
           taskType: CodeFixTaskType.FixFromIncident,
           incidentId: data.incidentId,
           alertId: data.alertId,

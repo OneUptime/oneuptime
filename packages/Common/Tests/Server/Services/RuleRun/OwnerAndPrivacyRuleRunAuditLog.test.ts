@@ -32,6 +32,8 @@ import Team from "../../../../Models/DatabaseModels/Team";
 import User from "../../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
+import Email from "../../../../Types/Email";
+import Name from "../../../../Types/Name";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -633,6 +635,150 @@ describe("a monitor owner rule, end to end", () => {
     for (const item of ownerAddedItems()) {
       expect(item["userId"]).toBeUndefined();
     }
+  });
+
+  /*
+   * #9933: a rule naming someone who has left the project and a team of
+   * another project adds neither - createOwner skips the one, the owner
+   * service's reference check refuses the other - and its feed item names
+   * as assigned only the owners it added, and lists the others apart, with
+   * why. Through the real owner services, their reference checks included.
+   */
+  describe("the owners a rule names that are not added (#9933)", () => {
+    const DEPARTED_ID: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    // A team of another project: never named in this project's feed.
+    const FOREIGN_TEAM_ID: ObjectID = new ObjectID(
+      "abababab-9999-4999-8999-999999999999",
+    );
+
+    beforeEach(() => {
+      jest
+        .spyOn(TeamMemberService, "isUserMemberOfProject")
+        .mockImplementation((async (data: {
+          userId: ObjectID;
+        }): Promise<boolean> => {
+          return data.userId.toString() !== DEPARTED_ID.toString();
+        }) as never);
+
+      // The project's records: its monitor and its own team, nothing else.
+      stubProjectDirectory({
+        projectId: PROJECT_ID,
+        records: {
+          Monitor: [RESOURCE_ID.toString()],
+          Team: [OWNER_TEAM_ID.toString()],
+        },
+      });
+
+      const owner: User = new User(OWNER_USER_ID);
+      owner.name = new Name("Grace Hopper");
+      owner.email = new Email("grace@example.com");
+      const departed: User = new User(DEPARTED_ID);
+      departed.name = new Name("Bob Departed");
+      departed.email = new Email("bob@example.com");
+      jest.spyOn(UserService, "findBy").mockResolvedValue([owner, departed]);
+
+      const team: Team = new Team(OWNER_TEAM_ID);
+      team.name = "Platform";
+      jest.spyOn(TeamService, "findBy").mockResolvedValue([team]);
+
+      jest.spyOn(logger, "warn").mockImplementation((() => {
+        // The skipped are logged; asserted where it matters.
+      }) as never);
+    });
+
+    function namingEveryone(
+      users: Array<ObjectID>,
+      teams: Array<ObjectID>,
+    ): MonitorOwnerRule {
+      const item: MonitorOwnerRule = new MonitorOwnerRule(RULE_ID);
+      item.name = "Platform on call";
+      item.notifyOwners = false;
+      item.ownerUsers = users.map((id: ObjectID): User => {
+        return new User(id);
+      });
+      item.ownerTeams = teams.map((id: ObjectID): Team => {
+        return new Team(id);
+      });
+      return item;
+    }
+
+    function ruleItem(): string {
+      const items: Array<Record<string, unknown>> = feedItems.filter(
+        (item: Record<string, unknown>): boolean => {
+          return (
+            item["monitorFeedEventType"] ===
+            MonitorFeedEventType.OwnerRuleExecuted
+          );
+        },
+      );
+
+      expect(items).toHaveLength(1);
+
+      return String(items[0]!["feedInfoInMarkdown"]);
+    }
+
+    test("adds the member and the project's team, counts only them, and lists the others apart with why", async () => {
+      const result: RuleApplicationResult =
+        await MonitorOwnerRuleEngineService.applyRulesToExistingResource({
+          resource: target(),
+          rules: [
+            namingEveryone(
+              [OWNER_USER_ID, DEPARTED_ID],
+              [OWNER_TEAM_ID, FOREIGN_TEAM_ID],
+            ),
+          ],
+          allowOwnerNotification: false,
+          props: RUNNER,
+        });
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(2));
+      expect(
+        ownerUsers.rows.map((row: StoredRow): string => {
+          return String(row["userId"]);
+        }),
+      ).toEqual([OWNER_USER_ID.toString()]);
+      expect(
+        ownerTeams.rows.map((row: StoredRow): string => {
+          return String(row["teamId"]);
+        }),
+      ).toEqual([OWNER_TEAM_ID.toString()]);
+
+      const said: string = ruleItem();
+      const [assigned, notAssigned] = said.split(
+        "Did not assign the following owners to the monitor:",
+      ) as [string, string];
+
+      expect(assigned).toContain(
+        "Assigned the following owners to the monitor:\n- 👤 Grace Hopper\n- 👥 Platform",
+      );
+      expect(assigned).not.toContain("Bob");
+      expect(notAssigned).toBe(
+        `\n- 👤 Bob Departed, who is not a member of this project\n- 👥 A team that is not one of this project's teams (\`${FOREIGN_TEAM_ID.toString()}\`)`,
+      );
+    });
+
+    test("with every owner skipped, adds nothing, writes no Assigned item, and counts the monitor as one it could not update", async () => {
+      const result: RuleApplicationResult =
+        await MonitorOwnerRuleEngineService.applyRulesToExistingResource({
+          resource: target(),
+          rules: [namingEveryone([DEPARTED_ID], [FOREIGN_TEAM_ID])],
+          allowOwnerNotification: false,
+          props: RUNNER,
+        });
+
+      expect(result).toEqual(RuleApplicationResultUtil.failed());
+      expect(ownerUsers.inserts).toHaveLength(0);
+      expect(ownerTeams.inserts).toHaveLength(0);
+      expect(recordedCreates).toEqual([]);
+
+      const said: string = ruleItem();
+      expect(said).not.toContain("Assigned the following");
+      expect(said).toContain(
+        "Did not assign the following owners to the monitor:\n- 👤 Bob Departed, who is not a member of this project",
+      );
+    });
   });
 
   test("an owner already on the monitor is not added again, and adds no entry", async () => {

@@ -750,7 +750,155 @@ describe("what the Overview's counts open", () => {
     expect(failed).toHaveLength(summary.failed);
   });
 
+  /*
+   * "8/10 guests running" said nothing of the guest stopped although it
+   * starts on boot (#9729): it opens the guests that should be running,
+   * each with why, its node and what holds it.
+   */
+  test("the guests that should be running: stopped though they start on boot, or given up on by HA", () => {
+    const rows: Array<ProxmoxResource> = [
+      node("pve1"),
+      node("pve2", { isUp: false }),
+      // Stopped on purpose: off, and left off.
+      guest(101, "scratch", { isUp: false, onboot: false }),
+      guest(102, "web", {
+        isUp: false,
+        onboot: true,
+        parentNodeName: "pve1",
+        isBackedUp: false,
+      }),
+      // Its node went down, and it with it.
+      guest(103, "db", { isUp: false, onboot: true, parentNodeName: "pve2" }),
+      // HA gave up on it.
+      guest(104, "api", {
+        isUp: false,
+        onboot: false,
+        haState: "error",
+        parentNodeName: "pve1",
+      }),
+      // A stop-mode backup holds it.
+      guest(105, "mail", {
+        isUp: false,
+        onboot: true,
+        lockState: "backup",
+        parentNodeName: "pve1",
+      }),
+      // Running, whatever HA says: not one the running count leaves out.
+      guest(106, "cache", { isUp: true, haState: "error" }),
+      // Its state is not reported yet: not called stopped.
+      guest(107, "queue", { isUp: undefined, onboot: true }),
+      // A template never runs.
+      guest(9000, "template", { isTemplate: true, isUp: false, onboot: true }),
+    ];
+
+    const items: Array<ResourceAttentionItem> = getProxmoxProblemItems({
+      rows: rows,
+      problem: { kind: "guestsStopped" },
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+    });
+
+    // HA's give-up is critical, first; then by name, as people number them.
+    expect(
+      items.map((item: ResourceAttentionItem): string => {
+        return item.name;
+      }),
+    ).toEqual(["api", "db", "mail", "web"]);
+
+    const api: ResourceAttentionItem = items[0]!;
+    expect(api.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(api.reasons).toEqual([
+      { text: "HA state: {{state}}", values: { state: "error" } },
+    ]);
+
+    // The node it is on went offline: said right after why it is listed.
+    const db: ResourceAttentionItem = items[1]!;
+    expect(db.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(db.reasons).toEqual([
+      { text: "Stopped, but starts on boot" },
+      { text: "Its node is offline" },
+    ]);
+    expect(db.facts).toEqual([
+      {
+        key: "node",
+        label: "Node",
+        value: "pve2",
+        route: new Route("/node/node%2Fpve2"),
+      },
+    ]);
+
+    // What holds it, in the words its page uses for the lock.
+    expect(items[2]!.reasons).toEqual([
+      { text: "Stopped, but starts on boot" },
+      { text: "Backup running" },
+    ]);
+
+    // The rest of what the rules say follows, once each.
+    expect(items[3]!.reasons).toEqual([
+      { text: "Stopped, but starts on boot" },
+      { text: "In no backup job" },
+    ]);
+    expect(items[3]!.detail).toBe("qemu/102");
+    expect(items[3]!.route?.toString()).toBe("/guest/qemu%2F102");
+  });
+
+  test("a lock Proxmox has no word for reads as Proxmox writes it", () => {
+    const items: Array<ResourceAttentionItem> = getProxmoxProblemItems({
+      rows: [
+        guest(101, "web", {
+          isUp: false,
+          onboot: true,
+          lockState: "mounted",
+        }),
+      ],
+      problem: { kind: "guestsStopped" },
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+    });
+    expect(items[0]!.reasons).toEqual([
+      { text: "Stopped, but starts on boot" },
+      { text: "Locked: {{lock}}", values: { lock: "mounted" } },
+    ]);
+  });
+
+  test("every guest that should run does: nothing to open", () => {
+    expect(
+      getProxmoxProblemItems({
+        rows: [
+          guest(101, "web"),
+          guest(102, "scratch", { isUp: false, onboot: false }),
+        ],
+        problem: { kind: "guestsStopped" },
+        routeFor: routeFor,
+        now: NOW,
+        staleMs: STALE_MS,
+      }),
+    ).toEqual([]);
+  });
+
   test("a row is counted by the very test the Overview counts it by", () => {
+    expect(
+      isProxmoxProblemRow(guest(1, "web", { isUp: false, onboot: true }), {
+        kind: "guestsStopped",
+      }),
+    ).toBe(true);
+    expect(
+      isProxmoxProblemRow(guest(1, "web", { isUp: true, onboot: true }), {
+        kind: "guestsStopped",
+      }),
+    ).toBe(false);
+    expect(
+      isProxmoxProblemRow(guest(1, "web", { isUp: false, haState: "fence" }), {
+        kind: "guestsStopped",
+      }),
+    ).toBe(true);
+    expect(
+      isProxmoxProblemRow(node("pve1", { isUp: false }), {
+        kind: "guestsStopped",
+      }),
+    ).toBe(false);
     expect(
       isProxmoxProblemRow(node("pve1", { isUp: false }), {
         kind: "nodesOffline",

@@ -1,7 +1,4 @@
-import {
-  TELEMETRY_RECOMMENDATION_MILESTONES,
-  getTelemetryRecommendedTemplateIds,
-} from "./TelemetrySetup";
+import { TELEMETRY_RECOMMENDATION_MILESTONES } from "./TelemetrySetup";
 import { isMonitorBatchConsentRequired } from "../../Billing/PayAsYouGo";
 import {
   MonitorRecommendationProjectDefaults,
@@ -23,13 +20,15 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
-  MonitorRecommendationNotificationMode,
-  MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  buildServiceMonitorArgs,
+  buildServiceMonitorPlan,
+  getTelemetryRecommendations,
+} from "Common/Utils/GuidedSetup/ServiceMonitorRecords";
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -74,32 +73,11 @@ export const mayCreateMonitors: () => boolean = (): boolean => {
 /*
  * The recommended monitors, from the Service catalog, in the setup's order:
  * the ones for the data the project's first data says arrived (#7146), or
- * the setup's three when that is not known (getTelemetryRecommendedTemplateIds).
+ * the setup's three when that is not known. Common's
+ * (Utils/GuidedSetup/ServiceMonitorRecords), where Ask AI picks them too
+ * (#7243).
  */
-export const getTelemetryRecommendations: (
-  reached?: ReadonlyArray<ActivationMilestone> | null | undefined,
-) => Array<MonitorRecommendation> = (
-  reached?: ReadonlyArray<ActivationMilestone> | null | undefined,
-): Array<MonitorRecommendation> => {
-  const all: Array<MonitorRecommendation> =
-    MonitorRecommendationCatalog.getRecommendations(
-      MonitorRecommendationResourceType.Service,
-    );
-
-  return getTelemetryRecommendedTemplateIds(reached)
-    .map((templateId: string): MonitorRecommendation | undefined => {
-      return all.find((recommendation: MonitorRecommendation): boolean => {
-        return recommendation.templateId === templateId;
-      });
-    })
-    .filter(
-      (
-        recommendation: MonitorRecommendation | undefined,
-      ): recommendation is MonitorRecommendation => {
-        return Boolean(recommendation);
-      },
-    );
-};
+export { getTelemetryRecommendations };
 
 const toService: (service: Service) => TelemetrySetupService = (
   service: Service,
@@ -111,6 +89,7 @@ const toService: (service: Service) => TelemetrySetupService = (
   };
 };
 
+// What every recommended monitor of the service is built with: Common's.
 const buildArgs: (data: {
   service: TelemetrySetupService;
   defaults: MonitorRecommendationProjectDefaults;
@@ -118,14 +97,10 @@ const buildArgs: (data: {
   service: TelemetrySetupService;
   defaults: MonitorRecommendationProjectDefaults;
 }): MonitorRecommendationArgs => {
-  return {
-    resourceIdentifier: data.service.id,
-    onlineMonitorStatusId: data.defaults.onlineMonitorStatusId,
-    offlineMonitorStatusId: data.defaults.offlineMonitorStatusId,
-    defaultIncidentSeverityId: data.defaults.defaultIncidentSeverityId,
-    defaultAlertSeverityId: data.defaults.defaultAlertSeverityId,
-    monitorName: data.service.name,
-  };
+  return buildServiceMonitorArgs({
+    service: { id: data.service.id, name: data.service.name },
+    defaults: data.defaults,
+  });
 };
 
 export default class TelemetrySetupApi {
@@ -272,16 +247,13 @@ export default class TelemetrySetupApi {
     const setup: { defaults: MonitorRecommendationProjectDefaults } =
       await loadMonitorRecommendationProjectSetup(data.translator);
 
+    // Common's plan (ServiceMonitorRecords), which Ask AI builds too (#7243).
     const plan: Array<MonitorRecommendationCreatePlanItem> =
-      MonitorRecommendationCreateUtil.buildCreatePlan({
+      buildServiceMonitorPlan({
+        service: { id: data.service.id, name: data.service.name },
         recommendations: data.recommendations,
-        selectedRecommendationIds: data.recommendationIds,
-        args: buildArgs({ service: data.service, defaults: setup.defaults }),
-        resourceDisplayName: data.service.name,
-        defaultMonitorStatusId: setup.defaults.defaultMonitorStatusId,
-        notificationSettings: {
-          notificationMode: MonitorRecommendationNotificationMode.Alert,
-        },
+        recommendationIds: data.recommendationIds,
+        defaults: setup.defaults,
       });
 
     if (

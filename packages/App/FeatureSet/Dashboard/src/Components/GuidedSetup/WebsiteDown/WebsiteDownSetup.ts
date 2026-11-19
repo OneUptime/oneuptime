@@ -20,10 +20,13 @@ import {
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import {
   MONITOR_NAME_MAX_LENGTH,
+  MonitorCheckingFacts,
   WebsiteAddress,
   WebsiteMonitorSeeds,
   buildWebsiteMonitor as buildGuidedWebsiteMonitor,
+  getMonitorAddress,
   getWebsiteAddressIdentity,
+  isMonitorCheckingAddress,
   isSameWebsiteAddress,
   parseWebsiteAddress,
 } from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
@@ -142,8 +145,10 @@ export {
   MONITOR_NAME_MAX_LENGTH,
   WhoIsToldMode,
   areWhoIsToldCountsKnown,
+  getMonitorAddress,
   getWebsiteAddressIdentity,
   getWhoIsToldMode,
+  isMonitorCheckingAddress,
   isSameWebsiteAddress,
   parseWebsiteAddress,
 };
@@ -611,46 +616,12 @@ export const buildWebsiteMonitor: (data: {
   });
 };
 
-// The address a monitor checks, as its first step names it.
-export const getMonitorAddress: (
-  monitorSteps: MonitorSteps | undefined | null,
-) => string = (monitorSteps: MonitorSteps | undefined | null): string => {
-  const step: MonitorStep | undefined =
-    monitorSteps?.data?.monitorStepsInstanceArray?.[0];
-  const destination: unknown = step?.data?.monitorDestination;
-
-  return destination ? destination.toString() : "";
-};
-
-// What the setup reads of a monitor this person made, to know if it is theirs for an address.
-export interface OwnMonitorFacts {
-  monitorSteps?: MonitorSteps | undefined | null;
-  isArchived?: boolean | undefined;
-  disableActiveMonitoring?: boolean | undefined;
-}
-
 /*
- * Whether a monitor this person made checks the address now, so the setup
- * goes on with it instead of making a second (#7059): its first step asks
- * for the same address, and it is neither archived nor turned off - one
- * that is no longer checked does not answer "is my website down?".
+ * What the setup reads of a monitor, to know whether it checks an address
+ * now (#7059): the rule is Common's, where Ask AI's set_up_website_monitoring
+ * asks it too (#7292), so neither makes a second monitor for one address.
  */
-export const isMonitorCheckingAddress: (data: {
-  monitor: OwnMonitorFacts;
-  address: WebsiteAddress;
-}) => boolean = (data: {
-  monitor: OwnMonitorFacts;
-  address: WebsiteAddress;
-}): boolean => {
-  if (data.monitor.isArchived || data.monitor.disableActiveMonitoring) {
-    return false;
-  }
-
-  return isSameWebsiteAddress(
-    getMonitorAddress(data.monitor.monitorSteps),
-    data.address.url,
-  );
-};
+export type OwnMonitorFacts = MonitorCheckingFacts;
 
 /*
  * The incident severity the monitor's criteria open an incident with when

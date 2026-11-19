@@ -1,8 +1,9 @@
 {{- if eq (include "kubernetes-agent.costMetricsFromAgent" .) "true" }}
-# The cost agent's health port, for the collector's cost-engine job: with
-# cost.engine.url set to auto or a URL, it asks the agent where the engine
-# serves its price metrics (/scrape-targets, Prometheus http_sd), since a
-# Kubecost frontend answers /metrics with its web page (#9776).
+# The cost agent's health port, for the collector's cost-engine job: it asks
+# the agent where the engine the agent reads serves its price metrics
+# (/scrape-targets, Prometheus http_sd), since a Kubecost frontend answers
+# /metrics with its web page (#9776), and the bundled OpenCost's are not the
+# prices of a cluster the agent prices with its own engine (#9852).
 apiVersion: v1
 kind: Service
 metadata:

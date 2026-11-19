@@ -800,6 +800,7 @@ export default class WorkspacePublicNoteApprovalActions {
           markdown:
             mdText`✅ ${subject} was${already} approved${await WorkspacePublicNoteApprovalActions.getByAndWhen(
               {
+                projectId: value.projectId,
                 userId: lastApproval?.userId,
                 at: lastApproval?.at || round.publishedAt,
               },
@@ -821,6 +822,7 @@ export default class WorkspacePublicNoteApprovalActions {
           markdown:
             mdText`↩️ ${subject} was${already} rejected${await WorkspacePublicNoteApprovalActions.getByAndWhen(
               {
+                projectId: value.projectId,
                 userId: round.rejection.userId,
                 at: round.rejection.at,
               },
@@ -936,6 +938,7 @@ export default class WorkspacePublicNoteApprovalActions {
         markdown:
           mdText`✅ ${subject} was${already} approved for ${stepName}${await WorkspacePublicNoteApprovalActions.getByAndWhen(
             {
+              projectId: value.projectId,
               userId: approvedStep.userId,
               at: approvedStep.at,
             },
@@ -1229,8 +1232,12 @@ export default class WorkspacePublicNoteApprovalActions {
       : FeedMarkdown.empty();
   }
 
-  // " by **Carol** at 5:28 PM", " at 5:28 PM", or nothing.
+  /*
+   * " by **Carol** at 5:28 PM", " at 5:28 PM", or nothing: who decided, as
+   * the note's project names them.
+   */
   private static async getByAndWhen(data: {
+    projectId: ObjectID;
     userId?: string | undefined;
     at?: string | undefined;
   }): Promise<MarkdownText> {
@@ -1239,9 +1246,12 @@ export default class WorkspacePublicNoteApprovalActions {
     if (data.userId) {
       try {
         name =
-          (await PublicNoteApprovalNotifications.getUserNames([data.userId]))[
-            data.userId
-          ] || "";
+          (
+            await PublicNoteApprovalNotifications.getUserNames(
+              [data.userId],
+              data.projectId,
+            )
+          )[data.userId] || "";
       } catch (err) {
         logger.debug("Could not read who decided a public note.");
         logger.debug(err);

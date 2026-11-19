@@ -56,6 +56,27 @@ function matchesType(value: unknown, property: JSONObject): boolean {
           return matchesType(item, (property["items"] || {}) as JSONObject);
         })
       );
+    // An object a schema lists the properties of: each one it has is one of them.
+    case "object": {
+      const properties: Record<string, JSONObject> = (property["properties"] ||
+        {}) as Record<string, JSONObject>;
+
+      return (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.entries(value as Record<string, unknown>).every(
+          ([key, item]: [string, unknown]): boolean => {
+            return key in properties && matchesType(item, properties[key]!);
+          },
+        ) &&
+        ((property["required"] || []) as Array<string>).every(
+          (key: string): boolean => {
+            return key in (value as Record<string, unknown>);
+          },
+        )
+      );
+    }
     default:
       return false;
   }

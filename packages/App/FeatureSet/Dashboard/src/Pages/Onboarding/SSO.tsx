@@ -36,9 +36,11 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Where a user lands when a project requires single sign-on - itself, or
- * because the whole server does - and what Settings > SSO's test link opens:
- * every provider that signs people in to the project, one button each.
- * Picking one starts its sign-in.
+ * because the whole server does: every provider that signs people in to
+ * the project, one button each. Picking one starts its sign-in. The
+ * project's SSO sign-in link, which Settings > SSO prints to test and to
+ * share, is the Accounts app's page of the same providers, for someone not
+ * signed in too (Accounts Pages/LoginWithProjectSso, #9918).
  *
  * They come from GET /identity/project-sign-in-methods/:projectId
  * (Common/Server/Utils/SsoSignInMethods): the project's own SAML and OpenID

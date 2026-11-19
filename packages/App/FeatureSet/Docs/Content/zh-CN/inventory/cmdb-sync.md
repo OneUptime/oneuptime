@@ -130,7 +130,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-仪表板中的 **所有项目** 列表也以同样方式导出，包含你已开启的自定义字段列。每项 [资产详情](#资产详情) 在那里也是一列：**主机名**、**IP 地址**、**序列号**、**模型** 等一开始是隐藏的，请在列选择器中开启它们，导出就会为每项信息包含一列，无论该行是主机还是网络设备。
+仪表板中的 **所有项目** 列表也以同样方式导出，包含你已开启的自定义字段列。每项 [资产详情](#资产详情) 在那里也是一列：**主机名**、**IP 地址**、**序列号**、**型号** 等一开始是隐藏的，请在列选择器中开启它们，导出就会为每项信息包含一列，无论该行是主机还是网络设备。
 
 ## 资产详情
 
@@ -143,7 +143,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | MAC 地址 | `host.mac` | 检测得到 | 在设备上输入，从遍历过的路由器的 ARP 表中获知，或从设备自身的端口读取 |
 | 序列号 | `host.serial_number` | 标注 | ENTITY-MIB，否则为供应商自己的 MIB |
 | 制造商 | `device.manufacturer` | 标注 | ENTITY-MIB，否则为 `sysDescr` 或 `sysObjectID` 指明的内容 |
-| 模型 | `device.model.name` | 标注 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |
+| 型号 | `device.model.name` | 标注 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |
 | 固件版本 | `device.firmware.version` | 标注 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |
 | 操作系统 | `os.name` | `os.description`（或 `os.type`） | `sysDescr` 指明的内容：Cisco IOS、Junos OS、Arista EOS、Linux |
 | 操作系统版本 | `os.version` | 检测得到 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |

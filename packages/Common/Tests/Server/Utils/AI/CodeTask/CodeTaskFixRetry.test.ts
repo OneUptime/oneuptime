@@ -4,6 +4,10 @@ import Semaphore, {
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import CodeFixAutoRetry from "../../../../../Server/Utils/AI/CodeFix/CodeFixAutoRetry";
+import CodeFixOnItsWay, {
+  CodeFixProblem,
+  CodeFixProblemKind,
+} from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import FixRunBudget from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeTaskFixRetry, {
   CODE_TASK_FIX_TURN_SELECT,
@@ -89,6 +93,7 @@ interface World {
   otherSubjectFix: AIRun | null;
   otherTraceFix: AIRun | null;
   otherServiceFix: AIRun | null;
+  otherInsightFix: AIRun | null;
 }
 
 let world: World;
@@ -186,6 +191,7 @@ beforeEach(() => {
     otherSubjectFix: null,
     otherTraceFix: null,
     otherServiceFix: null,
+    otherInsightFix: null,
   };
 
   let latestReads: number = 0;
@@ -219,12 +225,31 @@ beforeEach(() => {
         );
       }
 
-      // Another fix of the exception on its way.
-      if (query["triggeredByTelemetryExceptionId"]) {
-        return world.otherExceptionFix;
-      }
-
       return null;
+    });
+  /*
+   * Another fix of the same problem on its way, by the one rule every fix
+   * holds to (CodeFixOnItsWay, which has its own suites): of the exception,
+   * the incident or alert, the trace, the service or the insight.
+   */
+  jest
+    .spyOn(CodeFixOnItsWay, "findTurn")
+    .mockImplementation(async (problem: CodeFixProblem) => {
+      switch (problem.kind) {
+        case CodeFixProblemKind.Exception:
+          return world.otherExceptionFix;
+        case CodeFixProblemKind.Incident:
+        case CodeFixProblemKind.Alert:
+          return world.otherSubjectFix;
+        case CodeFixProblemKind.Trace:
+          return world.otherTraceFix;
+        case CodeFixProblemKind.Service:
+          return world.otherServiceFix;
+        case CodeFixProblemKind.Insight:
+          return world.otherInsightFix;
+        default:
+          return null;
+      }
     });
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
     return world.task;
@@ -246,21 +271,6 @@ beforeEach(() => {
     .spyOn(TelemetryExceptionService, "findOneBy")
     .mockImplementation(async () => {
       return world.exception;
-    });
-  jest
-    .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")
-    .mockImplementation(async () => {
-      return world.otherSubjectFix;
-    });
-  jest
-    .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
-    .mockImplementation(async () => {
-      return world.otherTraceFix;
-    });
-  jest
-    .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
-    .mockImplementation(async () => {
-      return world.otherServiceFix;
     });
   jest
     .spyOn(SubjectCodeFixRun, "assertLatestRecommendedInvestigationSource")
@@ -506,6 +516,13 @@ describe("a fix that is not asked again says why", () => {
         world.otherServiceFix = new AIRun();
       },
     ],
+    [
+      "the insight it was opened for",
+      CodeFixTaskType.FixException,
+      (): void => {
+        world.otherInsightFix = new AIRun();
+      },
+    ],
   ])(
     "another fix of %s on its way",
     async (_name: string, recipe: CodeFixTaskType, onItsWay: () => void) => {
@@ -519,24 +536,30 @@ describe("a fix that is not asked again says why", () => {
     },
   );
 
-  test("another fix of the exception is looked for by its recipe - a legacy null recipe as an exception fix", async () => {
+  test("another fix of the exception is looked for by its recipe and the insight it was opened for - a legacy null recipe as an exception fix", async () => {
+    world.task.codeFixTaskType = undefined as unknown as CodeFixTaskType;
+
     await retry();
 
-    const query: Record<string, unknown> = ((
-      AIRunService.findOneBy as unknown as jest.Mock
-    ).mock.calls
-      .map((call: Array<unknown>) => {
-        return (call[0] as { query: Record<string, unknown> }).query;
-      })
-      .find((each: Record<string, unknown>) => {
-        return Boolean(each["triggeredByTelemetryExceptionId"]);
-      }) as Record<string, unknown>)!;
+    const problems: Array<CodeFixProblem> = (
+      CodeFixOnItsWay.findTurn as unknown as jest.Mock
+    ).mock.calls.map((call: Array<unknown>): CodeFixProblem => {
+      return call[0] as CodeFixProblem;
+    });
 
-    expect(String(query["triggeredByTelemetryExceptionId"])).toBe(
-      EXCEPTION_ID.toString(),
-    );
-    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
-    expect(query["codeFixTaskType"]).not.toBe(CodeFixTaskType.FixException);
+    expect(problems).toEqual([
+      {
+        projectId: PROJECT_ID,
+        kind: CodeFixProblemKind.Exception,
+        recordId: EXCEPTION_ID.toString(),
+        taskTypes: [CodeFixTaskType.FixException],
+      },
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        kind: CodeFixProblemKind.Insight,
+        recordId: INSIGHT_ID.toString(),
+      }),
+    ]);
   });
 
   test.each([

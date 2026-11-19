@@ -1052,6 +1052,9 @@ export const AI_TOOL_CITATIONS: {
   createdOnCallPolicy: string;
   publishedStatusPage: string;
   addedMonitorsToStatusPage: string;
+  addedToOnCallPolicy: string;
+  savedHowToReachMe: string;
+  invitedPeople: string;
   workflowComponents: string;
   workflowDraft: string;
   createdWorkflow: string;
@@ -1256,6 +1259,14 @@ export const AI_TOOL_CITATIONS: {
   addedMonitorsToStatusPage: translationKey(
     'Added monitors to status page "{{name}}"',
   ),
+  /*
+   * People added to a policy the project has (#7244), the person's ladder
+   * saved (#7454), people invited to the project (#7242): the record each
+   * chip opens.
+   */
+  addedToOnCallPolicy: translationKey('Added to on-call policy "{{name}}"'),
+  savedHowToReachMe: translationKey("Saved How to Reach Me"),
+  invitedPeople: translationKey("Invited to the {{team}} team"),
   workflowComponents: translationKey("Workflow components"),
   workflowDraft: translationKey("Workflow draft"),
   createdWorkflow: translationKey('Created workflow "{{name}}"'),

@@ -32,7 +32,9 @@ import {
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
 import IncidentScopeAddedPagesNotification from "../../Types/StatusPage/IncidentScopeAddedPagesNotification";
@@ -465,9 +467,12 @@ export class Service extends ProjectReferencesService<Model> {
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the template are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the template are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: IncidentTemplateOwnerUserService,
       ownerTeamService: IncidentTemplateOwnerTeamService,
       resourceIdColumn: "incidentTemplateId",

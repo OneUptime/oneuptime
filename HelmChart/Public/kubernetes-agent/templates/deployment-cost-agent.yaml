@@ -76,13 +76,20 @@ spec:
             {{- with (include "kubernetes-agent.costPrometheusUrl" $) }}
             # Source of per-container memory PEAKS, which the Allocation API
             # cannot provide — it reports averages, and an hourly mean hides
-            # the burst that OOMKills a container. Omitted entirely when
-            # there is no Prometheus to point at (external cost engine with
-            # no cost.engine.prometheusUrl set); the agent then ships
-            # allocations without peaks and memory recommendations are
-            # simply unavailable.
+            # the burst that OOMKills a container. Omitted when there is no
+            # Prometheus to point at (an engine of the cluster's own, with
+            # no cost.engine.prometheusUrl set): the agent then reads the
+            # Prometheus that engine reads, found at run time (#9777), and
+            # ships allocations without peaks when there is none.
             - name: COST_PROMETHEUS_URL
               value: {{ . | quote }}
+            {{- end }}
+            {{- if eq (include "kubernetes-agent.costPrometheusBundled" .) "true" }}
+            # That Prometheus is the bundled one, not one someone named: the
+            # agent reads it for the bundled engine, and for the cluster's
+            # own engine only when that engine's own Prometheus is not found.
+            - name: COST_PROMETHEUS_BUNDLED
+              value: "true"
             {{- end }}
             {{- if .Values.cost.engine.prometheusCadvisorJob }}
             - name: COST_PROMETHEUS_CADVISOR_JOB

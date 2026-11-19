@@ -85,6 +85,13 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEng
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import { OwnerRulePlanEntry } from "../../../../Server/Utils/Rules/OwnerRulePlan";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
+import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import PendingInviteeProfiles from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
+import logger from "../../../../Server/Utils/Logger";
+import Team from "../../../../Models/DatabaseModels/Team";
+import User from "../../../../Models/DatabaseModels/User";
+import Email from "../../../../Types/Email";
+import Name from "../../../../Types/Name";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -574,6 +581,11 @@ interface Fixture {
   existingOwnerTeamIds: Array<ObjectID>;
   // Label attaches and owner inserts throw.
   failWrites: boolean;
+  /*
+   * Teams the owner service refuses as not the project's, as its reference
+   * check does a team of another project (#9933).
+   */
+  teamsOfAnotherProject: Array<ObjectID>;
 }
 
 const DEFAULT_FIXTURE: Fixture = {
@@ -582,6 +594,7 @@ const DEFAULT_FIXTURE: Fixture = {
   existingOwnerUserIds: [],
   existingOwnerTeamIds: [],
   failWrites: false,
+  teamsOfAnotherProject: [],
 };
 
 interface LabelAdd {
@@ -804,6 +817,19 @@ function installMocks(c: EngineCase, overrides: Partial<Fixture> = {}): Mocks {
       if (fixture.failWrites) {
         throw new Error("insert or update violates foreign key constraint");
       }
+
+      const teamId: string = String(data.data.teamId);
+
+      if (
+        fixture.teamsOfAnotherProject.some((id: ObjectID): boolean => {
+          return id.toString() === teamId;
+        })
+      ) {
+        throw new ProjectScopedReferenceException(
+          `This team owner references records that are not in this project: Team "${teamId}". Please pick values from this project and try again.`,
+        );
+      }
+
       ownerTeamRows.push(data.data);
       return data.data;
     });
@@ -1752,6 +1778,361 @@ describe.each([...LABEL_CASES, ...OWNER_CASES])(
 
       expect(columnsRead).toEqual(
         Object.keys(c.engine.resourceSelectForRuleRun).sort(),
+      );
+    });
+  },
+);
+
+/*
+ * #9933: AN OWNER RULE'S FEED NAMES ONLY THE OWNERS IT ADDED.
+ *
+ * It used to list every owner its rules named as assigned, though
+ * createOwner skips someone who has left the project and a team that is not
+ * one of its teams. Each engine names as assigned only what addOwners
+ * actually added now, says plainly which named owners it skipped and why,
+ * counts only real adds, and notes an inherited owner or a creator's team
+ * only when one of them was actually added.
+ */
+const DEPARTED_USER_ID: ObjectID = new ObjectID(
+  "56565656-5656-4656-8656-565656565656",
+);
+const INVITED_USER_ID: ObjectID = new ObjectID(
+  "78787878-7878-4787-8787-787878787878",
+);
+// A team of another project, still on a rule saved before lists were checked.
+const FOREIGN_TEAM_ID: ObjectID = new ObjectID(
+  "9a9a9a9a-9a9a-49a9-89a9-9a9a9a9a9a9a",
+);
+
+function person(id: ObjectID, name: string, email: string): User {
+  const user: User = new User();
+  user._id = id.toString();
+  user.id = id;
+  user.name = new Name(name);
+  user.email = new Email(email);
+  return user;
+}
+
+function namedTeam(id: ObjectID, name: string): Team {
+  const team: Team = new Team();
+  team._id = id.toString();
+  team.id = id;
+  team.name = name;
+  return team;
+}
+
+function recordNounOf(c: EngineCase): string {
+  if (c.modelType === Incident) {
+    return "incident";
+  }
+
+  if (c.modelType === Alert) {
+    return "alert";
+  }
+
+  return "event";
+}
+
+describe.each(OWNER_CASES)(
+  "$name - the owners it did not add (#9933)",
+  (c: EngineCase) => {
+    const owner: OwnerConfig = c.owner!;
+    const noun: string = recordNounOf(c);
+    let warned: jest.SpyInstance;
+
+    function users(mocks: Mocks): Array<string> {
+      return createdOwners(
+        mocks.ownerUserRows,
+        "userId",
+        owner.resourceIdColumn,
+      ).map((row: CreatedOwner): string => {
+        return row.ownerId;
+      });
+    }
+
+    function teams(mocks: Mocks): Array<string> {
+      return createdOwners(
+        mocks.ownerTeamRows,
+        "teamId",
+        owner.resourceIdColumn,
+      ).map((row: CreatedOwner): string => {
+        return row.ownerId;
+      });
+    }
+
+    function said(mocks: Mocks): string {
+      expect(mocks.feed).toHaveBeenCalledTimes(1);
+
+      return String(mocks.feed.mock.calls[0]![0].feedInfoInMarkdown);
+    }
+
+    /*
+     * USER_A and the monitor's owner are members; DEPARTED has left; INVITED
+     * is only invited, by the name "Carol". TEAM_A and the host's team are the
+     * project's; FOREIGN_TEAM is another project's.
+     */
+    function standIn(
+      overrides: Partial<Fixture> = {},
+      membersBesides: Array<ObjectID> = [],
+    ): Mocks {
+      const mocks: Mocks = installMocks(c, {
+        teamsOfAnotherProject: [FOREIGN_TEAM_ID],
+        ...overrides,
+      });
+
+      const members: Array<string> = [
+        USER_A_ID,
+        MONITOR_OWNER_USER_ID,
+        ...membersBesides,
+      ].map((id: ObjectID): string => {
+        return id.toString();
+      });
+
+      jest
+        .spyOn(TeamMemberService, "isUserMemberOfProject")
+        .mockImplementation((async (data: {
+          userId: ObjectID;
+        }): Promise<boolean> => {
+          return members.includes(data.userId.toString());
+        }) as never);
+
+      jest
+        .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+        .mockResolvedValue(
+          new Map([
+            [
+              INVITED_USER_ID.toString().toLowerCase(),
+              { inviteeName: "Carol" },
+            ],
+          ]),
+        );
+
+      mocks.userLookup.mockResolvedValue([
+        person(USER_A_ID, "Ada Lovelace", "ada@example.com"),
+        person(DEPARTED_USER_ID, "Bob Departed", "bob@example.com"),
+        person(INVITED_USER_ID, "Carol Ownname", "carol@example.com"),
+        person(MONITOR_OWNER_USER_ID, "Mona Monitor", "mona@example.com"),
+      ]);
+      mocks.teamLookup.mockResolvedValue([
+        namedTeam(TEAM_A_ID, "Platform"),
+        namedTeam(HOST_OWNER_TEAM_ID, "Hosts"),
+      ]);
+
+      warned = jest.spyOn(logger, "warn").mockImplementation((() => {
+        // Asserted where it matters.
+      }) as never);
+
+      return mocks;
+    }
+
+    it("lists a member as assigned, and someone who left, someone only invited and another project's team apart, each with why", async () => {
+      const mocks: Mocks = standIn();
+
+      const result: RuleApplicationResult = await run(c, {
+        rules: [
+          rule({
+            notifyOwners: true,
+            ownerUsers: [
+              ref(USER_A_ID),
+              ref(DEPARTED_USER_ID),
+              ref(INVITED_USER_ID),
+            ],
+            ownerTeams: [ref(TEAM_A_ID), ref(FOREIGN_TEAM_ID)],
+          }),
+        ],
+        allowOwnerNotification: true,
+      });
+
+      // Two owners: not the five the rule names.
+      expect(result).toEqual(RuleApplicationResultUtil.updated(2));
+      expect(users(mocks)).toEqual([USER_A_ID.toString()]);
+      expect(teams(mocks)).toEqual([TEAM_A_ID.toString()]);
+
+      const [assigned, notAssigned] = said(mocks).split(
+        `Did not assign the following owners to the ${noun}:`,
+      ) as [string, string];
+
+      expect(assigned).toContain(
+        `Assigned the following owners to the ${noun}:\n- 👤 Ada Lovelace\n- 👥 Platform`,
+      );
+      expect(assigned).not.toContain("Bob");
+      expect(assigned).not.toContain("Carol");
+
+      expect(notAssigned).toBe(
+        [
+          "",
+          "- 👤 Bob Departed, who is not a member of this project",
+          "- 👤 Carol, who has not accepted the invitation to this project yet",
+          `- 👥 A team that is not one of this project's teams (\`${FOREIGN_TEAM_ID.toString()}\`)`,
+        ].join("\n"),
+      );
+      // Only invited: never their account's own name.
+      expect(said(mocks)).not.toContain("Ownname");
+    });
+
+    it("writes no Assigned item when every named owner was skipped, says why, and counts it as a record it could not update", async () => {
+      const mocks: Mocks = standIn();
+
+      const result: RuleApplicationResult = await run(c, {
+        rules: [
+          rule({
+            ownerUsers: [ref(DEPARTED_USER_ID)],
+            ownerTeams: [ref(FOREIGN_TEAM_ID)],
+          }),
+        ],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.failed());
+      expect(users(mocks)).toEqual([]);
+      expect(teams(mocks)).toEqual([]);
+
+      expect(said(mocks)).not.toContain("Assigned the following");
+      expect(said(mocks)).toContain(
+        `Did not assign the following owners to the ${noun}:\n- 👤 Bob Departed, who is not a member of this project`,
+      );
+    });
+
+    it("logs which owners it skipped and why, by id alone", async () => {
+      standIn();
+
+      await run(c, {
+        rules: [
+          rule({
+            ownerUsers: [ref(USER_A_ID), ref(DEPARTED_USER_ID)],
+            ownerTeams: [ref(FOREIGN_TEAM_ID)],
+          }),
+        ],
+      });
+
+      expect(warned).toHaveBeenCalledTimes(1);
+      const line: string = String(warned.mock.calls[0]![0]);
+      expect(line).toContain(
+        `user ${DEPARTED_USER_ID.toString()} (NotProjectMember)`,
+      );
+      expect(line).toContain(
+        `team ${FOREIGN_TEAM_ID.toString()} (NotProjectRecord)`,
+      );
+      expect(line).not.toContain("Bob");
+    });
+
+    it("says nothing of its monitors when the owner it inherited from them was not added", async () => {
+      // The monitor's owner has left the project.
+      const mocks: Mocks = installMocks(c);
+      jest
+        .spyOn(TeamMemberService, "isUserMemberOfProject")
+        .mockResolvedValue(false);
+      mocks.userLookup.mockResolvedValue([
+        person(MONITOR_OWNER_USER_ID, "Mona Monitor", "mona@example.com"),
+      ]);
+      mocks.teamLookup.mockResolvedValue([namedTeam(TEAM_A_ID, "Platform")]);
+      jest.spyOn(logger, "warn").mockImplementation((() => {
+        // expected: the skip is logged
+      }) as never);
+
+      const result: RuleApplicationResult = await run(c, {
+        rules: [
+          rule({
+            ownerTeams: [ref(TEAM_A_ID)],
+            inheritOwnersFromMonitors: true,
+          }),
+        ],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(users(mocks)).toEqual([]);
+      expect(said(mocks)).not.toContain("inherited");
+      expect(said(mocks)).toContain(
+        "- 👤 Mona Monitor, who is not a member of this project",
+      );
+    });
+
+    it("notes its monitors when the owner it inherited from them was added", async () => {
+      const mocks: Mocks = standIn();
+
+      const result: RuleApplicationResult = await run(c, {
+        rules: [rule({ inheritOwnersFromMonitors: true })],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(users(mocks)).toEqual([MONITOR_OWNER_USER_ID.toString()]);
+      expect(said(mocks)).toContain("_Some owners were inherited from the");
+      expect(said(mocks)).not.toContain("Did not assign");
+    });
+
+    it("says nothing of its hosts when the team it inherited from them is not the project's", async () => {
+      const mocks: Mocks = standIn({
+        teamsOfAnotherProject: [HOST_OWNER_TEAM_ID],
+      });
+
+      const result: RuleApplicationResult = await run(c, {
+        rules: [
+          rule({
+            ownerUsers: [ref(USER_A_ID)],
+            inheritOwnersFromHosts: true,
+          }),
+        ],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(teams(mocks)).toEqual([]);
+      expect(said(mocks)).not.toContain("inherited");
+      // Another project's team is never named, by the name it was read by or any.
+      expect(said(mocks)).not.toContain("Hosts");
+      expect(said(mocks)).toContain(
+        `- 👥 A team that is not one of this project's teams (\`${HOST_OWNER_TEAM_ID.toString()}\`)`,
+      );
+    });
+
+    if (c.modelType === Incident || c.modelType === Alert) {
+      it("says nothing of the creator's team when that team was not added", async () => {
+        const mocks: Mocks = standIn({
+          teamsOfAnotherProject: [SRE_TEAM_ID],
+        });
+        jest
+          .spyOn(TeamMemberService, "getTeamIdsForUser")
+          .mockResolvedValue([SRE_TEAM_ID] as never);
+        const resource: DatabaseBaseModel = c.makeResource({});
+        (resource as unknown as { createdByUserId: ObjectID }).createdByUserId =
+          CREATOR_ID;
+
+        const result: RuleApplicationResult = await run(c, {
+          resource: resource,
+          rules: [
+            rule({
+              ownerUsers: [ref(USER_A_ID)],
+              creatorTeams: [ref(SRE_TEAM_ID)],
+            }),
+          ],
+        });
+
+        expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+        expect(teams(mocks)).toEqual([]);
+        expect(said(mocks)).not.toContain("is a member of them");
+        expect(said(mocks)).toContain(
+          `- 👥 A team that is not one of this project's teams (\`${SRE_TEAM_ID.toString()}\`)`,
+        );
+      });
+    }
+
+    it("the create hook writes the same item", async () => {
+      const mocks: Mocks = standIn();
+      mockMethod(c.ruleService, "findBy", async () => {
+        return [
+          rule({
+            notifyOwners: true,
+            ownerUsers: [ref(USER_A_ID), ref(DEPARTED_USER_ID)],
+          }),
+        ];
+      });
+
+      await c.createHook(c.makeResource({}));
+
+      expect(users(mocks)).toEqual([USER_A_ID.toString()]);
+      expect(said(mocks)).toContain(
+        `Assigned the following owner to the ${noun}:\n- 👤 Ada Lovelace`,
+      );
+      expect(said(mocks)).toContain(
+        `Did not assign the following owner to the ${noun}:\n- 👤 Bob Departed, who is not a member of this project`,
       );
     });
   },
