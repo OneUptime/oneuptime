@@ -106,9 +106,11 @@ This network device references records that are not in this project: Network Sit
 
 ### 其他记录已在使用的名称
 
-团队、标签、值班策略和值班计划在项目中各自拥有独一无二的名称，不区分大小写和空格。创建或重命名时使用同类其他记录已有的名称，会得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已归档的值班策略会保留其名称：请取消归档，或另选一个名称。此前就同名的记录会保留名称，仪表板中团队、值班策略和值班计划的列表会标记它们。
+团队、标签、值班策略和值班计划在项目中各自拥有独一无二的名称，不区分大小写和空格。创建或重命名时使用同类其他记录已有的名称，会得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已归档的值班策略会保留其名称：请取消归档，或另选一个名称。此前就同名的记录会保留名称，仪表板中团队、标签、值班策略和值班计划的列表会标记它们。
 
-Terraform 会并行执行同一次 apply 中的更改，因此如果重命名为另一个资源在同一次 apply 中让出的名称，在那个资源仍占用该名称时可能会被拒绝：请再次应用，或在接收名称的资源上添加一个指向让出名称的资源的 `depends_on`。互换（A 改为 B、B 改为 A），或任何最终回到起点的重命名链，都无法在一次 apply 中完成：先把其中一个重命名为没有人使用的名称，应用，然后再完成其余更改。
+Terraform 会并行执行同一次 apply 中的更改，因此如果重命名为另一个资源在同一次 apply 中让出的名称，在那个资源仍占用该名称时可能会被拒绝。此时提供程序会在最多 30 秒内再次请求，因此重命名链（例如 A 改为 B，同时 B 改为 C）可以在一次 apply 中完成。互换（A 改为 B、B 改为 A），或任何最终回到起点的重命名链，则永远无法完成：30 秒后 apply 会失败，并显示 `The name was still taken after asking again for 30 seconds.` 请先把其中一个重命名为没有人使用的名称，应用，然后再完成其余更改。
+
+如果使用较旧的提供程序或较旧的 OneUptime，第一次拒绝就会让 apply 失败：请再次应用，或在接收名称的资源上添加一个指向让出名称的资源的 `depends_on`。
 
 ## 无法稳定的计划
 

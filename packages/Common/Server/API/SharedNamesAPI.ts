@@ -1,5 +1,6 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import DatabaseService from "../Services/DatabaseService";
+import LabelService from "../Services/LabelService";
 import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../Services/OnCallDutyPolicyService";
 import TeamService from "../Services/TeamService";
@@ -26,8 +27,8 @@ import ObjectID from "../../Types/ObjectID";
 /*
  * GET /shared-names/:kind - the records of the request's project whose
  * names read as one name, for their list to mark (#9746,
- * Types/Database/SharedNames): teams, on-call policies and on-call
- * schedules, which a picker shows by their name alone.
+ * Types/Database/SharedNames): teams, labels (#9856), on-call policies and
+ * on-call schedules, which a picker shows by their name.
  *
  * For a signed-in member of the project or a project API key. Only the
  * records the caller may read are answered, read with the caller's own
@@ -44,9 +45,9 @@ const router: ExpressRouter = Express.getRouter();
 interface SharedNamesOfKind {
   service: DatabaseService<BaseModel>;
   /*
-   * Records in service only: an archived on-call policy is offered in no
-   * picker, so a policy named as one is drawn alike with nothing, and its
-   * list (which leaves archived policies out) marks it for nothing.
+   * Records in service only: an archived on-call policy or label is offered
+   * in no picker, so one named as it is drawn alike with nothing, and its
+   * list (which leaves the archived ones out) marks it for nothing.
    */
   leaveOutArchived: boolean;
 }
@@ -56,6 +57,10 @@ const OF_KIND: Record<SharedNameKind, SharedNamesOfKind> = {
   [SharedNameKind.Team]: {
     service: TeamService as unknown as DatabaseService<BaseModel>,
     leaveOutArchived: false,
+  },
+  [SharedNameKind.Label]: {
+    service: LabelService as unknown as DatabaseService<BaseModel>,
+    leaveOutArchived: true,
   },
   [SharedNameKind.OnCallPolicy]: {
     service: OnCallDutyPolicyService as unknown as DatabaseService<BaseModel>,
@@ -81,7 +86,7 @@ router.get(
 
       if (!isSharedNameKind(kind)) {
         throw new NotFoundException(
-          "There is no list of records with names of their own by that name. Ask for team, on-call-policy or on-call-schedule.",
+          "There is no list of records with names of their own by that name. Ask for team, label, on-call-policy or on-call-schedule.",
         );
       }
 

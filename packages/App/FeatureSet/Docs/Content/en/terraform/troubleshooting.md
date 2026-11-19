@@ -106,9 +106,11 @@ A data source finds exactly one record, or stops the plan. `Not Found` says no r
 
 ### Names another record has
 
-Teams, labels, on-call policies and on-call schedules each have a name of their own in a project, whatever its case or spacing. A create, or a rename, onto a name another one of its kind has answers `400`, such as `There is already an on-call policy called Primary in this project. Pick another name.` An archived on-call policy keeps its name: unarchive it, or pick another name. Records that shared a name before keep it, and the dashboard's lists of teams, on-call policies and on-call schedules mark them.
+Teams, labels, on-call policies and on-call schedules each have a name of their own in a project, whatever its case or spacing. A create, or a rename, onto a name another one of its kind has answers `400`, such as `There is already an on-call policy called Primary in this project. Pick another name.` An archived on-call policy keeps its name: unarchive it, or pick another name. Records that shared a name before keep it, and the dashboard's lists of teams, labels, on-call policies and on-call schedules mark them.
 
-Terraform makes the changes of one apply side by side, so a rename onto a name another resource gives up in the same apply can be refused while that one still has it: apply again, or add a `depends_on` from the resource that takes the name to the one that gives it up. A swap, A to B and B to A, or any chain of renames that ends where it started, cannot be made in one apply: rename one of them to a name nobody has, apply, then make the rest of the change.
+Terraform makes the changes of one apply side by side, so a rename onto a name another resource gives up in the same apply can be refused while that one still has it. The provider then asks again for up to 30 seconds, so a chain of renames, such as A to B while B goes to C, goes through in one apply. A swap, A to B and B to A, or any chain of renames that ends where it started, never does: after 30 seconds the apply fails with `The name was still taken after asking again for 30 seconds.` Rename one of them to a name nobody has, apply, then make the rest of the change.
+
+With an older provider or an older OneUptime, the first refusal fails the apply: apply again, or add a `depends_on` from the resource that takes the name to the one that gives it up.
 
 ## Plans that do not settle
 

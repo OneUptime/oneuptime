@@ -54,9 +54,9 @@ Rapporten räknar vad som skapades, bjöds in och inte fördes över, och visar 
 | I Splunk On-Call | I OneUptime | Hur |
 | --- | --- | --- |
 | Användare | Projektmedlemmar | Matchas på e-postadress. Alla som inte är med i projektet ännu bjuds in till teamet du väljer. |
-| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. |
-| Rotationer | Jourscheman | Varje rotation blir ett schema ägt av sitt team, och varje pass i den ett lager med samma personer, samma start, samma överlämning och samma jourdagar och jourtimmar. Den som har jour i Splunk On-Call nu har jour i OneUptime också. |
-| Eskaleringspolicyer | Jourpolicyer | Ägda av policyns team. Varje steg blir en eskaleringsregel som larmar samma rotationer och användare. Ett stegs tidsgräns blir väntetiden före steget, och steg utan tidsgräns mellan sig larmar tillsammans. |
+| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. Har två team samma namn, förs det andra objektet över med ett nummer, till exempel `Platform 2`, och rapporten visar namnet det skapades med. |
+| Rotationer | Jourscheman | Varje rotation blir ett schema ägt av sitt team, och varje pass i den ett lager med samma personer, samma start, samma överlämning och samma jourdagar och jourtimmar. Den som har jour i Splunk On-Call nu har jour i OneUptime också. Har två rotationer samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
+| Eskaleringspolicyer | Jourpolicyer | Ägda av policyns team. Varje steg blir en eskaleringsregel som larmar samma rotationer och användare. Ett stegs tidsgräns blir väntetiden före steget, och steg utan tidsgräns mellan sig larmar tillsammans. Har två eskaleringspolicyer samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
 
 Pass i en rotation som har jour samtidigt blir var sitt OneUptime-schema, eftersom ett OneUptime-schema har en person i jour åt gången. Varje jourpolicy som larmade rotationen larmar alla. Schemat behåller tidszonen från rotationens första pass, och ett pass i en annan tidszon får sina timmar omräknade till den.
 

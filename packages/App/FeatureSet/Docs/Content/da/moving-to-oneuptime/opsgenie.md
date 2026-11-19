@@ -55,9 +55,9 @@ Rapporten tæller, hvad der blev oprettet, inviteret og ikke overført, og viser
 | I Opsgenie | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brugere | Projektmedlemmer | Matches på e-mailadresse. Alle, der ikke er i projektet endnu, inviteres til det team, du vælger. Blokerede brugere overføres ikke. |
-| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. |
-| Vagtplaner | Vagtplaner | Hver rotation bliver et lag med de samme personer, den samme start, den samme vagtlængde og den samme tidsbegrænsning, i vagtplanens tidszone, ejet af vagtplanens team. |
-| Eskaleringer | Vagtpolitikker | Hver regel bliver en eskaleringsregel, der tilkalder den samme vagtplan, bruger eller det samme team. Regler med samme forsinkelse tilkalder sammen, og ventetiden før den næste eskaleringsregel er forskellen mellem forsinkelserne. Eskaleringens gentagelser bliver politikkens gentagelser. |
+| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. Har to teams samme navn, overføres det andet element med et nummer, fx `Platform 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Vagtplaner | Vagtplaner | Hver rotation bliver et lag med de samme personer, den samme start, den samme vagtlængde og den samme tidsbegrænsning, i vagtplanens tidszone, ejet af vagtplanens team. Har to vagtplaner samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Eskaleringer | Vagtpolitikker | Hver regel bliver en eskaleringsregel, der tilkalder den samme vagtplan, bruger eller det samme team. Regler med samme forsinkelse tilkalder sammen, og ventetiden før den næste eskaleringsregel er forskellen mellem forsinkelserne. Eskaleringens gentagelser bliver politikkens gentagelser. Har to eskaleringer samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
 | Tjenester | Tjenester | Oprettes i tjenestekataloget, ejet af deres team. |
 
 En vagtplan, hvis rotationer sætter to personer på vagt samtidig, bliver én OneUptime-vagtplan pr. rotation, fordi en OneUptime-vagtplan har én person på vagt ad gangen. Hver vagtpolitik, der tilkaldte vagtplanen, tilkalder dem alle.

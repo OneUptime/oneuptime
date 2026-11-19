@@ -106,9 +106,11 @@ En datakilde finder præcis én post, eller den stopper planen. `Not Found` sige
 
 ### Navne, som en anden post allerede har
 
-Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et projekt, uanset store og små bogstaver og mellemrum. En oprettelse eller en omdøbning til et navn, som en anden post af samme slags allerede har, besvares med `400`, fx `There is already an on-call policy called Primary in this project. Pick another name.` En arkiveret vagtpolitik beholder sit navn: fjern den fra arkivet, eller vælg et andet navn. Poster, der allerede delte et navn, beholder det, og dashboardets lister over teams, vagtpolitikker og vagtplaner markerer dem.
+Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et projekt, uanset store og små bogstaver og mellemrum. En oprettelse eller en omdøbning til et navn, som en anden post af samme slags allerede har, besvares med `400`, fx `There is already an on-call policy called Primary in this project. Pick another name.` En arkiveret vagtpolitik beholder sit navn: fjern den fra arkivet, eller vælg et andet navn. Poster, der allerede delte et navn, beholder det, og dashboardets lister over teams, etiketter, vagtpolitikker og vagtplaner markerer dem.
 
-Terraform foretager ændringerne i én apply side om side, så en omdøbning til et navn, som en anden ressource opgiver i samme apply, kan blive afvist, mens den anden stadig har det: anvend igen, eller tilføj en `depends_on` fra den ressource, der tager navnet, til den, der opgiver det. Et bytte, A til B og B til A, eller en hvilken som helst kæde af omdøbninger, der ender, hvor den begyndte, kan ikke laves i én apply: omdøb én af dem til et navn, som ingen har, anvend, og lav så resten af ændringen.
+Terraform foretager ændringerne i én apply side om side, så en omdøbning til et navn, som en anden ressource opgiver i samme apply, kan blive afvist, mens den anden stadig har det. Provideren spørger så igen i op til 30 sekunder, så en kæde af omdøbninger, fx A til B, mens B bliver til C, går igennem i én apply. Et bytte, A til B og B til A, eller en hvilken som helst kæde af omdøbninger, der ender, hvor den begyndte, går aldrig igennem: efter 30 sekunder mislykkes applyen med `The name was still taken after asking again for 30 seconds.` Omdøb én af dem til et navn, som ingen har, anvend, og lav så resten af ændringen.
+
+Med en ældre provider eller en ældre OneUptime får allerede den første afvisning applyen til at mislykkes: anvend igen, eller tilføj en `depends_on` fra den ressource, der tager navnet, til den, der opgiver det.
 
 ## Planer, der ikke falder til ro
 

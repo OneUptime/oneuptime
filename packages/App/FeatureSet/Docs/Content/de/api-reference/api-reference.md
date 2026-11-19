@@ -254,7 +254,9 @@ Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne haben in einem P
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Ein Update, das den eigenen Namen eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Umbenennung, sodass Datensätze, die sich vorher einen Namen geteilt haben, weiterhin geändert und so umbenannt werden können, dass sie sich unterscheiden. Für Teams, Bereitschaftsrichtlinien und Bereitschaftspläne beantwortet `GET /api/shared-names/team` (oder `on-call-policy`, `on-call-schedule`), welche sich einen Namen teilen: `{"groups": [["<id>", "<id>"]]}`, jede Gruppe die IDs der Datensätze mit gleich lautenden Namen, die Ihr Schlüssel lesen darf.
+Neben der Meldung enthält die Antwort `"refusalCode": "name_taken"`. Erkennen Sie diese Ablehnung an diesem Code, nicht am Satz, der umformuliert werden kann. Es wurde nichts geschrieben, daher kann dieselbe Anfrage erneut gesendet werden, sobald der andere Datensatz den Namen aufgibt: Der Terraform-Provider fragt bis zu 30 Sekunden lang erneut an.
+
+Ein Update, das den eigenen Namen eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Umbenennung, sodass Datensätze, die sich vorher einen Namen geteilt haben, weiterhin geändert und so umbenannt werden können, dass sie sich unterscheiden. Für Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne beantwortet `GET /api/shared-names/team` (oder `label`, `on-call-policy`, `on-call-schedule`), welche sich einen Namen teilen: `{"groups": [["<id>", "<id>"]]}`, jede Gruppe die IDs der Datensätze mit gleich lautenden Namen, die Ihr Schlüssel lesen darf. Archivierte Labels und Bereitschaftsrichtlinien werden ausgelassen.
 
 ### Schalter
 

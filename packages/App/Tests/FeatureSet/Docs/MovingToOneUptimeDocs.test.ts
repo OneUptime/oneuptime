@@ -1,9 +1,12 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
+  TOOL_IMPORT_NOTE_TEMPLATES,
   TOOL_IMPORT_TOOL_COPY,
   ToolImportToolCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportText";
+import { getNumberedName } from "Common/Types/Database/UniqueName";
+import { ToolImportNoteCode } from "Common/Types/ToolImport/ToolImportNote";
 import {
   getToolImportSourceDefinition,
   isToolImportAddressGiven,
@@ -686,4 +689,109 @@ describe("Finish the switch ends on the report's next step", () => {
       expect(page).not.toContain("**Copy link**");
     }
   });
+});
+
+/*
+ * TWO RECORDS OF ONE IMPORT CALLED ALIKE (#9857).
+ *
+ * A team's, a schedule's and a policy's name is one record's in a project
+ * (#9674, #9742), and another tool may call two alike. The import creates
+ * the second numbered, as Duplicate numbers a copy (ToolImportApplier
+ * .createNamed, through createWithFreeName and getNumberedName), and the
+ * report says so on that item (ToolImportNoteCode.NameNumbered). Each
+ * on-call tool's page says it in its Teams, Schedules and policies rows,
+ * in every language, with the example numbered as the import numbers it.
+ */
+describe("two teams, schedules or policies of one import called alike", () => {
+  const NUMBERED_KINDS: Array<ToolImportResourceKind> = [
+    ToolImportResourceKind.Team,
+    ToolImportResourceKind.OnCallSchedule,
+    ToolImportResourceKind.OnCallPolicy,
+  ];
+
+  // The name the second of two is made with, as the import makes it.
+  const EXAMPLES: Record<string, string> = {
+    [ToolImportResourceKind.Team]: getNumberedName({
+      name: "Platform",
+      number: 2,
+    }),
+    [ToolImportResourceKind.OnCallSchedule]: getNumberedName({
+      name: "Primary",
+      number: 2,
+    }),
+    [ToolImportResourceKind.OnCallPolicy]: getNumberedName({
+      name: "Primary",
+      number: 2,
+    }),
+  };
+
+  const tools: Array<ToolImportSource> = AllToolImportSources.filter(
+    (source: ToolImportSource): boolean => {
+      return NUMBERED_KINDS.every((kind: ToolImportResourceKind): boolean => {
+        return getToolImportSourceDefinition(source).kinds.includes(kind);
+      });
+    },
+  );
+
+  test("are brought by the five on-call tools, numbered from 2, with a note on the report", () => {
+    expect(tools).toEqual([
+      ToolImportSource.OpsGenie,
+      ToolImportSource.PagerDuty,
+      ToolImportSource.IncidentIo,
+      ToolImportSource.SplunkOnCall,
+      ToolImportSource.GrafanaOnCall,
+    ]);
+    expect(Object.values(EXAMPLES)).toEqual([
+      "Platform 2",
+      "Primary 2",
+      "Primary 2",
+    ]);
+    expect(TOOL_IMPORT_NOTE_TEMPLATES[ToolImportNoteCode.NameNumbered]).toBe(
+      "Its name was already taken in this project, so it was created as {{name}}.",
+    );
+  });
+
+  test.each(tools)(
+    "%s: each of the three rows says the second comes over numbered, in every language",
+    (source: ToolImportSource) => {
+      const kinds: Array<ToolImportResourceKind> =
+        getToolImportSourceDefinition(source).kinds;
+
+      const dataRows: (lang: string) => Array<string> = (
+        lang: string,
+      ): Array<string> => {
+        // The header row, then one row per kind, in the catalog's order.
+        return tableRowsIn(
+          sectionsOf(readPage(lang, source))[SECTION_INDEX.comesOver]!.body,
+        )
+          .filter((row: string): boolean => {
+            return !TABLE_SEPARATOR.test(row);
+          })
+          .slice(1);
+      };
+
+      for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        const rows: Array<string> = dataRows(lang);
+
+        for (const kind of NUMBERED_KINDS) {
+          const row: string = rows[kinds.indexOf(kind)] || "";
+
+          expect({
+            lang,
+            kind,
+            numbered: row.includes(`\`${EXAMPLES[kind]}\``),
+          }).toEqual({ lang, kind, numbered: true });
+        }
+      }
+
+      // And in English, what the report says of it.
+      const english: Array<string> = dataRows("en");
+
+      for (const kind of NUMBERED_KINDS) {
+        expect(english[kinds.indexOf(kind)]).toContain(
+          `the second comes over numbered, such as \`${EXAMPLES[kind]}\`, and the report says the name it was created with.`,
+        );
+      }
+    },
+  );
 });

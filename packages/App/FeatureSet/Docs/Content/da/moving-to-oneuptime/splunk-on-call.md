@@ -54,9 +54,9 @@ Rapporten tæller, hvad der blev oprettet, inviteret og ikke overført, og viser
 | I Splunk On-Call | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brugere | Projektmedlemmer | Matches på e-mailadresse. Alle, der ikke er i projektet endnu, inviteres til det team, du vælger. |
-| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. |
-| Rotationer | Vagtplaner | Hver rotation bliver en vagtplan ejet af dens team, og hver af dens vagter et lag med de samme personer, den samme start, den samme overdragelse og de samme vagtdage og -timer. Den, der har vagt i Splunk On-Call nu, har også vagt i OneUptime. |
-| Eskaleringspolitikker | Vagtpolitikker | Ejet af politikkens team. Hvert trin bliver en eskaleringsregel, der tilkalder de samme rotationer og brugere. Et trins timeout bliver ventetiden før det, og trin uden timeout imellem tilkalder sammen. |
+| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. Har to teams samme navn, overføres det andet element med et nummer, fx `Platform 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Rotationer | Vagtplaner | Hver rotation bliver en vagtplan ejet af dens team, og hver af dens vagter et lag med de samme personer, den samme start, den samme overdragelse og de samme vagtdage og -timer. Den, der har vagt i Splunk On-Call nu, har også vagt i OneUptime. Har to rotationer samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Eskaleringspolitikker | Vagtpolitikker | Ejet af politikkens team. Hvert trin bliver en eskaleringsregel, der tilkalder de samme rotationer og brugere. Et trins timeout bliver ventetiden før det, og trin uden timeout imellem tilkalder sammen. Har to eskaleringspolitikker samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
 
 Vagter i én rotation, der har vagt samtidig, bliver hver deres egen OneUptime-vagtplan, fordi en OneUptime-vagtplan har én person på vagt ad gangen. Hver vagtpolitik, der tilkaldte rotationen, tilkalder dem alle. Vagtplanen beholder tidszonen fra rotationens første vagt, og en vagt i en anden tidszone får sine timer omregnet til den.
 
