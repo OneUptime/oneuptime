@@ -79,7 +79,7 @@ Você precisa de permissão para adicionar provedores de SSO — **Proprietário
    - Um provedor novo começa desligado. Quando seu IdP tiver esses dois valores, edite o provedor e ative **Habilitado**
 
 4. **Testar o provedor**
-   - Abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor na página que abrir. Você é levado à página de login do seu provedor de identidade e volta ao OneUptime com o login feito
+   - Abra o link do cartão **Link de login SSO** e escolha o provedor na página que abrir. Você é levado à página de login do seu provedor de identidade e volta ao OneUptime com o login feito
    - Quando funcionar, você pode [exigir SSO](#exigir-sso-no-seu-projeto) no projeto
 :::
 
@@ -131,7 +131,7 @@ O Keycloak é uma solução de código aberto bastante usada para gestão de ide
 
 5. **Ativar o provedor e testá-lo**
 
-   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login do Keycloak e voltar ao OneUptime.
+   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Link de login SSO** e escolha o provedor. Você deve ser levado à página de login do Keycloak e voltar ao OneUptime.
 :::
 @tab Microsoft Entra ID
 O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identidade em nuvem da Microsoft. Você precisa de um tenant que dê suporte a aplicativos empresariais com SSO SAML, e de acesso de administrador ao Entra ID e ao OneUptime. No OneUptime Cloud, se a galeria de aplicativos do Microsoft Entra listar o OneUptime, adicione-o a partir dela: ele já vem com as declarações que o OneUptime lê e com os padrões das URLs dele.
@@ -182,7 +182,7 @@ O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identi
 
 7. **Ativar o provedor e testá-lo**
 
-   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login da Microsoft e voltar ao OneUptime.
+   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Link de login SSO** e escolha o provedor. Você deve ser levado à página de login da Microsoft e voltar ao OneUptime.
 :::
 @tab Okta
 O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa de uma organização do Okta com acesso de administrador, e de acesso de administrador ao OneUptime. No OneUptime Cloud, se a Okta Integration Network listar o OneUptime, adicione-o a partir dela: ele faz o login das pessoas pela página **Login com SSO** do OneUptime e pelo painel do Okta delas, cria uma conta para elas no primeiro login e pede dois IDs em vez das URLs do OneUptime.
@@ -232,7 +232,7 @@ O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa 
 
 6. **Ativar o provedor e testá-lo**
 
-   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login do Okta e voltar ao OneUptime.
+   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Link de login SSO** e escolha o provedor. Você deve ser levado à página de login do Okta e voltar ao OneUptime.
 :::
 @tab Outro
 O SSO do OneUptime usa SAML 2.0 e funciona com qualquer provedor de identidade compatível:
@@ -242,7 +242,7 @@ O SSO do OneUptime usa SAML 2.0 e funciona com qualquer provedor de identidade c
 2. No OneUptime, crie o provedor com esses valores e copie o **Identificador (Entity ID)** e a **URL de resposta (URL do Assertion Consumer Service)** da caixa de diálogo **Configuração de SSO** (ou de **Ver configuração SSO**).
 3. No aplicativo SAML do seu provedor de identidade, defina a **Assertion Consumer Service URL / Reply URL** e o **Entity ID / Audience URI** com os valores do OneUptime, e o **Name ID Format** como endereço de email.
 4. O **Método de assinatura** (`RSA-SHA256`) e o **Método de digest** (`SHA256`) já estão definidos em **Mais campos**; altere-os apenas se o seu provedor de identidade assinar de outra forma
-5. Ative **Habilitado** no provedor e teste-o com o link do cartão **Test Single Sign On (SSO)**.
+5. Ative **Habilitado** no provedor e teste-o com o link do cartão **Link de login SSO**.
 :::
 :::
 
@@ -256,7 +256,7 @@ Um projeto também pode fazer login por meio de um provedor OpenID Connect, como
 3. Informe um **Nome** (o que as pessoas veem na página de login), a **URL do Emissor**, o **Client ID** e o **Client Secret**. Você também pode colar a URL de descoberta do provedor em **URL do Emissor**.
 4. Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem faz login pela primeira vez entra nessas equipes. Todo o resto já vem preenchido em **Mais campos**: a **URL de descoberta** (o emissor seguido de `/.well-known/openid-configuration`), os **Escopos** (`openid email profile`), os nomes das declarações `email` e `name`, e uma descrição ("Sign in with" seguido do nome). Altere-os apenas se o seu provedor exigir. Só são aceitas equipes para as quais você poderia convidar alguém: uma equipe que dá mais acesso do que você tem é indicada em **Equipes**.
 5. Salve. A caixa de diálogo **Configuração OIDC** abre com a **Redirect URI**: adicione-a às URIs de redirecionamento permitidas do seu app. Um provedor novo começa desligado, então depois edite-o e ative **Habilitado**.
-6. Abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
+6. Abra o link do cartão **Link de login SSO** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
 :::
 
 ## Sair também do provedor de identidade
@@ -300,14 +300,20 @@ As equipes de um provedor decidem o que as pessoas que fazem login com ele podem
 1. Adicione o seu domínio em **Configurações do projeto** > **Avançado** > **Domínios**, clique em **Verificar domínio** na linha dele e adicione o registro TXT exibido ao DNS do domínio. Assim que o registro é encontrado, o domínio está verificado.
 2. Edite o provedor e escolha o domínio em **Domínios**, na etapa **Login**. Só os domínios verificados do projeto são listados.
 
-**Login com SSO** passa então a oferecer o provedor a qualquer endereço desse domínio, seja quem for que o digite. O domínio precisa corresponder exatamente: `acme.com` não cobre `eu.acme.com`, então adicione cada domínio com que as pessoas fazem login. Um provedor sem domínios, como um configurado antes de os domínios existirem, não é oferecido a ninguém ali, e continua fazendo o login das pessoas pelo seu provedor de identidade e pelo link do cartão **Test Single Sign On (SSO)**.
+**Login com SSO** passa então a oferecer o provedor a qualquer endereço desse domínio, seja quem for que o digite. O domínio precisa corresponder exatamente: `acme.com` não cobre `eu.acme.com`, então adicione cada domínio com que as pessoas fazem login.
+
+Os provedores configurados antes de os domínios existirem receberam os domínios verificados do projeto na atualização do OneUptime: cada domínio que o projeto tinha verificado, a não ser que outro projeto também o tivesse verificado. Escolha você mesmo esse domínio, se for seu. Um domínio que foi adicionado mas nunca verificado não foi dado a nenhum provedor.
+
+Um provedor que não indica nenhum domínio verificado não é oferecido a ninguém ali. A coluna **Domínios** dele mostra **Nenhum domínio verificado**, e um aviso acima dos seus provedores o nomeia e diz o que fazer. Enquanto o projeto não tiver nenhum domínio verificado, **Verificar um domínio** no aviso abre **Domínios**.
+
+Quem tem o e-mail em outro domínio, como um prestador de serviços, também não encontra nenhum provedor ali. Compartilhe com essa pessoa o link de login SSO do seu projeto: copie-o do cartão **Link de login SSO** abaixo dos seus provedores. Ele lista os provedores do projeto e não pede nenhum endereço de e-mail, então não diz nada sobre quem tem conta. Um login iniciado no seu provedor de identidade também funciona, seja qual for o domínio.
 
 ## Exigir SSO no seu projeto
 
 Configurar um provedor não impede ninguém de fazer login com senha. Para que o SSO seja a única forma de entrar no projeto, use o interruptor **Exigir SSO para entrar** em **Configurações do projeto** > **Segurança** > **SSO**, abaixo dos seus provedores:
 
 :::steps
-1. Teste primeiro o seu provedor com o link do cartão **Test Single Sign On (SSO)**.
+1. Teste primeiro o seu provedor com o link do cartão **Link de login SSO**.
 2. Ative **Exigir SSO para entrar**. O OneUptime pede confirmação antes de salvar: a partir daí, todos no projeto, inclusive você, precisam fazer login com SSO para abri-lo, e quem fez login com senha fica sem acesso ao projeto até fazer login com SSO.
 3. Clique em **Exigir SSO** para confirmar. O interruptor salva na hora; não há um botão de salvar separado.
 :::
@@ -336,9 +342,21 @@ A regra é verificada todas as vezes, então:
 - **Alguém em um projeto que não gerencia o login**: assim que a pessoa é membro de um projeto, ou é convidada para um, que não exige SSO ou não tem **Gerenciar o login com SSO** ligado, ela recebe suas configurações de volta, e o **Perfil do usuário** dela mostra esse projeto como o motivo. Se ela sair dele, o login dela volta a ser gerenciado. Uma conta pode pertencer a muitas organizações, então uma organização nunca decide pelos projetos de outra.
 - **Projetos com provedores diferentes**: alguém em dois projetos que gerenciam o login, cada um com o próprio provedor de identidade, é gerenciado, e o perfil dele mostra os dois provedores.
 - **Os administradores mestres** sempre mantêm suas próprias configurações.
-- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto. Um administrador do servidor pode limpá-lo na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
+- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto, até ser limpo: pelos Proprietários do projeto (veja abaixo), ou por um administrador do servidor na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
 
 **Gerenciar o login com SSO** salva assim que você muda o interruptor, não exclui nada, e desligá-lo devolve a todos suas configurações na hora. Quem pode alterar **Exigir SSO para entrar** pode alterá-lo, nos mesmos planos. Com **Exigir SSO para entrar** desligado, ele fica oculto e não muda nada.
+
+### Limpar o que seus membros salvaram antes
+
+Enquanto **Gerenciar o login com SSO** está ligado, os Proprietários do projeto veem abaixo dele quantos de seus membros ainda têm uma senha ou a autenticação de dois fatores salva no OneUptime. **Limpar configurações de login** exclui, depois de pedir confirmação, as senhas deles com qualquer link de redefinição ou de login, as chaves de acesso, chaves de segurança, aplicativos autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que eles abriram sem SSO. Não dá para desfazer.
+
+Uma conta pode pertencer a muitas organizações, então você só pode limpar as configurações das pessoas pelas quais sua organização é responsável. Sua organização são os projetos dos quais você é proprietário: as configurações de uma pessoa só são limpas quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, são projetos dos quais você é **Proprietário do projeto** e têm **Gerenciar o login com SSO** ligado. Todos os outros mantêm suas configurações:
+
+- alguém que é membro de um projeto, ou foi convidado para um, do qual você não é proprietário ou que não gerencia o login com SSO;
+- alguém apenas convidado para o seu projeto, que ainda não entrou nele;
+- os administradores mestres, e você: altere as suas no seu **Perfil do usuário**.
+
+Cada pessoa cujas configurações são limpas recebe um e-mail com o que foi removido e avisando que agora entra com SSO, e os registros de auditoria dos seus projetos registram a limpeza como sua. Só um **Proprietário do projeto** pode limpar, conectado ao painel: nunca com uma chave de API.
 
 ## Desligar ou excluir um provedor
 

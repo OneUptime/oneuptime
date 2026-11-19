@@ -43,6 +43,12 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import OnCallTestPageService from "../../../../Server/Services/OnCallTestPageService";
+import {
+  OnCallTestPageKind,
+  OnCallTestPageResult,
+  OnCallTestPageStatus,
+} from "../../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -764,6 +770,97 @@ describe("ChatAgentRunner.runTurn — history replay", () => {
 
     // A long conversation gets no generated title.
     expect(spies.executeWithLogging).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * #7249: a test page sent from an answer is kept on it, and the next
+   * turn's model reads what became of it - read now, as the person asking,
+   * after that answer's own words - so "did the test page reach Ana?" is
+   * answered from it.
+   */
+  test("an answer a test page was sent from ends with what became of it, read as the person asking", async () => {
+    const runId: string = "72490000-0000-4000-8000-0000000000aa";
+    const history: Array<AIConversationMessage> = [
+      buildHistoryMessage({
+        role: AIChatMessageRole.User,
+        content: "Did the test page reach Ana?",
+      }),
+      buildHistoryMessage({
+        role: AIChatMessageRole.Assistant,
+        content: "Set up: the monitor and who is paged.",
+        widgets: [
+          {
+            id: "W1",
+            type: AIChatWidgetType.ResourceCard,
+            title: "Created",
+            data: {
+              heading: "Default on-call policy",
+              testPage: {
+                kind: "policy",
+                policyId: "72490000-0000-4000-8000-0000000000bb",
+                sent: {
+                  executionLogId: runId,
+                  sentAt: "2026-11-19T10:15:00.000Z",
+                },
+              },
+            },
+          },
+        ],
+      }),
+    ];
+
+    const spies: RunnerSpies = installRunnerSpies({ history, titleCount: 5 });
+    const request: ChatTurnRequest = buildRequest();
+    const getResult: jest.SpyInstance = jest
+      .spyOn(OnCallTestPageService, "getResult")
+      .mockResolvedValue({
+        executionLogId: runId,
+        kind: OnCallTestPageKind.Policy,
+        policyId: "72490000-0000-4000-8000-0000000000bb",
+        policyName: "Default on-call policy",
+        recordKind: "Incident",
+        severityName: "Critical",
+        walksEscalation: false,
+        status: OnCallTestPageStatus.Acknowledged,
+        statusMessage: "",
+        startedAt: "2026-11-19T10:15:00.000Z",
+        endsAt: "2026-11-19T10:45:00.000Z",
+        acknowledgedByName: "Ana",
+        acknowledgedChannel: "SMS",
+        acknowledgedAfterSeconds: 42,
+        steps: [],
+      } as unknown as OnCallTestPageResult);
+
+    await ChatAgentRunner.runTurn(request);
+    await flushAsync();
+
+    expect(getResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: request.projectId,
+        props: request.props,
+      }),
+    );
+    expect(
+      (
+        getResult.mock.calls[0]?.[0] as { executionLogId: ObjectID }
+      ).executionLogId.toString(),
+    ).toBe(runId);
+
+    const llmRequest: AILogRequest = spies.executeWithLogging.mock
+      .calls[0]?.[0] as AILogRequest;
+    const answer: string =
+      llmRequest.messages.find((message: { content: string }): boolean => {
+        return message.content.startsWith("Set up:");
+      })?.content || "";
+
+    expect(answer).toContain("[A test page was sent from this answer.");
+    expect(answer).toContain("status=Acknowledged");
+    expect(answer).toContain("acknowledgedBy=Ana");
+    expect(answer).toContain("acknowledgedAfterSeconds=42");
+    // After the answer's own words.
+    expect(answer.indexOf("Set up:")).toBeLessThan(
+      answer.indexOf("[A test page was sent"),
+    );
   });
 });
 

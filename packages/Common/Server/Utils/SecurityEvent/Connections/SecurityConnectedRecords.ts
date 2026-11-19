@@ -64,6 +64,9 @@ import UserService from "../../../Services/UserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../TeamMember/PendingInviteeProfiles";
 
 /*
  * WHICH OF THE PROJECT'S OWN RECORDS A SECURITY CASE, EVENT OR ENTITY NAMES.
@@ -1420,6 +1423,32 @@ export default class SecurityConnectedRecords {
       entityByEmail.set(foldConnectionValue(entity.value), entity);
     }
 
+    /*
+     * A membership can be an invitation not accepted yet: its person is
+     * named as the project knows them - the name typed for them, else
+     * their address - never by their account's own name, which the case's
+     * page and OneUptime AI's triage would show (#9823, #9934). Read once
+     * for them all; when it cannot be read, no member is named at all, and
+     * the members are said to have failed, as any read of them.
+     */
+    const withheld: Map<string, WithheldProfile> | null =
+      (members || []).length > 0
+        ? await collector.read(SecurityConnectionKind.User, async () => {
+            return await PendingInviteeProfiles.readWithheldProfilesInProject({
+              userIds: (members || [])
+                .map((member: TeamMember): string => {
+                  return member.userId?.toString() || "";
+                })
+                .filter(Boolean),
+              projectId: data.projectId,
+            });
+          })
+        : new Map<string, WithheldProfile>();
+
+    if (!withheld) {
+      return;
+    }
+
     for (const member of members || []) {
       const id: string = member.userId?.toString() || "";
       const user: User | undefined = usersById.get(id);
@@ -1441,7 +1470,13 @@ export default class SecurityConnectedRecords {
         collector.add({
           kind: SecurityConnectionKind.User,
           id,
-          name: user?.name?.toString() || email,
+          name:
+            PendingInviteeProfiles.getNameInProject({
+              userId: id,
+              name: user?.name,
+              email: email,
+              withheld: withheld,
+            }) || email,
           match: {
             entity,
             certainty: verdict.certainty,

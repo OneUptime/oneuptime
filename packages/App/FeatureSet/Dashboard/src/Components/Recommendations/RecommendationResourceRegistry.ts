@@ -4,6 +4,7 @@ import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
+import HostOperatingSystem from "Common/Utils/Host/HostOperatingSystem";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -44,6 +45,7 @@ import {
   getCloudAlertTemplatesForType,
   getCloudConnectionsThreshold,
   getCloudMonitoringServiceName,
+  isCloudAlertTemplateOfOpsAgent,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
 } from "Common/Types/Monitor/CloudAlertTemplates";
@@ -501,10 +503,13 @@ export function readCloudResourceRecommendationContext(
   const provider: unknown = record["cloudProvider"];
   const resourceType: unknown = record["cloudResourceType"];
   const connectionId: unknown = record["cloudConnectionId"];
+  const name: unknown = record["name"];
 
   return {
     cloudProvider: typeof provider === "string" ? provider : null,
     cloudResourceType: typeof resourceType === "string" ? resourceType : null,
+    // What a Compute Engine VM's first command names it by.
+    cloudResourceName: typeof name === "string" && name.trim() ? name : null,
     cloudTelemetryAttributes: readCloudTelemetryAttributes(
       record["telemetryAttributes"],
     ),
@@ -721,6 +726,22 @@ export function describeCloudResourceRecommendationContext(
 
   const notes: Array<string> = [];
 
+  /*
+   * A Compute Engine VM whose Ops Agent reports nothing is offered no
+   * memory or disk monitor (#9741): what would offer them, as its Overview
+   * says it needs the agent.
+   */
+  if (
+    forType.some(isCloudAlertTemplateOfOpsAgent) &&
+    !offered.some(isCloudAlertTemplateOfOpsAgent)
+  ) {
+    notes.push(
+      translateTemplate(
+        "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.",
+      ),
+    );
+  }
+
   if (isStorageWaiting) {
     notes.push(
       translateTemplate(
@@ -840,6 +861,37 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     modelType: Host,
     identifierFieldName: "hostIdentifier",
     displayNameFieldName: "name",
+    /*
+     * An Android device is offered what only a device has - unplugged, low
+     * battery, overheating, restart loop, storage nearly full - and not the
+     * server templates over what it never sends; its CPU template once it
+     * reports CPU use (#9802).
+     */
+    contextFieldNames: ["osType", "latestCpuPercent"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const row: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+      const osType: unknown = row["osType"];
+      const cpu: unknown = row["latestCpuPercent"];
+
+      return {
+        hostOsType: typeof osType === "string" ? osType : null,
+        hostReportsCpu: typeof cpu === "number" && Number.isFinite(cpu),
+      };
+    },
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      if (!HostOperatingSystem.isAndroid(context.hostOsType)) {
+        return undefined;
+      }
+
+      return translateTemplate(
+        "This host is an Android device, so the recommendations below are the ones a device answers: its power, battery, temperature, restarts and storage.",
+      );
+    },
   },
   {
     resourceType: MonitorRecommendationResourceType.Docker,

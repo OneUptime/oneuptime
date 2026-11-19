@@ -18,8 +18,10 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -240,7 +242,13 @@ class ServiceOwnerRuleEngineServiceClass
       }),
     );
 
-    let ownersAdded: number = 0;
+    /*
+     * What the adds did: the owners written, and the ones skipped and why -
+     * a user who has left the project, a team that is not one of its teams
+     * (#9933). The count, the result and the rules credited are made from
+     * these.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     for (const notify of [true, false]) {
       const userIds: Array<string> = Array.from(
@@ -260,15 +268,16 @@ class ServiceOwnerRuleEngineServiceClass
         owner.projectId = service.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        if (
-          await OwnerRuleAssignment.createOwner({
+        OwnerRuleAssignment.recordOutcome({
+          into: outcome,
+          ownerColumn: "userId",
+          id: new ObjectID(userId),
+          outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
             ownerService: ServiceOwnerUserService,
             owner: owner,
             props: RuleRunWriteProps.get(data.props),
-          })
-        ) {
-          ownersAdded++;
-        }
+          }),
+        });
       }
 
       for (const teamId of teamIds) {
@@ -277,21 +286,42 @@ class ServiceOwnerRuleEngineServiceClass
         owner.projectId = service.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        if (
-          await OwnerRuleAssignment.createOwner({
+        OwnerRuleAssignment.recordOutcome({
+          into: outcome,
+          ownerColumn: "teamId",
+          id: new ObjectID(teamId),
+          outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
             ownerService: ServiceOwnerTeamService,
             owner: owner,
             props: RuleRunWriteProps.get(data.props),
-          })
-        ) {
-          ownersAdded++;
-        }
+          }),
+        });
       }
     }
 
+    const ownersAdded: number = outcome.userIds.length + outcome.teamIds.length;
+
+    OwnerRuleFeed.logSkipped({
+      engine: "ServiceOwnerRuleEngine",
+      record: `service ${service.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: service.projectId.toString(),
+      } as LogAttributes,
+    });
+
+    /*
+     * Nothing added. When every owner its rules name was skipped, the run
+     * could not update this resource: never "already applied", which would
+     * say it has owners it does not (OwnerRuleFeed.getResult).
+     */
     if (ownersAdded === 0) {
-      return RuleApplicationResultUtil.alreadyApplied();
+      return OwnerRuleFeed.getResult(outcome);
     }
+
+    // Credited: the rules that brought an owner this run added (#9933).
+    const rulesThatAdded: Array<ServiceOwnerRule> =
+      OwnerRuleFeed.getRulesThatAdded(matchedRules, outcome);
 
     logger.debug(
       `ServiceOwnerRuleEngine added owners to service ${service.id}`,
@@ -311,10 +341,10 @@ class ServiceOwnerRuleEngineServiceClass
         mdText`👥 Owners were added to ${await ServiceService.getServiceMarkdownLink(
           service.projectId,
           service.id,
-        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+        )} by ${rulesThatAdded.length} owner ${rulesThatAdded.length === 1 ? "rule" : "rules"}.`.toString(),
       moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
         ruleKind: "Owner",
-        ruleNames: matchedRules.map((rule: ServiceOwnerRule): string => {
+        ruleNames: rulesThatAdded.map((rule: ServiceOwnerRule): string => {
           return rule.name || rule.id?.toString() || "Unnamed rule";
         }),
       }).toString(),

@@ -206,6 +206,14 @@ jobs:
       # namespaces) must leave as WARN, Normal Events and resource specs as
       # INFO, none dropped.
       - run: bash Tests/Ops/agent-event-severity-behaviour.sh
+      # And for a host's journal (issue #9748): the journald operators of
+      # OneUptime's default host collector config, as the server sends it,
+      # on the release the host installers pin, fed entries as journalctl
+      # hands them over. Each must leave as its message, at its level, filed
+      # under its systemd unit, with systemd's own result and exit status
+      # only where PID 1 said them - and nothing else of the entry (its
+      # command line, user, cursor).
+      - run: bash Tests/Ops/host-collector-journal-behaviour.sh
       # And for kubelet CPU: the node collector's filter/cpu-utilization and
       # transform/cpu-utilization as the chart renders them, fed what the
       # kubeletstats receiver sends, on the collector the chart pins and on

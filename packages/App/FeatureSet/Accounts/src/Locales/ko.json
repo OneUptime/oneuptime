@@ -234,7 +234,9 @@
     "noAccountPrompt": "계정이 없으신가요?",
     "registerLink": "가입하기.",
     "selectProjectTitle": "프로젝트 선택",
-    "notSetUpForDomain": "{{domain}}에는 SSO(Single Sign-On)가 설정되지 않았습니다. 관리자에게 설정을 요청하거나 다른 방법으로 로그인하세요.",
+    "notSetUpForDomain": "{{domain}}에는 SSO(Single Sign-On)가 설정되지 않았습니다. 관리자에게 조직의 SSO 로그인 링크를 요청하거나 다른 방법으로 로그인하세요.",
+    "projectNoProvider": "이 링크에는 로그인할 수 있는 SSO(Single Sign-On) 공급자가 없습니다. 관리자에게 공급자를 켜 달라고 요청하거나 다른 방법으로 로그인하세요.",
+    "signInAnotherWay": "다른 방법으로 로그인",
     "emailRequired": "이 작업을 수행하려면 이메일이 필요합니다",
     "defaultProjectName": "프로젝트",
     "globalProvidersTitle": "조직 계정으로 로그인",
@@ -304,6 +306,19 @@
     "returnToApp": "앱으로 돌아가기",
     "cancel": "취소하고 앱으로 돌아가기",
     "setup": "웹 대시보드의 사용자 프로필 → 보안 → 패스키에서 패스키를 만드세요."
+  },
+  "mobilePasskeyEnrolment": {
+    "title": "패스키 설정",
+    "description": "이 휴대폰의 얼굴, 지문, 화면 잠금 또는 보안 키를 사용하세요. 다음부터는 이 패스키로 OneUptime On-Call에 로그인합니다.",
+    "create": "패스키 만들기",
+    "tryAgain": "다시 시도",
+    "notCompleted": "패스키가 만들어지지 않았습니다. 요청이 취소되었거나 시간이 초과되었습니다. 준비되면 다시 시도하세요.",
+    "expired": "이 설정은 만료되었거나 이미 사용되었습니다. 앱으로 돌아가 다시 시작하세요.",
+    "failed": "패스키를 만들지 못했습니다. 다시 시도하거나, 앱으로 돌아가 대신 인증 앱을 설정하세요.",
+    "complete": "패스키가 준비되었습니다. 앱으로 돌아가 로그인을 완료하세요.",
+    "invalid": "OneUptime 모바일 앱에서 패스키 설정을 시작하세요. 요청이 없거나 유효하지 않습니다.",
+    "insecure": "패스키에는 HTTPS가 필요합니다. 앱으로 돌아가 대신 인증 앱을 설정하세요.",
+    "unsupported": "이 브라우저에서는 패스키를 만들 수 없습니다. 앱으로 돌아가 대신 인증 앱을 설정하세요."
   },
   "mcpAuthorize": {
     "title": "MCP 클라이언트 연결",

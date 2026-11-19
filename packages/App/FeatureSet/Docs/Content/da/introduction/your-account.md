@@ -137,14 +137,14 @@ Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er 
 
 ### Når din organisation styrer dit login
 
-På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on, medmindre en serveradministrator rydder det. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
+På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on, medmindre en serveradministrator rydder det, og så får du en e-mail. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
 
 Det samme sker, når alle de projekter, du hører til, kræver single sign-on og har **Styr login med SSO** slået til. Din adgangskode logger dig stadig ind i OneUptime, men alle projekter beder om SSO, så OneUptime opsætter ingen ny adgangskode, adgangsnøgle eller andet trin for dig:
 
 - **Et projekt, der ikke gør det**: Så snart du er medlem af eller inviteret til et projekt, der ikke kræver SSO eller ikke har **Styr login med SSO** slået til, kommer din sektion **Sikkerhed** tilbage. **Oversigt** nævner så de projekter under **Single sign-on** som grunden til, at dine indstillinger er dine egne. Forlader du det projekt, mister du dem igen.
 - **Projekter med forskellige udbydere**: Styrer alle dine projekter login, hver med sin egen identitetsudbyder, nævner **Oversigt** hver udbyder.
 - **Hovedadministratorer** beholder altid deres egne indstillinger under **Sikkerhed**.
-- **Det, du har opsat før**, forbliver gemt, og en serveradministrator kan rydde det.
+- **Det, du har opsat før**, forbliver gemt. En serveradministrator kan rydde det, og det kan en ejer af alle de projekter, du hører til, også; du får en e-mail, når det sker.
 
 ## Dine projekter
 

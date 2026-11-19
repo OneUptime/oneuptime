@@ -79,7 +79,7 @@ You need permission to add SSO providers — **Project Owner**, **Project Admin*
    - A new provider starts switched off. Once your IdP has these two values, edit the provider and turn **Enabled** on
 
 4. **Test the provider**
-   - Open the link in the **Test Single Sign On (SSO)** card and pick the provider on the page it opens. You are sent to your identity provider's sign-in page, then back to OneUptime, signed in
+   - Open the link in the **SSO Sign-in Link** card and pick the provider on the page it opens. You are sent to your identity provider's sign-in page, then back to OneUptime, signed in
    - Once it works, you can [require SSO](#requiring-sso-for-your-project) for the project
 :::
 
@@ -131,7 +131,7 @@ Keycloak is a popular open-source identity and access management solution. You n
 
 5. **Turn the provider on and test it**
 
-   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card and pick the provider. You should be sent to your Keycloak sign-in page and back to OneUptime.
+   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **SSO Sign-in Link** card and pick the provider. You should be sent to your Keycloak sign-in page and back to OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (formerly Azure AD / Active Directory) is Microsoft's cloud identity service. You need a tenant that supports enterprise applications with SAML SSO, and admin access to both Entra ID and OneUptime. On OneUptime Cloud, if the Microsoft Entra application gallery lists OneUptime, add it from there: it comes with the claims OneUptime reads, and the patterns of its URLs.
@@ -182,7 +182,7 @@ Microsoft Entra ID (formerly Azure AD / Active Directory) is Microsoft's cloud i
 
 7. **Turn the provider on and test it**
 
-   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card and pick the provider. You should be sent to the Microsoft sign-in page and back to OneUptime.
+   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **SSO Sign-in Link** card and pick the provider. You should be sent to the Microsoft sign-in page and back to OneUptime.
 :::
 @tab Okta
 Okta is a widely used identity platform with SAML SSO. You need an Okta organization with admin access, and admin access to OneUptime. On OneUptime Cloud, if the Okta Integration Network lists OneUptime, add it from there: it signs people in from OneUptime's **Sign in with SSO** page and from their Okta dashboard, gives them an account at their first sign-in, and asks for two IDs instead of OneUptime's URLs.
@@ -232,7 +232,7 @@ Okta is a widely used identity platform with SAML SSO. You need an Okta organiza
 
 6. **Turn the provider on and test it**
 
-   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card and pick the provider. You should be sent to the Okta sign-in page and back to OneUptime.
+   In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **SSO Sign-in Link** card and pick the provider. You should be sent to the Okta sign-in page and back to OneUptime.
 :::
 @tab Other
 OneUptime's SSO uses SAML 2.0 and works with any compliant identity provider:
@@ -242,7 +242,7 @@ OneUptime's SSO uses SAML 2.0 and works with any compliant identity provider:
 2. In OneUptime, create the provider with those values, and copy the **Identifier (Entity ID)** and **Reply URL (Assertion Consumer Service URL)** from the **SSO Configuration** dialog (or **View SSO Config**).
 3. In your identity provider's SAML application, set the **Assertion Consumer Service URL / Reply URL** and the **Entity ID / Audience URI** to OneUptime's values, and the **Name ID Format** to email address.
 4. The **Signature Method** (`RSA-SHA256`) and **Digest Method** (`SHA256`) are already set under **More fields**; change them only if your identity provider signs differently
-5. Turn **Enabled** on for the provider, and test it with the link in the **Test Single Sign On (SSO)** card.
+5. Turn **Enabled** on for the provider, and test it with the link in the **SSO Sign-in Link** card.
 :::
 :::
 
@@ -256,7 +256,7 @@ A project can also sign in through an OpenID Connect provider, such as Google Wo
 3. Enter a **Name** (what people see on the sign-in page), the **Issuer URL**, the **Client ID** and the **Client Secret**. You can paste the provider's discovery URL into **Issuer URL** instead.
 4. On the **Sign-in** step, **Teams** starts on your project's members team: people who sign in for the first time join these teams. Everything else is filled in under **More fields**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description ("Sign in with" and the name). Change them only if your provider needs it. Only teams you could invite someone to are accepted: a team that gives more access than you have is named under **Teams**.
 5. Save. The **OIDC Configuration** dialog opens with the **Redirect URI**: add it to your app's allowed redirect URIs. A new provider starts switched off, so then edit it and turn **Enabled** on.
-6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.
+6. Open the link in the **SSO Sign-in Link** card and pick the provider, to sign in through it before you require SSO for the project.
 :::
 
 ## Signing out of the identity provider too
@@ -300,14 +300,20 @@ A provider's teams decide what people who sign in with it can do, so a provider 
 1. Add your domain under **Project Settings** > **Advanced** > **Domains**, click **Verify Domain** on its row, and add the TXT record it shows to the domain's DNS. Once the record is found, the domain is verified.
 2. Edit the provider, and pick the domain under **Domains** on the **Sign-in** step. Only the project's verified domains are listed.
 
-**Sign in with SSO** then offers the provider to every address on that domain, whoever types it. The domain must match exactly: `acme.com` does not cover `eu.acme.com`, so add each domain people sign in with. A provider with no domains, such as one set up before domains existed, is offered to nobody there, and still signs people in from your identity provider and from the link in the **Test Single Sign On (SSO)** card.
+**Sign in with SSO** then offers the provider to every address on that domain, whoever types it. The domain must match exactly: `acme.com` does not cover `eu.acme.com`, so add each domain people sign in with.
+
+Providers set up before domains existed were given their project's verified domains when OneUptime was upgraded: every domain the project had verified, unless another project had verified it too. Pick such a domain yourself if it is yours. A domain that was added but never verified was given to no provider.
+
+A provider that lists no verified domain is offered to nobody there. Its **Domains** column says **No verified domain**, and a notice above your providers names it and says what to do. While the project has no verified domain, the notice's **Verify a Domain** opens **Domains**.
+
+Someone whose email is on another domain, such as a contractor, finds no provider there either. Share your project's SSO sign-in link with them: copy it from the **SSO Sign-in Link** card under your providers. It lists the project's providers and asks for no email address, so it says nothing about who has an account. Sign-in started from your identity provider works whatever the domain, too.
 
 ## Requiring SSO for Your Project
 
 Setting up a provider does not stop anyone signing in with a password. To make SSO the only way into the project, use the **Require SSO to Sign In** switch on **Project Settings** > **Security** > **SSO**, under your providers:
 
 :::steps
-1. Test your provider first, with the link in the **Test Single Sign On (SSO)** card.
+1. Test your provider first, with the link in the **SSO Sign-in Link** card.
 2. Turn on **Require SSO to Sign In**. OneUptime asks before it saves anything: from then on everyone in the project, you included, has to sign in with SSO to open it, and anyone signed in with a password is locked out of the project until they sign in with SSO.
 3. Click **Require SSO** to confirm. The switch saves straight away; there is no separate Save button.
 :::
@@ -336,9 +342,21 @@ The rule is checked every time, so:
 - **Someone in a project that does not manage sign-in**: as soon as they are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, they get their settings back, and their **User Profile** names that project as the reason. Leaving it manages their sign-in again. An account can belong to many organizations, so one organization never decides for another's projects.
 - **Projects with different providers**: someone in two projects that both manage sign-in, each with its own identity provider, is managed, and their profile names both providers.
 - **Master admins** always keep their own settings.
-- **What people set up before** is kept, unused by your project. A server admin can clear it on the person's **Authentication** page in the Admin Dashboard, with **Clear Sign-In Settings**.
+- **What people set up before** is kept, unused by your project, until it is cleared: by the Project Owners (see below), or by a server admin on the person's **Authentication** page in the Admin Dashboard, with **Clear Sign-In Settings**.
 
 **Manage Sign-In with SSO** saves as soon as you flip it, deletes nothing, and turning it off gives everyone their settings back at once. Whoever can change **Require SSO to Sign In** can change it, on the same plans. With **Require SSO to Sign In** off, it is hidden and changes nothing.
+
+### Clearing what your people saved before
+
+While **Manage Sign-In with SSO** is on, the Project Owners see under it how many of the project's people still have a password or two-factor authentication saved in OneUptime. **Clear Sign-In Settings** deletes their passwords with any reset or sign-in links, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone.
+
+An account can belong to many organizations, so you can clear only the people your organization is responsible for. Your organization is the projects you own: someone is cleared only when every project they belong to, including any project they are invited to, is one you are a **Project Owner** of and has **Manage Sign-In with SSO** on. Everyone else keeps their settings:
+
+- someone in, or invited to, a project you do not own, or one that does not manage sign-in with SSO;
+- someone only invited to your project, who has not joined it yet;
+- master admins, and you: change your own in your **User Profile**.
+
+Each person cleared is emailed what was removed and that they sign in with SSO now, and your projects' audit logs record the clear as yours. Only a **Project Owner** can clear, signed in to the Dashboard: never with an API key.
 
 ## Turning a provider off or deleting it
 

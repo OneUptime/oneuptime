@@ -54,6 +54,12 @@ import {
   getEnvironmentsCloudAccountFacet,
 } from "../../Components/AppPlatforms/AppPlatformsAccountFacet";
 import { fetchEnvironmentCloudAccountOptions } from "../../Components/AppPlatforms/AppPlatformsAccountOptions";
+import {
+  CLOUD_ENVIRONMENT_STATUS_LABELS,
+  CloudEnvironmentStatus,
+  getCloudEnvironmentStatus,
+  getEnvironmentStatusFacet,
+} from "../../Components/AppPlatforms/AppPlatformsEnvironmentStatus";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
@@ -142,6 +148,12 @@ const AppPlatformEnvironments: FunctionComponent<
     showLabelsFacet: true,
     extraFacets: [
       getEnvironmentsCloudAccountFacet(fetchEnvironmentCloudAccountOptions),
+      /*
+       * Connected, Disconnected or Waiting, by the Status column's own rule:
+       * the Overview's "2 environments disconnected" opens the list with it
+       * set (#9751).
+       */
+      getEnvironmentStatusFacet(),
     ],
   });
 
@@ -352,18 +364,18 @@ const AppPlatformEnvironments: FunctionComponent<
              * platform reads on the Overview: nothing broke yet.
              */
             getElement: (item: CloudResource): ReactElement => {
+              // The Status chip's and the Overview tile's rule, too.
+              const status: CloudEnvironmentStatus = getCloudEnvironmentStatus({
+                otelCollectorStatus: item.otelCollectorStatus,
+                lastSeenAt: item.lastSeenAt,
+              });
               const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
-              const isWaiting: boolean = !isConnected && !item.lastSeenAt;
+                status === CloudEnvironmentStatus.Connected;
+              const isWaiting: boolean =
+                status === CloudEnvironmentStatus.Waiting;
               return (
                 <Pill
-                  text={
-                    isConnected
-                      ? "Connected"
-                      : isWaiting
-                        ? "Waiting"
-                        : "Disconnected"
-                  }
+                  text={CLOUD_ENVIRONMENT_STATUS_LABELS[status]}
                   color={isConnected ? Green : isWaiting ? Gray500 : Red}
                   tooltip={isWaiting ? "Waiting for its first data" : undefined}
                 />

@@ -37,6 +37,15 @@ import OpenStackScopedRules, {
 } from "../../../../Server/Utils/OpenStack/OpenStackScopedRules";
 import { RuleApplicationResult } from "../../../../Server/Utils/Rules/RuleRun/RuleApplication";
 import RuleRecordScope from "../../../../Server/Utils/Rules/RuleRecordScope";
+import OwnerRuleAssignment, {
+  OwnerAddOutcome,
+  OwnersAdded,
+} from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
+import PendingInviteeProfiles from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import User from "../../../../Models/DatabaseModels/User";
+import Email from "../../../../Types/Email";
+import Name from "../../../../Types/Name";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -77,6 +86,19 @@ TEAM.name = "Payments";
 
 const LABEL: Label = withId(new Label());
 LABEL.name = "payments";
+
+// What addOwners answers when it wrote `teams` and `users`, and skipped `notAdded`.
+function added(data: {
+  teams?: Array<ObjectID>;
+  users?: Array<ObjectID>;
+  notAdded?: OwnersAdded["notAdded"];
+}): OwnersAdded {
+  return {
+    userIds: data.users || [],
+    teamIds: data.teams || [],
+    notAdded: data.notAdded || [],
+  };
+}
 
 function ownerRule(
   fields: Partial<OpenStackCloudOwnerRule>,
@@ -248,7 +270,7 @@ describe("an owner rule on a project", () => {
     standIn({ ownerRules: [ownerRule({ openStackProjectId: OU_PAYMENTS })] });
     const addOwners: ReturnType<typeof jest.spyOn> = jest
       .spyOn(AlertService, "addOwners")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(added({ teams: [TEAM.id!] }));
     const feed: ReturnType<typeof jest.spyOn> = jest
       .spyOn(AlertFeedService, "createAlertFeedItem")
       .mockResolvedValue(undefined as never);
@@ -317,9 +339,11 @@ describe("an owner rule on a project", () => {
   });
 
   test("reaches an incident too, and an owner it already has is not said to be added", async () => {
-    const addOwners: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(IncidentService, "addOwners")
-      .mockResolvedValue(undefined);
+    // Calls through: addOwners itself finds the owner the incident has.
+    const addOwners: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      IncidentService,
+      "addOwners",
+    );
     const feed: ReturnType<typeof jest.spyOn> = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);
@@ -643,7 +667,9 @@ describe("each owner sees their own", () => {
       .mockResolvedValue(undefined as never);
     jest.spyOn(IncidentOwnerUserService, "findBy").mockResolvedValue([]);
     jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([]);
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(added({ teams: [TEAM.id!] }));
     jest.spyOn(TeamService, "findBy").mockResolvedValue([TEAM]);
     jest.spyOn(UserService, "findBy").mockResolvedValue([]);
 
@@ -678,7 +704,7 @@ describe("each owner sees their own", () => {
 
     const addOwners: ReturnType<typeof jest.spyOn> = jest
       .spyOn(IncidentService, "addOwners")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
     await OpenStackScopedRules.finishIncident({
       projectId: PROJECT_ID,
@@ -710,7 +736,9 @@ describe("each owner sees their own", () => {
       .mockResolvedValue(undefined as never);
     jest.spyOn(IncidentOwnerUserService, "findBy").mockResolvedValue([]);
     jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([]);
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(added({ teams: [TEAM.id!] }));
     jest.spyOn(TeamService, "findBy").mockResolvedValue([TEAM]);
     jest.spyOn(UserService, "findBy").mockResolvedValue([]);
 
@@ -727,5 +755,213 @@ describe("each owner sees their own", () => {
     expect(line).toContain("tenant-19");
     expect(line).not.toContain("tenant-20");
     expect(line).toContain("and 480 more");
+  });
+});
+
+/*
+ * #9933: the rule's owners that addOwners did not add - someone who has left
+ * the project, a team that is not one of its teams - are never said to be
+ * assigned. The feed lists them apart, with why, and an item whose every
+ * owner was skipped still says so, for whoever keeps the rule.
+ */
+describe("owners a rule names that are not added", () => {
+  const MEMBER: User = withId(new User());
+  MEMBER.name = new Name("Ada Lovelace");
+  MEMBER.email = new Email("ada@example.com");
+
+  const LEFT: User = withId(new User());
+  LEFT.name = new Name("Bob Departed");
+  LEFT.email = new Email("bob@example.com");
+
+  const INVITED: User = withId(new User());
+  INVITED.name = new Name("Carol Ownname");
+  INVITED.email = new Email("carol@example.com");
+
+  // A team of another project: its name must never reach this project's feed.
+  const FOREIGN_TEAM_ID: ObjectID = ObjectID.generate();
+
+  const MATCH: OpenStackScopedRulesMatch = {
+    labelIds: [],
+    labelRuleNames: [],
+    owners: [
+      {
+        notify: true,
+        userIds: [
+          MEMBER.id!.toString(),
+          LEFT.id!.toString(),
+          INVITED.id!.toString(),
+        ],
+        teamIds: [TEAM.id!.toString(), FOREIGN_TEAM_ID.toString()],
+      },
+    ],
+    ownerRuleNames: ["ou-payments owners"],
+  };
+
+  function standInPeople(): ReturnType<typeof jest.spyOn> {
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map([
+          [INVITED.id!.toString().toLowerCase(), { inviteeName: "Carol" }],
+        ]),
+      );
+    jest.spyOn(TeamService, "findBy").mockResolvedValue([TEAM]);
+    return jest
+      .spyOn(UserService, "findBy")
+      .mockResolvedValue([MEMBER, LEFT, INVITED]);
+  }
+
+  const SKIPPED: OwnersAdded["notAdded"] = [
+    {
+      ownerColumn: "userId",
+      id: LEFT.id!,
+      reason: OwnerAddOutcome.NotProjectMember,
+    },
+    {
+      ownerColumn: "userId",
+      id: INVITED.id!,
+      reason: OwnerAddOutcome.NotProjectMember,
+    },
+    {
+      ownerColumn: "teamId",
+      id: FOREIGN_TEAM_ID,
+      reason: OwnerAddOutcome.NotProjectRecord,
+    },
+  ];
+
+  test("lists only the owners added as assigned, and the rest apart with why", async () => {
+    const feed: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(
+        added({ users: [MEMBER.id!], teams: [TEAM.id!], notAdded: SKIPPED }),
+      );
+    standInPeople();
+
+    await OpenStackScopedRules.finishIncident({
+      projectId: PROJECT_ID,
+      incidentId: ObjectID.generate(),
+      match: MATCH,
+    });
+
+    expect(feed).toHaveBeenCalledTimes(1);
+    const said: string = (
+      feed.mock.calls[0] as Array<{ feedInfoInMarkdown: string }>
+    )[0]!.feedInfoInMarkdown;
+    const [assigned, notAssigned] = said.split(
+      "Did not assign the following owners to the incident:",
+    ) as [string, string];
+
+    expect(assigned).toContain(
+      "Assigned the following owners to the incident:\n- 👤 Ada Lovelace\n- 👥 Payments",
+    );
+    expect(assigned).not.toContain("Bob");
+    expect(assigned).not.toContain("Carol");
+
+    expect(notAssigned).toContain(
+      "- 👤 Bob Departed, who is not a member of this project",
+    );
+    // Only invited: the name typed for them, never their account's own.
+    expect(notAssigned).toContain(
+      "- 👤 Carol, who has not accepted the invitation to this project yet",
+    );
+    expect(said).not.toContain("Ownname");
+    expect(notAssigned).toContain(
+      `- 👥 A team that is not one of this project's teams (\`${FOREIGN_TEAM_ID.toString()}\`)`,
+    );
+  });
+
+  test("still says so when every owner was skipped, and never says it assigned anyone", async () => {
+    const feed: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertFeedService, "createAlertFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(added({ notAdded: SKIPPED }));
+    standInPeople();
+
+    await OpenStackScopedRules.finishAlert({
+      projectId: PROJECT_ID,
+      alertId: ObjectID.generate(),
+      match: MATCH,
+    });
+
+    expect(feed).toHaveBeenCalledTimes(1);
+    const said: string = (
+      feed.mock.calls[0] as Array<{ feedInfoInMarkdown: string }>
+    )[0]!.feedInfoInMarkdown;
+
+    expect(said).toContain("OpenStack Owner Rule");
+    expect(said).not.toContain("Assigned the following");
+    expect(said).toContain("Did not assign the following owners to the alert:");
+    expect(said).toContain("Bob Departed, who is not a member of this project");
+  });
+
+  test("the skipped are written to the log by id, never by name", async () => {
+    jest
+      .spyOn(AlertFeedService, "createAlertFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(added({ notAdded: SKIPPED }));
+    standInPeople();
+    const warn: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((() => {
+        // asserted below
+      }) as never);
+
+    await OpenStackScopedRules.finishAlert({
+      projectId: PROJECT_ID,
+      alertId: ObjectID.generate(),
+      match: MATCH,
+    });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    const line: string = String(warn.mock.calls[0]![0]);
+    expect(line).toContain(`user ${LEFT.id!.toString()} (NotProjectMember)`);
+    expect(line).toContain(
+      `team ${FOREIGN_TEAM_ID.toString()} (NotProjectRecord)`,
+    );
+    expect(line).not.toContain("Bob");
+  });
+
+  test("an owner set every owner of which was skipped, through the real addOwners, is said so", async () => {
+    const feed: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(IncidentOwnerUserService, "findBy").mockResolvedValue([]);
+    jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([]);
+    // Bob has left the project: createOwner skips him before any write.
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockResolvedValue(false);
+    const create: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      IncidentOwnerUserService,
+      "create",
+    );
+    jest.spyOn(UserService, "findBy").mockResolvedValue([LEFT]);
+    jest.spyOn(TeamService, "findBy").mockResolvedValue([]);
+
+    await OpenStackScopedRules.finishIncident({
+      projectId: PROJECT_ID,
+      incidentId: ObjectID.generate(),
+      match: {
+        ...MATCH,
+        owners: [{ notify: true, userIds: [LEFT.id!.toString()], teamIds: [] }],
+      },
+    });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(feed).toHaveBeenCalledTimes(1);
+    const said: string = (
+      feed.mock.calls[0] as Array<{ feedInfoInMarkdown: string }>
+    )[0]!.feedInfoInMarkdown;
+    expect(said).toContain(
+      "Did not assign the following owner to the incident:\n- 👤 Bob Departed, who is not a member of this project",
+    );
+    expect(said).not.toContain("Assigned the following");
   });
 });

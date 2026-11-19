@@ -1,4 +1,5 @@
 import TeamsElement from "../Team/TeamsElement";
+import SsoProviderDomainsElement from "./SsoProviderDomainsElement";
 import { getSsoTeamsGrantNote } from "./SsoTeamsGrantNote";
 import ProjectSsoCopy from "./ProjectSsoCopy";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -62,6 +63,11 @@ export interface ComponentProps {
    * the page's test link waits for a provider of either kind to try.
    */
   onProviderCountChange?: ((count: number) => void) | undefined;
+  /*
+   * After each load of the list: the page's notice reads again which
+   * providers "Sign in with SSO" finds by nobody's email (#9918).
+   */
+  onProviderListLoaded?: (() => void) | undefined;
 }
 
 const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
@@ -111,6 +117,7 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
           totalCount: number,
         ): void => {
           props.onProviderCountChange?.(totalCount);
+          props.onProviderListLoaded?.();
         }}
         viewPageRoute={Navigation.getCurrentRoute()}
         formFields={getOidcProviderFormFields<ProjectOIDC>({
@@ -193,6 +200,26 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: ProjectOIDC): ReactElement => {
               return <TeamsElement teams={item["teams"] || []} />;
+            },
+          },
+          {
+            field: {
+              domains: {
+                _id: true,
+                domain: true,
+                isVerified: true,
+              },
+            },
+            /*
+             * The verified domains "Sign in with SSO" finds it by, or that it
+             * has none (#9918).
+             */
+            title: ProjectSsoCopy.domainsColumn,
+            type: FieldType.Text,
+            getElement: (item: ProjectOIDC): ReactElement => {
+              return (
+                <SsoProviderDomainsElement domains={item["domains"] || []} />
+              );
             },
           },
           {

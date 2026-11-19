@@ -53,7 +53,7 @@ Allez dans **Astreinte** > **Politiques d'appels entrants** et cliquez sur **Cr�
 
 ### Choisir le compte Twilio
 
-La **Vue d'ensemble** de la politique affiche une carte **Configuration** avec trois étapes numérotées. Dans la première, cliquez sur **Sélectionner**, choisissez le compte sous **Configuration Twilio** et cliquez sur **Enregistrer**.
+La **Vue d'ensemble** de la politique affiche une carte **Configuration** avec trois étapes numérotées. Dans la première, cliquez sur **Sélectionner**, choisissez le compte sous **Configuration Twilio** et cliquez sur **Enregistrer**. La liste ne propose que les configurations utilisées pour **Appels et SMS** ou **Appels uniquement**. Une politique dont la configuration passe plus tard à **SMS uniquement** la garde, et sa carte indique quoi changer.
 
 ### Ajouter un numéro de téléphone
 

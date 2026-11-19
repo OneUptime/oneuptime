@@ -852,9 +852,8 @@ interface IndexedMatch {
  * A command on a page (PaletteCommand.onPageCommandId: a setting found by
  * its card's name) comes right after its page when the page is listed
  * too, in the order the two were ranked; and where its page is not listed,
- * where it ranked. "single sign-on" names the SSO page in a keyword and its
- * Test Single Sign On (SSO) card in a title, and the page is what the
- * search was for.
+ * where it ranked. "sso link" names the SSO page in a keyword and its SSO
+ * Sign-in Link card in a title, and the page is what the search was for.
  */
 const placeAfterTheirPages: (
   ranked: Array<PaletteCommandMatch>,

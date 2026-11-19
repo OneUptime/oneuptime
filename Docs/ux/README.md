@@ -186,18 +186,25 @@ next, and how to change it last.
   parts without making the tile or the bar a control around another: a pill under the tile's
   figure (`GoldenMetricTile`'s `attention`), the bar's legend entry (`StackedProgressBar`'s
   `onClick`), as a Ceph cluster's Degraded placement groups open the pools that hold them
-  (#9727). A count opens its parts only while the resource's agent reports: a disconnected
-  resource's last snapshot is no longer the truth, so its counts of what is wrong say what
-  stopped and list no part - an IoT fleet whose collector went away says "fleet disconnected"
-  where it counted its devices online, rather than calling every device offline (#9730).
-  Enforced by
+  (#9727). A list says it the same way: Ceph's ERR and WARN on its Clusters list and a bare
+  metal class's "Failed: 3" open which ones and why, and App Platforms' "2 environments
+  disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
+  as systemd said it: its result, its exit code or the signal that killed it, since when and what
+  it printed last, from its journal (#9748). A count opens its parts only while the resource's
+  agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
+  what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
+  "fleet disconnected" where it counted its devices online, rather than calling every device
+  offline (#9730). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
 - **An error rate opens the requests that failed.** On a service's, a function's, a cloud
   environment's and app's, a RUM application's, a queue's and a database's Overview, the Error rate
   was the one tile with no link, beside a Requests tile that opened the traces: it said something
   failed, never what (#9593). It opens the resource's traces on exactly the spans it counted that
   failed (`FailedSpansRoute`): the failed status as a chip the reader can take off, the kind of span
-  it counted (every span, entry spans, a database's client calls) and its window. Enforced by
+  it counted (every span, entry spans, a database's client calls) and its window. LLM Usage's "AI
+  calls" tile said its error rate with nothing to open either (#9750): it opens Calls, every AI
+  call as the tile counts them, on those of its range that failed, Status and Seen At set in the
+  list's own filters (`LlmCallsRoute`), each failed call saying its error under its status. Enforced by
   [ErrorRateTilesOpenFailuresGuard](../../packages/App/Tests/Dashboard/ErrorRateTilesOpenFailuresGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by
@@ -214,8 +221,12 @@ next, and how to change it last.
   Notes page. Enforced by
   [FeedNotesUseNotesComposerGuard](../../packages/App/Tests/Dashboard/FeedNotesUseNotesComposerGuard.test.ts).
 - **An outdated agent says so where its version is shown,** with how to upgrade it one click away.
-  Enforced by
-  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts).
+  So does a custom probe older than the OneUptime it reports to: Custom Probes says "Update
+  available" under its release, and its page says what it misses until it is updated, both linked
+  to Update a probe (#9815). Enforced by
+  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts)
+  and
+  [ProbeVersionDisplayGuard](../../packages/App/Tests/Dashboard/ProbeVersionDisplayGuard.test.ts).
 
 ### Settings and danger
 
@@ -1412,7 +1423,10 @@ then `npm run i18n:validate` from the root.
   showed (#9735). It now asks the server what is true for the event, says why not when nothing
   will be, and promises nothing while it does not know (`PublicNoteReachCopy`). Create Announcement
   said "Subscribers are notified when it starts showing." whatever status pages were picked, and
-  asks the same of the pages picked now (`useAnnouncementReach`, #9775). Enforced by
+  asks the same of the pages picked now (`useAnnouncementReach`, #9775). Schedule Maintenance Event
+  said subscribers are notified whatever pages were picked; it asks too now, and names only the
+  moments that will be sent (`useScheduledMaintenanceReach`, #9920). An announcement's Edit says
+  when an update is skipped for the announcement's own state (#9921). Enforced by
   [ClipboardWritesGuard](../../packages/Common/Tests/UI/ClipboardWritesGuard.test.ts) for copy buttons;
   for everything else, not enforced: use judgement.
 - **Never ask for a click that does nothing where it is drawn.** A dashboard widget is drawn on the

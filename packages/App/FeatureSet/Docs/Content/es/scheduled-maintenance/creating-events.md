@@ -43,7 +43,7 @@ Haz clic en **Siguiente** para llegar a **Recursos afectados**. Elige los **Moni
 
 ### Elegir quién se entera
 
-Elige las páginas de estado en **Mostrar evento en estas páginas de estado**. **Notificaciones a suscriptores**, plegado, dice en una línea cuándo se muestra el evento en ellas y a quién se avisa y cuándo; ábrelo para elegir **En una fecha y hora** en **Publicar en las páginas de estado**, o para cambiar **Cuando se programa el evento**, **Cuando empieza el evento**, **Cuando termina el evento** o **Recordatorios antes del evento**.
+Elige las páginas de estado en **Mostrar evento en estas páginas de estado**. **Notificaciones a suscriptores**, plegado, dice en una línea cuándo se muestra el evento en ellas y a quién se avisa y cuándo; ábrelo para elegir **En una fecha y hora** en **Publicar en las páginas de estado**, o para cambiar **Cuando se programa el evento**, **Cuando empieza el evento**, **Cuando termina el evento** o **Recordatorios antes del evento**. La línea sigue las páginas de estado seleccionadas: si no hay ninguna seleccionada, si ninguna muestra eventos de mantenimiento o si las que los muestran no envían nada a sus suscriptores, lo dice en lugar de decir a quién se avisa.
 
 ### Crearlo
 

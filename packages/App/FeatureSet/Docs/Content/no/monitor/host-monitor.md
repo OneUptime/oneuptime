@@ -125,6 +125,21 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 - **Antall prosesser** sammenligner den største enkeltstående prosesstilstanden (`running`, `sleeping`, …), ikke vertens totale antall, så det vil ikke stemme med en prosessliste. Skraperen for prosesser rapporterer på Linux, macOS og BSD, ikke på Windows.
 - **Systemd Unit Failed** åpner ett varsel per systemd-tjeneste i tilstanden `failed`, fra collectorens mottaker `systemd`, som OneUptimes standardkonfigurasjon leser på Linux-verter med systemd. Den løses når enheten kjører igjen, eller når `systemctl reset-failed` nullstiller den.
 
+## Android-enheter
+
+En vert der OS-et er Android, for eksempel en kiosk eller en POS-terminal som kjører [Android-agenten](/docs/telemetry/android-agent), tilbys egne maler, som leser det agenten sender, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization. Den tilbys ikke malene for det en enhet aldri sender, som swap, inoder, belastning eller systemd-enheter.
+
+| Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
+| --- | --- | --- | --- | --- |
+| Device Unplugged | Advarsel | `android.battery.plugged`, Max, siste 10 minutter | Enheten går på batteriet sitt i hele vinduet | Den er koblet til strøm igjen |
+| Low Battery | Advarsel | `hw.battery.charge`, Min, som prosent, siste 5 minutter | Under 20 % | På eller over 20 % |
+| Device Overheating | Advarsel | `android.thermal.status`, Max, siste 5 minutter | 3 (alvorlig) eller verre | Under 3 |
+| Restart Loop | Kritisk | `android.boot.recent_count`, Max, siste time | En verdi er 3 eller mer | Alle verdier er under 3 |
+| Storage Nearly Full | Kritisk | `system.filesystem.utilization`, Max per `mountpoint`, som prosent, siste 5 minutter | Over 90 % | På eller under 90 % |
+| High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstanden `idle`, opptatt som 1 minus idle, som prosent, siste 5 minutter | Over 80 % | På eller under 80 % |
+
+High CPU Utilization tilbys når enheten rapporterer CPU-bruk, noe som på Android 8 og nyere krever at agenten er enhetseier. Varselet for en Android-enhet begynner med adb-kommandoer som skal kjøres først, for eksempel `adb shell dumpsys battery` eller `adb shell getprop sys.boot.reason`, i stedet for shell-kommandoene til en server.
+
 ## Innsamlede målinger
 
 Listen **Host Metric** tilbyr disse målingene. Hver bærer `resource.host.name`, som er måten monitoren avgrenser spørringene sine til én vert på. Valgt der teller CPU tilstanden `user`, minne- og filsystembruk tilstanden `used`, og filsystemer og prosesser gir én serie per monteringspunkt og status.

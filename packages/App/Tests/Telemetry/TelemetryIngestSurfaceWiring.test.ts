@@ -58,6 +58,11 @@ interface WiredIngestRoute {
  */
 const EXPECTED_WIRING: Array<WiredIngestRoute> = [
   {
+    file: `${TELEMETRY_API_DIRECTORY}/AndroidAgentLogSessions.ts`,
+    routePath: "/android-agent/v1/log-sessions",
+    surfaceMember: "AndroidAgentLogSessions",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/ChangeEventsIngest.ts`,
     routePath: "/change-events/v1/ingest",
     surfaceMember: "ChangeEvents",

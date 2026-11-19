@@ -39,6 +39,10 @@ import { MemoryRouter } from "react-router-dom";
  *     policy's "create one", a status page's mail server, Search) opens it
  *     there.
  *
+ * Whether on-call calls tell a voicemail from a person answering (#6594) is
+ * a switch folded there too, beside how members are paged by default: on for
+ * every project, so it is named, and set - Off - only once switched off.
+ *
  * The tables and cards are recorded rather than drawn (each has a suite of
  * its own: CustomSmtpConfigForm, TwilioConfigUse and the balance pages'):
  * what matters is where the page puts them, what it hands them, and what
@@ -165,6 +169,17 @@ jest.mock(
   },
 );
 
+// Voicemail on on-call calls (#6594): VoicemailDetection tests it.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/VoicemailDetectionCard",
+  () => {
+    return {
+      __esModule: true,
+      default: mockRecorder("voicemail-detection-card"),
+    };
+  },
+);
+
 import NotificationSettings, {
   NOTIFICATION_SETTINGS_MORE_DESCRIPTION,
   NOTIFICATION_SETTINGS_MORE_TEST_ID,
@@ -182,6 +197,10 @@ import {
   PHONE_FOR_ON_CALL_PLACE,
   PHONE_FOR_ON_CALL_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
+import {
+  VOICEMAIL_DETECTION_PLACE,
+  VOICEMAIL_DETECTION_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/VoicemailDetectionWords";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
@@ -274,6 +293,7 @@ describe.each([false, true])(
       expect(cardsIn(fold())).toEqual([
         "default-ladder-card",
         "phone-for-on-call-card",
+        "voicemail-detection-card",
         "custom-smtp-table",
         "twilio-config-table",
       ]);
@@ -303,13 +323,14 @@ describe.each([false, true])(
       expect(fold()).toContainElement(all[all.length - 1]!);
     });
 
-    test("folded, it names the default ladder, the phone ask and the two tables, and nothing is set before they say so", async () => {
+    test("folded, it names the default ladder, the phone ask, voicemail and the two tables, and nothing is set before they say so", async () => {
       await renderPage();
 
       expect(header()).toHaveAttribute("aria-expanded", "false");
       expect(listedNames(header())).toEqual([
         DEFAULT_LADDER_TITLE,
         PHONE_FOR_ON_CALL_TITLE,
+        VOICEMAIL_DETECTION_TITLE,
         CUSTOM_SMTP_CONFIGS_TITLE,
         TWILIO_CONFIG_TITLE,
       ]);
@@ -347,6 +368,38 @@ describe.each([false, true])(
       expect(header()).toHaveAttribute("aria-expanded", "false");
     });
 
+    test("voicemail detection, on for every project, is set - Off - only once switched off (#6594)", async () => {
+      await renderPage();
+
+      const onChange: (isOn: boolean) => void = latestPropsOf(
+        "voicemail-detection-card",
+      )["onChange"] as (isOn: boolean) => void;
+
+      // The project's own switch.
+      expect(
+        String(latestPropsOf("voicemail-detection-card")["projectId"]),
+      ).toBe(PROJECT_ID);
+
+      await act(async () => {
+        onChange(true);
+      });
+
+      expect(setChips(fold())).toEqual([]);
+
+      await act(async () => {
+        onChange(false);
+      });
+
+      expect(setChips(fold())).toEqual([`${VOICEMAIL_DETECTION_TITLE}: Off`]);
+      expect(header()).toHaveAttribute("aria-expanded", "false");
+
+      await act(async () => {
+        onChange(true);
+      });
+
+      expect(setChips(fold())).toEqual([]);
+    });
+
     test("each table that lists a config says how many, folded", async () => {
       await renderPage();
 
@@ -372,6 +425,7 @@ describe.each([false, true])(
     test.each([
       [DEFAULT_LADDER_PLACE, "default-ladder-for-new-members"],
       [PHONE_FOR_ON_CALL_PLACE, "phone-for-people-on-call"],
+      [VOICEMAIL_DETECTION_PLACE, "voicemail-on-on-call-calls"],
       [CUSTOM_SMTP_CONFIGS_PLACE, "custom-smtp-configs"],
       [TWILIO_CONFIG_PLACE, "twilio-config"],
     ])("opened at #%s, it opens there", async (place: string, name: string) => {

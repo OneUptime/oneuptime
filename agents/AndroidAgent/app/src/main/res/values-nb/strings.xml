@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Norwegian Bokmål. Every string of values/strings.xml, in the same order; keys, permission names and adb commands stay as they are. -->
+<resources>
+
+    <string name="notification_channel_name">Agentstatus</string>
+    <string name="notification_channel_description">Viser om denne enheten rapporterer til OneUptime.</string>
+
+    <string name="notification_requests_channel_name">Forespørsler fra OneUptime</string>
+    <string name="notification_requests_channel_description">Når OneUptime ber om å lese loggene til denne enheten for feilsøking.</string>
+    <string name="notification_request_title">OneUptime ber om loggene til denne enheten</string>
+
+    <string name="status_not_set_up">Ikke satt opp ennå</string>
+    <string name="status_not_set_up_detail">Skriv inn inntaksnøkkelen, eller send den fra enhetsadministrasjonen som oneuptime_token.</string>
+    <string name="status_unreachable">Får ikke kontakt med OneUptime</string>
+    <string name="status_unreachable_detail">Sjekk nettverket på enheten. Agenten prøver igjen av seg selv.</string>
+    <string name="status_key_refused">OneUptime avviste inntaksnøkkelen</string>
+    <string name="status_key_refused_detail">Bruk en server-inntaksnøkkel som er slått på og ikke har utløpt (HTTP %1$d).</string>
+    <string name="status_not_found">Ingen OneUptime på denne adressen</string>
+    <string name="status_not_found_detail">Sjekk OneUptime-URL-en: %1$s.</string>
+    <string name="status_server_error">OneUptime tar ikke imot telemetri akkurat nå</string>
+    <string name="status_server_error_detail">OneUptime svarte %1$d. Agenten prøver igjen av seg selv.</string>
+    <string name="status_server_error_unknown_detail">OneUptime svarte med en feil. Agenten prøver igjen av seg selv.</string>
+    <string name="status_sending_failed">Sendingen mislyktes</string>
+    <string name="status_retrying">Agenten prøver igjen av seg selv.</string>
+    <string name="status_kept">Telemetrien lagres på enheten til den kan sendes.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">Rapporterer til OneUptime</string>
+    <string name="status_as_device">Som %1$s</string>
+    <string name="status_starting">Starter</string>
+    <string name="status_starting_detail">Som %1$s. Den første rapporten sendes innen ett minutt.</string>
+
+    <string name="address_empty">Skriv inn OneUptime-URL-en din.</string>
+    <string name="address_not_a_url">OneUptime-URL-en er ikke en nettadresse.</string>
+    <string name="address_not_https">OneUptime-URL-en må begynne med https://, slik at inntaksnøkkelen aldri sendes ukryptert.</string>
+    <string name="address_query_or_fragment">Fjern delen med ? eller # fra OneUptime-URL-en.</string>
+    <string name="address_credentials">Fjern brukernavnet og passordet fra OneUptime-URL-en.</string>
+
+    <string name="setup_subtitle">Rapporterer enhetens tilstand, omstarter, apper og logger til OneUptime.</string>
+    <string name="setup_last_report">Siste rapport sendt %1$s</string>
+    <string name="setup_no_report_yet">Ingenting sendt ennå</string>
+    <string name="setup_waiting">%1$s venter på å bli sendt</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: enhetsadministrasjonen sendte %2$s som den er, uten å fylle den ut.</string>
+    <string name="setup_problem_invalid">%1$s: %2$s kan ikke brukes, så standardverdien gjelder.</string>
+    <string name="setup_connection">Tilkobling</string>
+    <string name="setup_managed_notice">Organisasjonens enhetsadministrasjon styrer innstillingene som vises som låste.</string>
+    <string name="setup_url_label">OneUptime-URL</string>
+    <string name="setup_url_help">Endre den bare hvis du drifter OneUptime selv.</string>
+    <string name="setup_token_label">Inntaksnøkkel</string>
+    <string name="setup_token_hint">Lim inn en server-inntaksnøkkel</string>
+    <string name="setup_token_stored_hint">Lagret. Lim inn en ny nøkkel for å erstatte den.</string>
+    <string name="setup_token_help">I OneUptime: Prosjektinnstillinger, Telemetri og APM, Inntaksnøkler. Bruk en servernøkkel.</string>
+    <string name="setup_token_unreadable">Den lagrede nøkkelen kan ikke lenger leses på denne enheten. Lim den inn igjen.</string>
+    <string name="setup_device_name_label">Enhetsnavn</string>
+    <string name="setup_device_name_help">Slik vises enheten under Verter og i Inventar.</string>
+    <string name="setup_set_by_organization">Angitt av organisasjonen din</string>
+    <string name="setup_save">Lagre og koble til</string>
+    <string name="setup_saved">Lagret. Agenten sender en rapport nå.</string>
+    <string name="setup_token_required">Lim inn inntaksnøkkelen.</string>
+    <string name="setup_save_failed">Denne enheten kunne ikke lagre nøkkelen sikkert: %1$s</string>
+    <string name="setup_readings">Hva denne enheten lar agenten lese</string>
+    <string name="setup_reading_yes">Ja</string>
+    <string name="setup_reading_cpu">CPU-bruk</string>
+    <string name="setup_reading_cpu_device_owner">Ja, som enhetseier</string>
+    <string name="setup_reading_cpu_not_device_owner">Bare når agenten er enhetseier</string>
+    <string name="setup_reading_cpu_not_supported">Ikke på denne enheten: Android oppgir ingen CPU-bruk her</string>
+    <string name="setup_reading_memory">Minne, lagring og nettverk</string>
+    <string name="setup_reading_battery">Batteri</string>
+    <string name="setup_reading_no_battery">Ikke noe batteri</string>
+    <string name="setup_reading_thermal">Temperatur og struping</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 og nyere</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">Stack traces fra krasj og årsaker til omstart</string>
+    <string name="setup_reading_crash_details_yes">Ja, for alle apper</string>
+    <string name="setup_reading_crash_details_not_granted">Av: READ_LOGS er ikke gitt</string>
+    <string name="setup_reading_crash_details_no_usage_access">Av: brukstilgang er ikke tillatt</string>
+    <string name="setup_reading_apps">Installerte apper</string>
+    <string name="setup_reading_off_by_manager">Av: slått av i enhetsadministrasjonen</string>
+    <string name="setup_reading_unknown">Etter den første rapporten</string>
+    <string name="setup_grants">For å sende logger og stack traces fra krasj i andre apper må du gi disse tillatelsene én gang, med adb eller med ADB via fjerntilgang i enhetsadministrasjonen:</string>
+    <string name="setup_usage_access">Tillat brukstilgang</string>
+
+    <string name="logcat_not_started">Ikke startet</string>
+    <string name="logcat_not_granted">Av: READ_LOGS er ikke gitt</string>
+    <string name="logcat_crashes_and_anrs">Krasj og ANR-er fra alle apper</string>
+    <string name="logcat_full">Logger, krasj og ANR-er fra alle apper</string>
+
+    <string name="log_session_title">Logger for feilsøking</string>
+    <string name="log_session_request_by">%1$s ber i OneUptime om logger fra alle apper på denne enheten i %2$s, på nivå %3$s og over.</string>
+    <string name="log_session_request">OneUptime ber om logger fra alle apper på denne enheten i %1$s, på nivå %2$s og over.</string>
+    <string name="log_session_android_prompt">Android spør deg deretter om du vil gi tilgang til alle enhetslogger. Velg Tillat der også.</string>
+    <string name="log_session_allow">Tillat</string>
+    <string name="log_session_decline">Avslå</string>
+    <string name="log_session_stop">Stopp sendingen</string>
+    <string name="log_session_starting">Gi tilgang til alle enhetslogger i dialogboksen fra Android.</string>
+    <string name="log_session_collecting_until">Sender logger fra alle apper frem til %1$s.</string>
+    <string name="log_session_collecting">Sender logger fra alle apper.</string>
+    <string name="log_session_declined_here">Avslått. Ingenting mer sendes.</string>
+    <string name="log_session_declined_by_android">Tilgang til alle enhetslogger ble ikke gitt, så ingenting mer sendes.</string>
+    <string name="log_session_no_answer">Ingen svarte i dialogboksen fra Android, så ingenting mer sendes.</string>
+    <string name="log_session_time_up">Ferdig: logger fra alle apper ble sendt i hele den forespurte tiden.</string>
+    <string name="log_session_stopped">Stoppet. Ingenting mer sendes.</string>
+    <string name="log_session_agent_restarted">Avsluttet da agenten startet på nytt.</string>
+    <string name="log_session_logcat_stopped">Avsluttet: Logcat sluttet å lese.</string>
+    <string name="log_session_logcat_disabled">Denne enheten kan ikke sende dem: enhetsadministrasjonen har slått av Logcat.</string>
+    <string name="log_session_not_granted">Denne enheten kan ikke sende dem: READ_LOGS er ikke gitt.</string>
+    <string name="log_session_expired">Ingen tillot det i tide.</string>
+    <string name="log_session_cancelled">Avbrutt i OneUptime.</string>
+    <string name="log_session_ended">Avsluttet.</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minutt</item>
+        <item quantity="other">%d minutter</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d time</item>
+        <item quantity="other">%d timer</item>
+    </plurals>
+
+    <string name="device_admin_description">Lar agenten lese CPU-bruken på enheten som enhetseier. Den låser, tilbakestiller eller begrenser aldri enheten.</string>
+
+    <string name="restriction_url_title">OneUptime-URL</string>
+    <string name="restriction_url_description">Hvor telemetrien skal sendes. La den stå som https://oneuptime.com med mindre du drifter OneUptime selv.</string>
+    <string name="restriction_token_title">Inntaksnøkkel</string>
+    <string name="restriction_token_description">En server-inntaksnøkkel fra Prosjektinnstillinger, Telemetri og APM, Inntaksnøkler.</string>
+    <string name="restriction_device_name_title">Enhetsnavn</string>
+    <string name="restriction_device_name_description">Enhetens navn i OneUptime, for eksempel ${esper.deviceName}. Bruk samme navn som host.name i appen din, så vises begge som én enhet.</string>
+    <string name="restriction_device_serial_title">Serienummer</string>
+    <string name="restriction_device_serial_description">Enhetens serienummer, for eksempel ${esper.serialNumber}. Android gir det ikke selv til apper.</string>
+    <string name="restriction_device_type_title">Enhetstype</string>
+    <string name="restriction_device_type_description">Hva enheten er: kiosk, POS-terminal, håndterminal, infoskjerm.</string>
+    <string name="restriction_device_location_title">Plassering</string>
+    <string name="restriction_device_location_description">Hvor enheten er, for eksempel et butikknummer.</string>
+    <string name="restriction_labels_title">Etiketter</string>
+    <string name="restriction_labels_description">Etiketter for enheten i OneUptime, som navn=verdi-par skilt med komma: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">Innsamlingsintervall (sekunder)</string>
+    <string name="restriction_interval_description">Hvor ofte agenten rapporterer, fra 30 til 600 sekunder. 60 som standard.</string>
+    <string name="restriction_logcat_enabled_title">Send Logcat</string>
+    <string name="restriction_logcat_enabled_description">Send krasj, ANR-er og logger fra andre apper, og tillat loggøktene OneUptime ber om. Krever READ_LOGS, gitt med adb.</string>
+    <string name="restriction_logcat_level_title">Laveste Logcat-nivå</string>
+    <string name="restriction_logcat_level_description">De minst alvorlige Logcat-linjene som sendes, på Android 12 og eldre. Advarsel som standard.</string>
+    <string name="restriction_apps_enabled_title">Send installerte apper</string>
+    <string name="restriction_apps_enabled_description">Send de installerte appene og versjonene deres én gang om dagen, og hver installasjon, oppdatering og fjerning.</string>
+    <string name="logcat_level_verbose">Detaljert</string>
+    <string name="logcat_level_debug">Feilsøking</string>
+    <string name="logcat_level_info">Info</string>
+    <string name="logcat_level_warn">Advarsel</string>
+    <string name="logcat_level_error">Feil</string>
+    <string name="logcat_level_fatal">Fatal</string>
+</resources>

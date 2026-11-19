@@ -3,6 +3,8 @@ package com.oneuptime.androidagent.config
 import android.content.Context
 import android.content.RestrictionEntry
 import android.content.RestrictionsManager
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.res.XmlResourceParser
 import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
@@ -53,6 +55,29 @@ class ManagedConfigurationSchemaTest {
     @Test
     fun `the schema declares exactly the keys the agent reads`() {
         assertEquals(ManagedConfigKeys.ALL, restrictions().map { it.key })
+    }
+
+    /*
+     * Device managers, and managed Google Play, which shows the settings in
+     * every device manager's console straight from the app it lists, find
+     * the schema through the manifest: the application's
+     * android.content.APP_RESTRICTIONS meta-data, naming the XML. Without it
+     * no console shows a single setting.
+     */
+    @Test
+    fun `the manifest names the schema, where device managers and managed Google Play look for it`() {
+        val info: ApplicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+
+        // The name AndroidManifest.xml gives the meta-data.
+        assertEquals("android.content.APP_RESTRICTIONS", RestrictionsManager.META_DATA_APP_RESTRICTIONS)
+        assertEquals(R.xml.app_restrictions, info.metaData.getInt(RestrictionsManager.META_DATA_APP_RESTRICTIONS))
+    }
+
+    @Test
+    fun `Android reads every key of the schema from the manifest, as a device manager does`() {
+        val manager: RestrictionsManager = context.getSystemService(RestrictionsManager::class.java)
+
+        assertEquals(ManagedConfigKeys.ALL, manager.getManifestRestrictions(context.packageName).map { it.key })
     }
 
     @Test

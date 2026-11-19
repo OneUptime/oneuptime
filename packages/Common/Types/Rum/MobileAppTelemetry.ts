@@ -1,9 +1,4 @@
-import {
-  MOBILE_APP_FAULT_EVENT_NAMES,
-  MobileAppFaultKind,
-} from "../../Utils/Telemetry/MobileAppFaults";
 import { JSONObject } from "../JSON";
-import { LogEventNameAttributeKey } from "../Log/LogEventName";
 
 /*
  * WHAT A MOBILE APP'S OPENTELEMETRY SDK SENDS, BY NAME.
@@ -69,8 +64,16 @@ export const APP_START_TYPES: ReadonlyArray<AppStartType> = [
 /*
  * The attribute ingest stamps a log's event name onto (LogEventName), which
  * is where the crash, ANR and frame events are read from.
+ *
+ * It and the crash and ANR event names below are written out, not imported
+ * from Types/Log/LogEventName and Utils/Telemetry/MobileAppFaults, because a
+ * module in Common/{Utils,Types}/Rum imports nothing from the rest of
+ * Common: the browser recorder inlines these modules into the page it is
+ * served to, and its SourceHygiene test holds every one of them to that.
+ * Tests/Types/Rum/MobileAppTelemetry.test.ts holds each copy to the name
+ * ingest reads.
  */
-export const EVENT_NAME_ATTRIBUTE: string = LogEventNameAttributeKey;
+export const EVENT_NAME_ATTRIBUTE: string = "event.name";
 
 export const APP_JANK_EVENT_NAME: string = "app.jank";
 
@@ -131,13 +134,9 @@ export function withAppInstallationId(input: {
 }
 
 // The crash and ANR events, first the name current SDKs send.
-export const APP_CRASH_EVENT_NAME: string = MOBILE_APP_FAULT_EVENT_NAMES[
-  MobileAppFaultKind.Crash
-][0] as string;
+export const APP_CRASH_EVENT_NAME: string = "app.crash";
 
-export const APP_ANR_EVENT_NAME: string = MOBILE_APP_FAULT_EVENT_NAMES[
-  MobileAppFaultKind.Anr
-][0] as string;
+export const APP_ANR_EVENT_NAME: string = "device.anr";
 
 /*
  * The start times Android vitals counts as excessive (developer.android.com,

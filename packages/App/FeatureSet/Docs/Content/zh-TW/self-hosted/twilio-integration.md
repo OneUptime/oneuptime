@@ -147,6 +147,12 @@ Twilio 號碼可以同時撥打電話和傳送簡訊，也可以只支援其中�
 
 狀態頁只提供傳送簡訊的設定，**發送測試簡訊** 和 **發送測試通話** 也只針對設定所傳送的內容顯示。所有現有設定都和以前一樣用於 **通話與簡訊**。在 API 和 Terraform 中，這個選擇是 `usedFor` 欄位，缺少所選用途所需號碼的設定會被拒絕。
 
+### 待命電話的語音信箱
+
+對 Twilio 來說，語音信箱接聽的電話和有人接聽的電話一樣，都算已接聽。因此每通待命電話都會在背景透過[答錄機偵測](https://www.twilio.com/docs/voice/answering-machine-detection)詢問 Twilio 接聽的是人還是語音信箱：接起電話的人會立即聽到呼叫內容。語音信箱接聽的電話算作未接聽，和一直響鈴無人接的電話一樣，呼叫會像未接來電那樣繼續。問候語一結束，OneUptime 就會留下一段簡短留言，內容是電話所說的話。通話記錄會說明是否留下了留言，事件的 Feed 也會說明："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio 會對其偵測的每通已接聽電話收取答錄機偵測費用，由撥打電話的帳戶支付：整個安裝的帳戶，或專案自己的設定。所有專案預設開啟此功能。要關閉它，請在 **專案設定 > 通知 > 通知管道** 的 **更多設定** 中關閉 **待命電話的語音信箱** ：語音信箱接聽的電話隨後會像以前一樣算作已接聽。 **發送測試通話** 和來電從不偵測。與通話結果一樣，它需要 Twilio 能連到你的伺服器：請參閱下一節。
+
 ## 3. 設定網路存取
 
 只要有輸出存取即可傳送。傳送狀態更新、通話結果、按鍵確認和來電則需要 Twilio 能存取您的伺服器。
@@ -171,7 +177,7 @@ sequenceDiagram
 | --- | --- |
 | 送出簡訊 | 否。不過傳送狀態更新需要回呼。 |
 | 簡單的測試語音電話 | 否。OneUptime 在輸出 API 要求中附帶語音指令。 |
-| 得知值班電話是否有人接聽 | 是。Twilio 會回報每通電話的結束方式，事件的 Feed 因此能寫出有人未接聽。沒有它，電話也會照常撥出。 |
+| 得知值班電話是否有人接聽 | 是。Twilio 會回報每通電話的結束方式，以及接聽的是人還是語音信箱，事件的 Feed 因此能寫出有人未接聽。沒有它，電話也會照常撥出。 |
 | 按 1 確認值班警示 | 是。Twilio 把按鍵輸入送給 OneUptime。 |
 | 來電原則 | 是。Twilio 要求通話指令並回報撥號結果。 |
 
@@ -181,13 +187,14 @@ sequenceDiagram
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | 簡訊傳送狀態 |
 | POST | `/notification/call/status-callback/:callLogId/:token` | 通話結果 |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | 值班電話是由人還是語音信箱接聽 |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | 按鍵確認 |
 | POST | `/notification/incoming-call/voice` | 選用：來電指令 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 選用：來電路由結果 |
 
 OneUptime 會自動產生簡訊、通話結果和確認的 URL。不要用固定的 webhook URL 取代其中的權杖。來電請依照[來電原則](/docs/on-call/incoming-call-policy)操作，連結號碼時會為該號碼設定 webhook。
 
-Twilio 要求 [webhook URL 可被公開存取](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。請使用公開信任的 TLS 憑證，並在經過代理時保留原始的主機、通訊協定、路徑、查詢參數、本文和 `X-Twilio-Signature` 標頭。來電處理常式會驗證 Twilio 簽章；簡訊傳送和通話結果使用每則訊息或每通電話專屬的 URL 權杖，按鍵確認使用已簽署的查詢權杖。不要在共用記錄或螢幕截圖中暴露權杖。請參閱 [Twilio webhook 安全性](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
+Twilio 要求 [webhook URL 可被公開存取](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)。請使用公開信任的 TLS 憑證，並在經過代理時保留原始的主機、通訊協定、路徑、查詢參數、本文和 `X-Twilio-Signature` 標頭。來電處理常式會驗證 Twilio 簽章；簡訊傳送和通話結果使用每則訊息或每通電話專屬的 URL 權杖，按鍵確認使用已簽署的查詢權杖。語音信箱回呼會同時驗證其 URL 權杖和 Twilio 簽章。不要在共用記錄或螢幕截圖中暴露權杖。請參閱 [Twilio webhook 安全性](https://www.twilio.com/docs/usage/webhooks/webhooks-security)。
 
 ### 從私有部署發布回呼
 

@@ -202,10 +202,17 @@ describe("The configuration the release builds from", () => {
      * Without it, an app built with Xcode 27 does not launch on iOS 27, and
      * without Xcode 27.1 the iPhone Duo shows the app letterboxed.
      */
-    expect(appJson.expo.plugins).toContainEqual([
-      "expo-build-properties",
-      { ios: { enableSceneSupport: true } },
-    ]);
+    const buildProperties: unknown = (
+      appJson.expo.plugins as Array<unknown>
+    ).find((plugin: unknown): boolean => {
+      return Array.isArray(plugin) && plugin[0] === "expo-build-properties";
+    });
+    // Its Android options (R8, #9955) are androidReleaseOptimization.test.ts's.
+    expect(
+      (
+        buildProperties as [string, { ios?: { enableSceneSupport?: boolean } }]
+      )[1].ios,
+    ).toEqual({ enableSceneSupport: true });
     expect(packageJson.dependencies["expo-build-properties"]).toMatch(/^~57\./);
   });
 

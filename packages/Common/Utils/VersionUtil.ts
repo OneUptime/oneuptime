@@ -209,6 +209,37 @@ export default class VersionUtil {
   }
 
   /*
+   * -1, 0 or 1 as compare() answers, by the release alone - major, minor and
+   * patch - leaving a pre-release's tag out: 17.1.0-test, 17.1.0-rc.1 and
+   * 17.1.0 are one release here. A test or pre-release build is numbered
+   * after the release it leads up to, not after the code it was built from,
+   * so its tag cannot tell whether it is older or newer than that release.
+   * Null when either side cannot be parsed - never "equal".
+   */
+  public static compareReleases(a: unknown, b: unknown): number | null {
+    const parsedA: ParsedVersion | null = this.parse(a);
+    const parsedB: ParsedVersion | null = this.parse(b);
+
+    if (!parsedA || !parsedB) {
+      return null;
+    }
+
+    const triples: Array<[number, number]> = [
+      [parsedA.major, parsedB.major],
+      [parsedA.minor, parsedB.minor],
+      [parsedA.patch, parsedB.patch],
+    ];
+
+    for (const [left, right] of triples) {
+      if (left !== right) {
+        return left < right ? -1 : 1;
+      }
+    }
+
+    return 0;
+  }
+
+  /*
    * Whether an installation running currentVersion should be told to upgrade.
    * Deliberately conservative — it drives a banner that nags administrators,
    * so every uncertain case answers false:
