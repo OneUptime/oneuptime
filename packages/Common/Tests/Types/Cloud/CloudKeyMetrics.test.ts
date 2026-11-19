@@ -1116,8 +1116,16 @@ describe("key metric counts", () => {
         "Microsoft.Compute/virtualMachines",
       ),
     ).toBe(17);
-    // Its two Ops Agent metrics among them.
-    expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(11);
+    /*
+     * Not its two Ops Agent metrics: read only from a VM that runs the
+     * agent, they cost nothing where none does.
+     */
+    expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(9);
+    expect(
+      GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
+        return entry.resourceType === "gce_instance";
+      })?.metrics,
+    ).toHaveLength(11);
     expect(getKeyMetricCount(CloudProvider.GCP, "nope")).toBe(0);
   });
 });

@@ -8,6 +8,7 @@ import {
   GCP_USD_PER_MILLION_TIME_SERIES,
   countKeyMetrics,
   estimateCloudConnectionCost,
+  getAzureFiveMinuteReadsPerMonth,
   getReadsPerMonth,
 } from "../../../Types/CloudConnection/CloudConnectionCost";
 import {
@@ -126,23 +127,71 @@ describe("the monthly estimate", () => {
       accounts: 1,
     });
 
+    // An app's health check is one more read every 15 minutes.
     expect(large.monthlyCostUsd).toBeCloseTo(
-      ((500 * 8640 - AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION) / 1000) *
+      ((500 * (8640 + 2880) - AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION) /
+        1000) *
         AZURE_USD_PER_THOUSAND_METRIC_READS,
       6,
     );
+  });
+
+  /*
+   * A resource whose type has metrics Azure Monitor keeps at five minutes,
+   * marked as earning their call (an App Service app's health check, a
+   * Cosmos DB account's storage), is read in a five-minute call every 15
+   * minutes beside its minute call (#9566): a third of a call more a read
+   * at the default 5 minutes. Every other type costs what it did.
+   */
+  test("Azure: a type with five-minute metrics costs one more read every 15 minutes, and no other type more", () => {
+    expect(getAzureFiveMinuteReadsPerMonth(5)).toBe(2880);
+    // Read every 10 minutes: 15 minutes of them are there every other read.
+    expect(getAzureFiveMinuteReadsPerMonth(10)).toBe(2160);
+    expect(getAzureFiveMinuteReadsPerMonth(15)).toBe(2880);
+    expect(getAzureFiveMinuteReadsPerMonth(30)).toBe(1440);
+    expect(getAzureFiveMinuteReadsPerMonth(60)).toBe(720);
+
+    const sites: CloudConnectionCostEstimate = estimateCloudConnectionCost({
+      provider: CloudProvider.Azure,
+      resourceTypes: [
+        { type: "Microsoft.Web/sites", count: 100 },
+        { type: "Microsoft.DocumentDB/databaseAccounts", count: 10 },
+        { type: "Microsoft.Compute/virtualMachines", count: 50 },
+      ],
+      readIntervalInMinutes: 5,
+      accounts: 1,
+    });
+
+    expect(sites.monthlyUnits).toBe(160 * 8640 + 110 * 2880);
+
+    // A virtual machine and a Static Web App cost one read each, as before.
+    expect(
+      estimateCloudConnectionCost({
+        provider: CloudProvider.Azure,
+        resourceTypes: [
+          { type: "Microsoft.Compute/virtualMachines", count: 50 },
+          { type: "Microsoft.Web/staticSites", count: 50 },
+        ],
+        readIntervalInMinutes: 5,
+        accounts: 1,
+      }).monthlyUnits,
+    ).toBe(100 * 8640);
   });
 
   test("Azure: each subscription has its own allowance", () => {
     const twoSubscriptions: CloudConnectionCostEstimate =
       estimateCloudConnectionCost({
         provider: CloudProvider.Azure,
-        resourceTypes: [{ type: "Microsoft.Web/sites", count: 200 }],
+        resourceTypes: [{ type: "Microsoft.Web/sites", count: 150 }],
         readIntervalInMinutes: 5,
         accounts: 2,
       });
 
-    expect(200 * 8640).toBeLessThan(
+    // More than one subscription's allowance, less than two's.
+    expect(150 * (8640 + 2880)).toBeGreaterThan(
+      AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
+    );
+    expect(150 * (8640 + 2880)).toBeLessThan(
       2 * AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
     );
     expect(twoSubscriptions.monthlyCostUsd).toBe(0);

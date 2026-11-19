@@ -1,7 +1,9 @@
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
+  AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_MAX_METRICS_PER_RESOURCE,
   getKeyMetricCount,
+  hasAzureFiveMinuteKeyMetrics,
 } from "../Cloud/CloudKeyMetrics";
 import { CloudConnectionTypeCount } from "./CloudConnectionTest";
 
@@ -18,7 +20,9 @@ import { CloudConnectionTypeCount } from "./CloudConnectionTest";
  *     calls a month.)
  *   - Azure: Azure Monitor gives each subscription its first 1,000,000
  *     metric reads a month free, then $0.01 per 1,000. Each resource is one
- *     read.
+ *     read, and a resource of a type with metrics read at five minutes (an
+ *     App Service app's health check) one more every
+ *     AZURE_FIVE_MINUTE_READ_MINUTES (getAzureFiveMinuteReadsPerMonth).
  *   - Google Cloud: Cloud Monitoring's first 1,000,000 time series read a
  *     month per billing account are free, then $0.50 per million. Each key
  *     metric of each resource is one time series per read.
@@ -44,6 +48,22 @@ export interface CloudConnectionCostEstimate {
 
 export function getReadsPerMonth(readIntervalInMinutes: number): number {
   return Math.ceil(MINUTES_PER_MONTH / Math.max(1, readIntervalInMinutes));
+}
+
+/*
+ * The five-minute calls a month of one Azure resource whose type has
+ * metrics read at five minutes: one each read that finds 15 minutes of
+ * them there - every third read at the default 5 minutes, every other at
+ * 10, and every read from 15 on.
+ */
+export function getAzureFiveMinuteReadsPerMonth(
+  readIntervalInMinutes: number,
+): number {
+  const interval: number = Math.max(1, readIntervalInMinutes);
+
+  return getReadsPerMonth(
+    Math.ceil(AZURE_FIVE_MINUTE_READ_MINUTES / interval) * interval,
+  );
 }
 
 // Key metrics read per read for these resources, by their types.
@@ -87,14 +107,22 @@ export function estimateCloudConnectionCost(data: {
 
   if (data.provider === CloudProvider.Azure) {
     let resourcesWithMetrics: number = 0;
+    let resourcesWithFiveMinuteMetrics: number = 0;
 
     for (const entry of data.resourceTypes) {
       if (getKeyMetricCount(CloudProvider.Azure, entry.type) > 0) {
         resourcesWithMetrics += entry.count;
       }
+
+      if (hasAzureFiveMinuteKeyMetrics(entry.type)) {
+        resourcesWithFiveMinuteMetrics += entry.count;
+      }
     }
 
-    const units: number = resourcesWithMetrics * reads;
+    const units: number =
+      resourcesWithMetrics * reads +
+      resourcesWithFiveMinuteMetrics *
+        getAzureFiveMinuteReadsPerMonth(data.readIntervalInMinutes);
     const free: number =
       AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION *
       Math.max(1, data.accounts || 1);

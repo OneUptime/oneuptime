@@ -3027,7 +3027,9 @@ export function getAwsNamespaceOfType(type: string): string | undefined {
 
 /*
  * How many key metrics a resource type has, for the docs and the cost
- * estimate. AWS takes a CloudFormation type or a namespace.
+ * estimate. AWS takes a CloudFormation type or a namespace. A Google Cloud
+ * type's Ops Agent metrics are not counted: they are read only from a VM
+ * that runs the agent, and cost nothing where none does.
  */
 export function getKeyMetricCount(
   provider: CloudProvider,
@@ -3047,7 +3049,9 @@ export function getKeyMetricCount(
   return (
     GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
       return entry.resourceType === typeOrNamespace;
-    })?.metrics.length || 0
+    })?.metrics.filter((metric: GcpKeyMetric): boolean => {
+      return !metric.reportedBy;
+    }).length || 0
   );
 }
 
