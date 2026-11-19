@@ -456,7 +456,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
         processor.configuration = buildConfiguration();
         processor.isEnabled = isEnabled;
         processor.tracePipelineId = props.pipelineId;
-        processor.sortOrder = 1;
+        // No sortOrder: the server puts a new processor after the last one (@ListOrderColumn).
 
         await ModelAPI.create({
           model: processor,
