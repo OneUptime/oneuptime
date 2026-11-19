@@ -1,12 +1,15 @@
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { JSONObject } from "Common/Types/JSON";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   StorageUsage,
+  formatStorageBytes,
   getStorageUsage,
   readStorageNumber,
 } from "Common/Utils/Storage/StorageUsage";
 import {
   InfrastructureResource,
+  ResourceColumn,
   ResourceStorageUsageColumns,
 } from "../../../Components/Infrastructure/ResourceTable";
 
@@ -73,6 +76,25 @@ export function withDockerSwarmVolumeStorage(
 export const DOCKER_SWARM_VOLUME_SIZE_DESCRIPTION: string = translationKey(
   "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.",
 );
+
+// The Volumes list's Size column, in the reader's digits ("10,4 MiB").
+export function getDockerSwarmVolumeSizeColumn(
+  language?: string | undefined,
+): ResourceColumn {
+  return {
+    title: "Size",
+    key: "sizeBytes",
+    description: DOCKER_SWARM_VOLUME_SIZE_DESCRIPTION,
+    getValue: (resource: InfrastructureResource): string => {
+      const size: number | null = readStorageNumber(
+        resource.additionalAttributes["sizeBytes"],
+      );
+      return size === null
+        ? EMPTY_VALUE_MARK
+        : formatStorageBytes(size, language);
+    },
+  };
+}
 
 export const DOCKER_SWARM_VOLUME_DISK_COLUMNS: ResourceStorageUsageColumns = {
   usedDescription: translationKey(

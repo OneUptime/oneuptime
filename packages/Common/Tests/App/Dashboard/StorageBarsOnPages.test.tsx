@@ -41,6 +41,12 @@ import {
   getOpenStackStorageUsageColumn,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackResourceList";
 import { getOpenStackStoragePoolUsage } from "../../../Types/OpenStack/OpenStackHealthRules";
+import { JSONObject } from "../../../Types/JSON";
+import {
+  DOCKER_SWARM_VOLUME_DISK_COLUMNS,
+  getDockerSwarmVolumeSizeColumn,
+  withDockerSwarmVolumeStorage,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DockerSwarmVolumeStorage";
 
 /*
  * HOW FULL A STORE IS, DRAWN THE ONE WAY ON EVERY PAGE (#9646, #9647, #9648).
@@ -48,7 +54,8 @@ import { getOpenStackStoragePoolUsage } from "../../../Types/OpenStack/OpenStack
  * The shared bar (StorageUsageBar) in each list and page these issues
  * named: a node's, a guest's and a VM's disk beside CPU and Memory, a
  * vCenter's total, the Ceph widgets, a part page's Storage card, a storage
- * array's bucket and an OpenStack pool - each from its product's reading,
+ * array's bucket, an OpenStack pool and a Swarm's volumes - each from its
+ * product's reading,
  * at its product's lines, and saying why in words where there is none.
  */
 
@@ -446,5 +453,70 @@ describe("an OpenStack storage pool", () => {
 
   test("a pool with no capacity has no value, so its column can step aside", () => {
     expect(column.hasValue!(new OpenStackResource())).toBe(false);
+  });
+});
+
+describe("a Swarm's Volumes list: each volume's size, then the disk it lives on", () => {
+  function volume(
+    name: string,
+    attributes: JSONObject,
+  ): InfrastructureResource {
+    const resource: InfrastructureResource = {
+      name: name,
+      namespace: "mgr-1",
+      cpuUtilization: null,
+      memoryUsageBytes: null,
+      memoryLimitBytes: null,
+      status: "",
+      age: "",
+      additionalAttributes: {},
+    };
+    withDockerSwarmVolumeStorage(resource, attributes);
+    return resource;
+  }
+
+  function renderVolumes(resources: Array<InfrastructureResource>): void {
+    render(
+      <ResourceTable
+        resources={resources}
+        title="Volumes"
+        description="Volumes."
+        showGroupColumn={true}
+        groupColumnTitle="Node"
+        showStatus={false}
+        showResourceMetrics={false}
+        storageUsageColumns={DOCKER_SWARM_VOLUME_DISK_COLUMNS}
+        columns={[getDockerSwarmVolumeSizeColumn()]}
+      />,
+    );
+  }
+
+  test("a local volume says its size, and the shared disk's bar turns red at 90%", () => {
+    renderVolumes([
+      volume("shop_data", {
+        sizeBytes: 10 * GIB,
+        diskTotalBytes: 100 * GIB,
+        diskAvailableBytes: 10 * GIB,
+      }),
+      volume("shop_media", {}),
+    ]);
+
+    expect(headers()).toEqual(["Name", "Node", "Size", "Disk", "Free"]);
+    expect(rowOf("shop_data")).toHaveTextContent(/10\sGiB/);
+    expect(
+      within(rowOf("shop_data")).getByTestId("storage-usage-fill"),
+    ).toHaveAttribute("data-level", StorageUsageLevel.Critical);
+    expect(
+      within(rowOf("shop_media")).getByTestId("storage-usage-none"),
+    ).toHaveTextContent("Not reported");
+  });
+
+  test("an agent older than 0.161.4: every volume says Not reported, with no column of dashes for Free", () => {
+    renderVolumes([volume("shop_data", {})]);
+
+    expect(headers()).toEqual(["Name", "Node", "Size", "Disk"]);
+    expect(
+      within(rowOf("shop_data")).getByTestId("storage-usage-none"),
+    ).toHaveTextContent("Not reported");
   });
 });

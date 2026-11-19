@@ -8,11 +8,10 @@ import ResourceTable, {
 import { fetchDockerSwarmInventoryResources } from "../Utils/DockerSwarmResourceUtils";
 import {
   DOCKER_SWARM_VOLUME_DISK_COLUMNS,
-  DOCKER_SWARM_VOLUME_SIZE_DESCRIPTION,
+  getDockerSwarmVolumeSizeColumn,
   withDockerSwarmVolumeStorage,
 } from "../Utils/DockerSwarmVolumeStorage";
 import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
-import { formatStorageBytes } from "Common/Utils/Storage/StorageUsage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
@@ -93,20 +92,7 @@ const DockerSwarmClusterVolumes: FunctionComponent<
       emptyMessage="No volumes reported yet. Make sure the Docker Swarm agent is sending metrics."
       storageUsageColumns={DOCKER_SWARM_VOLUME_DISK_COLUMNS}
       columns={[
-        {
-          title: "Size",
-          key: "sizeBytes",
-          description: DOCKER_SWARM_VOLUME_SIZE_DESCRIPTION,
-          getValue: (resource: InfrastructureResource): string => {
-            const size: number = Number(
-              resource.additionalAttributes["sizeBytes"] || "",
-            );
-            return resource.additionalAttributes["sizeBytes"] &&
-              Number.isFinite(size)
-              ? formatStorageBytes(size, translator.language)
-              : EMPTY_VALUE_MARK;
-          },
-        },
+        getDockerSwarmVolumeSizeColumn(translator.language),
         {
           title: "Driver",
           key: "driver",
