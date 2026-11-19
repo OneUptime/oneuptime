@@ -1183,9 +1183,11 @@ function answerWithAcceptances(
   return { ...answerOf({ snapshot }), frameworks };
 }
 
-function acceptanceRow(
-  data: Partial<DataSecurityComplianceSetting>,
-): DataSecurityComplianceSetting {
+function acceptanceRow(data: {
+  [Key in keyof DataSecurityComplianceSetting]?:
+    | DataSecurityComplianceSetting[Key]
+    | undefined;
+}): DataSecurityComplianceSetting {
   const row: DataSecurityComplianceSetting =
     new DataSecurityComplianceSetting();
   row.id = new ObjectID(ACCEPTANCE_ID);

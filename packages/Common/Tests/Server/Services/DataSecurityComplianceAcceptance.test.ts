@@ -7,9 +7,8 @@ import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
-import ColumnAccessControl, {
-  getColumnAccessControlForAllColumns,
-} from "../../../Types/Database/AccessControl/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
+import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
 import Permission from "../../../Types/Permission";
 import Dictionary from "../../../Types/Dictionary";
 import ComplianceFramework from "../../../Types/DataSecurity/ComplianceFramework";
@@ -62,6 +61,13 @@ interface Hooks {
 
 const hooks: Hooks = DataSecurityComplianceSettingService as unknown as Hooks;
 
+// A setting's fields as a test hands them, a left-out one as undefined.
+type SettingFields = {
+  [Key in keyof DataSecurityComplianceSetting]?:
+    | DataSecurityComplianceSetting[Key]
+    | undefined;
+};
+
 let existing: Array<DataSecurityComplianceSetting>;
 let held: Array<DataSecurityComplianceSetting>;
 let findBySpy: jest.SpyInstance;
@@ -76,9 +82,7 @@ const LAST_WEEK: Date = OneUptimeDate.addRemoveDays(
   -7,
 );
 
-function acceptanceOf(
-  data: Partial<DataSecurityComplianceSetting>,
-): DataSecurityComplianceSetting {
+function acceptanceOf(data: SettingFields): DataSecurityComplianceSetting {
   const setting: DataSecurityComplianceSetting =
     new DataSecurityComplianceSetting();
   setting.projectId = PROJECT_ID;
@@ -96,7 +100,7 @@ function acceptanceOf(
 }
 
 async function create(
-  data: Partial<DataSecurityComplianceSetting>,
+  data: SettingFields,
 ): Promise<{ thrown: unknown; data: DataSecurityComplianceSetting }> {
   const setting: DataSecurityComplianceSetting = acceptanceOf(data);
 

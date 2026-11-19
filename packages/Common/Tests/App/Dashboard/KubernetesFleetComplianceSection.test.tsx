@@ -39,6 +39,7 @@ import KubernetesFleetComplianceSection, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesFleetComplianceSection";
 import KubernetesCompliance from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Compliance";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import Route from "../../../Types/API/Route";
 import { KubernetesComplianceFramework } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import {
   KUBERNETES_COMPLIANCE_SUMMARY_VERSION,
@@ -135,7 +136,7 @@ const NEW_CLUSTER: string = "11111111-0000-4000-8000-000000000003";
 const EDGE: string = "11111111-0000-4000-8000-000000000004";
 
 let clusters: Array<KubernetesCluster>;
-let listSpy: SpyInstance<typeof ModelAPI.getList>;
+let listSpy: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   goTo(`/dashboard/${PROJECT_ID}/kubernetes/compliance`);
@@ -363,7 +364,11 @@ describe("the page and its words", () => {
     await act(async () => {
       render(
         <MemoryRouter>
-          <KubernetesCompliance {...({} as never)} />
+          <KubernetesCompliance
+            pageRoute={new Route("/dashboard/kubernetes/compliance")}
+            currentProject={null}
+            hasPaymentMethod={false}
+          />
         </MemoryRouter>,
       );
     });
