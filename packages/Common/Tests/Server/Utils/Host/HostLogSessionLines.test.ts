@@ -49,6 +49,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 /*
  * Download Lines (#9966): a log session's lines as a file, read as viewing
@@ -67,11 +68,13 @@ const READER: DatabaseCommonInteractionProps = {
 
 let session: HostLogSession | null = null;
 let lines: Array<Log> = [];
-let findBy: jest.Mock<(...args: Array<unknown>) => Promise<Array<Log>>>;
-let countBy: jest.Mock<(...args: Array<unknown>) => Promise<PositiveNumber>>;
-let findOneById: jest.Mock<
-  (...args: Array<unknown>) => Promise<HostLogSession | null>
->;
+type FindOneById = (...args: Array<unknown>) => Promise<HostLogSession | null>;
+type FindBy = (...args: Array<unknown>) => Promise<Array<Log>>;
+type CountBy = (...args: Array<unknown>) => Promise<PositiveNumber>;
+
+let findBy: Mock<FindBy>;
+let countBy: Mock<CountBy>;
+let findOneById: Mock<FindOneById>;
 
 function aSession(data: Partial<HostLogSession> = {}): HostLogSession {
   const row: HostLogSession = new HostLogSession();
@@ -114,14 +117,14 @@ beforeEach(() => {
   session = aSession();
   lines = [];
 
-  findOneById = jest.fn(async () => {
+  findOneById = jest.fn<FindOneById>(async () => {
     return session;
   });
-  findBy = jest.fn(async (...args: Array<unknown>) => {
+  findBy = jest.fn<FindBy>(async (...args: Array<unknown>) => {
     const { skip, limit } = args[0] as { skip: number; limit: number };
     return lines.slice(skip, skip + limit);
   });
-  countBy = jest.fn(async () => {
+  countBy = jest.fn<CountBy>(async () => {
     return new PositiveNumber(lines.length);
   });
 
@@ -221,7 +224,8 @@ describe("which lines", () => {
   });
 
   test("while it runs, its lines so far: up to a day past the end it was given", async () => {
-    session = aSession({ endedAt: undefined });
+    session = aSession();
+    delete session.endedAt;
 
     await download();
 
@@ -234,7 +238,8 @@ describe("which lines", () => {
   });
 
   test("a session nobody allowed has no lines, and says so", async () => {
-    session = aSession({ startedAt: undefined });
+    session = aSession();
+    delete session.startedAt;
 
     await expect(download()).rejects.toThrow(NO_LINES_MESSAGE);
     expect(findBy).not.toHaveBeenCalled();

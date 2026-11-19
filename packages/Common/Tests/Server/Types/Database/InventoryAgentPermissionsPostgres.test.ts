@@ -7,7 +7,7 @@ import AndroidAgentPermissions, {
   ANDROID_AGENT_PERMISSIONS_ATTRIBUTE,
   AndroidAgentPermissionsStatus,
 } from "../../../../Types/Host/AndroidAgentPermissions";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
 import EntitySource from "../../../../Types/Telemetry/EntitySource";
@@ -78,7 +78,7 @@ describePostgres("inventory agent permissions facet against Postgres", () => {
       ["kiosk-granted-padded", " none "],
       ["kiosk-saying-nonsense", "READ_CONTACTS"],
       ["kiosk-with-commas", "READ_LOGS,GET_USAGE_STATS"],
-    ] as Array<[string, unknown]>) {
+    ] as Array<[string, JSONValue]>) {
       await seed(name, EntityType.Host, {
         [ANDROID_AGENT_PERMISSIONS_ATTRIBUTE]: value,
       });

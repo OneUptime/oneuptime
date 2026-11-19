@@ -64,7 +64,9 @@ const apiGetMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/API/API", () => {
   const actual: { default: { getFriendlyMessage: unknown } } =
-    jest.requireActual("../../../UI/Utils/API/API");
+    jest.requireActual("../../../UI/Utils/API/API") as {
+      default: { getFriendlyMessage: unknown };
+    };
   return {
     __esModule: true,
     default: {
@@ -260,7 +262,8 @@ describe("Download Lines", () => {
         }),
       ),
     ).toBe(true);
-    expect(download().isVisible(session({ startedAt: undefined }))).toBe(false);
+    // Never allowed, so it never started: it has no lines.
+    expect(download().isVisible(session())).toBe(false);
   });
 
   test("asks the server for the session's file and saves it under the server's name", async () => {

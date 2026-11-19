@@ -7,7 +7,7 @@ import AndroidSecurityPatch, {
   ANDROID_SECURITY_PATCH_ATTRIBUTE,
   AndroidSecurityPatchStatus,
 } from "../../../../Types/Host/AndroidSecurityPatch";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
 import EntitySource from "../../../../Types/Telemetry/EntitySource";
@@ -96,7 +96,7 @@ describePostgres("inventory security patch facet against Postgres", () => {
       ["level-without-zeros", "2024-6-5"],
       ["level-a-number", 20240605],
       ["level-empty", ""],
-    ] as Array<[string, unknown]>) {
+    ] as Array<[string, JSONValue]>) {
       await seed(name, EntityType.Host, {
         [ANDROID_SECURITY_PATCH_ATTRIBUTE]: level,
       });
