@@ -128,6 +128,17 @@ const EXPECTED_INDEXES: ReadonlyArray<{
     predicate: '("autoProvisionedNetworkDeviceId" IS NOT NULL)',
     isUnique: false,
   },
+  /*
+   * The network device a person tied the monitor to, which the device's
+   * pages, an import's duplicate check and a device delete's SET NULL read
+   * by (#9545: built online by AddMonitorNetworkDeviceIdIndexAndKey
+   * 1809184900100, partial on non-null).
+   */
+  {
+    columns: "networkDeviceId",
+    predicate: '("networkDeviceId" IS NOT NULL)',
+    isUnique: false,
+  },
   { columns: "monitorType,_id", predicate: null, isUnique: false },
   {
     columns: "projectId",
