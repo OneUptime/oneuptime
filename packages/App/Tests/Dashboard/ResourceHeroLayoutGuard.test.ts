@@ -85,6 +85,12 @@ import {
  *      follows the cluster's rules (CephHealth). Nine heroes wrote
  *      "Connected", "Disconnected", "Healthy" and "Unknown" in English on
  *      every page, German and Persian included.
+ *  10. A part page's status opens why: every ResourcePartHero is handed
+ *      what needs attention on its part (`attention`), each part hero takes
+ *      it from its page and hands it on, and the page hands the same list to
+ *      its Needs attention card - so "Offline" or "CrashLoopBackOff" beside
+ *      a part's name opens the reasons the card lists, never a list of its
+ *      own (#9594).
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -1196,6 +1202,248 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
     expect(text).toContain("getCephHealth(attentionItems)");
     expect(text).not.toContain("renderHealthPill");
     expect(text).not.toContain('translationKey("Health OK")');
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 10: a part page's status opens why
+ * ---------------------------------------------------------------------------
+ *
+ * "Offline", "CrashLoopBackOff" or "Lost redundant paths" beside a part's
+ * name said the word, on hover; why was the Overview's Needs attention card
+ * under the tabs (#9594). ResourcePartHero opens that list from a status
+ * that says something is wrong when it is handed it (`attention`). Each part
+ * page reads the list once and hands the same one to its card and its hero,
+ * so the two can never disagree.
+ */
+
+// Every file that draws ResourcePartHero itself.
+const PART_HERO_RENDER_SITES: Array<string> = [
+  "Components/Ceph/Part/CephPartHero.tsx",
+  "Components/ContainerHost/ContainerHostContainerHero.tsx",
+  "Components/DockerSwarm/Part/DockerSwarmPartHero.tsx",
+  "Components/Kubernetes/Part/KubernetesPartHero.tsx",
+  "Components/OpenStack/Part/OpenStackHostGroups.tsx",
+  "Components/OpenStack/Part/OpenStackPartHero.tsx",
+  "Components/Proxmox/Part/ProxmoxPartHero.tsx",
+  "Components/StorageArray/StorageArrayResourceDetail.tsx",
+  "Components/VMware/Part/VMwarePartHero.tsx",
+  "Pages/OpenStack/View/ProjectDetail.tsx",
+];
+
+/*
+ * The part heroes a page hands what needs attention to, and the pages that
+ * draw them. (A Kubernetes part's hero works the list out from the read it
+ * is handed, as its Overview does; an OpenStack part's is handed it through
+ * OpenStackPartPage's `hero`.)
+ */
+const PART_HERO_WRAPPERS: Record<string, Array<string>> = {
+  CephPartHero: [
+    "Pages/Ceph/View/OsdDetail.tsx",
+    "Pages/Ceph/View/PoolDetail.tsx",
+  ],
+  ContainerHostContainerHero: [
+    "Pages/Docker/View/ContainerDetail.tsx",
+    "Pages/Podman/View/ContainerDetail.tsx",
+  ],
+  DockerSwarmPartHero: [
+    "Pages/DockerSwarm/View/NodeDetail.tsx",
+    "Pages/DockerSwarm/View/ServiceDetail.tsx",
+    "Pages/DockerSwarm/View/TaskDetail.tsx",
+  ],
+  ProxmoxPartHero: [
+    "Pages/Proxmox/View/GuestDetail.tsx",
+    "Pages/Proxmox/View/NodeDetail.tsx",
+    "Pages/Proxmox/View/StorageDetail.tsx",
+  ],
+  VMwarePartHero: [
+    "Pages/VMware/View/ClusterDetail.tsx",
+    "Pages/VMware/View/DatastoreDetail.tsx",
+    "Pages/VMware/View/HostDetail.tsx",
+    "Pages/VMware/View/VirtualMachineDetail.tsx",
+  ],
+};
+
+// The overviews an OpenStack page draws its Needs attention card through.
+const OPENSTACK_ATTENTION_DRAWERS: Array<string> = [
+  "NeedsAttentionCard",
+  "OpenStackServicePartOverview",
+  "OpenStackServiceOverview",
+];
+
+interface ParsedFile {
+  file: string;
+  source: ts.SourceFile;
+}
+
+const PARSED_FILES: Array<ParsedFile> = FILES.filter((file: string) => {
+  return file.endsWith(".tsx");
+}).map((file: string): ParsedFile => {
+  return { file: file, source: parse(file) };
+});
+
+function tagsNamed(source: ts.SourceFile, name: string): Array<JsxTag> {
+  return jsxTags(source).filter((tag: JsxTag): boolean => {
+    return tagName(tag) === name;
+  });
+}
+
+function attributeNamed(
+  element: JsxTag,
+  name: string,
+): ts.JsxAttribute | undefined {
+  return attributesOf(element).properties.find(
+    (property: ts.JsxAttributeLike): property is ts.JsxAttribute => {
+      return ts.isJsxAttribute(property) && property.name.getText() === name;
+    },
+  );
+}
+
+function filesDrawing(name: string): Array<string> {
+  return PARSED_FILES.filter((parsed: ParsedFile): boolean => {
+    return tagsNamed(parsed.source, name).length > 0;
+  })
+    .map((parsed: ParsedFile): string => {
+      return relative(parsed.file);
+    })
+    .sort();
+}
+
+function parsedFile(file: string): ParsedFile {
+  const found: ParsedFile | undefined = PARSED_FILES.find(
+    (parsed: ParsedFile): boolean => {
+      return relative(parsed.file) === file;
+    },
+  );
+  if (!found) {
+    throw new Error(`${file} is not in the Dashboard's source`);
+  }
+  return found;
+}
+
+describe("rule 10: a part page's status opens why", () => {
+  test("every file that draws ResourcePartHero is listed, and hands it what needs attention", () => {
+    expect(
+      filesDrawing("ResourcePartHero").filter((file: string): boolean => {
+        return file !== "Components/ResourcePart/ResourcePartHero.tsx";
+      }),
+    ).toEqual([...PART_HERO_RENDER_SITES].sort());
+
+    for (const file of PART_HERO_RENDER_SITES) {
+      for (const hero of tagsNamed(
+        parsedFile(file).source,
+        "ResourcePartHero",
+      )) {
+        expect({
+          file,
+          hasAttention: Boolean(attributeNamed(hero, "attention")),
+        }).toEqual({
+          file,
+          hasAttention: true,
+        });
+      }
+    }
+  });
+
+  test("each part hero takes the list its page read and hands it on", () => {
+    const wrappers: Array<string> = [
+      ...Object.keys(PART_HERO_WRAPPERS),
+      "OpenStackPartHero",
+    ];
+    for (const wrapper of wrappers) {
+      const file: string | undefined = PART_HERO_RENDER_SITES.find(
+        (site: string): boolean => {
+          return site.endsWith(`/${wrapper}.tsx`);
+        },
+      );
+      expect({ wrapper, file: Boolean(file) }).toEqual({ wrapper, file: true });
+      const source: ts.SourceFile = parsedFile(file!).source;
+      expect(source.getFullText()).toContain(
+        "attention?: ResourcePartAttention | undefined;",
+      );
+      const hero: JsxTag = tagsNamed(source, "ResourcePartHero")[0]!;
+      expect({
+        wrapper,
+        forwards: attributeNamed(hero, "attention")?.initializer?.getText(),
+      }).toEqual({ wrapper, forwards: "{props.attention}" });
+    }
+
+    // A Kubernetes part's hero reads the list its Overview's card draws.
+    const kubernetes: string = parsedFile(
+      "Components/Kubernetes/Part/KubernetesPartHero.tsx",
+    ).source.getFullText();
+    expect(kubernetes).toContain("getKubernetesPartAttentionItems({");
+  });
+
+  test.each(Object.entries(PART_HERO_WRAPPERS))(
+    "every page that draws %s hands it the one list its card draws",
+    (wrapper: string, pages: Array<string>) => {
+      // A page that moves, or a new one, is read too.
+      expect(filesDrawing(wrapper)).toEqual([...pages].sort());
+
+      for (const page of pages) {
+        const source: ts.SourceFile = parsedFile(page).source;
+        const hero: JsxTag = tagsNamed(source, wrapper)[0]!;
+        const handed: string | undefined = attributeIdentifier(
+          hero,
+          "attention",
+        );
+        expect({ page, handed }).toEqual({ page, handed: "attention" });
+
+        // The same list goes to the Overview that draws the card.
+        const others: Array<JsxTag> = jsxTags(source).filter(
+          (tag: JsxTag): boolean => {
+            return (
+              tag !== hero && attributeIdentifier(tag, "attention") === handed
+            );
+          },
+        );
+        expect({ page, overviews: others.length > 0 }).toEqual({
+          page,
+          overviews: true,
+        });
+      }
+    },
+  );
+
+  test("every OpenStack page with a Needs attention card hands its hero the list", () => {
+    const pages: Array<ParsedFile> = PARSED_FILES.filter(
+      (parsed: ParsedFile): boolean => {
+        const file: string = relative(parsed.file);
+        return (
+          file.startsWith("Pages/OpenStack/View/") &&
+          tagsNamed(parsed.source, "OpenStackPartPage").length > 0 &&
+          OPENSTACK_ATTENTION_DRAWERS.some((name: string): boolean => {
+            return tagsNamed(parsed.source, name).length > 0;
+          })
+        );
+      },
+    );
+    // The cloud's part pages with a card: compute, network, storage and services.
+    expect(pages.length).toBeGreaterThanOrEqual(20);
+
+    for (const parsed of pages) {
+      const page: JsxTag = tagsNamed(parsed.source, "OpenStackPartPage")[0]!;
+      const hero: ts.JsxAttribute | undefined = attributeNamed(page, "hero");
+      const heroObject: ts.Expression | undefined =
+        hero?.initializer && ts.isJsxExpression(hero.initializer)
+          ? hero.initializer.expression
+          : undefined;
+      const handsAttention: boolean = Boolean(
+        heroObject &&
+          ts.isObjectLiteralExpression(heroObject) &&
+          heroObject.properties.some(
+            (property: ts.ObjectLiteralElementLike): boolean => {
+              return property.name?.getText() === "attention";
+            },
+          ),
+      );
+      expect({ page: relative(parsed.file), handsAttention }).toEqual({
+        page: relative(parsed.file),
+        handsAttention: true,
+      });
+    }
   });
 });
 
