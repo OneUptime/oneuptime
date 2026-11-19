@@ -98,10 +98,40 @@ const getAvailableAt: GetAvailableAtFunction = (
 
 type PendingFocus = "status" | "sign-in" | null;
 
+// What the button and its answers say, in the reader's language.
+interface ResendWords {
+  button: string;
+  sent: string;
+  wait: string;
+  failed: string;
+}
+
 const ResendVerificationEmail: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
   const { t, i18n } = useTranslation();
+
+  /*
+   * A sign-up's credential (a resend token) sends again whichever email the
+   * sign-up sent - a new account's welcome, an account holder's "you
+   * already have an account", an invitation's link (#9816) - so its words
+   * name an email, never a verification link. An emailed link's credential
+   * only ever sends a verification link.
+   */
+  const words: ResendWords =
+    "resendToken" in props.credential
+      ? {
+          button: t("register.resendEmailButton"),
+          sent: t("register.resendEmailSent"),
+          wait: t("register.resendEmailWait"),
+          failed: t("register.resendEmailFailed"),
+        }
+      : {
+          button: t("resendVerificationEmail.button"),
+          sent: t("resendVerificationEmail.sent"),
+          wait: t("resendVerificationEmail.wait"),
+          failed: t("resendVerificationEmail.failed"),
+        };
 
   /*
    * An absolute deadline rather than a number of seconds counted down by the
@@ -231,11 +261,11 @@ const ResendVerificationEmail: (props: ComponentProps) => ReactElement = (
     pendingFocusRef.current = "status";
 
     if (result.outcome === VerificationEmailResendOutcome.Sent) {
-      showStatus(AlertType.SUCCESS, t("resendVerificationEmail.sent"));
+      showStatus(AlertType.SUCCESS, words.sent);
       return;
     }
 
-    showStatus(AlertType.INFO, t("resendVerificationEmail.wait"));
+    showStatus(AlertType.INFO, words.wait);
   };
 
   type HandleErrorFunction = (error: unknown) => void;
@@ -253,7 +283,7 @@ const ResendVerificationEmail: (props: ComponentProps) => ReactElement = (
         getRetryAfterSecondsFromError(error) ||
           DEFAULT_VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
       );
-      showStatus(AlertType.INFO, t("resendVerificationEmail.wait"));
+      showStatus(AlertType.INFO, words.wait);
       return;
     }
 
@@ -272,7 +302,7 @@ const ResendVerificationEmail: (props: ComponentProps) => ReactElement = (
     }
 
     // An outage, a network error or an answer this page did not understand.
-    showStatus(AlertType.DANGER, t("resendVerificationEmail.failed"));
+    showStatus(AlertType.DANGER, words.failed);
   };
 
   type ResendFunction = () => Promise<void>;
@@ -305,7 +335,7 @@ const ResendVerificationEmail: (props: ComponentProps) => ReactElement = (
         <Button
           buttonStyle={ButtonStyleType.NORMAL}
           icon={IconProp.Refresh}
-          title={t("resendVerificationEmail.button")}
+          title={words.button}
           isTitleTranslated={true}
           dataTestId="resend-verification-email"
           className="w-full justify-center gap-1"

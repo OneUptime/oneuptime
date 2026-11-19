@@ -104,8 +104,33 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
     ],
   },
   {
+    /*
+     * A sign-up on a server that proves addresses by email answers every
+     * address alike (#9816), then acts on it: a new account and its
+     * welcome, an invitation's registration link again, or word to an
+     * address that already has an account (EmailProvedSignUp.actOnAddress,
+     * driven in SignUpEmails.test.ts). Asked before any of them, whichever
+     * it turns out to be.
+     */
     file: AUTHENTICATION,
     routePath: "/signup",
+    kind: PublicMessageKind.SignUpEmail,
+    branches: [["EmailProvedSignUp.actOnAddress("]],
+  },
+  {
+    /*
+     * A sign-up while sign-ups are off answers as it refuses everyone
+     * (#9816); an invited address is sent its registration link again.
+     */
+    file: AUTHENTICATION,
+    functionName: "refuseWhileSignUpIsOff",
+    kind: PublicMessageKind.SignUpEmail,
+    branches: [["AuthenticationEmail.sendCompleteRegistrationEmail("]],
+  },
+  {
+    // A sign-up on a server that cannot prove addresses by email.
+    file: AUTHENTICATION,
+    functionName: "signUpWithoutProvingTheAddress",
     kind: PublicMessageKind.SignUpEmail,
     branches: [
       // An invitation nobody has claimed: its registration link again.
@@ -113,6 +138,16 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
       // A new account, and its welcome.
       ["UserService.createUserOnSignup(", "MailService.sendMail("],
     ],
+  },
+  {
+    /*
+     * "Send Email Again" after a sign-up (#9816): the email that sign-up
+     * sent, again - whichever it was - to the address it was sent to.
+     */
+    file: AUTHENTICATION,
+    functionName: "resendSignUpEmail",
+    kind: PublicMessageKind.SignUpEmail,
+    branches: [["AuthenticationEmail.sendVerificationEmail("]],
   },
   {
     /*

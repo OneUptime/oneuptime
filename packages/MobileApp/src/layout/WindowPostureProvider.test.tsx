@@ -21,7 +21,7 @@ import {
   useWindowLayout,
   type ListPaneWidthControl,
   type ResolvedPaneLayout,
-} from "./WindowLayout";
+} from "./WindowLayoutProvider";
 import type { WindowLayout } from "./windowLayout";
 import type { FoldReport, PostureSource, WindowFold } from "./windowPosture";
 import { LIST_PANE_WIDTH_KEY } from "../storage/listPaneWidth";

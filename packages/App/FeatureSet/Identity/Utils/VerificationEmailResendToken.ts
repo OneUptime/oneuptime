@@ -59,6 +59,40 @@ export interface VerificationEmailResendTokenClaims {
   issuedAt: Date;
 }
 
+/*
+ * THE SIGN-UP'S CREDENTIAL (v2, #9816)
+ *
+ * A sign-up that can email its address answers every address alike - "check
+ * your email" - and says what happened only in the email: a new account's
+ * welcome, an account holder's "you already have an account", an unclaimed
+ * invitation's link (SignUpAttempt). Its resend credential has to be alike
+ * for every address too, so it names no account. A v1 token carried the new
+ * account's id, which an address that already had one could only be handed
+ * by giving its real id to whoever typed it.
+ *
+ * So a v2 token carries the address that was typed, when, and the id of the
+ * sign-up attempt - a random value the server keeps for a day, with what the
+ * attempt did (SignUpAttempt). Nothing in it says whether the address had an
+ * account; the server reads that from the attempt when the button is pressed.
+ * Signed with a key of its own, so neither format verifies as the other.
+ */
+export interface SignUpEmailResendTokenClaims {
+  email: Email;
+  issuedAt: Date;
+  attemptId: string;
+}
+
+const SIGN_UP_TOKEN_VERSION_PREFIX: string = "v2";
+
+const SIGN_UP_KEY_DERIVATION_LABEL: string =
+  "oneuptime:identity:sign-up-email-resend-token:v2";
+
+const SIGN_UP_TOKEN_PATTERN: RegExp =
+  /^v2\.[A-Za-z0-9_-]{1,900}\.[A-Za-z0-9_-]{43}$/;
+
+// A sign-up attempt's id (SignUpAttempt.newAttemptId): 32 random bytes, base64url.
+export const SIGN_UP_ATTEMPT_ID_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
+
 const TOKEN_VERSION_PREFIX: string = "v1";
 
 /*
@@ -244,6 +278,136 @@ export default class VerificationEmailResendToken {
   }
 
   /*
+   * A sign-up's credential (v2): the address typed, the attempt's id, when.
+   * null when it would not verify, as generate() answers: the page then
+   * offers no resend button, and signing in or signing up again still works.
+   */
+  public static generateForSignUp(data: {
+    email: Email;
+    attemptId: string;
+    now?: Date | undefined;
+  }): string | null {
+    try {
+      const now: Date = data.now || new Date();
+      const issuedAtMs: number = now.getTime();
+      const expiresAtMs: number =
+        issuedAtMs + VERIFICATION_EMAIL_RESEND_TOKEN_EXPIRY_IN_SECONDS * 1000;
+
+      const payloadB64: string = Buffer.from(
+        JSON.stringify({
+          v: 2,
+          e: data.email.toString().toLowerCase(),
+          n: data.attemptId,
+          i: issuedAtMs,
+          x: expiresAtMs,
+        }),
+        "utf8",
+      ).toString("base64url");
+
+      const token: string = `${SIGN_UP_TOKEN_VERSION_PREFIX}.${payloadB64}.${VerificationEmailResendToken.signSignUp(payloadB64)}`;
+
+      return VerificationEmailResendToken.verifySignUp(token, now)
+        ? token
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // NEVER throws: anything that is not a valid, current v2 token is null.
+  public static verifySignUp(
+    token: unknown,
+    now?: Date | undefined,
+  ): SignUpEmailResendTokenClaims | null {
+    try {
+      if (
+        typeof token !== "string" ||
+        token.length > MAX_TOKEN_LENGTH ||
+        !SIGN_UP_TOKEN_PATTERN.test(token)
+      ) {
+        return null;
+      }
+
+      const parts: Array<string> = token.split(".");
+
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      const payloadB64: string = parts[1] || "";
+      const suppliedBuffer: Buffer = Buffer.from(parts[2] || "", "utf8");
+      const expectedBuffer: Buffer = Buffer.from(
+        VerificationEmailResendToken.signSignUp(payloadB64),
+        "utf8",
+      );
+
+      if (
+        suppliedBuffer.length !== expectedBuffer.length ||
+        !crypto.timingSafeEqual(suppliedBuffer, expectedBuffer)
+      ) {
+        return null;
+      }
+
+      const claims: unknown = JSON.parse(
+        Buffer.from(payloadB64, "base64url").toString("utf8"),
+      );
+
+      if (!claims || typeof claims !== "object" || Array.isArray(claims)) {
+        return null;
+      }
+
+      const record: Record<string, unknown> = claims as Record<string, unknown>;
+
+      if (record["v"] !== 2) {
+        return null;
+      }
+
+      const email: unknown = record["e"];
+      const attemptId: unknown = record["n"];
+      const issuedAtMs: unknown = record["i"];
+      const expiresAtMs: unknown = record["x"];
+
+      if (typeof email !== "string" || !Email.isValid(email)) {
+        return null;
+      }
+
+      if (
+        typeof attemptId !== "string" ||
+        !SIGN_UP_ATTEMPT_ID_PATTERN.test(attemptId)
+      ) {
+        return null;
+      }
+
+      if (
+        typeof issuedAtMs !== "number" ||
+        typeof expiresAtMs !== "number" ||
+        !Number.isSafeInteger(issuedAtMs) ||
+        !Number.isSafeInteger(expiresAtMs)
+      ) {
+        return null;
+      }
+
+      const nowMs: number = (now || new Date()).getTime();
+
+      if (!(issuedAtMs <= nowMs + MAX_ISSUED_AT_CLOCK_SKEW_IN_MS)) {
+        return null;
+      }
+
+      if (!(nowMs < expiresAtMs)) {
+        return null;
+      }
+
+      return {
+        email: new Email(email),
+        issuedAt: new Date(issuedAtMs),
+        attemptId: attemptId,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /*
    * The signing key is derived per call rather than cached, so a process that
    * has its secret swapped under it (tests, above all) never signs with a
    * stale one. It is one extra HMAC over a short string.
@@ -254,6 +418,16 @@ export default class VerificationEmailResendToken {
     return crypto
       .createHmac("sha256", key)
       .update(`${TOKEN_VERSION_PREFIX}.${payloadB64}`)
+      .digest("base64url");
+  }
+
+  // The same, for a sign-up's credential, under a key of its own.
+  private static signSignUp(payloadB64: string): string {
+    const key: Buffer = TokenSigningKey.deriveKey(SIGN_UP_KEY_DERIVATION_LABEL);
+
+    return crypto
+      .createHmac("sha256", key)
+      .update(`${SIGN_UP_TOKEN_VERSION_PREFIX}.${payloadB64}`)
       .digest("base64url");
   }
 }

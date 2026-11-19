@@ -30,6 +30,7 @@ import {
   hostCollectorHostFeaturesToText,
 } from "../../../Utils/HostCollector/HostCollectorDefaultConfig";
 import { canonicalizeEntityValue } from "../../../Utils/Telemetry/EntityKey";
+import { toListOrderNumber } from "../../../Utils/ListOrder";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import HostCollectorAgentCache from "./HostCollectorAgentCache";
@@ -746,7 +747,8 @@ export default class HostCollectorAgent {
           configHash: true,
           labels: { _id: true },
         },
-        sort: { order: SortOrder.Ascending },
+        // The list's order: two configs at one place the older first.
+        sort: { order: SortOrder.Ascending, createdAt: SortOrder.Ascending },
         limit: MAX_CONFIGS_PER_PROJECT,
         skip: 0,
         props: { isRoot: true },
@@ -754,7 +756,7 @@ export default class HostCollectorAgent {
 
     const configs: Array<ProjectConfig> = [];
 
-    rows.forEach((row: HostCollectorConfig, index: number): void => {
+    rows.forEach((row: HostCollectorConfig): void => {
       const id: string | undefined = row._id?.toString();
       if (!id || !row.configYaml) {
         return;
@@ -772,7 +774,14 @@ export default class HostCollectorAgent {
           .filter((labelId: string): boolean => {
             return Boolean(labelId);
           }),
-        order: typeof row.order === "number" ? row.order : index,
+        /*
+         * A config without a place comes after every config that has one
+         * (Utils/ListOrder), never at its place in this read: beside configs
+         * numbered 10, 20 and 30, as Terraform may leave them, it is read
+         * fourth, and was put at 3 - above them all, for every host it
+         * applies to.
+         */
+        order: toListOrderNumber(row.order),
         configYaml: row.configYaml,
         configHash:
           row.configHash || getHostCollectorConfigHash(row.configYaml),

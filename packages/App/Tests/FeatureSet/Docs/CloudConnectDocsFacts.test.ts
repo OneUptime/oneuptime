@@ -128,6 +128,10 @@ import {
   getAwsInventoryRowTypes,
   getAwsInventoryType,
 } from "Common/Server/Utils/CloudConnection/Aws/AwsInventoryCatalog";
+import {
+  GLOBAL_ACCELERATOR_REGION,
+  WAF_CLOUDFRONT_REGION,
+} from "Common/Server/Utils/CloudConnection/Aws/AwsServiceListings";
 import { AZURE_LISTED_ONLY_TYPES } from "Common/Server/Utils/CloudConnection/Azure/AzureInventory";
 import { isInventoryOnlyCloudResourceType } from "Common/Types/Cloud/CloudResourceCatalog";
 import { describe, expect, it } from "@jest/globals";
@@ -367,6 +371,32 @@ describe("Connect a Cloud Account", () => {
       "the subnet and VPC each resource runs in and the security groups that guard it, what each load balancer sends traffic to, and the network and node instances of each EKS cluster",
     );
     expect(aws).toContain("run the command again to list that type too");
+
+    /*
+     * #9692: the types each service lists itself (AwsServiceListings), on
+     * the account's page before they report a metric - each quiet when a
+     * role set up before is refused.
+     */
+    for (const [type, words] of [
+      ["AWS::WAFv2::WebACL", "WAF web ACLs"],
+      ["AWS::NetworkFirewall::Firewall", "Network Firewall firewalls"],
+      [
+        "AWS::GlobalAccelerator::Accelerator",
+        "Global Accelerator accelerators",
+      ],
+      ["AWS::Cognito::UserPool", "Cognito user pools"],
+      ["AWS::AppSync::GraphQLApi", "AppSync GraphQL APIs"],
+      ["AWS::SageMaker::Endpoint", "SageMaker endpoints"],
+    ] as Array<[string, string]>) {
+      expect(getAwsInventoryRowTypes()).toContain(type);
+      expect(getAwsInventoryType(type)?.quietWhenRefused).toBe(true);
+      expect(aws).toContain(words);
+    }
+
+    expect(aws).toContain(
+      `CloudFront distributions and their web ACLs once, in ${WAF_CLOUDFRONT_REGION}, and Global Accelerator accelerators once, in ${GLOBAL_ACCELERATOR_REGION}.`,
+    );
+    expect(aws).toContain("which are then listed before they report a metric");
   });
 
   it("says what an Azure connection lists in each subscription and how it connects them, with no role but Monitoring Reader", () => {

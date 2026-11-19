@@ -31,7 +31,12 @@ const port: string = process.env["MAINTENANCE_CALENDAR_FIXTURE_PORT"] || "4341";
 
 export default defineConfig({
   testDir: "./MaintenanceCalendar",
-  testMatch: ["MaintenanceCalendar.spec.ts", "StatusPageCalendar.spec.ts"],
+  testMatch: [
+    "MaintenanceCalendar.spec.ts",
+    "StatusPageCalendar.spec.ts",
+    // A busy day's +N more list is never cut off by the month view (#9865).
+    "BusyDayListWhole.spec.ts",
+  ],
   timeout: 90000,
   expect: { timeout: 15000 },
   workers: 1,

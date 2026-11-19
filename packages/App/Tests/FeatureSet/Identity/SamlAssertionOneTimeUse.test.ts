@@ -65,6 +65,13 @@ function assertion(
     objectId: null,
     assertionId: "_assertion_1",
     acceptableUntil: new Date(NOW.getTime() + 7 * 60 * 1000),
+    nameId: {
+      value: "walter.skinner@example.com",
+      format: null,
+      nameQualifier: null,
+      spNameQualifier: null,
+    },
+    sessionIndex: null,
     ...overrides,
   };
 }

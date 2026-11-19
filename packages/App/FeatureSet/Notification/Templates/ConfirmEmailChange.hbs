@@ -1,0 +1,43 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Confirm Your New Email Address" }}
+
+{{!--
+  Sent to the new address when someone asks to make it their account's
+  (#9821, Common's EmailChangeConfirmation). The account keeps its old
+  address until this link is opened, so the address is proven before it
+  can be used to sign in or to reset the password. The reader may not be
+  the person who asked - someone may have typed this address by mistake -
+  so it says what happens if they ignore it.
+--}}
+
+{{> InfoBlock info=(concat "Someone asked to make this the email address of their " (brandNameHtml) " account. If that was you, confirm it with the button below.")}}
+
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Confirm Email Address"}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel="Or copy and paste this link into your browser:"}}
+
+{{> VerticalSpace this}}
+
+{{#if requestedAt}}
+{{> InfoBlock info="Details of the request:"}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Requested at:" plainText=requestedAt }}
+{{> RequestOriginFields this }}
+{{> DetailBoxEnd this }}
+{{/if}}
+
+{{> InfoBlock info=(concat "<strong>Note:</strong> This link works for " expiresInHours " hours, and only once.")}}
+
+{{> InfoBlock info="<strong>Didn't ask for this?</strong> You can safely ignore this email. Nothing changes unless the link above is opened."}}
+
+{{> SupportBlock this }}
+
+{{> Footer this}}
+
+{{> End this}}

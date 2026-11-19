@@ -43,11 +43,13 @@ import {
  *   - the reads (AwsCloudConnector, CloudStreamedMetrics) leave to the
  *     stream every key metric its stack carries, of a namespace it
  *     delivered lately (CLOUD_STREAM_ACTIVE_WINDOW_MS): they do not write
- *     it, and they read it from CloudWatch only where a resource's health
- *     or headline is judged from it - so an account that streams stops
- *     paying CloudWatch to read what its stream sends, and nothing is
- *     written twice. A metric a stack does not carry is read and written
- *     as if the account did not stream, so nothing goes missing.
+ *     it, and do not read it from CloudWatch - one a resource's health or
+ *     headline is judged from neither, while the stream's readings of its
+ *     account and Region are fresh (CloudStreamReadings) - so an account
+ *     that streams stops paying CloudWatch to read what its stream sends,
+ *     and nothing is written twice. A metric a stack does not carry is read
+ *     and written as if the account did not stream, so nothing goes
+ *     missing.
  *
  * React-free and Node-free: the server, the ingest and the dashboard read
  * it alike.

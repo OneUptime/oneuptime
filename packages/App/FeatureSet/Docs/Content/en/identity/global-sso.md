@@ -93,9 +93,16 @@ With **Every project**, signing in with the provider meets SSO enforcement in ev
 
 ## Signing out of the identity provider too
 
-Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer the next person who signs in with that provider gets in as the one who left. On an OpenID Connect provider, click **Edit Configuration** and turn on **Sign Out of the Identity Provider Too** under **More fields**: signing out of OneUptime then ends the provider's session too, and the provider sends the browser back to the OneUptime sign-in page. It is off by default, since on a personal laptop it would also sign the person out of every other app that uses the provider.
+Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer the next person who signs in with that provider gets in as the one who left. Click **Edit Configuration** on a SAML or an OpenID Connect provider and turn on **Sign Out of the Identity Provider Too** under **More fields**: signing out of OneUptime then ends the provider's session too, and the provider sends the browser back to OneUptime. It is off by default, since on a personal laptop it would also sign the person out of every other app that uses the provider.
 
+:::tabs
+@tab SAML
+Enter your identity provider's sign-out URL as the **Sign Out URL**, under **More fields**: the switch cannot be turned on without it. Then give your identity provider the **Single Logout URL** that the **Identity Provider URLs** card shows, and the certificate OneUptime signs its sign-out requests with, from **Download Signing Certificate** on the same card. When the person signs out at the identity provider, or of another app that uses it, an identity provider that sends sign-out requests to its apps signs them out of OneUptime too.
+@tab OpenID Connect
 Register the sign-out redirect URI that the **Identity Provider URL** card shows with your provider, as an allowed post-logout redirect URI. A provider whose discovery document names no `end_session_endpoint`, such as Google, cannot turn it on.
+:::
+
+Where Okta, Microsoft Entra ID, Auth0 and Keycloak keep these settings is on the [SSO](/docs/identity/sso) page.
 
 ## Enforcing SSO
 

@@ -634,15 +634,39 @@ describe("CidrMatchUtil.pickRule", () => {
     expect(winner?.name).toBe("first");
   });
 
-  it("missing priority is treated as 0", () => {
+  /*
+   * The one rule of a drag-ordered list for a row without a number
+   * (Utils/ListOrder, issue #9655): after every rule that has one. It was
+   * read as 0, so it tied with a rule at 0 and went before a rule below.
+   */
+  it("a rule without a priority comes after every rule that has one", () => {
+    for (const priority of [1, 0, -5]) {
+      for (const order of ["unplaced first", "unplaced last"]) {
+        const rules: Array<TestRule> = [
+          { name: "no-priority", subnetCidr: "10.0.0.0/8" },
+          { name: "placed", subnetCidr: "10.0.0.0/8", priority: priority },
+        ];
+
+        if (order === "unplaced last") {
+          rules.reverse();
+        }
+
+        expect(CidrMatchUtil.pickRule<TestRule>(rules, target)?.name).toBe(
+          "placed",
+        );
+      }
+    }
+  });
+
+  it("a rule without a priority still wins where no other rule matches", () => {
     const winner: TestRule | null = CidrMatchUtil.pickRule<TestRule>(
       [
-        { name: "no-priority", subnetCidr: "10.0.0.0/8" },
-        { name: "priority-1", subnetCidr: "10.0.0.0/8", priority: 1 },
+        { name: "elsewhere", subnetCidr: "192.168.0.0/16", priority: 9 },
+        { name: "no-priority", subnetCidr: "10.0.0.0/8", priority: null },
       ],
       target,
     );
-    expect(winner?.name).toBe("priority-1");
+    expect(winner?.name).toBe("no-priority");
   });
 
   it("mixes cidr and hostname rules", () => {

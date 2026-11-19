@@ -114,7 +114,7 @@ Klicka på **Ställ in e-post**. Den öppnar **Inställningar > Aviseringar > E-
 
 ### Välj vem som kan registrera sig
 
-Alla som kan öppna din adress kan registrera sig. När ditt team har sina konton stänger du av **Tillåt registrering** under **Inställningar > Autentisering**: de du bjuder in till ett projekt kan ändå gå med. För att låta registreringen vara öppen klickar du på **Låt registreringen vara öppen**.
+Alla som kan öppna din adress kan registrera sig. När din server kan skicka e-post öppnar ett nytt konto länken som OneUptime mejlar det innan det kan logga in, och en adress som redan har ett konto får veta det i ett mejl. När ditt team har sina konton stänger du av **Tillåt registrering** under **Inställningar > Autentisering**: de du bjuder in till ett projekt kan ändå gå med. För att låta registreringen vara öppen klickar du på **Låt registreringen vara öppen**.
 
 **Det fungerade när** checklistan markerar Registrering som klar.
 

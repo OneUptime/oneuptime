@@ -15,8 +15,10 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import React from "react";
+import React, { ReactElement } from "react";
 import CopyAttributesAsJSONButton from "../../../../UI/Components/AttributesJSON/CopyAttributesAsJSONButton";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../../UI/Components/Tooltip/LayeredPopover";
+import useComponentOutsideClick from "../../../../UI/Types/UseComponentOutsideClick";
 import {
   ATTRIBUTES_JSON_FORMAT_PREFERENCE,
   resetPreferencesForTesting,
@@ -29,6 +31,10 @@ import Clipboard from "../../../../UI/Utils/Clipboard";
  * remembering the choice). Values keep their types, the button only says
  * "Copied" when the clipboard took the text, and the keys that detail
  * panels bind on the document (Escape, Enter) stay inside the control.
+ *
+ * The picker is drawn on the page's body (LayeredPopover), never inside the
+ * box the button is in: an expanded log row in a list that scrolls sideways
+ * and a span panel's scrolling body cut its foot off (#9861).
  */
 
 type CopyMock = ReturnType<typeof jest.fn<(text: string) => Promise<boolean>>>;
@@ -81,6 +87,25 @@ async function click(element: HTMLElement): Promise<void> {
 async function openMenu(): Promise<HTMLElement> {
   await click(caretButton());
   return screen.getByRole("menu");
+}
+
+// The layer's element the menu is drawn in: Tippy's root.
+function layerOf(menu: HTMLElement): HTMLElement {
+  const layer: HTMLElement | null = menu.closest<HTMLElement>(
+    `.${LAYERED_POPOVER_CLASS_NAME}`,
+  );
+
+  expect(layer).not.toBeNull();
+
+  return layer as HTMLElement;
+}
+
+// Lets Popper place it: its first placement waits a promise.
+async function placed(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 }
 
 beforeEach(() => {
@@ -275,7 +300,12 @@ describe("CopyAttributesAsJSONButton", () => {
     await click(
       within(first).getByRole("button", { name: "Choose JSON format" }),
     );
-    await click(within(first).getByRole("menuitemradio", { name: /Nested/ }));
+    // The first button's menu, the one open, drawn over the page.
+    await click(
+      within(screen.getByRole("menu")).getByRole("menuitemradio", {
+        name: /Nested/,
+      }),
+    );
 
     expect(
       within(second).getByRole("button", { name: /Copy JSON/ }),
@@ -405,17 +435,40 @@ describe("CopyAttributesAsJSONButton", () => {
     }
   });
 
-  test("Tab closes the menu", async () => {
+  test("Tab closes the menu, and goes on from the caret", async () => {
     render(<CopyAttributesAsJSONButton attributes={ATTRIBUTES} />);
     const menu: HTMLElement = await openMenu();
 
-    await act(async () => {
-      fireEvent.keyDown(within(menu).getAllByRole("menuitemradio")[0]!, {
+    const tab: boolean = await act(async (): Promise<boolean> => {
+      return fireEvent.keyDown(within(menu).getAllByRole("menuitemradio")[0]!, {
         key: "Tab",
       });
     });
 
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    /*
+     * The menu is drawn at the end of the page: the focus is handed back to
+     * the caret first, and the browser's own Tab (not prevented) moves on
+     * from there - not from the end of the page.
+     */
+    expect(caretButton()).toHaveFocus();
+    expect(tab).toBe(true);
+  });
+
+  test("Shift+Tab from a shape goes back to the caret", async () => {
+    render(<CopyAttributesAsJSONButton attributes={ATTRIBUTES} />);
+    const menu: HTMLElement = await openMenu();
+
+    const shiftTab: boolean = await act(async (): Promise<boolean> => {
+      return fireEvent.keyDown(within(menu).getAllByRole("menuitemradio")[0]!, {
+        key: "Tab",
+        shiftKey: true,
+      });
+    });
+
+    expect(caretButton()).toHaveFocus();
+    // Landed on the caret itself: the browser's own move is prevented.
+    expect(shiftTab).toBe(false);
   });
 
   test("a click outside closes the menu without copying", async () => {
@@ -549,8 +602,13 @@ describe("CopyAttributesAsJSONButton", () => {
 
     expect(screen.getByTestId("copy-json")).toContainElement(mainButton());
 
+    // Its end on the caret's end, by default.
     let menu: HTMLElement = await openMenu();
-    expect(menu.className).toContain("right-0");
+    await placed();
+    expect(layerOf(menu)).toHaveAttribute(
+      "data-popper-placement",
+      "bottom-end",
+    );
 
     await click(caretButton());
     rerender(
@@ -561,6 +619,219 @@ describe("CopyAttributesAsJSONButton", () => {
       />,
     );
     menu = await openMenu();
-    expect(menu.className).toContain("left-0");
+    await placed();
+    expect(layerOf(menu)).toHaveAttribute(
+      "data-popper-placement",
+      "bottom-start",
+    );
+  });
+
+  test("on a page read right to left the menu's edges follow the line", async () => {
+    document.documentElement.setAttribute("dir", "rtl");
+
+    try {
+      render(<CopyAttributesAsJSONButton attributes={ATTRIBUTES} />);
+
+      const menu: HTMLElement = await openMenu();
+      await placed();
+
+      // Its end on the caret's end: the left, on a line read from the right.
+      expect(layerOf(menu)).toHaveAttribute(
+        "data-popper-placement",
+        "bottom-start",
+      );
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+});
+
+describe("CopyAttributesAsJSONButton - its menu is never cut off by what holds it (#9861)", () => {
+  /*
+   * Where the Dashboard draws the button: an expanded log row, in a list
+   * that scrolls sideways (which clips up and down too) inside the list's
+   * card; a span's attributes, in a panel's scrolling body.
+   */
+  const HOLDERS: Array<[string, React.CSSProperties]> = [
+    [
+      "an expanded log row of a list that scrolls sideways",
+      { overflowX: "auto" },
+    ],
+    ["the list's card, which hides what runs past it", { overflow: "hidden" }],
+    ["a span panel's scrolling body", { overflowY: "auto" }],
+  ];
+
+  test.each(HOLDERS)(
+    "in %s, the menu is drawn on the page's body, outside it",
+    async (_name: string, style: React.CSSProperties) => {
+      render(
+        <div data-testid="holder" style={style}>
+          <table>
+            <tbody>
+              <tr>
+                <td colSpan={4}>
+                  <CopyAttributesAsJSONButton attributes={ATTRIBUTES} />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>,
+      );
+
+      const menu: HTMLElement = await openMenu();
+      const layer: HTMLElement = layerOf(menu);
+
+      expect(screen.getByTestId("holder")).not.toContainElement(menu);
+      expect(layer.parentElement).toBe(document.body);
+      // Still the caret's menu: placed against it, named by it.
+      expect(
+        (layer as HTMLElement & { _tippy?: { reference: Element } })._tippy
+          ?.reference,
+      ).toBe(caretButton());
+      expect(caretButton()).toHaveAttribute("aria-controls", menu.id);
+    },
+  );
+
+  test("a press in the menu is not a press outside a component around the button", async () => {
+    // A detail panel that closes on a press outside itself.
+    const Panel: () => ReactElement = (): ReactElement => {
+      const { ref, isComponentVisible } = useComponentOutsideClick(true);
+
+      return (
+        <div ref={ref} data-testid="panel">
+          {isComponentVisible ? (
+            <CopyAttributesAsJSONButton attributes={ATTRIBUTES} />
+          ) : (
+            <p>Closed</p>
+          )}
+        </div>
+      );
+    };
+
+    render(<Panel />);
+
+    const menu: HTMLElement = await openMenu();
+    const shape: HTMLElement = within(menu).getAllByRole("menuitemradio")[1]!;
+
+    await act(async () => {
+      fireEvent.mouseDown(shape);
+    });
+    await click(shape);
+
+    // The shape was chosen, and the panel around the button stayed open.
+    expect(copyMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Closed")).not.toBeInTheDocument();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  describe("placed against the window", () => {
+    const WINDOW_WIDTH: number = 1280;
+    const WINDOW_HEIGHT: number = 640;
+    const MENU_WIDTH: number = 288;
+    const MENU_HEIGHT: number = 223;
+
+    let restore: Array<() => void> = [];
+
+    const defineGetter: (
+      target: HTMLElement,
+      property: string,
+      getter: (this: HTMLElement) => number,
+    ) => void = (
+      target: HTMLElement,
+      property: string,
+      getter: (this: HTMLElement) => number,
+    ): void => {
+      const original: PropertyDescriptor | undefined =
+        Object.getOwnPropertyDescriptor(target, property);
+
+      Object.defineProperty(target, property, {
+        configurable: true,
+        get: getter,
+      });
+
+      restore.push(() => {
+        if (original) {
+          Object.defineProperty(target, property, original);
+        } else {
+          Reflect.deleteProperty(target, property);
+        }
+      });
+    };
+
+    const isMenu: (element: HTMLElement) => boolean = (
+      element: HTMLElement,
+    ): boolean => {
+      return (
+        element.classList.contains(LAYERED_POPOVER_CLASS_NAME) ||
+        element.getAttribute("role") === "menu"
+      );
+    };
+
+    beforeEach(() => {
+      restore = [];
+      defineGetter(document.documentElement, "clientWidth", () => {
+        return WINDOW_WIDTH;
+      });
+      defineGetter(document.documentElement, "clientHeight", () => {
+        return WINDOW_HEIGHT;
+      });
+      // What Popper and the layer measure of the menu.
+      for (const property of ["offsetHeight", "scrollHeight", "clientHeight"]) {
+        defineGetter(HTMLElement.prototype, property, function () {
+          return isMenu(this) ? MENU_HEIGHT : 0;
+        });
+      }
+      defineGetter(HTMLElement.prototype, "offsetWidth", function () {
+        return isMenu(this) ? MENU_WIDTH : 0;
+      });
+    });
+
+    afterEach(() => {
+      for (const undo of restore.reverse()) {
+        undo();
+      }
+    });
+
+    function placeCaretAt(top: number): void {
+      caretButton().getBoundingClientRect = (): DOMRect => {
+        return {
+          x: 1150,
+          y: top,
+          left: 1150,
+          top: top,
+          right: 1170,
+          bottom: top + 24,
+          width: 20,
+          height: 24,
+          toJSON: (): string => {
+            return "";
+          },
+        } as DOMRect;
+      };
+    }
+
+    test("near the window's foot, where it has no room under the caret, it opens above it", async () => {
+      render(<CopyAttributesAsJSONButton attributes={ATTRIBUTES} />);
+      // A span panel's last event, 90px from the window's foot.
+      placeCaretAt(WINDOW_HEIGHT - 90);
+
+      const menu: HTMLElement = await openMenu();
+      await placed();
+
+      expect(layerOf(menu)).toHaveAttribute("data-popper-placement", "top-end");
+    });
+
+    test("with room under the caret, it opens under it, as it always did", async () => {
+      render(<CopyAttributesAsJSONButton attributes={ATTRIBUTES} />);
+      placeCaretAt(120);
+
+      const menu: HTMLElement = await openMenu();
+      await placed();
+
+      expect(layerOf(menu)).toHaveAttribute(
+        "data-popper-placement",
+        "bottom-end",
+      );
+    });
   });
 });

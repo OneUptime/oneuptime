@@ -12,6 +12,7 @@ import {
   unreachedError,
 } from "../DataSource/HttpFailure";
 import DataSourceHttpRetry, {
+  busyOfExchange,
   HttpRetryExchange,
   HttpRetryReason,
   HttpRetryVerdict,
@@ -424,14 +425,15 @@ export default class ClickHouseHttpApi {
       }
 
       const exception: ClickHouseException = readClickHouseException(response);
+      const errorCode: string | null = readErrorCode(
+        exception.name ||
+          (exception.code !== null ? String(exception.code) : ""),
+      );
 
       throw failedAnswerError({
         provider: "ClickHouse",
         statusCode: response.statusCode,
-        errorCode: readErrorCode(
-          exception.name ||
-            (exception.code !== null ? String(exception.code) : ""),
-        ),
+        errorCode,
         operation,
         message: exception.message,
         attempts: exchange.attempts,
@@ -441,6 +443,14 @@ export default class ClickHouseHttpApi {
         requestIdLabel: "Query ID",
         refused: { who: "the login" },
         secrets: this.secrets(),
+        /*
+         * The HTTP interface fails a query in the answer to it, so the
+         * statement's own failure for a moment - too many queries at once,
+         * a task it could not schedule, a socket that timed out - is the
+         * answer the shared retry asked again; once its tries ran out, it
+         * may still pass (#9679).
+         */
+        busy: busyOfExchange(exchange, { code: errorCode, nowMs: Date.now() }),
       });
     }
 

@@ -135,6 +135,35 @@ export function getFailingRowsToWrite(data: {
     : {};
 }
 
+/*
+ * What a check's run says beside its status: why it could not run; that it
+ * ran at its second try, the warehouse having failed its first for a moment
+ * (#9679); that it read no value. Null when it ran with nothing to say.
+ */
+export function getLastRunMessage(result: DataCheckRunResult): string | null {
+  if (result.error) {
+    return result.error.slice(0, MAX_CHECK_ERROR_LENGTH);
+  }
+
+  const notes: Array<string> = [];
+
+  if (result.restartedAfter) {
+    notes.push(
+      `Ran at its second try, started again after its first failed for a moment: ${result.restartedAfter}`,
+    );
+  }
+
+  if (result.values.length === 0) {
+    notes.push(
+      "The check read no value: the table, or the rows it reads, are empty.",
+    );
+  }
+
+  return notes.length > 0
+    ? notes.join(" ").slice(0, MAX_CHECK_ERROR_LENGTH)
+    : null;
+}
+
 export default class DataCheckIngest {
   public static async recordResults(data: {
     store: IngestStore;
@@ -244,11 +273,7 @@ export default class DataCheckIngest {
             lastRunStatus: result.error
               ? DataCheckRunStatus.Failed
               : DataCheckRunStatus.Ran,
-            lastRunMessage: result.error
-              ? result.error.slice(0, MAX_CHECK_ERROR_LENGTH)
-              : result.values.length === 0
-                ? "The check read no value: the table, or the rows it reads, are empty."
-                : null,
+            lastRunMessage: getLastRunMessage(result),
             lastValue: result.values[0]?.value ?? null,
             lastSegmentCount: result.values.length,
             ...getFailingRowsToWrite({

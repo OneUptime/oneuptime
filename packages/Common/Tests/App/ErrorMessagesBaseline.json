@@ -242,7 +242,6 @@
   "packages/Common/Server/API/UserSlackAPI.ts": 3,
   "packages/Common/Server/API/UserTelegramAPI.ts": 10,
   "packages/Common/Server/API/UserTotpAuthAPI.ts": 6,
-  "packages/Common/Server/API/UserWebAuthnAPI.ts": 2,
   "packages/Common/Server/API/UserWebhookAPI.ts": 3,
   "packages/Common/Server/API/VMwareResourceAPI.ts": 3,
   "packages/Common/Server/API/WelcomeChecklistAPI.ts": 1,

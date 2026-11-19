@@ -2,8 +2,8 @@ import { CODE_AGENT_COMMAND_TOOL_NAME } from "Common/Types/Runner/GlobalRunnerWo
 import { LLMToolDefinition } from "Common/Server/Utils/LLM/LLMService";
 import {
   AGENT_COMMAND_TIMEOUT_ARGUMENT,
-  DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS,
   MAX_AGENT_COMMAND_TIMEOUT_SECONDS,
+  getDefaultAgentCommandTimeoutSeconds,
 } from "../../Utils/AgentCommandLimits";
 import { UPDATE_PLAN_TOOL_NAME } from "./AgentPlan";
 import {
@@ -345,11 +345,24 @@ export function buildWorkspaceToolDefinitions(): Array<LLMToolDefinition> {
  * run_command: offered only on a Runner that runs project-authored commands
  * (a project's own Runner). A global Runner never offers it, and refuses it
  * when a model sends it anyway (InHouseCodeAgent.toolRunCommand).
+ *
+ * It says the most a command may be given here (`maxSeconds`,
+ * getAgentCommandMaxSeconds): ten minutes, or the project's own Time Limit
+ * per Command (issue #6532), never past the run's time limit - the cap the
+ * agent holds each command to.
  */
-export function buildRunCommandToolDefinition(): LLMToolDefinition {
+export function buildRunCommandToolDefinition(
+  maxSeconds: number = MAX_AGENT_COMMAND_TIMEOUT_SECONDS,
+): LLMToolDefinition {
+  const defaultSeconds: number =
+    getDefaultAgentCommandTimeoutSeconds(maxSeconds);
+  const mayHaveLonger: boolean = maxSeconds > defaultSeconds;
+
   return {
     name: CODE_AGENT_COMMAND_TOOL_NAME,
-    description: `Run a shell command in the repository root. It stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds unless ${AGENT_COMMAND_TIMEOUT_ARGUMENT} gives it longer. Returns the exit code and the combined output; a long output shows its start and its end, and read_tool_output reads the rest.`,
+    description: mayHaveLonger
+      ? `Run a shell command in the repository root. It stops after ${defaultSeconds} seconds unless ${AGENT_COMMAND_TIMEOUT_ARGUMENT} gives it longer, up to ${maxSeconds}. Returns the exit code and the combined output; a long output shows its start and its end, and read_tool_output reads the rest.`
+      : `Run a shell command in the repository root. It stops after ${defaultSeconds} seconds, the longest a command may run here. Returns the exit code and the combined output; a long output shows its start and its end, and read_tool_output reads the rest.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -359,7 +372,9 @@ export function buildRunCommandToolDefinition(): LLMToolDefinition {
         },
         [AGENT_COMMAND_TIMEOUT_ARGUMENT]: {
           type: "integer",
-          description: `How long the command may run, in seconds: ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} when left out, at most ${MAX_AGENT_COMMAND_TIMEOUT_SECONDS}. Give more only to a slow install, build or test suite.`,
+          description: mayHaveLonger
+            ? `How long the command may run, in seconds: ${defaultSeconds} when left out, at most ${maxSeconds}. Give more only to a slow install, build or test suite.`
+            : `How long the command may run, in seconds: at most ${maxSeconds}, which it gets when left out.`,
         },
       },
       required: ["command"],

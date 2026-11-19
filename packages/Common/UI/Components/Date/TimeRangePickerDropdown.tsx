@@ -2,7 +2,6 @@ import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -15,13 +14,13 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "../../../Types/Time/TimeRange";
 import {
   DropdownHorizontalAlignment,
-  getDropdownAlignmentClassName,
   useDropdownHorizontalAlignment,
 } from "../../Utils/DropdownAlignment";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
 import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../Table/TableHeaderControls";
+import LayeredPopover from "../Tooltip/LayeredPopover";
 import CustomTimeRangeModal from "./CustomTimeRangeModal";
 
 export interface TimeRangePickerPresetOption {
@@ -254,6 +253,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
    */
   const [customSeedValue, setCustomSeedValue] =
     useState<InBetween<Date> | null>(null);
+  // The button and what it opens: a press anywhere in it is not outside.
   const containerRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
     null!,
   );
@@ -263,6 +263,11 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
     null!,
   );
 
+  /*
+   * The edge of the button the dropdown hangs from: its start, unless that
+   * leaves it no room to the line's end (a picker at the right of a table's
+   * header), then its end.
+   */
   const alignment: DropdownHorizontalAlignment = useDropdownHorizontalAlignment(
     {
       isOpen: isOpen,
@@ -271,25 +276,6 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
       dropdownWidthInPx: props.dropdownWidthInPx,
     },
   );
-
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside: (e: MouseEvent) => void = (
-      e: MouseEvent,
-    ): void => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   const handlePresetSelect: (range: TimeRange) => void = useCallback(
     (range: TimeRange): void => {
@@ -347,9 +333,16 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
    * In a row too narrow for a custom range's two dates (a phone), the
    * label is cut short rather than the row running off the screen; the
    * whole custom range is the button's tooltip.
+   *
+   * The dropdown is drawn over the page from the button (LayeredPopover):
+   * inside a list's card - a logs viewer with no filter bar - or a side
+   * panel's scrolling body, the box around the button cut off its foot
+   * (#9859). It opens above the button where the window has no room under
+   * it, follows the button as the page scrolls, and closes on Escape or a
+   * press outside it.
    */
   return (
-    <div ref={containerRef} className="relative min-w-0 max-w-full">
+    <div ref={containerRef} className="min-w-0 max-w-full">
       <button
         ref={buttonRef}
         type="button"
@@ -385,98 +378,112 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
       </button>
 
       {isOpen && (
-        <div
-          ref={dropdownRef}
-          data-testid={`${props.dataTestIdPrefix}-dropdown`}
-          data-align={alignment}
-          className={`absolute ${getDropdownAlignmentClassName(
-            alignment,
-          )} top-full z-50 mt-1 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg`}
+        <LayeredPopover
+          anchorRef={buttonRef}
+          ownerRef={containerRef}
+          align={
+            alignment === DropdownHorizontalAlignment.Right ? "end" : "start"
+          }
+          onClose={() => {
+            setIsOpen(false);
+          }}
         >
-          {/* Preset options */}
           <div
-            className={`${moments ? "max-h-80" : "max-h-64"} overflow-y-auto py-1`}
+            ref={dropdownRef}
+            data-testid={`${props.dataTestIdPrefix}-dropdown`}
+            data-align={alignment}
+            className="w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg"
           >
-            {moments ? (
-              <>
-                {/*
-                 * The ranges anchored on the page first, each with the
-                 * window it covers, then the presets relative to now.
-                 */}
-                <p className={headingClassName}>
-                  {translator.translateText(moments.heading)}
-                </p>
-                {moments.options.map((option: TimeRangePickerMomentOption) => {
-                  const isActive: boolean = selectedMoment?.id === option.id;
-
-                  return (
-                    <button
-                      key={`moment-${option.id}`}
-                      type="button"
-                      data-testid={`${props.dataTestIdPrefix}-moment-${option.id}`}
-                      className={`flex w-full flex-col items-start px-3 py-1.5 text-left text-sm transition-colors ${
-                        isActive ? activeOptionClassName : idleOptionClassName
-                      }`}
-                      onClick={() => {
-                        moments.onSelect(option.id);
-                        setIsOpen(false);
-                      }}
-                    >
-                      <span>{translator.translateText(option.label)}</span>
-                      {option.detail ? (
-                        <span
-                          className={`text-xs font-normal ${
-                            isActive ? "text-indigo-600" : "text-gray-500"
-                          }`}
-                        >
-                          {renderTimeRangeDetail(option.detail)}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-                <p
-                  className={`${headingClassName} mt-1 border-t border-gray-100`}
-                >
-                  {translator.translateText(moments.presetsHeading)}
-                </p>
-              </>
-            ) : null}
-            {presetOptions.map((option: TimeRangePickerPresetOption) => {
-              const isActive: boolean =
-                !selectedMoment && props.value.range === option.range;
-
-              return (
-                <button
-                  key={option.range}
-                  type="button"
-                  className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
-                    isActive ? activeOptionClassName : idleOptionClassName
-                  }`}
-                  onClick={() => {
-                    handlePresetSelect(option.range);
-                  }}
-                >
-                  {translator.translateText(option.label)}
-                </button>
-              );
-            })}
-
-            {/* Custom option — opens the editor in a modal */}
-            <button
-              type="button"
-              data-testid={`${props.dataTestIdPrefix}-custom-option`}
-              className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
-                !selectedMoment && props.value.range === TimeRange.CUSTOM
-                  ? activeOptionClassName
-                  : idleOptionClassName
-              }`}
-              onClick={openCustomModal}
+            {/* Preset options */}
+            <div
+              className={`${moments ? "max-h-80" : "max-h-64"} overflow-y-auto py-1`}
             >
-              {translator.translateText(CUSTOM_RANGE_OPTION_LABEL)}
-            </button>
+              {moments ? (
+                <>
+                  {/*
+                   * The ranges anchored on the page first, each with the
+                   * window it covers, then the presets relative to now.
+                   */}
+                  <p className={headingClassName}>
+                    {translator.translateText(moments.heading)}
+                  </p>
+                  {moments.options.map(
+                    (option: TimeRangePickerMomentOption) => {
+                      const isActive: boolean =
+                        selectedMoment?.id === option.id;
+
+                      return (
+                        <button
+                          key={`moment-${option.id}`}
+                          type="button"
+                          data-testid={`${props.dataTestIdPrefix}-moment-${option.id}`}
+                          className={`flex w-full flex-col items-start px-3 py-1.5 text-left text-sm transition-colors ${
+                            isActive
+                              ? activeOptionClassName
+                              : idleOptionClassName
+                          }`}
+                          onClick={() => {
+                            moments.onSelect(option.id);
+                            setIsOpen(false);
+                          }}
+                        >
+                          <span>{translator.translateText(option.label)}</span>
+                          {option.detail ? (
+                            <span
+                              className={`text-xs font-normal ${
+                                isActive ? "text-indigo-600" : "text-gray-500"
+                              }`}
+                            >
+                              {renderTimeRangeDetail(option.detail)}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    },
+                  )}
+                  <p
+                    className={`${headingClassName} mt-1 border-t border-gray-100`}
+                  >
+                    {translator.translateText(moments.presetsHeading)}
+                  </p>
+                </>
+              ) : null}
+              {presetOptions.map((option: TimeRangePickerPresetOption) => {
+                const isActive: boolean =
+                  !selectedMoment && props.value.range === option.range;
+
+                return (
+                  <button
+                    key={option.range}
+                    type="button"
+                    className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
+                      isActive ? activeOptionClassName : idleOptionClassName
+                    }`}
+                    onClick={() => {
+                      handlePresetSelect(option.range);
+                    }}
+                  >
+                    {translator.translateText(option.label)}
+                  </button>
+                );
+              })}
+
+              {/* Custom option — opens the editor in a modal */}
+              <button
+                type="button"
+                data-testid={`${props.dataTestIdPrefix}-custom-option`}
+                className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
+                  !selectedMoment && props.value.range === TimeRange.CUSTOM
+                    ? activeOptionClassName
+                    : idleOptionClassName
+                }`}
+                onClick={openCustomModal}
+              >
+                {translator.translateText(CUSTOM_RANGE_OPTION_LABEL)}
+              </button>
+            </div>
           </div>
-        </div>
+        </LayeredPopover>
       )}
 
       {customSeedValue && (

@@ -1194,3 +1194,274 @@ describe("headlines off deprecated metrics", () => {
     expect(cpu.needs).toBeUndefined();
   });
 });
+
+/*
+ * #9692: the types read since #9567 lead their pages with numbers and are
+ * judged by what their key metrics say of them being well, so their status
+ * reads Healthy, Degraded or Unhealthy rather than Reporting.
+ */
+describe("the types read since #9567, judged", () => {
+  const at: Date = minutesAgo(5);
+
+  function judged(
+    type: string,
+    readings: CloudResourceReadings,
+  ): { severity: CloudHealthSeverity | null; reasons: Array<string> } {
+    const assessment: CloudHealthAssessment = assess({
+      provider: CloudProvider.AWS,
+      type,
+      readings,
+    });
+
+    return {
+      severity: assessment.severity,
+      reasons: assessment.reasons.map(english),
+    };
+  }
+
+  test("an App Runner service: the share of its requests answered 5xx", () => {
+    expect(
+      judged("AWS::AppRunner::Service", {
+        "aws/apprunner/requests": reading(1000, at),
+        "aws/apprunner/5xxstatusresponses": reading(60, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["6% of requests failed"],
+    });
+    expect(
+      judged("AWS::AppRunner::Service", {
+        "aws/apprunner/requests": reading(1000, at),
+        "aws/apprunner/5xxstatusresponses": reading(600, at),
+      }).severity,
+    ).toBe(CloudHealthSeverity.Critical);
+    // Too few requests to say: a quiet test service's two errors of three.
+    expect(
+      judged("AWS::AppRunner::Service", {
+        "aws/apprunner/requests": reading(3, at),
+        "aws/apprunner/5xxstatusresponses": reading(2, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a Global Accelerator: unavailable with no healthy endpoint, a warning with unhealthy ones", () => {
+    expect(
+      judged("AWS::GlobalAccelerator::Accelerator", {
+        "aws/globalaccelerator/healthyendpointcount": reading(0, at),
+        "aws/globalaccelerator/unhealthyendpointcount": reading(2, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Critical,
+      reasons: ["Not available", "2 unhealthy endpoints"],
+    });
+    expect(
+      judged("AWS::GlobalAccelerator::Accelerator", {
+        "aws/globalaccelerator/healthyendpointcount": reading(3, at),
+        "aws/globalaccelerator/unhealthyendpointcount": reading(1, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["1 unhealthy endpoint"],
+    });
+    expect(
+      judged("AWS::GlobalAccelerator::Accelerator", {
+        "aws/globalaccelerator/healthyendpointcount": reading(3, at),
+        "aws/globalaccelerator/unhealthyendpointcount": reading(0, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("an Elastic Beanstalk environment: Degraded a warning, Severe critical, Warning and below well", () => {
+    const health: (value: number) => {
+      severity: CloudHealthSeverity | null;
+      reasons: Array<string>;
+    } = (value: number) => {
+      return judged("AWS::ElasticBeanstalk::Environment", {
+        "aws/elasticbeanstalk/environmenthealth": reading(value, at),
+      });
+    };
+
+    expect(health(25)).toEqual({
+      severity: CloudHealthSeverity.Critical,
+      reasons: ["Environment health severe"],
+    });
+    expect(health(20)).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["Environment health degraded"],
+    });
+
+    for (const value of [0, 1, 5, 10, 15]) {
+      expect({ value, severity: health(value).severity }).toEqual({
+        value,
+        severity: null,
+      });
+    }
+  });
+
+  test("an Auto Scaling group: whole instances short of its desired capacity, in one period", () => {
+    const group: (
+      inService: number,
+      desired: number,
+    ) => {
+      severity: CloudHealthSeverity | null;
+      reasons: Array<string>;
+    } = (inService: number, desired: number) => {
+      return judged("AWS::AutoScaling::AutoScalingGroup", {
+        "aws/autoscaling/groupinserviceinstances": reading(inService, at),
+        "aws/autoscaling/groupdesiredcapacity": reading(desired, at),
+      });
+    };
+
+    expect(group(2, 4)).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["2 instances short of desired capacity"],
+    });
+    expect(group(0, 1).reasons).toEqual([
+      "1 instance short of desired capacity",
+    ]);
+    // A period half spent launching an instance is not one short.
+    expect(group(3.5, 4).severity).toBeNull();
+    expect(group(4, 4).severity).toBeNull();
+    // Two periods' readings say nothing of each other.
+    expect(
+      judged("AWS::AutoScaling::AutoScalingGroup", {
+        "aws/autoscaling/groupinserviceinstances": reading(2, minutesAgo(10)),
+        "aws/autoscaling/groupdesiredcapacity": reading(4, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a WAF web ACL: half its requests or more blocked, once 20 were", () => {
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/allowedrequests": reading(40, at),
+        "aws/wafv2/blockedrequests": reading(60, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["60% of requests blocked"],
+    });
+    // Allowed is published only when it is not zero: none means all blocked.
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/blockedrequests": reading(30, at),
+      }).reasons,
+    ).toEqual(["100% of requests blocked"]);
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/allowedrequests": reading(900, at),
+        "aws/wafv2/blockedrequests": reading(100, at),
+      }).severity,
+    ).toBeNull();
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/blockedrequests": reading(10, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a SageMaker endpoint: the share of its invocations that failed", () => {
+    expect(
+      judged("AWS::SageMaker::Endpoint", {
+        "aws/sagemaker/invocations": reading(400, at),
+        "aws/sagemaker/invocation5xxerrors": reading(50, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["13% of invocations failed"],
+    });
+  });
+
+  test("a Network Firewall dropping packets outside its rules", () => {
+    expect(
+      judged("AWS::NetworkFirewall::Firewall", {
+        "aws/networkfirewall/otherdroppedpackets": reading(12, at),
+        "aws/networkfirewall/droppedpackets": reading(500, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["12 packets dropped outside its rules"],
+    });
+    // Dropping what its rules say to is its work.
+    expect(
+      judged("AWS::NetworkFirewall::Firewall", {
+        "aws/networkfirewall/droppedpackets": reading(500, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a Cognito user pool throttled, and an AppSync API's server errors", () => {
+    expect(
+      judged("AWS::Cognito::UserPool", {
+        "aws/cognito/signinsuccesses": reading(900, at),
+        "aws/cognito/tokenrefreshthrottles": reading(3, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["Throttled"],
+    });
+    expect(
+      judged("AWS::AppSync::GraphQLApi", {
+        "aws/appsync/5xxerror": reading(4, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["4 server errors"],
+    });
+  });
+
+  test("each leads its page with numbers it reads, but an Elastic Beanstalk environment's health code", () => {
+    const leads: (type: string) => Array<string> = (type: string) => {
+      return getCloudHeadlineReadings("aws", type).map(
+        (headline: { key: string }) => {
+          return headline.key;
+        },
+      );
+    };
+
+    expect(leads("AWS::AppRunner::Service")).toEqual([
+      "aws/apprunner/requests",
+      "aws/apprunner/requestlatency",
+      "aws/apprunner/5xxstatusresponses",
+      "aws/apprunner/cpuutilization",
+      "aws/apprunner/memoryutilization",
+    ]);
+    expect(leads("AWS::GlobalAccelerator::Accelerator")[0]).toBe(
+      "aws/globalaccelerator/healthyendpointcount",
+    );
+    expect(leads("AWS::AutoScaling::AutoScalingGroup")).toEqual([
+      "aws/autoscaling/groupinserviceinstances",
+      "aws/autoscaling/groupdesiredcapacity",
+    ]);
+    expect(leads("AWS::WAFv2::WebACL")).toEqual([
+      "aws/wafv2/allowedrequests",
+      "aws/wafv2/blockedrequests",
+    ]);
+    expect(leads("AWS::SageMaker::Endpoint")).toEqual([
+      "aws/sagemaker/invocations",
+      "aws/sagemaker/invocation5xxerrors",
+    ]);
+    expect(leads("AWS::NetworkFirewall::Firewall")).toHaveLength(2);
+    expect(leads("AWS::Cognito::UserPool")).toHaveLength(2);
+    expect(leads("AWS::AppSync::GraphQLApi")).toHaveLength(2);
+    expect(leads("AWS::ElasticBeanstalk::Environment")).toEqual([]);
+
+    // Each is read as a reading of its type, so the read keeps it.
+    for (const type of [
+      "AWS::AppRunner::Service",
+      "AWS::GlobalAccelerator::Accelerator",
+      "AWS::ElasticBeanstalk::Environment",
+      "AWS::AutoScaling::AutoScalingGroup",
+      "AWS::WAFv2::WebACL",
+      "AWS::SageMaker::Endpoint",
+      "AWS::NetworkFirewall::Firewall",
+      "AWS::Cognito::UserPool",
+      "AWS::AppSync::GraphQLApi",
+    ]) {
+      expect({
+        type,
+        keys: getCloudReadingKeysForType("aws", type).size > 0,
+      }).toEqual({ type, keys: true });
+    }
+  });
+});

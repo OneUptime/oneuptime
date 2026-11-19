@@ -20,7 +20,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionCurrent,
   ResourceAttentionItem,
@@ -63,6 +63,17 @@ export interface ComponentProps {
   description?: string | undefined;
   // The parts, when the page holds them; else `load` reads them on open.
   items?: Array<ResourceAttentionItem> | undefined;
+  /*
+   * With `items`: more matched than the page holds, so the list says it
+   * shows the first of them (as a read that says so does).
+   */
+  isTruncated?: boolean | undefined;
+  /*
+   * What a list cut short says under it, in English, with the count shown:
+   * the first of them, the most urgent first, unless the list is in another
+   * order and says its own (the newest first).
+   */
+  truncatedMessage?: PluralTemplate | undefined;
   load?: (() => Promise<ResourceAttentionDialogRead>) | undefined;
   // What it says when nothing matches any more, in English.
   emptyMessage: string;
@@ -92,7 +103,7 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [read, setRead] = useState<ResourceAttentionDialogRead | null>(
-    props.items ? { items: props.items } : null,
+    props.items ? { items: props.items, isTruncated: props.isTruncated } : null,
   );
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(!props.items);
@@ -148,10 +159,10 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
   // What the page holds, kept current while the dialog is open.
   useEffect(() => {
     if (props.items) {
-      setRead({ items: props.items });
+      setRead({ items: props.items, isTruncated: props.isTruncated });
       setIsLoading(false);
     }
-  }, [props.items]);
+  }, [props.items, props.isTruncated]);
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !read) {
@@ -251,7 +262,7 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
             className="mt-4 text-xs text-gray-500"
           >
             {translator.translatePlural(
-              {
+              props.truncatedMessage || {
                 one: "Showing the first {{count}}, the most urgent first.",
                 other: "Showing the first {{count}}, the most urgent first.",
               },

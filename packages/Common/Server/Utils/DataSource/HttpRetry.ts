@@ -2,6 +2,7 @@ import RetryAfter from "../../../Utils/RetryAfter";
 import logger from "../Logger";
 import { DataSourceHttpRequest, DataSourceHttpResponse } from "./HttpFetch";
 import {
+  DataSourceBusy,
   DataSourceStatusException,
   DataSourceUnreachedError,
 } from "./HttpFailure";
@@ -136,6 +137,29 @@ export function readWaitInMs(value: unknown): number | undefined {
   const number: number = typeof value === "number" ? value : Number(value);
 
   return Number.isFinite(number) && number > 0 ? number : undefined;
+}
+
+/*
+ * Why a request whose tries ran out may still pass (#9679): its last answer
+ * was one the provider's docs call passing - a throttle, or a failure for
+ * now - with the provider's own code and the wait it asked for. Null for an
+ * answer to keep. A data check that met one is started again once
+ * (DataCheckRestart).
+ */
+export function busyOfExchange(
+  exchange: HttpRetryExchange,
+  data: { code: string | null; nowMs?: number | undefined },
+): DataSourceBusy | null {
+  if (!exchange.verdict) {
+    return null;
+  }
+
+  const waitInMs: number | undefined =
+    RetryAfter.msFromHeaders(exchange.response.headers, {
+      nowMs: data.nowMs ?? Date.now(),
+    }) ?? readWaitInMs(exchange.verdict.waitInMs);
+
+  return { code: data.code, ...(waitInMs ? { waitInMs } : {}) };
 }
 
 export default class DataSourceHttpRetry {

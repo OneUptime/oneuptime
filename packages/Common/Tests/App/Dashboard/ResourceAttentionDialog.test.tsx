@@ -426,6 +426,28 @@ describe("the dialog a count opens", () => {
       "Showing the first 2, the most urgent first.",
     );
   });
+
+  test("a list in another order says its own order when it lists only some (#9749)", () => {
+    render(
+      <ResourceAttentionDialog
+        testId="failed"
+        title="74 commands failed"
+        items={[crashLoopingPod(), pendingPod()]}
+        isTruncated={true}
+        truncatedMessage={{
+          one: "Showing the newest {{count}}.",
+          other: "Showing the newest {{count}}.",
+        }}
+        emptyMessage="None failed."
+        onClose={() => {}}
+      />,
+    );
+
+    const truncated: HTMLElement = screen.getByTestId("failed-truncated");
+
+    expect(truncated).toHaveTextContent("Showing the newest 2.");
+    expect(truncated).not.toHaveTextContent("most urgent");
+  });
 });
 
 describe("the dialog a part's own status opens", () => {

@@ -464,11 +464,18 @@ describe("install.sh", () => {
      */
     const upstream = path.join(scratch(), "upstream");
     fs.cpSync(AGENT_DIR, upstream, { recursive: true });
+    // The collector release the files pin now, as "0.165.", read from the
+    // compose file so this does not go stale at the next bump.
+    const pinned = `${
+      /opentelemetry-collector-contrib:(\d+\.\d+)\.\d+/.exec(
+        fs.readFileSync(path.join(AGENT_DIR, "docker-compose.yml"), "utf8"),
+      )[1]
+    }.`;
     const bump = (relative) => {
       const file = path.join(upstream, relative);
       fs.writeFileSync(
         file,
-        fs.readFileSync(file, "utf8").split("0.161.").join("0.999."),
+        fs.readFileSync(file, "utf8").split(pinned).join("0.999."),
       );
     };
     bump("docker-compose.yml");

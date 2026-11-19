@@ -93,9 +93,16 @@ flowchart TB
 
 ## 同時登出身分提供者
 
-登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，下一個用該提供者登入的人，會以離開的那個人的身分進入。對於 OpenID Connect 提供者，點擊 **編輯設定**，並在 **更多欄位** 下開啟 **同時登出身分提供者**：此後登出 OneUptime 也會結束提供者那裡的工作階段，提供者會將瀏覽器送回 OneUptime 登入頁面。此設定預設為關閉，因為在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。
+登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，下一個用該提供者登入的人，會以離開的那個人的身分進入。在 SAML 或 OpenID Connect 提供者上按一下 **編輯設定**，並在 **更多欄位** 下開啟 **同時登出身分提供者**：這樣登出 OneUptime 時也會結束提供者那裡的工作階段，提供者會將瀏覽器送回 OneUptime。此設定預設為關閉，因為在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。
 
-請將 **身分提供者 URL** 卡片顯示的登出後的重新導向 URI，作為允許的 post-logout redirect URI 註冊到提供者。像 Google 這樣探索文件中沒有 `end_session_endpoint` 的提供者無法開啟此設定。
+:::tabs
+@tab SAML
+在 **更多欄位** 下，將身分提供者的登出 URL 填為 **登出 URL**：沒有它就無法開啟此開關。接著將 **身分提供者 URL 清單** 卡片顯示的 **Single Logout URL**，以及 OneUptime 用來簽署其登出要求的憑證提供給身分提供者；憑證可在同一卡片的 **下載簽署憑證** 取得。當使用者在身分提供者那裡，或在使用它的其他應用程式中登出時，會向其應用程式傳送登出要求的身分提供者也會讓其登出 OneUptime。
+@tab OpenID Connect
+請在提供者那裡將 **身分提供者 URL** 卡片顯示的登出後重新導向 URI 註冊為允許的 post-logout redirect URI。像 Google 這樣探索文件中沒有 `end_session_endpoint` 的提供者無法開啟此設定。
+:::
+
+Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見 [SSO](/docs/identity/sso) 頁面。
 
 ## 強制使用 SSO
 

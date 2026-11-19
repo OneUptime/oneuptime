@@ -165,6 +165,18 @@ export interface FormFieldCollapsibleSection<TEntity> {
   getSummary?:
     | ((values: FormValues<TEntity>) => Array<string> | undefined)
     | undefined;
+  /*
+   * The line drawn in place of the summary sentences - on the folded header
+   * and on the review step - when what is true depends on more than the
+   * form's values: what the server says of the status pages picked, say,
+   * which a component asks for (Create Announcement's Schedule &
+   * Notifications, #9775). getSummary still decides whether the section has
+   * a line at all, and is what the element says until it knows better: the
+   * element is drawn only where those sentences would be.
+   */
+  getSummaryElement?:
+    | ((values: FormValues<TEntity>) => ReactElement | undefined)
+    | undefined;
 }
 
 export default interface Field<TEntity> {

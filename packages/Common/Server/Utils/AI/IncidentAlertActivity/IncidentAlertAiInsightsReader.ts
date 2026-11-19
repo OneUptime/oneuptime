@@ -6,9 +6,16 @@ import MonitorService from "../../../Services/MonitorService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import ServiceService from "../../../Services/ServiceService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
+import AiActivityFailedCommands, {
+  AiActivityFailedCommandsRead,
+} from "../ActivityInsights/AiActivityFailedCommands";
 import AiActivityInsightsBuilder, {
   AiActivityCommandStats,
 } from "../ActivityInsights/AiActivityInsightsBuilder";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../CodeTask/CodeTaskListRows";
 import InvestigationReportSummary, {
   InvestigationReportConclusion,
   InvestigationReportSummaryRun,
@@ -30,7 +37,10 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import Service from "../../../../Models/DatabaseModels/Service";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import { AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS } from "../../../../Types/AI/AiActivityInsights";
+import {
+  AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS,
+  AiActivitySubject,
+} from "../../../../Types/AI/AiActivityInsights";
 import {
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIXES,
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIX_TASKS,
@@ -77,7 +87,17 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  *   - why an incident was not investigated (its recorded decision) is read
  *     as root and counted only for incidents the caller may read; the
  *     incident's own AI panel shows the same reason to the same people;
- *   - command counts are read as root: only counts leave.
+ *   - command counts are read as root, and only counts leave - but the
+ *     failed ones, which are read again under the caller's props, as
+ *     Runner jobs (AiActivityFailedCommands): the failed count is how many
+ *     of them the caller may read, and the list it opens is theirs.
+ *
+ * A fix pull request is its Code task, counted once, by the first turn
+ * asked in the window, and stands as Code says it does: by its newest turn
+ * - a fix asked again from Code (Try again), which carries the same
+ * incident or alert, or a reply (#9812). A task a reply carried a private
+ * incident or alert into, which the caller does not see, counts for none
+ * of theirs, as in Code (AIRunOutputReadFilter, #9165).
  *
  * Bounded: the window's newest INCIDENT_ALERT_AI_INSIGHTS_MAX_* rows of each
  * kind, and its newest INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT
@@ -178,7 +198,12 @@ export default class IncidentAlertAiInsightsReader {
       createdAt: QueryHelper.greaterThanEqualTo(windowStart),
     };
 
-    // 1. The window's investigations and fix pull requests (root).
+    /*
+     * 1. The window's investigations and fix pull requests (root). A fix
+     * pull request is its Code task, counted once by its first turn: a fix
+     * asked again from Code (Try again) is a later turn of the same task,
+     * with the same record, and says how the task stands (step 5).
+     */
     const readRuns: (
       runType: AIRunType,
       limit: number,
@@ -186,12 +211,25 @@ export default class IncidentAlertAiInsightsReader {
       runType: AIRunType,
       limit: number,
     ): Promise<Array<AIRun>> => {
+      const query: Record<string, unknown> = {
+        ...IncidentAlertAiLogsReader.getRunSubjectQuery(subjectKind),
+        ...inWindow,
+        runType,
+      };
+
       return AIRunService.findBy({
-        query: {
-          ...IncidentAlertAiLogsReader.getRunSubjectQuery(subjectKind),
-          ...inWindow,
-          runType,
-        } as never,
+        /*
+         * A fix pull request stands as its task's newest turn, which may
+         * be a reply: read as Code's own lists read it for the caller -
+         * none a reply carried a private incident or alert into that they
+         * do not see counts for theirs (AIRunOutputReadFilter, #9165).
+         */
+        query: (runType === AIRunType.CodeFix
+          ? AIRunOutputReadFilter.applyToRunRow(
+              { ...query, codeTaskId: QueryHelper.isNull() },
+              options.props,
+            )
+          : query) as never,
         select: {
           _id: true,
           status: true,
@@ -330,9 +368,27 @@ export default class IncidentAlertAiInsightsReader {
           );
         })
       : null;
+    const readableTasks: Array<AIRun> = tasks.filter((task: AIRun): boolean => {
+      const subjectId: string | undefined = subjectIdOfRun(task);
+      return Boolean(
+        task.id && task.createdAt && subjectId && subjects.has(subjectId),
+      );
+    });
 
-    const commands: { stats: AiActivityCommandStats; isPartial: boolean } =
-      await this.countCommands({
+    /*
+     * With them, each fix pull request as it stands now: its task's newest
+     * turn - a fix asked again from Code, or a reply - read per task by
+     * Postgres (CodeTaskListRows), as Code's own lists read it.
+     */
+    const [commands, taskReplies]: [
+      {
+        stats: AiActivityCommandStats;
+        failedJobIds: Array<ObjectID>;
+        isPartial: boolean;
+      },
+      Map<string, CodeTaskRepliesRead>,
+    ] = await Promise.all([
+      this.countCommands({
         projectId,
         runIds: getUniqueIds(
           readableRuns.map((run: AIRun): ObjectID | null | undefined => {
@@ -348,16 +404,72 @@ export default class IncidentAlertAiInsightsReader {
             },
           ),
         ),
-      });
+      }),
+      CodeTaskListRows.readReplies({
+        projectId,
+        taskIds: readableTasks.map((task: AIRun): ObjectID => {
+          return task.id!;
+        }),
+      }),
+    ]);
 
-    // 6. How many of the window's incidents there are, and why some were skipped.
-    const [subjectsInWindow, notInvestigated]: [
+    /*
+     * 6. How many of the window's incidents there are, and why some were
+     * skipped - and the failed commands the caller may read (#9749): what
+     * "N failed" says, and opens, each with its incident or alert.
+     */
+    const subjectOfRun: Map<string, string> = new Map<string, string>();
+    const subjectOfFix: Map<string, string> = new Map<string, string>();
+
+    for (const run of readableRuns) {
+      subjectOfRun.set(run.id!.toString(), subjectIdOfRun(run)!);
+    }
+
+    for (const suggestion of readableFixes || []) {
+      subjectOfFix.set(suggestion.id!.toString(), subjectIdOfFix(suggestion)!);
+    }
+
+    const [subjectsInWindow, notInvestigated, failed]: [
       number,
       { reasons: Map<string, InvestigationNotStartedCode>; isPartial: boolean },
+      AiActivityFailedCommandsRead,
     ] = await Promise.all([
       this.countSubjectsInWindow({ options, windowStart }),
       this.readNotInvestigated({ options, windowStart }),
+      AiActivityFailedCommands.read({
+        projectId,
+        jobIds: commands.failedJobIds,
+        props: options.props,
+        getSubject: (job: RunnerJob): AiActivitySubject | undefined => {
+          // A fix's command is about its fix's incident or alert.
+          const subjectId: string | undefined = job.autoRemediationSuggestionId
+            ? subjectOfFix.get(job.autoRemediationSuggestionId.toString())
+            : job.aiRunId
+              ? subjectOfRun.get(job.aiRunId.toString())
+              : undefined;
+          const subject: IncidentAlertAiSubjectInput | undefined = subjectId
+            ? subjects.get(subjectId)
+            : undefined;
+
+          return subjectId && subject
+            ? {
+                kind: subjectKind,
+                id: subjectId,
+                ...(subject.title ? { title: subject.title } : {}),
+                ...(subject.number !== undefined
+                  ? { number: subject.number }
+                  : {}),
+                ...(subject.numberWithPrefix
+                  ? { numberWithPrefix: subject.numberWithPrefix }
+                  : {}),
+              }
+            : undefined;
+        },
+      }),
     ]);
+
+    commands.stats.failed = failed.count;
+    commands.stats.failedCommands = failed.commands;
 
     const isPartial: boolean =
       runs.length >= INCIDENT_ALERT_AI_INSIGHTS_MAX_INVESTIGATIONS ||
@@ -410,21 +522,20 @@ export default class IncidentAlertAiInsightsReader {
             },
           )
         : null,
-      fixTasks: tasks
-        .filter((task: AIRun): boolean => {
-          const subjectId: string | undefined = subjectIdOfRun(task);
-          return Boolean(
-            task.id && task.createdAt && subjectId && subjects.has(subjectId),
-          );
-        })
-        .map((task: AIRun): IncidentAlertAiFixTaskInput => {
+      fixTasks: readableTasks.map(
+        (task: AIRun): IncidentAlertAiFixTaskInput => {
+          // Asked in the window by its first turn; standing as its newest.
+          const latest: AIRun =
+            taskReplies.get(CodeTaskListRows.key(task.id!))?.newest || task;
+
           return {
             id: task.id!.toString(),
-            status: task.status,
+            status: latest.status,
             createdAt: new Date(task.createdAt!),
             subjectId: subjectIdOfRun(task)!,
           };
-        }),
+        },
+      ),
       subjects,
       occurrenceIds: read.occurrenceIds,
       monitorNames,
@@ -796,12 +907,19 @@ export default class IncidentAlertAiInsightsReader {
     return names;
   }
 
-  // How many commands the investigations and fixes ran, and how they ended.
+  /*
+   * How many commands the investigations and fixes ran, and how they ended
+   * - and which failed, for the read of the ones the caller may read.
+   */
   private static async countCommands(data: {
     projectId: ObjectID;
     runIds: Array<ObjectID>;
     fixIds: Array<ObjectID>;
-  }): Promise<{ stats: AiActivityCommandStats; isPartial: boolean }> {
+  }): Promise<{
+    stats: AiActivityCommandStats;
+    failedJobIds: Array<ObjectID>;
+    isPartial: boolean;
+  }> {
     const reads: Array<Promise<Array<RunnerJob>>> = [];
 
     const readJobs: (
@@ -858,6 +976,9 @@ export default class IncidentAlertAiInsightsReader {
 
     return {
       stats,
+      failedJobIds: AiActivityFailedCommands.getFailedJobIds(
+        Array.from(jobs.values()),
+      ),
       isPartial: groups.some((group: Array<RunnerJob>): boolean => {
         return group.length >= INCIDENT_ALERT_AI_INSIGHTS_COMMAND_SCAN_LIMIT;
       }),

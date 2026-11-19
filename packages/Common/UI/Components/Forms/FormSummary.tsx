@@ -344,6 +344,10 @@ export const getFormSummaryFields: <T extends GenericObject>(
     if (section && sentences.length > 0) {
       summarisedSectionId = section.id;
 
+      // The line a component works out, where the section has one.
+      const summaryElement: ReactElement | undefined =
+        section.getSummaryElement?.(formValues);
+
       rows.push({
         // Detail draws a row only under a key; the section's own id is one.
         field: { [section.id]: true } as unknown as Field<T>["field"],
@@ -351,11 +355,12 @@ export const getFormSummaryFields: <T extends GenericObject>(
         getSummaryElement: (): ReactElement => {
           return (
             <span data-testid="form-summary-section-summary">
-              {sentences
-                .map((sentence: string): string => {
-                  return translateText(sentence) ?? sentence;
-                })
-                .join(" ")}
+              {summaryElement ||
+                sentences
+                  .map((sentence: string): string => {
+                    return translateText(sentence) ?? sentence;
+                  })
+                  .join(" ")}
             </span>
           );
         },

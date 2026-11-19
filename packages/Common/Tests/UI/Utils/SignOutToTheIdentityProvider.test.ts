@@ -102,6 +102,50 @@ describe("SignOutRequest.sendAndRead", () => {
     });
   });
 
+  /*
+   * Regression (#9603): the page held the address to an endpoint's 2048
+   * characters, but it carries the whole ID token - or a whole signed SAML
+   * LogoutRequest - and a provider whose ID tokens carry many claims made
+   * it longer. The page went to the sign-in page instead, leaving the
+   * person signed in at the provider.
+   */
+  test("an answer that names a sign-out longer than an endpoint, as an ID token with many claims makes it, hands it on", async () => {
+    const long: string = PROVIDER_SIGN_OUT.replace(
+      "eyJzdWIiOiJ1In0",
+      "a".repeat(5000),
+    );
+
+    answer = {
+      status: 200,
+      body: { [IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD]: long },
+    };
+
+    expect(long.length).toBeGreaterThan(2048);
+
+    await expect(signOut()).resolves.toEqual({
+      answer: SignOutAnswer.SignedOut,
+      identityProviderSignOutUrl: long,
+    });
+  });
+
+  test("an answer that names a SAML identity provider's sign-out with its signed LogoutRequest hands it on", async () => {
+    const samlSignOut: string = `https://acme.okta.com/app/acme_oneuptime_1/exk1fcia6d6EMsf331d8/slo/saml?SAMLRequest=${encodeURIComponent(
+      "fZJBb9swDIX/".repeat(60),
+    )}&SigAlg=${encodeURIComponent(
+      "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+    )}&Signature=${encodeURIComponent("c2lnbmF0dXJl".repeat(30))}`;
+
+    answer = {
+      status: 200,
+      body: { [IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD]: samlSignOut },
+    };
+
+    await expect(signOut()).resolves.toEqual({
+      answer: SignOutAnswer.SignedOut,
+      identityProviderSignOutUrl: samlSignOut,
+    });
+  });
+
   test("an answer that names none - every other sign-out - goes to the sign-in page", async () => {
     await expect(signOut()).resolves.toEqual({
       answer: SignOutAnswer.SignedOut,
@@ -195,6 +239,26 @@ describe("UserUtil.logout", () => {
     const next: URL | null = await UserUtil.logout();
 
     expect(next?.toString()).toBe(PROVIDER_SIGN_OUT);
+  });
+
+  /*
+   * A SAML identity provider checks the signature over the query exactly as
+   * it arrives (#9603): the address the page opens is the one the server
+   * signed, to the character - its parameters in their order, each encoded
+   * as the server encoded it.
+   */
+  test("answers a SAML identity provider's sign-out exactly as the server signed it", async () => {
+    const samlSignOut: string =
+      "https://idp.example.com:8443/realms/acme/protocol/saml?SAMLRequest=fZJBb%2B%2FCMBD%2F%3D%3D&SigAlg=http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256&Signature=abc%2Bdef%2Fghi%3D";
+
+    answer = {
+      status: 200,
+      body: { [IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD]: samlSignOut },
+    };
+
+    const next: URL | null = await UserUtil.logout();
+
+    expect(next?.toString()).toBe(samlSignOut);
   });
 
   test("answers null for the sign-in page, as every sign-out did before", async () => {

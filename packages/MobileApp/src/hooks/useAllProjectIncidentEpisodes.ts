@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useActiveProject } from "./useProject";
+import { useListFilter, type ListFilterQuery } from "./useListFilter";
+import type { ListFilter } from "../api/recordFilters";
+import type { RecordFilters } from "../filters/recordFilters";
 import { fetchIncidentEpisodes } from "../api/incidentEpisodes";
 import type {
   ProjectItem,
@@ -19,16 +22,23 @@ interface UseAllProjectIncidentEpisodesResult {
 }
 
 /** The public name is retained for callers; only the selected project is queried. */
-export function useAllProjectIncidentEpisodes(): UseAllProjectIncidentEpisodesResult {
+export function useAllProjectIncidentEpisodes(
+  // The list's filters (filters/recordFilters.ts), asked of the server.
+  filters?: RecordFilters,
+): UseAllProjectIncidentEpisodesResult {
   const { projectList, isLoadingProjects } = useActiveProject();
   const project: ProjectItem | undefined = projectList[0];
   const projectId: string | undefined = project?._id;
+  const listFilter: ListFilterQuery = useListFilter(
+    "incidentEpisodes",
+    filters,
+  );
   const query: UseQueryResult<
     ListResponse<IncidentEpisodeItem>,
     Error
   > = useQuery({
-    queryKey: ["incident-episodes", projectId],
-    queryFn: () => {
+    queryKey: ["incident-episodes", projectId, ...listFilter.keyParts],
+    queryFn: async () => {
       if (!projectId) {
         return Promise.resolve({
           data: [],
@@ -37,7 +47,14 @@ export function useAllProjectIncidentEpisodes(): UseAllProjectIncidentEpisodesRe
           limit: FETCH_LIMIT,
         });
       }
-      return fetchIncidentEpisodes(projectId, { skip: 0, limit: FETCH_LIMIT });
+      const filter: ListFilter | undefined =
+        await listFilter.resolve(projectId);
+      return fetchIncidentEpisodes(
+        projectId,
+        filter
+          ? { skip: 0, limit: FETCH_LIMIT, filter: filter }
+          : { skip: 0, limit: FETCH_LIMIT },
+      );
     },
     enabled: Boolean(projectId) && !isLoadingProjects,
     placeholderData: undefined,

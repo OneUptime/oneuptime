@@ -139,6 +139,8 @@ export async function assumeRole(data: {
       now: data.now,
       timeoutInMs: data.timeoutInMs,
       budget: data.budget,
+      // A sign-in hands out a session and changes nothing: asked again as a read is.
+      isSafeToRepeat: true,
     });
   } catch (error) {
     /*

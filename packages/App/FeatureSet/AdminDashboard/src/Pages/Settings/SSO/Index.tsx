@@ -184,6 +184,7 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
         formSteps={getSsoProviderFormSteps<GlobalSSO>()}
         formFields={getSamlProviderFormFields<GlobalSSO>({
           withGlobalAccessSwitches: true,
+          withIdentityProviderSignOut: true,
         })}
         /*
          * A provider is added to be used, and what using it takes - the ACS

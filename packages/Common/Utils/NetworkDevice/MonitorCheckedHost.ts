@@ -16,10 +16,11 @@ import DeviceWebUiUtil from "./DeviceWebUiUtil";
  *
  * A Ping, IP, Port or NTP monitor checks an address; a Website, API or SSL
  * Certificate monitor checks a URL, on a host. When a person creates one on
- * the address of a network device - and only one device in the project has
- * that address - the monitor is tied to that device
- * (Monitor.networkDeviceId), so the device's pages list it and the duplicate
- * check sees it. This reads which host that is.
+ * the address of a network device its probes see - one they poll, or the
+ * one at the address in a site they serve (issue #9677, DeviceAddressScope)
+ * - the monitor is tied to that device (Monitor.networkDeviceId), so the
+ * device's pages list it and the duplicate check sees it. This reads which
+ * host that is.
  *
  * One host or none: a monitor whose steps check two hosts checks no single
  * device, and a host written as a variable ({{monitorSecrets.host}}) is not

@@ -8,6 +8,7 @@ import { OnFind } from "../../../Server/Types/Database/Hooks";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
+import { WhenReachUnknown } from "../../../Utils/NetworkDevice/DeviceAddressScope";
 import { FindOperator } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -78,6 +79,51 @@ function discoveredAt(
   return scans[scanIndex]!.discoveredDevices!;
 }
 
+/*
+ * What the lookup answers: a device at each of these addresses, with no id
+ * unless one is given - the existing cases are about the flag alone.
+ */
+function devicesAt(
+  hostnames: Array<string>,
+  ids: Record<string, string> = {},
+): Map<string, NetworkDevice> {
+  const devices: Map<string, NetworkDevice> = new Map<string, NetworkDevice>();
+
+  for (const hostname of hostnames) {
+    const device: NetworkDevice = new NetworkDevice();
+    device.hostname = hostname;
+
+    if (ids[hostname]) {
+      device.id = new ObjectID(ids[hostname]!);
+    }
+
+    devices.set(hostname, device);
+  }
+
+  return devices;
+}
+
+/*
+ * What the lookup is asked: the project's devices at these addresses, as
+ * OneUptime, seen from the scan's probe (issue #9677) - none here, since
+ * these scans name none, so the one device at an address answers.
+ */
+function lookupOf(data: {
+  projectId: ObjectID;
+  hostnames: Array<string>;
+  probeIds?: Array<string> | undefined;
+}): unknown {
+  return expect.objectContaining({
+    projectId: data.projectId,
+    hostnames: data.hostnames,
+    props: { isRoot: true },
+    seenFrom: {
+      probeIds: data.probeIds || [],
+      whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
+    },
+  });
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -88,8 +134,8 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
 
   beforeEach(() => {
     registrationSpy = jest
-      .spyOn(NetworkDeviceService, "getRegisteredHostnames")
-      .mockResolvedValue(new Set<string>());
+      .spyOn(NetworkDeviceService, "getDevicesByHostnames")
+      .mockResolvedValue(devicesAt([]));
     updateSpy = jest
       .spyOn(NetworkDeviceDiscoveryScanService, "updateBy")
       .mockResolvedValue(0);
@@ -101,15 +147,13 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
     ]);
 
     expect(discoveredAt(result)).toEqual([host("10.0.0.5", false)]);
-    expect(registrationSpy).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      hostnames: ["10.0.0.5"],
-      props: { isRoot: true },
-    });
+    expect(registrationSpy).toHaveBeenCalledWith(
+      lookupOf({ projectId: PROJECT_ID, hostnames: ["10.0.0.5"] }),
+    );
   });
 
   it("marks a stored unregistered host registered after an import", async () => {
-    registrationSpy.mockResolvedValue(new Set(["10.0.0.5"]));
+    registrationSpy.mockResolvedValue(devicesAt(["10.0.0.5"]));
 
     const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
       scanWith([host("10.0.0.5", false)]),
@@ -119,7 +163,7 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
   });
 
   it("derives registration for results written before the flag existed", async () => {
-    registrationSpy.mockResolvedValue(new Set(["10.0.0.5"]));
+    registrationSpy.mockResolvedValue(devicesAt(["10.0.0.5"]));
 
     const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
       scanWith([{ ipAddress: "10.0.0.5" }, { ipAddress: "10.0.0.6" }]),
@@ -132,7 +176,7 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
   });
 
   it("keeps both registered and unregistered hosts accurate in the same result", async () => {
-    registrationSpy.mockResolvedValue(new Set(["10.0.0.5", "10.0.0.7"]));
+    registrationSpy.mockResolvedValue(devicesAt(["10.0.0.5", "10.0.0.7"]));
 
     const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
       scanWith([
@@ -156,9 +200,9 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
       host("10.0.0.5", true),
     ]);
     registrationSpy
-      .mockResolvedValueOnce(new Set(["10.0.0.5"]))
-      .mockResolvedValueOnce(new Set<string>())
-      .mockResolvedValueOnce(new Set(["10.0.0.5"]));
+      .mockResolvedValueOnce(devicesAt(["10.0.0.5"]))
+      .mockResolvedValueOnce(devicesAt([]))
+      .mockResolvedValueOnce(devicesAt(["10.0.0.5"]));
 
     expect(discoveredAt(await readScans([saved]))[0]!.isAlreadyRegistered).toBe(
       true,
@@ -219,7 +263,7 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
   });
 
   it("batches and deduplicates all hosts for the same project across scans", async () => {
-    registrationSpy.mockResolvedValue(new Set(["10.0.0.6"]));
+    registrationSpy.mockResolvedValue(devicesAt(["10.0.0.6"]));
     const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
       scanWith([host("10.0.0.5"), host("10.0.0.5"), host("10.0.0.6")]),
       scanWith(
@@ -229,11 +273,12 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
     ]);
 
     expect(registrationSpy).toHaveBeenCalledTimes(1);
-    expect(registrationSpy).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      hostnames: ["10.0.0.5", "10.0.0.6", "10.0.0.7"],
-      props: { isRoot: true },
-    });
+    expect(registrationSpy).toHaveBeenCalledWith(
+      lookupOf({
+        projectId: PROJECT_ID,
+        hostnames: ["10.0.0.5", "10.0.0.6", "10.0.0.7"],
+      }),
+    );
     expect(discoveredAt(result, 0)).toEqual([
       host("10.0.0.5", false),
       host("10.0.0.5", false),
@@ -247,10 +292,12 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
 
   it("keeps the same address independent between projects", async () => {
     registrationSpy.mockImplementation(
-      async (data: { projectId: ObjectID }): Promise<Set<string>> => {
+      async (data: {
+        projectId: ObjectID;
+      }): Promise<Map<string, NetworkDevice>> => {
         return data.projectId.toString() === PROJECT_ID.toString()
-          ? new Set(["10.0.0.5"])
-          : new Set<string>();
+          ? devicesAt(["10.0.0.5"])
+          : devicesAt([]);
       },
     );
 
@@ -260,11 +307,9 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
     ]);
 
     expect(registrationSpy).toHaveBeenCalledTimes(2);
-    expect(registrationSpy).toHaveBeenCalledWith({
-      projectId: OTHER_PROJECT_ID,
-      hostnames: ["10.0.0.5"],
-      props: { isRoot: true },
-    });
+    expect(registrationSpy).toHaveBeenCalledWith(
+      lookupOf({ projectId: OTHER_PROJECT_ID, hostnames: ["10.0.0.5"] }),
+    );
     expect(discoveredAt(result, 0)[0]!.isAlreadyRegistered).toBe(true);
     expect(discoveredAt(result, 1)[0]!.isAlreadyRegistered).toBe(false);
   });
@@ -280,11 +325,9 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
     );
 
     expect(discoveredAt(result)[0]!.isAlreadyRegistered).toBe(false);
-    expect(registrationSpy).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      hostnames: ["10.0.0.5"],
-      props: { isRoot: true },
-    });
+    expect(registrationSpy).toHaveBeenCalledWith(
+      lookupOf({ projectId: PROJECT_ID, hostnames: ["10.0.0.5"] }),
+    );
     expect(result[0]!.projectId).toBeUndefined();
   });
 
@@ -295,11 +338,9 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
     );
 
     expect(registrationSpy).toHaveBeenCalledTimes(1);
-    expect(registrationSpy).toHaveBeenCalledWith({
-      projectId: OTHER_PROJECT_ID,
-      hostnames: ["10.0.0.5"],
-      props: { isRoot: true },
-    });
+    expect(registrationSpy).toHaveBeenCalledWith(
+      lookupOf({ projectId: OTHER_PROJECT_ID, hostnames: ["10.0.0.5"] }),
+    );
   });
 
   it("leaves results unchanged when neither project nor tenant is available", async () => {
@@ -315,17 +356,15 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
   });
 
   it("normalizes whitespace for lookup without rewriting the stored address", async () => {
-    registrationSpy.mockResolvedValue(new Set(["10.0.0.5"]));
+    registrationSpy.mockResolvedValue(devicesAt(["10.0.0.5"]));
 
     const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
       scanWith([host(" 10.0.0.5 \t", false), host("10.0.0.5", false)]),
     ]);
 
-    expect(registrationSpy).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      hostnames: ["10.0.0.5"],
-      props: { isRoot: true },
-    });
+    expect(registrationSpy).toHaveBeenCalledWith(
+      lookupOf({ projectId: PROJECT_ID, hostnames: ["10.0.0.5"] }),
+    );
     expect(discoveredAt(result)).toEqual([
       host(" 10.0.0.5 \t", true),
       host("10.0.0.5", true),
@@ -396,11 +435,9 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
       "invalid",
     ]);
     expect(discoveredAt(result)[1]).toBe(junkObject);
-    expect(registrationSpy).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      hostnames: ["10.0.0.5"],
-      props: { isRoot: true },
-    });
+    expect(registrationSpy).toHaveBeenCalledWith(
+      lookupOf({ projectId: PROJECT_ID, hostnames: ["10.0.0.5"] }),
+    );
   });
 
   it("preserves unselected rows beside rows that need registration refresh", async () => {
@@ -516,5 +553,185 @@ describe("discovery registration with the inventory lookup service", () => {
         return item.isAlreadyRegistered === true;
       }),
     ).toBe(true);
+  });
+});
+
+/*
+ * TWO SITES' DEVICES AT ONE ADDRESS (OneUptime issue #9677).
+ *
+ * Every branch can have a 10.0.0.5. A scan's host is the device the scan's
+ * probe sees at its address, not any device there, and Review Results reads
+ * the monitors of that device alone - so the read names the device.
+ */
+describe("a scan's hosts, seen from the scan's probe", () => {
+  const PROBE_A: string = "a2000000-0000-4000-8000-000000000001";
+  const PROBE_B: string = "b2000000-0000-4000-8000-000000000001";
+  const DEVICE_A: string = "d0000000-0000-4000-8000-00000000000a";
+
+  let lookupSpy: jest.SpyInstance;
+
+  function scanOnProbe(
+    hosts: Array<DiscoveredNetworkDevice>,
+    probeId: string | null | undefined,
+    id?: string | undefined,
+  ): NetworkDeviceDiscoveryScan {
+    const scan: NetworkDeviceDiscoveryScan = scanWith(hosts);
+
+    if (probeId !== undefined) {
+      (scan as unknown as Record<string, unknown>)["probeId"] = probeId
+        ? new ObjectID(probeId)
+        : null;
+    }
+
+    if (id) {
+      scan.id = new ObjectID(id);
+    }
+
+    return scan;
+  }
+
+  beforeEach(() => {
+    lookupSpy = jest
+      .spyOn(NetworkDeviceService, "getDevicesByHostnames")
+      .mockResolvedValue(devicesAt([]));
+  });
+
+  it("asks for the devices its probe sees, and names the device a host is", async () => {
+    lookupSpy.mockResolvedValue(
+      devicesAt(["10.0.0.5"], { "10.0.0.5": DEVICE_A }),
+    );
+
+    const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
+      scanOnProbe([host("10.0.0.5"), host("10.0.0.6")], PROBE_A),
+    ]);
+
+    expect(lookupSpy).toHaveBeenCalledWith(
+      lookupOf({
+        projectId: PROJECT_ID,
+        hostnames: ["10.0.0.5", "10.0.0.6"],
+        probeIds: [PROBE_A],
+      }),
+    );
+    expect(lookupSpy.mock.calls[0]![0].select).toEqual({
+      _id: true,
+      hostname: true,
+    });
+    expect(discoveredAt(result)).toEqual([
+      {
+        ipAddress: "10.0.0.5",
+        isAlreadyRegistered: true,
+        registeredDeviceId: DEVICE_A,
+      },
+      { ipAddress: "10.0.0.6", isAlreadyRegistered: false },
+    ]);
+  });
+
+  it("marks an address whose devices its probe cannot tell apart registered, naming none", async () => {
+    lookupSpy.mockImplementation(
+      async (data: {
+        ambiguousHostnames?: Set<string>;
+      }): Promise<Map<string, NetworkDevice>> => {
+        data.ambiguousHostnames?.add("10.0.0.5");
+        return devicesAt([]);
+      },
+    );
+
+    const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
+      scanOnProbe([host("10.0.0.5", false)], PROBE_A),
+    ]);
+
+    expect(discoveredAt(result)).toEqual([host("10.0.0.5", true)]);
+  });
+
+  it("never keeps a device a stored row named, whatever the probe sent", async () => {
+    const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
+      scanOnProbe(
+        [
+          {
+            ipAddress: "10.0.0.5",
+            isAlreadyRegistered: true,
+            registeredDeviceId: DEVICE_A,
+          },
+        ],
+        PROBE_A,
+      ),
+    ]);
+
+    expect(discoveredAt(result)).toEqual([host("10.0.0.5", false)]);
+  });
+
+  it("asks once per probe: two sites' scans of one address are answered apart", async () => {
+    lookupSpy.mockImplementation(
+      async (data: {
+        seenFrom: { probeIds: Array<string> };
+      }): Promise<Map<string, NetworkDevice>> => {
+        // Site A's probe sees site A's router; site B's sees no device.
+        return data.seenFrom.probeIds[0] === PROBE_A
+          ? devicesAt(["10.0.0.5"], { "10.0.0.5": DEVICE_A })
+          : devicesAt([]);
+      },
+    );
+
+    const result: Array<NetworkDeviceDiscoveryScan> = await readScans([
+      scanOnProbe([host("10.0.0.5")], PROBE_A),
+      scanOnProbe([host("10.0.0.5")], PROBE_B),
+    ]);
+
+    expect(lookupSpy).toHaveBeenCalledTimes(2);
+    expect(discoveredAt(result, 0)).toEqual([
+      {
+        ipAddress: "10.0.0.5",
+        isAlreadyRegistered: true,
+        registeredDeviceId: DEVICE_A,
+      },
+    ]);
+    expect(discoveredAt(result, 1)).toEqual([host("10.0.0.5", false)]);
+  });
+
+  it("batches scans of one probe into one lookup", async () => {
+    await readScans([
+      scanOnProbe([host("10.0.0.5")], PROBE_A),
+      scanOnProbe([host("10.0.0.6")], PROBE_A.toUpperCase()),
+    ]);
+
+    expect(lookupSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads the probe of a scan whose read left it out, once for all of them", async () => {
+    const SCAN_ID: string = "5c000000-0000-4000-8000-000000000001";
+    const probeRead: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceDiscoveryScanService, "findBy")
+      .mockImplementation(
+        async (): Promise<Array<NetworkDeviceDiscoveryScan>> => {
+          const row: NetworkDeviceDiscoveryScan =
+            new NetworkDeviceDiscoveryScan();
+          row.id = new ObjectID(SCAN_ID);
+          row.probeId = new ObjectID(PROBE_B);
+          return [row];
+        },
+      );
+
+    await readScans([scanOnProbe([host("10.0.0.5")], undefined, SCAN_ID)]);
+
+    expect(probeRead).toHaveBeenCalledTimes(1);
+    expect(probeRead.mock.calls[0]![0]).toMatchObject({
+      select: { _id: true, probeId: true },
+      props: { isRoot: true },
+    });
+    expect(lookupSpy).toHaveBeenCalledWith(
+      lookupOf({
+        projectId: PROJECT_ID,
+        hostnames: ["10.0.0.5"],
+        probeIds: [PROBE_B],
+      }),
+    );
+  });
+
+  it("looks from nowhere it can know when the scan's probe is gone", async () => {
+    await readScans([scanOnProbe([host("10.0.0.5")], null)]);
+
+    expect(lookupSpy).toHaveBeenCalledWith(
+      lookupOf({ projectId: PROJECT_ID, hostnames: ["10.0.0.5"] }),
+    );
   });
 });

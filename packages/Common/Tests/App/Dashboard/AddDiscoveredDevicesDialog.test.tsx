@@ -19,6 +19,9 @@ import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolic
 import NetworkDeviceRole from "../../../Models/DatabaseModels/NetworkDeviceRole";
 import NetworkSnmpCredentialProfile from "../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { JSONObject } from "../../../Types/JSON";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import {
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
@@ -115,21 +118,69 @@ const NO_ADDRESS: DiscoveredDeviceItem = item({
   name: "00:1a:2b:3c:4d:03",
   macAddress: "00:1a:2b:3c:4d:03",
 });
+const ROUTER_DEVICE_ID: string = "30000000-0000-4000-8000-000000000002";
 const MONITORED: DiscoveredDeviceItem = item({
   id: ROUTER_ID,
   name: "Branch router",
   ipAddress: "10.20.0.1",
   isMonitored: true,
-  monitoredDevice: { id: "30000000-0000-4000-8000-000000000002" },
+  monitoredDevice: { id: ROUTER_DEVICE_ID },
 });
 
 interface ProjectLists {
   roles: Array<NetworkDeviceRole>;
   profiles: Array<NetworkSnmpCredentialProfile>;
   refuseRoles: string | null;
+  /*
+   * The devices the selected rows already are, and the monitors made for
+   * them (issue #9675): what tells a device that gets a monitor from one
+   * that has one.
+   */
+  devices: Array<NetworkDevice>;
+  monitorsMadeForDevices: Array<Monitor>;
+  // A message the read of the devices' monitors fails with, when set.
+  refuseMonitors: string | null;
+  // Holds the read of the devices' monitors until it is let go.
+  holdMonitors: boolean;
 }
 
-const lists: ProjectLists = { roles: [], profiles: [], refuseRoles: null };
+const lists: ProjectLists = {
+  roles: [],
+  profiles: [],
+  refuseRoles: null,
+  devices: [],
+  monitorsMadeForDevices: [],
+  refuseMonitors: null,
+  holdMonitors: false,
+};
+
+// The device a row already is, as the read of its monitors answers it.
+function deviceWithId(id: string, hostname: string): NetworkDevice {
+  return Object.assign(new NetworkDevice(), {
+    _id: id,
+    id: new ObjectID(id),
+    hostname: hostname,
+  });
+}
+
+// A monitor an import made for the device with this id.
+function monitorMadeFor(deviceId: string, monitorId: string): Monitor {
+  return Object.assign(new Monitor(), {
+    _id: monitorId,
+    id: new ObjectID(monitorId),
+    name: "Branch router ping",
+    autoProvisionedNetworkDeviceId: new ObjectID(deviceId),
+  });
+}
+
+// The ids a read asks for, lower case.
+function askedIds(condition: unknown): Array<string> {
+  return condition instanceof Includes
+    ? (condition.values as Array<string>).map((id: string): string => {
+        return String(id).toLowerCase();
+      })
+    : [];
+}
 
 let server: DiscoveryImportFakeServer;
 let getListSpy: jest.SpyInstance;
@@ -263,6 +314,12 @@ beforeEach(() => {
     }),
   ];
   lists.refuseRoles = null;
+  lists.devices = [deviceWithId(ROUTER_DEVICE_ID, "10.20.0.1")];
+  lists.monitorsMadeForDevices = [
+    monitorMadeFor(ROUTER_DEVICE_ID, "50000000-0000-4000-8000-000000000001"),
+  ];
+  lists.refuseMonitors = null;
+  lists.holdMonitors = false;
   onClose = jest.fn();
   onImportsChanged = jest.fn();
 
@@ -281,9 +338,58 @@ beforeEach(() => {
 
   getListSpy = jest
     .spyOn(ModelAPI, "getList")
-    .mockImplementation((async (request: { modelType: unknown }) => {
+    .mockImplementation((async (request: {
+      modelType: unknown;
+      query?: Record<string, unknown>;
+    }) => {
       if (request.modelType === NetworkDeviceRole && lists.refuseRoles) {
         throw new Error(lists.refuseRoles);
+      }
+
+      if (request.modelType === NetworkDevice) {
+        if (lists.refuseMonitors) {
+          throw new Error(lists.refuseMonitors);
+        }
+
+        if (lists.holdMonitors) {
+          return await new Promise<never>(() => {
+            // Never answers: the read is still on its way.
+          });
+        }
+
+        const ids: Array<string> = askedIds(request.query?.["_id"]);
+        const devices: Array<NetworkDevice> = lists.devices.filter(
+          (device: NetworkDevice): boolean => {
+            return ids.includes(String(device._id).toLowerCase());
+          },
+        );
+
+        return {
+          data: devices,
+          count: devices.length,
+          skip: 0,
+          limit: devices.length,
+        };
+      }
+
+      if (request.modelType === Monitor) {
+        const madeFor: Array<string> = askedIds(
+          request.query?.["autoProvisionedNetworkDeviceId"],
+        );
+        const monitors: Array<Monitor> = lists.monitorsMadeForDevices.filter(
+          (monitor: Monitor): boolean => {
+            return madeFor.includes(
+              String(monitor.autoProvisionedNetworkDeviceId).toLowerCase(),
+            );
+          },
+        );
+
+        return {
+          data: monitors,
+          count: monitors.length,
+          skip: 0,
+          limit: monitors.length,
+        };
       }
 
       const data: Array<unknown> =
@@ -361,7 +467,7 @@ describe("what the dialog adds", () => {
     expect(
       screen.getByTestId("discovered-device-import-monitored"),
     ).toHaveTextContent(
-      "1 selected device is monitored already, so it is left out.",
+      "1 selected device already has a monitor, so it is left out.",
     );
     expect(
       screen.getByTestId("discovered-device-import-no-address"),
@@ -408,7 +514,7 @@ describe("what the dialog adds", () => {
     expect(
       screen.getByTestId("discovered-device-import-nothing"),
     ).toHaveTextContent(
-      "None of the selected devices can be added: each one is monitored already or has no IP address yet.",
+      "None of the selected devices can be added: each one already has a monitor or has no IP address yet.",
     );
     expect(submitButton()).toBeDisabled();
     expect(
@@ -672,5 +778,203 @@ describe("the import, on the server", () => {
     await flush();
 
     expect(server.countCalls("POST", FAKE_IMPORT_ROUTES.stop)).toBe(1);
+  });
+});
+
+/*
+ * ISSUE #9675: a device added from the list with no monitor - "Status only",
+ * say - can be selected again and given the template's monitor, as Review
+ * Results does for a scan's host (#9544). The dialog names it apart from the
+ * new devices, sends it only when a monitor is asked for, and leaves out a
+ * device that has a monitor. The server finds the device and gives it the
+ * monitor under the same duplicate rule and lock as every other path.
+ */
+describe("a device already added, given its monitor (#9675)", () => {
+  const SWITCH_ID: string = "10000000-0000-4000-8000-000000000006";
+  const SWITCH_DEVICE_ID: string = "30000000-0000-4000-8000-000000000006";
+  const ADDED_SWITCH: DiscoveredDeviceItem = item({
+    id: SWITCH_ID,
+    name: "Branch switch",
+    ipAddress: "10.20.0.2",
+    isMonitored: true,
+    monitoredDevice: { id: SWITCH_DEVICE_ID },
+  });
+
+  beforeEach(() => {
+    lists.devices.push(deviceWithId(SWITCH_DEVICE_ID, "10.20.0.2"));
+    server.control.discoveredDevices.set(SWITCH_ID, {
+      name: "Branch switch",
+      ipAddress: "10.20.0.2",
+    });
+  });
+
+  async function pickMonitorForEachDevice(): Promise<void> {
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovery-import-alerting-template"));
+    });
+    await flush();
+  }
+
+  test("is named apart from the new devices, and the one with a monitor is left out", async () => {
+    await openDialog({ devices: [CAMERA, ADDED_SWITCH, MONITORED] });
+
+    expect(
+      screen.getByTestId("discovered-device-import-names"),
+    ).toHaveTextContent("1 new device: Lobby camera (10.20.0.11)");
+    expect(
+      screen.getByTestId("discovered-device-import-existing"),
+    ).toHaveTextContent("1 device already added: Branch switch (10.20.0.2)");
+    expect(
+      screen.getByTestId("discovered-device-import-monitored"),
+    ).toHaveTextContent(
+      "1 selected device already has a monitor, so it is left out.",
+    );
+    // Status only: a device already added gets nothing, and the summary says so.
+    expect(outcomeLine("existing")).toHaveTextContent(
+      "1 device you picked is already added, and gets nothing without a monitor template.",
+    );
+    expect(submitButton()).toHaveTextContent("Add 1 device");
+  });
+
+  test("with a monitor asked for, is sent with the new devices and said to get a monitor", async () => {
+    server.control.hold = true;
+    await openDialog({ devices: [CAMERA, ADDED_SWITCH, MONITORED] });
+    await pickMonitorForEachDevice();
+
+    expect(
+      screen.getByTestId("discovered-device-import-existing"),
+    ).toHaveTextContent(
+      "1 device already added gets a monitor: Branch switch (10.20.0.2)",
+    );
+    expect(outcomeLine("existing")).toHaveTextContent(
+      "1 device already added gets a monitor from",
+    );
+
+    await submit();
+
+    expect(lastStart()["endpointIds"]).toEqual([CAMERA_ID, SWITCH_ID]);
+    expect(lastStart()["settings"]).toEqual(
+      expect.objectContaining({
+        alerting: DiscoveryImportAlerting.MonitorTemplate,
+        monitorTemplateId: CREATED_TEMPLATE_ID.toString(),
+      }),
+    );
+  });
+
+  test("with Status only, only the new devices are sent: there is nothing to give the one already added", async () => {
+    server.control.hold = true;
+    await openDialog({ devices: [CAMERA, ADDED_SWITCH] });
+    await submit();
+
+    expect(lastStart()["endpointIds"]).toEqual([CAMERA_ID]);
+    expect(lastStart()["settings"]).toEqual(
+      expect.objectContaining({ alerting: DiscoveryImportAlerting.None }),
+    );
+  });
+
+  test("selected alone, opens on a monitor for each device, and the press gives them their monitors", async () => {
+    server.control.hold = true;
+    await openDialog({ devices: [ADDED_SWITCH] });
+
+    expect(
+      screen.getByTestId("discovery-import-alerting-template"),
+    ).toBeChecked();
+    expect(submitButton()).toHaveTextContent("Add 1 monitor");
+    expect(submitButton()).toBeEnabled();
+    // Nothing is created, so nothing about new devices is asked.
+    expect(screen.getByTestId("discovery-import-polling")).toHaveClass(
+      "hidden",
+    );
+    expect(
+      screen.queryByTestId("discovered-device-import-more-fields"),
+    ).not.toBeInTheDocument();
+
+    await submit();
+
+    expect(lastStart()["endpointIds"]).toEqual([SWITCH_ID]);
+    expect(lastStart()["settings"]).toEqual(
+      expect.objectContaining({
+        alerting: DiscoveryImportAlerting.MonitorTemplate,
+      }),
+    );
+  });
+
+  test("selected alone with Status only picked by hand, cannot be submitted, and the summary says to pick a template", async () => {
+    await openDialog({ devices: [ADDED_SWITCH] });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovery-import-alerting-none"));
+    });
+    await flush();
+
+    expect(submitButton()).toBeDisabled();
+    expect(outcomeLine("existing")).toHaveTextContent(
+      "The devices you picked are already added. Give them a monitor from a template.",
+    );
+  });
+
+  test("reads the monitors of the devices the rows are, by id, rows selected on other pages too", async () => {
+    const offPage: DiscoveredDeviceItem = {
+      ...ADDED_SWITCH,
+      isOnPage: false,
+    };
+
+    await openDialog({ devices: [offPage, MONITORED] });
+
+    const deviceRead: { query: Record<string, unknown> } = getListSpy.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          modelType: unknown;
+          query: Record<string, unknown>;
+        };
+      })
+      .find((read: { modelType: unknown }): boolean => {
+        return read.modelType === NetworkDevice;
+      })!;
+
+    expect(askedIds(deviceRead.query["_id"]).sort()).toEqual(
+      [ROUTER_DEVICE_ID, SWITCH_DEVICE_ID].sort(),
+    );
+  });
+
+  test("while the monitors are being read, the devices already added wait and nothing can be submitted", async () => {
+    lists.holdMonitors = true;
+
+    await openDialog({ devices: [CAMERA, ADDED_SWITCH] });
+
+    expect(
+      screen.queryByTestId("discovered-device-import-existing"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId("discovered-device-import-devices"),
+      ).getByTestId("inline-value-skeleton"),
+    ).toBeInTheDocument();
+    expect(submitButton()).toBeDisabled();
+  });
+
+  test("a read of the monitors that fails offers every device already added: the server's duplicate rule still keeps each to one", async () => {
+    lists.refuseMonitors = "You may not read monitors.";
+
+    await openDialog({ devices: [ADDED_SWITCH, MONITORED] });
+
+    expect(
+      screen.getByTestId("discovered-device-import-existing"),
+    ).toHaveTextContent("2 devices already added get a monitor:");
+    expect(submitButton()).toHaveTextContent("Add 2 monitors");
+  });
+
+  test("a device already added is found by the import and given its monitor, nothing else", async () => {
+    server.control.alreadyAdded.add("10.20.0.2");
+
+    await openDialog({ devices: [ADDED_SWITCH] });
+    await submit();
+    await advance(2000);
+    await advance(2000);
+
+    expect(
+      screen.getByTestId("discovery-import-progress-title"),
+    ).toHaveTextContent("Import finished");
+    expect(createSpy).toHaveBeenCalledTimes(1);
   });
 });

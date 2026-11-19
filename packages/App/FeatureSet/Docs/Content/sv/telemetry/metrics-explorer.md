@@ -149,7 +149,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 ### Se vad den gjorde
 
 - **Mätvärden → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mätvärden**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden, eller utan mätvärden för sina förfrågningar, erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
-- **Mätvärden → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
+- **Mätvärden → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade. En pull request visar hur dess uppgift i Code står nu: en åtgärd som begärdes igen med Försök igen efter att den misslyckades visas inte längre som misslyckad och anger den pull request den öppnade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ### Registrera förfrågningsmätvärden utan att ändra kod

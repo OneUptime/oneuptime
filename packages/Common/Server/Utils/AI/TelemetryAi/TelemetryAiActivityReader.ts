@@ -7,7 +7,11 @@ import SourceLocator, {
   LocatableRepository,
 } from "../../CodeRepository/SourceLocator";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../CodeTask/CodeTaskListRows";
 import CodeTaskThread from "../CodeTask/CodeTaskThread";
 import ProfileInsightFix from "./ProfileInsightFix";
 import TelemetryAiRules, {
@@ -39,6 +43,7 @@ import {
   TelemetryAiReadinessJSON,
 } from "../../../../Types/AI/TelemetryAiActivity";
 import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
+import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
@@ -58,13 +63,23 @@ import ObjectID from "../../../../Types/ObjectID";
  *     request it was asked to open (a Code task, on its own or by a person
  *     from the insight), with how it stands.
  *
+ * A Code task is one row, listed by its first turn, and stands as Code says
+ * it does: by its newest turn - a fix asked again from Code (Try again,
+ * #6509) or a reply someone sent there - with the pull request any of its
+ * turns opened, read per task as Code's own lists read them
+ * (CodeTaskListRows, #9812). A fix that failed and was asked again is
+ * working here, then done with its pull request, as it is in Code.
+ *
  * Who sees what in the logs: the problems are read as the reader, so
  * someone who may read only some services' insights hears only about
  * those. The runs for them are read as OneUptime, by those problems' ids -
  * an insight's triage is a system run no reader owns - and only their
- * kind, state and date leave. A pull request's repository and its link
- * leave only for a repository the reader may read in Code; the task's own
- * page checks again.
+ * kind, state and date leave. A Code task a reply carried a private
+ * incident or alert into, which the reader does not see, is left out, as
+ * Code's own lists leave it out (AIRunOutputReadFilter, #9165): its state
+ * is its newest turn's now, and that turn is the reply's. A pull request's
+ * repository and its link leave only for a repository the reader may read
+ * in Code; the task's own page checks again.
  */
 export default class TelemetryAiActivityReader {
   @CaptureSpan()
@@ -173,13 +188,27 @@ export default class TelemetryAiActivityReader {
       return { entries: [], totalCount: 0 };
     }
 
-    const query: Record<string, unknown> = {
-      projectId: data.projectId,
-      triggeredByAiInsightId: QueryHelper.any(Array.from(problemsById.keys())),
-      runType: QueryHelper.any([AIRunType.Investigation, AIRunType.CodeFix]),
-      // A Code task is its first turn: its replies are the task's, in Code.
-      codeTaskId: QueryHelper.isNull(),
-    };
+    /*
+     * Read as OneUptime, held to the reader's rule (#9165): no Code task
+     * about, or carrying, a private incident or alert they do not see - the
+     * page and its count alike.
+     */
+    const query: Record<string, unknown> = AIRunOutputReadFilter.applyToRunRow(
+      {
+        projectId: data.projectId,
+        triggeredByAiInsightId: QueryHelper.any(
+          Array.from(problemsById.keys()),
+        ),
+        runType: QueryHelper.any([AIRunType.Investigation, AIRunType.CodeFix]),
+        /*
+         * A Code task is one row, its first turn: its later turns - a fix
+         * asked again, a reply - say how it stands (below), never rows of
+         * their own.
+         */
+        codeTaskId: QueryHelper.isNull(),
+      } as Record<string, unknown>,
+      data.props,
+    );
 
     const [runs, totalCount]: [Array<AIRun>, number] = await Promise.all([
       AIRunService.findBy({
@@ -209,17 +238,24 @@ export default class TelemetryAiActivityReader {
     const tasks: Array<AIRun> = runs.filter((run: AIRun): boolean => {
       return run.runType === AIRunType.CodeFix && Boolean(run.id);
     });
+    const taskIds: Array<ObjectID> = tasks.map((run: AIRun): ObjectID => {
+      return run.id!;
+    });
 
-    const [pullRequests, repositories, people]: [
-      Array<AIAgentTaskPullRequest>,
+    /*
+     * Each task as it stands now - its newest turn, and the pull request any
+     * of its turns opened - read per task by Postgres, however many turns.
+     */
+    const [replies, pullRequests, repositories, people]: [
+      Map<string, CodeTaskRepliesRead>,
+      Map<string, AIAgentTaskPullRequest>,
       Array<CodeRepository>,
       Map<string, CodeTaskPersonJSON>,
     ] = await Promise.all([
-      CodeTaskThread.getPullRequests({
+      CodeTaskListRows.readReplies({ projectId: data.projectId, taskIds }),
+      CodeTaskListRows.readPullRequests({
         projectId: data.projectId,
-        runIds: tasks.map((run: AIRun): ObjectID => {
-          return run.id!;
-        }),
+        taskIds,
       }),
       TelemetryAiActivityReader.readRepositories({
         projectId: data.projectId,
@@ -258,18 +294,18 @@ export default class TelemetryAiActivityReader {
         },
       );
 
+      const key: string = CodeTaskListRows.key(run.id);
+
       entries.push(
         TelemetryAiActivityReader.toEntry({
           run,
+          latestTurn:
+            run.runType === AIRunType.CodeFix
+              ? replies.get(key)?.newest
+              : undefined,
           problem,
           repository,
-          pullRequest: repository
-            ? pullRequests.find(
-                (pullRequest: AIAgentTaskPullRequest): boolean => {
-                  return pullRequest.aiRunId?.toString() === run.id!.toString();
-                },
-              )
-            : undefined,
+          pullRequest: repository ? pullRequests.get(key) : undefined,
           requestedBy: run.userId
             ? people.get(run.userId.toString())?.name
             : undefined,
@@ -311,17 +347,28 @@ export default class TelemetryAiActivityReader {
     }
   }
 
-  // One entry. Pure.
+  /*
+   * One entry. Pure. A Code task (`run`, its first turn) stands as its
+   * newest later turn, `latestTurn`, when it has one: a fix asked again
+   * from Code, or a reply. When it was asked, and by whom, stay its first
+   * turn's.
+   */
   public static toEntry(data: {
     run: AIRun;
+    // A Code task's newest later turn; none for a task of one turn.
+    latestTurn?: AIRun | undefined;
     problem: AIInsight;
     // Only a repository the reader may read, and its pull request.
     repository?: CodeRepository | undefined;
+    // A task's: the newest open one any of its turns opened, else the newest.
     pullRequest?: AIAgentTaskPullRequest | undefined;
     requestedBy?: string | undefined;
   }): TelemetryAiLogEntryJSON {
     const run: AIRun = data.run;
     const isPullRequest: boolean = run.runType === AIRunType.CodeFix;
+    const latestTurn: AIRun | undefined = isPullRequest
+      ? data.latestTurn
+      : undefined;
 
     const entry: TelemetryAiLogEntryJSON = {
       runId: run.id!.toString(),
@@ -329,7 +376,16 @@ export default class TelemetryAiActivityReader {
         ? TelemetryAiLogKind.PullRequest
         : TelemetryAiLogKind.Investigation,
       at: new Date(run.createdAt || Date.now()).toISOString(),
-      state: TelemetryAiActivityReader.getState(run),
+      // A later turn is a turn of the same task: a code-fix run too.
+      state: TelemetryAiActivityReader.getState(
+        latestTurn
+          ? {
+              runType: run.runType,
+              status: latestTurn.status,
+              needsUserInput: latestTurn.needsUserInput,
+            }
+          : run,
+      ),
       insight: {
         id: data.problem.id!.toString(),
         title: data.problem.title || "",
@@ -360,9 +416,10 @@ export default class TelemetryAiActivityReader {
         );
       }
 
-      if (data.repository && data.pullRequest?.pullRequestState) {
+      // One recorded without a state is open, as Code reads it.
+      if (data.repository && data.pullRequest) {
         entry.pullRequest = {
-          state: data.pullRequest.pullRequestState,
+          state: data.pullRequest.pullRequestState || PullRequestState.Open,
           ...(data.pullRequest.pullRequestNumber
             ? { number: data.pullRequest.pullRequestNumber }
             : {}),

@@ -205,7 +205,7 @@ Vuelve a ejecutar el comando para cambiar cualquiera de estas opciones, o para p
 | `--key KEY` | `-Key KEY` | Una clave de ingesta de telemetría de tu proyecto. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Etiqueta el host. Repítela para más etiquetas; en Windows, enuméralas separadas por comas. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Da al recolector una variable de entorno, para configuraciones que leen `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | La versión del recolector que se instala, 0.161.0 por defecto. |
+| `--version VERSION` | `-Version VERSION` | La versión del recolector que se instala, 0.165.0 por defecto. |
 | `--download-url URL` | `-DownloadUrl URL` | Descarga las versiones desde un espejo con la misma estructura de carpetas que la de GitHub. |
 | `--proxy URL` | `-Proxy URL` | Envía las descargas y todo el tráfico del recolector a través de un proxy HTTP. |
 | `--replace-existing` | `-ReplaceExisting` | Detiene y desactiva un recolector instalado a mano. |

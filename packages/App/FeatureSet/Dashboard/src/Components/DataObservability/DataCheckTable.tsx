@@ -811,8 +811,20 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
                   ) : (
                     <></>
                   )}
+                  {/*
+                   * Why it could not run, in red. A check that ran says
+                   * only a note: that it ran at its second try, the
+                   * warehouse having failed its first for a moment
+                   * (#9679), or that it read no value.
+                   */}
                   {check.lastRunMessage ? (
-                    <span className="block whitespace-pre-line text-xs text-red-600">
+                    <span
+                      className={`block whitespace-pre-line text-xs ${
+                        check.lastRunStatus === DataCheckRunStatus.Failed
+                          ? "text-red-600"
+                          : "text-gray-500"
+                      }`}
+                    >
                       {check.lastRunMessage}
                     </span>
                   ) : (

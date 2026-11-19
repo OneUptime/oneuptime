@@ -132,7 +132,7 @@ export const VMWARE_AGENT_COMPOSE_FILE: string = `services:
     # needed. This is the version Tests/Ops/validate-collector-configs.sh
     # validates the config against, and the one the config reports as the
     # agent's version (oneuptime.agent.version); bump the three together.
-    image: otel/opentelemetry-collector-contrib:0.161.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     container_name: oneuptime-vmware-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
@@ -345,7 +345,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
       # Defensive: the native vcenter receiver does not synthesize
       # service.name / service.instance.id, but OTEL_RESOURCE_ATTRIBUTES

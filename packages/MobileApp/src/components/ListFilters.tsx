@@ -17,6 +17,8 @@ interface ListFiltersProps<T extends string> {
   onSelect: (key: T) => void;
   resultCount?: number;
   onReset?: () => void;
+  // Drawn between the chips and the result count: the filters that are on.
+  children?: React.ReactNode;
 }
 
 /** Keep the current filter, result count and way back to the full list together. */
@@ -26,6 +28,7 @@ export default function ListFilters<T extends string>({
   onSelect,
   resultCount,
   onReset,
+  children,
 }: ListFiltersProps<T>): React.JSX.Element {
   const { theme } = useTheme();
   return (
@@ -92,6 +95,7 @@ export default function ListFilters<T extends string>({
           );
         })}
       </View>
+      {children}
       {resultCount !== undefined || onReset ? (
         <View
           style={{

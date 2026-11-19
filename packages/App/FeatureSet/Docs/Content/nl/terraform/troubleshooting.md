@@ -22,6 +22,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | `This project has been blocked` | Vraag een hoofdbeheerder om het project te deblokkeren: zie [Een geblokkeerd project](#een-geblokkeerd-project) |
 | `references records that are not in this project` | Gebruik het ID van een record van je eigen project: zie [ID's van een ander project](#ids-van-een-ander-project) |
 | `Not Found` of `Ambiguous Match` van een data source | Corrigeer de argumenten van de zoekopdracht: zie [Zoekopdrachten die niets of meerdere vinden](#zoekopdrachten-die-niets-of-meerdere-vinden) |
+| `There is already a team called` (een label, een bereikbaarheidsbeleid, een bereikbaarheidsschema) | Geef het een naam die geen ander record van die soort heeft, of hernoem eerst het andere: zie [Namen die een ander record al heeft](#namen-die-een-ander-record-al-heeft) |
 | `Cannot import non-existent remote object` | Controleer het ID en de machtigingen van de sleutel: zie [Resources importeren](/docs/terraform/importing-resources#probleemoplossing) |
 | `Provider produced inconsistent result after apply` | Upgrade de provider: zie [Inconsistent resultaat na apply](#inconsistent-resultaat-na-apply) |
 | Een plan maakt een resource aan die je niet hebt toegevoegd | De sleutel kan hem niet meer lezen, en OneUptime antwoordde `404`: geef de sleutel zijn leestoegang terug, en importeer de resource daarna met `terraform import`: zie [Een resource verlaat de state, en de volgende apply maakt hem opnieuw aan](#een-resource-verlaat-de-state-en-de-volgende-apply-maakt-hem-opnieuw-aan) |
@@ -102,6 +103,12 @@ Meestal betekent het dat een ID is gekopieerd uit de configuratie of state van e
 ### Zoekopdrachten die niets of meerdere vinden
 
 Een data source vindt precies één record, of stopt het plan. `Not Found` zegt dat geen enkel record het `id` heeft, of dat geen enkel record overeenkomt met de argumenten die je hebt ingesteld; `Ambiguous Match` zegt dat er meerdere overeenkomen. Corrigeer de argumenten, stel er meer in om de zoekopdracht tot één te beperken, of zoek het record op via `id`. [Lezen wat al bestaat](/docs/terraform/complete-guide#lezen-wat-al-bestaat) geeft de regels.
+
+### Namen die een ander record al heeft
+
+Teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's hebben in een project elk een eigen naam, ongeacht hoofdletters en spaties. Aanmaken of hernoemen naar een naam die een ander record van dezelfde soort al heeft, krijgt `400` als antwoord, zoals `There is already an on-call policy called Primary in this project. Pick another name.` Een gearchiveerd bereikbaarheidsbeleid houdt zijn naam: haal het uit het archief, of kies een andere naam. Records die al eerder een naam deelden, houden die, en de lijsten van teams, bereikbaarheidsbeleid en bereikbaarheidsschema's in het dashboard markeren ze.
+
+Terraform voert de wijzigingen van één apply naast elkaar uit, dus een hernoeming naar een naam die een andere resource in dezelfde apply opgeeft, kan worden geweigerd zolang die andere de naam nog heeft: pas opnieuw toe, of voeg een `depends_on` toe van de resource die de naam overneemt naar de resource die hem opgeeft. Een ruil, A naar B en B naar A, of elke keten van hernoemingen die eindigt waar hij begon, kan niet in één apply: hernoem er één naar een naam die niemand heeft, pas toe, en voer dan de rest van de wijziging uit.
 
 ## Plannen die niet tot rust komen
 

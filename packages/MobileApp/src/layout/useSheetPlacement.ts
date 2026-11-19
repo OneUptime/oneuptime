@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Keyboard, Platform, type EmitterSubscription } from "react-native";
-import { useWindowLayout } from "./WindowLayout";
+import { useWindowLayout } from "./WindowLayoutProvider";
 import type { WindowLayout } from "./windowLayout";
 import { getSheetPlacement, type SheetPlacement } from "./sheetPlacement";
 

@@ -23,6 +23,12 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
  * page of rows at a time, as the reader: three list reads, whatever the page
  * holds. Best effort - a read that fails leaves every row as it was,
  * "Already added", which is still true.
+ *
+ * Always by the device, never by the address: two sites can each have a
+ * 10.0.0.5 (issue #9677), and one branch's monitor says nothing about the
+ * other branch's device. A scan's host names the device it is
+ * (DiscoveredNetworkDevice.registeredDeviceId, which the server works out
+ * from the scan's probe), and a Discovered Devices row its monitored device.
  */
 
 export interface DeviceMonitorLink {
@@ -38,34 +44,27 @@ export interface DeviceMonitorsSummary {
 }
 
 export interface DeviceMonitorsByKey {
+  // By the device's id, lower-cased.
   byDeviceId: Map<string, DeviceMonitorsSummary>;
-  /*
-   * By the address a device is at, for a scan's hosts. Two sites can both
-   * have a 10.0.0.5, so an address can name several devices: their
-   * monitors are listed together, the first device's leading.
-   */
-  byHostname: Map<string, DeviceMonitorsSummary>;
 }
 
 export function emptyDeviceMonitorsByKey(): DeviceMonitorsByKey {
-  return { byDeviceId: new Map(), byHostname: new Map() };
+  return { byDeviceId: new Map() };
 }
 
 /*
- * A row's summary, when its device has a monitor: by the device's id (a
- * Discovered Devices row), else by the host's address (a scan's host).
- * Undefined when the row's device has none, or was not read.
+ * A row's summary, when its device has a monitor: by the device's id - a
+ * Discovered Devices row's monitored device, or the device a scan's host is.
+ * Undefined when the row is no known device, its device has none, or it was
+ * not read.
  */
 export function getMonitorsOfRow(data: {
   monitors: DeviceMonitorsByKey;
   deviceId?: string | undefined;
-  hostname?: string | undefined;
 }): DeviceMonitorsSummary | undefined {
   const summary: DeviceMonitorsSummary | undefined = data.deviceId
     ? data.monitors.byDeviceId.get(data.deviceId.toLowerCase())
-    : data.hostname
-      ? data.monitors.byHostname.get(data.hostname.trim())
-      : undefined;
+    : undefined;
 
   return summary && summary.monitors.length > 0 ? summary : undefined;
 }
@@ -147,76 +146,47 @@ export function summarizeDeviceMonitors(data: {
       addLink(monitors, toLink(monitor));
     }
 
-    const summary: DeviceMonitorsSummary = {
+    result.byDeviceId.set(deviceId.toLowerCase(), {
       deviceId: deviceId,
       monitors: monitors,
-    };
-
-    result.byDeviceId.set(deviceId.toLowerCase(), summary);
-
-    const hostname: string = (device.hostname || "").trim();
-
-    if (!hostname) {
-      continue;
-    }
-
-    const atAddress: DeviceMonitorsSummary | undefined =
-      result.byHostname.get(hostname);
-
-    if (!atAddress) {
-      result.byHostname.set(hostname, {
-        deviceId: deviceId,
-        monitors: [...monitors],
-      });
-      continue;
-    }
-
-    for (const link of monitors) {
-      addLink(atAddress.monitors, link);
-    }
+    });
   }
 
   return result;
 }
 
-/*
- * The monitors of the devices with these ids, or at these addresses, as the
- * reader may read them. Nothing to ask about asks nothing.
- */
-export async function loadDeviceMonitors(data: {
-  deviceIds?: ReadonlyArray<string> | undefined;
-  hostnames?: ReadonlyArray<string> | undefined;
-}): Promise<DeviceMonitorsByKey> {
-  const deviceIds: Array<string> = Array.from(
+// Ids, each once, lower-cased, with none empty.
+function uniqueIds(ids: ReadonlyArray<string>): Array<string> {
+  return Array.from(
     new Set(
-      (data.deviceIds || []).filter((id: string): boolean => {
-        return Boolean(id);
-      }),
-    ),
-  );
-  const hostnames: Array<string> = Array.from(
-    new Set(
-      (data.hostnames || [])
-        .map((hostname: string): string => {
-          return hostname.trim();
+      ids
+        .map((id: string): string => {
+          return (id || "").trim().toLowerCase();
         })
-        .filter((hostname: string): boolean => {
-          return Boolean(hostname);
+        .filter((id: string): boolean => {
+          return Boolean(id);
         }),
     ),
   );
+}
 
-  if (deviceIds.length === 0 && hostnames.length === 0) {
+/*
+ * The monitors of the devices with these ids, as the reader may read them.
+ * Nothing to ask about asks nothing.
+ */
+export async function loadDeviceMonitors(data: {
+  deviceIds: ReadonlyArray<string>;
+}): Promise<DeviceMonitorsByKey> {
+  const deviceIds: Array<string> = uniqueIds(data.deviceIds);
+
+  if (deviceIds.length === 0) {
     return emptyDeviceMonitorsByKey();
   }
 
   const devices: ListResult<NetworkDevice> =
     await ModelAPI.getList<NetworkDevice>({
       modelType: NetworkDevice,
-      query:
-        deviceIds.length > 0
-          ? { _id: new Includes(deviceIds) }
-          : { hostname: new Includes(hostnames) },
+      query: { _id: new Includes(deviceIds) },
       select: {
         _id: true,
         hostname: true,
@@ -287,55 +257,39 @@ export async function loadDeviceMonitors(data: {
 }
 
 /*
- * How many addresses one read of the devices at a scan's hosts names: a
- * scan's already-added hosts can be thousands, and one list read names a
- * project's page of devices at most.
+ * How many devices one read names: a scan's already-added hosts can be
+ * thousands, and one list read names a project's page of devices at most.
  */
-export const DEVICE_MONITORS_HOSTNAMES_PER_READ: number = 200;
+export const DEVICE_MONITORS_DEVICES_PER_READ: number = 200;
 
 /*
- * The monitors of the devices at every one of these addresses - all of a
- * scan's hosts that are devices already, as Review Results needs them to
- * tell which can be picked to get a monitor (issue #9544) - read a piece at
- * a time and put together. A piece that fails fails the whole read: the
- * caller then offers every device, and the server's duplicate rule keeps
- * each to one monitor of a kind.
+ * The monitors of every one of these devices - all the devices a scan's
+ * hosts already are, as Review Results needs them to tell which can be
+ * picked to get a monitor (issue #9544) - read a piece at a time and put
+ * together. A piece that fails fails the whole read: the caller then offers
+ * every device, and the server's duplicate rule keeps each to one monitor of
+ * a kind.
  */
-export async function loadDeviceMonitorsForHostnames(
-  hostnames: ReadonlyArray<string>,
+export async function loadDeviceMonitorsForDeviceIds(
+  deviceIds: ReadonlyArray<string>,
 ): Promise<DeviceMonitorsByKey> {
-  const unique: Array<string> = Array.from(
-    new Set(
-      hostnames
-        .map((hostname: string): string => {
-          return hostname.trim();
-        })
-        .filter((hostname: string): boolean => {
-          return Boolean(hostname);
-        }),
-    ),
-  );
-
+  const unique: Array<string> = uniqueIds(deviceIds);
   const merged: DeviceMonitorsByKey = emptyDeviceMonitorsByKey();
 
   for (
     let offset: number = 0;
     offset < unique.length;
-    offset += DEVICE_MONITORS_HOSTNAMES_PER_READ
+    offset += DEVICE_MONITORS_DEVICES_PER_READ
   ) {
     const piece: DeviceMonitorsByKey = await loadDeviceMonitors({
-      hostnames: unique.slice(
+      deviceIds: unique.slice(
         offset,
-        offset + DEVICE_MONITORS_HOSTNAMES_PER_READ,
+        offset + DEVICE_MONITORS_DEVICES_PER_READ,
       ),
     });
 
     for (const [key, summary] of piece.byDeviceId) {
       merged.byDeviceId.set(key, summary);
-    }
-
-    for (const [key, summary] of piece.byHostname) {
-      merged.byHostname.set(key, summary);
     }
   }
 
@@ -343,19 +297,20 @@ export async function loadDeviceMonitorsForHostnames(
 }
 
 /*
- * The addresses whose device - any device at that address - has a monitor:
- * the hosts Review Results never offers to give a second one (issue #9544).
+ * The devices, by id (lower-cased), that have a monitor: the ones Review
+ * Results and Add to monitoring never offer to give a second one (issues
+ * #9544, #9675).
  */
-export function getMonitoredAddresses(
+export function getMonitoredDeviceIds(
   monitors: DeviceMonitorsByKey,
 ): Set<string> {
-  const addresses: Set<string> = new Set<string>();
+  const deviceIds: Set<string> = new Set<string>();
 
-  for (const [hostname, summary] of monitors.byHostname) {
+  for (const [deviceId, summary] of monitors.byDeviceId) {
     if (summary.monitors.length > 0) {
-      addresses.add(hostname);
+      deviceIds.add(deviceId);
     }
   }
 
-  return addresses;
+  return deviceIds;
 }

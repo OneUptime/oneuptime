@@ -1,0 +1,524 @@
+# The agent grants nodes/proxy only where nothing narrower works (#9878).
+#
+# nodes/proxy reaches the whole kubelet API - a GET on it can run commands in
+# any container of the node - and CIS Kubernetes Benchmark 5.1.10 fails every
+# binding that grants it, so every cluster running the agent failed 5.1.10 on
+# its Compliance page. The kubelet authorizes each path as a subresource of
+# nodes: /stats/* as nodes/stats, /metrics/* (cAdvisor's included) as
+# nodes/metrics, /pods as nodes/pods from Kubernetes 1.33
+# (KubeletFineGrainedAuthz), and the rest as nodes/proxy.
+#
+# Two things asked for it:
+#
+#   - The node collector's kubeletstats reads each node's pod list (/pods),
+#     and sends nothing from a node whose kubelet refuses it. From 1.33 the
+#     kubelet takes nodes/pods, always granted; an older one only
+#     nodes/proxy. kubeletstats.nodesProxy: auto grants it while the cluster
+#     is older than 1.36, the first version whose kubelets are all 1.33 or
+#     later (a kubelet may be three minor versions behind the API server).
+#   - The bundled cost Prometheus read cAdvisor through the API server's node
+#     proxy. It now reads each node's kubelet (nodes/metrics), and goes
+#     through the API server only where cost.prometheus.nodesProxy says so:
+#     auto on the eks-fargate preset, where no pod reaches a kubelet.
+#
+# The ClusterRole says why it grants nodes/proxy in its
+# oneuptime.com/nodes-proxy label, which the cluster's Compliance page reads.
+suite: the agent grants nodes/proxy only where a node needs it
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/rbac.yaml
+  - templates/prometheus-cost.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- The ClusterRole ---------------------------------------------------------
+  - it: grants no nodes/proxy on Kubernetes 1.36, and reads the kubelet through its own subresources
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 36
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [nodes/proxy]
+            verbs: ["get"]
+      - notContains:
+          path: rules
+          content:
+            resources: [nodes/proxy]
+          any: true
+      - notContains:
+          path: rules[0].resources
+          content: nodes/proxy
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - nodes/stats
+              - nodes/metrics
+              - nodes/pods
+            verbs: ["get"]
+      - notExists:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+
+  - it: grants none on a later version either
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 38
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            resources: [nodes/proxy]
+          any: true
+      - notExists:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+
+  # The shared rule lists, watches and gets kinds of the API: none of the
+  # kubelet's subresources is in it, and nodes/stats is read with get alone.
+  - it: keeps the kubelet's subresources out of the rule that lists and watches
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 37
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules[0].resources
+          content: nodes/stats
+      - notContains:
+          path: rules[0].resources
+          content: nodes/metrics
+      - notContains:
+          path: rules[0].resources
+          content: nodes/pods
+      - contains:
+          path: rules[0].resources
+          content: nodes
+
+  # The API server serves /metrics, which the control plane scrape reads; it
+  # serves no /metrics/cadvisor, so nothing is granted on it.
+  - it: grants GET on the API server's /metrics alone
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            nonResourceURLs:
+              - /metrics
+            verbs: ["get"]
+      - notContains:
+          path: rules
+          content:
+            nonResourceURLs:
+              - /metrics
+              - /metrics/cadvisor
+            verbs: ["get"]
+
+  - it: grants nodes/proxy, GET only, while the cluster is older than 1.36, and says why
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 35
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [nodes/proxy]
+            verbs: ["get"]
+          count: 1
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: kubelet-pods
+      # nodes/pods too: a kubelet from 1.33 checks it before nodes/proxy.
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - nodes/stats
+              - nodes/metrics
+              - nodes/pods
+            verbs: ["get"]
+      - notContains:
+          path: rules[0].resources
+          content: nodes/proxy
+
+  - it: grants it on 1.33, whose control plane may still run 1.30 kubelets
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 33
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [nodes/proxy]
+            verbs: ["get"]
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: kubelet-pods
+
+  - it: grants it on 1.32, whose kubelets read their pod list only for nodes/proxy
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 32
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [nodes/proxy]
+            verbs: ["get"]
+
+  - it: grants none with kubeletstats.nodesProxy false, once every node runs 1.33 or later
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 34
+    set:
+      kubeletstats.nodesProxy: false
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            resources: [nodes/proxy]
+          any: true
+      - notExists:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+
+  - it: grants it with kubeletstats.nodesProxy true, for kubelets with fine-grained authorization off
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 37
+    set:
+      kubeletstats.nodesProxy: true
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [nodes/proxy]
+            verbs: ["get"]
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: kubelet-pods
+
+  - it: reads the setting as a string too, as --set-string writes it
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 35
+    set:
+      kubeletstats.nodesProxy: "false"
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notExists:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+
+  - it: refuses a setting that is none of true, false and auto
+    template: templates/rbac.yaml
+    set:
+      kubeletstats.nodesProxy: sometimes
+    asserts:
+      - failedTemplate:
+          errorPattern: "nodesProxy"
+
+  # EKS Fargate runs no node collector, so nothing reads a kubelet's pod list.
+  - it: grants none on the eks-fargate preset, whose cost monitoring is off
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 33
+    set:
+      preset: eks-fargate
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            resources: [nodes/proxy]
+          any: true
+      - notExists:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+
+  - it: grants it for the cost Prometheus on eks-fargate with cost monitoring on, and says so
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 37
+    set:
+      preset: eks-fargate
+      cost.enabled: true
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [nodes/proxy]
+            verbs: ["get"]
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: cost-prometheus
+
+  - it: names both reasons in one grant when both need it
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 35
+    set:
+      cost.prometheus.nodesProxy: true
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [nodes/proxy]
+            verbs: ["get"]
+          count: 1
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: kubelet-pods.cost-prometheus
+
+  - it: grants none for a cost Prometheus the chart does not run
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 37
+    set:
+      cost.prometheus.nodesProxy: true
+      cost.enabled: false
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            resources: [nodes/proxy]
+          any: true
+
+  - it: grants none for it while the cluster's own cost engine is read
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 37
+    set:
+      cost.prometheus.nodesProxy: true
+      cost.engine.url: http://opencost.opencost.svc.cluster.local:9003
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            resources: [nodes/proxy]
+          any: true
+
+  # A release upgraded with --reuse-values from 14.0.10 has neither key: it is
+  # auto, as a fresh install's.
+  - it: drops it on 1.36 for a release upgraded with --reuse-values from 14.0.10
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 36
+    values:
+      - values/reuse-values-14.0.10.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            resources: [nodes/proxy]
+          any: true
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - nodes/stats
+              - nodes/metrics
+              - nodes/pods
+            verbs: ["get"]
+
+  - it: keeps it on 1.34 for a release upgraded with --reuse-values from 14.0.10
+    template: templates/rbac.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 34
+    values:
+      - values/reuse-values-14.0.10.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - equal:
+          path: metadata.labels["oneuptime.com/nodes-proxy"]
+          value: kubelet-pods
+
+  # --- The cost Prometheus's cAdvisor scrape -------------------------------------
+  - it: reads each node's kubelet for cAdvisor, with the service account's token
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "- job_name: kubernetes-nodes-cadvisor\\n\\s+scheme: https\\n\\s+metrics_path: /metrics/cadvisor\\n\\s+tls_config:\\n\\s+insecure_skip_verify: true\\n\\s+authorization:\\n\\s+credentials_file: /var/run/secrets/kubernetes\\.io/serviceaccount/token\\n\\s+kubernetes_sd_configs:\\n\\s+- role: node\\n"
+      # Node discovery's own address: the node's InternalIP, on the kubelet's port.
+      - notMatchRegex:
+          path: data["prometheus.yml"]
+          pattern: "__address__|kubernetes\\.default\\.svc|/proxy/"
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "- action: labelmap\\n\\s+regex: __meta_kubernetes_node_label_\\(\\.\\+\\)\\n"
+
+  - it: leaves EKS Fargate's nodes out, whose kubelets no pod reaches
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "relabel_configs:\\n(?:\\s+#[^\\n]*\\n)*\\s+- source_labels: \\[__meta_kubernetes_node_label_eks_amazonaws_com_compute_type\\]\\n\\s+regex: fargate\\n\\s+action: drop\\n"
+
+  - it: reads it through the API server's node proxy on eks-fargate with cost monitoring on
+    template: templates/prometheus-cost.yaml
+    set:
+      preset: eks-fargate
+      cost.enabled: true
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "- target_label: __address__\\n\\s+replacement: kubernetes\\.default\\.svc:443\\n\\s+- source_labels: \\[__meta_kubernetes_node_name\\]\\n\\s+regex: \\(\\.\\+\\)\\n\\s+target_label: __metrics_path__\\n\\s+replacement: /api/v1/nodes/\\$1/proxy/metrics/cadvisor\\n"
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "tls_config:\\n\\s+ca_file: /var/run/secrets/kubernetes\\.io/serviceaccount/ca\\.crt\\n\\s+insecure_skip_verify: true\\n\\s+authorization:\\n\\s+credentials_file: /var/run/secrets/kubernetes\\.io/serviceaccount/token\\n"
+      - notMatchRegex:
+          path: data["prometheus.yml"]
+          pattern: "metrics_path: /metrics/cadvisor|eks_amazonaws_com_compute_type"
+
+  - it: reads it through the API server where cost.prometheus.nodesProxy says so
+    template: templates/prometheus-cost.yaml
+    set:
+      cost.prometheus.nodesProxy: true
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "replacement: /api/v1/nodes/\\$1/proxy/metrics/cadvisor\\n"
+
+  - it: reads each kubelet on eks-fargate too when cost.prometheus.nodesProxy is false
+    template: templates/prometheus-cost.yaml
+    set:
+      preset: eks-fargate
+      cost.enabled: true
+      cost.prometheus.nodesProxy: false
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "metrics_path: /metrics/cadvisor\\n"
+      - notMatchRegex:
+          path: data["prometheus.yml"]
+          pattern: "/proxy/"
+
+  - it: keeps the job's name, which the cost agent reads memory peaks by, either way
+    template: templates/prometheus-cost.yaml
+    set:
+      cost.prometheus.nodesProxy: true
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "- job_name: kubernetes-nodes-cadvisor\\n"
+
+  - it: reads each kubelet for a release upgraded with --reuse-values from 14.0.10
+    template: templates/prometheus-cost.yaml
+    values:
+      - values/reuse-values-14.0.10.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "metrics_path: /metrics/cadvisor\\n"
+      - notMatchRegex:
+          path: data["prometheus.yml"]
+          pattern: "/proxy/"
+
+  # Prometheus reads its configuration only when it starts: the pod rolls on
+  # a hash of what the ConfigMap renders, so a release upgraded with
+  # --reuse-values, whose values are unchanged, still reads the new scrape.
+  - it: rolls Prometheus on a hash of the configuration it renders
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/config"]
+          pattern: "^[0-9a-f]{32}$"

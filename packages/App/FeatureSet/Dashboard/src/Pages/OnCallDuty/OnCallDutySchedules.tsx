@@ -52,6 +52,10 @@ import PlanLeftoverPage from "../../Components/Billing/PlanLeftoverPage";
 import PlanLeftoverTable from "../../Components/Billing/PlanLeftoverTable";
 import { PlanLeftoverTitle } from "../../Components/Billing/PlanLeftoverCopy";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import useSharedNames, {
+  SharedNamesOfList,
+} from "../../Components/SharedName/UseSharedNames";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
 
 /*
  * Whether the user may add layers and people to them, which "Who takes
@@ -129,8 +133,25 @@ const OnCallDutyPage: FunctionComponent<
   const usedBy: UsedByListActions<OnCallDutySchedule> =
     getUsedByListActions<OnCallDutySchedule>(UsedByRecordKind.OnCallSchedule);
 
+  /*
+   * Schedules that share a name with another schedule (#9746): made before
+   * a schedule's name was one schedule's (#9742), they keep it, and every
+   * picker draws them alike. Marked beside their name, counted above the
+   * list with how to tell them apart, and each given Rename.
+   */
+  const sharedNames: SharedNamesOfList<OnCallDutySchedule> =
+    useSharedNames<OnCallDutySchedule>({
+      kind: SharedNameKind.OnCallSchedule,
+      modelType: OnCallDutySchedule,
+    });
+
   return (
     <Fragment>
+      {/*
+       * Above the list while records share a name (#9746): how many, and
+       * how to tell them apart. Nothing otherwise.
+       */}
+      {sharedNames.note}
       <ModelTable<OnCallDutySchedule>
         modelType={OnCallDutySchedule}
         /*
@@ -151,6 +172,8 @@ const OnCallDutyPage: FunctionComponent<
          * opens its create form from it (#7035).
          */
         opensCreateFormFromAddress={true}
+        refreshToggle={sharedNames.refreshToken}
+        actionButtons={[sharedNames.renameAction]}
         topContent={filterBar}
         /*
          * Beside the empty list's Create, a link to bring the schedules over
@@ -166,6 +189,7 @@ const OnCallDutyPage: FunctionComponent<
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<OnCallDutySchedule>) => {
           onResourcesFetched(data);
+          sharedNames.onListFetched();
         }}
         saveFilterProps={{
           tableId: "on-call-schedules-table",
@@ -275,13 +299,8 @@ const OnCallDutyPage: FunctionComponent<
           },
         }}
         columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
+          // The schedule's name, marked when another schedule shares it (#9746).
+          sharedNames.nameColumn,
           {
             field: {
               currentUserOnRoster: {
@@ -370,6 +389,7 @@ const OnCallDutyPage: FunctionComponent<
       />
       {labelBulkActionModals}
       {ownerBulkActionModals}
+      {sharedNames.renameModal}
     </Fragment>
   );
 };

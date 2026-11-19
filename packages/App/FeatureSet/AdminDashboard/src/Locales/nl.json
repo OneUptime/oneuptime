@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Heeft deze persoon nog geen OneUptime-account, dan wordt het met deze naam aangemaakt.",
   "Suggest every account on this server?": "Elk account op deze server voorstellen?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Iedereen die mensen mag uitnodigen, ziet tijdens het typen de naam en het e-mailadres van elk account. Zet dit alleen aan als elk account hier bij één organisatie hoort.",
-  "Suggest Every Account": "Elk account voorstellen"
+  "Suggest Every Account": "Elk account voorstellen",
+  "Sign Out URL": "Afmeldings-URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "De afmeldings-URL van je identiteitsprovider (Single Sign-out). Nodig om mensen ook daar af te melden.",
+  "Single Logout URL:": "Single Logout-URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Geef de identiteitsprovider ook de Single Logout-URL en het ondertekeningscertificaat van OneUptime om mensen ook daar af te melden.",
+  "Download Signing Certificate": "Ondertekeningscertificaat downloaden"
 }
