@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { PodSecurity, readPodSecurity } from "./KubernetesPodSecurity";
 
 /*
  * ============================================================
@@ -420,6 +421,13 @@ export interface KubernetesPodObject {
       type: string;
       source: string;
     }>;
+    /*
+     * What the pod says about its own security (#9627): its security
+     * contexts, host namespaces, token automounting and the secrets its
+     * containers read, for the cluster's Compliance page
+     * (KubernetesPodSecurity). Optional: pods stored before it have none.
+     */
+    security?: PodSecurity | undefined;
   };
   status: {
     phase: string;
@@ -1295,6 +1303,11 @@ export function parsePodObject(
         nodeSelector,
         tolerations,
         volumes,
+        // Only from a spec the agent sent: none is not evaluated, not "sets nothing".
+        security:
+          specKv && typeof specKv !== "string"
+            ? readPodSecurity(kvListToPlainObject(specKv), metadata.annotations)
+            : undefined,
       },
       status: podStatus,
     };
