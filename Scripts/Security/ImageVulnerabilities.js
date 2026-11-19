@@ -842,7 +842,7 @@ function groupTitle(group) {
     return "Security: upgrade the infrastructure agent's Go dependencies";
   }
   const name = group.name.replace(/[^A-Za-z0-9._/:+~-]/g, "").slice(0, 80);
-  return `Security: upgrade ${name || "a package"} in ${listOf(group.images)}`;
+  return `Security: upgrade ${name || "a package"} in the ${listOf(group.images)} image${group.images.length === 1 ? "" : "s"}`;
 }
 
 function groupHeading(group) {

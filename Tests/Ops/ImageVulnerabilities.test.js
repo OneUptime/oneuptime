@@ -630,7 +630,7 @@ describe("the issue", () => {
   });
 
   test("starts with the marker the nightly run finds it by, and says what, where and how", () => {
-    expect(rendered.title).toBe("Security: upgrade nginx in nginx");
+    expect(rendered.title).toBe("Security: upgrade nginx in the nginx image");
     expect(V.markerOf(rendered.body)).toBe("apk:nginx");
     expect(rendered.body).toContain(
       "[CVE-2026-0001](https://nvd.nist.gov/vuln/detail/CVE-2026-0001)",
@@ -668,7 +668,7 @@ describe("the issue", () => {
     expect(rendered).not.toContain("example.com");
     expect(rendered).not.toContain("@team");
     expect(rendered).not.toContain("<script>");
-    expect(title).toBe("Security: upgrade team/pkgxscript in nginx");
+    expect(title).toBe("Security: upgrade team/pkgxscript in the nginx image");
   });
 
   test("its marker survives any package name, and cannot end the comment it is in", () => {
