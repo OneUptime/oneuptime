@@ -64,6 +64,8 @@ import {
   DataLineageMapUsageRow,
   MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS,
   MAX_DATA_LINEAGE_MAP_BI_TOOLS,
+  MAX_DATA_LINEAGE_MAP_DASHBOARDS,
+  MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES,
   MAX_DATA_LINEAGE_MAP_FOCUS_TABLES,
   MAX_DATA_LINEAGE_MAP_LINEAGE_ROWS,
   MAX_DATA_LINEAGE_MAP_USAGE_ROWS,
@@ -523,11 +525,17 @@ describe("DataLineageMapReader.build, with BI dashboards no flow draws", () => {
     expect(r.asked.tables).toEqual([]);
   });
 
-  test("a reader limited to some tables is drawn only the dashboards the flows of their tables lead to", async () => {
+  /*
+   * A reader limited to some tables (#9526) is drawn the BI dashboards
+   * their tables lead to (#9553) - before, none at all - each with only
+   * those tables, and never a dashboard on no table they may read, nor one
+   * on no watched table: its datasets and sources are no table of theirs.
+   */
+  test("a reader limited to some tables is drawn the dashboards their tables lead to, with only those tables", async () => {
     const r: Readers = readers({
       lineage: [],
       usages: [],
-      tables: [tableRow("orders")],
+      tables: [tableRow("orders"), tableRow("salaries")],
     });
     const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
       withBi(r, [
@@ -538,6 +546,40 @@ describe("DataLineageMapReader.build, with BI dashboards no flow draws", () => {
           url: null,
           dataAssetIds: ["orders"],
           upstream: null,
+        },
+        {
+          dataDashboardId: "mixed",
+          name: "Orders and Salaries",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders", "salaries"],
+          upstream: null,
+        },
+        {
+          dataDashboardId: "payroll",
+          name: "Payroll",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["salaries"],
+          upstream: null,
+        },
+        {
+          dataDashboardId: "checklist",
+          name: "Checklist",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: [],
+          upstream: {
+            datasets: [
+              {
+                id: "ds-checklist",
+                name: "Checklist",
+                workspace: "Ops",
+                sources: [SHAREPOINT],
+              },
+            ],
+            sources: [SHAREPOINT],
+          },
         },
       ]);
     const onlyOrders: DataLineageReadable = {
@@ -558,6 +600,24 @@ describe("DataLineageMapReader.build, with BI dashboards no flow draws", () => {
       details: r.details,
       now: NOW,
     });
+
+    expect(
+      whole.nodes.map((node: DataLineageMapNode): string => {
+        return node.id;
+      }),
+    ).toEqual([
+      "dashboard:checklist",
+      "dashboard:facilities",
+      "dashboard:mixed",
+      "dashboard:payroll",
+      "dataset:ds-checklist",
+      getLineageMapSourceNodeId(SHAREPOINT),
+      "table:orders",
+      "table:salaries",
+    ]);
+
+    r.asked.tables.length = 0;
+
     const limited: DataLineageMap = await DataLineageMapReader.build({
       flows: bi.flows,
       details: r.details,
@@ -566,13 +626,319 @@ describe("DataLineageMapReader.build, with BI dashboards no flow draws", () => {
     });
 
     expect(
-      whole.nodes.map((node: DataLineageMapNode): string => {
+      limited.nodes.map((node: DataLineageMapNode): string => {
         return node.id;
       }),
-    ).toEqual(["dashboard:facilities", "table:orders"]);
-    // Read once: for the whole map, not the limited one.
-    expect(bi.limits).toHaveLength(1);
-    expect(limited.nodes).toEqual([]);
+    ).toEqual(["dashboard:facilities", "dashboard:mixed", "table:orders"]);
+    expect(
+      limited.edges.map((edge: { id: string }): string => {
+        return edge.id;
+      }),
+    ).toEqual([
+      "Reads:table:orders>dashboard:facilities",
+      "Reads:table:orders>dashboard:mixed",
+    ]);
+    // A table they may not read is never read for them.
+    expect(r.asked.tables).toEqual([["orders"]]);
+  });
+});
+
+/*
+ * A map that starts somewhere finds BI dashboards no flow draws (#9553):
+ * a search draws first the dashboards it names - by their names, or their
+ * datasets' or data sources' - and a database the dashboards on its
+ * tables, the usual case for a project whose only lineage is its BI
+ * tool's. Before, a search for a Power BI report on no watched table found
+ * nothing, and one among hundreds on the same dataset could be left off.
+ */
+describe("DataLineageMapReader.build, starting from a database or a search", () => {
+  const SHAREPOINT: DataBiSource = {
+    type: "SharePoint",
+    engine: null,
+    server: null,
+    database: null,
+    location: "https://acme.sharepoint.com/sites/facilities",
+  };
+
+  function dashboardRow(
+    id: string,
+    fields: Partial<DataLineageMapDashboardRow> = {},
+  ): DataLineageMapDashboardRow {
+    return {
+      dataDashboardId: id,
+      name: id,
+      tool: "Power BI",
+      url: null,
+      dataAssetIds: [],
+      upstream: null,
+      ...fields,
+    };
+  }
+
+  function focused(
+    r: Readers,
+    data: {
+      named?: Array<DataLineageMapDashboardRow>;
+      onTables?: Array<DataLineageMapDashboardRow>;
+    },
+  ): DataLineageMapFlowReader {
+    return {
+      ...r.flows,
+      readNamedDashboards: async (limit: number) => {
+        return (data.named || []).slice(0, limit);
+      },
+      readBiDashboards: async (limit: number) => {
+        return (data.onTables || []).slice(0, limit);
+      },
+    };
+  }
+
+  test("a search draws the report it names first, though hundreds of others are built on the same table", async () => {
+    const onOrders: Array<DataLineageDashboardRow> = Array.from(
+      { length: 300 },
+      (_: unknown, index: number): DataLineageDashboardRow => {
+        return {
+          dataDashboardId: `d${String(index).padStart(3, "0")}`,
+          name: `Dashboard ${String(index).padStart(3, "0")}`,
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+        };
+      },
+    );
+    const r: Readers = readers({
+      lineage: [
+        {
+          upstreamDataAssetId: "raw",
+          downstreamDataAssetId: "orders",
+          dataPipelineId: null,
+          source: DataAssetLineageSource.QueryHistory,
+          lastSeenAt: NOW,
+        },
+      ],
+      usages: [],
+      tables: [tableRow("raw"), tableRow("orders")],
+      dashboards: onOrders,
+    });
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: focused(r, {
+        // The 250th by name: past the most a map draws, read by name.
+        named: [
+          dashboardRow("d250", {
+            name: "Dashboard 250",
+            dataAssetIds: ["orders"],
+          }),
+        ],
+      }),
+      details: r.details,
+      now: NOW,
+    });
+    const dashboards: Array<string> = map.nodes
+      .filter((node: DataLineageMapNode): boolean => {
+        return node.id.startsWith("dashboard:");
+      })
+      .map((node: DataLineageMapNode): string => {
+        return node.id;
+      });
+
+    expect(dashboards).toContain("dashboard:d250");
+    expect(dashboards).toHaveLength(MAX_DATA_LINEAGE_MAP_DASHBOARDS);
+    expect(map.isTruncated).toBe(true);
+    // The flows' dashboards fill the room it leaves.
+    expect(r.asked.dashboards[0]!.limit).toBe(
+      MAX_DATA_LINEAGE_MAP_DASHBOARDS - 1 + 1 + 1,
+    );
+  });
+
+  test("named dashboards that fill the room still let the map say the flows' own were left off", async () => {
+    const named: Array<DataLineageMapDashboardRow> = Array.from(
+      { length: MAX_DATA_LINEAGE_MAP_DASHBOARDS },
+      (_: unknown, index: number): DataLineageMapDashboardRow => {
+        return dashboardRow(`named${String(index).padStart(3, "0")}`, {
+          dataAssetIds: ["orders"],
+        });
+      },
+    );
+    const r: Readers = readers({
+      lineage: [
+        {
+          upstreamDataAssetId: "raw",
+          downstreamDataAssetId: "orders",
+          dataPipelineId: null,
+          source: DataAssetLineageSource.QueryHistory,
+          lastSeenAt: NOW,
+        },
+      ],
+      usages: [],
+      tables: [tableRow("raw"), tableRow("orders")],
+      // One the search named, and one it did not.
+      dashboards: [
+        {
+          dataDashboardId: "named000",
+          name: "named000",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+        },
+        {
+          dataDashboardId: "other",
+          name: "Other",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+        },
+      ],
+    });
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: focused(r, { named }),
+      details: r.details,
+      now: NOW,
+    });
+    const dashboards: Array<string> = map.nodes
+      .filter((node: DataLineageMapNode): boolean => {
+        return node.id.startsWith("dashboard:");
+      })
+      .map((node: DataLineageMapNode): string => {
+        return node.id;
+      });
+
+    expect(dashboards).toHaveLength(MAX_DATA_LINEAGE_MAP_DASHBOARDS);
+    expect(dashboards).not.toContain("dashboard:other");
+    // Read though no room was left: enough to pass those drawn and know one was not.
+    expect(r.asked.dashboards[0]!.limit).toBe(
+      MAX_DATA_LINEAGE_MAP_DASHBOARDS + 1,
+    );
+    expect(map.isTruncated).toBe(true);
+  });
+
+  test("in a project whose only lineage is Power BI's, a search draws the report it names with its dataset and sources", async () => {
+    const r: Readers = readers({ lineage: [], usages: [], tables: [] });
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: focused(r, {
+        named: [
+          dashboardRow("checklist", {
+            name: "15 29 EMG NUO Master Checklist- GANTT View.xlsx",
+            upstream: {
+              datasets: [
+                {
+                  id: "ds-checklist",
+                  name: "Master Checklist",
+                  workspace: "New Unit Readiness",
+                  sources: [SHAREPOINT],
+                },
+              ],
+              sources: [SHAREPOINT],
+            },
+          }),
+        ],
+      }),
+      details: r.details,
+      now: NOW,
+    });
+
+    expect(
+      map.nodes.map((node: DataLineageMapNode): string => {
+        return node.id;
+      }),
+    ).toEqual([
+      "dashboard:checklist",
+      "dataset:ds-checklist",
+      getLineageMapSourceNodeId(SHAREPOINT),
+    ]);
+    // No table to read.
+    expect(r.asked.tables).toEqual([]);
+  });
+
+  test("a database draws the dashboards on its tables though no flow touches them", async () => {
+    const r: Readers = readers({
+      lineage: [],
+      usages: [],
+      tables: [tableRow("orders"), tableRow("customers")],
+    });
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: focused(r, {
+        onTables: [
+          dashboardRow("revenue", { dataAssetIds: ["orders", "customers"] }),
+          dashboardRow("churn", { dataAssetIds: ["customers"] }),
+        ],
+      }),
+      details: r.details,
+      now: NOW,
+    });
+
+    expect(
+      map.nodes.map((node: DataLineageMapNode): string => {
+        return node.id;
+      }),
+    ).toEqual([
+      "dashboard:churn",
+      "dashboard:revenue",
+      "table:customers",
+      "table:orders",
+    ]);
+    expect(r.asked.tables).toEqual([["customers", "orders"]]);
+  });
+
+  test("a dashboard a search names is drawn once, however else it is found", async () => {
+    const r: Readers = readers({
+      lineage: [],
+      usages: [],
+      tables: [tableRow("orders")],
+    });
+    const revenue: DataLineageMapDashboardRow = dashboardRow("revenue", {
+      dataAssetIds: ["orders"],
+    });
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: focused(r, { named: [revenue], onTables: [revenue] }),
+      details: r.details,
+      now: NOW,
+    });
+
+    expect(
+      map.nodes.filter((node: DataLineageMapNode): boolean => {
+        return node.id === "dashboard:revenue";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a reader limited to some tables is never drawn a dashboard a search names on tables they may not read", async () => {
+    const r: Readers = readers({
+      lineage: [],
+      usages: [],
+      tables: [tableRow("orders"), tableRow("salaries")],
+    });
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: focused(r, {
+        named: [
+          dashboardRow("payroll", { dataAssetIds: ["salaries"] }),
+          dashboardRow("checklist", {
+            upstream: { datasets: [], sources: [SHAREPOINT] },
+          }),
+          dashboardRow("revenue", { dataAssetIds: ["orders", "salaries"] }),
+        ],
+      }),
+      details: r.details,
+      now: NOW,
+      readable: {
+        readableTableIds: async (ids: Array<string>): Promise<Set<string>> => {
+          return new Set(
+            ids.filter((id: string): boolean => {
+              return id === "orders";
+            }),
+          );
+        },
+        readablePipelineIds: async (): Promise<Set<string>> => {
+          return new Set();
+        },
+      },
+    });
+
+    expect(
+      map.nodes.map((node: DataLineageMapNode): string => {
+        return node.id;
+      }),
+    ).toEqual(["dashboard:revenue", "table:orders"]);
+    expect(map.isTruncated).toBe(false);
   });
 });
 
@@ -911,6 +1277,7 @@ describe("the rows of the tables a map starts from (getFocusedFlowReader)", () =
     const focus: DataLineageMapFocus = {
       dataAssetIds: [A, B],
       dataPipelineIds: [PIPE],
+      dataDashboardIds: [],
       isTruncated: false,
     };
 
@@ -954,6 +1321,7 @@ describe("the rows of the tables a map starts from (getFocusedFlowReader)", () =
     await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
       dataAssetIds: tables,
       dataPipelineIds: [],
+      dataDashboardIds: [],
       isTruncated: false,
     }).readLineage(5);
 
@@ -990,6 +1358,7 @@ describe("the rows of the tables a map starts from (getFocusedFlowReader)", () =
       await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
         dataAssetIds: [A],
         dataPipelineIds: [],
+        dataDashboardIds: [],
         isTruncated: false,
       }).readUsages(10);
 
@@ -999,6 +1368,281 @@ describe("the rows of the tables a map starts from (getFocusedFlowReader)", () =
       }),
     ).toEqual(["svc-2", "svc-1"]);
     expect(idsIn(callsOf(read)[0]!.query["dataAssetId"])).toEqual([A]);
+  });
+
+  function dashboardModel(fields: {
+    id: number;
+    name: string;
+    tableCount?: number;
+    viewCount?: number;
+    tables?: Array<string>;
+  }): DataDashboard {
+    const dashboard: DataDashboard = new DataDashboard();
+
+    dashboard._id = uuidOf(3000 + fields.id);
+    dashboard.name = fields.name;
+    dashboard.tool = DataBiTool.PowerBI;
+    dashboard.tableCount = fields.tableCount || 0;
+    dashboard.viewCount = fields.viewCount || 0;
+    dashboard.dataAssets = (fields.tables || []).map(
+      (table: string): DataAsset => {
+        const asset: DataAsset = new DataAsset();
+        asset._id = table;
+        return asset;
+      },
+    );
+
+    return dashboard;
+  }
+
+  test("the BI dashboards on its tables (#9553): a few hundred tables a read, each once, on the most tables first, then the most viewed", async () => {
+    const A: string = uuidOf(1);
+    const read: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataDashboardService, "findBy")
+      .mockImplementation((async (findBy: FindCall) => {
+        // The first chunk's read, then the second's: the same dashboard in both.
+        return callsOf(read).length === 1
+          ? [
+              dashboardModel({ id: 1, name: "Revenue", tableCount: 2 }),
+              dashboardModel({
+                id: 2,
+                name: "Orders",
+                tableCount: 1,
+                viewCount: 900,
+              }),
+            ]
+          : [
+              dashboardModel({ id: 1, name: "Revenue", tableCount: 2 }),
+              dashboardModel({
+                id: 3,
+                name: "Churn",
+                tableCount: 1,
+                viewCount: 40,
+                tables: [A],
+              }),
+              findBy && dashboardModel({ id: 4, name: "Board", tableCount: 0 }),
+            ];
+      }) as never);
+    const tables: Array<string> = Array.from(
+      { length: 501 },
+      (_: unknown, index: number): string => {
+        return uuidOf(index);
+      },
+    );
+    const rows: Array<DataLineageMapDashboardRow> =
+      await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
+        dataAssetIds: tables,
+        dataPipelineIds: [],
+        dataDashboardIds: [],
+        isTruncated: false,
+      }).readBiDashboards!(3);
+
+    expect(
+      rows.map((row: DataLineageMapDashboardRow): string => {
+        return row.name;
+      }),
+    ).toEqual(["Revenue", "Orders", "Churn"]);
+    expect(rows[2]!.dataAssetIds).toEqual([A]);
+
+    const calls: Array<FindCall> = callsOf(read);
+
+    expect(calls).toHaveLength(2);
+
+    for (const call of calls) {
+      expect(call.query["projectId"]).toBe(PROJECT_ID);
+      expect(call.query["_id"]).toBeDefined();
+      expect(call.select).toMatchObject({
+        upstream: true,
+        tableCount: true,
+        viewCount: true,
+        dataAssets: { _id: true },
+      });
+      expect(call.sort).toEqual({
+        tableCount: "DESC",
+        viewCount: "DESC",
+        name: "ASC",
+      });
+      expect(call.limit).toBe(3);
+      expect(call.props).toEqual({ isRoot: true });
+    }
+  });
+
+  test("no tables to start from: no dashboard read", async () => {
+    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DataDashboardService,
+      "findBy",
+    );
+
+    expect(
+      await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
+        dataAssetIds: [],
+        dataPipelineIds: [],
+        dataDashboardIds: [],
+        isTruncated: false,
+      }).readBiDashboards!(10),
+    ).toEqual([]);
+    expect(
+      await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
+        dataAssetIds: [],
+        dataPipelineIds: [],
+        dataDashboardIds: [],
+        isTruncated: false,
+      }).readNamedDashboards!(10),
+    ).toEqual([]);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  test("the dashboards a search names, in the order it named them, the project's own", async () => {
+    const named: Array<string> = [uuidOf(3002), uuidOf(3001)];
+    const read: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataDashboardService, "findBy")
+      .mockResolvedValue([
+        dashboardModel({ id: 1, name: "Revenue by Site" }),
+        dashboardModel({ id: 2, name: "Revenue" }),
+      ] as never);
+
+    const rows: Array<DataLineageMapDashboardRow> =
+      await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
+        dataAssetIds: [],
+        dataPipelineIds: [],
+        dataDashboardIds: named,
+        isTruncated: false,
+      }).readNamedDashboards!(10);
+
+    expect(
+      rows.map((row: DataLineageMapDashboardRow): string => {
+        return row.name;
+      }),
+    ).toEqual(["Revenue", "Revenue by Site"]);
+    expect(callsOf(read)[0]!.query["projectId"]).toBe(PROJECT_ID);
+    expect(idsIn(callsOf(read)[0]!.query["_id"]).sort()).toEqual(
+      [...named].sort(),
+    );
+  });
+});
+
+/*
+ * The BI dashboards a search names (#9553): by their own names first, then
+ * by their datasets' or data sources' names - narrowed from what they are
+ * built on as text, which also holds a source's type and keys, so a word
+ * that only matches those names nothing.
+ */
+describe("the dashboards a search names (readDashboardsNamedBy)", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function dashboard(
+    id: number,
+    name: string,
+    upstream: JSONObject | null = null,
+  ): DataDashboard {
+    const model: DataDashboard = new DataDashboard();
+
+    model._id = uuidOf(4000 + id);
+    model.name = name;
+    model.dataAssets = [];
+
+    if (upstream) {
+      model.upstream = upstream;
+    }
+
+    return model;
+  }
+
+  const BUILT_ON_FINANCE: JSONObject = {
+    datasets: [
+      {
+        id: "ds1",
+        name: "Finance Model",
+        workspace: "Finance",
+        sources: [
+          {
+            type: "SQL Server",
+            engine: "sqlserver",
+            server: "sql01.corp.acme.com",
+            database: "Ledger",
+            location: null,
+          },
+        ],
+      },
+    ],
+    sources: [
+      {
+        type: "SQL Server",
+        engine: "sqlserver",
+        server: "sql01.corp.acme.com",
+        database: "Ledger",
+        location: null,
+      },
+    ],
+  };
+
+  function stub(data: {
+    byName: Array<DataDashboard>;
+    byUpstream: Array<DataDashboard>;
+  }): ReturnType<typeof jest.spyOn> {
+    return jest
+      .spyOn(DataDashboardService, "findBy")
+      .mockImplementation((async (findBy: FindCall) => {
+        return findBy.query["name"] ? data.byName : data.byUpstream;
+      }) as never);
+  }
+
+  test("its own name first, then a dataset's or a data source's, each dashboard once", async () => {
+    const read: ReturnType<typeof jest.spyOn> = stub({
+      byName: [dashboard(1, "Finance Board")],
+      byUpstream: [
+        dashboard(1, "Finance Board", BUILT_ON_FINANCE),
+        dashboard(2, "Quarterly Close", BUILT_ON_FINANCE),
+      ],
+    });
+
+    const found: Array<DataDashboard> =
+      await DataLineageMapReader.readDashboardsNamedBy({
+        projectId: PROJECT_ID,
+        search: "finance",
+      });
+
+    expect(
+      found.map((each: DataDashboard): string => {
+        return each.name!;
+      }),
+    ).toEqual(["Finance Board", "Quarterly Close"]);
+
+    const calls: Array<FindCall> = callsOf(read);
+
+    expect(calls[0]!.query["projectId"]).toBe(PROJECT_ID);
+    expect(calls[0]!.query["name"]).toBeDefined();
+    expect(calls[1]!.query["upstream"]).toBeDefined();
+    expect(calls[0]!.limit).toBe(MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES);
+    expect(calls[0]!.sort).toEqual({ viewCount: "DESC", name: "ASC" });
+  });
+
+  test("a data source's server and database name it; a word only its type or keys hold does not", async () => {
+    stub({
+      byName: [],
+      byUpstream: [dashboard(3, "Quarterly Close", BUILT_ON_FINANCE)],
+    });
+
+    expect(
+      await DataLineageMapReader.readDashboardsNamedBy({
+        projectId: PROJECT_ID,
+        search: "LEDGER",
+      }),
+    ).toHaveLength(1);
+    expect(
+      await DataLineageMapReader.readDashboardsNamedBy({
+        projectId: PROJECT_ID,
+        search: "sqlserver",
+      }),
+    ).toHaveLength(0);
+    expect(
+      await DataLineageMapReader.readDashboardsNamedBy({
+        projectId: PROJECT_ID,
+        search: "workspace",
+      }),
+    ).toHaveLength(0);
   });
 });
 
@@ -1036,6 +1680,7 @@ describe("the tables a map starts from (readFocus)", () => {
     expect(focus).toEqual({
       dataAssetIds: [uuidOf(1), uuidOf(2)],
       dataPipelineIds: [],
+      dataDashboardIds: [],
       isTruncated: false,
     });
 
@@ -1108,6 +1753,8 @@ describe("the tables a map starts from (readFocus)", () => {
       .mockImplementation((async () => {
         const dashboard: DataDashboard = new DataDashboard();
         const theirsNot: DataAsset = new DataAsset();
+        dashboard._id = uuidOf(300);
+        dashboard.name = "Orders by Region";
         theirsNot._id = uuidOf(9);
         dashboard.dataAssets = [theirsNot];
         return [dashboard];
@@ -1131,6 +1778,8 @@ describe("the tables a map starts from (readFocus)", () => {
     expect(focus).toEqual({
       dataAssetIds: [uuidOf(1), uuidOf(7)],
       dataPipelineIds: [uuidOf(50)],
+      // Named by the search, though on no table the reader may read: the map draws it as they may see it.
+      dataDashboardIds: [uuidOf(300)],
       isTruncated: false,
     });
     // The tables read with the reader's scope, the search beside it.
@@ -1218,6 +1867,7 @@ describe("which rows a map reads (DataLineageMapReader.read)", () => {
         .mockResolvedValue({
           dataAssetIds: [],
           dataPipelineIds: [],
+          dataDashboardIds: [],
           isTruncated: true,
         } as never);
 
@@ -1260,6 +1910,7 @@ describe("which rows a map reads (DataLineageMapReader.read)", () => {
       .mockResolvedValue({
         dataAssetIds: [],
         dataPipelineIds: [],
+        dataDashboardIds: [],
         isTruncated: false,
       } as never);
 
