@@ -57714,7 +57714,7 @@
   "Notify me about data stores I own.": "通知我所拥有的数据存储的动态。",
   "Notify me about tables and pipelines I own.": "通知我所拥有的表和管道的动态。",
   "One-time code (TOTP)": "一次性验证码 (TOTP)",
-  "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics, before they are stored. What is already stored does not change.": "OneUptime 会添加一条指标管道规则，在该服务的新指标存储之前，对此属性中的这类数据进行脱敏。已存储的内容不会改变。",
+  "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored data does not change.": "OneUptime 会添加一条指标管道规则，对该服务新指标中此属性的这类数据进行脱敏。已存储的数据不会改变。",
   "Only Project Owners can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "Only Project Owners can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
   "Only people who have every permission in {{roleName}} can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "Only people who have every permission in {{roleName}} can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
   "Only the roles you could give a team yourself are listed.": "Only the roles you could give a team yourself are listed.",

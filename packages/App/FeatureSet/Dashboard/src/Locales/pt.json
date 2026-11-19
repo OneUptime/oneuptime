@@ -57714,7 +57714,7 @@
   "Notify me about data stores I own.": "Notificar-me sobre repositórios de dados dos quais sou proprietário.",
   "Notify me about tables and pipelines I own.": "Notificar-me sobre tabelas e pipelines dos quais sou proprietário.",
   "One-time code (TOTP)": "Código de uso único (TOTP)",
-  "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics, before they are stored. What is already stored does not change.": "O OneUptime adiciona uma regra de pipeline de métricas que oculta este tipo de dado neste atributo das novas métricas do serviço, antes que elas sejam armazenadas. O que já está armazenado não muda.",
+  "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored data does not change.": "O OneUptime adiciona uma regra de pipeline de métricas que oculta este tipo de dado neste atributo das novas métricas do serviço. Os dados armazenados não mudam.",
   "Only Project Owners can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "Only Project Owners can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
   "Only people who have every permission in {{roleName}} can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "Only people who have every permission in {{roleName}} can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
   "Only the roles you could give a team yourself are listed.": "Only the roles you could give a team yourself are listed.",

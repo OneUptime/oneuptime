@@ -57714,7 +57714,7 @@
   "Notify me about data stores I own.": "내가 소유한 데이터 저장소를 알려 줍니다.",
   "Notify me about tables and pipelines I own.": "내가 소유한 테이블과 파이프라인을 알려 줍니다.",
   "One-time code (TOTP)": "일회용 코드(TOTP)",
-  "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics, before they are stored. What is already stored does not change.": "OneUptime은 서비스의 새 메트릭이 저장되기 전에 이 속성에서 이 종류의 데이터를 가리는 메트릭 파이프라인 규칙을 추가합니다. 이미 저장된 데이터는 변경되지 않습니다.",
+  "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored data does not change.": "OneUptime은 서비스의 새 메트릭에서 이 속성의 이 종류의 데이터를 가리는 메트릭 파이프라인 규칙을 추가합니다. 저장된 데이터는 변경되지 않습니다.",
   "Only Project Owners can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "Only Project Owners can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
   "Only people who have every permission in {{roleName}} can change this workflow or run it by hand. Anyone who can edit it can still turn it off.": "Only people who have every permission in {{roleName}} can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
   "Only the roles you could give a team yourself are listed.": "Only the roles you could give a team yourself are listed.",
