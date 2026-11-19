@@ -14,8 +14,8 @@ import ValueFormatter from "../ValueFormatter";
  * and the units here, so the editors and the charts agree on which chart a
  * query is drawn on and how its values read there.
  *
- * Units. A chart has one value axis, written in its lead's unit, so an
- * overlaid query is read in that unit:
+ * Units. A chart's first value axis, on its left, is written in its lead's
+ * unit, and an overlaid query is read against it (readUnit):
  *
  *   - the same unit, no unit known on either side, or two counts ("{requests}"
  *     beside "{errors}", which a chart draws as bare numbers): drawn as it is;
@@ -23,14 +23,17 @@ import ValueFormatter from "../ValueFormatter";
  *     seconds on a chart in milliseconds, a 0-1 fraction on a chart in
  *     percent): converted into the chart's unit, so its line, its values and
  *     its warning and critical lines read right on the shared axis;
- *   - a unit of another kind (bytes on a chart in percent): still drawn on
- *     the chart, as the switch says, but the axis cannot say its values, so
- *     the chart and the query's switch say that the units differ.
+ *   - a unit of another kind (bytes on a chart in percent): the first axis
+ *     cannot say its values.
  *
- * A chart could give such a query an axis of its own only with a second value
- * axis, which no chart here has. Drawing it on a chart of its own instead
- * would make the switch do nothing, and would break the chain for the queries
- * overlaid after it.
+ * The first query in a unit of another kind gives the chart a second value
+ * axis, on its right, written in its unit (issue #10042), and every later
+ * query in that kind of unit is read against that axis the same way: drawn as
+ * it is, or converted into the second axis's unit (readChartAxes). Only a
+ * third kind of unit fits neither axis: it is still drawn, against the first,
+ * as the switch says, and the chart and the query's switch say so. Drawing it
+ * on a chart of its own instead would make the switch do nothing, and would
+ * break the chain for the queries overlaid after it.
  *
  * Pure and React-free, so the suites read it without a browser.
  */
@@ -62,6 +65,65 @@ export interface OverlayUnitInput {
   queryUnit: string | undefined;
   queryMetricName?: string | undefined;
 }
+
+/*
+ * The value axis a query of a chart is drawn against (issue #10042).
+ */
+export enum OverlayAxis {
+  // On the chart's left, in its lead's unit.
+  First = "First",
+  /*
+   * On the chart's right, in the unit of the chart's first query whose unit
+   * is of a kind the first axis cannot say.
+   */
+  Second = "Second",
+}
+
+/*
+ * How a query of a chart reads on the axis it is drawn against: its fit and
+ * factor are against that axis's unit. A query that fits neither axis (a
+ * third kind of unit) is drawn against the first, as it is, and its fit
+ * says Different.
+ */
+export interface OverlayAxisReading extends OverlayUnitReading {
+  axis: OverlayAxis;
+}
+
+// A query of a chart, by the unit it is drawn in.
+export interface OverlayChartQueryUnit {
+  // Its display unit, "" when none is known.
+  unit: string | undefined;
+  // Its metric, which says whether a unit of "1" is a 0-1 fraction.
+  metricName?: string | undefined;
+}
+
+export interface OverlayChartAxes {
+  // Each query's reading, in the chart's order, its lead's first.
+  readings: Array<OverlayAxisReading>;
+  /*
+   * The position, among the chart's queries, of the one whose unit the
+   * second axis is written in; null while the chart has one axis.
+   */
+  secondAxisLeadIndex: number | null;
+}
+
+const ON_FIRST_AXIS_AS_IT_IS: OverlayAxisReading = {
+  axis: OverlayAxis.First,
+  fit: OverlayUnitFit.Same,
+  factor: 1,
+};
+
+const ON_SECOND_AXIS_AS_IT_IS: OverlayAxisReading = {
+  axis: OverlayAxis.Second,
+  fit: OverlayUnitFit.Same,
+  factor: 1,
+};
+
+const ON_NEITHER_AXIS: OverlayAxisReading = {
+  axis: OverlayAxis.First,
+  fit: OverlayUnitFit.Different,
+  factor: 1,
+};
 
 const AS_IT_IS: OverlayUnitReading = {
   fit: OverlayUnitFit.Same,
@@ -183,6 +245,23 @@ export default class MetricQueryOverlay {
   }
 
   /*
+   * The queries of the chart a query joins when it overlays the query before
+   * it, in the chart's order: its lead, then each query overlaid on it before
+   * this one. Empty for the first query, which overlays nothing.
+   */
+  public static getChartQueriesBefore(
+    queryConfigs: Array<MetricQueryConfigData>,
+    index: number,
+  ): Array<MetricQueryConfigData> {
+    const leadIndex: number | null = MetricQueryOverlay.getChartLeadIndex(
+      queryConfigs,
+      index,
+    );
+
+    return leadIndex === null ? [] : queryConfigs.slice(leadIndex, index);
+  }
+
+  /*
    * How many charts a view's queries and formulas draw: a chart per query
    * that is not overlaid, and one per formula.
    */
@@ -240,8 +319,71 @@ export default class MetricQueryOverlay {
   }
 
   /*
-   * A query's value in the chart's unit: as it is unless the reading
-   * converts it.
+   * The axis each query of one chart is drawn against, and how its values
+   * read there (issue #10042). The lead's are its own, on the first axis.
+   * Every later query is read against the first axis (readUnit); the first
+   * one whose unit is of another kind gives the chart its second axis, in its
+   * unit, and every one after it that the first axis cannot read either is
+   * read against the second the same way. A query neither axis can read is
+   * drawn against the first, as it is.
+   */
+  public static readChartAxes(
+    queries: Array<OverlayChartQueryUnit>,
+  ): OverlayChartAxes {
+    const readings: Array<OverlayAxisReading> = [];
+    const lead: OverlayChartQueryUnit | undefined = queries[0];
+    let secondAxisLeadIndex: number | null = null;
+
+    queries.forEach((query: OverlayChartQueryUnit, index: number): void => {
+      if (index === 0 || !lead) {
+        readings.push(ON_FIRST_AXIS_AS_IT_IS);
+        return;
+      }
+
+      const onFirstAxis: OverlayUnitReading = MetricQueryOverlay.readUnit({
+        chartUnit: lead.unit,
+        chartMetricName: lead.metricName,
+        queryUnit: query.unit,
+        queryMetricName: query.metricName,
+      });
+
+      if (onFirstAxis.fit !== OverlayUnitFit.Different) {
+        readings.push({ ...onFirstAxis, axis: OverlayAxis.First });
+        return;
+      }
+
+      if (secondAxisLeadIndex === null) {
+        secondAxisLeadIndex = index;
+        readings.push(ON_SECOND_AXIS_AS_IT_IS);
+        return;
+      }
+
+      const secondAxisLead: OverlayChartQueryUnit = queries[
+        secondAxisLeadIndex
+      ] as OverlayChartQueryUnit;
+      const onSecondAxis: OverlayUnitReading = MetricQueryOverlay.readUnit({
+        chartUnit: secondAxisLead.unit,
+        chartMetricName: secondAxisLead.metricName,
+        queryUnit: query.unit,
+        queryMetricName: query.metricName,
+      });
+
+      readings.push(
+        onSecondAxis.fit === OverlayUnitFit.Different
+          ? ON_NEITHER_AXIS
+          : { ...onSecondAxis, axis: OverlayAxis.Second },
+      );
+    });
+
+    return {
+      readings: readings,
+      secondAxisLeadIndex: secondAxisLeadIndex,
+    };
+  }
+
+  /*
+   * A query's value in the unit of the axis it is read against: as it is
+   * unless the reading converts it.
    */
   public static toChartUnit(
     value: number,

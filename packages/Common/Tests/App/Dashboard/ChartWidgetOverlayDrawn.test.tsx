@@ -37,8 +37,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     a chart per query;
  *   - three queries chain onto one chart, or two, as their switches say,
  *     each line and legend chip named and colored apart;
- *   - units: one chart's axis, and a query in a unit it cannot read named
- *     in the chart's warning.
+ *   - units: a query in a unit of the chart's kind converted onto its axis,
+ *     one in another kind on a second axis, on the right (issue #10042),
+ *     saved and drawn again so, and a third kind named in the chart's
+ *     warning.
  */
 
 jest.setTimeout(120000);
@@ -146,7 +148,10 @@ import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboar
 import ArgumentsForm, {
   METRIC_QUERY_ROW_HEADER_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ArgumentsForm";
-import { OVERLAY_UNIT_MISMATCH_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts";
+import {
+  OVERLAY_UNIT_MISMATCH_TEST_ID,
+  SERIES_CHIP_AXIS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts";
 import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
@@ -194,6 +199,7 @@ const METRIC_TYPES: Array<MetricType> = [
   metricType("mem_total", "By"),
   metricType("mem_free", "By"),
   metricType("cpu_usage_percent", "%"),
+  metricType("http.server.duration", "ms"),
 ];
 
 // What the host sends, by metric: a point every ten minutes of the window.
@@ -202,6 +208,7 @@ const VALUES: Record<string, Array<number>> = {
   mem_total: [8e9, 8e9, 8e9, 8e9, 8e9, 8e9],
   mem_free: [3.9e9, 3.6e9, 3.8e9, 3.4e9, 3.5e9, 3.7e9],
   cpu_usage_percent: [12, 18, 25, 22, 17, 14],
+  "http.server.duration": [120, 180, 150, 240, 210, 160],
 };
 
 function rowsOf(metricName: string): Array<AggregatedModel> {
@@ -821,7 +828,66 @@ describe("three queries chain onto the charts their switches say", () => {
 });
 
 describe("units on an overlaid chart", () => {
-  test("percent overlaid on a chart in bytes: drawn, and the chart says the units differ", async () => {
+  // Each value axis a chart draws, left first: what its ticks say.
+  function valueAxesIn(plot: Element): Array<Array<string>> {
+    return Array.from(plot.querySelectorAll(".recharts-yAxis-tick-labels"))
+      .map((axis: Element): { x: number; ticks: Array<string> } => {
+        const ticks: Array<Element> = Array.from(
+          axis.querySelectorAll(".recharts-cartesian-axis-tick-value"),
+        );
+
+        return {
+          x: Math.min(
+            ...ticks.map((tick: Element): number => {
+              return Number(tick.getAttribute("x") || 0);
+            }),
+          ),
+          ticks: ticks.map((tick: Element): string => {
+            return (tick.textContent || "").trim();
+          }),
+        };
+      })
+      .sort(
+        (
+          a: { x: number; ticks: Array<string> },
+          b: { x: number; ticks: Array<string> },
+        ): number => {
+          return a.x - b.x;
+        },
+      )
+      .map((axis: { x: number; ticks: Array<string> }): Array<string> => {
+        return axis.ticks;
+      });
+  }
+
+  // How far up and down the plot a line runs, in pixels.
+  function lineSpanIn(line: Element): number {
+    const path: string =
+      line.querySelector("path.recharts-line-curve")?.getAttribute("d") || "";
+    const numbers: Array<number> = (path.match(/-?\d+(\.\d+)?/g) || []).map(
+      Number,
+    );
+    const ys: Array<number> = numbers.filter(
+      (_value: number, index: number): boolean => {
+        return index % 2 === 1;
+      },
+    );
+
+    return ys.length > 0 ? Math.max(...ys) - Math.min(...ys) : 0;
+  }
+
+  // A chip's word for the axis its series is drawn against.
+  function chipAxisOf(seriesName: string): string | null {
+    const chip: HTMLElement = screen.getByTitle(
+      `${seriesName} — click to hide`,
+    );
+
+    return (
+      within(chip).queryByTestId(SERIES_CHIP_AXIS_TEST_ID)?.textContent || null
+    );
+  }
+
+  test("percent overlaid on a chart in bytes: one chart, the percent on a second axis on the right, with no warning", async () => {
     await drawWidget(
       chartOf(query("a", "mem_used"), [
         query("b", "cpu_usage_percent", OVERLAID),
@@ -831,12 +897,90 @@ describe("units on an overlaid chart", () => {
     expect(seriesOf(drawnCharts())).toEqual([
       ["cpu_usage_percent", "mem_used"],
     ]);
+
+    const [plot] = screen.getAllByTestId("chart-group-plot");
+    const [left, right] = valueAxesIn(plot!);
+
+    expect(valueAxesIn(plot!)).toHaveLength(2);
+    // Bytes on the left, written in bytes; percent on the right.
+    for (const tick of left!) {
+      expect(tick).toMatch(/(^0|B)$/);
+    }
+    for (const tick of right!) {
+      expect(tick).toMatch(/%$/);
+    }
+
+    // The legend says which axis each series is read on.
+    expect(chipAxisOf("mem_used")).toBe("Left axis");
+    expect(chipAxisOf("cpu_usage_percent")).toBe("Right axis");
+    expect(screen.queryByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toBeNull();
+  });
+
+  test("each line is drawn against its own axis: the percent line runs over the plot, not flat under the bytes", async () => {
+    await drawWidget(
+      chartOf(query("a", "mem_used"), [
+        query("b", "cpu_usage_percent", OVERLAID),
+      ]),
+    );
+
+    const [plot] = screen.getAllByTestId("chart-group-plot");
+    const lines: Array<Element> = linesIn(plot!);
+
+    expect(lines).toHaveLength(2);
+    /*
+     * Each rises and falls on its own axis: the percent line, from 12% to
+     * 25% of a 0-100% axis, by some 30 pixels of the 300px chart. Drawn
+     * against the bytes axis, it lay flat at its foot, under one pixel.
+     */
+    for (const line of lines) {
+      expect(lineSpanIn(line)).toBeGreaterThan(20);
+    }
+  });
+
+  test("three kinds of unit: the third, in milliseconds, fits neither axis, and the chart says so", async () => {
+    await drawWidget(
+      chartOf(query("a", "mem_used"), [
+        query("b", "cpu_usage_percent", OVERLAID),
+        query("c", "http.server.duration", OVERLAID),
+      ]),
+    );
+
+    const [plot] = screen.getAllByTestId("chart-group-plot");
+
+    expect(valueAxesIn(plot!)).toHaveLength(2);
+    expect(chipAxisOf("http.server.duration")).toBe("Left axis");
     expect(screen.getByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toHaveTextContent(
-      "Overlaid queries use different units (Bytes, Percent) — they share one axis, so values may not be directly comparable.",
+      "Queries in Milliseconds fit neither axis of this chart (Bytes, Percent), so they are drawn against the left axis and may not be directly comparable.",
     );
   });
 
-  test("gigabytes overlaid on a chart in bytes: converted, so nothing to warn about", async () => {
+  test("saved with the dashboard and opened again, the chart is drawn on its two axes again", async () => {
+    const { stored, read } = saveAndReadBack(
+      chartOf(query("a", "mem_used"), [
+        query("b", "cpu_usage_percent", OVERLAID),
+      ]),
+    );
+
+    // What is saved is the switch, never an axis: the axes are read again.
+    expect(JSON.stringify(stored)).toContain('"overlayWithPreviousQuery":true');
+    expect(JSON.stringify(stored)).not.toMatch(/secondYAxis|isOnSecondYAxis/);
+
+    await drawWidget(read);
+
+    const [plot] = screen.getAllByTestId("chart-group-plot");
+    const [left, right] = valueAxesIn(plot!);
+
+    expect(drawnCharts()).toHaveLength(1);
+    for (const tick of left!) {
+      expect(tick).toMatch(/(^0|B)$/);
+    }
+    for (const tick of right!) {
+      expect(tick).toMatch(/%$/);
+    }
+    expect(chipAxisOf("cpu_usage_percent")).toBe("Right axis");
+  });
+
+  test("gigabytes overlaid on a chart in bytes: converted onto its one axis, so nothing to warn about", async () => {
     await drawWidget(
       chartOf(query("a", "mem_used"), [
         query("b", "mem_total", {
@@ -852,16 +996,23 @@ describe("units on an overlaid chart", () => {
       ]),
     );
 
+    const [plot] = screen.getAllByTestId("chart-group-plot");
+
     expect(drawnCharts()).toHaveLength(1);
+    expect(valueAxesIn(plot!)).toHaveLength(1);
+    expect(screen.queryByTestId(SERIES_CHIP_AXIS_TEST_ID)).toBeNull();
     expect(screen.queryByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toBeNull();
   });
 
-  test("the same units on charts of their own never warn", async () => {
+  test("the same units on charts of their own never warn, each on its one axis", async () => {
     await drawWidget(
       chartOf(query("a", "mem_used"), [query("b", "cpu_usage_percent")]),
     );
 
     expect(drawnCharts()).toHaveLength(2);
+    for (const plot of screen.getAllByTestId("chart-group-plot")) {
+      expect(valueAxesIn(plot)).toHaveLength(1);
+    }
     expect(screen.queryByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toBeNull();
   });
 });
