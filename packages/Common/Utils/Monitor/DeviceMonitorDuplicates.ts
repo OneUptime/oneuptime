@@ -1,9 +1,14 @@
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import URL from "../../Types/API/URL";
 import { JSONObject } from "../../Types/JSON";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
-import { isDeviceAddressMonitorType } from "./DeviceMonitorTemplateUtil";
+import {
+  isDeviceTargetMonitorType,
+  isDeviceUrlMonitorType,
+} from "./DeviceMonitorTemplateUtil";
+import DeviceUrlTarget from "./DeviceUrlTarget";
 
 /*
  * WHEN A MONITOR FOR A NETWORK DEVICE IS A DUPLICATE (OneUptime issues #9509
@@ -24,26 +29,33 @@ import { isDeviceAddressMonitorType } from "./DeviceMonitorTemplateUtil";
  * device already has when:
  *
  *   1. it is made from the same template - any kind of monitor; or
- *   2. it is a Ping, IP, Port or NTP monitor, and the device already has a
- *      monitor of that same kind that checks the same thing on it: any Ping
- *      monitor, any IP monitor, a Port monitor on one of the same ports, an
- *      NTP monitor on one of the same ports (123 when a step names none) -
- *      from another template, from none, or bound to the device as its
- *      health monitor.
+ *   2. it is a target monitor (DEVICE_TARGET_MONITOR_TYPES), and the device
+ *      already has a monitor of that same kind that checks the same thing on
+ *      it - from another template, from none, or bound to the device as its
+ *      health monitor:
+ *        - any Ping monitor, any IP monitor;
+ *        - a Port monitor on one of the same ports, an NTP monitor on one of
+ *          the same ports (123 when a step names none);
+ *        - a Website or API monitor of the same scheme, port and path with
+ *          its query (issue #9546) - the host is the device's either way;
+ *        - an SSL Certificate monitor on one of the same ports: one server,
+ *          one certificate, whatever path its URL names.
  *
  * And nothing else is one, on purpose. A monitor of another kind is a
- * different check (a Ping monitor beside a Network Device one), and so is a
- * Port monitor on another port (SSH beside HTTPS). Two Network Device
- * monitors from different templates are two different alert sets - alert
- * policies give one device a monitor per policy that covers it - so for
+ * different check (a Ping monitor beside a Network Device one, a Website
+ * monitor beside an SSL Certificate one), and so is a Port monitor on another
+ * port (SSH beside HTTPS) or a Website monitor of another page. Two Network
+ * Device monitors from different templates are two different alert sets -
+ * alert policies give one device a monitor per policy that covers it - so for
  * Network Device monitors only the template decides.
  *
  * "The device's monitors" are the ones that belong to it: made for it
- * (Monitor.autoProvisionedNetworkDeviceId) or bound to it
- * (NetworkDevice.monitorId) - what its own pages list. A monitor that
- * happens to check the same address is not one of them: two sites may both
- * have a 10.0.0.5, and a monitor nothing ties to the device is not drawn on
- * its pages either.
+ * (Monitor.autoProvisionedNetworkDeviceId), tied to it by a person or by the
+ * one device at the address the monitor checks (Monitor.networkDeviceId,
+ * issue #9545), or bound to it (NetworkDevice.monitorId) - what its own pages
+ * list. A monitor that merely happens to check the same address is not one of
+ * them: two sites may both have a 10.0.0.5, and a monitor nothing ties to the
+ * device is not drawn on its pages either.
  *
  * Pure: the server reads the device's monitors
  * (Server/Utils/NetworkDevice/DeviceMonitorDuplicateCheck) and asks this.
@@ -114,6 +126,9 @@ function readStepPort(step: MonitorStep): number | null {
  *   - Ping, IP: one key. A device has one address, so any two check it.
  *   - Port: each port its steps ask on.
  *   - NTP: each port its steps ask on, 123 for a step that names none.
+ *   - Website, API: each step's URL without its host - scheme, port, path
+ *     and query (DeviceUrlTarget.getCheckKey).
+ *   - SSL Certificate: each port its steps' URLs ask on.
  *   - Any other kind: none. Only its template decides (findDuplicate...).
  */
 export function getDeviceMonitorCheckKeys(data: {
@@ -124,6 +139,24 @@ export function getDeviceMonitorCheckKeys(data: {
 
   if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
     return [DEVICE_ADDRESS_CHECK_KEY];
+  }
+
+  if (isDeviceUrlMonitorType(monitorType)) {
+    const urlKeys: Array<string> = [];
+
+    for (const step of readSteps(data.monitorSteps)) {
+      const destination: unknown = step.data?.monitorDestination;
+      const key: string | null = DeviceUrlTarget.getCheckKey({
+        monitorType: monitorType,
+        url: destination instanceof URL ? destination : null,
+      });
+
+      if (key && !urlKeys.includes(key)) {
+        urlKeys.push(key);
+      }
+    }
+
+    return urlKeys;
   }
 
   if (monitorType !== MonitorType.Port && monitorType !== MonitorType.NTP) {
@@ -201,7 +234,7 @@ function checksTheSameThing(
   monitor: DeviceMonitorFacts,
 ): boolean {
   if (
-    !isDeviceAddressMonitorType(candidate.monitorType) ||
+    !isDeviceTargetMonitorType(candidate.monitorType) ||
     monitor.monitorType !== candidate.monitorType
   ) {
     return false;

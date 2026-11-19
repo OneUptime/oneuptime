@@ -135,7 +135,9 @@ import IncomingMonitorLink, {
   getHeartbeatUrl,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
 import SecurityEventsMonitorPreview from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SecurityEventsMonitor/SecurityEventsMonitorPreview";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorFeed from "../../../Models/DatabaseModels/MonitorFeed";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorStepSecurityEventsMonitor, {
@@ -485,6 +487,9 @@ describe("MonitorOverviewDetailsCard", () => {
       "Description",
       "Labels",
       "Monitor Type",
+      // The device a person tied it to, or the one an import made it for (#9545).
+      "Network Device",
+      "Network Device",
       "Created",
       "Monitor ID",
     ]);
@@ -502,6 +507,121 @@ describe("MonitorOverviewDetailsCard", () => {
 
     (props["onSaveSuccess"] as () => void)();
     expect(onSaveSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  test("a monitor of a network device says which, each only when it is one (#9545)", () => {
+    render(
+      <MonitorOverviewDetailsCard
+        monitorId={MONITOR_ID}
+        refresher={false}
+        onSaveSuccess={getJestMockFunction()}
+        monitorType={MonitorType.Ping}
+      />,
+    );
+
+    const fields: Array<{
+      title: string;
+      field: Record<string, unknown>;
+      showIf: (item: Monitor) => boolean;
+    }> = (
+      lastProps("card-model-detail")["modelDetailProps"] as {
+        fields: Array<{
+          title: string;
+          field: Record<string, unknown>;
+          showIf: (item: Monitor) => boolean;
+        }>;
+      }
+    ).fields.filter((field: { title: string }) => {
+      return field.title === "Network Device";
+    });
+
+    expect(
+      fields.map((field: { field: Record<string, unknown> }) => {
+        return Object.keys(field.field)[0];
+      }),
+    ).toEqual(["networkDevice", "autoProvisionedNetworkDevice"]);
+
+    const tied: Monitor = new Monitor();
+    tied.networkDevice = Object.assign(new NetworkDevice(), {
+      _id: "5ec2e7a1-9b3c-4d2e-8f10-7a6b5c4d3e21",
+      name: "core-sw-01",
+    });
+    const madeFor: Monitor = new Monitor();
+    madeFor.autoProvisionedNetworkDevice = Object.assign(new NetworkDevice(), {
+      _id: "5ec2e7a1-9b3c-4d2e-8f10-7a6b5c4d3e22",
+      name: "core-sw-02",
+    });
+
+    // One row for the device it is of, and none for a monitor of no device.
+    expect(fields[0]!.showIf(tied)).toBe(true);
+    expect(fields[1]!.showIf(tied)).toBe(false);
+    expect(fields[0]!.showIf(madeFor)).toBe(false);
+    expect(fields[1]!.showIf(madeFor)).toBe(true);
+    expect(fields[0]!.showIf(new Monitor())).toBe(false);
+    expect(fields[1]!.showIf(new Monitor())).toBe(false);
+  });
+
+  test("Edit ties a Ping, IP, Port, NTP, Website, API or SSL Certificate monitor a person made to its device, and nothing else (#9545)", () => {
+    const formTitles: (props: {
+      monitorType: MonitorType;
+      isMadeForDevice?: boolean;
+    }) => Array<string> = (props: {
+      monitorType: MonitorType;
+      isMadeForDevice?: boolean;
+    }): Array<string> => {
+      cleanup();
+      mockRendered.length = 0;
+
+      render(
+        <MonitorOverviewDetailsCard
+          monitorId={MONITOR_ID}
+          refresher={false}
+          onSaveSuccess={getJestMockFunction()}
+          monitorType={props.monitorType}
+          isMadeForDevice={props.isMadeForDevice}
+        />,
+      );
+
+      return (
+        lastProps("card-model-detail")["formFields"] as Array<{
+          title: string;
+        }>
+      ).map((field: { title: string }) => {
+        return field.title.trim();
+      });
+    };
+
+    for (const monitorType of [
+      MonitorType.Ping,
+      MonitorType.IP,
+      MonitorType.Port,
+      MonitorType.NTP,
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
+    ]) {
+      expect({ monitorType, titles: formTitles({ monitorType }) }).toEqual({
+        monitorType,
+        titles: ["Name", "Description", "Labels", "Network Device"],
+      });
+    }
+
+    // A monitor an import made for a device is that device's already.
+    expect(
+      formTitles({ monitorType: MonitorType.Ping, isMadeForDevice: true }),
+    ).toEqual(["Name", "Description", "Labels"]);
+
+    // A kind that checks no host has no device to tie it to.
+    for (const monitorType of [
+      MonitorType.Manual,
+      MonitorType.DNS,
+      MonitorType.NetworkDevice,
+    ]) {
+      expect({ monitorType, titles: formTitles({ monitorType }) }).toEqual({
+        monitorType,
+        titles: ["Name", "Description", "Labels"],
+      });
+    }
   });
 
   test("the type reads as the title the type picker uses, for every type", () => {

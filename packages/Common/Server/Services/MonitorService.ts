@@ -121,6 +121,9 @@ import {
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import MonitorDeviceLink, {
+  MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN,
+} from "../Utils/NetworkDevice/MonitorDeviceLink";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
@@ -165,6 +168,9 @@ const AUTO_PROVISIONED_NETWORK_DEVICE_KEYS: Array<string> = [
   "autoProvisionedNetworkDeviceId",
   "autoProvisionedNetworkDevice",
 ];
+
+// The network device a person's monitor checks (issue #9545), by both names.
+const NETWORK_DEVICE_KEYS: Array<string> = ["networkDeviceId", "networkDevice"];
 
 /*
  * A global or shared probe can be attached to thousands of monitors. Work
@@ -885,6 +891,7 @@ export class Service extends ProjectReferencesService<Model> {
           monitorSteps: true,
           monitorTemplateId: true,
           autoProvisionedNetworkDeviceId: true,
+          networkDeviceId: true,
         },
       );
 
@@ -1007,9 +1014,10 @@ export class Service extends ProjectReferencesService<Model> {
 
           /*
            * A monitor made for a device stays one: a Network Device monitor
-           * keeps naming that device, and a Ping, IP, Port or NTP one made
-           * from a template by a discovery import (issue #5145) keeps
-           * checking an address in every step.
+           * keeps naming that device, a Ping, IP, Port or NTP one made from a
+           * template by a discovery import (issue #5145) keeps checking an
+           * address in every step, and a Website, API or SSL Certificate one
+           * (#9546) a URL with a host in every step.
            */
           if (monitor.autoProvisionedNetworkDeviceId) {
             DeviceMonitorTemplateUtil.assertProvenanceFits({
@@ -1049,6 +1057,48 @@ export class Service extends ProjectReferencesService<Model> {
           }
         }
       }
+
+      /*
+       * A monitor tied to the device at the address it checked follows the
+       * address when its steps move to another (issue #9545): to the one
+       * device at the new address, or to none. A tie the write names
+       * itself, or one a person made to a device at another address, stays
+       * as it is (MonitorDeviceLink.followAddressChange). One monitor's
+       * edit only - a form's - since each monitor would follow to its own
+       * device.
+       */
+      const onlyMonitor: Model | undefined =
+        monitors.length === 1 ? monitors[0] : undefined;
+
+      if (
+        isMonitorStepsWritten &&
+        onlyMonitor?.networkDeviceId &&
+        onlyMonitor.projectId &&
+        !onlyMonitor.autoProvisionedNetworkDeviceId &&
+        !RelationIdUtil.isWritten(updateDataKeys, NETWORK_DEVICE_KEYS)
+      ) {
+        const followed: ObjectID | null | undefined =
+          await MonitorDeviceLink.followAddressChange({
+            projectId: onlyMonitor.projectId,
+            monitorType:
+              (isMonitorTypeWritten
+                ? (updateBy.data.monitorType as MonitorType | undefined)
+                : undefined) || onlyMonitor.monitorType,
+            storedSteps: onlyMonitor.monitorSteps,
+            writtenSteps: updateBy.data.monitorSteps as
+              | MonitorSteps
+              | JSONObject
+              | null
+              | undefined,
+            linkedDeviceId: onlyMonitor.networkDeviceId,
+          });
+
+        if (followed !== undefined) {
+          (updateBy.data as unknown as Record<string, unknown>)[
+            "networkDeviceId"
+          ] = followed;
+        }
+      }
     }
 
     /*
@@ -1085,6 +1135,46 @@ export class Service extends ProjectReferencesService<Model> {
       payload: updateBy.data,
       getProjectIds: getProjectsToCheckIn,
     });
+
+    /*
+     * A person ties a monitor only to a network device they can see (issue
+     * #9545), as on create. Untying it (null) asks nothing.
+     */
+    if (RelationIdUtil.isWritten(updateDataKeys, NETWORK_DEVICE_KEYS)) {
+      const writtenNetworkDeviceId: ObjectID | null =
+        RelationIdUtil.readIntoIdColumn(
+          updateBy.data as unknown as Record<string, unknown>,
+          NETWORK_DEVICE_KEYS,
+          "Network Device",
+        );
+
+      if (writtenNetworkDeviceId) {
+        for (const projectId of await getProjectsToCheckIn()) {
+          await MonitorDeviceLink.assertPersonMayReadDevice({
+            networkDeviceId: writtenNetworkDeviceId,
+            projectId: projectId,
+            props: updateBy.props,
+          });
+        }
+
+        /*
+         * A monitor an import, an auto import rule or an alert policy made
+         * for a device is that device's already, by its provenance.
+         */
+        const tiedMonitors: Array<Model> =
+          await this.findRowsAndHoldUpdateToThem(updateBy, {
+            autoProvisionedNetworkDeviceId: true,
+          });
+
+        if (
+          tiedMonitors.some((monitor: Model): boolean => {
+            return Boolean(monitor.autoProvisionedNetworkDeviceId);
+          })
+        ) {
+          throw new BadDataException(MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN);
+        }
+      }
+    }
 
     if (
       updateBy.data.dependsOnMonitors !== undefined ||
@@ -2439,6 +2529,44 @@ export class Service extends ProjectReferencesService<Model> {
         monitorSteps: createBy.data.monitorSteps,
         networkDeviceId: autoProvisionedNetworkDeviceId,
       });
+    }
+
+    /*
+     * The network device a person's monitor is of (issue #9545): the one
+     * the write names, which the person must be able to see - or, for a
+     * Ping, IP, Port, NTP, Website, API or SSL Certificate monitor, the one
+     * device in the project at the address it checks, when exactly one is
+     * there. A monitor made for a device carries provenance instead, and
+     * is that device's already. The project check above has already held a
+     * named device to this project (ProjectReferencesService).
+     */
+    const networkDeviceId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      NETWORK_DEVICE_KEYS,
+      "Network Device",
+    );
+
+    if (networkDeviceId) {
+      if (autoProvisionedNetworkDeviceId) {
+        throw new BadDataException(MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN);
+      }
+
+      await MonitorDeviceLink.assertPersonMayReadDevice({
+        networkDeviceId: networkDeviceId,
+        projectId: createBy.props.tenantId,
+        props: createBy.props,
+      });
+    } else if (!autoProvisionedNetworkDeviceId) {
+      const deviceAtAddress: ObjectID | null =
+        await MonitorDeviceLink.findDeviceOfNewMonitor({
+          projectId: createBy.props.tenantId,
+          monitorType: createBy.data.monitorType,
+          monitorSteps: createBy.data.monitorSteps,
+        });
+
+      if (deviceAtAddress) {
+        createBy.data.networkDeviceId = deviceAtAddress;
+      }
     }
 
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({

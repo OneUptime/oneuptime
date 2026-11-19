@@ -531,8 +531,8 @@ describe("a Ping, IP, Port or NTP monitor made for a device", () => {
   });
 
   it("a create of any other kind of monitor may not carry a device's provenance", async () => {
-    templateOfType(MonitorType.Website);
-    const monitor: Monitor = addressMonitor(MonitorType.Website);
+    templateOfType(MonitorType.DNS);
+    const monitor: Monitor = addressMonitor(MonitorType.DNS);
 
     await expect(
       (MonitorService as any).onBeforeCreate({
@@ -540,7 +540,7 @@ describe("a Ping, IP, Port or NTP monitor made for a device", () => {
         props: { isRoot: true, tenantId: PROJECT_ID },
       }),
     ).rejects.toThrow(
-      "Only Network Device, Ping, IP, Port and NTP monitors can carry auto-provisioning provenance.",
+      "Only Network Device, Ping, IP, Port, NTP, Website, API and SSL Certificate monitors can carry auto-provisioning provenance.",
     );
   });
 

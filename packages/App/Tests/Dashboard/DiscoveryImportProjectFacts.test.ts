@@ -12,7 +12,16 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
-import { DEVICE_MONITOR_TEMPLATE_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import URL from "Common/Types/API/URL";
+import {
+  DEVICE_MONITOR_TEMPLATE_TYPES,
+  DEVICE_TEMPLATE_HAS_NO_STEPS,
+} from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import {
+  URL_TEMPLATE_HOST_IS_VARIABLE,
+  URL_TEMPLATE_NEEDS_WEB_SCHEME,
+  URL_TEMPLATE_PORT_NOT_A_NUMBER,
+} from "Common/Utils/Monitor/DeviceUrlTarget";
 import NetworkAlertPolicyBootstrapUtil, {
   RECOMMENDED_TEMPLATE_NAME,
 } from "Common/Utils/NetworkDevice/NetworkAlertPolicyBootstrapUtil";
@@ -255,7 +264,8 @@ describe("the templates a reader can pick", () => {
  * Network Device templates were read. Every kind a device's monitor can be
  * made from is offered now - Network Device templates, which read each
  * device's polls, then Ping, IP, Port and NTP ones, which check each
- * device's address - and nothing else.
+ * device's address, then (#9546) Website, API and SSL Certificate ones,
+ * which check a URL on it - and nothing else.
  */
 describe("templates of every kind a device's monitor can be made from (#5145)", () => {
   const KDS_TEMPLATE_ID: ObjectID = new ObjectID(
@@ -350,11 +360,48 @@ describe("templates of every kind a device's monitor can be made from (#5145)", 
     });
   }
 
+  // A web template as a person saved it, before any URL was written in.
   function websiteTemplate(): MonitorTemplate {
     return Object.assign(new MonitorTemplate(), {
       id: WEBSITE_TEMPLATE_ID,
       templateName: "Storefront website",
       monitorType: MonitorType.Website,
+    });
+  }
+
+  // A web template whose steps check `urls`, as written (#9546).
+  function webTemplate(data: {
+    id: ObjectID;
+    name: string;
+    monitorType: MonitorType;
+    urls: Array<string>;
+    monitoringInterval?: string;
+  }): MonitorTemplate {
+    const steps: MonitorSteps = new MonitorSteps();
+    steps.data = {
+      monitorStepsInstanceArray: data.urls.map((url: string): MonitorStep => {
+        const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+          monitorName: data.name,
+          monitorType: data.monitorType,
+          onlineMonitorStatusId: ONLINE_ID,
+          offlineMonitorStatusId: OFFLINE_ID,
+          defaultIncidentSeverityId: CRITICAL_ID,
+          defaultAlertSeverityId: WARNING_ID,
+        });
+        step.setMonitorDestination(URL.fromStringLenient(url));
+        return step;
+      }),
+      defaultMonitorStatusId: ONLINE_ID,
+    };
+
+    return Object.assign(new MonitorTemplate(), {
+      id: data.id,
+      templateName: data.name,
+      monitorType: data.monitorType,
+      monitorSteps: steps,
+      ...(data.monitoringInterval
+        ? { monitoringInterval: data.monitoringInterval }
+        : {}),
     });
   }
 
@@ -364,7 +411,7 @@ describe("templates of every kind a device's monitor can be made from (#5145)", 
     });
   }
 
-  test("the recommended one first, then the other Network Device templates, then the address ones - each in the order read", () => {
+  test("the recommended one first, then the other Network Device templates, then the address ones, then the web ones - each in the order read", () => {
     const choices: Array<DiscoveryImportTemplateChoice> = buildTemplateChoices({
       templates: [
         kdsTemplate(),
@@ -387,6 +434,7 @@ describe("templates of every kind a device's monitor can be made from (#5145)", 
       PRINTER_TEMPLATE_ID.toString(),
       TIME_TEMPLATE_ID.toString(),
       IP_TEMPLATE_ID.toString(),
+      WEBSITE_TEMPLATE_ID.toString(),
     ]);
     expect(
       choices.map((choice: DiscoveryImportTemplateChoice): MonitorType => {
@@ -399,17 +447,132 @@ describe("templates of every kind a device's monitor can be made from (#5145)", 
       MonitorType.Port,
       MonitorType.NTP,
       MonitorType.IP,
+      MonitorType.Website,
     ]);
   });
 
-  test("a template that checks no device's address is never offered, whatever the read returned", () => {
+  test("a Website, API or SSL Certificate template is offered with the URL each device's monitor checks (#9546)", () => {
+    const choices: Array<DiscoveryImportTemplateChoice> = buildTemplateChoices({
+      templates: [
+        webTemplate({
+          id: WEBSITE_TEMPLATE_ID,
+          name: "Device status page",
+          monitorType: MonitorType.Website,
+          urls: ["https://device:8443/status"],
+          monitoringInterval: "*/5 * * * *",
+        }),
+        webTemplate({
+          id: KDS_TEMPLATE_ID,
+          name: "Device API",
+          monitorType: MonitorType.API,
+          urls: ["http://device/api/v1/health?token={{monitorSecrets.ApiKey}}"],
+        }),
+        webTemplate({
+          id: PRINTER_TEMPLATE_ID,
+          name: "Device certificate",
+          monitorType: MonitorType.SSLCertificate,
+          urls: ["https://device/"],
+        }),
+      ],
+      canCreateTemplates: false,
+      seedIds: null,
+      projectId: PROJECT_ID,
+    });
+
+    expect(
+      choices.map((choice: DiscoveryImportTemplateChoice) => {
+        return {
+          id: choice.id,
+          monitorType: choice.monitorType,
+          templateUrl: choice.templateUrl,
+          monitoringInterval: choice.monitoringInterval,
+          unusableReason: choice.unusableReason,
+        };
+      }),
+    ).toEqual([
+      {
+        id: WEBSITE_TEMPLATE_ID.toString(),
+        monitorType: MonitorType.Website,
+        templateUrl: "https://device:8443/status",
+        monitoringInterval: "*/5 * * * *",
+        unusableReason: undefined,
+      },
+      {
+        id: KDS_TEMPLATE_ID.toString(),
+        monitorType: MonitorType.API,
+        // A secret in the query is the template's, kept exactly as written.
+        templateUrl:
+          "http://device/api/v1/health?token={{monitorSecrets.ApiKey}}",
+        monitoringInterval: undefined,
+        unusableReason: undefined,
+      },
+      {
+        id: PRINTER_TEMPLATE_ID.toString(),
+        monitorType: MonitorType.SSLCertificate,
+        templateUrl: "https://device/",
+        monitoringInterval: undefined,
+        unusableReason: undefined,
+      },
+    ]);
+  });
+
+  test("a web template no device's address can be the host of is listed with why, in the server's words", () => {
+    const cases: Array<{ template: MonitorTemplate; reason: string }> = [
+      {
+        template: websiteTemplate(),
+        reason: DEVICE_TEMPLATE_HAS_NO_STEPS,
+      },
+      {
+        template: webTemplate({
+          id: WEBSITE_TEMPLATE_ID,
+          name: "Status page by secret",
+          monitorType: MonitorType.Website,
+          urls: ["https://{{monitorSecrets.host}}/status"],
+        }),
+        reason: URL_TEMPLATE_HOST_IS_VARIABLE,
+      },
+      {
+        template: webTemplate({
+          id: WEBSITE_TEMPLATE_ID,
+          name: "FTP banner",
+          monitorType: MonitorType.API,
+          urls: ["ftp://device/"],
+        }),
+        reason: URL_TEMPLATE_NEEDS_WEB_SCHEME,
+      },
+      {
+        // Every step is checked, not only the first.
+        template: webTemplate({
+          id: WEBSITE_TEMPLATE_ID,
+          name: "Two pages",
+          monitorType: MonitorType.Website,
+          urls: ["https://device/", "https://device:port/"],
+        }),
+        reason: URL_TEMPLATE_PORT_NOT_A_NUMBER,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const choices: Array<DiscoveryImportTemplateChoice> =
+        buildTemplateChoices({
+          templates: [testCase.template],
+          canCreateTemplates: false,
+          seedIds: null,
+          projectId: PROJECT_ID,
+        });
+
+      expect(choices).toHaveLength(1);
+      expect(choices[0]!.unusableReason).toBe(testCase.reason);
+    }
+  });
+
+  test("a template that checks nothing on a device is never offered, whatever the read returned", () => {
     for (const monitorType of [
-      MonitorType.Website,
-      MonitorType.API,
-      MonitorType.SSLCertificate,
       MonitorType.DNS,
       MonitorType.Manual,
       MonitorType.Logs,
+      MonitorType.IncomingRequest,
+      MonitorType.SyntheticMonitor,
     ]) {
       const template: MonitorTemplate = websiteTemplate();
       template.monitorType = monitorType;
@@ -896,7 +1059,7 @@ describe("reading the facts", () => {
       NO_DEVICE_MONITOR_TEMPLATE_REASON,
     );
     expect(NO_DEVICE_MONITOR_TEMPLATE_REASON).toBe(
-      "This project has no Network Device, Ping, IP, Port or NTP monitor template, and you may not create one. Ask a Project Owner or Project Admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
+      "This project has no Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate monitor template, and you may not create one. Ask a Project Owner or Project Admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
     );
   });
 
