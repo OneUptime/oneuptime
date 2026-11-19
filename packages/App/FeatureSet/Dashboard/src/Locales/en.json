@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} of {{total}} used ({{percent}})",
   "Inode Usage": "Inode Usage",
   "Total Inodes": "Total Inodes",
-  "See sessions": "See sessions"
+  "See sessions": "See sessions",
+  "A tap on a view": "A tap on a view",
+  "A tap on {{match}}": "A tap on {{match}}",
+  "Enter the view's testID, such as pay-button.": "Enter the view's testID, such as pay-button.",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "Put * only at the end, after the start of the testID, such as product-card-*.",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "Someone taps a view of your app you name by its testID. React Native recorder only.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.",
+  "View testID": "View testID"
 }

@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} van {{total}} gebruikt ({{percent}})",
   "Inode Usage": "Inodegebruik",
   "Total Inodes": "Totaal aantal inodes",
-  "See sessions": "Sessies bekijken"
+  "See sessions": "Sessies bekijken",
+  "A tap on a view": "Een tik op een view",
+  "A tap on {{match}}": "Een tik op {{match}}",
+  "Enter the view's testID, such as pay-button.": "Voer de testID van de view in, zoals pay-button.",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "Zet * alleen aan het eind, na het begin van de testID, zoals product-card-*.",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "Iemand tikt op een view van je app die je met zijn testID aanwijst. Alleen in de React Native-recorder.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "De React Native-recorder detecteert je tik-, pagina-, gebeurtenis- en foutsignalen. Kliksignalen en de ingebouwde regels zijn voor de browserrecorder.",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "De testID die je code aan de view geeft, of het begin ervan gevolgd door *, zoals product-card-*. Een tik op de view, of op iets daarbinnen, laat het signaal afgaan. Hoofdletters worden genegeerd.",
+  "View testID": "testID van de view"
 }

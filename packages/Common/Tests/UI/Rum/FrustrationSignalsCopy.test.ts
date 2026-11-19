@@ -417,6 +417,77 @@ describe("a signal of the application's own", () => {
     ).toBe("Your browser cannot read button[ as a CSS selector.");
   });
 
+  /*
+   * A tap on a view of a React Native app (issue #6517): its testID,
+   * exactly or by its start and a star - the rule the server holds every
+   * write to (getSessionReplayCustomSignalMatchProblem), said in the
+   * reader's language.
+   */
+  test("a tap needs a testID, with a star only at its end", () => {
+    expect(problemsOf({ trigger: "tap", match: "" }).match).toBe(
+      "Enter the view's testID, such as pay-button.",
+    );
+    expect(
+      problemsOf({ trigger: "tap", match: "pay-button" }).match,
+    ).toBeNull();
+    expect(
+      problemsOf({ trigger: "tap", match: "product-card-*" }).match,
+    ).toBeNull();
+
+    for (const misplaced of ["*", "*-card", "product-*-card", "product**"]) {
+      expect(problemsOf({ trigger: "tap", match: misplaced }).match).toBe(
+        "Put * only at the end, after the start of the testID, such as product-card-*.",
+      );
+    }
+
+    expect(problemsOf({ trigger: "tap", match: "t".repeat(201) }).match).toBe(
+      "This can be at most 200 characters.",
+    );
+    expect(problemsOf({ trigger: "tap", match: "pay\nbutton" }).match).toBe(
+      "This cannot contain line breaks.",
+    );
+    /* No browser reads a testID: it is never checked as a selector. */
+    expect(
+      problemsOf({ trigger: "tap", match: "pay-button" }, [], (): boolean => {
+        return false;
+      }).match,
+    ).toBeNull();
+  });
+
+  test("says a tap's problems in the reader's language", () => {
+    const german: Translator = createTranslator((text: string) => {
+      const value: unknown = (germanLocale as Record<string, unknown>)[text];
+
+      return typeof value === "string" ? value : undefined;
+    }, "de");
+
+    const empty: string | null = getCustomSignalDraftProblems(
+      draft({ trigger: "tap", match: "" }),
+      [],
+      german,
+      acceptsEverything,
+    ).match;
+    const misplaced: string | null = getCustomSignalDraftProblems(
+      draft({ trigger: "tap", match: "*" }),
+      [],
+      german,
+      acceptsEverything,
+    ).match;
+
+    expect(empty).toBe(
+      (germanLocale as Record<string, string>)[
+        "Enter the view's testID, such as pay-button."
+      ],
+    );
+    expect(empty).not.toBe("Enter the view's testID, such as pay-button.");
+    expect(misplaced).toBe(
+      (germanLocale as Record<string, string>)[
+        "Put * only at the end, after the start of the testID, such as product-card-*."
+      ],
+    );
+    expect(misplaced).toContain("product-card-*");
+  });
+
   test("a page needs a path that starts with / or *, without ? or #", () => {
     expect(problemsOf({ trigger: "page", match: "" }).match).toBe(
       "Enter the page's path, such as /checkout/error.",
@@ -466,6 +537,7 @@ describe("a signal of the application's own", () => {
   test("says what sets it off, kind by kind", () => {
     const rows: Array<[SessionReplayCustomSignalTrigger, string, string]> = [
       ["click", "#open-chat", "A click on #open-chat"],
+      ["tap", "pay-button", "A tap on pay-button"],
       ["page", "/checkout/error", "The page /checkout/error"],
       ["event", "payment_failed", "The event payment_failed"],
       ["error", "card declined", "An error containing card declined"],

@@ -52,7 +52,11 @@ import {
   ValidatedStartOptions,
   validateStartOptions,
 } from "./Config";
-import { CustomSignalMatcher, MobileCustomSignalHit } from "./CustomSignals";
+import {
+  CustomSignalMatcher,
+  MobileCustomSignalHit,
+  readTapTargetTestIds,
+} from "./CustomSignals";
 import {
   createCustomEvent,
   createTouchEvent,
@@ -202,6 +206,16 @@ interface GlobalErrorUtils {
 
 const MAX_DIAGNOSTIC_EVENTS: number = 100;
 const TOUCH_MOVE_SAMPLE_MS: number = 50;
+
+/*
+ * A touch that ends within this many points of where it started is a tap,
+ * as React Native's own Pressable decides a press: a finger that slides
+ * further was scrolling or dragging, not tapping.
+ */
+export const TAP_SLOP_POINTS: number = 10;
+
+/* Touches followed at once for tap signals: more fingers than a hand has. */
+const MAX_TAP_CANDIDATES: number = 10;
 export const MOBILE_POLICY_REFRESH_INTERVAL_MS: number = 5 * 60_000;
 type SessionRotationReason = "duration" | "idle" | "chunk-cap" | "identity";
 type PolicyRefreshReason = "consent" | "foreground" | "identity" | "periodic";
@@ -366,7 +380,7 @@ export default class MobileReplayRecorder {
   private readonly now: () => number;
   private readonly serializer: ViewTreeSerializer = new ViewTreeSerializer();
   private readonly chunkBuffer: ReplayChunkBuffer = new ReplayChunkBuffer();
-  /* The application's own page, event and error signals (issue #6443). */
+  /* The application's own tap, page, event and error signals (#6443, #6517). */
   private readonly customSignalMatcher: CustomSignalMatcher =
     new CustomSignalMatcher();
   private readonly rollingBuffer: RollingReplayBuffer =
@@ -475,6 +489,17 @@ export default class MobileReplayRecorder {
   private readonly suppressedTouchPointers: Set<string> = new Set<string>();
   private unidentifiedTouchCount: number = 0;
   private unidentifiedTouchPrivate: boolean = false;
+  /*
+   * Each touch still down that may yet be a tap, for the application's tap
+   * signals (issue #6517): where it started and on which view.
+   */
+  private readonly tapCandidates: Map<
+    string,
+    { x: number; y: number; targetTag: number | undefined }
+  > = new Map<
+    string,
+    { x: number; y: number; targetTag: number | undefined }
+  >();
 
   /*
    * When the person last did something: a touch (any touch - one inside a
@@ -1363,8 +1388,22 @@ export default class MobileReplayRecorder {
     ) {
       return;
     }
-    if (this.updateTouchSuppression(touch, pointIsPrivate)) {
+    const suppressed: boolean = this.updateTouchSuppression(
+      touch,
+      pointIsPrivate,
+    );
+    /* Followed whatever is recorded of it: a tap on an image is a tap. */
+    const tap: { targetTag: number; x: number; y: number } | null =
+      this.followTap(touch);
+    if (suppressed) {
       this.diagnostic("touch-suppressed-private-region");
+      /*
+       * The touch is not recorded, and so neither is where it was: a tap
+       * signal on it carries its name alone.
+       */
+      if (tap) {
+        await this.recordTapSignals(tap, touch.timestamp, generation, false);
+      }
       return;
     }
     if (
@@ -1403,6 +1442,124 @@ export default class MobileReplayRecorder {
         x: touch.x,
         y: touch.y,
       });
+    }
+    if (tap) {
+      await this.recordTapSignals(tap, touch.timestamp, generation, true);
+    }
+  }
+
+  /* The application's signals that fire on a tap. */
+  private tapSignals(): Array<SessionReplayCustomSignalConfig> {
+    return this.customSignals().filter(
+      (signal: SessionReplayCustomSignalConfig): boolean => {
+        return signal.trigger === "tap";
+      },
+    );
+  }
+
+  /*
+   * Follows each touch for the application's tap signals (issue #6517): a
+   * touch that ends within TAP_SLOP_POINTS of where it started is a tap on
+   * the view it started on, and is returned on its end. A touch that slid
+   * further was a scroll or a drag. Nothing is followed while the
+   * application has no tap signal, so a touch costs what it always did.
+   */
+  private followTap(
+    touch: RecordedTouch,
+  ): { targetTag: number; x: number; y: number } | null {
+    const key: string =
+      touch.pointerId === undefined
+        ? "unidentified"
+        : `${typeof touch.pointerId}:${String(touch.pointerId)}`;
+
+    if (touch.phase === "start") {
+      if (
+        this.tapSignals().length === 0 ||
+        (this.tapCandidates.size >= MAX_TAP_CANDIDATES &&
+          !this.tapCandidates.has(key))
+      ) {
+        return null;
+      }
+      this.tapCandidates.set(key, {
+        x: touch.x,
+        y: touch.y,
+        targetTag: touch.targetTag,
+      });
+      return null;
+    }
+
+    const started:
+      | { x: number; y: number; targetTag: number | undefined }
+      | undefined = this.tapCandidates.get(key);
+    if (!started) {
+      return null;
+    }
+    const slid: boolean =
+      Math.hypot(touch.x - started.x, touch.y - started.y) > TAP_SLOP_POINTS;
+    if (touch.phase === "move") {
+      if (slid) {
+        this.tapCandidates.delete(key);
+      }
+      return null;
+    }
+
+    this.tapCandidates.delete(key);
+    return slid || started.targetTag === undefined
+      ? null
+      : { targetTag: started.targetTag, x: touch.x, y: touch.y };
+  }
+
+  /*
+   * A tap's signals: the touched view's testID, and those of the views
+   * around it out to the replay root, matched here on the device - never
+   * recorded or sent. A hit carries the signal's name, where the tap was
+   * when the touch itself is recorded (withPosition), and like a page or
+   * an event signal it starts an "On error or frustration" upload when it
+   * counts as frustration.
+   */
+  private async recordTapSignals(
+    tap: { targetTag: number; x: number; y: number },
+    atUnixMs: number,
+    generation: number,
+    withPosition: boolean,
+  ): Promise<void> {
+    const signals: Array<SessionReplayCustomSignalConfig> = this.tapSignals();
+    if (
+      signals.length === 0 ||
+      !this.rootTag ||
+      typeof this.nativeViewTree.touchTargetTestIds !== "function"
+    ) {
+      return;
+    }
+    let testIds: Array<string> = [];
+    try {
+      testIds = readTapTargetTestIds(
+        await this.nativeViewTree.touchTargetTestIds(
+          tap.targetTag,
+          this.rootTag,
+        ),
+      );
+    } catch {
+      this.diagnostic("tap-target-unreadable");
+      return;
+    }
+    if (
+      !this.running ||
+      !this.acceptingEvents ||
+      !this.isCurrentGeneration(generation)
+    ) {
+      return;
+    }
+    const hits: Array<MobileCustomSignalHit> =
+      this.customSignalMatcher.matchTap(signals, testIds, atUnixMs);
+    if (withPosition) {
+      for (const hit of hits) {
+        hit.x = tap.x;
+        hit.y = tap.y;
+      }
+    }
+    if (this.recordCustomSignals(hits)) {
+      await this.trigger(SessionReplayTriggerReason.Frustration);
     }
   }
 
@@ -1909,7 +2066,7 @@ export default class MobileReplayRecorder {
     }
   }
 
-  /* The page, event and error signals the application's policy defines. */
+  /* The tap, page, event and error signals the application's policy defines. */
   private customSignals(): ReadonlyArray<SessionReplayCustomSignalConfig> {
     return this.config?.frustrationSignals.customSignals ?? [];
   }
@@ -1946,6 +2103,15 @@ export default class MobileReplayRecorder {
         isFrustration: hit.isFrustration,
         atUnixMs: hit.atUnixMs,
       };
+      if (
+        typeof hit.x === "number" &&
+        Number.isFinite(hit.x) &&
+        typeof hit.y === "number" &&
+        Number.isFinite(hit.y)
+      ) {
+        payload.x = hit.x;
+        payload.y = hit.y;
+      }
       this.appendEvent(
         createCustomEvent(
           CUSTOM_SIGNAL_CUSTOM_EVENT_TAG,
@@ -2805,6 +2971,7 @@ export default class MobileReplayRecorder {
     this.suppressedTouchPointers.clear();
     this.unidentifiedTouchCount = 0;
     this.unidentifiedTouchPrivate = false;
+    this.tapCandidates.clear();
   }
 
   private async applyIdentityChange(

@@ -11,6 +11,9 @@ final class OneUptimeReplayViewTreeModule: NSObject {
 
     private let maximumTreeDepth = 64
     private let maximumTreeNodes = 5_000
+    // A tap signal's match is at most 200 characters; a longer testID never matches.
+    private let maximumTapTestIdLength = 200
+    private let maximumTapTestIds = 32
     @objc var bridge: RCTBridge!
 
     @objc static func requiresMainQueueSetup() -> Bool {
@@ -93,6 +96,53 @@ final class OneUptimeReplayViewTreeModule: NSObject {
 
             // Stale/out-of-root event targets must never bypass privacy.
             resolve(true)
+        }
+    }
+
+    /*
+     * The testIDs of the touched view and of the views around it, out to the
+     * replay root, the touched one first: what the application's tap signals
+     * are matched against in JavaScript, on the device, and never recorded.
+     * React Native sets a view's testID as its accessibilityIdentifier; no
+     * text, content or accessibility label is read, and nothing is offered
+     * for a target outside the replay root or a tag that no longer resolves.
+     */
+    @objc(touchTargetTestIds:replayRootTag:resolver:rejecter:)
+    func touchTargetTestIds(
+        _ targetTag: NSNumber,
+        replayRootTag: NSNumber,
+        resolver resolve: @escaping RCTPromiseResolveBlock,
+        rejecter _: @escaping RCTPromiseRejectBlock
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self,
+                  let target = self.bridge.uiManager.view(forReactTag: targetTag),
+                  let replayRoot = self.bridge.uiManager.view(forReactTag: replayRootTag) else {
+                resolve([String]())
+                return
+            }
+
+            var testIds: [String] = []
+            var depth = 0
+            var current: UIView? = target
+            while let view = current, depth <= self.maximumTreeDepth {
+                if let testId = view.accessibilityIdentifier,
+                   !testId.isEmpty,
+                   testId.count <= self.maximumTapTestIdLength,
+                   testId != "oneuptime-replay-mask",
+                   testIds.count < self.maximumTapTestIds {
+                    testIds.append(testId)
+                }
+                if view === replayRoot {
+                    resolve(testIds)
+                    return
+                }
+                current = view.superview
+                depth += 1
+            }
+
+            // A target outside the replay root matches no tap signal.
+            resolve([String]())
         }
     }
 

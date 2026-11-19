@@ -170,7 +170,7 @@ test("opens from the side menu and states the default rules, with nothing of the
   ).toHaveText("Add one to mark a moment that matters to you.");
   await expect(page.getByRole("button", { name: "Add signal" })).toHaveCount(1);
   await expect(page.getByTestId("frustration-signals-mobile-note")).toHaveText(
-    "The React Native recorder detects your page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
+    "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
   );
   expect(await saves(page)).toEqual([]);
 });

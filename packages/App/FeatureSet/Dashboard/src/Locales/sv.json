@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} av {{total}} används ({{percent}})",
   "Inode Usage": "Inodeanvändning",
   "Total Inodes": "Totalt antal inoder",
-  "See sessions": "Visa sessioner"
+  "See sessions": "Visa sessioner",
+  "A tap on a view": "Ett tryck på en vy",
+  "A tap on {{match}}": "Ett tryck på {{match}}",
+  "Enter the view's testID, such as pay-button.": "Ange vyns testID, till exempel pay-button.",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "Sätt * bara i slutet, efter början av testID:t, till exempel product-card-*.",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "Någon trycker på en vy i din app som du anger med dess testID. Endast React Native-inspelaren.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "React Native-inspelaren upptäcker dina tryck-, sid-, händelse- och felsignaler. Klicksignaler och de inbyggda reglerna gäller webbläsarinspelaren.",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "Det testID din kod ger vyn, eller början av det följd av *, till exempel product-card-*. Ett tryck på vyn, eller på något inuti den, utlöser signalen. Skiftläge ignoreras.",
+  "View testID": "Vyns testID"
 }

@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} af {{total}} brugt ({{percent}})",
   "Inode Usage": "Inodeforbrug",
   "Total Inodes": "Inoder i alt",
-  "See sessions": "Se sessioner"
+  "See sessions": "Se sessioner",
+  "A tap on a view": "Et tryk på en visning",
+  "A tap on {{match}}": "Et tryk på {{match}}",
+  "Enter the view's testID, such as pay-button.": "Angiv visningens testID, f.eks. pay-button.",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "Sæt kun * til sidst, efter begyndelsen af testID'et, f.eks. product-card-*.",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "Nogen trykker på en visning i din app, som du angiver med dens testID. Kun React Native-optageren.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "React Native-optageren registrerer dine tryk-, side-, hændelses- og fejlsignaler. Kliksignaler og de indbyggede regler gælder browseroptageren.",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "Det testID, din kode giver visningen, eller begyndelsen af det efterfulgt af *, f.eks. product-card-*. Et tryk på visningen, eller på noget inden i den, udløser signalet. Der skelnes ikke mellem store og små bogstaver.",
+  "View testID": "Visningens testID"
 }

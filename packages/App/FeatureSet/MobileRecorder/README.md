@@ -250,20 +250,33 @@ pre-roll is uploaded after a manual or JavaScript error trigger.
 ## Frustration signals of your own
 
 A RUM application can name signals of its own on its **Frustration Signals**
-page in OneUptime, and this SDK detects three kinds of them with no code change:
+page in OneUptime, and this SDK detects four kinds of them with no code change:
 
-| signal | fires when                                                                                                                         |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| page   | `setRoute()` moves to a route whose path matches the pattern (`*` stands for any characters; case, query and fragment are ignored) |
-| event  | `track()` is called with that event name (case is ignored)                                                                         |
-| error  | a JavaScript error or `captureError()` carries a message containing the given words (case is ignored)                              |
+| signal | fires when                                                                                                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| tap    | a tap lands on a view whose `testID` is the one named, or starts with it when the pattern ends in `*` (`product-card-*`), or on anything inside it (case is ignored) |
+| page   | `setRoute()` moves to a route whose path matches the pattern (`*` stands for any characters; case, query and fragment are ignored)                                  |
+| event  | `track()` is called with that event name (case is ignored)                                                                                                          |
+| error  | a JavaScript error or `captureError()` carries a message containing the given words (case is ignored)                                                               |
 
 A hit is recorded as a marker carrying the signal's **name** only - never the
-route, the event's properties or the error's text, which are only compared on
-the device - and counted on the chunk. A signal that counts as frustration
-starts the upload in error-triggered mode, like an error. The same name fires
-at most once a second, and a chunk holds at most 50 markers. Nothing is
-detected while capture is paused because nobody is using the app.
+route, the event's properties, the error's text or a view's `testID`, which
+are only compared on the device - and counted on the chunk. A tap signal's
+marker also says where on the screen the tap was, as the recorded touch does,
+except on a view inside a `ReplayMask`, an image, a web view or another view
+the replay never records. A signal that counts as frustration starts the
+upload in error-triggered mode, like an error. The same name fires at most
+once a second, and a chunk holds at most 50 markers. Nothing is detected while
+capture is paused because nobody is using the app.
+
+A tap is a touch that ends within 10 points of where it started, on the view
+it started on: a finger that slides further was scrolling. Give the views you
+want to name a `testID` (`<Pressable testID="pay-button">`): the SDK reads the
+touched view's `testID` and those of the views around it from the native
+module, so a tap on a label inside a named button is a tap on the button. A
+binary built with an older version of this SDK's native code (a JavaScript-only
+over-the-air update) detects no tap signal and records everything else as
+before.
 
 Signals that react to a click on an element are CSS selectors on a web page,
 and the built-in rage, dead and error clicks and refresh rage are about a mouse

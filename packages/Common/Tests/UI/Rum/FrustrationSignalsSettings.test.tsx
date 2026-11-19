@@ -303,7 +303,9 @@ describe("a new application", () => {
     ).not.toHaveAttribute("aria-disabled", "true");
     expect(
       screen.getByTestId("frustration-signals-mobile-note"),
-    ).toHaveTextContent("The React Native recorder detects your page");
+    ).toHaveTextContent(
+      "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
+    );
   });
 
   test("keeps every rule folded away under Change the rule", async () => {
@@ -958,6 +960,80 @@ describe("signals of the application's own", () => {
     expect(screen.getByTestId("custom-signal-form")).toBeInTheDocument();
   });
 
+  /*
+   * A tap on a view of a React Native app (issue #6517): the dialog's fifth
+   * choice, after the click, asking for the view's testID in its own words.
+   */
+  test("adds a tap signal, named by the view's testID", async () => {
+    await renderPage(null);
+    await openAdd();
+
+    const options: Array<string> = within(
+      screen.getByTestId("custom-signal-trigger"),
+    )
+      .getAllByRole("radio")
+      .map((option: HTMLElement): string => {
+        return option.getAttribute("data-testid") || "";
+      });
+
+    expect(options).toEqual([
+      "card-select-option-click",
+      "card-select-option-tap",
+      "card-select-option-page",
+      "card-select-option-event",
+      "card-select-option-error",
+    ]);
+    expect(screen.getByTestId("card-select-option-tap")).toHaveTextContent(
+      "A tap on a viewSomeone taps a view of your app you name by its testID. React Native recorder only.",
+    );
+
+    fireEvent.change(screen.getByTestId("custom-signal-name"), {
+      target: { value: "Pay tapped" },
+    });
+    fireEvent.click(screen.getByTestId("card-select-option-tap"));
+
+    expect(within(dialog()).getByLabelText("View testID")).toHaveAttribute(
+      "placeholder",
+      "pay-button",
+    );
+    expect(dialog()).toHaveTextContent(
+      "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.",
+    );
+
+    /* A star anywhere but at the end is refused here, before it is sent. */
+    fireEvent.change(screen.getByTestId("custom-signal-match"), {
+      target: { value: "*-button" },
+    });
+    pressSave();
+
+    expect(
+      await within(dialog()).findByText(
+        "Put * only at the end, after the start of the testID, such as product-card-*.",
+      ),
+    ).toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByTestId("custom-signal-match"), {
+      target: { value: " pay-button " },
+    });
+    pressSave();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: SessionReplayCustomSignal | undefined =
+      savedSettings().customSignals[0];
+
+    expect(saved).toMatchObject({
+      name: "Pay tapped",
+      trigger: "tap",
+      match: "pay-button",
+      isFrustration: true,
+      isEnabled: true,
+    });
+  });
+
   test("lists each signal with its kind and what sets it off", async () => {
     await renderPage(
       settingsWith([
@@ -981,6 +1057,13 @@ describe("signals of the application's own", () => {
           trigger: "error",
           match: "card declined",
           isEnabled: false,
+        }),
+        signal({
+          id: "signal-5",
+          name: "Pay tapped",
+          trigger: "tap",
+          match: "pay-button",
+          isFrustration: false,
         }),
       ]),
     );
@@ -1022,6 +1105,9 @@ describe("signals of the application's own", () => {
     );
     expect(screen.getByTestId("custom-signal-signal-4")).toHaveTextContent(
       "An error containing card declined",
+    );
+    expect(screen.getByTestId("custom-signal-signal-5")).toHaveTextContent(
+      "Pay tappedMarkerA tap on pay-button",
     );
     expect(
       screen.getByRole("switch", { name: "Card declined" }),

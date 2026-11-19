@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "{{total}} में से {{used}} उपयोग में ({{percent}})",
   "Inode Usage": "inode उपयोग",
   "Total Inodes": "कुल inode",
-  "See sessions": "सेशन देखें"
+  "See sessions": "सेशन देखें",
+  "A tap on a view": "किसी व्यू पर टैप",
+  "A tap on {{match}}": "{{match}} पर टैप",
+  "Enter the view's testID, such as pay-button.": "व्यू का testID दर्ज करें, जैसे pay-button।",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "* सिर्फ़ आख़िर में, testID की शुरुआत के बाद लगाएँ, जैसे product-card-*।",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "कोई आपके ऐप के ऐसे व्यू पर टैप करता है जिसे आप उसके testID से बताते हैं। सिर्फ़ React Native रिकॉर्डर।",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "React Native रिकॉर्डर आपके टैप, पेज, इवेंट और त्रुटि सिग्नल पहचानता है। क्लिक सिग्नल और बिल्ट-इन नियम ब्राउज़र रिकॉर्डर के लिए हैं।",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "वह testID जो आपका कोड व्यू को देता है, या उसकी शुरुआत के बाद *, जैसे product-card-*। व्यू पर, या उसके अंदर किसी भी चीज़ पर टैप करने से सिग्नल ट्रिगर होता है। अक्षरों का छोटा-बड़ा होना अनदेखा किया जाता है।",
+  "View testID": "व्यू testID"
 }

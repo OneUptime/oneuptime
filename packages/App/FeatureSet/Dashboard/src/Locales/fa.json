@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "{{used}} از {{total}} استفاده‌شده ({{percent}})",
   "Inode Usage": "مصرف inode",
   "Total Inodes": "کل inodeها",
-  "See sessions": "دیدن نشست‌ها"
+  "See sessions": "دیدن نشست‌ها",
+  "A tap on a view": "ضربه روی یک نما",
+  "A tap on {{match}}": "ضربه روی {{match}}",
+  "Enter the view's testID, such as pay-button.": "شناسه testID نما را وارد کنید، مانند pay-button.",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "* را فقط در پایان، پس از ابتدای testID بگذارید، مانند product-card-*.",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "کسی روی نمایی از برنامه شما ضربه می‌زند که با شناسه testID آن مشخص کرده‌اید. فقط ضبط‌کننده React Native.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "ضبط‌کننده React Native سیگنال‌های ضربه، صفحه، رویداد و خطای شما را تشخیص می‌دهد. سیگنال‌های کلیک و قاعده‌های داخلی برای ضبط‌کننده مرورگر هستند.",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "شناسه testID که کد شما به نما می‌دهد، یا ابتدای آن و پس از آن *، مانند product-card-*. ضربه روی نما، یا روی هر چیزی درون آن، سیگنال را فعال می‌کند. کوچکی و بزرگی حروف نادیده گرفته می‌شود.",
+  "View testID": "شناسه testID نما"
 }

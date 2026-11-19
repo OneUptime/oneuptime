@@ -1,6 +1,7 @@
 import {
   getSessionReplayCustomSignalMatchMaxLength,
   isSessionReplayPagePatternAnchored,
+  isSessionReplayTapPatternUsable,
   SESSION_REPLAY_FRUSTRATION_LIMITS,
   SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH,
   SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
@@ -25,7 +26,8 @@ import {
  *
  * The page edits RumApplication.sessionReplayFrustrationSignals: the four
  * built-in signals, each with its numbers or switched off, and up to twenty
- * signals of the application's own (issue #6443). The recorders read it on
+ * signals of the application's own (issue #6443) - a tap on a view of a
+ * React Native app among them (issue #6517). The recorders read it on
  * their next page load, so nothing here changes a recording already made:
  * the page says so once, at the top.
  *
@@ -78,7 +80,7 @@ export const CUSTOM_CARD_DESCRIPTION: string = translationKey(
 );
 
 export const MOBILE_NOTE_COPY: string = translationKey(
-  "The React Native recorder detects your page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
 );
 
 export const CHANGE_RULE_TITLE: string = translationKey("Change the rule");
@@ -657,6 +659,23 @@ export const CUSTOM_SIGNAL_TRIGGER_COPY: Record<
     ),
     rowTemplate: translationKey("A click on {{match}}"),
   },
+  /*
+   * A React Native app's click (issue #6517): a view has no CSS selector,
+   * so it is named by the testID its code gives it - the one thing a
+   * developer already writes on the views they test.
+   */
+  tap: {
+    title: translationKey("A tap on a view"),
+    description: translationKey(
+      "Someone taps a view of your app you name by its testID. React Native recorder only.",
+    ),
+    matchLabel: translationKey("View testID"),
+    matchPlaceholder: "pay-button",
+    matchHint: translationKey(
+      "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.",
+    ),
+    rowTemplate: translationKey("A tap on {{match}}"),
+  },
   page: {
     title: translationKey("A page"),
     description: translationKey(
@@ -696,7 +715,7 @@ export const CUSTOM_SIGNAL_TRIGGER_COPY: Record<
 };
 
 export const CUSTOM_SIGNAL_TRIGGERS: ReadonlyArray<SessionReplayCustomSignalTrigger> =
-  ["click", "page", "event", "error"];
+  ["click", "tap", "page", "event", "error"];
 
 export const COUNTS_AS_FRUSTRATION_TITLE: string = translationKey(
   "Counts as frustration",
@@ -742,6 +761,7 @@ const MATCH_EMPTY: Record<SessionReplayCustomSignalTrigger, string> = {
   click: translationKey(
     "Enter the CSS selector of the element, such as #pay-button.",
   ),
+  tap: translationKey("Enter the view's testID, such as pay-button."),
   page: translationKey("Enter the page's path, such as /checkout/error."),
   event: translationKey("Enter the event name your code passes to track()."),
   error: translationKey("Enter the text the error contains."),
@@ -761,6 +781,10 @@ const PAGE_NOT_ANCHORED: string = translationKey(
 
 const PAGE_HAS_QUERY: string = translationKey(
   "Match the page's path only, without ? or #.",
+);
+
+const TAP_STAR_MISPLACED: string = translationKey(
+  "Put * only at the end, after the start of the testID, such as product-card-*.",
 );
 
 /* Names a signal of the application's own may not take. */
@@ -853,6 +877,11 @@ export function getCustomSignalDraftProblems(
       matchProblem = translator.translateTemplate(SELECTOR_NOT_READ, {
         selector: match,
       });
+    }
+  } else if (draft.trigger === "tap") {
+    if (!isSessionReplayTapPatternUsable(match)) {
+      matchProblem =
+        translator.translateText(TAP_STAR_MISPLACED) || TAP_STAR_MISPLACED;
     }
   } else if (draft.trigger === "page") {
     if (!isSessionReplayPagePatternAnchored(match)) {

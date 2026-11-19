@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "{{total}} 중 {{used}} 사용({{percent}})",
   "Inode Usage": "inode 사용량",
   "Total Inodes": "전체 inode",
-  "See sessions": "세션 보기"
+  "See sessions": "세션 보기",
+  "A tap on a view": "뷰 탭",
+  "A tap on {{match}}": "{{match}} 탭",
+  "Enter the view's testID, such as pay-button.": "뷰의 testID를 입력하세요(예: pay-button).",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "*는 testID 앞부분 뒤, 끝에만 붙이세요(예: product-card-*).",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "testID로 지정한 앱의 뷰를 탭하는 경우. React Native 레코더 전용.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "React Native 레코더는 탭, 페이지, 이벤트, 오류 신호를 감지합니다. 클릭 신호와 기본 제공 규칙은 브라우저 레코더용입니다.",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "코드가 뷰에 지정한 testID, 또는 그 앞부분 뒤에 *를 붙인 것(예: product-card-*). 뷰나 그 안의 무언가를 탭하면 신호가 발생합니다. 대소문자는 구분하지 않습니다.",
+  "View testID": "뷰 testID"
 }

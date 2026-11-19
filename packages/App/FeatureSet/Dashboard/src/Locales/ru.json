@@ -57419,5 +57419,13 @@
   "{{used}} of {{total}} used ({{percent}})": "Занято {{used}} из {{total}} ({{percent}})",
   "Inode Usage": "Использование инодов",
   "Total Inodes": "Всего инодов",
-  "See sessions": "Посмотреть сеансы"
+  "See sessions": "Посмотреть сеансы",
+  "A tap on a view": "Касание представления",
+  "A tap on {{match}}": "Касание {{match}}",
+  "Enter the view's testID, such as pay-button.": "Введите testID представления, например pay-button.",
+  "Put * only at the end, after the start of the testID, such as product-card-*.": "Ставьте * только в конце, после начала testID, например product-card-*.",
+  "Someone taps a view of your app you name by its testID. React Native recorder only.": "Человек касается представления вашего приложения, которое вы указываете по его testID. Только рекордер React Native.",
+  "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "Рекордер React Native обнаруживает ваши сигналы касаний, страниц, событий и ошибок. Сигналы кликов и встроенные правила работают в браузерном рекордере.",
+  "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "Значение testID, которое ваш код задаёт представлению, или его начало со * в конце, например product-card-*. Касание представления или чего-либо внутри него запускает сигнал. Регистр не учитывается.",
+  "View testID": "testID представления"
 }
