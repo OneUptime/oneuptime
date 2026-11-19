@@ -125,6 +125,14 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "Call (phone call)",
   "Push (push notification)",
+  /*
+   * The room left on a store - a volume, a disk, a datastore: the Free
+   * column of the storage lists and the Free figure of a store's usage
+   * (StorageUsageBar, #9539). The bare "Free" is the price, free of charge
+   * (a plan's "Free"), worded so in French ("Gratuit") and Spanish
+   * ("Gratis"), which no disk is.
+   */
+  "Free (storage space)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

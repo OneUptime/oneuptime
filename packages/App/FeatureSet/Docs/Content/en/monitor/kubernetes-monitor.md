@@ -86,7 +86,7 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 
 | Category | Metrics |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
+| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Volume Capacity, Volume Free Space, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
 | Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
 | Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
@@ -150,6 +150,7 @@ The **What to alert on** list holds these templates, grouped by category. Each o
 | API Server Request Saturation | Control Plane | The API server holds 200 or more in-flight requests for the whole window | Critical |
 | Scheduler Backlog | Scheduling | The scheduler's pending-pod queue is non-empty for 5 minutes | Warning |
 | High Node Disk Usage | Storage | A node's filesystem is more than 90% full | Warning |
+| PVC Almost Full | Storage | A persistent volume claim is more than 90% full | Warning |
 | DaemonSet Pods Not Ready | Workload | A DaemonSet has nodes without a ready pod of it for 15 minutes | Warning |
 | DaemonSet Misscheduled Nodes | Workload | A DaemonSet runs pods on nodes that no longer match its node selector, affinity or tolerations | Warning |
 | High Node CPU Request Commitment | Node | A node's summed container CPU requests exceed 90% of its allocatable CPU | Warning |

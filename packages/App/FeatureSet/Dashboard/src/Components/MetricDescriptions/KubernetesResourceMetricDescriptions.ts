@@ -64,6 +64,11 @@ export type KubernetesResourceMetric =
   | "hpaDesiredReplicas"
   | "pvcCapacity"
   | "pvCapacity"
+  // The Persistent Volume Claims and Persistent Volumes lists' usage.
+  | "pvcUsed"
+  | "pvcFree"
+  | "pvUsed"
+  | "pvFree"
   // Detail pages: Overview summary fields.
   | "nodeCpuCapacity"
   | "nodeMemoryCapacity"
@@ -205,6 +210,18 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
   ),
   pvCapacity: translationKey(
     "The total size of this persistent volume, in Kubernetes units: Gi is gibibytes and Mi is mebibytes (1 Gi = 1,024 Mi).",
+  ),
+  pvcUsed: translationKey(
+    "How much of the claim's filesystem is used, as the kubelet last measured it while a pod mounted it. Amber from 80% full, red from 90%.",
+  ),
+  pvcFree: translationKey(
+    "How much can still be written to the claim's filesystem, as the kubelet last measured it.",
+  ),
+  pvUsed: translationKey(
+    "How much of the volume is used, measured on the claim bound to it while a pod mounted it. Amber from 80% full, red from 90%.",
+  ),
+  pvFree: translationKey(
+    "How much can still be written to the volume, measured on the claim bound to it.",
   ),
 
   nodeCpuCapacity: translationKey(

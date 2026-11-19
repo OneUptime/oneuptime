@@ -410,7 +410,7 @@ Hendelser over flere linjer settes sammen igjen før filtreringen i begge moduse
 Dropp noen få støyende målinger (en blokkeringsliste, vanligvis det du vil ha):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Send bare et fast sett (en tillatelsesliste: alt annet droppes):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinalitet, antall distinkte serier, betyr like mye som frekvens, fordi hver serie lagres og faktureres for seg.
 
 - cAdvisor er tillatelseslistet med vilje. cAdvisor-receiveren (på som standard) kan sende hundrevis av målinger; chartet videresender bare tellerne for CPU-struping og OOM-kills i `cadvisor.metricsAllowlist`, til dine egne grafer og målingsmonitorer: ingen innebygd mal leser dem. Hold listen kort: hver oppføring beholdes per container, så én måling til multipliseres med klyngens antall containere. kube-state-metrics er av som standard; hvis du slår den på (`kubeStateMetrics.enabled=true`), fungerer `kubeStateMetrics.metricsAllowlist` på samme måte, og hver oppføring må treffe hele navnet på en måling.
-- Volummålinger per PVC (`kubeletstats.volumeMetrics.enabled`, på som standard) sender én serie per PVC per pod: greit for de fleste klynger, mye på tilstandsfulle arbeidsbelastninger (Kafka, databaser) med tusenvis av PVC-er. Slå dem av der hvis du ikke overvåker PVC-diskplass, med `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volummålinger (`kubeletstats.volumeMetrics.enabled`, på som standard) sender noen få serier per volum per pod og fyller brukt, ledig og kapasitet på sidene for Persistent Volume Claims og malen PVC Almost Full: greit for de fleste klynger, mye på tilstandsfulle arbeidsbelastninger (Kafka, databaser) med tusenvis av PVC-er. Slå dem av der hvis du ikke overvåker PVC-diskplass, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Metningsmålinger (`kubeletstats.utilizationMetrics.enabled`, på som standard) legger til 8 avledede familier av typen «% av request eller limit». De koster ingen ekstra scrape, men hvis du ikke bruker monitorene for CPU og minne mot limit, dropp dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Dropp målinger etter navn med `filters.metrics.exclude`, som spenner over alle receivere, for alt receivernes tillatelseslister ikke kan uttrykke (se [Inkludere eller utelukke målinger etter navn](#inkludere-eller-utelukke-målinger-etter-navn)):
 
@@ -1060,7 +1060,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Stram inn mer etter behov: øk `minSeverity` til `ERROR`, legg `metrics` til i områdene til en navneromsregel, eller sett `ebpf.enabled=false` hvis du allerede sender spor fra OpenTelemetry SDK-er.
 
 > [!CAUTION]
-> Pass på hva du kutter. Noen monitorer avhenger av bestemte signaler: å slå av `kubeletstats.utilizationMetrics` gjør de to malene som måler pods mot containergrensene sine, stumme, å slå av logger fjerner loggbaserte varsler, og å slå av `cadvisor` eller `kubeletstats.volumeMetrics` fjerner seriene for struping, OOM-kill og PVC-er som dine egne grafer og målingsmonitorer kan lese. `sampling.traces.percentage` fjerner ingen monitor, men skalerer ned de spennbaserte (**Spor** på `Span Count`, **Unntak** på `Exception Count`), så juster tersklene deres. Trim signalene du ikke handler på, ikke dem en monitor overvåker.
+> Pass på hva du kutter. Noen monitorer avhenger av bestemte signaler: å slå av `kubeletstats.utilizationMetrics` gjør de to malene som måler pods mot containergrensene sine, stumme, å slå av logger fjerner loggbaserte varsler, å slå av `kubeletstats.volumeMetrics` gjør malen PVC Almost Full taus og etterlater sidene for claims uten bruken sin, og å slå av `cadvisor` fjerner seriene for struping og OOM-kill som dine egne grafer og målingsmonitorer kan lese. `sampling.traces.percentage` fjerner ingen monitor, men skalerer ned de spennbaserte (**Spor** på `Span Count`, **Unntak** på `Exception Count`), så juster tersklene deres. Trim signalene du ikke handler på, ikke dem en monitor overvåker.
 
 ### Mål effekten
 

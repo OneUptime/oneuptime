@@ -173,7 +173,7 @@ const TITLES: Record<VMwareMetric, string> = {
   vmListCpuReady: "CPU Ready",
   vmListCpu: "CPU",
   vmListMemory: "Memory",
-  datastoreListUsedCapacity: "Used / Capacity",
+  datastoreListUsedCapacity: "Used",
   clusterListHosts: "Hosts (effective / total)",
   clusterListVirtualMachines: "VMs (powered on / total)",
   resourcePoolListCpu: "CPU Usage",

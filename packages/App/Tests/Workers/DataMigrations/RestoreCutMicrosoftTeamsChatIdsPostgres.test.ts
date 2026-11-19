@@ -3,8 +3,11 @@ import Entities from "Common/Models/DatabaseModels/Index";
 import { WidenWorkspaceMessageIdColumns1809182970000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809182970000-WidenWorkspaceMessageIdColumns";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import logger from "Common/Server/Utils/Logger";
+import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsCutChatIds from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCutChatIds";
 import ObjectID from "Common/Types/ObjectID";
 import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
+import type { SpyInstance } from "jest-mock";
 import {
   afterAll,
   afterEach,
@@ -35,7 +38,12 @@ import {
  *     no other project's row, no id it cannot tell, no name;
  *   - a second run changes nothing, and two runs at once come to the same;
  *   - down() narrows the tables back without cutting an id: a kept message
- *     whose place is longer is forgotten, a log's id emptied.
+ *     whose place is longer is forgotten, a log's id emptied;
+ *   - a chat a connection lists only after the upgrade (#9330) gets its
+ *     whole id back in its project's kept messages, from the statement
+ *     MicrosoftTeamsCutChatIds runs for it then: not in the logs, not in
+ *     Slack's rows or another project's, not when another listed chat has
+ *     the same first 100 characters, and not twice.
  *
  * Opt in with RUN_POSTGRES_TEAMS_CHAT_IDS_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
@@ -590,6 +598,154 @@ describePostgres(
       ).rejects.toThrow("value too long");
 
       expect((await storedPlaces())[ROWS[0]!.id]![0]).toBe(AMIT_CHAT);
+    });
+
+    test("REGRESSION #9330: a chat listed only after the upgrade gets its whole id back in its project's kept messages - not in the logs, not in Slack's rows or another project's, not when another listed chat starts the same, not twice", async () => {
+      await seedAsWritten();
+
+      await withRunner(async (queryRunner: QueryRunner) => {
+        if (
+          (await columnType("WorkspaceLiveMessage", "channelId")) !==
+          "character varying(500)"
+        ) {
+          await new WidenWorkspaceMessageIdColumns1809182970000().up(
+            queryRunner,
+          );
+        }
+      });
+
+      /*
+       * No connection listed Amit's chat at the upgrade, so nothing was put
+       * back. Project A's connection lists it now.
+       */
+      await MicrosoftTeamsCutChatIds.restoreKeptMessages({
+        projectId: new ObjectID(PROJECT_A),
+        chatId: AMIT_CHAT,
+        availableChats: chatsOf(AMIT_CHAT, GROUP_CHAT),
+      });
+
+      const afterAmit: Record<string, [string | null, string | null]> =
+        asWritten();
+      afterAmit[ROWS[0]!.id] = [AMIT_CHAT, "Amit Rajput"];
+      afterAmit[ROWS[1]!.id] = [AMIT_CHAT, "Amit Rajput"];
+
+      // Project A's two kept messages, and nothing else: its logs keep the cut id.
+      expect(await storedPlaces()).toEqual(afterAmit);
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith(
+        `Put back the whole id of a Microsoft Teams chat newly listed in project ${PROJECT_A} in 2 message(s) OneUptime keeps up to date, kept cut to 100 characters before the upgrade.`,
+      );
+
+      // Again: nothing is left to match.
+      jest.mocked(logger.info).mockClear();
+      await MicrosoftTeamsCutChatIds.restoreKeptMessages({
+        projectId: new ObjectID(PROJECT_A),
+        chatId: AMIT_CHAT,
+        availableChats: chatsOf(AMIT_CHAT, GROUP_CHAT),
+      });
+
+      expect(await storedPlaces()).toEqual(afterAmit);
+      expect(logger.info).not.toHaveBeenCalled();
+
+      // Project B lists Jane's chat beside another that starts the same: neither is told.
+      await MicrosoftTeamsCutChatIds.restoreKeptMessages({
+        projectId: new ObjectID(PROJECT_B),
+        chatId: JANE_CHAT,
+        availableChats: chatsOf(
+          JANE_CHAT,
+          `${cut(JANE_CHAT)}-another-chat-that-starts-the-same-way`,
+        ),
+      });
+
+      expect(await storedPlaces()).toEqual(afterAmit);
+
+      // Alone, it is.
+      await MicrosoftTeamsCutChatIds.restoreKeptMessages({
+        projectId: new ObjectID(PROJECT_B),
+        chatId: JANE_CHAT,
+        availableChats: chatsOf(JANE_CHAT),
+      });
+
+      expect(await storedPlaces()).toEqual({
+        ...afterAmit,
+        [ROWS[5]!.id]: [JANE_CHAT, "Jane Doe"],
+      });
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    test("REGRESSION #9330: through the chat's registration - MicrosoftTeamsUtil.saveChatToProjectAuthTokens on the stored connections - each project that newly lists the chat gets its kept messages back, and a second registration puts nothing back", async () => {
+      await seedAsWritten();
+
+      await withRunner(async (queryRunner: QueryRunner) => {
+        if (
+          (await columnType("WorkspaceLiveMessage", "channelId")) !==
+          "character varying(500)"
+        ) {
+          await new WidenWorkspaceMessageIdColumns1809182970000().up(
+            queryRunner,
+          );
+        }
+      });
+
+      // The app was removed from Amit's chat before the upgrade: project A's connection no longer lists it.
+      await database.query(
+        `UPDATE "${schema}"."WorkspaceProjectAuthToken" SET "miscData" = $1 WHERE "_id" = $2`,
+        [
+          JSON.stringify({ availableChats: chatsOf(GROUP_CHAT) }),
+          "92840000-0000-4000-8000-000000000001",
+        ],
+      );
+
+      // Amit adds it again: the bot saves the chat on every connection of the tenant.
+      const amitsChat: Record<string, unknown> = chatsOf(AMIT_CHAT)[
+        AMIT_CHAT
+      ] as Record<string, unknown>;
+
+      await MicrosoftTeamsUtil.saveChatToProjectAuthTokens({
+        tenantId: "tenant",
+        chat: amitsChat as never,
+      });
+
+      // Every Microsoft Teams connection of the tenant lists it now.
+      const listings: Array<{ _id: string; listsAmit: boolean }> =
+        await database.query(
+          `SELECT "_id", ("miscData"->'availableChats') ? $1 AS "listsAmit" FROM "${schema}"."WorkspaceProjectAuthToken" WHERE "workspaceType" = 'MicrosoftTeams' ORDER BY "_id"`,
+          [AMIT_CHAT],
+        );
+
+      expect(listings).toEqual([
+        { _id: "92840000-0000-4000-8000-000000000001", listsAmit: true },
+        { _id: "92840000-0000-4000-8000-000000000002", listsAmit: true },
+        { _id: "92840000-0000-4000-8000-000000000004", listsAmit: true },
+      ]);
+
+      /*
+       * Project A's two kept messages, and project B's (its connection
+       * lists Amit's chat now too); not the logs, the Slack row, or Jane's
+       * place, whose chat project B listed already.
+       */
+      const registered: Record<string, [string | null, string | null]> = {
+        ...asWritten(),
+        [ROWS[0]!.id]: [AMIT_CHAT, "Amit Rajput"],
+        [ROWS[1]!.id]: [AMIT_CHAT, "Amit Rajput"],
+        [ROWS[6]!.id]: [AMIT_CHAT, "Amit Rajput"],
+      };
+
+      expect(await storedPlaces()).toEqual(registered);
+      expect(logger.error).not.toHaveBeenCalled();
+
+      // Registered again - a re-capture of a listed chat - nothing is put back.
+      const restores: SpyInstance<
+        typeof MicrosoftTeamsCutChatIds.restoreKeptMessages
+      > = jest.spyOn(MicrosoftTeamsCutChatIds, "restoreKeptMessages");
+
+      await MicrosoftTeamsUtil.saveChatToProjectAuthTokens({
+        tenantId: "tenant",
+        chat: amitsChat as never,
+      });
+
+      expect(restores).not.toHaveBeenCalled();
+      expect(await storedPlaces()).toEqual(registered);
     });
 
     test("down() narrows the tables back without cutting an id: a kept message whose place is longer is forgotten, a log's id emptied, a name cut", async () => {
