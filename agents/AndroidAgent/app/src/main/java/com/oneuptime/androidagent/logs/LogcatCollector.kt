@@ -2,6 +2,8 @@ package com.oneuptime.androidagent.logs
 
 import com.oneuptime.androidagent.Clock
 import com.oneuptime.androidagent.config.LogcatLevel
+import com.oneuptime.androidagent.logsession.LogSessionUnavailable
+import com.oneuptime.androidagent.logsession.SessionLogcat
 import com.oneuptime.androidagent.otlp.LogRecord
 import com.oneuptime.androidagent.otlp.attributes
 import com.oneuptime.androidagent.otlp.millisToNanos
@@ -80,7 +82,15 @@ class LogcatCollector(
     private val currentBootId: () -> String?,
     private val buffer: LogBuffer,
     private val resumePoints: ResumePointStore,
-) {
+    // The agent's own uid and pid: a line from anyone else in a log session says Android allowed it.
+    private val myUid: Int = -1,
+    private val myPid: Int = -1,
+    // Whether READ_LOGS is granted now, for a log session asked for between two cycles.
+    private val isGranted: () -> Boolean = { true },
+    // DropBox has every app's crashes, or ANRs, with their stacks: the events buffer's copies are not sent.
+    private val crashesCoveredElsewhere: () -> Boolean = { false },
+    private val anrsCoveredElsewhere: () -> Boolean = { false },
+) : SessionLogcat {
     // A text line costs one token: bursts of 2,000, then 10 lines a second (600 a minute).
     private val textLimiter = RateLimiter(capacity = 2_000.0, perSecond = 10.0, elapsedMillis = clock::elapsedRealtimeMillis)
 
@@ -92,6 +102,18 @@ class LogcatCollector(
     private var textLevel: LogcatLevel? = null
     private var droppedLines: Long = 0
 
+    // A log session's own logcat, and the session it reads for (LogSessionManager).
+    private var logSession: LogcatSession? = null
+
+    @Volatile
+    private var logSessionId: String? = null
+
+    @Volatile
+    private var lastOtherAppLine: Long? = null
+
+    @Volatile
+    private var enabledNow: Boolean = true
+
     @Volatile
     var state: LogcatState = LogcatState.DISABLED
         private set
@@ -99,6 +121,7 @@ class LogcatCollector(
     /** Starts or stops sessions to match the settings and whether READ_LOGS is granted. */
     @Synchronized
     fun update(enabled: Boolean, granted: Boolean, minLevel: LogcatLevel): LogcatState {
+        enabledNow = enabled
         val wanted: LogcatState =
             when {
                 !enabled -> LogcatState.DISABLED
@@ -137,7 +160,56 @@ class LogcatCollector(
         textSession?.stop()
         eventsSession = null
         textSession = null
+        stop()
     }
+
+    override fun unavailable(): LogSessionUnavailable? =
+        when {
+            !enabledNow -> LogSessionUnavailable.LOGCAT_DISABLED
+            !isGranted() -> LogSessionUnavailable.NOT_GRANTED
+            else -> null
+        }
+
+    /**
+     * Starts a log session's own `logcat`: every app's main, system and crash
+     * lines at [level], from now on. On Android 13 and later it must start
+     * while the agent's screen is in front: that is when Android asks the
+     * person at the device to allow it, and it keeps the answer for this one
+     * process. While it runs, the regular text session (Android 12 and
+     * earlier) sends nothing, so no line is sent twice.
+     */
+    @Synchronized
+    override fun start(sessionId: String, level: LogcatLevel) {
+        logSession?.stop()
+        lastOtherAppLine = null
+        logSessionId = sessionId
+        // Any id the session keeps to itself will do where the kernel's is not readable: it only has to resume from now.
+        val bootId: String = currentBootId() ?: "log-session"
+        logSession =
+            LogcatSession(
+                name = SESSION,
+                commands = LogcatCommands.text(level),
+                launcher = launcher,
+                clock = clock,
+                currentBootId = { bootId },
+                // From this moment: a session sends what happens while it runs, not what came before.
+                initialResume = ResumePoint(bootId, millisToNanos(clock.nowMillis())),
+                onEntry = { line, logBuffer -> onSessionText(line, logBuffer) },
+            ).also { it.start() }
+    }
+
+    @Synchronized
+    override fun stop() {
+        logSession?.stop()
+        logSession = null
+        logSessionId = null
+    }
+
+    override val isRunning: Boolean
+        get() = logSession?.isRunning == true
+
+    override val lastOtherAppLineElapsedMillis: Long?
+        get() = lastOtherAppLine
 
     /** Saves where each session got to, so a restart resumes there. */
     @Synchronized
@@ -183,6 +255,11 @@ class LogcatCollector(
         )
 
     private fun onEvent(line: LogcatLine) {
+        // DropBox has the same crash with its whole stack: sending this copy too would file it twice.
+        when (line.tag) {
+            EventLogDecoder.TAG_CRASH -> if (crashesCoveredElsewhere()) return
+            EventLogDecoder.TAG_ANR -> if (anrsCoveredElsewhere()) return
+        }
         val record: LogRecord = EventLogDecoder.decode(line, millisToNanos(clock.nowMillis())) ?: return
         if (eventLimiter.tryAcquire()) {
             buffer.add(record)
@@ -190,30 +267,60 @@ class LogcatCollector(
     }
 
     private fun onText(line: LogcatLine, logBuffer: String?) {
+        // A log session reads the same lines, and more: it sends them, tagged with the session.
+        if (logSessionId != null) {
+            return
+        }
         if (!textLimiter.tryAcquire()) {
             synchronized(this) { droppedLines += 1 }
             return
         }
-        buffer.add(textRecord(line, logBuffer, millisToNanos(clock.nowMillis()), packages))
+        buffer.add(textRecord(line, logBuffer, millisToNanos(clock.nowMillis()), packages = packages))
+    }
+
+    private fun onSessionText(line: LogcatLine, logBuffer: String?) {
+        val sessionId: String = logSessionId ?: return
+        if (isFromAnotherApp(line)) {
+            lastOtherAppLine = clock.elapsedRealtimeMillis()
+        }
+        if (!textLimiter.tryAcquire()) {
+            synchronized(this) { droppedLines += 1 }
+            return
+        }
+        buffer.add(textRecord(line, logBuffer, millisToNanos(clock.nowMillis()), logSessionId = sessionId, packages = packages))
+    }
+
+    /*
+     * Until Android allows a session, logd gives it the agent's own lines
+     * only: a line from another uid (or, in the format without uids, another
+     * process) is the sign it was allowed.
+     */
+    private fun isFromAnotherApp(line: LogcatLine): Boolean {
+        val uid: Int? = LogcatUid.numeric(line.uid)
+        return if (uid != null) uid != myUid else line.pid != myPid
     }
 
     companion object {
         const val EVENTS: String = "events"
         const val TEXT: String = "text"
+        const val SESSION: String = "session"
         const val ANDROID_13: Int = 33
         const val MAX_MESSAGE_LENGTH: Int = 8_192
+        const val LOG_SESSION_ATTRIBUTE: String = "oneuptime.agent.log_session.id"
 
         fun textRecord(
             line: LogcatLine,
             logBuffer: String?,
             observedUnixNano: Long,
+            logSessionId: String? = null,
             packages: PackageNameResolver,
-        ): LogRecord =
-            LogRecord(
+        ): LogRecord {
+            val message: String = Redactor.redact(line.message)
+            return LogRecord(
                 timeUnixNano = line.timeUnixNano,
                 observedTimeUnixNano = observedUnixNano,
                 severity = line.severity,
-                body = if (line.message.length > MAX_MESSAGE_LENGTH) line.message.take(MAX_MESSAGE_LENGTH) + "…" else line.message,
+                body = if (message.length > MAX_MESSAGE_LENGTH) message.take(MAX_MESSAGE_LENGTH) + "…" else message,
                 attributes =
                     attributes {
                         text("android.log.tag", line.tag)
@@ -221,8 +328,10 @@ class LogcatCollector(
                         int("thread.id", line.tid.toLong())
                         text("android.log.buffer", logBuffer)
                         text("android.package.name", LogcatUid.appUid(line.uid)?.let { packages.packageForUid(it) })
+                        text(LOG_SESSION_ATTRIBUTE, logSessionId)
                     },
             )
+        }
     }
 }
 

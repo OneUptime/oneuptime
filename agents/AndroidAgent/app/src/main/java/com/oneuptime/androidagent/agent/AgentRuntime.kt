@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.Process
 import android.provider.Settings
 import androidx.annotation.VisibleForTesting
 import com.oneuptime.androidagent.BuildConfig
@@ -26,12 +27,18 @@ import com.oneuptime.androidagent.config.SharedPreferencesStore
 import com.oneuptime.androidagent.config.TokenVault
 import com.oneuptime.androidagent.device.AndroidDeviceFacts
 import com.oneuptime.androidagent.device.DeviceFacts
+import com.oneuptime.androidagent.dropbox.AndroidDropBoxAccess
+import com.oneuptime.androidagent.dropbox.AndroidDropBoxSource
+import com.oneuptime.androidagent.dropbox.DropBoxCollector
 import com.oneuptime.androidagent.logs.LogBuffer
 import com.oneuptime.androidagent.logs.LogcatCollector
 import com.oneuptime.androidagent.logs.PackageNameResolver
 import com.oneuptime.androidagent.logs.ProcessLauncher
 import com.oneuptime.androidagent.logs.ResumePoint
 import com.oneuptime.androidagent.logs.ResumePointStore
+import com.oneuptime.androidagent.logsession.LogSessionClient
+import com.oneuptime.androidagent.logsession.LogSessionManager
+import com.oneuptime.androidagent.logsession.LogSessionStatus
 import com.oneuptime.androidagent.transport.HttpUrlConnectionTransport
 import com.oneuptime.androidagent.transport.Outbox
 import com.oneuptime.androidagent.transport.Uploader
@@ -56,9 +63,12 @@ class AgentRuntime private constructor(context: Context) {
 
     // noBackupFilesDir: the outbox is the device's own telemetry, never copied to another device by a backup.
     val outbox = Outbox(File(appContext.noBackupFilesDir, "outbox"), clock)
-    val uploader = Uploader(outbox, HttpUrlConnectionTransport(userAgent()), clock)
+    private val transport = HttpUrlConnectionTransport(userAgent())
+    val uploader = Uploader(outbox, transport, clock)
     private val logBuffer = LogBuffer()
     val collector = SnapshotCollector(appContext, clock)
+
+    val dropBox = DropBoxCollector(AndroidDropBoxSource(appContext), AndroidDropBoxAccess(appContext), stateStore, clock)
 
     val logcat =
         LogcatCollector(
@@ -69,6 +79,25 @@ class AgentRuntime private constructor(context: Context) {
             currentBootId = ::bootId,
             buffer = logBuffer,
             resumePoints = PreferencesResumePointStore(stateStore),
+            myUid = Process.myUid(),
+            myPid = Process.myPid(),
+            isGranted = ::readLogsGranted,
+            crashesCoveredElsewhere = { dropBox.coversCrashes },
+            anrsCoveredElsewhere = { dropBox.coversAnrs },
+        )
+
+    val logSessions =
+        LogSessionManager(
+            clock = clock,
+            sdkInt = Build.VERSION.SDK_INT,
+            logcat = logcat,
+            onNewRequest = { request -> AgentNotifications.showLogSessionRequest(appContext, request) },
+            onChanged = { view ->
+                logBuffer.add(AgentEvents.logSession(clock.nowMillis(), view))
+                if (view.status != LogSessionStatus.AWAITING_APPROVAL) {
+                    AgentNotifications.cancelLogSessionRequest(appContext)
+                }
+            },
         )
 
     val core =
@@ -86,6 +115,8 @@ class AgentRuntime private constructor(context: Context) {
                     stopLogcat = logcat::stopAll,
                     saveLogcatPosition = logcat::saveResumePoints,
                     takeDroppedLogcatRecord = logcat::takeDroppedLinesRecord,
+                    readDropBox = { config -> dropBox.read(config.logcatEnabled) },
+                    takeDroppedDropBoxRecord = dropBox::takeDroppedRecord,
                 ),
             facts = facts,
             clock = clock,
@@ -95,6 +126,9 @@ class AgentRuntime private constructor(context: Context) {
             apps = AppInventoryTracker(stateStore, clock),
             logBuffer = logBuffer,
             agentVersion = BuildConfig.VERSION_NAME,
+            logSessions = logSessions,
+            logSessionClient = LogSessionClient(transport, clock),
+            canSendSessionLogs = { logcat.unavailable() == null },
         )
 
     fun readLogsGranted(): Boolean =

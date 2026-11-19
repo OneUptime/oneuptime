@@ -5,13 +5,24 @@ import com.oneuptime.androidagent.apps.AppInventoryTracker
 import com.oneuptime.androidagent.apps.InstalledApp
 import com.oneuptime.androidagent.boot.BootInfo
 import com.oneuptime.androidagent.boot.BootTracker
+import com.oneuptime.androidagent.boot.RebootFacts
 import com.oneuptime.androidagent.collect.DeviceSnapshot
 import com.oneuptime.androidagent.collect.HostMetrics
 import com.oneuptime.androidagent.config.AgentConfig
 import com.oneuptime.androidagent.config.OtlpEndpoint
 import com.oneuptime.androidagent.device.DeviceFacts
+import com.oneuptime.androidagent.dropbox.DropBoxFinding
+import com.oneuptime.androidagent.dropbox.DropBoxRead
+import com.oneuptime.androidagent.dropbox.DropBoxState
+import com.oneuptime.androidagent.dropbox.LastKernelLog
 import com.oneuptime.androidagent.logs.LogBuffer
 import com.oneuptime.androidagent.logs.LogcatState
+import com.oneuptime.androidagent.logs.Redactor
+import com.oneuptime.androidagent.logsession.LogSessionClient
+import com.oneuptime.androidagent.logsession.LogSessionDevice
+import com.oneuptime.androidagent.logsession.LogSessionExchange
+import com.oneuptime.androidagent.logsession.LogSessionManager
+import com.oneuptime.androidagent.logsession.LogSessionReport
 import com.oneuptime.androidagent.otlp.Attribute
 import com.oneuptime.androidagent.otlp.DeviceResource
 import com.oneuptime.androidagent.otlp.LogRecord
@@ -35,6 +46,9 @@ class AgentEnvironment(
     val stopLogcat: () -> Unit,
     val saveLogcatPosition: () -> Unit,
     val takeDroppedLogcatRecord: () -> LogRecord?,
+    // Reads DropBox's new entries: every app's crash stacks, native crashes, ANRs, and the reboots' reasons.
+    val readDropBox: (config: AgentConfig) -> DropBoxRead = { DropBoxRead(DropBoxState.DISABLED, emptyList(), emptyList()) },
+    val takeDroppedDropBoxRecord: () -> LogRecord? = { null },
 )
 
 /** How the last cycle went, for the notification and the setup screen. */
@@ -43,6 +57,7 @@ data class CycleResult(
     val collected: Boolean,
     val uploaded: Boolean,
     val logcat: LogcatState?,
+    val dropBox: DropBoxState? = null,
 )
 
 /**
@@ -63,11 +78,19 @@ class AgentCore(
     private val apps: AppInventoryTracker,
     private val logBuffer: LogBuffer,
     private val agentVersion: String,
+    // The log sessions OneUptime asks the device for, and the client that fetches them; none in most tests.
+    private val logSessions: LogSessionManager? = null,
+    private val logSessionClient: LogSessionClient? = null,
+    private val canSendSessionLogs: () -> Boolean = { false },
 ) {
     private val scope = Scope(SCOPE_NAME, agentVersion)
     private var announcedStart: Boolean = false
     private var lastLogcatState: LogcatState? = null
+    private var lastDropBoxState: DropBoxState? = null
     private var lastAppsCheckElapsed: Long? = null
+
+    // What DropBox said of recent boots, kept until the boot's record goes out with it.
+    private val bootFindings: ArrayDeque<DropBoxFinding.Boot> = ArrayDeque()
 
     // Set by the service's package receiver on the main thread, read by the cycle.
     @Volatile
@@ -109,18 +132,34 @@ class AgentCore(
         val resource: List<Attribute> = DeviceResource.build(facts, config.identity, environment.ipAddresses(), agentVersion)
         val records: MutableList<LogRecord> = mutableListOf()
 
-        bootTracker.observe(environment.bootInfo())?.let { records.add(BootTracker.record(it, now)) }
+        // DropBox first: what it says of the last reboot goes on the boot's own record.
+        val dropBox: DropBoxRead = environment.readDropBox(config)
+        records.addAll(dropBox.records)
+        rememberBootFindings(dropBox.boots)
+
+        val bootInfo: BootInfo = environment.bootInfo()
+        if (!waitForRebootFacts(dropBox.state, bootInfo)) {
+            bootTracker.observe(bootInfo)?.let { event ->
+                records.add(BootTracker.record(event, now, rebootFactsFor(event.boot)))
+            }
+        }
 
         val logcat: LogcatState = environment.updateLogcat(config, environment.readLogsGranted())
         if (!announcedStart) {
-            records.add(AgentEvents.started(now, agentVersion, config.source, logcat))
+            records.add(AgentEvents.started(now, agentVersion, config.source, logcat, dropBox.state))
             announcedStart = true
-        } else if (logcat != lastLogcatState) {
-            records.add(AgentEvents.logcatChanged(now, logcat))
+        } else {
+            if (logcat != lastLogcatState) {
+                records.add(AgentEvents.logcatChanged(now, logcat))
+            }
+            if (dropBox.state != lastDropBoxState) {
+                records.add(AgentEvents.dropBoxChanged(now, dropBox.state))
+            }
         }
         lastLogcatState = logcat
+        lastDropBoxState = dropBox.state
 
-        val snapshot: DeviceSnapshot = environment.collectSnapshot()
+        val snapshot: DeviceSnapshot = environment.collectSnapshot().copy(bootsInLastHour = bootTracker.bootsInLastHour(now))
         outbox.add(Signal.METRICS, OtlpJson.metricsRequest(resource, scope, HostMetrics.from(snapshot)).toString())
         lastCollectionAtMillis = snapshot.timeMillis
         bootTracker.recordAlive(byService)
@@ -129,8 +168,11 @@ class AgentCore(
             records.addAll(apps.check(environment.installedApps()))
         }
 
+        // Sessions move on before the buffer is drained, so what they record goes out in this cycle.
+        logSessions?.tick()
         records.addAll(logBuffer.drain())
         environment.takeDroppedLogcatRecord()?.let { records.add(it) }
+        environment.takeDroppedDropBoxRecord()?.let { records.add(it) }
         val droppedBatches: Long = outbox.takeDroppedBatches()
         if (droppedBatches > 0) {
             records.add(AgentEvents.droppedBatches(now, droppedBatches))
@@ -139,7 +181,68 @@ class AgentCore(
         environment.saveLogcatPosition()
 
         val uploaded: Boolean = upload(config)
-        return CycleResult(config, collected = true, uploaded = uploaded, logcat = logcat).also { lastCycle = it }
+        exchangeLogSessions(config)
+        return CycleResult(config, collected = true, uploaded = uploaded, logcat = logcat, dropBox = dropBox.state).also { lastCycle = it }
+    }
+
+    /**
+     * Asks OneUptime for the log sessions waiting for this device, and tells
+     * it what became of the ones it has (LogSessionManager). Every cycle, so
+     * a request reaches the device within a minute; never without a network.
+     */
+    @Synchronized
+    fun exchangeLogSessions(config: AgentConfig = environment.loadConfig()) {
+        val manager: LogSessionManager = logSessions ?: return
+        val client: LogSessionClient = logSessionClient ?: return
+        val endpoint: OtlpEndpoint = config.endpoint ?: return
+        val token: String = config.token?.takeIf { it.isNotBlank() } ?: return
+        manager.tick()
+        if (!environment.networkAvailable() || client.isPaused()) {
+            return
+        }
+        val reports: List<LogSessionReport> = manager.reportsToSend()
+        val device = LogSessionDevice(config.identity.name, facts.sdkInt, agentVersion, canSendSessionLogs())
+        val result: LogSessionExchange = client.exchange(endpoint, token, device, reports)
+        if (result is LogSessionExchange.Answered) {
+            manager.onReported(reports)
+            manager.onServerSessions(result.sessions)
+            manager.tick()
+        }
+    }
+
+    /*
+     * Android writes a boot's DropBox entries - SYSTEM_BOOT, then the kernel's
+     * last log with the reboot's reason - a few seconds after the boot,
+     * about when the agent starts. When the agent can read DropBox, a new
+     * boot's record waits for them, for up to the first three minutes of
+     * uptime, so it says why the device rebooted. It is only recorded then,
+     * so a restart of the agent meanwhile does not lose it.
+     */
+    private fun waitForRebootFacts(dropBox: DropBoxState, boot: BootInfo): Boolean =
+        dropBox == DropBoxState.READING &&
+            clock.elapsedRealtimeMillis() < BOOT_FACTS_WAIT_MILLIS &&
+            bootTracker.isNew(boot) &&
+            bootFindings.none { it.timeMillis >= boot.bootTimeMillis - BOOT_FACTS_SLACK_MILLIS }
+
+    private fun rememberBootFindings(boots: List<DropBoxFinding.Boot>) {
+        for (finding in boots) {
+            bootFindings.addLast(finding)
+            while (bootFindings.size > MAX_BOOT_FINDINGS) {
+                bootFindings.removeFirst()
+            }
+        }
+    }
+
+    // What the kernel's last log said of the reboot before [boot], from the entry Android wrote at that boot.
+    private fun rebootFactsFor(boot: BootInfo): RebootFacts? {
+        val log: LastKernelLog =
+            bootFindings.lastOrNull { it.kernelLog != null && it.timeMillis >= boot.bootTimeMillis - BOOT_FACTS_SLACK_MILLIS }?.kernelLog
+                ?: return null
+        return RebootFacts(
+            reason = log.bootReason,
+            kernelPanic = log.panic?.let { Redactor.redact(it) },
+            lastKernelLines = log.lastLines.map { Redactor.redact(it) },
+        )
     }
 
     /** Sends what is waiting, when there is a network to send it on. */
@@ -191,5 +294,8 @@ class AgentCore(
         const val SCOPE_NAME: String = "oneuptime-android-agent"
         const val APPS_CHECK_INTERVAL_MILLIS: Long = 15 * 60_000
         const val MAX_RECORDS_PER_BATCH: Int = 2_000
+        const val BOOT_FACTS_WAIT_MILLIS: Long = 3 * 60_000
+        private const val BOOT_FACTS_SLACK_MILLIS: Long = 60_000
+        private const val MAX_BOOT_FINDINGS: Int = 8
     }
 }
