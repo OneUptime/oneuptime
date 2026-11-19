@@ -151,7 +151,7 @@ describe("a claim's status says its disk", () => {
     expect(assessment.reasons).toEqual([
       {
         text: "{{percent}} used, {{free}} free",
-        values: { percent: "85%", free: "15 GiB" },
+        values: { percent: "85%", free: "15\u00A0GiB" },
       },
     ]);
   });
@@ -232,7 +232,7 @@ describe("a node's status says its disk", () => {
     expect(assessment.reasons).toEqual([
       {
         text: "Disk {{percent}} used, {{free}} free",
-        values: { percent: "93%", free: "7 GiB" },
+        values: { percent: "93%", free: "7\u00A0GiB" },
       },
     ]);
   });
@@ -337,7 +337,7 @@ describe("the cluster's Needs attention lists a full claim and a full node", () 
     expect(postgres.reasons).toEqual([
       {
         text: "{{percent}} used, {{free}} free",
-        values: { percent: "96%", free: "4 GiB" },
+        values: { percent: "96%", free: "4\u00A0GiB" },
       },
     ]);
   });

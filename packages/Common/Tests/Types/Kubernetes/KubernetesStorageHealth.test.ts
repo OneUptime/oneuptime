@@ -193,7 +193,7 @@ describe("a claim's disk", () => {
       reasons: [
         {
           text: "{{percent}} used, {{free}} free",
-          values: { percent: "80%", free: "20 GiB" },
+          values: { percent: "80%", free: "20\u00A0GiB" },
         },
       ],
     });
@@ -213,7 +213,7 @@ describe("a claim's disk", () => {
     expect(verdict?.status).toEqual({ text: "Almost out of space" });
     expect(verdict?.reasons[0]).toEqual({
       text: "{{percent}} used, {{free}} free",
-      values: { percent: "97%", free: "1.5 GiB" },
+      values: { percent: "97%", free: "1.5\u00A0GiB" },
     });
   });
 
@@ -287,7 +287,7 @@ describe("a claim's disk", () => {
     expect(verdict?.reasons).toEqual([
       {
         text: "{{percent}} used, {{free}} free",
-        values: { percent: "85%", free: "15 GiB" },
+        values: { percent: "85%", free: "15\u00A0GiB" },
       },
       {
         text: "Full in about {{count}} hours",
@@ -412,7 +412,7 @@ describe("a node's disks", () => {
       reasons: [
         {
           text: "Disk {{percent}} used, {{free}} free",
-          values: { percent: "85%", free: "15 GiB" },
+          values: { percent: "85%", free: "15\u00A0GiB" },
         },
       ],
     });
@@ -438,11 +438,11 @@ describe("a node's disks", () => {
     expect(verdict?.reasons).toEqual([
       {
         text: "Image disk {{percent}} used, {{free}} free",
-        values: { percent: "96%", free: "20 GiB" },
+        values: { percent: "96%", free: "20\u00A0GiB" },
       },
       {
         text: "Disk {{percent}} used, {{free}} free",
-        values: { percent: "82%", free: "18 GiB" },
+        values: { percent: "82%", free: "18\u00A0GiB" },
       },
     ]);
   });

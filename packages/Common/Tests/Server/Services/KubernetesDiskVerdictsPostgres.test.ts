@@ -320,7 +320,7 @@ describePostgres(
         reasons: [
           {
             text: "{{percent}} used, {{free}} free",
-            values: { percent: "96%", free: "4 GiB" },
+            values: { percent: "96%", free: "4\u00A0GiB" },
           },
         ],
       });
