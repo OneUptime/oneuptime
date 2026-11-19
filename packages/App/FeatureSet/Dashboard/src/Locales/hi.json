@@ -59021,5 +59021,6 @@
   "Page me for every new incident and alert.": "हर नई घटना और हर नए अलर्ट पर मुझे पेज करें।",
   "Publish a status page that shows my monitors.": "एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
   "Publish a status page called {{name}} that shows my monitors.": "{{name}} नाम का एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "मेरी सेवा के लॉग, मेट्रिक्स और ट्रेस OneUptime पर भेजने में मेरी मदद करें, और उसमें त्रुटियाँ होने पर मुझे अलर्ट करें।"
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "मेरी सेवा के लॉग, मेट्रिक्स और ट्रेस OneUptime पर भेजने में मेरी मदद करें, और उसमें त्रुटियाँ होने पर मुझे अलर्ट करें।",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "यह क्वेरी {{unit}} में है और पिछली क्वेरी का चार्ट {{chartUnit}} में, इसलिए उस चार्ट के अक्ष पर इसके मान सही ढंग से नहीं पढ़े जा सकेंगे।"
 }

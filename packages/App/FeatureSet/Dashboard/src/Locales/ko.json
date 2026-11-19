@@ -59021,5 +59021,6 @@
   "Page me for every new incident and alert.": "새 인시던트와 새 경고마다 나를 호출해 주세요.",
   "Publish a status page that shows my monitors.": "내 모니터를 보여 주는 상태 페이지를 게시해 주세요.",
   "Publish a status page called {{name}} that shows my monitors.": "내 모니터를 보여 주는 {{name}}(이)라는 상태 페이지를 게시해 주세요.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "내 서비스의 로그, 메트릭, 트레이스를 OneUptime으로 보내도록 도와주고, 오류가 생기면 경고해 주세요."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "내 서비스의 로그, 메트릭, 트레이스를 OneUptime으로 보내도록 도와주고, 오류가 생기면 경고해 주세요.",
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "이 쿼리의 단위({{unit}})가 이전 쿼리 차트의 단위({{chartUnit}})와 달라, 그 차트의 축에서는 이 쿼리의 값을 제대로 읽을 수 없습니다."
 }

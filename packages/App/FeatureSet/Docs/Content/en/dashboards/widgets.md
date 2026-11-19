@@ -49,7 +49,11 @@ These four widgets read a metric query, built the way the metric explorer builds
 
 ### Chart
 
-A time series of one or more metric queries over the dashboard's time range. **Chart Type** draws it as a line, bar, area, stacked area or pie chart. **Additional Queries** overlay more metrics on the same axes, and **Formulas** combine them with `+`, `-`, `*`, `/`, `%`, `^` and parentheses, as in `(1 - a) * 100`. Each query's display settings add a legend and unit, a color, warning and critical lines, and a per-second rate for counters that only ever grow.
+A time series of one or more metric queries over the dashboard's time range. **Chart Type** draws it as a line, bar, area, stacked area or pie chart. **Add Query** adds another metric query, and **Add Formula** a formula to combine them with `+`, `-`, `*`, `/`, `%`, `^` and parentheses, as in `(1 - a) * 100`. Each query's **Display Settings** add a legend and unit, a color, warning and critical lines, and a per-second rate for counters that only ever grow.
+
+Each query draws a chart of its own, one under another in the widget. To draw a query on the chart of the query before it instead, as more lines on the same axes, turn on **Overlay with previous query** in its **Display Settings**: `mem_used` and `mem_total` on one chart, for example. Every query after the first has the switch, and each query that has it on joins the same chart, so three or more queries can share one. Turn it off to give the query its own chart again.
+
+An overlaid chart takes its title, its chart type and its value axis from its first query, so every query on it is read in that query's unit. A query in another unit of the same kind is drawn in the chart's unit, such as megabytes on a chart in gigabytes, or seconds on a chart in milliseconds. A unit of another kind cannot be read on that axis, such as bytes on a chart in percent: the query is still drawn there, and the chart and the switch both say that the units differ, so give such a query its own chart.
 
 Use it when the shape of the line tells the story: latency, errors, throughput or queue depth.
 
