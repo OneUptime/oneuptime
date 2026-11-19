@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A FEED LINE NAMES SOMEONE ONLY INVITED AS THE PROJECT KNOWS THEM (#9823).
@@ -49,7 +50,7 @@ function person(data: { id: ObjectID; name: string; email: string }): User {
 }
 
 describe("UserService.getUserMarkdownString names someone only invited as the project knows them", () => {
-  let withheldIn: jest.SpiedFunction<
+  let withheldIn: SpyInstance<
     typeof PendingInviteeProfiles.readWithheldProfilesInProject
   >;
 

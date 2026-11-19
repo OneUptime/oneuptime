@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import IncidentPostmortemActionItem from "../../../Models/DatabaseModels/IncidentPostmortemActionItem";
@@ -348,7 +349,9 @@ describe("adding an action item", () => {
         user.email = new Email("ana@example.com");
         return user;
       });
-    const withheldIn: jest.SpyInstance = jest
+    const withheldIn: SpyInstance<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > = jest
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
       .mockResolvedValue(
         new Map<string, WithheldProfile>([

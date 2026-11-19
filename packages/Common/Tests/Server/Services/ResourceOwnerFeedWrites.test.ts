@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
@@ -219,10 +220,10 @@ describe("KubernetesClusterOwnerUserService feed writes", () => {
     user.name = new Name("Jane Doe");
     user.email = new Email("jane@example.com");
 
-    const findUser: jest.SpiedFunction<typeof UserService.findOneById> = jest
+    const findUser: SpyInstance<typeof UserService.findOneById> = jest
       .spyOn(UserService, "findOneById")
       .mockResolvedValue(user);
-    const withheldIn: jest.SpiedFunction<
+    const withheldIn: SpyInstance<
       typeof PendingInviteeProfiles.readWithheldProfilesInProject
     > = jest
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")

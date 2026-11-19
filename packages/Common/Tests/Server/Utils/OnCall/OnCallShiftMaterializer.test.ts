@@ -48,6 +48,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * OnCallShiftMaterializer: resolver segments -> MaterializedShift[].
@@ -1513,7 +1514,7 @@ describe("OnCallShiftMaterializer", () => {
 
     function pendingIn(
       pendingByProject: Record<string, Record<string, string | null>>,
-    ): jest.SpiedFunction<
+    ): SpyInstance<
       typeof PendingInviteeProfiles.readWithheldProfilesInProject
     > {
       return jest
@@ -1647,7 +1648,7 @@ describe("OnCallShiftMaterializer", () => {
       );
       installFakeDb(db);
 
-      const withheldIn: jest.SpiedFunction<
+      const withheldIn: SpyInstance<
         typeof PendingInviteeProfiles.readWithheldProfilesInProject
       > = pendingIn({ [PROJECT]: { C: "Carol (invited)" } });
 

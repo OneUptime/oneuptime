@@ -21,6 +21,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHOM A SECURITY CASE IS ASSIGNED TO, AS THE PROJECT KNOWS THEM (#9823).
@@ -41,7 +42,7 @@ const ASSIGNEE_ID: ObjectID = new ObjectID(
   "9823aaaa-0000-4000-8000-0000000000a1",
 );
 
-let withheldIn: jest.SpiedFunction<
+let withheldIn: SpyInstance<
   typeof PendingInviteeProfiles.readWithheldProfilesInProject
 >;
 

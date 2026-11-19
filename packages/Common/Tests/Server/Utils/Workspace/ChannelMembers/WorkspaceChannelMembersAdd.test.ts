@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceChannelMembers from "../../../../../Server/Utils/Workspace/WorkspaceChannelMembers";
 import PendingInviteeProfiles, {
@@ -312,7 +313,9 @@ describe("adding other people", () => {
    * for them, else their address - never their account's own name (#9823).
    */
   test("somebody only invited is not added, and is named by the name typed for them", async () => {
-    const withheldIn: jest.SpyInstance = jest
+    const withheldIn: SpyInstance<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > = jest
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
       .mockResolvedValue(
         new Map<string, WithheldProfile>([

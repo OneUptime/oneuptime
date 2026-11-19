@@ -50,6 +50,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ONE PERSON'S OVERRIDES MAY NOT OVERLAP IN ONE SCOPE (issue #7630).
@@ -511,7 +512,9 @@ describe("through the service", () => {
      * - the name typed for them, else their address (#9823).
      */
     test("someone only invited to the project as the project knows them: the name typed for them, else their address", async () => {
-      const withheldIn: jest.SpyInstance = jest
+      const withheldIn: SpyInstance<
+        typeof PendingInviteeProfiles.readWithheldProfilesInProject
+      > = jest
         .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
         .mockResolvedValue(
           new Map<string, WithheldProfile>([

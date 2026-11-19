@@ -9,6 +9,7 @@ import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * RuleFeedMarkdown writes the lines a rule engine puts into a feed: which
@@ -209,7 +210,7 @@ describe("RuleFeedMarkdown.ownersList", () => {
       "0194d4ba-0000-4000-8000-00000000e100",
     );
 
-    const withheldIn: jest.SpiedFunction<
+    const withheldIn: SpyInstance<
       typeof PendingInviteeProfiles.readWithheldProfilesInProject
     > = jest
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")

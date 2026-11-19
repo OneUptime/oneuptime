@@ -344,7 +344,9 @@ describe("adding a task", () => {
         user.email = new Email("ana@example.com");
         return user;
       });
-    const withheldIn: SpyInstance = jest
+    const withheldIn: SpyInstance<
+      typeof PendingInviteeProfiles.readWithheldProfilesInProject
+    > = jest
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
       .mockResolvedValue(
         new Map<string, WithheldProfile>([
