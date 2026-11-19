@@ -1109,6 +1109,7 @@ import { AddComplianceSettingNamespace1809186100000 } from "./1809186100000-AddC
 import { AddTeamScimGroupLinkedAt1809186200000 } from "./1809186200000-AddTeamScimGroupLinkedAt";
 import { AddSamlSingleLogout1809186300000 } from "./1809186300000-AddSamlSingleLogout";
 import { AddDataAssetEntitySetName1809186396960 } from "./1809186396960-AddDataAssetEntitySetName";
+import { AddProjectAiRunCommandTimeLimit1809186466000 } from "./1809186466000-AddProjectAiRunCommandTimeLimit";
 
 export default [
   InitialMigration,
@@ -2222,4 +2223,5 @@ export default [
   AddTeamScimGroupLinkedAt1809186200000,
   AddSamlSingleLogout1809186300000,
   AddDataAssetEntitySetName1809186396960,
+  AddProjectAiRunCommandTimeLimit1809186466000,
 ];

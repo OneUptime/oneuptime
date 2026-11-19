@@ -18,10 +18,15 @@ import AIAgentRunLimitsHelper, {
   AIRunStopReason,
   AIRunTimeLimitSource,
   CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES,
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   PROJECT_AI_RUN_LIMITS_LOCATION,
 } from "Common/Types/AI/AIAgentRunLimits";
-import { PROJECT_AI_RUN_LIMIT_COLUMNS } from "Common/Types/AI/ProjectAiRunLimits";
+import {
+  PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
+  PROJECT_AI_RUN_LIMIT_COLUMNS,
+} from "Common/Types/AI/ProjectAiRunLimits";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
 import Permission from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
@@ -50,6 +55,11 @@ const MIGRATION: string = path.join(
   PACKAGES_ROOT,
   "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809080210000-AddProjectAiRunLimits.ts",
 );
+// The time limit per command came later, with a migration of its own (issue #6532).
+const COMMAND_TIME_LIMIT_MIGRATION: string = path.join(
+  PACKAGES_ROOT,
+  "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809186466000-AddProjectAiRunCommandTimeLimit.ts",
+);
 const CODE_FIX_COMPLETION: string = path.join(
   PACKAGES_ROOT,
   "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
@@ -67,6 +77,17 @@ const SETTINGS_URL: string =
   "https://oneuptime.example.com/dashboard/project-id/settings/ai-features#LimitsPerRun";
 const MILLISECONDS_IN_A_MINUTE: number = 60 * 1000;
 const PERSIAN_DIGITS: string = "۰۱۲۳۴۵۶۷۸۹";
+// The four limits on a run; the time limit per command is a command's.
+const RUN_LIMIT_FIELDS: Array<ProjectAiRunLimitField> =
+  PROJECT_AI_RUN_LIMIT_FIELDS.filter(
+    (field: ProjectAiRunLimitField): boolean => {
+      return field.column !== PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+    },
+  );
+const COMMAND_TIME_LIMIT_FIELD: ProjectAiRunLimitField =
+  PROJECT_AI_RUN_LIMIT_FIELDS.find((field: ProjectAiRunLimitField): boolean => {
+    return field.column === PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+  })!;
 const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
   (language: string): boolean => {
     return language !== "en";
@@ -163,7 +184,7 @@ describe("the AI SRE page's Limits per run section", () => {
     expect(AIAgentRunLimitsHelper.fromSettings({})).toEqual(defaults);
   });
 
-  it("names the four settings by the titles the card shows, in its order, where the card is", () => {
+  it("names the settings by the titles the card shows, in its order, where the card is", () => {
     const text: string = englishSection();
     const card: string = read(AI_FEATURES_PAGE);
     const positions: Array<number> = PROJECT_AI_RUN_LIMIT_FIELDS.map(
@@ -183,6 +204,7 @@ describe("the AI SRE page's Limits per run section", () => {
       "Tool Calls per Run",
       "Tokens per Run",
       "Time Limit per Run (Minutes)",
+      "Time Limit per Command (Minutes)",
     ]);
     expect(
       positions.every((at: number): boolean => {
@@ -235,12 +257,38 @@ describe("the AI SRE page's Limits per run section", () => {
     expect(withEmptyLane.maxWallClockMs).toBe(30 * MILLISECONDS_IN_A_MINUTE);
     expect(withEmptyLane.timeLimitSource).toBe(AIRunTimeLimitSource.Project);
 
-    // Four empty columns: no default, and no row written.
+    // Empty columns: no default, and no row written.
     for (const column of PROJECT_AI_RUN_LIMIT_COLUMNS) {
-      expect(migration).toContain(`ADD "${column}" integer\``);
+      expect(
+        column === PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN
+          ? read(COMMAND_TIME_LIMIT_MIGRATION)
+          : migration,
+      ).toContain(`ADD "${column}" integer\``);
     }
 
     expect(migration).not.toMatch(/DEFAULT|UPDATE|NOT NULL/);
+    expect(read(COMMAND_TIME_LIMIT_MIGRATION)).not.toMatch(
+      /DEFAULT|UPDATE|NOT NULL/,
+    );
+  });
+
+  /*
+   * Issue #6532: how long one command of a code task may run, beside the
+   * run's time limit - its default, its ceiling, and that the run's own time
+   * limit still holds - as the code has them.
+   */
+  it("says how long a command may run: ten minutes unless set, at most 120, never past the run's time limit", () => {
+    expect(englishSection()).toContain(
+      `**${COMMAND_TIME_LIMIT_FIELD.title}**, in the same section, is how long one command a code task runs on a Runner of your own may take: ${DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes unless you set it, at most ${MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES}, and never past the run's time limit.`,
+    );
+    expect(
+      AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes(
+        AIAgentRunLimitsHelper.getDefault(),
+      ),
+    ).toBe(DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES);
+    expect(
+      AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes(10_000),
+    ).toBe(MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES);
   });
 
   it("names who may change them from the columns' own access control", () => {
@@ -471,7 +519,7 @@ describe.each(TRANSLATIONS)("the %s docs", (language: string) => {
     );
   });
 
-  it("name the four settings, the path and More settings as this language's Dashboard draws them, with the numbers", () => {
+  it("name the settings, the path and More settings as this language's Dashboard draws them, with the numbers", () => {
     const section: string = flat(
       getSection(translated.join("\n"), translated[headingAt] as string),
     );
@@ -496,7 +544,27 @@ describe.each(TRANSLATIONS)("the %s docs", (language: string) => {
       expect.arrayContaining([
         DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
         CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES,
+        // A command's default and ceiling (issue #6532).
+        DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+        MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
       ]),
+    );
+  });
+
+  it("say on the Code page how long a command may run, naming the setting as this language's Dashboard draws it", () => {
+    const englishCode: Array<string> = page("en", "ai/ai-agent.md").split("\n");
+    const at: number = englishCode.findIndex((line: string): boolean => {
+      return line.startsWith("| One of your Runners |");
+    });
+    const row: string = page(language, "ai/ai-agent.md").split("\n")[
+      at
+    ] as string;
+
+    expect(at).toBeGreaterThan(-1);
+    expect(row).toContain(drawnBold(COMMAND_TIME_LIMIT_FIELD.title));
+    expect(row).toContain(drawnBold(ProjectAiRunLimitsCopy.cardTitle));
+    expect(statedNumbers(row)).toContain(
+      MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
     );
   });
 
@@ -575,7 +643,8 @@ describe.each(TRANSLATIONS)("the %s docs", (language: string) => {
     expect(heading.startsWith("### ")).toBe(true);
     expect(heading).not.toBe(NOTE_HEADING);
 
-    for (const field of PROJECT_AI_RUN_LIMIT_FIELDS) {
+    // The 13 → 14 note names the four limits a run had then.
+    for (const field of RUN_LIMIT_FIELDS) {
       expect({
         label: field.title,
         named: note.includes(drawnBold(field.title)),

@@ -40,6 +40,8 @@ describe("CodeAgentRunLimitsUtil.build", () => {
       maxTokens: null,
       timeLimitInMinutes: 120,
       timeLimitSource: AIRunTimeLimitSource.Default,
+      // Issue #6532: ten minutes a command, as always, unless the project set its own.
+      commandTimeLimitInMinutes: 10,
       deadlineAt: "2026-11-09T12:00:00.000Z",
       timeLeftMs: 110 * MINUTE_MS,
       modelCallsUsed: 3,
@@ -178,6 +180,7 @@ describe("CodeAgentRunLimitsUtil.fromJSON", () => {
       maxTokens: null,
       timeLimitInMinutes: 1,
       timeLimitSource: AIRunTimeLimitSource.Default,
+      commandTimeLimitInMinutes: 10,
       deadlineAt: null,
       timeLeftMs: null,
       modelCallsUsed: 0,
@@ -185,6 +188,58 @@ describe("CodeAgentRunLimitsUtil.fromJSON", () => {
       tokensUsed: 0,
       lastCallTokens: 0,
     });
+  });
+
+  /*
+   * Issue #6532: how long one command may run reaches the Runner with the
+   * run's limits. A server from before it sends none, and the Runner keeps
+   * the ten minutes a command always had; a value past the ceiling is held
+   * to it, and one that is not a number of minutes is the default.
+   */
+  test("the time limit per command: as sent, the default when not sent, never past two hours", () => {
+    const read: (value: unknown) => number = (value: unknown): number => {
+      return CodeAgentRunLimitsUtil.fromJSON({
+        timeLimitInMinutes: 120,
+        commandTimeLimitInMinutes: value,
+      })!.commandTimeLimitInMinutes;
+    };
+
+    expect(read(30)).toBe(30);
+    expect(read(120)).toBe(120);
+    expect(read(500)).toBe(120);
+    expect(read(undefined)).toBe(10);
+    expect(read(null)).toBe(10);
+    expect(read(0)).toBe(10);
+    expect(read(-4)).toBe(10);
+    expect(read("thirty")).toBe(10);
+    expect(
+      CodeAgentRunLimitsUtil.fromJSON({ timeLimitInMinutes: 120 })!
+        .commandTimeLimitInMinutes,
+    ).toBe(10);
+  });
+
+  test("the project's time limit per command goes to the Runner, and back to the agent's limits", () => {
+    const limits: CodeAgentRunLimits = CodeAgentRunLimitsUtil.build({
+      limits: AIAgentRunLimitsHelper.fromSettings({
+        commandTimeLimitInMinutes: 45,
+      }),
+      startedAt: STARTED_AT,
+      modelCallsUsed: 1,
+      toolCallsUsed: 0,
+      tokensUsed: 100,
+      nowMs: STARTED_AT.getTime(),
+    });
+
+    expect(limits.commandTimeLimitInMinutes).toBe(45);
+
+    const overTheWire: CodeAgentRunLimits | null =
+      CodeAgentRunLimitsUtil.fromJSON(JSON.parse(JSON.stringify(limits)));
+
+    expect(overTheWire!.commandTimeLimitInMinutes).toBe(45);
+    expect(
+      CodeAgentRunLimitsUtil.toAgentRunLimits(overTheWire)
+        .commandTimeLimitInMinutes,
+    ).toBe(45);
   });
 
   test("a negative time left is none left", () => {
@@ -232,6 +287,7 @@ describe("CodeAgentRunLimitsUtil.toAgentRunLimits", () => {
         maxTokens: 900_000,
         timeLimitInMinutes: 30,
         timeLimitSource: AIRunTimeLimitSource.Project,
+        commandTimeLimitInMinutes: 25,
         deadlineAt: null,
         timeLeftMs: null,
         modelCallsUsed: 0,
@@ -245,6 +301,7 @@ describe("CodeAgentRunLimitsUtil.toAgentRunLimits", () => {
       maxTokens: 900_000,
       maxWallClockMs: 30 * MINUTE_MS,
       timeLimitSource: AIRunTimeLimitSource.Project,
+      commandTimeLimitInMinutes: 25,
     });
   });
 });
@@ -256,6 +313,7 @@ describe("CodeAgentRunLimitsUtil.getLocalDeadlineAtMs", () => {
     maxTokens: null,
     timeLimitInMinutes: 120,
     timeLimitSource: AIRunTimeLimitSource.Default,
+    commandTimeLimitInMinutes: 10,
     deadlineAt: "2026-11-09T12:00:00.000Z",
     timeLeftMs: 30 * MINUTE_MS,
     modelCallsUsed: 0,
