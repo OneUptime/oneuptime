@@ -6,7 +6,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import AwsCloudConnector, {
+  pickAwsSplitSeries,
+  toAwsAddedKeyMetric,
+} from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import { getAwsDocumentedMetricUnit } from "../../../../Types/Cloud/AwsMetricUnits";
 import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
@@ -38,9 +42,11 @@ import {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CloudAddedMetric,
   CloudAddedMetricScope,
   getCloudAddedMetricKey,
+  getCloudAddedMetricSplitAttribute,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
 import { everythingSent } from "../LlmObservability/FakeProviderApi";
 import {
@@ -2067,6 +2073,321 @@ describe("metrics a person added to the reads", () => {
           return entry.attributes["Dimensions.InstanceId"];
         }),
     ).toEqual(["i-0aaa"]);
+  });
+
+  /*
+   * #9809: an addition is stored with the unit its datapoints carried when
+   * it was added; with none, the one AWS documents; with neither, none -
+   * never CloudWatch's "None", which says the metric has no unit.
+   */
+  function storedUnitsOf(result: CloudReadResult, name: string): Array<string> {
+    const units: Array<string> = [];
+
+    for (const payload of result.payloads) {
+      for (const rm of payload["resourceMetrics"] as Array<JSONObject>) {
+        for (const sm of rm["scopeMetrics"] as Array<JSONObject>) {
+          for (const metric of sm["metrics"] as Array<JSONObject>) {
+            if (metric["name"] === name) {
+              units.push(String(metric["unit"] ?? ""));
+            }
+          }
+        }
+      }
+    }
+
+    return units;
+  }
+
+  test("an addition is stored with the unit it was kept with, else the one AWS documents, never None", async () => {
+    const counted: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(instances()),
+        addedMetrics: [ownAddition({ unit: "Count" })],
+      },
+    );
+
+    expect(
+      storedUnitsOf(counted, "amazonaws.com/AWS/EC2/MetadataNoToken"),
+    ).toEqual(["Count"]);
+
+    const unknown: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(instances()),
+        addedMetrics: [ownAddition({ unit: "" })],
+      },
+    );
+
+    expect(
+      storedUnitsOf(unknown, "amazonaws.com/AWS/EC2/MetadataNoToken"),
+    ).toEqual([getAwsDocumentedMetricUnit("AWS/EC2", "MetadataNoToken")]);
+    expect(
+      storedUnitsOf(unknown, "amazonaws.com/AWS/EC2/MetadataNoToken"),
+    ).not.toContain("None");
+    expect(toAwsAddedKeyMetric(ownAddition({ unit: "" })).unit).toBe(
+      getAwsDocumentedMetricUnit("AWS/EC2", "MetadataNoToken"),
+    );
+    expect(
+      toAwsAddedKeyMetric(
+        ownAddition({ unit: "", name: "NoPageStatesThisOne" }),
+      ).unit,
+    ).toBe("");
+  });
+
+  /*
+   * #9808: an addition split by a dimension reads the resource's own series
+   * with that one more - an Application Load Balancer's 2xx responses per
+   * Availability Zone, per target group - a series per value, at most 10,
+   * each stored with its value as CloudWatch's dimension.
+   */
+  const ALB: string = "AWS/ApplicationELB";
+  const LB: string = "app/web/50dc6c495c0c9188";
+  const TWO_XX: string = "HTTPCode_Target_2XX_Count";
+
+  function albSeries(
+    dimensions: Array<[string, string]>,
+    value: number = 5,
+  ): FakeMetric {
+    return {
+      namespace: ALB,
+      metricName: TWO_XX,
+      dimensions,
+      values: [[WINDOW_START_S, value]],
+    };
+  }
+
+  function loadBalancer(
+    zones: Array<string> = ["us-east-1b", "us-east-1a"],
+  ): FakeAws {
+    return createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            // A key metric: the namespace has resources in the Region.
+            {
+              namespace: ALB,
+              metricName: "RequestCount",
+              dimensions: [["LoadBalancer", LB]],
+              values: [[WINDOW_START_S, 40]],
+            },
+            albSeries([["LoadBalancer", LB]]),
+            ...zones.map((zone: string): FakeMetric => {
+              return albSeries([
+                ["AvailabilityZone", zone],
+                ["LoadBalancer", LB],
+              ]);
+            }),
+            albSeries([
+              ["LoadBalancer", LB],
+              ["TargetGroup", "targetgroup/api/6d0ecf831eec9f09"],
+            ]),
+            albSeries([
+              ["AvailabilityZone", "us-east-1a"],
+              ["LoadBalancer", LB],
+              ["TargetGroup", "targetgroup/api/6d0ecf831eec9f09"],
+            ]),
+            // Another load balancer's zone: never this one's.
+            albSeries([
+              ["AvailabilityZone", "us-east-1a"],
+              ["LoadBalancer", "app/admin/7a1b2c3d4e5f6a7b"],
+            ]),
+          ],
+        },
+      },
+    });
+  }
+
+  function albType(): string {
+    return resolveCloudMonitoredResource({
+      metricName: `amazonaws.com/${ALB}/${TWO_XX}`,
+      attributes: {
+        Namespace: ALB,
+        "Dimensions.LoadBalancer": LB,
+        "resource.cloud.account.id": FAKE_ACCOUNT_ID,
+        "resource.cloud.region": "us-east-1",
+      },
+    })!.resourceType;
+  }
+
+  function splitQueries(fake: FakeAws): Array<string> {
+    return queriesOf(fake)
+      .filter((query: { metricName: string }): boolean => {
+        return query.metricName === TWO_XX;
+      })
+      .map((query: { dimensions: string }): string => {
+        return query.dimensions;
+      });
+  }
+
+  test("a resource's own split addition reads its own series of each value of the dimension, listed each read, stored with the value", async () => {
+    const fake: FakeAws = loadBalancer();
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(fake),
+        addedMetrics: [
+          ownAddition({
+            resourceType: albType(),
+            namespace: ALB,
+            name: TWO_XX,
+            aggregation: "Sum",
+            dimensions: [{ name: "LoadBalancer", value: LB }],
+            splitBy: "AvailabilityZone",
+          }),
+        ],
+      },
+    );
+
+    // Listed on its own dimensions, lately active: zones come and go.
+    const listing: { body: JSONObject } | undefined = fake.cloudWatchCalls.find(
+      (call: { action: string; body: JSONObject }): boolean => {
+        return (
+          call.action === "ListMetrics" && call.body["MetricName"] === TWO_XX
+        );
+      },
+    );
+
+    expect(listing?.body["Dimensions"]).toEqual([
+      { Name: "LoadBalancer", Value: LB },
+    ]);
+    expect(listing?.body["RecentlyActive"]).toBe("PT3H");
+    // Each zone in order; not the whole, a target group's, or another load balancer's.
+    expect(splitQueries(fake)).toEqual([
+      `AvailabilityZone=us-east-1a,LoadBalancer=${LB}`,
+      `AvailabilityZone=us-east-1b,LoadBalancer=${LB}`,
+    ]);
+    expect(
+      resolvedFromPayloads(result)
+        .filter((entry: { metricName: string }): boolean => {
+          return entry.metricName === `amazonaws.com/${ALB}/${TWO_XX}`;
+        })
+        .map((entry: { attributes: JSONObject }) => {
+          return entry.attributes[
+            getCloudAddedMetricSplitAttribute({
+              provider: CloudProvider.AWS,
+              splitBy: "AvailabilityZone",
+            })
+          ];
+        })
+        .sort(),
+    ).toEqual(["us-east-1a", "us-east-1b"]);
+  });
+
+  test("a type's split addition reads each resource's own series of each value, never a series of two dimensions more", async () => {
+    const fake: FakeAws = loadBalancer();
+
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(fake),
+      addedMetrics: [
+        added({
+          resourceType: albType(),
+          namespace: ALB,
+          name: TWO_XX,
+          aggregation: "Sum",
+          splitBy: "TargetGroup",
+        }),
+      ],
+    });
+
+    expect(splitQueries(fake)).toEqual([
+      `LoadBalancer=${LB},TargetGroup=targetgroup/api/6d0ecf831eec9f09`,
+    ]);
+  });
+
+  test("a split reads 10 values at most a resource: each is a metric GetMetricData bills", async () => {
+    const zones: Array<string> = Array.from(
+      { length: 14 },
+      (_item: unknown, index: number): string => {
+        return `zone-${String(index).padStart(2, "0")}`;
+      },
+    );
+    const fake: FakeAws = loadBalancer(zones);
+
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(fake),
+      addedMetrics: [
+        ownAddition({
+          resourceType: albType(),
+          namespace: ALB,
+          name: TWO_XX,
+          aggregation: "Sum",
+          dimensions: [{ name: "LoadBalancer", value: LB }],
+          splitBy: "AvailabilityZone",
+        }),
+      ],
+    });
+
+    expect(splitQueries(fake)).toEqual(
+      zones
+        .slice(0, CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES)
+        .map((zone: string) => {
+          return `AvailabilityZone=${zone},LoadBalancer=${LB}`;
+        }),
+    );
+  });
+
+  test("the series of a split: the resource's own with the dimension one more, each value once, in order", () => {
+    const own: Array<{ name: string; value: string }> = [
+      { name: "LoadBalancer", value: LB },
+    ];
+    const series: (dimensions: Array<[string, string]>) => {
+      namespace: string;
+      metricName: string;
+      dimensions: Array<{ name: string; value: string }>;
+    } = (dimensions: Array<[string, string]>) => {
+      return {
+        namespace: ALB,
+        metricName: TWO_XX,
+        dimensions: dimensions.map(([name, value]: [string, string]) => {
+          return { name, value };
+        }),
+      };
+    };
+
+    expect(
+      pickAwsSplitSeries({
+        listed: [
+          series([["LoadBalancer", LB]]),
+          series([
+            ["LoadBalancer", LB],
+            ["AvailabilityZone", "b"],
+          ]),
+          series([
+            ["AvailabilityZone", "a"],
+            ["LoadBalancer", LB],
+          ]),
+          series([
+            ["AvailabilityZone", "a"],
+            ["LoadBalancer", LB],
+          ]),
+          series([
+            ["AvailabilityZone", "c"],
+            ["LoadBalancer", "app/other/1"],
+          ]),
+          series([
+            ["AvailabilityZone", "d"],
+            ["LoadBalancer", LB],
+            ["TargetGroup", "tg"],
+          ]),
+        ],
+        own,
+        splitBy: "AvailabilityZone",
+      }).map(
+        (metric: { dimensions: Array<{ name: string; value: string }> }) => {
+          return metric.dimensions
+            .map((dimension: { name: string; value: string }): string => {
+              return `${dimension.name}=${dimension.value}`;
+            })
+            .sort()
+            .join(",");
+        },
+      ),
+    ).toEqual([
+      `AvailabilityZone=a,LoadBalancer=${LB}`,
+      `AvailabilityZone=b,LoadBalancer=${LB}`,
+    ]);
   });
 
   test("a resource's own addition of another account, or of a Region or namespace the account has no resources in, is not read", async () => {
