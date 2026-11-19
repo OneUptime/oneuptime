@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "조건과 일치하는 데이터 저장소만",
   "All tables": "모든 테이블",
   "Only tables that match conditions": "조건과 일치하는 테이블만",
+  "All pipelines": "모든 파이프라인",
+  "Only pipelines that match conditions": "조건과 일치하는 파이프라인만",
   "All cloud environments": "모든 클라우드 환경",
   "Only cloud environments that match conditions": "조건과 일치하는 클라우드 환경만",
   "Only what matches conditions": "조건과 일치하는 항목만",

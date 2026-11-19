@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "Bare datalagre som oppfyller betingelsene",
   "All tables": "Alle tabeller",
   "Only tables that match conditions": "Bare tabeller som oppfyller vilkår",
+  "All pipelines": "Alle pipelines",
+  "Only pipelines that match conditions": "Bare pipelines som oppfyller vilkår",
   "All cloud environments": "Alle skymiljøer",
   "Only cloud environments that match conditions": "Bare skymiljøer som oppfyller betingelsene",
   "Only what matches conditions": "Bare det som oppfyller betingelsene",

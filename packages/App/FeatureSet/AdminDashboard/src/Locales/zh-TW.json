@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "僅符合條件的資料儲存區",
   "All tables": "所有資料表",
   "Only tables that match conditions": "僅符合條件的資料表",
+  "All pipelines": "所有管道",
+  "Only pipelines that match conditions": "僅符合條件的管道",
   "All cloud environments": "所有雲端環境",
   "Only cloud environments that match conditions": "僅符合條件的雲端環境",
   "Only what matches conditions": "僅符合條件的對象",

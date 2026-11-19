@@ -5,7 +5,7 @@ Kubernetes 監測器依據 OneUptime Kubernetes 代理程式從叢集傳送的�
 :::cards
 - [安裝代理程式](/docs/monitor/kubernetes-agent): 一個 Helm 指令就能把叢集接入 OneUptime。
 - [建立監測器](#建立-kubernetes-監測器): 選擇叢集，然後選擇範本、指標或查詢。
-- [警示範本](#現成的警示範本): 二十四個現成的警示，從停止回報的叢集到 etcd。
+- [警示範本](#現成的警示範本): 二十五個現成的警示，從停止回報的叢集到 etcd。
 - [條件](#監控條件): 靜態閾值和異常偵測。
 :::
 

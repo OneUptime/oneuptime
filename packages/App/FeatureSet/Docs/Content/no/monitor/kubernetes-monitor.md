@@ -5,7 +5,7 @@ En Kubernetes-monitor varsler på målingene som OneUptimes Kubernetes-agent sen
 :::cards
 - [Installer agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando tar klyngen inn i OneUptime.
 - [Opprett monitoren](#opprett-en-kubernetes-monitor): Velg klyngen, og deretter en mal, en måling eller en spørring.
-- [Varslingsmaler](#ferdige-varslingsmaler): Tjuefire ferdige varsler, fra en taus klynge til etcd.
+- [Varslingsmaler](#ferdige-varslingsmaler): Tjuefem ferdige varsler, fra en taus klynge til etcd.
 - [Kriterier](#overvåkingskriterier): Statiske terskler og avviksdeteksjon.
 :::
 
