@@ -16,9 +16,10 @@ import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import StateChangeCauseModal, {
+  useWordStateChangeCause,
+} from "../../../Components/StateTimeline/StateChangeCause";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelStatusTimeline from "Common/UI/Components/StatusTimeline/ModelStatusTimeline";
@@ -167,10 +168,18 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
   // The check the row kept was cut to its size limit (StoredCheckEvidence).
   const [isLogTrimmed, setIsLogTrimmed] = useState<boolean>(false);
 
-  const [showRootCause, setShowRootCause] = useState<boolean>(false);
-  const [rootCause, setRootCause] = useState<string>("");
+  /*
+   * The status event whose cause View Cause shows: its root cause and the
+   * check it kept, whose findings it is worded from (StateChangeCause).
+   */
+  const [shownCause, setShownCause] = useState<{
+    rootCause: string;
+    changeLog: unknown;
+  } | null>(null);
 
   const translator: Translator = useTranslator();
+  const wordCause: (data: { cause: string; log: unknown }) => string =
+    useWordStateChangeCause();
 
   /*
    * The one event a delete would be refused for - the monitor's only event,
@@ -549,6 +558,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           monitoringOffColumn="isMonitoringOff"
           causeColumn="rootCause"
           noCauseText={NO_ROOT_CAUSE_TEXT}
+          // In the reader's language, as the table's View Cause (#9752).
+          wordCause={wordCause}
           logColumn="statusChangeLog"
           logsDescription={LOGS_DESCRIPTION}
           noLogsText={NO_LOGS_TEXT}
@@ -604,13 +615,12 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
               item: MonitorStatusTimeline,
               onCompleteAction: VoidFunction,
             ) => {
-              setRootCause(
-                item["rootCause"]
+              setShownCause({
+                rootCause: item["rootCause"]
                   ? item["rootCause"].toString()
-                  : translator.translateText(NO_ROOT_CAUSE_TEXT) ||
-                      NO_ROOT_CAUSE_TEXT,
-              );
-              setShowRootCause(true);
+                  : "",
+                changeLog: item["statusChangeLog"],
+              });
 
               onCompleteAction();
             },
@@ -756,20 +766,14 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
         <></>
       )}
 
-      {showRootCause ? (
-        <ConfirmModal
-          title={"Root Cause"}
-          description={
-            <div>
-              <MarkdownViewer text={rootCause} />
-            </div>
-          }
-          isLoading={false}
-          onSubmit={() => {
-            setShowRootCause(false);
+      {shownCause ? (
+        <StateChangeCauseModal
+          rootCause={shownCause.rootCause}
+          changeLog={shownCause.changeLog}
+          noCauseText={NO_ROOT_CAUSE_TEXT}
+          onClose={() => {
+            setShownCause(null);
           }}
-          submitButtonText={"Close"}
-          submitButtonType={ButtonStyleType.NORMAL}
         />
       ) : (
         <></>
