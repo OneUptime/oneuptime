@@ -88,6 +88,16 @@ export interface TotpCodeWindow {
 }
 
 /*
+ * Marks a sentence the Dashboard's extractor reads into its locales: the
+ * same marker as Common/UI/Utils/TranslateTemplate's translationKey, kept
+ * here so the server and the probe, which read this file too, never load
+ * the Dashboard's translator.
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
+
+/*
  * The problems, as English templates. They are Dashboard keys too, so each
  * is written out whole here, where the extractor reads it.
  */
@@ -104,28 +114,39 @@ export const TOTP_SECRET_PROBLEMS: {
   unsupportedDigits: string;
   unsupportedPeriod: string;
 } = {
-  empty:
+  empty: translationKey(
     "Enter the setup key or the otpauth:// link from the site's two-factor setup.",
-  migrationLink:
+  ),
+  migrationLink: translationKey(
     "This is an authenticator app's export link, which can hold several accounts. Paste the account's own otpauth://totp/ link or its setup key instead.",
-  counterLink:
+  ),
+  counterLink: translationKey(
     "This link is for counter-based codes (HOTP). A monitor needs a time-based link, which starts with otpauth://totp/.",
-  unreadableLink:
+  ),
+  unreadableLink: translationKey(
     "This otpauth:// link cannot be read. Paste the whole link, which starts with otpauth://totp/, or only the setup key.",
-  linkWithoutSecret:
+  ),
+  linkWithoutSecret: translationKey(
     "This link has no secret in it. Paste the whole otpauth://totp/ link, or only the setup key.",
-  badCharacters:
+  ),
+  badCharacters: translationKey(
     "A setup key has only the letters A to Z and the digits 2 to 7, and this one has {{characters}}. Check for a 0 that should be an O, or a 1 or 8 that should be an I or a B.",
-  tooShort:
+  ),
+  tooShort: translationKey(
     "This setup key is too short: a setup key has at least {{minimum}} characters. Check that you copied all of it.",
-  tooLong:
+  ),
+  tooLong: translationKey(
     "This setup key is longer than {{maximum}} characters, longer than any site's. Check that you pasted only the key.",
-  unsupportedAlgorithm:
+  ),
+  unsupportedAlgorithm: translationKey(
     "This link asks for the {{algorithm}} algorithm. A monitor can make codes with SHA1, SHA256 or SHA512.",
-  unsupportedDigits:
+  ),
+  unsupportedDigits: translationKey(
     "This link asks for codes of {{digits}} digits. A monitor can make codes of 6 or 8 digits.",
-  unsupportedPeriod:
+  ),
+  unsupportedPeriod: translationKey(
     "This link asks for a new code every {{period}} seconds. The period must be a whole number of seconds from 1 to 3600.",
+  ),
 };
 
 const BASE32_CHARACTER: RegExp = /^[A-Z2-7]$/;
