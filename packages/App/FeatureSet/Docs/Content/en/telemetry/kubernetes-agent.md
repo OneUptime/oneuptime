@@ -200,7 +200,7 @@ Set them in the EKS console's **Optional configuration settings**, or with `--co
 - `preset`: `eks-fargate` for a cluster that runs only on Fargate, otherwise `standard`, the default.
 - `logs.enabled`, `ebpf.enabled` and `aiAgent.enabled`: pod logs, eBPF traces and the [Kubernetes AI agent](#kubernetes-ai-agent), each on by default.
 - `kubeStateMetrics.enabled`: kube-state-metrics, off by default.
-- `cost.enabled`: [cost observability](/docs/telemetry/kubernetes-cost), `auto` by default: on with EC2 nodes, off on Fargate.
+- `cost.enabled`: [cost observability](/docs/telemetry/kubernetes-cost), `auto` by default: on, except with the `eks-fargate` preset.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \

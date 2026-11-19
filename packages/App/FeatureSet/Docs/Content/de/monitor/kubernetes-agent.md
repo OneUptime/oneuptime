@@ -35,6 +35,7 @@ flowchart LR
 | Knoten-Collector | DaemonSet | Pod-Logs aus `/var/log/pods`, Kubelet- und cAdvisor-Metriken und die Betriebssystem-Metriken des Knotens. | Ja |
 | eBPF-Instrumentierung (OBI) | DaemonSet | HTTP-, gRPC-, SQL- und Redis-Traces und Anfragemetriken jedes Pods sowie die Service-Map. | Ja |
 | Kubernetes-KI-Agent | Deployment | Lässt OneUptime AI nur lesendes `kubectl` ausführen, während sie einen Vorfall oder eine Warnung auf diesem Cluster untersucht. | Ja |
+| Kosten-Engine und Poller | Deployments | Was jeder Namespace und jeder Workload kostet: OpenCost, das kleine Prometheus, das es braucht, und der Kosten-Agent, der sendet, was sie berechnen. | Ja, außer mit den Presets `gke-autopilot` und `eks-fargate` |
 | Log-Tailer | Deployment | Pod-Logs über die Kubernetes-API, wo der Knoten-Collector sie nicht lesen kann. | Mit den Presets `gke-autopilot`, `eks-fargate` und `openshift-restricted` |
 | eBPF-Profiler | DaemonSet | Fortlaufende CPU-Flammengrafiken jedes Prozesses. | Nein |
 | kube-state-metrics | Deployment | Pod-Phasen, Wartegründe von Containern und Ressourcenkontingente. | Nein |
@@ -364,7 +365,7 @@ Profiling braucht **Linux 5.10** oder neuer und einen privilegierten Pod mit den
 | `csi.enabled` | aus | Die Metriken von CSI-Speichertreibern, aus Pods mit dem Label `app=csi-driver` oder `app.kubernetes.io/component=csi-driver`: Zeiten zum Anhängen und Lösen von Volumes, Bereitstellungsfehler, IOPS. |
 | `coreDns.enabled` | aus | Die Metriken von CoreDNS unter `:9153/metrics`: Abfragerate, Latenz, Cache-Treffer und Fehler. |
 | `controlPlane.enabled` | aus | Der API-Server unter seiner Adresse im Cluster, und etcd, der Scheduler und der Controller-Manager unter den Endpunkten, die Sie angeben ([Control-Plane-Überwachung aktivieren](/docs/telemetry/kubernetes-agent#control-plane-überwachung-aktivieren)). Nur selbst verwaltete Cluster: verwaltete stellen sie nicht bereit. |
-| `cost.enabled` | aus | Was jeder Workload kostet. Siehe [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Was jeder Namespace und jeder Workload kostet, mit Leerlaufkapazität und Effizienz, auch als Metriken für Warnungen: an, außer mit den Presets `gke-autopilot` und `eks-fargate`; `false` schaltet es aus. Siehe [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost). |
 
 ## Häufige Optionen
 

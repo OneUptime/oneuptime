@@ -225,8 +225,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** は、前述のとおり kubeadm の `--listen-metrics-urls` (ポート 2381。ノードのアドレスを追加するまで `127.0.0.1` にバインド) で平文 HTTP のメトリクスを提供します。または、要求されるクライアント証明書を使って HTTPS のクライアントポート 2379 を収集します。`ca.crt`、`tls.crt`、`tls.key` を `oneuptime-agent` の Secret に入れ、`controlPlane.etcd.clientCertSecret` にその名前を指定してください。",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "自己管理クラスターのみ: マネージドサービス (EKS、GKE、AKS) はコントロールプレーンのメトリクスを公開しません。",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "これだけで完全なインストールです。chart にはオープンソースの OpenCost エンジン (と、それが必要とする小さな Prometheus) が含まれ、クラウドプロバイダーの公開価格表をもとにノードとボリュームに価格を付けます。認証情報は不要です。小さな Pod が 2 つ追加され、最初の 1 時間が経過した後に最初のデータが表示されます。",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "コストの監視は既定でオンです。エージェントにはオープンソースの OpenCost エンジン (と、それが必要とする小さな Prometheus) が含まれ、クラウドプロバイダーの公開価格表をもとにノードとボリュームに価格を付け (認証情報は不要です)、各名前空間とワークロードのコストを送信します。最初の 1 時間が経過した後、クラスターの概要ページと「コスト」ページに最初のデータが表示されます。",
+  "On an agent installed before it was on by default, upgrade it:":
+    "既定でオンになる前にインストールしたエージェントでは、次のようにアップグレードします:",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **オフにするには:** 同じアップグレードに `--set cost.enabled=false` を追加します。",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
     "- **すでに Kubecost や OpenCost を使っていますか？** 代わりにエージェントをそちらに向ければ、何も同梱されません。`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (またはお使いの Kubecost サービス) を追加します。",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
@@ -284,8 +288,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **リクエストのメトリクスとサービスグラフ** *(eBPF)* | サービスごとのリクエスト率、エラー、レイテンシーと、サービスマップ用の呼び出し元 → 呼び出し先のエッジ |",
   "| **Network flows** *(eBPF)* | Pod-to-pod TCP/UDP byte and packet counters |":
     "| **ネットワークフロー** *(eBPF)* | Pod 間の TCP/UDP のバイト数とパケット数のカウンター |",
-  "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
-    "| **ワークロードのコスト** *(オプトイン、`cost.enabled=true`)* | 名前空間、ワークロード、Pod ごとの支出と、アイドル容量および効率 |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **ワークロードのコスト** *(既定でオン)* | 名前空間、ワークロード、Pod ごとの支出と、アイドル容量および効率。アラートを設定できるメトリクスとしても提供 |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "クラスターが `hostPath` ボリュームか特権 Pod をブロックしています。**GKE Autopilot** と **EKS Fargate** ではこれが普通です。このガイドの上部でそのプラットフォームを選び、手順に従ってください。一方 **OpenShift** ではインストール自体は成功しますが、エージェントのノード Pod が起動しません。**Red Hat OpenShift** を選んでください。",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

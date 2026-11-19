@@ -32,7 +32,7 @@ flowchart TB
 | eBPF 계측 (OBI) | DaemonSet | 모든 Pod의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 기본값 (GKE Autopilot과 EKS Fargate 제외) |
 | Kubernetes AI 에이전트 | Deployment | OneUptime AI가 인시던트나 경고를 조사하는 동안 사용하는 읽기 전용 `kubectl`. | 기본값 |
 | 로그 테일러 | Deployment | 노드 Collector가 읽을 수 없는 경우 Kubernetes API를 통한 Pod 로그. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋 |
-| 비용 엔진과 폴러 | Deployments | 네임스페이스, 워크로드, Pod별 지출. | `cost.enabled=true`일 때 |
+| 비용 엔진과 폴러 | Deployments | 네임스페이스, 워크로드, Pod별 지출. | 기본값 (GKE Autopilot과 EKS Fargate 제외) |
 
 모든 에이전트 이미지는 Linux 전용이므로 모든 워크로드는 Linux 노드에 고정됩니다.
 
@@ -199,7 +199,8 @@ EKS 콘솔의 **Optional configuration settings** 섹션에서 설정하거나, 
 - `oneuptime.labels`: 이 클러스터가 보내는 모든 데이터에 붙는 프로젝트 레이블(예: `{"team": "payments"}`).
 - `preset`: Fargate에서만 실행되는 클러스터에는 `eks-fargate`, 그 밖에는 기본값인 `standard`.
 - `logs.enabled`, `ebpf.enabled`, `aiAgent.enabled`: Pod 로그, eBPF 트레이스, [Kubernetes AI 에이전트](#kubernetes-ai-에이전트). 모두 기본적으로 켜져 있습니다.
-- `kubeStateMetrics.enabled`, `cost.enabled`: kube-state-metrics와 [비용 옵저버빌리티](/docs/telemetry/kubernetes-cost). 모두 기본적으로 꺼져 있습니다.
+- `kubeStateMetrics.enabled`: kube-state-metrics. 기본적으로 꺼져 있습니다.
+- `cost.enabled`: [비용 옵저버빌리티](/docs/telemetry/kubernetes-cost). 기본값은 `auto`이며, `eks-fargate` 프리셋을 제외하면 켜져 있습니다.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | 서비스 그래프 (eBPF) | 호출자에서 피호출자로의 요청 속도, 지연 시간, 오류 엣지. 서비스 맵을 그립니다 |
 | 네트워크 흐름 메트릭 (eBPF) | Kubernetes 메타데이터가 붙은 Pod 간 TCP 및 UDP 바이트·패킷 카운터 |
 | TCP 통계 (eBPF) | 노드 수준의 왕복 시간, 연결 실패, 재전송 카운터 |
-| 워크로드 비용 (옵트인, `cost.enabled=true`) | 유휴 및 효율을 포함한 네임스페이스, 워크로드, Pod별 지출, 그리고 노드와 볼륨의 시간당 비용: [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost) 참조 |
+| 워크로드 비용 (기본적으로 켜짐, GKE Autopilot과 EKS Fargate 제외) | 유휴 및 효율을 포함한 네임스페이스, 워크로드, Pod별 지출(경고를 설정할 수 있는 메트릭으로도 제공), 그리고 노드와 볼륨의 시간당 비용: [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost) 참조 |
 
 ## Kubernetes 이벤트
 
@@ -594,7 +595,7 @@ Istio의 경우 모든 `istio-proxy` 사이드카의 Envoy 통계(포트 `15090`
 
 ### 비용 옵저버빌리티 활성화
 
-클러스터의 **비용** 페이지에서 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 확인하세요:
+비용 옵저버빌리티는 기본적으로 켜져 있습니다. 클러스터의 개요와 **비용** 페이지가 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 보여 주며, 비용 메트릭은 차트로 그리고 경고를 설정할 수 있습니다. 모든 Pod에 그 request만큼 요금을 매기는 `gke-autopilot`과 `eks-fargate` 프리셋, 그리고 기본으로 켜지기 전에 설치한 에이전트에서는 꺼져 있습니다. 그런 곳에서는 다음과 같이 켜세요:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-이것만으로 완전한 설치입니다. 차트는 오픈 소스 [OpenCost](https://opencost.io) 엔진(필요한 작은 Prometheus 포함)을 번들로 제공하며, 자격 증명 없이 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 작은 Pod 두 개가 추가되며, 첫 비용은 첫 1시간이 마감된 뒤에 나타납니다. 이미 Kubecost나 OpenCost를 실행하고 있다면 대신 `--set cost.engine.url=<its service URL>`을 추가하세요. 그러면 아무것도 번들되지 않습니다. 온프레미스 클러스터는 `cost.opencost.customPricing`으로 요금표를 설정할 수 있습니다. 온프레미스 가격 책정과 문제 해결을 포함한 전체 가이드는 [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)입니다.
+이것만으로 완전한 설치입니다. 차트는 오픈 소스 [OpenCost](https://opencost.io) 엔진(필요한 작은 Prometheus 포함)을 번들로 제공하며, 자격 증명 없이 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 작은 Pod 세 개가 추가되며, 첫 비용은 첫 1시간이 마감된 뒤에 나타납니다. 끄려면 같은 방법으로 `--set cost.enabled=false`를 설정하세요. 이미 Kubecost나 OpenCost를 실행하고 있다면 대신 `--set cost.engine.url=<its service URL>`을 추가하세요. 그러면 아무것도 번들되지 않습니다. 온프레미스 클러스터는 `cost.opencost.customPricing`으로 요금표를 설정할 수 있습니다. 온프레미스 가격 책정과 문제 해결을 포함한 전체 가이드는 [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)입니다.
 
 ### 프로젝트 레이블로 자동 태그 지정
 
@@ -990,7 +991,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled` | CrashLoop, ImagePull, 스케줄링 사유 메트릭(kube-state-metrics Deployment와 스크레이프 추가) |
 | `ebpf.features.networkInterZoneMetrics` | 네트워크 흐름 시계열이 두 배가 됨 |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 더 많은 Prometheus 스크레이프 작업 |
-| `cost.enabled` | 워크로드 비용(OpenCost와 작은 Prometheus를 번들로 제공. 시간당 비용 행과 엄격하게 허용 목록으로 제한한 메트릭 스크레이프. 적당한 수집량, Pod 두 개 추가) |
+
+반면 비용 옵저버빌리티(`cost.enabled`)는 기본적으로 켜져 있습니다. 작은 Pod 세 개, 컨테이너마다 시간당 비용 행 하나, 그리고 노드, 볼륨, 로드 밸런서마다 가격 시계열 하나의 스크레이프가 추가됩니다. 사용하지 않는다면 `--set cost.enabled=false`로 끄세요.
 
 ### 트레이스를 버리는 대신 샘플링
 

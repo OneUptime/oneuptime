@@ -5,7 +5,7 @@ Kubernetes 모니터는 OneUptime Kubernetes 에이전트가 클러스터에서 
 :::cards
 - [에이전트 설치](/docs/monitor/kubernetes-agent): Helm 명령 하나로 클러스터를 OneUptime에 연결합니다.
 - [모니터 만들기](#kubernetes-모니터-만들기): 클러스터를 고른 다음 템플릿, 메트릭, 쿼리 중 하나를 고릅니다.
-- [경고 템플릿](#미리-만들어진-경고-템플릿): 보고를 멈춘 클러스터부터 etcd까지 21개의 미리 만들어진 경고.
+- [경고 템플릿](#미리-만들어진-경고-템플릿): 보고를 멈춘 클러스터부터 etcd까지 24개의 미리 만들어진 경고.
 - [기준](#모니터링-기준): 정적 임계값과 이상 탐지.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - 클러스터에서 OneUptime Kubernetes 에이전트가 실행 중이어야 합니다. [Kubernetes 에이전트(Helm 설치)](/docs/monitor/kubernetes-agent)를 참고하세요. 설치 후 몇 분 안에 클러스터가 **Kubernetes** 에 나타납니다.
 - 컨트롤 플레인 템플릿(**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**)에는 에이전트의 컨트롤 플레인 수집 `controlPlane.enabled`가 필요합니다. 이것으로 API 서버는 바로 읽히지만, etcd와 스케줄러는 엔드포인트도 지정해야 합니다([컨트롤 플레인 모니터링 활성화](/docs/telemetry/kubernetes-agent#컨트롤-플레인-모니터링-활성화) 참고). 관리형 클러스터(EKS, GKE, AKS)는 이 엔드포인트를 노출하지 않으므로, 그곳에서는 이 모니터들이 데이터를 받지 못합니다.
+- 비용 템플릿(**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**)에는 에이전트의 비용 모니터링이 필요합니다. 이는 `gke-autopilot`과 `eks-fargate` 프리셋을 제외하면 기본적으로 켜져 있습니다([Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost) 참고).
 
 ## Kubernetes 모니터 만들기
 
@@ -91,6 +92,7 @@ flowchart TB
 | 워크로드 | Deployment 사용 가능 레플리카, Deployment 원하는 레플리카, DaemonSet 원하는 노드, DaemonSet 잘못 예약된 노드, DaemonSet 준비된 노드, StatefulSet 원하는 레플리카, StatefulSet 준비된 레플리카, Job 실패한 Pod, Job 실패한 Pod(증가분), Job 성공한 Pod |
 | HPA | HPA 현재 레플리카, HPA 원하는 레플리카, HPA 최대 레플리카, HPA 최소 레플리카 |
 | 컨트롤 플레인 | etcd 리더 있음, API 서버 진행 중인 요청, 스케줄러 대기 중인 Pod |
+| 비용 | 클러스터 비용, 유휴 비용, 워크로드 비용, 워크로드 비용 효율 |
 
 > [!NOTE]
 > **Pod CPU 사용량**과 **노드 CPU 사용량**의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod 단계(코드)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **노드 Ready 조건**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 경고를 받으세요. **컨테이너 재시작**은 컨테이너의 누적 재시작 수이고, **컨테이너 재시작(증가분)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **컨테이너 재시작**이 가진 것을 그대로 가지며, 컨테이너가 속한 Pod의 워크로드 이름도 포함하지만 재시작할 때마다 바뀌는 컨테이너 ID는 포함하지 않습니다. **Job 실패한 Pod**는 Job의 누적 실패 Pod 수이고, **Job 실패한 Pod(증가분)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다. **Job 실패한 Pod**와 마찬가지로 Job의 이름과 네임스페이스를 가집니다.
@@ -155,8 +157,13 @@ flowchart TB
 | HPA Saturated at Max Replicas | 워크로드 | `minReplicas`보다 크게 스케일된 HPA가 `maxReplicas`의 90% 이상으로 실행됨 | 심각 |
 | Pod Memory Saturating Container Limit | 워크로드 | Pod가 컨테이너 메모리 한도의 90% 넘게 사용함 | 심각 |
 | Pod CPU Saturating Container Limit | 워크로드 | Pod가 컨테이너 CPU 한도의 90% 넘게 사용함 | 경고 |
+| Cluster Daily Cost Over Budget | 비용 | 지난 하루 동안 클러스터의 비용이 100을 넘음(예산은 직접 정한 값으로 설정) | 경고 |
+| Namespace Daily Cost Over Budget | 비용 | 지난 하루 동안 네임스페이스의 비용이 20을 넘음(예산은 직접 정한 값으로 설정) | 경고 |
+| High Idle Spend | 비용 | 지난 하루 동안 클러스터 비용의 40% 넘게 유휴 용량에 쓰임 | 경고 |
 
 객체별 메트릭을 쓰는 템플릿은 노드, Pod, Deployment, Job, DaemonSet, HPA를 각각 따로 평가합니다. 그래서 비정상 Pod가 여러 개인 클러스터는 클러스터 전체에 하나가 아니라 Pod마다 인시던트를 받습니다.
+
+비용 템플릿은 OneUptime이 에이전트의 시간당 비용 행에서 기록하는 메트릭을 읽습니다. 한 시간에 포인트가 하나이므로 지난 하루를 합산하며, 예산은 클러스터의 통화 기준이고 기본값은 USD입니다.
 
 **High Node CPU Request Commitment** 와 **High Node Memory Request Commitment** 는 스케줄러처럼 끝나지 않은 Pod 의 요청(request)만 셉니다. 클러스터는 Succeeded 또는 Failed 상태인 Pod(끝난 Job 의 Pod 등)의 요청을 Pod 가 삭제될 때까지 계속 보고하지만, 이는 세지 않습니다.
 

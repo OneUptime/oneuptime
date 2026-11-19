@@ -1,9 +1,10 @@
 # Kubernetes 成本可观测性
 
-查看每个 Kubernetes 工作负载的成本——按命名空间、工作负载和 Pod 统计的支出、空闲容量，以及每个 request 被实际使用了多少——就在 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) 已经采集的指标、日志和追踪旁边。一个 Helm 值即可开启，无需任何云凭据，随后集群的 **成本** 页面会告诉你应缩减哪些 request。
+查看每个 Kubernetes 工作负载的成本——按命名空间、工作负载和 Pod 统计的支出、空闲容量，以及每个 request 被实际使用了多少——就在 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) 已经采集的指标、日志和追踪旁边。它默认开启，无需任何云凭据：集群的概览会显示集群的成本，它的 **成本** 页面会告诉你应缩减哪些 request，而成本指标也可以像其他任何指标一样绘制成图表并设置警报。
 
 :::cards
-- [开启它](#开启成本可观测性): 一条 `helm upgrade`。
+- [开启它](#开启成本可观测性): 默认开启；未开启的地方只需一条 `helm upgrade`。
+- [针对成本发出警报](#针对成本发出警报): 按集群、命名空间和工作负载统计的成本，以指标形式提供。
 - [使用你自己的引擎](#已经在运行-kubecost-或-opencost): 让代理指向 Kubecost 或 OpenCost。
 - [资源规格调整](#资源规格调整): request 建议，以及它们是如何得出的。
 - [故障排查](#故障排查): 页面为空、缺少建议。
@@ -11,7 +12,7 @@
 
 ## 工作原理
 
-设置 `cost.enabled=true` 后，chart 会在代理旁边运行四样东西：
+成本监控开启时（默认即开启，`cost.enabled: auto`），chart 会在代理旁边运行四样东西：
 
 ```mermaid title="成本数字从何而来"
 flowchart TB
@@ -25,16 +26,20 @@ flowchart TB
 ```
 
 1. **OpenCost**：开源成本引擎（Apache-2.0，CNCF；也是 Kubecost 所基于的 [cost-model](https://github.com/kubecost/cost-model)）。它监视集群，为你的节点、卷和负载均衡器定价，并算出每个工作负载的成本。
-2. **一个小型 Prometheus**：OpenCost 需要它来保存用量和价格历史。它运行一个副本，保留 7 天的历史，并且只抓取两个目标：通过 API 服务器节点代理访问的 cAdvisor，以及 OpenCost 本身（它会发出自己的资源 request 指标，因此不涉及 kube-state-metrics）。它从不暴露到集群之外，其数据也从不离开集群。
-3. **成本轮询器**（`cost.agent`）。每个小时结束后，它读取一次 OpenCost 的 Allocation API，并为每个工作负载向 OneUptime 发送一行成本：CPU、内存、GPU、卷、网络、负载均衡器和空闲，以及效率。每个小时只发送一次；服务器会跳过它已经有的小时，因此重启不会把支出计算两次。
-4. **一项成本指标抓取**（`cost.metrics`）。代理的 Collector 会抓取 OpenCost 的成本指标，并与集群的其余指标一起发送。
+2. **一个小型 Prometheus**：OpenCost 需要它来保存用量和价格历史。它运行一个副本，保留 7 天的历史，并且只抓取两个目标：通过 API 服务器节点代理访问的 cAdvisor（只保留 OpenCost 读取的序列），以及 OpenCost 本身（它会发出自己的资源 request 指标，因此不涉及 kube-state-metrics）。它从不暴露到集群之外，其数据也从不离开集群。
+3. **成本轮询器**（`cost.agent`）。每个小时结束后，它读取一次 OpenCost 的 Allocation API，并为每个工作负载向 OneUptime 发送一行成本：CPU、内存、GPU、卷、网络、负载均衡器和空闲，以及效率。每个小时只发送一次；服务器会跳过它已经有的小时，因此重启不会把支出计算两次。OneUptime 还会根据这些行写入 [成本指标](#针对成本发出警报)。
+4. **一项成本指标抓取**（`cost.metrics`）。代理的 Collector 会抓取 OpenCost 的价格指标，即每个节点、卷和负载均衡器每小时的成本，并与集群的其余指标一起发送。
 
-OpenCost 根据云厂商的公开价格（AWS、Google Cloud、Azure）为节点定价，无需任何凭据。没有云公开价格的集群可改为设置 [费率卡](#本地部署和裸金属定价)。
+OpenCost 根据云厂商的公开价格（AWS、Google Cloud、Azure）为节点定价，无需任何凭据。在其他环境中，它使用自己的默认费率，你自己的 [费率卡](#本地部署和裸金属定价) 会取代这些费率。
+
+这三个 Pod 总共请求约 150m CPU 和 450Mi 内存。在 `gke-autopilot` 和 `eks-fargate` 预设下，成本监控默认关闭：这两个平台按每个 Pod 的 request 计费，因此成本 Pod 会增加它们所衡量的账单；而且 OpenCost 按节点定价，而这两个平台都不是这样计费的。
 
 ## 开启成本可观测性
 
+新安装无需任何操作：成本监控默认开启。对于在默认开启之前安装的代理，请升级它；在使用 `gke-autopilot` 或 `eks-fargate` 预设时，也可以这样开启它：
+
 :::steps
-### 使用 cost.enabled 升级代理
+### 升级代理
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -43,7 +48,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-这就是一次完整的安装：额外两个小 Pod，即 OpenCost 和它的 Prometheus。如果你以其他发布名称或命名空间安装了代理，请使用你的（`helm list -A | grep kubernetes-agent` 会列出它们）。
+这就是一次完整的安装：额外三个小 Pod，即 OpenCost、它的 Prometheus 和成本代理。如果你以其他发布名称或命名空间安装了代理，请使用你的（`helm list -A | grep kubernetes-agent` 会列出它们）。要关闭成本监控，以同样的方式设置 `--set cost.enabled=false`。
 
 ### 等待第一个小时结束
 
@@ -52,6 +57,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### 打开成本页面
 
 - **产品 → 基础设施 → Kubernetes → 成本** 显示项目中所有集群的支出。
+- 在某个集群上，概览显示其过去 24 小时的支出、按月推算的支出、空闲支出、效率，以及成本最高的命名空间和工作负载。
 - 在某个集群上，**成本** 显示其支出趋势、按 CPU、内存和存储拆分的 **Spend by Namespace**、**Spend by Workload**、空闲支出、效率，以及 **Right-Sizing** 卡片。
 :::
 
@@ -98,6 +104,7 @@ cost:
 
 ```yaml title="values.yaml"
 cost:
+  enabled: auto           # on, except with the gke-autopilot and eks-fargate presets
   agent:
     windowSeconds: 3600   # allocation window length (hourly = native)
     includeIdle: true     # ship the engine's __idle__ allocation
@@ -148,7 +155,18 @@ Prometheus 中断永远不会停止支出的采集：峰值只是附加信息，
 
 ## 针对成本发出警报
 
-成本指标都是普通指标，因此 [指标监视器](/docs/monitor/metrics-monitor) 可以像对待其他任何指标一样对它们发出警报：例如，当平均 `node_total_hourly_cost` 超出预算时，或者当集群中出现某个本不应存在的卷类的 `pv_hourly_cost` 时。
+OneUptime 会根据每个小时的成本行写入四个指标，它们已经定价，并按其含义命名，因此可以绘制成本图表、把成本放到仪表板上，并在 [Kubernetes 监视器](/docs/monitor/kubernetes-monitor) 或 [指标监视器](/docs/monitor/metrics-monitor) 中针对成本发出警报：
+
+| 指标 | 含义 | 属性 |
+| --- | --- | --- |
+| `oneuptime.kubernetes.cost.total` | 集群每个小时的成本，包括空闲容量 | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.idle` | 其中没有被任何工作负载使用的部分：空闲容量和未分配容量 | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.workload` | 每个工作负载每个小时的成本；按命名空间求和，即为该命名空间的成本 | `k8s.cluster.name`、`k8s.namespace.name`，以及以工作负载类型命名的工作负载名称属性，例如 `k8s.deployment.name` |
+| `oneuptime.kubernetes.cost.efficiency` | 每个工作负载使用了其所请求的 CPU 和内存中的多少，以百分比表示，按成本加权 | 工作负载的属性，同上 |
+
+每个数据点是一个小时的成本，以代理的货币（默认为 USD）计，时间戳为该小时的开始时间，并在该小时结束约一小时后写入：在若干小时的时间窗口内对数据点求和即可，一天的数据点加起来就是当天的成本。它们来自集群已经发送的数据，因此不会作为摄取的指标计费，并且与集群的其他指标保留同样长的时间。
+
+Kubernetes 监视器为它们提供了三个模板：Cluster Daily Cost Over Budget、Namespace Daily Cost Over Budget 和 High Idle Spend，每个模板都带有一个需要你按自己的情况设置的预算。OpenCost 的价格指标也是普通指标：指标监视器可以在平均 `node_total_hourly_cost` 超出预算时，或者在集群中出现某个本不应存在的卷类的 `pv_hourly_cost` 时发出警报。
 
 ## 数据模型和保留
 
@@ -157,7 +175,7 @@ Prometheus 中断永远不会停止支出的采集：峰值只是附加信息，
 ## 故障排查
 
 :::details Costs 页面为空
-查看成本轮询器的日志：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。（当发布名称不包含 `kubernetes-agent` 时，Deployment 名称为 `<release>-kubernetes-agent-cost`；`kubectl get deploy -n oneuptime-agent` 会列出它们。）`HTTP 401` 表示 OneUptime 拒绝了摄取密钥。`did not answer any known allocation path` 表示引擎尚未就绪（内置的 OpenCost 需要几分钟为其最初几个小时定价），或者 `cost.engine.url` 有误。
+在 `gke-autopilot` 和 `eks-fargate` 预设下，成本监控默认关闭：请用 `--set cost.enabled=true` 开启它。否则，请查看成本轮询器的日志：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。（当发布名称不包含 `kubernetes-agent` 时，Deployment 名称为 `<release>-kubernetes-agent-cost`；`kubectl get deploy -n oneuptime-agent` 会列出它们。）`HTTP 401` 表示 OneUptime 拒绝了摄取密钥。`did not answer any known allocation path` 表示引擎尚未就绪（内置的 OpenCost 需要几分钟为其最初几个小时定价），或者 `cost.engine.url` 有误。
 :::
 
 :::details 内置的 OpenCost 未就绪
