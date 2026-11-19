@@ -162,6 +162,8 @@ describe("each kind's words", () => {
     ).toEqual([
       DataAttentionKind.CollectionFailed,
       DataAttentionKind.PipelineFailed,
+      // What it writes waits on a table that failed (#6548): told as broken, never as late.
+      DataAttentionKind.PipelineStopped,
       DataAttentionKind.CheckFailing,
       DataAttentionKind.ReconciliationDrifted,
     ]);
@@ -188,6 +190,12 @@ describe("the page where each is put right", () => {
       DataAttentionKind.PipelineLate,
       { dataPipelineId: ID },
       PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW,
+    ],
+    // Why it stopped, and what stops it: the pipeline's Circuit Breaker page.
+    [
+      DataAttentionKind.PipelineStopped,
+      { dataPipelineId: ID },
+      PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER,
     ],
     [
       DataAttentionKind.CheckFailing,
@@ -225,6 +233,7 @@ describe("the page where each is put right", () => {
   test.each([
     [DataAttentionKind.CollectionFailed, PageMap.DATA_OBSERVABILITY_STORES],
     [DataAttentionKind.PipelineFailed, PageMap.DATA_OBSERVABILITY_PIPELINES],
+    [DataAttentionKind.PipelineStopped, PageMap.DATA_OBSERVABILITY_PIPELINES],
     [DataAttentionKind.CheckFailing, PageMap.DATA_OBSERVABILITY_CHECKS],
     [
       DataAttentionKind.DataProductLate,
@@ -273,6 +282,12 @@ describe("the page where each is put right", () => {
     expect(
       getAttentionOwnersRoute(
         item(DataAttentionKind.PipelineLate, { dataPipelineId: ID }),
+      )?.toString(),
+    ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS, ID));
+    // A stopped pipeline's too: its owners fix what its circuit breaker found.
+    expect(
+      getAttentionOwnersRoute(
+        item(DataAttentionKind.PipelineStopped, { dataPipelineId: ID }),
       )?.toString(),
     ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS, ID));
     // A database and a reconciliation have none here.
