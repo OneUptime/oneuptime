@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OneUptime Agent</string>
+
+    <!-- The notification Android shows while the agent runs. -->
+    <string name="notification_channel_name">Agent status</string>
+    <string name="notification_channel_description">Shows whether this device is reporting to OneUptime.</string>
+
+    <!-- The setup screen. -->
+    <string name="setup_subtitle">Reports this device\'s health, restarts, apps and logs to OneUptime.</string>
+    <string name="setup_last_report">Last report sent %1$s</string>
+    <string name="setup_no_report_yet">Nothing sent yet</string>
+    <string name="setup_waiting">%1$s waiting to be sent</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: your device manager sent %2$s as it is, without filling it in.</string>
+    <string name="setup_problem_invalid">%1$s: %2$s cannot be used, so the default applies.</string>
+    <string name="setup_connection">Connection</string>
+    <string name="setup_managed_notice">Your organization\'s device manager sets the settings shown as locked.</string>
+    <string name="setup_url_label">OneUptime URL</string>
+    <string name="setup_url_hint_default" translatable="false">https://oneuptime.com</string>
+    <string name="setup_url_help">Change it only if you host OneUptime yourself.</string>
+    <string name="setup_token_label">Ingestion key</string>
+    <string name="setup_token_hint">Paste a Server ingestion key</string>
+    <string name="setup_token_stored_hint">Saved. Paste a new key to replace it.</string>
+    <string name="setup_token_help">In OneUptime: Project Settings, Telemetry &amp; APM, Ingestion Keys. Use a Server key.</string>
+    <string name="setup_token_unreadable">The saved key can no longer be read on this device. Paste it again.</string>
+    <string name="setup_device_name_label">Device name</string>
+    <string name="setup_device_name_help">How this device is listed in Hosts and Inventory.</string>
+    <string name="setup_set_by_organization">Set by your organization</string>
+    <string name="setup_save">Save and connect</string>
+    <string name="setup_saved">Saved. The agent sends a report now.</string>
+    <string name="setup_token_required">Paste the ingestion key.</string>
+    <string name="setup_save_failed">This device could not store the key securely: %1$s</string>
+    <string name="setup_readings">What this device lets the agent read</string>
+    <string name="setup_reading_yes">Yes</string>
+    <string name="setup_reading_cpu">CPU use</string>
+    <string name="setup_reading_cpu_unavailable">Not on Android 8 and later: Android keeps it from apps</string>
+    <string name="setup_reading_memory">Memory, storage and network</string>
+    <string name="setup_reading_battery">Battery</string>
+    <string name="setup_reading_no_battery">No battery</string>
+    <string name="setup_reading_thermal">Temperature and throttling</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 and later</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_apps">Installed apps</string>
+    <string name="setup_reading_apps_off">Off: switched off by your device manager</string>
+    <string name="setup_reading_unknown">After the first report</string>
+    <string name="setup_logcat_grant">To send other apps\' logs, grant READ_LOGS once, with adb or your device manager\'s remote ADB:</string>
+    <string name="setup_version">OneUptime Agent %1$s</string>
+
+    <!-- Managed configuration, as device managers (Esper, Intune, Workspace ONE, SOTI) show it. -->
+    <string name="restriction_url_title">OneUptime URL</string>
+    <string name="restriction_url_description">Where to send telemetry. Leave it as https://oneuptime.com unless you host OneUptime yourself.</string>
+    <string name="restriction_token_title">Ingestion key</string>
+    <string name="restriction_token_description">A Server ingestion key from Project Settings, Telemetry and APM, Ingestion Keys.</string>
+    <string name="restriction_device_name_title">Device name</string>
+    <string name="restriction_device_name_description">The device\'s name in OneUptime, for example ${esper.deviceName}. Use the same name in your app\'s host.name so both show as one device.</string>
+    <string name="restriction_device_serial_title">Serial number</string>
+    <string name="restriction_device_serial_description">The device\'s serial number, for example ${esper.serialNumber}. Android does not give it to apps itself.</string>
+    <string name="restriction_device_type_title">Device type</string>
+    <string name="restriction_device_type_description">What the device is: kiosk, POS terminal, handheld, signage.</string>
+    <string name="restriction_device_location_title">Location</string>
+    <string name="restriction_device_location_description">Where the device is, for example a store number.</string>
+    <string name="restriction_labels_title">Labels</string>
+    <string name="restriction_labels_description">Labels for the device in OneUptime, as name=value pairs separated by commas: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">Collection interval (seconds)</string>
+    <string name="restriction_interval_description">How often the agent reports, from 30 to 600 seconds. 60 by default.</string>
+    <string name="restriction_logcat_enabled_title">Send Logcat</string>
+    <string name="restriction_logcat_enabled_description">Send other apps\' crashes, ANRs and logs. Needs READ_LOGS, granted with adb.</string>
+    <string name="restriction_logcat_level_title">Lowest Logcat level</string>
+    <string name="restriction_logcat_level_description">The least severe Logcat lines to send, on Android 12 and earlier. Warning by default.</string>
+    <string name="restriction_apps_enabled_title">Send installed apps</string>
+    <string name="restriction_apps_enabled_description">Send the installed apps and their versions once a day, and each install, update and removal.</string>
+    <string name="logcat_level_verbose">Verbose</string>
+    <string name="logcat_level_debug">Debug</string>
+    <string name="logcat_level_info">Info</string>
+    <string name="logcat_level_warn">Warning</string>
+    <string name="logcat_level_error">Error</string>
+    <string name="logcat_level_fatal">Fatal</string>
+</resources>
