@@ -57372,5 +57372,12 @@
   "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.": "ما يعرّض هذه البيانات للخطر الآن، الأعلى خطورة أولًا. تُفتح كل مشكلة في «أمن البيانات»، حيث يُعمل عليها.",
   "{{requirement}} applies here": "{{requirement}} ينطبق هنا",
   "{{count}} stores turned off on their resources": "{{count}} من المخازن أُوقفت على مواردها",
-  "{{count}} stores turned off on their resources_one": "{{count}} مخزن أُوقف على مورده"
+  "{{count}} stores turned off on their resources_one": "{{count}} مخزن أُوقف على مورده",
+  "Reading the datasets' dataflows": "Reading the datasets' dataflows",
+  "{{count}} datasets on unread dataflows": "{{count}} datasets on unread dataflows",
+  "{{count}} datasets on unread dataflows_one": "{{count}} dataset on an unread dataflow",
+  "{{count}} datasets read Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.": "{{count}} datasets read Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
+  "{{count}} datasets read Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them._one": "{{count}} dataset reads Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
+  "{{count}} datasets read Power BI dataflows whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}.": "{{count}} datasets read Power BI dataflows whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}.",
+  "{{count}} datasets read Power BI dataflows whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}._one": "{{count}} dataset reads a Power BI dataflow whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}."
 }

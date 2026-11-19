@@ -40,9 +40,14 @@ import {
  * The expression is read as a stream of M tokens, not evaluated: the steps
  * are read in order, each connector call starting over what a navigation
  * step means. Generated M reads the same way, step after step, and so does
- * nearly every hand-written query. Files, web pages, SharePoint lists and
- * dataflows are no database table, and navigation after them is not read
- * as one.
+ * nearly every hand-written query. Files, web pages and SharePoint lists
+ * are no database table, and navigation after them is not read as one.
+ *
+ * A dataflow is read to its entity (#9551): PowerPlatform.Dataflows (or
+ * PowerBI.Dataflows), then the workspace, the dataflow - each by id or by
+ * name - and {[entity="Orders",version=""]}. The entity is no table
+ * either, but the dataflow's own query of that name reads some
+ * (PowerQueryRead.dataflowEntities, read through PowerBiDataflows).
  */
 
 // A connector OneUptime reads a database's tables through.
@@ -181,10 +186,75 @@ export interface PowerQuerySource {
   database: string | null;
 }
 
+/*
+ * A dataflow's entity a query reads (PowerPlatform.Dataflows, then the
+ * workspace, the dataflow and the entity, each by id or by name): its own
+ * tables are the dataflow's query of that name (PowerBiDataflows).
+ */
+export interface PowerQueryDataflowEntity {
+  // In lower case.
+  workspaceId: string | null;
+  workspaceName: string | null;
+  // In lower case.
+  dataflowId: string | null;
+  dataflowName: string | null;
+  entity: string;
+}
+
 export interface PowerQueryRead {
   tables: Array<BiTableRef>;
   // Each database a connector call names, once.
   sources: Array<PowerQuerySource>;
+  // Each dataflow entity it reads, once.
+  dataflowEntities: Array<PowerQueryDataflowEntity>;
+}
+
+// Power BI's dataflow connectors: navigation after them picks a workspace, a dataflow and an entity.
+const DATAFLOW_CONNECTORS: ReadonlySet<string> = new Set([
+  "powerplatform.dataflows",
+  "powerbi.dataflows",
+]);
+
+// Where a dataflow's navigation stands: the workspace and dataflow picked so far.
+interface DataflowNavigation {
+  workspaceId: string | null;
+  workspaceName: string | null;
+  dataflowId: string | null;
+  dataflowName: string | null;
+}
+
+export function getPowerQueryDataflowEntityKey(
+  entity: PowerQueryDataflowEntity,
+): string {
+  return [
+    entity.workspaceId,
+    entity.workspaceName,
+    entity.dataflowId,
+    entity.dataflowName,
+    entity.entity,
+  ]
+    .map((part: string | null): string => {
+      return (part || "").toLowerCase();
+    })
+    .join("\u0000");
+}
+
+// Each dataflow entity once.
+export function uniqueDataflowEntities(
+  entities: Array<PowerQueryDataflowEntity>,
+): Array<PowerQueryDataflowEntity> {
+  const seen: Set<string> = new Set();
+
+  return entities.filter((entity: PowerQueryDataflowEntity): boolean => {
+    const key: string = getPowerQueryDataflowEntityKey(entity);
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
 }
 
 type TokenKind = "string" | "name" | "punct" | "number";
@@ -552,12 +622,30 @@ function readRecord(
   return fields;
 }
 
-// Where a database's navigation stands: the connector, and the database and schema picked so far.
+/*
+ * Where a navigation stands: a database's connector, and the database and
+ * schema picked so far - or, after a dataflow connector, the workspace and
+ * dataflow picked so far.
+ */
 interface Navigation {
   connector: PowerQueryConnector;
   host: string | null;
   database: string | null;
   schema: string | null;
+  dataflow: DataflowNavigation | null;
+}
+
+// What a dataflow connector's navigation is read with: no engine OneUptime watches, no host.
+const DATAFLOWS: PowerQueryConnector = connector("dataflows", {
+  hostArgument: null,
+});
+
+// A navigation to go on from, never the one it was copied from.
+function copyOf(navigation: Navigation): Navigation {
+  return {
+    ...navigation,
+    dataflow: navigation.dataflow ? { ...navigation.dataflow } : null,
+  };
 }
 
 function cut(value: string | null): string | null {
@@ -566,9 +654,9 @@ function cut(value: string | null): string | null {
   return text ? text.slice(0, MAX_BI_NAME_LENGTH) : null;
 }
 
-// The database SQL runs in, as its connector names it: as its server does.
+// The database SQL runs in, as its connector names it: as its server does. A dataflow is no database.
 function defaultsOf(navigation: Navigation | null): BiTableDefaults {
-  return navigation
+  return navigation && !navigation.dataflow
     ? {
         database: navigation.connector.keepsDatabase
           ? cut(navigation.database)
@@ -617,6 +705,7 @@ class PowerQueryReader {
   public navigation: Navigation | null = null;
   public readonly tables: Array<BiTableRef> = [];
   public readonly sources: Array<PowerQuerySource> = [];
+  public readonly dataflowEntities: Array<PowerQueryDataflowEntity> = [];
 
   public constructor(
     tokens: Array<Token>,
@@ -649,7 +738,7 @@ class PowerQueryReader {
         const ended: Navigation | null = this.navigationOf(token.value);
 
         if (ended) {
-          this.navigation = { ...ended };
+          this.navigation = copyOf(ended);
         }
 
         index++;
@@ -726,6 +815,24 @@ class PowerQueryReader {
       return close + 1;
     }
 
+    // A dataflow: its workspace, the dataflow and the entity are navigated next.
+    if (DATAFLOW_CONNECTORS.has(name)) {
+      this.navigation = {
+        connector: DATAFLOWS,
+        host: null,
+        database: null,
+        schema: null,
+        dataflow: {
+          workspaceId: null,
+          workspaceName: null,
+          dataflowId: null,
+          dataflowName: null,
+        },
+      };
+
+      return close + 1;
+    }
+
     if (name === NATIVE_QUERY) {
       // The source first, so its navigation says which database the SQL runs in.
       if (parts[0]) {
@@ -783,6 +890,7 @@ class PowerQueryReader {
         : argument(found.hostArgument),
       database: argument(found.databaseArgument),
       schema: null,
+      dataflow: null,
     };
 
     // The options record, where there is one: its SQL, and a default catalog and schema (Databricks).
@@ -843,11 +951,52 @@ class PowerQueryReader {
     }
   }
 
+  /*
+   * One navigation step of a dataflow: its workspace, the dataflow - each
+   * by id or by name, as Power BI Desktop and parameters write them - or
+   * the entity it reads. Any other step ({[Id="Workspaces"]}) is a level.
+   */
+  private navigateDataflow(
+    dataflow: DataflowNavigation,
+    fields: Map<string, string | null>,
+  ): void {
+    const workspaceId: string | null = cut(fields.get("workspaceid") || null);
+    const workspaceName: string | null = cut(
+      fields.get("workspacename") || null,
+    );
+    const dataflowId: string | null = cut(fields.get("dataflowid") || null);
+    const dataflowName: string | null = cut(fields.get("dataflowname") || null);
+    const entity: string | null = cut(fields.get("entity") || null);
+
+    if (workspaceId || workspaceName) {
+      dataflow.workspaceId = workspaceId ? workspaceId.toLowerCase() : null;
+      dataflow.workspaceName = workspaceName;
+      dataflow.dataflowId = null;
+      dataflow.dataflowName = null;
+      return;
+    }
+
+    if (dataflowId || dataflowName) {
+      dataflow.dataflowId = dataflowId ? dataflowId.toLowerCase() : null;
+      dataflow.dataflowName = dataflowName;
+      return;
+    }
+
+    if (entity && (dataflow.dataflowId || dataflow.dataflowName)) {
+      this.dataflowEntities.push({ ...dataflow, entity });
+    }
+  }
+
   // One navigation step of a database: a level down, or a table.
   private navigate(fields: Map<string, string | null>): void {
     const navigation: Navigation | null = this.navigation;
 
     if (!navigation) {
+      return;
+    }
+
+    if (navigation.dataflow) {
+      this.navigateDataflow(navigation.dataflow, fields);
       return;
     }
 
@@ -941,7 +1090,11 @@ function readWith(
 
   reader.read(0, tokens.length);
 
-  return { tables: reader.tables, sources: reader.sources };
+  return {
+    tables: reader.tables,
+    sources: reader.sources,
+    dataflowEntities: uniqueDataflowEntities(reader.dataflowEntities),
+  };
 }
 
 export function readPowerQuery(
@@ -1066,6 +1219,7 @@ export function readPowerQueryDataset(
   const shared: SharedNavigations = { ended: new Map(), reading: new Set() };
   const tables: Array<BiTableRef> = [];
   const sources: Array<PowerQuerySource> = [];
+  const dataflowEntities: Array<PowerQueryDataflowEntity> = [];
   const read: Set<string> = new Set();
 
   const readExpression: (expression: string, depth: number) => void = (
@@ -1076,6 +1230,7 @@ export function readPowerQueryDataset(
 
     tables.push(...found.tables);
     sources.push(...found.sources);
+    dataflowEntities.push(...found.dataflowEntities);
 
     if (depth >= MAX_REFERENCE_DEPTH) {
       return;
@@ -1097,5 +1252,146 @@ export function readPowerQueryDataset(
     }
   }
 
-  return { tables, sources };
+  return {
+    tables,
+    sources,
+    dataflowEntities: uniqueDataflowEntities(dataflowEntities),
+  };
+}
+
+// A section document's members: the most read, and the longest document read.
+const MAX_SECTION_MEMBERS: number = 2_000;
+const MAX_SECTION_LENGTH: number = 5_000_000;
+const SECTION_NAME: RegExp = /^[A-Za-z_][A-Za-z0-9_.]*/;
+
+/*
+ * The queries of a section document, as a dataflow's definition keeps them
+ * (its pbi:mashup document): "section Section1; shared Orders = let ...
+ * in ...; shared #"Staging Orders" = ...;". Each member's name and its
+ * expression, in order. A member ends at its semicolon - outside strings,
+ * quoted names, comments and brackets - which nothing inside an expression
+ * writes.
+ */
+export function readPowerQuerySection(
+  document: string,
+): Array<{ name: string; expression: string }> {
+  const source: string = document.slice(0, MAX_SECTION_LENGTH);
+  const members: Array<{ name: string; expression: string }> = [];
+  let index: number = 0;
+
+  // Past whitespace and comments.
+  const skipSpace: () => void = (): void => {
+    for (;;) {
+      while (index < source.length && WHITESPACE.test(source[index]!)) {
+        index++;
+      }
+
+      if (source.startsWith("//", index)) {
+        const end: number = source.indexOf("\n", index);
+        index = end < 0 ? source.length : end + 1;
+      } else if (source.startsWith("/*", index)) {
+        const end: number = source.indexOf("*/", index + 2);
+        index = end < 0 ? source.length : end + 2;
+      } else {
+        return;
+      }
+    }
+  };
+
+  // To the semicolon that ends the member at `index`, outside strings, names, comments and brackets.
+  const skipToEnd: () => number = (): number => {
+    let depth: number = 0;
+
+    while (index < source.length) {
+      const char: string = source[index]!;
+
+      if (char === '"' || (char === "#" && source[index + 1] === '"')) {
+        index = readStringLiteral(source, char === "#" ? index + 1 : index).end;
+        continue;
+      }
+
+      if (source.startsWith("//", index) || source.startsWith("/*", index)) {
+        skipSpace();
+        continue;
+      }
+
+      if (char === "(" || char === "[" || char === "{") {
+        depth++;
+      } else if (char === ")" || char === "]" || char === "}") {
+        depth = Math.max(0, depth - 1);
+      } else if (char === ";" && depth === 0) {
+        return index;
+      }
+
+      index++;
+    }
+
+    return source.length;
+  };
+
+  skipSpace();
+
+  if (source.startsWith("section", index)) {
+    index = skipToEnd() + 1;
+  }
+
+  while (index < source.length && members.length < MAX_SECTION_MEMBERS) {
+    skipSpace();
+
+    // A member's attributes ([Description = "..."]) say nothing of what it reads.
+    if (source[index] === "[") {
+      const close: number = source.indexOf("]", index);
+      index = close < 0 ? source.length : close + 1;
+      skipSpace();
+    }
+
+    if (
+      source.startsWith("shared", index) &&
+      WHITESPACE.test(source[index + 6] || "")
+    ) {
+      index += 6;
+      skipSpace();
+    }
+
+    let name: string = "";
+
+    if (source.startsWith('#"', index)) {
+      const literal: { text: string; end: number } = readStringLiteral(
+        source,
+        index + 1,
+      );
+
+      name = literal.text;
+      index = literal.end;
+    } else {
+      const found: RegExpMatchArray | null = source
+        .slice(index, index + 500)
+        .match(SECTION_NAME);
+
+      name = found ? found[0] : "";
+      index += name.length;
+    }
+
+    skipSpace();
+
+    if (!name || source[index] !== "=") {
+      // Not a member: on to the next semicolon.
+      index = skipToEnd() + 1;
+      continue;
+    }
+
+    index++;
+
+    const start: number = index;
+    const end: number = skipToEnd();
+    const expression: string = source.slice(start, end).trim();
+
+    index = end + 1;
+
+    if (expression) {
+      members.push({ name, expression });
+    }
+  }
+
+  return members;
 }

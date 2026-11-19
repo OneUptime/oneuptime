@@ -550,7 +550,12 @@ describe("reading a scan", () => {
       withSchemaError: 1,
       schemaError:
         "Unsupported request. Excel full fidelity datasets are not supported",
-      readingDataflows: 1,
+      // ExportB, and the composite model built on it.
+      readingDataflows: 2,
+      // Power BI names the dataflow, but no query names an entity of it: nothing to read through.
+      withUnreadDataflows: 0,
+      withPendingDataflows: 0,
+      dataflowError: null,
     });
   });
 
@@ -753,7 +758,12 @@ describe("Power BI's reader", () => {
       withSchemaError: 1,
       schemaError:
         "Unsupported request. Excel full fidelity datasets are not supported",
-      readingDataflows: 1,
+      // ExportB, and the composite model built on it.
+      readingDataflows: 2,
+      // Power BI names the dataflow, but no query names an entity of it: nothing to read through.
+      withUnreadDataflows: 0,
+      withPendingDataflows: 0,
+      dataflowError: null,
     });
   });
 
@@ -1175,5 +1185,279 @@ describe("Power BI's reader, scanning only what changed", () => {
 
     expect(listing(fake)).not.toContain("modifiedSince");
     expect(fake.scanned).toEqual([["sales"]]);
+  });
+});
+
+/*
+ * A report on a dataset built on a dataflow (#9551), read end to end: the
+ * scan names the dataflow and the dataset's query names its entity; the
+ * dataflow's definition, exported once, says which tables the entity
+ * reads, and the report charts them. It is exported again only when the
+ * scan says the dataflow changed, and Power BI's refusal is said.
+ */
+describe("Power BI's reader, through a dataset's dataflow", () => {
+  const WORKSPACE: string = "6e2f9a10-0000-4000-8000-00000000aaaa";
+  const DATAFLOW: string = "2c4d6e8f-0000-4000-8000-00000000bbbb";
+
+  function tenantScan(modifiedDateTime: string): JSONObject {
+    return {
+      workspaces: [
+        {
+          id: WORKSPACE,
+          name: "Sales",
+          state: "Active",
+          reports: [
+            {
+              id: "r-orders",
+              name: "Orders by Region",
+              datasetId: "ds-orders",
+            },
+          ],
+          datasets: [
+            {
+              id: "ds-orders",
+              name: "Orders Model",
+              tables: [
+                {
+                  name: "Orders",
+                  source: [
+                    {
+                      expression: `let\n    Source = PowerPlatform.Dataflows(null),\n    Workspaces = Source{[Id="Workspaces"]}[Data],\n    ws = Workspaces{[workspaceId="${WORKSPACE}"]}[Data],\n    df = ws{[dataflowId="${DATAFLOW}"]}[Data],\n    Orders = df{[entity="Orders",version=""]}[Data]\nin\n    Orders`,
+                    },
+                  ],
+                },
+              ],
+              upstreamDataflows: [
+                { targetDataflowId: DATAFLOW, groupId: WORKSPACE },
+              ],
+            },
+          ],
+          dataflows: [
+            {
+              objectId: DATAFLOW,
+              name: "Sales Staging",
+              modifiedDateTime,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  const EXPORTED: JSONObject = {
+    name: "Sales Staging",
+    version: "1.0",
+    "pbi:mashup": {
+      fastCombine: false,
+      allowNativeQueries: false,
+      queriesMetadata: { Orders: { queryName: "Orders", loadEnabled: true } },
+      document:
+        'section Section1;\r\nshared Orders = let\r\n  Source = Sql.Database("sql01.corp.acme.com", "Sales"),\r\n  #"Navigation 1" = Source{[Schema = "dbo", Item = "Orders"]}[Data]\r\nin\r\n  #"Navigation 1";\r\n',
+    },
+    entities: [{ $type: "LocalEntity", name: "Orders" }],
+  };
+
+  function dataflowTransport(data: {
+    scan: JSONObject;
+    exported: JSONObject | { status: number; message: string };
+    requests: Array<string>;
+  }): (request: DataSourceHttpRequest) => Promise<DataSourceHttpResponse> {
+    const answer: (body: unknown) => DataSourceHttpResponse = (
+      body: unknown,
+    ): DataSourceHttpResponse => {
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(body),
+        bodyJson: body,
+      };
+    };
+    // Power BI's sign-in, scanner, refreshes and activity log, as the reader asks them.
+    const base: (
+      request: DataSourceHttpRequest,
+    ) => Promise<DataSourceHttpResponse> = async (
+      request: DataSourceHttpRequest,
+    ): Promise<DataSourceHttpResponse> => {
+      const url: string = request.url;
+
+      data.requests.push(url);
+
+      if (url.startsWith("https://login.microsoftonline.com/")) {
+        return answer({ access_token: "aad" });
+      }
+
+      if (url.includes("/admin/workspaces/modified")) {
+        return answer([{ id: WORKSPACE }]);
+      }
+
+      if (url.includes("/admin/workspaces/getInfo")) {
+        return answer({ id: "scan1", status: "NotStarted" });
+      }
+
+      if (url.includes("/scanStatus/")) {
+        return answer({ status: "Succeeded" });
+      }
+
+      if (url.includes("/scanResult/")) {
+        return answer(data.scan);
+      }
+
+      return answer({
+        value: [],
+        activityEventEntities: [],
+        lastResultSet: true,
+      });
+    };
+
+    return async (
+      request: DataSourceHttpRequest,
+    ): Promise<DataSourceHttpResponse> => {
+      if (request.url.includes("/admin/dataflows/")) {
+        data.requests.push(request.url);
+
+        if ("status" in data.exported) {
+          const body: JSONObject = {
+            error: { code: "Forbidden", message: data.exported.message },
+          };
+
+          return {
+            statusCode: data.exported.status as number,
+            bodyText: JSON.stringify(body),
+            bodyJson: body,
+          };
+        }
+
+        // As a file: with a byte order mark before its JSON.
+        return {
+          statusCode: 200,
+          bodyText: `\uFEFF${JSON.stringify(data.exported)}`,
+          bodyJson: undefined,
+        };
+      }
+
+      return await base(request);
+    };
+  }
+
+  async function readWith(data: {
+    scan: JSONObject;
+    exported: JSONObject | { status: number; message: string };
+    readState?: JSONObject | null | undefined;
+    now?: Date | undefined;
+  }): Promise<{ read: BiToolRead; requests: Array<string> }> {
+    const requests: Array<string> = [];
+    const read: BiToolRead = await PowerBiConnector.read({
+      baseUrl: "",
+      credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
+      wait: async (): Promise<void> => {},
+      now: data.now || new Date("2026-11-19T08:00:00.000Z"),
+      readState: data.readState,
+      transport: dataflowTransport({
+        scan: data.scan,
+        exported: data.exported,
+        requests,
+      }),
+    });
+
+    return { read, requests };
+  }
+
+  function exports(requests: Array<string>): Array<string> {
+    return requests.filter((url: string): boolean => {
+      return url.includes("/admin/dataflows/");
+    });
+  }
+
+  test("the report charts the tables the dataflow's entity reads, and is built on its database", async () => {
+    const { read, requests } = await readWith({
+      scan: tenantScan("2026-11-18T16:00:00.000Z"),
+      exported: EXPORTED,
+    });
+
+    expect(exports(requests)).toEqual([
+      `https://api.powerbi.com/v1.0/myorg/admin/dataflows/${DATAFLOW}/export`,
+    ]);
+    expect(read.dashboards[0]!.tables.map(getBiTableName)).toEqual([
+      "Sales.dbo.Orders",
+    ]);
+    expect(read.dashboards[0]!.tables[0]).toMatchObject({
+      engine: "sqlserver",
+      host: "sql01.corp.acme.com",
+      isDatabaseExact: true,
+    });
+    expect(sourceNames(read.dashboards[0]!.upstream!.sources)).toEqual([
+      "SQL Server | sql01.corp.acme.com | Sales",
+      "Dataflow | Sales Staging",
+    ]);
+    expect(read.datasetFacts).toMatchObject({
+      readingDataflows: 1,
+      withUnreadDataflows: 0,
+      withPendingDataflows: 0,
+      dataflowError: null,
+    });
+    // Where the data comes from: the database, with the table read from it.
+    expect(
+      (read.sources || []).map(
+        (found: NonNullable<BiToolRead["sources"]>[number]) => {
+          return `${found.source.type}: ${found.tables.map(getBiTableName).join(", ")}`;
+        },
+      ),
+    ).toEqual(["SQL Server: Sales.dbo.Orders", "Dataflow: "]);
+  });
+
+  test("the definition is kept: not exported again while the dataflow is unchanged, and again once it changes", async () => {
+    const first: { read: BiToolRead } = await readWith({
+      scan: tenantScan("2026-11-18T16:00:00.000Z"),
+      exported: EXPORTED,
+    });
+    const unchanged: { read: BiToolRead; requests: Array<string> } =
+      await readWith({
+        scan: tenantScan("2026-11-18T16:00:00.000Z"),
+        exported: EXPORTED,
+        readState: first.read.readState,
+        now: new Date("2026-11-19T09:00:00.000Z"),
+      });
+
+    expect(exports(unchanged.requests)).toEqual([]);
+    expect(unchanged.read.dashboards[0]!.tables.map(getBiTableName)).toEqual([
+      "Sales.dbo.Orders",
+    ]);
+
+    const changedScan: JSONObject = tenantScan("2026-11-19T08:30:00.000Z");
+    const changed: { requests: Array<string> } = await readWith({
+      scan: changedScan,
+      exported: EXPORTED,
+      // The scan's workspace changed: a whole read, so the new time is seen.
+      readState: null,
+      now: new Date("2026-11-19T10:00:00.000Z"),
+    });
+
+    expect(exports(changed.requests)).toHaveLength(1);
+  });
+
+  test("Power BI's refusal is said, with its words, and the report keeps no table it cannot be sure of", async () => {
+    const { read } = await readWith({
+      scan: tenantScan("2026-11-18T16:00:00.000Z"),
+      exported: {
+        status: 403,
+        message: "API is not accessible for application",
+      },
+    });
+
+    expect(read.dashboards[0]!.tables).toEqual([]);
+    expect(read.datasetFacts).toMatchObject({
+      readingDataflows: 1,
+      withUnreadDataflows: 1,
+      withPendingDataflows: 0,
+      dataflowError:
+        "Power BI answered 403: API is not accessible for application.",
+    });
+    expect(read.readState).toMatchObject({
+      dataflows: {
+        [DATAFLOW]: {
+          entities: null,
+          error: "Power BI answered 403: API is not accessible for application",
+        },
+      },
+    });
   });
 });

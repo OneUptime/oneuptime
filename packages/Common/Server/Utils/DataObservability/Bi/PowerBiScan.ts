@@ -9,7 +9,21 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import { getBiDatabaseSource, uniqueSources } from "./BiSources";
 import { BiTableRef, uniqueTables } from "./BiTables";
-import { hostOfUrl, readPowerQueryDataset, PowerQueryRead } from "./PowerQuery";
+import {
+  findDataflowId,
+  indexPowerBiDataflows,
+  PowerBiDataflowDefinition,
+  PowerBiDataflowIndex,
+  PowerBiDataflowResolution,
+  resolveDataflowEntities,
+} from "./PowerBiDataflows";
+import {
+  hostOfUrl,
+  PowerQueryDataflowEntity,
+  PowerQueryRead,
+  readPowerQueryDataset,
+  uniqueDataflowEntities,
+} from "./PowerQuery";
 
 /*
  * WHAT POWER BI'S WORKSPACE SCAN SAYS: EACH DATASET'S TABLES AND DATA
@@ -62,6 +76,8 @@ export interface PowerBiDatasetRead {
   upstreamDatasetIds: Array<string>;
   // The dataflows it reads, by id in lower case.
   dataflowIds: Array<string>;
+  // The dataflow entities its queries read: their tables are the dataflows' own (PowerBiDataflows).
+  dataflowEntities: Array<PowerQueryDataflowEntity>;
 }
 
 // A dataflow, as its workspace's scan names it.
@@ -103,6 +119,12 @@ export interface PowerBiDataset {
   hasQueries: boolean;
   schemaError: string | null;
   readsDataflows: boolean;
+  // The dataflow entities it reads, its upstream datasets' included.
+  dataflowEntities: Array<PowerQueryDataflowEntity>;
+  // A dataflow it reads whose definition is not read yet: exported within Power BI's limit.
+  hasPendingDataflows: boolean;
+  // Why a dataflow entity it reads could not be read (Power BI's words); null when every one was.
+  dataflowError: string | null;
 }
 
 export interface PowerBiItem {
@@ -552,6 +574,7 @@ function readDataset(
           .filter(Boolean),
       ),
     ),
+    dataflowEntities: powerQuery.dataflowEntities,
   };
 }
 
@@ -621,29 +644,64 @@ interface ComposedDataset {
   upstreamIds: Array<string>;
 }
 
+// Every dataflow the workspaces' scans name: what finds a dataset's dataflow by its id or name.
+export function indexWorkspaceDataflows(
+  workspaces: Array<PowerBiWorkspaceRead>,
+): PowerBiDataflowIndex {
+  return indexPowerBiDataflows(
+    workspaces.flatMap((workspace: PowerBiWorkspaceRead) => {
+      return workspace.dataflows.map((dataflow: PowerBiDataflowRead) => {
+        return {
+          id: dataflow.id,
+          name: dataflow.name,
+          workspaceId: workspace.id,
+          modifiedAt: dataflow.modifiedAt,
+        };
+      });
+    }),
+  );
+}
+
 /*
  * The tenant put together from its workspaces, each read on its own: every
- * dataset with the dataflows it reads and, for a composite model, its
- * upstream datasets' tables and sources; and the reports and dashboards of
- * the workspaces in turn, at most `maxItems`.
+ * dataset with the dataflows it reads - and, where their definitions are
+ * read (PowerBiDataflows), the tables their entities read - and, for a
+ * composite model, its upstream datasets' tables and sources; and the
+ * reports and dashboards of the workspaces in turn, at most `maxItems`.
  */
 export function composePowerBiScan(
   workspaces: Array<PowerBiWorkspaceRead>,
   maxItems: number,
+  // The dataflows' definitions read so far, by id; left out, every dataflow entity waits to be read.
+  dataflowDefinitions: ReadonlyMap<
+    string,
+    PowerBiDataflowDefinition
+  > = new Map(),
 ): PowerBiScanRead {
-  // Every dataflow, by its id, as the dataset reading it names it.
-  const dataflowNames: Map<string, string> = new Map();
-
-  for (const workspace of workspaces) {
-    for (const dataflow of workspace.dataflows) {
-      dataflowNames.set(dataflow.id, dataflow.name);
-    }
-  }
-
+  const index: PowerBiDataflowIndex = indexWorkspaceDataflows(workspaces);
   const composed: Map<string, ComposedDataset> = new Map();
 
   for (const workspace of workspaces) {
     for (const read of workspace.datasets) {
+      const resolution: PowerBiDataflowResolution = resolveDataflowEntities({
+        entities: read.dataflowEntities,
+        definitions: dataflowDefinitions,
+        index,
+      });
+      // The dataflows it reads: those the scan names, and those its queries do.
+      const dataflowIds: Array<string> = Array.from(
+        new Set([
+          ...read.dataflowIds,
+          ...read.dataflowEntities
+            .map((entity: PowerQueryDataflowEntity): string | null => {
+              return findDataflowId(entity, index);
+            })
+            .filter((id: string | null): id is string => {
+              return Boolean(id);
+            }),
+        ]),
+      );
+
       composed.set(read.datasetId.toLowerCase(), {
         dataset: {
           datasetId: read.datasetId,
@@ -651,29 +709,39 @@ export function composePowerBiScan(
           workspaceId: workspace.id,
           workspace: workspace.name,
           onCapacity: workspace.onCapacity,
-          tables: read.tables,
+          tables: uniqueTables([...read.tables, ...resolution.tables]),
           sources: uniqueSources([
             ...read.sources,
-            ...read.dataflowIds.map((id: string): DataBiSource => {
-              return elsewhere("Dataflow", dataflowNames.get(id) || id);
+            ...resolution.sources,
+            ...dataflowIds.map((id: string): DataBiSource => {
+              return elsewhere("Dataflow", index.byId.get(id)?.name || id);
             }),
           ]),
           hasTables: read.hasTables,
           hasQueries: read.hasQueries,
           schemaError: read.schemaError,
-          readsDataflows: read.dataflowIds.length > 0,
+          readsDataflows: dataflowIds.length > 0,
+          dataflowEntities: read.dataflowEntities,
+          hasPendingDataflows: resolution.isPending,
+          dataflowError: resolution.unreadReasons[0] || null,
         },
         upstreamIds: read.upstreamDatasetIds,
       });
     }
   }
 
-  // A composite model charts its upstream datasets' tables too.
+  // A composite model charts its upstream datasets' tables too, and reads their dataflows.
   const datasets: Map<string, PowerBiDataset> = new Map();
 
   for (const [datasetId, entry] of composed) {
     const tables: Array<BiTableRef> = [...entry.dataset.tables];
     const sources: Array<DataBiSource> = [...entry.dataset.sources];
+    const dataflowEntities: Array<PowerQueryDataflowEntity> = [
+      ...entry.dataset.dataflowEntities,
+    ];
+    let readsDataflows: boolean = entry.dataset.readsDataflows;
+    let hasPendingDataflows: boolean = entry.dataset.hasPendingDataflows;
+    let dataflowError: string | null = entry.dataset.dataflowError;
     const visited: Set<string> = new Set([datasetId]);
     let frontier: Array<string> = entry.upstreamIds;
 
@@ -694,6 +762,11 @@ export function composePowerBiScan(
         visited.add(upstreamId);
         tables.push(...upstream.dataset.tables);
         sources.push(...upstream.dataset.sources);
+        dataflowEntities.push(...upstream.dataset.dataflowEntities);
+        readsDataflows = readsDataflows || upstream.dataset.readsDataflows;
+        hasPendingDataflows =
+          hasPendingDataflows || upstream.dataset.hasPendingDataflows;
+        dataflowError = dataflowError || upstream.dataset.dataflowError;
         next.push(...upstream.upstreamIds);
       }
 
@@ -704,6 +777,10 @@ export function composePowerBiScan(
       ...entry.dataset,
       tables: uniqueTables(tables),
       sources: uniqueSources(sources),
+      readsDataflows,
+      dataflowEntities: uniqueDataflowEntities(dataflowEntities),
+      hasPendingDataflows,
+      dataflowError,
     });
   }
 
@@ -722,12 +799,32 @@ export function composePowerBiScan(
   return { datasets, items };
 }
 
+// The dataflow entities the datasets of the reports and dashboards read: the dataflows worth exporting.
+export function getChartedDataflowEntities(
+  scan: PowerBiScanRead,
+): Array<PowerQueryDataflowEntity> {
+  return uniqueDataflowEntities(
+    scan.items.flatMap((item: PowerBiItem): Array<PowerQueryDataflowEntity> => {
+      return item.datasetIds.flatMap(
+        (datasetId: string): Array<PowerQueryDataflowEntity> => {
+          return scan.datasets.get(datasetId)?.dataflowEntities || [];
+        },
+      );
+    }),
+  );
+}
+
 // The scan's results read: every dataset with its tables and data sources, and every report and dashboard.
 export function readPowerBiScan(
   results: Array<JSONObject>,
   maxItems: number,
+  dataflowDefinitions?: ReadonlyMap<string, PowerBiDataflowDefinition>,
 ): PowerBiScanRead {
-  return composePowerBiScan(readPowerBiWorkspaces(results), maxItems);
+  return composePowerBiScan(
+    readPowerBiWorkspaces(results),
+    maxItems,
+    dataflowDefinitions,
+  );
 }
 
 // The tables of several datasets, each once.
@@ -802,5 +899,17 @@ export function getPowerBiDatasetFacts(
     readingDataflows: datasets.filter((dataset: PowerBiDataset): boolean => {
       return dataset.readsDataflows;
     }).length,
+    withUnreadDataflows: datasets.filter((dataset: PowerBiDataset): boolean => {
+      return Boolean(dataset.dataflowError);
+    }).length,
+    withPendingDataflows: datasets.filter(
+      (dataset: PowerBiDataset): boolean => {
+        return dataset.hasPendingDataflows && !dataset.dataflowError;
+      },
+    ).length,
+    dataflowError:
+      datasets.find((dataset: PowerBiDataset): boolean => {
+        return Boolean(dataset.dataflowError);
+      })?.dataflowError || null,
   };
 }

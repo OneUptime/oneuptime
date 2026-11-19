@@ -71,6 +71,7 @@ function workspace(
         schemaError: null,
         upstreamDatasetIds: [],
         dataflowIds: [],
+        dataflowEntities: [],
       },
     ],
     dataflows: [],
@@ -84,6 +85,8 @@ function state(fields: Partial<PowerBiReadState> = {}): PowerBiReadState {
     fullScanAt: new Date(NOW.getTime() - 5 * HOUR).toISOString(),
     pendingWorkspaceIds: [],
     workspaces: [workspace("a"), workspace("b"), workspace("c")],
+    dataflows: new Map(),
+    dataflowExports: [],
     ...fields,
   };
 }

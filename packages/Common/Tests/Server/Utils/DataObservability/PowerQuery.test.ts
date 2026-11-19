@@ -11,6 +11,7 @@ import {
   readPowerQueryDataset,
   readPowerQueryParameter,
   readPowerQueryReferences,
+  readPowerQuerySection,
   readPowerQueryTables,
   tokenizePowerQuery,
 } from "../../../../Server/Utils/DataObservability/Bi/PowerQuery";
@@ -340,6 +341,7 @@ in
           database: null,
         },
       ],
+      dataflowEntities: [],
     });
   });
 
@@ -504,7 +506,7 @@ describe("what is no database table", () => {
       readPowerQuery(
         'let\n    Source = Excel.Workbook(Web.Contents("https://acme.sharepoint.com/sites/ops/Shared Documents/15 29 EMG NUO Master Checklist- GANTT View.xlsx"), null, true),\n    Sheet1_Sheet = Source{[Item="Sheet1",Kind="Sheet"]}[Data],\n    Promoted = Table.PromoteHeaders(Sheet1_Sheet, [PromoteAllScalars=true])\nin\n    Promoted',
       ),
-    ).toEqual({ tables: [], sources: [] });
+    ).toEqual({ tables: [], sources: [], dataflowEntities: [] });
     expect(
       readPowerQueryTables(
         'let Source = Csv.Document(File.Contents("C:\\\\data\\\\orders.csv"),[Delimiter=","]) in Source',
@@ -706,5 +708,179 @@ describe("a dataset's parameters and shared queries", () => {
         }).tables,
       ),
     ).toEqual(["d.dbo.X"]);
+  });
+});
+
+/*
+ * A dataset built on a dataflow reads one of its entities (#9551): the
+ * entity is no table, but which one it is - its workspace, dataflow and
+ * entity, by id or by name - says where to read the tables from: the
+ * dataflow's own query of that name (PowerBiDataflows).
+ */
+describe("a dataflow's entity a query reads", () => {
+  test("PowerPlatform.Dataflows, as Power BI Desktop writes it: the workspace, the dataflow and the entity by id", () => {
+    expect(
+      readPowerQuery(
+        'let\n    Source = PowerPlatform.Dataflows(null),\n    Workspaces = Source{[Id="Workspaces"]}[Data],\n    #"9A1C2B3D-0000-4000-8000-000000000001" = Workspaces{[workspaceId="9A1C2B3D-0000-4000-8000-000000000001"]}[Data],\n    #"3b2e0000-0000-4000-8000-000000000002" = #"9A1C2B3D-0000-4000-8000-000000000001"{[dataflowId="3b2e0000-0000-4000-8000-000000000002"]}[Data],\n    Orders_ = #"3b2e0000-0000-4000-8000-000000000002"{[entity="Orders",version=""]}[Data],\n    #"Filtered Rows" = Table.SelectRows(Orders_, each [Status] <> "void")\nin\n    #"Filtered Rows"',
+      ),
+    ).toEqual({
+      tables: [],
+      sources: [],
+      dataflowEntities: [
+        {
+          workspaceId: "9a1c2b3d-0000-4000-8000-000000000001",
+          workspaceName: null,
+          dataflowId: "3b2e0000-0000-4000-8000-000000000002",
+          dataflowName: null,
+          entity: "Orders",
+        },
+      ],
+    });
+  });
+
+  test("PowerBI.Dataflows, the older connector, with no workspaces step", () => {
+    expect(
+      readPowerQuery(
+        'let Source = PowerBI.Dataflows(null), ws = Source{[workspaceId="w1"]}[Data], df = ws{[dataflowId="d1"]}[Data], Customers = df{[entity="Customers"]}[Data] in Customers',
+      ).dataflowEntities,
+    ).toEqual([
+      {
+        workspaceId: "w1",
+        workspaceName: null,
+        dataflowId: "d1",
+        dataflowName: null,
+        entity: "Customers",
+      },
+    ]);
+  });
+
+  test("by name, as parameters let a dataset move between workspaces", () => {
+    const read: ReturnType<typeof readPowerQueryDataset> =
+      readPowerQueryDataset({
+        tables: [
+          {
+            name: "Orders",
+            sources: [
+              'let Source = PowerPlatform.Dataflows(null), Workspaces = Source{[Id="Workspaces"]}[Data], ws = Workspaces{[workspaceName=pWorkspace]}[Data], df = ws{[dataflowName=pDataflow]}[Data], Orders = df{[entity="Orders",version=""]}[Data] in Orders',
+            ],
+          },
+        ],
+        expressions: [
+          {
+            name: "pWorkspace",
+            expression:
+              '"Sales Analytics" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]',
+          },
+          {
+            name: "pDataflow",
+            expression:
+              '"Sales Staging" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]',
+          },
+        ],
+      });
+
+    expect(read.dataflowEntities).toEqual([
+      {
+        workspaceId: null,
+        workspaceName: "Sales Analytics",
+        dataflowId: null,
+        dataflowName: "Sales Staging",
+        entity: "Orders",
+      },
+    ]);
+  });
+
+  test("through a shared query a table reads, each entity once", () => {
+    const read: ReturnType<typeof readPowerQueryDataset> =
+      readPowerQueryDataset({
+        tables: [
+          {
+            name: "Orders",
+            sources: ['let Source = #"Staged Orders" in Source'],
+          },
+          {
+            name: "Orders (copy)",
+            sources: ['let Source = #"Staged Orders" in Source'],
+          },
+        ],
+        expressions: [
+          {
+            name: "Staged Orders",
+            expression:
+              'let Source = PowerPlatform.Dataflows(null), ws = Source{[Id="Workspaces"]}[Data]{[workspaceId="w1"]}[Data], df = ws{[dataflowId="d1"]}[Data], e = df{[entity="Orders",version=""]}[Data] in e',
+          },
+        ],
+      });
+
+    expect(read.dataflowEntities).toEqual([
+      {
+        workspaceId: "w1",
+        workspaceName: null,
+        dataflowId: "d1",
+        dataflowName: null,
+        entity: "Orders",
+      },
+    ]);
+  });
+
+  test("an entity with no dataflow picked names nothing, and a database after a dataflow is read as one", () => {
+    expect(
+      readPowerQuery(
+        'let Source = PowerPlatform.Dataflows(null), e = Source{[entity="Orders"]}[Data] in e',
+      ).dataflowEntities,
+    ).toEqual([]);
+    expect(
+      readPowerQuery(
+        'let Flow = PowerPlatform.Dataflows(null){[Id="Workspaces"]}[Data]{[workspaceId="w1"]}[Data]{[dataflowId="d1"]}[Data]{[entity="Orders"]}[Data], Sales = Sql.Database("sql01", "Sales"){[Schema="dbo",Item="Targets"]}[Data] in Table.NestedJoin(Flow, {"id"}, Sales, {"id"}, "t")',
+      ),
+    ).toMatchObject({
+      tables: [
+        expect.objectContaining({ database: "Sales", table: "Targets" }),
+      ],
+      dataflowEntities: [expect.objectContaining({ entity: "Orders" })],
+    });
+  });
+});
+
+/*
+ * A dataflow's definition keeps its queries as one section document - its
+ * model.json's pbi:mashup document - which is read as its members, each a
+ * name and an expression.
+ */
+describe("a section document's queries", () => {
+  test("each shared member, quoted names too, in order: a semicolon in a string, a comment or brackets ends none", () => {
+    expect(
+      readPowerQuerySection(
+        'section Section1;\r\nshared #"Staging Orders" = let\r\n    Source = Sql.Database(ServerName, "Sales", [Query="SELECT * FROM dbo.Orders; -- a semicolon"]),\r\n    // a comment; with a semicolon\r\n    Rows = Table.SelectRows(Source, each [Total] > 0)\r\nin\r\n    Rows;\r\nshared Orders = let Source = #"Staging Orders", Typed = Table.TransformColumnTypes(Source, {{"Total", type number}}) in Typed;\r\n/* shared Ignored = 1; */\r\nshared ServerName = "sql01.corp.acme.com" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true];\r\n',
+      ),
+    ).toEqual([
+      {
+        name: "Staging Orders",
+        expression:
+          'let\r\n    Source = Sql.Database(ServerName, "Sales", [Query="SELECT * FROM dbo.Orders; -- a semicolon"]),\r\n    // a comment; with a semicolon\r\n    Rows = Table.SelectRows(Source, each [Total] > 0)\r\nin\r\n    Rows',
+      },
+      {
+        name: "Orders",
+        expression:
+          'let Source = #"Staging Orders", Typed = Table.TransformColumnTypes(Source, {{"Total", type number}}) in Typed',
+      },
+      {
+        name: "ServerName",
+        expression:
+          '"sql01.corp.acme.com" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]',
+      },
+    ]);
+  });
+
+  test("a member's attributes, and anything that is no member, are passed over", () => {
+    expect(
+      readPowerQuerySection(
+        'section Section1;\n[ Description = "A staging query; read first" ]\nshared Staging = 1;\nnot a member;\nshared Final = Staging + 1;',
+      ),
+    ).toEqual([
+      { name: "Staging", expression: "1" },
+      { name: "Final", expression: "Staging + 1" },
+    ]);
+    expect(readPowerQuerySection("")).toEqual([]);
   });
 });

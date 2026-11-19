@@ -5,11 +5,16 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import { BiTableRef } from "./BiTables";
 import {
+  PowerBiDataflowDefinition,
+  readDataflowDefinitions,
+} from "./PowerBiDataflows";
+import {
   PowerBiDataflowRead,
   PowerBiDatasetRead,
   PowerBiItem,
   PowerBiWorkspaceRead,
 } from "./PowerBiScan";
+import { PowerQueryDataflowEntity } from "./PowerQuery";
 
 /*
  * WHAT A POWER BI READ KEEPS SO THE NEXT ONE SCANS ONLY WHAT CHANGED (#9552).
@@ -32,10 +37,15 @@ import {
  * kept to start from. A workspace whose scan failed or did not finish keeps
  * what it was, and is scanned again next time.
  *
+ * It keeps the definitions of the dataflows its datasets read too, and the
+ * exports of the last hour (PowerBiDataflows, #9551), so a dataflow is
+ * exported again only when it changes, within Power BI's hourly limit.
+ *
  * Kept as JSON on the tool (DataBiConnection.readState) and read back
  * strictly: a state of another version, or that does not fit, is no state,
- * and the read scans whole. One past MAX_POWER_BI_READ_STATE_LENGTH is not
- * kept: such a tenant is scanned whole each time, as before.
+ * and the read scans whole. One past MAX_POWER_BI_READ_STATE_LENGTH lets
+ * its dataflows' definitions go first, then is not kept at all: such a
+ * tenant is scanned whole each time, as before.
  */
 
 export const POWER_BI_READ_STATE_VERSION: number = 1;
@@ -62,6 +72,10 @@ export interface PowerBiReadState {
   pendingWorkspaceIds: Array<string>;
   // Every workspace as its last scan read it, in the order they are listed.
   workspaces: Array<PowerBiWorkspaceRead>;
+  // The dataflows' definitions read, by id (PowerBiDataflows, #9551).
+  dataflows: Map<string, PowerBiDataflowDefinition>;
+  // When each dataflow export of the last hour was asked for (ISO): Power BI allows 200 an hour.
+  dataflowExports: Array<string>;
 }
 
 export interface PowerBiScanPlan {
@@ -296,6 +310,26 @@ function readDataset(value: unknown): PowerBiDatasetRead | null {
     schemaError: readText(dataset["schemaError"]),
     upstreamDatasetIds: readIds(dataset["upstreamDatasetIds"]),
     dataflowIds: readIds(dataset["dataflowIds"]),
+    dataflowEntities: readArray(dataset["dataflowEntities"])
+      .map(readDataflowEntity)
+      .filter(isPresent),
+  };
+}
+
+function readDataflowEntity(value: unknown): PowerQueryDataflowEntity | null {
+  const entity: Record<string, unknown> | null = readObject(value);
+  const name: string | null = readText(entity?.["entity"]);
+
+  if (!entity || !name) {
+    return null;
+  }
+
+  return {
+    workspaceId: readText(entity["workspaceId"]),
+    workspaceName: readText(entity["workspaceName"]),
+    dataflowId: readText(entity["dataflowId"]),
+    dataflowName: readText(entity["dataflowName"]),
+    entity: name,
   };
 }
 
@@ -361,15 +395,35 @@ export function readPowerBiReadState(value: unknown): PowerBiReadState | null {
     workspaces: readArray(state["workspaces"])
       .map(readWorkspace)
       .filter(isPresent),
+    dataflows: readDataflowDefinitions(state["dataflows"]),
+    dataflowExports: readArray(state["dataflowExports"])
+      .map(readTime)
+      .filter(isPresent),
   };
 }
 
-// The state as its column keeps it: null when it is too big to keep.
+/*
+ * The state as its column keeps it: null when it is too big to keep. Its
+ * dataflows' definitions alone are let go first: they are read again,
+ * within Power BI's limit, while the workspaces' scans are kept.
+ */
 export function writePowerBiReadState(
   state: PowerBiReadState,
 ): JSONObject | null {
-  // As JSON holds it: each date as its ISO text.
-  const text: string = JSON.stringify(state);
+  const asJson: (
+    dataflows: Map<string, PowerBiDataflowDefinition>,
+  ) => string = (dataflows: Map<string, PowerBiDataflowDefinition>): string => {
+    // As JSON holds it: each date as its ISO text, the definitions by id.
+    return JSON.stringify({
+      ...state,
+      dataflows: Object.fromEntries(dataflows),
+    });
+  };
+  let text: string = asJson(state.dataflows);
+
+  if (text.length > MAX_POWER_BI_READ_STATE_LENGTH) {
+    text = asJson(new Map());
+  }
 
   return text.length <= MAX_POWER_BI_READ_STATE_LENGTH
     ? (JSON.parse(text) as JSONObject)

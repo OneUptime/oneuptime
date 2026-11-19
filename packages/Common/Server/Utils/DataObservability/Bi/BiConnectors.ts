@@ -28,6 +28,7 @@ import {
   PowerBiRefreshTarget,
   readPowerBiRefreshes,
 } from "./PowerBiRefreshes";
+import { PowerBiDataflowsRead, readPowerBiDataflows } from "./PowerBiDataflows";
 import {
   mergePowerBiWorkspaces,
   planPowerBiScan,
@@ -39,9 +40,11 @@ import {
 } from "./PowerBiReadState";
 import {
   composePowerBiScan,
+  getChartedDataflowEntities,
   getPowerBiDatasetFacts,
   getPowerBiTables,
   getPowerBiUpstream,
+  indexWorkspaceDataflows,
   PowerBiDataset,
   PowerBiItem,
   PowerBiScanRead,
@@ -251,6 +254,18 @@ async function requestJson(data: {
       response.statusCode,
       RetryAfter.parseMs(RetryAfter.readHeader(response.headers)),
     );
+  }
+
+  // A file's JSON can start with a byte order mark (a dataflow's exported definition).
+  if (
+    response.bodyJson === undefined &&
+    (response.bodyText || "").startsWith("\uFEFF")
+  ) {
+    try {
+      return JSON.parse(response.bodyText.slice(1));
+    } catch {
+      return undefined;
+    }
   }
 
   return response.bodyJson;
@@ -934,9 +949,31 @@ export class PowerBiConnector {
           }),
         ),
       });
+    /*
+     * The dataflows the charted datasets read: each one's definition, kept
+     * or exported now within Power BI's hourly limit, says which tables its
+     * entities read (PowerBiDataflows, #9551).
+     */
+    const dataflowRead: PowerBiDataflowsRead = await readPowerBiDataflows({
+      entities: getChartedDataflowEntities(
+        composePowerBiScan(
+          merged.workspaces,
+          MAX_BI_DASHBOARDS,
+          kept?.dataflows,
+        ),
+      ),
+      index: indexWorkspaceDataflows(merged.workspaces),
+      kept: kept?.dataflows || new Map(),
+      exportedAt: kept?.dataflowExports || [],
+      now,
+      exportDefinition: (dataflowId: string): Promise<unknown> => {
+        return get(`/admin/dataflows/${encodeURIComponent(dataflowId)}/export`);
+      },
+    });
     const scanned: PowerBiScanRead = composePowerBiScan(
       merged.workspaces,
       MAX_BI_DASHBOARDS,
+      dataflowRead.definitions,
     );
     const scanWarning: string | null = describeUnscannedWorkspaces(
       run.unscanned,
@@ -1102,6 +1139,8 @@ export class PowerBiConnector {
         fullScanAt: plan.isFull || !kept ? now.toISOString() : kept.fullScanAt,
         pendingWorkspaceIds: merged.pendingWorkspaceIds,
         workspaces: merged.workspaces,
+        dataflows: dataflowRead.kept,
+        dataflowExports: dataflowRead.exportedAt,
       }),
     };
   }
