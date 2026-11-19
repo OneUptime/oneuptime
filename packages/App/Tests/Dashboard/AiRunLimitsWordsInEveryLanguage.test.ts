@@ -14,8 +14,13 @@ import {
   LOCALES_DIRECTORY,
   TRANSLATED_LOCALES,
 } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleFiles";
-import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
 import {
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+  DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+} from "Common/Types/AI/AIAgentRunLimits";
+import {
+  PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
   PROJECT_AI_RUN_LIMIT_COLUMNS,
   ProjectAiRunLimitColumn,
 } from "Common/Types/AI/ProjectAiRunLimits";
@@ -62,6 +67,7 @@ const WORDS: ReadonlyArray<string> = Array.from(
     ProjectAiRunLimitsCopy.cardTitle,
     ProjectAiRunLimitsCopy.cardDescription,
     ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder,
+    ProjectAiRunLimitsCopy.defaultCommandTimeLimitPlaceholder,
     ProjectAiRunLimitsCopy.timeLimitFieldError,
     ...PROJECT_AI_RUN_LIMIT_FIELDS.flatMap(
       (field: ProjectAiRunLimitField): Array<string> => {
@@ -121,12 +127,15 @@ function digitsIn(language: string, value: number): string {
 
 describe("the limits per run in every language", () => {
   test("the words are the card's, its dialog's steps, the More settings line's and the lane pages'", () => {
-    expect(WORDS.length).toBe(19);
+    expect(WORDS.length).toBe(22);
     expect(WORDS).toContain("Limits per run");
     expect(WORDS).toContain("Time Limit per Run (Minutes)");
     expect(WORDS).toContain("120 minutes (the default)");
     expect(WORDS).toContain("Calls and Tokens");
-    expect(WORDS).toContain("Time Limit");
+    // The second step holds the run's time limit and a command's (issue #6532).
+    expect(WORDS).toContain("Time Limits");
+    expect(WORDS).toContain("Time Limit per Command (Minutes)");
+    expect(WORDS).toContain("10 minutes (the default)");
   });
 
   test("en.json maps every one of them to itself", () => {
@@ -221,7 +230,8 @@ describe("the limits per run in every language", () => {
   /*
    * Where English names the default time limit, every language names the
    * same number of minutes: the one runs have. Were the default changed,
-   * this fails until each sentence says the new number.
+   * this fails until each sentence says the new number. (The time limit
+   * per command's ceiling is 120 minutes too, and its field names it.)
    */
   test.each(TRANSLATED_LOCALES)(
     "%s names the default time limit as runs have it",
@@ -231,8 +241,11 @@ describe("the limits per run in every language", () => {
         return text.includes(`${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes`);
       });
 
-      // The card, its placeholder, its time field and both lane fields.
-      expect(naming.length).toBe(5);
+      // The card, its placeholder, its time field, both lane fields, and the command field's ceiling.
+      expect(MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).toBe(
+        DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
+      );
+      expect(naming.length).toBe(6);
 
       for (const text of naming) {
         expect([
@@ -242,6 +255,57 @@ describe("the limits per run in every language", () => {
           ),
         ]).toEqual([text, true]);
       }
+    },
+  );
+
+  /*
+   * The time limit per command (issue #6532): its field and placeholder
+   * name the default a command has, ten minutes, and the field the most a
+   * project may give it, 120 - in every language, as each writes numbers.
+   */
+  test.each(TRANSLATED_LOCALES)(
+    "%s names a command's default and its ceiling as the code has them",
+    (language: string) => {
+      const locale: Record<string, unknown> = readLocale(language);
+      const field: ProjectAiRunLimitField = PROJECT_AI_RUN_LIMIT_FIELDS.find(
+        (candidate: ProjectAiRunLimitField): boolean => {
+          return candidate.column === PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+        },
+      )!;
+
+      expect(field.description).toContain(
+        `at most ${MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes`,
+      );
+      expect(field.description).toContain(
+        `the default, ${DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes`,
+      );
+      expect(
+        ProjectAiRunLimitsCopy.defaultCommandTimeLimitPlaceholder,
+      ).toContain(`${DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes`);
+
+      const description: string = locale[field.description] as string;
+      const placeholder: string = locale[
+        ProjectAiRunLimitsCopy.defaultCommandTimeLimitPlaceholder
+      ] as string;
+
+      expect([language, description]).toEqual([
+        language,
+        expect.stringContaining(
+          digitsIn(language, MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES),
+        ),
+      ]);
+      expect([language, description]).toEqual([
+        language,
+        expect.stringContaining(
+          digitsIn(language, DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES),
+        ),
+      ]);
+      expect([language, placeholder]).toEqual([
+        language,
+        expect.stringContaining(
+          digitsIn(language, DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES),
+        ),
+      ]);
     },
   );
 
@@ -337,6 +401,14 @@ const AI_RUN_WORDS: Record<string, AiRunWords> = {
   "zh-TW": { ai: "AI", added: " AI " },
 };
 
+// The four limits on a run, whose columns name an AI run.
+const RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> =
+  PROJECT_AI_RUN_LIMIT_FIELDS.filter(
+    (field: ProjectAiRunLimitField): boolean => {
+      return field.column !== PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+    },
+  );
+
 function columnTitle(column: ProjectAiRunLimitColumn): string {
   return new Project().getTableColumnMetadata(column).title as string;
 }
@@ -348,12 +420,13 @@ function occurrencesOf(text: string, part: string): number {
 describe("the Project's columns of the limits per run, in every language", () => {
   const TITLES: Array<string> = PROJECT_AI_RUN_LIMIT_COLUMNS.map(columnTitle);
 
-  test("the four columns are titled as an AI run's limits, each with its card field", () => {
+  test("the four columns are titled as an AI run's limits, each with its card field, and the command's as an AI command's", () => {
     expect(TITLES).toEqual([
       "Model Calls per AI Run",
       "Tool Calls per AI Run",
       "Tokens per AI Run",
       "AI Run Time Limit (Minutes)",
+      "AI Command Time Limit (Minutes)",
     ]);
     expect(
       PROJECT_AI_RUN_LIMIT_FIELDS.map(
@@ -401,7 +474,8 @@ describe("the Project's columns of the limits per run, in every language", () =>
       expect(words.added.replace("للذكاء", "الذكاء")).toContain(words.ai);
       expect(String(locale["AI Features"])).toContain(words.ai);
 
-      for (const field of PROJECT_AI_RUN_LIMIT_FIELDS) {
+      // The four run limits; the command's is held below.
+      for (const field of RUN_LIMIT_FIELDS) {
         const title: string = columnTitle(field.column);
         const worded: unknown = locale[title];
         const card: unknown = locale[field.title];
@@ -421,6 +495,41 @@ describe("the Project's columns of the limits per run, in every language", () =>
     },
   );
 
+  /*
+   * The time limit per command (issue #6532) is a command's, not a run's:
+   * its column names the language's word for AI with the card's field, in
+   * the order that language puts them - Persian's command takes no ezafe
+   * "ی", so it is not the run's pattern there.
+   */
+  test.each(TRANSLATED_LOCALES)(
+    "%s titles the time limit per command as an AI command's",
+    (language: string) => {
+      const locale: Record<string, unknown> = readLocale(language);
+      const words: AiRunWords = AI_RUN_WORDS[language]!;
+      const title: string = columnTitle(
+        PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
+      );
+      const worded: unknown = locale[title];
+      const card: unknown =
+        locale[
+          PROJECT_AI_RUN_LIMIT_FIELDS.find(
+            (field: ProjectAiRunLimitField): boolean => {
+              return field.column === PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+            },
+          )!.title
+        ];
+
+      expect([language, typeof worded]).toEqual([language, "string"]);
+      expect([language, worded]).not.toEqual([language, title]);
+      expect([language, worded]).not.toEqual([language, card]);
+      // Arabic's "ل" (for) takes the article's alef, as above.
+      expect([
+        language,
+        (worded as string).replace("للذكاء", "الذكاء").includes(words.ai),
+      ]).toEqual([language, true]);
+    },
+  );
+
   test("Arabic and German, word for word", () => {
     expect(
       TITLES.map((title: string): unknown => {
@@ -431,6 +540,7 @@ describe("the Project's columns of the limits per run, in every language", () =>
       "استدعاءات الأدوات لكل تشغيل للذكاء الاصطناعي",
       "الرموز لكل تشغيل للذكاء الاصطناعي",
       "المهلة الزمنية لكل تشغيل للذكاء الاصطناعي (بالدقائق)",
+      "المهلة الزمنية لكل أمر للذكاء الاصطناعي (بالدقائق)",
     ]);
     expect(
       TITLES.map((title: string): unknown => {
@@ -441,6 +551,7 @@ describe("the Project's columns of the limits per run, in every language", () =>
       "Tool-Aufrufe pro KI-Ausführung",
       "Tokens pro KI-Ausführung",
       "Zeitlimit pro KI-Ausführung (Minuten)",
+      "Zeitlimit pro KI-Befehl (Minuten)",
     ]);
   });
 });

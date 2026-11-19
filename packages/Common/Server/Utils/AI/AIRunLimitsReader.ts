@@ -17,7 +17,8 @@ import ObjectID from "../../../Types/ObjectID";
  * the caps the project set for every run (Project Settings → AI → AI
  * Features → More settings → Limits per run), and the most specific time
  * limit - the lane's for an incident or alert investigation, then the
- * project's, then the default (Types/AI/AIAgentRunLimits).
+ * project's, then the default (Types/AI/AIAgentRunLimits) - and how long one
+ * command of a code task may run, when the project set it (issue #6532).
  *
  * Read once when a run starts (and again when an Ask AI answer resumes after
  * an approval), so a limit changed mid-run applies from the next run on.
@@ -44,15 +45,17 @@ export default class AIRunLimitsReader {
   /*
    * The run's limits. A Slack or Microsoft Teams answer (isChatAppAnswer)
    * also stops at CHAT_APP_ANSWER_TIME_LIMIT_IN_MINUTES, when that comes
-   * first. A project that cannot be read runs with the defaults - no cap,
-   * the default time limit - rather than not at all: the caps are opt-in,
-   * and the time limit still holds.
+   * first. A code task (isCodeTask) also reads how long one of its commands
+   * may run (issue #6532), which no other run has. A project that cannot be
+   * read runs with the defaults - no cap, the default time limit - rather
+   * than not at all: the caps are opt-in, and the time limit still holds.
    */
   @CaptureSpan()
   public static async read(data: {
     projectId: ObjectID;
     lane?: AIRunLane | undefined;
     isChatAppAnswer?: boolean | undefined;
+    isCodeTask?: boolean | undefined;
   }): Promise<AIAgentRunLimits> {
     let limits: AIAgentRunLimits;
 
@@ -66,6 +69,7 @@ export default class AIRunLimitsReader {
           aiRunTimeLimitInMinutes: true,
           incidentAiInvestigationTimeLimitInMinutes: true,
           alertAiInvestigationTimeLimitInMinutes: true,
+          ...(data.isCodeTask ? { aiRunCommandTimeLimitInMinutes: true } : {}),
         },
         props: { isRoot: true },
       });
@@ -101,6 +105,7 @@ export default class AIRunLimitsReader {
       maxToolCalls: project?.aiRunMaxToolCalls,
       maxTokens: project?.aiRunMaxTokens,
       timeLimitInMinutes: project?.aiRunTimeLimitInMinutes,
+      commandTimeLimitInMinutes: project?.aiRunCommandTimeLimitInMinutes,
       lane:
         data.lane === "Incident"
           ? {

@@ -100,8 +100,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * run, from an investigation to a code task. None is set by default: a run
  * goes as far as its work needs, and only its time limit (120 minutes
  * unless set) and loop detection stop it. A run a limit stops says which
- * one, linked here (ProjectAiRunLimitsCopy). The card writes its four
- * columns alone, which take Project Owner or Manage Billing.
+ * one, linked here (ProjectAiRunLimitsCopy). Beside the run's time limit,
+ * how long one command of a code task may run on a Runner of the project's
+ * own (Time Limit per Command, issue #6532). The card writes its columns
+ * alone, which take Project Owner or Manage Billing.
  *
  * Then, under the same More settings, Fix approvals (#6148's follow-up): one
  * switch, off by default, that asks two people to approve a fix OneUptime

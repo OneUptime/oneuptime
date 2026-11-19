@@ -22,11 +22,13 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyUsage,
 } from "Common/Types/AI/ProjectAiDailyLimits";
 import ProjectAiRunLimits, {
+  PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
   PROJECT_AI_RUN_LIMIT_BOUNDS,
   PROJECT_AI_RUN_MAX_MODEL_CALLS_COLUMN,
   PROJECT_AI_RUN_MAX_TOKENS_COLUMN,
   PROJECT_AI_RUN_MAX_TOOL_CALLS_COLUMN,
   PROJECT_AI_RUN_TIME_LIMIT_COLUMN,
+  PROJECT_AI_RUN_TIME_LIMIT_COLUMNS,
   ProjectAiRunLimitColumn,
   ProjectAiRunLimitValues,
 } from "Common/Types/AI/ProjectAiRunLimits";
@@ -1503,7 +1505,10 @@ export const getProjectAiDailyLimitFieldError: (data: {
  *
  * The card writes the four limit columns alone, which take a project owner
  * or Manage Billing, as the daily limits do: they decide what a run may
- * cost.
+ * cost. Beside the run's time limit, it writes how long one command of a
+ * code task may run on a Runner of the project's own (Time Limit per
+ * Command, issue #6532): ten minutes unless set, at most 120, and never
+ * past the run's time limit.
  */
 export const PROJECT_AI_RUN_LIMITS_CARD_KEY: string = "LimitsPerRun";
 
@@ -1512,6 +1517,7 @@ export const ProjectAiRunLimitsCopy: {
   cardDescription: string;
   noLimitPlaceholder: string;
   defaultTimeLimitPlaceholder: string;
+  defaultCommandTimeLimitPlaceholder: string;
   timeLimitFieldError: string;
 } = {
   cardTitle: translationKey("Limits per run"),
@@ -1521,6 +1527,10 @@ export const ProjectAiRunLimitsCopy: {
   noLimitPlaceholder: translationKey("No limit"),
   // Tests hold each 120 here to DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES.
   defaultTimeLimitPlaceholder: translationKey("120 minutes (the default)"),
+  // Tests hold its 10 to DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES.
+  defaultCommandTimeLimitPlaceholder: translationKey(
+    "10 minutes (the default)",
+  ),
   timeLimitFieldError: translationKey(
     "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for the default.",
   ),
@@ -1529,8 +1539,9 @@ export const ProjectAiRunLimitsCopy: {
 /*
  * The edit dialog's steps. A form of more than three fields walks steps
  * (LongFormStepsGuard): first what a run may use - its model calls, tool
- * calls and tokens, none capped until set - then how long it may take, the
- * one limit every run has. The ids are the fields' stepId below.
+ * calls and tokens, none capped until set - then its time limits: how long
+ * a run may take, the one limit every run has, and how long one of its
+ * commands may. The ids are the fields' stepId below.
  */
 export interface ProjectAiRunLimitsFormStep {
   id: string;
@@ -1540,7 +1551,7 @@ export interface ProjectAiRunLimitsFormStep {
 export const PROJECT_AI_RUN_LIMITS_FORM_STEPS: ReadonlyArray<ProjectAiRunLimitsFormStep> =
   [
     { id: "calls-and-tokens", title: translationKey("Calls and Tokens") },
-    { id: "time-limit", title: translationKey("Time Limit") },
+    { id: "time-limit", title: translationKey("Time Limits") },
   ];
 
 // One limit's field on the card, in the card's order.
@@ -1589,6 +1600,16 @@ export const PROJECT_AI_RUN_LIMIT_FIELDS: ReadonlyArray<ProjectAiRunLimitField> 
         "How long one run may take before it answers with what it found. Leave empty for the default, 120 minutes. Incident and alert time limits come first.",
       ),
       placeholder: ProjectAiRunLimitsCopy.defaultTimeLimitPlaceholder,
+      stepId: "time-limit",
+    },
+    {
+      // Tests hold its 120 and 10 to MAX_ and DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES.
+      column: PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
+      title: translationKey("Time Limit per Command (Minutes)"),
+      description: translationKey(
+        "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.",
+      ),
+      placeholder: ProjectAiRunLimitsCopy.defaultCommandTimeLimitPlaceholder,
       stepId: "time-limit",
     },
   ];
@@ -1646,7 +1667,7 @@ export const getProjectAiRunLimitValueText: (data: {
     return "";
   }
 
-  if (data.column === PROJECT_AI_RUN_TIME_LIMIT_COLUMN) {
+  if (PROJECT_AI_RUN_TIME_LIMIT_COLUMNS.includes(data.column)) {
     return data.translator.translatePlural(
       PROJECT_AI_RUN_TIME_LIMIT_VALUE,
       limit,
@@ -1702,7 +1723,7 @@ export const getProjectAiRunLimitFieldError: (data: {
     PROJECT_AI_RUN_LIMIT_BOUNDS[data.column];
 
   return data.translator.translateTemplate(
-    data.column === PROJECT_AI_RUN_TIME_LIMIT_COLUMN
+    PROJECT_AI_RUN_TIME_LIMIT_COLUMNS.includes(data.column)
       ? ProjectAiRunLimitsCopy.timeLimitFieldError
       : ProjectAiDailyLimitsCopy.fieldError,
     {

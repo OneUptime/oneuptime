@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57990,
-    "untranslated": 8161
+    "keys": 58633,
+    "untranslated": 8176
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -20,12 +20,14 @@
     "Amphora",
     "Amphorae",
     "Apache Kafka · kafka-1:9092",
+    "AppArmor",
     "Atmosphere",
     "Azure AKS",
     "Azure Kubernetes Service.",
     "Bare Metal",
     "Brute force detected",
     "CIDR",
+    "CIS Kubernetes Benchmark v2.0",
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canonical Sunbeam",
@@ -68,6 +70,7 @@
     "HAProxy",
     "HTTP {{status}}",
     "Hello world",
+    "HostProcess",
     "ICMP (ping)",
     "INP 120 ms",
     "INP 168 ms",
@@ -79,6 +82,7 @@
     "KeyDB",
     "Keystone",
     "Kolla-Ansible",
+    "Kubelet",
     "LXC 201 · pve3",
     "Link-local",
     "Log4Shell",
@@ -127,6 +131,7 @@
     "Redis",
     "RegionOne",
     "Runner",
+    "SELinux",
     "SHA",
     "SHA-256",
     "SHA256",
@@ -136,6 +141,8 @@
     "SQL Server",
     "SSH",
     "ScheduledMaintenance",
+    "Seccomp",
+    "Seccomp (Restricted)",
     "Serverless",
     "Slug",
     "StatusPage",

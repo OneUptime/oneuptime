@@ -1,3 +1,86 @@
+{{- /*
+The bundled Prometheus's configuration, as one template: the ConfigMap below
+holds it, and the Deployment's checksum/config annotation is its hash. So
+whatever changes what it renders - a value, the preset, or the way it reaches
+cAdvisor (cost.prometheus.nodesProxy, #9878) - restarts Prometheus, which
+reads its configuration only when it starts. A release upgraded with
+--reuse-values keeps its old values, and its Prometheus still reads the new
+configuration.
+*/}}
+{{- define "kubernetes-agent.costPrometheusConfig" -}}
+global:
+  scrape_interval: {{ .Values.cost.prometheus.scrapeInterval }}
+  evaluation_interval: {{ .Values.cost.prometheus.scrapeInterval }}
+scrape_configs:
+  {{- if eq (include "kubernetes-agent.costPrometheusThroughNodesProxy" .) "true" }}
+  # Container CPU/memory usage from every node's cAdvisor, through the API
+  # server's node proxy (cost.prometheus.nodesProxy): the only way to it on
+  # EKS Fargate, where no pod reaches a node's kubelet. The proxy is the
+  # nodes/proxy subresource, which templates/rbac.yaml grants for it.
+  - job_name: kubernetes-nodes-cadvisor
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    authorization:
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+  {{- else }}
+  # Container CPU/memory usage from every node's cAdvisor, read off the
+  # node's own kubelet where node discovery finds it (its InternalIP, on the
+  # kubelet's port: https://<node>:10250/metrics/cadvisor), as the node
+  # collector reads its own node's. The kubelet authorizes the path as
+  # nodes/metrics, so the agent needs no nodes/proxy, which reaches the whole
+  # kubelet API and fails CIS Kubernetes Benchmark 5.1.10 (#9878). A pod
+  # reaching a node's port needs no hostNetwork or hostPort (GKE Autopilot
+  # runs it), and the kubelet's serving certificate is most often its own
+  # self-signed one, so it is not verified, as the node collector's is not.
+  - job_name: kubernetes-nodes-cadvisor
+    scheme: https
+    metrics_path: /metrics/cadvisor
+    tls_config:
+      insecure_skip_verify: true
+    authorization:
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      # An EKS Fargate node's kubelet takes no connection from a pod: its
+      # pods' usage is read through the API server instead
+      # (cost.prometheus.nodesProxy), never left as a target that is down.
+      - source_labels: [__meta_kubernetes_node_label_eks_amazonaws_com_compute_type]
+        regex: fargate
+        action: drop
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+  {{- end }}
+    {{- with .Values.cost.prometheus.cadvisorMetricsAllowlist }}
+    # Only the series OpenCost queries, and the cost agent's memory
+    # peaks: cAdvisor's other families are one series per container
+    # each, read by nothing here, and held in memory all the same.
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "^({{ join "|" . }})$"
+        action: keep
+    {{- end }}
+  # OpenCost's own metrics: node/PV hourly prices, per-container
+  # allocation, and the KSM-style resource-request series it emits.
+  - job_name: opencost
+    honor_labels: true
+    static_configs:
+      - targets:
+          - "{{ include "kubernetes-agent.fullname" . }}-opencost.{{ .Release.Namespace }}.svc.cluster.local:9003"
+{{- end }}
 {{- if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}
 # Minimal, dedicated Prometheus for the bundled OpenCost. OpenCost
 # hard-requires a PromQL endpoint to reconstruct usage and price history
@@ -5,9 +88,10 @@
 #
 # Deliberately tiny: single replica, {{ .Values.cost.prometheus.retention }} retention (the cost
 # poller only queries recently-closed hourly windows), no alerting, no
-# remote-write, and exactly two scrape jobs — cAdvisor via the
-# API-server node proxy (container usage) and OpenCost itself (prices +
-# its self-emitted KSM-style request metrics, which is why no
+# remote-write, and exactly two scrape jobs — cAdvisor from each node's
+# kubelet (container usage; through the API server's node proxy only where
+# cost.prometheus.nodesProxy says so) and OpenCost itself (prices + its
+# self-emitted KSM-style request metrics, which is why no
 # kube-state-metrics is involved). It is never scraped into OneUptime
 # and never reachable outside the cluster.
 apiVersion: v1
@@ -20,47 +104,7 @@ metadata:
     component: cost-prometheus
 data:
   prometheus.yml: |
-    global:
-      scrape_interval: {{ .Values.cost.prometheus.scrapeInterval }}
-      evaluation_interval: {{ .Values.cost.prometheus.scrapeInterval }}
-    scrape_configs:
-      # Container CPU/memory usage from every node's cAdvisor, proxied
-      # through the API server so no hostNetwork/hostPort is needed
-      # (GKE Autopilot compatible). Uses the agent ServiceAccount's
-      # existing nodes/proxy + /metrics/cadvisor RBAC.
-      - job_name: kubernetes-nodes-cadvisor
-        scheme: https
-        tls_config:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          insecure_skip_verify: true
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-        kubernetes_sd_configs:
-          - role: node
-        relabel_configs:
-          - action: labelmap
-            regex: __meta_kubernetes_node_label_(.+)
-          - target_label: __address__
-            replacement: kubernetes.default.svc:443
-          - source_labels: [__meta_kubernetes_node_name]
-            regex: (.+)
-            target_label: __metrics_path__
-            replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
-        {{- with .Values.cost.prometheus.cadvisorMetricsAllowlist }}
-        # Only the series OpenCost queries, and the cost agent's memory
-        # peaks: cAdvisor's other families are one series per container
-        # each, read by nothing here, and held in memory all the same.
-        metric_relabel_configs:
-          - source_labels: [__name__]
-            regex: "^({{ join "|" . }})$"
-            action: keep
-        {{- end }}
-      # OpenCost's own metrics: node/PV hourly prices, per-container
-      # allocation, and the KSM-style resource-request series it emits.
-      - job_name: opencost
-        honor_labels: true
-        static_configs:
-          - targets:
-              - "{{ include "kubernetes-agent.fullname" . }}-opencost.{{ .Release.Namespace }}.svc.cluster.local:9003"
+    {{- include "kubernetes-agent.costPrometheusConfig" . | nindent 4 }}
 ---
 {{- if .Values.cost.prometheus.persistence.enabled }}
 apiVersion: v1
@@ -107,10 +151,12 @@ spec:
         {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
         component: cost-prometheus
       annotations:
-        # Roll the pod when the scrape config's inputs change — the
-        # config volume updates in place but Prometheus only reads it
-        # at startup.
-        checksum/config: {{ toYaml .Values.cost.prometheus | sha256sum | trunc 32 }}
+        # Roll the pod when the configuration it renders changes: the
+        # config volume updates in place, but Prometheus only reads it at
+        # startup. A hash of what is rendered, not of the values: the way it
+        # reaches cAdvisor also follows the preset and, for a release
+        # upgraded with --reuse-values, a default its values do not hold.
+        checksum/config: {{ include "kubernetes-agent.costPrometheusConfig" . | sha256sum | trunc 32 }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
       # Linux nodes only — the image is linux-only, and Windows pools

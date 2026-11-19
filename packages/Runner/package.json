@@ -14,7 +14,8 @@
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-    "test": "jest --runInBand --passWithNoTests"
+    "test": "jest --runInBand --passWithNoTests",
+    "benchmark": "ONEUPTIME_URL=http://code-agent-benchmark.invalid ONEUPTIME_RUNNER_ID=00000000-0000-4000-8000-000000000000 ONEUPTIME_RUNNER_KEY=code-agent-benchmark ts-node Scripts/RunCodeAgentBenchmark.ts"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",

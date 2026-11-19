@@ -34,6 +34,7 @@ import LlmLog from "../../../../Models/DatabaseModels/LlmLog";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
+import LlmType from "../../../../Types/LLM/LlmType";
 import { LLMMessage } from "../../../../Server/Utils/LLM/LLMService";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
@@ -111,6 +112,11 @@ function mockHappyDependencies(data?: {
   jest
     .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
     .mockResolvedValue(fakeProvider());
+  /*
+   * A provider row read without its type is read again for it, to tell the
+   * model's context window (issue #6530): none here, unless a test says.
+   */
+  jest.spyOn(LlmProviderService, "findOneById").mockResolvedValue(null);
   // The project's enableAi kill switch, read before the provider is resolved.
   jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue(undefined);
 
@@ -661,6 +667,7 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
         maxModelCalls: 60,
         maxTokens: 1_000_000,
         timeLimitInMinutes: 90,
+        commandTimeLimitInMinutes: 30,
       }),
     });
 
@@ -676,6 +683,8 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
       maxTokens: 1_000_000,
       timeLimitInMinutes: 90,
       timeLimitSource: AIRunTimeLimitSource.Project,
+      // The project's Time Limit per Command (issue #6532): the Runner holds each command to it.
+      commandTimeLimitInMinutes: 30,
       deadlineAt: new Date(startedAt.getTime() + 90 * MINUTE).toISOString(),
       timeLeftMs: expect.any(Number),
       modelCallsUsed: 6,
@@ -687,6 +696,11 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
     // About 80 minutes left of the 90.
     expect(result.limits.timeLeftMs).toBeGreaterThan(79 * MINUTE);
     expect(result.limits.timeLeftMs).toBeLessThanOrEqual(80 * MINUTE);
+    // A code task's limits include how long one command may run.
+    expect(AIRunLimitsReader.read).toHaveBeenCalledWith({
+      projectId,
+      isCodeTask: true,
+    });
   });
 
   test("with no limit set, the worker is told of none but the time limit", async () => {
@@ -705,6 +719,8 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
     expect(result.limits.maxTokens).toBeNull();
     expect(result.limits.timeLimitInMinutes).toBe(120);
     expect(result.limits.timeLimitSource).toBe(AIRunTimeLimitSource.Default);
+    // Ten minutes a command, as a command always had (issue #6532).
+    expect(result.limits.commandTimeLimitInMinutes).toBe(10);
     // A run whose start is not recorded has no deadline the server gives.
     expect(result.limits.deadlineAt).toBeNull();
     expect(result.limits.timeLeftMs).toBeNull();
@@ -792,7 +808,10 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
         >
       ).mock.calls[0]![0].select,
     ).toMatchObject({ startedAt: true });
-    expect(AIRunLimitsReader.read).toHaveBeenCalledWith({ projectId });
+    expect(AIRunLimitsReader.read).toHaveBeenCalledWith({
+      projectId,
+      isCodeTask: true,
+    });
   });
 
   test("the transcript numbers each call, and names no cap that is not set", async () => {
@@ -1068,5 +1087,170 @@ describe("CodeFixAgentCompletion.execute: the LLM provider the rule picked", () 
         >
       ).mock.calls[0]![0].select,
     ).toMatchObject({ llmProviderId: true });
+  });
+});
+
+/*
+ * Issue #6530: with every answer, the server says how many tokens one
+ * request to the model may hold, so the Runner's code agent sizes its
+ * conversation to it - from the provider's settings and the model the call
+ * was served with (LLMContextWindow), or null when it cannot tell.
+ */
+describe("CodeFixAgentCompletion.execute: the model's context window", () => {
+  function provider(values: Partial<LlmProvider>): LlmProvider {
+    return Object.assign(new LlmProvider(), {
+      _id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+      name: "provider",
+      isGlobalLlm: false,
+      ...values,
+    });
+  }
+
+  function served(modelName: string | undefined): void {
+    jest.spyOn(AIService, "executeWithLogging").mockResolvedValue({
+      content: "done",
+      toolCalls: undefined,
+      llmLog: {
+        completionTokens: 123,
+        totalTokens: 900,
+        ...(modelName ? { modelName } : {}),
+      } as unknown as LlmLog,
+    });
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("an Anthropic provider's Claude model: 200,000 tokens, with the answer", async () => {
+    mockHappyDependencies();
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        provider({
+          llmType: LlmType.Anthropic,
+          modelName: "claude-sonnet-4-5",
+        }),
+      );
+
+    const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(result.contextWindowTokens).toBe(200_000);
+    // The row had its type: nothing is read again.
+    expect(LlmProviderService.findOneById).not.toHaveBeenCalled();
+  });
+
+  test("the model the call was served with wins over a blank Model Name", async () => {
+    mockHappyDependencies();
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(provider({ llmType: LlmType.OpenAI }));
+    served("gpt-4.1");
+
+    const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(result.contextWindowTokens).toBe(1_047_576);
+  });
+
+  test("an Ollama provider: the num_ctx it asks Ollama for", async () => {
+    mockHappyDependencies();
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        provider({
+          llmType: LlmType.Ollama,
+          modelName: "llama3.1",
+          additionalParams: { options: { num_ctx: 32_768 } },
+        }),
+      );
+
+    const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(result.contextWindowTokens).toBe(32_768);
+  });
+
+  test("an OpenAI-compatible server's own model: none, and the Runner keeps its default", async () => {
+    mockHappyDependencies();
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        provider({
+          llmType: LlmType.OpenAICompatible,
+          modelName: "Qwen/Qwen2.5-Coder-32B-Instruct",
+        }),
+      );
+
+    const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(result.contextWindowTokens).toBeNull();
+  });
+
+  test("a provider a rule picked is read without its type: its type and Additional Parameters are read for the window", async () => {
+    const PICK: string = "dddddddd-dddd-4ddd-8ddd-ddddddddddd2";
+
+    mockHappyDependencies({ run: { llmProviderId: new ObjectID(PICK) } });
+    jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+      provider: { id: PICK, name: "Local Llama", isGlobal: false },
+      source: LlmProviderSource.RulePick,
+      fallbackReason: null,
+      pickedProviderId: PICK,
+      llmProviderId: new ObjectID(PICK),
+      providerRow: provider({ _id: PICK, modelName: "llama3.1" } as never),
+      activity: null,
+    } as never);
+    const read: jest.SpiedFunction<typeof LlmProviderService.findOneById> = jest
+      .spyOn(LlmProviderService, "findOneById")
+      .mockResolvedValue(
+        provider({
+          llmType: LlmType.Ollama,
+          additionalParams: { options: { num_ctx: 16_384 } },
+        }),
+      );
+
+    const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(result.contextWindowTokens).toBe(16_384);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(read.mock.calls[0]![0]).toMatchObject({
+      select: { llmType: true, additionalParams: true },
+      props: { isRoot: true },
+    });
+    expect(read.mock.calls[0]![0].id?.toString()).toBe(PICK);
+  });
+
+  test("a provider that cannot be read is no window, and the call is still served", async () => {
+    mockHappyDependencies();
+    jest
+      .spyOn(LlmProviderService, "findOneById")
+      .mockRejectedValue(new Error("connection reset"));
+
+    const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(result.content).toBe("done");
+    expect(result.contextWindowTokens).toBeNull();
   });
 });

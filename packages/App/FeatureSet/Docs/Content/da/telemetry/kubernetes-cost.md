@@ -16,7 +16,7 @@ Med omkostningsovervågning slået til, som den er som standard (`cost.enabled: 
 
 ```mermaid title="Hvor omkostningstallene kommer fra"
 flowchart TB
-    cadvisor["cAdvisor, gennem<br/>API-serverens node-proxy"] --> prometheus["Medfølgende Prometheus"]
+    cadvisor["cAdvisor, fra<br/>hver nodes kubelet"] --> prometheus["Medfølgende Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["Cloud-listepriser<br/>eller din pristabel"] --> opencost
     opencost -->|"én afsluttet time<br/>ad gangen"| poller["Omkostnings-poller"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**, open source-omkostningsmotoren (Apache-2.0, CNCF; den [cost-model](https://github.com/kubecost/cost-model), som også driver Kubecost). Den overvåger klyngen, prissætter dine noder, volumener og load balancere og beregner, hvad hver workload koster.
-2. **En lille Prometheus**, som OpenCost har brug for til forbrugs- og prishistorik. Den kører én replika, beholder 7 dages historik og scraper præcis to mål: cAdvisor gennem API-serverens node-proxy, hvor den kun beholder de serier, OpenCost læser, og OpenCost selv (som udsender sine egne metrikker for ressource-requests, så kube-state-metrics ikke er involveret). Den eksponeres aldrig uden for klyngen, og dens data forlader den aldrig.
+2. **En lille Prometheus**, som OpenCost har brug for til forbrugs- og prishistorik. Den kører én replika, beholder 7 dages historik og scraper præcis to mål: cAdvisor på hver nodes kubelet (gennem API-serverens node-proxy med presettet `eks-fargate`, da ingen pod dér når en kubelet), hvor den kun beholder de serier, OpenCost læser, og OpenCost selv (som udsender sine egne metrikker for ressource-requests, så kube-state-metrics ikke er involveret). Den eksponeres aldrig uden for klyngen, og dens data forlader den aldrig.
 3. **Omkostnings-polleren** (`cost.agent`). Én gang pr. afsluttet time læser den OpenCosts Allocation API og sender én omkostningsrække pr. workload til OneUptime: CPU, hukommelse, GPU, volumener, netværk, load balancere og tomgang, med effektivitet. Hver time sendes én gang; serveren springer en time over, som den allerede har, så en genstart kan ikke tælle forbrug to gange. OneUptime skriver også [omkostningsmetrikkerne](#advarsler-om-omkostninger) ud fra disse rækker.
 4. **Et scrape af omkostningsmetrikker** (`cost.metrics`). Agentens collector scraper OpenCosts prismetrikker, altså hvad hver node, hvert volumen og hver load balancer koster i timen, og sender dem sammen med resten af klyngens metrikker.
 
