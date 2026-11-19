@@ -344,7 +344,9 @@ work out, starts from a default for everything else, and folds what most people 
   never one link around it: the row's name is its link, stretched over the row so a press
   anywhere still opens the page, and the control sits beside the name, above the stretch
   (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). Enforced by
-  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts)
+  and
+  [ResourcePartRowControlsGuard](../../packages/App/Tests/Dashboard/ResourcePartRowControlsGuard.test.ts).
 - **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
   `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
   focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:
