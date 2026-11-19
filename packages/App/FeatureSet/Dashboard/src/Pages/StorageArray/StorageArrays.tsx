@@ -54,21 +54,27 @@ import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
 import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
-import { getStorageUsage } from "Common/Utils/Storage/StorageUsage";
+import { getStorageArrayCapacityUsage } from "./Utils/StorageArrayHealth";
 
 /*
- * Pure raises its own capacity alerts at 80% and 90% used - the shared
- * storage bar's own lines - so the bar turns amber and red at the same
- * levels, its percent in the reader's digits (#9539). Only the share is
- * read here, so no amounts under it.
+ * Pure raises its own capacity alerts at 80% and 90% used, so the bar turns
+ * amber and red past the same levels (StorageArrayHealth), its percent in
+ * the reader's digits (#9539), with how much of the array's capacity is
+ * used under it (#9647). An array that reported only its share draws the
+ * bar alone.
  */
-const renderCapacityBar: (
-  capacityUsedPercent: number | undefined,
-) => ReactElement = (capacityUsedPercent: number | undefined): ReactElement => {
+const renderCapacityBar: (item: StorageArray) => ReactElement = (
+  item: StorageArray,
+): ReactElement => {
+  const hasCapacity: boolean = Number(item.capacityBytes) > 0;
   return (
     <StorageUsageBar
-      usage={getStorageUsage({ capacity: 100, used: capacityUsedPercent })}
-      showAmount={false}
+      usage={getStorageArrayCapacityUsage({
+        capacityBytes: item.capacityBytes,
+        usedBytes: item.usedBytes,
+        capacityUsedPercent: item.capacityUsedPercent,
+      })}
+      showAmount={hasCapacity}
     />
   );
 };
@@ -243,6 +249,9 @@ const StorageArrays: FunctionComponent<
           osName: true,
           // The Health column's Unknown, whichever columns are shown.
           otelCollectorStatus: true,
+          // The Capacity bar's amounts (#9647).
+          capacityBytes: true,
+          usedBytes: true,
         }}
         columns={[
           {
@@ -352,7 +361,7 @@ const StorageArrays: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: StorageArray): ReactElement => {
-              return renderCapacityBar(item.capacityUsedPercent);
+              return renderCapacityBar(item);
             },
           },
           {

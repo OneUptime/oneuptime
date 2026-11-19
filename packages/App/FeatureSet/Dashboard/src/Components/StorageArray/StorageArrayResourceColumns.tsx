@@ -14,6 +14,8 @@ import {
   assessStorageArrayPart,
 } from "../../Pages/StorageArray/Utils/StorageArrayHealth";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 
 /*
  * The columns the Storage Array inventory tables share. Every value is the
@@ -306,6 +308,40 @@ export function getTextColumn(data: {
   };
 }
 
+/*
+ * How full an object is, with the shared storage bar (#9647): a bucket of
+ * its quota, a file system of its provisioned size - the percent, a bar
+ * that turns amber and red at the array's rules' lines, and how much is
+ * used under it. A row with no reading says why in words, never 0%.
+ */
+export function getUsageColumn(options: {
+  title: string;
+  description: string;
+  getUsage: (item: StorageArrayResource) => StorageUsage | null;
+  // English, looked up where it is drawn.
+  getNoUsageText?: ((item: StorageArrayResource) => string) | undefined;
+}): Column<StorageArrayResource> {
+  return {
+    field: { capacityBytes: true },
+    title: options.title,
+    headerTooltip: options.description,
+    type: FieldType.Element,
+    // What it sorts by would be a size, not how full it is.
+    disableSort: true,
+    getElement: (item: StorageArrayResource): ReactElement => {
+      return (
+        <StorageUsageBar
+          usage={options.getUsage(item)}
+          noUsageText={options.getNoUsageText?.(item)}
+          formatAmount={(amount: number): string => {
+            return StorageArrayResourceUtils.formatBytes(amount);
+          }}
+        />
+      );
+    },
+  };
+}
+
 export function getLastSeenColumn(): Column<StorageArrayResource> {
   return {
     field: { lastSeenAt: true },
@@ -327,5 +363,6 @@ export default {
   getStatusColumn,
   getRulesStatusColumn,
   getTextColumn,
+  getUsageColumn,
   getLastSeenColumn,
 };
