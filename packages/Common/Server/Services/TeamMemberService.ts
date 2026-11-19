@@ -151,6 +151,10 @@ export const MEMBERSHIPS_OF_PERSON_STATEMENT: string =
 // How many people the Free plan allows: the project's owner.
 export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;
 
+// Why nobody may be invited from OneUptime while SCIM manages the teams.
+export const SCIM_PUSH_GROUPS_INVITE_MESSAGE: string =
+  "Cannot invite team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.";
+
 // Where one resend of a person's invitation holds the others back (resendInvitation).
 export const RESEND_INVITATION_LOCK_NAMESPACE: string =
   "TeamMemberService.resendInvitation";
@@ -457,9 +461,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         createBy.data.projectId! || createBy.props.tenantId,
       ))
     ) {
-      throw new BadDataException(
-        "Cannot invite team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
-      );
+      throw new BadDataException(SCIM_PUSH_GROUPS_INVITE_MESSAGE);
     }
 
     /*
@@ -1314,6 +1316,73 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       SubscriptionPlan.getSubscriptionPlanById(planId)?.getName() ===
       PlanType.Free
     );
+  }
+
+  /*
+   * WHY INVITING THESE ADDRESSES WOULD BE REFUSED NOW, or null (#7242): the
+   * answers onBeforeCreate gives an invitation by address, asked before
+   * Ask AI's approval card so it never promises an invitation the project
+   * refuses - SCIM Push Groups owning the project's teams, and room for
+   * every invitee not in the project yet under its seats or the Free plan's
+   * one person. Someone in the project already takes no seat. Not under the
+   * limit's lock: an answer for now, which each create asks again.
+   */
+  @CaptureSpan()
+  public async getInvitationRefusal(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    emails: ReadonlyArray<string>;
+  }): Promise<string | null> {
+    if (
+      !data.props.isRoot &&
+      (await this.isSCIMPushGroupsEnabled(data.projectId))
+    ) {
+      return SCIM_PUSH_GROUPS_INVITE_MESSAGE;
+    }
+
+    const limits: ProjectPeopleLimits | null = await this.readPeopleLimits({
+      projectId: data.projectId,
+      props: data.props,
+    });
+
+    if (!limits) {
+      return null;
+    }
+
+    let newPeople: number = 0;
+
+    for (const email of data.emails) {
+      const user: User | null = await UserService.findOneBy({
+        query: { email: new Email(email) },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (
+        user?.id &&
+        (await this.hasMembershipInProject({
+          projectId: data.projectId,
+          userId: user.id,
+        }))
+      ) {
+        continue;
+      }
+
+      newPeople++;
+    }
+
+    if (newPeople === 0) {
+      return null;
+    }
+
+    // Each must fit: asked for the last of them.
+    return this.getPeopleLimitRefusal({
+      limits: limits,
+      people:
+        (await this.getUniqueTeamMemberCountInProject(data.projectId)) +
+        newPeople -
+        1,
+    });
   }
 
   /*

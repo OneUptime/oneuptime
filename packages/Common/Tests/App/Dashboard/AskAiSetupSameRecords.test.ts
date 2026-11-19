@@ -13,11 +13,33 @@ import type { SpyInstance } from "jest-mock";
  */
 import AIToolbox from "../../../Server/Utils/AI/Toolbox/Index";
 import {
+  AddToOnCallPolicyTool,
+  InvitePeopleTool,
   PublishStatusPageTool,
   SetUpPagingTool,
+  SetUpServiceMonitorTool,
   SetUpWebsiteMonitoringTool,
 } from "../../../Server/Utils/AI/Toolbox/SetupTools";
 import { ToolContext } from "../../../Server/Utils/AI/Toolbox/ToolTypes";
+import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
+import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
+import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneService";
+import ServiceService from "../../../Server/Services/ServiceService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
+import TeamService from "../../../Server/Services/TeamService";
+import ServerSendingStatus from "../../../Server/Utils/ServerSending/ServerSendingStatus";
+import OnCallSetupApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetupApi";
+import TelemetrySetupApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetupApi";
+import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import Service from "../../../Models/DatabaseModels/Service";
+import Team from "../../../Models/DatabaseModels/Team";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
+import Permission from "../../../Types/Permission";
+import GrantablePermission from "../../../UI/Utils/GrantablePermission";
+import { getTelemetryRecommendations } from "../../../Utils/GuidedSetup/ServiceMonitorRecords";
+import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import AlertOnCallRuleService from "../../../Server/Services/AlertOnCallRuleService";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import IncidentOnCallRuleService from "../../../Server/Services/IncidentOnCallRuleService";
@@ -971,5 +993,333 @@ describe("the same decision of who is told, for the same project (#8518)", () =>
     if (!shape.pagesAlready) {
       expect(askAi).toBeNull();
     }
+  });
+});
+
+/*
+ * #7244, #7242, #7243: the guided on-call setup's levels, repeats and
+ * people added, its invitation, and the telemetry guided setup's monitors
+ * - each built with Common's records by both ways in - are the same records
+ * for the same answers.
+ */
+describe("what happens when nobody acknowledges, who else is on call, an invitation and a service's monitor are the guided setups' records", () => {
+  const POLICY: string = "70707070-7070-4070-8070-707070707070";
+  const FIRST_LEVEL: string = "71717171-7171-4171-8171-717171717171";
+  const ANA: string = "72727272-7272-4272-8272-727272727272";
+  const MEMBERS_TEAM: string = "73737373-7373-4373-8373-737373737373";
+  const OWNERS_TEAM: string = "74747474-7474-4474-8474-747474747474";
+  const SERVICE: string = "75757575-7575-4575-8575-757575757575";
+
+  // The guided setup's view of the policy's first level, waiting 30 minutes.
+  const firstLevel: {
+    id: string;
+    order: number;
+    escalateAfterInMinutes: number;
+    userIds: Array<string>;
+    names: Array<string>;
+    responderCount: number;
+  } = {
+    id: FIRST_LEVEL,
+    order: 1,
+    escalateAfterInMinutes: DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+    userIds: [USER_ID],
+    names: ["Me"],
+    responderCount: 1,
+  };
+
+  // A project that pages nobody yet, whose first policy Ask AI makes.
+  function newPolicy(): void {
+    jest
+      .spyOn(OnCallDutyPolicyService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+    jest
+      .spyOn(IncidentOnCallRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest.spyOn(AlertOnCallRuleService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(OnCallDutyPolicyService, "create")
+      .mockImplementation((async (args: {
+        data: OnCallDutyPolicy;
+      }): Promise<OnCallDutyPolicy> => {
+        return model(OnCallDutyPolicy, { ...args.data, _id: POLICY });
+      }) as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .mockResolvedValue(
+        model(OnCallDutyPolicyEscalationRule, {
+          _id: FIRST_LEVEL,
+          escalateAfterInMinutes: DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+        }) as never,
+      );
+  }
+
+  test("someone else after a wait: the first level's wait and a second level, as the guided on-call setup writes them", async () => {
+    const browserUpdate: LooseSpy = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never) as unknown as LooseSpy;
+    createSpy.mockClear();
+
+    await OnCallSetupApi.addSecondLevel({
+      policyId: POLICY,
+      firstLevel: firstLevel,
+      waitMinutes: 5,
+      userIds: [ANA],
+      teamIds: [TEAM_ID],
+    });
+
+    const guidedWait: { id: ObjectID; data: JSONObject } = browserUpdate.mock
+      .calls[0]![0] as unknown as { id: ObjectID; data: JSONObject };
+    const guidedLevel: { model: unknown; miscDataProps?: unknown } =
+      browserCreates()[0]!;
+
+    newPolicy();
+    const serverWait: LooseSpy = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "updateOneById")
+      .mockResolvedValue(undefined as never) as unknown as LooseSpy;
+    const serverLevel: LooseSpy = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "create")
+      .mockResolvedValue({} as never) as unknown as LooseSpy;
+
+    await SetUpPagingTool.execute(
+      {
+        userIds: [USER_ID],
+        escalateUserIds: [ANA],
+        escalateTeamIds: [TEAM_ID],
+        escalatePeople: ["Ana Lopez"],
+        escalateTeamNames: ["Platform"],
+        afterMinutes: 5,
+      },
+      ctx,
+    );
+
+    const askAiWait: { id: ObjectID; data: JSONObject } = serverWait.mock
+      .calls[0]![0] as unknown as { id: ObjectID; data: JSONObject };
+    const askAiLevel: { data: unknown; miscDataProps: unknown } = serverLevel
+      .mock.calls[0]![0] as unknown as {
+      data: unknown;
+      miscDataProps: unknown;
+    };
+
+    expect(askAiWait.id.toString()).toBe(guidedWait.id.toString());
+    expect(askAiWait.data).toEqual(guidedWait.data);
+    expect(comparable(askAiLevel.data)).toEqual(comparable(guidedLevel.model));
+    expect(askAiLevel.miscDataProps).toEqual(guidedLevel.miscDataProps);
+  });
+
+  test("the same people again: the policy's repeat, as the guided on-call setup writes it", async () => {
+    const browserUpdate: LooseSpy = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never) as unknown as LooseSpy;
+
+    // The wait asked is the first level's already: only the repeat is written.
+    await OnCallSetupApi.setRepeat({
+      policyId: POLICY,
+      firstLevel: firstLevel,
+      waitMinutes: DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+      times: 2,
+    });
+
+    expect(browserUpdate).toHaveBeenCalledTimes(1);
+    const guidedRepeat: { id: ObjectID; data: JSONObject } = browserUpdate.mock
+      .calls[0]![0] as unknown as { id: ObjectID; data: JSONObject };
+
+    newPolicy();
+    const serverWait: LooseSpy = jest.spyOn(
+      OnCallDutyPolicyEscalationRuleService,
+      "updateOneById",
+    ) as unknown as LooseSpy;
+    const serverRepeat: LooseSpy = jest
+      .spyOn(OnCallDutyPolicyService, "updateOneById")
+      .mockResolvedValue(undefined as never) as unknown as LooseSpy;
+
+    await SetUpPagingTool.execute({ userIds: [USER_ID], repeatTimes: 2 }, ctx);
+
+    expect(serverWait).not.toHaveBeenCalled();
+    const askAiRepeat: { id: ObjectID; data: JSONObject } = serverRepeat.mock
+      .calls[0]![0] as unknown as { id: ObjectID; data: JSONObject };
+    expect(askAiRepeat.id.toString()).toBe(guidedRepeat.id.toString());
+    expect(askAiRepeat.data).toEqual(guidedRepeat.data);
+  });
+
+  test("people added to a policy's first level: the rows Who else is on call adds", async () => {
+    createSpy.mockClear();
+    createSpy.mockResolvedValue({ data: {} } as never);
+
+    await OnCallSetupApi.addToFirstLevel({
+      policyId: POLICY,
+      firstLevelId: FIRST_LEVEL,
+      userIds: [ANA],
+      teamIds: [TEAM_ID],
+    });
+
+    const [guidedUser, guidedTeam]: Array<{ model: unknown }> =
+      browserCreates();
+
+    const serverUser: LooseSpy = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+      .mockResolvedValue({} as never) as unknown as LooseSpy;
+    const serverTeam: LooseSpy = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "create")
+      .mockResolvedValue({} as never) as unknown as LooseSpy;
+
+    await AddToOnCallPolicyTool.execute(
+      {
+        policyId: POLICY,
+        policyName: "Payments on-call",
+        ruleId: FIRST_LEVEL,
+        ruleName: "Level 1",
+        userIds: [ANA],
+        teamIds: [TEAM_ID],
+        people: ["Ana Lopez"],
+        teamNames: ["Platform"],
+      },
+      ctx,
+    );
+
+    expect(
+      comparable(
+        (serverUser.mock.calls[0]![0] as unknown as { data: unknown }).data,
+      ),
+    ).toEqual(comparable(guidedUser!.model));
+    expect(
+      comparable(
+        (serverTeam.mock.calls[0]![0] as unknown as { data: unknown }).data,
+      ),
+    ).toEqual(comparable(guidedTeam!.model));
+  });
+
+  test("an invitation is the guided setup's and Invite User's: the members team, by address", async () => {
+    // The project's teams, as both ways in read them, both handed on.
+    const teams: Array<Team> = [
+      model(Team, { _id: OWNERS_TEAM, name: "Owners" }),
+      model(Team, { _id: MEMBERS_TEAM, name: "Members" }),
+    ];
+    const rows: Array<TeamPermission> = [
+      model(TeamPermission, {
+        teamId: new ObjectID(OWNERS_TEAM),
+        permission: Permission.ProjectOwner,
+        isBlockPermission: false,
+      }),
+      model(TeamPermission, {
+        teamId: new ObjectID(MEMBERS_TEAM),
+        permission: Permission.ProjectMember,
+        isBlockPermission: false,
+      }),
+    ];
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+    }) => {
+      if (args.modelType === Team) {
+        return list(teams);
+      }
+
+      if (args.modelType === TeamPermission) {
+        return list(rows);
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+    jest
+      .spyOn(GrantablePermission, "canCurrentUserGrantAll")
+      .mockReturnValue(true as never);
+    createSpy.mockClear();
+    createSpy.mockResolvedValue({
+      data: { id: ObjectID.generate(), userId: ObjectID.generate() },
+    } as never);
+
+    await OnCallSetupApi.inviteByEmail("ana@acme.example");
+
+    const guided: { model: unknown; miscDataProps?: unknown } =
+      browserCreates()[0]!;
+
+    // Ask AI picks the team the same way, as the person, then invites.
+    jest.spyOn(TeamService, "findBy").mockResolvedValue(teams as never);
+    jest
+      .spyOn(TeamPermissionService, "findBy")
+      .mockResolvedValue(rows as never);
+    jest
+      .spyOn(TeamPermissionService, "findTeamsCallerCannotGrant")
+      .mockResolvedValue([] as never);
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(ServerSendingStatus, "canSendEmailPublicly")
+      .mockResolvedValue(true as never);
+    const invite: LooseSpy = jest
+      .spyOn(TeamMemberService, "create")
+      .mockResolvedValue({} as never) as unknown as LooseSpy;
+
+    const prepared: { arguments: JSONObject } =
+      await InvitePeopleTool.prepareMutation!(
+        { emails: ["ana@acme.example"] },
+        ctx,
+      );
+    await InvitePeopleTool.execute(prepared.arguments, ctx);
+
+    const askAi: { data: unknown; miscDataProps: unknown } = invite.mock
+      .calls[0]![0] as unknown as { data: unknown; miscDataProps: unknown };
+
+    expect(prepared.arguments["teamId"]).toBe(MEMBERS_TEAM);
+    expect(comparable(askAi.data)).toEqual(comparable(guided.model));
+    expect(askAi.miscDataProps).toEqual(guided.miscDataProps);
+  });
+
+  test("a service's recommended monitor is the telemetry guided setup's, for the same service and the same first data", async () => {
+    const createOrUpdate: LooseSpy = jest
+      .spyOn(ModelAPI, "createOrUpdate")
+      .mockResolvedValue({
+        data: { id: new ObjectID(MONITOR_ID) },
+      } as never) as unknown as LooseSpy;
+    const recommendations: ReturnType<typeof getTelemetryRecommendations> =
+      getTelemetryRecommendations(null);
+    const errorBurst: (typeof recommendations)[number] = recommendations.find(
+      (recommendation: { templateId: string }): boolean => {
+        return recommendation.templateId === "service-error-burst";
+      },
+    )!;
+
+    await TelemetrySetupApi.createMonitors({
+      service: { id: SERVICE, name: "checkout", hasReported: true },
+      recommendations: recommendations,
+      recommendationIds: [errorBurst.recommendationId],
+      hasAcknowledgedBilling: true,
+      translator: dashboardTranslator("en"),
+    });
+
+    const guided: { model: unknown; miscDataProps: unknown } = createOrUpdate
+      .mock.calls[0]![0] as unknown as {
+      model: unknown;
+      miscDataProps: unknown;
+    };
+
+    jest.spyOn(ServiceService, "findOneBy").mockResolvedValue(
+      model(Service, {
+        _id: SERVICE,
+        name: "checkout",
+        lastSeenAt: new Date(),
+      }) as never,
+    );
+    // No first data known: the guided setup's three, both ways.
+    jest
+      .spyOn(ProjectMilestoneService, "findBy")
+      .mockResolvedValue([] as never);
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([] as never);
+    const serverCreate: LooseSpy = jest
+      .spyOn(MonitorService, "create")
+      .mockImplementation((async (args: {
+        data: Monitor;
+      }): Promise<Monitor> => {
+        return model(Monitor, { ...args.data, _id: MONITOR_ID });
+      }) as never) as unknown as LooseSpy;
+
+    await SetUpServiceMonitorTool.execute(
+      { service: "checkout", monitor: "errors" },
+      ctx,
+    );
+
+    const askAi: { data: unknown; miscDataProps: unknown } = serverCreate.mock
+      .calls[0]![0] as unknown as { data: unknown; miscDataProps: unknown };
+
+    expect(comparable(askAi.data)).toEqual(comparable(guided.model));
+    expect(askAi.miscDataProps).toEqual(guided.miscDataProps);
   });
 });

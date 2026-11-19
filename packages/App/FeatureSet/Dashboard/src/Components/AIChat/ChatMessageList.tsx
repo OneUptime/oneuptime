@@ -586,9 +586,15 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
 
         {/*
          * What an answer that set something up offers last (#6829): a test
-         * page, to the policy it made or to yourself.
+         * page, to the policy it made or to yourself - kept on the answer
+         * once sent, with what became of it (#7249).
          */}
-        {widgets.length > 0 && <AskAiTestPageOffer widgets={widgets} />}
+        {widgets.length > 0 && (
+          <AskAiTestPageOffer
+            widgets={widgets}
+            messageId={message.id?.toString() || undefined}
+          />
+        )}
 
         {toolActions.length > 0 && (
           <ToolApprovalCard

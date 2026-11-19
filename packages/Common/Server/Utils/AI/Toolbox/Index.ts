@@ -129,8 +129,12 @@ import {
 } from "./AIActionTools";
 import {
   AddMonitorsToStatusPageTool,
+  AddToOnCallPolicyTool,
+  InvitePeopleTool,
   PublishStatusPageTool,
+  SetHowToReachMeTool,
   SetUpPagingTool,
+  SetUpServiceMonitorTool,
   SetUpWebsiteMonitoringTool,
 } from "./SetupTools";
 import { WhoIsToldTool } from "./WhoIsToldTools";
@@ -333,10 +337,16 @@ export default class AIToolbox {
      * Setting things up by conversation (#6829): a website monitor, who is
      * paged, a status page and the monitors on it - the guided setups'
      * records, as the person, each part of a plan approved on one card in
-     * every mode (SetupTools).
+     * every mode (SetupTools). And people invited to the project (#7242),
+     * people added to a policy it has (#7244), how pages reach the person
+     * (#7454) and a service's recommended monitors (#7243).
      */
+    InvitePeopleTool,
     SetUpPagingTool,
+    AddToOnCallPolicyTool,
+    SetHowToReachMeTool,
     SetUpWebsiteMonitoringTool,
+    SetUpServiceMonitorTool,
     PublishStatusPageTool,
     AddMonitorsToStatusPageTool,
   ];

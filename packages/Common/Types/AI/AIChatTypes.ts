@@ -323,10 +323,24 @@ export interface AIChatWidgetData {
 /*
  * Who a test page goes to (#6811's POST /on-call-test-page/page-person and
  * /page-policy): the person reading the answer, or an on-call policy by id.
+ * Once one is sent from the answer, `sent` is its run (#7249, recorded by
+ * POST /ai-chat/message-test-page): what became of it is read from there,
+ * after a reload, on another device, and by the model in the next turn.
  */
 export type AIChatTestPageOffer =
-  | { kind: "self" }
-  | { kind: "policy"; policyId: string; policyName?: string | undefined };
+  | { kind: "self"; sent?: AIChatTestPageSent | undefined }
+  | {
+      kind: "policy";
+      policyId: string;
+      policyName?: string | undefined;
+      sent?: AIChatTestPageSent | undefined;
+    };
+
+// A test page sent from an answer: its run, and when it started (ISO).
+export interface AIChatTestPageSent {
+  executionLogId: string;
+  sentAt: string;
+}
 
 export interface AIChatWidget {
   id: string; // "W1", "W2" — sequential per message

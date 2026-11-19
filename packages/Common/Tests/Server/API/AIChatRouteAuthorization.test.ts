@@ -824,6 +824,14 @@ describe("every /ai-chat/* route requires membership of the project it was given
       uri: "/ai-chat/message-feedback",
       body: { messageId: MESSAGE_ID.toString(), feedback: "Up" },
     },
+    // A test page sent from an answer, kept on it (#7249).
+    {
+      uri: "/ai-chat/message-test-page",
+      body: {
+        messageId: MESSAGE_ID.toString(),
+        executionLogId: CONVERSATION_ID.toString(),
+      },
+    },
     {
       uri: PROVIDERS_ROUTE,
       body: {},
