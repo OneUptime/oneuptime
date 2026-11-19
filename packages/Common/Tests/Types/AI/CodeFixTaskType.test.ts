@@ -239,4 +239,64 @@ describe("CodeFixTaskTypeHelper", () => {
       );
     });
   });
+
+  /*
+   * Which recipes' failed or stopped turns are asked again from Code (Try
+   * again, Retry selected, #6509): every recipe is decided, so a new one is
+   * a decision too.
+   */
+  describe("canBeAskedAgain", () => {
+    const NOT_ASKED_AGAIN_IN_CODE: Record<string, string> = {
+      [CodeFixTaskType.GitHubIssueFix]:
+        "Asked for on GitHub: its answer goes back to the issue.",
+      [CodeFixTaskType.GitHubPullRequestRevision]:
+        "Asked for on GitHub: its answer goes back to the pull request.",
+      [CodeFixTaskType.GitHubPullRequestReview]:
+        "Asked for on GitHub: its review goes back to the pull request.",
+      [CodeFixTaskType.GitHubPullRequestProductionReview]:
+        "Reviewed again in place, with Review again.",
+    };
+
+    test("every recipe is asked again from Code, or is listed here with why not", () => {
+      for (const recipe of Object.values(CodeFixTaskType)) {
+        expect({
+          recipe,
+          decided:
+            CodeFixTaskTypeHelper.canBeAskedAgain(recipe) !==
+            Boolean(NOT_ASKED_AGAIN_IN_CODE[recipe]),
+        }).toEqual({ recipe, decided: true });
+      }
+    });
+
+    test("a request, and every fix OneUptime starts", () => {
+      expect(CodeFixTaskTypeHelper.getTaskTypesAskedAgain()).toEqual([
+        CodeFixTaskType.CodeRequest,
+        CodeFixTaskType.FixException,
+        CodeFixTaskType.WriteRegressionTest,
+        CodeFixTaskType.ImproveExceptionHandling,
+        CodeFixTaskType.ImproveInstrumentation,
+        CodeFixTaskType.FixPerformance,
+        CodeFixTaskType.ImproveLogging,
+        CodeFixTaskType.ImproveTracing,
+        CodeFixTaskType.FixFromIncident,
+      ]);
+    });
+
+    test("a legacy null recipe is an exception fix: asked again as one", () => {
+      expect(CodeFixTaskTypeHelper.canBeAskedAgain(null)).toBe(true);
+      expect(CodeFixTaskTypeHelper.isFixAskedAgain(null)).toBe(true);
+    });
+
+    test("a fix is asked again with its context; a request in its words", () => {
+      expect(
+        CodeFixTaskTypeHelper.isFixAskedAgain(CodeFixTaskType.FixException),
+      ).toBe(true);
+      expect(
+        CodeFixTaskTypeHelper.isFixAskedAgain(CodeFixTaskType.CodeRequest),
+      ).toBe(false);
+      expect(
+        CodeFixTaskTypeHelper.isFixAskedAgain(CodeFixTaskType.GitHubIssueFix),
+      ).toBe(false);
+    });
+  });
 });

@@ -475,6 +475,12 @@ export interface CodeTaskSummaryJSON {
   title: string;
   // The recipe of the task's first run (CodeFixTaskType).
   recipe: string;
+  /*
+   * The recipe of its latest turn - a request asked in reply, or a fix
+   * OneUptime started, asked again - when it has more than one turn: what
+   * Try again asks again. Left out, the latest turn is the first.
+   */
+  latestRecipe?: string | undefined;
   state: CodeTaskState;
   // Working, but no Runner has picked the latest turn up yet.
   isQueued: boolean;
@@ -507,7 +513,29 @@ export interface CodeTaskSummaryJSON {
   // When the latest turn started and ended: how long it took, or has.
   startedAt?: string | undefined;
   completedAt?: string | undefined;
+  /*
+   * The reader may ask its failed or stopped latest turn again now (#6508,
+   * #6509): its recipe can be asked again, the reader may ask AI in its
+   * repository and nothing stops AI there (CodeTaskTryAgain) - and a fix
+   * OneUptime started has no pull request it would open a second of. Only
+   * a list's and an insight's reads say it; true or left out.
+   */
+  canTryAgain?: boolean | undefined;
 }
+
+/*
+ * Turns of a long task its page did not show, a page at a time
+ * (POST /code-task/turns/:taskId, #7128): the turns just before the one the
+ * read names, oldest first, numbered from `firstNumber` - their places in
+ * the task, the first turn being 1.
+ */
+export interface CodeTaskEarlierTurnsJSON {
+  turns: Array<CodeTaskTurnJSON>;
+  firstNumber: number;
+}
+
+// The most turns one read of a long task's earlier turns sends.
+export const MAX_EARLIER_TURNS_PER_READ: number = 50;
 
 // How much a task changed: its files, and the lines added and taken out.
 export interface CodeTaskChangeStatsJSON {
@@ -610,6 +638,13 @@ export interface CodeTaskConversationJSON {
    * run that is not the task's is never sent.
    */
   linkedTurn?: CodeTaskLinkedTurnJSON | undefined;
+  /*
+   * Why the failed or stopped latest turn - a fix OneUptime started - is
+   * not asked again, for a reader who could otherwise (#6509): it may
+   * already have pushed or opened a pull request, and asking again could
+   * do it twice (CodeFixAutoRetry.mayHaveWritten). None otherwise.
+   */
+  tryAgainRefusal?: string | undefined;
 }
 
 /*

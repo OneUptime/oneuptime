@@ -35,7 +35,7 @@ import { FINISHED_FIX_STATUSES } from "../../../../Utils/Suggestions/CodeFixSugg
  */
 const MAX_CONNECTION_REPOSITORIES_CHECKED: number = 200;
 
-interface SubjectCodeFixRunInput {
+export interface SubjectCodeFixRunInput {
   projectId: ObjectID;
   taskType: CodeFixTaskType;
   incidentId?: ObjectID | undefined;
@@ -418,7 +418,14 @@ export default class SubjectCodeFixRun {
     });
   }
 
-  private static async assertLatestRecommendedInvestigationSource(
+  /*
+   * The investigation a FixFromIncident run's snapshot names is still the
+   * latest of its incident or alert, Completed and Recommended, with the
+   * analysis the snapshot holds - checked before the INSERT that creates
+   * one, and before a run's Try again asks it again (CodeTaskFixRetry),
+   * each under InvestigationSubjectLock.
+   */
+  public static async assertLatestRecommendedInvestigationSource(
     data: SubjectCodeFixRunInput,
   ): Promise<void> {
     const requestedSnapshot: InvestigationCodeFixTaskSnapshot | null =
