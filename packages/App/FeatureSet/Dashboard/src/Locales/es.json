@@ -58893,5 +58893,17 @@
   "More than one device has this address. This host is the one the scan's probe polls.": "Más de un dispositivo tiene esta dirección. Este host es el que consulta la sonda del escaneo.",
   "More than one device has this address. This host is the only one of them in the probe's sites.": "Más de un dispositivo tiene esta dirección. Este host es el único de ellos en los sitios de la sonda.",
   "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "Más de un dispositivo tiene esta dirección. Este host es {{device}}, el que consulta la sonda del escaneo.",
-  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Más de un dispositivo tiene esta dirección. Este host es {{device}}, el único en los sitios de la sonda."
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Más de un dispositivo tiene esta dirección. Este host es {{device}}, el único en los sitios de la sonda.",
+  "Add {{monitorName}} to this device": "Añadir {{monitorName}} a este dispositivo",
+  "Also at this address: {{devices}}": "También en esta dirección: {{devices}}",
+  "If it checks this device, add it with Add Existing Monitor.": "Si comprueba este dispositivo, añádelo con «Añadir monitor existente».",
+  "Its probes poll more than one device at this address, so OneUptime cannot tell which one it checks.": "Sus sondas consultan más de un dispositivo en esta dirección, así que OneUptime no puede saber cuál comprueba.",
+  "Its probes poll no device and are no site's default probe, so OneUptime cannot tell whether they reach this device.": "Sus sondas no consultan ningún dispositivo ni son la sonda predeterminada de ningún sitio, así que OneUptime no puede saber si llegan a este dispositivo.",
+  "More monitors may check this address than are listed.": "Puede que más monitores de los que se muestran comprueben esta dirección.",
+  "More than one device has this address in its probes' sites, so OneUptime cannot tell which one it checks.": "Más de un dispositivo tiene esta dirección en los sitios de sus sondas, así que OneUptime no puede saber cuál comprueba.",
+  "More than one device has this address, and its probes poll none and are no site's default probe, so OneUptime cannot tell which one it checks.": "Más de un dispositivo tiene esta dirección, y sus sondas no consultan ninguno ni son la sonda predeterminada de ningún sitio, así que OneUptime no puede saber cuál comprueba.",
+  "Network Device Set By": "Dispositivo de red definido por",
+  "The monitor was not added to this device.": "El monitor no se añadió a este dispositivo.",
+  "{{count}} monitors check this device's address but are not tied to it.": "{{count}} monitores comprueban la dirección de este dispositivo, pero no están asociados a él.",
+  "{{count}} monitors check this device's address but are not tied to it._one": "{{count}} monitor comprueba la dirección de este dispositivo, pero no está asociado a él."
 }

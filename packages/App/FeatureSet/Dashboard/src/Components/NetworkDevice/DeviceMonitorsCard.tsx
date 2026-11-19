@@ -1,4 +1,6 @@
 import MonitorElement from "../Monitor/Monitor";
+import DeviceUntiedMonitors from "./DeviceUntiedMonitors";
+import { UntiedMonitorsListing } from "./DeviceMonitorLookupUtil";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -82,6 +84,12 @@ export interface ComponentProps {
    * Left out, the card offers no way to remove one.
    */
   onMonitorRemoved?: (() => void) | undefined;
+  /*
+   * The monitors that check the device's address but are tied to no device
+   * (issue #9903), listed under its own: Add ties the ones whose probes see
+   * this device, and the others say why they are not tied.
+   */
+  untiedMonitors?: UntiedMonitorsListing | undefined;
 }
 
 /*
@@ -455,6 +463,27 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
       />
     ) : null;
 
+  /*
+   * Under the device's own monitors, or its empty state: the monitors that
+   * check its address but are tied to no device (issue #9903). Add is for
+   * a reader who may tie monitors, on a page that reads them again after,
+   * as Add Existing Monitor is.
+   */
+  const untiedMonitorsSection: ReactElement | null =
+    !props.isLoading &&
+    !props.error &&
+    props.networkDeviceId &&
+    props.untiedMonitors ? (
+      <DeviceUntiedMonitors
+        listing={props.untiedMonitors}
+        networkDeviceId={props.networkDeviceId}
+        mayAdd={Boolean(props.onMonitorAdded) && canAddExistingMonitor()}
+        onMonitorAdded={() => {
+          props.onMonitorAdded?.();
+        }}
+      />
+    ) : null;
+
   const buttons: Array<ReactElement> = [webUiButton, addExistingButton].filter(
     (button: ReactElement | null): button is ReactElement => {
       return Boolean(button);
@@ -576,7 +605,10 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
             : "Monitors that check this device and open incidents or alerts."
         }
       >
-        {getCardContent()}
+        <Fragment>
+          {getCardContent()}
+          {untiedMonitorsSection}
+        </Fragment>
       </Card>
       {addExistingModal}
       {removeModal}

@@ -58893,5 +58893,17 @@
   "More than one device has this address. This host is the one the scan's probe polls.": "Этот адрес есть у нескольких устройств. Этот хост — устройство, которое опрашивает зонд сканирования.",
   "More than one device has this address. This host is the only one of them in the probe's sites.": "Этот адрес есть у нескольких устройств. Этот хост — единственное из них на площадках зонда.",
   "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "Этот адрес есть у нескольких устройств. Этот хост — {{device}}, устройство, которое опрашивает зонд сканирования.",
-  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Этот адрес есть у нескольких устройств. Этот хост — {{device}}, единственное из них на площадках зонда."
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Этот адрес есть у нескольких устройств. Этот хост — {{device}}, единственное из них на площадках зонда.",
+  "Add {{monitorName}} to this device": "Добавить {{monitorName}} к этому устройству",
+  "Also at this address: {{devices}}": "Также по этому адресу: {{devices}}",
+  "If it checks this device, add it with Add Existing Monitor.": "Если он проверяет это устройство, добавьте его через «Добавить существующий монитор».",
+  "Its probes poll more than one device at this address, so OneUptime cannot tell which one it checks.": "Его зонды опрашивают несколько устройств с этим адресом, поэтому OneUptime не может определить, какое он проверяет.",
+  "Its probes poll no device and are no site's default probe, so OneUptime cannot tell whether they reach this device.": "Его зонды не опрашивают ни одного устройства и не являются зондом по умолчанию ни для одной площадки, поэтому OneUptime не может определить, достигают ли они этого устройства.",
+  "More monitors may check this address than are listed.": "Этот адрес могут проверять и другие мониторы, кроме показанных.",
+  "More than one device has this address in its probes' sites, so OneUptime cannot tell which one it checks.": "Этот адрес есть у нескольких устройств на площадках его зондов, поэтому OneUptime не может определить, какое он проверяет.",
+  "More than one device has this address, and its probes poll none and are no site's default probe, so OneUptime cannot tell which one it checks.": "Этот адрес есть у нескольких устройств, а его зонды не опрашивают ни одного из них и не являются зондом по умолчанию ни для одной площадки, поэтому OneUptime не может определить, какое он проверяет.",
+  "Network Device Set By": "Кем задано сетевое устройство",
+  "The monitor was not added to this device.": "Монитор не добавлен к этому устройству.",
+  "{{count}} monitors check this device's address but are not tied to it.": "Мониторов, которые проверяют адрес этого устройства, но не связаны с ним: {{count}}.",
+  "{{count}} monitors check this device's address but are not tied to it._one": "{{count}} монитор проверяет адрес этого устройства, но не связан с ним."
 }

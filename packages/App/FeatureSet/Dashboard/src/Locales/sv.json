@@ -58893,5 +58893,17 @@
   "More than one device has this address. This host is the one the scan's probe polls.": "Mer än en enhet har den här adressen. Den här värden är enheten som skanningens sond pollar.",
   "More than one device has this address. This host is the only one of them in the probe's sites.": "Mer än en enhet har den här adressen. Den här värden är den enda av dem på sondens platser.",
   "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "Mer än en enhet har den här adressen. Den här värden är {{device}}, enheten som skanningens sond pollar.",
-  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Mer än en enhet har den här adressen. Den här värden är {{device}}, den enda på sondens platser."
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Mer än en enhet har den här adressen. Den här värden är {{device}}, den enda på sondens platser.",
+  "Add {{monitorName}} to this device": "Lägg till {{monitorName}} på den här enheten",
+  "Also at this address: {{devices}}": "Också på den här adressen: {{devices}}",
+  "If it checks this device, add it with Add Existing Monitor.": "Om den kontrollerar den här enheten lägger du till den med ”Lägg till befintlig monitor”.",
+  "Its probes poll more than one device at this address, so OneUptime cannot tell which one it checks.": "Dess sonder pollar mer än en enhet på den här adressen, så OneUptime kan inte avgöra vilken den kontrollerar.",
+  "Its probes poll no device and are no site's default probe, so OneUptime cannot tell whether they reach this device.": "Dess sonder pollar ingen enhet och är inte standardsond för någon plats, så OneUptime kan inte avgöra om de når den här enheten.",
+  "More monitors may check this address than are listed.": "Fler monitorer än de som visas kan kontrollera den här adressen.",
+  "More than one device has this address in its probes' sites, so OneUptime cannot tell which one it checks.": "Mer än en enhet har den här adressen på dess sonders platser, så OneUptime kan inte avgöra vilken den kontrollerar.",
+  "More than one device has this address, and its probes poll none and are no site's default probe, so OneUptime cannot tell which one it checks.": "Mer än en enhet har den här adressen, och dess sonder pollar ingen av dem och är inte standardsond för någon plats, så OneUptime kan inte avgöra vilken den kontrollerar.",
+  "Network Device Set By": "Nätverksenhet angiven av",
+  "The monitor was not added to this device.": "Monitorn lades inte till på den här enheten.",
+  "{{count}} monitors check this device's address but are not tied to it.": "{{count}} monitorer kontrollerar den här enhetens adress men är inte kopplade till den.",
+  "{{count}} monitors check this device's address but are not tied to it._one": "{{count}} monitor kontrollerar den här enhetens adress men är inte kopplad till den."
 }

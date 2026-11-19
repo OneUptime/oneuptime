@@ -1,22 +1,14 @@
-import AppLink from "../../AppLink/AppLink";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import DeviceNameLink from "../DeviceNameLink";
 import {
   DiscoveredHostSharedAddress,
   DiscoveredNetworkDevice,
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import Route from "Common/Types/API/Route";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { translationKey } from "Common/Types/Translator";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -193,79 +185,6 @@ export function getSharedAddressDeviceIds(
 
   return Array.from(deviceIds).sort();
 }
-
-/*
- * The names of these devices, by id (lower case), as the reader may read
- * them: a device they may not see is left out, and its line names none.
- */
-export async function loadDeviceNames(
-  deviceIds: ReadonlyArray<string>,
-): Promise<Map<string, string>> {
-  const names: Map<string, string> = new Map<string, string>();
-  const ids: Array<string> = Array.from(new Set(deviceIds)).filter(
-    (id: string): boolean => {
-      return ObjectID.isValidUUID(id);
-    },
-  );
-
-  for (
-    let offset: number = 0;
-    offset < ids.length;
-    offset += LIMIT_PER_PROJECT
-  ) {
-    const piece: Array<string> = ids.slice(offset, offset + LIMIT_PER_PROJECT);
-
-    const devices: ListResult<NetworkDevice> =
-      await ModelAPI.getList<NetworkDevice>({
-        modelType: NetworkDevice,
-        query: { _id: new Includes(piece) },
-        select: { _id: true, name: true },
-        sort: { name: SortOrder.Ascending },
-        limit: piece.length,
-        skip: 0,
-      });
-
-    for (const device of devices.data) {
-      const id: string = toIdKey(
-        device._id?.toString() || device.id?.toString(),
-      );
-      const name: string = device.name?.toString().trim() || "";
-
-      if (id && name) {
-        names.set(id, name);
-      }
-    }
-  }
-
-  return names;
-}
-
-function getDeviceRoute(deviceId: string): Route {
-  return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
-    { modelId: new ObjectID(deviceId) },
-  );
-}
-
-const DeviceNameLink: FunctionComponent<{
-  deviceId: string;
-  name: string;
-  dataTestId: string;
-}> = (props: {
-  deviceId: string;
-  name: string;
-  dataTestId: string;
-}): ReactElement => {
-  return (
-    <AppLink
-      to={getDeviceRoute(props.deviceId)}
-      className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
-      dataTestId={props.dataTestId}
-    >
-      <span dir="auto">{props.name}</span>
-    </AppLink>
-  );
-};
 
 export interface DiscoveredHostSharedAddressLineProps {
   host: DiscoveredNetworkDevice;

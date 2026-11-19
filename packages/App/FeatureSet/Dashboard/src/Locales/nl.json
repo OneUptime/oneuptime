@@ -58893,5 +58893,17 @@
   "More than one device has this address. This host is the one the scan's probe polls.": "Meer dan één apparaat heeft dit adres. Deze host is het apparaat dat de sonde van de scan bevraagt.",
   "More than one device has this address. This host is the only one of them in the probe's sites.": "Meer dan één apparaat heeft dit adres. Deze host is het enige ervan op de locaties van de sonde.",
   "More than one device has this address. This host is {{device}}, the one the scan's probe polls.": "Meer dan één apparaat heeft dit adres. Deze host is {{device}}, het apparaat dat de sonde van de scan bevraagt.",
-  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Meer dan één apparaat heeft dit adres. Deze host is {{device}}, het enige op de locaties van de sonde."
+  "More than one device has this address. This host is {{device}}, the only one in the probe's sites.": "Meer dan één apparaat heeft dit adres. Deze host is {{device}}, het enige op de locaties van de sonde.",
+  "Add {{monitorName}} to this device": "{{monitorName}} aan dit apparaat toevoegen",
+  "Also at this address: {{devices}}": "Ook op dit adres: {{devices}}",
+  "If it checks this device, add it with Add Existing Monitor.": "Als hij dit apparaat controleert, voeg hem dan toe met “Bestaande monitor toevoegen”.",
+  "Its probes poll more than one device at this address, so OneUptime cannot tell which one it checks.": "Zijn sondes bevragen meer dan één apparaat op dit adres, dus OneUptime kan niet zien welk hij controleert.",
+  "Its probes poll no device and are no site's default probe, so OneUptime cannot tell whether they reach this device.": "Zijn sondes bevragen geen apparaat en zijn van geen enkele locatie de standaardsonde, dus OneUptime kan niet zien of ze dit apparaat bereiken.",
+  "More monitors may check this address than are listed.": "Mogelijk controleren meer monitoren dit adres dan hier staan.",
+  "More than one device has this address in its probes' sites, so OneUptime cannot tell which one it checks.": "Meer dan één apparaat heeft dit adres op de locaties van zijn sondes, dus OneUptime kan niet zien welk hij controleert.",
+  "More than one device has this address, and its probes poll none and are no site's default probe, so OneUptime cannot tell which one it checks.": "Meer dan één apparaat heeft dit adres, en zijn sondes bevragen er geen en zijn van geen enkele locatie de standaardsonde, dus OneUptime kan niet zien welk hij controleert.",
+  "Network Device Set By": "Netwerkapparaat ingesteld door",
+  "The monitor was not added to this device.": "De monitor is niet aan dit apparaat toegevoegd.",
+  "{{count}} monitors check this device's address but are not tied to it.": "{{count}} monitoren controleren het adres van dit apparaat, maar zijn er niet aan toegewezen.",
+  "{{count}} monitors check this device's address but are not tied to it._one": "{{count}} monitor controleert het adres van dit apparaat, maar is er niet aan toegewezen."
 }

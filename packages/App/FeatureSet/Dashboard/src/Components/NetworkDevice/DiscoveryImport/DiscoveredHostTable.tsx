@@ -88,8 +88,8 @@ import {
 } from "../DeviceMonitorsOfDevices";
 import DiscoveredHostSharedAddressLine, {
   getSharedAddressDeviceIds,
-  loadDeviceNames,
 } from "./DiscoveredHostSharedAddress";
+import { loadDeviceNames } from "../NetworkDeviceNames";
 
 /*
  * THE HOSTS OF A SCAN, TO CHOOSE FROM (Network > Discovery > Review Results,
