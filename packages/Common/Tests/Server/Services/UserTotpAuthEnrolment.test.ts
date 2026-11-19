@@ -12,6 +12,13 @@ import * as OTPAuth from "otpauth";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
+ * Whether a person's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts): here it
+ * lets everyone through.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn");
+
+/*
  * Enrolment — the moment a secret is minted and the QR code the user is about
  * to scan is frozen into `twoFactorOtpUrl`.
  *

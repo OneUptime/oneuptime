@@ -35,7 +35,7 @@ Når overstyringen slutter, er tilkallingene deres igjen. **Tidslinje for vaktpl
 :::steps
 ### Åpne overstyringene
 
-Gå til **Vakt → Avansert → Brukeroverstyringer** for å dekke for noen i alle vaktpolicyer, eller til en policys egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den policyen. Klikk på **Legg til Brukeroverstyring**.
+Gå til **Vakt → Tidsplaner → Brukeroverstyringer** for å dekke for noen i alle vaktpolicyer, eller til en policys egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den policyen. Klikk på **Legg til Brukeroverstyring**.
 
 ### Si hvem som er borte
 
@@ -72,7 +72,7 @@ For å hente noen tilbake før overstyringen slutter, klikker du på **Avslutt n
 
 | Lagt til under | Kort | Gjelder for |
 | --- | --- | --- |
-| **Vakt → Avansert → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktpolicyer i prosjektet |
+| **Vakt → Tidsplaner → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktpolicyer i prosjektet |
 | **Brukeroverstyringer** for en policy | **Brukeroverstyringer for vaktpolicyen** | Bare den policyen |
 
 To overstyringer for samme person kan ikke overlappe på samme policy, heller ikke når begge er globale. Skjemaet, og **Hopp over til…** i lagene til en vaktplan, sier det ved siden av tidspunktene så snart de er valgt, med **Rediger den overstyringen** for å endre den andre i stedet. Den ene kan slutte når den neste starter.
@@ -92,7 +92,7 @@ Når noen forlater prosjektet, slettes hver overstyring som nevner dem og ikke h
 
 **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til, redigere og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
 
-En overstyring på en policy følger policyens omfang. Gi et team **Vaktmedlem** begrenset til policyene det eier, eller til etiketten sin, så legger medlemmene til, redigerer og sletter overstyringer bare på de policyene. En global overstyring gjelder for alle policyer, også et annet teams, så å legge til, redigere eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring**, **Rediger**, **Avslutt nå** og **Slett** under **Vakt → Avansert → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet policyene du kan legge til overstyringer på, med én overstyring per policy, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver policys egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide policyer.
+En overstyring på en policy følger policyens omfang. Gi et team **Vaktmedlem** begrenset til policyene det eier, eller til etiketten sin, så legger medlemmene til, redigerer og sletter overstyringer bare på de policyene. En global overstyring gjelder for alle policyer, også et annet teams, så å legge til, redigere eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring**, **Rediger**, **Avslutt nå** og **Slett** under **Vakt → Tidsplaner → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet policyene du kan legge til overstyringer på, med én overstyring per policy, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver policys egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide policyer.
 
 I OneUptime Cloud krever brukeroverstyringer abonnementet **Growth**.
 
@@ -131,7 +131,7 @@ For å avslutte en pågående overstyring sender du `POST /api/on-call-duty-poli
 ## Feilsøking
 
 :::details Personen på ferie ble likevel tilkalt
-Sjekk hvor overstyringen ble lagt til. En på en policys side **Brukeroverstyringer** dekker bare den policyen, og andre policyer tilkaller dem fortsatt: legg den til under **Vakt → Avansert → Brukeroverstyringer** for å dekke alle policyer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
+Sjekk hvor overstyringen ble lagt til. En på en policys side **Brukeroverstyringer** dekker bare den policyen, og andre policyer tilkaller dem fortsatt: legg den til under **Vakt → Tidsplaner → Brukeroverstyringer** for å dekke alle policyer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
 :::
 
 :::details Personen som dekker, ble heller ikke tilkalt

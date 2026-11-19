@@ -14,7 +14,7 @@ import { TelemetryOwnersNotScanned } from "./Telemetry/TelemetryDataScanner";
  * WHAT THE HOURLY TELEMETRY SCAN MAY READ: A PROJECT THAT IS SERVED AND
  * SCANS TELEMETRY, AND OF IT ONLY THE SERVICES WHOSE STORE STILL SCANS.
  *
- * A service's logs, traces, exceptions, replays and AI conversations are
+ * A service's logs, traces, exceptions, replays, AI conversations and metrics are
  * each a data store of their own, read by the project's telemetry scan
  * (DataSecurityRunner.scanTelemetry) rather than handed out by a claim.
  * It read every service of every project, whatever it was told

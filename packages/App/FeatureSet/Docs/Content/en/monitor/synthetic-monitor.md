@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 To create a secret and choose which monitors can use it, see [Monitor Secrets](/docs/monitor/monitor-secrets).
 
+A one-time code secret holds a site's two-factor setup key rather than a value. Its `{{monitorSecrets.NAME}}` is the code of the moment the script starts, and `await oneuptime.getTotpCode("NAME")` makes a fresh code when the script asks, which suits a sign-in that reaches its code prompt a few pages in. See [Signing in with a one-time code](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code).
+
 ## Custom Metrics
 
 You can capture custom metrics from your script with the `oneuptime.captureMetric()` function. These metrics are stored in OneUptime and can be charted on dashboards using the Metric Explorer.
@@ -258,6 +260,7 @@ In incident and alert templates, every run is in `{{syntheticResponses}}`: see [
 | `crypto` | A browser-worker implementation of SHA-256 hashes, HMAC-SHA-256, `randomBytes`, `randomInt`, and `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` and `error`. The messages are kept with each run. |
 | `oneuptime.captureMetric` | Captures a custom metric. See [Custom Metrics](#custom-metrics). |
+| `oneuptime.getTotpCode` | Makes the current code of a one-time code secret: `await oneuptime.getTotpCode("NAME")`. See [Using Monitor Secrets](#using-monitor-secrets). |
 | `http` | A buffered, client-only compatibility facade supporting `request`, `get`, and `Agent`. |
 | `https` | The HTTPS equivalent of the client-only `http` facade. |
 | `Buffer`, `setTimeout`, `setInterval` | And their `clear` functions. |

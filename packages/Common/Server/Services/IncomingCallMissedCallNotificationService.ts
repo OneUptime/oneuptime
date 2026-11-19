@@ -207,7 +207,6 @@ export class IncomingCallMissedCallNotificationService extends BaseService {
           smsMessage: content.smsMessage,
           callRequestMessage: content.callRequestMessage,
           pushNotificationMessage: content.pushNotificationMessage,
-          whatsAppMessage: content.whatsAppMessage,
         });
       } catch (err: unknown) {
         logger.error(

@@ -1100,6 +1100,7 @@ export default class MobileReplayRecorder {
 
     const sanitizedProperties: Record<string, string> = maskStringMapValues(
       sanitizeEventProperties(properties),
+      this.readableEventPropertyKeys(),
     );
     this.runExternalActivity(this.now(), (): void => {
       this.appendCustom(
@@ -2069,6 +2070,14 @@ export default class MobileReplayRecorder {
   /* The tap, page, event and error signals the application's policy defines. */
   private customSignals(): ReadonlyArray<SessionReplayCustomSignalConfig> {
     return this.config?.frustrationSignals.customSignals ?? [];
+  }
+
+  /*
+   * The application's readable event properties (issue #7501): none until
+   * the policy is read, so a track() before it is masked whole.
+   */
+  private readableEventPropertyKeys(): Array<string> {
+    return this.config?.readableEventPropertyKeys ?? [];
   }
 
   /*
@@ -3968,7 +3977,10 @@ export default class MobileReplayRecorder {
           return this.analyticsIdentity();
         },
         toProperties: (value: unknown): Record<string, string> => {
-          return maskStringMapValues(sanitizeEventProperties(value));
+          return maskStringMapValues(
+            sanitizeEventProperties(value),
+            this.readableEventPropertyKeys(),
+          );
         },
         getContext: (): ProductAnalyticsWireContext => {
           return this.analyticsContext();

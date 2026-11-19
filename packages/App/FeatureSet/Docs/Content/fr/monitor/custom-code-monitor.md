@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 Une valeur de secret qui contient un guillemet casse la chaîne qui l'entoure. Une référence que le moniteur n'a pas le droit d'utiliser reste dans le script telle qu'elle est écrite. Pour créer un secret et choisir les moniteurs qui peuvent l'utiliser, voir [Secrets de surveillance](/docs/monitor/monitor-secrets).
 
+Un secret de code à usage unique contient la clé de configuration à deux facteurs d'un site plutôt qu'une valeur. Son `{{monitorSecrets.NAME}}` est le code valable au moment où le script démarre, et `await oneuptime.getTotpCode("NAME")` produit un nouveau code quand le script le demande. Voir [Se connecter avec un code à usage unique](/docs/monitor/monitor-secrets#se-connecter-avec-un-code-à-usage-unique).
+
 ## Métriques personnalisées
 
 Vous pouvez capturer des métriques personnalisées depuis votre script avec la fonction `oneuptime.captureMetric()`. Ces métriques sont stockées dans OneUptime et peuvent être tracées dans des tableaux de bord avec l'explorateur de métriques.
@@ -226,6 +228,7 @@ Ajoutez un filtre par champ à vérifier ; chacun peut avoir sa propre condition
 | `http`, `https` | Uniquement leur classe `Agent`, à passer à `axios` — par exemple `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. Il n'y a ni `request` ni `get`. |
 | `console.log` | Journalise des données pour le débogage. Seul `console.log` existe ; `console.error` et les autres n'existent pas. |
 | `oneuptime.captureMetric` | Capture une métrique personnalisée. Voir [Métriques personnalisées](#métriques-personnalisées). |
+| `oneuptime.getTotpCode` | Produit le code actuel d'un secret de code à usage unique : `await oneuptime.getTotpCode("NAME")`. Voir [Utiliser les secrets de moniteur](#utiliser-les-secrets-de-moniteur). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Attendre à l'intérieur du script. Un délai ne dépasse jamais le temps limite du script. |
 
 ## Points à considérer

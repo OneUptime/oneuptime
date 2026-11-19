@@ -40,7 +40,7 @@ flowchart TB
 
 ![「擷取金鑰」清單，「建立擷取金鑰」已框出](screen:ingestion-keys)
 
-新金鑰會在自己的頁面中開啟。複製它的 **密鑰金鑰** ：這就是 SDK 以 `x-oneuptime-token` 傳送的權杖。
+新金鑰會在自己的頁面中開啟。複製它的 **密鑰金鑰** ：這就是 SDK 以 `x-oneuptime-token` 傳送的權杖。Browser 金鑰本來就是公開的：它只在你列出的來源上有效，只能傳送瀏覽器遙測和工作階段重播，而且有請求速率限制。切勿把伺服器金鑰放進頁面。
 
 ![遙測擷取金鑰的頁面，顯示其密鑰金鑰](/docs/static/images/TelemetryIngestionKeyView.png)
 

@@ -42,6 +42,11 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import {
+  getCountedSpansRoute,
+  getFailedSpansRoute,
+} from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import OneUptimeDate from "Common/Types/Date";
@@ -364,7 +369,12 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       iconColor: "sky",
       loading: metricsLoading,
       sublabel: "spans, selected range",
-      to: populate(PageMap.SERVICE_VIEW_TRACES),
+      // Every span it counts, over the range it counts them in.
+      to: getCountedSpansRoute({
+        tracesRoute: populate(PageMap.SERVICE_VIEW_TRACES),
+        timeRange: timeRange,
+        spanType: TraceSpanType.All,
+      }),
       description: SERVICE_METRIC_DESCRIPTIONS.requests,
     },
     {
@@ -376,6 +386,12 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       sublabel: "of spans errored",
       percent: m?.errorRatePercent,
       thresholds: { warn: 1, danger: 5 },
+      // The spans it counts: every span of the service that failed.
+      to: getFailedSpansRoute({
+        tracesRoute: populate(PageMap.SERVICE_VIEW_TRACES),
+        timeRange: timeRange,
+        spanType: TraceSpanType.All,
+      }),
       description: SERVICE_METRIC_DESCRIPTIONS.errorRate,
     },
     {

@@ -53,6 +53,12 @@ export interface ComponentProps {
    * again, where who it reaches - no one included - is the question.
    */
   saysWhenNobodyIsNotified?: boolean | undefined;
+  /*
+   * The form above it says why nothing will be sent (the public note
+   * composer): leave out a hidden incident and pages that all send nothing
+   * (SubscriberAudienceText's isNothingSentSaidAbove).
+   */
+  isNothingSentSaidAbove?: boolean | undefined;
   className?: string | undefined;
   dataTestId?: string | undefined;
 }
@@ -133,6 +139,7 @@ const SubscriberAudienceSummary: FunctionComponent<ComponentProps> = (
     audience: audience,
     translate: translate,
     saysWhenNobodyIsNotified: props.saysWhenNobodyIsNotified,
+    isNothingSentSaidAbove: props.isNothingSentSaidAbove,
   });
 
   if (!view) {

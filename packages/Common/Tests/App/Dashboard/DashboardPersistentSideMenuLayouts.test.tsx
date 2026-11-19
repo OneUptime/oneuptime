@@ -36,6 +36,10 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
+import { SIGN_IN_MANAGEMENT_API_ROUTE } from "../../../Types/SSO/SsoManagedSignIn";
+import API from "../../../UI/Utils/API/API";
 import Navigation from "../../../UI/Utils/Navigation";
 
 /*
@@ -516,6 +520,26 @@ beforeEach(() => {
   jest
     .spyOn(Navigation, "getCurrentPath")
     .mockReturnValue(RouteMap[PageMap.SETTINGS] as Route);
+
+  /*
+   * The user profile's layout asks once who manages the person's sign-in
+   * (Components/UserProfile/SignInManagement, #9688): here, the person does.
+   */
+  jest
+    .spyOn(API, "get")
+    .mockImplementation(
+      async (options: { url?: unknown }): Promise<HTTPResponse<JSONObject>> => {
+        if (!String(options.url).endsWith(SIGN_IN_MANAGEMENT_API_ROUTE)) {
+          throw new Error(`Unexpected request: ${String(options.url)}`);
+        }
+
+        return new HTTPResponse<JSONObject>(
+          200,
+          { isManagedBySso: false, ssoProviderNames: [] },
+          {},
+        );
+      },
+    );
 });
 
 afterEach(() => {

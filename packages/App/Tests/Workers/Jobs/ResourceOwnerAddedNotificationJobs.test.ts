@@ -31,7 +31,8 @@ import path from "path";
 
 /*
  * THE NEW OWNERS OF 23 MORE KINDS OF RECORD ARE TOLD (#9700), AND A
- * NETWORK DEVICE'S AS THE REST OF THE INFRASTRUCTURE'S ARE.
+ * NETWORK DEVICE'S AS THE REST OF THE INFRASTRUCTURE'S ARE; AND A MONITOR
+ * GROUP'S AND A RUNNER'S, ADDED ON THEIR OWNERS PAGES (#9758).
  *
  * Owner rules of services, RUM applications, databases, queues, hosts,
  * Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware,
@@ -209,6 +210,12 @@ import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPo
 import IncomingCallPolicyOwnerTeamService from "Common/Server/Services/IncomingCallPolicyOwnerTeamService";
 import IncomingCallPolicyOwnerUserService from "Common/Server/Services/IncomingCallPolicyOwnerUserService";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
+import MonitorGroupOwnerTeamService from "Common/Server/Services/MonitorGroupOwnerTeamService";
+import MonitorGroupOwnerUserService from "Common/Server/Services/MonitorGroupOwnerUserService";
+import MonitorGroupService from "Common/Server/Services/MonitorGroupService";
+import RunnerOwnerTeamService from "Common/Server/Services/RunnerOwnerTeamService";
+import RunnerOwnerUserService from "Common/Server/Services/RunnerOwnerUserService";
+import RunnerService from "Common/Server/Services/RunnerService";
 
 // Imported for their side effect: RunCron (mocked above) records each handler.
 import "../../../FeatureSet/Workers/Jobs/ServiceOwners/SendOwnerAddedNotification";
@@ -235,6 +242,8 @@ import "../../../FeatureSet/Workers/Jobs/RunbookOwners/SendOwnerAddedNotificatio
 import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyScheduleOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IncomingCallPolicyOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/MonitorGroupOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RunnerOwners/SendOwnerAddedNotification";
 
 type AnyMock = jest.Mock;
 
@@ -658,6 +667,40 @@ const CASES: Array<JobCase> = [
     ownershipNote:
       "You are told when a call to this incoming call policy reaches nobody.",
   },
+  /*
+   * #9758: a monitor group's and a Runner's owners, added on their Owners
+   * pages - they have no owner rule - were written not told yet for no job.
+   */
+  {
+    record: "MonitorGroup",
+    jobName: "MonitorGroupOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.MonitorGroupOwnerAdded,
+    eventType:
+      NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+    ownerTable: "MonitorGroupOwnerUser",
+    recordIdColumn: "monitorGroupId",
+    teamService: MonitorGroupOwnerTeamService,
+    userService: MonitorGroupOwnerUserService,
+    recordService: MonitorGroupService,
+    noun: "monitor group",
+    title: "Monitor Group",
+    path: "monitor-groups",
+  },
+  {
+    record: "Runner",
+    jobName: "RunnerOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.RunnerOwnerAdded,
+    eventType:
+      NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+    ownerTable: "RunnerOwnerUser",
+    recordIdColumn: "runnerId",
+    teamService: RunnerOwnerTeamService,
+    userService: RunnerOwnerUserService,
+    recordService: RunnerService,
+    noun: "Runner",
+    title: "Runner",
+    path: "runbooks/runners",
+  },
 ];
 
 const OFF: ServerProductOffReason = ServerProductOffReason.SwitchedOff;
@@ -1077,6 +1120,11 @@ describe("the events the owners are told through", () => {
         ["OnCallDutyPolicySchedule"],
       [NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION]:
         ["IncomingCallPolicy"],
+      [NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION]:
+        ["MonitorGroup"],
+      [NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION]: [
+        "Runner",
+      ],
     });
   });
 });
@@ -1105,7 +1153,7 @@ describe("the Workers", () => {
           return jobCase.kind;
         }),
       ).size,
-    ).toBe(24);
+    ).toBe(26);
   });
 });
 

@@ -36,7 +36,7 @@ import {
  * No mocks: both modules under test are pure and import nothing but the enum.
  */
 describe("NotificationEmailRollupPolicy - the two sets partition the enum", () => {
-  test("the enum still has exactly 58 members, split 8 / 50", () => {
+  test("the enum still has exactly 70 members, split 8 / 62", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -63,14 +63,16 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
      * owner-added email rolls up in its product's. 68 with being made an
      * owner of a service or a piece of infrastructure, of a dashboard, a
      * workflow or a runbook, and of an on-call policy, schedule or incoming
-     * call policy (#9700), which roll up too.
+     * call policy (#9700), which roll up too. 70 with being made an owner of
+     * a monitor group or a Runner (#9758), which roll up with the monitors'
+     * and the runbooks' emails.
      */
-    expect(allEventTypes.length).toBe(68);
+    expect(allEventTypes.length).toBe(70);
     expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(8);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(60);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(62);
   });
 
-  test("their union is exactly the enum, so a 69th member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 71st member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -371,6 +373,18 @@ describe("NotificationEmailRollupCategory", () => {
       [
         NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
         RollupCategory.OnCall,
+      ],
+      /*
+       * #9758: a monitor group is Monitors', and a Runner, which runs
+       * runbook steps, is filed with the runbooks.
+       */
+      [
+        NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.Monitors,
+      ],
+      [
+        NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+        RollupCategory.DashboardsAndAutomation,
       ],
     ];
 

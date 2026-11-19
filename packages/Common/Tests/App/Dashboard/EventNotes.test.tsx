@@ -345,6 +345,7 @@ import FileModel from "../../../Models/DatabaseModels/File";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import IncidentEpisodePublicNote from "../../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import SubscriberNotificationResendCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -369,6 +370,18 @@ import PrivateRecordPublicNotes, {
   PrivateRecordKind,
 } from "../../../Types/StatusPage/PrivateRecordPublicNotes";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import {
+  answerPublicNoteReach,
+  NOTE_NOTIFIES,
+  PublicNoteReachAnswer,
+  PublicNoteReachAsk,
+} from "./PublicNoteReachAnswers";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
+import {
+  getPublicNoteReachCopy,
+  PublicNoteReachEventCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/PublicNoteReachCopy";
 
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 const MINUTE: number = 60 * 1000;
@@ -667,6 +680,8 @@ function publicProps(
       },
     },
     siblingRoute: new Route(SIBLING_ROUTE),
+    // Where the composer asks whether a status page shows the incident.
+    statusPageReach: { apiPath: "/incident" },
     ...overrides,
   };
 }
@@ -791,12 +806,24 @@ async function openActions(noteCard: HTMLElement): Promise<void> {
   await within(noteCard).findByRole("menuitem", { name: "Edit note" });
 }
 
+/*
+ * What the server says of a public note posted now (#9735): by default a
+ * status page shows the incident and notifies its subscribers. A test sets
+ * another answer before it draws the page; every ask is kept.
+ */
+let reachAnswer: PublicNoteReachAnswer = NOTE_NOTIFIES;
+let reachAsks: Array<PublicNoteReachAsk> = [];
+
 beforeEach(() => {
   store.clear();
   currentPermissions = [Permission.ProjectOwner];
   isMasterAdmin = true;
   capturedAIProps = null;
   serveStore();
+  reachAnswer = NOTE_NOTIFIES;
+  reachAsks = answerPublicNoteReach((): PublicNoteReachAnswer => {
+    return reachAnswer;
+  });
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
     return new Date(NOW.getTime());
   });
@@ -3731,6 +3758,480 @@ describe("event notes: sending a note's notification again", () => {
           SubscriberNotificationResendCopy.resendNoteNotificationButton,
         ),
       ).toBeInTheDocument();
+    });
+  });
+});
+
+/*
+ * WHAT THE COMPOSER PROMISES OF A STATUS PAGE (#9735).
+ *
+ * It said "Visible on your status page" beside "Public", and "Subscribers
+ * will be notified about this update as soon as you post it." under the
+ * ticked box, of every incident, episode and maintenance event - also of
+ * one no status page shows, and of one whose pages send their subscribers
+ * nothing. It now asks the server (POST /<event>/public-note-reach, once
+ * for the page) and says what is true: that a page shows the note, or why
+ * not and where it shows later; that subscribers are told, or why not - and
+ * while it does not know, it promises nothing.
+ */
+describe("event notes: what the composer promises of a status page", () => {
+  interface EventCase {
+    noun: string;
+    modelType: { new (): BaseModel };
+    parentIdField: string;
+    apiPath: string;
+  }
+
+  const EVENTS: Array<EventCase> = [
+    {
+      noun: "incident",
+      modelType: IncidentPublicNote,
+      parentIdField: "incidentId",
+      apiPath: "/incident",
+    },
+    {
+      noun: "episode",
+      modelType: IncidentEpisodePublicNote,
+      parentIdField: "incidentEpisodeId",
+      apiPath: "/incident-episode",
+    },
+    {
+      noun: "maintenance event",
+      modelType: ScheduledMaintenancePublicNote,
+      parentIdField: "scheduledMaintenanceId",
+      apiPath: "/scheduled-maintenance",
+    },
+  ];
+
+  // The reasons each event's note job can find, and none.
+  const CASES: Array<[string, PublicNoteNothingSentReason | null]> = [
+    ["shown and notifies", null],
+    [
+      "shown, every page switched off",
+      PublicNoteNothingSentReason.NotificationsOff,
+    ],
+    ["not shown: no status page", PublicNoteNothingSentReason.NoStatusPages],
+    ["no monitors", PublicNoteNothingSentReason.NoMonitors],
+    ["hidden", PublicNoteNothingSentReason.HiddenFromStatusPages],
+    ["not published yet", PublicNoteNothingSentReason.NotPublishedYet],
+  ];
+
+  const NOTIFIES_SENTENCE: string =
+    "Subscribers will be notified about this update as soon as you post it.";
+  const SHOWN_WITHOUT_NOTIFYING: string =
+    "The update will appear on your status page without notifying subscribers.";
+
+  async function renderEvent(
+    event: EventCase,
+    overrides: Partial<EventNotesProps<IncidentPublicNote>> = {},
+  ): Promise<RenderResult> {
+    return renderPublic({
+      modelType: event.modelType as unknown as { new (): IncidentPublicNote },
+      eventNoun: event.noun,
+      parentIdField: event.parentIdField,
+      statusPageReach: { apiPath: event.apiPath },
+      ...overrides,
+    });
+  }
+
+  function audienceText(): string {
+    return screen.getByTestId("note-audience").textContent || "";
+  }
+
+  // The sentences under the notify box, a line each; none when there is no line.
+  function notifyLines(): Array<string> {
+    const description: HTMLElement | null = screen.queryByTestId(
+      "note-notify-description",
+    );
+
+    if (!description) {
+      return [];
+    }
+
+    return Array.from(description.querySelectorAll("p")).map(
+      (line: HTMLParagraphElement): string => {
+        return line.textContent || "";
+      },
+    );
+  }
+
+  function untick(): void {
+    fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+  }
+
+  describe.each(EVENTS)("on a $noun's public notes", (event: EventCase) => {
+    const copy: PublicNoteReachEventCopy = getPublicNoteReachCopy(event.noun);
+
+    test("asks once, for this event, through its own API, with the project", async () => {
+      await renderEvent(event);
+      await openComposer();
+
+      await waitFor(() => {
+        expect(audienceText()).toBe("Public·Visible on your status page");
+      });
+
+      expect(reachAsks).toHaveLength(1);
+      expect(reachAsks[0]!.route).toBe(`${event.apiPath}/public-note-reach`);
+      expect(reachAsks[0]!.eventId).toBe(INCIDENT_ID.toString());
+    });
+
+    test.each(CASES)(
+      "%s: the badge and the box say what is true",
+      async (_name: string, reason: PublicNoteNothingSentReason | null) => {
+        reachAnswer = { nothingSentReason: reason };
+        await renderEvent(event);
+        await openComposer();
+
+        const isShown: boolean =
+          reason === null ||
+          reason === PublicNoteNothingSentReason.NotificationsOff;
+        const notShown: Array<string> = reason
+          ? [copy.nothingSent[reason], copy.shownLater]
+          : [];
+
+        await waitFor(() => {
+          expect(audienceText()).toBe(
+            isShown
+              ? "Public·Visible on your status page"
+              : `Public·${copy.notShownHint}`,
+          );
+        });
+
+        // Ticked, as a note starts on an event that notified when it began.
+        expect(screen.getByTestId("note-notify-checkbox")).toBeChecked();
+        expect(notifyLines()).toEqual(
+          reason === null
+            ? [NOTIFIES_SENTENCE]
+            : isShown
+              ? [copy.nothingSent[reason]]
+              : notShown,
+        );
+
+        untick();
+
+        expect(notifyLines()).toEqual(
+          isShown ? [SHOWN_WITHOUT_NOTIFYING] : notShown,
+        );
+
+        // Never a status page or a subscriber the note will not reach.
+        if (!isShown) {
+          expect(screen.getByTestId("note-composer")).not.toHaveTextContent(
+            "Visible on your status page",
+          );
+          expect(screen.getByTestId("note-composer")).not.toHaveTextContent(
+            "appear on your status page",
+          );
+        }
+
+        if (reason !== null) {
+          fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+          expect(screen.getByTestId("note-composer")).not.toHaveTextContent(
+            "Subscribers will be notified",
+          );
+        }
+      },
+    );
+
+    test("the closed composer's chip says it on hover, once it is known", async () => {
+      reachAnswer = {
+        nothingSentReason: PublicNoteNothingSentReason.NoStatusPages,
+      };
+      await renderEvent(event);
+
+      const chip: HTMLElement = within(
+        screen.getByTestId("note-composer-prompt"),
+      ).getByTestId("note-audience-chip");
+
+      await waitFor(() => {
+        expect(chip.textContent).toBe(`Public${copy.notShownHint}`);
+      });
+
+      fireEvent.mouseEnter(chip);
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(
+        copy.notShownHint,
+      );
+    });
+  });
+
+  describe("while the answer is not known", () => {
+    test("'Public' stands alone, and the ticked box promises nothing", async () => {
+      reachAnswer = "never";
+      await renderPublic();
+      await openComposer();
+
+      expect(audienceText()).toBe("Public");
+      expect(
+        within(screen.getByTestId("note-audience")).queryByTestId(
+          "note-audience-hint",
+        ),
+      ).toBeNull();
+      expect(screen.getByTestId("note-notify-checkbox")).toBeChecked();
+      expect(screen.queryByTestId("note-notify-description")).toBeNull();
+
+      untick();
+
+      expect(screen.queryByTestId("note-notify-description")).toBeNull();
+      expect(screen.getByTestId("note-composer")).not.toHaveTextContent(
+        /on your status page|No status page shows|Subscribers will be notified/,
+      );
+    });
+
+    test("the closed composer's chip says 'Public' with no tooltip to promise a page", async () => {
+      reachAnswer = "never";
+      await renderPublic();
+
+      const chip: HTMLElement = within(
+        screen.getByTestId("note-composer-prompt"),
+      ).getByTestId("note-audience-chip");
+
+      expect(chip.textContent).toBe("Public");
+      expect(chip.querySelector(".sr-only")).toBeNull();
+
+      fireEvent.mouseEnter(chip);
+      expect(screen.queryByRole("tooltip")).toBeNull();
+    });
+
+    test("why a box starts unticked is still said: that holds wherever the note shows", async () => {
+      reachAnswer = "never";
+      await renderPublic({
+        subscriberNotifications: {
+          isNotifyingByDefault: false,
+          quietDescription: QUIET_DESCRIPTION,
+        },
+      });
+      await openComposer();
+
+      expect(screen.getByTestId("note-notify-checkbox")).not.toBeChecked();
+      expect(notifyLines()).toEqual([QUIET_DESCRIPTION]);
+    });
+
+    test("an answer that failed says nothing either, and the note still posts", async () => {
+      reachAnswer = new HTTPErrorResponse(500, { message: "Down." }, {});
+      await renderPublic();
+      await openComposer();
+
+      await waitFor(() => {
+        expect(reachAsks).toHaveLength(1);
+      });
+
+      expect(audienceText()).toBe("Public");
+      expect(screen.queryByTestId("note-notify-description")).toBeNull();
+
+      type(editor(), "Posted all the same.");
+      await submitComposer();
+
+      expect(createMock).toHaveBeenCalledTimes(1);
+      expect(
+        createdPayload()["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"],
+      ).toBe(true);
+    });
+
+    test("a kind that does not say where to ask asks nothing, and promises nothing", async () => {
+      await renderPublic({ statusPageReach: undefined });
+      await openComposer();
+
+      expect(reachAsks).toEqual([]);
+      expect(audienceText()).toBe("Public");
+      expect(screen.queryByTestId("note-notify-description")).toBeNull();
+    });
+  });
+
+  describe("on an event no status page shows yet, quietly started", () => {
+    test("says why not, ticked or not, in place of why the box starts unticked", async () => {
+      reachAnswer = {
+        nothingSentReason: PublicNoteNothingSentReason.NoStatusPages,
+      };
+      await renderPublic({
+        subscriberNotifications: {
+          isNotifyingByDefault: false,
+          quietDescription: QUIET_DESCRIPTION,
+        },
+      });
+      await openComposer();
+
+      const expected: Array<string> = [
+        "No status page shows this incident yet.",
+        "Any status page that starts showing this incident shows this note too, without notifying its subscribers.",
+      ];
+
+      await waitFor(() => {
+        expect(notifyLines()).toEqual(expected);
+      });
+
+      fireEvent.click(screen.getByTestId("note-notify-checkbox"));
+
+      expect(notifyLines()).toEqual(expected);
+    });
+  });
+
+  describe("who is asked", () => {
+    test("the page asks once, whatever the composer does: opened, closed, a note posted", async () => {
+      await renderPublic();
+      await openComposer();
+      type(editor(), "One update.");
+      await submitComposer();
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await openComposer();
+
+      expect(reachAsks).toHaveLength(1);
+    });
+
+    test("a private incident takes no public notes: nothing is asked", async () => {
+      seedPublicNotes();
+      await renderPublic({ isPrivateEvent: true });
+
+      expect(reachAsks).toEqual([]);
+    });
+
+    test("a private note says nothing of status pages, and asks nothing", async () => {
+      await renderPrivate({
+        statusPageReach: { apiPath: "/incident" },
+      } as never);
+      await openComposer();
+
+      expect(reachAsks).toEqual([]);
+      expect(audienceText()).toBe(
+        "Private·Only people who can see this incident can read this",
+      );
+    });
+
+    test("a reader who may neither post nor edit a public note is asked nothing for", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [Permission.ReadIncidentPublicNote];
+      seedPublicNotes();
+      await renderPublic();
+
+      expect(reachAsks).toEqual([]);
+    });
+
+    test("a reader who may only edit a note is still told, for the note they edit", async () => {
+      isMasterAdmin = false;
+      currentPermissions = [
+        Permission.ReadIncidentPublicNote,
+        Permission.EditIncidentPublicNote,
+      ];
+      seedPublicNotes();
+      await renderPublic();
+
+      await waitFor(() => {
+        expect(reachAsks).toHaveLength(1);
+      });
+    });
+  });
+
+  describe("a note being edited, and one being deleted", () => {
+    async function startEditing(text: string): Promise<HTMLElement> {
+      const noteCard: HTMLElement = card(text);
+      await openActions(noteCard);
+      fireEvent.click(
+        within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+      );
+      return within(noteCard).findByTestId("note-edit-composer");
+    }
+
+    test("no page shows the incident: the edit says so, and who gets the edited note - nobody - and why", async () => {
+      reachAnswer = {
+        nothingSentReason: PublicNoteNothingSentReason.NoStatusPages,
+      };
+      seedPublicNotes();
+      await renderPublic();
+
+      const composer: HTMLElement = await startEditing("Monitoring.");
+
+      await waitFor(() => {
+        expect(within(composer).getByTestId("note-audience").textContent).toBe(
+          "Public·No status page shows this incident yet",
+        );
+      });
+
+      expect(
+        within(composer).getByTestId("note-notify-description"),
+      ).toHaveTextContent("Leave this unticked for small fixes such as typos.");
+
+      fireEvent.click(within(composer).getByTestId("note-notify-checkbox"));
+
+      expect(
+        Array.from(
+          within(composer)
+            .getByTestId("note-notify-description")
+            .querySelectorAll("p"),
+        ).map((line: HTMLParagraphElement): string => {
+          return line.textContent || "";
+        }),
+      ).toEqual([
+        "No status page shows this incident yet.",
+        "Any status page that starts showing this incident shows this note too, without notifying its subscribers.",
+      ]);
+      expect(composer).not.toHaveTextContent(
+        "Subscribers will receive the edited note",
+      );
+    });
+
+    test("every page that shows it is switched off: ticked, the edit says nobody gets it", async () => {
+      reachAnswer = {
+        nothingSentReason: PublicNoteNothingSentReason.NotificationsOff,
+      };
+      seedPublicNotes();
+      await renderPublic();
+
+      const composer: HTMLElement = await startEditing("Monitoring.");
+
+      await waitFor(() => {
+        expect(within(composer).getByTestId("note-audience").textContent).toBe(
+          "Public·Visible on your status page",
+        );
+      });
+
+      fireEvent.click(within(composer).getByTestId("note-notify-checkbox"));
+
+      expect(
+        within(composer).getByTestId("note-notify-description"),
+      ).toHaveTextContent(
+        "The status pages that show this incident do not send notifications to their subscribers.",
+      );
+    });
+
+    test("a page shows it and notifies: the edit says the edited note goes out", async () => {
+      seedPublicNotes();
+      await renderPublic();
+
+      const composer: HTMLElement = await startEditing("Monitoring.");
+      fireEvent.click(within(composer).getByTestId("note-notify-checkbox"));
+
+      await waitFor(() => {
+        expect(
+          within(composer).getByTestId("note-notify-description"),
+        ).toHaveTextContent(
+          "Subscribers will receive the edited note, marked as an update.",
+        );
+      });
+    });
+
+    test("no page shows it: deleting a note says it is deleted, not that it leaves a status page", async () => {
+      reachAnswer = {
+        nothingSentReason: PublicNoteNothingSentReason.HiddenFromStatusPages,
+      };
+      seedPublicNotes();
+      await renderPublic();
+
+      await waitFor(() => {
+        expect(reachAsks).toHaveLength(1);
+      });
+
+      const noteCard: HTMLElement = card("Monitoring.");
+      await openActions(noteCard);
+      fireEvent.click(
+        within(noteCard).getByRole("menuitem", { name: "Delete note" }),
+      );
+
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Delete this public note?",
+      });
+
+      expect(dialog).toHaveTextContent(
+        "The note will be permanently deleted. This cannot be undone.",
+      );
+      expect(dialog).not.toHaveTextContent(/removed from your status page/);
     });
   });
 });

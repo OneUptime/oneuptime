@@ -254,6 +254,12 @@ export interface SessionReplayConfigResponse {
     enabled: boolean;
     userPropertyKeys: Array<string>;
   };
+  /*
+   * Readable event properties (Common's SessionReplayConfigResponse
+   * .readableEventPropertyKeys, issue #7501): the property keys whose short
+   * token values stay as written. Absent reads as none.
+   */
+  readableEventPropertyKeys?: Array<string>;
 }
 
 export interface SessionReplaySignalCounts {

@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDetectionMatchedEventsAndRuleResponseSteps1809185030000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185030000-AddDetectionMatchedEventsAndRuleResponseSteps";
+import { AddDetectionMatchedEventsAndRuleResponseSteps1809185220000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185220000-AddDetectionMatchedEventsAndRuleResponseSteps";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -22,14 +22,14 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * drift check holds its statements to the models.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809185030000";
+const MIGRATION_TIMESTAMP: string = "1809185220000";
 const MIGRATION_BASE_NAME: string =
   "AddDetectionMatchedEventsAndRuleResponseSteps";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "AddServiceOwnerIsOwnerNotifiedIndexes1809185020000";
-const PREVIOUS_TIMESTAMP: number = 1809185020000;
+  "DropIncidentTemplateOwnerNotifiedFlag1809185210000";
+const PREVIOUS_TIMESTAMP: number = 1809185210000;
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -44,7 +44,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddDetectionMatchedEventsAndRuleResponseSteps1809185030000();
+    new AddDetectionMatchedEventsAndRuleResponseSteps1809185220000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -55,7 +55,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddDetectionMatchedEventsAndRuleResponseSteps1809185030000", () => {
+describe("AddDetectionMatchedEventsAndRuleResponseSteps1809185220000", () => {
   test("adds a rule's response steps and a detection's kept events, each a nullable jsonb column", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "DetectionRule" ADD "responseSteps" jsonb`,
@@ -134,7 +134,7 @@ describe("AddDetectionMatchedEventsAndRuleResponseSteps1809185030000", () => {
       }),
     ).toHaveLength(1);
     expect(
-      new AddDetectionMatchedEventsAndRuleResponseSteps1809185030000().name,
+      new AddDetectionMatchedEventsAndRuleResponseSteps1809185220000().name,
     ).toBe(MIGRATION_CLASS_NAME);
 
     const timestamps: Array<number> = fs

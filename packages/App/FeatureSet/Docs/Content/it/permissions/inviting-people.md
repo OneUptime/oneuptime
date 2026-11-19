@@ -43,7 +43,7 @@ Fai clic su **Invita utente**. Si apre la finestra **Invita nuovo utente**.
 
 ### Inserire l'indirizzo email
 
-Scrivi il suo indirizzo in **E-mail**. Se nessun account OneUptime lo usa ancora, la finestra chiede anche un **Nome**, con cui inizia il suo nuovo account.
+Scrivi il suo indirizzo in **E-mail**. Se nessun account OneUptime lo usa ancora, la finestra chiede anche un **Nome**, con cui inizia il suo nuovo account. Mentre scrivi, **E-mail** suggerisce le persone del progetto per nome o indirizzo, e indica chi è **Invitato** e chi è **Già in questo team**: fai clic su una di esse per inserirne l'indirizzo. Su un server self-hosted, a un amministratore principale vengono proposti anche gli altri account del server, contrassegnati con **Non ancora in questo progetto**.
 
 ### Scegliere il team
 

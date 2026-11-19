@@ -31,6 +31,13 @@ import {
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
+ * Whether a person's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts): here it
+ * lets everyone through.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn");
+
+/*
  * The read of the rows a caller's update may write, which the update path
  * makes before the hooks: what the suite's read of them answers
  * (stubRowsCallerMayWriteLikeFindBy).

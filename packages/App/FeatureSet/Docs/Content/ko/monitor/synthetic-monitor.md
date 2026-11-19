@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 시크릿을 만들고 사용할 수 있는 모니터를 고르는 방법은 [모니터 시크릿](/docs/monitor/monitor-secrets)을 참고하세요.
 
+일회용 코드 시크릿은 값이 아니라 사이트의 2단계 인증 설정 키를 담습니다. 그 `{{monitorSecrets.NAME}}`은 스크립트가 시작되는 순간의 코드이고, `await oneuptime.getTotpCode("NAME")`은 스크립트가 요청할 때 새 코드를 만들므로, 몇 페이지 뒤에 코드 입력 화면에 이르는 로그인에 알맞습니다. [일회용 코드로 로그인](/docs/monitor/monitor-secrets#일회용-코드로-로그인)을 참고하세요.
+
 ## 사용자 정의 메트릭
 
 `oneuptime.captureMetric()` 함수로 스크립트에서 사용자 정의 메트릭을 기록할 수 있습니다. 이 메트릭은 OneUptime에 저장되며, Metric Explorer를 사용해 대시보드에 차트로 그릴 수 있습니다.
@@ -258,6 +260,7 @@ return {
 | `crypto` | 브라우저 워커에서 구현한 SHA-256 해시, HMAC-SHA-256, `randomBytes`, `randomInt`, `randomUUID`. |
 | `console` | `console.log`, `info`, `warn`, `error`. 메시지는 각 실행과 함께 보존됩니다. |
 | `oneuptime.captureMetric` | 사용자 정의 메트릭을 기록합니다. [사용자 정의 메트릭](#사용자-정의-메트릭)을 참고하세요. |
+| `oneuptime.getTotpCode` | 일회용 코드 시크릿의 현재 코드를 만듭니다: `await oneuptime.getTotpCode("NAME")`. [모니터 시크릿 사용](#모니터-시크릿-사용)을 참고하세요. |
 | `http` | `request`, `get`, `Agent` 를 지원하는, 버퍼링 방식의 클라이언트 전용 호환 파사드입니다. |
 | `https` | 클라이언트 전용 `http` 파사드의 HTTPS 버전입니다. |
 | `Buffer`, `setTimeout`, `setInterval` | 그리고 각각의 `clear` 함수. |

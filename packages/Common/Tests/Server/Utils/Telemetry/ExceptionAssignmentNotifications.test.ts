@@ -33,6 +33,7 @@ import Email from "../../../../Types/Email";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import Name from "../../../../Types/Name";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
+import { hasWhatsAppTemplate } from "../../../../Types/WhatsApp/WhatsAppEventTemplates";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import {
@@ -459,7 +460,17 @@ describe("what they are told", () => {
     expect(messages.pushNotificationMessage.title).toBe(
       "Exception assigned to you",
     );
-    expect(messages.whatsAppMessage.body).toBe(messages.smsMessage.message);
+    /*
+     * No WhatsApp message (#9715): none is approved for an assigned
+     * exception, and the plain body it used to be handed was refused - a
+     * failed WhatsApp log each time - and reached nobody.
+     */
+    expect("whatsAppMessage" in messages).toBe(false);
+    expect(
+      hasWhatsAppTemplate(
+        NotificationSettingEventType.SEND_EXCEPTION_ASSIGNED_NOTIFICATION,
+      ),
+    ).toBe(false);
   });
 
   test("an exception's name: its type and its message's first line, cut - read without a regular expression over megabytes", () => {

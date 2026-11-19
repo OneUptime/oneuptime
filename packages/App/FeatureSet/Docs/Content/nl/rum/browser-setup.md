@@ -40,7 +40,7 @@ flowchart TB
 
 ![De lijst "Ingestiesleutels", met "Ingestiesleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
-De nieuwe sleutel opent op een eigen pagina. Kopieer de **Geheime sleutel**: dat is het token dat de SDK als `x-oneuptime-token` verstuurt.
+De nieuwe sleutel opent op een eigen pagina. Kopieer de **Geheime sleutel**: dat is het token dat de SDK als `x-oneuptime-token` verstuurt. Een Browser-sleutel is bedoeld om openbaar te zijn: hij werkt alleen vanaf de origins die je opgeeft, verstuurt alleen browsertelemetrie en sessieherhalingen en heeft een limiet op het aantal verzoeken. Zet nooit een Server-sleutel in een pagina.
 
 ![De pagina van een telemetrie-ingestiesleutel, met de geheime sleutel](/docs/static/images/TelemetryIngestionKeyView.png)
 

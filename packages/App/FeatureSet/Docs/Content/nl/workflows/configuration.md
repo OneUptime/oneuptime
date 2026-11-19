@@ -181,6 +181,8 @@ De losse machtigingen, voor een team of een API-sleutel die precies één ding n
 
 Een handmatige uitvoering bereikt alleen workflows die je kunt openen: een rol die beperkt is tot bepaalde labels, of tot de workflows die je team bezit, voert alleen die uit. Wie een workflow niet kan uitvoeren, ziet **Workflow uitvoeren** grijs, met de reden in de tooltip.
 
+Een workflow die draait als **Projecteigenaar** of als een aangepaste rol, wordt alleen gewijzigd en met de hand uitgevoerd door mensen die die machtigingen zelf hebben; alle anderen kunnen hem in de **Bouwer** alleen bekijken. Zie [Run As](#run-as).
+
 Geef **Workflowbeheerder** aan de mensen die automatisering bouwen, en **Workflowlid** aan de mensen die haar alleen starten. Bewaar bewerkrechten op variabelen voor de mensen die de geheimen van je project beheren. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index) voor hoe rollen worden toegekend.
 
 ## Wat workflowstappen mogen
@@ -189,7 +191,7 @@ De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Crea
 
 - **Alleen het eigen project van de workflow.** Een stap leest en schrijft de records van het project waartoe de workflow behoort en van geen ander, en een Update verplaatst een record nooit naar een ander project.
 - **Alleen wat een Project Admin mag.** Een stap kan niet doen wat alleen **Projecteigenaar** en factuur- of projectverwijderingsmachtigingen toestaan, en hij kan niet lezen wie een sonde of een AI-agent heeft gemaakt; dat zien alleen Projecteigenaren.
-- **Niet wie toegang heeft.** Een stap maakt, wijzigt of verwijdert geen teams, teamleden, teammachtigingen, aangepaste rollen of API-sleutelmachtigingen, ook al mag een Projectbeheerder dat. Wie een workflow bouwt, bepaalt wat zijn stappen doen, en dat kan een **Projectlid** zijn, dus een stap die het kon, zou zijn bouwer toegang geven die hij niet heeft gekregen, zoals **Projectbeheerder**. De stap wordt geweigerd, en het logboek van de uitvoering zegt dat iemand die de teams en API-sleutels van het project beheert de wijziging moet doen. Triggers en Find-stappen op deze records werken nog steeds.
+- **Niet wie toegang heeft.** Met de standaardmachtigingen maakt, wijzigt of verwijdert een stap geen teams, teamleden, teammachtigingen of aangepaste rollen, ook al mag een Projectbeheerder dat. Wie een workflow bouwt, bepaalt wat zijn stappen doen, en dat kan een **Projectlid** zijn, dus een stap die het kon, zou zijn bouwer toegang geven die hij niet heeft gekregen, zoals **Projectbeheerder**. De stap wordt geweigerd, en het logboek van de uitvoering noemt de machtiging die de wijziging vraagt en zegt dat je **Run As** kiest in de **Instellingen** van de workflow: een workflow die draait als **Projecteigenaar**, of als een aangepaste rol met die machtiging, mag de wijziging doen (zie [Run As](#run-as)). Geen stap van een workflow wijzigt API-sleutels, single sign-on of SCIM-instellingen, ongeacht waarmee de workflow draait. Triggers en Find-stappen op deze records werken nog steeds.
 - **Niet het lezen van instellingen met inloggegevens.** Een Projectbeheerder mag SMTP-servers, aanbieders voor bellen en sms, SNMP-inloggegevens, videogesprekverbindingen en API-sleutels lezen, maar dat wordt nooit aan een stap uitgeleend, wie de workflow ook bouwde of opsloeg. Een stap kan geen van deze instellingen noemen, zoals de SMTP-server waarmee een statuspagina e-mail verstuurt of de API-sleutel waaraan een machtiging wordt verleend. De stap wordt geweigerd, en zijn uitvoeringslog zegt dat iemand die ze mag lezen (de leesmachtiging van dat soort instelling, of een Projecteigenaar of Projectbeheerder) de wijziging moet doen. Een stap die de instelling houdt die een record al noemt, of haar leegmaakt, wordt niet geweigerd.
 - **Geen privé-incidenten, -waarschuwingen en -episodes.** Een Projectbeheerder ziet elk privé-incident, elke privé-waarschuwing en -episode, maar dat wordt nooit aan een stap uitgeleend, wie de workflow ook heeft gebouwd of opgeslagen. Een stap vindt geen privérecord, wijzigt er geen en voegt er niets aan toe, en een workflow start niet op zo'n record of op iets dat erbij hoort, of een gebeurtenis van een record of **Workflow uitvoeren** hem nu start. Wie een workflow bouwt, bepaalt waar wat de stappen lezen naartoe gaat — een webhook, een e-mail, een chat, het uitvoeringslogboek — en dat kan een **Projectlid** zijn dat een privérecord niet mag zien. Zie [Privé-incidenten, -waarschuwingen en -episodes](/docs/permissions/index#privé-incidenten-waarschuwingen-en-episodes).
 - **Alleen wat je abonnement bevat.** In OneUptime Cloud wordt een stap die iets aanmaakt of wijzigt wat je abonnement niet bevat, geweigerd met het abonnement dat nodig is, net als in het dashboard. Zelf gehoste installaties zonder facturering hebben geen abonnementslimieten.
@@ -204,6 +206,26 @@ De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Crea
 Weigert een controle een stap, dan neemt de stap zijn uitgang **Fout** zonder de geweigerde wijziging te doen, en het logboek van de uitvoering noemt de stap en de reden in gewone woorden, bijvoorbeeld *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lees het onder de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het eerste dat wordt geweigerd: de records die daarvoor zijn aangemaakt, blijven bestaan.
 
 Stappen die met andere systemen praten — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code en Generate Text with AI — lezen of wijzigen geen OneUptime-records, dus hier verandert voor hen niets.
+
+### Run As
+
+Standaard draait een workflow met de machtigingen hierboven, en de meeste workflows hebben nooit meer nodig. Heeft er een wel meer nodig, bijvoorbeeld een workflow die elk nieuw team een aangepaste rol geeft, open dan de **Instellingen** ervan, daarna **Meer instellingen**, en kies **Change Run As**:
+
+- Standaard: de machtigingen hierboven.
+- Projecteigenaar: wat een **Projecteigenaar** in dit project mag, inclusief wijzigen wie in een team zit en wat een team mag. Alleen een Projecteigenaar kan dit kiezen.
+- Een aangepaste rol: precies wat een van de aangepaste rollen van het project toestaat. Alleen iemand die die rol aan een team zou kunnen geven, kan hem kiezen.
+
+Waarmee de workflow ook draait, een stap leest nooit instellingen met inloggegevens, ziet nooit privé-incidenten, -waarschuwingen of -episodes en wijzigt nooit API-sleutels, single sign-on of SCIM-instellingen. Als hij een team een machtiging of een rol geeft, kan hij alleen geven wat hij zelf heeft, en als hem iets ontbreekt, noemt het logboek van de uitvoering de machtiging.
+
+Een workflow die met meer dan de standaardmachtigingen draait, draait met de machtigingen van de persoon die ze heeft gegeven: wie als laatste de **Run As** ervan koos, of de stappen of variabelen ervan opsloeg. Zodat niemand er meer mee krijgt dan hij zelf heeft:
+
+- Alleen mensen die die machtigingen hebben, kunnen de workflow of zijn variabelen wijzigen, hem archiveren of verwijderen, hem of een van zijn stappen met de hand uitvoeren, of zijn webhook-URL en inkomende e-mailadres zien. Iedereen die hem mag bewerken, kan hem nog steeds uitschakelen. Gaat hij met meer dan de standaardmachtigingen draaien, of verandert waarmee hij draait, dan krijgt hij een nieuwe webhook-URL en een nieuw inkomend e-mailadres, zodat kopieën van de oude hem niet meer starten.
+- Alleen een persoon kan ze geven, nooit een API-sleutel.
+- Elke uitvoering controleert eerst of de persoon die ze gaf ze nog heeft. Zo niet, dan stopt de uitvoering vóór de eerste stap, en het logboek zegt waarom en wie ze opnieuw kan geven.
+- Hij leest de globale variabelen van het project niet, die iedereen kan wijzigen die workflowvariabelen mag bewerken.
+- De stap **Andere workflow uitvoeren** van een andere workflow kan hem alleen starten als die workflow met dezelfde of meer machtigingen draait.
+
+Elke uitvoering legt vast waarmee ze draaide en met wiens machtigingen, te zien in het venster van de uitvoering en in een gedownload logboek, en het [auditlogboek](/docs/configuration/audit-logs) legt vast wie de **Run As** van een workflow heeft gewijzigd.
 
 ## Planlimieten
 

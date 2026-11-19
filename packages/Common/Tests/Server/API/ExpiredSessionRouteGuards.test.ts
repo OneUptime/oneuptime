@@ -351,6 +351,26 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     uri: "/alert-episode/owner-rule-preview",
     registeredBy: "AlertEpisodeAPI",
   },
+
+  /*
+   * Whether a public note posted now is on a status page and notifies
+   * anyone: what the note composer says (#9735).
+   */
+  {
+    method: "POST",
+    uri: "/incident/public-note-reach",
+    registeredBy: "IncidentAPI",
+  },
+  {
+    method: "POST",
+    uri: "/incident-episode/public-note-reach",
+    registeredBy: "IncidentEpisodeAPI",
+  },
+  {
+    method: "POST",
+    uri: "/scheduled-maintenance/public-note-reach",
+    registeredBy: "ScheduledMaintenanceAPI",
+  },
 ];
 
 type RecordedRoute = ReturnType<typeof mockRouter.match>;

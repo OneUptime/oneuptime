@@ -254,6 +254,7 @@ OneUptimeReplay.captureSession("installation test");
 | `recording-resumed` | 录制暂停期间用户回来了，因此录制在同一个会话中基于新的快照恢复（ `pausedForMs` 说明暂停了多久）。播放器会跳过中间的那一段。 |
 | `recording-paused-page` | 页面通过 `OneUptimeReplay.pause()` 暂停了录制。在页面调用 `OneUptimeReplay.resume()` 之前，不会捕获任何内容；访客的操作会让会话保持打开，但不会恢复录制。如果这个页面应该被录制，请找到它调用 `OneUptimeReplay.pause()` 的位置。 |
 | `recording-resumed-page` | 页面通过 `OneUptimeReplay.resume()` 恢复了录制。录制在同一会话中以新快照继续；如果该会话在暂停期间已结束，则在新会话中继续。 |
+| `recording-paused-page-rule` | 此应用的回放策略不录制这个页面（ **回放策略** 页面上的 **仅录制这些页面** 或 **从不录制这些页面** ），因此录制已暂停，页面内容和地址都不会被录制。录制会在策略录制的下一个页面上于同一会话中继续。如果这个页面应该被录制，请检查这两个列表。 |
 | `session-rotated` | 开始了一个新会话（用户在空闲 30 分钟后回来、会话达到 4 小时、 `identify()` 指定了与会话所属用户不同的用户 — `rotationReason: "identity-change"` — 或同一访客的另一个选项卡先开始了新会话 — `rotationReason: "adopted"` ）。录制以新的 ID 继续， `onSessionChange` 监听器会收到通知，此后发往你自己来源的请求会携带新的 ID。 |
 | `command-queue-not-an-array` | `window.OneUptimeReplayQueue` 不是数组，因此队列中的所有命令都被忽略。它必须是由 `[command, ...arguments]` 条目组成的数组。 |
 | `command-queue-unknown-command` | 无法识别队列中某个命令的名称 — 对照 [JavaScript API](/docs/telemetry/session-replay#javascript-api) 检查拼写。 |
