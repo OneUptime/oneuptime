@@ -291,6 +291,11 @@ export interface DiscoveredDeviceSelected {
   ipAddress?: string | undefined;
   // Set only when true: OneUptime already monitors it.
   isMonitored?: boolean | undefined;
+  /*
+   * The device it already is, when it is one: Add to monitoring reads that
+   * device's monitors to give it one when it has none (issue #9675).
+   */
+  monitoredDeviceId?: string | undefined;
 }
 
 export interface DiscoveredDeviceIdsResponse {
@@ -847,6 +852,14 @@ export function readDiscoveredDeviceIdsResponse(
 
       if (device["isMonitored"] === true) {
         selected.isMonitored = true;
+
+        const monitoredDeviceId: string | undefined = optionalText(
+          device["monitoredDeviceId"],
+        );
+
+        if (monitoredDeviceId) {
+          selected.monitoredDeviceId = monitoredDeviceId;
+        }
       }
 
       devices.push(selected);

@@ -71,7 +71,7 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 
 ### Aktivdetaljer
 
-En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver begge på samme måde: værtsnavn, IP-adresse, MAC-adresse, serienummer, producent, model, firmwareversion, operativsystem, OS-version, enhedstype og placering. En oplysning, som intet har rapporteret, står som **Ukendt**, og kortet forklarer, hvorfor det er sådan, og hvordan de ukendte bliver udfyldt: en enhed, der ikke rapporterer dem over SNMP, en enhed, der ikke er læst endnu, eller en Meraki-enhed, hvis dashboard har dem.
+En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver begge på samme måde: værtsnavn, IP-adresse, MAC-adresse, serienummer, producent, model, firmwareversion, operativsystem, OS-version, enhedstype og placering. Kortet for en Android-enhed har også dens sikkerhedspatchniveau, fra Android-agenten eller Esper. En oplysning, som intet har rapporteret, står som **Ukendt**, og kortet forklarer, hvorfor det er sådan, og hvordan de ukendte bliver udfyldt: en enhed, der ikke rapporterer dem over SNMP, en enhed, der ikke er læst endnu, eller en Meraki-enhed, hvis dashboard har dem.
 
 - En værts oplysninger kommer fra ressourceattributterne på dens telemetri: dens IP- og MAC-adresser, arkitektur og operativsystem fra start, og dens serienummer, mærke, model og firmware, når du stempler dem på.
 - En netværksenheds oplysninger kommer fra dens SNMP-polling, dens rolle og dens site. Det, dens polling ikke har læst, kommer fra discovery: den seneste scanning af dens adresse, en routers ARP-tabel eller dens sondes DNS-opslag. En enhed uden ENTITY-MIB, som en Meraki MX, får stadig sit mærke, sin model og sit operativsystem fra sin systembeskrivelse og sin MAC-adresse fra sine egne porte. Dens IP-adresse vises aldrig som dens værtsnavn.
@@ -127,6 +127,12 @@ OneUptime finder en enheds element ud fra dens navn i Esper og derefter ud fra d
 En enhed, der ikke har tjekket ind i 30 minutter, er **Offline** og viser, hvor længe siden den sidst gjorde det. Dens elements **Status** følger dens seneste check-in, eller dens telemetri, når den er nyere, så en enhed, der har været stille i et døgn, står på siden **Blevet stille**.
 
 En enhed, der fjernes fra Esper, markeres som **Fjernet**, og dens element arkiveres: det forsvinder fra listen og venter under **Avanceret → Arkiveret**. En enhed, der kommer tilbage til Esper, kommer tilbage på listen. 30 dage efter at den forsvandt, slettes enheden, og det samme gør dens element, medmindre telemetri eller du har tilføjet noget til det.
+
+### Få en advarsel, når en enhed holder op med at tjekke ind
+
+Under **Administrerede enheder** klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Esper Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Esper i mere end en time, opkaldt efter enheden, og løser den, så snart enheden tjekker ind igen.
+
+Hver læsning af forbindelsen registrerer som metrikken `oneuptime.managed_device.check_in.age`, hvor mange minutter siden hver enhed sidst tjekkede ind, og monitoren tjekker hver enheds seneste værdi hvert 5. minut. En enhed, der også kører Android Agent, overlades til **Host Stopped Reporting**, så den aldrig advarer to gange, og en enhed, der er fjernet fra Esper, løser sin advarsel. En læsning, der fejler, registrerer intet, så ingen advarsel åbnes eller løses før den næste. Hæv monitorens tærskel for en flåde, der slukkes om natten.
 
 ## Tilføj noget manuelt
 

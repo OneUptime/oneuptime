@@ -49,6 +49,32 @@ export interface VerifiedSamlResponse {
    * time rules refuse it anyway, so its use need not be remembered longer.
    */
   acceptableUntil: Date;
+
+  /*
+   * What a LogoutRequest has to name the person by, exactly as the
+   * assertion did (SAML 2.0 Core 3.7.1): the <NameID>, with its Format and
+   * qualifiers. Kept with the session when the provider signs people out
+   * of the identity provider too (#9603).
+   */
+  nameId: SamlNameId;
+
+  /*
+   * The SessionIndex of the assertion's <AuthnStatement>: the person's
+   * session at the identity provider, which a LogoutRequest names so the
+   * provider ends that one. Null when the assertion carries none.
+   */
+  sessionIndex: string | null;
+}
+
+/*
+ * An assertion's <NameID>: its text - the email address OneUptime reads -
+ * and the attributes that say how to read it, each null when absent.
+ */
+export interface SamlNameId {
+  value: string;
+  format: string | null;
+  nameQualifier: string | null;
+  spNameQualifier: string | null;
 }
 
 /*
@@ -381,6 +407,9 @@ export default class SSOUtil {
     const email: Email = SSOUtil.getEmailFromAssertion(assertion);
     const name: Name | null = SSOUtil.getNameFromAssertion(assertion);
     const objectId: string | null = SSOUtil.getObjectIdFromAssertion(assertion);
+    const nameId: SamlNameId = SSOUtil.getNameIdFromAssertion(assertion);
+    const sessionIndex: string | null =
+      SSOUtil.getSessionIndexFromAssertion(assertion);
 
     const assertionId: string = SSOUtil.getIdAttribute(assertion).trim();
 
@@ -402,6 +431,8 @@ export default class SSOUtil {
       objectId,
       assertionId,
       acceptableUntil,
+      nameId,
+      sessionIndex,
     };
   }
 
@@ -835,9 +866,10 @@ export default class SSOUtil {
    * UTC (SAML 2.0 Core 1.3.3); one written with an offset is read with it,
    * and one written with no zone at all is read as UTC. Fractions of a second
    * beyond milliseconds are dropped. A date that does not exist (the 30th of
-   * February, hour 24) is not a time.
+   * February, hour 24) is not a time. The SAML sign-out messages' times are
+   * read by it too (SamlSingleLogout).
    */
-  private static parseSamlTime(value: string): number | null {
+  public static parseSamlTime(value: string): number | null {
     const text: string = value.trim();
 
     if (text.length === 0 || text.length > 64) {
@@ -920,9 +952,10 @@ export default class SSOUtil {
 
   /*
    * Parse the SAML Response once, strictly. Rejects empty input, DOCTYPE / entity
-   * declarations, and any XML that is not well-formed.
+   * declarations, and any XML that is not well-formed. The SAML sign-out
+   * messages are parsed by it too (SamlSingleLogout).
    */
-  private static parseXmlStrict(samlResponse: string): XmlDocument {
+  public static parseXmlStrict(samlResponse: string): XmlDocument {
     if (typeof samlResponse !== "string" || samlResponse.trim() === "") {
       throw new BadRequestException("SAML Response is empty");
     }
@@ -1885,6 +1918,79 @@ export default class SSOUtil {
     }
 
     return GUID.test(objectId) ? objectId.toLowerCase() : objectId;
+  }
+
+  /*
+   * The assertion's <NameID> as a LogoutRequest names it back (#9603): its
+   * text, which getEmailFromAssertion has already held to plain text and to
+   * an email address, and its Format, NameQualifier and SPNameQualifier
+   * attributes. Read from the signed assertion, so each is what the
+   * identity provider signed.
+   */
+  private static getNameIdFromAssertion(assertion: XmlElement): SamlNameId {
+    const subject: XmlElement | null = SSOUtil.getDirectChildByLocalName(
+      assertion,
+      "Subject",
+    );
+
+    const nameId: XmlElement | null = subject
+      ? SSOUtil.getDirectChildByLocalName(subject, "NameID")
+      : null;
+
+    if (!nameId) {
+      throw new BadRequestException(
+        "The SAML assertion has no Name ID. Set your identity provider to send the person's email address as the Name ID.",
+      );
+    }
+
+    SSOUtil.assertPlainTextOnly(nameId);
+
+    return {
+      value: SSOUtil.getTrimmedText(nameId),
+      format: SSOUtil.getOptionalAttribute(nameId, "Format"),
+      nameQualifier: SSOUtil.getOptionalAttribute(nameId, "NameQualifier"),
+      spNameQualifier: SSOUtil.getOptionalAttribute(nameId, "SPNameQualifier"),
+    };
+  }
+
+  /*
+   * The SessionIndex of the assertion's <AuthnStatement>, or null: the
+   * person's session at the identity provider (SAML 2.0 Core 2.7.2). The
+   * first statement that has one, as an assertion has one statement in
+   * practice.
+   */
+  private static getSessionIndexFromAssertion(
+    assertion: XmlElement,
+  ): string | null {
+    for (const statement of SSOUtil.getSamlChildren(
+      assertion,
+      "AuthnStatement",
+    )) {
+      const sessionIndex: string | null = SSOUtil.getOptionalAttribute(
+        statement,
+        "SessionIndex",
+      );
+
+      if (sessionIndex) {
+        return sessionIndex;
+      }
+    }
+
+    return null;
+  }
+
+  // An attribute's value without space around it, or null when absent or empty.
+  private static getOptionalAttribute(
+    element: XmlElement,
+    attributeName: string,
+  ): string | null {
+    if (!element.hasAttribute(attributeName)) {
+      return null;
+    }
+
+    const value: string = (element.getAttribute(attributeName) || "").trim();
+
+    return value || null;
   }
 
   // ---- Small DOM helpers -------------------------------------------------

@@ -187,6 +187,145 @@ export function getResponseStepsByPart(
 }
 
 /*
+ * PUTTING A RULE'S STEPS IN ORDER (#9796).
+ *
+ * A case's Response Plan shows a rule's steps under their parts - Confirm
+ * it is real, Contain it, Fix what let it happen - each part's in the order
+ * the rule lists them. So the order that counts is the order within a
+ * part, and the field lists the steps that way too: under their parts, as
+ * the plan reads them (getResponseStepsInPlanOrder). A step moves among
+ * the steps of its own part, one place at a time (Move Up, Move Down) or
+ * dragged; it changes part by its picker, and lands at the end of its new
+ * part nearest where it was.
+ *
+ * Every step keeps its id wherever it moves, so the key a case's plan keeps
+ * it under (getDetectionRuleResponseStepKey: `rule:<id>`) never changes,
+ * and a step ticked off on a case stays ticked. The list is the rule's one
+ * column, written whole with the rule, so its order is simply the list's
+ * order: there is no number of each step to keep, and a write of the whole
+ * list lands exactly as written, however it is sent (the form, the API,
+ * Terraform).
+ */
+
+// The steps as the plan reads them: by part, each part's in the order written.
+export function getResponseStepsInPlanOrder(
+  steps: ReadonlyArray<DetectionRuleResponseStep>,
+): Array<DetectionRuleResponseStep> {
+  return getResponseStepsByPart(steps).flatMap(
+    (part: ResponseStepsOfPart): Array<DetectionRuleResponseStep> => {
+      return part.steps;
+    },
+  );
+}
+
+// Which way a step moves: one place up, or one place down.
+export enum ResponseStepMove {
+  Up = -1,
+  Down = 1,
+}
+
+/*
+ * The place in the plan's order a step at `index` (of the plan's order)
+ * moves to: the next step of its own part that way, or -1 when it is the
+ * first (or last) of its part already.
+ */
+function getMovePlace(data: {
+  steps: ReadonlyArray<DetectionRuleResponseStep>;
+  index: number;
+  move: ResponseStepMove;
+}): number {
+  const step: DetectionRuleResponseStep | undefined = data.steps[data.index];
+  const place: number = data.index + data.move;
+  const neighbour: DetectionRuleResponseStep | undefined = data.steps[place];
+
+  return step && neighbour && neighbour.phase === step.phase ? place : -1;
+}
+
+// Whether the step at `index` of the plan's order can move one place that way, within its part.
+export function canMoveResponseStep(
+  steps: ReadonlyArray<DetectionRuleResponseStep>,
+  index: number,
+  move: ResponseStepMove,
+): boolean {
+  return (
+    getMovePlace({
+      steps: getResponseStepsInPlanOrder(steps),
+      index,
+      move,
+    }) !== -1
+  );
+}
+
+/*
+ * The step at `index` of the plan's order moved one place up or down among
+ * its part's steps, its id and every other step as they were: the list in
+ * the plan's order. A step that cannot move that way leaves the list as it
+ * was.
+ */
+export function moveResponseStep(
+  steps: ReadonlyArray<DetectionRuleResponseStep>,
+  index: number,
+  move: ResponseStepMove,
+): Array<DetectionRuleResponseStep> {
+  const ordered: Array<DetectionRuleResponseStep> =
+    getResponseStepsInPlanOrder(steps);
+  const place: number = getMovePlace({ steps: ordered, index, move });
+
+  if (place === -1) {
+    return ordered;
+  }
+
+  const moved: Array<DetectionRuleResponseStep> = [...ordered];
+  const step: DetectionRuleResponseStep = moved[index]!;
+
+  moved[index] = moved[place]!;
+  moved[place] = step;
+
+  return moved;
+}
+
+/*
+ * One of a part's steps dragged from `from` to `to`, both places among that
+ * part's steps (as a drag of its list reports them), the rest of the part
+ * stepping aside: the list in the plan's order. A place outside the part
+ * leaves the list as it was.
+ */
+export function moveResponseStepInPart(
+  steps: ReadonlyArray<DetectionRuleResponseStep>,
+  phase: DetectionRuleResponsePhase,
+  from: number,
+  to: number,
+): Array<DetectionRuleResponseStep> {
+  const parts: Array<ResponseStepsOfPart> = getResponseStepsByPart(steps);
+  const part: ResponseStepsOfPart | undefined = parts.find(
+    (candidate: ResponseStepsOfPart): boolean => {
+      return candidate.phase === phase;
+    },
+  );
+
+  if (
+    !part ||
+    from < 0 ||
+    to < 0 ||
+    from >= part.steps.length ||
+    to >= part.steps.length
+  ) {
+    return getResponseStepsInPlanOrder(steps);
+  }
+
+  const partSteps: Array<DetectionRuleResponseStep> = [...part.steps];
+  const [step] = partSteps.splice(from, 1);
+
+  partSteps.splice(to, 0, step!);
+
+  return parts.flatMap(
+    (candidate: ResponseStepsOfPart): Array<DetectionRuleResponseStep> => {
+      return candidate.phase === phase ? partSteps : candidate.steps;
+    },
+  );
+}
+
+/*
  * What More fields says of the field while it is folded: how many steps the
  * rule carries of its own - an empty list too, its author's "none" - or
  * nothing while it carries none written.

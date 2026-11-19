@@ -330,6 +330,33 @@ describe("Verify email page", () => {
       expect(resendPosts).toHaveLength(0);
     });
 
+    test("a link that confirmed a new address says the address changed (#9821)", async () => {
+      verifyAnswers = [
+        async (): Promise<ModelAPIHttpResponse<EmailVerificationToken>> => {
+          const answer: ModelAPIHttpResponse<EmailVerificationToken> =
+            new ModelAPIHttpResponse<EmailVerificationToken>(200, {}, {});
+          // ModelAPI hands the route's `_miscData` over as miscData.
+          answer.miscData = { emailChanged: true };
+          return answer;
+        },
+      ];
+
+      await renderPage();
+
+      const success: HTMLElement = screen.getByTestId("verify-email-success");
+      expect(heading()).toHaveTextContent(
+        "Your email address has been changed.",
+      );
+      expect(success).toHaveTextContent(
+        "Sign in to OneUptime with your new email address from now on.",
+      );
+      expect(success).not.toHaveTextContent(SUCCESS_TITLE);
+      expect(
+        screen.getByRole("link", { name: CONTINUE_TO_SIGN_IN }),
+      ).toHaveAttribute("href", "/accounts/login");
+      expect(SensitiveUrlToken.clear).toHaveBeenCalledTimes(1);
+    });
+
     test("lays the card out left-to-right in English", async () => {
       await renderPage();
 

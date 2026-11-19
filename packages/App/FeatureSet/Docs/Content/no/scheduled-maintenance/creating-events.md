@@ -43,7 +43,7 @@ Klikk på **Neste** for å komme til **Berørte ressurser**. Velg **Monitorer** 
 
 ### Velg hvem som får høre om det
 
-Velg statussidene under **Vis hendelse på disse statussidene**. **Varslinger til abonnenter**, sammenslått, sier på én linje når hendelsen vises på dem, og hvem som får beskjed og når; åpne den for å velge **På en dato og et klokkeslett** under **Publiser på statussider**, eller for å endre **Når hendelsen planlegges**, **Når hendelsen starter**, **Når hendelsen slutter** eller **Påminnelser før hendelsen**.
+Velg statussidene under **Vis hendelse på disse statussidene**. **Varslinger til abonnenter**, sammenslått, sier på én linje når hendelsen vises på dem, og hvem som får beskjed og når; åpne den for å velge **På en dato og et klokkeslett** under **Publiser på statussider**, eller for å endre **Når hendelsen planlegges**, **Når hendelsen starter**, **Når hendelsen slutter** eller **Påminnelser før hendelsen**. Linjen følger de valgte statussidene: Er ingen valgt, viser ingen av dem vedlikeholdshendelser, eller sender de som viser dem, ingenting til abonnentene sine, sier den det i stedet for å si hvem som får beskjed.
 
 ### Opprett den
 

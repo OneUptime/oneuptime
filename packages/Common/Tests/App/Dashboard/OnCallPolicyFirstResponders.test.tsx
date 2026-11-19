@@ -40,6 +40,24 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 let permissionsForTest: Array<string> = [];
 
+/*
+ * The list asks the server which of its records share a name (#9746,
+ * Components/SharedName): none here.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SharedName/SharedNamesApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        read: async (): Promise<{ groups: Array<Array<string>> }> => {
+          return { groups: [] };
+        },
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
     __esModule: true,

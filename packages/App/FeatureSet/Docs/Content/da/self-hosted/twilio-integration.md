@@ -147,6 +147,12 @@ Det, som ingen standard sender, går ud, som det ville uden en konfiguration: s�
 
 Statussider tilbyder kun de konfigurationer, der sender SMS, og **Send test-SMS** og **Send testopkald** vises kun for det, en konfiguration sender. Alle eksisterende konfigurationer er som før sat til **Opkald og SMS**. Gennem API'et og Terraform er valget feltet `usedFor`, og en konfiguration uden de numre, dens valg kræver, afvises.
 
+### Telefonsvarer ved vagtopkald
+
+For Twilio er et opkald, som telefonsvareren tager, besvaret, ligesom et opkald, en person tager. Derfor spørger hvert vagtopkald Twilio i baggrunden, om en person eller telefonsvareren tog det, med [telefonsvarergenkendelse](https://www.twilio.com/docs/voice/answering-machine-detection): Den, der tager telefonen, hører alarmen med det samme. Et opkald, som telefonsvareren tager, tæller som ubesvaret, ligesom et opkald, der ringer ud, og alarmen fortsætter som ved et ubesvaret opkald. Så snart velkomstbeskeden slutter, lægger OneUptime en kort besked med det, opkaldet sagde. Opkaldets log siger, om der blev lagt en besked, og det gør hændelsens feed også: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio tager betaling for telefonsvarergenkendelse for hvert besvaret opkald, det tjekker, på den konto, der foretager opkaldet: hele installationens konto eller projektets egen konfiguration. Den er slået til for alle projekter. Slå **Telefonsvarer ved vagtopkald** fra under **Yderligere indstillinger** på **Projektindstillinger > Notifikationer > Notifikationskanaler** for at slå den fra: Et opkald, som telefonsvareren tager, tæller så som besvaret, som før. **Send testopkald** og indgående opkald tjekkes aldrig. Ligesom opkaldsresultater kræver den, at Twilio kan nå din server: se det næste afsnit.
+
 ## 3. Konfigurer netværksadgang
 
 Afsendelse virker med udgående adgang alene. Leveringsopdateringer, opkaldsresultater, kvittering via tastaturet og indgående opkald kræver, at Twilio kan nå din server.
@@ -171,7 +177,7 @@ Indgående adgang afhænger af funktionen:
 | --- | --- |
 | Indsendelse af SMS | Nej. Opdateringer af leveringsstatus kræver dog et callback. |
 | Et simpelt teststemmeopkald | Nej. OneUptime sender de talte instruktioner med i den udgående API-anmodning. |
-| Vide, om et vagtopkald blev besvaret | Ja. Twilio melder, hvordan hvert opkald endte, så hændelsens feed kan sige, når en vagthavende ikke svarede. Opkald sendes stadig uden det. |
+| Vide, om et vagtopkald blev besvaret | Ja. Twilio melder, hvordan hvert opkald endte, og om en person eller telefonsvareren tog det, så hændelsens feed kan sige, når en vagthavende ikke svarede. Opkald sendes stadig uden det. |
 | Tryk 1 for at kvittere for en vagtalarm | Ja. Twilio sender tastaturinputtet til OneUptime. |
 | Politikker for indgående opkald | Ja. Twilio henter opkaldsinstruktioner og rapporterer resultaterne af opkaldet. |
 
@@ -181,13 +187,17 @@ Det er de eksterne stier gennem OneUptimes Nginx-gateway. Pladsholderne er forsk
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS'ens leveringsstatus |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Opkaldsresultat |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Om en person eller telefonsvareren tog et vagtopkald |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Kvittering via tastaturet |
 | POST | `/notification/incoming-call/voice` | Valgfrie instruktioner til indgående opkald |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valgfrie resultater af routing af indgående opkald |
 
 OneUptime genererer automatisk URL'erne til SMS, opkaldsresultater og kvittering. Erstat ikke deres tokens med en fast webhook-URL. For indgående opkald følger du [politikker for indgående opkald](/docs/on-call/incoming-call-policy), der konfigurerer nummerets webhook, når du tilknytter et nummer.
 
-Twilio kræver [offentligt tilgængelige webhook-URL'er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Brug et offentligt betroet TLS-certifikat, og bevar den oprindelige vært, protokol, sti, forespørgselsparametre, body og headeren `X-Twilio-Signature` gennem proxyer. Handlerne til indgående opkald validerer Twilios signaturer; SMS-levering og opkaldsresultater bruger et URL-token pr. besked eller opkald, og kvittering via tastaturet et signeret forespørgselstoken. Afslør ikke tokens i delte logs eller skærmbilleder. Se [Twilios webhook-sikkerhed](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio kræver [offentligt tilgængelige webhook-URL'er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Brug et offentligt betroet TLS-certifikat, og bevar den oprindelige vært, protokol, sti, forespørgselsparametre, body og headeren `X-Twilio-Signature` gennem proxyer. Hvert callback i tabellen kontrollerer Twilios signatur, som er lavet med Auth Token for den Twilio-konto, der sendte SMS'en eller foretog opkaldet: projektets Twilio-konfiguration eller kontoen for hele installationen. Callbackene for SMS-levering, opkaldsresultat og telefonsvarer kontrollerer også tokenet i deres URL, og kvittering via tastaturet det signerede token i forespørgslen: signaturen viser, at en anmodning kommer fra Twilio, og tokenet, hvilken SMS eller hvilket opkald den handler om. Et callback, hvis signatur ikke passer, afvises med 403 og ændrer intet. Afslør ikke tokens i delte logs eller skærmbilleder. Se [Twilios webhook-sikkerhed](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+
+> [!IMPORTANT]
+> Twilio signerer præcis den URL, det kalder, og hver parameter, det sender, så OneUptime afviser et callback, som en proxy har ændret undervejs, og så holder status for SMS-levering, opkaldsresultater og kvittering via tastaturet op med at blive opdateret. Kontrollér, at hver proxy mellem Twilio og OneUptime sender stien, forespørgselsstrengen, body og headeren `X-Twilio-Signature` uændret videre, uden omdirigering. OneUptime kontrollerer signaturen mod den URL, som `HOST` og `HTTP_PROTOCOL` danner, og mod den, som anmodningens headere `Host`, `X-Forwarded-Host` og `X-Forwarded-Proto` angiver, så det er nok, at én af dem er den offentlige URL, Twilio kaldte. For hvert callback, OneUptime afviser, har serverens log en linje, der begynder med `Twilio callback refused` og fortæller hvorfor, uden tokens eller Auth Token.
 
 ### Udgiv callbacks fra en privat installation
 
@@ -224,7 +234,7 @@ Til udvikling beskriver Twilios [vejledning i test af webhooks](https://www.twil
 | Intet bliver sendt | Legitimationsoplysninger, nummerets funktioner, kontoens begrænsninger og den udgående forbindelse. |
 | Twilio afviser SMS med fejl 21606 | Nummeret kan ikke sende SMS. Tilføj et, der kan, under **Twilio SMS-telefonnumre**: se [Separate numre til opkald og SMS](#separate-numre-til-opkald-og-sms). |
 | Opkald eller SMS går gennem en anden konto end projektets | Ingen konfiguration er projektets standard for dem: kolonnen **Projektstandard** viser, hvad hver konfiguration er standard for. Se [En konto kun til SMS eller kun til opkald](#en-konto-kun-til-sms-eller-kun-til-opkald). |
-| SMS'en eller opkaldet kommer frem, men status eller kvittering opdateres ikke | Callback-URL'en og logs fra den offentlige ingress. Twilios [vejledning om fejl ved HTTP-hentning](https://www.twilio.com/docs/api/errors/11200) hjælper med utilgængelige callbacks, TLS-problemer og HTTP-fejl. |
+| SMS'en eller opkaldet kommer frem, men status eller kvittering opdateres ikke | Callback-URL'en og logs fra den offentlige ingress. Twilios [vejledning om fejl ved HTTP-hentning](https://www.twilio.com/docs/api/errors/11200) hjælper med utilgængelige callbacks, TLS-problemer og HTTP-fejl. Et 403 betyder, at OneUptime afviste callbacket: serverens log fortæller hvorfor, i en linje, der begynder med `Twilio callback refused`. |
 
 Et vellykket testopkald alene beviser ikke, at callbacks kan nås.
 

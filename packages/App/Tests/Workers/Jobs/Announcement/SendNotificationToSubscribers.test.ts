@@ -70,7 +70,16 @@ jest.mock("Common/Server/DatabaseConfig", () => {
 jest.mock("Common/Server/Services/StatusPageAnnouncementService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    /*
+     * findOneBy: the Edit's answer reads the announcement's own
+     * notification (AnnouncementReachBuilder), in the parity tests at the
+     * end.
+     */
+    default: {
+      findAllBy: jest.fn(),
+      updateOneById: jest.fn(),
+      findOneBy: jest.fn(),
+    },
   };
 });
 
@@ -89,7 +98,11 @@ jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
 jest.mock("Common/Server/Services/StatusPageService", () => {
   return {
     __esModule: true,
-    default: { getStatusPageURL: jest.fn() },
+    /*
+     * findBy: the announcement forms' answer reads the pages picked as the
+     * project's (AnnouncementReachBuilder), in the parity tests at the end.
+     */
+    default: { getStatusPageURL: jest.fn(), findBy: jest.fn() },
     Service: {
       getSubscriberEmailFooterText: jest.fn(() => {
         return "Footer text";
@@ -274,6 +287,10 @@ import {
   pageShowingTheMonitorTwice,
 } from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Announcement/SendNotificationToSubscribers";
+import { getAnnouncementUpdateBoxReason } from "../../../../FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import AnnouncementReachBuilder from "Common/Server/Utils/StatusPage/AnnouncementReachBuilder";
+import { AnnouncementReachResult } from "Common/Types/StatusPage/AnnouncementReach";
+import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 const CREATED_JOB: string = "Announcement:SendNotificationToSubscribers";
@@ -2772,6 +2789,287 @@ describe("Announcement notifications, in the subscriber's language", () => {
     expect(Object.keys(sentMail()[0]!.mail)).not.toContain("language");
     expect(sentSms()[0]).toBe(
       `Announcement ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    );
+  });
+});
+
+/*
+ * THE ANNOUNCEMENT FORMS SAY WHAT THIS JOB DOES (#9775).
+ *
+ * Create Announcement and the announcement's Edit ask the server what the
+ * status pages picked will do (AnnouncementReachBuilder) and say it: told
+ * when it starts showing, or why not. For every mix of pages, the answer is
+ * what this job does with the same pages - a subscriber is told exactly
+ * when the answer gives no reason, and a page that hides announcements and
+ * one that sends nothing are told apart as the job tells them apart.
+ */
+describe("the announcement forms' answer for the pages picked is what this job does", () => {
+  interface PageMix {
+    name: string;
+    pages: Array<{ shows: boolean; sends: boolean }>;
+    reason: AnnouncementReachResult["nothingSentReason"];
+  }
+
+  const PAGE_IDS: Array<ObjectID> = [
+    STATUS_PAGE_ID,
+    SECOND_STATUS_PAGE_ID,
+    THIRD_STATUS_PAGE_ID,
+  ];
+
+  const MIXES: Array<PageMix> = [
+    {
+      name: "a page that shows announcements and sends notifications",
+      pages: [{ shows: true, sends: true }],
+      reason: null,
+    },
+    {
+      name: "a page that hides announcements",
+      pages: [{ shows: false, sends: true }],
+      reason: PublicNoteNothingSentReason.NoStatusPages,
+    },
+    {
+      name: "a page that never notifies",
+      pages: [{ shows: true, sends: false }],
+      reason: PublicNoteNothingSentReason.NotificationsOff,
+    },
+    {
+      name: "a page that hides announcements and never notifies",
+      pages: [{ shows: false, sends: false }],
+      reason: PublicNoteNothingSentReason.NoStatusPages,
+    },
+    {
+      name: "a page that hides them beside one that never notifies",
+      pages: [
+        { shows: false, sends: true },
+        { shows: true, sends: false },
+      ],
+      reason: PublicNoteNothingSentReason.NotificationsOff,
+    },
+    {
+      name: "a page that hides them beside one that shows them and notifies",
+      pages: [
+        { shows: false, sends: true },
+        { shows: true, sends: true },
+      ],
+      reason: null,
+    },
+    {
+      name: "no page left to send from: archived, or a blocked project's",
+      pages: [],
+      reason: PublicNoteNothingSentReason.NoStatusPages,
+    },
+  ];
+
+  test.each(MIXES)("$name", async (mix: PageMix) => {
+    const picked: Array<ObjectID> =
+      mix.pages.length > 0
+        ? PAGE_IDS.slice(0, mix.pages.length)
+        : [STATUS_PAGE_ID];
+
+    // The pages as every subscriber notification loads them.
+    const loaded: Array<StatusPage> = mix.pages.map(
+      (
+        settings: { shows: boolean; sends: boolean },
+        index: number,
+      ): StatusPage => {
+        const page: StatusPage = statusPage({
+          id: PAGE_IDS[index]!,
+          showAnnouncementsOnStatusPage: settings.shows,
+        });
+        page.sendSubscriberNotifications = settings.sends;
+        return page;
+      },
+    );
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue(loaded as never);
+    // Every page picked is the project's.
+    mock(
+      (StatusPageService as unknown as { findBy: unknown }).findBy,
+    ).mockResolvedValue(
+      picked.map((id: ObjectID): StatusPage => {
+        return statusPage({ id: id });
+      }) as never,
+    );
+
+    const answer: AnnouncementReachResult =
+      await AnnouncementReachBuilder.build({
+        projectId: PROJECT_ID,
+        props: { isRoot: true },
+        request: { statusPageIds: picked, announcementId: null },
+      });
+
+    createdRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+        statusPageIds: picked,
+      }),
+    ];
+
+    await runJob(CREATED_JOB);
+
+    expect(answer.nothingSentReason).toBe(mix.reason);
+    expect(sentMail().length > 0).toBe(answer.nothingSentReason === null);
+    expect(sentSms().length > 0).toBe(answer.nothingSentReason === null);
+  });
+});
+
+/*
+ * #9921: the announcement's Edit says, under a ticked "Notify subscribers
+ * about this update", why the update would not be sent - the
+ * announcement's own state first (its own notification not gone out yet,
+ * its start still to come), then the status pages picked - from the
+ * answer POST /status-page-announcement/reach gives an Edit
+ * (AnnouncementReachBuilder: the pages' reason, and the announcement's own
+ * notification) and the start the Edit will save. For every mix of where
+ * its own notification stands, when it starts and what its pages do, the
+ * box's answer is what this job does with the same announcement: a
+ * subscriber is sent the update exactly when the box says no reason. One
+ * whose own notification is being sent waits, untouched, and goes out once
+ * that has settled - the box says nothing of it, and the update is sent
+ * then.
+ */
+describe("the Edit's update box says what the update job does", () => {
+  interface UpdateMix {
+    name: string;
+    originalStatus: StatusPageSubscriberNotificationStatus;
+    startsLater: boolean;
+    page: { shows: boolean; sends: boolean };
+  }
+
+  const UPDATE_MIXES: Array<UpdateMix> = [];
+
+  for (const originalStatus of Object.values(
+    StatusPageSubscriberNotificationStatus,
+  )) {
+    for (const startsLater of [false, true]) {
+      for (const page of [
+        { shows: true, sends: true },
+        { shows: true, sends: false },
+        { shows: false, sends: true },
+      ]) {
+        UPDATE_MIXES.push({
+          name: `its own notification ${originalStatus}, ${startsLater ? "starting tomorrow" : "showing already"}, a page that ${page.shows ? "shows announcements" : "hides announcements"} and ${page.sends ? "notifies" : "never notifies"}`,
+          originalStatus: originalStatus,
+          startsLater: startsLater,
+          page: page,
+        });
+      }
+    }
+  }
+
+  test.each(UPDATE_MIXES)("$name", async (mix: UpdateMix) => {
+    const showAnnouncementAt: Date = mix.startsLater
+      ? new Date(Date.now() + 24 * 60 * 60 * 1000)
+      : new Date("2026-01-01T00:00:00.000Z");
+
+    const page: StatusPage = statusPage({
+      showAnnouncementsOnStatusPage: mix.page.shows,
+    });
+    page.sendSubscriberNotifications = mix.page.sends;
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+    mock(
+      (StatusPageService as unknown as { findBy: unknown }).findBy,
+    ).mockResolvedValue([statusPage()] as never);
+
+    const stored: Row = announcement({
+      subscriberNotificationStatus: mix.originalStatus,
+      showAnnouncementAt: showAnnouncementAt,
+    });
+
+    mock(StatusPageAnnouncementService.findOneBy).mockResolvedValue(
+      stored as never,
+    );
+
+    // The Edit's answer, and what its box says of the update.
+    const answer: AnnouncementReachResult =
+      await AnnouncementReachBuilder.build({
+        projectId: PROJECT_ID,
+        props: { isRoot: true },
+        request: {
+          statusPageIds: [STATUS_PAGE_ID],
+          announcementId: ANNOUNCEMENT_ID,
+        },
+      });
+
+    expect(answer.originalNotificationStatus).toBe(mix.originalStatus);
+
+    // The Edit's values: the pages picked, the start it saves, the box ticked.
+    const boxReason: string | null = getAnnouncementUpdateBoxReason({
+      values: {
+        statusPages: [STATUS_PAGE_ID.toString()],
+        showAnnouncementAt: showAnnouncementAt,
+        [SubscriberUpdateNotification.miscDataKey]: true,
+      },
+      reach: answer,
+    });
+
+    // The update job, with the announcement as the Edit saved it.
+    updatedRows = [stored];
+    await runJob(UPDATED_JOB);
+
+    if (
+      SubscriberUpdateNotification.isOriginalNotificationBeingSent(
+        mix.originalStatus,
+      )
+    ) {
+      // It waits, untouched; once the original settles, it goes out.
+      nothingSent();
+      expect(statusWrites()).toEqual([]);
+
+      updatedRows = [
+        announcement({
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Success,
+          showAnnouncementAt: showAnnouncementAt,
+        }),
+      ];
+      await runJob(UPDATED_JOB);
+    }
+
+    expect(sentMail().length > 0).toBe(boxReason === null);
+  });
+
+  test("the box names the start while it is still to come, and the announcement's own notification otherwise", () => {
+    const tomorrow: Date = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    for (const originalNotificationStatus of [
+      StatusPageSubscriberNotificationStatus.Pending,
+      StatusPageSubscriberNotificationStatus.Success,
+    ]) {
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: {
+            showAnnouncementAt: tomorrow,
+            [SubscriberUpdateNotification.miscDataKey]: true,
+          },
+          reach: {
+            nothingSentReason: null,
+            originalNotificationStatus: originalNotificationStatus,
+          },
+        }),
+      ).toContain("is not shown on status pages until");
+    }
+
+    expect(
+      getAnnouncementUpdateBoxReason({
+        values: {
+          showAnnouncementAt: new Date("2026-01-01T00:00:00.000Z"),
+          [SubscriberUpdateNotification.miscDataKey]: true,
+        },
+        reach: {
+          nothingSentReason: null,
+          originalNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
+        },
+      }),
+    ).toBe(
+      "The notification about this announcement has not gone out yet, so this update is not sent.",
     );
   });
 });

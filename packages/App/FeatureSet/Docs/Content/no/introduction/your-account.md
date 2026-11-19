@@ -41,7 +41,7 @@ Klikk på bildet ditt øverst til høyre, og velg **Profil**. Siden **Oversikt**
 
 Klikk på **Rediger Bruker**, og endre det du trenger:
 
-- **E-post**: adressen du logger inn med. Endrer du den, bekrefter du den nye adressen på nytt.
+- **E-post**: adressen du logger inn med. Endrer du den, sender OneUptime en lenke til den nye adressen, og adressen din endres når du åpner den. Frem til da logger du inn med den nåværende, og **Avbryt endring** stopper endringen. En hovedadministrators egen adresse endres med en gang.
 - **Fullt navn**: navnet teamet ditt ser overalt i OneUptime.
 - **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varslinger til deg.
 - **Språk**: språket i dashbordet i alle nettlesere du logger inn i, og i vakttilkallingene dine. Ikke valgt: tilkallingene er på engelsk, og dashbordet følger nettleseren din.
@@ -137,14 +137,14 @@ Har du ingen reservekoder ennå, viser OneUptime dem deretter én gang, og du er
 
 ### Når organisasjonen din styrer påloggingen din
 
-På en server som krever enkel pålogging, logger du bare på gjennom organisasjonens identitetsleverandør, for eksempel Okta eller Microsoft Entra ID, og OneUptime setter ikke opp passord, passnøkkel eller tofaktorautentisering for deg. **Brukerprofil** har da ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandøren din under **Enkel pålogging**. Endre passordet og det andre trinnet hos identitetsleverandøren din. Det du har satt opp før, blir lagret: Det virker først igjen hvis serveren slutter å kreve enkel pålogging, med mindre en serveradministrator fjerner det. Hovedadministratorer beholder sine egne innstillinger under **Sikkerhet**.
+På en server som krever enkel pålogging, logger du bare på gjennom organisasjonens identitetsleverandør, for eksempel Okta eller Microsoft Entra ID, og OneUptime setter ikke opp passord, passnøkkel eller tofaktorautentisering for deg. **Brukerprofil** har da ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandøren din under **Enkel pålogging**. Endre passordet og det andre trinnet hos identitetsleverandøren din. Det du har satt opp før, blir lagret: Det virker først igjen hvis serveren slutter å kreve enkel pålogging, med mindre en serveradministrator fjerner det, og da får du en e-post. Hovedadministratorer beholder sine egne innstillinger under **Sikkerhet**.
 
 Det samme skjer når alle prosjektene du hører til, krever enkel pålogging og har **Styr pålogging med SSO** slått på. Passordet ditt logger deg fortsatt på OneUptime, men alle prosjektene ber om SSO, så OneUptime setter ikke opp nytt passord, ny passnøkkel eller nytt andre trinn for deg:
 
 - **Et prosjekt som ikke gjør det**: Så snart du er medlem av eller invitert til et prosjekt som ikke krever SSO eller ikke har **Styr pålogging med SSO** slått på, kommer delen **Sikkerhet** tilbake. **Oversikt** viser da disse prosjektene under **Enkel pålogging**, som grunnen til at innstillingene er dine. Forlater du det prosjektet, mister du dem igjen.
 - **Prosjekter med ulike leverandører**: Styrer alle prosjektene dine påloggingen, hvert med sin egen identitetsleverandør, viser **Oversikt** hver leverandør.
 - **Hovedadministratorer** beholder alltid sine egne innstillinger under **Sikkerhet**.
-- **Det du har satt opp før**, blir lagret, og en serveradministrator kan fjerne det.
+- **Det du har satt opp før**, blir lagret. En serveradministrator kan fjerne det, og det kan også en eier av alle prosjektene du hører til; du får en e-post når det skjer.
 
 ## Prosjektene dine
 
@@ -184,6 +184,14 @@ Temaet ditt lagres i nettleseren din, så still det inn på nytt i en annen nett
 
 :::details Jeg fikk ikke e-posten for å bekrefte adressen min
 Logger du inn på nytt, sendes en ny lenke: sjekk også søppelpostmappen. Kan du ikke logge inn, bruk **Glemt passord?** på innloggingssiden. Tilbakestillingslenken bekrefter også adressen din.
+:::
+
+:::details Registreringen sendte meg en e-post om at jeg allerede har en konto
+Den adressen har allerede en OneUptime-konto, så registreringen opprettet og endret ingenting. Logg inn med den, eller bruk **Glemt passord?** på innloggingssiden hvis du ikke husker passordet ditt. Registreringssiden sier det samme for alle adresser, så den forteller ingen hvilke adresser som har en konto.
+:::
+
+:::details E-postadressen min har ikke endret seg
+Adressen din endres først når du åpner lenken OneUptime sendte til den nye adressen. Lenken virker i 24 timer: Har den utløpt, endrer du e-posten din på nytt for å få en ny. Bruker en annen konto allerede den adressen, står det i e-posten som ble sendt dit, og adressen din forblir som den er.
 :::
 
 :::details Jeg har mistet autentiseringsappen min

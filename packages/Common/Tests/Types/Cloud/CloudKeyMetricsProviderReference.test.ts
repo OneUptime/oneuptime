@@ -229,7 +229,7 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
 
   /*
    * A metric Microsoft deprecates is no key metric: the type reads what
-   * replaces it, and keeps reading it in the same call for the monitors
+   * replaces it, and may keep reading it in the same call for the monitors
    * built on it (AzureTypeKeyMetrics.retired) - only while Microsoft's
    * table still lists it as deprecated, and never as anything but that.
    */
@@ -280,17 +280,15 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
       }
     }
 
-    // Cosmos DB's ServerSideLatency, for its direct and gateway latencies.
+    /*
+     * None now: Cosmos DB's ServerSideLatency was read until the monitors
+     * built on it moved to its direct and gateway latencies (#9739).
+     */
     expect(
-      AZURE_KEY_METRICS.find((entry: AzureTypeKeyMetrics): boolean => {
-        return entry.type === "Microsoft.DocumentDB/databaseAccounts";
-      })?.retired,
-    ).toEqual([
-      {
-        name: "ServerSideLatency",
-        replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
-      },
-    ]);
+      AZURE_KEY_METRICS.filter((entry: AzureTypeKeyMetrics): boolean => {
+        return (entry.retired || []).length > 0;
+      }),
+    ).toEqual([]);
   });
 
   /*
@@ -547,7 +545,7 @@ describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents
 
   /*
    * A metric Google deprecates is no key metric: its type reads what
-   * replaces it, and keeps reading it for the monitors built on it
+   * replaces it, and may keep reading it for the monitors built on it
    * (GcpTypeKeyMetrics.retired) - only while Google's list still has it,
    * deprecated.
    */
@@ -604,17 +602,15 @@ describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents
       ).toContain(item.metric.replacedBy);
     }
 
-    // A topic's publish operations, for the count of its message sizes.
+    /*
+     * None now: a topic's publish operations were read until the monitors
+     * built on them moved to the count of its message sizes (#9739).
+     */
     expect(
       retired.map((item: { metric: GcpRetiredKeyMetric }) => {
         return [item.metric.metric.metricType, item.metric.replacedBy];
       }),
-    ).toEqual([
-      [
-        "pubsub.googleapis.com/topic/send_message_operation_count",
-        "pubsub.googleapis.com/topic/message_sizes_count",
-      ],
-    ]);
+    ).toEqual([]);
   });
 
   test("each is a metric of the resource type it is listed under", () => {
@@ -780,9 +776,22 @@ const AWS_STATISTIC_KEPT: Record<string, Record<string, string>> = {
  * storage by bucket and storage type, an MSK cluster's per-broker metrics,
  * a series per broker, a Cognito user pool's per app client (UserPool,
  * UserPoolClient), and a SageMaker endpoint's per production variant
- * (EndpointName, VariantName) - series that add up to the resource's.
+ * (EndpointName, VariantName) - series that add up to the resource's. A
+ * Glue job's are its series whose JobRunId is ALL (JobName, JobRunId,
+ * Type), and an Athena workgroup's query times one per query state and
+ * type (WorkGroup, QueryState, QueryType).
  */
 const AWS_READ_ON_MORE_DIMENSIONS: Record<string, Array<string>> = {
+  Glue: [
+    "glue.driver.aggregate.numCompletedTasks",
+    "glue.driver.aggregate.numFailedTasks",
+    "glue.driver.aggregate.numKilledTasks",
+    "glue.driver.aggregate.recordsRead",
+    "glue.driver.aggregate.bytesRead",
+    "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+    "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
+  ],
+  "AWS/Athena": ["TotalExecutionTime", "EngineExecutionTime", "QueryQueueTime"],
   "AWS/S3": ["BucketSizeBytes", "NumberOfObjects"],
   "AWS/Kafka": [
     "UnderReplicatedPartitions",
@@ -818,6 +827,37 @@ const AWS_FREE_ONCE_TURNED_ON: Record<string, Array<string>> = {
     "GroupDesiredCapacity",
     "GroupPendingInstances",
     "GroupTerminatingInstances",
+  ],
+  /*
+   * An Athena workgroup's, once its "Publish query metrics to CloudWatch"
+   * is on - the console's default for a new workgroup.
+   */
+  "AWS/Athena": [
+    "ProcessedBytes",
+    "TotalExecutionTime",
+    "EngineExecutionTime",
+    "QueryQueueTime",
+  ],
+};
+
+/*
+ * Metrics a resource's owner publishes for their own use by turning a
+ * setting on, which CloudWatch bills them as custom metrics: a Glue job's
+ * job metrics ("You may incur additional charges when you enable job
+ * metrics and CloudWatch custom metrics are created"). OneUptime asks for
+ * none of them: it reads a job's metrics only where its owner has them on
+ * already, at a GetMetricData read's cost, and a job without them is never
+ * listed, so it costs nothing.
+ */
+const AWS_OWNERS_OWN_ONCE_TURNED_ON: Record<string, Array<string>> = {
+  Glue: [
+    "glue.driver.aggregate.numCompletedTasks",
+    "glue.driver.aggregate.numFailedTasks",
+    "glue.driver.aggregate.numKilledTasks",
+    "glue.driver.aggregate.recordsRead",
+    "glue.driver.aggregate.bytesRead",
+    "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+    "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
   ],
 };
 
@@ -953,11 +993,14 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
     }
   });
 
-  test("none needs a paid feature turned on, and only those listed a free one", () => {
+  test("none needs a paid feature turned on, and only those listed a free one, or their owner's own", () => {
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
         const isFreeOnceTurnedOn: boolean = (
           AWS_FREE_ONCE_TURNED_ON[entry.namespace] || []
+        ).includes(metric.metricName);
+        const isOwnersOwn: boolean = (
+          AWS_OWNERS_OWN_ONCE_TURNED_ON[entry.namespace] || []
         ).includes(metric.metricName);
 
         expect({
@@ -970,9 +1013,11 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
           metric: metric.metricName,
           publishedBy: isFreeOnceTurnedOn
             ? "free-once-turned-on"
-            : expect.stringMatching(
-                /^(default|only-when-nonzero|only-some-resources)$/,
-              ),
+            : isOwnersOwn
+              ? "custom-once-turned-on"
+              : expect.stringMatching(
+                  /^(default|only-when-nonzero|only-some-resources)$/,
+                ),
         });
       }
     }
@@ -995,7 +1040,8 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
         const expected: string =
           publishedBy === "only-when-nonzero"
             ? "non-zero"
-            : publishedBy === "free-once-turned-on"
+            : publishedBy === "free-once-turned-on" ||
+                publishedBy === "custom-once-turned-on"
               ? "setup"
               : publishedBy === "only-some-resources"
                 ? "some-resources"

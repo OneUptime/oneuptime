@@ -58,15 +58,20 @@ import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../../App/FeatureSet/Accoun
  *     above it. A read that fails - a 404 from a proxy that does not route
  *     /identity, a 402, a 500 - is treated like one that found nothing:
  *     global providers are optional, and an email with no provider gets the
- *     normal "No SSO configuration found" message. Neither page says
- *     anything about an edition or a license. (While the server requires
- *     SSO the pages offer nothing else: LoginSsoRequired.test.tsx.)
+ *     normal "Single sign-on is not set up for <domain>" message, which
+ *     says what to do next. Neither page says anything about an edition or
+ *     a license. (While the server requires SSO the pages offer nothing
+ *     else: LoginSsoRequired.test.tsx.)
  *   - the email form stays on screen while an address is looked up, its
  *     button busy, and keeps the address whatever the answer - the page
  *     gave way to a loader and came back empty, so "No SSO configuration
  *     found for the email: <address>" stood above an empty field (the
  *     screenshot in #5193). Each lookup answers for itself: an earlier
  *     one's message never hides the projects a later one finds.
+ *   - providers are found by the address's domain, never by its account
+ *     (#9824), so a lookup that finds none says single sign-on is not set
+ *     up for that domain, and what to do: ask an admin, or sign in another
+ *     way.
  *   - an address's providers are listed by project as buttons, drawn as the
  *     instance-wide providers are, with "Use a different email" to go back
  *     to the form with the address still in it.
@@ -204,7 +209,7 @@ const SSO_LOCALE_KEYS: Array<string> = [
   "sso.noAccountPrompt",
   "sso.registerLink",
   "sso.selectProjectTitle",
-  "sso.noConfigForEmail",
+  "sso.notSetUpForDomain",
   "sso.emailRequired",
   "sso.defaultProjectName",
   "sso.globalProvidersTitle",
@@ -391,10 +396,16 @@ const navigatedTo: () => Array<string> = (): Array<string> => {
   );
 };
 
-// What the page says when an address finds no provider.
+// What the page says when an address finds no provider: its domain's.
 const noConfigFor: (email: string) => string = (email: string): string => {
-  return english.sso.noConfigForEmail.replace("{{email}}", email);
+  return english.sso.notSetUpForDomain.replace(
+    "{{domain}}",
+    email.slice(email.lastIndexOf("@") + 1).toLowerCase(),
+  );
 };
+
+// What any lookup that found nothing says, whatever the domain.
+const NOT_SET_UP: RegExp = /Single sign-on is not set up for/;
 
 // The providers of the projects an address belongs to, one group a project.
 const projectGroups: () => Array<HTMLElement> = (): Array<HTMLElement> => {
@@ -641,7 +652,7 @@ describe("Accounts single sign-on, in every edition", () => {
 
         expect(
           await screen.findByText(
-            "No SSO configuration found for the email: ada@example.com",
+            "Single sign-on is not set up for example.com. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
           ),
         ).toBeInTheDocument();
         expectEmailForm();
@@ -940,9 +951,7 @@ describe("Accounts single sign-on, in every edition", () => {
       expect(
         screen.getByRole("button", { name: signInWith("Okta") }),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByText(/No SSO configuration found/),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(NOT_SET_UP)).not.toBeInTheDocument();
     });
 
     test("Use a different email: back to the form, with the address still in it", async () => {
@@ -1030,6 +1039,61 @@ describe("Accounts single sign-on, in every edition", () => {
       );
     });
 
+    /*
+     * Providers are found by the address's domain (#9824), so a lookup that
+     * finds none says single sign-on is not set up for that domain - named,
+     * so a typo in it shows - and what to do next.
+     */
+    test("an address that finds nothing is told single sign-on is not set up for its domain, and what to do next", async () => {
+      await renderSso();
+      await submitEmail("grace@sales.acme.com");
+
+      expect(
+        await screen.findByText(
+          "Single sign-on is not set up for sales.acme.com. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
+        ),
+      ).toBeInTheDocument();
+      // The way back to a password is still under the form.
+      expect(
+        screen.getByRole("link", { name: PASSWORD_OPTION }),
+      ).toBeInTheDocument();
+    });
+
+    test("the domain is named as the server reads it: after the last @, in lower case", async () => {
+      await renderSso();
+      await submitEmail('"ada@other.com"@Acme.COM');
+
+      expect(
+        await screen.findByText(noConfigFor("ada@acme.com")),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/other\.com\./)).not.toBeInTheDocument();
+    });
+
+    test("in German: the message names the domain in German words", async () => {
+      await act(async () => {
+        await i18n.changeLanguage("de");
+      });
+      await renderSso();
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+
+      await user.type(await screen.findByTestId("email"), "ada@example.com");
+      await act(async () => {
+        await user.click(screen.getByTestId(german.sso.submitButton));
+      });
+
+      expect(
+        await screen.findByText(
+          german.sso.notSetUpForDomain.replace("{{domain}}", "example.com"),
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(english.sso.notSetUpForDomain, { exact: false }),
+      ).not.toBeInTheDocument();
+    });
+
     test("a project's SAML provider starts its sign-in at /identity/sso/<project>/<provider>", async () => {
       emailSamlAnswer = {
         status: 200,
@@ -1073,9 +1137,7 @@ describe("Accounts single sign-on, in every edition", () => {
       expect(
         await screen.findByText(signInWith("Entra ID")),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByText(/No SSO configuration found/),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(NOT_SET_UP)).not.toBeInTheDocument();
     });
 
     test("an email is required", async () => {
@@ -1169,8 +1231,11 @@ describe("Accounts single sign-on, in every edition", () => {
 
         expect({
           file,
-          placeholder: String(localeValue(locale, "sso.noConfigForEmail")),
-        }).toEqual({ file, placeholder: expect.stringContaining("{{email}}") });
+          placeholder: String(localeValue(locale, "sso.notSetUpForDomain")),
+        }).toEqual({
+          file,
+          placeholder: expect.stringContaining("{{domain}}"),
+        });
       }
     });
 
@@ -1297,6 +1362,43 @@ describe("Accounts single sign-on, in every edition", () => {
         false,
       );
       expect(DUTCH_INFORMAL_ADDRESS.test("Hebt u geen account?")).toBe(false);
+    });
+
+    /*
+     * "No SSO configuration found for the email: <address>" said what was
+     * not found, not what to do - and read as if OneUptime knew the address.
+     * Every language now says single sign-on is not set up for the domain,
+     * then what to do next: two sentences, the domain in the first.
+     */
+    test("every locale says single sign-on is not set up for the domain, then what to do next", () => {
+      for (const { file, locale } of readLocales()) {
+        const message: string = String(
+          localeValue(locale, "sso.notSetUpForDomain"),
+        );
+        // A full stop before a space or the end; 。 and । end one anywhere.
+        const sentenceEnds: number = (message.match(/[。।]|\.(?=\s|$)/gu) || [])
+          .length;
+
+        expect({
+          file,
+          namesTheDomainOnce: message.split("{{domain}}").length - 1,
+          sentences: sentenceEnds,
+          endsASentence: SENTENCE_END.test(message),
+          retired: localeValue(locale, "sso.noConfigForEmail"),
+          namesAnAddress: message.includes("{{email}}"),
+        }).toEqual({
+          file,
+          namesTheDomainOnce: 1,
+          sentences: 2,
+          endsASentence: true,
+          retired: undefined,
+          namesAnAddress: false,
+        });
+      }
+
+      expect(english.sso.notSetUpForDomain).toBe(
+        "Single sign-on is not set up for {{domain}}. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
+      );
     });
 
     /*

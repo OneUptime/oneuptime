@@ -19,6 +19,7 @@ import ServerEmailLogService from "./ServerEmailLogService";
 import ProductFeedbackService from "./ProductFeedbackService";
 import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
 import InstanceTokenSigningKeyService from "./InstanceTokenSigningKeyService";
+import InstanceSamlSigningKeyService from "./InstanceSamlSigningKeyService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -581,6 +582,7 @@ import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
+import HostLogSessionService from "./HostLogSessionService";
 import HostCollectorConfigService from "./HostCollectorConfigService";
 import HostCollectorConfigVersionService from "./HostCollectorConfigVersionService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
@@ -662,6 +664,7 @@ const services: Array<BaseService> = [
   ProductFeedbackService,
   InstanceReceivingPeriodService,
   InstanceTokenSigningKeyService,
+  InstanceSamlSigningKeyService,
   DomainService,
 
   EmailLogService,
@@ -1202,6 +1205,7 @@ const services: Array<BaseService> = [
   HostOwnerRuleService,
   HostOwnerTeamService,
   HostOwnerUserService,
+  HostLogSessionService,
   HostCollectorConfigService,
   HostCollectorConfigVersionService,
   IncomingCallPolicyService,

@@ -45,9 +45,11 @@ import { CloudKeyMetricCondition } from "./CloudKeyMetricCondition";
  *     projects where an agent reports them.
  *
  * A metric its provider deprecates is no key metric: a type that read one
- * reads what replaces it, and still reads the old one as it did before
- * (`retired`), so a monitor someone built on it keeps working until it is
- * moved.
+ * reads what replaces it. It can stay read for a while as `retired`, so a
+ * monitor someone built on it keeps working until it is moved; then it is
+ * read no more. Cosmos DB's ServerSideLatency and Pub/Sub's
+ * send_message_operation_count were, until their monitors were moved to
+ * what replaces them (#9739, MoveMonitorsOffRetiredCloudMetrics).
  *
  * Each metric is filed under a CloudKeyMetricGroup, and a type's metrics
  * come most telling first within it: a resource's Metrics card shows them
@@ -92,7 +94,19 @@ function when<T extends { onlyWhen?: CloudKeyMetricCondition | undefined }>(
  * resource of it reports.
  */
 
-export type AwsStatistic = "Average" | "Sum" | "Maximum" | "Minimum";
+/*
+ * The statistic a key metric is read with. SampleCount is how many values
+ * were published in the period ("the number of data points during the
+ * period", CloudWatch's Statistics definitions): Athena publishes a query's
+ * times once, as it ends, so the SampleCount of its TotalExecutionTime is
+ * how many queries ended. A metric stream carries it as each minute's count.
+ */
+export type AwsStatistic =
+  | "Average"
+  | "Sum"
+  | "Maximum"
+  | "Minimum"
+  | "SampleCount";
 
 export interface AwsKeyMetric {
   metricName: string;
@@ -198,6 +212,8 @@ export const DAILY_PERIOD_SECONDS: number = 86400;
  *     console, whose filters OneUptime cannot know.
  *   - 2: every key metric read every five minutes, the ones added since
  *     streams began too.
+ *   - 3: AWS Glue jobs' and Amazon Athena workgroups' key metrics too
+ *     (#9691).
  *
  * A key metric added to the catalog after a version is written is streamed
  * since the next one, never the current one: stacks of the current version
@@ -205,7 +221,7 @@ export const DAILY_PERIOD_SECONDS: number = 86400;
  * each version carries.
  */
 export const AWS_STREAM_TEMPLATE_UNVERSIONED: number = 1;
-export const AWS_STREAM_TEMPLATE_VERSION: number = 2;
+export const AWS_STREAM_TEMPLATE_VERSION: number = 3;
 
 // A key metric every key-metric stack carries, since streams began - but a daily or hourly one.
 function aws(
@@ -252,6 +268,27 @@ function aws2(
     ...(options.onlyDimensionValues
       ? { onlyDimensionValues: options.onlyDimensionValues }
       : {}),
+  };
+}
+
+/*
+ * A key metric added since template 2 was written, read every five
+ * minutes: the stacks of template 3 on carry it, and an older stack's
+ * account has it read and written by the read.
+ */
+function aws3(
+  metricName: string,
+  statistic: AwsStatistic,
+  unit: string,
+  group: CloudKeyMetricGroup,
+): AwsKeyMetric {
+  return {
+    metricName,
+    statistic,
+    unit,
+    group,
+    periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
+    streamedSince: 3,
   };
 }
 
@@ -911,6 +948,96 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
   },
   {
     /*
+     * An AWS Glue job's own, on its JobRunId ALL series (CloudResourceCatalog's
+     * rule): each run has a series of its own beside it, with as many
+     * dimensions, which is no job's. Glue publishes them every 30 seconds
+     * while a job runs, and only for a job whose job metrics are on
+     * (--enable-metrics), which its owner turns on for their own use -
+     * CloudWatch bills them as custom metrics - so a job without them is
+     * never listed and costs nothing to read. Each is the change since
+     * Glue's last report (a Sum over the period), but the executors, which
+     * are a count at a moment. A sweep asks for the tasks completed, which
+     * every running job reports.
+     */
+    namespace: "Glue",
+    metrics: [
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.aggregate.numCompletedTasks",
+          "Sum",
+          "Count",
+          G.Traffic,
+        ),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.numFailedTasks", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.numKilledTasks", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.recordsRead", "Sum", "Count", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.bytesRead", "Sum", "Bytes", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+          "Average",
+          "Count",
+          G.Compute,
+        ),
+      ),
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
+          "Maximum",
+          "Count",
+          G.Backlog,
+        ),
+      ),
+    ],
+  },
+  {
+    /*
+     * An Amazon Athena workgroup's queries, published as each query ends,
+     * by a workgroup whose "Publish query metrics to CloudWatch" is on (the
+     * console's default). The bytes a workgroup's queries scanned have a
+     * series of the workgroup's own; its query times only one per query
+     * state and type (WorkGroup, QueryState, QueryType), read side by side.
+     * A query publishes its times once, so the SampleCount of its
+     * TotalExecutionTime is how many queries ended - the failed and
+     * cancelled ones apart by their QueryState. A workgroup of DDL alone
+     * publishes no bytes, so a sweep asks for its queries too.
+     */
+    namespace: "AWS/Athena",
+    probeMetricNames: ["ProcessedBytes", "TotalExecutionTime"],
+    metrics: [
+      when(C.Setup, aws3("ProcessedBytes", "Sum", "Bytes", G.Traffic)),
+      when(
+        C.Setup,
+        aws3("TotalExecutionTime", "SampleCount", "Count", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3("EngineExecutionTime", "Average", "Milliseconds", G.Latency),
+      ),
+      when(
+        C.Setup,
+        aws3("QueryQueueTime", "Average", "Milliseconds", G.Backlog),
+      ),
+    ],
+  },
+  {
+    /*
      * The days a certificate has left. ACM publishes it twice a day for
      * every certificate until it expires, then stops: read once an hour,
      * and listed whatever its last point's age (isListedWhenQuiet). Its
@@ -1450,17 +1577,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure5("IndexUsageV2", G.Storage),
       azure5("DocumentCountV2", G.Storage),
     ],
-    retired: [
-      /*
-       * Microsoft's table: "will be removed from Azure Monitor at the end
-       * of August 2025. Please use Server Side Latency Direct and Server
-       * Side Latency Gateway to monitor the latency instead."
-       */
-      {
-        name: "ServerSideLatency",
-        replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
-      },
-    ],
+    /*
+     * ServerSideLatency, which Microsoft removes from Azure Monitor ("Please
+     * use Server Side Latency Direct and Server Side Latency Gateway to
+     * monitor the latency instead"), is read no more: the monitors built on
+     * it were moved to one of the two (#9739).
+     */
     notExportedByDiagnosticSettings: [
       "TotalRequests",
       "TotalRequestUnits",
@@ -2776,21 +2898,11 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         G.Traffic,
       ),
     ],
-    retired: [
-      /*
-       * Google's list: "This metric is deprecated. Apply a count aggregator
-       * on topic/message_sizes instead."
-       */
-      {
-        metric: gcp(
-          "pubsub.googleapis.com/topic/send_message_operation_count",
-          "ALIGN_RATE",
-          "1/s",
-          G.Traffic,
-        ),
-        replacedBy: "pubsub.googleapis.com/topic/message_sizes_count",
-      },
-    ],
+    /*
+     * topic/send_message_operation_count, which Google deprecates ("Apply a
+     * count aggregator on topic/message_sizes instead"), is read no more:
+     * the monitors built on it were moved to the count above (#9739).
+     */
   },
   {
     resourceType: "redis_instance",

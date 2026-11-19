@@ -13,7 +13,7 @@ En jourpolicy avgör vem som larmas om en incident eller ett larm, och vem som s
 
 :::steps
 1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa jourpolicy**.
-2. Ange ett **Namn**, till exempel "Betalningar primär".
+2. Ange ett **Namn**, till exempel "Betalningar primär". Ett namn som en annan policy i projektet redan har, även en arkiverad, avvisas, oavsett stora och små bokstäver och mellanslag, så att varje väljare skiljer policyerna åt.
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
 4. Klicka på **Skapa jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
 :::
@@ -26,7 +26,7 @@ Formuläret frågar också **Utlös den vid varje ny incident och varje nytt lar
 
 Vill du hellre guidas steg för steg, från din telefon till ett testlarm, klickar du på **Guidad installation**: på den tomma listan **Jourpolicyer** eller under **Så fungerar det**. Se [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
 
-Listan **Jourpolicyer** visar varje policys **Namn**, **Larmas först**, **Beskrivning**, **Etiketter** och **Ägare**. **Larmas först** visar vem policyns första eskaleringsregel larmar: dess jourscheman, vart och ett med den som har jour i det just nu, dess team och personerna den nämner, eller **Inga eskaleringsregler** eller **Inga mottagare** när den inte larmar någon. Markera policyer för att använda **Lägg till etiketter**, **Ta bort etiketter**, **Lägg till ägare**, **Ta bort ägare**, **Arkivera** eller **Exportera JSON**, eller för att ta bort dem. **Importera JSON** skapar policyer från en export: en export innehåller en policys egna inställningar, inte dess eskaleringsregler eller ägare.
+Listan **Jourpolicyer** visar varje policys **Namn**, **Larmas först**, **Beskrivning**, **Etiketter** och **Ägare**. **Larmas först** visar vem policyns första eskaleringsregel larmar: dess jourscheman, vart och ett med den som har jour i det just nu, dess team och personerna den nämner, eller **Inga eskaleringsregler** eller **Inga mottagare** när den inte larmar någon. Markera policyer för att använda **Lägg till etiketter**, **Ta bort etiketter**, **Lägg till ägare**, **Ta bort ägare**, **Arkivera** eller **Exportera JSON**, eller för att ta bort dem. **Importera JSON** skapar policyer från en export: en export innehåller en policys egna inställningar, inte dess eskaleringsregler eller ägare. En policy som har samma namn som en annan policy, från tiden innan namn behövde skilja sig åt, är märkt med **Samma namn som en annan policy**, och listan visar hur många det är: jämför deras eskaleringsregler och byt sedan namn på en av dem med **Byt namn** på dess rad.
 
 ## Vad som kör en policy
 
@@ -157,7 +157,7 @@ Varje rad visar vad som startade körningen, när, dess **Status** och vem som b
 Att arkivera tar en policy ur drift och behåller allt: öppna policyns **Inställningar** och klicka på **Arkivera** på dess arkiveringskort, eller markera policyer i listan och välj **Arkivera**.
 
 - En arkiverad policy larmar ingen. Incidenter och larm som använder den hoppar över den, och en körning som fortfarande eskalerar slutar vid sitt nästa steg.
-- Den lämnar listan **Jourpolicyer** för **Jour → Avancerad → Arkiverade policyer**, där **Avarkivera** sätter den i drift igen.
+- Den lämnar listan **Jourpolicyer** för **Jour → Avancerad → Arkiverade policyer**, där **Avarkivera** sätter den i drift igen. Den behåller sitt namn: den som skapar en ny policy med det namnet uppmanas att avarkivera den här i stället.
 
 **Ta bort policy**, under **Avancerad**, tar bort policyn med dess eskaleringsregler och användaråsidosättningar. Borttagning från listan frågar först och föreslår att arkivera i stället.
 

@@ -116,7 +116,7 @@ import {
   isBuildFileSnippet,
 } from "../Utils/Integrations/OpenTelemetry/GuideCodeChecks";
 
-const COLLECTOR_IMAGE: string = "otel/opentelemetry-collector-contrib:0.161.0";
+const COLLECTOR_IMAGE: string = "otel/opentelemetry-collector-contrib:0.165.0";
 // The v of a Go module's version: v1.12.0.
 const GO_VERSION_PREFIX: RegExp = /^v(?=[0-9])/;
 const TEST_KEY: string = "otel-guides-test-key";

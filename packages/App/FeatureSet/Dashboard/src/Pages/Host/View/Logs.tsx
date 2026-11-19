@@ -24,11 +24,26 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
+import HostOperatingSystem from "Common/Utils/Host/HostOperatingSystem";
+import HostLogSession from "Common/Models/DatabaseModels/HostLogSession";
+import { HOST_LOG_SESSION_ATTRIBUTE } from "Common/Types/Host/HostLogSession";
+import OneUptimeDate from "Common/Types/Date";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import HostLogSessions from "../../../Components/Host/HostLogSessions";
 
 const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+  const translator: Translator = useTranslator();
   const [host, setHost] = useState<Host | null>(null);
+  /*
+   * The log session whose lines the logs show, picked from Log Sessions
+   * (#9806): the logs below narrow to the lines it sent.
+   */
+  const [shownSession, setShownSession] = useState<HostLogSession | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -42,6 +57,7 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         select: {
           hostIdentifier: true,
           name: true,
+          osType: true,
         },
       });
 
@@ -73,10 +89,13 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     const q: any = {
       attributes: {
         "resource.host.name": host?.hostIdentifier || "",
+        ...(shownSession?._id
+          ? { [HOST_LOG_SESSION_ATTRIBUTE]: shownSession._id.toString() }
+          : {}),
       },
     };
     return q as Query<Log>;
-  }, [host?.hostIdentifier]);
+  }, [host?.hostIdentifier, shownSession?._id?.toString()]);
 
   if (isLoading) {
     return <PageSkeleton shape="table" />;
@@ -90,8 +109,43 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message="Host not found." />;
   }
 
+  const isAndroid: boolean = HostOperatingSystem.isAndroid(host.osType);
+
   return (
     <Fragment>
+      {isAndroid ? (
+        <div className="mb-5">
+          <HostLogSessions
+            hostId={modelId}
+            shownSessionId={shownSession?._id?.toString()}
+            onShowLines={(session: HostLogSession) => {
+              setShownSession(session);
+            }}
+          />
+        </div>
+      ) : null}
+      {shownSession ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-gray-600">
+            {translator.translateTemplate(
+              "Showing the lines of the log session requested {{time}}.",
+              {
+                time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  shownSession.createdAt!,
+                ),
+              },
+            )}
+          </p>
+          <Button
+            title="Show All Logs"
+            icon={IconProp.Close}
+            buttonStyle={ButtonStyleType.NORMAL}
+            onClick={() => {
+              setShownSession(null);
+            }}
+          />
+        </div>
+      ) : null}
       {/*
        * entityScope is the query scope (contract C4): new rows match via the
        * bloom-indexed `entityKeys` membership column, pre-column rows (no
@@ -111,9 +165,20 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         logQuery={logQuery}
         attributeFilterDisplayKeys={{
           "resource.host.name": "Host",
+          ...(shownSession
+            ? { [HOST_LOG_SESSION_ATTRIBUTE]: "Log Session" }
+            : {}),
         }}
         attributeFilterDisplayValues={{
           "resource.host.name": host.name || host.hostIdentifier!,
+          ...(shownSession?.createdAt
+            ? {
+                [HOST_LOG_SESSION_ATTRIBUTE]:
+                  OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    shownSession.createdAt,
+                  ),
+              }
+            : {}),
         }}
         entityScope={{
           entityKeys: [
@@ -127,7 +192,13 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="Make sure your OTel collector forwards logs with the host.name resource attribute."
+        noLogsMessage={
+          shownSession
+            ? "No lines from this log session yet. They arrive within a minute of someone at the device allowing it."
+            : isAndroid
+              ? "The OneUptime Android agent sends this device's logs within a few minutes of starting."
+              : "Make sure your OTel collector forwards logs with the host.name resource attribute."
+        }
       />
     </Fragment>
   );

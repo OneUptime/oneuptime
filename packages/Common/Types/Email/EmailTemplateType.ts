@@ -13,6 +13,17 @@ enum EmailTemplateType {
   // The welcome of an account that is ready at sign-up (self-hosted): nothing to verify.
   SignupAccountReadyEmail = "SignupAccountReadyEmail.hbs",
   CompleteRegistration = "CompleteRegistration.hbs",
+  /*
+   * A sign-up named an address that already has an account (#9816): the
+   * address's owner is told, and the page that signed up is not.
+   */
+  AccountAlreadyExists = "AccountAlreadyExists.hbs",
+  /*
+   * A person's own change of address, to the new address (#9821): a link to
+   * confirm a free one, or word that one another account has cannot be used.
+   */
+  ConfirmEmailChange = "ConfirmEmailChange.hbs",
+  EmailChangeAddressTaken = "EmailChangeAddressTaken.hbs",
   ConfirmProjectSsoSignIn = "ConfirmProjectSsoSignIn.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
@@ -24,6 +35,12 @@ enum EmailTemplateType {
   TwoFactorBackupCodesRegenerated = "TwoFactorBackupCodesRegenerated.hbs",
   TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   TwoFactorWrongCodes = "TwoFactorWrongCodes.hbs",
+  /*
+   * A person's password, passkeys and second steps were cleared by a server
+   * admin or an owner of their projects (#9818, #9820,
+   * Types/SSO/SignInSettingsClearedEmail), in their own language.
+   */
+  SignInSettingsCleared = "SignInSettingsCleared.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
   // Made an owner of a table, a pipeline or a data store (#9681).
   DataAssetOwnerAdded = "DataAssetOwnerAdded.hbs",

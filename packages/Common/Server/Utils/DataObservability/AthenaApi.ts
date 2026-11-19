@@ -4,6 +4,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   awsErrorCodeOf,
   AwsCredentials,
+  classifyAwsAnswer,
   signAwsRequest,
 } from "../CloudConnection/Aws/AwsApi";
 import DataSourceHttpFetch, {
@@ -11,6 +12,7 @@ import DataSourceHttpFetch, {
   DataSourceHttpResponse,
 } from "../DataSource/HttpFetch";
 import {
+  DataSourceBusyError,
   DataSourceUnreachedError,
   failedAnswerError,
   readBodyText,
@@ -19,9 +21,8 @@ import {
   unreachedError,
 } from "../DataSource/HttpFailure";
 import DataSourceHttpRetry, {
+  busyOfExchange,
   HttpRetryExchange,
-  HttpRetryReason,
-  HttpRetryVerdict,
 } from "../DataSource/HttpRetry";
 
 /*
@@ -39,12 +40,13 @@ import DataSourceHttpRetry, {
  * keys of an IAM user or role that may read the Glue database and run
  * Athena queries in the workgroup.
  *
- * An answer that may pass is asked again (DataSourceHttpRetry), as the AWS
- * SDKs' standard retry mode does: a throttling error code (Athena's
- * TooManyRequestsException, Glue's ThrottlingException, which come as 400s,
- * and the others the SDKs list) is waited out, and a transient one - an
- * InternalServerException, a ServiceUnavailable, any 500, 502, 503 or 504 -
- * is asked again with backoff. Every call reads, but StartQueryExecution,
+ * An answer that may pass is asked again (DataSourceHttpRetry), read as the
+ * AWS SDKs' standard retry mode reads it, by the classifier every AWS call
+ * of OneUptime shares (AwsApi's classifyAwsAnswer): a throttling error code
+ * (Athena's TooManyRequestsException, Glue's ThrottlingException, which
+ * come as 400s, and the others the SDKs list) is waited out, and a
+ * transient one - an InternalServerException, a ServiceUnavailable, any
+ * 500, 502, 503 or 504 - is asked again with backoff. Every call reads, but StartQueryExecution,
  * which starts a query: it carries a ClientRequestToken, kept for every
  * sending, so Athena starts the query once and answers again with the same
  * QueryExecutionId. Without one, Athena's reference says, a caller that is
@@ -69,79 +71,9 @@ export type AthenaTransport = (
 const PROVIDER_TITLE: string = "Amazon Athena";
 const GLUE_TITLE: string = "AWS Glue";
 
-/*
- * The error codes the AWS SDKs' standard retry mode waits out as throttling
- * ("Retry behavior", AWS SDKs and Tools Reference Guide): the service turned
- * the request away before doing it. Athena answers TooManyRequestsException,
- * and Glue ThrottlingException, both as 400s.
- */
-export const AWS_THROTTLING_ERROR_CODES: ReadonlyArray<string> = [
-  "Throttling",
-  "ThrottlingException",
-  "ThrottledException",
-  "RequestThrottledException",
-  "TooManyRequestsException",
-  "ProvisionedThroughputExceededException",
-  "TransactionInProgressException",
-  "LimitExceededException",
-  "PriorRequestNotComplete",
-  "RequestThrottled",
-  "EC2ThrottledException",
-  "RequestLimitExceeded",
-  "SlowDown",
-  "BandwidthLimitExceeded",
-];
+// The error types Athena's error catalog calls "Query timed out": one would time out again.
+export const ATHENA_TIMED_OUT_ERROR_TYPES: ReadonlyArray<number> = [206, 210];
 
-/*
- * The error codes asked again as failures for now: those the standard retry
- * mode calls transient, the common errors that say to try again later
- * (InternalFailure, ServiceUnavailable), Athena's InternalServerException
- * ("a transient condition or outage"), Glue's InternalServiceException, and
- * Glue's FederationSourceRetryableException ("the operation may be
- * retried"). Any other 500, 502, 503 or 504 is one too.
- */
-export const AWS_TRANSIENT_ERROR_CODES: ReadonlyArray<string> = [
-  "RequestTimeout",
-  "RequestTimeoutException",
-  "InternalError",
-  "IDPCommunicationError",
-  "InternalFailure",
-  "ServiceUnavailable",
-  "InternalServerException",
-  "InternalServiceException",
-  "FederationSourceRetryableException",
-];
-
-/*
- * Whether an answer of Athena or Glue may pass, read as the AWS SDKs read
- * it: by its error code first ("__type" of a JSON answer), then by its
- * status. A 5xx with a throttling code is a throttle.
- */
-export function classifyAwsAnswer(
-  response: DataSourceHttpResponse,
-): HttpRetryVerdict | null {
-  if (response.statusCode >= 200 && response.statusCode < 300) {
-    return null;
-  }
-
-  const code: string = awsErrorCodeOf(response.bodyText || "");
-
-  if (
-    AWS_THROTTLING_ERROR_CODES.includes(code) ||
-    response.statusCode === 429
-  ) {
-    return { reason: HttpRetryReason.Throttled };
-  }
-
-  if (
-    AWS_TRANSIENT_ERROR_CODES.includes(code) ||
-    [500, 502, 503, 504].includes(response.statusCode)
-  ) {
-    return { reason: HttpRetryReason.Unavailable };
-  }
-
-  return null;
-}
 const REGION_PATTERN: RegExp = /^[a-z]{2}(-[a-z]+)+-\d$/;
 const NAME_PATTERN: RegExp = /^[A-Za-z0-9_-]{1,255}$/;
 const MAX_TABLE_PAGES: number = 100;
@@ -385,10 +317,14 @@ export default class AthenaApi {
         : {};
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      const errorCode: string | null = readErrorCode(
+        awsErrorCodeOf(response.bodyText || ""),
+      );
+
       throw failedAnswerError({
         provider,
         statusCode: response.statusCode,
-        errorCode: readErrorCode(awsErrorCodeOf(response.bodyText || "")),
+        errorCode,
         operation: said,
         message:
           readText(json["message"]) ||
@@ -402,6 +338,8 @@ export default class AthenaApi {
           "x-amz-request-id",
         ]),
         secrets: this.secrets(),
+        // A throttle or a transient error whose tries ran out may pass (#9679).
+        busy: busyOfExchange(exchange, { code: errorCode, nowMs: this.now() }),
       });
     }
 
@@ -518,9 +456,27 @@ export default class AthenaApi {
       }
 
       if (state === "FAILED" || state === "CANCELLED") {
-        throw new Error(
-          `The Athena query ${state.toLowerCase()}: ${readText(status["StateChangeReason"]).slice(0, 300) || "no reason given"}`,
-        );
+        const message: string = `The Athena query ${state.toLowerCase()}: ${readText(status["StateChangeReason"]).slice(0, 300) || "no reason given"}`;
+        const athenaError: JSONObject = readObject(status["AthenaError"]);
+        const errorType: number = Number(athenaError["ErrorType"]);
+
+        /*
+         * Athena says the query "might succeed if resubmitted" (#9679): a
+         * check starts it again, under a ClientRequestToken of its own, as
+         * the old one would answer this failed query again. Not a query
+         * that timed out (ErrorType 206 or 210), which would again.
+         */
+        if (
+          state === "FAILED" &&
+          athenaError["Retryable"] === true &&
+          !ATHENA_TIMED_OUT_ERROR_TYPES.includes(errorType)
+        ) {
+          throw new DataSourceBusyError(message, {
+            code: Number.isFinite(errorType) ? `ErrorType ${errorType}` : null,
+          });
+        }
+
+        throw new Error(message);
       }
 
       const scanned: number = Number(

@@ -190,7 +190,7 @@ Een repository zegt in een `AGENTS.md` in de hoofdmap, het bestand dat codeerage
 
 | Waar AI werkt | Wat het met de build en tests van de repository doet |
 | --- | --- |
-| Een van je Runners | Bouwt en test zijn wijziging voordat de pull request opent, herstelt wat faalt en controleert opnieuw, en zegt in zijn samenvatting welke controles hij heeft gedraaid. Elke opdracht die hij draait, krijgt 2 minuten, of tot 10 voor een trage installatie, build of testsuite, zonder de eigen inloggegevens van de Runner in zijn omgeving. |
+| Een van je Runners | Bouwt en test zijn wijziging voordat de pull request opent, herstelt wat faalt en controleert opnieuw, en zegt in zijn samenvatting welke controles hij heeft gedraaid. Elke opdracht die hij draait, krijgt 2 minuten, of tot 10 voor een trage installatie, build of testsuite, zonder de eigen inloggegevens van de Runner in zijn omgeving. **Tijdslimiet per opdracht (minuten)**, in de **Limieten per uitvoering** van het project, laat een opdracht tot 120 minuten duren, nooit langer dan de tijdslimiet van de uitvoering. |
 | **Globale Runner** | Draait geen opdracht: hij schrijft de wijziging en opent de pull request, en de eigen CI van je repository controleert die. |
 
 Niets uit een pull request die uit een fork komt, wordt ooit gelezen als de instructies van de repository: een herziening weigert zo'n pull request, en een review leest de basisbranch.

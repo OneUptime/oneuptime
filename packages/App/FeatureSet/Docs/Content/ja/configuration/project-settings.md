@@ -100,7 +100,7 @@ OneUptime Cloud でラベルを作成・変更するには Growth プランが�
 
 **プロジェクト設定 → 通知** では、プロジェクトの通知の送り方を設定します。
 
-- **通知チャネル**: **通知チャネル** カードで、プロジェクトの SMS、電話、WhatsApp、Telegram をオンまたはオフにします。最初はすべてオフです。オンにするのはプロジェクト所有者、**請求管理者**、または **Manage Billing** を持つ人です。このページの **その他の設定** には、メンバーのデフォルトの呼び出し方 ( **新しいメンバーのデフォルトの連絡手順** と **オンコール担当者の電話**、[デフォルトの連絡手順](/docs/notifications/on-call-rules#デフォルトの連絡手順) を参照)、プロジェクト独自のメールサーバー (**カスタム SMTP 設定**、[SMTP](/docs/emails/smtp) を参照) と独自の Twilio アカウント ([Twilio 統合](/docs/self-hosted/twilio-integration) を参照) もあります。OneUptime Cloud では、これらのメッセージの支払いに使う残高もここにあります。[前払い残高](/docs/configuration/billing#前払い残高) を参照してください。
+- **通知チャネル**: **通知チャネル** カードで、プロジェクトの SMS、電話、WhatsApp、Telegram をオンまたはオフにします。最初はすべてオフです。オンにするのはプロジェクト所有者、**請求管理者**、または **Manage Billing** を持つ人です。このページの **その他の設定** には、メンバーのデフォルトの呼び出し方 ( **新しいメンバーのデフォルトの連絡手順** と **オンコール担当者の電話**、[デフォルトの連絡手順](/docs/notifications/on-call-rules#デフォルトの連絡手順) を参照)、オンコール通話で留守番電話と人を区別するかどうか ( **オンコール通話の留守番電話** 、 [オンコール通話の留守番電話](/docs/self-hosted/twilio-integration#オンコール通話の留守番電話) を参照)、プロジェクト独自のメールサーバー (**カスタム SMTP 設定**、[SMTP](/docs/emails/smtp) を参照) と独自の Twilio アカウント ([Twilio 統合](/docs/self-hosted/twilio-integration) を参照) もあります。OneUptime Cloud では、これらのメッセージの支払いに使う残高もここにあります。[前払い残高](/docs/configuration/billing#前払い残高) を参照してください。
 - **通知ログ**: プロジェクトが送信したすべての通知。チャネルごとにタブがあります: **メール**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**電話**、**プッシュ**、**ワークスペース**。 **Webhook** タブは各アドレスのスキームとホストだけを残します。残りは Webhook のシークレットです。
 - **モバイルアプリ**: iOS 版と Android 版のアプリの入手先。[アプリの概要](/docs/mobile-desktop-apps/index) を参照してください。
 

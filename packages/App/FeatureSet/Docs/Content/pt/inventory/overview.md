@@ -71,7 +71,7 @@ Abra um item, e o menu lateral dele tem a sua **Visão geral** (o tipo, a origem
 
 ### Detalhes do ativo
 
-Um host ou um dispositivo de rede tem um cartão **Detalhes do ativo** que descreve os dois da mesma forma: nome do host, endereço IP, endereço MAC, número de série, fabricante, modelo, versão do firmware, sistema operacional, versão do sistema operacional, tipo de dispositivo e localização. Um dado que nada informou aparece como **Desconhecido**, e o cartão explica por que isso acontece e como os desconhecidos são preenchidos: um dispositivo que não os informa por SNMP, um dispositivo ainda não lido, ou um dispositivo Meraki cujo painel os contém.
+Um host ou um dispositivo de rede tem um cartão **Detalhes do ativo** que descreve os dois da mesma forma: nome do host, endereço IP, endereço MAC, número de série, fabricante, modelo, versão do firmware, sistema operacional, versão do sistema operacional, tipo de dispositivo e localização. O cartão de um dispositivo Android também tem o nível do patch de segurança dele, vindo do Android Agent ou do Esper. Um dado que nada informou aparece como **Desconhecido**, e o cartão explica por que isso acontece e como os desconhecidos são preenchidos: um dispositivo que não os informa por SNMP, um dispositivo ainda não lido, ou um dispositivo Meraki cujo painel os contém.
 
 - Os dados de um host vêm dos atributos de recurso da sua telemetria: os endereços IP e MAC, a arquitetura e o sistema operacional de imediato, e o número de série, a marca, o modelo e o firmware depois que você os carimba.
 - Os dados de um dispositivo de rede vêm da sua consulta SNMP, da sua função e do seu site. O que a sua consulta não leu vem da descoberta: a última varredura do seu endereço, a tabela ARP de um roteador ou a consulta DNS da sua sonda. Um dispositivo sem ENTITY-MIB, como um Meraki MX, ainda obtém a marca, o modelo e o sistema operacional da sua descrição de sistema, e o endereço MAC das suas próprias portas. O endereço IP dele nunca é mostrado como nome do host.
@@ -127,6 +127,12 @@ O OneUptime encontra o item de um dispositivo pelo nome dele no Esper, depois pe
 Um dispositivo que não faz check-in há 30 minutos fica **Offline** e mostra há quanto tempo fez o último. O **Status** do item dele segue o último check-in, ou a telemetria quando ela é mais recente, então um dispositivo em silêncio por um dia aparece na página **Em silêncio**.
 
 Um dispositivo removido do Esper é marcado como **Removido**, e o item dele é arquivado: sai da lista e fica aguardando em **Avançado → Arquivado**. Um dispositivo que volta ao Esper volta à lista. 30 dias depois de sair, o dispositivo é excluído, e o item dele também, a menos que a telemetria ou você tenham acrescentado algo a ele.
+
+### Receber um alerta quando um dispositivo deixar de fazer check-in
+
+Em **Dispositivos gerenciados**, clique em **Configurar alertas** na linha da conexão e crie **Esper Device Stopped Checking In**. Ele abre um alerta para cada dispositivo que não faz check-in no Esper há mais de uma hora, com o nome do dispositivo, e o resolve assim que o dispositivo volta a fazer check-in.
+
+Cada leitura da conexão registra há quantos minutos cada dispositivo fez o último check-in, como a métrica `oneuptime.managed_device.check_in.age`, e o monitor verifica o valor mais recente de cada dispositivo a cada 5 minutos. Um dispositivo que também executa o Android Agent fica a cargo de **Host Stopped Reporting**, então nunca alerta duas vezes, e um dispositivo removido do Esper resolve o seu alerta. Uma leitura que falha não registra nada, então nenhum alerta abre nem se resolve até a próxima. Para uma frota desligada à noite, aumente o limite do monitor.
 
 ## Adicionar algo manualmente
 

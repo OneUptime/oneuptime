@@ -84,6 +84,7 @@ import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
+import HostLogSession from "./HostLogSession";
 // The config OneUptime sends to the hosts it manages, and its versions
 import HostCollectorConfig from "./HostCollectorConfig";
 import HostCollectorConfigVersion from "./HostCollectorConfigVersion";
@@ -151,6 +152,7 @@ import ServerEmailLog from "./ServerEmailLog";
 import ProductFeedback from "./ProductFeedback";
 import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
+import InstanceSamlSigningKey from "./InstanceSamlSigningKey";
 // Incidents
 import Incident from "./Incident";
 import IncidentFeed from "./IncidentFeed";
@@ -1085,6 +1087,7 @@ const AllModelTypes: Array<{
   ProductFeedback,
   InstanceReceivingPeriod,
   InstanceTokenSigningKey,
+  InstanceSamlSigningKey,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,
@@ -1299,6 +1302,7 @@ const AllModelTypes: Array<{
   Host,
   HostOwnerTeam,
   HostOwnerUser,
+  HostLogSession,
   HostCollectorConfig,
   HostCollectorConfigVersion,
   ServerlessFunction,

@@ -12,6 +12,9 @@ import CoreAuditLogService from "Common/Server/Services/AuditLogService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "Common/Server/Utils/TeamMember/PendingInviteeProfiles";
 import UserService from "Common/Server/Services/UserService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -613,18 +616,20 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   }
 
   /*
-   * SIGN-IN SETTINGS A MASTER ADMIN CLEARED (issue #9762): a person's
-   * password, passkeys, security keys, authenticator apps, backup codes and
-   * two-factor authentication, removed from the Admin Dashboard
+   * SIGN-IN SETTINGS SOMEBODY CLEARED (issue #9762): a person's password,
+   * passkeys, security keys, authenticator apps, backup codes and
+   * two-factor authentication, removed by a master admin in the Admin
+   * Dashboard, or by an owner of every project the person is in, from a
+   * project's SSO page (#9820)
    * (Common/Types/AuditLog/AuditLogSignInSettingsCleared).
    *
    * Filed as a person's session is: in every project they are a member of
    * that records audit logs, whether or not it stores system events - a
-   * master admin did it by hand. The entry is an Update of the person (a
-   * User, by their id, named by their name or email); its actor is the
-   * master admin who cleared it, so filtering by their email finds every
-   * clear they made; its fields are what was removed, never a value of it.
-   * A clear that removed nothing makes no entry.
+   * person did it by hand. The entry is an Update of the person (a User, by
+   * their id, named by their name or email); its actor is whoever cleared
+   * it, so filtering by their email finds every clear they made; its fields
+   * are what was removed, never a value of it. A clear that removed nothing
+   * makes no entry.
    */
   public async recordSignInSettingsCleared(
     events: Array<SignInSettingsClearedAuditEvent>,
@@ -2172,10 +2177,25 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     const relatedModel: BaseModel = new data.modelType();
 
     if (relatedModel instanceof User) {
+      /*
+       * Someone only invited to the project is named as the project knows
+       * them - the name typed for them, else their address - never by
+       * their account's own name, which it does not see until they join
+       * (#9823, PendingInviteeProfiles).
+       */
+      const withheld: Map<string, WithheldProfile> =
+        await PendingInviteeProfiles.readWithheldProfilesInProject({
+          userIds: ids,
+          projectId: data.projectId,
+        });
+
       for (const id of ids) {
         const user: { name: string | null; email: string | null } | null =
           await this.getUserInfo(new ObjectID(id));
-        const name: string | null = user?.name || user?.email || null;
+        const profile: WithheldProfile | undefined = withheld.get(id);
+        const name: string | null = profile
+          ? profile.inviteeName || user?.email || null
+          : user?.name || user?.email || null;
 
         if (name) {
           names.set(id, name);

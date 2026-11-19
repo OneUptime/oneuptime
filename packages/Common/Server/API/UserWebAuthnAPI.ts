@@ -11,7 +11,6 @@ import {
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
 import UserWebAuthn from "../../Models/DatabaseModels/UserWebAuthn";
-import BadDataException from "../../Types/Exception/BadDataException";
 import Response from "../Utils/Response";
 import { JSONObject } from "../../Types/JSON";
 import CommonAPI from "./CommonAPI";
@@ -21,9 +20,6 @@ import TwoFactorBackupCode from "../Utils/TwoFactorBackupCode";
 import logger from "../Utils/Logger";
 import TwoFactorBackupCodeNotification from "../Utils/TwoFactorBackupCodeNotification";
 import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
-import IdentityRateLimit, {
-  IdentityRateLimitBucket,
-} from "../Middleware/IdentityRateLimit";
 
 export default class UserWebAuthnAPI extends BaseAPI<
   UserWebAuthn,
@@ -122,47 +118,14 @@ export default class UserWebAuthnAPI extends BaseAPI<
     );
 
     /*
-     * The only route on this class that no signed-in user stands behind. It
-     * has to be anonymous -- this is where the challenge a security key signs
-     * comes from, and it is needed before there is any assertion to prove who
-     * is asking -- but "anonymous" and "unmetered" are different things, and
-     * it was both.
-     *
-     * What an unmetered version hands out: a database write against any email
-     * address the caller cares to name, as fast as the process will answer.
-     * The limiter keys on the submitted address AND the caller's own address
-     * (see IdentityRateLimit), so a flood spends the attacker's budget rather
-     * than the victim's -- the same trade every other identity route makes.
+     * No route here answers anybody who is not signed in. The options for a
+     * security key's prompt at sign-in used to come from one that did -
+     * POST /user-webauthn/generate-authentication-options, which took an
+     * email address alone and said whether it had an account with a key
+     * (#9822). They now come from the sign-in itself, once the password or
+     * the sign-in link has proved the account (POST
+     * /identity/security-key-sign-in-options, Types/Accounts/
+     * SecurityKeySignIn).
      */
-    this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/generate-authentication-options`,
-      IdentityRateLimit.getMiddleware(
-        IdentityRateLimitBucket.WebAuthnChallenge,
-      ),
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const data: JSONObject = req.body["data"] as JSONObject;
-
-          if (!data) {
-            throw new BadDataException("Data is required");
-          }
-
-          const email: string | undefined = data["email"] as string | undefined;
-
-          if (!email) {
-            throw new BadDataException("Email is required");
-          }
-
-          const result: { options: any; challenge: string } =
-            await UserWebAuthnService.generateAuthenticationOptions({
-              email: email,
-            });
-
-          return Response.sendJsonObjectResponse(req, res, result);
-        } catch (err) {
-          next(err);
-        }
-      },
-    );
   }
 }

@@ -62,6 +62,9 @@ tests:
             name: COST_PROMETHEUS_URL
             value: http://oneuptime-agent-kubernetes-agent-cost-prometheus.oneuptime.svc.cluster.local:9090
 
+  # The cost agent reads the cluster's own engine when it runs one, so the
+  # collector asks the agent which engine's prices to scrape (#9852):
+  # cost-engine-bundled-prices_test.yaml.
   - it: scrapes the cost engine's price metrics in the collector by default
     template: templates/configmap-deployment.yaml
     asserts:
@@ -70,7 +73,7 @@ tests:
           pattern: "\\n  prometheus:\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:\\s+#[^\\n]*\\n)*\\s+- \"oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003\"\\n"
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          http_sd_configs:\\n            - url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\"\\n"
       # The metrics pipeline reads the receiver, or its scrape goes nowhere.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
@@ -289,6 +292,9 @@ tests:
           pattern: "regex: \"\\^\\(node_total_hourly_cost\\|container_cpu_allocation\\)\\$\""
 
   # --- What the bundled Prometheus keeps ------------------------------------------
+  # The cAdvisor job reads each node's kubelet by default, through the API
+  # server's node proxy where cost.prometheus.nodesProxy says so (#9878):
+  # either way the allowlist is that job's, right after its relabeling.
   - it: keeps only the cAdvisor series OpenCost and the cost agent read
     template: templates/prometheus-cost.yaml
     documentSelector:
@@ -297,7 +303,19 @@ tests:
     asserts:
       - matchRegex:
           path: data["prometheus.yml"]
-          pattern: "replacement: /api/v1/nodes/\\$1/proxy/metrics/cadvisor\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n"
+          pattern: "regex: __meta_kubernetes_node_label_\\(\\.\\+\\)\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n(?:\\s+#[^\\n]*\\n)*\\s+- job_name: opencost\\n"
+
+  - it: keeps only those series through the API server's node proxy too
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    set:
+      cost.prometheus.nodesProxy: true
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "replacement: /api/v1/nodes/\\$1/proxy/metrics/cadvisor\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n(?:\\s+#[^\\n]*\\n)*\\s+- job_name: opencost\\n"
 
   # The cost agent reads memory peaks from this job, by this name.
   - it: keeps the cAdvisor job's name, which the cost agent queries

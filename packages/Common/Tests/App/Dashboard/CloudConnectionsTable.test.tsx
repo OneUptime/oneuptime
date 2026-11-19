@@ -73,6 +73,7 @@ import splitActionButtons, {
 } from "../../../UI/Components/ActionButton/SplitActionButtons";
 import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import { AWS_STREAM_TEMPLATE_VERSION } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
@@ -1121,7 +1122,7 @@ describe("streaming an AWS connection's metrics and logs", () => {
     expect(update).toHaveTextContent("Update the stream");
     expect(update).toHaveAttribute(
       "title",
-      "The stacks in us-east-1 were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.",
+      "The stacks in us-east-1 were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Update them to stream those every minute too.",
     );
 
     await act(async () => {
@@ -1156,7 +1157,10 @@ describe("streaming an AWS connection's metrics and logs", () => {
     };
 
     for (const item of [
-      source({ templateVersion: 2, everyMetric: false }),
+      source({
+        templateVersion: AWS_STREAM_TEMPLATE_VERSION,
+        everyMetric: false,
+      }),
       source({ templateVersion: 1, everyMetric: true }),
       source({ lastAt: minutesAgo(30) }),
     ]) {

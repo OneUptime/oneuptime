@@ -1,5 +1,9 @@
 package com.oneuptime.androidagent.agent
 
+import android.content.Context
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
+import com.oneuptime.androidagent.R
 import com.oneuptime.androidagent.config.AgentConfig
 import com.oneuptime.androidagent.config.EndpointProblem
 import com.oneuptime.androidagent.logs.LogcatState
@@ -27,64 +31,83 @@ data class AgentStatus(
     val detail: String,
 )
 
+/**
+ * The agent's words, from its string resources in the device's language
+ * (res/values-<language>/strings.xml). An interface so a sentence is built
+ * the same way on a device and in a test.
+ */
+interface StringSource {
+    fun get(@StringRes id: Int, vararg args: Any): String
+
+    fun plural(@PluralsRes id: Int, count: Int, vararg args: Any): String
+}
+
+class ContextStrings(private val context: Context) : StringSource {
+    override fun get(id: Int, vararg args: Any): String = context.getString(id, *args)
+
+    override fun plural(id: Int, count: Int, vararg args: Any): String = context.resources.getQuantityString(id, count, *args)
+}
+
 /** Works out the status line from the settings and the last upload. */
 object AgentStatusText {
-    fun of(config: AgentConfig, upload: UploadStatus, pendingBytes: Long): AgentStatus {
+    fun of(strings: StringSource, config: AgentConfig, upload: UploadStatus, pendingBytes: Long): AgentStatus {
         if (!config.isReady) {
             val detail: String =
                 when {
-                    config.endpointProblem != null -> addressProblem(config.endpointProblem)
-                    else -> "Enter the ingestion key, or send it from your device manager as oneuptime_token."
+                    config.endpointProblem != null -> addressProblem(strings, config.endpointProblem)
+                    else -> strings.get(R.string.status_not_set_up_detail)
                 }
-            return AgentStatus(Health.NOT_SET_UP, "Not set up yet", detail)
+            return AgentStatus(Health.NOT_SET_UP, strings.get(R.string.status_not_set_up), detail)
         }
 
         val problem: UploadProblem? = upload.lastProblem
         val failing: Boolean = problem != null && upload.consecutiveFailures > 0
         if (failing) {
-            val waiting: String = if (pendingBytes > 0) " Telemetry is kept on the device until it can be sent." else ""
             val headline: String =
                 when (problem) {
-                    UploadProblem.UNREACHABLE -> "Can't reach OneUptime"
-                    UploadProblem.KEY_REFUSED -> "OneUptime refused the ingestion key"
-                    UploadProblem.NOT_FOUND -> "No OneUptime at this address"
-                    UploadProblem.SERVER_ERROR -> "OneUptime is not accepting telemetry right now"
-                    UploadProblem.BATCH_REFUSED, null -> "Sending failed"
+                    UploadProblem.UNREACHABLE -> strings.get(R.string.status_unreachable)
+                    UploadProblem.KEY_REFUSED -> strings.get(R.string.status_key_refused)
+                    UploadProblem.NOT_FOUND -> strings.get(R.string.status_not_found)
+                    UploadProblem.SERVER_ERROR -> strings.get(R.string.status_server_error)
+                    UploadProblem.BATCH_REFUSED, null -> strings.get(R.string.status_sending_failed)
                 }
             val detail: String =
                 when (problem) {
-                    UploadProblem.UNREACHABLE -> "Check the device's network. The agent tries again on its own."
-                    UploadProblem.KEY_REFUSED ->
-                        "Use a Server ingestion key that is on and not expired (HTTP ${upload.lastProblemStatus ?: 401})."
-                    UploadProblem.NOT_FOUND -> "Check the OneUptime URL: ${config.endpoint?.base}."
-                    UploadProblem.SERVER_ERROR -> "OneUptime answered ${upload.lastProblemStatus ?: "with an error"}. The agent tries again on its own."
-                    UploadProblem.BATCH_REFUSED, null -> "The agent tries again on its own."
+                    UploadProblem.UNREACHABLE -> strings.get(R.string.status_unreachable_detail)
+                    UploadProblem.KEY_REFUSED -> strings.get(R.string.status_key_refused_detail, upload.lastProblemStatus ?: 401)
+                    UploadProblem.NOT_FOUND -> strings.get(R.string.status_not_found_detail, config.endpoint?.base.orEmpty())
+                    UploadProblem.SERVER_ERROR ->
+                        upload.lastProblemStatus?.let { strings.get(R.string.status_server_error_detail, it) }
+                            ?: strings.get(R.string.status_server_error_unknown_detail)
+                    UploadProblem.BATCH_REFUSED, null -> strings.get(R.string.status_retrying)
                 }
-            return AgentStatus(Health.FAILING, headline, detail + waiting)
+            val withWaiting: String =
+                if (pendingBytes > 0) strings.get(R.string.status_detail_and_kept, detail, strings.get(R.string.status_kept)) else detail
+            return AgentStatus(Health.FAILING, headline, withWaiting)
         }
 
         return if (upload.lastSuccessAtMillis != null) {
-            AgentStatus(Health.REPORTING, "Reporting to OneUptime", "As ${config.identity.name}")
+            AgentStatus(Health.REPORTING, strings.get(R.string.status_reporting), strings.get(R.string.status_as_device, config.identity.name))
         } else {
-            AgentStatus(Health.STARTING, "Starting", "As ${config.identity.name}. The first report goes out within a minute.")
+            AgentStatus(Health.STARTING, strings.get(R.string.status_starting), strings.get(R.string.status_starting_detail, config.identity.name))
         }
     }
 
-    fun addressProblem(problem: EndpointProblem): String =
+    fun addressProblem(strings: StringSource, problem: EndpointProblem): String =
         when (problem) {
-            EndpointProblem.EMPTY -> "Enter your OneUptime URL."
-            EndpointProblem.NOT_A_URL -> "The OneUptime URL is not a web address."
-            EndpointProblem.NOT_HTTPS -> "The OneUptime URL must start with https://, so the ingestion key is never sent in the clear."
-            EndpointProblem.HAS_QUERY_OR_FRAGMENT -> "Remove the ? or # part from the OneUptime URL."
-            EndpointProblem.HAS_CREDENTIALS -> "Remove the user name and password from the OneUptime URL."
+            EndpointProblem.EMPTY -> strings.get(R.string.address_empty)
+            EndpointProblem.NOT_A_URL -> strings.get(R.string.address_not_a_url)
+            EndpointProblem.NOT_HTTPS -> strings.get(R.string.address_not_https)
+            EndpointProblem.HAS_QUERY_OR_FRAGMENT -> strings.get(R.string.address_query_or_fragment)
+            EndpointProblem.HAS_CREDENTIALS -> strings.get(R.string.address_credentials)
         }
 
-    fun logcat(state: LogcatState?): String =
+    fun logcat(strings: StringSource, state: LogcatState?): String =
         when (state) {
-            null -> "Not started"
-            LogcatState.DISABLED -> "Off: switched off by your device manager"
-            LogcatState.NOT_GRANTED -> "Off: READ_LOGS has not been granted"
-            LogcatState.CRASHES_AND_ANRS -> "Crashes and ANRs of every app"
-            LogcatState.FULL -> "Every app's logs, crashes and ANRs"
+            null -> strings.get(R.string.logcat_not_started)
+            LogcatState.DISABLED -> strings.get(R.string.setup_reading_off_by_manager)
+            LogcatState.NOT_GRANTED -> strings.get(R.string.logcat_not_granted)
+            LogcatState.CRASHES_AND_ANRS -> strings.get(R.string.logcat_crashes_and_anrs)
+            LogcatState.FULL -> strings.get(R.string.logcat_full)
         }
 }

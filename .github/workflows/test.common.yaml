@@ -133,10 +133,12 @@ jobs:
       # Postgres over each searched column (MeaningSearchPostgres, #7673).
       # A schema of its own, dropped after.
       RUN_POSTGRES_MEANING_SEARCH_TESTS: "true"
-      # A team's and a label's name compared as it reads - case, spaces and
-      # every kind of space aside - by Postgres as by the server, and a team
-      # or a label refused another one's name (UniqueNamePostgres, #9674).
-      # A schema of its own, dropped after.
+      # A team's, a label's, an on-call policy's and an on-call schedule's
+      # name compared as it reads - case, spaces and every kind of space
+      # aside - by Postgres as by the server, each refused another one's
+      # name, and the records that share a name found for their lists
+      # (UniqueNamePostgres, #9674, #9742, #9746). A schema of its own,
+      # dropped after.
       RUN_POSTGRES_UNIQUE_NAME_TESTS: "true"
     steps:
       - uses: actions/checkout@v4

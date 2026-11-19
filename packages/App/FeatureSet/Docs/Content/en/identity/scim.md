@@ -339,7 +339,7 @@ What `/ServiceProviderConfig` reports:
 | ETag | No |
 | Authentication | HTTP Bearer token, or an OAuth 2.0 access token |
 
-A group your identity provider creates becomes a team of the same name in the project; a team that already has that name is used instead of a new one.
+A group your identity provider creates becomes a team of the same name in the project. A team whose name reads the same, whatever its case or spacing, is used instead of a new one, and takes the group's spelling, unless an identity provider already holds that team as another of its groups: two groups whose names differ only in case or spacing, which Microsoft Entra ID allows, each get a team of their own, and are never made one. Owners and Admin, which cannot be renamed, are used only by their exact name. A group renamed in your identity provider renames its own team, even to a name another team has.
 
 :::details SCIM user schema
 ```json
@@ -454,7 +454,7 @@ Users SCIM creates itself and users who are members of your project are added st
 A OneUptime account's email address is how that person signs in, to every project they belong to, and where their password reset links go. So:
 
 - **OneUptime Cloud**: SCIM never changes an email address. A request that would change one still succeeds: the connection keeps the address your identity provider sent, and answers with it, while the account keeps the address it signs in with. The connection's SCIM logs say the change was not applied. Ask the user to change their address from their own OneUptime profile.
-- **Self-hosted**: SCIM changes the email address only of a user who has joined this project, belongs to no other project, and is not a OneUptime administrator. For anyone else, the connection keeps the new address and the account its own, as on OneUptime Cloud.
+- **Self-hosted**: SCIM changes the email address only of a user who has joined this project, belongs to no other project, and is not a OneUptime administrator. For anyone else, the connection keeps the new address and the account its own, as on OneUptime Cloud. The same goes for an address another OneUptime account already signs in with.
 
 Names follow the same rule everywhere: SCIM updates the name only of a user who has joined this project, belongs to no other project, and is not a OneUptime administrator. For anyone else the name is left as it is and the rest of the request still succeeds.
 :::

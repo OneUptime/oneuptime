@@ -111,7 +111,21 @@ export interface DiscoveredNetworkDevice extends SnmpHardwareIdentity {
    * readDiscoveredHostNetbiosStatus, for the reason dnsHostnameStatus is.
    */
   netbiosNameStatus?: DiscoveredHostNetbiosStatus | undefined;
+  /*
+   * Whether a device in the project is this host, refreshed each time the
+   * scan is read (NetworkDeviceDiscoveryScanService). Two sites can each
+   * have a 10.0.0.5 (issue #9677): the device is the one the scan's probe
+   * sees at the address, not any device there.
+   */
   isAlreadyRegistered?: boolean | undefined;
+  /*
+   * Which device that is, when OneUptime can tell (issue #9677): set with
+   * isAlreadyRegistered on a read, and left out when the devices at the
+   * address cannot be told apart from the scan's probe - the host is a
+   * device all the same, so it is never offered as new. Review Results
+   * reads this device's monitors, never every monitor at the address.
+   */
+  registeredDeviceId?: string | undefined;
   /*
    * False when the host answered ping but not SNMP — such hosts cannot be
    * imported as SNMP-credentialed Network Devices; they surface as

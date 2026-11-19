@@ -735,6 +735,19 @@
                   }
                 ]
               }
+            },
+            {
+              "name": "android.boot.recent_count",
+              "description": "The device's boots in the last hour: 3 or more is a restart loop.",
+              "unit": "{boot}",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "1"
+                  }
+                ]
+              }
             }
           ]
         }

@@ -389,6 +389,104 @@ false
 {{- end -}}
 {{- end -}}
 
+{{/*
+nodes/proxy, which the agent's ClusterRole grants only where nothing narrower
+works (#9878). It reaches the whole kubelet API: a GET on it can run commands
+in any container of the node, and CIS Kubernetes Benchmark 5.1.10 fails every
+binding that grants it - as the cluster's Compliance page says. The kubelet
+authorizes each of its paths as a subresource of nodes: /stats/* as
+nodes/stats, /metrics/* (cAdvisor's included) as nodes/metrics, /pods as
+nodes/pods from Kubernetes 1.33 (KubeletFineGrainedAuthz: beta and on by
+default from 1.33, GA from 1.36), and the rest as nodes/proxy.
+
+A setting below is true, false or auto, in any spelling; missing or empty is
+auto, which is what a release upgraded with --reuse-values from an older
+chart has.
+Usage: {{ include "kubernetes-agent.nodesProxySetting" (dict "value" .Values.kubeletstats.nodesProxy "setting" "kubeletstats.nodesProxy" "auto" "...") }}
+*/}}
+{{- define "kubernetes-agent.nodesProxySetting" -}}
+{{- $value := .value -}}
+{{- if or (kindIs "invalid" $value) (eq (toString $value | trim) "") -}}
+auto
+{{- else if has (toString $value | trim | lower) (list "auto" "true" "false") -}}
+{{- toString $value | trim | lower -}}
+{{- else -}}
+{{- fail (printf "%s is %q. Set it to true, false or auto (the default: %s)." .setting (toString $value) .auto) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the ClusterRole grants nodes/proxy for the node collector's kubelet
+pod list. kubeletstats reads each node's /pods - each container's ID, each
+volume's claim, and the requests and limits its utilization metrics divide
+by - and sends nothing from a node whose kubelet refuses it. A kubelet from
+1.33 on lets it read the list with nodes/pods, which the ClusterRole always
+grants; an older one asks for nodes/proxy.
+
+kubeletstats.nodesProxy: true or false as set. auto grants it while the
+Kubernetes version the chart is rendered for is older than 1.36: a kubelet may
+be up to three minor versions older than the API server, so only from 1.36
+is every kubelet 1.33 or later. Helm reads that version from the cluster on
+install and upgrade, Amazon EKS renders the add-on with the cluster's
+(--kube-version), and Argo CD and Flux pass it too; a bare `helm template`
+assumes its own default. Never without the node collector: the eks-fargate
+preset runs none.
+Usage: {{- if eq (include "kubernetes-agent.kubeletPodsThroughNodesProxy" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.kubeletPodsThroughNodesProxy" -}}
+{{- $setting := include "kubernetes-agent.nodesProxySetting" (dict "value" (.Values.kubeletstats | default dict).nodesProxy "setting" "kubeletstats.nodesProxy" "auto" "granted while the cluster runs Kubernetes older than 1.36") -}}
+{{- if ne (include "kubernetes-agent.daemonSetMetricsEnabled" .) "true" -}}
+false
+{{- else if eq $setting "auto" -}}
+{{- ternary "false" "true" (semverCompare ">=1.36-0" .Capabilities.KubeVersion.Version) -}}
+{{- else -}}
+{{- $setting -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the bundled cost Prometheus reads each node's cAdvisor through the API
+server's node proxy (/api/v1/nodes/<node>/proxy/metrics/cadvisor), which needs
+nodes/proxy, rather than from the node's own kubelet
+(https://<node address>:10250/metrics/cadvisor), which needs only
+nodes/metrics - as the node collector's own cAdvisor scrape does.
+
+cost.prometheus.nodesProxy: true or false as set. auto is true only on the
+eks-fargate preset: Fargate lets no pod reach a node's kubelet, so there the
+API server is the only way to cAdvisor. Never while the chart bundles no
+Prometheus (cost off, or an engine of the cluster's own).
+Usage: {{- if eq (include "kubernetes-agent.costPrometheusThroughNodesProxy" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costPrometheusThroughNodesProxy" -}}
+{{- $setting := include "kubernetes-agent.nodesProxySetting" (dict "value" (((.Values.cost | default dict).prometheus) | default dict).nodesProxy "setting" "cost.prometheus.nodesProxy" "auto" "through the API server on the eks-fargate preset only") -}}
+{{- if ne (include "kubernetes-agent.costEngineBundled" .) "true" -}}
+false
+{{- else if eq $setting "auto" -}}
+{{- ternary "true" "false" (eq (default "" .Values.preset) "eks-fargate") -}}
+{{- else -}}
+{{- $setting -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Why the ClusterRole grants nodes/proxy, as the value of its
+oneuptime.com/nodes-proxy label: kubelet-pods, cost-prometheus, both joined
+by a dot, or nothing when it grants none. The cluster's Compliance page reads
+the label to say why the agent's own binding fails CIS Kubernetes Benchmark
+5.1.10, and how to drop it (KubernetesRbac's NODES_PROXY_REASON_LABEL).
+Usage: {{- with include "kubernetes-agent.nodesProxyReasons" . }}
+*/}}
+{{- define "kubernetes-agent.nodesProxyReasons" -}}
+{{- $reasons := list -}}
+{{- if eq (include "kubernetes-agent.kubeletPodsThroughNodesProxy" .) "true" -}}
+{{- $reasons = append $reasons "kubelet-pods" -}}
+{{- end -}}
+{{- if eq (include "kubernetes-agent.costPrometheusThroughNodesProxy" .) "true" -}}
+{{- $reasons = append $reasons "cost-prometheus" -}}
+{{- end -}}
+{{- join "." $reasons -}}
+{{- end -}}
+
 {{- define "kubernetes-agent.openshiftDetector" -}}
 resourcedetection/openshift:
   detectors: [openshift]
@@ -729,7 +827,7 @@ ebpf.dropUnlinkedDatabaseCalls.
     emits; db.system is the older one, kept so an OBI that still emits it is
     covered too.
   - The calls condition adds parent_span_id == SpanID(0x0000000000000000),
-    "no parent" in a form both the pinned collector (0.161.0) and 0.96.0,
+    "no parent" in a form both the pinned collector (0.165.0) and 0.96.0,
     which a --reuse-values upgrade keeps, understand; IsRootSpan() is newer
     than 0.96.0.
 */}}
@@ -896,7 +994,7 @@ no parent that is none of the calls other features read from spans.
 
   - telemetry.distro.name and the "no parent" form as for the database
     condition above (parent_span_id == SpanID(0x0000000000000000) is what
-    both the pinned collector, 0.161.0, and 0.96.0 understand).
+    both the pinned collector, 0.165.0, and 0.96.0 understand).
   - kind == SPAN_KIND_CLIENT only: PRODUCER and CONSUMER spans are messaging
     and always kept, as are SERVER spans (a request is a trace's root) and
     INTERNAL ones.
@@ -1206,7 +1304,7 @@ renders for. Collector 0.157.0 renamed it cumulative_to_delta and keeps
 cumulativetodelta as a deprecated alias; a collector before 0.157.0 knows only
 cumulativetodelta and refuses the whole config for the new name ("unknown type"),
 and 0.96.0 is what `helm upgrade --reuse-values` keeps (_stale-defaults.tpl).
-Both names were validated on 0.96.0, 0.156.0, 0.157.0 and 0.161.0.
+Both names were validated on 0.96.0, 0.156.0, 0.157.0, 0.161.0 and 0.165.0.
 Usage: {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
 */}}
 {{- define "kubernetes-agent.cumulativeToDeltaProcessor" -}}
@@ -1387,7 +1485,7 @@ delete every node metric. The guard also decides the tie-break for
 records we cannot classify: they are KEPT, never dropped.
 
 Metric name matching is written for the pinned otel-collector-contrib
-(.Values.image.tag, 0.161.0) and for 0.96.0, which a --reuse-values upgrade
+(.Values.image.tag, 0.165.0) and for 0.96.0, which a --reuse-values upgrade
 keeps: `IsMatch`, the `metric` / `datapoint` OTTL contexts and paths with no
 context prefix (`name`, not `metric.name`) exist in both. Keep it that way.
 */}}
@@ -1736,9 +1834,10 @@ false
 {{/*
 Whether cost.engine.url is `auto` (#9633): bundle nothing, and let the cost
 agent find the OpenCost or Kubecost the cluster already runs, wherever it is,
-at run time. The chart cannot look for it itself: Helm's `lookup` comes back
-empty under `helm template`, Argo CD and dry runs, so the same values would
-render differently depending on the tool. Any spelling of auto counts.
+at run time. The chart cannot look for it itself: it reads no cluster objects
+while it renders, since under `helm template`, Argo CD and dry runs there are
+none to read, so the same values would render differently depending on the
+tool. Any spelling of auto counts.
 Usage: {{- if eq (include "kubernetes-agent.costEngineAuto" .) "true" }}
 */}}
 {{- define "kubernetes-agent.costEngineAuto" -}}
@@ -1751,8 +1850,11 @@ false
 
 {{/*
 Whether the collector's cost-engine job asks the cost agent where to scrape
-(#9776): cost.engine.url is auto or a URL, the agent runs, and
-cost.metrics.endpoint names no endpoint of its own.
+(#9776, #9852): the agent runs, cost.metrics.endpoint names no endpoint of
+its own, and the agent may read an engine the chart did not put there:
+cost.engine.url is auto or a URL, or the chart bundles OpenCost and the agent
+prefers the cluster's own engine when it finds one
+(kubernetes-agent.costEnginePreferExisting).
 
 Where an engine serves its price metrics depends on which engine it is and
 which of its Services the URL names (checked against Kubecost 2.8.7, Kubecost
@@ -1766,13 +1868,21 @@ cannot weigh one Service against another. The agent reads the engine, so it
 finds the endpoint (agents/KubernetesCostAgent/EngineMetrics.ts) and serves
 it at /scrape-targets, which the job reads through http_sd.
 
-The bundled OpenCost is scraped where the chart put it, an explicit
-cost.metrics.endpoint as written, and with the agent off the engine URL's
-/metrics as before (the auto job then finds engines itself).
+With the bundled engine, that is what keeps the dashboard's prices those of
+the engine the Costs pages are priced by (#9852): the agent answers with the
+bundled OpenCost's until it reads the cluster's own, then with that one's,
+and with the bundled one's again if it falls back. A static target would
+scrape the bundled OpenCost's prices beside the cluster's own engine's
+allocations.
+
+The bundled OpenCost the agent always reads (cost.engine.preferExisting
+false, or a rate card of its own) is scraped where the chart put it, an
+explicit cost.metrics.endpoint as written, and with the agent off the engine
+URL's /metrics as before (the auto job then finds engines itself).
 Usage: {{- if eq (include "kubernetes-agent.costMetricsFromAgent" .) "true" }}
 */}}
 {{- define "kubernetes-agent.costMetricsFromAgent" -}}
-{{- if and (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") .Values.cost.agent.enabled (ne (include "kubernetes-agent.costEngineBundled" .) "true") (not (.Values.cost.metrics.endpoint | default "" | toString | trim)) -}}
+{{- if and (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") .Values.cost.agent.enabled (or (ne (include "kubernetes-agent.costEngineBundled" .) "true") (eq (include "kubernetes-agent.costEnginePreferExisting" .) "true")) (not (.Values.cost.metrics.endpoint | default "" | toString | trim)) -}}
 true
 {{- else -}}
 false
@@ -1842,6 +1952,22 @@ resolves to nothing and every poll would fail against it.
 {{- .Values.cost.engine.prometheusUrl -}}
 {{- else if eq (include "kubernetes-agent.costEngineBundled" .) "true" -}}
 http://{{ include "kubernetes-agent.fullname" . }}-cost-prometheus.{{ .Release.Namespace }}.svc.cluster.local:9090
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether kubernetes-agent.costPrometheusUrl is the chart's bundled Prometheus
+rather than one cost.engine.prometheusUrl names (#9777). The cost agent then
+reads it for the bundled engine, and for the cluster's own engine only when
+it cannot find the Prometheus that engine reads; one named in
+cost.engine.prometheusUrl it reads whatever the engine.
+Usage: {{- if eq (include "kubernetes-agent.costPrometheusBundled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costPrometheusBundled" -}}
+{{- if and (eq (include "kubernetes-agent.costEngineBundled" .) "true") (not .Values.cost.engine.prometheusUrl) -}}
+true
+{{- else -}}
+false
 {{- end -}}
 {{- end -}}
 

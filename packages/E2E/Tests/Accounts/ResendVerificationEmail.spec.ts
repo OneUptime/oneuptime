@@ -383,7 +383,8 @@ test.describe("Resending a verification email without signing in", () => {
 
     const resendToken: string = resendTokenValue as string;
 
-    expect(resendToken).toMatch(/^v1\./);
+    // A sign-up's credential names the attempt, never an account (#9816).
+    expect(resendToken).toMatch(/^v2\./);
     expect(signup.miscData["verificationEmailResendAvailableInSeconds"]).toBe(
       RESEND_COOLDOWN_IN_SECONDS,
     );

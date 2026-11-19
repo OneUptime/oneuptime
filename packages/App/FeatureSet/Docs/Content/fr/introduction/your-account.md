@@ -41,7 +41,7 @@ Cliquez sur votre photo en haut à droite et choisissez **Profil**. La page **Vu
 
 Cliquez sur **Modifier : Utilisateur** et changez ce dont vous avez besoin :
 
-- **E-mail** : l'adresse avec laquelle vous vous connectez. Si vous la changez, vous vérifiez à nouveau la nouvelle adresse.
+- **E-mail** : l'adresse avec laquelle vous vous connectez. Si vous la changez, OneUptime envoie un lien à la nouvelle adresse, et votre adresse change dès que vous l'ouvrez. D'ici là, vous vous connectez avec l'adresse actuelle, et **Annuler la modification** arrête la modification. L'adresse d'un administrateur principal change aussitôt.
 - **Nom complet** : le nom que votre équipe voit partout dans OneUptime.
 - **Fuseau horaire** : le fuseau dans lequel le tableau de bord affiche et lit les heures, et celui des heures indiquées dans les notifications qui vous sont envoyées.
 - **Langue** : la langue du tableau de bord dans chaque navigateur où vous vous connectez, et celle de vos alertes d'astreinte. Non définie, vos alertes sont en anglais et le tableau de bord suit votre navigateur.
@@ -137,14 +137,14 @@ Si vous n'avez pas encore de codes de secours, OneUptime vous les affiche alors 
 
 ### Quand votre organisation gère votre connexion
 
-Sur un serveur qui exige l'authentification unique, vous vous connectez uniquement via le fournisseur d'identité de votre organisation, comme Okta ou Microsoft Entra ID, et OneUptime ne définit pour vous ni mot de passe, ni clé d'accès, ni authentification à deux facteurs. Le **Profil utilisateur** n'a alors pas de section **Sécurité**, et sa **Vue d'ensemble** indique votre fournisseur sous **Authentification unique**. Changez votre mot de passe et votre deuxième étape auprès de votre fournisseur d'identité. Ce que vous aviez configuré avant reste enregistré : cela ne fonctionne de nouveau que si le serveur cesse d'exiger l'authentification unique, sauf si un administrateur du serveur l'efface. Les administrateurs principaux conservent leurs propres réglages de **Sécurité**.
+Sur un serveur qui exige l'authentification unique, vous vous connectez uniquement via le fournisseur d'identité de votre organisation, comme Okta ou Microsoft Entra ID, et OneUptime ne définit pour vous ni mot de passe, ni clé d'accès, ni authentification à deux facteurs. Le **Profil utilisateur** n'a alors pas de section **Sécurité**, et sa **Vue d'ensemble** indique votre fournisseur sous **Authentification unique**. Changez votre mot de passe et votre deuxième étape auprès de votre fournisseur d'identité. Ce que vous aviez configuré avant reste enregistré : cela ne fonctionne de nouveau que si le serveur cesse d'exiger l'authentification unique, sauf si un administrateur du serveur l'efface, et vous recevez alors un e-mail. Les administrateurs principaux conservent leurs propres réglages de **Sécurité**.
 
 Il en va de même quand chaque projet auquel vous appartenez exige l'authentification unique et a activé **Gérer la connexion avec le SSO**. Votre mot de passe vous connecte toujours à OneUptime, mais chaque projet demande le SSO ; OneUptime ne définit donc pour vous ni nouveau mot de passe, ni nouvelle clé d'accès, ni nouvelle deuxième étape :
 
 - **Un projet qui ne le fait pas** : dès que vous êtes membre d'un projet, ou invité dans un projet, qui n'exige pas le SSO ou n'a pas activé **Gérer la connexion avec le SSO**, votre section **Sécurité** revient. La **Vue d'ensemble** nomme alors ces projets sous **Authentification unique**, comme la raison pour laquelle vos réglages vous appartiennent. Quitter ce projet vous les retire de nouveau.
 - **Des projets avec des fournisseurs différents** : si tous vos projets gèrent la connexion, chacun avec son propre fournisseur d'identité, la **Vue d'ensemble** nomme chaque fournisseur.
 - **Les administrateurs principaux** gardent toujours leurs propres réglages de **Sécurité**.
-- **Ce que vous aviez configuré avant** reste enregistré, et un administrateur du serveur peut l'effacer.
+- **Ce que vous aviez configuré avant** reste enregistré. Un administrateur du serveur peut l'effacer, tout comme un propriétaire de tous les projets auxquels vous appartenez ; vous recevez alors un e-mail.
 
 ## Vos projets
 
@@ -184,6 +184,14 @@ Ouvrez **Zone de danger → Supprimer le compte**. Vous ne pouvez supprimer votr
 
 :::details Je n'ai pas reçu l'e-mail de vérification de mon adresse
 Se connecter à nouveau envoie un nouveau lien : vérifiez aussi votre dossier de courrier indésirable. Si vous ne pouvez pas vous connecter, utilisez **Mot de passe oublié ?** sur la page de connexion. Son lien de réinitialisation vérifie aussi votre adresse.
+:::
+
+:::details L'inscription m'a envoyé un e-mail disant que j'ai déjà un compte
+Cette adresse a déjà un compte OneUptime, donc l'inscription n'a rien créé ni rien changé. Connectez-vous avec elle, ou utilisez **Mot de passe oublié ?** sur la page de connexion si vous ne vous souvenez plus de votre mot de passe. La page d'inscription dit la même chose pour toutes les adresses, et n'apprend donc à personne quelles adresses ont un compte.
+:::
+
+:::details Mon adresse e-mail n'a pas changé
+Votre adresse ne change qu'une fois ouvert le lien envoyé par OneUptime à la nouvelle adresse. Le lien fonctionne pendant 24 heures. S'il a expiré, changez à nouveau votre e-mail pour en recevoir un nouveau. Si un autre compte utilise déjà cette adresse, l'e-mail envoyé à celle-ci le dit, et votre adresse reste telle quelle.
 :::
 
 :::details J'ai perdu mon application d'authentification

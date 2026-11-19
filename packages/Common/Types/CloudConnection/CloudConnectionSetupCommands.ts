@@ -157,6 +157,20 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
       "apprunner:DescribeService",
       // Elastic Beanstalk's own list, which names each environment's ARN.
       "elasticbeanstalk:DescribeEnvironments",
+      /*
+       * The services' own lists of the types read since #9567, so each is
+       * on the account's page before it reports a metric (#9692): a web
+       * ACL's (and its metric name, which only GetWebACL says), a
+       * firewall's, an accelerator's, a user pool's, a GraphQL API's and an
+       * endpoint's. A role made before reads everything else as it did.
+       */
+      "wafv2:ListWebACLs",
+      "wafv2:GetWebACL",
+      "network-firewall:ListFirewalls",
+      "globalaccelerator:ListAccelerators",
+      "cognito-idp:ListUserPools",
+      "appsync:ListGraphqlApis",
+      "sagemaker:ListEndpoints",
       "apigateway:GET",
     ],
   },

@@ -94,6 +94,79 @@
                 android:visibility="gone" />
         </LinearLayout>
 
+        <!--
+            A log session OneUptime asks for: the request with Allow and
+            Decline, then what to do in Android's prompt, then until when it
+            sends, with Stop. Shown only while there is one.
+        -->
+        <LinearLayout
+            android:id="@+id/log_session_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <TextView
+                style="@style/AgentText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/log_session_title"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/log_session_text"
+                style="@style/AgentText.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp" />
+
+            <TextView
+                android:id="@+id/log_session_prompt"
+                style="@style/AgentText.Help"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/log_session_android_prompt"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/log_session_answer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/log_session_allow"
+                    style="@style/AgentButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/log_session_allow" />
+
+                <Button
+                    android:id="@+id/log_session_decline"
+                    style="@style/AgentButton.Outline"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/log_session_decline" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/log_session_stop"
+                style="@style/AgentButton.Outline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/log_session_stop"
+                android:visibility="gone" />
+        </LinearLayout>
+
         <TextView
             style="@style/AgentText.Section"
             android:layout_width="match_parent"
@@ -210,17 +283,18 @@
             android:paddingEnd="16dp"
             android:paddingBottom="8dp" />
 
+        <!-- What is still to grant for other apps' logs and crash stacks: the commands, one per line, and usage access. -->
         <TextView
-            android:id="@+id/logcat_grant"
+            android:id="@+id/grants"
             style="@style/AgentText.Help"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="@string/setup_logcat_grant"
+            android:text="@string/setup_grants"
             android:visibility="gone" />
 
         <TextView
-            android:id="@+id/logcat_command"
+            android:id="@+id/grant_commands"
             style="@style/AgentText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -228,8 +302,18 @@
             android:background="@drawable/bg_code"
             android:fontFamily="monospace"
             android:padding="10dp"
+            android:textDirection="ltr"
             android:textIsSelectable="true"
             android:textSize="12sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/usage_access"
+            style="@style/AgentButton.Outline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/setup_usage_access"
             android:visibility="gone" />
 
         <TextView

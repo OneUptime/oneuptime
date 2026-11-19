@@ -560,8 +560,9 @@ export const LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES: Readonly<
 
 /*
  * How a call ended (CallOutcome, #8576): answered - for how long, when
- * Twilio said - rang out, busy or declined, or not connected; after the
- * call's id when Twilio gave one.
+ * Twilio said - rang out, busy or declined, not connected, or answered by
+ * voicemail, with a message left or not, or by a fax machine (#6594); after
+ * the call's id when Twilio gave one.
  */
 export const LOG_CALL_OUTCOME_SENTENCES: Readonly<
   Record<CallOutcomeLine, string>
@@ -575,6 +576,15 @@ export const LOG_CALL_OUTCOME_SENTENCES: Readonly<
   ),
   [CallOutcomeLine.NotConnected]: translationKey(
     "The call could not be connected.",
+  ),
+  [CallOutcomeLine.VoicemailMessageLeft]: translationKey(
+    "The call was not answered: it went to voicemail, and a message was left.",
+  ),
+  [CallOutcomeLine.VoicemailNoMessage]: translationKey(
+    "The call was not answered: it went to voicemail, and no message was left.",
+  ),
+  [CallOutcomeLine.Fax]: translationKey(
+    "The call was not answered: a fax machine picked up.",
   ),
 };
 

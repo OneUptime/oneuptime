@@ -371,7 +371,7 @@ flowchart TB
 3. Le **Nom** se remplit avec le `title` de la règle : remplacez-le pour l'appeler autrement. Une nouvelle règle s'exécute ; **Activé** se trouve dans son formulaire de modification.
 4. Dans **En cas de correspondance**, laissez **Ouvrir un dossier en cas de correspondance** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
 5. Sous **Alertes et incidents**, choisissez ce qu'une correspondance déclenche d'autre : **Créer une alerte** (par défaut), **Déclarer un incident**, **Les deux** ou **Aucun des deux**, avec une **Gravité de l'alerte** ou une **Gravité de l'incident** optionnelle.
-6. **Plus de champs** contient la **Description**, **Écrire un Detection Finding en cas de correspondance** (activé), **Exécuter en temps réel** (désactivé), la façon de compter les correspondances, et les **Étapes de réponse** : que faire quand la règle ouvre un dossier, chaque étape sous la partie de votre choix du Plan de réponse du dossier, 10 au plus. Voir [Paramètres d'évaluation](#paramètres-dévaluation).
+6. **Plus de champs** contient la **Description**, **Écrire un Detection Finding en cas de correspondance** (activé), **Exécuter en temps réel** (désactivé), la façon de compter les correspondances, et les **Étapes de réponse** : que faire quand la règle ouvre un dossier, chaque étape sous la partie de votre choix du Plan de réponse du dossier, 10 au plus. Faites glisser une étape par sa poignée, ou utilisez **Monter** et **Descendre** : le plan du dossier montre les étapes de chaque partie dans l'ordre que vous leur donnez. Voir [Paramètres d'évaluation](#paramètres-dévaluation).
 :::
 
 Une première règle, qui correspond aux échecs de connexion venant de l'extérieur de `10.x.x.x` :

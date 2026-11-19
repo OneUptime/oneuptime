@@ -7,6 +7,7 @@ OneUptime Android 代理会把你的组织拥有的 Android 设备（例如点�
 - [使用 Esper 部署](#使用-esper-部署): 上传 APK，推送设置，启动一次。
 - [设置](#设置): 其托管配置中的每个键。
 - [读取其他应用的日志](#读取其他应用的日志): 通过 adb 或你的设备管理服务授予一次 READ_LOGS。
+- [日志会话](#日志会话): 一段时间内每个应用的日志，由设备前的人允许。
 :::
 
 ## 工作原理
@@ -93,6 +94,8 @@ flowchart TB
 
 设备管理服务没有填入的占位符（例如原样发来的 `${esper.deviceName}` ）会被忽略，代理的界面也会说明这一点。设备开始上报后，请保持 `device_name` 不变：新名称就是一台新主机。
 
+代理的界面、它的通知，以及你的设备管理服务为这些键显示的标题和说明，都以设备的语言显示，涵盖 OneUptime 仪表板支持的每一种语言。
+
 ## 读取其他应用的日志
 
 Android 只允许拥有 READ_LOGS 权限的应用读取其他应用的日志，而且只有 adb 能授予这个权限：应用自己不能，设备策略也不能。在每台设备上授予一次，它就会在重启和更新后一直保持授予状态：
@@ -105,10 +108,51 @@ adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 
 之后代理读取的内容取决于 Android 版本：
 
-- Android 13 及更高版本：每个应用的崩溃和 ANR。Android 只向屏幕上显示的应用展示其他应用的日志行，而且要经设备前的人允许，因此在后台运行的代理无法读取它们。
+- Android 13 及更高版本：每个应用的崩溃和 ANR。Android 只向屏幕上显示的应用展示其他应用的日志行，而且要经设备前的人允许，因此在后台运行的代理无法读取它们。可以用 [日志会话](#日志会话) 在一段时间内请求获取它们。
 - Android 12 及更早版本：每个应用的崩溃和 ANR，以及每个应用 `logcat_min_level` 及以上级别的日志行。
 
 没有 READ_LOGS 时，代理仍会上报其他所有内容，它的界面和设备的日志会说明如何授予该权限。
+
+### 崩溃堆栈和重启原因
+
+Android 会把每个应用崩溃、原生崩溃和 ANR 的完整报告，以及每次重启的原因，保存在它的 DropBox 中。当代理拥有 READ_LOGS 和使用情况访问权限，并在 Android 15 及更高版本上拥有 READ_DROPBOX_DATA 时，它会读取每个应用的这些内容。与 READ_LOGS 一样，用 adb 授予一次：
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+第一条命令适用于 Android 15 及更高版本；使用情况访问权限也可以在设备的 **设置 → 使用情况访问权限** 中开启。设备策略无法授予这些权限，代理的界面会列出仍需运行的命令。授予之后， **异常** 中的每个崩溃都有完整的堆栈追踪，原生崩溃有其信号和崩溃所在的库，ANR 有其主线程的堆栈， **日志** 中的重启则有 Android 给出的原因。代理读取的内容中的卡号、电子邮件地址、令牌和密码会在发送前被替换为 `[card number]` 、 `[email]` 、 `[token]` 和 `[redacted]` 。
+
+### CPU 使用率
+
+Android 8 及更高版本不向应用提供设备的 CPU 使用率。只有设备所有者应用才能读取它，而且只在硬件会报告它的设备上可行。代理在成为设备所有者时读取它；你可以用 adb 在没有任何账号、也没有其他设备所有者的设备上进行设置：
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+已由你的设备管理服务拥有的设备不能再有第二个所有者，因此无法获取其 CPU 使用率，代理的界面也会说明这一点。此时它的 CPU 使用率不会出现在主机列表中，也不会为它提供 **High CPU Utilization** 模板。
+
+## 日志会话
+
+日志会话会在一段时间内发送设备上每个应用的日志，用于排查设备的问题。在 Android 13 及更高版本上，这是读取其他应用日志行的唯一方法，因为 Android 只向屏幕上显示的应用展示它们，而且要经设备前的人允许。
+
+:::steps
+### 发起请求
+
+在 **主机** 中打开设备，再打开 **日志** ，然后在 **日志会话** 中点击 **请求日志会话** 。选择设备发送日志的时长（15 分钟到 4 小时），以及它发送的最低级别： **信息** 、 **调试** 或 **详细** 。
+
+### 在设备上允许
+
+一分钟内，设备会显示一条通知，说明有人请求了它的日志，并附上此人的名字。设备前的人打开代理并点按 **允许** 。在 Android 13 及更高版本上，Android 随后会询问是否允许访问所有设备日志，此人也要允许。
+
+### 查看日志行
+
+会话显示为 **正在收集** ，每个应用的日志行都会进入设备的日志。点击 **显示日志行** 即可单独查看该会话的日志行。会话会在时间到期时结束，或在有人于设备上停止它、或在 OneUptime 中取消它时结束。
+:::
+
+会话需要 READ_LOGS 和 `logcat_enabled` ；缺少它们时显示为 **不可用** 。一台设备上同一时间只运行一个会话。一小时内无人允许的请求会过期；设备在会话期间重启时，会话随之结束，因为 Android 的权限会随代理进程一起结束。请求会话需要编辑该主机的权限，主机的 **审计日志** 会记录是谁、在何时提出了请求。
 
 ## 上报的内容
 
@@ -117,14 +161,15 @@ adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 | 内存、存储、网络和运行时间 | **主机** 中该设备的页面：与服务器的收集器发送的指标相同，因此主机警报模板同样适用 |
 | 电池电量和温度，以及设备是否接通外部电源 | 指标 `hw.battery.charge` 、 `hw.temperature` 和 `android.battery.plugged` |
 | 热状态 | 指标 `android.thermal.status` 和 `android.thermal.headroom` |
-| 重启 | **日志** ，用 `@event.name:device.boot` 查找：设备此前运行了多久、是否正常关机、关机了多久，以及重启循环 |
+| CPU 使用率 | 指标 `system.cpu.utilization` ：在 Android 7 上，以及在代理是 [设备所有者](#cpu-使用率) 的 Android 8 及更高版本上 |
+| 重启 | **日志** ，用 `@event.name:device.boot` 查找：设备此前运行了多久、是否正常关机、关机了多久、为什么重启，以及重启循环 |
 | 已安装的应用 | **日志** ，用 `@event.name:android.package.inventory` 查找：每天一次，以及每次安装、更新和移除 |
-| 每个应用的崩溃和 ANR | **异常** ，作为未处理异常，以应用命名 |
-| 制造商、型号、序列号、操作系统版本和固件 | 该设备在 **资产清单** 中的条目 |
+| 每个应用的崩溃和 ANR | **异常** ，作为未处理异常，以应用命名；代理读取 [DropBox](#崩溃堆栈和重启原因) 时附带其堆栈 |
+| 制造商、型号、序列号、操作系统版本、安全补丁级别和固件 | 该设备在 **资产清单** 中的条目 |
 
-Android 8 及更高版本不向应用提供设备的 CPU 使用情况，因此代理只在 Android 7 以及允许这样做的构建版本上上报 CPU 使用情况。
+在 **主机** 中，设备的操作系统显示为 Android，并带有 Android 的标志。
 
-适用于设备的主机警报模板有 Host Stopped Reporting、High Memory Utilization、High Filesystem Usage 和 Host Restarted。不断重启的设备会在每次启动时记录一条警告日志，并把 `android.boot.recent_count` 设为它在过去一小时内的启动次数。
+设备在过去一小时内的启动次数是指标 `android.boot.recent_count` ，不断重启的设备会在每次启动时记录一条警告日志。在 **主机** 中，Android 设备会获得自己的警报模板：Device Unplugged、Low Battery、Device Overheating、Restart Loop 和 Storage Nearly Full，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，并在上报 CPU 使用率后获得 High CPU Utilization。每个警报最先给出的调试命令都是 adb 命令。请参阅 [主机监控](/docs/monitor/host-monitor#android-设备) 。
 
 ## 故障排除
 
@@ -137,7 +182,11 @@ Android 8 及更高版本不向应用提供设备的 CPU 使用情况，因此�
 :::
 
 :::details 没有来自其他应用的日志
-按照 [读取其他应用的日志](#读取其他应用的日志) 中的说明授予 READ_LOGS。在 Android 13 及更高版本上，只会读取其他应用的崩溃和 ANR。
+按照 [读取其他应用的日志](#读取其他应用的日志) 中的说明授予 READ_LOGS。在 Android 13 及更高版本上，除非有 [日志会话](#日志会话) 正在运行，否则只会读取其他应用的崩溃和 ANR。
+:::
+
+:::details 日志会话一直停留在等待审批
+设备前还没有人允许它。必须有人在设备上打开代理并点按 **允许** ，在 Android 13 及更高版本上，还要在代理显示在屏幕上时允许 Android 的提示。被 Android 的提示拒绝的会话显示为 **已拒绝** ：请重新请求一个。
 :::
 
 :::details 两台设备显示为一台主机

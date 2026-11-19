@@ -284,6 +284,41 @@ describe("which rule names a device", () => {
     ).toBeGreaterThan(0);
   });
 
+  /*
+   * The one rule of a drag-ordered list for a row without a number
+   * (Utils/ListOrder, issue #9655): after every rule that has one. It was
+   * read as 0, so it went before a rule below 0 and tied with one at 0.
+   */
+  test("a rule without a priority is tried after every rule that has one", () => {
+    for (const priority of [3, 0, -2]) {
+      const results: Map<string, DeviceNamingResult> = plan({
+        rules: [
+          rule({
+            _id: "unplaced",
+            priority: null,
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            namePattern: "UNPLACED",
+          }),
+          rule({
+            _id: "placed",
+            priority: priority,
+            createdAt: new Date("2026-06-01T00:00:00.000Z"),
+            namePattern: "PLACED",
+          }),
+        ],
+        subjects: [{ key: "d", facts: facts }],
+      });
+
+      expect(nameOf(results, "d")).toBe("PLACED");
+      expect(
+        compareNamingRules(
+          rule({ _id: "a", priority: undefined }),
+          rule({ _id: "b", priority: priority }),
+        ),
+      ).toBeGreaterThan(0);
+    }
+  });
+
   test("a disabled rule names nothing", () => {
     const results: Map<string, DeviceNamingResult> = plan({
       rules: [rule({ isEnabled: false, namePattern: "OFF" })],

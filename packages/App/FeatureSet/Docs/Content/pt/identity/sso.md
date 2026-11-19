@@ -48,7 +48,7 @@ Cada resposta faz o login uma única vez. Enviada de novo, por exemplo ao voltar
 Quem faz login pela primeira vez entra nas **Equipes** do provedor, que decidem o que a pessoa pode fazer: veja [Funções e equipes dos usuários de SSO](#funções-e-equipes-dos-usuários-de-sso).
 
 > [!NOTE]
-> No OneUptime Cloud, na primeira vez que alguém faz login no projeto com um dos provedores SAML ou OIDC dele, o OneUptime envia um link por email em vez de fazer o login. A pessoa abre o link, confirma que o single sign-on do projeto pode fazer o login dela e continua. O link vale por 24 horas. Isso acontece uma vez por projeto, e de novo se a pessoa sair do projeto e voltar. As instalações auto-hospedadas fazem o login imediatamente.
+> No OneUptime Cloud, na primeira vez que alguém faz login no projeto com um dos provedores SAML ou OIDC dele, o OneUptime envia um link por email em vez de fazer o login. A pessoa abre o link, confirma que o single sign-on do projeto pode fazer o login dela e continua. O link vale por 24 horas. Isso acontece uma vez por projeto, e de novo se a pessoa sair do projeto e voltar. As instalações auto-hospedadas fazem o login imediatamente. No OneUptime Cloud, todo login que não é concluído direto recebe esta mesma resposta, tenha ou não o endereço uma conta: quem ainda não tem conta também recebe o e-mail, e a conta é criada quando a pessoa confirma, enquanto uma conta bloqueada ou um administrador do OneUptime não recebe e-mail. Uma instalação auto-hospedada recusa esses dois casos com uma única mensagem.
 
 No OneUptime Cloud, quem entra no projeto pelo SSO ocupa um assento, assim como alguém que você convida. Se o seu plano inclui um número fixo de assentos e todos estão ocupados, novas pessoas não podem entrar pelo SSO até que um assento fique livre.
 
@@ -79,7 +79,7 @@ Você precisa de permissão para adicionar provedores de SSO — **Proprietário
    - Um provedor novo começa desligado. Quando seu IdP tiver esses dois valores, edite o provedor e ative **Habilitado**
 
 4. **Testar o provedor**
-   - Abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor na página que abrir. Você é levado à página de login do seu provedor de identidade e volta ao OneUptime com o login feito
+   - Abra o link do cartão **Link de login SSO** e escolha o provedor na página que abrir. Você é levado à página de login do seu provedor de identidade e volta ao OneUptime com o login feito
    - Quando funcionar, você pode [exigir SSO](#exigir-sso-no-seu-projeto) no projeto
 :::
 
@@ -127,11 +127,11 @@ O Keycloak é uma solução de código aberto bastante usada para gestão de ide
 4. **Ajustar as configurações do cliente**
 
    - Defina **Name ID Format** como `email` e ative **Force Name ID Format**, para que o Keycloak sempre envie o email como Name ID
-   - Na aba **Keys** do cliente, desative **Client signature required** (em **Signing keys config**): o OneUptime não assina suas solicitações
+   - Na aba **Keys** do cliente, desative **Client signature required** (em **Signing keys config**): o OneUptime não assina suas solicitações de entrada
 
 5. **Ativar o provedor e testá-lo**
 
-   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login do Keycloak e voltar ao OneUptime.
+   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Link de login SSO** e escolha o provedor. Você deve ser levado à página de login do Keycloak e voltar ao OneUptime.
 :::
 @tab Microsoft Entra ID
 O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identidade em nuvem da Microsoft. Você precisa de um tenant que dê suporte a aplicativos empresariais com SSO SAML, e de acesso de administrador ao Entra ID e ao OneUptime. No OneUptime Cloud, se a galeria de aplicativos do Microsoft Entra listar o OneUptime, adicione-o a partir dela: ele já vem com as declarações que o OneUptime lê e com os padrões das URLs dele.
@@ -182,7 +182,7 @@ O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identi
 
 7. **Ativar o provedor e testá-lo**
 
-   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login da Microsoft e voltar ao OneUptime.
+   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Link de login SSO** e escolha o provedor. Você deve ser levado à página de login da Microsoft e voltar ao OneUptime.
 :::
 @tab Okta
 O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa de uma organização do Okta com acesso de administrador, e de acesso de administrador ao OneUptime. No OneUptime Cloud, se a Okta Integration Network listar o OneUptime, adicione-o a partir dela: ele faz o login das pessoas pela página **Login com SSO** do OneUptime e pelo painel do Okta delas, cria uma conta para elas no primeiro login e pede dois IDs em vez das URLs do OneUptime.
@@ -232,7 +232,7 @@ O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa 
 
 6. **Ativar o provedor e testá-lo**
 
-   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login do Okta e voltar ao OneUptime.
+   No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Link de login SSO** e escolha o provedor. Você deve ser levado à página de login do Okta e voltar ao OneUptime.
 :::
 @tab Outro
 O SSO do OneUptime usa SAML 2.0 e funciona com qualquer provedor de identidade compatível:
@@ -242,7 +242,7 @@ O SSO do OneUptime usa SAML 2.0 e funciona com qualquer provedor de identidade c
 2. No OneUptime, crie o provedor com esses valores e copie o **Identificador (Entity ID)** e a **URL de resposta (URL do Assertion Consumer Service)** da caixa de diálogo **Configuração de SSO** (ou de **Ver configuração SSO**).
 3. No aplicativo SAML do seu provedor de identidade, defina a **Assertion Consumer Service URL / Reply URL** e o **Entity ID / Audience URI** com os valores do OneUptime, e o **Name ID Format** como endereço de email.
 4. O **Método de assinatura** (`RSA-SHA256`) e o **Método de digest** (`SHA256`) já estão definidos em **Mais campos**; altere-os apenas se o seu provedor de identidade assinar de outra forma
-5. Ative **Habilitado** no provedor e teste-o com o link do cartão **Test Single Sign On (SSO)**.
+5. Ative **Habilitado** no provedor e teste-o com o link do cartão **Link de login SSO**.
 :::
 :::
 
@@ -256,14 +256,36 @@ Um projeto também pode fazer login por meio de um provedor OpenID Connect, como
 3. Informe um **Nome** (o que as pessoas veem na página de login), a **URL do Emissor**, o **Client ID** e o **Client Secret**. Você também pode colar a URL de descoberta do provedor em **URL do Emissor**.
 4. Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem faz login pela primeira vez entra nessas equipes. Todo o resto já vem preenchido em **Mais campos**: a **URL de descoberta** (o emissor seguido de `/.well-known/openid-configuration`), os **Escopos** (`openid email profile`), os nomes das declarações `email` e `name`, e uma descrição ("Sign in with" seguido do nome). Altere-os apenas se o seu provedor exigir. Só são aceitas equipes para as quais você poderia convidar alguém: uma equipe que dá mais acesso do que você tem é indicada em **Equipes**.
 5. Salve. A caixa de diálogo **Configuração OIDC** abre com a **Redirect URI**: adicione-a às URIs de redirecionamento permitidas do seu app. Um provedor novo começa desligado, então depois edite-o e ative **Habilitado**.
-6. Abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
+6. Abra o link do cartão **Link de login SSO** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
 :::
 
-### Sair também do provedor de identidade
+## Sair também do provedor de identidade
 
-Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, como uma tela do NOC ou um quiosque, a próxima pessoa que escolhe o provedor na página de entrada entra como quem saiu. Ative **Sair também do provedor de identidade** em **Mais campos** para que sair do OneUptime também encerre a sessão no provedor. Vem desativado: em um notebook pessoal, também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
+Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, como uma tela do NOC ou um quiosque, a próxima pessoa que escolhe o provedor na página de entrada entra como quem saiu. Em um provedor SAML ou OIDC, ative **Sair também do provedor de identidade** em **Mais campos** para que sair do OneUptime também encerre a sessão no provedor. Vem desativado: em um notebook pessoal, também encerraria a sessão da pessoa em todos os outros apps que usam o provedor. Vale para as pessoas que entram em um navegador depois de ativado; o app para celular sai apenas do OneUptime.
 
-Com a opção ativada, o navegador passa pela saída do provedor assim que o OneUptime encerra a sessão, e o provedor o devolve à página de entrada do OneUptime. Registre essa página no seu provedor: a caixa de diálogo **Configuração OIDC** a mostra como URI de redirecionamento após sair, que os provedores chamam de post-logout redirect URI. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la. Ela vale para as pessoas que entram em um navegador depois de ativada; o app para celular sai apenas do OneUptime. Provedores SAML nunca encerram a sessão de ninguém no provedor de identidade.
+:::tabs
+@tab SAML
+Informe a URL de saída do seu provedor de identidade como **URL de saída** do provedor, em **Mais campos**: sem ela, a opção não pode ser ativada. Depois, informe ao seu provedor de identidade a **URL de Single Logout** da caixa de diálogo **Configuração de SSO** e o certificado com que o OneUptime assina suas solicitações de saída, em **Baixar certificado de assinatura** na mesma caixa de diálogo.
+
+| Provedor de identidade | URL de saída | Onde ficam a URL de Single Logout e o certificado |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, em **View SAML setup instructions** na guia **Sign On** | Na guia **General**, edite **SAML Settings**, clique em **Show Advanced Settings** e selecione **Allow application to initiate Single Logout**. Defina **Single Logout URL** como a URL de Single Logout e **SP Issuer** como o identificador (Entity ID), e envie o certificado como **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, em **Set up OneUptime** | Em **Basic SAML Configuration**, defina **Logout Url (Optional)** como a URL de Single Logout. O Entra ID não precisa de certificado. |
+| Keycloak | O endpoint SAML do realm, o mesmo da URL de login | Na guia **Advanced** do cliente, defina **Logout Service Redirect Binding URL** como a URL de Single Logout. Mantenha **Front channel logout** ativado. O Keycloak não precisa de certificado enquanto **Client signature required** estiver desativado, como configurado acima. |
+
+Depois de sair por lá, o provedor de identidade devolve o navegador à URL de Single Logout, que abre a página de entrada ou informa que o provedor de identidade não confirmou a saída. Quando a pessoa sai no provedor de identidade, ou de outro app que o usa, um provedor de identidade que envia solicitações de saída aos seus apps, como o Keycloak e o Microsoft Entra ID, também a tira do OneUptime. O OneUptime só aceita uma solicitação assinada pelo provedor de identidade.
+@tab OpenID Connect
+O navegador passa pela saída do provedor assim que o OneUptime encerra a sessão, e o provedor o devolve à página de entrada do OneUptime. Registre essa página no seu provedor: a caixa de diálogo **Configuração OIDC** a mostra como URI de redirecionamento após sair, que os provedores chamam de post-logout redirect URI. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la.
+
+| Provedor de identidade | Onde registrar o URI de redirecionamento após sair |
+| --- | --- |
+| Okta | Na guia **General** da integração, clique em **Edit** em **General Settings** e adicione-o a **Sign-out redirect URIs**. |
+| Microsoft Entra ID | No registro do aplicativo, em **Authentication**, adicione-o aos **Redirect URIs** da plataforma **Web**. A **Front-channel logout URL** é outra configuração, que o OneUptime não usa. |
+| Auth0 | Nas **Settings** do aplicativo, adicione-o a **Allowed Logout URLs**. Um tenant criado antes de 14 de novembro de 2023 também precisa ativar **RP-Initiated Logout End Session Endpoint Discovery** nas configurações **Advanced**, para que o documento de descoberta nomeie um `end_session_endpoint`. |
+| Keycloak | Nas configurações do cliente, adicione-o a **Valid post logout redirect URIs** (Keycloak 19 e posteriores). |
+
+Um provedor em que ele não está registrado mostra a própria página de erro depois que alguém sai do OneUptime, em vez de devolver a pessoa; mesmo assim, ela saiu do OneUptime.
+:::
 
 ## Funções e equipes dos usuários de SSO
 
@@ -271,12 +293,27 @@ O OneUptime não mapeia funções nem grupos do seu provedor de identidade. O qu
 
 As equipes de um provedor decidem o que as pessoas que fazem login com ele podem fazer, por isso um provedor só é salvo com equipes para as quais quem o salva poderia convidar alguém. Cada salvamento as verifica de novo: um provedor cujas equipes dão mais acesso do que você tem só pode ser alterado por alguém cujo acesso as cubra, como um Proprietário do projeto. Provedores salvos antes dessa verificação continuam fazendo o login das pessoas nas equipes deles. Quem pode editar um provedor sempre pode desativá-lo, para que ele possa ser interrompido na hora.
 
+## Domínios
+
+**Login com SSO** pede um endereço de e-mail e oferece os provedores que atendem ao domínio desse endereço. Ele não lê nenhuma conta: um endereço com conta no seu projeto e um sem conta nenhuma recebem a mesma resposta, então a página não diz nada sobre quem tem conta. Para ser oferecido ali, um provedor lista os domínios que atende:
+
+1. Adicione o seu domínio em **Configurações do projeto** > **Avançado** > **Domínios**, clique em **Verificar domínio** na linha dele e adicione o registro TXT exibido ao DNS do domínio. Assim que o registro é encontrado, o domínio está verificado.
+2. Edite o provedor e escolha o domínio em **Domínios**, na etapa **Login**. Só os domínios verificados do projeto são listados.
+
+**Login com SSO** passa então a oferecer o provedor a qualquer endereço desse domínio, seja quem for que o digite. O domínio precisa corresponder exatamente: `acme.com` não cobre `eu.acme.com`, então adicione cada domínio com que as pessoas fazem login.
+
+Os provedores configurados antes de os domínios existirem receberam os domínios verificados do projeto na atualização do OneUptime: cada domínio que o projeto tinha verificado, a não ser que outro projeto também o tivesse verificado. Escolha você mesmo esse domínio, se for seu. Um domínio que foi adicionado mas nunca verificado não foi dado a nenhum provedor.
+
+Um provedor que não indica nenhum domínio verificado não é oferecido a ninguém ali. A coluna **Domínios** dele mostra **Nenhum domínio verificado**, e um aviso acima dos seus provedores o nomeia e diz o que fazer. Enquanto o projeto não tiver nenhum domínio verificado, **Verificar um domínio** no aviso abre **Domínios**.
+
+Quem tem o e-mail em outro domínio, como um prestador de serviços, também não encontra nenhum provedor ali. Compartilhe com essa pessoa o link de login SSO do seu projeto: copie-o do cartão **Link de login SSO** abaixo dos seus provedores. Ele lista os provedores do projeto e não pede nenhum endereço de e-mail, então não diz nada sobre quem tem conta. Um login iniciado no seu provedor de identidade também funciona, seja qual for o domínio.
+
 ## Exigir SSO no seu projeto
 
 Configurar um provedor não impede ninguém de fazer login com senha. Para que o SSO seja a única forma de entrar no projeto, use o interruptor **Exigir SSO para entrar** em **Configurações do projeto** > **Segurança** > **SSO**, abaixo dos seus provedores:
 
 :::steps
-1. Teste primeiro o seu provedor com o link do cartão **Test Single Sign On (SSO)**.
+1. Teste primeiro o seu provedor com o link do cartão **Link de login SSO**.
 2. Ative **Exigir SSO para entrar**. O OneUptime pede confirmação antes de salvar: a partir daí, todos no projeto, inclusive você, precisam fazer login com SSO para abri-lo, e quem fez login com senha fica sem acesso ao projeto até fazer login com SSO.
 3. Clique em **Exigir SSO** para confirmar. O interruptor salva na hora; não há um botão de salvar separado.
 :::
@@ -305,9 +342,21 @@ A regra é verificada todas as vezes, então:
 - **Alguém em um projeto que não gerencia o login**: assim que a pessoa é membro de um projeto, ou é convidada para um, que não exige SSO ou não tem **Gerenciar o login com SSO** ligado, ela recebe suas configurações de volta, e o **Perfil do usuário** dela mostra esse projeto como o motivo. Se ela sair dele, o login dela volta a ser gerenciado. Uma conta pode pertencer a muitas organizações, então uma organização nunca decide pelos projetos de outra.
 - **Projetos com provedores diferentes**: alguém em dois projetos que gerenciam o login, cada um com o próprio provedor de identidade, é gerenciado, e o perfil dele mostra os dois provedores.
 - **Os administradores mestres** sempre mantêm suas próprias configurações.
-- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto. Um administrador do servidor pode limpá-lo na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
+- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto, até ser limpo: pelos Proprietários do projeto (veja abaixo), ou por um administrador do servidor na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
 
 **Gerenciar o login com SSO** salva assim que você muda o interruptor, não exclui nada, e desligá-lo devolve a todos suas configurações na hora. Quem pode alterar **Exigir SSO para entrar** pode alterá-lo, nos mesmos planos. Com **Exigir SSO para entrar** desligado, ele fica oculto e não muda nada.
+
+### Limpar o que seus membros salvaram antes
+
+Enquanto **Gerenciar o login com SSO** está ligado, os Proprietários do projeto veem abaixo dele quantos de seus membros ainda têm uma senha ou a autenticação de dois fatores salva no OneUptime. **Limpar configurações de login** exclui, depois de pedir confirmação, as senhas deles com qualquer link de redefinição ou de login, as chaves de acesso, chaves de segurança, aplicativos autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que eles abriram sem SSO. Não dá para desfazer.
+
+Uma conta pode pertencer a muitas organizações, então você só pode limpar as configurações das pessoas pelas quais sua organização é responsável. Sua organização são os projetos dos quais você é proprietário: as configurações de uma pessoa só são limpas quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, são projetos dos quais você é **Proprietário do projeto** e têm **Gerenciar o login com SSO** ligado. Todos os outros mantêm suas configurações:
+
+- alguém que é membro de um projeto, ou foi convidado para um, do qual você não é proprietário ou que não gerencia o login com SSO;
+- alguém apenas convidado para o seu projeto, que ainda não entrou nele;
+- os administradores mestres, e você: altere as suas no seu **Perfil do usuário**.
+
+Cada pessoa cujas configurações são limpas recebe um e-mail com o que foi removido e avisando que agora entra com SSO, e os registros de auditoria dos seus projetos registram a limpeza como sua. Só um **Proprietário do projeto** pode limpar, conectado ao painel: nunca com uma chave de API.
 
 ## Desligar ou excluir um provedor
 

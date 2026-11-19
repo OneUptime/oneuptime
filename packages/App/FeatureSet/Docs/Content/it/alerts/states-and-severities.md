@@ -129,9 +129,9 @@ Archivia uno stato o una gravità che il tuo team non deve più usare, invece di
 
 | Modo                             | Dove                                                                                      | Che cosa chiede                                                                                                                      |
 | -------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Pulsanti dell'intestazione**   | L'intestazione dell'avviso: **Riconosci**, **Risolvi** e **Cambia stato in** nel suo menu **⋯** | Una breve conferma, **Riconosci avviso**, **Risolvi avviso** o **Segna l'avviso come {{state}}**, con una nota facoltativa sotto **Aggiungi una nota privata**. |
+| **Pulsanti dell'intestazione**   | L'intestazione dell'avviso: **Riconosci**, **Risolvi** e **Cambia stato in** nel suo menu **⋯** | Una breve conferma, **Riconosci avviso**, **Risolvi avviso** o **Segna l'avviso come {{state}}**, con una nota facoltativa sotto **Aggiungi una nota privata**. Una risoluzione comprime anche una causa principale facoltativa sotto **Aggiungi la causa principale**. |
 | **Cronologia di stato**               | **Cronologia stato** nel menu laterale dell'avviso                                        | Una riga che aggiungete a mano, con **Stato dell'avviso** e **Inizia il**.                                                            |
-| **Riga dell'elenco** | Il menu **⋯** sulla riga di un avviso nell'elenco degli avvisi: **Riconosci**, **Risolvi** e **Cambia stato** | La conferma dell'intestazione, con il nome dell'avviso. Un avviso che un'altra modifica ha già spostato resta com'è, e la finestra dice perché. |
+| **Riga dell'elenco** | Il menu **⋯** sulla riga di un avviso nell'elenco degli avvisi: **Riconosci**, **Risolvi** e **Cambia stato** | La conferma dell'intestazione, con il nome dell'avviso. Un avviso che un'altra modifica ha già spostato resta com'è, e la finestra dice perché. Non chiede la causa principale. |
 | **Modifica in blocco**           | **Riconosci**, **Risolvi** o **Cambia stato** su una selezione nell'elenco degli avvisi                                | Lo stato, e una nota privata aggiunta a ogni avviso. Gli avvisi già in quello stato o oltre vengono saltati.                         |
 | **Automaticamente**              | Un monitor, un episodio, un incidente collegato o il vostro codice                       | **Risoluzione automatica dell'avviso** nei criteri di un monitor, il cambio di stato di un episodio, gli interruttori degli incidenti su [Avvisi collegati](/docs/incidents/linked-alerts), o una riga creata su `/api/alert-state-timeline`. |
 
@@ -155,6 +155,12 @@ Un avviso è risolto quando passa al vostro stato risolto, o a qualsiasi stato s
 - **Il suo monitor può sollevare un nuovo avviso.** Un criterio mantiene un solo avviso aperto alla volta; una volta risolto quello, la corrispondenza successiva ne apre un altro.
 
 Passare da **Risolto** a uno stato successivo, ad esempio «Chiuso», non cambia nulla di tutto questo: l'avviso era già risolto.
+
+## Scrivere la causa principale mentre si risolve
+
+Quando l'intestazione dell'avviso lo risolve, con **Risolvi** o con **Cambia stato in** uno stato risolto, la conferma comprime una **Causa principale** facoltativa sotto **Aggiungi la causa principale**: perché è successo. Ciò che scrivi lì diventa la causa principale dell'avviso, come se l'avessi scritto nella sua pagina **Causa principale**, e l'indagine di OneUptime AI sull'avviso viene valutata rispetto a esso (vedi [Come se la cava OneUptime AI](/docs/ai/ai-sre#come-se-la-cava-oneuptime-ai)). Se lo lasci vuoto, l'avviso viene risolto come prima e mantiene la causa principale che ha.
+
+Scriverla richiede il permesso di modificare l'avviso, oltre a quello di cambiarne lo stato: a chi non ce l'ha **Aggiungi la causa principale** non viene offerto, e un cambio di stato che invia con una causa principale viene rifiutato per intero, così l'avviso mantiene il suo stato. Tramite l'API, inviala con la riga che crei in `/api/alert-state-timeline`, come `writtenRootCause` in `miscDataProps`.
 
 ## La cronologia degli stati
 

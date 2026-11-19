@@ -411,6 +411,9 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
   [ToolImportNoteCode.PartNotAdded]: translationKey(
     "{{name}} could not be added: {{error}}",
   ),
+  [ToolImportNoteCode.NameNumbered]: translationKey(
+    "Its name was already taken in this project, so it was created as {{name}}.",
+  ),
   [ToolImportNoteCode.CouldNotRead]: translationKey(
     "The API key cannot read {{kind}}, so none are shown.",
   ),

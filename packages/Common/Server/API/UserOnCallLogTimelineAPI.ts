@@ -91,6 +91,13 @@ import {
   hasOnCallPassOnLevelChoice,
   isOnCallPassOnPagingStopped,
 } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  findTwilioAccountThatSigned,
+  getTwilioCallbackRefusedMessage,
+  TwilioSignatureCheck,
+} from "../Utils/TwilioWebhookSignature";
+import { WebhookRequest } from "../../Types/Call/CallProvider";
+import logger from "../Utils/Logger";
 
 /*
  * What the public pages about a notification read of it: the person, their
@@ -282,6 +289,33 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               res,
               new BadDataException("Invalid item Id"),
             );
+          }
+
+          /*
+           * Twilio posts the key here, as the call's <Gather> was told to,
+           * and signs the request (X-Twilio-Signature) with the auth token
+           * of the account that placed the call: the project's own Twilio
+           * config, or the OneUptime server's (TwilioWebhookSignature). The
+           * tokens in this address travel in a URL - Twilio's request logs,
+           * a proxy's access log - so alone they acknowledge and escalate
+           * nothing: a request Twilio did not sign is refused (403), changes
+           * nothing, and is logged with why, its tokens left out.
+           */
+          const signed: TwilioSignatureCheck =
+            await findTwilioAccountThatSigned({
+              request: req as unknown as WebhookRequest,
+              projectId: timelineItem.projectId,
+            });
+
+          if (!signed.account) {
+            logger.warn(
+              getTwilioCallbackRefusedMessage({
+                callback: `the keypad callback for on-call notification ${itemId.toString()}`,
+                reason: signed.refusalReason,
+              }),
+            );
+            res.status(403).send("Forbidden");
+            return;
           }
 
           /*

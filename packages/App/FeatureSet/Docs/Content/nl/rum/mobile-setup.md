@@ -5,6 +5,7 @@ Instrumenteer een Android-, iOS- of React Native-app met OpenTelemetry, zodat hi
 :::cards
 - [Wat OneUptime nodig heeft](#wat-oneuptime-nodig-heeft): Twee resource-attributen, verstuurd met een Server-sleutel.
 - [Je platform instellen](#je-platform-instellen): Android, iOS, React Native en de rest.
+- [Crashes en vastlopers op iOS](#crashes-en-vastlopers-op-ios): De diagnoses van MetricKit in Uitzonderingen en op het Overzicht.
 - [Controleren of het binnenkomt](#controleren-of-het-binnenkomt): De sleutel testen en dan de app vinden.
 - [Session Replay op mobiel](#session-replay-op-mobiel): Opnames voor React Native-apps.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 De SDK voegt `/v1/traces`, `/v1/metrics` en `/v1/logs` zelf aan het endpoint toe.
 :::
+
+## Crashes en vastlopers op iOS
+
+opentelemetry-swift 2.3 en later melden de crashes en vastlopers van een iOS-app via de MetricKit-instrumentatie, die elke diagnose van Apple als logrecord aan OpenTelemetry doorgeeft. OneUptime deelt ze in zoals de crashes en ANR's van OpenTelemetry Android, zodat ze verschijnen in **Uitzonderingen** en op de pagina **Overzicht** van de applicatie:
+
+| Diagnose van Apple | Gebeurtenisnaam | In Uitzonderingen |
+| --- | --- | --- |
+| Een crash | `metrickit.diagnostic.crash` | Een niet-afgehandelde uitzondering, met als type wat de app beëindigde: de Objective-C-uitzondering op iOS 17 en later, anders de Mach-uitzondering (`EXC_BAD_ACCESS`), anders het signaal (`SIGSEGV`) |
+| Een vastloper | `metrickit.diagnostic.hang` | Een niet-afgehandelde uitzondering van het type **Hang**, de iOS-tegenhanger van een ANR, die bijhoudt hoe lang de vastloper duurde |
+
+De tegel **Crashes** van het overzicht telt de crashes, en de tegel **ANR's** telt de vastlopers samen met de ANR's van Android. Elke stacktrace wordt getekend als de threads van een crashrapport, met de thread die crashte of vastliep bovenaan. De frames zijn niet gesymboliseerd: elk frame noemt zijn binary en hoe ver daarin de code zat, en **Binary Images** toont de UUID van elke binary, waaraan je ziet bij welke build de dSYM hoort die hem symboliseert.
+
+:::steps
+### Logs naast spans exporteren
+
+MetricKit meldt diagnoses als logrecords, dus registreer naast de tracer provider een logger provider, met dezelfde resource, hetzelfde endpoint en dezelfde header:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### De MetricKit-instrumentatie registreren
+
+Voeg het product `MetricKitInstrumentation` van opentelemetry-swift toe en registreer het bij MetricKit zodra de logger provider is geregistreerd:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Sessies vastleggen
+
+De tegels **Sessies** en **Crashvrije sessies** tellen de `session.id` op je spans. Het product `Sessions` van opentelemetry-swift stelt die in: voeg `SessionSpanProcessor` toe aan de tracer provider en verpak de logprocessor in `SessionLogRecordProcessor`, zodat ook diagnoses een sessie dragen. De releases van opentelemetry-swift stellen nog geen `app.installation.id` in, dus de tegel **Crashvrije sessies** van een iOS-app zegt hoeveel sessies crashten in plaats van de crashvrije installaties te tonen.
+:::
+
+> [!NOTE]
+> Apple levert de diagnoses van MetricKit pas bij een latere start aan de app, vanaf iOS 15 meteen en daarvoor één keer per dag, dus een crash of een vastloper kan minuten of een dag nadat hij gebeurde binnenkomen, en wordt geteld wanneer hij binnenkomt. «0 crashes in het afgelopen uur» op het overzicht van een iOS-app is dus nog geen goed nieuws. Een diagnose draagt de sessie die hem meldde, niet de sessie die hij beëindigde.
+
+opentelemetry-swift legt geen span vast wanneer de app start, dus de tegels **App-starts** en **Koude start (p95)** blijven leeg tot je app er zelf een vastlegt: een span met de naam `AppStart`, met `start.type` ingesteld op `cold`, `warm` of `hot`, van het starten van het proces tot het eerste scherm klaar is.
 
 ## Controleren of het binnenkomt
 

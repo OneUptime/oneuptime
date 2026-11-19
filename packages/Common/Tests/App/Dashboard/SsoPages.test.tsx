@@ -105,6 +105,9 @@ jest.mock("../../../UI/Config", () => {
   mocked["DASHBOARD_URL"] = urlModule.default.fromString(
     "https://oneuptime.example.com/dashboard",
   );
+  mocked["ACCOUNTS_URL"] = urlModule.default.fromString(
+    "https://oneuptime.example.com/accounts",
+  );
   mocked["STATUS_PAGE_URL"] = urlModule.default.fromString(
     "https://oneuptime.example.com/status-page",
   );
@@ -606,7 +609,10 @@ interface PageCase {
   // The list's columns, and those a phone leaves out.
   columns: Array<string>;
   columnsHiddenOnMobile: Array<string>;
-  // The card with the test link: drawn once there is a provider to try.
+  /*
+   * The card with the link to test with: drawn once there is a provider to
+   * try. A project's is its SSO sign-in link, to share as well (#9918).
+   */
   testTitle: string;
   upsellTitle: string;
   featureName: string;
@@ -646,26 +652,36 @@ const PAGE_CASES: Array<PageCase> = [
     printed: [
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/identity/idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
+      // Where the identity provider answers a sign-out, and sends its own (#9603).
+      `https://oneuptime.example.com/identity/idp-logout/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
     turnOnNote: SAML_TURN_ON_NOTE,
     startsOnMembersTeam: true,
-    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
+    testLink: `https://oneuptime.example.com/accounts/sso/${PROJECT_ID}`,
     requireSsoSwitch: {
       testId: REQUIRE_SSO_SWITCH_CARD,
       model: "Project",
       modelId: PROJECT_ID,
     },
-    // What the identity provider gives, then how people sign in.
+    /*
+     * What the identity provider gives, then how people sign in, and last
+     * whether signing out signs people out of the provider too, with the
+     * provider's own sign-out URL (#9603).
+     */
     formFields: [
       "name",
       "signOnURL",
       "issuerURL",
       "publicCertificate",
       "teams",
+      // The verified domains it serves at Sign in with SSO (#9824).
+      "domains",
       "isEnabled",
       "signatureMethod",
       "digestMethod",
       "description",
+      "singleLogoutURL",
+      "signOutOfIdentityProvider",
     ],
     attachesToStatusPage: false,
     names: {
@@ -673,9 +689,10 @@ const PAGE_CASES: Array<PageCase> = [
       plural: "SAML Providers",
       createVerb: "Add",
     },
-    columns: ["Name", "Description", "Teams", "Enabled"],
+    // The verified domains "Sign in with SSO" finds it by (#9918).
+    columns: ["Name", "Description", "Teams", "Domains", "Enabled"],
     columnsHiddenOnMobile: ["Description"],
-    testTitle: "Test Single Sign On (SSO)",
+    testTitle: "SSO Sign-in Link",
     ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsSSO",
     leftover: {
@@ -704,7 +721,7 @@ const PAGE_CASES: Array<PageCase> = [
     ],
     turnOnNote: OIDC_TURN_ON_NOTE,
     startsOnMembersTeam: true,
-    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
+    testLink: `https://oneuptime.example.com/accounts/sso/${PROJECT_ID}`,
     // The page's one switch: an OIDC sign-in meets it as a SAML one does.
     requireSsoSwitch: {
       testId: REQUIRE_SSO_SWITCH_CARD,
@@ -721,6 +738,8 @@ const PAGE_CASES: Array<PageCase> = [
       "clientId",
       "clientSecret",
       "teams",
+      // The verified domains it serves at Sign in with SSO (#9824).
+      "domains",
       "isEnabled",
       "discoveryURL",
       "scopes",
@@ -735,9 +754,10 @@ const PAGE_CASES: Array<PageCase> = [
       plural: "OIDC Providers",
       createVerb: "Add",
     },
-    columns: ["Name", "Description", "Teams", "Enabled"],
+    // The verified domains "Sign in with SSO" finds it by (#9918).
+    columns: ["Name", "Description", "Teams", "Domains", "Enabled"],
     columnsHiddenOnMobile: ["Description"],
-    testTitle: "Test Single Sign On (SSO)",
+    testTitle: "SSO Sign-in Link",
     ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsOIDC",
     leftover: {
@@ -1563,6 +1583,68 @@ describe.each(PAGE_CASES)("$name: adding a provider", (pageCase: PageCase) => {
 });
 
 /*
+ * Signing people out of a project's SAML provider too (#9603) takes two
+ * things at the identity provider: the Single Logout URL the dialog prints,
+ * and the certificate OneUptime signs its sign-out requests with, which the
+ * dialog links to. A status page's SAML provider signs nobody out of its
+ * identity provider, so its dialog has neither.
+ */
+describe("a SAML provider's sign-out at the identity provider", () => {
+  const projectSaml: PageCase = PAGE_CASES.find((pageCase: PageCase) => {
+    return pageCase.name === "Settings > SSO";
+  })!;
+  const statusPageSaml: PageCase = PAGE_CASES.find((pageCase: PageCase) => {
+    return pageCase.name === "Status page > SSO";
+  })!;
+
+  test("a project's dialog says what the identity provider needs, and links to the signing certificate", () => {
+    renderPage(projectSaml);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: projectSaml.viewAction }),
+    );
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+    const note: HTMLElement = within(modal).getByTestId(
+      "sso-config-sign-out-note",
+    );
+
+    expect(note).toHaveTextContent(
+      "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate. Download Signing Certificate",
+    );
+
+    const link: HTMLElement = within(note).getByTestId(
+      "sso-config-signing-certificate",
+    );
+
+    expect(link).toHaveTextContent("Download Signing Certificate");
+    expect(link).toHaveAttribute(
+      "href",
+      "https://oneuptime.example.com/identity/saml-signing-certificate",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  test("a status page's dialog has no Single Logout URL and no certificate", () => {
+    renderPage(statusPageSaml);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: statusPageSaml.viewAction }),
+    );
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(
+      within(modal).queryByTestId("sso-config-sign-out-note"),
+    ).not.toBeInTheDocument();
+    expect(within(modal).queryByText(/idp-logout/)).not.toBeInTheDocument();
+    expect(statusPageSaml.formFields).not.toContain(
+      "signOutOfIdentityProvider",
+    );
+  });
+});
+
+/*
  * The two dialogs say the same thing about a provider that is off, each
  * naming what its identity provider is given.
  */
@@ -1890,7 +1972,7 @@ describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable whi
     await settle();
 
     const testLinkCard: () => HTMLElement | null = (): HTMLElement | null => {
-      return screen.queryByTestId("project-sign-in-test");
+      return screen.queryByTestId("project-sso-sign-in-link");
     };
 
     expect(testLinkCard()).toBeNull();
@@ -1902,7 +1984,7 @@ describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable whi
 
     expect(testLinkCard()).not.toBeNull();
     expect(testLinkCard()).toHaveTextContent(
-      `Sign in through one of these providers before you require SSO: ${settingsSso.testLink}`,
+      `Share this link so people can sign in with these providers, whatever their email's domain. Try it before you require SSO.${settingsSso.testLink}`,
     );
 
     // Then a SAML one too; the OIDC one goes: still one to test.
@@ -1924,7 +2006,7 @@ describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable whi
     });
 
     expect(testLinkCard()).toBeNull();
-    expect(screen.queryByText("Test Single Sign On (SSO)")).toBeNull();
+    expect(screen.queryByText("SSO Sign-in Link")).toBeNull();
     expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
       "data-card-description",
       "",

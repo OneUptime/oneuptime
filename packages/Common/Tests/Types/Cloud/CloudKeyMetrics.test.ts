@@ -122,9 +122,13 @@ describe("AWS", () => {
   test("each metric reads one statistic, every 5 minutes, once an hour or once a day", () => {
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
-        expect(["Average", "Sum", "Maximum", "Minimum"]).toContain(
-          metric.statistic,
-        );
+        expect([
+          "Average",
+          "Sum",
+          "Maximum",
+          "Minimum",
+          "SampleCount",
+        ]).toContain(metric.statistic);
         expect([
           AWS_DEFAULT_PERIOD_SECONDS,
           HOURLY_PERIOD_SECONDS,
@@ -248,9 +252,9 @@ describe("AWS", () => {
  * is the read's alone.
  */
 describe("AWS key metrics a stream carries", () => {
-  test("each is streamed since template 1 or 2 - or, read less often than every five minutes, never", () => {
+  test("each is streamed since template 1, 2 or 3 - or, read less often than every five minutes, never", () => {
     expect(AWS_STREAM_TEMPLATE_UNVERSIONED).toBe(1);
-    expect(AWS_STREAM_TEMPLATE_VERSION).toBe(2);
+    expect(AWS_STREAM_TEMPLATE_VERSION).toBe(3);
 
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
@@ -267,7 +271,7 @@ describe("AWS key metrics a stream carries", () => {
 
         expect({
           where,
-          known: [1, 2].includes(metric.streamedSince as number),
+          known: [1, 2, 3].includes(metric.streamedSince as number),
         }).toEqual({ where, known: true });
         expect(isAwsKeyMetricStreamable(metric)).toBe(true);
       }
@@ -296,18 +300,26 @@ describe("AWS key metrics a stream carries", () => {
   });
 
   test("running the command again streams every metric added since the stack's template", () => {
-    let addedSinceTheFirst: number = 0;
+    let addedIn2: number = 0;
+    let addedIn3: number = 0;
 
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
         if (metric.streamedSince === 2) {
-          addedSinceTheFirst++;
+          addedIn2++;
+        }
+
+        if (metric.streamedSince === 3) {
+          addedIn3++;
         }
       }
     }
 
-    expect(addedSinceTheFirst).toBeGreaterThan(100);
-    expect(countAwsKeyMetricsAddedSince(1)).toBe(addedSinceTheFirst);
+    expect(addedIn2).toBeGreaterThan(100);
+    // Glue's seven and Athena's four (#9691).
+    expect(addedIn3).toBe(11);
+    expect(countAwsKeyMetricsAddedSince(1)).toBe(addedIn2 + addedIn3);
+    expect(countAwsKeyMetricsAddedSince(2)).toBe(addedIn3);
     expect(countAwsKeyMetricsAddedSince(AWS_STREAM_TEMPLATE_VERSION)).toBe(0);
   });
 });
@@ -570,11 +582,21 @@ describe("Azure metrics read at five minutes, and deprecated ones still read", (
       "Microsoft.DocumentDB/databaseAccounts",
     )!;
 
-    expect(getAzureReadMetricNames(cosmos)).toEqual([
-      ...namesOf(cosmos),
-      "ServerSideLatency",
-    ]);
+    // ServerSideLatency is read no more: its monitors moved (#9739).
+    expect(getAzureReadMetricNames(cosmos)).toEqual(namesOf(cosmos));
     expect(namesOf(cosmos)).not.toContain("ServerSideLatency");
+    // A metric kept for its monitors comes after the key metrics.
+    expect(
+      getAzureReadMetricNames({
+        ...cosmos,
+        retired: [
+          {
+            name: "ServerSideLatency",
+            replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
+          },
+        ],
+      }),
+    ).toEqual([...namesOf(cosmos), "ServerSideLatency"]);
     // One call's worth, retired ones included.
     for (const entry of AZURE_KEY_METRICS) {
       expect(getAzureReadMetricNames(entry).length).toBeLessThanOrEqual(
@@ -1000,20 +1022,9 @@ describe("Google Cloud", () => {
     ).toEqual(["pubsub_topic"]);
   });
 
-  test("the deprecated metrics still read come after every key metric, for their own types", () => {
+  test("no deprecated metric is read any more: the publish operations' monitors moved (#9739)", () => {
     const reads: Array<GcpReadMetric> = getGcpReadMetrics();
-    const firstRetired: number = reads.findIndex(
-      (metric: GcpReadMetric): boolean => {
-        return metric.isRetired;
-      },
-    );
 
-    expect(firstRetired).toBeGreaterThan(0);
-    expect(
-      reads.slice(firstRetired).every((metric: GcpReadMetric): boolean => {
-        return metric.isRetired;
-      }),
-    ).toBe(true);
     expect(
       reads
         .filter((metric: GcpReadMetric): boolean => {
@@ -1022,12 +1033,15 @@ describe("Google Cloud", () => {
         .map((metric: GcpReadMetric) => {
           return [metric.storedName, metric.resourceTypes];
         }),
-    ).toEqual([
-      [
-        "pubsub.googleapis.com/topic/send_message_operation_count",
-        ["pubsub_topic"],
-      ],
-    ]);
+    ).toEqual([]);
+    expect(
+      reads.some((metric: GcpReadMetric): boolean => {
+        return (
+          metric.storedName ===
+          "pubsub.googleapis.com/topic/send_message_operation_count"
+        );
+      }),
+    ).toBe(false);
     // Never a key metric of its type.
     expect(
       getGcpKeyMetricTypes().some((metric: GcpKeyMetric): boolean => {

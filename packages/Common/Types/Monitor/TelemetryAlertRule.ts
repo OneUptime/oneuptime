@@ -33,7 +33,7 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "./MonitorStepTraceMonitor";
 import MonitorType from "./MonitorType";
-import { EXCEPTION_MEASURES } from "./ExceptionMonitor/ExceptionMonitorEvaluation";
+import { EXCEPTION_RULE_MEASURES } from "./ExceptionMonitor/ExceptionMonitorEvaluation";
 import {
   getRecoveryFilterType,
   getRecoveryThreshold,
@@ -238,14 +238,15 @@ export default class TelemetryAlertRuleUtil {
 
   /*
    * What a rule of this monitor type may compare: an Exceptions rule its
-   * count, new exceptions, regressed exceptions or the increase over the
-   * usual count (ExceptionMonitorEvaluation); every other type its one.
+   * count, new exceptions, regressed exceptions, the increase over the
+   * usual count or the share of sessions with an exception
+   * (ExceptionMonitorEvaluation); every other type its one.
    */
   public static getMeasureOptions(
     monitorType: MonitorType,
   ): ReadonlyArray<CheckOn> {
     if (monitorType === MonitorType.Exceptions) {
-      return EXCEPTION_MEASURES;
+      return EXCEPTION_RULE_MEASURES;
     }
 
     const measure: CheckOn | null =

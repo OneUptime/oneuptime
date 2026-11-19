@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../theme";
 import { radius, spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
-import { useContentGutters } from "../layout/WindowLayout";
+import { useContentGutters } from "../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useHaptics } from "../hooks/useHaptics";
 import { useProject } from "../hooks/useProject";

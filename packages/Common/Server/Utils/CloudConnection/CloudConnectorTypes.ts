@@ -273,9 +273,19 @@ export interface CloudReadOptions extends CloudConnectorCallOptions {
    * AWS: what the connection's streams deliver lately, and what each
    * stack carries (CloudStreamStack). A key metric a stream writes is not
    * read from CloudWatch, but where a resource's health or headline is
-   * judged from it. None for a connection that does not stream.
+   * judged from it and its account and Region's streamed readings are not
+   * fresh (awsStreamedReadingSources). None for a connection that does not
+   * stream.
    */
   awsStreamCoverage?: AwsStreamCoverage | undefined;
+  /*
+   * AWS: the accounts and Regions ("<account>|<region>", lower case) whose
+   * streams noted their resources' readings lately (CloudStreamReadings):
+   * a key metric their stack carries is left to the stream even where a
+   * resource's health or headline is judged from it. None: every such
+   * metric is read.
+   */
+  awsStreamedReadingSources?: ReadonlySet<string> | undefined;
   /*
    * The metrics people added to what the connection reads, beyond each
    * type's key metrics (CloudAddedMetrics): read with them, in the same

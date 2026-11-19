@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import GlobalSSO from "../../../../Models/DatabaseModels/GlobalSso";
+import Domain from "../../../../Models/DatabaseModels/Domain";
 import ProjectSSO from "../../../../Models/DatabaseModels/ProjectSso";
 import StatusPageSSO from "../../../../Models/DatabaseModels/StatusPageSso";
 import Team from "../../../../Models/DatabaseModels/Team";
@@ -21,11 +22,17 @@ import {
 } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY,
+  OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+  OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
   getOidcProviderFormFields,
 } from "../../../../UI/Components/Sso/OidcProviderFormFields";
 import type { RadioButton } from "../../../../UI/Components/RadioButtons/GroupRadioButtons";
 import {
   SAML_ADVANCED_DEFAULTS_SUMMARY,
+  SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+  SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+  SAML_SIGN_OUT_URL_DESCRIPTION,
+  SAML_SIGN_OUT_URL_TITLE,
   SAML_DIGEST_METHOD_DESCRIPTION,
   SAML_DIGEST_METHOD_OPTIONS,
   SAML_ISSUER_DESCRIPTION,
@@ -38,6 +45,7 @@ import {
   isSamlAdvancedAtDefaults,
 } from "../../../../UI/Components/Sso/SamlProviderFormFields";
 import {
+  SSO_PROVIDER_DOMAINS_EMPTY_LIST,
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
   SSO_GLOBAL_REACH_CHOICES,
   SSO_GLOBAL_REACH_TITLE,
@@ -52,7 +60,7 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
  * status page's SSO, Admin > Global SSO), create and edit alike:
  *
  *   Provider   Name, Sign On URL, Issuer, Public Certificate;
- *   Sign-in    Teams (a project's provider), Enabled, then one folded
+ *   Sign-in    Teams and Domains (a project's provider), Enabled, then one folded
  *              Advanced section - the signature method, the digest method,
  *              the description and (Global) the two questions: who can
  *              sign in, and where the sign-in counts as SSO.
@@ -143,8 +151,12 @@ function optionValues(
   });
 }
 
+// As Settings > SSO builds it.
 const PROJECT_FIELDS: Array<Field<ProjectSSO>> =
-  getSamlProviderFormFields<ProjectSSO>({ withTeams: true });
+  getSamlProviderFormFields<ProjectSSO>({
+    withTeams: true,
+    withDomains: true,
+  });
 const STATUS_PAGE_FIELDS: Array<Field<StatusPageSSO>> =
   getSamlProviderFormFields<StatusPageSSO>();
 const GLOBAL_FIELDS: Array<Field<GlobalSSO>> =
@@ -161,7 +173,7 @@ afterEach(() => {
 });
 
 describe("the fields each form gets", () => {
-  test("a project's provider: what the identity provider gives, then the teams newcomers join, Enabled and Advanced", () => {
+  test("a project's provider: what the identity provider gives, then the teams newcomers join, the domains it serves, Enabled and Advanced", () => {
     expect(keysOn(PROJECT_FIELDS, "provider")).toEqual([
       "name",
       "signOnURL",
@@ -170,6 +182,7 @@ describe("the fields each form gets", () => {
     ]);
     expect(keysOn(PROJECT_FIELDS, "sign-in")).toEqual([
       "teams",
+      "domains",
       "isEnabled",
       "signatureMethod",
       "digestMethod",
@@ -354,6 +367,47 @@ describe("the fields each form gets", () => {
     expect(teams.description).toBe(
       "Add users to these teams when they sign up.",
     );
+  });
+
+  /*
+   * Sign in with SSO finds a project's provider by an address's domain
+   * (#9824): the field lists only the domains the project has verified - an
+   * unverified one serves nobody - is never required (a provider with none
+   * still signs people in from the identity provider), and says what it does
+   * and where a domain is verified.
+   */
+  test("domains pick from the project's verified domains, are optional, and say what they do and where to verify one", () => {
+    const domains: Field<ProjectSSO> = fieldFor(PROJECT_FIELDS, "domains");
+
+    expect(domains.title).toBe("Domains");
+    expect(domains.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+    expect(domains.dropdownModal).toEqual({
+      type: Domain,
+      labelField: "domain",
+      valueField: "_id",
+      query: { isVerified: true },
+      emptyListText: SSO_PROVIDER_DOMAINS_EMPTY_LIST,
+    });
+    expect(Boolean(domains.required)).toBe(false);
+    expect(domains.collapsibleSection).toBeUndefined();
+    expect(domains.description).toBe(
+      "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.",
+    );
+    expect(SSO_PROVIDER_DOMAINS_EMPTY_LIST).toBe(
+      "No verified domains yet. Verify one in Project Settings > Advanced > Domains.",
+    );
+  });
+
+  test("only a project's provider asks for its domains", () => {
+    for (const fields of [STATUS_PAGE_FIELDS, GLOBAL_FIELDS] as Array<
+      Array<Field<unknown>>
+    >) {
+      expect(
+        fields.some((field: Field<unknown>): boolean => {
+          return keyOf(field) === "domains";
+        }),
+      ).toBe(false);
+    }
   });
 
   test("Enabled is the switch every provider form has: off, as its column, until the identity provider knows OneUptime", () => {
@@ -681,5 +735,143 @@ describe("the folded Advanced section", () => {
 
     expect(section.isConfigured!(older)).toBe(true);
     expect(section.getSummary!(older)).toBeUndefined();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * SIGNING PEOPLE OUT OF THE IDENTITY PROVIDER TOO (#9603).
+ *
+ * A project's and the instance's provider - not a status page's, whose
+ * sign-in is to the status page - ask for the identity provider's Sign Out
+ * URL and whether to sign people out of it too: off, and folded last under
+ * More fields, in the OpenID Connect form's words for the switch.
+ * ---------------------------------------------------------------------------
+ */
+describe("signing people out of the identity provider too", () => {
+  const PROJECT_WITH_SIGN_OUT: Array<Field<ProjectSSO>> =
+    getSamlProviderFormFields<ProjectSSO>({
+      withTeams: true,
+      withIdentityProviderSignOut: true,
+    });
+  const GLOBAL_WITH_SIGN_OUT: Array<Field<GlobalSSO>> =
+    getSamlProviderFormFields<GlobalSSO>({
+      withGlobalAccessSwitches: true,
+      withIdentityProviderSignOut: true,
+    });
+
+  test("a project's provider asks last, after its description", () => {
+    expect(keysOn(PROJECT_WITH_SIGN_OUT, "sign-in")).toEqual([
+      "teams",
+      "isEnabled",
+      "signatureMethod",
+      "digestMethod",
+      "description",
+      "singleLogoutURL",
+      "signOutOfIdentityProvider",
+    ]);
+  });
+
+  test("the instance's provider asks last, after its two questions", () => {
+    expect(keysOn(GLOBAL_WITH_SIGN_OUT, "sign-in").slice(-2)).toEqual([
+      "singleLogoutURL",
+      "signOutOfIdentityProvider",
+    ]);
+  });
+
+  test("a form that does not ask has neither field", () => {
+    for (const fields of ALL_FORMS) {
+      expect(fields.map(keyOf)).not.toContain("singleLogoutURL");
+      expect(fields.map(keyOf)).not.toContain("signOutOfIdentityProvider");
+    }
+  });
+
+  test("both fold under the form's one More fields section", () => {
+    const section: FormFieldCollapsibleSection<ProjectSSO> | undefined =
+      fieldFor(PROJECT_WITH_SIGN_OUT, "signatureMethod").collapsibleSection;
+
+    expect(section?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+    expect(
+      fieldFor(PROJECT_WITH_SIGN_OUT, "singleLogoutURL").collapsibleSection,
+    ).toBe(section);
+    expect(
+      fieldFor(PROJECT_WITH_SIGN_OUT, "signOutOfIdentityProvider")
+        .collapsibleSection,
+    ).toBe(section);
+  });
+
+  test("the Sign Out URL is an optional URL, said in plain words", () => {
+    const field: Field<ProjectSSO> = fieldFor(
+      PROJECT_WITH_SIGN_OUT,
+      "singleLogoutURL",
+    );
+
+    expect(field.title).toBe(SAML_SIGN_OUT_URL_TITLE);
+    expect(SAML_SIGN_OUT_URL_TITLE).toBe("Sign Out URL");
+    expect(field.fieldType).toBe(FormFieldSchemaType.URL);
+    expect(field.required).toBe(false);
+    expect(field.description).toBe(SAML_SIGN_OUT_URL_DESCRIPTION);
+    expect(field.disableSpellCheck).toBe(true);
+    expect(SAML_SIGN_OUT_URL_DESCRIPTION.length).toBeLessThanOrEqual(150);
+    expect(SAML_SIGN_OUT_URL_DESCRIPTION).toMatch(/^[A-Z].*\.$/);
+  });
+
+  test("the switch is off, and named and explained as the OpenID Connect form's is", () => {
+    const field: Field<ProjectSSO> = fieldFor(
+      PROJECT_WITH_SIGN_OUT,
+      "signOutOfIdentityProvider",
+    );
+
+    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(field.defaultValue).toBe(false);
+    expect(field.required).toBe(false);
+    expect(field.title).toBe(SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE);
+    expect(field.description).toBe(SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION);
+    expect(SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE).toBe(
+      OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+    );
+    expect(SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION).toBe(
+      OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+    );
+  });
+
+  test("the folded section is at its defaults while the switch is off and no Sign Out URL is entered", () => {
+    const atDefaults: Record<string, unknown> = {
+      name: "Okta",
+      signatureMethod: "RSA-SHA256",
+      digestMethod: "SHA256",
+      description: "Sign in with Okta",
+      signOutOfIdentityProvider: false,
+      singleLogoutURL: "",
+    };
+
+    expect(
+      isSamlAdvancedAtDefaults(atDefaults, {
+        withIdentityProviderSignOut: true,
+      }),
+    ).toBe(true);
+    expect(
+      isSamlAdvancedAtDefaults(
+        { ...atDefaults, signOutOfIdentityProvider: true },
+        { withIdentityProviderSignOut: true },
+      ),
+    ).toBe(false);
+    expect(
+      isSamlAdvancedAtDefaults(
+        {
+          ...atDefaults,
+          singleLogoutURL: "https://idp.example.com/saml/slo",
+        },
+        { withIdentityProviderSignOut: true },
+      ),
+    ).toBe(false);
+    // A form without them never reads them.
+    expect(
+      isSamlAdvancedAtDefaults({
+        ...atDefaults,
+        signOutOfIdentityProvider: true,
+        singleLogoutURL: "https://idp.example.com/saml/slo",
+      }),
+    ).toBe(true);
   });
 });

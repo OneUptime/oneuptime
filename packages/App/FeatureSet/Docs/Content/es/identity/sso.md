@@ -48,7 +48,7 @@ Cada respuesta inicia sesión una sola vez. Si se vuelve a enviar, por ejemplo a
 Quienes inician sesión por primera vez se unen a los **Equipos** del proveedor, que deciden lo que pueden hacer: consulta [Roles y equipos de los usuarios de SSO](#roles-y-equipos-de-los-usuarios-de-sso).
 
 > [!NOTE]
-> En OneUptime Cloud, la primera vez que alguien inicia sesión en el proyecto con uno de sus proveedores SAML u OIDC, OneUptime le envía un enlace por correo en lugar de iniciar su sesión. La persona lo abre, confirma que el inicio de sesión único del proyecto puede iniciar su sesión y continúa. El enlace es válido durante 24 horas. Esto ocurre una vez por proyecto, y de nuevo si la persona deja el proyecto y vuelve. Las instalaciones autoalojadas inician la sesión de inmediato.
+> En OneUptime Cloud, la primera vez que alguien inicia sesión en el proyecto con uno de sus proveedores SAML u OIDC, OneUptime le envía un enlace por correo en lugar de iniciar su sesión. La persona lo abre, confirma que el inicio de sesión único del proyecto puede iniciar su sesión y continúa. El enlace es válido durante 24 horas. Esto ocurre una vez por proyecto, y de nuevo si la persona deja el proyecto y vuelve. Las instalaciones autoalojadas inician la sesión de inmediato. En OneUptime Cloud, todo inicio de sesión que no se completa directamente recibe esta misma respuesta, tenga o no cuenta la dirección: quien aún no tiene cuenta también recibe el correo, y su cuenta se crea cuando confirma, mientras que una cuenta bloqueada o un administrador de OneUptime no recibe ningún correo. Una instalación autoalojada rechaza en cambio esos dos casos con un único mensaje.
 
 En OneUptime Cloud, quien se une al proyecto mediante SSO ocupa un puesto, igual que alguien a quien invitas. Si tu plan incluye un número fijo de puestos y todos están ocupados, las personas nuevas no pueden unirse mediante SSO hasta que quede un puesto libre.
 
@@ -79,7 +79,7 @@ Necesitas permiso para añadir proveedores de SSO — **Propietario del proyecto
    - Un proveedor nuevo empieza desactivado. Cuando tu IdP tenga estos dos valores, edita el proveedor y activa **Habilitado**
 
 4. **Probar el proveedor**
-   - Abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor en la página que se abre. Se te redirige a la página de inicio de sesión de tu proveedor de identidad y vuelves a OneUptime con la sesión iniciada
+   - Abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor en la página que se abre. Se te redirige a la página de inicio de sesión de tu proveedor de identidad y vuelves a OneUptime con la sesión iniciada
    - Cuando funcione, puedes [exigir SSO](#exigir-sso-en-tu-proyecto) en el proyecto
 :::
 
@@ -127,11 +127,11 @@ Keycloak es una solución de código abierto muy extendida para la gestión de i
 4. **Ajustar la configuración del cliente**
 
    - Establece **Name ID Format** en `email` y activa **Force Name ID Format**, para que Keycloak envíe siempre el correo como Name ID
-   - En la pestaña **Keys** del cliente, desactiva **Client signature required** (en **Signing keys config**): OneUptime no firma sus solicitudes
+   - En la pestaña **Keys** del cliente, desactiva **Client signature required** (en **Signing keys config**): OneUptime no firma sus solicitudes de inicio de sesión
 
 5. **Activar el proveedor y probarlo**
 
-   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Keycloak y volver a OneUptime.
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Keycloak y volver a OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (antes Azure AD / Active Directory) es el servicio de identidad en la nube de Microsoft. Necesitas un tenant que admita aplicaciones empresariales con SSO SAML, y acceso de administrador a Entra ID y a OneUptime. En OneUptime Cloud, si la galería de aplicaciones de Microsoft Entra incluye OneUptime, añádelo desde ahí: ya trae las notificaciones que lee OneUptime y los patrones de sus URL.
@@ -182,7 +182,7 @@ Microsoft Entra ID (antes Azure AD / Active Directory) es el servicio de identid
 
 7. **Activar el proveedor y probarlo**
 
-   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Microsoft y volver a OneUptime.
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Microsoft y volver a OneUptime.
 :::
 @tab Okta
 Okta es una plataforma de identidad muy utilizada con SSO SAML. Necesitas una organización de Okta con acceso de administrador, y acceso de administrador a OneUptime. En OneUptime Cloud, si la Okta Integration Network incluye OneUptime, añádelo desde ahí: inicia la sesión de las personas desde la página **Iniciar sesión con SSO** de OneUptime y desde su panel de Okta, les da una cuenta en su primer inicio de sesión y pide dos ID en lugar de las URL de OneUptime.
@@ -232,7 +232,7 @@ Okta es una plataforma de identidad muy utilizada con SSO SAML. Necesitas una or
 
 6. **Activar el proveedor y probarlo**
 
-   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Okta y volver a OneUptime.
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Okta y volver a OneUptime.
 :::
 @tab Otro
 El SSO de OneUptime usa SAML 2.0 y funciona con cualquier proveedor de identidad compatible:
@@ -242,7 +242,7 @@ El SSO de OneUptime usa SAML 2.0 y funciona con cualquier proveedor de identidad
 2. En OneUptime, crea el proveedor con esos valores y copia el **Identificador (Entity ID)** y la **URL de respuesta (URL del Assertion Consumer Service)** del cuadro de diálogo **Configuración de SSO** (o de **Ver configuración SSO**).
 3. En la aplicación SAML de tu proveedor de identidad, establece la **Assertion Consumer Service URL / Reply URL** y el **Entity ID / Audience URI** con los valores de OneUptime, y el **Name ID Format** en la dirección de correo.
 4. El **Método de firma** (`RSA-SHA256`) y el **Método de resumen** (`SHA256`) ya están definidos en **Más campos**; cámbialos solo si tu proveedor de identidad firma de otra forma
-5. Activa **Habilitado** en el proveedor y pruébalo con el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+5. Activa **Habilitado** en el proveedor y pruébalo con el enlace de la tarjeta **Enlace de inicio de sesión con SSO**.
 :::
 :::
 
@@ -256,14 +256,36 @@ Un proyecto también puede iniciar sesión mediante un proveedor OpenID Connect,
 3. Introduce un **Nombre** (lo que las personas ven en la página de inicio de sesión), la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente**. También puedes pegar la URL de descubrimiento del proveedor en **URL del emisor**.
 4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás ya está completado en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de notificación `email` y `name`, y una descripción ("Sign in with" y el nombre). Cámbialos solo si tu proveedor lo requiere. Solo se aceptan equipos a los que tú podrías invitar a alguien: un equipo que da más acceso del que tienes se indica en **Equipos**.
 5. Guarda. Se abre el cuadro de diálogo **Configuración de OIDC** con la **URI de redirección**: añádela a las URI de redirección permitidas de tu aplicación. Un proveedor nuevo empieza desactivado, así que después edítalo y activa **Habilitado**.
-6. Abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor, para iniciar sesión con él antes de exigir SSO en el proyecto.
+6. Abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor, para iniciar sesión con él antes de exigir SSO en el proyecto.
 :::
 
-### Cerrar sesión también en el proveedor de identidad
+## Cerrar sesión también en el proveedor de identidad
 
-Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido, como una pantalla del NOC o un quiosco, la siguiente persona que elige el proveedor en la página de inicio de sesión entra como la que se fue. Activa **Cerrar sesión también en el proveedor de identidad** en **Más campos** para que cerrar sesión en OneUptime también termine la sesión en el proveedor. Está desactivado por defecto: en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor.
+Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido, como una pantalla del NOC o un quiosco, la siguiente persona que elige el proveedor en la página de inicio de sesión entra como la que se fue. En un proveedor SAML u OIDC, activa **Cerrar sesión también en el proveedor de identidad** en **Más campos** para que cerrar sesión en OneUptime también termine la sesión en el proveedor. Está desactivado por defecto: en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor. Se aplica a las personas que inician sesión en un navegador después de activarlo; la aplicación móvil solo cierra la sesión en OneUptime.
 
-Con la opción activada, el navegador pasa por el cierre de sesión del proveedor en cuanto OneUptime lo ha cerrado, y el proveedor lo devuelve a la página de inicio de sesión de OneUptime. Registra esa página en tu proveedor: el diálogo **Configuración de OIDC** la muestra como URI de redirección tras cerrar sesión, que los proveedores llaman post-logout redirect URI. Un proveedor cuyo documento de descubrimiento no nombra ningún `end_session_endpoint`, como Google, no puede activarla. Se aplica a las personas que inician sesión en un navegador después de activarla; la aplicación móvil solo cierra la sesión en OneUptime. Los proveedores SAML nunca cierran la sesión de nadie en el proveedor de identidad.
+:::tabs
+@tab SAML
+Introduce la URL de cierre de sesión de tu proveedor de identidad como **URL de cierre de sesión** del proveedor, en **Más campos**: sin ella no se puede activar el interruptor. Después da a tu proveedor de identidad la **URL de Single Logout** del diálogo **Configuración de SSO** y el certificado con el que OneUptime firma sus solicitudes de cierre de sesión, desde **Descargar certificado de firma** en el mismo diálogo.
+
+| Proveedor de identidad | URL de cierre de sesión | Dónde van la URL de Single Logout y el certificado |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, en **View SAML setup instructions** de la pestaña **Sign On** | En la pestaña **General**, edita **SAML Settings**, haz clic en **Show Advanced Settings** y selecciona **Allow application to initiate Single Logout**. Pon en **Single Logout URL** la URL de Single Logout y en **SP Issuer** el identificador (Entity ID), y sube el certificado como **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, en **Set up OneUptime** | En **Basic SAML Configuration**, pon la URL de Single Logout en **Logout Url (Optional)**. Entra ID no necesita ningún certificado. |
+| Keycloak | El punto de conexión SAML del realm, el mismo que la URL de inicio de sesión | En la pestaña **Advanced** del cliente, pon la URL de Single Logout en **Logout Service Redirect Binding URL**. Deja activado **Front channel logout**. Keycloak no necesita ningún certificado mientras **Client signature required** esté desactivado, como se configuró arriba. |
+
+Tras cerrar la sesión allí, el proveedor de identidad devuelve el navegador a la URL de Single Logout, que abre la página de inicio de sesión o indica que el proveedor de identidad no confirmó el cierre de sesión. Cuando la persona cierra sesión en el proveedor de identidad, o en otra aplicación que lo usa, un proveedor de identidad que envía solicitudes de cierre de sesión a sus aplicaciones, como Keycloak y Microsoft Entra ID, también la saca de OneUptime. OneUptime solo acepta una solicitud firmada por el proveedor de identidad.
+@tab OpenID Connect
+El navegador pasa por el cierre de sesión del proveedor en cuanto OneUptime lo ha cerrado, y el proveedor lo devuelve a la página de inicio de sesión de OneUptime. Registra esa página en tu proveedor: el diálogo **Configuración de OIDC** la muestra como URI de redirección tras cerrar sesión, que los proveedores llaman post-logout redirect URI. Un proveedor cuyo documento de descubrimiento no nombra ningún `end_session_endpoint`, como Google, no puede activarlo.
+
+| Proveedor de identidad | Dónde registrar la URI de redirección tras cerrar sesión |
+| --- | --- |
+| Okta | En la pestaña **General** de la integración, haz clic en **Edit** en **General Settings** y añádela a **Sign-out redirect URIs**. |
+| Microsoft Entra ID | En el registro de la aplicación, en **Authentication**, añádela a las **Redirect URIs** de la plataforma **Web**. La **Front-channel logout URL** es otro ajuste, que OneUptime no usa. |
+| Auth0 | En los **Settings** de la aplicación, añádela a **Allowed Logout URLs**. Un tenant creado antes del 14 de noviembre de 2023 también necesita activar **RP-Initiated Logout End Session Endpoint Discovery** en sus ajustes **Advanced**, para que su documento de descubrimiento nombre un `end_session_endpoint`. |
+| Keycloak | En los ajustes del cliente, añádela a **Valid post logout redirect URIs** (Keycloak 19 y posteriores). |
+
+Un proveedor que no la tiene registrada muestra su propia página de error después de cerrar sesión en OneUptime, en lugar de devolver a la persona; aun así, la sesión en OneUptime queda cerrada.
+:::
 
 ## Roles y equipos de los usuarios de SSO
 
@@ -271,12 +293,27 @@ OneUptime no asigna roles ni grupos de tu proveedor de identidad. Lo que alguien
 
 Los equipos de un proveedor deciden lo que pueden hacer las personas que inician sesión con él, por eso un proveedor solo se guarda con equipos a los que la persona que lo guarda podría invitar a alguien. Cada guardado los vuelve a comprobar: un proveedor cuyos equipos dan más acceso del que tienes solo puede cambiarlo alguien cuyo acceso los cubra, como un Propietario del proyecto. Los proveedores guardados antes de esta comprobación siguen iniciando la sesión de las personas en sus equipos. Cualquiera que pueda editar un proveedor puede seguir desactivándolo, para poder detenerlo en el acto.
 
+## Dominios
+
+**Iniciar sesión con SSO** pide una dirección de correo y ofrece los proveedores que sirven al dominio de esa dirección. No lee ninguna cuenta: una dirección con cuenta en tu proyecto y una sin ninguna cuenta reciben la misma respuesta, así que la página no dice nada de quién tiene cuenta. Para que se ofrezca ahí, un proveedor indica los dominios a los que sirve:
+
+1. Añade tu dominio en **Ajustes del proyecto** > **Avanzado** > **Dominios**, haz clic en **Verificar dominio** en su fila y añade al DNS del dominio el registro TXT que muestra. En cuanto se encuentra el registro, el dominio queda verificado.
+2. Edita el proveedor y elige el dominio en **Dominios**, en el paso **Inicio de sesión**. Solo aparecen los dominios verificados del proyecto.
+
+**Iniciar sesión con SSO** ofrece entonces el proveedor a cualquier dirección de ese dominio, la escriba quien la escriba. El dominio debe coincidir exactamente: `acme.com` no cubre `eu.acme.com`, así que añade cada dominio con el que la gente inicia sesión.
+
+Los proveedores configurados antes de que existieran los dominios recibieron los dominios verificados de su proyecto al actualizar OneUptime: cada dominio que el proyecto había verificado, salvo que otro proyecto también lo hubiera verificado. Elige tú mismo ese dominio si es tuyo. Un dominio que se añadió pero nunca se verificó no se dio a ningún proveedor.
+
+Un proveedor que no tiene ningún dominio verificado no se ofrece a nadie ahí. Su columna **Dominios** dice **Ningún dominio verificado**, y un aviso encima de tus proveedores lo nombra y dice qué hacer. Mientras el proyecto no tenga ningún dominio verificado, **Verificar un dominio** en el aviso abre **Dominios**.
+
+Quien tiene su correo en otro dominio, como un contratista, tampoco encuentra ningún proveedor ahí. Comparte con esa persona el enlace de inicio de sesión con SSO de tu proyecto: cópialo de la tarjeta **Enlace de inicio de sesión con SSO** debajo de tus proveedores. Muestra los proveedores del proyecto y no pide ninguna dirección de correo, así que no dice nada de quién tiene cuenta. El inicio de sesión que empieza en tu proveedor de identidad también funciona, sea cual sea el dominio.
+
 ## Exigir SSO en tu proyecto
 
 Configurar un proveedor no impide que nadie inicie sesión con contraseña. Para que el SSO sea la única forma de entrar en el proyecto, usa el interruptor **Requerir SSO para iniciar sesión** en **Ajustes del proyecto** > **Seguridad** > **SSO**, debajo de tus proveedores:
 
 :::steps
-1. Prueba primero tu proveedor con el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+1. Prueba primero tu proveedor con el enlace de la tarjeta **Enlace de inicio de sesión con SSO**.
 2. Activa **Requerir SSO para iniciar sesión**. OneUptime pregunta antes de guardar nada: a partir de entonces todos los miembros del proyecto, tú incluido, deben iniciar sesión con SSO para abrirlo, y quien haya iniciado sesión con contraseña queda fuera del proyecto hasta que inicie sesión con SSO.
 3. Haz clic en **Requerir SSO** para confirmar. El interruptor se guarda al instante; no hay un botón de guardar aparte.
 :::
@@ -305,9 +342,21 @@ La regla se comprueba cada vez, así que:
 - **Alguien en un proyecto que no gestiona el inicio de sesión**: en cuanto es miembro de un proyecto, o está invitado a uno, que no exige SSO o no tiene activado **Gestionar el inicio de sesión con SSO**, recupera sus ajustes, y su **Perfil de usuario** nombra ese proyecto como el motivo. Si lo deja, su inicio de sesión vuelve a estar gestionado. Una cuenta puede pertenecer a muchas organizaciones, así que una organización nunca decide por los proyectos de otra.
 - **Proyectos con proveedores distintos**: alguien en dos proyectos que gestionan ambos el inicio de sesión, cada uno con su propio proveedor de identidad, está gestionado, y su perfil nombra ambos proveedores.
 - **Los administradores maestros** conservan siempre sus propios ajustes.
-- **Lo que las personas configuraron antes** se conserva, sin que tu proyecto lo use. Un administrador del servidor puede borrarlo en la página **Autenticación** de la persona en el Admin Dashboard, con **Borrar configuración de inicio de sesión**.
+- **Lo que las personas configuraron antes** se conserva, sin que tu proyecto lo use, hasta que se borra: lo pueden borrar los Propietarios del proyecto (ver más abajo), o un administrador del servidor en la página **Autenticación** de la persona en el Admin Dashboard, con **Borrar configuración de inicio de sesión**.
 
 **Gestionar el inicio de sesión con SSO** se guarda en cuanto cambias el interruptor, no borra nada, y desactivarlo devuelve a todos sus ajustes al instante. Quien puede cambiar **Requerir SSO para iniciar sesión** puede cambiarlo, en los mismos planes. Con **Requerir SSO para iniciar sesión** desactivado, queda oculto y no cambia nada.
+
+### Borrar lo que tus miembros guardaron antes
+
+Mientras **Gestionar el inicio de sesión con SSO** está activado, los Propietarios del proyecto ven debajo cuántos de sus miembros aún tienen guardada en OneUptime una contraseña o la autenticación de dos factores. **Borrar configuración de inicio de sesión** elimina, tras pedir confirmación, sus contraseñas con cualquier enlace de restablecimiento o de inicio de sesión, sus llaves de acceso, llaves de seguridad, aplicaciones de autenticación y códigos de respaldo, desactiva la autenticación de dos factores y termina las sesiones que iniciaron sin SSO. No se puede deshacer.
+
+Una cuenta puede pertenecer a muchas organizaciones, así que solo puedes borrar la configuración de las personas de las que tu organización es responsable. Tu organización son los proyectos de los que eres propietario: a una persona solo se le borra cuando todos los proyectos a los que pertenece, incluido cualquier proyecto al que esté invitada, son proyectos de los que eres **Propietario del proyecto** y tienen activado **Gestionar el inicio de sesión con SSO**. Todos los demás conservan sus ajustes:
+
+- alguien que es miembro de un proyecto, o está invitado a uno, del que no eres propietario o que no gestiona el inicio de sesión con SSO;
+- alguien solo invitado a tu proyecto, que aún no se ha unido a él;
+- los administradores maestros, y tú: cambia los tuyos en tu **Perfil de usuario**.
+
+Cada persona a la que se le borra recibe un correo que le indica lo que se eliminó y que ahora inicia sesión con SSO, y los registros de auditoría de tus proyectos registran el borrado como tuyo. Solo un **Propietario del proyecto** puede borrar, con la sesión iniciada en el panel: nunca con una clave de API.
 
 ## Desactivar o eliminar un proveedor
 

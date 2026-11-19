@@ -33,7 +33,17 @@ import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
-import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
+import {
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+  DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+} from "Common/Types/AI/AIAgentRunLimits";
+import { PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiRunLimits";
+import {
+  PROJECT_AI_RUN_LIMIT_FIELDS,
+  ProjectAiRunLimitField,
+  ProjectAiRunLimitsCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
@@ -1396,7 +1406,7 @@ describe("Code", () => {
     );
   });
 
-  it("has a Runner of the project's own build and test the change, 2 minutes a command or up to 10 when asked, without its credentials, and Global Runner run no command", () => {
+  it("has a Runner of the project's own build and test the change, 2 minutes a command or up to 10 when asked - or the project's Time Limit per Command - without its credentials, and Global Runner run no command", () => {
     const agent: string = readRepoFile("Runner/CodeAgents/InHouseCodeAgent.ts");
     const limits: string = readRepoFile("Runner/Utils/AgentCommandLimits.ts");
     const checks: Array<Array<string>> = tableWithHeader(
@@ -1405,8 +1415,26 @@ describe("Code", () => {
     );
     const minutes: number =
       numberConstant(limits, "DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS") / 60;
-    const mostMinutes: number =
-      numberConstant(limits, "MAX_AGENT_COMMAND_TIMEOUT_SECONDS") / 60;
+    // Ten minutes unless the project set its own (issue #6532).
+    const mostMinutes: number = DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES;
+    const commandField: ProjectAiRunLimitField =
+      PROJECT_AI_RUN_LIMIT_FIELDS.find(
+        (field: ProjectAiRunLimitField): boolean => {
+          return field.column === PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+        },
+      )!;
+
+    // The Runner's most is the setting's default, and its ceiling the setting's.
+    expect(flat(limits)).toContain(
+      "export const MAX_AGENT_COMMAND_TIMEOUT_SECONDS: number = DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES * 60;",
+    );
+    expect(flat(limits)).toContain(
+      "export const CEILING_AGENT_COMMAND_TIMEOUT_SECONDS: number = MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES * 60;",
+    );
+    // The agent holds each command to the project's setting, as the server sends it.
+    expect(flat(agent)).toContain(
+      "commandTimeLimitInMinutes: this.runLimits?.commandTimeLimitInMinutes,",
+    );
 
     // The agent's commands take their time from the limits, and may ask for more.
     expect(agent).toContain("getAgentCommandTimeoutMs(");
@@ -1424,6 +1452,9 @@ describe("Code", () => {
 
     expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
       `Each command it runs gets ${minutes} minutes, or up to ${mostMinutes} for a slow install, build or test suite, without the Runner's own credentials in its environment.`,
+    );
+    expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
+      `${bold(commandField.title)}, in the project's ${bold(ProjectAiRunLimitsCopy.cardTitle)}, lets a command run up to ${MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes, never past the run's time limit.`,
     );
     expect(rowStartingWith(checks, bold("Global Runner"))[1]).toBe(
       "Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it.",
@@ -2393,6 +2424,42 @@ describe("MCP Server", () => {
         });
       }
     }
+  });
+
+  /*
+   * The move of a row of an ordered list (#9651): one tool for every list,
+   * named by the server's constant, taking the arguments the page names, and
+   * doing what the page says - the API's move, as the dashboard's drag.
+   */
+  it("names the tool that moves a row of an ordered list by the server's own name, with the arguments it takes", () => {
+    const move: string = readRepoFile("App/FeatureSet/MCP/Tools/MoveInList.ts");
+    const paragraph: string =
+      englishSection(MCP_SERVER, "## Tools for incident response")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("**`oneuptime_move_in_list`**");
+        }) || "";
+
+    expect(move).toContain(
+      'MOVE_IN_LIST_TOOL_NAME: string = "oneuptime_move_in_list"',
+    );
+    expect(move).toContain('required: ["resource", "id", "placeOfId"]');
+    // The API's move request, as the dashboard's drag sends it.
+    expect(move).toContain("${getMoveInListRoute(id)}");
+    expect(move).toContain("body: { placeOfId: placeOfId }");
+
+    for (const argument of ["`resource`", "`id`", "`placeOfId`"]) {
+      expect({ argument, named: paragraph.includes(argument) }).toEqual({
+        argument,
+        named: true,
+      });
+    }
+
+    expect(paragraph).toContain("as dragging it in the dashboard does");
+    expect(paragraph).toContain("such as `Incident Severity`");
+    expect(paragraph).toContain(
+      "Writing a row's number with its `update_` tool places only that row",
+    );
   });
 
   it("pages lists with the server's default and largest limit", () => {

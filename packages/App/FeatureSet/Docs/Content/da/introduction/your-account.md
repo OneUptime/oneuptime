@@ -41,7 +41,7 @@ Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt**
 
 Klik på **Rediger Bruger**, og ret det, du har brug for:
 
-- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, bekræfter du den nye adresse igen.
+- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, sender OneUptime et link til den nye adresse, og din adresse ændres, når du åbner det. Indtil da logger du ind med den nuværende, og **Annuller ændring** stopper ændringen. En hovedadministrators egen adresse ændres med det samme.
 - **Fulde navn**: det navn, dit team ser overalt i OneUptime.
 - **Tidszone**: den tidszone, dashboardet viser og læser tider i, og den, der bruges til tiderne i notifikationer til dig.
 - **Sprog**: sproget i dashboardet i alle browsere, du logger ind i, og i dine vagttilkald. Ikke valgt: dine tilkald er på engelsk, og dashboardet følger din browser.
@@ -137,14 +137,14 @@ Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er 
 
 ### Når din organisation styrer dit login
 
-På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on, medmindre en serveradministrator rydder det. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
+På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on, medmindre en serveradministrator rydder det, og så får du en e-mail. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
 
 Det samme sker, når alle de projekter, du hører til, kræver single sign-on og har **Styr login med SSO** slået til. Din adgangskode logger dig stadig ind i OneUptime, men alle projekter beder om SSO, så OneUptime opsætter ingen ny adgangskode, adgangsnøgle eller andet trin for dig:
 
 - **Et projekt, der ikke gør det**: Så snart du er medlem af eller inviteret til et projekt, der ikke kræver SSO eller ikke har **Styr login med SSO** slået til, kommer din sektion **Sikkerhed** tilbage. **Oversigt** nævner så de projekter under **Single sign-on** som grunden til, at dine indstillinger er dine egne. Forlader du det projekt, mister du dem igen.
 - **Projekter med forskellige udbydere**: Styrer alle dine projekter login, hver med sin egen identitetsudbyder, nævner **Oversigt** hver udbyder.
 - **Hovedadministratorer** beholder altid deres egne indstillinger under **Sikkerhed**.
-- **Det, du har opsat før**, forbliver gemt, og en serveradministrator kan rydde det.
+- **Det, du har opsat før**, forbliver gemt. En serveradministrator kan rydde det, og det kan en ejer af alle de projekter, du hører til, også; du får en e-mail, når det sker.
 
 ## Dine projekter
 
@@ -184,6 +184,14 @@ Dit tema gemmes i din browser, så indstil det igen i en anden browser eller på
 
 :::details Jeg har ikke fået e-mailen til at bekræfte min adresse
 Logger du ind igen, sendes et nyt link: tjek også din spam-mappe. Kan du ikke logge ind, så brug **Glemt adgangskode?** på loginsiden. Nulstillingslinket bekræfter også din adresse.
+:::
+
+:::details Tilmeldingen sendte mig en e-mail om, at jeg allerede har en konto
+Den adresse har allerede en OneUptime-konto, så tilmeldingen oprettede og ændrede intet. Log ind med den, eller brug **Glemt adgangskode?** på loginsiden, hvis du ikke kan huske din adgangskode. Tilmeldingssiden siger det samme for alle adresser, så den fortæller ingen, hvilke adresser der har en konto.
+:::
+
+:::details Min e-mailadresse er ikke ændret
+Din adresse ændres først, når du åbner linket, som OneUptime sendte til den nye adresse. Linket virker i 24 timer: Er det udløbet, så ændr din e-mail igen for at få et nyt. Bruger en anden konto allerede den adresse, står det i e-mailen dertil, og din adresse forbliver, som den er.
 :::
 
 :::details Jeg har mistet min godkendelsesapp

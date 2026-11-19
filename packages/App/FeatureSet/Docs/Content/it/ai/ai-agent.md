@@ -190,7 +190,7 @@ Un repository dice come si compila e si testa in un `AGENTS.md` nella sua radice
 
 | Dove lavora l'IA | Cosa fa con la build e i test del repository |
 | --- | --- |
-| Uno dei tuoi Runner | Compila e testa la sua modifica prima che si apra la pull request, corregge ciò che fallisce e verifica di nuovo, e dice nel suo riepilogo quali verifiche ha eseguito. Ogni comando che esegue ha 2 minuti, o fino a 10 per un'installazione, una build o una suite di test lenta, senza le credenziali proprie del Runner nel suo ambiente. |
+| Uno dei tuoi Runner | Compila e testa la sua modifica prima che si apra la pull request, corregge ciò che fallisce e verifica di nuovo, e dice nel suo riepilogo quali verifiche ha eseguito. Ogni comando che esegue ha 2 minuti, o fino a 10 per un'installazione, una build o una suite di test lenta, senza le credenziali proprie del Runner nel suo ambiente. **Limite di tempo per comando (minuti)**, nei **Limiti per esecuzione** del progetto, permette a un comando di durare fino a 120 minuti, mai oltre il limite di tempo dell'esecuzione. |
 | **Runner globale** | Non esegue alcun comando: scrive la modifica e apre la pull request, e la CI del tuo repository la controlla. |
 
 Nulla di una pull request che viene da un fork viene mai letto come istruzioni del repository: una revisione rifiuta una pull request simile, e una review legge il branch di base.

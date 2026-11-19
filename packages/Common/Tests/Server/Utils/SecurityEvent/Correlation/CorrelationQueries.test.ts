@@ -1,8 +1,10 @@
 import CorrelationQueries, {
+  CORRELATION_GROUP_VALUE_SEPARATOR,
   CORRELATION_ROLLING_STEPS_PER_TIMESPAN,
   CORRELATION_STEP_TIMES_LIMIT,
   CorrelationReadWindow,
   CorrelationRollingWindow,
+  buildCorrelationEventsRead,
   buildGroupExpression,
   compileStepCondition,
   getCorrelationRollingWindow,
@@ -580,6 +582,161 @@ detection:
     expect(() => {
       compileStepCondition(unresolved);
     }).toThrow('Correlation step "elsewhere" is not resolved to a rule.');
+  });
+});
+
+/*
+ * How the events a correlation matched are read for keeping (#9795): any
+ * of its steps' events, each under its group's value as the matcher names
+ * the group - each group-by field's value, an alias by the step the event
+ * matched, joined by " / " - so one read keeps every group it fired for.
+ */
+describe("buildCorrelationEventsRead", () => {
+  test("reads any of its steps' events, each under its group's value", () => {
+    const sequence: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: Failures then success
+correlation:
+  type: temporal_ordered
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalIp]
+  timespan: 10m
+---
+${FAILED}
+---
+${SUCCEEDED}`);
+
+    const read: ReturnType<typeof buildCorrelationEventsRead> =
+      buildCorrelationEventsRead({
+        correlation: sequence.correlation,
+        steps: sequence.steps,
+      });
+
+    // Both steps' conditions, ORed, as the correlation's own reads take them.
+    expect(read.condition.query.startsWith("((")).toBe(true);
+    expect(read.condition.query.endsWith("))")).toBe(true);
+    expect(read.condition.query).toContain(") OR (");
+    expect(boundValues(read.condition)).toEqual(
+      expect.arrayContaining(["failure", "success"]),
+    );
+    expect(read.groupExpression!.query).toBe(
+      "arrayStringConcat([toString(principalIp)], ' / ')",
+    );
+    expect(CORRELATION_GROUP_VALUE_SEPARATOR).toBe(" / ");
+  });
+
+  test("several group-by fields are joined in their order, as the case names the group", () => {
+    const counted: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: Many failures for one user from one address
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalUser, principalIp]
+  timespan: 5m
+  condition:
+    gte: 5
+---
+${FAILED}`);
+
+    expect(
+      buildCorrelationEventsRead({
+        correlation: counted.correlation,
+        steps: counted.steps,
+      }).groupExpression!.query,
+    ).toBe(
+      "arrayStringConcat([toString(principalUser), toString(principalIp)], ' / ')",
+    );
+  });
+
+  test("an aliased field takes the field of the step each event matched", () => {
+    const aliased: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: Aliased
+correlation:
+  type: temporal
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [address]
+  timespan: 5m
+  aliases:
+    address:
+      failed_sign_in: principalIp
+      successful_sign_in: targetIp
+---
+${FAILED}
+---
+${SUCCEEDED}`);
+
+    const expression: string = buildCorrelationEventsRead({
+      correlation: aliased.correlation,
+      steps: aliased.steps,
+    }).groupExpression!.query;
+
+    expect(expression).toMatch(/^arrayStringConcat\(\[toString\(multiIf\(/);
+    expect(expression).toContain("principalIp, ");
+    expect(expression).toContain("targetIp, ''");
+  });
+
+  test("a correlation that does not group keeps its events as one group", () => {
+    const counted: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: Many failures anywhere
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  timespan: 5m
+  condition:
+    gte: 100
+---
+${FAILED}`);
+
+    expect(
+      buildCorrelationEventsRead({
+        correlation: counted.correlation,
+        steps: counted.steps,
+      }).groupExpression,
+    ).toBeNull();
+  });
+
+  test("a value never becomes SQL: every value a rule holds is bound", () => {
+    const counted: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: Injected
+correlation:
+  type: event_count
+  rules: [injected]
+  group-by: [principalIp]
+  timespan: 5m
+  condition:
+    gte: 5
+---
+title: Injected
+name: injected
+detection:
+  selection:
+    message: "x'); DROP TABLE SecurityEvent; --"
+  condition: selection`);
+
+    const read: ReturnType<typeof buildCorrelationEventsRead> =
+      buildCorrelationEventsRead({
+        correlation: counted.correlation,
+        steps: counted.steps,
+      });
+
+    expect(read.condition.query).not.toContain("DROP TABLE");
+    expect(read.groupExpression!.query).not.toContain("DROP TABLE");
+  });
+
+  test("a step that is not resolved to a rule cannot be read", () => {
+    const sequence: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: Failures then success
+correlation:
+  type: temporal_ordered
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalUser]
+  timespan: 10m`);
+
+    expect(() => {
+      buildCorrelationEventsRead({
+        correlation: sequence.correlation,
+        steps: sequence.steps,
+      });
+    }).toThrow("is not resolved to a rule.");
   });
 });
 

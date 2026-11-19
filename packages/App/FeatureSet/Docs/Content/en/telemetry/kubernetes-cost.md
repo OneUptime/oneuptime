@@ -16,7 +16,7 @@ With cost monitoring on, as it is by default (`cost.enabled: auto`), the chart r
 
 ```mermaid title="Where the cost numbers come from"
 flowchart TB
-    cadvisor["cAdvisor, through the<br/>API server node proxy"] --> prometheus["Bundled Prometheus"]
+    cadvisor["cAdvisor, from<br/>each node's kubelet"] --> prometheus["Bundled Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["Cloud list prices,<br/>or your rate card"] --> opencost
     opencost -->|"one closed hour<br/>at a time"| poller["Cost poller"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**, the open-source cost engine (Apache-2.0, CNCF; the [cost-model](https://github.com/kubecost/cost-model) that also powers Kubecost). It watches the cluster, prices your nodes, volumes and load balancers, and works out what each workload costs.
-2. **A small Prometheus**, which OpenCost needs for usage and price history. It runs one replica, keeps 7 days of history, and scrapes exactly two targets: cAdvisor through the API server's node proxy, keeping only the series OpenCost reads, and OpenCost itself (which emits its own resource-request metrics, so kube-state-metrics is not involved). It is never exposed outside the cluster, and its data never leaves it.
+2. **A small Prometheus**, which OpenCost needs for usage and price history. It runs one replica, keeps 7 days of history, and scrapes exactly two targets: cAdvisor on each node's kubelet (through the API server's node proxy on the `eks-fargate` preset, where no pod reaches a kubelet), keeping only the series OpenCost reads, and OpenCost itself (which emits its own resource-request metrics, so kube-state-metrics is not involved). It is never exposed outside the cluster, and its data never leaves it.
 3. **The cost poller** (`cost.agent`). Once per closed hour it reads OpenCost's Allocation API and sends one cost row per workload to OneUptime: CPU, memory, GPU, volumes, network, load balancers and idle, with efficiency. Each hour is sent once; the server skips an hour it already has, so a restart cannot count spend twice. OneUptime also writes the [cost metrics](#alerting-on-cost) from these rows.
 4. **A cost metrics scrape** (`cost.metrics`). The agent's collector scrapes OpenCost's price metrics, what each node, volume and load balancer costs an hour, and sends them with the rest of the cluster's metrics.
 
@@ -63,11 +63,11 @@ The first costs appear after the first full hour closes, and OpenCost needs a fe
 
 The cost metrics (`node_total_hourly_cost`, `pv_hourly_cost` and the rest) are ordinary metrics: they are in the metric explorer, on custom dashboards and in metric monitors. For a ready-made dashboard, go to **Products → Dashboards**, select **Create Dashboard** and pick **Kubernetes Cost Dashboard**: node hourly cost trends, CPU and memory unit costs, and volume and load balancer spend.
 
-Under the figures, the overview and the **Costs** page say where their prices come from: a cloud's list prices, your rate card, or OpenCost's default rates. Efficiency is one figure everywhere, the efficiency metric included: how much of the requested CPU and memory was used, each container's hour weighted by what its CPU and memory cost, so a cheap job that uses nothing cannot pull a well-used cluster down, and idle capacity is not counted.
+Under the figures, the overview and the **Costs** page say where their prices come from: a cloud's list prices, your rate card, or OpenCost's default rates, whichever engine prices the cluster, Kubecost 3 included. A Kubecost that reads your cloud bill reconciles its prices with that bill about a day and a half after each hour, so the line then says the figures are its list prices from before that. Efficiency is one figure everywhere, the efficiency metric included: how much of the requested CPU and memory was used, each container's hour weighted by what its CPU and memory cost, so a cheap job that uses nothing cannot pull a well-used cluster down, and idle capacity is not counted.
 
 ## Already running Kubecost or OpenCost?
 
-The cost agent finds it and reads it instead of the bundled OpenCost, so the cluster is priced as you set it up: your rate card, or your cloud bill behind Kubecost. It looks when it starts, then hourly, through the Kubernetes API, for the Services the engines' own charts create in any namespace (Kubecost's `cost-analyzer` or `frontend`, OpenCost's chart, and the `opencost` Service its manifest creates), Kubecost first. It passes over an engine that does not answer, needs a sign-in or answers for several clusters, and then reads the bundled one.
+The cost agent finds it and reads it instead of the bundled OpenCost, so the cluster is priced as you set it up: your rate card, or your cloud bill behind Kubecost. It looks when it starts, then hourly, through the Kubernetes API, for the Services the engines' own charts create in any namespace (Kubecost's `cost-analyzer` or `frontend`, OpenCost's chart, and the `opencost` Service its manifest creates), Kubecost first. It passes over an engine that does not answer, needs a sign-in or answers for several clusters, and then reads the bundled one. The collector then scrapes your engine's price metrics for the Kubernetes Cost dashboard too, so the dashboard and the Costs pages show the same prices, and right-sizing reads its memory peaks from the Prometheus your engine reads.
 
 The cluster's overview then names your engine and says the bundled OpenCost is not needed. Stop running it:
 
@@ -86,7 +86,7 @@ With `cost.engine.url=auto` nothing is bundled, and the agent reads your engine 
 | Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 | Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-The Allocation API path is found by itself (`/model/allocation` for Kubecost, `/allocation/compute` or `/allocation` for OpenCost). Set `cost.engine.allocationPath` only for an unusual install. With `auto` or a URL nothing is bundled, so for memory recommendations also set `cost.engine.prometheusUrl` (see [The data behind it](#the-data-behind-it)). The price metrics are found by themselves too, whichever of the engine's Services you name: the agent tries its `/metrics`, then the `/model/metrics` a Kubecost 2 frontend or OpenCost's UI passes on to the engine, then Kubecost 3's FinOps agent, and the collector scrapes the first that has price series. To name them yourself, set `cost.metrics.endpoint`.
+The Allocation API path is found by itself (`/model/allocation` for Kubecost, `/allocation/compute` or `/allocation` for OpenCost). Set `cost.engine.allocationPath` only for an unusual install. The Prometheus your engine reads is found by itself too, for memory recommendations, except with Kubecost 3, which reads none: then set `cost.engine.prometheusUrl` (see [The data behind it](#the-data-behind-it)). The price metrics are found by themselves too, whichever of the engine's Services you name: the agent tries its `/metrics`, then the `/model/metrics` a Kubecost 2 frontend or OpenCost's UI passes on to the engine, then Kubecost 3's FinOps agent, and the collector scrapes the first that has price series. To name them yourself, set `cost.metrics.endpoint`.
 
 ## On-prem and bare-metal pricing
 
@@ -156,8 +156,8 @@ Beside spend, the poller collects what a recommendation needs: each container's 
 Memory needs one more source. The Allocation API reports only an average over each window, and an hourly average hides the burst that OOM-kills a container, so sizing memory from it would be dangerous. The poller reads each container's memory peak from Prometheus instead, joined on `(namespace, pod, container)`:
 
 - With the bundled engine (the default), it uses the chart's own Prometheus. Nothing to set.
-- With `cost.engine.url` set (`auto` or your engine's URL), point `cost.engine.prometheusUrl` at a Prometheus that scrapes cAdvisor, and set `cost.engine.prometheusCadvisorJob` if its scrape job is not named `kubernetes-nodes-cadvisor`.
-- With no Prometheus, CPU recommendations still work, from the stored hourly averages, and memory recommendations are left out rather than guessed.
+- With your own engine, it uses the Prometheus that engine reads, which the agent finds by itself: OpenCost's `PROMETHEUS_SERVER_ENDPOINT`, or the Prometheus Kubecost 2 bundles, once it answers for this cluster's cAdvisor series. Kubecost 3 reads none, so the bundled Prometheus stands in while the chart runs it.
+- Otherwise, or to choose one yourself, point `cost.engine.prometheusUrl` at a Prometheus that scrapes cAdvisor, and set `cost.engine.prometheusCadvisorJob` if it scrapes cAdvisor under several jobs and the one to read is not named `kubernetes-nodes-cadvisor`. With no Prometheus, CPU recommendations still work, from the stored hourly averages, and memory recommendations are left out rather than guessed.
 
 A Prometheus outage never stops spend collection: peaks are an extra, and an hour is sent without them. CPU deliberately does not use Prometheus: too large a CPU request only throttles where too small a memory request kills, so the hourly averages are safe for CPU, and querying every container's CPU rate across a cluster is heavy enough to topple a small Prometheus.
 
@@ -191,7 +191,7 @@ Read its logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost
 :::
 
 :::details The overview says the bundled OpenCost is not needed
-The cluster runs its own Kubecost or OpenCost, and the cost agent reads that, so the OpenCost and Prometheus the chart bundled price nothing. Upgrade with `--set cost.engine.url=auto` to stop running them, or set `cost.engine.preferExisting=false` to read the bundled engine instead.
+The cluster runs its own Kubecost or OpenCost, and the cost agent reads that, so the OpenCost the chart bundled prices nothing. Upgrade with `--set cost.engine.url=auto` to stop running it and its Prometheus, or set `cost.engine.preferExisting=false` to read the bundled engine instead. With Kubecost 3, which reads no Prometheus, memory recommendations come from the bundled one: name another with `cost.engine.prometheusUrl` in the same upgrade.
 :::
 
 :::details The cost agent does not read your engine
@@ -203,7 +203,7 @@ An older chart ran OpenCost without a writable config directory, so `Error downl
 :::
 
 :::details The Kubernetes Cost Dashboard shows no data
-The template reads the scraped cost metrics: check that `cost.metrics.enabled` is `true`. With `cost.engine.url` set, the cost agent finds where your engine serves them, and its log says where, or which addresses it tried: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. To name them yourself, set `cost.metrics.endpoint`.
+The template reads the scraped cost metrics: check that `cost.metrics.enabled` is `true`. The cost agent finds where the engine it reads serves them, the bundled one or yours, and its log says where, or which addresses it tried: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. To name them yourself, set `cost.metrics.endpoint`.
 :::
 
 :::details The Right-Sizing card is empty
@@ -211,11 +211,11 @@ Either the time range is shorter than the 24 hours a recommendation needs (widen
 :::
 
 :::details Memory recommendations show - but CPU ones work
-No memory peak reached OneUptime, so memory was left unsized rather than guessed from an average. With your own engine, set `cost.engine.prometheusUrl`. The card says how many containers this affects.
+No memory peak reached OneUptime, so memory was left unsized rather than guessed from an average. With your own engine, the cost agent's log says which Prometheus it reads, or why it found none: name one with `cost.engine.prometheusUrl` (Kubecost 3 reads none). The card says how many containers this affects.
 :::
 
 :::details The numbers differ from the engine's own UI
-OneUptime includes the engine's reconciliation adjustments in each cost component, and sends whole closed hours: the current hour's spend appears after it closes.
+OneUptime sends whole closed hours, as the engine priced them once they closed, its reconciliation adjustments included: the current hour's spend appears after it closes. A Kubecost that reads your cloud bill reconciles each hour with it about a day and a half later, and OneUptime keeps the hour as it was first priced.
 :::
 
 :::details The bundled Prometheus restarted

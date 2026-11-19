@@ -44,6 +44,7 @@ import Query from "../../Types/BaseDatabase/Query";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import EmailMessage from "../../Types/Email/EmailMessage";
@@ -96,6 +97,8 @@ import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCle
 import InvitationInviterUtil, {
   InvitationInviter,
 } from "../Utils/TeamMember/InvitationInviter";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import { SsoManagedBy } from "../../Types/SSO/SsoManagedSignIn";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import { EntityManager } from "typeorm";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
@@ -148,6 +151,10 @@ export const MEMBERSHIPS_OF_PERSON_STATEMENT: string =
 // How many people the Free plan allows: the project's owner.
 export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;
 
+// Why nobody may be invited from OneUptime while SCIM manages the teams.
+export const SCIM_PUSH_GROUPS_INVITE_MESSAGE: string =
+  "Cannot invite team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.";
+
 // Where one resend of a person's invitation holds the others back (resendInvitation).
 export const RESEND_INVITATION_LOCK_NAMESPACE: string =
   "TeamMemberService.resendInvitation";
@@ -194,6 +201,50 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
   public constructor() {
     super(TeamMember);
+  }
+
+  /*
+   * Why an invitation into `projectId` would make the person's sign-in
+   * SSO's (SsoManagedSignIn.getManagedByOnceIn, #9819), or null. Only the
+   * email's words depend on it: a rule that cannot be read is logged, and
+   * the invitation goes out as it always did.
+   */
+  public static async readInvitationSsoManagedBy(data: {
+    userId: ObjectID | null;
+    projectId: ObjectID;
+  }): Promise<SsoManagedBy | null> {
+    try {
+      return await SsoManagedSignIn.getManagedByOnceIn({
+        userId: data.userId,
+        joiningProjectId: data.projectId,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * A name typed for someone invited, as a membership keeps it
+   * (TeamMember.inviteeName, #9823): trimmed, cut to the column's length,
+   * and undefined when there is none.
+   */
+  public static toInviteeName(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+      return undefined;
+    }
+
+    const name: string = value
+      .trim()
+      .substring(0, ColumnLength.ShortText)
+      .trim();
+
+    return name || undefined;
   }
 
   /*
@@ -353,6 +404,20 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     createBy.data.projectId = projectId;
     RelationIdUtil.stamp(createData, TEAM_KEYS, teamId);
 
+    /*
+     * A name the request gave the membership itself (an API client's
+     * inviteeName): kept as the invite forms' Name is, trimmed and cut to
+     * fit, and none at all when blank. The forms' Name, below, wins.
+     */
+    const givenInviteeName: string | undefined =
+      TeamMemberService.toInviteeName(createBy.data.inviteeName);
+
+    if (givenInviteeName) {
+      createBy.data.inviteeName = givenInviteeName;
+    } else {
+      delete createBy.data.inviteeName;
+    }
+
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
       if (
         !createBy.props.tenantId ||
@@ -396,9 +461,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         createBy.data.projectId! || createBy.props.tenantId,
       ))
     ) {
-      throw new BadDataException(
-        "Cannot invite team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
-      );
+      throw new BadDataException(SCIM_PUSH_GROUPS_INVITE_MESSAGE);
     }
 
     /*
@@ -580,6 +643,19 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         const nameValue: string | undefined = createBy.miscDataProps?.["name"]
           ? (createBy.miscDataProps["name"] as string).trim()
           : undefined;
+
+        /*
+         * The same name, kept on the membership (#9823): what the project
+         * sees of the person until they accept, whoever the address
+         * belongs to - never the profile of an account it already had
+         * (PendingInviteeProfiles).
+         */
+        const typedInviteeName: string | undefined =
+          TeamMemberService.toInviteeName(nameValue);
+
+        if (typedInviteeName) {
+          createBy.data.inviteeName = typedInviteeName;
+        }
 
         let user: User | null = userWithInvitedEmail;
 
@@ -834,6 +910,34 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       inviteeUserId: user.id,
     });
 
+    /*
+     * An invitation that makes the person's sign-in SSO's (#9819): every
+     * project they would be in manages sign-in with SSO, or the server
+     * requires it. They have no password to set and nothing to create, so
+     * the email offers single sign-on instead. The sign-up page its link
+     * opens offers the project's providers (SignUpInvitation); someone
+     * signed up already is sent to sign in with SSO. Anyone who also
+     * belongs to a project that does not manage sign-in gets the email it
+     * always was.
+     */
+    const ssoManagedBy: SsoManagedBy | null =
+      await TeamMemberService.readInvitationSsoManagedBy({
+        userId: data.isNewUser ? null : user.id || null,
+        projectId: data.projectId,
+      });
+
+    const ssoSignInLink: string = needsRegistration
+      ? registerLink
+      : URL.fromString(
+          new URL(
+            httpProtocol,
+            host,
+            new Route(AccountsRoute.toString()),
+          ).toString(),
+        )
+          .addRoute("/sso")
+          .toString();
+
     return {
       toEmail: email,
       templateType: EmailTemplateType.InviteMember,
@@ -854,6 +958,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
          * your invitation" framing and tells them they are already in.
          */
         isInvitationAccepted: data.isAccepted.toString(),
+        // Offer single sign-on, not a password (#9819); and where it opens.
+        isSsoSignIn: (ssoManagedBy !== null).toString(),
+        ssoSignInLink: ssoSignInLink,
         projectName: project.name!,
         homeUrl: new URL(httpProtocol, host).toString(),
         ...InvitationInviterUtil.getTemplateVars(inviter),
@@ -1209,6 +1316,73 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       SubscriptionPlan.getSubscriptionPlanById(planId)?.getName() ===
       PlanType.Free
     );
+  }
+
+  /*
+   * WHY INVITING THESE ADDRESSES WOULD BE REFUSED NOW, or null (#7242): the
+   * answers onBeforeCreate gives an invitation by address, asked before
+   * Ask AI's approval card so it never promises an invitation the project
+   * refuses - SCIM Push Groups owning the project's teams, and room for
+   * every invitee not in the project yet under its seats or the Free plan's
+   * one person. Someone in the project already takes no seat. Not under the
+   * limit's lock: an answer for now, which each create asks again.
+   */
+  @CaptureSpan()
+  public async getInvitationRefusal(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    emails: ReadonlyArray<string>;
+  }): Promise<string | null> {
+    if (
+      !data.props.isRoot &&
+      (await this.isSCIMPushGroupsEnabled(data.projectId))
+    ) {
+      return SCIM_PUSH_GROUPS_INVITE_MESSAGE;
+    }
+
+    const limits: ProjectPeopleLimits | null = await this.readPeopleLimits({
+      projectId: data.projectId,
+      props: data.props,
+    });
+
+    if (!limits) {
+      return null;
+    }
+
+    let newPeople: number = 0;
+
+    for (const email of data.emails) {
+      const user: User | null = await UserService.findOneBy({
+        query: { email: new Email(email) },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (
+        user?.id &&
+        (await this.hasMembershipInProject({
+          projectId: data.projectId,
+          userId: user.id,
+        }))
+      ) {
+        continue;
+      }
+
+      newPeople++;
+    }
+
+    if (newPeople === 0) {
+      return null;
+    }
+
+    // Each must fit: asked for the last of them.
+    return this.getPeopleLimitRefusal({
+      limits: limits,
+      people:
+        (await this.getUniqueTeamMemberCountInProject(data.projectId)) +
+        newPeople -
+        1,
+    });
   }
 
   /*

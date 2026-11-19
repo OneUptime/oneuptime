@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Entrambi i nomi vengono verificati allo stesso modo. Le regole sul record che nomini valgono con qualunque nome tu lo invii: il gruppo padre di un gruppo di una pagina di stato deve essere sulla stessa pagina di stato, una pagina di stato accetta al massimo tre link di intestazione, e il nome di un gruppo deve essere unico sulla sua pagina di stato.
 
+#### Nomi che un altro record ha già
+
+Team, etichette, policy di reperibilità e pianificazioni di reperibilità hanno ciascuno un nome tutto loro in un progetto, comunque siano scritte maiuscole, minuscole e spazi: `Primary`, ` primary` e `PRIMARY` sono un solo nome. Se una creazione, o un aggiornamento che ne rinomina uno, usa un nome che ha già un altro del suo tipo, la richiesta viene rifiutata con un `400` che lo dice:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli. Per team, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo.
+
 ### Interruttori
 
 Un campo attivo o disattivo - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` e ogni altro campo `true` o `false` - accetta `true` o `false`. Il testo e i numeri che il database legge come uno di essi vengono presi come quel valore, allo stesso modo per l'API, Terraform e i flussi di lavoro: `"true"`, `"yes"`, `"on"`, `"1"` e `1` sono `true`, e `"false"`, `"no"`, `"off"`, `"0"` e `0` sono `false`, in maiuscolo o minuscolo. Tutto ciò che OneUptime fa con il record lo tratta anch'esso come quel valore: un evento di manutenzione inviato con `"isVisibleOnStatusPage": "true"` mostra le sue immagini sulla pagina di stato, e `"isEnabled": "false"` disattiva una risorsa sotto il suo piano come fa `false`. Qualsiasi altro valore, come `"maybe"`, `""` o `2`, viene rifiutato con un `400` che nomina il campo:

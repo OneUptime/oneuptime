@@ -29,11 +29,15 @@ import {
   readPowerBiRefreshes,
 } from "./PowerBiRefreshes";
 import { PowerBiDataflowsRead, readPowerBiDataflows } from "./PowerBiDataflows";
+import { BiReadKeptStateError } from "./BiReadState";
 import {
+  getPowerBiPickUps,
+  getPowerBiWorkspacesToScan,
   mergePowerBiWorkspaces,
   planPowerBiScan,
   POWER_BI_READ_STATE_VERSION,
   PowerBiReadState,
+  PowerBiScanMerge,
   PowerBiScanPlan,
   readPowerBiReadState,
   writePowerBiReadState,
@@ -48,18 +52,23 @@ import {
   PowerBiDataset,
   PowerBiItem,
   PowerBiScanRead,
+  PowerBiWorkspaceRead,
   readPowerBiWorkspaces,
 } from "./PowerBiScan";
 import {
+  describeRunningScans,
   describeUnscannedWorkspaces,
   listPowerBiWorkspaces,
   POWER_BI_ASKED_SCAN_WAIT_IN_MS,
   POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
-  PowerBiScanChunk,
+  PowerBiPendingScan,
   PowerBiScannerApi,
+  PowerBiScanOutcome,
   PowerBiScanRun,
   PowerBiScanTiming,
+  PowerBiUnscanned,
   runPowerBiScans,
+  settlePowerBiScans,
 } from "./PowerBiScanner";
 
 /*
@@ -80,9 +89,11 @@ import {
  *   - Power BI: a service principal allowed to use the admin APIs. A scan
  *     of the workspaces says each dataset's tables, from their Power Query
  *     sources; a report charts its dataset, and a dashboard its tiles'.
- *     Each read scans only the workspaces that changed since the last, and
- *     the hourly read the whole tenant once a day (PowerBiReadState), at
- *     most 16 scans at once, each waited for patiently (PowerBiScanner).
+ *     Each read scans only the workspaces that changed since the last; the
+ *     hourly read lists the whole tenant once a day, which drops what is
+ *     gone, and scans again what changed or is a week old
+ *     (PowerBiReadState), at most 16 scans at once, each waited for
+ *     patiently (PowerBiScanner).
  *     Each also says how often it is viewed, from the activity log
  *     (PowerBiActivity), and how fresh its datasets are, from their
  *     refreshes (PowerBiRefreshes); the datasets themselves are read with
@@ -902,8 +913,12 @@ export class PowerBiConnector {
     };
     /*
      * Only the workspaces that changed since the last read, and those it
-     * could not scan; the whole tenant when nothing is kept, and once a day
-     * for the hourly read (PowerBiReadState, #9552).
+     * could not scan (PowerBiReadState, #9552). The whole tenant is listed
+     * when nothing is kept, and once a day for the hourly read, which drops
+     * what is gone; that read asks for the changes too, and scans again
+     * only those, what is new, and what is a week old (#9901). The scans
+     * earlier reads stopped waiting for are picked up first, while Power BI
+     * keeps their results (#9697).
      */
     const kept: PowerBiReadState | null = readPowerBiReadState(input.readState);
     const plan: PowerBiScanPlan = planPowerBiScan({
@@ -913,42 +928,141 @@ export class PowerBiConnector {
     });
     const listed: Array<string> = await listPowerBiWorkspaces({
       api,
-      modifiedSince: plan.modifiedSince,
+      modifiedSince: plan.isFull ? null : plan.modifiedSince,
       timing,
     });
-    const requestedIds: Array<string> = plan.isFull
-      ? listed
-      : Array.from(new Set([...listed, ...(kept?.pendingWorkspaceIds || [])]));
+    /*
+     * A whole read's changes, one more of Power BI's 30 listings an hour:
+     * what it scans again. Without them it scans every workspace, as it did
+     * before #9901.
+     */
+    let changed: Array<string> | null = null;
+
+    if (plan.isFull && plan.modifiedSince) {
+      try {
+        changed = await listPowerBiWorkspaces({
+          api,
+          modifiedSince: plan.modifiedSince,
+          timing,
+        });
+      } catch {
+        changed = null;
+      }
+    }
+
+    const pickUps: ReturnType<typeof getPowerBiPickUps> = getPowerBiPickUps({
+      state: kept,
+      now,
+    });
+    const requestedIds: Array<string> = getPowerBiWorkspacesToScan({
+      state: kept,
+      plan,
+      listedIds: listed,
+      changedIds: changed,
+      pickUp: pickUps.pickUp,
+      expiredWorkspaceIds: pickUps.expiredWorkspaceIds,
+      now,
+    });
+    const waitInMs: number = input.isScheduled
+      ? POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS
+      : POWER_BI_ASKED_SCAN_WAIT_IN_MS;
     const run: PowerBiScanRun = await runPowerBiScans({
       api,
       workspaceIds: requestedIds,
+      pickUp: pickUps.pickUp,
       timing,
-      waitInMs: input.isScheduled
-        ? POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS
-        : POWER_BI_ASKED_SCAN_WAIT_IN_MS,
+      waitInMs,
     });
-
-    // Nothing scanned, and nothing kept to stand in for it: the read fails, with Power BI's reason.
-    if (run.scanned.length === 0 && run.unscanned.length > 0 && !kept) {
-      throw new Error(run.unscanned[0]!.reason);
-    }
-
     const merged: ReturnType<typeof mergePowerBiWorkspaces> =
       mergePowerBiWorkspaces({
         kept: kept?.workspaces || [],
         isFull: plan.isFull,
-        requestedIds,
-        scannedIds: run.scanned.flatMap(
-          (chunk: PowerBiScanChunk): Array<string> => {
-            return chunk.workspaceIds;
+        listedIds: listed,
+        scans: run.outcomes.map(
+          (outcome: PowerBiScanOutcome): PowerBiScanMerge => {
+            if (outcome.kind === "scanned") {
+              return {
+                workspaceIds: outcome.workspaceIds,
+                // Each with when its scan started: how old it is, for the daily read.
+                read: readPowerBiWorkspaces([outcome.result]).map(
+                  (workspace: PowerBiWorkspaceRead): PowerBiWorkspaceRead => {
+                    return { ...workspace, scannedAt: outcome.startedAt };
+                  },
+                ),
+              };
+            }
+
+            return outcome.kind === "running"
+              ? {
+                  workspaceIds: outcome.workspaceIds,
+                  pending: {
+                    scanId: outcome.scanId,
+                    workspaceIds: outcome.workspaceIds,
+                    startedAt: outcome.startedAt,
+                  },
+                }
+              : { workspaceIds: outcome.workspaceIds };
           },
         ),
-        scanned: readPowerBiWorkspaces(
-          run.scanned.map((chunk: PowerBiScanChunk): JSONObject => {
-            return chunk.result;
-          }),
-        ),
       });
+    /*
+     * What the next read starts from, kept even when this one shows nothing
+     * yet. Every workspace listed is in it - read, kept, or still to scan -
+     * unless the tenant is too big to keep, which lets go of what shows
+     * least (writePowerBiReadState, #9901).
+     */
+    const nextState: (
+      dataflows: Pick<PowerBiReadState, "dataflows" | "dataflowExports">,
+    ) => JSONObject | null = (
+      dataflows: Pick<PowerBiReadState, "dataflows" | "dataflowExports">,
+    ): JSONObject | null => {
+      return writePowerBiReadState(
+        {
+          version: POWER_BI_READ_STATE_VERSION,
+          scannedFrom: now.toISOString(),
+          fullScanAt:
+            plan.isFull || !kept ? now.toISOString() : kept.fullScanAt,
+          pendingWorkspaceIds: merged.pendingWorkspaceIds,
+          pendingScans: merged.pendingScans,
+          workspaces: merged.workspaces,
+          hasEveryWorkspace: true,
+          ...dataflows,
+        },
+        MAX_BI_DASHBOARDS,
+      );
+    };
+    const settled: {
+      unscanned: Array<PowerBiUnscanned>;
+      running: Array<PowerBiPendingScan>;
+    } = settlePowerBiScans(run.outcomes);
+
+    /*
+     * Nothing read, and nothing kept to stand in for it - a first read, or
+     * one of a tenant too big to keep any workspace of (#9901): the read
+     * fails, with Power BI's reason, and changes no dashboard. Scans still
+     * running are kept all the same, so the next read picks them up rather
+     * than starting over.
+     */
+    if (
+      (!kept || !kept.hasEveryWorkspace) &&
+      run.scanned.length === 0 &&
+      merged.workspaces.length === 0 &&
+      (settled.unscanned.length > 0 || settled.running.length > 0)
+    ) {
+      if (settled.running.length > 0) {
+        throw new BiReadKeptStateError(
+          describeRunningScans(settled.running, waitInMs, {
+            isFirstRead: !kept,
+          })!,
+          nextState({
+            dataflows: kept?.dataflows || new Map(),
+            dataflowExports: kept?.dataflowExports || [],
+          }),
+        );
+      }
+
+      throw new Error(settled.unscanned[0]!.reason);
+    }
     /*
      * The dataflows the charted datasets read: each one's definition, kept
      * or exported now within Power BI's hourly limit, says which tables its
@@ -975,9 +1089,12 @@ export class PowerBiConnector {
       MAX_BI_DASHBOARDS,
       dataflowRead.definitions,
     );
-    const scanWarning: string | null = describeUnscannedWorkspaces(
-      run.unscanned,
-    );
+    const scanWarnings: Array<string> = [
+      describeUnscannedWorkspaces(settled.unscanned),
+      describeRunningScans(settled.running, waitInMs),
+    ].filter((warning: string | null): warning is string => {
+      return Boolean(warning);
+    });
     const datasets: Map<string, PowerBiDataset> = scanned.datasets;
     const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> =
       scanned.items.map(
@@ -1120,11 +1237,7 @@ export class PowerBiConnector {
     return {
       dashboards,
       usage,
-      warnings: [
-        ...(scanWarning ? [scanWarning] : []),
-        ...refreshRead.warnings,
-        ...warnings,
-      ],
+      warnings: [...scanWarnings, ...refreshRead.warnings, ...warnings],
       datasets: datasetReads,
       datasetFacts: getPowerBiDatasetFacts(chartedDatasets),
       sources: collectBiSources(
@@ -1133,12 +1246,7 @@ export class PowerBiConnector {
         }),
       ),
       // What the next read starts from: null for a tenant too big to keep, scanned whole each time.
-      readState: writePowerBiReadState({
-        version: POWER_BI_READ_STATE_VERSION,
-        scannedFrom: now.toISOString(),
-        fullScanAt: plan.isFull || !kept ? now.toISOString() : kept.fullScanAt,
-        pendingWorkspaceIds: merged.pendingWorkspaceIds,
-        workspaces: merged.workspaces,
+      readState: nextState({
         dataflows: dataflowRead.kept,
         dataflowExports: dataflowRead.exportedAt,
       }),

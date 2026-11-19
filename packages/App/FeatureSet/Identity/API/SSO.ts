@@ -1,4 +1,5 @@
-import AuthenticationEmail from "../Utils/AuthenticationEmail";
+import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import SamlSingleLogoutEndpoint from "../Utils/SamlSingleLogoutEndpoint";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import SamlAssertionOneTimeUse, {
   SamlProviderKind,
@@ -7,14 +8,11 @@ import SamlServiceProviders, {
   SamlServiceProvider,
 } from "../Utils/SamlServiceProvider";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
-import ProjectSsoSignInConfirmation, {
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
-  PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
-  PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
-  ProjectSsoKind,
-} from "../Utils/ProjectSsoSignInConfirmation";
+import { ProjectSsoKind } from "../Utils/ProjectSsoSignInConfirmation";
+import ProjectSsoSignInGate, {
+  ProjectSsoGateDecision,
+  ProjectSsoGateOutcome,
+} from "../Utils/ProjectSsoSignInGate";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
 import ProjectSsoIdentityBinding, {
   PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
@@ -32,24 +30,20 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
-import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import InstanceSamlSigningKeyService from "Common/Server/Services/InstanceSamlSigningKeyService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
-import UserService from "Common/Server/Services/UserService";
 import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import Select from "Common/Server/Types/Database/Select";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
@@ -67,9 +61,8 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import Project from "Common/Models/DatabaseModels/Project";
+import ProjectSsoDiscovery from "Common/Server/Utils/ProjectSsoDiscovery";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Name from "Common/Types/Name";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
@@ -87,8 +80,12 @@ const router: ExpressRouter = Express.getRouter();
  */
 
 /*
- * This route is used to get the SSO config for the user.
- * when the user logs in from OneUptime and not from the IDP.
+ * The project SAML providers "Sign in with SSO" offers an address: those
+ * that list a verified domain of their project with the address's domain
+ * (Common/Server/Utils/ProjectSsoDiscovery). No account is read, so the
+ * answer, the empty list included, says nothing about whether the address
+ * has one (#9745, #9824). The page and the mobile app read an empty list as
+ * "no single sign-on for this address".
  */
 
 router.get(
@@ -109,81 +106,8 @@ router.get(
 
       const email: Email = new Email(req.query["email"] as string);
 
-      if (!email) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("Email is required"),
-        );
-      }
-
-      /*
-       * No providers to offer is one answer, the empty list, whatever the
-       * reason: no account has the address, or its account is in no project,
-       * or in none with SAML on. A 400 for the first two told anyone who
-       * asked which addresses have an account (#9745). The page and the
-       * mobile app read both alike, as "no single sign-on for this address".
-       */
-      const sendNoProviders: () => void = (): void => {
-        return Response.sendEntityArrayResponse(req, res, [], 0, ProjectSSO);
-      };
-
-      const user: User | null = await UserService.findOneBy({
-        query: { email: email },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!user || !user.id) {
-        return sendNoProviders();
-      }
-
-      const userId: ObjectID = user.id;
-
-      const projectUserBelongsTo: Array<ObjectID> = (
-        await TeamMemberService.findBy({
-          query: { userId: userId },
-          select: {
-            projectId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        })
-      ).map((teamMember: TeamMember) => {
-        return teamMember.projectId!;
-      });
-
-      if (projectUserBelongsTo.length === 0) {
-        return sendNoProviders();
-      }
-
-      const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
-        query: {
-          projectId: QueryHelper.any(projectUserBelongsTo),
-          isEnabled: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-          description: true,
-          _id: true,
-          projectId: true,
-          project: {
-            name: true,
-          } as Select<Project>,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const projectSSOList: Array<ProjectSSO> =
+        await ProjectSsoDiscovery.findSamlProviders(email);
 
       return Response.sendEntityArrayResponse(
         req,
@@ -334,6 +258,73 @@ router.post(
 );
 
 /*
+ * The provider's Single Logout URL (#9603), on the HTTP-Redirect (GET) and
+ * HTTP-POST bindings: where the identity provider answers the sign-out
+ * OneUptime sent a person with, and sends its own. Pasted into identity
+ * providers like the Reply URL, so its path may never change either
+ * (Utils/SamlSingleLogoutEndpoint).
+ */
+const takeProjectSingleLogout: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    await SamlSingleLogoutEndpoint.handle({
+      req,
+      res,
+      providerType: SsoProviderType.ProjectSSO,
+      providerId: req.params["projectSsoId"],
+      projectId: req.params["projectId"],
+    });
+  } catch (err) {
+    logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+    return next(err);
+  }
+};
+
+router.get("/idp-logout/:projectId/:projectSsoId", takeProjectSingleLogout);
+
+router.post("/idp-logout/:projectId/:projectSsoId", takeProjectSingleLogout);
+
+/*
+ * The certificate OneUptime signs its SAML sign-out messages with, for an
+ * admin to give their identity provider (Okta's Signature Certificate, the
+ * signature certificate of a relying party trust). One for every project's
+ * provider and the instance's alike, made the first time it is needed
+ * (InstanceSamlSigningKeyService). Public, as a service provider's
+ * certificate is.
+ */
+router.get(
+  "/saml-signing-certificate",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const certificate: string =
+        await InstanceSamlSigningKeyService.getCertificate();
+
+      res.setHeader("Content-Type", "application/x-pem-file");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="oneuptime-saml-signing.crt"',
+      );
+
+      return Response.sendTextResponse(req, res, certificate);
+    } catch (err) {
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+      return next(new ServerException());
+    }
+  },
+);
+
+/*
  * The answer to a sign-in through a project's SAML provider that names the
  * account's address but another person (ProjectSsoIdentityBinding): the page
  * that says so, or the mobile app's deep link. Logged for the project's
@@ -438,6 +429,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
+        // Whether the session keeps what signing out of the provider too takes.
+        signOutOfIdentityProvider: true,
         teams: {
           _id: true,
         },
@@ -545,52 +538,23 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       return Response.sendErrorResponse(req, res, new ServerException());
     }
 
-    // Check if he already belongs to the project, If he does - then log in.
+    const isMobileRequest: boolean =
+      req.body.RelayState === "mobile" || req.query["RelayState"] === "mobile";
 
-    let alreadySavedUser: User | null = await UserService.findOneBy({
-      query: { email: email },
-      select: {
-        _id: true,
-        name: true,
-        email: true,
-        isMasterAdmin: true,
-        isEmailVerified: true,
-        isBlocked: true,
-        profilePictureId: true,
-        timezone: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    /*
+     * Whom this project's provider may sign in, and what everyone else is
+     * told: one answer, in the same time, whether the address has no
+     * account, one that has not confirmed this project's sign-in, a blocked
+     * one or an administrator's (#9824). See ../Utils/ProjectSsoSignInGate.ts.
+     */
+    const decision: ProjectSsoGateDecision = await ProjectSsoSignInGate.decide({
+      email: email,
+      name: fullName,
+      projectId: new ObjectID(req.params["projectId"] as string),
+      kind: ProjectSsoKind.SAML,
+      providerId: projectSSO.id!,
+      origin: RequestOriginUtil.fromRequest(req),
     });
-
-    let isNewUser: boolean = false;
-
-    if (!alreadySavedUser) {
-      // this should never happen because user is logged in before he signs in with SSO UNLESS he initiates the login though the IDP.
-
-      /// Create a user.
-
-      alreadySavedUser = await UserService.createByEmail({
-        email,
-        name: fullName || undefined,
-        /*
-         * On the hosted service this project's IdP is a customer's word for
-         * the address, not proof of it: the account stays unverified until
-         * its owner confirms from the mailbox (below). Self-hosted installs
-         * trust it, as before.
-         */
-        isEmailVerified: !ProjectSsoSignInConfirmation.isRequired(),
-        generateRandomPassword: true,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      isNewUser = true;
-    }
-
-    const account: User = alreadySavedUser;
 
     /*
      * A sign-in the provider vouched for that OneUptime refuses, for the
@@ -598,12 +562,13 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
      * (issue #6788), after the answer (FailedSignInAuditLog). The provider
      * is this project's: only this project's entry names it.
      */
-    const recordRefusedSignIn: (reason: SignInFailureReason) => void = (
+    const recordRefusedSignIn: (
+      userId: ObjectID,
       reason: SignInFailureReason,
-    ): void => {
+    ) => void = (userId: ObjectID, reason: SignInFailureReason): void => {
       FailedSignInAuditLog.record({
         req: req,
-        userId: account.id!,
+        userId: userId,
         reason: reason,
         signIn: {
           method: SignInMethod.Saml,
@@ -613,63 +578,24 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       });
     };
 
-    /*
-     * Blocked by a master admin. The identity provider vouching for the user
-     * does not lift that, so nothing is provisioned and no session is issued.
-     */
-    if (alreadySavedUser.isBlocked) {
-      recordRefusedSignIn(SignInFailureReason.AccountBlocked);
+    if (decision.outcome !== ProjectSsoGateOutcome.SignIn) {
+      const failureReason: SignInFailureReason | null =
+        ProjectSsoSignInGate.getFailureReason(decision.reason);
 
-      return Response.render(
-        req,
-        res,
-        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-        {
-          title: "Account blocked.",
-          message: ExceptionMessages.UserBlocked,
-        },
-      );
-    }
-
-    const isMobileRequest: boolean =
-      req.body.RelayState === "mobile" || req.query["RelayState"] === "mobile";
-
-    /*
-     * A project's own identity provider is configured by that project's
-     * admins, so it must never sign in a OneUptime administrator: the
-     * master-admin capability is instance-wide, and a tenant that controls a
-     * provider could otherwise assert an administrator's address and take the
-     * instance over. Refused on every edition, before anything is emailed,
-     * provisioned, or signed. See ../Utils/ProjectSsoSignInConfirmation.ts.
-     */
-    if (
-      ProjectSsoSignInConfirmation.mustNotSignInThroughProjectProvider(
-        alreadySavedUser,
-      )
-    ) {
-      recordRefusedSignIn(SignInFailureReason.SingleSignOnRefused);
-
-      if (
-        respondToMobileSsoFailure({
-          res,
-          isMobileRequest,
-          error: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
-          errorDescription: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-        })
-      ) {
-        return;
+      if (failureReason && decision.user?.id) {
+        recordRefusedSignIn(decision.user.id, failureReason);
       }
 
-      return Response.render(
+      return ProjectSsoSignInGate.respondNotSignedIn({
         req,
         res,
-        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-        {
-          title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
-          message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-        },
-      );
+        isMobileRequest,
+        outcome: decision.outcome,
+      });
     }
+
+    let alreadySavedUser: User = decision.user!;
+    const isNewUser: boolean = decision.isNewUser;
 
     /*
      * Through this provider the account is bound to another person: whoever
@@ -685,7 +611,10 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         objectId: verifiedSaml.objectId,
       }))
     ) {
-      recordRefusedSignIn(SignInFailureReason.SingleSignOnRefused);
+      recordRefusedSignIn(
+        alreadySavedUser.id!,
+        SignInFailureReason.SingleSignOnRefused,
+      );
 
       return refuseSignInAsAnotherPerson({
         req,
@@ -694,73 +623,6 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         projectSsoId: projectSSO.id!,
         userId: alreadySavedUser.id!,
       });
-    }
-
-    if (ProjectSsoSignInConfirmation.isRequired()) {
-      /*
-       * Hosted service: this project's IdP may sign an account in only once
-       * the account's own mailbox has agreed to it. Until then, no session and
-       * no project membership -- just an email to the address. See
-       * ../Utils/ProjectSsoSignInConfirmation.ts.
-       */
-      const projectIdForConfirmation: ObjectID = new ObjectID(
-        req.params["projectId"] as string,
-      );
-
-      if (
-        !(await ProjectSsoSignInConfirmation.isSignInConfirmed({
-          user: alreadySavedUser,
-          projectId: projectIdForConfirmation,
-        }))
-      ) {
-        await ProjectSsoSignInConfirmation.requestConfirmation({
-          user: alreadySavedUser,
-          projectId: projectIdForConfirmation,
-          kind: ProjectSsoKind.SAML,
-          providerId: new ObjectID(req.params["projectSsoId"] as string),
-          origin: RequestOriginUtil.fromRequest(req),
-        });
-
-        if (
-          respondToMobileSsoFailure({
-            res,
-            isMobileRequest,
-            error: PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
-            errorDescription: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
-          })
-        ) {
-          return;
-        }
-
-        return Response.render(
-          req,
-          res,
-          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-          {
-            title: "Check your email.",
-            message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
-          },
-        );
-      }
-    } else if (!alreadySavedUser.isEmailVerified && !isNewUser) {
-      recordRefusedSignIn(SignInFailureReason.EmailNotVerified);
-
-      /*
-       * If he does not then add him to teams that he should belong and log in.
-       * This should never happen because email is verified before he logs in with SSO.
-       */
-      await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
-
-      return Response.render(
-        req,
-        res,
-        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-        {
-          title: "Email not verified.",
-          message:
-            "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
-        },
-      );
     }
 
     // check if the user already belongs to the project
@@ -835,7 +697,10 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         objectId: verifiedSaml.objectId,
       }))
     ) {
-      recordRefusedSignIn(SignInFailureReason.SingleSignOnRefused);
+      recordRefusedSignIn(
+        alreadySavedUser.id!,
+        SignInFailureReason.SingleSignOnRefused,
+      );
 
       return refuseSignInAsAnotherPerson({
         req,
@@ -845,6 +710,18 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         userId: alreadySavedUser.id!,
       });
     }
+
+    /*
+     * Signing in through this project's own single sign-on is the person
+     * joining it: an invitation into it still pending is accepted (#9819),
+     * and an address the provider vouched for is verified, as for an
+     * account it makes - after the memberships, so their defaults are made,
+     * and once the person is bound, so a refused sign-in accepts nothing.
+     */
+    alreadySavedUser = await ProjectSsoSignInGate.joinOnSignIn({
+      user: alreadySavedUser,
+      projectId: projectId,
+    });
 
     alreadySavedUser.email = email;
 
@@ -867,6 +744,19 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
           ssoProviderName: projectSSO.name,
           ssoProjectId: projectId,
         },
+        /*
+         * With the provider's "Sign out of the identity provider too" on, a
+         * browser sign-in keeps what the assertion named the person and
+         * their session by, encrypted, for its sign-out at the provider
+         * (Utils/IdentityProviderSignOut, #9603).
+         */
+        identityProviderSignOut: IdentityProviderSignOut.forSamlSignIn({
+          signOutOfIdentityProvider: projectSSO.signOutOfIdentityProvider,
+          isMobileRequest: isMobileRequest,
+          providerType: SsoProviderType.ProjectSSO,
+          providerId: projectSSO.id!,
+          assertion: verifiedSaml,
+        }),
       });
 
     if (isMobileRequest) {

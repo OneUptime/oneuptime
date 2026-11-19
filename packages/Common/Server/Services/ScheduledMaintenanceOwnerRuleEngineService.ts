@@ -19,8 +19,6 @@ import ScheduledMaintenanceOwnerRule from "../../Models/DatabaseModels/Scheduled
 import Service from "../../Models/DatabaseModels/Service";
 import ServiceOwnerTeam from "../../Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "../../Models/DatabaseModels/ServiceOwnerUser";
-import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
 import DockerHostOwnerTeamService from "./DockerHostOwnerTeamService";
 import DockerHostOwnerUserService from "./DockerHostOwnerUserService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
@@ -38,8 +36,6 @@ import ScheduledMaintenanceOwnerUserService from "./ScheduledMaintenanceOwnerUse
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
-import TeamService from "./TeamService";
-import UserService from "./UserService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
@@ -58,8 +54,10 @@ import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -663,8 +661,13 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
       }),
     );
 
-    const addedUserIds: Array<string> = [];
-    const addedTeamIds: Array<string> = [];
+    /*
+     * What addOwners actually did: the owners it wrote, and the ones it
+     * skipped and why - a user who has left the project, a team that is not
+     * one of its teams (#9933). The feed item, the log lines and the count
+     * are made from these, never from the ids the rules asked for.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -686,44 +689,47 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
         continue;
       }
 
-      await ScheduledMaintenanceService.addOwners(
-        scheduledMaintenance.projectId,
-        scheduledMaintenance.id,
-        userIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        teamIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        notify,
-        RuleRunWriteProps.get(data.props),
+      OwnerRuleAssignment.addUp(
+        outcome,
+        await ScheduledMaintenanceService.addOwners(
+          scheduledMaintenance.projectId,
+          scheduledMaintenance.id,
+          userIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          teamIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          notify,
+          RuleRunWriteProps.get(data.props),
+        ),
       );
-
-      addedUserIds.push(...userIds);
-      addedTeamIds.push(...teamIds);
     }
 
-    const ownersAdded: number = addedUserIds.length + addedTeamIds.length;
-
-    if (ownersAdded === 0) {
+    if (OwnerRuleFeed.isEmpty(outcome)) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    logger.debug(
-      `ScheduledMaintenanceOwnerRuleEngine added owners to event ${scheduledMaintenance.id}`,
-      {
+    OwnerRuleFeed.log({
+      engine: "ScheduledMaintenanceOwnerRuleEngine",
+      record: `event ${scheduledMaintenance.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
         projectId: scheduledMaintenance.projectId.toString(),
       } as LogAttributes,
-    );
+    });
 
-    const addedUserIdSet: Set<string> = new Set(addedUserIds);
-    const addedTeamIdSet: Set<string> = new Set(addedTeamIds);
+    const addedUserIdSet: Set<string> = new Set(
+      OwnerRuleFeed.idsOf(outcome.userIds),
+    );
+    const addedTeamIdSet: Set<string> = new Set(
+      OwnerRuleFeed.idsOf(outcome.teamIds),
+    );
 
     await this.createRuleExecutedFeedItem({
       scheduledMaintenance,
       matchedRules,
-      userIds: addedUserIds,
-      teamIds: addedTeamIds,
+      outcome: outcome,
       inheritedFromMonitors: addedAnyInheritedOwner({
         addedUserIds: addedUserIdSet,
         addedTeamIds: addedTeamIdSet,
@@ -762,15 +768,15 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
       }),
     });
 
-    return RuleApplicationResultUtil.updated(ownersAdded);
+    return OwnerRuleFeed.getResult(outcome);
   }
 
   @CaptureSpan()
   private async createRuleExecutedFeedItem(data: {
     scheduledMaintenance: ScheduledMaintenance;
     matchedRules: Array<ScheduledMaintenanceOwnerRule>;
-    userIds: Array<string>;
-    teamIds: Array<string>;
+    // The owners added, and the ones skipped with why.
+    outcome: OwnersAdded;
     inheritedFromMonitors: boolean;
     inheritedFromHosts: boolean;
     inheritedFromKubernetesClusters: boolean;
@@ -781,8 +787,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
     const {
       scheduledMaintenance,
       matchedRules,
-      userIds,
-      teamIds,
+      outcome,
       inheritedFromMonitors,
       inheritedFromHosts,
       inheritedFromKubernetesClusters,
@@ -794,40 +799,12 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
       !scheduledMaintenance.id ||
       !scheduledMaintenance.projectId ||
       matchedRules.length === 0 ||
-      (userIds.length === 0 && teamIds.length === 0)
+      OwnerRuleFeed.isEmpty(outcome)
     ) {
       return;
     }
 
     try {
-      const userObjectIds: Array<ObjectID> = userIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-      const teamObjectIds: Array<ObjectID> = teamIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-
-      const [users, teams]: [Array<User>, Array<Team>] = await Promise.all([
-        userObjectIds.length > 0
-          ? UserService.findBy({
-              query: { _id: QueryHelper.any(userObjectIds) },
-              select: { name: true, email: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<User>),
-        teamObjectIds.length > 0
-          ? TeamService.findBy({
-              query: { _id: QueryHelper.any(teamObjectIds) },
-              select: { name: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<Team>),
-      ]);
-
       const ruleNames: Array<string> = matchedRules
         .map((r: ScheduledMaintenanceOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -866,9 +843,12 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
           ruleKind: "Scheduled Maintenance Owner Rule",
           ruleNames: ruleNames,
         },
-      )}\n\nAssigned the following owner${
-        users.length + teams.length === 1 ? "" : "s"
-      } to the event:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}`;
+      )}\n\n${await OwnerRuleFeed.readOutcome({
+        projectId: scheduledMaintenance.projectId,
+        recordNoun: "event",
+        outcome: outcome,
+        notesOnAdded: inheritedNote,
+      })}`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id,

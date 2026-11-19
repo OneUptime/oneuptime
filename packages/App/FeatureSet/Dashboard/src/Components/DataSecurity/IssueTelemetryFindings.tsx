@@ -6,6 +6,12 @@ import FindingOccurrences from "./FindingOccurrences";
 import { getTelemetryStoreOwnerRoute } from "./FindingOccurrenceLinks";
 import { DataTypeNamer, useDataTypeNamer } from "./IssueDataTypes";
 import {
+  DROP_METRIC,
+  DROP_NOTICE,
+  DROPPED,
+  DROPPED_TOOLTIP,
+  DropMetricState,
+  getDropMetricState,
   getRulesRoute,
   getScrubItGates,
   getScrubItState,
@@ -14,8 +20,9 @@ import {
   SCRUB_UNAVAILABLE_SENTENCES,
   ScrubItGates,
   ScrubItState,
-  VIEW_RULES,
 } from "./TelemetryScrubIt";
+import TelemetryRuleNotice from "./TelemetryRuleNotice";
+import DropMetricModal from "./DropMetricModal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -27,9 +34,11 @@ import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green500 } from "Common/Types/BrandColors";
 import {
+  DataSecurityDropMetricResult,
   DataSecurityScrubResult,
   DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { isMetricNameFinding } from "Common/Types/DataSecurity/TelemetryScrubTarget";
 import {
   FINDING_FRESHNESS_IN_DAYS,
   getTelemetryCheckIdOfDataType,
@@ -44,7 +53,6 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -131,6 +139,8 @@ const MORE_IN_STORE: string = translationKey(
 interface ScrubNotice {
   ruleName: string;
   signal: DataSecurityScrubSignal;
+  // A Drop rule Drop This Metric made, rather than Scrub It's rule.
+  isDrop?: boolean | undefined;
 }
 
 export interface ComponentProps {
@@ -281,8 +291,9 @@ export const ScrubUnavailableNote: FunctionComponent<{
   const sentence: string =
     SCRUB_UNAVAILABLE_SENTENCES[props.scrubIt.unavailableReason];
 
+  // A div: the icon draws one, which a paragraph cannot hold.
   return (
-    <p
+    <div
       className="flex items-start gap-1.5 text-xs text-gray-600"
       data-testid="data-security-finding-scrub-unavailable"
     >
@@ -291,7 +302,7 @@ export const ScrubUnavailableNote: FunctionComponent<{
         className="mt-px h-4 w-4 shrink-0 text-gray-400"
       />
       <span>{translator.translateText(sentence) || sentence}</span>
-    </p>
+    </div>
   );
 };
 
@@ -325,21 +336,29 @@ export const MaskedSamples: FunctionComponent<{
 
 /*
  * What a finding is and where it sits: its data type with its sensitivity
- * (and Scrubbed, once a rule hides it), its location and its kind, how
+ * (and Scrubbed, once a rule hides it - Dropped, once a Drop rule keeps the
+ * metrics named with it from being stored), its location and its kind, how
  * many sampled values matched and when a scan last saw it. An issue's
  * finding and In Your Telemetry's records panel draw it alike.
  */
 export const FindingSummary: FunctionComponent<{
   finding: DataStoreFinding;
   namer: DataTypeNamer;
+  // The kind of the store it is in: a metric's name is dropped, not scrubbed.
+  storeKind?: string | null | undefined;
 }> = (props: {
   finding: DataStoreFinding;
   namer: DataTypeNamer;
+  storeKind?: string | null | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const finding: DataStoreFinding = props.finding;
   const matches: number = finding.matchCount || 0;
   const sampled: number = finding.valueCount || 0;
+  const isDropped: boolean = isMetricNameFinding(
+    props.storeKind,
+    finding.location,
+  );
 
   return (
     <div className="min-w-0 flex-1">
@@ -356,7 +375,11 @@ export const FindingSummary: FunctionComponent<{
           <></>
         )}
         {finding.isScrubbed ? (
-          <Pill text={SCRUBBED} color={Green500} tooltip={SCRUBBED_TOOLTIP} />
+          <Pill
+            text={isDropped ? DROPPED : SCRUBBED}
+            color={Green500}
+            tooltip={isDropped ? DROPPED_TOOLTIP : SCRUBBED_TOOLTIP}
+          />
         ) : (
           <></>
         )}
@@ -416,6 +439,11 @@ const FindingBlock: FunctionComponent<{
   scrubIt: ScrubItState;
   isScrubbing: boolean;
   onScrub: () => void;
+  // Drop This Metric on a finding in a metric's name, and whether the reader may.
+  dropMetric: DropMetricState;
+  onDropMetric: () => void;
+  // The kind of the store the finding is in.
+  storeKind?: string | null | undefined;
   // The service or RUM application the store's telemetry is sent under.
   ownerName: string;
 }> = (props: {
@@ -427,6 +455,9 @@ const FindingBlock: FunctionComponent<{
   scrubIt: ScrubItState;
   isScrubbing: boolean;
   onScrub: () => void;
+  dropMetric: DropMetricState;
+  onDropMetric: () => void;
+  storeKind?: string | null | undefined;
   ownerName: string;
 }): ReactElement => {
   const translator: Translator = useTranslator();
@@ -434,6 +465,7 @@ const FindingBlock: FunctionComponent<{
   const findingId: string = finding._id?.toString() || "";
   const samples: Array<string> = getMaskedSamples(finding);
   const showScrub: boolean = !finding.isScrubbed && props.scrubIt.isShown;
+  const showDrop: boolean = !finding.isScrubbed && props.dropMetric.isShown;
 
   return (
     <li
@@ -445,7 +477,11 @@ const FindingBlock: FunctionComponent<{
       data-testid="data-security-issue-finding"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <FindingSummary finding={finding} namer={props.namer} />
+        <FindingSummary
+          finding={finding}
+          namer={props.namer}
+          storeKind={props.storeKind}
+        />
         {showScrub ? (
           <Button
             title={SCRUB_IT}
@@ -458,6 +494,27 @@ const FindingBlock: FunctionComponent<{
             }
             dataTestId="data-security-issue-finding-scrub"
             onClick={props.onScrub}
+          />
+        ) : (
+          <></>
+        )}
+        {/*
+         * A metric's name: no rule scrubs it, but its metrics can be dropped
+         * - which loses their data, so the dialog says what first.
+         */}
+        {showDrop ? (
+          <Button
+            title={DROP_METRIC}
+            icon={IconProp.Trash}
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            disabled={!props.dropMetric.isAllowed}
+            tooltip={
+              props.dropMetric.isAllowed
+                ? undefined
+                : props.dropMetric.disabledReason
+            }
+            dataTestId="data-security-issue-finding-drop-metric"
+            onClick={props.onDropMetric}
           />
         ) : (
           <></>
@@ -557,6 +614,8 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
   const [scrubError, setScrubError] = useState<string>("");
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
+  // The finding in a metric's name whose metrics the reader is asked about dropping.
+  const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -711,6 +770,15 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
                 setScrubError("");
                 setScrubbing(finding);
               }}
+              dropMetric={getDropMetricState({
+                kind: props.store?.kind,
+                location: finding.location,
+                gates: scrubGates,
+              })}
+              onDropMetric={() => {
+                setDropping(finding);
+              }}
+              storeKind={props.store?.kind}
               ownerName={ownerName}
             />
           );
@@ -726,24 +794,18 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4" data-testid={ISSUE_TELEMETRY_FINDINGS_TEST_ID}>
         {notice ? (
-          <Alert
-            type={AlertType.SUCCESS}
-            dataTestId="data-security-issue-findings-scrub-notice"
-            title={
-              <span>
-                {translator.translateTemplate(
-                  SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log,
-                  { name: notice.ruleName || "" },
-                )}{" "}
-                <AppLink
-                  className="font-medium underline"
-                  to={getRulesRoute(notice.signal)}
-                >
-                  {translator.translateText(
-                    VIEW_RULES[notice.signal] || VIEW_RULES.log,
-                  ) || VIEW_RULES[notice.signal]}
-                </AppLink>
-              </span>
+          <TelemetryRuleNotice
+            template={
+              notice.isDrop
+                ? DROP_NOTICE
+                : SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log
+            }
+            ruleName={notice.ruleName}
+            rulesRoute={getRulesRoute(notice.signal)}
+            dataTestId={
+              notice.isDrop
+                ? "data-security-issue-findings-drop-notice"
+                : "data-security-issue-findings-scrub-notice"
             }
             onClose={() => {
               setNotice(null);
@@ -794,7 +856,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
           title="Scrub This Data at Ingest"
           description={
             props.store?.kind === DataStoreKind.TelemetryMetrics
-              ? "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics, before they are stored. What is already stored does not change."
+              ? "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored data does not change."
               : "OneUptime adds a scrub rule that masks this kind of data at this place in new telemetry, before it is stored. What is already stored does not change."
           }
           submitButtonText="Scrub It"
@@ -806,6 +868,31 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
           }}
           onSubmit={() => {
             void scrub();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dropping?._id ? (
+        <DropMetricModal
+          findingId={new ObjectID(dropping._id.toString())}
+          dataTypeName={namer(dropping.dataTypeId || "", dropping.dataTypeName)}
+          serviceName={ownerName}
+          onClose={() => {
+            setDropping(null);
+          }}
+          onDropped={(result: DataSecurityDropMetricResult) => {
+            setNotice({
+              ruleName: result.ruleName,
+              signal: "metric",
+              isDrop: true,
+            });
+            setDropping(null);
+            setReadCount((count: number): number => {
+              return count + 1;
+            });
+            props.onChanged();
           }}
         />
       ) : (

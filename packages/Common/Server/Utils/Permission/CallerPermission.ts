@@ -3,6 +3,7 @@ import HeldPermissionsUtil, {
   HeldPermissions,
   HeldPermissionsOptions,
   PermissionOperation,
+  TeamGrants,
 } from "../../../Types/HeldPermissions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -166,6 +167,24 @@ export default class CallerPermission {
         ),
       },
       options,
+    );
+  }
+
+  /*
+   * The teams whose allow rows give the caller `permission` in the project,
+   * by the one rule (HeldPermissionsUtil.getTeamGrants): for a permission
+   * that reaches the people of the team it is given to (Manage On-Call
+   * Policy User Overrides for Own Team). Whether the caller holds it at all,
+   * blocks weighed, is getHeld's to say.
+   */
+  public static getTeamGrants(
+    carrier: PermissionCarrier,
+    permission: Permission,
+    projectId?: ObjectID | null | undefined,
+  ): TeamGrants {
+    return HeldPermissionsUtil.getTeamGrants(
+      CallerPermission.getRows(carrier, projectId),
+      permission,
     );
   }
 

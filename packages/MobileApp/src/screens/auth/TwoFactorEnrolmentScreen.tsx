@@ -1,5 +1,12 @@
-import React, { useState } from "react";
-import { View, Platform, Linking } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Platform,
+  Linking,
+  Pressable,
+  type ViewStyle,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { radius, spacing, useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { LoginResponse } from "../../api/auth";
@@ -16,27 +23,44 @@ import AuthLayout, {
 import AppText from "../../components/AppText";
 import Card from "../../components/Card";
 import GradientButton from "../../components/GradientButton";
+import IconBadge from "../../components/IconBadge";
+import { ListGroup } from "../../components/ListGroup";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import {
   decideTwoFactorFollowUp,
   TwoFactorFollowUp,
 } from "../../auth/twoFactorFollowUp";
 import { secretFromOtpUrl } from "../../auth/otpUrl";
+import {
+  PasskeyEnrolmentOutcome,
+  PasskeyEnrolmentProgress,
+} from "../../passkeys/enrol";
 
 /*
  * Finishing a two factor setup an administrator made mandatory.
  *
- * The web sign-in draws a QR code here. A phone cannot scan its own screen, so
- * copying that would be the one presentation guaranteed not to work on the
- * device this runs on. What works on a handset is the otpauth:// URL itself:
- * tapping it hands the enrolment straight to whichever authenticator app is
- * installed, already filled in. The secret is printed underneath for the user
- * whose authenticator lives on a different device, or who prefers to type it.
+ * Two ways, as the web sign-in page offers (#9817): a PASSKEY, or an
+ * AUTHENTICATOR APP. The passkey is offered only where it can work - the
+ * server offers it, it is reached over HTTPS, and this phone's own browser
+ * makes passkeys (passkeys/enrolment) - and comes first, because on a phone
+ * it is the easier of the two: the phone's face, fingerprint or screen lock,
+ * and next time Sign in with a passkey, with no code to type. Where it
+ * cannot work the screen opens straight on the authenticator app, as it
+ * always did; a browser that turns out not to make passkeys sends the
+ * person to the authenticator app too, saying why.
+ *
+ * The web sign-in draws a QR code for the app. A phone cannot scan its own
+ * screen, so copying that would be the one presentation guaranteed not to
+ * work on the device this runs on. What works on a handset is the
+ * otpauth:// URL itself: tapping it hands the enrolment straight to
+ * whichever authenticator app is installed, already filled in. The secret
+ * is printed underneath for the user whose authenticator lives on a
+ * different device, or who prefers to type it.
  *
  * NO SESSION EXISTS ON THIS SCREEN. The user has proved their password and
- * nothing else; the server issues a session only when the code below verifies.
- * That is why the request re-submits the credentials, and why abandoning this
- * screen has to drop them.
+ * nothing else; the server issues a session only when the code below - or
+ * the new passkey - verifies. That is why every request re-submits the
+ * credentials, and why abandoning this screen has to drop them.
  */
 
 type EnrolmentNavigationProp = NativeStackNavigationProp<
@@ -44,16 +68,43 @@ type EnrolmentNavigationProp = NativeStackNavigationProp<
   "TwoFactorEnrolment"
 >;
 
+// Which way the person is setting up, or the choice between them.
+type EnrolmentStep = "choose" | "passkey" | "authenticatorApp";
+
+const PASSKEY_CANCELED_NOTICE: string =
+  "Passkey setup was canceled. Try again when you're ready, or choose another way.";
+
+const PASSKEY_UNSUPPORTED_NOTICE: string =
+  "This phone's browser can't create a passkey. Set up an authenticator app instead.";
+
 export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const {
     pendingTwoFactor,
     verifyTotpEnrolment,
+    enrolPasskey,
     cancelTwoFactor,
     completePendingLogin,
   } = useAuth();
   const navigation: EnrolmentNavigationProp =
     useNavigation<EnrolmentNavigationProp>();
+
+  /*
+   * Whether a passkey is offered here at all, and whether this browser
+   * turned out not to make one: after that, the authenticator app is the
+   * only way, and the choice is not drawn again.
+   */
+  const [isPasskeyUnsupported, setIsPasskeyUnsupported] =
+    useState<boolean>(false);
+  const isPasskeyOffered: boolean =
+    pendingTwoFactor?.enrolment?.canEnrolPasskey === true &&
+    !isPasskeyUnsupported;
+
+  const [step, setStep] = useState<EnrolmentStep>(
+    pendingTwoFactor?.enrolment?.canEnrolPasskey === true
+      ? "choose"
+      : "authenticatorApp",
+  );
 
   const [code, setCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -68,8 +119,62 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
   const [didOpenAuthenticator, setDidOpenAuthenticator] =
     useState<boolean>(false);
 
+  // The passkey's setup in flight, and what it last said.
+  const [passkeyProgress, setPasskeyProgress] =
+    useState<PasskeyEnrolmentProgress | null>(null);
+  const [passkeyNotice, setPasskeyNotice] = useState<string | null>(null);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const passkeyAttempt: React.MutableRefObject<AbortController | null> =
+    useRef<AbortController | null>(null);
+  const isPasskeyBusy: boolean = passkeyProgress !== null;
+
+  useEffect(() => {
+    return (): void => {
+      passkeyAttempt.current?.abort();
+      passkeyAttempt.current = null;
+    };
+  }, []);
+
   const otpUrl: string = pendingTwoFactor?.enrolment?.twoFactorOtpUrl || "";
   const secret: string = secretFromOtpUrl(otpUrl);
+
+  /*
+   * Where a finished setup goes next, whichever way it was set up: the
+   * codes it minted, the offer of some, or straight in.
+   */
+  const followUp: (response: LoginResponse) => void = (
+    response: LoginResponse,
+  ): void => {
+    /*
+     * There is no challenge count on this path -- /login answered with an
+     * enrolment, not a list of factors -- so the server says it directly
+     * instead. `hasBackupCodes` arrives only when the account already had a
+     * set and none were minted; its absence means the account genuinely has
+     * nothing, whether because the codes are in this response or because
+     * minting them failed.
+     */
+    const next: TwoFactorFollowUp = decideTwoFactorFollowUp({
+      mintedCodeCount: response.backupCodes?.length || 0,
+      accountHasNoCodes: response.hasBackupCodes !== true,
+
+      /*
+       * Never suppressed here. A user finishing a mandated enrolment has no
+       * recovery route at all, and this is the first sign-in of that
+       * account's new second factor -- there is no "you already told us to
+       * stop asking" to honour.
+       */
+      offerRecentlySkipped: false,
+    });
+
+    if (next === "signed-in") {
+      completePendingLogin();
+      return;
+    }
+
+    navigation.navigate("BackupCodes", {
+      mode: next === "show-codes" ? "show" : "offer",
+    });
+  };
 
   const openInAuthenticator: () => Promise<void> = async (): Promise<void> => {
     if (!otpUrl) {
@@ -111,35 +216,7 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
         code: code.trim(),
       });
 
-      /*
-       * There is no challenge count on this path -- /login answered with an
-       * enrolment, not a list of factors -- so the server says it directly
-       * instead. `hasBackupCodes` arrives only when the account already had a
-       * set and none were minted; its absence means the account genuinely has
-       * nothing, whether because the codes are in this response or because
-       * minting them failed.
-       */
-      const followUp: TwoFactorFollowUp = decideTwoFactorFollowUp({
-        mintedCodeCount: response.backupCodes?.length || 0,
-        accountHasNoCodes: response.hasBackupCodes !== true,
-
-        /*
-         * Never suppressed here. A user finishing a mandated enrolment has no
-         * recovery route at all, and this is the first sign-in of that
-         * account's new second factor -- there is no "you already told us to
-         * stop asking" to honour.
-         */
-        offerRecentlySkipped: false,
-      });
-
-      if (followUp === "signed-in") {
-        completePendingLogin();
-        return;
-      }
-
-      navigation.navigate("BackupCodes", {
-        mode: followUp === "show-codes" ? "show" : "offer",
-      });
+      followUp(response);
     } catch (err: unknown) {
       setIsOpenError(false);
       setError(getFriendlyErrorMessage(err));
@@ -148,7 +225,81 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
     }
   };
 
+  const createPasskey: () => Promise<void> = async (): Promise<void> => {
+    if (passkeyAttempt.current) {
+      return;
+    }
+
+    const attempt: AbortController = new AbortController();
+    passkeyAttempt.current = attempt;
+    setPasskeyError(null);
+    setPasskeyNotice(null);
+    setPasskeyProgress("preparing");
+
+    try {
+      const outcome: PasskeyEnrolmentOutcome = await enrolPasskey({
+        signal: attempt.signal,
+        onProgress: (progress: PasskeyEnrolmentProgress): void => {
+          if (passkeyAttempt.current === attempt && !attempt.signal.aborted) {
+            setPasskeyProgress(progress);
+          }
+        },
+      });
+
+      if (outcome.status === "enrolled") {
+        followUp(outcome.response);
+        return;
+      }
+
+      if (passkeyAttempt.current !== attempt) {
+        return;
+      }
+
+      if (outcome.status === "unsupported") {
+        // The authenticator app is the way, and the screen says why.
+        setIsPasskeyUnsupported(true);
+        setStep("authenticatorApp");
+        return;
+      }
+
+      setPasskeyNotice(PASSKEY_CANCELED_NOTICE);
+    } catch (err: unknown) {
+      if (passkeyAttempt.current === attempt && !attempt.signal.aborted) {
+        setPasskeyError(getFriendlyErrorMessage(err));
+      }
+    } finally {
+      if (passkeyAttempt.current === attempt) {
+        passkeyAttempt.current = null;
+        setPasskeyProgress(null);
+      }
+    }
+  };
+
+  const cancelPasskey: () => void = (): void => {
+    // Once the passkey is being saved, it is the account's: no going back.
+    if (passkeyProgress === "verifying") {
+      return;
+    }
+    passkeyAttempt.current?.abort();
+    passkeyAttempt.current = null;
+    setPasskeyProgress(null);
+    setPasskeyNotice(PASSKEY_CANCELED_NOTICE);
+  };
+
+  const chooseAnotherWay: () => void = (): void => {
+    passkeyAttempt.current?.abort();
+    passkeyAttempt.current = null;
+    setPasskeyProgress(null);
+    setPasskeyNotice(null);
+    setPasskeyError(null);
+    setError(null);
+    setStep("choose");
+  };
+
   const startOver: () => void = (): void => {
+    passkeyAttempt.current?.abort();
+    passkeyAttempt.current = null;
+
     /*
      * Clears the submitted credentials as well as the enrolment: those are the
      * email and password the next step would re-submit, and leaving them
@@ -158,6 +309,198 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
     cancelTwoFactor();
     navigation.navigate("Login");
   };
+
+  const renderSignInAsSomebodyElse: () => React.JSX.Element =
+    (): React.JSX.Element => {
+      return (
+        <AuthLink
+          label="Sign in as a different user"
+          tone="secondary"
+          testID="sign-in-as-different-user"
+          onPress={startOver}
+          disabled={isLoading || passkeyProgress === "verifying"}
+        />
+      );
+    };
+
+  const renderChoice: (data: {
+    testID: string;
+    icon: React.ComponentProps<typeof IconBadge>["name"];
+    title: string;
+    description: string;
+    onPress: () => void;
+  }) => React.JSX.Element = (data: {
+    testID: string;
+    icon: React.ComponentProps<typeof IconBadge>["name"];
+    title: string;
+    description: string;
+    onPress: () => void;
+  }): React.JSX.Element => {
+    return (
+      <Pressable
+        key={data.testID}
+        accessibilityRole="button"
+        accessibilityLabel={data.title}
+        accessibilityHint={data.description}
+        testID={data.testID}
+        onPress={data.onPress}
+        style={({ pressed }: { pressed: boolean }): ViewStyle => {
+          return {
+            minHeight: 68,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+            backgroundColor: pressed
+              ? theme.colors.backgroundTertiary
+              : "transparent",
+          };
+        }}
+      >
+        <IconBadge name={data.icon} />
+        <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+          <AppText variant="headline">{data.title}</AppText>
+          <AppText variant="footnote" tone="secondary">
+            {data.description}
+          </AppText>
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={theme.colors.textTertiary}
+        />
+      </Pressable>
+    );
+  };
+
+  if (step === "choose" && isPasskeyOffered) {
+    return (
+      <AuthLayout
+        title="Protect your account"
+        eyebrow="TWO-FACTOR SETUP"
+        icon="shield-checkmark-outline"
+        compact
+        description="Your administrator requires two-factor authentication. Choose how you'll confirm it's you."
+      >
+        <View testID="enrolment-choices" style={{ gap: spacing.lg }}>
+          <ListGroup>
+            {renderChoice({
+              testID: "enrolment-choice-passkey",
+              icon: "finger-print-outline",
+              title: "Passkey",
+              description:
+                "Use this phone's face, fingerprint or screen lock, or a security key. No code to type.",
+              onPress: () => {
+                setStep("passkey");
+              },
+            })}
+            {renderChoice({
+              testID: "enrolment-choice-authenticator-app",
+              icon: "phone-portrait-outline",
+              title: "Authenticator app",
+              description:
+                "Get a six-digit code from an app such as Google Authenticator, Microsoft Authenticator or 1Password.",
+              onPress: () => {
+                setStep("authenticatorApp");
+              },
+            })}
+          </ListGroup>
+          {renderSignInAsSomebodyElse()}
+        </View>
+      </AuthLayout>
+    );
+  }
+
+  if (step === "passkey" && isPasskeyOffered) {
+    return (
+      <AuthLayout
+        title="Create a passkey"
+        eyebrow="TWO-FACTOR SETUP"
+        icon="finger-print-outline"
+        compact
+        description="Your phone's browser opens to create it. Next time, sign in with your passkey: no password or code to type."
+      >
+        <Card variant="tinted" testID="passkey-enrolment-steps">
+          <AppText variant="subhead" tone="secondary">
+            Follow your browser’s prompt: use your face, fingerprint or screen
+            lock, or touch your security key. Then come back here to finish
+            signing in.
+          </AppText>
+        </Card>
+
+        <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
+          <GradientButton
+            testID="create-passkey"
+            label={
+              passkeyProgress === "preparing"
+                ? "Preparing your passkey…"
+                : passkeyProgress === "browser"
+                  ? "Continue in your browser…"
+                  : passkeyProgress === "verifying"
+                    ? "Signing you in…"
+                    : passkeyNotice || passkeyError
+                      ? "Try Again"
+                      : "Create Passkey"
+            }
+            onPress={(): void => {
+              void createPasskey();
+            }}
+            loading={isPasskeyBusy}
+            disabled={isPasskeyBusy}
+            icon="finger-print-outline"
+            style={authPrimaryButtonStyle}
+          />
+
+          {passkeyProgress === "browser" ? (
+            <AuthNotice
+              testID="passkey-enrolment-in-browser"
+              tone="info"
+              live
+              icon="finger-print-outline"
+              message="Create your passkey in the browser, then return to OneUptime."
+            />
+          ) : null}
+
+          {isPasskeyBusy && passkeyProgress !== "verifying" ? (
+            <AuthLink
+              label="Cancel"
+              accessibilityLabel="Cancel passkey setup"
+              testID="cancel-passkey-enrolment"
+              onPress={cancelPasskey}
+            />
+          ) : null}
+
+          {passkeyError ? (
+            <AuthNotice
+              testID="passkey-enrolment-error"
+              tone="danger"
+              message={passkeyError}
+            />
+          ) : null}
+
+          {passkeyNotice ? (
+            <AuthNotice
+              testID="passkey-enrolment-notice"
+              tone="neutral"
+              live
+              message={passkeyNotice}
+            />
+          ) : null}
+        </View>
+
+        <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
+          <AuthLink
+            label="Choose another way"
+            testID="choose-another-way"
+            onPress={chooseAnotherWay}
+            disabled={passkeyProgress === "verifying"}
+          />
+          {renderSignInAsSomebodyElse()}
+        </View>
+      </AuthLayout>
+    );
+  }
 
   const codeError: string | null = error && !isOpenError ? error : null;
 
@@ -169,6 +512,15 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
       compact
       description="Set up an authenticator in two steps to finish signing in securely."
     >
+      {isPasskeyUnsupported ? (
+        <AuthNotice
+          testID="passkey-unsupported-notice"
+          tone="warning"
+          message={PASSKEY_UNSUPPORTED_NOTICE}
+          style={{ marginBottom: spacing.xl }}
+        />
+      ) : null}
+
       <AuthStep
         number={1}
         title="Add your account"
@@ -287,14 +639,16 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
         </View>
       </View>
 
-      <View style={{ marginTop: spacing.md }}>
-        <AuthLink
-          label="Sign in as a different user"
-          tone="secondary"
-          testID="sign-in-as-different-user"
-          onPress={startOver}
-          disabled={isLoading}
-        />
+      <View style={{ marginTop: spacing.md, gap: spacing.md }}>
+        {isPasskeyOffered ? (
+          <AuthLink
+            label="Choose another way"
+            testID="choose-another-way"
+            onPress={chooseAnotherWay}
+            disabled={isLoading}
+          />
+        ) : null}
+        {renderSignInAsSomebodyElse()}
       </View>
     </AuthLayout>
   );

@@ -19,6 +19,13 @@ import {
   PersonColumnKind,
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import { CLIENT_RESOURCE_NAMES } from "Common/Utils/DeveloperDocs/ClientResourceNames";
+import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
+import {
+  DeleteChoice,
+  DeleteChoicesOfTable,
+  getDeleteChoiceFieldName,
+  getDeleteChoices,
+} from "Common/Utils/DeveloperDocs/DeleteChoices";
 
 /*
  * The data sources written by hand (StaticFiles/), each in place of the one
@@ -164,6 +171,11 @@ export class OpenAPIParser {
       } else if (legacyName) {
         resource.legacyName = legacyName;
       }
+      const listOrder: ListOrderFacts | undefined =
+        this.getListOrderFacts().get(resourceName);
+      if (listOrder) {
+        resource.listOrder = listOrder;
+      }
       const resourceDescription: string | undefined =
         this.getTagDescriptions().get(resourceName);
       if (resourceDescription) {
@@ -176,12 +188,14 @@ export class OpenAPIParser {
       );
       this.keepWhatOthersDecideReadOnly(resource);
       resource.schema = this.generateResourceSchema(resource.operationSchemas);
+      this.resolveChangesOnlyWith(resource);
       this.resolveRelations(resource.schema);
       for (const operationSchema of Object.values(resource.operationSchemas)) {
         this.resolveRelations(operationSchema || {});
       }
       this.addPersonEmailCompanions(resource);
       this.addMembershipImport(resource);
+      this.addDeleteChoices(resource);
 
       const writableFields: string[] = Object.entries(
         resource.operationSchemas.create || {},
@@ -415,6 +429,22 @@ export class OpenAPIParser {
     for (const tag of this.spec?.tags || []) {
       if (tag.name && tag.description) {
         map.set(this.getNameOfTag(tag), tag.description);
+      }
+    }
+    return map;
+  }
+
+  /*
+   * The drag-ordered lists' facts, by resource name, from their tags
+   * (x-oneuptime-list-order): what a write of the number does, which the
+   * resource's page says in its Order section.
+   */
+  private getListOrderFacts(): Map<string, ListOrderFacts> {
+    const map: Map<string, ListOrderFacts> = new Map<string, ListOrderFacts>();
+    for (const tag of this.spec?.tags || []) {
+      const facts: ListOrderFacts | undefined = tag["x-oneuptime-list-order"];
+      if (tag.name && facts && facts.column) {
+        map.set(this.getNameOfTag(tag), facts);
       }
     }
     return map;
@@ -866,6 +896,124 @@ export class OpenAPIParser {
   }
 
   /*
+   * WHAT A DELETE SAYS BESIDES THE RECORD (#9832). OneUptime deletes a
+   * custom role that workflows run as only when the delete says what they
+   * run as instead, in its miscDataProps
+   * (Common/Utils/DeveloperDocs/DeleteChoices.ts), and Terraform deletes a
+   * resource with no body - so `terraform destroy` of such a role failed,
+   * and the only way through was to change each workflow first.
+   *
+   * Each choice becomes an optional attribute named for the delete
+   * (workflows_run_as_on_delete), only ever in `schema`: no create or
+   * update sends it and no read sets it, so it keeps what the
+   * configuration says, changes nothing until the delete, and is sent in
+   * the DELETE's body then. Left unset, the delete is the one it always
+   * was, and never changes what a workflow runs as unasked.
+   */
+  private addDeleteChoices(resource: TerraformResource): void {
+    if (!resource.operations.delete) {
+      return;
+    }
+
+    const choices: DeleteChoicesOfTable | null = getDeleteChoices(
+      resource.tableName,
+    );
+
+    if (!choices) {
+      return;
+    }
+
+    const attributes: Array<string> = [];
+
+    for (const choice of choices.choices) {
+      const name: string = OpenAPIParser.getDeleteChoiceAttribute(choice.key);
+
+      if (resource.schema[name]) {
+        throw new Error(
+          `Resource "${resource.name}" has an attribute named ${name}, the name of what its delete takes in miscDataProps.${choice.key}: rename one of them (Common/Utils/DeveloperDocs/DeleteChoices.ts).`,
+        );
+      }
+
+      const attribute: TerraformAttribute = {
+        type: "string",
+        description: choice.describe((key: string): string => {
+          return `\`${OpenAPIParser.getDeleteChoiceAttribute(key)}\``;
+        }),
+        required: false,
+        optional: true,
+        computed: false,
+        deleteChoice: {
+          key: choice.key,
+          ...(choice.requiredWith
+            ? {
+                requiredWith: {
+                  attribute: OpenAPIParser.getDeleteChoiceAttribute(
+                    choice.requiredWith.key,
+                  ),
+                  value: choice.requiredWith.value,
+                },
+              }
+            : {}),
+        },
+        ...(choice.values ? { enumValues: [...choice.values] } : {}),
+        ...this.getDeleteChoiceRelation(choice),
+      };
+
+      resource.schema[name] = attribute;
+      attributes.push(name);
+    }
+
+    // The record an ID names, said as every other relation's is.
+    this.resolveRelations(resource.schema);
+
+    for (const name of attributes) {
+      const attribute: TerraformAttribute = resource.schema[name]!;
+
+      attribute.description = `${attribute.description} ${OpenAPIParser.getDeleteChoiceSentNote(choices.noun)}`;
+    }
+
+    resource.deleteChoices = {
+      noun: choices.noun,
+      whenNeeded: choices.whenNeeded,
+      attributes: attributes,
+    };
+  }
+
+  // A delete choice's attribute: workflowsRunAs -> workflows_run_as_on_delete.
+  public static getDeleteChoiceAttribute(key: string): string {
+    return StringUtils.toLegacySnakeCase(getDeleteChoiceFieldName(key));
+  }
+
+  /*
+   * When a delete choice is sent, said on each: with the delete only, from
+   * what state holds - a value set in the apply that destroys the record is
+   * not in state yet.
+   */
+  public static getDeleteChoiceSentNote(noun: string): string {
+    return `Sent only when Terraform deletes the ${noun}, and changes nothing before: set it, and apply, before you destroy the ${noun}.`;
+  }
+
+  // The record a delete choice's ID names, as the spec names relations.
+  private getDeleteChoiceRelation(
+    choice: DeleteChoice,
+  ): Pick<TerraformAttribute, "relationTag" | "relationTableName"> {
+    if (!choice.relatedTableName) {
+      return {};
+    }
+
+    const tag: { name: string } | undefined = (this.spec?.tags || []).find(
+      (candidate: { "x-oneuptime-table"?: string }): boolean => {
+        return candidate["x-oneuptime-table"] === choice.relatedTableName;
+      },
+    );
+
+    return {
+      relationTag: tag?.name || choice.relatedTableName,
+      relationTableName: choice.relatedTableName,
+    };
+  }
+
+  /*
    * What a person attribute's email companion says it is: Common's words
    * (PeopleByEmail.describePersonEmail), which the dashboard's Terraform
    * examples use for the same attribute.
@@ -1159,6 +1307,77 @@ export class OpenAPIParser {
   }
 
   /*
+   * An attribute that changes only together with a new value of another
+   * (the spec's x-oneuptime-changes-only-with) names that one by its
+   * Terraform name: a monitor secret's secret_type names secret_value. The
+   * resource's ModifyPlan refuses a plan that changes it and keeps that one
+   * (StaticFiles/changestogether.go, #9814), and its documentation says so.
+   *
+   * Both have to change in place, in the update's request: one that cannot
+   * is replaced instead (forceNew), and a companion no update writes could
+   * never come with it. Such a declaration is dropped with a warning, since
+   * the spec and the resource disagree.
+   */
+  private resolveChangesOnlyWith(resource: TerraformResource): void {
+    const updateSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.update || {};
+
+    const changesInPlace: (name: string) => boolean = (
+      name: string,
+    ): boolean => {
+      return (
+        Object.prototype.hasOwnProperty.call(updateSchema, name) &&
+        !resource.schema[name]?.forceNew
+      );
+    };
+
+    for (const [name, attribute] of Object.entries(resource.schema)) {
+      const companionApiName: string | undefined = attribute.changesOnlyWith;
+
+      if (!companionApiName) {
+        continue;
+      }
+
+      const companion: string | undefined = Object.keys(resource.schema).find(
+        (candidate: string): boolean => {
+          return (
+            candidate !== name &&
+            (resource.schema[candidate]?.apiFieldName || candidate) ===
+              companionApiName
+          );
+        },
+      );
+
+      if (!companion || !changesInPlace(name) || !changesInPlace(companion)) {
+        delete attribute.changesOnlyWith;
+        this.warnings.push(
+          `${resource.name}.${name} changes only together with ${companionApiName}, but an update cannot write both, so the plan does not check them together.`,
+        );
+        continue;
+      }
+
+      attribute.changesOnlyWith = companion;
+      attribute.description = [
+        attribute.description || "",
+        OpenAPIParser.describeChangesOnlyWith(name, companion),
+      ]
+        .join(" ")
+        .trim();
+    }
+  }
+
+  /*
+   * What the documentation adds to such an attribute: that a plan changing
+   * it alone fails, and how to change it.
+   */
+  public static describeChangesOnlyWith(
+    attribute: string,
+    companion: string,
+  ): string {
+    return `A plan that changes \`${attribute}\` and keeps \`${companion}\` fails before anything is written: give \`${companion}\` its new value in the same change.`;
+  }
+
+  /*
    * Fields every model carries for the server's own bookkeeping, which say
    * nothing about a live resource: the soft-delete pair (always empty on
    * anything Terraform can read) and the optimistic-locking counter. Shown,
@@ -1413,6 +1632,12 @@ export class OpenAPIParser {
      * answer instead.
      */
     const isShownOnce: boolean = prop["x-oneuptime-shown-once"] === true;
+    /*
+     * Changes only together with a new value of another attribute
+     * (ModelSchema's x-oneuptime-changes-only-with), named here by its API
+     * name: resolveChangesOnlyWith names it by its Terraform name.
+     */
+    const changesOnlyWith: unknown = prop["x-oneuptime-changes-only-with"];
 
     const base: TerraformAttribute = {
       type: "string",
@@ -1433,6 +1658,9 @@ export class OpenAPIParser {
         : {}),
       ...(isSecret ? { sensitive: true } : {}),
       ...(isShownOnce ? { shownOnce: true } : {}),
+      ...(typeof changesOnlyWith === "string" && changesOnlyWith
+        ? { changesOnlyWith }
+        : {}),
     };
 
     /*

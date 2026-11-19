@@ -59,7 +59,9 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import {
   MessageBlocksByWorkspaceType,
   WorkspaceChannelsCreated,
@@ -1731,30 +1733,14 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: episode.projectId,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Created incident state not found for this project.",
-      );
-    }
+    // The project's created state: the topmost, as a new episode starts in.
+    const createdIncidentStateId: ObjectID =
+      await IncidentStateService.getCreatedIncidentStateId(episode.projectId);
 
     await this.changeEpisodeState({
       projectId: episode.projectId,
       episodeId: episodeId,
-      incidentStateId: incidentState.id,
+      incidentStateId: createdIncidentStateId,
       notifyOwners: true,
       rootCause: reopenedByUserId ? `Reopened by user.` : "Reopened via API.",
       props: {
@@ -2060,11 +2046,14 @@ export class Service extends ProjectReferencesService<Model> {
      * behalf of whoever ran it (RuleRunWriteProps).
      */
     props?: DatabaseCommonInteractionProps | undefined;
-  }): Promise<void> {
+  }): Promise<OwnersAdded> {
     const { episodeId, projectId, userIds, teamIds, createdByUserId } = data;
 
-    // Owners already on the episode are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+    /*
+     * Owners already on the episode are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: IncidentEpisodeOwnerUserService,
       ownerTeamService: IncidentEpisodeOwnerTeamService,
       resourceIdColumn: "incidentEpisodeId",

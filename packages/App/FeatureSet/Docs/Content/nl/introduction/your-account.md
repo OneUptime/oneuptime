@@ -41,7 +41,7 @@ Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent m
 
 Klik op **Gebruiker bewerken** en wijzig wat u nodig hebt:
 
-- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, verifieert u het nieuwe adres opnieuw.
+- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, stuurt OneUptime een link naar het nieuwe adres, en uw adres verandert zodra u die opent. Tot die tijd logt u in met het huidige adres, en **Wijziging annuleren** stopt de wijziging. Het eigen adres van een hoofdbeheerder verandert meteen.
 - **Volledige naam**: de naam die uw team overal in OneUptime ziet.
 - **Tijdzone**: de tijdzone waarin het dashboard tijden toont en leest, en die van de tijden in meldingen aan u.
 - **Taal**: de taal van het dashboard in elke browser waarin u inlogt, en van uw oproepen voor dienst. Niet ingesteld: uw oproepen zijn in het Engels en het dashboard volgt uw browser.
@@ -137,14 +137,14 @@ Hebt u nog geen back-upcodes, dan toont OneUptime ze daarna één keer, en bent 
 
 ### Als uw organisatie uw aanmelding beheert
 
-Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist, tenzij een serverbeheerder het wist. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
+Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist, tenzij een serverbeheerder het wist, en dan krijgt u een e-mail. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
 
 Hetzelfde gebeurt als elk project waartoe u behoort single sign-on vereist en **Aanmelden beheren met SSO** heeft ingeschakeld. Uw wachtwoord meldt u nog steeds aan bij OneUptime, maar elk project vraagt om SSO, dus stelt OneUptime voor u geen nieuw wachtwoord, nieuwe passkey of nieuwe tweede stap in:
 
 - **Een project dat dat niet doet**: zodra u lid bent van, of uitgenodigd bent voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, komt uw sectie **Beveiliging** terug. Het **Overzicht** noemt die projecten dan onder **Single Sign-On**, als de reden dat uw instellingen van uzelf zijn. Verlaat u dat project, dan raakt u ze weer kwijt.
 - **Projecten met verschillende providers**: als al uw projecten het aanmelden beheren, elk met een eigen identiteitsprovider, noemt het **Overzicht** elke provider.
 - **Hoofdbeheerders** houden altijd hun eigen instellingen onder **Beveiliging**.
-- **Wat u eerder hebt ingesteld**, blijft bewaard, en een serverbeheerder kan het wissen.
+- **Wat u eerder hebt ingesteld**, blijft bewaard. Een serverbeheerder kan het wissen, en ook een eigenaar van alle projecten waartoe u behoort; u krijgt een e-mail als dat gebeurt.
 
 ## Uw projecten
 
@@ -184,6 +184,14 @@ Open **Gevarenzone → Account verwijderen**. U kunt uw account pas verwijderen 
 
 :::details Ik heb de e-mail om mijn adres te verifiëren niet ontvangen
 Opnieuw inloggen stuurt een nieuwe link: kijk ook in uw spammap. Kunt u niet inloggen, gebruik dan **Wachtwoord vergeten?** op de inlogpagina. De resetlink verifieert uw adres ook.
+:::
+
+:::details Na het registreren kreeg ik een e-mail dat ik al een account heb
+Dat adres heeft al een OneUptime-account, dus het registreren heeft niets aangemaakt en niets gewijzigd. Log ermee in, of gebruik **Wachtwoord vergeten?** op de inlogpagina als u uw wachtwoord niet meer weet. De registratiepagina zegt voor elk adres hetzelfde, en vertelt dus niemand welke adressen een account hebben.
+:::
+
+:::details Mijn e-mailadres is niet gewijzigd
+Uw adres verandert pas zodra u de link opent die OneUptime naar het nieuwe adres stuurde. De link werkt 24 uur: is hij verlopen, wijzig uw e-mail dan opnieuw om een nieuwe te krijgen. Gebruikt een ander account dat adres al, dan staat dat in de e-mail die daarheen ging, en blijft uw adres zoals het is.
 :::
 
 :::details Ik ben mijn authenticator-app kwijt

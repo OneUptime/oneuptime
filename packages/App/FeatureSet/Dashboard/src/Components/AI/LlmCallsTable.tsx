@@ -4,7 +4,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Query from "Common/Types/BaseDatabase/Query";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Span from "Common/Models/AnalyticsModels/Span";
+import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import SpanUtil from "../../Utils/SpanUtil";
+import { LLM_CALLS_TABLE_ID } from "./LlmCallsRoute";
 import React, {
   Fragment,
   FunctionComponent,
@@ -216,7 +218,11 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
       name="LLM Calls"
       singularName="LLM Call"
       pluralName="LLM Calls"
-      userPreferencesKey="llm-calls-table"
+      /*
+       * Also its URL state's namespace: LLM Usage's error rate opens this
+       * list on the calls that failed (LlmCallsRoute, #9750).
+       */
+      userPreferencesKey={LLM_CALLS_TABLE_ID}
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
@@ -339,6 +345,18 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           type: FieldType.Text,
           title: "Conversation ID",
         },
+        /*
+         * Whether the call failed: what LLM Usage's error rate counts, and
+         * opens set to Error (#9750). The traces list's options.
+         */
+        {
+          field: {
+            statusCode: true,
+          },
+          type: FieldType.MultiSelectDropdown,
+          filterDropdownOptions: SpanUtil.getSpanStatusDropdownOptions(),
+          title: "Status",
+        },
         {
           field: {
             startTime: true,
@@ -355,6 +373,8 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
         llmOutputTokens: true,
         llmResponseModel: true,
         llmConversationId: true,
+        // Why a failed call failed, under its status.
+        statusMessage: true,
         /*
          * The User column reads llmUserEmail (its declared field) but falls
          * back to llmUserId, which no column declares on its own — without
@@ -536,6 +556,16 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           title: "Status",
           type: FieldType.Element,
           getElement: (span: Span): ReactElement => {
+            /*
+             * Why a failed call failed, in the provider's or the SDK's own
+             * words (the span's status message): two lines at most, the
+             * whole of it on hover, the rest in the trace viewer (#9750).
+             */
+            const error: string =
+              span.statusCode === SpanStatus.Error
+                ? span.statusMessage?.toString().trim() || ""
+                : "";
+
             return (
               <Fragment>
                 <SpanStatusElement
@@ -543,6 +573,17 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
                   spanStatusCode={span.statusCode!}
                   title={span.spanId?.toString()}
                 />
+                {error ? (
+                  <p
+                    data-testid="llm-call-error"
+                    title={error}
+                    className="mt-1 line-clamp-2 max-w-xs text-xs text-red-700 [overflow-wrap:anywhere]"
+                  >
+                    <bdi>{error}</bdi>
+                  </p>
+                ) : (
+                  <></>
+                )}
               </Fragment>
             );
           },

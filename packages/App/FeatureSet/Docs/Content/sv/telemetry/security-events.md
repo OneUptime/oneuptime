@@ -371,7 +371,7 @@ flowchart TB
 3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
 4. Låt **Öppna ett ärende vid matchning** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
 5. Välj under **Larm och incidenter** vad en träff mer ska utlösa: **Skapa ett larm** (standard), **Deklarera en incident**, **Båda** eller **Ingetdera**, med valfri **Larmallvar** eller **Incidentallvar**.
-6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på), **Kör i realtid** (av), hur träffar räknas och **Responssteg**: vad som ska göras när regeln öppnar ett ärende, varje steg under den del av ärendets responsplan som du väljer, högst 10. Se [Utvärderingsinställningar](#utvärderingsinställningar).
+6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på), **Kör i realtid** (av), hur träffar räknas och **Responssteg**: vad som ska göras när regeln öppnar ett ärende, varje steg under den del av ärendets responsplan som du väljer, högst 10. Dra ett steg i dess handtag, eller använd **Flytta upp** och **Flytta ned**: ärendets plan visar varje dels steg i den ordning du ger dem. Se [Utvärderingsinställningar](#utvärderingsinställningar).
 :::
 
 En första regel, som träffar misslyckade inloggningar utanför `10.x.x.x`:

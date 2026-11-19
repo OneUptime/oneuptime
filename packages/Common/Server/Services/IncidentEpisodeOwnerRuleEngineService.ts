@@ -2,15 +2,11 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeOwnerRule from "../../Models/DatabaseModels/IncidentEpisodeOwnerRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
-import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import IncidentEpisodeOwnerRuleService from "./IncidentEpisodeOwnerRuleService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
-import TeamService from "./TeamService";
-import UserService from "./UserService";
 import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
@@ -18,17 +14,17 @@ import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -289,8 +285,13 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
       }),
     );
 
-    const addedUserIds: Array<string> = [];
-    const addedTeamIds: Array<string> = [];
+    /*
+     * What the adds actually did: the owners written, and the ones skipped
+     * and why - a user who has left the project, a team that is not one of
+     * its teams (#9933). The feed item, the log lines and the count are
+     * made from these, never from the ids the rules asked for.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -313,50 +314,54 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
       }
 
       if (notify) {
-        await IncidentEpisodeService.addOwners({
-          episodeId: episode.id,
-          projectId: episode.projectId,
-          userIds: userIds.map((id: string) => {
-            return new ObjectID(id);
+        OwnerRuleAssignment.addUp(
+          outcome,
+          await IncidentEpisodeService.addOwners({
+            episodeId: episode.id,
+            projectId: episode.projectId,
+            userIds: userIds.map((id: string) => {
+              return new ObjectID(id);
+            }),
+            teamIds: teamIds.map((id: string) => {
+              return new ObjectID(id);
+            }),
+            props: RuleRunWriteProps.get(data.props),
           }),
-          teamIds: teamIds.map((id: string) => {
-            return new ObjectID(id);
-          }),
-          props: RuleRunWriteProps.get(data.props),
-        });
+        );
       } else {
-        await this.addOwnersSilently({
-          episodeId: episode.id,
-          projectId: episode.projectId,
-          userIds: userIds,
-          teamIds: teamIds,
-          props: data.props,
-        });
+        OwnerRuleAssignment.addUp(
+          outcome,
+          await this.addOwnersSilently({
+            episodeId: episode.id,
+            projectId: episode.projectId,
+            userIds: userIds,
+            teamIds: teamIds,
+            props: data.props,
+          }),
+        );
       }
-
-      addedUserIds.push(...userIds);
-      addedTeamIds.push(...teamIds);
     }
 
-    const ownersAdded: number = addedUserIds.length + addedTeamIds.length;
-
-    if (ownersAdded === 0) {
+    if (OwnerRuleFeed.isEmpty(outcome)) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    logger.debug(
-      `IncidentEpisodeOwnerRuleEngine added owners to episode ${episode.id}`,
-      { projectId: episode.projectId.toString() } as LogAttributes,
-    );
+    OwnerRuleFeed.log({
+      engine: "IncidentEpisodeOwnerRuleEngine",
+      record: `episode ${episode.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: episode.projectId.toString(),
+      } as LogAttributes,
+    });
 
     await this.createRuleExecutedFeedItem({
       episode,
       matchedRules,
-      userIds: addedUserIds,
-      teamIds: addedTeamIds,
+      outcome: outcome,
     });
 
-    return RuleApplicationResultUtil.updated(ownersAdded);
+    return OwnerRuleFeed.getResult(outcome);
   }
 
   /*
@@ -367,7 +372,8 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
    * always notified. A silent owner is instead written already marked
    * notified, which that job never picks up. The feed items and workspace
    * channel invites the owner services post on create still happen, exactly
-   * as they do for addOwners.
+   * as they do for addOwners. Resolves to what was added and what was
+   * skipped, as addOwners does.
    */
   private async addOwnersSilently(data: {
     episodeId: ObjectID;
@@ -376,17 +382,24 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
     teamIds: Array<string>;
     // Who ran the rule (Run now); none for a rule applied on create.
     props?: DatabaseCommonInteractionProps | undefined;
-  }): Promise<void> {
+  }): Promise<OwnersAdded> {
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
+
     for (const userId of data.userIds) {
       const owner: IncidentEpisodeOwnerUser = new IncidentEpisodeOwnerUser();
       owner.incidentEpisodeId = data.episodeId;
       owner.projectId = data.projectId;
       owner.userId = new ObjectID(userId);
       owner.isOwnerNotified = true;
-      await OwnerRuleAssignment.createOwner({
-        ownerService: IncidentEpisodeOwnerUserService,
-        owner: owner,
-        props: RuleRunWriteProps.get(data.props),
+      OwnerRuleAssignment.recordOutcome({
+        into: outcome,
+        ownerColumn: "userId",
+        id: owner.userId,
+        outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
+          ownerService: IncidentEpisodeOwnerUserService,
+          owner: owner,
+          props: RuleRunWriteProps.get(data.props),
+        }),
       });
     }
 
@@ -396,60 +409,39 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
       owner.projectId = data.projectId;
       owner.teamId = new ObjectID(teamId);
       owner.isOwnerNotified = true;
-      await OwnerRuleAssignment.createOwner({
-        ownerService: IncidentEpisodeOwnerTeamService,
-        owner: owner,
-        props: RuleRunWriteProps.get(data.props),
+      OwnerRuleAssignment.recordOutcome({
+        into: outcome,
+        ownerColumn: "teamId",
+        id: owner.teamId,
+        outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
+          ownerService: IncidentEpisodeOwnerTeamService,
+          owner: owner,
+          props: RuleRunWriteProps.get(data.props),
+        }),
       });
     }
+
+    return outcome;
   }
 
   @CaptureSpan()
   private async createRuleExecutedFeedItem(data: {
     episode: IncidentEpisode;
     matchedRules: Array<IncidentEpisodeOwnerRule>;
-    userIds: Array<string>;
-    teamIds: Array<string>;
+    // The owners added, and the ones skipped with why.
+    outcome: OwnersAdded;
   }): Promise<void> {
-    const { episode, matchedRules, userIds, teamIds } = data;
+    const { episode, matchedRules, outcome } = data;
     if (
       !episode.id ||
       !episode.projectId ||
       matchedRules.length === 0 ||
-      (userIds.length === 0 && teamIds.length === 0)
+      OwnerRuleFeed.isEmpty(outcome)
     ) {
       return;
     }
 
     try {
-      const userObjectIds: Array<ObjectID> = userIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-      const teamObjectIds: Array<ObjectID> = teamIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-
-      const [users, teams]: [Array<User>, Array<Team>] = await Promise.all([
-        userObjectIds.length > 0
-          ? UserService.findBy({
-              query: { _id: QueryHelper.any(userObjectIds) },
-              select: { name: true, email: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<User>),
-        teamObjectIds.length > 0
-          ? TeamService.findBy({
-              query: { _id: QueryHelper.any(teamObjectIds) },
-              select: { name: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<Team>),
-      ]);
-
       const ruleNames: Array<string> = matchedRules
         .map((r: IncidentEpisodeOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -464,9 +456,11 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
           ruleKind: "Incident Episode Owner Rule",
           ruleNames: ruleNames,
         },
-      )}\n\nAssigned the following owner${
-        users.length + teams.length === 1 ? "" : "s"
-      } to the episode:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}`;
+      )}\n\n${await OwnerRuleFeed.readOutcome({
+        projectId: episode.projectId,
+        recordNoun: "episode",
+        outcome: outcome,
+      })}`;
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
         incidentEpisodeId: episode.id,

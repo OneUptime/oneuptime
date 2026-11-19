@@ -21,16 +21,18 @@ import VersionUtil from "Common/Utils/VersionUtil";
  *     plus OneUptime's config, and reports the version of its files: the
  *     collector release they pin, with the last number raised each time
  *     OneUptime changes the files and not the collector (0.161.1 is the
- *     second set of files on collector 0.161.0). The newest is the version
- *     this release's files report. A change to an agent's files is a new
+ *     second set of files on collector 0.161.0), and starting again at the
+ *     collector's release when the pin moves (0.165.0, #9828). The newest is
+ *     the version this release's files report. A change to an agent's files is a new
  *     version of the agent, or an agent running the old files would never
  *     be called outdated: the Docker Swarm agent's CPU fix (#5076) changed
  *     only its config, and no Swarm showed a sign (its follow-up).
  *     AgentFilesVersion.test.ts holds every pinned-collector agent's files
  *     to the version they report.
  *   - None: OneUptime does not release it - the customer's own SDK in their
- *     app, function or devices. Its version is shown as it always was and is
- *     never called outdated.
+ *     app, function or devices, or the agent a device management service
+ *     such as Esper puts on the devices it manages. Its version is shown as
+ *     it always was and is never called outdated.
  *
  * An agent installed before its files reported a version sends none, so its
  * version reads "Not reported" (or nothing) - unknown, never outdated -
@@ -75,6 +77,11 @@ export enum AgentKind {
   ServerlessSdk = "serverless-sdk",
   // The OpenTelemetry browser or mobile SDK in the customer's app: RUM.
   RumSdk = "rum-sdk",
+  /*
+   * Esper's own agent on a device Esper manages, as Esper last reported it:
+   * the device's Esper card on its Inventory page.
+   */
+  EsperAgent = "esper-agent",
   /*
    * agents/ResourceAIAgent, run as oneuptime/resource-ai-agent beside a
    * resource's collector: the AI agent of a Docker or Podman host, a Swarm,
@@ -134,7 +141,7 @@ export const ONEUPTIME_AGENT_PLACEHOLDER_VERSION: string = "1.0.0";
  * The collector the Docker Swarm agent runs: the image
  * agents/DockerSwarmAgent/docker-compose.yml pins.
  */
-export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 
 /*
  * The version the Docker Swarm agent reports: the default of APP_VERSION in
@@ -151,7 +158,7 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
-export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.4";
+export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The version the Database agent reports: the oneuptime.agent.version every
@@ -164,10 +171,10 @@ export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.4";
  * is told to upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when
  * the agent's files move on without this.
  */
-export const DATABASE_AGENT_VERSION: string = "0.161.2";
+export const DATABASE_AGENT_VERSION: string = "0.165.0";
 
 // The collector the Database agent runs: the image its docker-compose.yml pins.
-export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 
 /*
  * The collector versions the Proxmox, Ceph, VMware and Storage Array agents
@@ -178,7 +185,7 @@ export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * config). AgentKind.test.ts fails when an agent's files move on without
  * its constant.
  */
-export const PROXMOX_AGENT_VERSION: string = "0.161.2";
+export const PROXMOX_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The collector the Proxmox agent runs: the image its docker-compose.yml
@@ -189,7 +196,7 @@ export const PROXMOX_AGENT_VERSION: string = "0.161.2";
  * (#6844) - so an agent still running older files reports what it reported
  * and is told to upgrade.
  */
-export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 /*
  * The version the OpenStack agent reports. Its files changed on the same collector -
  * 0.161.1, real per-instance usage read from libvirt or Ceilometer when asked; 0.161.2,
@@ -198,12 +205,12 @@ export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * ovn-controller are running, each RabbitMQ queue, and Geneve's interfaces and no others -
  * so an agent still running the old files reports what it reported and is told to upgrade.
  */
-export const OPENSTACK_AGENT_VERSION: string = "0.161.4";
+export const OPENSTACK_AGENT_VERSION: string = "0.165.0";
 // The collector the OpenStack agent runs: the image its docker-compose.yml pins.
-export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.161.0";
-export const CEPH_AGENT_VERSION: string = "0.161.0";
-export const VMWARE_AGENT_VERSION: string = "0.161.0";
-export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
+export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.165.0";
+export const CEPH_AGENT_VERSION: string = "0.165.0";
+export const VMWARE_AGENT_VERSION: string = "0.165.0";
+export const STORAGE_ARRAY_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The otelcol-contrib release the host guide installs (every install method:
@@ -212,7 +219,7 @@ export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
  * guide reads it from here, so the two cannot drift
  * (Pages/Host/Utils/DocumentationMarkdown.ts).
  */
-export const HOST_COLLECTOR_VERSION: string = "0.161.0";
+export const HOST_COLLECTOR_VERSION: string = "0.165.0";
 
 export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   [AgentKind.KubernetesAgent]: {
@@ -310,6 +317,14 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   // telemetry.sdk.version: the OpenTelemetry SDK's own release line.
   [AgentKind.RumSdk]: {
     name: "OpenTelemetry SDK",
+    latestVersionSource: AgentLatestVersionSource.None,
+  },
+  /*
+   * Esper releases its agent and updates it on the devices it manages:
+   * OneUptime does not know its newest version, so never calls it outdated.
+   */
+  [AgentKind.EsperAgent]: {
+    name: "Esper Agent",
     latestVersionSource: AgentLatestVersionSource.None,
   },
   /*

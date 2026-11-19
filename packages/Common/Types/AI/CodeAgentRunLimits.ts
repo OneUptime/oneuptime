@@ -2,7 +2,8 @@
  * The limits of a code task's run as the server tells the Runner's code
  * agent (issue #6440), with every completion it serves and with the run's
  * production telemetry tools: the project's caps (none by default), its
- * time limit and how much of it is left, and what the run has used so far.
+ * time limit and how much of it is left, how long one command may run
+ * (issue #6532), and what the run has used so far.
  *
  * The server holds what it can count - model calls and tokens from the
  * run's own LlmLog rows, and the time from when the run was claimed - and
@@ -16,6 +17,7 @@
 import AIAgentRunLimitsHelper, {
   AIAgentRunLimits,
   AIRunTimeLimitSource,
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
 } from "./AIAgentRunLimits";
 
 export interface CodeAgentRunLimits {
@@ -26,6 +28,14 @@ export interface CodeAgentRunLimits {
   // Every run has one.
   timeLimitInMinutes: number;
   timeLimitSource: AIRunTimeLimitSource;
+  /*
+   * How long one command the code agent runs may take, in minutes: the
+   * project's Time Limit per Command, or the default
+   * (DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES) - which is also what a
+   * Runner reads from a server that does not say. The Runner holds every
+   * command to it, and to the time the run has left.
+   */
+  commandTimeLimitInMinutes: number;
   /*
    * When the run's time is up (ISO 8601): when it was claimed, plus its time
    * limit. Null for a run whose start is not recorded.
@@ -98,6 +108,8 @@ export default class CodeAgentRunLimitsUtil {
         data.limits,
       ),
       timeLimitSource: data.limits.timeLimitSource,
+      commandTimeLimitInMinutes:
+        AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes(data.limits),
       deadlineAt:
         deadlineAtMs !== null ? new Date(deadlineAtMs).toISOString() : null,
       timeLeftMs:
@@ -146,6 +158,10 @@ export default class CodeAgentRunLimitsUtil {
       maxTokens: readCap(data["maxTokens"]),
       timeLimitInMinutes: Math.max(1, Math.round(minutes)),
       timeLimitSource: source,
+      commandTimeLimitInMinutes:
+        AIAgentRunLimitsHelper.normalizeCommandTimeLimitInMinutes(
+          data["commandTimeLimitInMinutes"],
+        ) ?? DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
       deadlineAt,
       timeLeftMs:
         typeof timeLeft === "number" && Number.isFinite(timeLeft)
@@ -176,6 +192,7 @@ export default class CodeAgentRunLimitsUtil {
       maxTokens: limits.maxTokens ?? undefined,
       maxWallClockMs: limits.timeLimitInMinutes * MILLISECONDS_IN_A_MINUTE,
       timeLimitSource: limits.timeLimitSource,
+      commandTimeLimitInMinutes: limits.commandTimeLimitInMinutes,
     };
   }
 

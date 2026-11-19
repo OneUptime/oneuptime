@@ -48,7 +48,7 @@ Chaque réponse ne connecte qu'une seule fois. Envoyée de nouveau, par exemple 
 Les personnes qui se connectent pour la première fois rejoignent les **Équipes** du fournisseur, qui décident de ce qu'elles peuvent faire : voir [Rôles et équipes des utilisateurs SSO](#rôles-et-équipes-des-utilisateurs-sso).
 
 > [!NOTE]
-> Sur OneUptime Cloud, la première fois qu'une personne se connecte au projet avec l'un de ses fournisseurs SAML ou OIDC, OneUptime lui envoie un lien par e-mail au lieu de la connecter. Elle l'ouvre, confirme que l'authentification unique du projet peut la connecter, puis poursuit la connexion. Le lien est valable 24 heures. Cela se produit une fois par projet, et de nouveau si la personne quitte le projet puis revient. Les installations auto-hébergées connectent les personnes immédiatement.
+> Sur OneUptime Cloud, la première fois qu'une personne se connecte au projet avec l'un de ses fournisseurs SAML ou OIDC, OneUptime lui envoie un lien par e-mail au lieu de la connecter. Elle l'ouvre, confirme que l'authentification unique du projet peut la connecter, puis poursuit la connexion. Le lien est valable 24 heures. Cela se produit une fois par projet, et de nouveau si la personne quitte le projet puis revient. Les installations auto-hébergées connectent les personnes immédiatement. Sur OneUptime Cloud, toute connexion qui n'aboutit pas directement reçoit cette même réponse, que l'adresse ait un compte ou non : une personne sans compte reçoit aussi l'e-mail, et son compte est créé quand elle confirme, tandis qu'un compte bloqué ou un administrateur OneUptime ne reçoit aucun e-mail. Une installation auto-hébergée refuse plutôt ces deux cas avec un seul message.
 
 Sur OneUptime Cloud, une personne qui rejoint le projet via le SSO occupe un siège, comme une personne que vous invitez. Si votre plan comprend un nombre fixe de sièges et qu'ils sont tous pris, les nouvelles personnes ne peuvent pas rejoindre le projet via le SSO tant qu'aucun siège ne s'est libéré.
 
@@ -79,7 +79,7 @@ Vous avez besoin de l'autorisation d'ajouter des fournisseurs SSO — **Proprié
    - Un nouveau fournisseur est désactivé au départ. Une fois que votre IdP a ces deux valeurs, modifiez le fournisseur et activez **Activé**
 
 4. **Tester le fournisseur**
-   - Ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur sur la page qui s'ouvre. Vous êtes redirigé vers la page de connexion de votre fournisseur d'identité, puis revenez sur OneUptime, connecté
+   - Ouvrez le lien de la carte **Lien de connexion SSO** et choisissez le fournisseur sur la page qui s'ouvre. Vous êtes redirigé vers la page de connexion de votre fournisseur d'identité, puis revenez sur OneUptime, connecté
    - Une fois que cela fonctionne, vous pouvez [exiger le SSO](#exiger-le-sso-pour-votre-projet) pour le projet
 :::
 
@@ -127,11 +127,11 @@ Keycloak est une solution open source répandue de gestion des identités et des
 4. **Ajuster les paramètres du client**
 
    - Réglez **Name ID Format** sur `email` et activez **Force Name ID Format**, pour que Keycloak envoie toujours l'e-mail comme Name ID
-   - Dans l'onglet **Keys** du client, désactivez **Client signature required** (dans **Signing keys config**) : OneUptime ne signe pas ses requêtes
+   - Dans l'onglet **Keys** du client, désactivez **Client signature required** (dans **Signing keys config**) : OneUptime ne signe pas ses requêtes de connexion
 
 5. **Activer le fournisseur et le tester**
 
-   Dans OneUptime, modifiez le fournisseur et activez **Activé**, puis ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur. Vous devez être redirigé vers la page de connexion Keycloak, puis revenir sur OneUptime.
+   Dans OneUptime, modifiez le fournisseur et activez **Activé**, puis ouvrez le lien de la carte **Lien de connexion SSO** et choisissez le fournisseur. Vous devez être redirigé vers la page de connexion Keycloak, puis revenir sur OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (anciennement Azure AD / Active Directory) est le service d'identité cloud de Microsoft. Il vous faut un tenant qui prend en charge les applications d'entreprise avec le SSO SAML, et un accès administrateur à Entra ID et à OneUptime. Sur OneUptime Cloud, si la galerie d'applications Microsoft Entra propose OneUptime, ajoutez l'application depuis la galerie : elle est livrée avec les revendications que lit OneUptime et les modèles de ses URL.
@@ -182,7 +182,7 @@ Microsoft Entra ID (anciennement Azure AD / Active Directory) est le service d'i
 
 7. **Activer le fournisseur et le tester**
 
-   Dans OneUptime, modifiez le fournisseur et activez **Activé**, puis ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur. Vous devez être redirigé vers la page de connexion Microsoft, puis revenir sur OneUptime.
+   Dans OneUptime, modifiez le fournisseur et activez **Activé**, puis ouvrez le lien de la carte **Lien de connexion SSO** et choisissez le fournisseur. Vous devez être redirigé vers la page de connexion Microsoft, puis revenir sur OneUptime.
 :::
 @tab Okta
 Okta est une plateforme d'identité largement utilisée qui prend en charge le SSO SAML. Il vous faut une organisation Okta avec un accès administrateur, et un accès administrateur à OneUptime. Sur OneUptime Cloud, si l'Okta Integration Network propose OneUptime, ajoutez l'application depuis ce catalogue : elle connecte les personnes depuis la page **Connexion avec SSO** d'OneUptime et depuis leur tableau de bord Okta, leur donne un compte lors de leur première connexion, et demande deux ID au lieu des URL d'OneUptime.
@@ -232,7 +232,7 @@ Okta est une plateforme d'identité largement utilisée qui prend en charge le S
 
 6. **Activer le fournisseur et le tester**
 
-   Dans OneUptime, modifiez le fournisseur et activez **Activé**, puis ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur. Vous devez être redirigé vers la page de connexion Okta, puis revenir sur OneUptime.
+   Dans OneUptime, modifiez le fournisseur et activez **Activé**, puis ouvrez le lien de la carte **Lien de connexion SSO** et choisissez le fournisseur. Vous devez être redirigé vers la page de connexion Okta, puis revenir sur OneUptime.
 :::
 @tab Autre
 Le SSO d'OneUptime utilise SAML 2.0 et fonctionne avec tout fournisseur d'identité conforme :
@@ -242,7 +242,7 @@ Le SSO d'OneUptime utilise SAML 2.0 et fonctionne avec tout fournisseur d'identi
 2. Dans OneUptime, créez le fournisseur avec ces valeurs, puis copiez l'**Identifiant (Entity ID)** et la **URL de réponse (URL du service consommateur d'assertions)** depuis la boîte de dialogue **Configuration SSO** (ou **Voir la configuration SSO**).
 3. Dans l'application SAML de votre fournisseur d'identité, définissez l'**Assertion Consumer Service URL / Reply URL** et l'**Entity ID / Audience URI** sur les valeurs d'OneUptime, et le **Name ID Format** sur l'adresse e-mail.
 4. La **Méthode de signature** (`RSA-SHA256`) et la **Méthode de hachage** (`SHA256`) sont déjà définies sous **Plus de champs** ; ne les modifiez que si votre fournisseur d'identité signe autrement
-5. Activez **Activé** pour le fournisseur, puis testez-le avec le lien de la carte **Test Single Sign On (SSO)**.
+5. Activez **Activé** pour le fournisseur, puis testez-le avec le lien de la carte **Lien de connexion SSO**.
 :::
 :::
 
@@ -256,14 +256,36 @@ Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Googl
 3. Saisissez un **Nom** (ce que les personnes voient sur la page de connexion), l'**URL de l'émetteur**, l'**ID client** et le **Secret client**. Vous pouvez aussi coller l'URL de découverte du fournisseur dans **URL de l'émetteur**.
 4. À l'étape **Connexion**, **Équipes** commence par l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Tout le reste est prérempli sous **Plus de champs** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description ("Sign in with" suivi du nom). Ne les modifiez que si votre fournisseur l'exige. Seules les équipes dans lesquelles vous pourriez inviter quelqu'un sont acceptées : une équipe qui donne plus d'accès que vous n'en avez est signalée sous **Équipes**.
 5. Enregistrez. La boîte de dialogue **Configuration OIDC** s'ouvre avec la **Redirect URI** : ajoutez-la aux URI de redirection autorisées de votre application. Un nouveau fournisseur est désactivé au départ : modifiez-le ensuite et activez **Activé**.
-6. Ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur, pour vous connecter avec lui avant d'exiger le SSO pour le projet.
+6. Ouvrez le lien de la carte **Lien de connexion SSO** et choisissez le fournisseur, pour vous connecter avec lui avant d'exiger le SSO pour le projet.
 :::
 
-### Se déconnecter aussi du fournisseur d'identité
+## Se déconnecter aussi du fournisseur d'identité
 
-Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, comme un écran de NOC ou une borne, la personne suivante qui choisit le fournisseur sur la page de connexion entre donc à la place de celle qui est partie. Activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** pour qu'une déconnexion de OneUptime mette aussi fin à la session chez le fournisseur. C'est désactivé par défaut : sur un ordinateur portable personnel, cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur.
+Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, comme un écran de NOC ou une borne, la personne suivante qui choisit le fournisseur sur la page de connexion entre donc à la place de celle qui est partie. Sur un fournisseur SAML ou OIDC, activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** pour qu'une déconnexion de OneUptime mette aussi fin à la session chez le fournisseur. C'est désactivé par défaut : sur un ordinateur portable personnel, cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur. Cela s'applique aux personnes qui se connectent dans un navigateur après l'activation ; l'application mobile se déconnecte de OneUptime seulement.
 
-Une fois l'option activée, le navigateur passe par la déconnexion du fournisseur dès que OneUptime l'a déconnecté, et le fournisseur le renvoie vers la page de connexion de OneUptime. Enregistrez cette page auprès de votre fournisseur : la boîte de dialogue **Configuration OIDC** l'affiche comme URI de redirection après déconnexion, que les fournisseurs appellent post-logout redirect URI. Un fournisseur dont le document de découverte ne nomme aucun `end_session_endpoint`, comme Google, ne peut pas l'activer. Elle s'applique aux personnes qui se connectent dans un navigateur après son activation ; l'application mobile se déconnecte de OneUptime seulement. Les fournisseurs SAML ne déconnectent jamais personne du fournisseur d'identité.
+:::tabs
+@tab SAML
+Saisissez l'URL de déconnexion de votre fournisseur d'identité comme **URL de déconnexion** du fournisseur, sous **Plus de champs** : sans elle, l'option ne peut pas être activée. Donnez ensuite à votre fournisseur d'identité l'**URL de Single Logout** de la boîte de dialogue **Configuration SSO**, ainsi que le certificat avec lequel OneUptime signe ses demandes de déconnexion, via **Télécharger le certificat de signature** dans la même boîte de dialogue.
+
+| Fournisseur d'identité | URL de déconnexion | Où vont l'URL de Single Logout et le certificat |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, dans **View SAML setup instructions** sur l'onglet **Sign On** | Sur l'onglet **General**, modifiez les **SAML Settings**, cliquez sur **Show Advanced Settings** et cochez **Allow application to initiate Single Logout**. Mettez dans **Single Logout URL** l'URL de Single Logout et dans **SP Issuer** l'identifiant (Entity ID), puis téléversez le certificat comme **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, dans **Set up OneUptime** | Dans **Basic SAML Configuration**, mettez l'URL de Single Logout dans **Logout Url (Optional)**. Entra ID n'a besoin d'aucun certificat. |
+| Keycloak | Le point de terminaison SAML du realm, le même que l'URL de connexion | Sur l'onglet **Advanced** du client, mettez l'URL de Single Logout dans **Logout Service Redirect Binding URL**. Laissez **Front channel logout** activé. Keycloak n'a besoin d'aucun certificat tant que **Client signature required** est désactivé, comme configuré plus haut. |
+
+Après une déconnexion là-bas, le fournisseur d'identité renvoie le navigateur vers l'URL de Single Logout, qui ouvre la page de connexion, ou indique que le fournisseur d'identité n'a pas confirmé la déconnexion. Quand la personne se déconnecte chez le fournisseur d'identité, ou d'une autre application qui l'utilise, un fournisseur d'identité qui envoie des demandes de déconnexion à ses applications, comme Keycloak et Microsoft Entra ID, la déconnecte aussi de OneUptime. OneUptime n'accepte qu'une demande signée par le fournisseur d'identité.
+@tab OpenID Connect
+Le navigateur passe par la déconnexion du fournisseur dès que OneUptime l'a déconnecté, et le fournisseur le renvoie vers la page de connexion de OneUptime. Enregistrez cette page auprès de votre fournisseur : la boîte de dialogue **Configuration OIDC** l'affiche comme URI de redirection après déconnexion, que les fournisseurs appellent post-logout redirect URI. Un fournisseur dont le document de découverte ne nomme aucun `end_session_endpoint`, comme Google, ne peut pas l'activer.
+
+| Fournisseur d'identité | Où enregistrer l'URI de redirection après déconnexion |
+| --- | --- |
+| Okta | Sur l'onglet **General** de l'intégration, cliquez sur **Edit** dans **General Settings** et ajoutez-la à **Sign-out redirect URIs**. |
+| Microsoft Entra ID | Dans l'inscription d'application, sous **Authentication**, ajoutez-la aux **Redirect URIs** de la plateforme **Web**. La **Front-channel logout URL** est un autre réglage, que OneUptime n'utilise pas. |
+| Auth0 | Dans les **Settings** de l'application, ajoutez-la aux **Allowed Logout URLs**. Un tenant créé avant le 14 novembre 2023 doit aussi activer **RP-Initiated Logout End Session Endpoint Discovery** dans ses réglages **Advanced**, pour que son document de découverte nomme un `end_session_endpoint`. |
+| Keycloak | Dans les réglages du client, ajoutez-la à **Valid post logout redirect URIs** (Keycloak 19 et versions ultérieures). |
+
+Un fournisseur chez qui elle n'est pas enregistrée affiche sa propre page d'erreur après une déconnexion de OneUptime, au lieu de renvoyer la personne ; elle est tout de même déconnectée de OneUptime.
+:::
 
 ## Rôles et équipes des utilisateurs SSO
 
@@ -271,12 +293,27 @@ OneUptime ne reprend pas les rôles ni les groupes de votre fournisseur d'identi
 
 Les équipes d'un fournisseur décident de ce que peuvent faire les personnes qui se connectent avec lui ; un fournisseur n'est donc enregistré qu'avec des équipes dans lesquelles la personne qui l'enregistre pourrait inviter quelqu'un. Chaque enregistrement les vérifie de nouveau : un fournisseur dont les équipes donnent plus d'accès que vous n'en avez ne peut être modifié que par quelqu'un dont l'accès les couvre, comme un Propriétaire du projet. Les fournisseurs enregistrés avant cette vérification continuent de connecter les personnes à leurs équipes. Toute personne autorisée à modifier un fournisseur peut toujours le désactiver, afin de pouvoir l'arrêter immédiatement.
 
+## Domaines
+
+**Connexion avec SSO** demande une adresse e-mail et propose les fournisseurs qui servent le domaine de cette adresse. Elle ne lit aucun compte : une adresse qui a un compte dans votre projet et une adresse sans aucun compte reçoivent la même réponse, la page ne dit donc rien de qui a un compte. Pour y être proposé, un fournisseur indique les domaines qu'il sert :
+
+1. Ajoutez votre domaine dans **Paramètres du projet** > **Avancé** > **Domaines**, cliquez sur **Vérifier le domaine** sur sa ligne, puis ajoutez l'enregistrement TXT affiché au DNS du domaine. Dès que l'enregistrement est trouvé, le domaine est vérifié.
+2. Modifiez le fournisseur et choisissez le domaine sous **Domaines** à l'étape **Connexion**. Seuls les domaines vérifiés du projet sont listés.
+
+**Connexion avec SSO** propose alors le fournisseur à toute adresse de ce domaine, quelle que soit la personne qui la saisit. Le domaine doit correspondre exactement : `acme.com` ne couvre pas `eu.acme.com`, ajoutez donc chaque domaine avec lequel on se connecte.
+
+Les fournisseurs configurés avant l'arrivée des domaines ont reçu les domaines vérifiés de leur projet lors de la mise à niveau de OneUptime : chaque domaine que le projet avait vérifié, sauf si un autre projet l'avait vérifié aussi. Choisissez vous-même un tel domaine s'il est à vous. Un domaine ajouté mais jamais vérifié n'a été donné à aucun fournisseur.
+
+Un fournisseur qui n'indique aucun domaine vérifié n'y est proposé à personne. Sa colonne **Domaines** indique **Aucun domaine vérifié**, et un avis au-dessus de vos fournisseurs le nomme et dit quoi faire. Tant que le projet n'a aucun domaine vérifié, **Vérifier un domaine** dans l'avis ouvre **Domaines**.
+
+Une personne dont l'e-mail est sur un autre domaine, comme un prestataire, n'y trouve pas de fournisseur non plus. Partagez-lui le lien de connexion SSO de votre projet : copiez-le depuis la carte **Lien de connexion SSO** sous vos fournisseurs. Il liste les fournisseurs du projet et ne demande aucune adresse e-mail, il ne dit donc rien de qui a un compte. Une connexion lancée depuis votre fournisseur d'identité fonctionne aussi, quel que soit le domaine.
+
 ## Exiger le SSO pour votre projet
 
 Configurer un fournisseur n'empêche personne de se connecter avec un mot de passe. Pour faire du SSO le seul moyen d'entrer dans le projet, utilisez l'interrupteur **Exiger le SSO pour la connexion** dans **Paramètres du projet** > **Sécurité** > **SSO**, sous vos fournisseurs :
 
 :::steps
-1. Testez d'abord votre fournisseur avec le lien de la carte **Test Single Sign On (SSO)**.
+1. Testez d'abord votre fournisseur avec le lien de la carte **Lien de connexion SSO**.
 2. Activez **Exiger le SSO pour la connexion**. OneUptime demande confirmation avant d'enregistrer quoi que ce soit : à partir de ce moment, tout le monde dans le projet, vous compris, doit se connecter avec le SSO pour l'ouvrir, et toute personne connectée avec un mot de passe est exclue du projet jusqu'à ce qu'elle se connecte avec le SSO.
 3. Cliquez sur **Exiger le SSO** pour confirmer. L'interrupteur enregistre immédiatement ; il n'y a pas de bouton d'enregistrement séparé.
 :::
@@ -305,9 +342,21 @@ La règle est vérifiée à chaque fois, donc :
 - **Une personne dans un projet qui ne gère pas la connexion** : dès qu'elle est membre d'un projet, ou invitée dans un projet, qui n'exige pas le SSO ou n'a pas activé **Gérer la connexion avec le SSO**, elle retrouve ses réglages, et son **Profil utilisateur** nomme ce projet comme la raison. Si elle le quitte, sa connexion est de nouveau gérée. Un compte peut appartenir à de nombreuses organisations : une organisation ne décide donc jamais pour les projets d'une autre.
 - **Des projets avec des fournisseurs différents** : une personne dans deux projets qui gèrent tous deux la connexion, chacun avec son propre fournisseur d'identité, est gérée, et son profil nomme les deux fournisseurs.
 - **Les administrateurs principaux** gardent toujours leurs propres réglages.
-- **Ce que les personnes ont configuré avant** est conservé, inutilisé par votre projet. Un administrateur du serveur peut l'effacer sur la page **Authentification** de la personne dans l'Admin Dashboard, avec **Effacer les paramètres de connexion**.
+- **Ce que les personnes ont configuré avant** est conservé, inutilisé par votre projet, jusqu'à ce qu'il soit effacé : par les Propriétaires du projet (voir ci-dessous), ou par un administrateur du serveur sur la page **Authentification** de la personne dans l'Admin Dashboard, avec **Effacer les paramètres de connexion**.
 
 **Gérer la connexion avec le SSO** enregistre dès que vous basculez l'interrupteur, ne supprime rien, et le désactiver rend aussitôt leurs réglages à tous. Qui peut modifier **Exiger le SSO pour la connexion** peut le modifier, avec les mêmes plans. Quand **Exiger le SSO pour la connexion** est désactivé, il est masqué et ne change rien.
+
+### Effacer ce que vos membres ont enregistré avant
+
+Tant que **Gérer la connexion avec le SSO** est activé, les Propriétaires du projet voient en dessous combien de ses membres ont encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime. **Effacer les paramètres de connexion** supprime, après confirmation, leurs mots de passe avec tout lien de réinitialisation ou de connexion, leurs clés d'accès, clés de sécurité, applications d'authentification et codes de secours, désactive l'authentification à deux facteurs et met fin aux sessions qu'ils ont ouvertes sans SSO. C'est irréversible.
+
+Un compte peut appartenir à de nombreuses organisations : vous ne pouvez donc effacer les réglages que des personnes dont votre organisation est responsable. Votre organisation, ce sont les projets dont vous êtes propriétaire : les réglages d'une personne ne sont effacés que si chaque projet auquel elle appartient, y compris tout projet auquel elle est invitée, est un projet dont vous êtes **Propriétaire du projet** et qui a activé **Gérer la connexion avec le SSO**. Toutes les autres personnes gardent leurs réglages :
+
+- une personne membre d'un projet, ou invitée dans un projet, dont vous n'êtes pas propriétaire ou qui ne gère pas la connexion avec le SSO ;
+- une personne seulement invitée dans votre projet, qui ne l'a pas encore rejoint ;
+- les administrateurs principaux, et vous : changez vos propres réglages dans votre **Profil utilisateur**.
+
+Chaque personne dont les réglages sont effacés reçoit un e-mail indiquant ce qui a été supprimé et qu'elle se connecte désormais avec le SSO, et les journaux d'audit de vos projets enregistrent l'effacement à votre nom. Seul un **Propriétaire du projet** peut effacer, connecté au tableau de bord : jamais avec une clé d'API.
 
 ## Désactiver ou supprimer un fournisseur
 

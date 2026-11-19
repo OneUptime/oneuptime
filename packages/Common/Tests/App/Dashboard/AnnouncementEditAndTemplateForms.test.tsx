@@ -136,8 +136,21 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementFormFields";
 import {
   ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
+  ANNOUNCEMENT_NOT_SHOWN,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
+  ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+  ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
+  ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import {
+  ANNOUNCEMENT_NOTIFIES,
+  AnnouncementReachAnswer,
+  AnnouncementReachAsk,
+  announcementNothingSent,
+  answerAnnouncementReach,
+} from "./AnnouncementReachAnswers";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ModelForm, {
   FormType,
@@ -176,6 +189,13 @@ interface CardProps<T extends BaseModel> {
 
 // The announcement as the server holds it: showing since yesterday.
 let storedAnnouncement: JSONObject = {};
+
+/*
+ * What the server says of the status pages picked (#9775): by default a
+ * page picked shows announcements and tells its subscribers.
+ */
+let reachAnswer: AnnouncementReachAnswer = ANNOUNCEMENT_NOTIFIES;
+let reachAsks: Array<AnnouncementReachAsk> = [];
 
 function cardHandedTo<T extends BaseModel>(name: string): CardProps<T> {
   const found: unknown = cardModelDetailRenderMock.mock.calls
@@ -305,6 +325,12 @@ beforeEach(() => {
 
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
   OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+  reachAnswer = ANNOUNCEMENT_NOTIFIES;
+  reachAsks = answerAnnouncementReach((): AnnouncementReachAnswer => {
+    return reachAnswer;
+  });
+
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockReturnValue(new ObjectID(ANNOUNCEMENT_ID));
@@ -538,6 +564,204 @@ describe("the announcement's details card Edit", () => {
     });
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
+
+  /*
+   * What the status pages picked do (#9775): the Edit says it of its
+   * Schedule, and under "Notify subscribers about this update" once it is
+   * ticked - asking about the announcement as it will be saved.
+   */
+  describe("on the status pages picked", () => {
+    function updateBox(): HTMLElement {
+      return screen.getByRole("checkbox", {
+        name: SubscriberUpdateNotification.formFieldTitle,
+      });
+    }
+
+    function queryUpdateReason(): HTMLElement | null {
+      return screen.queryByTestId("announcement-update-notify-reason");
+    }
+
+    async function tickUpdateBox(): Promise<void> {
+      fireEvent.click(updateBox());
+      await act(async () => {});
+    }
+
+    test("asks about the pages picked, as this announcement will be saved", async () => {
+      await renderEditForm();
+
+      await waitFor(() => {
+        expect(reachAsks.length).toBeGreaterThan(0);
+      });
+      expect(reachAsks[0]).toMatchObject({
+        statusPageIds: [STATUS_PAGE_ID],
+        announcementId: ANNOUNCEMENT_ID,
+      });
+    });
+
+    test("pages that show and notify: the update box says nothing more, ticked or not, and Schedule says when it shows", async () => {
+      await renderEditForm();
+      await tickUpdateBox();
+
+      expect(updateBox()).toBeChecked();
+      expect(queryUpdateReason()).toBeNull();
+
+      await goToNextStep("Status Pages");
+
+      expect(sectionLine()).toBe(ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded);
+    });
+
+    test("pages that never notify: ticked, the update box says why nobody would be sent it", async () => {
+      reachAnswer = announcementNothingSent(
+        PublicNoteNothingSentReason.NotificationsOff,
+      );
+
+      await renderEditForm();
+
+      // Unticked - as every edit starts - there is nothing to explain.
+      expect(queryUpdateReason()).toBeNull();
+
+      await tickUpdateBox();
+
+      await waitFor(() => {
+        expect(queryUpdateReason()).toHaveTextContent(
+          ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+        );
+      });
+
+      // It still shows: Schedule says when.
+      await goToNextStep("Status Pages");
+
+      expect(sectionLine()).toBe(ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded);
+    });
+
+    test("pages that hide announcements: Schedule says it shows nowhere, and the ticked update box says why", async () => {
+      reachAnswer = announcementNothingSent(
+        PublicNoteNothingSentReason.NoStatusPages,
+      );
+
+      await renderEditForm();
+      await tickUpdateBox();
+
+      await waitFor(() => {
+        expect(queryUpdateReason()).toHaveTextContent(ANNOUNCEMENT_NOT_SHOWN);
+      });
+
+      await goToNextStep("Status Pages");
+
+      await waitFor(() => {
+        expect(sectionLine()).toBe(ANNOUNCEMENT_NOT_SHOWN);
+      });
+
+      // The edit is saved all the same, with the update asked for.
+      fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+      expect(call0MiscData()).toEqual(
+        SubscriberUpdateNotification.getMiscDataProps(),
+      );
+    });
+
+    test("not known yet: nothing is said", async () => {
+      reachAnswer = "never";
+
+      await renderEditForm();
+      await tickUpdateBox();
+
+      expect(queryUpdateReason()).toBeNull();
+
+      await goToNextStep("Status Pages");
+
+      expect(sectionLine()).toBe(ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded);
+    });
+  });
+
+  /*
+   * #9921: the update job skips an update for the announcement's own state
+   * before it reads a page - its own notification not gone out yet, or its
+   * start still to come - and the ticked box says so first.
+   */
+  describe("for the announcement's own state", () => {
+    function queryUpdateReason(): HTMLElement | null {
+      return screen.queryByTestId("announcement-update-notify-reason");
+    }
+
+    async function tickUpdateBox(): Promise<void> {
+      fireEvent.click(
+        screen.getByRole("checkbox", {
+          name: SubscriberUpdateNotification.formFieldTitle,
+        }),
+      );
+      await act(async () => {});
+    }
+
+    test("its start still to come: it is not shown until then, so the update is not sent - whatever the pages do", async () => {
+      storedAnnouncement["showAnnouncementAt"] = "2026-10-05T09:00:00.000Z";
+      reachAnswer = {
+        nothingSentReason: PublicNoteNothingSentReason.NotificationsOff,
+        originalNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      };
+
+      await renderEditForm();
+      await tickUpdateBox();
+
+      await waitFor(() => {
+        expect(queryUpdateReason()).toHaveTextContent(
+          `This announcement is not shown on status pages until ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(new Date("2026-10-05T09:00:00.000Z"))}, so this update is not sent.`,
+        );
+      });
+    });
+
+    test("its own notification not gone out yet: so the update is not sent", async () => {
+      reachAnswer = {
+        nothingSentReason: null,
+        originalNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      };
+
+      await renderEditForm();
+      await tickUpdateBox();
+
+      await waitFor(() => {
+        expect(queryUpdateReason()).toHaveTextContent(
+          ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
+        );
+      });
+    });
+
+    test.each([
+      StatusPageSubscriberNotificationStatus.Success,
+      StatusPageSubscriberNotificationStatus.Skipped,
+      StatusPageSubscriberNotificationStatus.InProgress,
+    ])(
+      "its own notification %s: nothing more than what the pages do",
+      async (status: StatusPageSubscriberNotificationStatus) => {
+        reachAnswer = {
+          nothingSentReason: null,
+          originalNotificationStatus: status,
+        };
+
+        await renderEditForm();
+        await tickUpdateBox();
+        await waitFor(() => {
+          expect(reachAsks.length).toBeGreaterThan(0);
+        });
+        await act(async () => {});
+
+        expect(queryUpdateReason()).toBeNull();
+      },
+    );
+
+    test("unticked, as every edit starts: nothing is said", async () => {
+      storedAnnouncement["showAnnouncementAt"] = "2026-10-05T09:00:00.000Z";
+
+      await renderEditForm();
+
+      expect(queryUpdateReason()).toBeNull();
+    });
+  });
 });
 
 describe("an announcement template", () => {
@@ -639,6 +863,13 @@ describe("an announcement template", () => {
 
     expect(notify).toBeVisible();
     expect(notify).toBeChecked();
+    // What ticking it asks for, as Create's switch says it (#9921).
+    expect(notify).toHaveAccessibleDescription(
+      ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
+    );
+    expect(form()).not.toHaveTextContent(
+      "Subscribers of these status pages are told when an announcement made from this template starts showing.",
+    );
     expect(labelText("Monitors Affected")).toBe("Monitors Affected (Optional)");
 
     fireEvent.click(screen.getByRole("button", { name: "Create Template" }));

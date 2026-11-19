@@ -41,7 +41,7 @@ Fai clic sulla tua foto in alto a destra e scegli **Profilo**. La pagina **Panor
 
 Fai clic su **Modifica: Utente** e cambia ciò che ti serve:
 
-- **E-mail**: l'indirizzo con cui accedi. Se lo cambi, verifichi di nuovo il nuovo indirizzo.
+- **E-mail**: l'indirizzo con cui accedi. Se lo cambi, OneUptime invia un link al nuovo indirizzo, e il tuo indirizzo cambia quando lo apri. Fino ad allora accedi con quello attuale, e **Annulla modifica** ferma la modifica. L'indirizzo di un amministratore principale cambia subito.
 - **Nome completo**: il nome che il tuo team vede in tutto OneUptime.
 - **Fuso orario**: il fuso orario in cui la dashboard mostra e legge gli orari, e quello degli orari nelle notifiche che ti vengono inviate.
 - **Lingua**: la lingua della dashboard in ogni browser in cui accedi, e quella delle tue chiamate di reperibilità. Se non è impostata, le chiamate sono in inglese e la dashboard segue il tuo browser.
@@ -137,14 +137,14 @@ Se non hai ancora codici di backup, OneUptime te li mostra una sola volta, e hai
 
 ### Quando la tua organizzazione gestisce il tuo accesso
 
-Su un server che richiede il single sign-on, accedi solo tramite il provider di identità della tua organizzazione, come Okta o Microsoft Entra ID, e OneUptime non imposta per te password, passkey né autenticazione a due fattori. Il **Profilo utente** non ha quindi la sezione **Sicurezza**, e la sua **Panoramica** indica il tuo provider in **Single Sign-On**. Cambia la password e il secondo passaggio presso il tuo provider di identità. Quello che avevi configurato prima resta salvato: torna a funzionare solo se il server smette di richiedere il single sign-on, a meno che un amministratore del server non lo cancelli. Gli amministratori principali mantengono le proprie impostazioni di **Sicurezza**.
+Su un server che richiede il single sign-on, accedi solo tramite il provider di identità della tua organizzazione, come Okta o Microsoft Entra ID, e OneUptime non imposta per te password, passkey né autenticazione a due fattori. Il **Profilo utente** non ha quindi la sezione **Sicurezza**, e la sua **Panoramica** indica il tuo provider in **Single Sign-On**. Cambia la password e il secondo passaggio presso il tuo provider di identità. Quello che avevi configurato prima resta salvato: torna a funzionare solo se il server smette di richiedere il single sign-on, a meno che un amministratore del server non lo cancelli, e in quel caso ricevi un'email. Gli amministratori principali mantengono le proprie impostazioni di **Sicurezza**.
 
 Lo stesso accade quando ogni progetto a cui appartieni richiede il single sign-on e ha attivo **Gestisci l'accesso con l'SSO**. La tua password ti fa ancora accedere a OneUptime, ma ogni progetto chiede l'SSO, quindi OneUptime non imposta per te nessuna nuova password, passkey o secondo passaggio:
 
 - **Un progetto che non lo fa**: appena sei membro di un progetto, o vieni invitato in uno, che non richiede l'SSO o non ha attivo **Gestisci l'accesso con l'SSO**, la tua sezione **Sicurezza** torna. La **Panoramica** indica allora quei progetti in **Single Sign-On**, come motivo per cui le impostazioni sono tue. Lasciare quel progetto te le toglie di nuovo.
 - **Progetti con provider diversi**: se tutti i tuoi progetti gestiscono l'accesso, ciascuno con il proprio provider di identità, la **Panoramica** indica ogni provider.
 - **Gli amministratori principali** mantengono sempre le proprie impostazioni di **Sicurezza**.
-- **Quello che avevi configurato prima** resta salvato, e un amministratore del server può cancellarlo.
+- **Quello che avevi configurato prima** resta salvato. Può cancellarlo un amministratore del server, e anche un proprietario di tutti i progetti a cui appartieni; ricevi un'email quando lo fanno.
 
 ## I tuoi progetti
 
@@ -184,6 +184,14 @@ Apri **Zona pericolosa → Elimina account**. Puoi eliminare il tuo account solo
 
 :::details Non ho ricevuto l'e-mail per verificare il mio indirizzo
 Accedere di nuovo invia un nuovo link: controlla anche la cartella dello spam. Se non riesci ad accedere, usa **Password dimenticata?** nella pagina di accesso. Il suo link di reimpostazione verifica anche il tuo indirizzo.
+:::
+
+:::details La registrazione mi ha inviato un'e-mail che dice che ho già un account
+Quell'indirizzo ha già un account OneUptime, quindi la registrazione non ha creato né cambiato nulla. Accedi con quello, oppure usa **Password dimenticata?** nella pagina di accesso se non ricordi la password. La pagina di registrazione dice lo stesso per ogni indirizzo, quindi non rivela a nessuno quali indirizzi hanno un account.
+:::
+
+:::details Il mio indirizzo e-mail non è cambiato
+Il tuo indirizzo cambia solo quando apri il link che OneUptime ha inviato al nuovo indirizzo. Il link funziona per 24 ore: se è scaduto, cambia di nuovo la tua e-mail per riceverne uno nuovo. Se un altro account usa già quell'indirizzo, l'e-mail inviata lì lo dice, e il tuo indirizzo resta com'è.
 :::
 
 :::details Ho perso la mia app di autenticazione

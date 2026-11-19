@@ -1891,6 +1891,49 @@ export default class Project extends TenantModel {
   public requirePhoneMethodForOnCall?: boolean = undefined;
 
   /*
+   * VOICEMAIL ON ON-CALL CALLS (#6594): when on - every project starts so -
+   * each on-call call the project's members get through Twilio asks Twilio
+   * whether a person or voicemail answered it (answering machine
+   * detection, in the background, so a person who answers hears the page at
+   * once). A call that voicemail answered counts as not answered, so the
+   * page goes on as it does for a missed call, and leaves a short message
+   * once the greeting ends. Twilio charges for each answered call it
+   * checks, on the account that places it: the project's own Twilio
+   * config's, or the OneUptime server's. Off, a call voicemail answers
+   * counts as answered, as it always did. Read as on while it is empty.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Detect Voicemail on On-Call Calls",
+    description:
+      "When on, Twilio checks whether a person or voicemail answered each on-call call. A call voicemail answered counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    unique: false,
+    default: true,
+  })
+  public detectVoicemailOnCalls?: boolean = undefined;
+
+  /*
    * Throttle flag for the owner notification sent when the fallback above is used or
    * when a responder turns out to be unreachable. An incident storm must not turn into a
    * mail storm, so the owners are told once and the flag is cleared on the usual
@@ -2401,6 +2444,44 @@ export default class Project extends TenantModel {
     type: ColumnType.Number,
   })
   public aiRunTimeLimitInMinutes?: number = undefined;
+
+  /*
+   * How long one command of a code task may run on a Runner of the
+   * project's own (issue #6532): the install, build or test suite the code
+   * agent runs to check its change. Unset means the default, 10 minutes
+   * (Types/AI/AIAgentRunLimits), at most 120; a command never runs past the
+   * run's own time limit either. Beside the run's time limit on the Limits
+   * per run card, and changed by the same people.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "AI Command Time Limit (Minutes)",
+    description:
+      "How long one command a code task runs on a Runner of the project's own may take, such as a slow install, build or test suite: at most 120 minutes, and never past the run's time limit. Unset means the default, 10 minutes.",
+    example: 30,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunCommandTimeLimitInMinutes?: number = undefined;
 
   /*
    * When each of the two limits above last stopped OneUptime AI: the first

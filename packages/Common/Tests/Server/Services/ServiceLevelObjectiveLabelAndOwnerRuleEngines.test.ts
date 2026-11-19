@@ -945,6 +945,57 @@ describe("ServiceLevelObjectiveOwnerRuleEngineService", () => {
       expect(feedSpy).not.toHaveBeenCalled();
     });
 
+    /*
+     * #9933: createOwner skips a user with no accepted membership before
+     * the SLO owner service is ever asked, and answered false for them as
+     * it does for an owner already there - so the run said "already
+     * applied" for an SLO that got none of its owners. Told apart now, they
+     * are refused as the service's own refusal is.
+     */
+    it("counts a user who has left the project, skipped before any write, as refused - never as an owner the SLO has", async () => {
+      jest
+        .spyOn(TeamMemberService, "isUserMemberOfProject")
+        .mockImplementation((async (data: {
+          userId: ObjectID;
+        }): Promise<boolean> => {
+          return data.userId.toString() !== USER_A.toString();
+        }) as never);
+
+      expect(
+        await run([ownerRule({ namePattern: "checkout", users: [USER_A] })]),
+      ).toEqual(RuleApplicationResultUtil.failed());
+      expect(ownerWrites).toHaveLength(0);
+      expect(feedSpy).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(String(warnSpy.mock.calls[0]![0])).toContain("NotProjectMember");
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it("adds the rest when one of the users it names has left the project", async () => {
+      jest
+        .spyOn(TeamMemberService, "isUserMemberOfProject")
+        .mockImplementation((async (data: {
+          userId: ObjectID;
+        }): Promise<boolean> => {
+          return data.userId.toString() !== USER_A.toString();
+        }) as never);
+
+      expect(
+        await run([
+          ownerRule({
+            namePattern: "checkout",
+            users: [USER_A, USER_B],
+            teams: [TEAM_A],
+          }),
+        ]),
+      ).toEqual(RuleApplicationResultUtil.updated(2));
+      expect(
+        ownerWrites.map((write: OwnerWrite) => {
+          return write.ownerId;
+        }),
+      ).toEqual([USER_B.toString(), TEAM_A.toString()]);
+    });
+
     it("reports any other write failure as failed, and logs it", async () => {
       teamCreate.mockRejectedValue(new Error("database is down"));
 

@@ -4,6 +4,7 @@ import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MonitorStep from "../MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "../MonitorStepExceptionMonitor";
+import { MonitorStepTraceMonitorUtil } from "../MonitorStepTraceMonitor";
 import MonitorSteps from "../MonitorSteps";
 import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
@@ -14,12 +15,15 @@ import { DATA_PIPELINE_ID_SCOPE_ATTRIBUTE } from "../DataPipelineAlertTemplates"
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../KubernetesEventAlertTemplates";
 import { PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE } from "../ProxmoxNotificationAlertTemplates";
 import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "../../../Utils/OpenStack/OpenStackLogs";
+import { ManagedDeviceCheckInAttribute } from "../../DeviceManagement/ManagedDeviceCheckIn";
 
 // The query filters that name the one resource a metric step watches.
 const ATTRIBUTE_SCOPES: ReadonlyArray<string> = [
   DATABASE_SERVER_ID_SCOPE_ATTRIBUTE,
   DATA_STORE_ID_SCOPE_ATTRIBUTE,
   DATA_PIPELINE_ID_SCOPE_ATTRIBUTE,
+  // A device management connection's devices' check-ins (#9835).
+  ManagedDeviceCheckInAttribute.ConnectionId,
 ];
 
 /*
@@ -66,12 +70,15 @@ interface RecommendationMonitorStepConfig {
   metricViewConfig?: MetricsViewConfig | undefined;
   rollingTime?: unknown;
   aggregatesWholeWindow?: unknown;
+  judgeLatestReading?: unknown;
   attributes?: Record<string, unknown> | undefined;
   spanStatuses?: Array<unknown> | undefined;
   spanName?: string | undefined;
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfSpans?: number | undefined;
   exceptionTypes?: Array<string> | undefined;
+  excludedExceptionTypes?: Array<string> | undefined;
+  unhandledOnly?: boolean | undefined;
   environments?: Array<string> | undefined;
   message?: string | undefined;
   includeResolved?: boolean | undefined;
@@ -662,6 +669,15 @@ export default class MonitorRecommendationUtil {
       if (config.aggregatesWholeWindow === true) {
         values.push("aggregatesWholeWindow=true");
       }
+
+      /*
+       * So is a step that judges each series on its latest reading
+       * (judgeLatestReading): a managed device's check-ins judged over the
+       * whole window would alert an hour late. Said only when it is.
+       */
+      if (config.judgeLatestReading === true) {
+        values.push("judgeLatestReading=true");
+      }
     }
 
     if (configKind === "traceMonitor") {
@@ -672,6 +688,23 @@ export default class MonitorRecommendationUtil {
         `entityKeys=${(config.entityKeys || []).slice().sort().join(",")}`,
         `lastXSecondsOfSpans=${String(config.lastXSecondsOfSpans ?? "")}`,
       );
+
+      /*
+       * One alert per group (#9711): a monitor that counts every span of
+       * an app does not cover Device Stopped Reporting, which counts them
+       * per install. Written only when set, so every ungrouped step
+       * fingerprints exactly as before.
+       */
+      const groupByAttributes: Array<string> =
+        MonitorStepTraceMonitorUtil.getGroupByAttributes({
+          groupByAttributes: config.groupByAttributes,
+        });
+
+      if (groupByAttributes.length > 0) {
+        values.push(
+          `groupByAttributes=${groupByAttributes.slice().sort().join(",")}`,
+        );
+      }
     }
 
     if (configKind === "exceptionMonitor") {
@@ -694,6 +727,27 @@ export default class MonitorRecommendationUtil {
           config.lastXSecondsOfExceptions ?? "",
         )}`,
       );
+
+      /*
+       * Unhandled only, and the types left out (#9713): a monitor that
+       * counts every exception does not cover App Crashes, which counts the
+       * unhandled ones less ANRs and hangs. Written only when set, so every
+       * step without them fingerprints exactly as before.
+       */
+      const excludedExceptionTypes: Array<string> =
+        MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+          config.excludedExceptionTypes,
+        );
+
+      if (excludedExceptionTypes.length > 0) {
+        values.push(
+          `excludedExceptionTypes=${excludedExceptionTypes.sort().join(",")}`,
+        );
+      }
+
+      if (MonitorStepExceptionMonitorUtil.isUnhandledOnly(config)) {
+        values.push("unhandledOnly=true");
+      }
     }
 
     /*

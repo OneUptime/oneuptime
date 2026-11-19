@@ -16,7 +16,7 @@
 
 ```mermaid title="成本數字從何而來"
 flowchart TB
-    cadvisor["cAdvisor，經由<br/>API 伺服器節點代理"] --> prometheus["內建的 Prometheus"]
+    cadvisor["cAdvisor，來自<br/>各節點的 kubelet"] --> prometheus["內建的 Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["雲端供應商公開價格，<br/>或你的費率表"] --> opencost
     opencost -->|"每次一個<br/>已結束的小時"| poller["成本輪詢器"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**：開放原始碼的成本引擎（Apache-2.0，CNCF；也是 Kubecost 所依據的 [cost-model](https://github.com/kubecost/cost-model)）。它會監看叢集，為你的節點、磁碟區和負載平衡器定價，並算出每個工作負載的成本。
-2. **一個小型 Prometheus**：OpenCost 需要它來保存用量和價格歷程。它執行一個複本，保留 7 天的歷程，而且只抓取兩個目標：透過 API 伺服器節點代理存取的 cAdvisor（只保留 OpenCost 讀取的序列），以及 OpenCost 本身（它會發出自己的資源 request 指標，因此不涉及 kube-state-metrics）。它從不公開到叢集之外，其資料也從不離開叢集。
+2. **一個小型 Prometheus**：OpenCost 需要它來保存用量和價格歷程。它執行一個複本，保留 7 天的歷程，而且只抓取兩個目標：每個節點 kubelet 上的 cAdvisor（在 `eks-fargate` 預設集上，由於沒有 Pod 能存取 kubelet，改為透過 API 伺服器節點代理存取；只保留 OpenCost 讀取的序列），以及 OpenCost 本身（它會發出自己的資源 request 指標，因此不涉及 kube-state-metrics）。它從不公開到叢集之外，其資料也從不離開叢集。
 3. **成本輪詢器**（`cost.agent`）。每個小時結束後，它會讀取一次 OpenCost 的 Allocation API，並為每個工作負載向 OneUptime 傳送一列成本：CPU、記憶體、GPU、磁碟區、網路、負載平衡器和閒置，以及效率。每個小時只會傳送一次；伺服器會略過它已經有的小時，因此重新啟動不會把支出計算兩次。OneUptime 也會根據這些列寫入 [成本指標](#針對成本發出警示)。
 4. **一項成本指標抓取**（`cost.metrics`）。代理程式的 Collector 會抓取 OpenCost 的價格指標，也就是每個節點、磁碟區和負載平衡器每小時的成本，並與叢集的其餘指標一起傳送。
 
@@ -63,11 +63,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 成本指標（`node_total_hourly_cost`、`pv_hourly_cost` 等）都是一般指標：它們會出現在指標瀏覽器中、自訂儀表板上和指標監測器中。若要使用現成的儀表板，請前往 **產品 → 儀表板**，選取 **建立儀表板**，然後挑選 **Kubernetes Cost Dashboard**：其中包含節點每小時成本趨勢、CPU 和記憶體單價，以及磁碟區和負載平衡器的支出。
 
-在這些數字下方，概覽和 **成本** 頁面會說明價格從何而來：雲端供應商的公開價格、你的費率表，或 OpenCost 的預設費率。效率在各處都是同一個數字，效率指標也不例外：它表示所請求的 CPU 和記憶體中有多少被實際使用，每個容器的每個小時都依其 CPU 和記憶體的成本加權，因此一個什麼都不用的廉價工作無法拉低一個充分利用的叢集，而且閒置容量不計算在內。
+在這些數字下方，概覽和 **成本** 頁面會說明價格從何而來：雲端供應商的公開價格、你的費率表，或 OpenCost 的預設費率，無論由哪個引擎為叢集定價，Kubecost 3 也包括在內。讀取你的雲端帳單的 Kubecost 會在每個小時結束約一天半後，依該帳單調節其價格，因此這行說明會指出這些數字是它調節之前的公開價格。效率在各處都是同一個數字，效率指標也不例外：它表示所請求的 CPU 和記憶體中有多少被實際使用，每個容器的每個小時都依其 CPU 和記憶體的成本加權，因此一個什麼都不用的廉價工作無法拉低一個充分利用的叢集，而且閒置容量不計算在內。
 
 ## 已經在執行 Kubecost 或 OpenCost？
 
-成本代理程式會找到它，並讀取它而不是內建的 OpenCost，因此叢集會依你的設定來定價：你的費率表，或 Kubecost 所串接的雲端帳單。它會在啟動時以及之後每小時，透過 Kubernetes API 在所有命名空間中尋找這些引擎自己的 chart 所建立的 Service（Kubecost 的 `cost-analyzer` 或 `frontend`、OpenCost 的 chart 所建立的 Service，以及 OpenCost 的資訊清單所建立的 `opencost` Service），並優先選擇 Kubecost。它會略過沒有回應、需要登入或傳回多個叢集資料的引擎，轉而讀取內建的引擎。
+成本代理程式會找到它，並讀取它而不是內建的 OpenCost，因此叢集會依你的設定來定價：你的費率表，或 Kubecost 所串接的雲端帳單。它會在啟動時以及之後每小時，透過 Kubernetes API 在所有命名空間中尋找這些引擎自己的 chart 所建立的 Service（Kubecost 的 `cost-analyzer` 或 `frontend`、OpenCost 的 chart 所建立的 Service，以及 OpenCost 的資訊清單所建立的 `opencost` Service），並優先選擇 Kubecost。它會略過沒有回應、需要登入或傳回多個叢集資料的引擎，轉而讀取內建的引擎。隨後，Collector 也會為 Kubernetes Cost Dashboard 抓取你的引擎的價格指標，因此儀表板和成本頁面顯示的價格相同，而資源規格調整會從你的引擎所讀取的 Prometheus 中讀取記憶體峰值。
 
 接著，叢集的概覽會顯示你的引擎名稱，並說明不需要內建的 OpenCost。停止執行它：
 
@@ -86,7 +86,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 | Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API 路徑會被自動找到（Kubecost 為 `/model/allocation`，OpenCost 為 `/allocation/compute` 或 `/allocation`）。只有在安裝方式不尋常時才需要設定 `cost.engine.allocationPath`。使用 `auto` 或 URL 時不會內建任何東西，因此若要取得記憶體建議，也要設定 `cost.engine.prometheusUrl`（請參閱 [建議背後的資料](#建議背後的資料)）。價格指標也以同樣的方式找到，因此指定引擎的哪個 Service 都可以：代理程式依序嘗試引擎的 `/metrics`、Kubecost 2 前端或 OpenCost 的 UI 轉給引擎的 `/model/metrics`、Kubecost 3 的 FinOps 代理程式，Collector 會抓取第一個帶有價格序列的位址。若要自行指定，請設定 `cost.metrics.endpoint`。
+Allocation API 路徑會被自動找到（Kubecost 為 `/model/allocation`，OpenCost 為 `/allocation/compute` 或 `/allocation`）。只有在安裝方式不尋常時才需要設定 `cost.engine.allocationPath`。用於記憶體建議的、你的引擎所讀取的 Prometheus 也會被自動找到，但 Kubecost 3 不讀取任何 Prometheus：此時請設定 `cost.engine.prometheusUrl`（請參閱 [建議背後的資料](#建議背後的資料)）。價格指標也以同樣的方式找到，因此指定引擎的哪個 Service 都可以：代理程式依序嘗試引擎的 `/metrics`、Kubecost 2 前端或 OpenCost 的 UI 轉給引擎的 `/model/metrics`、Kubecost 3 的 FinOps 代理程式，Collector 會抓取第一個帶有價格序列的位址。若要自行指定，請設定 `cost.metrics.endpoint`。
 
 ## 地端和裸機定價
 
@@ -156,8 +156,8 @@ cost:
 記憶體還需要另一個資料來源。Allocation API 只會回報每個時間範圍的平均值，而每小時平均值會掩蓋導致容器被 OOM kill 的突增，因此據此決定記憶體規格是危險的。所以輪詢器會改為從 Prometheus 讀取每個容器的記憶體峰值，並依 `(namespace, pod, container)` 進行關聯：
 
 - 使用內建引擎（預設）時，它會使用 chart 內建的 Prometheus。不需要任何設定。
-- 設定了 `cost.engine.url`（`auto` 或你的引擎的 URL）時，請將 `cost.engine.prometheusUrl` 指向一個抓取 cAdvisor 的 Prometheus，如果其抓取工作的名稱不是 `kubernetes-nodes-cadvisor`，也要設定 `cost.engine.prometheusCadvisorJob`。
-- 沒有 Prometheus 時，CPU 建議仍可根據已儲存的每小時平均值正常運作，而記憶體建議會被省略，而不是靠猜測得出。
+- 使用你自己的引擎時，它會使用該引擎所讀取的 Prometheus，由代理程式自動找到：OpenCost 的 `PROMETHEUS_SERVER_ENDPOINT`，或 Kubecost 2 隨附的 Prometheus，前提是它能傳回此叢集的 cAdvisor 序列。Kubecost 3 不讀取任何 Prometheus，因此只要 chart 執行著內建的 Prometheus，就由它來代替。
+- 否則，或者要自行選擇一個時，請將 `cost.engine.prometheusUrl` 指向一個抓取 cAdvisor 的 Prometheus；如果它在多個抓取工作下抓取 cAdvisor，且要讀取的工作名稱不是 `kubernetes-nodes-cadvisor`，也要設定 `cost.engine.prometheusCadvisorJob`。沒有 Prometheus 時，CPU 建議仍可根據已儲存的每小時平均值正常運作，而記憶體建議會被省略，而不是靠猜測得出。
 
 Prometheus 中斷永遠不會停止支出的收集：峰值只是附加資訊，該小時會在沒有峰值的情況下傳送。CPU 刻意不使用 Prometheus：CPU request 過大只會導致節流，而記憶體 request 過小則會讓容器被終止，因此每小時平均值用於 CPU 是安全的；而且在整個叢集中查詢每個容器的 CPU 速率負擔很重，足以壓垮一個小型 Prometheus。
 
@@ -191,7 +191,7 @@ Kubernetes 監測器為它們提供了三個範本：Cluster Daily Cost Over Bud
 :::
 
 :::details 概覽顯示不需要內建的 OpenCost
-叢集執行著自己的 Kubecost 或 OpenCost，而成本代理程式讀取的是它，因此 chart 內建的 OpenCost 和 Prometheus 不會為任何東西定價。使用 `--set cost.engine.url=auto` 升級即可停止執行它們，或者設定 `cost.engine.preferExisting=false`，改為讀取內建的引擎。
+叢集執行著自己的 Kubecost 或 OpenCost，而成本代理程式讀取的是它，因此 chart 內建的 OpenCost 不會為任何東西定價。使用 `--set cost.engine.url=auto` 升級即可停止執行它及其 Prometheus，或者設定 `cost.engine.preferExisting=false`，改為讀取內建的引擎。使用 Kubecost 3 時，由於它不讀取任何 Prometheus，記憶體建議來自內建的 Prometheus：請在同一次升級中用 `cost.engine.prometheusUrl` 指定另一個。
 :::
 
 :::details 成本代理程式沒有讀取你的引擎
@@ -203,7 +203,7 @@ Kubernetes 監測器為它們提供了三個範本：Cluster Daily Cost Over Bud
 :::
 
 :::details Kubernetes Cost Dashboard 沒有資料
-該範本會讀取被抓取的成本指標：請檢查 `cost.metrics.enabled` 是否為 `true`。設定了 `cost.engine.url` 時，成本代理程式會找到你的引擎提供這些指標的位置，它的日誌會說明位置或它嘗試過的位址：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。若要自行指定，請設定 `cost.metrics.endpoint`。
+該範本會讀取被抓取的成本指標：請檢查 `cost.metrics.enabled` 是否為 `true`。成本代理程式會找到它所讀取的引擎（內建的引擎或你的引擎）提供這些指標的位置，它的日誌會說明位置或它嘗試過的位址：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。若要自行指定，請設定 `cost.metrics.endpoint`。
 :::
 
 :::details Right-Sizing 卡片是空的
@@ -211,11 +211,11 @@ Kubernetes 監測器為它們提供了三個範本：Cluster Daily Cost Over Bud
 :::
 
 :::details 記憶體建議顯示為 -，但 CPU 建議正常
-沒有任何記憶體峰值送達 OneUptime，因此記憶體規格沒有被決定，而不是根據平均值猜測。使用你自己的引擎時，請設定 `cost.engine.prometheusUrl`。卡片會說明這影響了多少個容器。
+沒有任何記憶體峰值送達 OneUptime，因此記憶體規格沒有被決定，而不是根據平均值猜測。使用你自己的引擎時，成本代理程式的日誌會說明它讀取的是哪個 Prometheus，或者為什麼一個也沒找到：請用 `cost.engine.prometheusUrl` 指定一個（Kubecost 3 不讀取任何 Prometheus）。卡片會說明這影響了多少個容器。
 :::
 
 :::details 數字與引擎本身的 UI 不一致
-OneUptime 會將引擎的調節調整計入每個成本組成部分，並傳送完整的、已結束的小時：目前小時的支出會在該小時結束後出現。
+OneUptime 會傳送完整的、已結束的小時，依引擎在這些小時結束時所定的價格，並計入其調節調整：目前小時的支出會在該小時結束後出現。讀取你的雲端帳單的 Kubecost 會在約一天半後依該帳單調節每個小時，而 OneUptime 會保留該小時最初定下的價格。
 :::
 
 :::details 內建的 Prometheus 重新啟動過

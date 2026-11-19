@@ -7,16 +7,22 @@ import ConfirmationRouter, {
   SSO_SIGN_IN_CONFIRMATION_VIEW,
 } from "../../../FeatureSet/Identity/API/ProjectSsoSignInConfirmation";
 import ProjectSsoSignInConfirmation, {
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
   PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS,
   PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
   PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+  PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+  PROJECT_SSO_NEW_ACCOUNT_PARAMETER,
+  PROJECT_SSO_NEW_ACCOUNT_PURPOSE,
+  PROJECT_SSO_SIGN_IN_REFUSED_ERROR,
+  PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE,
+  PROJECT_SSO_SIGN_IN_REFUSED_TITLE,
   ProjectSsoConfirmationOutcome,
   ProjectSsoConfirmationResult,
   ProjectSsoKind,
 } from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
+import ProjectSsoSignInGate, {
+  NO_ACCOUNT_CONSENT_STAND_IN,
+} from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInGate";
 import {
   SSO_NO_ROOM_MESSAGE,
   SSO_NO_ROOM_TITLE,
@@ -359,11 +365,48 @@ jest.mock("Common/Server/Utils/Cookie", () => {
 let oidcStateIsMobile: boolean = false;
 const signUserLoginToken: jest.Mock = jest.fn();
 
+/*
+ * A signed payload, as this suite stands in for the server's signature: a
+ * new-account link's claims are carried readable after a prefix that only
+ * this "signer" writes. "expired:" marks one whose day is up. Anything else
+ * decodes as the OIDC flow's state cookie.
+ */
+const SIGNED_PREFIX: string = "signed-by-server:";
+const EXPIRED_PREFIX: string = "expired:";
+
 jest.mock("Common/Server/Utils/JsonWebToken", () => {
   return {
     __esModule: true,
     default: {
-      decodeJsonPayload: (): JSONObject => {
+      decodeJsonPayload: (
+        token: string,
+        options?: { acceptExpired?: boolean },
+      ): JSONObject => {
+        let payload: string = token || "";
+        let isExpired: boolean = false;
+
+        if (payload.startsWith("expired:")) {
+          payload = payload.substring("expired:".length);
+          isExpired = true;
+        }
+
+        if (payload.startsWith("signed-by-server:")) {
+          if (isExpired && !options?.acceptExpired) {
+            throw new Error("jwt expired");
+          }
+
+          return JSON.parse(
+            Buffer.from(
+              payload.substring("signed-by-server:".length),
+              "base64",
+            ).toString("utf8"),
+          ) as JSONObject;
+        }
+
+        if (token && token !== "signed-state") {
+          throw new Error("invalid signature");
+        }
+
         return {
           state: "state",
           nonce: "nonce",
@@ -371,7 +414,14 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
           isMobile: oidcStateIsMobile,
         };
       },
-      signJsonPayload: (): string => {
+      signJsonPayload: (payload: JSONObject): string => {
+        if (payload["purpose"]) {
+          return (
+            "signed-by-server:" +
+            Buffer.from(JSON.stringify(payload), "utf8").toString("base64")
+          );
+        }
+
         return "signed-state";
       },
       signUserLoginToken: (...args: Array<unknown>): unknown => {
@@ -523,6 +573,12 @@ async function invoke(data: {
   params: Record<string, string>;
   body?: JSONObject | undefined;
   query?: JSONObject | undefined;
+  /*
+   * Whether to wait, once the answer is given, for what the sign-in set
+   * going without waiting for it (the emails): on, unless a test is about
+   * the answer not waiting.
+   */
+  settle?: boolean | undefined;
 }): Promise<RunResult> {
   const req: ExpressRequest = {
     params: data.params,
@@ -557,20 +613,30 @@ async function invoke(data: {
     nextError = err;
   }) as unknown as Promise<void>);
 
+  if (data.settle !== false) {
+    await ProjectSsoSignInGate.waitForBackgroundWork();
+  }
+
   return { nextError };
 }
 
 type Flow = {
   name: string;
   kind: ProjectSsoKind;
-  run: (data: { isMobile: boolean }) => Promise<RunResult>;
+  run: (data: {
+    isMobile: boolean;
+    settle?: boolean | undefined;
+  }) => Promise<RunResult>;
 };
 
 const FLOWS: Array<Flow> = [
   {
     name: "project SAML (/idp-login)",
     kind: ProjectSsoKind.SAML,
-    run: (data: { isMobile: boolean }): Promise<RunResult> => {
+    run: (data: {
+      isMobile: boolean;
+      settle?: boolean | undefined;
+    }): Promise<RunResult> => {
       return invoke({
         router: SSORouter,
         method: "POST",
@@ -580,13 +646,17 @@ const FLOWS: Array<Flow> = [
           SAMLResponse: Buffer.from("<Response/>").toString("base64"),
           ...(data.isMobile ? { RelayState: "mobile" } : {}),
         },
+        settle: data.settle,
       });
     },
   },
   {
     name: "project OIDC (/oidc-callback)",
     kind: ProjectSsoKind.OIDC,
-    run: (data: { isMobile: boolean }): Promise<RunResult> => {
+    run: (data: {
+      isMobile: boolean;
+      settle?: boolean | undefined;
+    }): Promise<RunResult> => {
       // The OIDC flow carries "mobile" in its signed state cookie.
       oidcStateIsMobile = data.isMobile;
 
@@ -596,6 +666,7 @@ const FLOWS: Array<Flow> = [
         path: "/oidc-callback/:projectId/:projectOidcId",
         params: { projectId: PROJECT_ID, projectOidcId: PROVIDER_ID },
         query: { code: "code", state: "state" },
+        settle: data.settle,
       });
     },
   },
@@ -980,39 +1051,207 @@ describe.each(FLOWS)(
 );
 
 describe.each(FLOWS)(
-  "$name on the hosted service -- an address the IdP provisions for the first time",
+  "$name on the hosted service -- an address no account uses yet (#9824)",
   (flow: Flow) => {
     beforeEach(() => {
       storedRow = null;
     });
 
-    test("creates the account unverified", async () => {
+    test("makes no account: nothing is left behind for an address a provider asserts", async () => {
       await flow.run({ isMobile: false });
 
-      expect(userCreateByEmail).toHaveBeenCalledTimes(1);
-
-      const call: Record<string, any> = userCreateByEmail.mock
-        .calls[0]![0] as Record<string, any>;
-
-      expect(call["email"].toString()).toBe(ASSERTED_EMAIL);
-      expect(call["isEmailVerified"]).toBe(false);
+      expect(userCreateByEmail).not.toHaveBeenCalled();
+      expect(tokenCreate).not.toHaveBeenCalled();
     });
 
-    test("signs nobody in and adds the account to no team", async () => {
+    test("signs nobody in and adds nobody to a team", async () => {
       await flow.run({ isMobile: false });
 
       expectNoSessionAndNothingProvisioned();
     });
 
-    test("emails the new address its confirmation link", async () => {
+    test("is answered exactly as an account that has not confirmed is", async () => {
       await flow.run({ isMobile: false });
 
-      expect(confirmationMail().toEmail).toBe(ASSERTED_EMAIL);
+      expect(render).toHaveBeenCalledTimes(1);
       expect(render.mock.calls[0]![3]).toEqual({
-        title: "Check your email.",
+        title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
         message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
       });
     });
+
+    test("asks the same reads: the consent of a stand-in nobody is", async () => {
+      await flow.run({ isMobile: false });
+
+      expect(userFindOneBy).toHaveBeenCalledTimes(1);
+      expect(hasConsent).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          hasConsent.mock.calls[0]![0] as { userId: ObjectID }
+        ).userId.toString(),
+      ).toBe(NO_ACCOUNT_CONSENT_STAND_IN.toString());
+    });
+
+    test("emails the address a link that makes the account only once confirmed", async () => {
+      await flow.run({ isMobile: false });
+
+      const mail: ReturnType<ConfirmationMailFunction> = confirmationMail();
+      const url: globalThis.URL = new globalThis.URL(
+        mail.vars["confirmationUrl"]!,
+      );
+
+      expect(mail.toEmail).toBe(ASSERTED_EMAIL);
+      expect(mail.templateType).toBe(EmailTemplateType.ConfirmProjectSsoSignIn);
+      expect(url.pathname).toBe(
+        `/identity/sso-sign-in-confirmation/${flow.kind}/${PROJECT_ID}/${PROVIDER_ID}`,
+      );
+      // No token row: the link carries the sign-in, signed by the server.
+      expect(url.searchParams.get("token")).toBeNull();
+
+      const account: string = url.searchParams.get(
+        PROJECT_SSO_NEW_ACCOUNT_PARAMETER,
+      )!;
+
+      expect(account.startsWith(SIGNED_PREFIX)).toBe(true);
+      expect(
+        ProjectSsoSignInConfirmation.readNewAccountToken({
+          account,
+          kind: flow.kind,
+          projectId: PROJECT_ID,
+          providerId: PROVIDER_ID,
+        })?.email.toString(),
+      ).toBe(ASSERTED_EMAIL);
+      expect(mail.vars["signInSummary"]).toContain('"Acme <Production>"');
+      expect(mail.vars["expiryNote"]).toContain(
+        `${PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS} hours`,
+      );
+    });
+
+    test("sends one such email per window, however many times the provider asserts it", async () => {
+      await flow.run({ isMobile: false });
+      await flow.run({ isMobile: false });
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(render).toHaveBeenCalledTimes(2);
+    });
+  },
+);
+
+/*
+ * Whoever controls a project's provider asserts any address and reads the
+ * answer (#9824): no account, one that has not confirmed, one whose
+ * address is unverified, a blocked one and an administrator's must read
+ * alike - the page, the mobile app's deep link, the reads it takes - and
+ * the answer must never wait for whatever is mailed.
+ */
+type AddressCase = {
+  name: string;
+  account: Record<string, unknown> | null;
+  isMailed: boolean;
+};
+
+const NOT_SIGNED_IN_ON_THE_HOSTED_SERVICE: Array<AddressCase> = [
+  { name: "no account", account: null, isMailed: true },
+  { name: "an account that has not confirmed", account: {}, isMailed: true },
+  {
+    name: "an unverified account",
+    account: { isEmailVerified: false },
+    isMailed: true,
+  },
+  { name: "a blocked account", account: { isBlocked: true }, isMailed: false },
+  {
+    name: "an administrator's account",
+    account: { isMasterAdmin: true },
+    isMailed: false,
+  },
+];
+
+describe.each(FLOWS)(
+  "$name on the hosted service -- every address it does not sign in reads alike (#9824)",
+  (flow: Flow) => {
+    function setUp(addressCase: AddressCase): void {
+      jest.clearAllMocks();
+      ProjectSsoSignInConfirmation.resetThrottleForTests();
+
+      if (addressCase.account) {
+        storeUser(addressCase.account);
+      } else {
+        storedRow = null;
+      }
+    }
+
+    test("the page, the deep link and the reads are one for all of them", async () => {
+      const pages: Array<unknown> = [];
+      const deepLinks: Array<unknown> = [];
+
+      for (const addressCase of NOT_SIGNED_IN_ON_THE_HOSTED_SERVICE) {
+        setUp(addressCase);
+        await flow.run({ isMobile: false });
+
+        pages.push(render.mock.calls[0]![3]);
+        expect(userFindOneBy).toHaveBeenCalledTimes(1);
+        expect(hasConsent).toHaveBeenCalledTimes(1);
+        expect(userCreateByEmail).not.toHaveBeenCalled();
+        expectNoSessionAndNothingProvisioned();
+
+        setUp(addressCase);
+        await flow.run({ isMobile: true });
+
+        deepLinks.push(resRedirect.mock.calls[0]![0]);
+      }
+
+      for (const page of pages) {
+        expect(page).toEqual({
+          title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+          message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+        });
+      }
+
+      expect(new Set(deepLinks).size).toBe(1);
+    });
+
+    test.each(NOT_SIGNED_IN_ON_THE_HOSTED_SERVICE)(
+      "$name: mailed only where a link can do something",
+      async (addressCase: AddressCase) => {
+        setUp(addressCase);
+
+        await flow.run({ isMobile: false });
+
+        expect(sendMail).toHaveBeenCalledTimes(addressCase.isMailed ? 1 : 0);
+      },
+    );
+
+    test.each(NOT_SIGNED_IN_ON_THE_HOSTED_SERVICE)(
+      "$name: the answer never waits for the email",
+      async (addressCase: AddressCase) => {
+        setUp(addressCase);
+
+        // A mail server that has not answered by the time the page is drawn.
+        const held: { release: (() => void) | null } = { release: null };
+
+        sendMail.mockImplementation((): Promise<void> => {
+          return new Promise<void>((resolve: () => void) => {
+            held.release = resolve;
+          });
+        });
+
+        await flow.run({ isMobile: false, settle: false });
+
+        expect(render).toHaveBeenCalledTimes(1);
+        expect(render.mock.calls[0]![3]).toEqual({
+          title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+          message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+        });
+
+        // Let the email finish, so nothing is left running.
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+        held.release?.();
+        await ProjectSsoSignInGate.waitForBackgroundWork();
+        sendMail.mockResolvedValue(undefined);
+      },
+    );
   },
 );
 
@@ -1047,17 +1286,49 @@ describe.each(FLOWS)(
       expect(sendVerificationEmail).not.toHaveBeenCalled();
     });
 
-    test("is still refused while blocked, and mailed nothing", async () => {
+    test("is still refused while blocked, answered as anyone not signed in is, and mailed nothing", async () => {
+      /*
+       * "Account blocked." told whoever controls the provider that the
+       * address had an account, and that a master admin blocked it (#9824).
+       */
       storeUser({ isBlocked: true });
 
       await flow.run({ isMobile: false });
 
       expect(render.mock.calls[0]![3]).toEqual({
-        title: "Account blocked.",
-        message: ExceptionMessages.UserBlocked,
+        title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+        message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
       });
       expect(sendMail).not.toHaveBeenCalled();
       expectNoSessionAndNothingProvisioned();
+      // The account's own projects still record why.
+      expect(refusedFor()).toEqual({
+        reason: "AccountBlocked",
+        ssoProjectId: PROJECT_ID,
+      });
+    });
+
+    test("signing in through the project's SSO accepts an invitation into it still pending (#9819)", async () => {
+      teamMemberCountBy.mockResolvedValue(new PositiveNumber(1));
+
+      await flow.run({ isMobile: false });
+
+      expectSignedIn();
+      expect(teamMemberUpdateBy).toHaveBeenCalledTimes(1);
+
+      const update: {
+        query: Record<string, unknown>;
+        data: Record<string, unknown>;
+        props: Record<string, unknown>;
+      } = teamMemberUpdateBy.mock.calls[0]![0] as never;
+
+      expect(String(update.query["projectId"])).toBe(PROJECT_ID);
+      expect(String(update.query["userId"])).toBe(USER_ID);
+      expect(update.query["hasAcceptedInvitation"]).toBe(false);
+      expect(update.data["hasAcceptedInvitation"]).toBe(true);
+      expect(update.data["invitationAcceptedAt"]).toBeInstanceOf(Date);
+      // With the hooks an acceptance runs: defaults, seats, permissions.
+      expect(update.props).toEqual({ isRoot: true });
     });
   },
 );
@@ -1119,9 +1390,54 @@ describe.each(FLOWS)("$name on a self-hosted install", (flow: Flow) => {
 
     expectNoSessionAndNothingProvisioned();
     expect(render.mock.calls[0]![3]).toEqual({
-      title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
-      message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+      title: PROJECT_SSO_SIGN_IN_REFUSED_TITLE,
+      message: PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE,
     });
+  });
+
+  test("a blocked account and an administrator's get one refusal, word for word (#9824)", async () => {
+    const answers: Array<unknown> = [];
+
+    for (const account of [{ isBlocked: true }, { isMasterAdmin: true }]) {
+      jest.clearAllMocks();
+      storeUser(account);
+
+      await flow.run({ isMobile: false });
+      answers.push(render.mock.calls[0]![3]);
+
+      jest.clearAllMocks();
+      storeUser(account);
+
+      await flow.run({ isMobile: true });
+      answers.push(resRedirect.mock.calls[0]![0]);
+
+      expectNoSessionAndNothingProvisioned();
+      expect(sendMail).not.toHaveBeenCalled();
+    }
+
+    expect(answers[0]).toEqual({
+      title: PROJECT_SSO_SIGN_IN_REFUSED_TITLE,
+      message: PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE,
+    });
+    expect(answers[2]).toEqual(answers[0]);
+    expect(answers[3]).toBe(answers[1]);
+    expect(
+      new URLSearchParams((answers[1] as string).split("?")[1]).get("error"),
+    ).toBe(PROJECT_SSO_SIGN_IN_REFUSED_ERROR);
+  });
+
+  test("signing in through the project's SSO accepts an invitation into it still pending (#9819)", async () => {
+    teamMemberCountBy.mockResolvedValue(new PositiveNumber(1));
+
+    await flow.run({ isMobile: false });
+
+    expectSignedIn();
+    expect(teamMemberUpdateBy).toHaveBeenCalledTimes(1);
+    expect(
+      (teamMemberUpdateBy.mock.calls[0]![0] as { data: JSONObject }).data[
+        "hasAcceptedInvitation"
+      ],
+    ).toBe(true);
   });
 
   test("provisions a new address verified and signs it in, as before", async () => {
@@ -1138,19 +1454,28 @@ describe.each(FLOWS)("$name on a self-hosted install", (flow: Flow) => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
-  test("still sends an unverified existing account the ordinary verification mail", async () => {
+  test("signs an unverified existing account in, as one it had just made, and verifies it after its memberships (#9824)", async () => {
+    /*
+     * "Email not verified." told the provider's admin the address had an
+     * account. Here the provider is trusted with the address - it signs in
+     * every verified account, and makes new ones verified - so an account
+     * an invitation made, never claimed, signs in the same way.
+     */
     storeUser({ isEmailVerified: false });
 
     await flow.run({ isMobile: false });
 
-    expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
+    expectSignedIn();
+    expect(sendVerificationEmail).not.toHaveBeenCalled();
     expect(sendMail).not.toHaveBeenCalled();
-    expectNoSessionAndNothingProvisioned();
-    // A failed sign-in, by this project's provider.
-    expect(refusedFor()).toEqual({
-      reason: "EmailNotVerified",
-      ssoProjectId: PROJECT_ID,
-    });
+    expect(recordFailedSignIn).not.toHaveBeenCalled();
+    expect(userUpdateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { isEmailVerified: true } }),
+    );
+    // After the memberships, so their notification defaults are made.
+    expect(teamMemberCreate.mock.invocationCallOrder[0]!).toBeLessThan(
+      userUpdateOneById.mock.invocationCallOrder[0]!,
+    );
   });
 
   test("still refuses a OneUptime administrator account", async () => {
@@ -1212,27 +1537,37 @@ describe.each(FLOWS)(
         expect(responseRedirect).not.toHaveBeenCalled();
       });
 
-      test("is refused before the mailbox gate is even consulted", async () => {
-        // No consent lookup, and no confirmation email: the refusal precedes them.
+      test("is never mailed a confirmation link, nor a verification one", async () => {
         await flow.run({ isMobile: false });
 
-        expect(hasConsent).not.toHaveBeenCalled();
         expect(sendMail).not.toHaveBeenCalled();
+        expect(tokenCreate).not.toHaveBeenCalled();
         expect(sendVerificationEmail).not.toHaveBeenCalled();
       });
 
-      test("shows the administrator a first-party way in", async () => {
+      test("is answered as everyone the provider does not sign in is - never as an administrator (#9824)", async () => {
+        /*
+         * "Sign in with your OneUptime account." told the provider's admin
+         * which address belongs to a OneUptime administrator.
+         */
         await flow.run({ isMobile: false });
 
         expect(render).toHaveBeenCalledTimes(1);
         expect(render.mock.calls[0]![2]).toBe(MESSAGE_VIEW);
-        expect(render.mock.calls[0]![3]).toEqual({
-          title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
-          message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
-        });
+        expect(render.mock.calls[0]![3]).toEqual(
+          edition.billingEnabled
+            ? {
+                title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+                message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+              }
+            : {
+                title: PROJECT_SSO_SIGN_IN_REFUSED_TITLE,
+                message: PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE,
+              },
+        );
       });
 
-      test("tells the mobile app why on its deep link, with no tokens", async () => {
+      test("tells the mobile app on its deep link as it tells anyone not signed in, with no tokens", async () => {
         await flow.run({ isMobile: true });
 
         expect(resRedirect).toHaveBeenCalledTimes(1);
@@ -1244,16 +1579,29 @@ describe.each(FLOWS)(
 
         expect(deepLink.startsWith("oneuptime://sso-callback?")).toBe(true);
         expect(params.get("error")).toBe(
-          PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
+          edition.billingEnabled
+            ? PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR
+            : PROJECT_SSO_SIGN_IN_REFUSED_ERROR,
         );
         expect(params.get("errorDescription")).toBe(
-          PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+          edition.billingEnabled
+            ? PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE
+            : PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE,
         );
         expect(params.get("accessToken")).toBeNull();
         expect(params.get("refreshToken")).toBeNull();
         expect(params.get("ssoToken")).toBeNull();
         expect(render).not.toHaveBeenCalled();
         expectNoSessionAndNothingProvisioned();
+      });
+
+      test("its own projects record the refused sign-in", async () => {
+        await flow.run({ isMobile: false });
+
+        expect(refusedFor()).toEqual({
+          reason: "SingleSignOnRefused",
+          ssoProjectId: PROJECT_ID,
+        });
       });
     });
 
@@ -1271,8 +1619,8 @@ describe.each(FLOWS)(
 
       expectNoSessionAndNothingProvisioned();
       expect(render.mock.calls[0]![3]).toEqual({
-        title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
-        message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+        title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+        message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
       });
     });
 
@@ -1885,6 +2233,193 @@ describe("POST the confirmation -- links that must do nothing", () => {
  * ===========================================================================
  */
 
+/*
+ * ===========================================================================
+ * The link for an address no account used yet (#9824): it carries the
+ * sign-in, signed by the server, and the account is made only once the
+ * mailbox confirms.
+ * ===========================================================================
+ */
+
+function newAccountLink(overrides?: Record<string, unknown>): string {
+  return (
+    SIGNED_PREFIX +
+    Buffer.from(
+      JSON.stringify({
+        purpose: PROJECT_SSO_NEW_ACCOUNT_PURPOSE,
+        email: ASSERTED_EMAIL,
+        name: "Victor Im",
+        kind: ProjectSsoKind.SAML,
+        projectId: PROJECT_ID,
+        providerId: PROVIDER_ID,
+        ...(overrides || {}),
+      }),
+      "utf8",
+    ).toString("base64")
+  );
+}
+
+async function openNewAccountLink(account: string): Promise<RunResult> {
+  return invoke({
+    router: ConfirmationRouter,
+    method: "GET",
+    path: CONFIRMATION_PATH,
+    params: linkParams(),
+    query: { [PROJECT_SSO_NEW_ACCOUNT_PARAMETER]: account },
+  });
+}
+
+async function confirmNewAccountLink(account: string): Promise<RunResult> {
+  return invoke({
+    router: ConfirmationRouter,
+    method: "POST",
+    path: CONFIRMATION_PATH,
+    params: linkParams(),
+    body: { [PROJECT_SSO_NEW_ACCOUNT_PARAMETER]: account },
+  });
+}
+
+describe("the link for an address no account used yet", () => {
+  beforeEach(() => {
+    storedRow = null;
+  });
+
+  test("GET shows what is being confirmed behind a button that posts the link back, and makes nothing", async () => {
+    await openNewAccountLink(newAccountLink());
+
+    const page: { view: string; vars: Record<string, any> } = renderedPage();
+
+    expect(page.view).toBe(SSO_SIGN_IN_CONFIRMATION_VIEW);
+    expect(page.vars["title"]).toBe("Confirm single sign-on.");
+    expect(page.vars["message"]).toContain('"Acme <Production>"');
+    expect(page.vars["account"]).toBe(newAccountLink());
+    expect(page.vars["token"]).toBeUndefined();
+    expect(userCreateByEmail).not.toHaveBeenCalled();
+    expectNothingWritten();
+  });
+
+  test("POST makes the account, joins it to the provider's default teams, verifies it and records its consent", async () => {
+    await confirmNewAccountLink(newAccountLink());
+
+    expect(userCreateByEmail).toHaveBeenCalledTimes(1);
+
+    const created: Record<string, any> = userCreateByEmail.mock
+      .calls[0]![0] as Record<string, any>;
+
+    expect(created["email"].toString()).toBe(ASSERTED_EMAIL);
+    expect(created["name"].toString()).toBe("Victor Im");
+    // Verified once it has joined, so its defaults are made.
+    expect(created["isEmailVerified"]).toBe(false);
+    expect(teamMemberCreate).toHaveBeenCalledTimes(2);
+    expect(userUpdateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { isEmailVerified: true } }),
+    );
+    expect(recordConsent).toHaveBeenCalledTimes(1);
+    expect(renderedPage().vars["title"]).toBe("Single sign-on confirmed.");
+  });
+
+  test("a second press confirms the account the first one made, and makes no other", async () => {
+    await confirmNewAccountLink(newAccountLink());
+
+    jest.clearAllMocks();
+    teamMemberCountBy.mockResolvedValue(new PositiveNumber(1));
+
+    await confirmNewAccountLink(newAccountLink());
+
+    expect(userCreateByEmail).not.toHaveBeenCalled();
+    expect(teamMemberCreate).not.toHaveBeenCalled();
+    expect(recordConsent).toHaveBeenCalledTimes(1);
+  });
+
+  test("an account that appeared at the address meanwhile is the one confirmed: the link proves the mailbox", async () => {
+    storeUser({ isEmailVerified: false });
+
+    await confirmNewAccountLink(newAccountLink());
+
+    expect(userCreateByEmail).not.toHaveBeenCalled();
+    expect(recordConsent).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        recordConsent.mock.calls[0]![0] as { userId: ObjectID }
+      ).userId.toString(),
+    ).toBe(USER_ID);
+  });
+
+  test("a provider with no default teams makes nothing", async () => {
+    samlProviderFindOneBy.mockResolvedValue({
+      id: new ObjectID(PROVIDER_ID),
+      teams: [],
+    });
+
+    await confirmNewAccountLink(newAccountLink());
+
+    expect(userCreateByEmail).not.toHaveBeenCalled();
+    expect(renderedPage().vars["title"]).toBe("No teams added.");
+  });
+
+  test("a provider turned off since makes nothing", async () => {
+    samlProviderFindOneBy.mockResolvedValue(null);
+
+    await confirmNewAccountLink(newAccountLink());
+
+    expect(userCreateByEmail).not.toHaveBeenCalled();
+    expect(renderedPage().vars["title"]).toBe(
+      "Single sign-on is not available.",
+    );
+  });
+
+  test("an expired link makes nothing, and says so", async () => {
+    await confirmNewAccountLink(EXPIRED_PREFIX + newAccountLink());
+
+    expect(userCreateByEmail).not.toHaveBeenCalled();
+    expect(renderedPage().vars["title"]).toBe("This link has expired.");
+
+    jest.clearAllMocks();
+    await openNewAccountLink(EXPIRED_PREFIX + newAccountLink());
+
+    expect(renderedPage().vars["title"]).toBe("This link has expired.");
+  });
+
+  test.each([
+    ["a link nobody signed", "not-signed-by-the-server"],
+    ["a link signed for another purpose", newAccountLink({ purpose: "x" })],
+    [
+      "a link for another project",
+      newAccountLink({ projectId: OTHER_PROJECT_ID }),
+    ],
+    [
+      "a link for another provider",
+      newAccountLink({ providerId: TOKEN_ROW_ID }),
+    ],
+    ["a link for another kind of SSO", newAccountLink({ kind: "oidc" })],
+    ["a link with no address", newAccountLink({ email: "not-an-address" })],
+  ])("%s makes nothing", async (_case: string, account: string) => {
+    await confirmNewAccountLink(account);
+
+    expect(userCreateByEmail).not.toHaveBeenCalled();
+    expect(renderedPage().vars["title"]).toBe(INVALID_LINK_TITLE);
+    expectNothingWritten();
+  });
+
+  test("an administrator's account at the address is confirmed for nothing", async () => {
+    storeUser({ isMasterAdmin: true });
+
+    await confirmNewAccountLink(newAccountLink());
+
+    expect(renderedPage().vars["title"]).toBe(INVALID_LINK_TITLE);
+    expectNothingWritten();
+  });
+
+  test("a blocked account at the address is told so, from its own mailbox", async () => {
+    storeUser({ isBlocked: true });
+
+    await confirmNewAccountLink(newAccountLink());
+
+    expect(renderedPage().vars["title"]).toBe("Account blocked.");
+    expectNothingWritten();
+  });
+});
+
 describe("ProjectSsoSignInConfirmation", () => {
   test("is required only on the hosted service", () => {
     setTestBillingEnabled(true);
@@ -2063,34 +2598,58 @@ describe("the project SSO callbacks, read as source", () => {
     );
   };
 
-  test.each(CALLBACKS)(
-    "$name selects isMasterAdmin on the account it is about to sign in",
-    ({ file }: { name: string; file: string }) => {
-      /*
-       * The guard reads `user.isMasterAdmin`. If the lookup stops selecting it,
-       * the field is undefined and the guard fails open, so the select is as
-       * load-bearing as the guard.
-       */
-      expect(sourceOf(file)).toContain("isMasterAdmin: true,");
-    },
+  const gateSource: string = fs.readFileSync(
+    nodePath.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "FeatureSet",
+      "Identity",
+      "Utils",
+      "ProjectSsoSignInGate.ts",
+    ),
+    "utf8",
   );
 
+  test("the gate both callbacks ask selects isMasterAdmin on the account it reads", () => {
+    /*
+     * The guard reads `user.isMasterAdmin`. If the lookup stops selecting it,
+     * the field is undefined and the guard fails open, so the select is as
+     * load-bearing as the guard (PROJECT_SSO_SIGN_IN_USER_SELECT).
+     */
+    expect(gateSource).toContain("isMasterAdmin: true,");
+    expect(gateSource).toContain("select: PROJECT_SSO_SIGN_IN_USER_SELECT");
+  });
+
+  test("the gate refuses an administrator on every edition", () => {
+    // Twice: once on the hosted service, once on a self-hosted server.
+    expect(
+      gateSource.split("mustNotSignInThroughProjectProvider").length - 1,
+    ).toBe(2);
+  });
+
   test.each(CALLBACKS)(
-    "$name refuses an administrator before it ever mints a session",
+    "$name asks the gate, and answers whatever it does not sign in, before it ever mints a session",
     ({ file }: { name: string; file: string }) => {
       const source: string = sourceOf(file);
 
-      const guardAt: number = source.indexOf(
-        "mustNotSignInThroughProjectProvider",
+      const gateAt: number = source.indexOf("ProjectSsoSignInGate.decide(");
+      const answerAt: number = source.indexOf(
+        "ProjectSsoSignInGate.respondNotSignedIn(",
       );
       const sessionAt: number = source.indexOf(
         "UserSessionService.createSession",
       );
 
-      expect(guardAt).toBeGreaterThan(-1);
-      expect(sessionAt).toBeGreaterThan(-1);
-      // The guard, and its refusal, come first.
-      expect(guardAt).toBeLessThan(sessionAt);
+      expect(gateAt).toBeGreaterThan(-1);
+      expect(answerAt).toBeGreaterThan(gateAt);
+      expect(sessionAt).toBeGreaterThan(answerAt);
+      // No account is looked up, made or refused anywhere but the gate.
+      expect(source).not.toContain("UserService.createByEmail");
+      expect(source).not.toContain("mustNotSignInThroughProjectProvider");
+      expect(source).not.toContain('"Account blocked."');
+      expect(source).not.toContain('"Email not verified."');
     },
   );
 });

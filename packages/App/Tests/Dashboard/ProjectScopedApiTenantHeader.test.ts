@@ -67,6 +67,17 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
    * note composer says (#9735).
    */
   "/public-note-reach",
+  /*
+   * Whether an announcement on the status pages picked on its form shows
+   * and notifies anyone: what Create Announcement's line says (#9775).
+   */
+  "/status-page-announcement/reach",
+  /*
+   * The same of a maintenance event's and a maintenance template's pages:
+   * what their Subscriber Notifications line says (#9920).
+   */
+  "/scheduled-maintenance/reach",
+  "/scheduled-maintenance-template/reach",
 ];
 
 /*
@@ -163,6 +174,27 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "EventNotes", "usePublicNoteReach.ts"],
     routePrefix: "/public-note-reach",
+  },
+  /*
+   * The announcement forms' Schedule line and their notify boxes ask what
+   * the status pages picked do through this one hook.
+   */
+  {
+    page: ["Components", "Announcement", "useAnnouncementReach.ts"],
+    routePrefix: "/status-page-announcement/reach",
+  },
+  /*
+   * The maintenance forms' Subscriber Notifications line and the notes
+   * under their boxes ask what the status pages picked do - an event's and
+   * a template's each through its own API - through this one hook.
+   */
+  {
+    page: [
+      "Components",
+      "ScheduledMaintenance",
+      "useScheduledMaintenanceReach.ts",
+    ],
+    routePrefix: "/scheduled-maintenance",
   },
 ];
 

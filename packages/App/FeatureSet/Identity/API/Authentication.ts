@@ -2,6 +2,11 @@ import crypto from "crypto";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import CredentialGuard from "../Utils/CredentialGuard";
 import SignupUser from "../Utils/SignupUser";
+import EmailProvedSignUp from "../Utils/EmailProvedSignUp";
+import SignUpAttempt, {
+  SignUpAttemptKind,
+  SignUpAttemptRecord,
+} from "../Utils/SignUpAttempt";
 import SignUpInvitationUtil from "../Utils/SignUpInvitation";
 import UserResponse from "../Utils/UserResponse";
 import {
@@ -19,6 +24,8 @@ import VerificationEmailResendPolicy, {
   VerificationEmailResendDecisionType,
 } from "../Utils/VerificationEmailResendPolicy";
 import VerificationEmailResendToken, {
+  SignUpEmailResendTokenClaims,
+  VERIFICATION_EMAIL_RESEND_TOKEN_EXPIRY_IN_SECONDS,
   VerificationEmailResendTokenClaims,
 } from "../Utils/VerificationEmailResendToken";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -45,13 +52,13 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
 import NewPasswordRule from "Common/Server/Utils/NewPasswordRule";
-import Name from "Common/Types/Name";
 import RequestOrigin from "Common/Types/RequestOrigin";
 import ObjectID from "Common/Types/ObjectID";
 import { getPasswordValidationError } from "Common/Types/Password";
 import {
   getAccountAlreadyExistsMessage,
   INCOMPLETE_RESET_LINK_MESSAGE,
+  SIGN_UP_TURNED_OFF_MESSAGE,
   INCOMPLETE_VERIFICATION_LINK_MESSAGE,
   RESET_LINK_MESSAGES,
   TWO_FACTOR_MESSAGES,
@@ -63,6 +70,7 @@ import MagicLink, {
   MAGIC_LINK_TURNED_OFF_MESSAGE,
 } from "Common/Types/Accounts/MagicLink";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
@@ -110,11 +118,17 @@ import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
 import {
+  MOBILE_HAND_OFF_FIELD,
+  MOBILE_PASSKEY_ENROLMENT_FIELD,
+  MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
   SIGN_IN_AUTHENTICATOR_APP_NAME,
+  SIGN_IN_PASSKEY_NAME,
   SIGN_IN_SECURITY_KEY_NAME,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
+import MobilePasskeyEnrolmentService from "Common/Server/Services/MobilePasskeyEnrolmentService";
+import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 import {
@@ -681,8 +695,52 @@ router.post(
   },
 );
 
+/*
+ * POST /signup -- an account made with an email address and a password.
+ *
+ * WHAT IT ANSWERS SAYS NOTHING ABOUT THE ADDRESS (#9816)
+ *
+ * It used to: "An account with ... already exists" for an address that had
+ * signed up, a "check your email" of its own for an unclaimed invitation,
+ * and while sign-up was turned off, a refusal for everyone but an address
+ * with a pending invitation - and a new account took a password hash's time
+ * longer than a refusal. Now, wherever the server can prove an address by
+ * email (Utils/EmailProvedSignUp: OneUptime Cloud, and a self-hosted server
+ * that can send email, after its first account), every address is answered
+ * alike - "check your email to finish signing up" - before anything that
+ * depends on the address is done, and what happened is said only in the
+ * email: a new account's welcome, an account holder's "you already have an
+ * account", an invitation's link.
+ *
+ * In order:
+ *
+ *   - the limiter (IdentityRateLimit's sign-up bucket), on every request;
+ *   - single sign-on required by the server, the captcha, the address and
+ *     the password's rules: the same for every address;
+ *   - an invitation's registration token, when one is sent: the token proves
+ *     the mailbox, so its account is claimed and signed in (the invited
+ *     person, who learns nothing they did not know). Spent with one lookup
+ *     by the token, whoever the address belongs to;
+ *   - sign-up turned off: one refusal for everybody, and an address with an
+ *     invitation waiting is emailed its link (#9816) - after the answer;
+ *   - a server that cannot email the address (self-hosted with no email set
+ *     up, or its first account): as before, a new account signs in at once,
+ *     and a taken address is refused as taken - there is no other way to
+ *     tell its owner. Documented in the hardening guide; the limiter bounds
+ *     the asking;
+ *   - everywhere else: the answer every address gets, then the address.
+ */
+const signUpRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.SignUp,
+);
+
 router.post(
   "/signup",
+  signUpRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -697,53 +755,6 @@ router.post(
        */
       await SsoRequiredSignIn.assertSignUpAllowed();
 
-      if (await DatabaseConfig.shouldDisableSignup()) {
-        /*
-         * Check if this user has been invited to a project.
-         * If so, allow them to sign up even if signup is disabled.
-         */
-        const data: JSONObject = req.body?.["data"] as JSONObject;
-        const emailForInviteCheck: string | undefined = data?.["email"] as
-          | string
-          | undefined;
-
-        let hasInvitation: boolean = false;
-
-        if (emailForInviteCheck) {
-          const invitedUser: User | null = await UserService.findOneBy({
-            query: { email: new Email(emailForInviteCheck) },
-            select: { _id: true },
-            props: { isRoot: true },
-          });
-
-          if (invitedUser) {
-            const pendingInvitation: TeamMember | null =
-              await TeamMemberService.findOneBy({
-                query: {
-                  userId: invitedUser.id!,
-                  hasAcceptedInvitation: false,
-                },
-                select: { _id: true },
-                props: { isRoot: true },
-              });
-
-            if (pendingInvitation) {
-              hasInvitation = true;
-            }
-          }
-        }
-
-        if (!hasInvitation) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException(
-              "Sign up is disabled on this OneUptime Server. Please contact your server admin to enable it.",
-            ),
-          );
-        }
-      }
-
       const miscDataProps: JSONObject =
         (req.body?.["miscDataProps"] as JSONObject) || {};
 
@@ -755,6 +766,38 @@ router.post(
       });
 
       const data: JSONObject = req.body?.["data"];
+
+      /*
+       * The registration token an invitation's link carries: the only proof
+       * of the invited mailbox (GHSA-qg84-6hrg-mr5g). Anything derived from
+       * the request body -- the address itself included -- is
+       * attacker-supplied and proves nothing.
+       */
+      const suppliedRegistrationToken: string | undefined = (
+        miscDataProps["registrationToken"] as string | undefined
+      )
+        ?.toString()
+        .trim();
+
+      const hasRegistrationToken: boolean =
+        Boolean(suppliedRegistrationToken) &&
+        ObjectID.isValidUUID(suppliedRegistrationToken!);
+
+      const isSignUpTurnedOff: boolean =
+        await DatabaseConfig.shouldDisableSignup();
+
+      /*
+       * Sign-up turned off: one refusal for every address, before anything
+       * else is asked of the form. It used to go on for an address with an
+       * invitation waiting, which said which addresses had one; that invited
+       * person is emailed their link instead, after the answer. Somebody
+       * following their invitation's link carries its token, and is let on
+       * to claim their account below.
+       */
+      if (isSignUpTurnedOff && !hasRegistrationToken) {
+        return await refuseWhileSignUpIsOff({ req, res, data });
+      }
+
       const suppliedPassword: unknown = data?.["password"];
 
       /*
@@ -785,11 +828,14 @@ router.post(
       partialUser.password = new HashedString(password as string);
 
       /*
-       * A missing email would drop the predicate below and resolve `alreadySavedUser` to the
-       * newest user in the instance. If that user has no password yet (invited but not signed
-       * up), the update branch would hand the caller a real session for that account.
+       * A missing email would drop the predicate below and resolve the account
+       * to the newest user in the instance. If that user has no password yet
+       * (invited but not signed up), a claim would hand the caller a real
+       * session for that account.
        */
       CredentialGuard.assertPresent(partialUser.email, "Email");
+
+      const email: Email = partialUser.email as Email;
 
       /*
        * ALERT: an isMasterAdmin smuggled into the request body must never
@@ -802,13 +848,16 @@ router.post(
        */
       partialUser.isMasterAdmin = false;
 
-      // Outside the hosted service, there is no billing to gate the account on.
-      partialUser.isEmailVerified = !IsBillingEnabled;
-
+      /*
+       * The account the address has, if any: one indexed read, whatever the
+       * answer. `password` tells an account that has signed up from one
+       * nobody has claimed yet; it is never logged or returned.
+       */
       const alreadySavedUser: User | null = await UserService.findOneBy({
-        query: { email: partialUser.email as Email },
+        query: { email: email },
         select: {
           _id: true,
+          email: true,
           password: true,
           timezone: true,
           isBlocked: true,
@@ -820,465 +869,170 @@ router.post(
         },
       });
 
-      if (alreadySavedUser && alreadySavedUser.password) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException(
-            getAccountAlreadyExistsMessage(
-              partialUser.email?.toString() || "this email address",
-            ),
-          ),
-        );
-      }
-
-      let savedUser: User | null = null;
-
       /*
-       * True once this request has claimed a pending invitation rather than
-       * created a fresh account. Spending the registration token is itself
-       * proof of mailbox ownership, so the verification mail further down would
-       * be asking them to prove something they just proved.
+       * An invitation's link: the token is spent - one lookup by the token,
+       * whoever the address belongs to - and, when it was this address's
+       * and the account has no password yet, it is claimed. A token that
+       * is not one, belongs to another address or has expired claims
+       * nothing, and the sign-up goes on as any other: the invited person's
+       * link is emailed to them below, never handed to the caller.
        */
-      let didClaimInvitedAccount: boolean = false;
-
-      if (alreadySavedUser) {
-        /*
-         * A row with no password is an invitation nobody has claimed yet --
-         * TeamMemberService creates it so the membership has a user to point
-         * at, and it stays passwordless until the invited person registers.
-         *
-         * Reaching this branch therefore means the caller is claiming someone
-         * else's pending invitation, and the only thing separating the invited
-         * person from an attacker who guessed a corporate address is the token
-         * that went out in the invitation email (GHSA-qg84-6hrg-mr5g). Anything
-         * derived from the request body -- the address itself included -- is
-         * attacker-supplied and proves nothing.
-         */
-        const suppliedRegistrationToken: string | undefined = (
-          miscDataProps["registrationToken"] as string | undefined
-        )
-          ?.toString()
-          .trim();
-
+      if (hasRegistrationToken) {
         const hasProvenMailboxOwnership: boolean =
-          Boolean(suppliedRegistrationToken) &&
-          ObjectID.isValidUUID(suppliedRegistrationToken!) &&
-          (await UserRegistrationToken.consumeRegistrationToken({
+          await UserRegistrationToken.consumeRegistrationToken({
             token: new ObjectID(suppliedRegistrationToken!),
-            email: partialUser.email as Email,
-          }));
-
-        if (!hasProvenMailboxOwnership) {
-          /*
-           * Nothing is written and no session is issued. The account is left
-           * exactly as the invitation left it, so a failed claim cannot set a
-           * password, cannot lock the invited person out, and cannot be told
-           * apart from a successful one by the caller.
-           *
-           * Instead the *mailbox owner* gets a fresh link. That covers the two
-           * honest ways to land here -- an invitation sent before invitations
-           * carried tokens, and a token that has since expired -- without
-           * covering the dishonest one, because the mail goes to the address,
-           * never to the requester. The captcha verified at the top of this
-           * handler, where it is on, and the limits on the emails a sign-up
-           * sends (PublicMessageRateLimit: per caller and per address) are
-           * what stop this branch from being a mail cannon.
-           *
-           * A server with no email set up cannot send that link: the person
-           * is told to ask whoever invited them for theirs, which a master
-           * admin can copy (TeamMemberAPI's invitation-link), rather than to
-           * wait for an email. This branch already answers differently from
-           * a new sign-up, so it says nothing more about the address.
-           */
-          if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE),
-            );
-          }
-
-          await PublicMessageRateLimit.assertMaySend({
-            req: req,
-            kind: PublicMessageKind.SignUpEmail,
-            contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
+            email: email,
           });
 
-          await AuthenticationEmail.sendCompleteRegistrationEmail({
-            userId: alreadySavedUser.id!,
-            email: partialUser.email as Email,
-          });
-
-          logger.info(
-            "Registration link re-sent for an unclaimed invited account: " +
-              partialUser.email?.toString(),
-            getLogAttributesFromRequest(req as RequestLike),
-          );
-
-          return Response.sendEntityResponse(req, res, null, User, {
-            miscData: {
-              registrationEmailSent: true,
-            },
-          });
-        }
-
-        /*
-         * An invited account can be blocked before anybody claims it, and a
-         * claim ends in a session like any other sign-in. Refused only after
-         * the token has proved the mailbox, so the block is not disclosed to
-         * whoever typed the address.
-         */
-        if (alreadySavedUser.isBlocked) {
-          return Response.sendErrorResponse(
+        if (
+          hasProvenMailboxOwnership &&
+          alreadySavedUser &&
+          !alreadySavedUser.password
+        ) {
+          return await claimInvitedAccount({
             req,
             res,
-            new BadDataException(ExceptionMessages.UserBlocked),
-          );
-        }
-
-        /*
-         * Claiming an invited account gives it its first password: refused
-         * while single sign-on manages the person's sign-in - every project
-         * they are invited to requires SSO and manages sign-in with it
-         * (SsoManagedSignIn, #9763). They sign in with SSO instead, which
-         * the message says. While the whole server requires SSO no sign-up
-         * gets this far (assertSignUpAllowed, above). Asked only after the
-         * token has proved the mailbox, like the block above, so whoever
-         * typed the address learns nothing about the account.
-         */
-        await SsoManagedSignIn.assertMayChangeLocalSignInFor({
-          userId: alreadySavedUser.id!,
-          isMasterAdmin: alreadySavedUser.isMasterAdmin === true,
-        });
-
-        didClaimInvitedAccount = true;
-
-        /*
-         * The account's first password: UserService ends any session and
-         * link it had, as for every new password, but sends no "Password
-         * Changed." email - nothing was changed (#7472).
-         */
-        savedUser = await UserService.updateOneByIdAndFetch({
-          id: alreadySavedUser.id!,
-          data: {
-            password: partialUser.password!,
-            name: partialUser.name!,
-            companyPhoneNumber: partialUser.companyPhoneNumber!,
-            companyName: partialUser.companyName!,
-            /*
-             * The token arrived by email and was spent to get here, which is
-             * the same thing /verify-email checks for. Leaving this false would
-             * mail them a second link to prove the same fact.
-             */
-            isEmailVerified: true,
-          },
-          select: {
-            email: true,
-            _id: true,
-            name: true,
-            isMasterAdmin: true,
-            timezone: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        /*
-         * The sign-up page said which project invited them, and that
-         * creating the account joins it (#7471, SignUpInvitation): the
-         * token this request spent proves it is the invited person, so the
-         * invitation is accepted now rather than asked about again on the
-         * next screen. Before the permissions below are refreshed, so the
-         * session opens with the project. A page that named no project -
-         * an older page, or one whose ask failed - accepts nothing, and the
-         * invitation waits in the Dashboard as before.
-         */
-        await SignUpInvitationUtil.acceptForClaimedAccount({
-          userId: alreadySavedUser.id!,
-          projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY],
-        });
-      } else {
-        /*
-         * A new account is sent its welcome email below. Counted first, per
-         * caller and per address (PublicMessageRateLimit), so nothing is
-         * created for a sign-up that is refused.
-         */
-        const permit: PublicMessageSendPermit =
-          await PublicMessageRateLimit.assertMaySend({
-            req: req,
-            kind: PublicMessageKind.SignUpEmail,
-            contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
+            account: alreadySavedUser,
+            partialUser,
+            miscDataProps,
           });
-
-        const user: User = partialUser;
-
-        try {
-          savedUser = await UserService.createUserOnSignup({
-            user: user,
-            props: {
-              isRoot: true,
-            },
-          });
-        } catch (err) {
-          /*
-           * No account, so no welcome email: the address gets its count
-           * back, and only emails sent count against it. The caller's own
-           * count stays spent.
-           */
-          await permit.giveBack();
-          throw err;
         }
       }
 
-      const host: Hostname = await DatabaseConfig.getHost();
-      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-      /*
-       * A brand-new account on the hosted service (billing on) starts with an
-       * unverified address, and it gets NO session until the link in the
-       * welcome email is followed. Signing it in here would make the
-       * verification mail a formality: the session this handler mints is a
-       * full-privilege JWT that UserAuthorization validates statelessly, so a
-       * "please verify" gate drawn anywhere after this point is decoration --
-       * the same cookie answers curl. /login already refuses an unverified
-       * address, so the only thing standing between a typed-in address and the
-       * dashboard was this handler.
-       *
-       * Two signups are exempt, because each has already proved the mailbox:
-       * self-hosted installs (billing off), which mark every address verified
-       * because many of them have no working SMTP to prove anything with, and
-       * a claimed invitation, which spent a token that only ever travelled
-       * inside an email.
-       */
-      const isEmailVerificationRequired: boolean =
-        !didClaimInvitedAccount && !partialUser.isEmailVerified;
-
-      /*
-       * The token behind the welcome email's link, kept for the one test-only
-       * seam below.
-       */
-      let welcomeEmailVerificationToken: ObjectID | null = null;
-
-      /*
-       * A new account that is ready now - self-hosted, where the address is
-       * verified at sign-up and the person goes straight in - is welcomed
-       * with what is true for it: the account is ready, a button to open
-       * it, and help from the server's own admin, not OneUptime's support
-       * (#7988). There is nothing to verify, so no verification token is
-       * made. A claimed invitation gets neither email (below).
-       */
-      if (!didClaimInvitedAccount && !isEmailVerificationRequired) {
-        MailService.sendMail({
-          toEmail: partialUser.email as Email,
-          subject: `Welcome to ${ProductBrandingText.getProductName()}. Your account is ready.`,
-          isSubjectLiteral: true,
-          templateType: EmailTemplateType.SignupAccountReadyEmail,
-          vars: {
-            dashboardLink: new URL(
-              httpProtocol,
-              host,
-              new Route(DashboardRoute.toString()),
-            ).toString(),
-            homeUrl: new URL(httpProtocol, host).toString(),
-            // The first account on a server is its master admin.
-            ...(savedUser?.isMasterAdmin
-              ? {
-                  isMasterAdmin: "true",
-                  adminDashboardLink: new URL(
-                    httpProtocol,
-                    host,
-                    new Route(AdminDashboardRoute.toString()),
-                  ).toString(),
-                }
-              : {}),
-          },
-        }).catch((err: Error) => {
-          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-        });
+      // A token that claimed nothing, while sign-up is turned off.
+      if (isSignUpTurnedOff) {
+        return await refuseWhileSignUpIsOff({ req, res, data });
       }
 
-      /*
-       * OneUptime Cloud: the welcome asks the new account to verify its
-       * address, which it must before it gets in.
-       *
-       * Skipped when this signup claimed an invitation: the registration token
-       * it spent was itself an emailed secret, so the address is already
-       * verified and a "please verify your email" mail would be asking for a
-       * proof that has just been given.
-       */
-      if (!didClaimInvitedAccount && isEmailVerificationRequired) {
-        const generatedToken: ObjectID = ObjectID.generate();
-        welcomeEmailVerificationToken = generatedToken;
-
-        const emailVerificationToken: EmailVerificationToken =
-          new EmailVerificationToken();
-        emailVerificationToken.userId = savedUser?.id as ObjectID;
-        emailVerificationToken.email = savedUser?.email as Email;
-        emailVerificationToken.token = generatedToken;
-        emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
-
-        await EmailVerificationTokenService.create({
-          data: emailVerificationToken,
-          props: {
-            isRoot: true,
-          },
-        });
-
-        MailService.sendMail({
-          toEmail: partialUser.email as Email,
-          subject: `Welcome to ${ProductBrandingText.getProductName()}. Please verify your email.`,
-          isSubjectLiteral: true,
-          templateType: EmailTemplateType.SignupWelcomeEmail,
-          vars: {
-            name: (partialUser.name! as Name).toString(),
-            tokenVerifyUrl: new URL(
-              httpProtocol,
-              host,
-              new Route(AccountsRoute.toString()).addRoute(
-                "/verify-email/" + generatedToken.toString(),
-              ),
-            ).toString(),
-            homeUrl: new URL(httpProtocol, host).toString(),
-          },
-        }).catch((err: Error) => {
-          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-        });
-      }
-
-      if (savedUser && isEmailVerificationRequired) {
-        logger.info(
-          "User signed up, awaiting email verification: " +
-            savedUser.email?.toString(),
-          getLogAttributesFromRequest(req as RequestLike),
-        );
-
-        /*
-         * What lets the "check your inbox" page offer a resend button without
-         * a session: a signed claim that this request created this account
-         * for this address. It is not the verification token and proves
-         * nothing about the mailbox -- it can only ask for the verification
-         * mail to be sent again, to the address stored on the account, under
-         * the caps in /resend-verification-email. Minted after the welcome
-         * token row is written, so that row is not counted as one of the
-         * resends the credential buys (Postgres stamps the row's createdAt and
-         * this process stamps the token, so that holds as far as their clocks
-         * agree). Null -- no button; signing in still mails a link -- if it
-         * cannot be minted.
-         */
-        const resendToken: string | null =
-          VerificationEmailResendToken.generate({
-            userId: savedUser.id!,
-            email: partialUser.email as Email,
-          });
-
-        /*
-         * No entity in the body: nobody is signed in, so there is nobody to
-         * describe, and the page already knows the address it just typed.
-         */
-        return Response.sendEntityResponse(req, res, null, User, {
-          miscData: {
-            emailVerificationRequired: true,
-
-            ...(resendToken
-              ? {
-                  verificationEmailResendToken: resendToken,
-                  verificationEmailResendAvailableInSeconds:
-                    VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
-                }
-              : {}),
-
-            /*
-             * TEST-ONLY seam, OFF unless explicitly switched on -- the same
-             * flag, and the same reasoning, as the one in UserEmailService.
-             * The CI end-to-end stack has no mailbox to read the welcome email
-             * from, so it is handed the token here and follows the link the
-             * way a user would. The flag is unset in every shipped config;
-             * with it absent the token only ever travels inside the email,
-             * which is the entire point of the email.
-             */
-            ...(process.env[
-              "EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E"
-            ] === "true" && welcomeEmailVerificationToken
-              ? {
-                  emailVerificationToken:
-                    welcomeEmailVerificationToken.toString(),
-                }
-              : {}),
-          },
-        });
-      }
-
-      if (savedUser) {
-        // Refresh Permissions for this user here.
-        await AccessTokenService.refreshUserAllPermissions(savedUser.id!);
-        await finalizeUserLogin({
+      if (!(await EmailProvedSignUp.isProvedByEmail())) {
+        return await signUpWithoutProvingTheAddress({
           req,
           res,
-          user: savedUser,
-          isGlobalLogin: true,
-          signIn: { method: SignInMethod.Password },
+          account: alreadySavedUser,
+          partialUser,
+          miscDataProps,
         });
-
-        logger.info(
-          "User signed up: " + savedUser.email?.toString(),
-          getLogAttributesFromRequest(req as RequestLike),
-        );
-
-        /*
-         * Release emails tell oneuptime.com about this install and the person
-         * signing up. An operator who turned off the daily check-in has said
-         * this install does not report to oneuptime.com, so the form no longer
-         * offers the box (Register.tsx) and nothing is sent, whatever a
-         * request carries.
-         */
-        if (
-          !IsBillingEnabled &&
-          !DisableInstanceCheckIn &&
-          miscDataProps["notifySelfHosted"] === true
-        ) {
-          const instanceUrl: string = new URL(httpProtocol, host).toString();
-
-          API.post({
-            url: URL.fromString(
-              "https://oneuptime.com/api/open-source-deployment/register",
-            ),
-            data: {
-              email: savedUser.email?.toString() || "",
-              name: savedUser.name?.toString() || "",
-              companyName:
-                (miscDataProps["selfHostedCompanyName"] as string) || undefined,
-              companyPhoneNumber:
-                (miscDataProps["selfHostedPhoneNumber"] as string) || undefined,
-              oneuptimeVersion: AppVersion,
-              instanceUrl: instanceUrl,
-            },
-          }).catch((err: Error) => {
-            logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-          });
-        }
-
-        /*
-         * Never `savedUser` itself. On a fresh account it is the very model
-         * `create` hashed the password into and minted the salt onto, and it
-         * carries every other column the request body set. See UserResponse.
-         */
-        return Response.sendEntityResponse(
-          req,
-          res,
-          UserResponse.toResponseUser(savedUser),
-          User,
-        );
       }
 
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException(
-          "Your account was not created. Try again in a moment.",
-        ),
-      );
+      /*
+       * The server's seat limit (Enterprise): a fact about the server, so it
+       * is asked of every sign-up here, before the answer, rather than only
+       * of one that would make an account - which would say which addresses
+       * have one. A no-op on OneUptime Cloud and the Community Edition.
+       */
+      await EnterpriseEdition.assertSeatAvailableForNewUser();
+
+      /*
+       * What a create would refuse the form for - a name or a company longer
+       * than its column - refused here, before the answer, for every
+       * address alike: the account is made only after the answer, when its
+       * refusal could no longer reach the person who typed it.
+       */
+      EmailProvedSignUp.assertFitsAnAccount(partialUser);
+
+      /*
+       * Every sign-up here emails its address once, whichever email it is,
+       * so it is counted, per caller and per address (PublicMessageRateLimit),
+       * before the answer and alike for every address.
+       */
+      const permit: PublicMessageSendPermit =
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.SignUpEmail,
+          contacts: [PublicMessageRateLimit.forEmail(email)],
+        });
+
+      const attemptId: string = SignUpAttempt.newAttemptId();
+
+      /*
+       * The welcome's verification token, for an address with no account:
+       * minted now so that the test-only seam below can hand it out. It is
+       * stored only with the account it verifies.
+       */
+      const welcomeToken: ObjectID = ObjectID.generate();
+
+      /*
+       * What lets the "check your email" page offer a resend button without
+       * a session: a signed claim that this request signed up this address,
+       * naming the attempt, never an account (VerificationEmailResendToken,
+       * SignUpAttempt). Null -- no button; signing in or signing up again
+       * still sends what is needed -- if it cannot be minted.
+       */
+      const resendToken: string | null =
+        VerificationEmailResendToken.generateForSignUp({
+          email: email,
+          attemptId: attemptId,
+        });
+
+      /*
+       * TEST-ONLY seam, OFF unless explicitly switched on -- the same flag,
+       * and the same reasoning, as the one in UserEmailService. The CI
+       * end-to-end stack has no mailbox to read the welcome email from, so
+       * it is handed the token here and follows the link the way a user
+       * would. With it on, the address is acted on before the answer, so the
+       * token is stored before the test follows it: timing is not what the
+       * end-to-end stack tests. The flag is unset in every shipped config.
+       */
+      const isTestSeamOn: boolean =
+        process.env["EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E"] ===
+        "true";
+
+      const actOnAddress: () => Promise<void> = async (): Promise<void> => {
+        await EmailProvedSignUp.actOnAddress({
+          attemptId: attemptId,
+          newUser: partialUser,
+          existingAccount: alreadySavedUser,
+          welcomeToken: welcomeToken,
+          origin: RequestOriginUtil.fromRequest(req),
+          permit: permit,
+          onAccountCreated: async (account: User): Promise<void> => {
+            registerSelfHostedDeploymentIfAsked({
+              req,
+              account,
+              miscDataProps,
+            });
+          },
+        });
+      };
+
+      if (isTestSeamOn) {
+        await actOnAddress();
+      }
+
+      /*
+       * The answer every address gets. No entity in the body: nobody is
+       * signed in, so there is nobody to describe, and the page already
+       * knows the address it just typed.
+       */
+      Response.sendEntityResponse(req, res, null, User, {
+        miscData: {
+          emailVerificationRequired: true,
+
+          ...(resendToken
+            ? {
+                verificationEmailResendToken: resendToken,
+                verificationEmailResendAvailableInSeconds:
+                  VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
+              }
+            : {}),
+
+          ...(isTestSeamOn && !alreadySavedUser
+            ? {
+                emailVerificationToken: welcomeToken.toString(),
+              }
+            : {}),
+        },
+      });
+
+      /*
+       * Then the address, once the answer has gone: what it costs - a
+       * password hash and two writes for a new account, an email for one
+       * that exists - is not in how long the answer took. Never throws
+       * (EmailProvedSignUp.actOnAddress).
+       */
+      if (!isTestSeamOn) {
+        await actOnAddress();
+      }
     } catch (err) {
       // A sign-up refused for its rate limits says when to come back.
       PublicMessageRateLimit.setRetryAfterFor(res, err);
@@ -1286,6 +1040,456 @@ router.post(
     }
   },
 );
+
+/*
+ * An invitation's account claimed with its registration token: the token
+ * arrived by email and was spent, so the caller holds the invited mailbox.
+ * The account gets its first password and a session, and joins the project
+ * the page named.
+ */
+type ClaimInvitedAccountFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  account: User;
+  partialUser: User;
+  miscDataProps: JSONObject;
+}) => Promise<void>;
+
+const claimInvitedAccount: ClaimInvitedAccountFunction = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  account: User;
+  partialUser: User;
+  miscDataProps: JSONObject;
+}): Promise<void> => {
+  const { req, res, account, partialUser, miscDataProps } = data;
+
+  /*
+   * An invited account can be blocked before anybody claims it, and a
+   * claim ends in a session like any other sign-in. Refused only after
+   * the token has proved the mailbox, so the block is not disclosed to
+   * whoever typed the address.
+   */
+  if (account.isBlocked) {
+    return Response.sendErrorResponse(
+      req,
+      res,
+      new BadDataException(ExceptionMessages.UserBlocked),
+    );
+  }
+
+  /*
+   * Claiming an invited account gives it its first password: refused
+   * while single sign-on manages the person's sign-in - every project
+   * they are invited to requires SSO and manages sign-in with it
+   * (SsoManagedSignIn, #9763). They sign in with SSO instead, which
+   * the message says. While the whole server requires SSO no sign-up
+   * gets this far (assertSignUpAllowed, above). Asked only after the
+   * token has proved the mailbox, like the block above, so whoever
+   * typed the address learns nothing about the account.
+   */
+  await SsoManagedSignIn.assertMayChangeLocalSignInFor({
+    userId: account.id!,
+    isMasterAdmin: account.isMasterAdmin === true,
+  });
+
+  /*
+   * The account's first password: UserService ends any session and
+   * link it had, as for every new password, but sends no "Password
+   * Changed." email - nothing was changed (#7472).
+   */
+  const savedUser: User | null = await UserService.updateOneByIdAndFetch({
+    id: account.id!,
+    data: {
+      password: partialUser.password!,
+      name: partialUser.name!,
+      companyPhoneNumber: partialUser.companyPhoneNumber!,
+      companyName: partialUser.companyName!,
+      /*
+       * The token arrived by email and was spent to get here, which is
+       * the same thing /verify-email checks for. Leaving this false would
+       * mail them a second link to prove the same fact.
+       */
+      isEmailVerified: true,
+    },
+    select: {
+      email: true,
+      _id: true,
+      name: true,
+      isMasterAdmin: true,
+      timezone: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * The sign-up page said which project invited them, and that
+   * creating the account joins it (#7471, SignUpInvitation): the
+   * token this request spent proves it is the invited person, so the
+   * invitation is accepted now rather than asked about again on the
+   * next screen. Before the permissions below are refreshed, so the
+   * session opens with the project. A page that named no project -
+   * an older page, or one whose ask failed - accepts nothing, and the
+   * invitation waits in the Dashboard as before.
+   */
+  await SignUpInvitationUtil.acceptForClaimedAccount({
+    userId: account.id!,
+    projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY],
+  });
+
+  return await signInNewAccount({ req, res, savedUser, miscDataProps });
+};
+
+/*
+ * While sign-up is turned off: the refusal every address gets, and then,
+ * after it, an address with an invitation waiting - an account nobody has
+ * claimed, with a membership not yet accepted - is emailed its link to
+ * finish signing up (#9816). The answer neither says nor waits on which.
+ * Counted with the other emails a sign-up sends to the address
+ * (PublicMessageRateLimit), and sent only while the server can send email.
+ * What comes after the answer never throws: the answer has gone.
+ */
+type RefuseWhileSignUpIsOffFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  data: JSONObject | undefined;
+}) => Promise<void>;
+
+const refuseWhileSignUpIsOff: RefuseWhileSignUpIsOffFunction = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  data: JSONObject | undefined;
+}): Promise<void> => {
+  Response.sendErrorResponse(
+    data.req,
+    data.res,
+    new BadRequestException(SIGN_UP_TURNED_OFF_MESSAGE),
+  );
+
+  try {
+    const email: Email | undefined = SignupUser.fromRequestData(
+      data.data,
+    ).email;
+
+    if (!email || !CredentialGuard.isPresent(email)) {
+      return;
+    }
+
+    const account: User | null = await UserService.findOneBy({
+      query: { email: email },
+      select: {
+        _id: true,
+        password: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!account?.id || account.password) {
+      return;
+    }
+
+    const pendingInvitation: TeamMember | null =
+      await TeamMemberService.findOneBy({
+        query: {
+          userId: account.id,
+          hasAcceptedInvitation: false,
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+    if (!pendingInvitation) {
+      return;
+    }
+
+    if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+      return;
+    }
+
+    await PublicMessageRateLimit.assertMaySend({
+      req: data.req,
+      kind: PublicMessageKind.SignUpEmail,
+      contacts: [PublicMessageRateLimit.forEmail(email)],
+    });
+
+    await AuthenticationEmail.sendCompleteRegistrationEmail({
+      userId: account.id,
+      email: email,
+    });
+  } catch (err) {
+    // A form with no address, over the address's count, or a failed send: nothing more goes.
+    logger.debug(err, getLogAttributesFromRequest(data.req as RequestLike));
+  }
+};
+
+/*
+ * A sign-up on a server that cannot prove the address by email: a
+ * self-hosted server with no email that works, or its first account, which
+ * becomes its admin. As before #9816: a new account is verified at once and
+ * signed in, an address that has signed up is refused as taken, and an
+ * invitation nobody has claimed is emailed its link where email is set up.
+ * Each of these says what it is, because there is no email to say it in
+ * instead; the hardening guide says so, and the sign-up limiter bounds the
+ * asking.
+ */
+type SignUpWithoutProvingTheAddressFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  account: User | null;
+  partialUser: User;
+  miscDataProps: JSONObject;
+}) => Promise<void>;
+
+const signUpWithoutProvingTheAddress: SignUpWithoutProvingTheAddressFunction =
+  async (data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    account: User | null;
+    partialUser: User;
+    miscDataProps: JSONObject;
+  }): Promise<void> => {
+    const { req, res, account, partialUser, miscDataProps } = data;
+
+    if (account && account.password) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(
+          getAccountAlreadyExistsMessage(
+            partialUser.email?.toString() || "this email address",
+          ),
+        ),
+      );
+    }
+
+    if (account) {
+      /*
+       * An invitation nobody has claimed, and no token to prove the mailbox:
+       * nothing is written and no session is issued. The mailbox owner gets
+       * a fresh link instead - an invitation sent before invitations carried
+       * tokens, or a token that has since expired - and never the requester.
+       * A server with no email set up cannot send it: the person is told to
+       * ask whoever invited them for theirs, which a master admin can copy
+       * (TeamMemberAPI's invitation-link).
+       */
+      if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE),
+        );
+      }
+
+      await PublicMessageRateLimit.assertMaySend({
+        req: req,
+        kind: PublicMessageKind.SignUpEmail,
+        contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
+      });
+
+      await AuthenticationEmail.sendCompleteRegistrationEmail({
+        userId: account.id!,
+        email: partialUser.email as Email,
+      });
+
+      return Response.sendEntityResponse(req, res, null, User, {
+        miscData: {
+          registrationEmailSent: true,
+        },
+      });
+    }
+
+    /*
+     * A new account is sent its welcome email below. Counted first, per
+     * caller and per address (PublicMessageRateLimit), so nothing is
+     * created for a sign-up that is refused.
+     */
+    const permit: PublicMessageSendPermit =
+      await PublicMessageRateLimit.assertMaySend({
+        req: req,
+        kind: PublicMessageKind.SignUpEmail,
+        contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
+      });
+
+    // There is nothing to prove the address with, so it is not asked.
+    partialUser.isEmailVerified = true;
+
+    let savedUser: User;
+
+    try {
+      savedUser = await UserService.createUserOnSignup({
+        user: partialUser,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      /*
+       * No account, so no welcome email: the address gets its count
+       * back, and only emails sent count against it. The caller's own
+       * count stays spent.
+       */
+      await permit.giveBack();
+      throw err;
+    }
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    /*
+     * The account is ready now, and the person goes straight in: it is
+     * welcomed with what is true for it - a button to open it, and help
+     * from the server's own admin, not OneUptime's support (#7988).
+     */
+    MailService.sendMail({
+      toEmail: partialUser.email as Email,
+      subject: `Welcome to ${ProductBrandingText.getProductName()}. Your account is ready.`,
+      isSubjectLiteral: true,
+      templateType: EmailTemplateType.SignupAccountReadyEmail,
+      vars: {
+        dashboardLink: new URL(
+          httpProtocol,
+          host,
+          new Route(DashboardRoute.toString()),
+        ).toString(),
+        homeUrl: new URL(httpProtocol, host).toString(),
+        // The first account on a server is its master admin.
+        ...(savedUser.isMasterAdmin
+          ? {
+              isMasterAdmin: "true",
+              adminDashboardLink: new URL(
+                httpProtocol,
+                host,
+                new Route(AdminDashboardRoute.toString()),
+              ).toString(),
+            }
+          : {}),
+      },
+    }).catch((err: Error) => {
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+    });
+
+    return await signInNewAccount({ req, res, savedUser, miscDataProps });
+  };
+
+/*
+ * An account a sign-up has just made or claimed, signed in: its
+ * permissions, a session and the answer the sign-up page signs in with.
+ */
+type SignInNewAccountFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  savedUser: User | null;
+  miscDataProps: JSONObject;
+}) => Promise<void>;
+
+const signInNewAccount: SignInNewAccountFunction = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  savedUser: User | null;
+  miscDataProps: JSONObject;
+}): Promise<void> => {
+  const { req, res, savedUser, miscDataProps } = data;
+
+  if (!savedUser) {
+    return Response.sendErrorResponse(
+      req,
+      res,
+      new BadRequestException(
+        "Your account was not created. Try again in a moment.",
+      ),
+    );
+  }
+
+  // Refresh Permissions for this user here.
+  await AccessTokenService.refreshUserAllPermissions(savedUser.id!);
+  await finalizeUserLogin({
+    req,
+    res,
+    user: savedUser,
+    isGlobalLogin: true,
+    signIn: { method: SignInMethod.Password },
+  });
+
+  logger.info(
+    "User signed up: " + savedUser.email?.toString(),
+    getLogAttributesFromRequest(req as RequestLike),
+  );
+
+  registerSelfHostedDeploymentIfAsked({
+    req,
+    account: savedUser,
+    miscDataProps,
+  });
+
+  /*
+   * Never `savedUser` itself. On a fresh account it is the very model
+   * `create` hashed the password into and minted the salt onto, and it
+   * carries every other column the request body set. See UserResponse.
+   */
+  return Response.sendEntityResponse(
+    req,
+    res,
+    UserResponse.toResponseUser(savedUser),
+    User,
+  );
+};
+
+/*
+ * Release emails tell oneuptime.com about this install and the person
+ * signing up. An operator who turned off the daily check-in has said
+ * this install does not report to oneuptime.com, so the form no longer
+ * offers the box (Register.tsx) and nothing is sent, whatever a
+ * request carries. Only for an account a sign-up has just made or
+ * claimed: never for an address that already had one.
+ */
+type RegisterSelfHostedDeploymentIfAskedFunction = (data: {
+  req: ExpressRequest;
+  account: User;
+  miscDataProps: JSONObject;
+}) => void;
+
+const registerSelfHostedDeploymentIfAsked: RegisterSelfHostedDeploymentIfAskedFunction =
+  (data: {
+    req: ExpressRequest;
+    account: User;
+    miscDataProps: JSONObject;
+  }): void => {
+    if (
+      !IsBillingEnabled &&
+      !DisableInstanceCheckIn &&
+      data.miscDataProps["notifySelfHosted"] === true
+    ) {
+      void (async (): Promise<void> => {
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+        const instanceUrl: string = new URL(httpProtocol, host).toString();
+
+        await API.post({
+          url: URL.fromString(
+            "https://oneuptime.com/api/open-source-deployment/register",
+          ),
+          data: {
+            email: data.account.email?.toString() || "",
+            name: data.account.name?.toString() || "",
+            companyName:
+              (data.miscDataProps["selfHostedCompanyName"] as string) ||
+              undefined,
+            companyPhoneNumber:
+              (data.miscDataProps["selfHostedPhoneNumber"] as string) ||
+              undefined,
+            oneuptimeVersion: AppVersion,
+            instanceUrl: instanceUrl,
+          },
+        });
+      })().catch((err: Error) => {
+        logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
+      });
+    }
+  };
 
 /*
  * POST /forgot-password -- email an account a link to choose its password.
@@ -1666,6 +1870,126 @@ router.post(
   },
 );
 
+/*
+ * What a link that confirms a new address answers once the address is
+ * another account's (#9821). Only its mailbox's owner holds the link.
+ */
+const EMAIL_CHANGE_ADDRESS_TAKEN_MESSAGE: string =
+  "This email address now belongs to another account, so your email address was not changed. Change it again to a different address.";
+
+/*
+ * A link that confirms a new address (#9821): the account it was minted
+ * for is waiting for exactly this address (`newUnverifiedTemporaryEmail`),
+ * so it moves to it - verified, as the link proves the mailbox - and the
+ * link is spent. True once it has answered: the account moved, or another
+ * account took the address meanwhile. False for a link that is not one, or
+ * whose change was cancelled or replaced by a newer one, which the caller
+ * refuses as any link that does not work. The new address's write ends the
+ * reset and sign-in links sent to the old one
+ * (UserService.expirePasswordResetTokensForEmailChange).
+ */
+type ConfirmEmailChangeFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  token: EmailVerificationToken;
+}) => Promise<boolean>;
+
+const confirmEmailChange: ConfirmEmailChangeFunction = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  token: EmailVerificationToken;
+}): Promise<boolean> => {
+  const { req, res, token } = data;
+
+  if (!CredentialGuard.isPresent(token.userId) || !token.email) {
+    return false;
+  }
+
+  const account: User | null = await UserService.findOneById({
+    id: token.userId!,
+    select: {
+      _id: true,
+      newUnverifiedTemporaryEmail: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const pendingAddress: string = account?.newUnverifiedTemporaryEmail
+    ? account.newUnverifiedTemporaryEmail.toString().toLowerCase()
+    : "";
+
+  if (
+    !account?.id ||
+    !pendingAddress ||
+    pendingAddress !== token.email.toString().toLowerCase()
+  ) {
+    return false;
+  }
+
+  try {
+    await UserService.updateOneById({
+      id: account.id,
+      data: {
+        email: token.email,
+        isEmailVerified: true,
+        newUnverifiedTemporaryEmail: null!,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  } catch (err) {
+    /*
+     * Another account took the address between the read above and this
+     * write (the address's unique index refused it): said as it is said
+     * when it was taken before, to the one person who holds the link.
+     */
+    const holder: User | null = await UserService.findOneBy({
+      query: { email: token.email },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    if (!holder) {
+      throw err;
+    }
+
+    Response.sendErrorResponse(
+      req,
+      res,
+      new BadDataException(EMAIL_CHANGE_ADDRESS_TAKEN_MESSAGE),
+    );
+
+    return true;
+  }
+
+  // Spent: the same link changes nothing a second time.
+  await EmailVerificationTokenService.deleteOneBy({
+    query: { _id: token._id! },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  logger.info("Email address changed", {
+    ...getLogAttributesFromRequest(req as RequestLike),
+    userId: account.id.toString(),
+  });
+
+  /*
+   * In the misc data the verify page's request already reads (ModelAPI keeps
+   * `_miscData` beside the token it parses), so the page can say the address
+   * changed rather than that it was verified.
+   */
+  Response.sendEntityResponse(req, res, null, EmailVerificationToken, {
+    miscData: { emailChanged: true },
+  });
+
+  return true;
+};
+
 router.post(
   "/verify-email",
   async (
@@ -1739,13 +2063,41 @@ router.post(
         },
       });
 
+      /*
+       * No account has the address yet: a link that confirms a new address
+       * its own account is waiting for (#9821, EmailChangeConfirmation)
+       * moves the account to it.
+       */
       if (!user) {
+        if (await confirmEmailChange({ req, res, token: alreadySavedToken })) {
+          return;
+        }
+
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException(
             "Invalid link. Please sign in and we will send you a new link to verify your email.",
           ),
+        );
+      }
+
+      /*
+       * The address belongs to another account than the link's: a change of
+       * address whose address another account has taken since its link was
+       * sent. That account is not verified on this link's strength, and
+       * nothing changes.
+       */
+      if (
+        alreadySavedToken.userId &&
+        user.id &&
+        user.id.toString().toLowerCase() !==
+          alreadySavedToken.userId.toString().toLowerCase()
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(EMAIL_CHANGE_ADDRESS_TAKEN_MESSAGE),
         );
       }
 
@@ -2026,6 +2378,23 @@ router.post(
       let credentialIssuedAt: Date;
 
       if (hasResendToken) {
+        /*
+         * A sign-up's credential (v2, #9816), which names an attempt rather
+         * than an account: what to send again is the attempt's, kept on the
+         * server (resendSignUpEmail).
+         */
+        const signUpClaims: SignUpEmailResendTokenClaims | null =
+          VerificationEmailResendToken.verifySignUp(suppliedResendToken, now);
+
+        if (signUpClaims) {
+          return await resendSignUpEmail({
+            req,
+            res,
+            claims: signUpClaims,
+            now,
+          });
+        }
+
         // Signature, shape and expiry. Never throws; anything wrong is null.
         const claims: VerificationEmailResendTokenClaims | null =
           VerificationEmailResendToken.verify(suppliedResendToken, now);
@@ -2319,10 +2688,249 @@ router.post(
         retryAfterSeconds: VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
       });
     } catch (err) {
+      // A sign-up's email refused for the address's count says when to come back.
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
       return next(err);
     }
   },
 );
+
+/*
+ * A SIGN-UP'S EMAIL, SENT AGAIN (#9816)
+ *
+ * The "check your email" page's resend button, for a sign-up that answered
+ * every address alike: its credential names the attempt
+ * (VerificationEmailResendToken.generateForSignUp), and the attempt, kept on
+ * the server, says what the sign-up sent (SignUpAttempt) - so this sends
+ * that again, whichever it was, and answers alike:
+ *
+ *   - a new account, still unverified: its verification link. Verified
+ *     since - which only the address's owner can have done - it is told so,
+ *     as a v1 credential is;
+ *   - an account that had signed up: "you already have an account" again;
+ *   - an invitation nobody has claimed: its link again (or, claimed since,
+ *     "you already have an account").
+ *
+ * Held to the credential's own caps, read from the attempt rather than the
+ * account's emails, so they are the same whoever owns the address: a
+ * cooldown, so many an hour, and three resends a credential
+ * (VerificationEmailResendPolicy). Counted with every other email a sign-up
+ * sends to the address, per caller and per address (PublicMessageRateLimit),
+ * so solving more captchas buys no more mail to one inbox. The fence of the
+ * route above makes the send atomic, keyed as there by the account.
+ */
+type ResendSignUpEmailFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  claims: SignUpEmailResendTokenClaims;
+  now: Date;
+}) => Promise<void>;
+
+const resendSignUpEmail: ResendSignUpEmailFunction = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  claims: SignUpEmailResendTokenClaims;
+  now: Date;
+}): Promise<void> => {
+  const { req, res, claims, now } = data;
+
+  const attempt: SignUpAttemptRecord | null =
+    await runVerificationEmailResendFenceOperation<SignUpAttemptRecord | null>(
+      (): Promise<SignUpAttemptRecord | null> => {
+        return SignUpAttempt.read(claims.attemptId);
+      },
+    );
+
+  // Nothing kept for it: a day gone by, or a cache that lost it.
+  if (!attempt) {
+    throw invalidVerificationEmailResendRequest();
+  }
+
+  const user: User | null = await UserService.findOneBy({
+    query: { _id: attempt.userId },
+    select: {
+      _id: true,
+      email: true,
+      name: true,
+      isEmailVerified: true,
+      password: true,
+      timezone: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * Mailed only to the address the sign-up typed, and only while the
+   * account still has it: a credential for an address the account has
+   * moved away from sends nothing.
+   */
+  if (
+    !user ||
+    !user.id ||
+    !user.email ||
+    user.email.toString() !== claims.email.toString()
+  ) {
+    throw invalidVerificationEmailResendRequest();
+  }
+
+  if (attempt.kind === SignUpAttemptKind.NewAccount && user.isEmailVerified) {
+    return sendVerificationEmailResendReply(req, res, {
+      emailSent: false,
+      alreadyVerified: true,
+      retryAfterSeconds: 0,
+    });
+  }
+
+  const fenceKey: string = user.id.toString();
+
+  const existingFence: string | null =
+    await runVerificationEmailResendFenceOperation<string | null>(
+      (): Promise<string | null> => {
+        return GlobalCache.getString(
+          VERIFICATION_EMAIL_RESEND_FENCE_NAMESPACE,
+          fenceKey,
+        );
+      },
+    );
+
+  const fenceClaimedAtMs: number | null =
+    readVerificationEmailResendFenceClaimedAtMs(existingFence);
+
+  if (fenceClaimedAtMs !== null) {
+    return sendVerificationEmailResendReply(req, res, {
+      emailSent: false,
+      alreadyVerified: false,
+      retryAfterSeconds: Math.max(
+        1,
+        Math.ceil(
+          VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS -
+            Math.max(0, (now.getTime() - fenceClaimedAtMs) / 1000),
+        ),
+      ),
+    });
+  }
+
+  /*
+   * The sign-up's own email, then each resend of it: the attempt's
+   * history, the same for every address.
+   */
+  const decision: VerificationEmailResendDecision =
+    VerificationEmailResendPolicy.evaluate({
+      sendTimes: [claims.issuedAt, ...attempt.resentAt],
+      credentialIssuedAt: claims.issuedAt,
+      now,
+    });
+
+  if (
+    decision.type === VerificationEmailResendDecisionType.CredentialExhausted
+  ) {
+    throw invalidVerificationEmailResendRequest();
+  }
+
+  if (decision.type === VerificationEmailResendDecisionType.CoolingDown) {
+    return sendVerificationEmailResendReply(req, res, {
+      emailSent: false,
+      alreadyVerified: false,
+      retryAfterSeconds: decision.retryAfterSeconds,
+    });
+  }
+
+  await PublicMessageRateLimit.assertMaySend({
+    req: req,
+    kind: PublicMessageKind.SignUpEmail,
+    contacts: [PublicMessageRateLimit.forEmail(claims.email)],
+  });
+
+  const fenceValue: string = `${now.getTime()}:${crypto.randomUUID()}`;
+
+  const didClaimFence: boolean =
+    await runVerificationEmailResendFenceOperation<boolean>(
+      (): Promise<boolean> => {
+        return GlobalCache.setStringIfNotExists(
+          VERIFICATION_EMAIL_RESEND_FENCE_NAMESPACE,
+          fenceKey,
+          fenceValue,
+          {
+            expiresInSeconds: VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
+          },
+        );
+      },
+    );
+
+  if (!didClaimFence) {
+    return sendVerificationEmailResendReply(req, res, {
+      emailSent: false,
+      alreadyVerified: false,
+      retryAfterSeconds: VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
+    });
+  }
+
+  try {
+    if (attempt.kind === SignUpAttemptKind.NewAccount) {
+      await AuthenticationEmail.sendVerificationEmail(user, {
+        awaitDelivery: true,
+      });
+    } else if (user.password) {
+      await AuthenticationEmail.sendAccountAlreadyExistsEmail({
+        user: user,
+        origin: RequestOriginUtil.fromRequest(req),
+        awaitDelivery: true,
+      });
+    } else {
+      await AuthenticationEmail.sendCompleteRegistrationEmail({
+        userId: user.id,
+        email: user.email,
+        awaitDelivery: true,
+      });
+    }
+  } catch (err) {
+    // Nothing was sent: no cooldown is owed for it.
+    try {
+      await GlobalCache.deleteKeyIfValue(
+        VERIFICATION_EMAIL_RESEND_FENCE_NAMESPACE,
+        fenceKey,
+        fenceValue,
+      );
+    } catch (releaseErr) {
+      logger.error(releaseErr, getLogAttributesFromRequest(req as RequestLike));
+    }
+
+    throw err;
+  }
+
+  /*
+   * Counted toward the credential's caps. A cache that fails here has sent
+   * the email already: the fence still holds the cooldown, and the address
+   * its count.
+   */
+  try {
+    await SignUpAttempt.noteResend({
+      attemptId: claims.attemptId,
+      record: attempt,
+      at: now,
+      expiresAt: new Date(
+        claims.issuedAt.getTime() +
+          VERIFICATION_EMAIL_RESEND_TOKEN_EXPIRY_IN_SECONDS * 1000,
+      ),
+    });
+  } catch (err) {
+    logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+  }
+
+  // The account's id only: never the address, and never a token.
+  logger.info("Sign-up email resent", {
+    ...getLogAttributesFromRequest(req as RequestLike),
+    userId: user.id.toString(),
+  });
+
+  return sendVerificationEmailResendReply(req, res, {
+    emailSent: true,
+    alreadyVerified: false,
+    retryAfterSeconds: VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
+  });
+};
 
 router.post(
   "/reset-password",
@@ -2967,6 +3575,42 @@ router.post(
 );
 
 /*
+ * The options for a security key's prompt at sign-in: the step before
+ * /verify-webauthn-auth (#9822, Types/Accounts/SecurityKeySignIn).
+ *
+ * A sign-in route like the second steps around it, and for the same
+ * reasons. Nobody is signed in, so the request carries the email and
+ * password again (or the sign-in link's token) and passes every check
+ * /login makes: an address with no account, an account with no password yet
+ * and a wrong password are refused alike, in the time a password check
+ * takes, so the options say nothing about an address to anyone who has not
+ * proved it. They name the keys of the account the password proved, and its
+ * challenge is kept for that account only. On the second step's limiter, as
+ * a password oracle in its own right, and nobody is signed in by it: the
+ * key's answer goes to /verify-webauthn-auth.
+ */
+router.post(
+  SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE,
+  twoFactorRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTotpAuth: false,
+      verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
+      verifyBackupCode: false,
+      securityKeySignInOptions: true,
+    });
+  },
+);
+
+/*
  * The way back in when the second factor itself is unreachable: the phone with
  * the authenticator app is gone, or the security key is in a taxi.
  *
@@ -3089,6 +3733,45 @@ router.post(
       verifyBackupCode: false,
       securityKeyEnrolment: SecurityKeyEnrolmentStage.Options,
     });
+  },
+);
+
+/*
+ * POST /mobile-passkey-enrolment-options - the browser page a mobile app
+ * opened (Accounts' /accounts/mobile-passkey-enrolment, #9817) reading the
+ * options for the phone's prompt, by the id the app was answered above
+ * (Server/Services/MobilePasskeyEnrolmentService). Nobody is signed in to
+ * ask: the id, random and read once within minutes, is all it takes, and
+ * all it gives is the options - the challenge and the name the prompt
+ * shows. No key is saved and nobody is signed in here: the passkey's answer
+ * goes back to the app, which sends it to /verify-security-key-enrolment
+ * with the password. Same-origin only, as the passkey sign-in page's
+ * requests are, on the passkeys' limiter; never cached.
+ */
+router.post(
+  MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    Response.setNoCacheHeaders(res);
+
+    try {
+      assertPasskeyOrigin(req);
+
+      const options: JSONObject =
+        await MobilePasskeyEnrolmentService.takeOptions(
+          req.body?.["handOffId"],
+        );
+
+      return Response.sendJsonObjectResponse(req, res, {
+        options: options,
+      });
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 
@@ -3219,6 +3902,12 @@ const fetchTotpAuthList: FetchTotpAuthListFunction = async (
       _id: true,
       userId: true,
       name: true,
+      /*
+       * Which of them are passkeys: the mobile app, which cannot answer a
+       * security key's challenge, offers its own passkey sign-in for one
+       * instead (#9817). Said only to whoever proved the password.
+       */
+      isPasskey: true,
     },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
@@ -3486,6 +4175,8 @@ type LoginFunction = (options: {
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
   securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
+  // The options for a security key's prompt, before /verify-webauthn-auth (#9822).
+  securityKeySignInOptions?: boolean | undefined;
   isMagicLinkFirstStep?: boolean | undefined;
 }) => Promise<void>;
 
@@ -3498,6 +4189,7 @@ const login: LoginFunction = async (options: {
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
   securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
+  securityKeySignInOptions?: boolean | undefined;
   isMagicLinkFirstStep?: boolean | undefined;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
@@ -3509,6 +4201,8 @@ const login: LoginFunction = async (options: {
   const verifyBackupCode: boolean = options.verifyBackupCode;
   const securityKeyEnrolment: SecurityKeyEnrolmentStage | undefined =
     options.securityKeyEnrolment;
+  const securityKeySignInOptions: boolean =
+    options.securityKeySignInOptions === true;
   const isMagicLinkFirstStep: boolean = options.isMagicLinkFirstStep === true;
 
   /*
@@ -3523,7 +4217,8 @@ const login: LoginFunction = async (options: {
     verifyWebAuthn ||
     verifyTotpEnrolment ||
     verifyBackupCode ||
-    Boolean(securityKeyEnrolment);
+    Boolean(securityKeyEnrolment) ||
+    securityKeySignInOptions;
 
   /*
    * Recovery codes minted during a forced enrolment, carried out to the
@@ -3602,11 +4297,13 @@ const login: LoginFunction = async (options: {
               ? "totp-enrolment"
               : securityKeyEnrolment
                 ? "security-key-enrolment"
-                : verifyBackupCode
-                  ? "backup-code"
-                  : isMagicLinkFirstStep
-                    ? "magic-link"
-                    : "password"),
+                : securityKeySignInOptions
+                  ? "security-key-sign-in-options"
+                  : verifyBackupCode
+                    ? "backup-code"
+                    : isMagicLinkFirstStep
+                      ? "magic-link"
+                      : "password"),
       getLogAttributesFromRequest(req as RequestLike),
     );
 
@@ -4135,6 +4832,16 @@ const login: LoginFunction = async (options: {
                  * for no additional capability.
                  */
                 twoFactorOtpUrl: pendingEnrolment.twoFactorOtpUrl!,
+                /*
+                 * Whether the mobile app may offer a passkey here (#9817,
+                 * Types/Accounts/SecondStepEnrolment): only a server reached
+                 * over HTTPS can run the phone's prompt. Left out otherwise,
+                 * as an older server leaves it out, and the app offers the
+                 * authenticator app alone. The web page ignores it.
+                 */
+                ...(MobilePasskeyEnrolmentService.isAvailable()
+                  ? { [MOBILE_PASSKEY_ENROLMENT_FIELD]: true }
+                  : {}),
               },
             },
           );
@@ -4302,6 +5009,34 @@ const login: LoginFunction = async (options: {
               new BadDataException(TWO_FACTOR_MESSAGES.wrongCode),
             );
           }
+        } else if (securityKeySignInOptions) {
+          /*
+           * The options for the browser's prompt, for the account the
+           * password (or the sign-in link) has just proved - its own keys,
+           * under a challenge kept for it alone (#9822). Only its holder
+           * reaches this, so only they are told the account has no key, or
+           * no second step to answer. Nothing more happens here: no session,
+           * no wrong code counted, and a sign-in link is not spent - the
+           * key's answer, at /verify-webauthn-auth, finishes the sign-in.
+           */
+          if (!alreadySavedUser.enableTwoFactorAuth) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Two factor authentication is not enabled for this account.",
+              ),
+            );
+          }
+
+          const authentication: { options: any; challenge: string } =
+            await UserWebAuthnService.generateAuthenticationOptions({
+              userId: alreadySavedUser.id!,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            options: authentication.options,
+          });
         } else if (verifyWebAuthn) {
           const credential: any = data["credential"];
 
@@ -4648,12 +5383,47 @@ const login: LoginFunction = async (options: {
              * face or screen lock answers just as well. Nothing more
              * happens here: no session, and nothing saved but the
              * challenge.
+             *
+             * The mobile app asks for a passkey, to run in the phone's own
+             * browser (#9817, Server/Services/
+             * MobilePasskeyEnrolmentService): discoverable and checked for
+             * who holds it, so the app's Sign in with a passkey can use it
+             * afterwards. Its options are kept for that browser's page,
+             * under an id that is all the app is answered; the key's
+             * answer still comes back here, with the password, to the
+             * request below. Refused where no browser could run it.
              */
+            const isMobileHandOff: boolean =
+              req.body?.[MOBILE_HAND_OFF_FIELD] === true;
+
+            if (
+              isMobileHandOff &&
+              !MobilePasskeyEnrolmentService.isAvailable()
+            ) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "This server is not reached over HTTPS, so a passkey cannot be set up for it. Set up an authenticator app instead.",
+                ),
+              );
+            }
+
             const registration: { options: any; challenge: string } =
               await UserWebAuthnService.generateRegistrationOptions({
                 userId: alreadySavedUser.id!,
-                isPasskey: false,
+                isPasskey: isMobileHandOff,
               });
+
+            if (isMobileHandOff) {
+              Response.setNoCacheHeaders(res);
+
+              return Response.sendJsonObjectResponse(req, res, {
+                handOffId: await MobilePasskeyEnrolmentService.storeOptions(
+                  registration.options as JSONObject,
+                ),
+              });
+            }
 
             return Response.sendJsonObjectResponse(req, res, {
               options: registration.options,
@@ -4692,6 +5462,8 @@ const login: LoginFunction = async (options: {
             await UserWebAuthnService.verifyRegistration({
               credential: credential,
               name: SIGN_IN_SECURITY_KEY_NAME,
+              // A passkey from the mobile app is filed as one (#9817).
+              passkeyName: SIGN_IN_PASSKEY_NAME,
               props: {
                 userId: alreadySavedUser.id!,
                 isRoot: true,

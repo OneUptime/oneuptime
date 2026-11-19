@@ -1583,6 +1583,13 @@ enum Permission {
   EditOnCallDutyPolicyUserOverride = "EditOnCallDutyPolicyUserOverride",
   DeleteOnCallDutyPolicyUserOverride = "DeleteOnCallDutyPolicyUserOverride",
   ReadOnCallDutyPolicyUserOverride = "ReadOnCallDutyPolicyUserOverride",
+  /*
+   * Adds, edits and deletes user overrides only for the people in the team
+   * that gives it (issue #9733): the person who is away and the person who
+   * covers both have to be in that team. See
+   * Types/OnCallDutyPolicy/UserOverrideTeamAccess.
+   */
+  ManageTeamOnCallDutyPolicyUserOverride = "ManageTeamOnCallDutyPolicyUserOverride",
 
   ReadOnCallDutyPolicyTimeLog = "ReadOnCallDutyPolicyTimeLog",
 
@@ -7629,6 +7636,21 @@ export class PermissionHelper {
         title: "Read On-Call Policy User Override",
         description:
           "This permission can read on-call policy user override of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      /*
+       * Not a role (isRolePermission false), so no default role gains it:
+       * the roles that manage overrides already manage everyone's, and
+       * the people a team may cover for are given on purpose.
+       */
+      {
+        permission: Permission.ManageTeamOnCallDutyPolicyUserOverride,
+        title: "Manage On-Call Policy User Overrides for Own Team",
+        description:
+          "This permission can add, edit and delete user overrides for the people in the team it is given to: the person who is away and the person who covers must both be in that team. An API key is in no team, so it reaches nobody. Seeing the overrides takes Read On-Call Policy User Override.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

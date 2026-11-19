@@ -35,13 +35,12 @@ import {
 } from "./BiConnectors";
 import { summarizeBiLineage } from "./BiLineageSummary";
 import { BiCatalog, matchBiTables } from "./BiMatching";
-import { BiReadState, readBiReadState, writeBiReadState } from "./BiReadState";
-import { BiTableRef } from "./BiTables";
 import {
-  DataverseEntitySetsRead,
-  getDataverseEntitySetLookup,
-  readDataverseEntitySets,
-} from "./DataverseEntitySets";
+  BiReadKeptStateError,
+  BiReadState,
+  readBiReadState,
+  writeBiReadState,
+} from "./BiReadState";
 import {
   BiUsageLedger,
   BiUsageRead,
@@ -83,9 +82,13 @@ import {
  *
  * A read keeps what lets the next one read less (BiReadState): Power BI's
  * workspaces as last scanned, so the hourly read scans only those that
- * changed (#9552), and each Dataverse environment's entity set names, for
- * the tables Power BI's OData connectors name by them (#9554). A read that
- * fails keeps what the last one kept.
+ * changed (#9552), and its scans still running, which the next read picks
+ * up (#9697). A read that fails keeps what the last one kept, but for one
+ * that read nothing yet and left scans running: it keeps those.
+ *
+ * The tables Power BI's OData connectors name by their Dataverse entity
+ * set are matched through the names each collection keeps with the tables
+ * (#9696), whether OneUptime or a probe collects the environment.
  */
 
 export interface DataBiSyncResult {
@@ -274,33 +277,17 @@ export default class DataBiSync {
         readState: readState.powerBi,
         isScheduled: Boolean(options.isScheduled),
       });
-      const projectCatalog: ProjectCatalog =
+      /*
+       * The watched tables, each Dataverse table with the entity set name
+       * its collection kept (#9696): what Power BI's OData connectors name
+       * it by, matched without asking the environment.
+       */
+      const catalog: ProjectCatalog & BiCatalog =
         await OpenLineageIngest.readCatalog(connection.projectId);
       const dashboards: Array<BiDashboardRead> = read.dashboards.slice(
         0,
         MAX_BI_DASHBOARDS,
       );
-      /*
-       * The Dataverse tables Power BI's OData connectors name by entity set
-       * are matched through each environment's own entity set names.
-       */
-      const entitySets: DataverseEntitySetsRead = await readDataverseEntitySets(
-        {
-          stores: projectCatalog.stores,
-          refs: dashboards.flatMap(
-            (dashboard: BiDashboardRead): Array<BiTableRef> => {
-              return dashboard.tables;
-            },
-          ),
-          state: readState.dataverseEntitySets,
-          now: OneUptimeDate.getCurrentDate(),
-          lookup: getDataverseEntitySetLookup(connection.projectId),
-        },
-      );
-      const catalog: ProjectCatalog & BiCatalog = {
-        ...projectCatalog,
-        dataverseEntitySets: entitySets.entitySets,
-      };
       const result: DataBiSyncResult = await DataBiSync.keep({
         connection,
         tool: tool as DataBiTool,
@@ -330,10 +317,7 @@ export default class DataBiSync {
         data: {
           lastSyncedAt: OneUptimeDate.getCurrentDate(),
           lastSyncError: "",
-          lastSyncWarning: getWarningText(
-            [...read.warnings, ...entitySets.warnings],
-            credentialsText,
-          ),
+          lastSyncWarning: getWarningText(read.warnings, credentialsText),
           dashboardCount: result.dashboardCount,
           matchedTableCount: result.matchedTableCount,
           // JSON, as failedRefreshes below: its type is too deep for an update's.
@@ -342,7 +326,6 @@ export default class DataBiSync {
           readState: writeBiReadState({
             powerBi:
               read.readState !== undefined ? read.readState : readState.powerBi,
-            dataverseEntitySets: entitySets.state,
           }) as never,
           ...(read.usage
             ? {
@@ -374,6 +357,17 @@ export default class DataBiSync {
         data: {
           lastSyncedAt: OneUptimeDate.getCurrentDate(),
           lastSyncError: message,
+          /*
+           * A read with nothing to show yet, but scans the next read picks
+           * up (#9697): what it kept, so the next read does not start over.
+           */
+          ...(error instanceof BiReadKeptStateError
+            ? {
+                readState: writeBiReadState({
+                  powerBi: error.readState,
+                }) as never,
+              }
+            : {}),
         },
         props: { isRoot: true },
       });

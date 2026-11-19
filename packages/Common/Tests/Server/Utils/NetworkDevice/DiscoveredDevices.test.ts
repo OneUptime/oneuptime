@@ -511,7 +511,13 @@ describe("reading the list", () => {
     ).toEqual({
       devices: [
         { id: ROW_A, name: "10.0.0.5", ipAddress: "10.0.0.5" },
-        { id: ROW_B, name: "Shelf scanner", isMonitored: true },
+        {
+          id: ROW_B,
+          name: "Shelf scanner",
+          isMonitored: true,
+          // The device it is, whose monitors Add to monitoring reads (#9675).
+          monitoredDeviceId: DEVICE_ID,
+        },
       ],
       count: 3,
     });

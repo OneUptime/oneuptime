@@ -1,3 +1,4 @@
+import Domain from "./Domain";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
@@ -391,6 +392,64 @@ export default class ProjectSSO extends BaseModel {
   })
   public teams?: Array<Team> = undefined; // teams that teammember should be added to when they sign into SSO for the first time.
 
+  /*
+   * The project's verified domains this provider serves: "Sign in with SSO"
+   * offers it to an address on one of them, whoever types it, and never
+   * reads an account to decide (Server/Utils/ProjectSsoDiscovery, #9824).
+   * A provider with none is offered to nobody by email. Each must be a
+   * domain of the provider's own project (ProjectSsoService's reference
+   * check).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSSO,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Domain,
+    title: "Domains",
+    description:
+      "Domains of the project this provider serves. Once a domain is verified, Sign in with SSO offers the provider to anyone whose email address is on it.",
+    example: [{ id: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e" }],
+  })
+  @ManyToMany(
+    () => {
+      return Domain;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ProjectSsoDomain",
+    inverseJoinColumn: {
+      name: "domainId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "projectSsoId",
+      referencedColumnName: "_id",
+    },
+  })
+  public domains?: Array<Domain> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -661,6 +720,94 @@ export default class ProjectSSO extends BaseModel {
     default: false,
   })
   public isTested?: boolean = undefined;
+
+  /*
+   * Where the identity provider signs people out: its SAML
+   * SingleLogoutService, HTTP-Redirect binding (#9603). OneUptime does not
+   * read SAML metadata, so the admin enters it, as they enter the Sign On
+   * URL. Needed only to sign people out of the provider too.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSSO,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongURL,
+    title: "Sign Out URL",
+    description:
+      "Sign out URL (SAML SingleLogoutService, HTTP-Redirect binding) of this SSO provider. Signing out of OneUptime sends people there when Sign Out of the Identity Provider Too is on.",
+    example: "https://sso.example.com/saml/slo",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongURL,
+    transformer: URL.getDatabaseTransformer(),
+  })
+  public singleLogoutURL?: URL = undefined;
+
+  /*
+   * Whether signing out of OneUptime signs the person out of this provider
+   * too (Types/SSO/IdentityProviderSignOut, #9603): SAML Single Logout, for
+   * shared computers. Off by default, since on a single-user laptop it also
+   * signs the person out of every other app that uses the provider. Turning
+   * it on is refused without a Sign Out URL
+   * (Utils/IdentityProviderSignOutCheck).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSSO,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Sign Out of the Identity Provider Too",
+    description:
+      "When enabled, signing out of OneUptime also signs the person out of this identity provider (SAML Single Logout), so the next person on a shared computer signs in as themselves. It also signs them out of every other app that uses the provider. The provider must have a Sign Out URL, and know OneUptime's Single Logout URL and signing certificate.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public signOutOfIdentityProvider?: boolean = undefined;
 
   /*
    * When this provider was last turned off. Turning a provider off ends the

@@ -52,9 +52,10 @@
  *   }
  *
  * An accepted vulnerability does not fail the gate. It still gets its issue
- * from the nightly run, unless the exception names the issue that tracks it:
- * accepted for a release is not fixed. Once an exception expires, what it
- * accepted fails the gate again.
+ * from the nightly run, unless the exception names another issue that
+ * tracks it: accepted for a release is not fixed. Naming the group's own
+ * issue keeps that issue open and up to date. Once an exception expires,
+ * what it accepted fails the gate again.
  *
  *   node Scripts/Security/ImageVulnerabilities.js gate --reports vulnerabilities --require-product-images
  *   node Scripts/Security/ImageVulnerabilities.js issues --reports vulnerabilities \
@@ -237,15 +238,48 @@ function todayUtc() {
 /*
  * Text from an SBOM or a scanner report, as an inline code span: what is in
  * one is never read as Markdown, a link or a mention (`@babel/core`). A pipe
- * is escaped for the tables it sits in.
+ * is escaped for the tables it sits in (tablePipes).
  */
 function code(value) {
-  const text = String(value === undefined || value === null ? "" : value)
-    .replace(/[\r\n`]+/g, " ")
-    .trim()
-    .slice(0, 200)
-    .replace(/\|/g, "\\|");
+  const text = tablePipes(
+    String(value === undefined || value === null ? "" : value)
+      .replace(/[\r\n`]+/g, " ")
+      .trim()
+      .slice(0, 200),
+  );
   return text ? `\`${text}\`` : "";
+}
+
+/*
+ * A text whose every "|" stays in the table cell it is placed in, as Common's
+ * markdownTableCell keeps one (packages/Common/Utils/Markdown/
+ * MarkdownTableCell.ts, which the scripts cannot import). A table reader ends
+ * the cell at a "|" after an even number of backslashes, none included, so a
+ * backslash the text holds decides what an escape before a "|" means: "C:\|"
+ * escaped once more is "C:\\|", which ends the cell. So a "|" gets a
+ * backslash only where an even number of them comes before it. A walk, as a
+ * replace of each "|" alone is the escape code scanning reports for leaving
+ * the backslashes out (js/incomplete-sanitization).
+ */
+function tablePipes(text) {
+  let written = "";
+  // Where the text not yet written starts.
+  let pending = 0;
+  // How many backslashes come right before the current character.
+  let backslashes = 0;
+  for (let index = 0; index < text.length; index++) {
+    const character = text.charAt(index);
+    if (character === "\\") {
+      backslashes++;
+      continue;
+    }
+    if (character === "|" && backslashes % 2 === 0) {
+      written += `${text.slice(pending, index)}\\|`;
+      pending = index + 1;
+    }
+    backslashes = 0;
+  }
+  return written + text.slice(pending);
 }
 
 /*
@@ -1407,12 +1441,30 @@ function markerOf(body) {
  *   - a group with an open issue: update it;
  *   - a group whose last issue was closed as not planned: leave it, someone
  *     decided so;
- *   - a group whose last issue was closed after the scanned release was
- *     published: leave it, the fix ships in the next release;
- *   - any other group: create an issue, at most maxNew in one run;
+ *   - a group whose last issue's fix (the commit or pull request that
+ *     closed it, closingCommit) the scanned release does not have
+ *     (fixShipped says false): leave it, the fix ships in a later release.
+ *     A release branch cut before the fix merged, as 17.0.0's was before
+ *     #9828's, ships the vulnerability after the issue is closed;
+ *   - when that cannot be told (no fix to find, or the lookup failed:
+ *     fixShipped says null), a group whose last issue was closed after the
+ *     scanned release was published: leave it, as above;
+ *   - any other group: create an issue, at most maxNew in one run; one whose
+ *     fix shipped and did not clear it says which issue came before;
  *   - an open issue whose group this run did not find: close it.
+ *
+ * fixShipped is (issue) => true | false | null, asked only of a closed issue
+ * that would otherwise be opened again.
  */
-function planIssues({ groups, issues, publishedAt, maxNew = MAX_NEW_ISSUES }) {
+function planIssues({
+  groups,
+  issues,
+  publishedAt,
+  maxNew = MAX_NEW_ISSUES,
+  fixShipped = () => {
+    return null;
+  },
+}) {
   const known = new Map();
   for (const issue of issues) {
     const key = markerOf(issue.body);
@@ -1457,18 +1509,30 @@ function planIssues({ groups, issues, publishedAt, maxNew = MAX_NEW_ISSUES }) {
       });
       continue;
     }
-    if (
-      last &&
-      !Number.isNaN(published) &&
-      Date.parse(last.closedAt) > published
-    ) {
-      actions.push({
-        type: "skip",
-        group,
-        issue: last,
-        reason: `#${last.number} was closed after this release was published: its fix ships in the next one`,
-      });
-      continue;
+    if (last) {
+      const shipped = fixShipped(last);
+      if (shipped === false) {
+        actions.push({
+          type: "skip",
+          group,
+          issue: last,
+          reason: `#${last.number} was closed by a fix this release does not have: it ships in a later one`,
+        });
+        continue;
+      }
+      if (
+        shipped === null &&
+        !Number.isNaN(published) &&
+        Date.parse(last.closedAt) > published
+      ) {
+        actions.push({
+          type: "skip",
+          group,
+          issue: last,
+          reason: `#${last.number} was closed after this release was published: its fix ships in the next one`,
+        });
+        continue;
+      }
     }
     if (created >= maxNew) {
       actions.push({
@@ -1495,6 +1559,172 @@ function planIssues({ groups, issues, publishedAt, maxNew = MAX_NEW_ISSUES }) {
   }
 
   return actions;
+}
+
+/*
+ * What GitHub recorded about how an issue closed: the closer of its last
+ * ClosedEvent, a commit ("Closes #N" in its message) or a pull request
+ * ("Closes #N" in its description: the REST "closed" event of such an issue
+ * has no commit, as #9828's has none), and the pull requests that mention
+ * it, for an issue closed by hand.
+ */
+const CLOSER_QUERY = `query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $number) {
+      timelineItems(itemTypes: [CLOSED_EVENT, CROSS_REFERENCED_EVENT], last: 100) {
+        nodes {
+          __typename
+          ... on ClosedEvent {
+            createdAt
+            closer {
+              __typename
+              ... on Commit { oid }
+              ... on PullRequest { mergeCommit { oid } }
+            }
+          }
+          ... on CrossReferencedEvent {
+            source {
+              __typename
+              ... on PullRequest {
+                mergedAt
+                mergeCommit { oid }
+                repository { nameWithOwner }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+/*
+ * The commit that fixed a closed issue: the commit that closed it, or the
+ * merge of the pull request that closed it. For an issue closed by hand
+ * after its fix merged, the merge of the last pull request of this
+ * repository that mentions it and merged before it closed. null when there
+ * is none.
+ */
+function closingCommit(gh, { repository, issue }) {
+  const [owner, name] = String(repository).split("/");
+  const answer = JSON.parse(
+    gh([
+      "api",
+      "graphql",
+      "-f",
+      `query=${CLOSER_QUERY}`,
+      "-f",
+      `owner=${owner}`,
+      "-f",
+      `name=${name}`,
+      "-F",
+      `number=${issue.number}`,
+    ]) || "{}",
+  );
+  const timeline =
+    answer.data &&
+    answer.data.repository &&
+    answer.data.repository.issue &&
+    answer.data.repository.issue.timelineItems;
+  const items = (timeline && timeline.nodes) || [];
+  const closed = items
+    .filter((item) => {
+      return item && item.__typename === "ClosedEvent";
+    })
+    .pop();
+  if (!closed) {
+    return null;
+  }
+  const closer = closed.closer || {};
+  if (closer.__typename === "Commit") {
+    return closer.oid || null;
+  }
+  if (closer.__typename === "PullRequest") {
+    return (closer.mergeCommit && closer.mergeCommit.oid) || null;
+  }
+  const closedAt = Date.parse(closed.createdAt);
+  const merged = items
+    .map((item) => {
+      return item && item.__typename === "CrossReferencedEvent"
+        ? item.source
+        : null;
+    })
+    .filter((source) => {
+      return (
+        source &&
+        source.__typename === "PullRequest" &&
+        source.mergeCommit &&
+        source.repository &&
+        String(source.repository.nameWithOwner).toLowerCase() ===
+          String(repository).toLowerCase() &&
+        Date.parse(source.mergedAt) <= closedAt
+      );
+    })
+    .sort((a, b) => {
+      return Date.parse(a.mergedAt) - Date.parse(b.mergedAt);
+    });
+  return merged.length > 0 ? merged[merged.length - 1].mergeCommit.oid : null;
+}
+
+/*
+ * Whether a release has the fix of a closed issue (closingCommit): true when
+ * it has, false when it has not, null when that cannot be told (no fix to
+ * find, or GitHub did not answer). The compare API says "ahead" or
+ * "identical" when the release has the commit, and "behind" or "diverged"
+ * when it does not.
+ */
+function closingCommitShipped(gh, { repository, release, issue }) {
+  try {
+    const commit = closingCommit(gh, { repository, issue });
+    if (!commit || !/^[0-9a-f]{40}$/.test(commit)) {
+      return null;
+    }
+    const status = String(
+      gh([
+        "api",
+        `repos/${repository}/compare/${commit}...${release}`,
+        "--jq",
+        ".status",
+      ]) || "",
+    ).trim();
+    if (status === "ahead" || status === "identical") {
+      return true;
+    }
+    if (status === "behind" || status === "diverged") {
+      return false;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function issueNumberOf(url) {
+  const match = /\/issues\/(\d+)$/.exec(String(url || ""));
+  return match ? Number(match[1]) : null;
+}
+
+/*
+ * The findings the issues are about: every one no exception accepts, and
+ * every one an exception accepts unless it names an issue that tracks it
+ * elsewhere (as #9709 tracked nginx). An exception that names the group's own
+ * issue keeps it open: accepted until a date, still to fix.
+ */
+function issueFindings({ failing, accepted, issues }) {
+  return [
+    ...failing,
+    ...accepted.filter((finding) => {
+      const number = issueNumberOf(finding.exception.issue);
+      if (number === null) {
+        return true;
+      }
+      return issues.some((issue) => {
+        return (
+          issue.number === number && markerOf(issue.body) === groupKey(finding)
+        );
+      });
+    }),
+  ];
 }
 
 function listIssues(gh) {
@@ -1536,11 +1766,15 @@ function ensureLabel(gh) {
 }
 
 /*
- * Opens, rewrites and closes the issues as planIssues says. `gh` is
- * (args: string[]) => string, its standard output. With dryRun it only reads.
+ * Opens, rewrites and closes the issues as planIssues says, for the given
+ * groups, or for the groups of the failing and accepted findings that no
+ * other issue tracks (issueFindings). `gh` is (args: string[]) => string,
+ * its standard output. With dryRun it only reads.
  */
 function syncIssues({
   groups,
+  failing = [],
+  accepted = [],
   release,
   publishedAt,
   repository = DEFAULT_REPOSITORY,
@@ -1552,11 +1786,15 @@ function syncIssues({
   maxNew = MAX_NEW_ISSUES,
   runUrl = "",
 }) {
+  const issues = listIssues(gh);
   const actions = planIssues({
-    groups,
-    issues: listIssues(gh),
+    groups: groups || groupsOf(issueFindings({ failing, accepted, issues })),
+    issues,
     publishedAt,
     maxNew,
+    fixShipped: (issue) => {
+      return closingCommitShipped(gh, { repository, release, issue });
+    },
   });
   const directory = fs.mkdtempSync(
     path.join(os.tmpdir(), "vulnerability-issues-"),
@@ -1840,7 +2078,7 @@ function main(
   }
 
   // issues: a finding an exception accepts is still to fix, unless the
-  // exception names the issue that tracks it.
+  // exception names another issue that tracks it (issueFindings).
   if (errors.length > 0) {
     out.write(
       `${errors
@@ -1852,14 +2090,9 @@ function main(
   }
   const findings = actionableFindings(reports, options.failOn || "high");
   const { failing, accepted } = classify(findings, exceptions, today);
-  const untracked = [
-    ...failing,
-    ...accepted.filter((finding) => {
-      return !finding.exception.issue;
-    }),
-  ];
   const actions = syncIssues({
-    groups: groupsOf(untracked),
+    failing,
+    accepted,
     release: options.release,
     publishedAt: options.publishedAt,
     repository,
@@ -1897,9 +2130,12 @@ module.exports = {
   exceptionTemplate,
   findingsOf,
   gate,
+  closingCommit,
+  closingCommitShipped,
   groupKey,
   groupsOf,
   hintLines,
+  issueFindings,
   main,
   markerOf,
   parseArgs,

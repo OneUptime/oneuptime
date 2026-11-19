@@ -32,6 +32,10 @@ import Probe, {
   ProbeConnectionStatus,
 } from "../../../Models/DatabaseModels/Probe";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import {
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+} from "../../../Types/Database/UniqueName";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import API from "../../../UI/Utils/API/API";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -1144,6 +1148,70 @@ describe("who is told", () => {
       // The server words the two rules in the reader's language (#7995).
       everyNewEventRulesLanguage: "en",
     });
+  });
+
+  // #9742: a policy's name is one policy's, so a taken name is numbered.
+  test("while another policy has its name, the policy is made numbered, with the same first responders", async () => {
+    // Each try's name as it was sent: the model is the same object each time.
+    const tried: Array<string | undefined> = [];
+
+    createSpy.mockImplementation((async (args: {
+      model: OnCallDutyPolicy;
+    }): Promise<unknown> => {
+      tried.push(args.model.name);
+
+      if (tried.length === 1) {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message: getNameTakenRefusalText(
+              ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+              args.model.name,
+            ),
+          },
+          {},
+        );
+      }
+
+      return { data: model(OnCallDutyPolicy, { _id: id(50).toString() }) };
+    }) as never);
+
+    expect(
+      await WebsiteDownApi.createPolicy({
+        userIds: [id(1).toString()],
+        teamIds: [],
+        translator: createTranslator(undefined),
+      }),
+    ).toBe(id(50).toString());
+
+    const calls: Array<Parameters<typeof ModelAPI.create>[0]> =
+      createSpy.mock.calls.map(
+        (call: Array<unknown>): Parameters<typeof ModelAPI.create>[0] => {
+          return call[0] as Parameters<typeof ModelAPI.create>[0];
+        },
+      );
+
+    expect(calls).toHaveLength(2);
+    expect(tried).toEqual([
+      "Default on-call policy",
+      "Default on-call policy 2",
+    ]);
+    expect(calls[1]!.miscDataProps).toEqual(calls[0]!.miscDataProps);
+  });
+
+  test("any other refusal of the policy is the setup's error, tried once", async () => {
+    createSpy.mockRejectedValue(
+      new HTTPErrorResponse(400, { message: "Bad" }, {}),
+    );
+
+    await expect(
+      WebsiteDownApi.createPolicy({
+        userIds: [id(1).toString()],
+        teamIds: [],
+        translator: createTranslator(undefined),
+      }),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
+    expect(createSpy).toHaveBeenCalledTimes(1);
   });
 
   test("read in German, the policy is named in German, and its rules are asked for in German (#7995)", async () => {

@@ -1,5 +1,5 @@
 import Tippy from "@tippyjs/react";
-import { Instance } from "tippy.js";
+import { Instance, Plugin } from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light-border.css";
 import "tippy.js/animations/shift-away-subtle.css";
@@ -7,7 +7,6 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
-  useContext,
   useEffect,
   useId,
   useRef,
@@ -29,10 +28,7 @@ import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
 import WasThisClear from "../Feedback/WasThisClear";
 import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
-import {
-  DefinitionPlace,
-  DefinitionPlaceContext,
-} from "./DefinitionsDrawnAfter";
+import { getTooltipLayer, keepTabOrder } from "../Tooltip/TooltipLayer";
 import {
   DEFINED_TERM_CLASS_NAME,
   DEFINED_TERM_TEST_ID,
@@ -67,6 +63,16 @@ import {
  * A form field's, a card's and a table column's titles draw it through
  * LazyDefinedTerm, so the pages that never mark a word - the sign-in pages,
  * a status page, a public dashboard - do not load it.
+ *
+ * The definition is drawn on the page's body, as every tooltip is
+ * (TooltipLayer), never where its word is: in a narrow box that clips - the
+ * traces explorer's facets, 224px wide and scrolling, where the Span
+ * Type's "Span" opened a 288px definition - its end was cut off (#9863).
+ * From there it is placed against the window and follows its word as the
+ * box scrolls. The keyboard still goes from the word to Read more and on
+ * from the word (keepTabOrder), in a dialog too; and since it is never
+ * inside the heading or the field's title its word is in, the definition
+ * is never read out as part of that heading's or that field's name (#7594).
  */
 
 export interface ComponentProps {
@@ -75,16 +81,6 @@ export interface ComponentProps {
   // The word as the page draws it, already in the reader's language.
   children: ReactNode;
   dataTestId?: string | undefined;
-  /*
-   * Where the definition is drawn, when not beside its word: for a word
-   * inside something its words name. A form field's title names its field
-   * (Forms/Fields/FieldLabel), and a field is named by every word inside
-   * its title, so a definition drawn there was read out as part of the
-   * field's name while it showed. The place comes right after the word in
-   * the page's order, so Tab still goes from the word to Read more. A word
-   * in a heading is given one by the heading (DefinitionsDrawnAfter).
-   */
-  popoverPlace?: React.RefObject<HTMLElement> | undefined;
 }
 
 // The word, as its place draws it too (DefinedTermWord).
@@ -107,11 +103,11 @@ export const DEFINED_TERM_UNAVAILABLE_TEXT: string = translationKey(
 );
 
 /*
- * The popover is drawn inside its word's parent, so it would take on that
- * parent's type: a card title's weight, or the capitals and wide letter
- * spacing of a row name drawn in small capitals ("When this goes down"
- * names its On-call policy row so). A definition reads in the popover's
- * own type, whatever its word is in.
+ * A definition reads in the popover's own type, whatever its word is in: a
+ * card title's weight, or the capitals and wide letter spacing of a row
+ * name drawn in small capitals ("When this goes down" names its On-call
+ * policy row so). Drawn on the body it inherits none of them, and it says
+ * so itself rather than lean on where it is drawn.
  */
 export const DEFINED_TERM_POPOVER_CLASS_NAME: string =
   "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm font-normal normal-case tracking-normal focus:outline-none";
@@ -130,6 +126,12 @@ type ReadState =
   | { status: "failed" };
 
 const FOCUS_EVENTS: Array<string> = ["focus", "focusin"];
+
+/*
+ * Escape puts it away (TooltipEscape), and drawn on the body it keeps its
+ * place in the Tab order (TooltipLayer), as the shared Tooltip's do.
+ */
+const DEFINED_TERM_PLUGINS: Array<Plugin> = [...TOOLTIP_PLUGINS, keepTabOrder];
 
 interface PopoverProps {
   term: GlossaryTerm;
@@ -168,12 +170,11 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
       className={withProductText(DEFINED_TERM_POPOVER_CLASS_NAME)}
       onClick={(event: React.MouseEvent<HTMLDivElement>): void => {
         /*
-         * The popover is drawn beside its word, which can be inside a
-         * <label> or a clickable card, and a click inside it reaches what
-         * its word is drawn in wherever it is placed (React hands it on
-         * through the portal): a click on its words must not tick that
-         * label's box or open that card. A click on Read more still
-         * follows the link.
+         * The word can be inside a <label> or a clickable card, and a click
+         * inside the popover reaches what its word is drawn in, wherever the
+         * popover is drawn (React hands it on through the portal): a click
+         * on its words must not tick that label's box or open that card. A
+         * click on Read more still follows the link.
          */
         event.stopPropagation();
 
@@ -258,20 +259,6 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
   // The event that last asked the popover to show.
   const lastTriggerRef: React.MutableRefObject<string> = useRef<string>("");
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
-  /*
-   * The place right after the heading this word is in (a card's title,
-   * DefinitionsDrawnAfter), asked for now that the word can show its
-   * definition - unless the word was given a place of its own.
-   */
-  const headingPlace: DefinitionPlace | undefined = useContext(
-    DefinitionPlaceContext,
-  );
-
-  useEffect(() => {
-    if (!props.popoverPlace) {
-      headingPlace?.ask();
-    }
-  }, [headingPlace, props.popoverPlace]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -307,22 +294,14 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * An interactive popover is placed in its word's parent, at its end: the
-   * span of its own puts it right after the word, so Tab goes from the word
-   * to Read more, and not first through what follows the word. A place
-   * given for it (popoverPlace) comes right after the word too, and so does
-   * a heading's, right after the heading.
+   * Drawn on the page's body (TooltipLayer), where nothing its word is in
+   * can cut it off, and Tab goes from the word to Read more and on from the
+   * word as if it sat right after it (keepTabOrder).
    */
   return (
     <span className="inline">
       <Tippy
-        appendTo={(reference: Element): Element => {
-          return (
-            props.popoverPlace?.current ||
-            headingPlace?.element.current ||
-            (reference.parentNode as Element)
-          );
-        }}
+        appendTo={getTooltipLayer}
         content={
           <DefinedTermPopover
             term={props.term}
@@ -348,7 +327,7 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
             }}
           />
         }
-        plugins={TOOLTIP_PLUGINS}
+        plugins={DEFINED_TERM_PLUGINS}
         interactive={true}
         // A press keeps it; the next press, or one anywhere else, hides it.
         trigger="mouseenter focus click"

@@ -190,7 +190,7 @@ Ein Repository beschreibt in einer `AGENTS.md` in seinem Stammverzeichnis, der D
 
 | Wo die KI arbeitet | Was sie mit Build und Tests des Repositorys macht |
 | --- | --- |
-| Einer Ihrer Runner | Baut und testet ihre Änderung, bevor der Pull Request geöffnet wird, behebt, was fehlschlägt, prüft erneut und nennt in ihrer Zusammenfassung die Prüfungen, die sie ausgeführt hat. Jeder Befehl, den sie ausführt, bekommt 2 Minuten, oder bis zu 10 für eine langsame Installation, einen langsamen Build oder eine langsame Testsuite, ohne die eigenen Zugangsdaten des Runners in seiner Umgebung. |
+| Einer Ihrer Runner | Baut und testet ihre Änderung, bevor der Pull Request geöffnet wird, behebt, was fehlschlägt, prüft erneut und nennt in ihrer Zusammenfassung die Prüfungen, die sie ausgeführt hat. Jeder Befehl, den sie ausführt, bekommt 2 Minuten, oder bis zu 10 für eine langsame Installation, einen langsamen Build oder eine langsame Testsuite, ohne die eigenen Zugangsdaten des Runners in seiner Umgebung. **Zeitlimit pro Befehl (Minuten)** in den **Limits pro Ausführung** des Projekts lässt einen Befehl bis zu 120 Minuten laufen, nie über das Zeitlimit der Ausführung hinaus. |
 | **Globaler Runner** | Führt keinen Befehl aus: Die KI schreibt die Änderung und öffnet den Pull Request, und das eigene CI Ihres Repositorys prüft sie. |
 
 Nichts aus einem Pull Request, der aus einem Fork kommt, wird je als Anleitung des Repositorys gelesen: Eine Überarbeitung lehnt einen solchen Pull Request ab, und ein Review liest den Basis-Branch.

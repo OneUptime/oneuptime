@@ -1,8 +1,11 @@
+import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
+import Label from "Common/Models/DatabaseModels/Label";
 import {
   HostCollectorOsType,
   getHostCollectorOsType,
   isHostCollectorOsType,
 } from "Common/Types/HostCollector/HostCollector";
+import { toListOrderNumber } from "Common/Utils/ListOrder";
 import {
   HostCollectorConfigCandidate,
   HostCollectorConfigChoice,
@@ -30,7 +33,8 @@ export interface HostCollectorConfigChoiceOption {
   name: string;
   osType: string | null | undefined;
   labelIds: Array<string>;
-  order: number;
+  // Its place in the list, or null when it has none: it then comes last.
+  order: number | null;
 }
 
 // The host, as the choice reads it.
@@ -39,6 +43,29 @@ export interface HostCollectorConfigChoiceHost {
   labelIds: Array<string>;
   collectorConfigId: string | null | undefined;
   isCollectorConfigPinned: boolean | null | undefined;
+}
+
+/*
+ * A Collector Config as the picker reads it. One without a place keeps
+ * none, and so comes after every config that has one, as on the server
+ * (HostCollectorConfigResolution) - not at 0, above them all.
+ */
+export function toHostCollectorConfigChoiceOption(
+  config: HostCollectorConfig,
+): HostCollectorConfigChoiceOption {
+  return {
+    id: config._id?.toString() || "",
+    name: config.name || "",
+    osType: config.osType,
+    labelIds: (config.labels || [])
+      .map((label: Label): string => {
+        return label._id?.toString() || "";
+      })
+      .filter((id: string): boolean => {
+        return Boolean(id);
+      }),
+    order: toListOrderNumber(config.order),
+  };
 }
 
 function toCandidate(

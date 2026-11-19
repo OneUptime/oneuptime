@@ -205,7 +205,7 @@ Execute o comando de novo para mudar qualquer uma destas opções, ou para passa
 | `--key KEY` | `-Key KEY` | Uma chave de ingestão de telemetria do seu projeto. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Rotula o host. Repita a opção para mais rótulos; no Windows, liste-os separados por vírgulas. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Dá ao coletor uma variável de ambiente, para configurações que leem `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | A versão do coletor a instalar, 0.161.0 por padrão. |
+| `--version VERSION` | `-Version VERSION` | A versão do coletor a instalar, 0.165.0 por padrão. |
 | `--download-url URL` | `-DownloadUrl URL` | Baixa as versões de um espelho com a mesma estrutura de pastas do GitHub. |
 | `--proxy URL` | `-Proxy URL` | Envia os downloads e todo o tráfego do coletor por um proxy HTTP. |
 | `--replace-existing` | `-ReplaceExisting` | Para e desativa um coletor instalado manualmente. |

@@ -187,6 +187,13 @@ export interface SamlResponseOptions {
    * an <AttributeStatement> of them, in place of the displayName claim.
    */
   attributes?: Array<[name: string, value: string]> | undefined;
+  // The <AuthnStatement>'s SessionIndex (none by default).
+  sessionIndex?: string | null | undefined;
+  /*
+   * The <NameID>'s attributes, written as they are, in place of the email
+   * address Format every response here has by default.
+   */
+  rawNameIdAttributes?: string | undefined;
 }
 
 function attribute(name: string, value: string | null | undefined): string {
@@ -301,13 +308,17 @@ export function buildSamlResponse(options: SamlResponseOptions): string {
   )} Version="2.0"${attribute(
     "IssueInstant",
     issueInstant,
-  )}><saml:Issuer>${options.issuer}</saml:Issuer><saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">${
-    options.email
-  }</saml:NameID>${subjectConfirmations
+  )}><saml:Issuer>${options.issuer}</saml:Issuer><saml:Subject><saml:NameID${
+    options.rawNameIdAttributes ??
+    ' Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"'
+  }>${options.email}</saml:NameID>${subjectConfirmations
     .map(subjectConfirmationXml)
     .join(
       "",
     )}</saml:Subject>${conditions}<saml:AuthnStatement AuthnInstant="${samlTime(
     issuedAt,
-  )}"><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>${attributeStatement}</saml:Assertion></samlp:Response>`;
+  )}"${attribute(
+    "SessionIndex",
+    options.sessionIndex,
+  )}><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>${attributeStatement}</saml:Assertion></samlp:Response>`;
 }

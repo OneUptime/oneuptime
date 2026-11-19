@@ -28,6 +28,15 @@ import {
   AwsListedResource,
 } from "./AwsCloudControl";
 import { listBeanstalkEnvironments } from "./AwsBeanstalkEnvironments";
+import {
+  GLOBAL_ACCELERATOR_REGION,
+  listAppSyncApis,
+  listCognitoUserPools,
+  listGlobalAccelerators,
+  listNetworkFirewalls,
+  listSageMakerEndpoints,
+  listWafWebAcls,
+} from "./AwsServiceListings";
 import { listClassicLoadBalancers } from "./AwsClassicLoadBalancers";
 import { listEksClusters } from "./AwsEksClusters";
 
@@ -63,6 +72,13 @@ export interface AwsInventoryType {
   type: string;
   // Listed once, in us-east-1, rather than in every Region (CloudFront).
   isGlobal?: boolean | undefined;
+  /*
+   * The Region a global type's resources and their metrics live in, when
+   * it is not the Region it is listed from: Global Accelerator answers, and
+   * publishes its metrics, in US West (Oregon) alone. A partition without
+   * that Region lists none.
+   */
+  metricsRegion?: string | undefined;
   /*
    * The CloudWatch namespace whose identity rule the type's resources
    * share, and their identity dimensions read from what was listed. Absent
@@ -1281,6 +1297,160 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
     },
   },
   /*
+   * Listed by each service's own API (AwsServiceListings), so they are on
+   * the account's page before they report a metric (#9692): an ACL that
+   * allowed and blocked nothing for three hours, a pool nobody signed in
+   * to, an endpoint nobody invoked. A connection whose role may not list
+   * them yet - one set up before - lists everything else as before, and
+   * finds them by their metrics (quietWhenRefused).
+   */
+  {
+    type: "AWS::WAFv2::WebACL",
+    lister: listWafWebAcls,
+    quietWhenRefused: true,
+    metrics: {
+      namespace: () => {
+        return "AWS/WAFV2";
+      },
+      /*
+       * Its metrics name it by its metric name, which need not be its name,
+       * and its own total is its series whose Rule is ALL.
+       */
+      dimensions: (listed: AwsListedResource) => {
+        const metricName: string =
+          textAt(listed.properties, "MetricName") ||
+          textAt(listed.properties, "Name");
+
+        return metricName ? { WebACL: metricName, Rule: "ALL" } : null;
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "Name");
+    },
+    properties: [
+      "Name",
+      "Id",
+      "Scope",
+      "MetricName",
+      "Description",
+      "Capacity",
+      "ManagedByFirewallManager",
+    ],
+  },
+  {
+    type: "AWS::NetworkFirewall::Firewall",
+    lister: listNetworkFirewalls,
+    quietWhenRefused: true,
+    metrics: {
+      namespace: () => {
+        return "AWS/NetworkFirewall";
+      },
+      dimensions: (listed: AwsListedResource) => {
+        const name: string = textAt(listed.properties, "FirewallName");
+
+        return name ? { FirewallName: name } : null;
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "FirewallName");
+    },
+    properties: ["FirewallName", "TransitGatewayAttachmentId"],
+  },
+  {
+    type: "AWS::GlobalAccelerator::Accelerator",
+    isGlobal: true,
+    metricsRegion: GLOBAL_ACCELERATOR_REGION,
+    lister: listGlobalAccelerators,
+    quietWhenRefused: true,
+    metrics: {
+      namespace: () => {
+        return "AWS/GlobalAccelerator";
+      },
+      // Its metrics name it by its id, the end of its ARN.
+      dimensions: (listed: AwsListedResource) => {
+        const id: string = getGlobalAcceleratorId(listed.identifier);
+
+        return id ? { Accelerator: id } : null;
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "Name");
+    },
+    properties: [
+      "Name",
+      "Status",
+      "Enabled",
+      "IpAddressType",
+      "DnsName",
+      "DualStackDnsName",
+    ],
+    endpoints: (listed: AwsListedResource) => {
+      return [
+        listed.properties["DnsName"],
+        listed.properties["DualStackDnsName"],
+      ];
+    },
+  },
+  {
+    type: "AWS::Cognito::UserPool",
+    lister: listCognitoUserPools,
+    quietWhenRefused: true,
+    metrics: {
+      namespace: () => {
+        return "AWS/Cognito";
+      },
+      dimensions: (listed: AwsListedResource) => {
+        return { UserPool: listed.identifier };
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "Name");
+    },
+    properties: ["Name", "Status"],
+  },
+  {
+    type: "AWS::AppSync::GraphQLApi",
+    lister: listAppSyncApis,
+    quietWhenRefused: true,
+    metrics: {
+      namespace: () => {
+        return "AWS/AppSync";
+      },
+      dimensions: (listed: AwsListedResource) => {
+        const id: string = textAt(listed.properties, "apiId");
+
+        return id ? { GraphQLAPIId: id } : null;
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "name");
+    },
+    properties: ["name", "apiType", "visibility", "GraphQLUrl"],
+    endpoints: (listed: AwsListedResource) => {
+      return [listed.properties["GraphQLUrl"]];
+    },
+  },
+  {
+    type: "AWS::SageMaker::Endpoint",
+    lister: listSageMakerEndpoints,
+    quietWhenRefused: true,
+    metrics: {
+      namespace: () => {
+        return "AWS/SageMaker";
+      },
+      // Its name as it was made: its ARN spells it in lower case.
+      dimensions: (listed: AwsListedResource) => {
+        const name: string = textAt(listed.properties, "EndpointName");
+
+        return name ? { EndpointName: name } : null;
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "EndpointName");
+    },
+    properties: ["EndpointName", "EndpointStatus"],
+  },
+  /*
    * Listed by Elastic Beanstalk itself (AwsBeanstalkEnvironments): Cloud
    * Control knows an environment by its name alone, and its ARN holds its
    * application's. A connection whose role may not read them yet lists
@@ -1436,6 +1606,24 @@ export function getAwsInventoryIdentity(
  * resource. Its name is its Name tag, else its type's own name for it,
  * else what its identity calls it.
  */
+/*
+ * An accelerator's id, the end of its ARN
+ * ("arn:aws:globalaccelerator::123456789012:accelerator/<id>"): what its
+ * metrics name it by (Accelerator). "" for anything else.
+ */
+export function getGlobalAcceleratorId(arn: string): string {
+  const marker: string = ":accelerator/";
+  const index: number = arn.indexOf(marker);
+
+  if (index < 0) {
+    return "";
+  }
+
+  const id: string = arn.slice(index + marker.length).trim();
+
+  return id && !id.includes("/") ? id : "";
+}
+
 export function buildAwsInventoryItem(
   inventoryType: AwsInventoryType,
   listed: AwsListedResource,

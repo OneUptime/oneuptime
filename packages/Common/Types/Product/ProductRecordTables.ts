@@ -445,6 +445,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "HostCollectorConfigVersion",
     "HostFeed",
     "HostLabelRule",
+    "HostLogSession",
     "HostOwnerRule",
     "HostOwnerTeam",
     "HostOwnerUser",
@@ -846,6 +847,7 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
         "InstanceHealthLog",
         "InstanceReceivingPeriod",
         "InstanceTokenSigningKey",
+        "InstanceSamlSigningKey",
       ],
     ),
   ]);

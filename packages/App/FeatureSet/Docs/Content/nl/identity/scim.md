@@ -339,7 +339,7 @@ Wat `/ServiceProviderConfig` meldt:
 | ETag | Nee |
 | Verificatie | HTTP-bearer-token, of een OAuth 2.0-toegangstoken |
 
-Een groep die uw identiteitsprovider aanmaakt, wordt in het project een team met dezelfde naam; een team dat die naam al heeft, wordt gebruikt in plaats van een nieuw team.
+Een groep die uw identiteitsprovider aanmaakt, wordt in het project een team met dezelfde naam. Een team waarvan de naam hetzelfde luidt, ongeacht hoofdletters en spaties, wordt gebruikt in plaats van een nieuw team, en neemt de schrijfwijze van de groep over, tenzij een identiteitsprovider dat team al als een andere van zijn groepen heeft: twee groepen waarvan de namen alleen in hoofdletters of spaties verschillen, wat Microsoft Entra ID toestaat, krijgen elk een eigen team en worden nooit samengevoegd. Owners en Admin, die niet kunnen worden hernoemd, worden alleen bij hun exacte naam gebruikt. Een groep die in uw identiteitsprovider wordt hernoemd, hernoemt zijn eigen team, ook naar een naam die een ander team heeft.
 
 :::details SCIM-gebruikersschema
 ```json
@@ -454,7 +454,7 @@ Gebruikers die SCIM zelf aanmaakt en gebruikers die lid zijn van uw project word
 Met het e-mailadres van een OneUptime-account meldt die persoon zich aan bij elk project waartoe deze behoort, en op dat adres komen de links voor het opnieuw instellen van het wachtwoord binnen. Daarom:
 
 - **OneUptime Cloud**: SCIM wijzigt nooit een e-mailadres. Een verzoek dat er een zou wijzigen, slaagt toch: de verbinding houdt het adres dat uw identiteitsprovider stuurde en antwoordt ermee, terwijl het account het adres houdt waarmee de persoon zich aanmeldt. De SCIM-logboeken van de verbinding vermelden dat de wijziging niet is toegepast. Vraag de gebruiker het adres zelf te wijzigen via het eigen OneUptime-profiel.
-- **Zelf gehost**: SCIM wijzigt het e-mailadres alleen van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Voor alle anderen houdt de verbinding het nieuwe adres en het account zijn eigen adres, zoals op OneUptime Cloud.
+- **Zelf gehost**: SCIM wijzigt het e-mailadres alleen van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Voor alle anderen houdt de verbinding het nieuwe adres en het account zijn eigen adres, zoals op OneUptime Cloud. Hetzelfde geldt voor een adres waarmee een ander OneUptime-account zich al aanmeldt.
 
 Voor namen geldt overal dezelfde regel: SCIM werkt de naam alleen bij van een gebruiker die lid is geworden van dit project, bij geen ander project hoort en geen OneUptime-beheerder is. Voor alle anderen blijft de naam zoals hij is, en de rest van het verzoek slaagt gewoon.
 :::

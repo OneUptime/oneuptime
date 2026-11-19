@@ -922,6 +922,34 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     expect(commonViewer).toContain("<OpenedLogLine");
   });
 
+  /*
+   * Copy Link on a line's details (#9794): the details of a row and of the
+   * line a link opened both draw it, the Dashboard builds the link with the
+   * list's chips over its window, pinned (LogLineLink).
+   */
+  it("says Copy Link on a line's details copies such a link, over the same list and time range", () => {
+    const panel: string = readCommonSource(
+      "UI/Components/LogsViewer/components/LogDetailsPanel.tsx",
+    );
+    const button: string = readCommonSource(
+      "UI/Components/LogsViewer/components/CopyLogLineLinkButton.tsx",
+    );
+
+    expect(page).toContain(
+      "**Copy Link** on a line's details copies such a link, with the list you copied it from under it, over the same time range.",
+    );
+    // The button's own words, as the page names them.
+    expect(button).toContain(
+      'COPY_LOG_LINE_LINK: string = translationKey("Copy Link")',
+    );
+    expect(button).toContain("title={COPY_LOG_LINE_LINK}");
+    expect(panel).toContain("<CopyLogLineLinkButton link={logLink} />");
+    // Both the row's details and the opened line's draw the panel with it.
+    expect(commonViewer.split("getLogLink={props.getLogLink}")).toHaveLength(3);
+    expect(dashboardViewer).toContain("getLogLink={getLogLink}");
+    expect(dashboardViewer).toContain("buildLogLineLink({");
+  });
+
   it("opens on the past hour, newest first, 100 logs per page", () => {
     expect(DEFAULT_SAVED_VIEW_TIME_RANGE).toBe(TimeRange.PAST_ONE_HOUR);
     expect(numberConstant(dashboardViewer, "DEFAULT_PAGE_SIZE")).toBe(100);

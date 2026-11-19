@@ -6,6 +6,9 @@ import UserTwoFactorBackupCodeService from "../Services/UserTwoFactorBackupCodeS
 import UserWebAuthnService from "../Services/UserWebAuthnService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "./Logger";
+import SignInSettingsClearedEmail, {
+  SignInSettingsClearedEmailEvent,
+} from "./SignInSettingsClearedEmail";
 import SsoRequiredSignIn from "./SsoRequiredSignIn";
 import TwoFactorWrongCodes from "./TwoFactorWrongCodes";
 import User from "../../Models/DatabaseModels/User";
@@ -22,6 +25,7 @@ import {
   ClearLocalSignInAnswer,
   LocalSignInSettings,
 } from "../../Types/SSO/LocalSignInClearing";
+import { SignInSettingsClearedBy } from "../../Types/SSO/SignInSettingsClearedEmail";
 import { SelectQueryBuilder } from "typeorm";
 
 /*
@@ -41,7 +45,10 @@ import { SelectQueryBuilder } from "typeorm";
  * owner-only switch - since clearing is the master admin's decision, made
  * after a confirmation that says it cannot be undone. Each person cleared
  * is recorded in the audit log of their projects, as the master admin's
- * Update of them (AuditLogService.recordSignInSettingsCleared).
+ * Update of them (AuditLogService.recordSignInSettingsCleared), and is
+ * emailed what was removed and how they sign in now (#9818,
+ * SignInSettingsClearedEmail) - in the background, so a clear never waits
+ * for the mail service and never fails with it.
  *
  * The clear of everyone works through the people who have anything, a batch
  * at a time, so a server of thousands of people is a few statements a
@@ -188,6 +195,19 @@ export default class LocalSignInClearing {
       },
     ]);
 
+    /*
+     * The person is told, at their own address (#9818): in the background,
+     * so the clear, done and recorded, never waits for an email or fails
+     * with one. Nothing removed, nothing sent.
+     */
+    void SignInSettingsClearedEmail.notify([
+      {
+        userId: data.userId,
+        cleared: cleared,
+        clearedBy: SignInSettingsClearedBy.ServerAdmin,
+      },
+    ]);
+
     logger.info(
       `Sign-in settings cleared by master admin ${data.clearedByUserId.toString()} for user ${data.userId.toString()}${isMasterAdmin ? " (a master admin)" : ""}: ${sessionsEnded} session(s) ended.`,
     );
@@ -286,6 +306,23 @@ export default class LocalSignInClearing {
         ),
       );
 
+      /*
+       * Each of them is told (#9818), and only them: the batch's emails
+       * join the queue in the background while the next batch is cleared,
+       * so the clear of everyone never waits for the mail service.
+       */
+      void SignInSettingsClearedEmail.notify(
+        result.clearedUserIds.map(
+          (userId: ObjectID): SignInSettingsClearedEmailEvent => {
+            return {
+              userId: userId,
+              cleared: settingsByUser.get(userId.toString())!,
+              clearedBy: SignInSettingsClearedBy.ServerAdmin,
+            };
+          },
+        ),
+      );
+
       peopleCleared += result.clearedUserIds.length;
 
       if (rows.length < CLEAR_BATCH_SIZE) {
@@ -300,6 +337,42 @@ export default class LocalSignInClearing {
     return peopleCleared;
   }
 
+  /*
+   * Which of these people - never a master admin, never a deleted account -
+   * still have anything saved to sign in with, by the same query the clear
+   * of everyone reads (an owner's clear of their organization's people,
+   * ProjectSignInClearing, #9820). Read a batch at a time.
+   */
+  public static async findPeopleWithSettings(
+    userIds: Array<ObjectID>,
+  ): Promise<Array<ObjectID>> {
+    const found: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (let start: number = 0; start < userIds.length; start += LIMIT_MAX) {
+      const batch: Array<string> = userIds
+        .slice(start, start + LIMIT_MAX)
+        .map((userId: ObjectID): string => {
+          return userId.toString();
+        });
+
+      const rows: Array<{ userId?: unknown }> =
+        await LocalSignInClearing.getCoveredPeopleQuery()
+          .andWhere('"person"."_id" IN (:...userIds)', { userIds: batch })
+          .select('"person"."_id"', "userId")
+          .getRawMany();
+
+      for (const row of rows) {
+        const userId: string = String(row.userId || "");
+
+        if (ObjectID.isValidUUID(userId)) {
+          found.set(userId.toLowerCase(), new ObjectID(userId));
+        }
+      }
+    }
+
+    return Array.from(found.values());
+  }
+
   // The covered people who still have settings, as a query over "person".
   private static getCoveredPeopleQuery(): SelectQueryBuilder<User> {
     return UserService.getQueryBuilder("person").where(
@@ -312,9 +385,11 @@ export default class LocalSignInClearing {
    * signed in with SSO: who it cleared, and how many sessions ended. Their
    * passwords and links go in one write, which leaves master admins out
    * unless `isMasterAdminIncluded`; their second steps and backup codes go
-   * with them.
+   * with them. The callers decide who: a master admin's clears here, and an
+   * owner's clear of their organization's people (ProjectSignInClearing),
+   * which never includes a master admin.
    */
-  private static async clearPeople(data: {
+  public static async clearPeople(data: {
     userIds: Array<ObjectID>;
     isMasterAdminIncluded: boolean;
   }): Promise<{ clearedUserIds: Array<ObjectID>; sessionsEnded: number }> {

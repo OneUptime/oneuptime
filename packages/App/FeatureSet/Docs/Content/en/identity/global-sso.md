@@ -93,9 +93,16 @@ With **Every project**, signing in with the provider meets SSO enforcement in ev
 
 ## Signing out of the identity provider too
 
-Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer the next person who signs in with that provider gets in as the one who left. On an OpenID Connect provider, click **Edit Configuration** and turn on **Sign Out of the Identity Provider Too** under **More fields**: signing out of OneUptime then ends the provider's session too, and the provider sends the browser back to the OneUptime sign-in page. It is off by default, since on a personal laptop it would also sign the person out of every other app that uses the provider.
+Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer the next person who signs in with that provider gets in as the one who left. Click **Edit Configuration** on a SAML or an OpenID Connect provider and turn on **Sign Out of the Identity Provider Too** under **More fields**: signing out of OneUptime then ends the provider's session too, and the provider sends the browser back to OneUptime. It is off by default, since on a personal laptop it would also sign the person out of every other app that uses the provider.
 
+:::tabs
+@tab SAML
+Enter your identity provider's sign-out URL as the **Sign Out URL**, under **More fields**: the switch cannot be turned on without it. Then give your identity provider the **Single Logout URL** that the **Identity Provider URLs** card shows, and the certificate OneUptime signs its sign-out requests with, from **Download Signing Certificate** on the same card. When the person signs out at the identity provider, or of another app that uses it, an identity provider that sends sign-out requests to its apps signs them out of OneUptime too.
+@tab OpenID Connect
 Register the sign-out redirect URI that the **Identity Provider URL** card shows with your provider, as an allowed post-logout redirect URI. A provider whose discovery document names no `end_session_endpoint`, such as Google, cannot turn it on.
+:::
+
+Where Okta, Microsoft Entra ID, Auth0 and Keycloak keep these settings is on the [SSO](/docs/identity/sso) page.
 
 ## Enforcing SSO
 
@@ -109,7 +116,7 @@ While the whole instance requires SSO:
 - The sign-in page offers only SSO: a button for each global provider that is on, and no password, passkey, emailed link, Google or Microsoft sign-in, or sign-up. It keeps the email lookup that finds a project's own provider only while some project has one.
 - OneUptime refuses a password, a passkey, an emailed link, a Google or Microsoft sign-in and a sign-up with "This server requires single sign-on (SSO). Sign in with SSO instead." Only a master admin's password or passkey still signs them in. People get their account by signing in with SSO or by an invitation.
 - People other than master admins cannot set a password, a passkey, a security key, an authenticator app, backup codes or two-factor authentication, and a password reset emails them no link. Their **User Profile** has no **Security** section, and its **Overview** names the providers they sign in with. What they set up before stays saved but unused until the requirement is turned off.
-- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, and each person's projects record it in their audit logs.
+- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, each person's projects record it in their audit logs, and each person is emailed what was removed and how they sign in now.
 - On a person's **Authentication** page in **Users**, **Clear Sign-In Settings** does the same for that one person, and **Set Password** and **Send Password Reset Link** say that a password will not sign them in. You cannot clear your own there, and clearing another master admin's asks you to confirm they are one.
 - Someone already signed in with a password signs in with SSO to open a project. They land on the project's single sign-on page, which offers the project's own providers and the global providers that sign people in to it. The **Require SSO** card says how many people are still signed in without SSO, and **Sign them out** ends their sessions on every device at once. Master admins stay signed in.
 - Master admins sign in with their password at `/accounts/admin-login`, which the sign-in page does not link to. The **Require SSO** card shows the whole address under the switch, as **Master admin sign-in**: keep it, to turn the requirement off if your identity provider stops working.

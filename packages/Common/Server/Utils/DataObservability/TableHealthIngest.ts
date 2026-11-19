@@ -137,6 +137,8 @@ export interface PreviousAssetState {
   // When it was last read, and since when it has had none (DataAssetReads).
   reads?: DataAssetReadState | undefined;
   rowCountChangeTolerancePercent?: number | null | undefined;
+  // A Dataverse table's entity set name, as kept (#9696); null when none is.
+  entitySetName?: string | null | undefined;
 }
 
 export interface AssetPlan {
@@ -147,6 +149,12 @@ export interface AssetPlan {
   columnChanges: Array<DataAssetColumnChange>;
   collectionState: JSONObject;
   isRestored: boolean;
+  /*
+   * A Dataverse table's entity set name, to write when the collection says
+   * one the asset does not keep yet (#9696); unset otherwise - an engine
+   * that has none, or an older probe that says none, keeps what was kept.
+   */
+  entitySetName?: string | undefined;
   // Whether anything the asset shows moved, so its row must be written.
   needsWrite: boolean;
 }
@@ -204,6 +212,7 @@ export function toPreviousAssetState(asset: DataAsset): PreviousAssetState {
         ? OneUptimeDate.fromString(asset.unreadSince)
         : null,
     },
+    entitySetName: asset.entitySetName || null,
   };
 }
 
@@ -371,10 +380,17 @@ export function planAssetUpdate(
   };
 
   const isRestored: boolean = previous?.isDropped === true;
+  // Kept when the collection says one the asset does not have yet: never cleared by one that says none.
+  const entitySetName: string | undefined =
+    table.entitySetName &&
+    table.entitySetName !== (previous?.entitySetName ?? null)
+      ? table.entitySetName
+      : undefined;
 
   const needsWrite: boolean =
     !previous ||
     isRestored ||
+    entitySetName !== undefined ||
     columnChanges.length > 0 ||
     (table.columns !== null && previous.columns === null) ||
     table.estimatedRows !== previous.rowCount ||
@@ -393,6 +409,7 @@ export function planAssetUpdate(
     columnChanges,
     collectionState,
     isRestored,
+    ...(entitySetName !== undefined ? { entitySetName } : {}),
     needsWrite,
   };
 }
@@ -625,6 +642,7 @@ export default class TableHealthIngest {
         isDropped: true,
         lastReadAt: true,
         unreadSince: true,
+        entitySetName: true,
       },
       props: { isRoot: true },
     });
@@ -974,6 +992,10 @@ export default class TableHealthIngest {
     asset.lastCollectedAt = collectedAt;
     asset.collectionState = plan.collectionState;
 
+    if (plan.entitySetName) {
+      asset.entitySetName = plan.entitySetName;
+    }
+
     if (table.estimatedRows !== null) {
       asset.rowCount = table.estimatedRows;
     }
@@ -1051,6 +1073,10 @@ export default class TableHealthIngest {
     if (plan.columns !== null) {
       update.columns = plan.columns;
       update.columnCount = plan.columns.length;
+    }
+
+    if (plan.entitySetName) {
+      update.entitySetName = plan.entitySetName;
     }
 
     if (plan.isRestored) {

@@ -190,7 +190,7 @@ Un dépôt dit comment il se compile et se teste dans un `AGENTS.md` à sa racin
 
 | Où l'IA travaille | Ce qu'elle fait du build et des tests du dépôt |
 | --- | --- |
-| L'un de vos Runners | Compile et teste sa modification avant l'ouverture de la pull request, corrige ce qui échoue et vérifie à nouveau, et indique dans son résumé les vérifications qu'elle a lancées. Chaque commande qu'elle lance dispose de 2 minutes, ou de 10 au plus pour une installation, un build ou une suite de tests lents, sans les identifiants propres du Runner dans son environnement. |
+| L'un de vos Runners | Compile et teste sa modification avant l'ouverture de la pull request, corrige ce qui échoue et vérifie à nouveau, et indique dans son résumé les vérifications qu'elle a lancées. Chaque commande qu'elle lance dispose de 2 minutes, ou de 10 au plus pour une installation, un build ou une suite de tests lents, sans les identifiants propres du Runner dans son environnement. **Limite de temps par commande (minutes)**, dans les **Limites par exécution** du projet, permet à une commande de durer jusqu'à 120 minutes, jamais au-delà de la limite de temps de l'exécution. |
 | **Agent Runbook global** | Ne lance aucune commande : l'IA écrit la modification et ouvre la pull request, et la CI de votre dépôt la vérifie. |
 
 Rien de ce qui vient d'une pull request issue d'un fork n'est jamais lu comme les instructions du dépôt : une révision refuse une telle pull request, et une relecture lit la branche de base.

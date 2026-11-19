@@ -73,6 +73,8 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Docs/Utils/PermissionsTable.ts",
   ssoApi: `${IDENTITY}/API/SSO.ts`,
   oidcApi: `${IDENTITY}/API/OIDC.ts`,
+  // How Sign in with SSO finds a project's providers: by the email's domain.
+  ssoDiscovery: "packages/Common/Server/Utils/ProjectSsoDiscovery.ts",
   ssoUtil: `${IDENTITY}/Utils/SSO.ts`,
   ssoOneTimeUse: `${IDENTITY}/Utils/SamlAssertionOneTimeUse.ts`,
   ssoServiceProvider: `${IDENTITY}/Utils/SamlServiceProvider.ts`,
@@ -80,14 +82,28 @@ const SOURCES: Record<string, string> = {
   statusPageSsoApi: `${IDENTITY}/API/StatusPageSSO.ts`,
   oidcUtil: `${IDENTITY}/Utils/OIDC.ts`,
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
+  ssoGate: `${IDENTITY}/Utils/ProjectSsoSignInGate.ts`,
   ssoIdentityBinding: `${IDENTITY}/Utils/ProjectSsoIdentityBinding.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
   // On the SSO page, under its SAML providers.
   projectOidcProviders: `${DASHBOARD}/Components/Sso/ProjectOidcProviders.tsx`,
-  // What the SSO page calls its providers, and its test link's card.
+  // What the SSO page calls its providers, and its SSO sign-in link's card.
   projectSsoCopy: `${DASHBOARD}/Components/Sso/ProjectSsoCopy.ts`,
-  projectSignInTestCard: `${DASHBOARD}/Components/Sso/ProjectSignInTestCard.tsx`,
+  projectSsoSignInLinkCard: `${DASHBOARD}/Components/Sso/ProjectSsoSignInLinkCard.tsx`,
+  // The notice over the providers, and their Domains column (#9918).
+  ssoProvidersNotice: `${DASHBOARD}/Components/Sso/SsoProvidersNotOfferedNotice.tsx`,
+  ssoProviderDomains: `${DASHBOARD}/Components/Sso/SsoProviderDomains.ts`,
+  // The upgrade's backfill of the providers' domains (#9918).
+  ssoDomainBackfill:
+    "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809186620000-BackfillSsoProviderDomains.ts",
+  schemaMigrations:
+    "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+  // The page the SSO sign-in link opens, and its path.
+  accountsApp: "packages/App/FeatureSet/Accounts/src/App.tsx",
+  projectSsoSignInPage:
+    "packages/App/FeatureSet/Accounts/src/Pages/LoginWithProjectSso.tsx",
+  signInMethods: "packages/Common/Types/SSO/SignInMethods.ts",
   movedPagePaths: `${DASHBOARD}/Routes/MovedPagePaths.ts`,
   settingsRoutes: `${DASHBOARD}/Routes/SettingsRoutes.tsx`,
   providerPickPage: `${DASHBOARD}/Pages/Onboarding/SSO.tsx`,
@@ -139,9 +155,12 @@ const EE_SOURCES: Record<string, string> = {
 // A role's level: the last word of its title.
 const ROLE_LEVEL: RegExp = / (Admin|Member|Viewer)$/;
 
-// The test link of a project's SSO page: the project's /sso page.
+/*
+ * The link of a project's SSO page (#9918): the project's SSO sign-in link,
+ * the Accounts app's /sso/<project id> page.
+ */
 const SSO_TEST_LINK: RegExp =
-  /return `\$\{DASHBOARD_URL\.toString\(\)\}\/\$\{projectId\.toString\(\)\}\/sso`;/;
+  /return URL\.fromString\(ACCOUNTS_URL\.toString\(\)\)\s*\.addRoute\(getProjectSsoSignInRoute\(projectId\)\)/;
 
 /*
  * The global provider's two questions, both in the form's More fields
@@ -497,6 +516,11 @@ describe("the SSO guide", () => {
       /public static isRequired\(\): boolean \{\s*return IsBillingEnabled;\s*\}/,
     );
 
+    // Both callbacks ask the gate (#9824), which asks whether to confirm.
+    expect(readSource("ssoGate")).toContain(
+      "ProjectSsoSignInConfirmation.isRequired()",
+    );
+
     for (const [key, kind] of [
       ["ssoApi", "ProjectSsoKind.SAML"],
       ["oidcApi", "ProjectSsoKind.OIDC"],
@@ -505,7 +529,7 @@ describe("the SSO guide", () => {
 
       expect({
         key,
-        asks: source.includes("ProjectSsoSignInConfirmation.isRequired()"),
+        asks: source.includes("ProjectSsoSignInGate.decide("),
       }).toEqual({
         key,
         asks: true,
@@ -695,7 +719,7 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("says OneUptime does not sign its requests, so Keycloak must not require a client signature", () => {
+  it("says OneUptime does not sign its sign-in requests, so Keycloak must not require a client signature", () => {
     const url: URL = SSOUtil.createSAMLRequestUrl({
       acsUrl: URL.fromString(
         "https://oneuptime.example.com/identity/idp-login/a/b",
@@ -716,7 +740,7 @@ describe("the SSO guide", () => {
     expect(request).toContain("<samlp:AuthnRequest");
     expect(request).not.toMatch(/Signature/);
     expect(english(SSO)).toContain(
-      "turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its requests",
+      "turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its sign-in requests",
     );
   });
 
@@ -728,6 +752,62 @@ describe("the SSO guide", () => {
     expect(oidc).toContain("code_verifier: data.codeVerifier");
     expect(english(SSO)).toContain(
       "Register an app (an OIDC client) with your identity provider that may use the authorization code flow with PKCE",
+    );
+  });
+
+  /*
+   * Sign in with SSO finds a project's providers by an email's domain, from
+   * the verified domains each provider lists, and never reads an account
+   * (#9824).
+   */
+  it("says Sign in with SSO offers a provider by the verified domains it lists, never by an account, as the routes do", () => {
+    const page: string = english(SSO);
+    const discovery: string = readSource("ssoDiscovery");
+
+    expect(page).toContain("\n## Domains\n");
+    expect(page).toContain(
+      "**Sign in with SSO** asks for an email address and offers the providers that serve the address's domain. It reads no account: an address with an account in your project and one with no account at all get the same answer, so the page says nothing about who has an account.",
+    );
+    expect(page).toContain(
+      "1. Add your domain under **Project Settings** > **Advanced** > **Domains**, click **Verify Domain** on its row, and add the TXT record it shows to the domain's DNS.",
+    );
+    expect(page).toContain(
+      "2. Edit the provider, and pick the domain under **Domains** on the **Sign-in** step. Only the project's verified domains are listed.",
+    );
+    expect(page).toContain(
+      "The domain must match exactly: `acme.com` does not cover `eu.acme.com`",
+    );
+    expect(page).toContain(
+      "A provider that lists no verified domain is offered to nobody there.",
+    );
+
+    // Both routes ask the one lookup, which reads verified domains alone.
+    expect(readSource("ssoApi")).toContain(
+      "await ProjectSsoDiscovery.findSamlProviders(email);",
+    );
+    expect(readSource("oidcApi")).toContain(
+      "await ProjectSsoDiscovery.findOidcProviders(email);",
+    );
+    expect(discovery).toMatch(
+      /domain: QueryHelper\.findWithSameText\(domain\),\s*isVerified: true,/,
+    );
+    expect(discovery).toMatch(/isEnabled: true,/);
+    expect(discovery).not.toMatch(/UserService|TeamMemberService/);
+
+    // The form offers only the project's verified domains, on Sign-in.
+    expect(readSource("providerFields")).toMatch(
+      /field: \{ domains: true \}[\s\S]{0,400}?query: \{ isVerified: true \}/,
+    );
+    for (const key of ["projectSsoPage", "projectOidcProviders"]) {
+      expect({
+        key,
+        asks: readSource(key).includes("withDomains: true,"),
+      }).toEqual({ key, asks: true });
+    }
+
+    // Domains is under Advanced in Project Settings, as the page says.
+    expect(readSource("settingsSideMenu")).toMatch(
+      /title: "Advanced",[\s\S]{0,400}?title: "Domains",/,
     );
   });
 
@@ -826,41 +906,111 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("says the test link opens the project's providers, one of which you pick", () => {
+  it("says the SSO sign-in link opens the project's providers, one of which you pick", () => {
     // One link, on the SSO page, for its SAML and OIDC providers alike.
-    expect(SSO_TEST_LINK.test(readSource("projectSignInTestCard"))).toBe(true);
-    expect(readSource("projectSsoPage")).toContain("<ProjectSignInTestCard");
-    expect(readSource("projectOidcProviders")).not.toContain("testUrl");
-    // The card the docs name.
-    expect(readSource("projectSsoCopy")).toContain(
-      'testTitle: translationKey("Test Single Sign On (SSO)")',
+    expect(SSO_TEST_LINK.test(readSource("projectSsoSignInLinkCard"))).toBe(
+      true,
     );
-    expect(readSource("projectSignInTestCard")).toContain(
-      "<Card title={ProjectSsoCopy.testTitle}>",
+    expect(readSource("projectSsoPage")).toContain("<ProjectSsoSignInLinkCard");
+    expect(readSource("projectOidcProviders")).not.toContain("testUrl");
+    // The card the docs name: it was Test Single Sign On (SSO) (#9918).
+    expect(readSource("projectSsoCopy")).toContain(
+      'signInLinkTitle: translationKey("SSO Sign-in Link")',
+    );
+    expect(readSource("projectSsoSignInLinkCard")).toContain(
+      "<Card title={ProjectSsoCopy.signInLinkTitle}>",
     );
     expect(english(SSO)).toContain(
-      "6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.",
+      "6. Open the link in the **SSO Sign-in Link** card and pick the provider, to sign in through it before you require SSO for the project.",
+    );
+    expect(english(SSO)).not.toContain("Test Single Sign On (SSO)");
+
+    // The link is the Accounts app's /sso/<project id> page.
+    expect(readSource("signInMethods")).toContain(
+      'export const PROJECT_SSO_SIGN_IN_PATH: string = "/accounts/sso/:projectId";',
+    );
+    expect(readSource("signInMethods")).toContain(
+      "return `/sso/${encodeURIComponent(projectId.toString())}`;",
+    );
+    expect(readSource("accountsApp")).toContain(
+      "path={PROJECT_SSO_SIGN_IN_PATH}",
     );
 
-    expect(readSource("dashboardRoutes")).toContain(
-      "[PageMap.PROJECT_SSO]: new Route(`/dashboard/${RouteParams.ProjectID}/sso`)",
-    );
-
-    const picker: string = readSource("providerPickPage");
+    const picker: string = readSource("projectSsoSignInPage");
 
     /*
      * One list from the identity server: the project's own providers and
-     * the global ones that sign people in to it.
+     * the global ones that sign people in to it, by the project's id alone.
      */
-    expect(picker).toContain(
-      "new Route(`/project-sign-in-methods/${projectId.toString()}`)",
+    expect(readSource("signInMethods")).toContain(
+      'export const PROJECT_SIGN_IN_METHODS_ROUTE: string = "/project-sign-in-methods";',
     );
-    expect(picker).not.toContain("/sso-list");
-    expect(picker).toContain(
+    expect(picker).toContain("getProjectSignInMethodsApiUrl(projectId)");
+    // No address asked, and no lookup by one.
+    expect(picker).not.toContain("FormFieldSchemaType.Email");
+    expect(picker).not.toContain("SERVICE_PROVIDER_LOGIN");
+    expect(english(SSO)).toContain(
+      "Open the link in the **SSO Sign-in Link** card and pick the provider on the page it opens.",
+    );
+
+    // A project that requires SSO still sends its people to the Dashboard's page.
+    expect(readSource("dashboardRoutes")).toContain(
+      "[PageMap.PROJECT_SSO]: new Route(`/dashboard/${RouteParams.ProjectID}/sso`)",
+    );
+    expect(readSource("providerPickPage")).toContain(
       'description="Choose an SSO provider to sign in to this project."',
     );
-    expect(english(SSO)).toContain(
-      "Open the link in the **Test Single Sign On (SSO)** card and pick the provider on the page it opens.",
+  });
+
+  /*
+   * What the upgrade gave the providers set up before domains existed, what
+   * the SSO page says of a provider found by nobody's email, and the link
+   * for people on other domains (#9918) - as the backfill, the notice and
+   * the card do.
+   */
+  it("says what the upgrade gave existing providers, what the page says of one found by no email, and what the link is for", () => {
+    const page: string = english(SSO);
+
+    expect(page).toContain(
+      "Providers set up before domains existed were given their project's verified domains when OneUptime was upgraded: every domain the project had verified, unless another project had verified it too. Pick such a domain yourself if it is yours. A domain that was added but never verified was given to no provider.",
+    );
+
+    const backfill: string = readSource("ssoDomainBackfill");
+
+    expect(readSource("schemaMigrations")).toContain(
+      "BackfillSsoProviderDomains1809186620000,",
+    );
+    expect(backfill).toContain('"Domain"."isVerified" = true');
+    expect(backfill).toContain('"VerifiedName"."projectCount" = 1');
+    expect(backfill).toContain(
+      'NOT EXISTS (SELECT 1 FROM "${table.joinTable}" AS "Listed"',
+    );
+
+    expect(page).toContain(
+      "Its **Domains** column says **No verified domain**, and a notice above your providers names it and says what to do. While the project has no verified domain, the notice's **Verify a Domain** opens **Domains**.",
+    );
+    expect(readSource("projectSsoCopy")).toContain(
+      'noVerifiedDomain: translationKey("No verified domain")',
+    );
+    expect(readSource("projectSsoCopy")).toContain(
+      'verifyDomainAction: translationKey("Verify a Domain")',
+    );
+    expect(readSource("projectSsoCopy")).toContain(
+      'domainsColumn: translationKey("Domains")',
+    );
+    expect(readSource("ssoProvidersNotice")).toContain(
+      "RouteMap[PageMap.SETTINGS_DOMAINS]",
+    );
+    // Only providers that are on are named.
+    expect(readSource("ssoProviderDomains")).toContain(
+      "return provider.isEnabled === true && !isFoundByEmail(provider);",
+    );
+
+    expect(page).toContain(
+      "Share your project's SSO sign-in link with them: copy it from the **SSO Sign-in Link** card under your providers. It lists the project's providers and asks for no email address, so it says nothing about who has an account.",
+    );
+    expect(readSource("projectSsoSignInLinkCard")).toContain(
+      "<CopyTextButton textToBeCopied={signInLink} />",
     );
   });
 
@@ -874,9 +1024,11 @@ describe("the SSO guide", () => {
 
     const settingsPage: string = readSource("projectSsoPage");
 
-    expect(settingsPage.indexOf("<ProjectSignInTestCard")).toBeGreaterThan(0);
+    expect(settingsPage.indexOf("<ProjectSsoSignInLinkCard")).toBeGreaterThan(
+      0,
+    );
     expect(settingsPage.indexOf("<RequireSsoForLoginCard")).toBeGreaterThan(
-      settingsPage.indexOf("<ProjectSignInTestCard"),
+      settingsPage.indexOf("<ProjectSsoSignInLinkCard"),
     );
 
     const page: string = english(SSO);
@@ -1220,8 +1372,11 @@ describe("the Global SSO guide", () => {
       "if (isMasterAdmin && !data.isMasterAdminConfirmed) {",
     );
 
+    // Each person cleared is emailed (#9818), in the background.
+    expect(clearing).toContain("void SignInSettingsClearedEmail.notify(");
+
     expect(page).toContain(
-      "- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, and each person's projects record it in their audit logs.",
+      "- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, each person's projects record it in their audit logs, and each person is emailed what was removed and how they sign in now.",
     );
     expect(page).toContain(
       "- On a person's **Authentication** page in **Users**, **Clear Sign-In Settings** does the same for that one person, and **Set Password** and **Send Password Reset Link** say that a password will not sign them in. You cannot clear your own there, and clearing another master admin's asks you to confirm they are one.",
@@ -1275,6 +1430,62 @@ describe("the Global SSO guide", () => {
     // No sign-in changes: the projects' rule refuses settings, not sign-ins.
     expect(page).toContain(
       "Nothing about signing in changes: their password still signs them in to OneUptime, and your project asks for SSO as before.",
+    );
+  });
+
+  it("states who a project's owners may clear, what counts as their organization, and who never is cleared, as the server decides it (#9820)", () => {
+    const page: string = english(SSO);
+    const repo: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(REPO_DIR, relative), "utf8");
+    };
+    const rule: string = repo(
+      "packages/Common/Server/Utils/ProjectSignInClearing.ts",
+    );
+    const routes: string = repo("packages/Common/Server/API/ProjectAPI.ts");
+    const cardCopy: string = repo(
+      `${DASHBOARD}/Components/Project/ProjectSavedSignInSettingsCopy.ts`,
+    );
+
+    expect(page).toContain("### Clearing what your people saved before");
+
+    // The card's button, by its words, as the Admin Dashboard's is named.
+    expect(cardCopy).toContain(
+      'clearButton: translationKey("Clear Sign-In Settings")',
+    );
+    expect(page).toContain(
+      "While **Manage Sign-In with SSO** is on, the Project Owners see under it how many of the project's people still have a password or two-factor authentication saved in OneUptime. **Clear Sign-In Settings** deletes",
+    );
+
+    // The organization is the projects the owner owns: every project of the person.
+    expect(rule).toContain("[Permission.ProjectOwner]");
+    expect(rule).toContain(
+      "person.projectIds.every((projectId: ObjectID): boolean => {",
+    );
+    expect(rule).toContain("return managing.has(key) && owned.has(key);");
+    expect(page).toContain(
+      "Your organization is the projects you own: someone is cleared only when every project they belong to, including any project they are invited to, is one you are a **Project Owner** of and has **Manage Sign-In with SSO** on.",
+    );
+
+    // Members of this project only: an invitation has not joined.
+    expect(rule).toContain("hasAcceptedInvitation: true,");
+    expect(page).toContain(
+      "- someone only invited to your project, who has not joined it yet;",
+    );
+
+    // Never a master admin, never the owner.
+    expect(rule).toContain("isMasterAdminIncluded: false,");
+    expect(page).toContain(
+      "- master admins, and you: change your own in your **User Profile**.",
+    );
+
+    // Emailed, audit-logged as the owner's, session-only and owners only.
+    expect(rule).toContain("void SignInSettingsClearedEmail.notify(");
+    expect(rule).toContain("clearedByUserId: data.ownerUserId,");
+    expect(routes).toContain(
+      "CommonAPI.assertAuthenticatedProjectMember(props)",
+    );
+    expect(page).toContain(
+      "Each person cleared is emailed what was removed and that they sign in with SSO now, and your projects' audit logs record the clear as yours. Only a **Project Owner** can clear, signed in to the Dashboard: never with an API key.",
     );
   });
 

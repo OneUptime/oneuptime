@@ -16,7 +16,7 @@
 
 ```mermaid title="コストの数値の出どころ"
 flowchart TB
-    cadvisor["API サーバーのノード<br/>プロキシ経由の cAdvisor"] --> prometheus["同梱の Prometheus"]
+    cadvisor["各ノードの kubelet<br/>からの cAdvisor"] --> prometheus["同梱の Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["クラウドの定価、<br/>または独自の料金表"] --> opencost
     opencost -->|"確定した 1 時間<br/>ずつ"| poller["コストポーラー"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**: オープンソースのコストエンジンです (Apache-2.0、CNCF。Kubecost の基盤でもある [cost-model](https://github.com/kubecost/cost-model))。クラスターを監視し、ノード、ボリューム、ロードバランサーの価格を算出して、各ワークロードのコストを計算します。
-2. **小さな Prometheus**: OpenCost が使用量と価格の履歴に必要とするものです。レプリカ 1 つで動作し、7 日分の履歴を保持し、スクレイプ対象はちょうど 2 つです。API サーバーのノードプロキシ経由の cAdvisor (OpenCost が読み取る系列だけを残します) と、OpenCost 自体です (OpenCost は自身のリソース request のメトリクスを出力するため、kube-state-metrics は使いません)。クラスターの外に公開されることはなく、そのデータがクラスターから出ることもありません。
+2. **小さな Prometheus**: OpenCost が使用量と価格の履歴に必要とするものです。レプリカ 1 つで動作し、7 日分の履歴を保持し、スクレイプ対象はちょうど 2 つです。各ノードの kubelet にある cAdvisor (Pod が kubelet に到達できない `eks-fargate` プリセットでは、API サーバーのノードプロキシを経由します。OpenCost が読み取る系列だけを残します) と、OpenCost 自体です (OpenCost は自身のリソース request のメトリクスを出力するため、kube-state-metrics は使いません)。クラスターの外に公開されることはなく、そのデータがクラスターから出ることもありません。
 3. **コストポーラー** (`cost.agent`)。1 時間が確定するたびに OpenCost の Allocation API を読み取り、ワークロードごとに 1 つのコスト行を OneUptime に送信します。内容は CPU、メモリ、GPU、ボリューム、ネットワーク、ロードバランサー、アイドル、そして効率です。各時間は 1 回だけ送信され、サーバーはすでに持っている時間をスキップするため、再起動で支出が二重に数えられることはありません。OneUptime は、これらの行から [コストメトリクス](#コストに対するアラート) も書き込みます。
 4. **コストメトリクスのスクレイプ** (`cost.metrics`)。エージェントの Collector が OpenCost の価格メトリクス (各ノード、ボリューム、ロードバランサーの 1 時間あたりのコスト) をスクレイプし、クラスターのほかのメトリクスと一緒に送信します。
 
@@ -63,11 +63,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 コストメトリクス (`node_total_hourly_cost`、`pv_hourly_cost` など) は通常のメトリクスなので、メトリクスエクスプローラー、カスタムダッシュボード、メトリクスモニターで使えます。既製のダッシュボードを使うには、**製品 → ダッシュボード** に移動し、**ダッシュボードを作成** を選択して **Kubernetes Cost Dashboard** を選びます。ノードの時間あたりのコストの推移、CPU とメモリの単価、ボリュームとロードバランサーの支出が表示されます。
 
-概要と **コスト** ページには、数値の下に価格の出どころが表示されます。クラウドの定価、独自の料金表、OpenCost の既定の料金のいずれかです。効率は、効率のメトリクスも含め、どこでも同じ 1 つの数値です。request した CPU とメモリのうち実際に使われた割合を表し、各コンテナの 1 時間ごとの値は、その CPU とメモリのコストで加重されます。そのため、何も使わない安価なジョブが、よく使われているクラスターの効率を引き下げることはありません。また、アイドル容量は計算に含めません。
+概要と **コスト** ページには、数値の下に価格の出どころが表示されます。Kubecost 3 を含め、どのエンジンがクラスターの価格を算出していても、クラウドの定価、独自の料金表、OpenCost の既定の料金のいずれかです。クラウドの請求額を読み取る Kubecost は、各 1 時間の約 1 日半後に、その請求額に合わせて価格を調整します。そのため、その場合の表示では、数値が調整前の定価であることが示されます。効率は、効率のメトリクスも含め、どこでも同じ 1 つの数値です。request した CPU とメモリのうち実際に使われた割合を表し、各コンテナの 1 時間ごとの値は、その CPU とメモリのコストで加重されます。そのため、何も使わない安価なジョブが、よく使われているクラスターの効率を引き下げることはありません。また、アイドル容量は計算に含めません。
 
 ## Kubecost や OpenCost をすでに実行している場合
 
-コストエージェントはそのエンジンを見つけ、同梱の OpenCost の代わりにそれを読み取ります。そのため、クラスターの価格は、独自の料金表や Kubecost と連携したクラウドの請求額など、設定したとおりに算出されます。エージェントは起動時に、その後は 1 時間ごとに、Kubernetes API を通じて、各エンジン自身のチャートが作成する Service をすべての namespace から探します (Kubecost の `cost-analyzer` または `frontend`、OpenCost のチャートが作成する Service、OpenCost のマニフェストが作成する `opencost` Service)。Kubecost を優先します。応答しないエンジン、サインインが必要なエンジン、複数のクラスターについて応答するエンジンは見送り、代わりに同梱のエンジンを読み取ります。
+コストエージェントはそのエンジンを見つけ、同梱の OpenCost の代わりにそれを読み取ります。そのため、クラスターの価格は、独自の料金表や Kubecost と連携したクラウドの請求額など、設定したとおりに算出されます。エージェントは起動時に、その後は 1 時間ごとに、Kubernetes API を通じて、各エンジン自身のチャートが作成する Service をすべての namespace から探します (Kubecost の `cost-analyzer` または `frontend`、OpenCost のチャートが作成する Service、OpenCost のマニフェストが作成する `opencost` Service)。Kubecost を優先します。応答しないエンジン、サインインが必要なエンジン、複数のクラスターについて応答するエンジンは見送り、代わりに同梱のエンジンを読み取ります。その後は Collector が Kubernetes Cost Dashboard 用にそのエンジンの価格メトリクスもスクレイプするため、ダッシュボードとコストのページには同じ価格が表示されます。また、適正サイズはメモリのピークを、そのエンジンが読み取る Prometheus から読み取ります。
 
 すると、クラスターの概要にそのエンジンの名前が表示され、同梱の OpenCost は不要であることが示されます。次のようにして、同梱の OpenCost の実行を止めてください:
 
@@ -86,7 +86,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 | Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API のパスは自動で見つかります (Kubecost では `/model/allocation`、OpenCost では `/allocation/compute` または `/allocation`)。`cost.engine.allocationPath` を設定するのは、一般的でないインストールの場合だけです。`auto` または URL を指定すると何も同梱されないため、メモリの推奨値には `cost.engine.prometheusUrl` も設定してください ([推奨値の基になるデータ](#推奨値の基になるデータ) を参照)。価格メトリクスも同じように見つかるため、エンジンのどの Service を指定してもかまいません。エージェントはまずエンジンの `/metrics` を、次に Kubecost 2 のフロントエンドや OpenCost の UI がエンジンへ渡す `/model/metrics` を、さらに Kubecost 3 の FinOps エージェントを試し、Collector は価格系列を返した最初のアドレスをスクレイプします。自分で指定するには `cost.metrics.endpoint` を設定してください。
+Allocation API のパスは自動で見つかります (Kubecost では `/model/allocation`、OpenCost では `/allocation/compute` または `/allocation`)。`cost.engine.allocationPath` を設定するのは、一般的でないインストールの場合だけです。メモリの推奨値に使う、エンジンが読み取る Prometheus も自動で見つかります。ただし、Prometheus を読み取らない Kubecost 3 の場合は、`cost.engine.prometheusUrl` を設定してください ([推奨値の基になるデータ](#推奨値の基になるデータ) を参照)。価格メトリクスも同じように見つかるため、エンジンのどの Service を指定してもかまいません。エージェントはまずエンジンの `/metrics` を、次に Kubecost 2 のフロントエンドや OpenCost の UI がエンジンへ渡す `/model/metrics` を、さらに Kubecost 3 の FinOps エージェントを試し、Collector は価格系列を返した最初のアドレスをスクレイプします。自分で指定するには `cost.metrics.endpoint` を設定してください。
 
 ## オンプレミスとベアメタルの価格設定
 
@@ -156,8 +156,8 @@ cost:
 メモリにはもう 1 つのデータ源が必要です。Allocation API が報告するのは各ウィンドウの平均だけで、1 時間の平均はコンテナを OOM kill するバーストを隠してしまうため、それでメモリのサイズを決めるのは危険です。そこでポーラーは、各コンテナのメモリのピークを Prometheus から読み取り、`(namespace, pod, container)` で結合します:
 
 - 同梱のエンジン (既定) では、チャート自身の Prometheus を使います。設定は不要です。
-- `cost.engine.url` を設定している場合 (`auto` または独自のエンジンの URL)、`cost.engine.prometheusUrl` を cAdvisor をスクレイプしている Prometheus に向け、そのスクレイプジョブの名前が `kubernetes-nodes-cadvisor` でない場合は `cost.engine.prometheusCadvisorJob` を設定します。
-- Prometheus がない場合でも、CPU の推奨は保存された 1 時間ごとの平均から機能し、メモリの推奨は推測せずに省かれます。
+- 独自のエンジンでは、そのエンジンが読み取る Prometheus を使い、エージェントがそれを自動で見つけます。OpenCost の `PROMETHEUS_SERVER_ENDPOINT`、または Kubecost 2 が同梱する Prometheus を、このクラスターの cAdvisor の系列を返すことを確認したうえで使います。Kubecost 3 は Prometheus を読み取らないため、チャートが同梱の Prometheus を実行している間は、それが代わりを務めます。
+- それ以外の場合、または自分で選ぶ場合は、`cost.engine.prometheusUrl` を cAdvisor をスクレイプしている Prometheus に向けます。その Prometheus が cAdvisor を複数のジョブでスクレイプしていて、読み取るジョブの名前が `kubernetes-nodes-cadvisor` でない場合は、`cost.engine.prometheusCadvisorJob` を設定します。Prometheus がない場合でも、CPU の推奨は保存された 1 時間ごとの平均から機能し、メモリの推奨は推測せずに省かれます。
 
 Prometheus が停止しても、支出の収集は止まりません。ピークは追加の情報であり、その時間はピークなしで送信されます。CPU では意図的に Prometheus を使いません。CPU の request が大きすぎても起きるのはスロットリングだけですが、メモリの request が小さすぎるとコンテナが強制終了されるため、CPU には 1 時間ごとの平均で十分安全です。また、クラスター全体ですべてのコンテナの CPU レートをクエリするのは、小さな Prometheus を倒してしまうほど重い処理です。
 
@@ -191,7 +191,7 @@ Kubernetes モニターには、これらのメトリクス用のテンプレー
 :::
 
 :::details 概要に同梱の OpenCost は不要と表示される
-クラスターでは独自の Kubecost または OpenCost が実行されていて、コストエージェントはそれを読み取っています。そのため、チャートが同梱した OpenCost と Prometheus は何の価格も算出していません。それらの実行を止めるには、`--set cost.engine.url=auto` でアップグレードしてください。代わりに同梱のエンジンを読み取るには、`cost.engine.preferExisting=false` を設定します。
+クラスターでは独自の Kubecost または OpenCost が実行されていて、コストエージェントはそれを読み取っています。そのため、チャートが同梱した OpenCost は何の価格も算出していません。それとその Prometheus の実行を止めるには、`--set cost.engine.url=auto` でアップグレードしてください。代わりに同梱のエンジンを読み取るには、`cost.engine.preferExisting=false` を設定します。Prometheus を読み取らない Kubecost 3 の場合、メモリの推奨値は同梱の Prometheus から得られます。別の Prometheus を使うには、同じアップグレードで `cost.engine.prometheusUrl` に指定してください。
 :::
 
 :::details コストエージェントが独自のエンジンを読み取らない
@@ -203,7 +203,7 @@ Kubernetes モニターには、これらのメトリクス用のテンプレー
 :::
 
 :::details Kubernetes Cost Dashboard にデータが表示されない
-このテンプレートはスクレイプされたコストメトリクスを読み取ります。`cost.metrics.enabled` が `true` であることを確認してください。`cost.engine.url` を設定している場合は、コストエージェントがエンジンの提供場所を見つけ、そのログに場所か試したアドレスが表示されます: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。自分で指定するには `cost.metrics.endpoint` を設定してください。
+このテンプレートはスクレイプされたコストメトリクスを読み取ります。`cost.metrics.enabled` が `true` であることを確認してください。コストエージェントは、読み取っているエンジン (同梱のエンジンまたは独自のエンジン) の提供場所を見つけ、そのログに場所か試したアドレスが表示されます: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。自分で指定するには `cost.metrics.endpoint` を設定してください。
 :::
 
 :::details 適正サイズのカードが空
@@ -211,11 +211,11 @@ Kubernetes モニターには、これらのメトリクス用のテンプレー
 :::
 
 :::details メモリの推奨値は - と表示されるが、CPU の推奨値は表示される
-メモリのピークが OneUptime に届かなかったため、平均から推測するのではなく、メモリのサイズを算出しませんでした。独自のエンジンを使っている場合は、`cost.engine.prometheusUrl` を設定してください。影響を受けるコンテナの数はカードに表示されます。
+メモリのピークが OneUptime に届かなかったため、平均から推測するのではなく、メモリのサイズを算出しませんでした。独自のエンジンを使っている場合は、どの Prometheus を読み取っているか、または見つからなかった理由がコストエージェントのログに表示されます。`cost.engine.prometheusUrl` で Prometheus を指定してください (Kubecost 3 は Prometheus を読み取りません)。影響を受けるコンテナの数はカードに表示されます。
 :::
 
 :::details 数値がエンジン自体の UI と異なる
-OneUptime はエンジンの調整 (reconciliation) 分を各コスト要素に含め、確定した 1 時間単位で送信します。現在の 1 時間の支出は、その時間が確定したあとに表示されます。
+OneUptime は、確定した 1 時間単位で、各時間が確定した時点でエンジンが算出した価格を、エンジンの調整 (reconciliation) 分を含めて送信します。現在の 1 時間の支出は、その時間が確定したあとに表示されます。クラウドの請求額を読み取る Kubecost は、各時間を約 1 日半後にその請求額に合わせて調整しますが、OneUptime はその時間を最初に算出された価格のまま保持します。
 :::
 
 :::details 同梱の Prometheus が再起動した

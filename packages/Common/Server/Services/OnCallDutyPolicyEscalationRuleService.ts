@@ -2640,10 +2640,14 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         },
       });
 
-      if (
-        count.toNumber() >= ALLOWED_ESCALATION_RULES_PER_POLICY_IN_FREE_PLAN
-      ) {
-        throw new BadDataException(FREE_PLAN_ESCALATION_RULE_LIMIT_MESSAGE);
+      const refusal: string | null = this.getLevelsRefusal({
+        props: createBy.props,
+        existingLevels: count.toNumber(),
+        adding: 1,
+      });
+
+      if (refusal) {
+        throw new BadDataException(refusal);
       }
     }
 
@@ -2688,6 +2692,29 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Why the plan refuses `adding` more escalation rules on a policy that
+   * has `existingLevels`, or null: the Free plan's one rule per policy, for
+   * a caller held to it. The early check of every create (onBeforeCreate),
+   * and the answer Ask AI gives before a card that adds a level (#7244:
+   * set_up_paging, add_to_on_call_policy), so the card and the create
+   * never disagree. The INSERT's own check is getCreateLimit's.
+   */
+  public getLevelsRefusal(data: {
+    props: DatabaseCommonInteractionProps;
+    existingLevels: number;
+    adding: number;
+  }): string | null {
+    if (data.adding <= 0 || !this.isHeldToFreePlanLimit(data.props)) {
+      return null;
+    }
+
+    return data.existingLevels + data.adding >
+      ALLOWED_ESCALATION_RULES_PER_POLICY_IN_FREE_PLAN
+      ? FREE_PLAN_ESCALATION_RULE_LIMIT_MESSAGE
+      : null;
   }
 
   /*

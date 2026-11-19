@@ -45,6 +45,8 @@ export const SIGNAL_MONITOR_GONE_SENTENCE: string = translationKey(
   "This monitor's signal is no longer on the application's Frustration Signals page, so no session counts toward it.",
 );
 
+export const SEE_SESSIONS: string = translationKey("See sessions");
+
 export interface ComponentProps {
   monitorType: MonitorType;
   monitorStep: MonitorStep;
@@ -64,7 +66,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
     props.monitorType,
     props.monitorStep,
   );
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [signal, setSignal] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
     if (!target) {
@@ -73,7 +75,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
 
     let isCurrent: boolean = true;
 
-    setState({ kind: "loading" });
+    setSignal({ kind: "loading" });
 
     ModelAPI.getItem<RumApplication>({
       modelType: RumApplication,
@@ -86,7 +88,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
         }
 
         if (!application) {
-          setState({ kind: "unreadable" });
+          setSignal({ kind: "unreadable" });
           return;
         }
 
@@ -97,11 +99,11 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
           target.signalId,
         );
 
-        setState(name ? { kind: "found", name: name } : { kind: "gone" });
+        setSignal(name ? { kind: "found", name: name } : { kind: "gone" });
       })
       .catch((): void => {
         if (isCurrent) {
-          setState({ kind: "unreadable" });
+          setSignal({ kind: "unreadable" });
         }
       });
 
@@ -110,11 +112,11 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
     };
   }, [target?.rumApplicationId, target?.signalId]);
 
-  if (!target || state.kind === "unreadable") {
+  if (!target || signal.kind === "unreadable") {
     return null;
   }
 
-  if (state.kind === "gone") {
+  if (signal.kind === "gone") {
     return (
       <p
         className="mt-5 flex items-start gap-2 text-sm text-gray-600"
@@ -130,10 +132,10 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
   }
 
   const route: Route | null =
-    state.kind === "found"
+    signal.kind === "found"
       ? RouteUtil.getPageRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY, {
           modelId: target.rumApplicationId,
-          query: buildCustomSignalSessionsQuery(state.name),
+          query: buildCustomSignalSessionsQuery(signal.name),
         })
       : null;
 
@@ -147,17 +149,20 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
           icon={IconProp.Film}
           className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
         />
-        <TranslatedSentence
-          template={SIGNAL_MONITOR_SENTENCE}
-          slots={{
-            name:
-              state.kind === "found" ? (
-                <bdi className="font-medium text-gray-900">{state.name}</bdi>
-              ) : (
-                <InlineValueSkeleton widthClassName="w-24" />
-              ),
-          }}
-        />
+        {/* One item of the row: its words and the name, one line of text. */}
+        <span>
+          <TranslatedSentence
+            template={SIGNAL_MONITOR_SENTENCE}
+            slots={{
+              name:
+                signal.kind === "found" ? (
+                  <bdi className="font-medium text-gray-900">{signal.name}</bdi>
+                ) : (
+                  <InlineValueSkeleton widthClassName="w-24" />
+                ),
+            }}
+          />
+        </span>
       </span>
       {route && (
         <AppLink
@@ -165,7 +170,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
           className="font-medium text-indigo-600 hover:underline"
           dataTestId="monitor-signal-see-sessions"
         >
-          {translator.translateText("See sessions") || "See sessions"}
+          {translator.translateText(SEE_SESSIONS) || SEE_SESSIONS}
         </AppLink>
       )}
     </div>

@@ -125,6 +125,21 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 - **Aantal processen** vergelijkt de grootste afzonderlijke procestoestand (`running`, `sleeping`, …), niet het totaal van de host, en komt dus niet overeen met een proceslijst. De scraper voor processen rapporteert op Linux, macOS en BSD, niet op Windows.
 - **Systemd Unit Failed** opent één waarschuwing per systemd-service in de toestand `failed`, vanuit de receiver `systemd` van de collector, die de standaardconfiguratie van OneUptime leest op Linux-hosts met systemd. Het wordt opgelost wanneer de unit weer draait, of zodra `systemctl reset-failed` hem wist.
 
+## Android-apparaten
+
+Een host waarvan het OS Android is, zoals een kiosk of een kassaterminal waarop de [Android-agent](/docs/telemetry/android-agent) draait, krijgt eigen sjablonen aangeboden, die lezen wat de agent verstuurt, met Host Stopped Reporting, Host Restarted en High Memory Utilization. De sjablonen over wat een apparaat nooit verstuurt, zoals swap, inodes, belasting of systemd-units, krijgt hij niet aangeboden.
+
+| Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
+| --- | --- | --- | --- | --- |
+| Device Unplugged | Waarschuwing | `android.battery.plugged`, Max, laatste 10 minuten | Het apparaat draait het hele venster op zijn batterij | Het is weer aangesloten op de stroom |
+| Low Battery | Waarschuwing | `hw.battery.charge`, Min, als percentage, laatste 5 minuten | Onder 20% | Op of boven 20% |
+| Device Overheating | Waarschuwing | `android.thermal.status`, Max, laatste 5 minuten | 3 (ernstig) of erger | Onder 3 |
+| Restart Loop | Kritiek | `android.boot.recent_count`, Max, afgelopen uur | Een waarde is 3 of meer | Elke waarde is lager dan 3 |
+| Storage Nearly Full | Kritiek | `system.filesystem.utilization`, Max per `mountpoint`, als percentage, laatste 5 minuten | Boven 90% | Op of onder 90% |
+| High CPU Utilization | Waarschuwing | `system.cpu.utilization` voor de toestand `idle`, bezet als 1 min idle, als percentage, laatste 5 minuten | Boven 80% | Op of onder 80% |
+
+High CPU Utilization wordt aangeboden zodra het apparaat CPU-gebruik meldt, wat op Android 8 en later vereist dat de agent zijn apparaateigenaar is. De waarschuwing van een Android-apparaat begint met adb-opdrachten om eerst uit te voeren, zoals `adb shell dumpsys battery` of `adb shell getprop sys.boot.reason`, in plaats van de shellopdrachten van een server.
+
 ## Verzamelde metrieken
 
 De lijst **Host Metric** biedt deze metrieken. Elk draagt `resource.host.name`, waarmee de monitor zijn query's tot één host beperkt. Daar gekozen telt CPU de toestand `user`, geheugen- en bestandssysteemgebruik de toestand `used`, en geven bestandssystemen en processen één reeks per koppelpunt en status.

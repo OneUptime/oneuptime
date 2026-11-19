@@ -43,7 +43,7 @@ Klik på **Næste** for at komme til **Berørte ressourcer**. Vælg de **Monitor
 
 ### Vælg, hvem der hører om det
 
-Vælg statussiderne under **Vis begivenhed på disse statussider**. **Notifikationer til abonnenter**, foldet sammen, siger på én linje, hvornår begivenheden vises på dem, og hvem der får besked og hvornår; åbn den for at vælge **På en dato og et klokkeslæt** under **Offentliggør på statussider** eller for at ændre **Når begivenheden planlægges**, **Når begivenheden starter**, **Når begivenheden slutter** eller **Påmindelser før begivenheden**.
+Vælg statussiderne under **Vis begivenhed på disse statussider**. **Notifikationer til abonnenter**, foldet sammen, siger på én linje, hvornår begivenheden vises på dem, og hvem der får besked og hvornår; åbn den for at vælge **På en dato og et klokkeslæt** under **Offentliggør på statussider** eller for at ændre **Når begivenheden planlægges**, **Når begivenheden starter**, **Når begivenheden slutter** eller **Påmindelser før begivenheden**. Linjen følger de valgte statussider: Er ingen valgt, viser ingen af dem vedligeholdelseshændelser, eller sender de, der viser dem, intet til deres abonnenter, siger den det i stedet for at sige, hvem der får besked.
 
 ### Opret den
 

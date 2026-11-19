@@ -190,7 +190,7 @@ Ett repositorium beskriver hur det byggs och testas i en `AGENTS.md` i roten, fi
 
 | Var AI arbetar | Vad den gör med repositoriets bygge och tester |
 | --- | --- |
-| En av dina Runners | Bygger och testar sin ändring innan pull requesten öppnas, rättar det som misslyckas och kontrollerar igen, och säger i sin sammanfattning vilka kontroller den körde. Varje kommando den kör får 2 minuter, eller upp till 10 för en långsam installation, ett långsamt bygge eller en långsam testsvit, utan Runnerns egna inloggningsuppgifter i sin miljö. |
+| En av dina Runners | Bygger och testar sin ändring innan pull requesten öppnas, rättar det som misslyckas och kontrollerar igen, och säger i sin sammanfattning vilka kontroller den körde. Varje kommando den kör får 2 minuter, eller upp till 10 för en långsam installation, ett långsamt bygge eller en långsam testsvit, utan Runnerns egna inloggningsuppgifter i sin miljö. **Tidsgräns per kommando (minuter)** i projektets **Gränser per körning** låter ett kommando köra i upp till 120 minuter, aldrig längre än körningens tidsgräns. |
 | **Global Runner** | Kör inget kommando: den skriver ändringen och öppnar pull requesten, och ditt repositorys egen CI kontrollerar den. |
 
 Inget från en pull request som kommer från en fork läses någonsin som repositoriets instruktioner: en revidering avvisar en sådan pull request, och en granskning läser basbranchen.

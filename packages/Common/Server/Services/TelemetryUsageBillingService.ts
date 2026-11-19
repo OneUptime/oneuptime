@@ -101,6 +101,8 @@ export const TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES: ReadonlyArray<ServiceType>
     ServiceType.DataProduct,
     ServiceType.DataReconciliation,
     ServiceType.DataBiConnection,
+    // An Esper connection's readings of its devices' check-ins (#9835).
+    ServiceType.DeviceManagementConnection,
   ];
 
 export type IsTelemetryBillingExcludedEntityTypeFunction = (

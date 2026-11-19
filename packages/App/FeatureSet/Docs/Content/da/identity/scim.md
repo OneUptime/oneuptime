@@ -339,7 +339,7 @@ Hvad `/ServiceProviderConfig` melder:
 | ETag | Nej |
 | Godkendelse | HTTP-bearer-token eller et OAuth 2.0-adgangstoken |
 
-En gruppe, som din identitetsudbyder opretter, bliver til et team med samme navn i projektet; et team, der allerede har det navn, bruges i stedet for et nyt.
+En gruppe, som din identitetsudbyder opretter, bliver til et team med samme navn i projektet. Et team, hvis navn læses ens, uanset store og små bogstaver og mellemrum, bruges i stedet for et nyt og får gruppens stavemåde, medmindre en identitetsudbyder allerede har det team som en anden af sine grupper: to grupper, hvis navne kun adskiller sig i store og små bogstaver eller mellemrum, hvilket Microsoft Entra ID tillader, får hver deres eget team og bliver aldrig lagt sammen til ét. Owners og Admin, som ikke kan omdøbes, bruges kun ved deres nøjagtige navn. En gruppe, der omdøbes i din identitetsudbyder, omdøber sit eget team, også til et navn, som et andet team har.
 
 :::details SCIM-brugerskema
 ```json
@@ -454,7 +454,7 @@ Brugere, som SCIM selv opretter, og brugere, der er medlemmer af dit projekt, ti
 En OneUptime-kontos e-mailadresse er den, personen logger ind med i alle de projekter, vedkommende er medlem af, og den, links til nulstilling af adgangskoden sendes til. Derfor:
 
 - **OneUptime Cloud**: SCIM ændrer aldrig en e-mailadresse. En anmodning, der ville ændre en, lykkes alligevel: forbindelsen beholder den adresse, din identitetsudbyder sendte, og svarer med den, mens kontoen beholder den adresse, personen logger ind med. Forbindelsens SCIM-logge viser, at ændringen ikke blev udført. Bed brugeren om selv at ændre adressen fra sin egen OneUptime-profil.
-- **Selvhostet**: SCIM ændrer kun e-mailadressen for en bruger, der er blevet medlem af dette projekt, ikke tilhører noget andet projekt og ikke er OneUptime-administrator. For alle andre beholder forbindelsen den nye adresse og kontoen sin egen, som på OneUptime Cloud.
+- **Selvhostet**: SCIM ændrer kun e-mailadressen for en bruger, der er blevet medlem af dette projekt, ikke tilhører noget andet projekt og ikke er OneUptime-administrator. For alle andre beholder forbindelsen den nye adresse og kontoen sin egen, som på OneUptime Cloud. Det samme gælder en adresse, som en anden OneUptime-konto allerede logger ind med.
 
 Navne følger den samme regel overalt: SCIM opdaterer kun navnet for en bruger, der er blevet medlem af dette projekt, ikke tilhører noget andet projekt og ikke er OneUptime-administrator. For alle andre forbliver navnet uændret, og resten af anmodningen lykkes stadig.
 :::

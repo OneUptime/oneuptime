@@ -191,6 +191,7 @@ import {
   shouldBypassRecordPrivacy,
 } from "../Utils/PrivacyFilterUtil";
 import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import ArchivedValueCheck, {
   ArchivableValueColumn,
@@ -209,7 +210,7 @@ import ListOrderMaintainer, {
 import { ContiguousOrderMoved } from "../Utils/Database/ContiguousOrder";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import { MoveInListResult } from "../../Types/Database/MoveInList";
-import { toListOrderNumber } from "../../Utils/ListOrder";
+import { getListOrderReadSort, toListOrderNumber } from "../../Utils/ListOrder";
 import CustomFieldFiles, {
   CustomFieldFileQuery,
   CustomFieldFileRow,
@@ -2757,8 +2758,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * A method of its own rather than an onBeforeFind override: BaseAPI
    * reads a list and its count side by side only for a service on the
    * stock onBeforeFind, and an order changes nothing the count reads.
+   *
+   * The rows of a drag-ordered list (@ListOrderColumn) are read in the
+   * list's own order when the caller asks for none, and two rows at one
+   * number the way the list shows them (Common/Utils/ListOrder's
+   * getListOrderReadSort, issue #9654). So a lookup of "the project's
+   * created state" by its flag alone is the topmost created state, as the
+   * rules and the Dashboard take it, not the newest one.
    */
   protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> {
+    const listOrder: ListOrderSettings | null = this.model.getListOrder();
+
+    if (listOrder?.column) {
+      return getListOrderReadSort({
+        sort: sort as Record<string, unknown> | undefined,
+        column: listOrder.column,
+        sortOrder: listOrder.sortOrder,
+      }) as Sort<TBaseModel>;
+    }
+
     if (!sort || Object.keys(sort).length === 0) {
       return {
         createdAt: SortOrder.Descending,
@@ -10958,6 +10976,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * PrivateRecordReadFilter.keepSeenRelatedRecords.
        */
       await PrivateRecordReadFilter.keepSeenRelatedRecords({
+        modelType: this.modelType,
+        rows: decryptedItems,
+        select: onBeforeFind.select,
+        props: narrowed.asker,
+      });
+
+      /*
+       * A person reached through a relation, only as the asker may see
+       * them: someone only invited to the asker's projects shows the name
+       * typed for them, not their own profile, and nobody's account dates
+       * are anyone else's to read (#9823). See PendingInviteeProfiles.
+       */
+      await PendingInviteeProfiles.withholdFromRows({
         modelType: this.modelType,
         rows: decryptedItems,
         select: onBeforeFind.select,

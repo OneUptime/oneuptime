@@ -323,7 +323,7 @@ sampling:
 # upgrade with --reuse-values keeps (see NOTES.txt).
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: "0.161.0"
+  tag: "0.165.0"
   pullPolicy: IfNotPresent
 
 # Debug sidecar — drops a shell + network tools (curl, dig, nc, tcpdump, …)
@@ -638,6 +638,25 @@ kubeletstats:
   # you do not watch PVC disk space.
   volumeMetrics:
     enabled: true
+  # Whether the agent's ClusterRole grants nodes/proxy, for the receiver to
+  # read each node's pod list from its kubelet (/pods): each container's
+  # ID, each volume's claim, and the requests and limits the utilization
+  # metrics above divide by. A kubelet that refuses the list gets nothing
+  # sent from its node at all.
+  #
+  # A kubelet from Kubernetes 1.33 on lets the receiver read the list with
+  # nodes/pods, which the ClusterRole always grants. An older one asks for
+  # nodes/proxy, which reaches the whole kubelet API - running commands in
+  # the node's containers included - and fails CIS Kubernetes Benchmark
+  # 5.1.10, as the cluster's Compliance page says.
+  #
+  #   auto  (the default) grant it while the cluster runs Kubernetes older
+  #         than 1.36, as Helm reads its version: a kubelet may be three
+  #         minor versions older than the API server, so only from 1.36 is
+  #         every kubelet 1.33 or later.
+  #   false never: once every node runs Kubernetes 1.33 or later.
+  #   true  always: kubelets that run with KubeletFineGrainedAuthz off.
+  nodesProxy: auto
 
 # Scrape the kubelet's cAdvisor endpoint (`/metrics/cadvisor`) for the
 # container-level metrics that the kubeletstats receiver doesn't
@@ -831,9 +850,12 @@ cost:
     # With the bundled engine (url empty): read the cluster's own OpenCost
     # or Kubecost instead when it runs one and answers, so the cluster is
     # priced as its owner set it up. The agent looks when it starts, then
-    # hourly, and falls back to the bundled engine. false always reads the
-    # bundled one. A rate card in cost.opencost.customPricing keeps the
-    # agent on the bundled engine too: someone chose those rates.
+    # hourly, and falls back to the bundled engine. The price metrics the
+    # collector scrapes follow it (see cost.metrics.endpoint), so the
+    # Kubernetes Cost dashboard and the Costs pages show one engine's
+    # prices. false always reads the bundled one. A rate card in
+    # cost.opencost.customPricing keeps the agent on the bundled engine
+    # too: someone chose those rates.
     preferExisting: true
     # Allocation API path. Empty auto-detects by probing, in order:
     # /model/allocation (Kubecost), /allocation/compute (OpenCost),
@@ -844,15 +866,23 @@ cost:
     # report averages, and an hourly mean hides the burst that OOMKills a
     # container.
     #
-    # Empty (the default) resolves to the bundled Prometheus when the
-    # engine is bundled, and to NOTHING when you point at an external
-    # engine — set it explicitly in that case if you want memory
-    # recommendations. Without it, CPU recommendations still work (they
-    # come from stored hourly averages) and memory ones are unavailable.
+    # Empty (the default): the bundled Prometheus for the bundled engine.
+    # For the cluster's own engine (url auto or a URL, or the one the agent
+    # prefers to the bundled one), the Prometheus that engine reads, which
+    # the agent finds at run time: OpenCost's PROMETHEUS_SERVER_ENDPOINT,
+    # or the Prometheus Kubecost 2 bundles. It is used once it answers for
+    # this cluster's cAdvisor memory series. Kubecost 3 reads no
+    # Prometheus: the bundled one stands in when the chart runs it, and
+    # otherwise memory recommendations are unavailable and the agent's
+    # /healthz says why (troubleshoot.sh shows it). Set this to name a
+    # Prometheus yourself, whatever the engine. Without one, CPU
+    # recommendations still work (they come from stored hourly averages).
     prometheusUrl: ""
-    # Prometheus job label of the cAdvisor scrape. The bundled config uses
-    # kubernetes-nodes-cadvisor; override when reusing your own Prometheus,
-    # whose job will be named differently.
+    # Prometheus job label of the cAdvisor scrape. Empty: the agent reads
+    # it off the Prometheus it uses (kubernetes-nodes-cadvisor in the
+    # bundled one, Kubecost's and the community chart's; kubelet in
+    # kube-prometheus-stack's). Set it when that Prometheus scrapes
+    # cAdvisor under more than one job.
     prometheusCadvisorJob: ""
   # Bundled OpenCost engine. Deployed while cost monitoring is on (see
   # `cost.enabled`) and `cost.engine.url` is empty.
@@ -893,12 +923,26 @@ cost:
   # Minimal Prometheus for the bundled engine — OpenCost hard-requires a
   # PromQL endpoint for usage/price history; this one exists solely for
   # that. Single replica, short retention, scrapes exactly two targets
-  # (cAdvisor via the API-server node proxy, keeping only the series in
+  # (cAdvisor from each node's kubelet, keeping only the series in
   # cadvisorMetricsAllowlist below, and OpenCost itself — which emits its
   # own KSM-style request metrics, so no kube-state-metrics is needed).
   # Deployed only alongside the bundled engine; never scraped into
   # OneUptime and never reachable outside the cluster.
   prometheus:
+    # How it reads each node's cAdvisor. From the node's kubelet
+    # (https://<node>:10250/metrics/cadvisor), the kubelet authorizes it as
+    # nodes/metrics. Through the API server's node proxy, it needs
+    # nodes/proxy, which reaches the whole kubelet API and fails CIS
+    # Kubernetes Benchmark 5.1.10.
+    #
+    #   auto  (the default) through the API server on the eks-fargate
+    #         preset, where no pod reaches a node's kubelet; from the
+    #         kubelet everywhere else.
+    #   true  through the API server: where the network keeps pods from
+    #         the nodes' port 10250, or on an EKS cluster that runs some of
+    #         its pods on Fargate, whose usage is read no other way.
+    #   false from the kubelet.
+    nodesProxy: auto
     image:
       repository: quay.io/prometheus/prometheus
       # Prometheus 3. Its scrape config and flags (templates/prometheus-cost.yaml)
@@ -984,17 +1028,21 @@ cost:
   # deployment collector's existing OTLP export.
   metrics:
     enabled: true
-    # Metrics endpoint. Empty: the bundled OpenCost's /metrics; with
-    # cost.engine.url set to auto or a URL, wherever the engine the cost
-    # agent reads serves its price metrics, which the agent finds and the
-    # collector asks it for (Prometheus http_sd). A Kubecost frontend or
-    # OpenCost's UI answers /metrics with its web page, so the agent tries
-    # the engine's /metrics, then the /model/metrics a frontend proxies to
-    # the engine (Kubecost 2, OpenCost's UI), then the finops agent in the
-    # engine's namespace (Kubecost 3, whose frontend serves its prices at no
-    # path), and takes the first with price series. Until it finds them
-    # nothing is scraped, and its /healthz says why (troubleshoot.sh shows
-    # it). With cost.agent.enabled false, <cost.engine.url>/metrics.
+    # Metrics endpoint. Empty: wherever the engine the cost agent reads
+    # serves its price metrics, which the agent finds and the collector
+    # asks it for (Prometheus http_sd): the bundled OpenCost's /metrics, or,
+    # once the agent reads the cluster's own engine instead (see
+    # cost.engine.preferExisting) or cost.engine.url is auto or a URL, that
+    # engine's. A Kubecost frontend or OpenCost's UI answers /metrics with
+    # its web page, so the agent tries the engine's /metrics, then the
+    # /model/metrics a frontend proxies to the engine (Kubecost 2,
+    # OpenCost's UI), then the finops agent in the engine's namespace
+    # (Kubecost 3, whose frontend serves its prices at no path), and takes
+    # the first with price series. Until it answers nothing is scraped, and
+    # its /healthz says why (troubleshoot.sh shows it). The bundled OpenCost
+    # the agent always reads (preferExisting false, or a rate card) is
+    # scraped where the chart puts it; with cost.agent.enabled false,
+    # <cost.engine.url>/metrics or the bundled OpenCost's.
     #
     # Set it to name the endpoint yourself, e.g. a Kubecost 3 behind an
     # ingress: http://kubecost-finopsagent.kubecost.svc.cluster.local:80/metrics.

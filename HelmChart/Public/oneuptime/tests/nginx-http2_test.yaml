@@ -1,0 +1,131 @@
+# HTTP/2 for host on the gateway's HTTPS port (issue #9846). With
+# ssl.provision: true the gateway serves host over HTTPS itself and offers it
+# HTTP/2, which OTLP over gRPC needs. nginx.http2: false turns it off there,
+# for when nginx fixes a vulnerability in HTTP/2 and OneUptime cannot be
+# upgraded yet; it lasts through restarts and upgrades, where editing the
+# config inside a pod did not.
+#
+# The chart hands it to the gateway as NGINX_HTTP2, the "on" or "off" the
+# gateway's envsubst-on-templates.sh renders into the primary server's http2
+# directive (packages/Nginx/Tests/PrimaryServerHttp2.test.js holds the
+# script). Only false turns it off: values without the key keep it on, as it
+# always was. The schema takes a boolean, so a string is refused, not
+# ignored.
+suite: nginx http2
+release:
+  name: oneuptime
+  namespace: oneuptime
+templates:
+  - templates/nginx.yaml
+tests:
+  - it: keeps HTTP/2 on by default, and says so once
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NGINX_HTTP2
+            value: "on"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NGINX_HTTP2
+          any: true
+          count: 1
+
+  - it: keeps HTTP/2 on with nginx.http2 true
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      nginx.http2: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NGINX_HTTP2
+            value: "on"
+
+  - it: turns HTTP/2 off with nginx.http2 false
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      nginx.http2: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NGINX_HTTP2
+            value: "off"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NGINX_HTTP2
+            value: "on"
+
+  - it: turns it off beside ssl.provision, the one install where the gateway speaks HTTP/2
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      ssl.provision: true
+      nginx.http2: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROVISION_SSL
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NGINX_HTTP2
+            value: "off"
+
+  - it: keeps HTTP/2 on for values without the key, as an older values file has none
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      nginx.http2: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NGINX_HTTP2
+            value: "on"
+
+  - it: hands it to the gateway container alone, not to its sysctl init container
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      nginx.http2: false
+      nginx.sysctlTuning.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: sysctl-tuning
+      - notExists:
+          path: spec.template.spec.initContainers[0].env
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: oneuptime-nginx
+
+  # `--set nginx.http2=off` is the string "off" too.
+  - it: refuses the string "off", which reads like a setting and is not a boolean
+    set:
+      nginx.http2: "off"
+    asserts:
+      - failedTemplate:
+          errorPattern: "/nginx/http2'?: got string, want boolean"
+
+  - it: refuses the string "false" too, rather than reading it as true
+    set:
+      nginx.http2: "false"
+    asserts:
+      - failedTemplate:
+          errorPattern: "/nginx/http2'?: got string, want boolean"

@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * One message on the invoices.created topic (invoice inv-88123) has a JSON
@@ -851,27 +852,20 @@ const scenario: BenchmarkScenario = {
         "- 0c7e2a5 Show the invoice due date on the billing page (#3304) - src/pages/billing/InvoiceList.tsx",
       ].join("\n"),
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: INVOICES_SLO_ID,
-          name: "Invoices issued within 15 minutes",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99,
-          window: "Rolling 30d",
-          monitors: "Invoice pipeline",
-          sloStatus: "Healthy",
-          currentSliPercentage: 99.58,
-          errorBudgetRemainingPercentage: 58,
-          currentBurnRate: 8.6,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-10-05T08:49:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: INVOICES_SLO_ID,
+        name: "Invoices issued within 15 minutes",
+        monitors: ["Invoice pipeline"],
+        targetPercentage: 99,
+        windowDays: 30,
+        sloStatus: "Healthy",
+        currentSliPercentage: 99.58,
+        errorBudgetRemainingPercentage: 58,
+        currentBurnRate: 8.6,
+        lastEvaluatedAt: "2026-10-05T08:49:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:

@@ -219,20 +219,46 @@ export function parseModule(file: string, text: string): SourceModule {
   };
 }
 
-// The file an import names: a relative path or Common's, never a package.
+/*
+ * The module names a front end imports the repository's own code by, as its
+ * bundle resolves them: Common's, and the Dashboard's and the Admin
+ * Dashboard's src, which ee/'s screens reach through their own names
+ * (ee/Dashboard/tsconfig.json, ee/AdminDashboard/tsconfig.json,
+ * Common/UI/esbuild-enterprise.js) - the Audit Logs table takes its Workflow
+ * Ran As options from the Dashboard so.
+ */
+const MODULE_FOLDERS: ReadonlyArray<{ prefix: string; folder: string }> = [
+  { prefix: "Common/", folder: "packages/Common" },
+  {
+    prefix: "@oneuptime/dashboard/",
+    folder: "packages/App/FeatureSet/Dashboard/src",
+  },
+  {
+    prefix: "@oneuptime/admin-dashboard/",
+    folder: "packages/App/FeatureSet/AdminDashboard/src",
+  },
+];
+
+// The file an import names: a relative path or one of MODULE_FOLDERS', never a package.
 function resolveImport(from: SourceModule, specifier: string): string | null {
-  let base: string;
+  let base: string | null = null;
 
   if (specifier.startsWith(".")) {
     base = path.resolve(REPOSITORY_ROOT, path.dirname(from.file), specifier);
-  } else if (specifier.startsWith("Common/")) {
-    base = path.join(
-      REPOSITORY_ROOT,
-      "packages",
-      "Common",
-      specifier.slice("Common/".length),
-    );
   } else {
+    for (const moduleFolder of MODULE_FOLDERS) {
+      if (specifier.startsWith(moduleFolder.prefix)) {
+        base = path.join(
+          REPOSITORY_ROOT,
+          moduleFolder.folder,
+          specifier.slice(moduleFolder.prefix.length),
+        );
+        break;
+      }
+    }
+  }
+
+  if (!base) {
     return null;
   }
 

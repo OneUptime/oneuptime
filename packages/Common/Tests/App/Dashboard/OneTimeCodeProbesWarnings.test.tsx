@@ -24,6 +24,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/OneTimeCodeProbes";
 import ProbeVersionElement, {
   PROBE_TOO_OLD_FOR_ONE_TIME_CODES_TEST_ID,
+  PROBE_UPDATE_DOCS_TEST_ID,
   PROBE_VERSION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeVersion";
 import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
@@ -496,10 +497,9 @@ describe("the probe's page", () => {
     expect(tooOld).toHaveTextContent(
       "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.",
     );
+    // One link for every reason to update: ProbeOlderThanOneUptime.test.tsx.
     expect(
-      screen
-        .getByTestId(`${PROBE_TOO_OLD_FOR_ONE_TIME_CODES_TEST_ID}-docs`)
-        .getAttribute("href"),
+      screen.getByTestId(PROBE_UPDATE_DOCS_TEST_ID).getAttribute("href"),
     ).toContain(UPDATE_A_PROBE_DOCS_PATH);
   });
 

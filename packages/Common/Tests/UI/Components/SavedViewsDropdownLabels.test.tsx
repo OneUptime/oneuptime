@@ -4,9 +4,11 @@ import SavedViewsDropdown, {
 import { SavedViewOption } from "../../../UI/Components/TelemetryViewer/types";
 import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../../UI/Components/Table/TableHeaderControls";
 import IconProp from "../../../Types/Icon/IconProp";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import "@testing-library/jest-dom";
 import {
   RenderResult,
+  act,
   cleanup,
   fireEvent,
   render,
@@ -349,9 +351,26 @@ describe("the trigger", () => {
  * when its start has no room - measured as it is styled (w-72), never as
  * it first measures: the Dashboard's Tailwind runtime writes the w-72 rule
  * after the panel is in the page, and it measured its longest name.
+ *
+ * It is drawn over the page from its trigger (LayeredPopover, #9859), so
+ * Popper places it from the edge picked here: bottom-start or bottom-end.
  */
 describe("the panel's place", () => {
   const originalInnerWidth: number = window.innerWidth;
+
+  // Where Popper placed the panel, once its first placement has run.
+  async function placementOf(panel: HTMLElement): Promise<string | null> {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    return (
+      panel
+        .closest<HTMLElement>(`.${LAYERED_POPOVER_CLASS_NAME}`)
+        ?.getAttribute("data-popper-placement") || null
+    );
+  }
 
   function placeTrigger(box: {
     left: number;
@@ -390,25 +409,24 @@ describe("the panel's place", () => {
     });
   });
 
-  test("opens from the trigger's start while there is room", () => {
+  test("opens from the trigger's start while there is room", async () => {
     placeTrigger({ left: 712, right: 831, viewportWidth: 1280 });
     draw();
 
     const panel: HTMLElement = open();
 
     expect(panel).toHaveAttribute("data-align", "left");
-    expect(panel).toHaveClass("left-0");
-    expect(panel).not.toHaveClass("right-0");
+    expect(await placementOf(panel)).toBe("bottom-start");
   });
 
-  test("opens from the trigger's end when its start would run off the screen", () => {
+  test("opens from the trigger's end when its start would run off the screen", async () => {
     placeTrigger({ left: 625, right: 744, viewportWidth: 768 });
     draw();
 
     const panel: HTMLElement = open();
 
     expect(panel).toHaveAttribute("data-align", "right");
-    expect(panel).toHaveClass("right-0");
+    expect(await placementOf(panel)).toBe("bottom-end");
     // And never wider than a phone's screen.
     expect(panel).toHaveClass("w-72", "max-w-[calc(100vw-1rem)]");
   });

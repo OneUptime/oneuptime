@@ -46,7 +46,7 @@ flowchart TB
 - Ключ приёма. Создайте его в разделе **Настройки проекта → Телеметрия и APM → Ключи приёма** и скопируйте значение. Коллектор отправляет его в заголовке `x-oneuptime-token`.
 - Права администратора на машине: `sudo` в Linux и macOS, PowerShell с повышенными правами в Windows.
 - Исходящий HTTPS с машины на ваш URL OneUptime.
-- Дистрибутив коллектора contrib, `otelcol-contrib`. В базовой сборке `otelcol` нет приёмников и процессоров, которые используют эти конфигурации. Приёмник `systemd` (Linux) работает начиная с v0.143.0, а приёмник `windows_service` (Windows) — с v0.155.0; команды ниже устанавливают v0.161.0, выпуск, который закрепляет OneUptime.
+- Дистрибутив коллектора contrib, `otelcol-contrib`. В базовой сборке `otelcol` нет приёмников и процессоров, которые используют эти конфигурации. Приёмник `systemd` (Linux) работает начиная с v0.143.0, а приёмник `windows_service` (Windows) — с v0.155.0; команды ниже устанавливают v0.165.0, выпуск, который закрепляет OneUptime.
 
 ## Установка коллектора
 
@@ -140,7 +140,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -238,7 +238,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -346,7 +346,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -381,7 +381,7 @@ service:
 В Debian или Ubuntu:
 
 ```bash
-VERSION=0.161.0                      # the release OneUptime pins
+VERSION=0.165.0                      # the release OneUptime pins
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \
@@ -392,7 +392,7 @@ sudo dpkg -i /tmp/otelcol-contrib.deb
 В RHEL, CentOS, Fedora или Amazon Linux:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \
@@ -413,7 +413,7 @@ sudo systemctl status otelcol-contrib
 Юнит из пакета запускает коллектор от непривилегированного пользователя `otelcol-contrib`. Группа `systemd-journal` позволяет ему читать журнал; чтобы следить за файлами в `/var/log` (в Debian и Ubuntu их может читать группа `adm`), добавьте и эту группу. Чтобы сборщик `process` видел процессы других пользователей, выдайте ему capability `CAP_SYS_PTRACE`.
 @tab macOS
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
 
 curl -fL -o /tmp/otelcol-contrib.tar.gz \
@@ -458,7 +458,7 @@ sudo launchctl list | grep otelcol-contrib
 В PowerShell с повышенными правами, в папке с `config.yaml`, выполните этот блок целиком: каждая строка зависит от переменных выше.
 
 ```powershell
-$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
+$VERSION = "0.165.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -852,7 +852,7 @@ docker run -d \
   -e HOST_VAR=/hostfs/var \
   -e HOST_RUN=/hostfs/run \
   -e HOST_DEV=/hostfs/dev \
-  otel/opentelemetry-collector-contrib:0.161.0 \
+  otel/opentelemetry-collector-contrib:0.165.0 \
   --config /etc/otelcol-contrib/config.yaml
 ```
 
@@ -863,7 +863,7 @@ docker run -d \
 Там, где пакеты не подходят, распакуйте статический бинарный файл и создайте для него собственный юнит systemd:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \
@@ -1157,7 +1157,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 

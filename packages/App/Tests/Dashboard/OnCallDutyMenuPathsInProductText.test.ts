@@ -18,6 +18,7 @@ import {
   sectionByTitle,
   startsCollapsed,
 } from "../FeatureSet/Docs/DocsDashboardMenus";
+import { ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL } from "Common/Types/Database/UniqueName";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -139,6 +140,12 @@ const GLOBAL_CARD: string =
   "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation. For one policy only, use that policy's User Overrides page, under Advanced.";
 const READINESS_NOTE: string =
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.";
+/*
+ * Where a new policy, or a rename, onto an archived policy's name is told
+ * to unarchive that one (#9742): in Advanced, which starts folded.
+ */
+const ARCHIVED_POLICY_NAME_REFUSAL: string =
+  ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL.template;
 
 describe("the menu the paths are held to, read from its source", () => {
   test("On-Call: the policies, the incoming call policies among them, and the schedules are open; the rest starts folded", () => {
@@ -478,7 +485,14 @@ describe("every translation names the path as its language's Dashboard draws it"
           return entry.key;
         })
         .sort(),
-    ).toEqual([READINESS_NOTE, SKIP_DIALOG, POLICY_CARD].sort());
+    ).toEqual(
+      [
+        READINESS_NOTE,
+        SKIP_DIALOG,
+        POLICY_CARD,
+        ARCHIVED_POLICY_NAME_REFUSAL,
+      ].sort(),
+    );
 
     for (const entry of keysWithPaths) {
       for (const written of entry.paths) {

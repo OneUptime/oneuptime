@@ -9,6 +9,7 @@ Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse 
 - [Agent installieren](#agent-installieren): Vier Schritte mit Helm.
 - [Als Add-on für Amazon EKS installieren](#als-add-on-für-amazon-eks-installieren): Über die EKS-Konsole, ohne Helm.
 - [OpenShift](#openshift): Das Preset, die Security Context Constraints, die es anlegt, und die eigenen Warnungen von OpenShift.
+- [Cluster-Härtung](#cluster-härtung): Bewertungen nach den Pod-Sicherheitsstandards und dem CIS Benchmark sowie die eigenen Berechtigungen des Agents.
 - [Konfigurationsoptionen](#konfigurationsoptionen): Filter, Sampling, Control Plane, Service Mesh, Kosten und Labels.
 - [Kubernetes-KI-Agent](#kubernetes-ki-agent): Lesendes `kubectl` für OneUptime AI und Korrekturen, wenn Sie sie erlauben.
 - [Weniger senden](#die-erfasste-datenmenge-verringern): Die Hebel, nach Wirkung geordnet.
@@ -267,6 +268,7 @@ Um all das zurückzubekommen, wechseln Sie als cluster-admin bei einem Upgrade m
 | Kubernetes-Ereignisse | Jedes Ereignis, Warning wie Normal, aus jedem Namespace und zu jeder Art von Objekt: siehe [Kubernetes-Ereignisse](#kubernetes-ereignisse) |
 | Pod-Logs | stdout und stderr jedes Containers (über `hostPath` auf Standard-Clustern, über die Kubernetes-API auf Autopilot und Fargate) |
 | OpenShift-Objekte (die OpenShift-Presets) | ClusterOperators, die ClusterVersion, Routes, DeploymentConfigs und Services: siehe [OpenShift](#openshift) |
+| RBAC, Dienstkonten und NetworkPolicies | Roles, ClusterRoles und deren Rollenbindungen, ServiceAccounts und NetworkPolicies, nur lesend, alle `resourceSpecs.interval`, um die Härtung des Clusters zu bewerten: siehe [Cluster-Härtung](#cluster-härtung). Kein Secret wird jemals gelesen |
 | Anwendungs-Traces (eBPF, standardmäßig aktiv) | HTTP-, gRPC-, SQL- und Redis-Spans aller Pods, ohne SDK und ohne Codeänderungen |
 | HTTP-RED-Metriken (eBPF) | `http.server.request.duration` sowie Request- und Response-Body-Größen, pro Dienst |
 | Service-Graph (eBPF) | Request-Rate, Latenz und Fehlerkanten zwischen Aufrufer und Aufgerufenem, die die Service-Map zeichnen |
@@ -311,6 +313,49 @@ Jedes Ereignis ist auch ein Log. Eine Warnung wird mit dem Schweregrad **Warnung
 | `k8s.namespace.name` | `default` |
 
 Durchsuchen Sie sie unter **Protokolle**, oder verwerfen Sie unerwünschte mit einem Drop-Filter. Um benachrichtigt zu werden, wenn eines eintritt, schalten Sie **Warning Events** auf der Seite **Empfehlungen** des Clusters ein, oder wählen Sie **Warnungen für Warning-Ereignisse einschalten** unten auf seiner Seite **Ereignisse**: ein [Logs-Monitor](/docs/monitor/logs-monitor) über die Warnungen des Clusters, die einen Warnung pro Objekt und Grund auslöst und ihn auflöst, sobald 5 Minuten ohne neue Warnung dazu vergangen sind. Um nur über einige Gründe benachrichtigt zu werden, fügen Sie seinem Filter `k8s.event.reason` hinzu.
+
+## Cluster-Härtung
+
+Die Seite **Compliance** eines Clusters, unter **Sicherheit**, bewertet in ihrem Abschnitt **Cluster-Härtung** den Cluster selbst anhand von drei Rahmenwerken. Sie liest, was der Agent ohnehin sendet: die Pods des Clusters, seine Namespaces und, für den CIS Benchmark, seine RBAC, Dienstkonten und NetworkPolicies. Das Menü des Clusters zeigt die Seite, sobald der Agent die Pods des Clusters meldet, ob auf dem Cluster eine Datenbank läuft oder nicht.
+
+| Rahmenwerk | Was es bewertet |
+| --- | --- |
+| **Pod-Sicherheitsstandards: Baseline** | Jeder Workload, der auf dem Cluster läuft, gemessen an der Baseline-Richtlinie der Kubernetes-Version des Clusters: privilegierte Container, die Namespaces, Ports und Pfade des Hosts, hinzugefügte Fähigkeiten und jedes weitere Feld, das die Richtlinie nennt, gelesen aus der Spezifikation jedes Pods |
+| **Pod-Sicherheitsstandards: Restricted** | Dieselben Workloads, gemessen an der Restricted-Richtlinie: die Kontrollen von Baseline sowie nur die Volume-Typen, die sie erlaubt, Ausführung als ein anderer Benutzer als root, keine Rechteausweitung, ein Seccomp-Profil und alle Fähigkeiten verworfen |
+| **CIS Kubernetes Benchmark v2.0** | Die 27 Kontrollen aus Abschnitt 5, die die Kubernetes-API beantworten kann: Rollenbindungen, die cluster-admin, Secrets, `nodes/proxy` und die übrigen Rechte gewähren, die seine Kontrollen nennen, Rollen mit Platzhaltern, die Standard-Dienstkonten, Pod Security Admission oder eine Richtlinien-Engine in jedem Namespace, NetworkPolicies und was jeder Pod ausführt |
+
+Die Kachel jedes Rahmenwerks zeigt seine Bewertung und wie viele Workloads es ausgewertet hat und wie viele dagegen verstoßen. Unter seinen Kontrollen stehen die nicht bestandenen zuerst: Jede nennt, was sie beanstandet und wie es sich beheben lässt, und listet die Workloads, Rollen, Rollenbindungen, Dienstkonten oder Namespaces auf, die gegen sie verstoßen, jeweils mit einem Link auf die zugehörige Seite, bis hinunter zum Container oder Volume und zum Feld, etwa `securityContext.privileged`. Wo Datensicherheit die auf dem Cluster laufenden Datenbanken bewertet, stehen diese weiterhin darunter, unter **Datenbanken auf diesem Cluster**.
+
+Die Pod-Sicherheitsstandards werden nach der eigenen Kubernetes-Version des Clusters bewertet: der seines neuesten Kubelets, höchstens aber der neuesten Version, die OneUptime kennt. Eine Kontrolle, die mit einer späteren Version hinzukam, zählt erst ab dieser Version, und die Seite nennt die Version, nach der sie bewertet hat.
+
+Die übrigen 104 Kontrollen des Benchmarks prüfen die Dateien und Kubelets der Knoten oder die Flags der Control Plane, oder sie erfordern eine Prüfung durch eine Person. Keine API beantwortet sie, daher stehen sie unter **Hier nicht bewertet**, nach Grund gruppiert, und gelten nie als bestanden oder fehlerhaft. Bei einer verwalteten Control Plane, etwa bei EKS, GKE oder AKS, sagt die Seite, dass sie unter den Benchmark des Anbieters fallen.
+
+### Ein Rahmenwerk, eine Kontrolle oder einen Namespace ausschalten
+
+Schalten Sie aus, was für einen Cluster nicht gilt. Jeder Schalter gehört allein diesem Cluster und fragt nach dem Grund, und die Seite hält fest, wer ihn wann und warum ausgeschaltet hat:
+
+- Der Schalter **Gilt hier** eines Rahmenwerks nimmt den Cluster aus dem Rahmenwerk heraus. Das Rahmenwerk wird dann unter **Ausgeschaltet** eingeklappt, samt seinem Schalter, um es wieder einzuschalten.
+- Der Schalter einer Kontrolle nimmt diese Kontrolle aus der Bewertung des Clusters heraus.
+- Der Schalter eines Namespace, unter jedem Rahmenwerk, nimmt alles in diesem Namespace aus dem Rahmenwerk heraus, so wie Pod Security Admission einen Namespace ausnimmt.
+
+### Ein Rahmenwerk exportieren
+
+**CSV exportieren** und **JSON exportieren** laden den Bericht eines Rahmenwerks herunter: jede Kontrolle, ob sie bestanden wurde, was gegen sie verstößt und wie es sich beheben lässt, und die Kubernetes-Version, nach der bewertet wurde.
+
+### Was der Agent dafür liest
+
+`resourceSpecs.compliance` (standardmäßig aktiv) liest alle `resourceSpecs.interval` Roles, ClusterRoles und deren Rollenbindungen, ServiceAccounts und NetworkPolicies, und zwar nur mit `get`, `list` und `watch`. Kein Secret wird jemals gelesen: Ein ServiceAccount nennt nur die Namen seiner Token-Secrets, und OneUptime verwirft sogar diese Namen. Ist es aus (`--set resourceSpecs.compliance=false`), sind die RBAC-, Dienstkonto- und NetworkPolicy-Kontrollen des Benchmarks *nicht ausgewertet*, und die Pod-Sicherheitsstandards werden weiterhin anhand der Pods bewertet.
+
+### Die eigenen Berechtigungen des Agents
+
+Der Agent liest jedes Kubelet über die Unterressourcen, auf die das Kubelet seine Pfade bei der Autorisierung abbildet: `nodes/stats` für seine Statistiken, `nodes/metrics` für cAdvisor und `nodes/pods` für die Pod-Liste eines Knotens, die ein Kubelet ab Kubernetes 1.33 zulässt. Über `nodes/proxy` ist die gesamte Kubelet-API erreichbar, und eine Rollenbindung, die diese Unterressource gewährt, verstößt gegen CIS 5.1.10; daher gewährt der Agent sie nur dort, wo keine engere Berechtigung ausreicht:
+
+| Wert | Wann der Agent `nodes/proxy` gewährt |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (der Standard) gewährt die Berechtigung, solange auf dem Cluster Kubernetes älter als 1.36 läuft, dessen Kubelets älter als 1.33 sein können und die Pods eines Knotens nur mit `nodes/proxy` auflisten. Setzen Sie `false`, sobald jeder Knoten 1.33 oder neuer ausführt, oder `true` für Kubelets mit ausgeschaltetem `KubeletFineGrainedAuthz` |
+| `cost.prometheus.nodesProxy` | `auto` (der Standard) gewährt die Berechtigung nur mit dem Preset `eks-fargate`, wo kein Pod das Kubelet eines Knotens erreicht und das Kosten-Prometheus cAdvisor über den API-Server liest. Überall sonst liest es das Kubelet jedes Knotens auf Port 10250 |
+
+Wo die eigene Rollenbindung des Agents gegen 5.1.10 verstößt, sagt die Seite, dass es die Rollenbindung des Agents ist, warum sie `nodes/proxy` gewährt und mit welchem Wert das wegfällt.
 
 ## Konfigurationsoptionen
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 Verwenden Sie nicht `--reuse-values`: Es behält auch die Standardwerte des Charts, von dem Sie aktualisieren, sodass die Standardwerte eines neueren Charts (darunter sein eBPF-Image) nie greifen. Läuft ein Release mit den Standardwerten eines älteren Charts, enden die Hinweise, die Helm nach der Installation oder dem Upgrade ausgibt, mit einer Warnung und dem Befehl, der es behebt.
 
 Scheitert das Upgrade mit `namespaces "<name>" not found`, führt `aiAgent.remediation.namespaces` (oder das ältere `aiAccess.remediation.namespaces`) einen Namespace auf, der nicht (mehr) existiert: Das Chart legt in jedem aufgeführten Namespace ein RoleBinding an und legt nie einen an. Legen Sie den Namespace an oder führen Sie das Upgrade mit der Liste ohne diesen Namespace aus (`--set "aiAgent.remediation.namespaces={web}"`) oder mit `--set-json 'aiAgent.remediation.namespaces=[]'`, um zur clusterweiten Bindung zurückzukehren. `--set aiAgent.remediation.namespaces=null` setzt eine gespeicherte Liste unter `--reuse-values` nicht zurück und scheitert daher mit demselben Fehler.
+
+> **Die RBAC-Kontrollen des CIS Benchmarks brauchen einen aktualisierten Agent.** Ein Agent aus der Zeit vor `resourceSpecs.compliance` sendet weder RBAC noch Dienstkonten noch NetworkPolicies, daher sagt die Seite **Compliance** des Clusters, dass die RBAC-, Dienstkonto- und NetworkPolicy-Kontrollen des Benchmarks *nicht ausgewertet* sind, und wie sich das beheben lässt. Aktualisieren Sie den Agent mit eingeschaltetem `resourceSpecs.compliance`, wie es standardmäßig der Fall ist: Dafür ist der Collector 0.125.0 oder neuer nötig. Mit dem Upgrade gewährt der Agent außerdem `nodes/proxy` nicht mehr, wo kein Knoten darauf angewiesen ist: siehe [Die eigenen Berechtigungen des Agents](#die-eigenen-berechtigungen-des-agents).
 
 > **eBPF-Span-Metriken haben neue Namen.** `ebpf.features.spanMetrics` sendet jetzt `traces.span.metrics.calls` und `traces.span.metrics.duration` (Sekunden) statt `traces_spanmetrics_calls_total` und `traces_spanmetrics_latency`: dieselben Serien unter den Namen, die OBI beibehält (die alten hat es als veraltet markiert). Ein Dashboard, Diagramm oder Metrik-Monitor auf einem alten Namen erhält nach dem Upgrade keine neuen Daten, ohne Fehler — stellen Sie es auf den neuen Namen um und aktualisieren Sie jeden Eintrag `filters.metrics`, der einen alten nennt.
 

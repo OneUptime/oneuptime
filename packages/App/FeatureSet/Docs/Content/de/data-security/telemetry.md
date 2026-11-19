@@ -8,6 +8,7 @@ Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gesc
 - [Was gelesen wird](#was-gelesen-wird): Die Attribute, Bodys, Nachrichten und Prompts jedes Signals.
 - [Wie ein Scan Stichproben nimmt](#wie-ein-scan-stichproben-nimmt): Die neuesten Datensätze jedes Dienstes, jede Stunde.
 - [Bereinigen](#bereinigen): Einen Fund bei der Aufnahme maskieren, mit einem Klick.
+- [Diese Metrik verwerfen](#diese-metrik-verwerfen): Die Metriken nicht mehr speichern, deren Namen sensible Daten enthalten.
 - [Was als bereinigt zählt](#was-als-bereinigt-zählt): Wann eine Bereinigungsregel einen Fund bereits abdeckt.
 :::
 
@@ -42,8 +43,9 @@ Nummerierte Schlüssel werden zu einem Ort zusammengefasst: `gen_ai.prompt.3.con
 
 Die Attribute einer Metrik sind die Labels ihrer Reihen. Sie sind an jedem Datenpunkt einer Reihe gleich, sodass eine Metrik, die tausend Punkte pro Minute schreibt, vielleicht nur drei Werte enthält, und ein Label, das die E-Mail-Adresse eines Benutzers preisgibt, eine Reihe hinzufügt, keinen Punkt. Deshalb werden von einer Metrik Stichproben nach ihren Reihen genommen, nicht nach ihren Punkten:
 
-- **Ihre neueste Minute.** Jede Metrik wird in der neuesten Minute gelesen, die sie in der letzten Stunde geschrieben hat: bis zu 100 Datenpunkte dieser Minute, was bei einer Metrik, die einmal pro Minute gesendet wird, wie OpenTelemetry es standardmäßig tut, ein Punkt jeder Reihe ist. Ein Wert wird einmal klassifiziert, egal wie viele Punkte ihn wiederholen, sodass ein Fund die verschiedenen Werte an seinem Ort zählt.
-- **Die aktivsten zuerst, die übrigen im Wechsel.** Welche Metriken ein Dienst geschrieben hat, ergibt sich aus der minütlichen Zusammenfassung, die die Metriktabelle führt, nie aus ihren Punkten. Jeder Scan liest die aktivsten Metriken eines Dienstes, die am ehesten viele Reihen haben, und einige seiner übrigen, jede Stunde die nächsten, sodass nach und nach jede Metrik gelesen wird.
+- **Ein Punkt jeder Serie.** Jede Metrik wird in der neuesten Minute gelesen, die sie in der letzten Stunde geschrieben hat: ein Datenpunkt von jeder von bis zu 100 Serien dieser Minute, egal wie oft die Metrik gesendet wird, sodass eine aktive Serie nie eine ruhige verdrängt. Ein Wert wird einmal klassifiziert, wie viele Serien ihn auch wiederholen, daher zählt ein Fund die unterschiedlichen Werte an seiner Stelle.
+- **Neue Metriken zuerst, dann die übrigen im Wechsel.** Welche Metriken ein Dienst geschrieben hat und wann jede davon am letzten Tag zum ersten Mal geschrieben hat, ergibt sich aus der minütlichen Zusammenfassung, die die Metriktabelle führt, nie aus ihren Punkten. Jeder Scan liest die aktivsten Metriken eines Dienstes, die am ehesten viele Serien haben. Danach kommen die Metriken, die er in den letzten 2 Stunden zu schreiben begonnen hat, denn ein neues Leck kommt meist aus neuem Code, und dann die nächsten seiner übrigen Metriken, in fester Reihenfolge, ab der Stelle, an der der letzte Scan aufgehört hat. Neue Metriken nehmen höchstens die Hälfte dieser Plätze ein, sodass die übrigen ihre immer behalten.
+- **Jede Metrik in einer festen Zeit.** Bei einem Dienst mit M Metriken, von denen jeder Scan 10 liest, wird jede mindestens einmal alle M ÷ 5 Stunden gelesen, aufgerundet: alle 60 Stunden bei einem Dienst mit 300 Metriken. Solange er jede Stunde neue Metriken beginnt, ist es höchstens doppelt so lang.
 - **Der eigene Bereich jeder Metrik.** Die Metriken werden gemeinsam gelesen, jede über ihren eigenen Bereich des Primärschlüssels der Tabelle. Eine Metrik, deren neueste Minute mehr als 16.384 Punkte enthält, etwa eine mit der E-Mail-Adresse jedes Benutzers als Label, wird für sich gelesen, und der Lesevorgang endet bei ihren ersten Punkten, sodass sie nicht mehr kostet als jede andere Metrik.
 
 Ein Fund nennt das Attribut, etwa `attributes.user.email`, oder `name` für Daten im Namen einer Metrik. Seine Einträge sind die Datenpunkte, in denen er gefunden wurde: Jeder zeigt seine Metrik und den Wert des Attributs, maskiert, und öffnet in **Metriken** diese Metrik, gruppiert nach diesem Attribut. Enthält der Name einer Metrik sensible Daten, wird auch der Name maskiert, und der Eintrag öffnet stattdessen die Metriken des Dienstes.
@@ -73,8 +75,9 @@ Jede Stunde werden die neuesten Datensätze jedes Signals aus der letzten Stunde
 | Attribute eines Datensatzes | 128; 64 bei einem KI-Aufruf |
 | Ereignisse eines Spans und Attribute eines Ereignisses | 16 und 32 |
 | Orte eines Datenspeichers | 500 |
-| In einem Scan gelesene Metriken | 100, aufgeteilt auf die Dienste, mindestens eine von jedem; höchstens 10 eines Dienstes, zur Hälfte seine aktivsten und zur Hälfte im Wechsel seine übrigen |
-| Datenpunkte einer Metrik | Die ihrer neuesten Minute, höchstens 100 |
+| In einem Scan gelesene Metriken | 100, aufgeteilt auf die Dienste, mindestens eine von jedem; höchstens 10 eines Dienstes, zur Hälfte seine aktivsten und zur Hälfte im Wechsel seine neuen und übrigen |
+| Eine neue Metrik | Eine, deren erster Punkt der letzten 24 Stunden in den letzten 2 Stunden kam |
+| Serien einer Metrik | Ein Datenpunkt von jeder, aus ihrer neuesten Minute, höchstens 100 |
 
 Jeder Wert wird schon in der Datenbank gekürzt, sodass kein langer Wert sie verlässt, und jeder Lesevorgang endet nach 30 Sekunden. Ein fehlgeschlagener Lesevorgang wird zum Warnhinweis an den Datenspeichern, für die er gedacht war; der Scan macht mit dem nächsten weiter.
 
@@ -114,9 +117,20 @@ Manche Funde lassen sich durch keine Regel bereinigen, und **Bereinigen** sagt, 
 - Eine Dokumentkennzeichnung: Das Wort zu verbergen, würde das Dokument nicht verbergen.
 - Einer Ihrer eigenen Datentypen: Fügen Sie selbst eine benutzerdefinierte Bereinigungsregel mit seinem Muster hinzu.
 - Die eigenen Details einer Sitzung (`sessions.*`): Die Aufnahme von Sitzungswiedergaben führt keine Bereinigungsregeln aus.
-- Der Name einer Metrik (`name`): Ihn legt der Code fest, der die Metrik erstellt, und eine Pipeline-Regel kann eine Metrik nur als Ganzes umbenennen. Benennen Sie die Metrik um, und senden Sie, was in ihrem Namen variiert, stattdessen als Attribut.
+- Der Name einer Metrik (`name`): Ihn legt der Code fest, der die Metrik erstellt, und eine Pipeline-Regel kann eine Metrik nur als Ganzes umbenennen. Benennen Sie die Metrik um, und senden Sie, was in ihrem Namen variiert, stattdessen als Attribut. Bis dahin kann **Diese Metrik verwerfen** das Speichern dieser Metriken beenden.
 
 **Bereinigen** erstellt die Regel in Ihrem Namen, mit Ihren eigenen Berechtigungen: Projektinhaber und Projektadministratoren können darauf klicken, ebenso ein Team, das Bereinigungsregeln für Logs erstellen darf, für Spans, Ausnahmen und KI-Aufrufe Bereinigungsregeln für Traces und für Metriken Metrik-Pipeline-Regeln.
+
+## Diese Metrik verwerfen
+
+Keine Regel nimmt die Daten aus dem Namen einer Metrik heraus, daher kommen sie weiter an, bis der Code behoben ist, der die Metrik benennt. **Diese Metrik verwerfen** an einem Fund im Namen einer Metrik beendet das Speichern der Metriken, deren Namen sie enthalten, auf Kosten ihrer Daten, und geschieht daher nur, wenn Sie es verlangen:
+
+- **Die Metriken eines Dienstes.** Es erstellt eine Metrik-Pipeline-Regel **Verwerfen** für den Dienst des Funds: Jeder neue Datenpunkt einer Metrik, deren Name diesen Datentyp enthält, wird verworfen, bevor er gespeichert wird. Ihr Filter ist das Muster, das **Bereinigen** für den Typ verwendet, daher lässt sich ein Typ, den kein Muster findet, etwa der Name einer Person, nicht verwerfen, und der Dialog sagt, warum.
+- **Gesagt, bevor es geschieht.** Der Dialog sagt, dass diese Datenpunkte endgültig verloren gehen, wie viele der am letzten Tag geschriebenen Metriken des Dienstes einen solchen Namen haben, welche Monitore und Dashboards sie lesen und daher keine neuen Daten mehr erhalten, dass bereits Gespeichertes bleibt, bis seine Aufbewahrungsfrist endet, und wie man es rückgängig macht. Nichts wird verworfen, bevor Sie ankreuzen, dass Sie das verstehen.
+- **In Ihrem Namen, nachvollziehbar.** Die Regel wird mit Ihrer eigenen Berechtigung erstellt, Metrik-Pipeline-Regeln anzulegen: Projektinhaber und Projektadministratoren können sie erstellen, ebenso ein Team, das Metrik-Pipeline-Regeln erstellen darf. Die Audit-Protokolle halten fest, wer sie erstellt hat.
+- **Rückgängig durch Löschen der Regel.** Die Regel wird nach dem benannt, was sie verwirft, etwa „Data Security: drop metrics named with Email address“, und erscheint bei Ihren anderen Metrik-Pipeline-Regeln unter **Metriken → Einstellungen → Pipeline-Regeln**. Löschen Sie sie oder schalten Sie sie aus, und diese Metriken werden ab dann wieder gespeichert. Was in der Zwischenzeit verworfen wurde, kommt nicht zurück.
+
+Der Fund wird dann als **Verworfen** markiert und zählt als bereinigt: Von diesen Daten wird nichts mehr gespeichert.
 
 ## Was als bereinigt zählt
 
@@ -127,6 +141,7 @@ Ein Fund wird nur dann als bereinigt markiert, wenn die Aufnahme eine aktivierte
 - **Ein Muster, das den Typ findet.** Ein integrierter **Mustertyp** findet seinen eigenen Datentyp: **E-Mail-Adresse** findet E-Mail-Adressen, **Kreditkartennummer** Kartennummern, **SSN (Sozialversicherungsnummer)** US-Sozialversicherungsnummern, **Telefonnummer** Telefonnummern und **IP-Adresse** IP-Adressen. **Sensible Attributschlüssel** deckt jeden Wert unter einem Schlüssel ab, der sensibel aussieht, egal welcher Wert es ist.
 - **Ihre eigenen benutzerdefinierten Muster zählen nie.** Ein **Benutzerdefinierter Regex** deckt einen Fund nur ab, wenn er genau das Muster ist, das **Bereinigen** für dessen Typ erstellt. Ein Fund behält nur maskierte Stichproben, an denen sich kein Muster ausprobieren lässt, also könnte OneUptime nicht beweisen, dass Ihr Muster die Daten verbirgt, und ein fälschlich als bereinigt bezeichneter Fund ist ein Leck, das niemand ansieht.
 - **Das Attribut einer Metrik.** Eine Metrik-Pipeline-Regel **Attribut schwärzen** oder **Attribut entfernen** für den Schlüssel dieses Attributs, für den Dienst des Funds oder das ganze Projekt, deckt ihn ab, wenn sie keinen Filter hat oder genau den Filter, den **Bereinigen** erstellt. Ein Filter, den Sie selbst geschrieben haben, zählt nie, aus demselben Grund.
+- **Der Name einer Metrik.** Eine Metrik-Pipeline-Regel **Verwerfen** für den Dienst des Funds oder das ganze Projekt deckt ihn ab, wenn sie genau den Filter hat, den **Diese Metrik verwerfen** erstellt, oder gar keinen Filter, womit sie keine Metrik des Dienstes speichert. Eine solche Regel ohne Filter deckt jeden Fund in diesen Metriken ab.
 
 Eine Regel, die ausgeschaltet ist oder nichts bereinigt, zählt nie. Die Abdeckung wird nach jedem Scan neu ermittelt, sodass eine Regel, die Sie von Hand hinzufügen oder entfernen, innerhalb einer Stunde ändert, was als bereinigt markiert ist.
 

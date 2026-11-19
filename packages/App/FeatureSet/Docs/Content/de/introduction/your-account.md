@@ -41,7 +41,7 @@ Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Profil**. Die Seite **Üb
 
 Klicken Sie auf **Benutzer bearbeiten** und ändern Sie, was Sie brauchen:
 
-- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, bestätigen Sie die neue Adresse erneut.
+- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, sendet OneUptime einen Link an die neue Adresse, und Ihre Adresse ändert sich, sobald Sie ihn öffnen. Bis dahin melden Sie sich mit der bisherigen an, und **Änderung abbrechen** beendet die Änderung. Die eigene Adresse eines Master-Admins ändert sich sofort.
 - **Vollständiger Name**: der Name, den Ihr Team überall in OneUptime sieht.
 - **Zeitzone**: die Zeitzone, in der das Dashboard Zeiten anzeigt und liest, und die für die Zeiten in Benachrichtigungen an Sie verwendet wird.
 - **Sprache**: die Sprache des Dashboards in jedem Browser, in dem Sie sich anmelden, und Ihrer Bereitschaftsalarme. Ohne Auswahl sind Ihre Alarme auf Englisch, und das Dashboard folgt Ihrem Browser.
@@ -137,14 +137,14 @@ Haben Sie noch keine Backup-Codes, zeigt OneUptime sie Ihnen danach einmal, und 
 
 ### Wenn Ihre Organisation Ihre Anmeldung verwaltet
 
-Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt, es sei denn, ein Serveradministrator löscht es. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
+Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt, es sei denn, ein Serveradministrator löscht es, und dann erhalten Sie eine E-Mail. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
 
 Dasselbe gilt, wenn jedes Projekt, zu dem Sie gehören, Single Sign-On verlangt und **Anmeldung mit SSO verwalten** eingeschaltet hat. Ihr Passwort meldet Sie weiterhin bei OneUptime an, aber jedes Projekt verlangt SSO, daher richtet OneUptime für Sie kein neues Passwort, keinen neuen Passkey und keinen neuen zweiten Schritt ein:
 
 - **Ein Projekt, das das nicht tut**: Sobald Sie Mitglied eines Projekts sind oder zu einem Projekt eingeladen werden, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, kommt Ihr Abschnitt **Sicherheit** zurück. Die **Übersicht** nennt diese Projekte dann unter **Single Sign-On** als Grund dafür, dass Ihre Einstellungen bei Ihnen liegen. Verlassen Sie dieses Projekt, werden sie Ihnen wieder entzogen.
 - **Projekte mit unterschiedlichen Anbietern**: Verwalten alle Ihre Projekte die Anmeldung, jedes mit seinem eigenen Identitätsanbieter, nennt die **Übersicht** jeden Anbieter.
 - **Master-Admins** behalten immer ihre eigenen Einstellungen unter **Sicherheit**.
-- **Was Sie vorher eingerichtet haben**, bleibt gespeichert, und ein Serveradministrator kann es löschen.
+- **Was Sie vorher eingerichtet haben**, bleibt gespeichert. Ein Serveradministrator kann es löschen, ebenso ein Inhaber aller Projekte, zu denen Sie gehören; Sie erhalten eine E-Mail, wenn das geschieht.
 
 ## Ihre Projekte
 
@@ -184,6 +184,14 @@ Ihr Design wird in Ihrem Browser gespeichert; stellen Sie es also in einem ander
 
 :::details Ich habe die E-Mail zur Bestätigung meiner Adresse nicht erhalten
 Wenn Sie sich erneut anmelden, wird ein neuer Link gesendet: Prüfen Sie auch Ihren Spam-Ordner. Können Sie sich nicht anmelden, nutzen Sie **Passwort vergessen?** auf der Anmeldeseite. Der Link zum Zurücksetzen bestätigt Ihre Adresse ebenfalls.
+:::
+
+:::details Die Registrierung hat mir eine E-Mail geschickt, dass ich schon ein Konto habe
+Diese Adresse hat bereits ein OneUptime-Konto, daher hat die Registrierung nichts angelegt und nichts geändert. Melden Sie sich damit an, oder nutzen Sie **Passwort vergessen?** auf der Anmeldeseite, wenn Sie Ihr Passwort nicht mehr wissen. Die Registrierungsseite sagt für jede Adresse dasselbe und verrät so niemandem, welche Adressen ein Konto haben.
+:::
+
+:::details Meine E-Mail-Adresse hat sich nicht geändert
+Ihre Adresse ändert sich erst, wenn Sie den Link öffnen, den OneUptime an die neue Adresse gesendet hat. Der Link funktioniert 24 Stunden lang: Ist er abgelaufen, ändern Sie Ihre E-Mail erneut, um einen neuen zu erhalten. Nutzt bereits ein anderes Konto diese Adresse, steht das in der E-Mail dorthin, und Ihre Adresse bleibt, wie sie ist.
 :::
 
 :::details Ich habe meine Authenticator-App verloren

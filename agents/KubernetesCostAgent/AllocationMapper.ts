@@ -12,6 +12,18 @@ import { EngineAllocation, KubernetesCostAllocationIngestRow } from "./Types";
  */
 const SENTINEL_NAMES: Array<string> = ["__idle__", "__unallocated__"];
 
+/*
+ * A workload field as the row stores it: a sentinel there names no workload.
+ * A Kubecost asked per container (CostEngineClient's CONTAINER_AGGREGATE)
+ * writes "__idle__" in every field of its idle row, where OpenCost writes
+ * none; either way the row carries its sentinel in `namespace` alone.
+ */
+const identityField: (value: string | undefined) => string = (
+  value: string | undefined,
+): string => {
+  return value && !SENTINEL_NAMES.includes(value) ? value : "";
+};
+
 export const mapAllocationToRow: (data: {
   allocation: EngineAllocation;
   windowStart: Date;
@@ -52,11 +64,11 @@ export const mapAllocationToRow: (data: {
     windowStart,
     windowEnd,
     namespace,
-    controllerKind: properties.controllerKind || "",
-    controllerName: properties.controller || "",
-    podName: properties.pod || "",
-    containerName: properties.container || "",
-    nodeName: properties.node || "",
+    controllerKind: identityField(properties.controllerKind),
+    controllerName: identityField(properties.controller),
+    podName: identityField(properties.pod),
+    containerName: identityField(properties.container),
+    nodeName: identityField(properties.node),
     providerId: properties.providerID || "",
     labels: properties.labels || {},
 

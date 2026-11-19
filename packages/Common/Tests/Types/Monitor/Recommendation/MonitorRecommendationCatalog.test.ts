@@ -14,7 +14,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import { getAllCephAlertTemplates } from "../../../../Types/Monitor/CephAlertTemplates";
 import { getAllDockerAlertTemplates } from "../../../../Types/Monitor/DockerAlertTemplates";
 import { getAllDockerSwarmAlertTemplates } from "../../../../Types/Monitor/DockerSwarmAlertTemplates";
-import { getAllHostAlertTemplates } from "../../../../Types/Monitor/HostAlertTemplates";
+import {
+  getAllHostAlertTemplates,
+  getAndroidHostAlertTemplates,
+} from "../../../../Types/Monitor/HostAlertTemplates";
 import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
@@ -58,6 +61,7 @@ import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertT
 import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
 import { getAllServerlessAlertTemplates } from "../../../../Types/Monitor/ServerlessAlertTemplates";
 import { getAllMessageQueueAlertTemplates } from "../../../../Types/Monitor/MessageQueueAlertTemplates";
+import { getAllManagedDeviceAlertTemplates } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -163,7 +167,9 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   {
     resourceType: MonitorRecommendationResourceType.Host,
     monitorTypes: [MonitorType.Host],
-    templateCount: getAllHostAlertTemplates().length,
+    // An Android device's own are offered to a host whose OS is Android alone (#9802).
+    templateCount:
+      getAllHostAlertTemplates().length + getAndroidHostAlertTemplates().length,
     contextFreeTemplateCount: getAllHostAlertTemplates().length,
     identifierFieldName: "hostIdentifier",
   },
@@ -357,6 +363,15 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
     contextFreeTemplateCount: 0,
     identifierFieldName: "messageQueueId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
+    // Every template reads the check-ins the connection's reads write (#9835).
+    monitorTypes: [MonitorType.Metrics],
+    templateCount: getAllManagedDeviceAlertTemplates().length,
+    // A constant set: every connection is an Esper tenant.
+    contextFreeTemplateCount: getAllManagedDeviceAlertTemplates().length,
+    identifierFieldName: "deviceManagementConnectionId",
   },
 ];
 
@@ -1428,7 +1443,7 @@ describe("MonitorRecommendationCatalog", () => {
       expect(mobile).toEqual(
         idsOf(getRumAlertTemplates({ clientKind: "mobile" })),
       );
-      expect(mobile).toHaveLength(6);
+      expect(mobile).toHaveLength(9);
       expect(mobile).toContain(
         buildRecommendationId(
           MonitorRecommendationResourceType.RumApplication,
@@ -1446,7 +1461,7 @@ describe("MonitorRecommendationCatalog", () => {
           ...FULL_REPLAY_CONTEXT,
           rumClientKind: "mobile",
         }),
-      ).toHaveLength(10);
+      ).toHaveLength(13);
       expect(rumRecommendationIds({ rumClientKind: null })).toEqual(
         rumRecommendationIds(),
       );
@@ -1508,8 +1523,8 @@ describe("MonitorRecommendationCatalog", () => {
           MonitorRecommendationResourceType.RumApplication,
         );
 
-      // 5 web vitals, 2 shared, 5 mobile, 4 budgets.
-      expect(all).toHaveLength(16);
+      // 5 web vitals, 2 shared, 8 mobile, 4 budgets.
+      expect(all).toHaveLength(19);
       expect(all.length).toBe(getAllRumAlertTemplates().length);
 
       for (const templateId of BUDGET_TEMPLATE_IDS) {

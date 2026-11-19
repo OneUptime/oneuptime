@@ -44,9 +44,15 @@ const AnnouncementView: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
+  /*
+   * The Edit says what is true for the status pages picked on it, asking
+   * about the announcement as it will be saved (#9775).
+   */
   const formFields: Array<ModelField<StatusPageAnnouncement>> = useMemo(() => {
-    return getAnnouncementFormFields(AnnouncementFormKind.Edit);
-  }, []);
+    return getAnnouncementFormFields(AnnouncementFormKind.Edit, {
+      announcementId: modelId,
+    });
+  }, [modelId.toString()]);
 
   const handleResendNotification: () => Promise<void> =
     async (): Promise<void> => {

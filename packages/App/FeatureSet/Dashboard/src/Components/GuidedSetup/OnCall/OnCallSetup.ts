@@ -22,11 +22,16 @@ import {
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import {
+  MAX_LEVEL_WAIT_IN_MINUTES,
+  MAX_POLICY_REPEAT_TIMES,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import {
   PluralTemplate,
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatProjectBalanceAmount } from "Common/Utils/Project/ProjectBalance";
+import { toListOrderNumber } from "Common/Utils/ListOrder";
 import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
 import { CHANNEL_NAMES } from "../../OnCallTestPage/OnCallTestPageWords";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
@@ -666,16 +671,61 @@ export const formatUsdCents: (cents: number) => string = (
  * STEP 2: WHO IS PAGED FIRST, AND WHETHER IT REACHES THEM.
  */
 
-// One escalation rule of a policy, with who it pages, by name.
+/*
+ * One escalation rule of a policy, with who it pages, by name. A policy's
+ * levels are in the order the policy pages them, and the setup knows a
+ * level by its place among them.
+ */
 export interface PolicyLevel {
   id: string;
-  order: number;
+  /*
+   * The rule's number as it is saved, or null when it has none: never one
+   * made up for it, which could be another rule's (issue #9655).
+   */
+  order: number | null;
   escalateAfterInMinutes: number;
   userIds: Array<string>;
   // People's, teams' and schedules' names, in that order.
   names: Array<string>;
   responderCount: number;
 }
+
+// An escalation rule as the setup reads it.
+export interface PolicyLevelRule {
+  id?: { toString: () => string } | null | undefined;
+  order?: number | null | undefined;
+  escalateAfterInMinutes?: number | null | undefined;
+}
+
+/*
+ * A policy's levels, from its escalation rules as the API reads them: in
+ * the policy's order (by number, a rule without one last), each with no one
+ * on it yet. A rule numbered 0, or with no number, keeps that: it used to
+ * be given its place in the read plus one, which could be another rule's.
+ */
+export const toPolicyLevels: (
+  rules: ReadonlyArray<PolicyLevelRule>,
+) => Array<PolicyLevel> = (
+  rules: ReadonlyArray<PolicyLevelRule>,
+): Array<PolicyLevel> => {
+  return rules
+    .filter((rule: PolicyLevelRule): boolean => {
+      return Boolean(rule.id);
+    })
+    .map((rule: PolicyLevelRule): PolicyLevel => {
+      return {
+        id: rule.id!.toString(),
+        order: toListOrderNumber(rule.order),
+        escalateAfterInMinutes:
+          typeof rule.escalateAfterInMinutes === "number"
+            ? rule.escalateAfterInMinutes
+            : DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+        userIds: [],
+        names: [],
+        responderCount: 0,
+      };
+    });
+};
 
 export interface OnCallPolicyRecord {
   id: string;
@@ -839,10 +889,11 @@ export enum NoAnswerChoice {
 }
 
 /*
- * The minutes a level waits: a whole number from 1 to a day. Null when the
+ * The minutes a level waits: a whole number from 1 to a day, as Ask AI's
+ * set_up_paging takes it too (Common's OnCallPolicyRecords). Null when the
  * text is not one.
  */
-export const MAX_WAIT_IN_MINUTES: number = 24 * 60;
+export const MAX_WAIT_IN_MINUTES: number = MAX_LEVEL_WAIT_IN_MINUTES;
 
 export const parseWaitMinutes: (input: string) => number | null = (
   input: string,
@@ -859,7 +910,7 @@ export const parseWaitMinutes: (input: string) => number | null = (
 };
 
 // How many more times the page starts again: a whole number from 1 to 10.
-export const MAX_REPEAT_TIMES: number = 10;
+export const MAX_REPEAT_TIMES: number = MAX_POLICY_REPEAT_TIMES;
 
 export const parseRepeatTimes: (input: string) => number | null = (
   input: string,

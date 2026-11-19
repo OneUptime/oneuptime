@@ -15,6 +15,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 const OnCallDutyScheduleSettings: FunctionComponent<
   PageComponentProps
@@ -201,6 +202,11 @@ const OnCallDutyScheduleSettings: FunctionComponent<
               validation: {
                 minLength: 2,
               },
+              /*
+               * Another schedule's name, said under the field (#9742): the
+               * copy's name is checked as a new schedule's is.
+               */
+              ownsServerError: isNameTakenRefusal,
             },
           ]}
         />

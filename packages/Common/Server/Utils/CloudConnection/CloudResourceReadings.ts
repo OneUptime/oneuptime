@@ -7,6 +7,8 @@ import {
   getCloudHealthSeverity,
   getCloudReadingKey,
   isCloudReadingTheHighestOfItsSeries,
+  readCloudResourceReadings,
+  withHeldCloudReadings,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import { isCloudReadingKeyOfType } from "../../../Types/Cloud/CloudReadingKeys";
 import {
@@ -14,7 +16,11 @@ import {
   buildCloudMonitoredResourceIdentifier,
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
-import { AZURE_DIMENSION_ATTRIBUTE_PREFIX } from "../../../Types/Cloud/CloudKeyMetrics";
+import {
+  AZURE_DIMENSION_ATTRIBUTE_PREFIX,
+  AwsKeyMetric,
+  getAwsKeyMetricOfStoredName,
+} from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -22,6 +28,7 @@ import ObjectID from "../../../Types/ObjectID";
 import CloudResourceService from "../../Services/CloudResourceService";
 import logger from "../Logger";
 import { OtlpAttribute, resolveCloudResourceOf } from "./CloudMetricPayload";
+import { mergeCollectedReadings } from "./CloudStreamReadings";
 
 /*
  * A RESOURCE'S READINGS, FROM WHAT A CLOUD CONNECTION'S READ BROUGHT IN.
@@ -39,6 +46,13 @@ import { OtlpAttribute, resolveCloudResourceOf } from "./CloudMetricPayload";
  * reading one account each write their own. A resource the read brought no
  * reading for keeps the ones it had; once they are an hour old they are no
  * longer judged, and its severity is cleared.
+ *
+ * A resource the read did bring readings for gets them, and keeps of the
+ * ones it had each that is read less often than every read - an Azure key
+ * metric Azure Monitor keeps at five minutes, read every 15 - while its
+ * datapoint is younger than its hold (withHeldCloudReadings, #9740): its
+ * health and its page read it between its reads, rather than one read in
+ * three.
  */
 
 // Rows written in one statement at most.
@@ -120,6 +134,54 @@ export function getSplitSeriesSignature(
   return parts.sort().join("\n");
 }
 
+/*
+ * What tells apart the series of one AWS resource's count that add up to
+ * its whole: the values of the dimensions it is published on beyond the
+ * resource's own - a Cognito user pool's per app client (UserPoolClient), a
+ * SageMaker endpoint's per production variant (VariantName), a firewall's
+ * per zone and engine, an Athena workgroup's per query state and type. A
+ * count's series (a Sum, or a SampleCount) are parts of the resource's,
+ * read side by side (AwsCloudConnector keeps every series with the fewest
+ * dimensions): its reading is their sum. "" for a level's (an Average, a
+ * Maximum, a Minimum: each series is one part's level, which adds up to
+ * nothing), and for a metric no key metric is.
+ */
+export function getAwsAdditiveSeriesSignature(
+  metricName: string,
+  attributes: Array<OtlpAttribute>,
+): string {
+  const keyMetric: AwsKeyMetric | undefined =
+    getAwsKeyMetricOfStoredName(metricName)?.metric;
+
+  if (
+    !keyMetric ||
+    (keyMetric.statistic !== "Sum" && keyMetric.statistic !== "SampleCount")
+  ) {
+    return "";
+  }
+
+  const parts: Array<string> = [];
+
+  for (const attribute of attributes) {
+    if (!attribute || attribute.key !== "Dimensions") {
+      continue;
+    }
+
+    for (const rawValue of readArray(
+      readObject(readObject(attribute.value)["kvlistValue"])["values"],
+    )) {
+      const entry: JSONObject = readObject(rawValue);
+      const value: unknown = readObject(entry["value"])["stringValue"];
+
+      if (typeof entry["key"] === "string" && typeof value === "string") {
+        parts.push(`${entry["key"].toLowerCase()}=${value.toLowerCase()}`);
+      }
+    }
+  }
+
+  return parts.sort().join("\n");
+}
+
 function readDatapointValue(point: JSONObject): number | null {
   const raw: unknown =
     point["asDouble"] !== undefined ? point["asDouble"] : point["asInt"];
@@ -138,7 +200,10 @@ function readDatapointValue(point: JSONObject): number | null {
  * its type keeps, the value of its newest datapoint. A metric read split by
  * a dimension - a Service Bus or Event Hubs namespace's, one series per
  * queue and topic - reads the sum of its series at that newest time: the
- * namespace's whole count, the way its unsplit total read before. One read
+ * namespace's whole count, the way its unsplit total read before. So does
+ * an AWS count published only per part of its resource - a user pool's
+ * per app client, an endpoint's per variant (getAwsAdditiveSeriesSignature):
+ * the pool's sign-ins, the endpoint's invocations. One read
  * as its fullest part - an Ops Agent's disk use, a series per disk of a VM
  * - reads the highest of them (isCloudReadingTheHighestOfItsSeries). A
  * datapoint whose resource cannot be told is left out, as the ingest
@@ -295,9 +360,13 @@ export function collectCloudResourceReadings(
             const existing: CloudResourceReading | undefined =
               entry.readings[key];
             const summedKey: string = `${target.identifier}\n${key}`;
-            const series: string = getSplitSeriesSignature(
-              readAttributes(point["attributes"]),
-            );
+            const series: string =
+              provider === CloudProvider.AWS
+                ? getAwsAdditiveSeriesSignature(
+                    metricName,
+                    readAttributes(point["attributes"]),
+                  )
+                : getSplitSeriesSignature(readAttributes(point["attributes"]));
 
             /*
              * The newest datapoint wins; of two at one time, the first read -
@@ -385,11 +454,20 @@ export default class CloudResourceReadingsWriter {
     connectionId: ObjectID;
     payloads: Array<JSONObject>;
     writtenAt: Date;
+    /*
+     * What the connection's streams said of its resources' readings
+     * (CloudStreamReadings): beside the read's, the newer of each.
+     */
+    streamedReadings?: ReadonlyMap<string, CollectedCloudReadings> | undefined;
   }): Promise<CloudReadingsWriteResult> {
     let collected: Map<string, CollectedCloudReadings>;
 
     try {
       collected = collectCloudResourceReadings(data.payloads);
+
+      if (data.streamedReadings && data.streamedReadings.size > 0) {
+        collected = mergeCollectedReadings(collected, data.streamedReadings);
+      }
     } catch (error) {
       logger.error(
         `Cloud connection ${data.connectionId.toString()}: its resources' readings could not be read: ${
@@ -439,6 +517,8 @@ export default class CloudResourceReadingsWriter {
             cloudProvider: true,
             cloudResourceType: true,
             cloudProperties: true,
+            // What it held: a slow reading is kept between its reads.
+            cloudReadings: true,
           },
           skip: 0,
           limit: LIMIT_MAX,
@@ -456,16 +536,25 @@ export default class CloudResourceReadingsWriter {
             continue;
           }
 
+          const provider: string = row.cloudProvider || entry.provider;
+          const type: string = row.cloudResourceType || entry.resourceType;
+          const readings: CloudResourceReadings = withHeldCloudReadings({
+            provider,
+            type,
+            previous: readCloudResourceReadings(row.cloudReadings),
+            current: entry.readings,
+            now: data.writtenAt,
+          });
           const severity: CloudHealthSeverity | null = getCloudHealthSeverity({
-            provider: row.cloudProvider || entry.provider,
-            type: row.cloudResourceType || entry.resourceType,
-            readings: entry.readings,
+            provider,
+            type,
+            readings,
             properties: row.cloudProperties,
           });
 
           pending.push({
             id: row.id.toString(),
-            readings: JSON.stringify(entry.readings),
+            readings: JSON.stringify(readings),
             severity,
           });
 

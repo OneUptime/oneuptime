@@ -91,6 +91,8 @@ enum ProviderLogo {
   FluentBit = "fluent-bit",
   Fluentd = "fluentd",
   Kubernetes = "kubernetes",
+  // The operating system of the Android devices the Android agent reports as hosts.
+  Android = "android",
   NodeJs = "nodejs",
   Python = "python",
   Go = "go",
@@ -216,6 +218,7 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.FluentBit]: "Fluent Bit",
   [ProviderLogo.Fluentd]: "Fluentd",
   [ProviderLogo.Kubernetes]: "Kubernetes",
+  [ProviderLogo.Android]: "Android",
   [ProviderLogo.NodeJs]: "Node.js",
   [ProviderLogo.Python]: "Python",
   [ProviderLogo.Go]: "Go",

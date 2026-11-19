@@ -270,6 +270,15 @@ export enum CallOutcomeLine {
   RangOut = "rang-out",
   Busy = "busy",
   NotConnected = "not-connected",
+  /*
+   * Voicemail answered it (Twilio's answering machine detection, #6594),
+   * and OneUptime left a message once the greeting ended - or could not:
+   * the call had ended, or the greeting never did.
+   */
+  VoicemailMessageLeft = "voicemail-message-left",
+  VoicemailNoMessage = "voicemail-no-message",
+  // A fax machine answered it.
+  Fax = "fax",
 }
 
 export const CALL_ANSWERED_MESSAGE: string = "The call was answered.";
@@ -279,6 +288,51 @@ export const CALL_BUSY_MESSAGE: string =
   "The call was not answered: the line was busy, or the call was declined.";
 export const CALL_NOT_CONNECTED_MESSAGE: string =
   "The call could not be connected.";
+export const CALL_VOICEMAIL_MESSAGE_LEFT_MESSAGE: string =
+  "The call was not answered: it went to voicemail, and a message was left.";
+export const CALL_VOICEMAIL_NO_MESSAGE_MESSAGE: string =
+  "The call was not answered: it went to voicemail, and no message was left.";
+export const CALL_FAX_MESSAGE: string =
+  "The call was not answered: a fax machine picked up.";
+
+/*
+ * The outcomes of a call that a machine answered, not the person: what the
+ * record's feed adds after "Nitin did not answer the phone call"
+ * (getCallMachineAnsweredFeedSentence).
+ */
+export const MACHINE_ANSWERED_CALL_OUTCOMES: ReadonlyArray<CallOutcomeLine> = [
+  CallOutcomeLine.VoicemailMessageLeft,
+  CallOutcomeLine.VoicemailNoMessage,
+  CallOutcomeLine.Fax,
+];
+
+export function isMachineAnsweredCallOutcome(
+  outcome: CallOutcomeLine | null | undefined,
+): boolean {
+  return Boolean(outcome && MACHINE_ANSWERED_CALL_OUTCOMES.includes(outcome));
+}
+
+/*
+ * What the record's feed says after "Nitin did not answer the phone call
+ * from on-call policy PolicyX at Level 1 of 3." of a call a machine
+ * answered: whether it went to voicemail, and whether a message was left,
+ * so a responder knows the person may hear it. Null for any other outcome:
+ * a call that rang out or found the line busy is told of as before.
+ */
+export function getCallMachineAnsweredFeedSentence(
+  outcome: CallOutcomeLine | null | undefined,
+): string | null {
+  switch (outcome) {
+    case CallOutcomeLine.VoicemailMessageLeft:
+      return "It went to voicemail, and a message was left.";
+    case CallOutcomeLine.VoicemailNoMessage:
+      return "It went to voicemail, and no message was left.";
+    case CallOutcomeLine.Fax:
+      return "A fax machine picked up.";
+    default:
+      return null;
+  }
+}
 
 // "The call was answered and lasted 42 seconds." ("1 second").
 export function getCallAnsweredAndLastedMessage(seconds: number): string {
@@ -322,6 +376,9 @@ export function readCallOutcomeMessage(
     [CALL_RANG_OUT_MESSAGE, CallOutcomeLine.RangOut],
     [CALL_BUSY_MESSAGE, CallOutcomeLine.Busy],
     [CALL_NOT_CONNECTED_MESSAGE, CallOutcomeLine.NotConnected],
+    [CALL_VOICEMAIL_MESSAGE_LEFT_MESSAGE, CallOutcomeLine.VoicemailMessageLeft],
+    [CALL_VOICEMAIL_NO_MESSAGE_MESSAGE, CallOutcomeLine.VoicemailNoMessage],
+    [CALL_FAX_MESSAGE, CallOutcomeLine.Fax],
   ];
 
   for (const [words, outcome] of known) {

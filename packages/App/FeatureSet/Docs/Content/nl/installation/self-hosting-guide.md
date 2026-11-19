@@ -114,7 +114,7 @@ Klik op **E-mail instellen**. Het opent **Instellingen > Meldingen > E-mails**, 
 
 ### Kiezen wie zich kan registreren
 
-Iedereen die uw adres kan openen, kan zich registreren. Zodra uw team zijn accounts heeft, zet u **Registratie toestaan** uit onder **Instellingen > Authenticatie**: wie u in een project uitnodigt, kan toch meedoen. Om registraties open te laten, klikt u op **Aanmelden open laten**.
+Iedereen die uw adres kan openen, kan zich registreren. Zodra uw server e-mail kan versturen, opent een nieuw account eerst de link die OneUptime het stuurt voordat het kan inloggen, en hoort een adres dat al een account heeft dat per e-mail. Zodra uw team zijn accounts heeft, zet u **Registratie toestaan** uit onder **Instellingen > Authenticatie**: wie u in een project uitnodigt, kan toch meedoen. Om registraties open te laten, klikt u op **Aanmelden open laten**.
 
 **Het is gelukt als** de checklist Registraties als klaar markeert.
 

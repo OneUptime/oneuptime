@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import LessThan from "Common/Types/BaseDatabase/LessThan";
+import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Search from "Common/Types/BaseDatabase/Search";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
@@ -12,15 +16,18 @@ import {
   TraceAttributeFilters,
   TraceDurationFilter,
   TraceSearchChip,
+  applyTraceDurationToPayload,
   compileTraceAttributeFilters,
   getTraceChipFacetKey,
   getTraceChosenFacetKeys,
+  hasTraceDurationFilter,
   isTraceFieldOfFacet,
   parseTraceSearch,
   resolveTraceSearchChip,
   toSpanKind,
   toSpanStatusCode,
   toTraceDurationFilter,
+  toTraceDurationQueryValue,
 } from "../../FeatureSet/Dashboard/src/Components/Traces/TracesSearchCompile";
 
 /*
@@ -246,6 +253,91 @@ describe("typed and chipped known fields compile identically", () => {
   test("a duration naming no number yields no bound at all", () => {
     expect(toTraceDurationFilter(">")).toEqual({});
     expect(toTraceDurationFilter("fast")).toEqual({});
+    expect(toTraceDurationFilter(">=")).toEqual({});
+    expect(toTraceDurationFilter("<=soon")).toEqual({});
+  });
+
+  /*
+   * Regression (#9714): the grammar accepts `duration:>=5000`, but the
+   * parser read it as `>` followed by "=5000", which is no number, so the
+   * search bar showed a filter that applied nothing.
+   */
+  test("duration:>=N and duration:<=N read as inclusive bounds", () => {
+    const parsed: ParsedTraceSearch = parseTraceSearch("duration:>=5000");
+
+    expect(parsed.fieldFilters).toEqual({ durationUnixNano: [">=5000"] });
+    expect(toTraceDurationFilter(">=5000")).toEqual({
+      atLeastDurationNano: 5000 * 1_000_000,
+    });
+    expect(toTraceDurationFilter("<=200")).toEqual({
+      atMostDurationNano: 200 * 1_000_000,
+    });
+    expect(toTraceDurationFilter(" >= 2.5 ")).toEqual({
+      atLeastDurationNano: 2.5 * 1_000_000,
+    });
+  });
+
+  test("each bound becomes the span list's comparison for its column", () => {
+    const atLeast: unknown = toTraceDurationQueryValue(
+      toTraceDurationFilter(">=5000"),
+    );
+    expect(atLeast).toBeInstanceOf(GreaterThanOrEqual);
+    expect((atLeast as GreaterThanOrEqual<number>).value).toBe(
+      5000 * 1_000_000,
+    );
+
+    expect(
+      toTraceDurationQueryValue(toTraceDurationFilter(">500")),
+    ).toBeInstanceOf(GreaterThan);
+    expect(
+      toTraceDurationQueryValue(toTraceDurationFilter("<200")),
+    ).toBeInstanceOf(LessThan);
+    expect(
+      toTraceDurationQueryValue(toTraceDurationFilter("<=200")),
+    ).toBeInstanceOf(LessThanOrEqual);
+    expect(toTraceDurationQueryValue(toTraceDurationFilter("750"))).toBe(
+      750 * 1_000_000,
+    );
+    expect(toTraceDurationQueryValue({})).toBeUndefined();
+  });
+
+  test("an inclusive floor and ceiling together are one BETWEEN", () => {
+    const between: unknown = toTraceDurationQueryValue({
+      atLeastDurationNano: 1,
+      atMostDurationNano: 9,
+    });
+
+    expect(between).toBeInstanceOf(InBetween);
+    expect((between as InBetween<number>).startValue).toBe(1);
+    expect((between as InBetween<number>).endValue).toBe(9);
+  });
+
+  test("the payload carries each bound under its own key, and nothing else", () => {
+    const payload: JSONObject = { serviceIds: ["a"] };
+
+    applyTraceDurationToPayload(payload, toTraceDurationFilter(">=5000"));
+
+    expect(payload).toEqual({
+      serviceIds: ["a"],
+      atLeastDurationNano: 5000 * 1_000_000,
+    });
+
+    const strict: JSONObject = {};
+    applyTraceDurationToPayload(strict, toTraceDurationFilter("<200"));
+    expect(strict).toEqual({ maxDurationNano: 200 * 1_000_000 });
+
+    const none: JSONObject = {};
+    applyTraceDurationToPayload(none, toTraceDurationFilter("fast"));
+    expect(none).toEqual({});
+  });
+
+  test("hasTraceDurationFilter is true for any bound, and false for none", () => {
+    expect(hasTraceDurationFilter(null)).toBe(false);
+    expect(hasTraceDurationFilter(undefined)).toBe(false);
+    expect(hasTraceDurationFilter({})).toBe(false);
+    expect(hasTraceDurationFilter({ atLeastDurationNano: NaN })).toBe(false);
+    expect(hasTraceDurationFilter({ atLeastDurationNano: 0 })).toBe(true);
+    expect(hasTraceDurationFilter({ exactDurationNano: 5 })).toBe(true);
   });
 
   test("an unmapped known field still chips, through its column alias", () => {

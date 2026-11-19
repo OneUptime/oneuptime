@@ -341,6 +341,8 @@ The **`get_data_table_freshness`** tool tells an agent whether a table Data Obse
 
 The **`get_data_table_lineage`** tool tells an agent what a watched table is built from and what is built from it, before it changes the table or trusts its data: the tables upstream and downstream that are late, dropped, have open alerts or whose pipeline failed its last run, nearest first, with how many steps away each is, then the rest, the pipelines that load its sources from outside and the BI dashboards built on it. It goes three steps each way, or up to five with `depth`. Pass `table` as for `get_data_table_freshness`. It changes nothing.
 
+The **`oneuptime_move_in_list`** tool moves a row of an ordered list, such as an incident severity, an incident state or a monitor status, to another row's place, as dragging it in the dashboard does: the rows in between step one place, and it answers with each row whose number changed. Pass `resource` (such as `Incident Severity`), the row's `id` and `placeOfId`, the ID of the row whose place it takes. Writing a row's number with its `update_` tool places only that row, beside any row that already has that number.
+
 ## Querying Telemetry
 
 Logs, metrics, traces (spans), exceptions, monitor logs and the other kinds of telemetry come as read-only `list_` and `count_` tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` and their `count_` twins). Telemetry arrives through OpenTelemetry, so there are no create tools.
