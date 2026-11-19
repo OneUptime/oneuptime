@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "파이프라인 실행 위치",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "failWithStatusCode를 사용하면 중지 시 HTTP 412로 응답하므로 curl -f가 단계를 실패시키고 이후 단계는 실행되지 않습니다.",
   "Would Stop": "중지 대상",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt의 훅은 웹 요청이 아니라 웨어하우스에서 SQL을 실행하므로, dbt를 시작하는 단계에서 서킷 브레이커에 물어보세요."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt의 훅은 웹 요청이 아니라 웨어하우스에서 SQL을 실행하므로, dbt를 시작하는 단계에서 서킷 브레이커에 물어보세요.",
+  "Added as data store owner": "데이터 저장소 소유자로 추가됨",
+  "Added as pipeline owner": "파이프라인 소유자로 추가됨",
+  "Added as table owner": "테이블 소유자로 추가됨",
+  "Notify me about data stores I own.": "내가 소유한 데이터 저장소를 알려 줍니다.",
+  "Notify me about tables and pipelines I own.": "내가 소유한 테이블과 파이프라인을 알려 줍니다.",
+  "You are added as an owner of a data store.": "귀하가 데이터 저장소의 소유자로 추가되었습니다.",
+  "You are added as an owner of a pipeline.": "귀하가 파이프라인의 소유자로 추가되었습니다.",
+  "You are added as an owner of a table.": "귀하가 테이블의 소유자로 추가되었습니다."
 }

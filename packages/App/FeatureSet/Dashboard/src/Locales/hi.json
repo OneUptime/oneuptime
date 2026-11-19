@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "पाइपलाइन कहाँ चलती है",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "failWithStatusCode के साथ, रोकने पर जवाब HTTP 412 होता है, इसलिए curl -f चरण को विफल कर देता है और उसके बाद के चरण नहीं चलते।",
   "Would Stop": "रोकेगा",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt के हुक वेब अनुरोध नहीं, बल्कि आपके वेयरहाउस में SQL चलाते हैं, इसलिए सर्किट ब्रेकर से उस चरण में पूछें जो dbt शुरू करता है।"
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt के हुक वेब अनुरोध नहीं, बल्कि आपके वेयरहाउस में SQL चलाते हैं, इसलिए सर्किट ब्रेकर से उस चरण में पूछें जो dbt शुरू करता है।",
+  "Added as data store owner": "डेटा स्टोर स्वामी के रूप में जोड़ा गया",
+  "Added as pipeline owner": "पाइपलाइन स्वामी के रूप में जोड़ा गया",
+  "Added as table owner": "टेबल स्वामी के रूप में जोड़ा गया",
+  "Notify me about data stores I own.": "मेरे स्वामित्व वाले डेटा स्टोर के बारे में मुझे सूचित करें।",
+  "Notify me about tables and pipelines I own.": "मेरे स्वामित्व वाली टेबल और पाइपलाइन के बारे में मुझे सूचित करें।",
+  "You are added as an owner of a data store.": "आपको एक डेटा स्टोर के स्वामी के रूप में जोड़ा गया है।",
+  "You are added as an owner of a pipeline.": "आपको एक पाइपलाइन के स्वामी के रूप में जोड़ा गया है।",
+  "You are added as an owner of a table.": "आपको एक टेबल के स्वामी के रूप में जोड़ा गया है।"
 }

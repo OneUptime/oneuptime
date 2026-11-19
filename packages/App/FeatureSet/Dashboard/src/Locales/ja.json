@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "パイプラインの実行場所",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "failWithStatusCode を指定すると、停止時に HTTP 412 が返るため、curl -f でステップが失敗し、後続のステップは実行されません。",
   "Would Stop": "停止対象",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt のフックはウェブリクエストではなくウェアハウスで SQL を実行するため、dbt を開始するステップでサーキットブレーカーに問い合わせてください。"
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt のフックはウェブリクエストではなくウェアハウスで SQL を実行するため、dbt を開始するステップでサーキットブレーカーに問い合わせてください。",
+  "Added as data store owner": "データストアの所有者として追加されました",
+  "Added as pipeline owner": "パイプラインの所有者として追加されました",
+  "Added as table owner": "テーブルの所有者として追加されました",
+  "Notify me about data stores I own.": "自分が所有するデータストアについて通知します。",
+  "Notify me about tables and pipelines I own.": "自分が所有するテーブルとパイプラインについて通知します。",
+  "You are added as an owner of a data store.": "データストアの所有者として追加されました。",
+  "You are added as an owner of a pipeline.": "パイプラインの所有者として追加されました。",
+  "You are added as an owner of a table.": "テーブルの所有者として追加されました。"
 }

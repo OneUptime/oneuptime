@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "Где работает пайплайн",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "С failWithStatusCode остановка отвечает HTTP 412, поэтому curl -f завершает шаг ошибкой, и следующие шаги не запускаются.",
   "Would Stop": "Остановил бы",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "Хуки dbt выполняют SQL в вашем хранилище, а не веб-запросы, поэтому спрашивайте предохранитель в шаге, который запускает dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "Хуки dbt выполняют SQL в вашем хранилище, а не веб-запросы, поэтому спрашивайте предохранитель в шаге, который запускает dbt.",
+  "Added as data store owner": "Добавлен как владелец хранилища данных",
+  "Added as pipeline owner": "Добавлен как владелец пайплайна",
+  "Added as table owner": "Добавлен как владелец таблицы",
+  "Notify me about data stores I own.": "Уведомлять меня о хранилищах данных, владельцем которых я являюсь.",
+  "Notify me about tables and pipelines I own.": "Уведомлять меня о таблицах и пайплайнах, владельцем которых я являюсь.",
+  "You are added as an owner of a data store.": "Вы добавлены как владелец хранилища данных.",
+  "You are added as an owner of a pipeline.": "Вы добавлены как владелец пайплайна.",
+  "You are added as an owner of a table.": "Вы добавлены как владелец таблицы."
 }

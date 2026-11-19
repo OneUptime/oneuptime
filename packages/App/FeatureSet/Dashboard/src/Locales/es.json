@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "Dónde se ejecuta la canalización",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "Con failWithStatusCode, una detención responde HTTP 412, así que curl -f hace fallar el paso y los pasos siguientes no se ejecutan.",
   "Would Stop": "La detendría",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "Los hooks de dbt ejecutan SQL en tu almacén, no peticiones web, así que consulta el disyuntor en el paso que inicia dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "Los hooks de dbt ejecutan SQL en tu almacén, no peticiones web, así que consulta el disyuntor en el paso que inicia dbt.",
+  "Added as data store owner": "Añadido como propietario del almacén de datos",
+  "Added as pipeline owner": "Añadido como propietario de la canalización",
+  "Added as table owner": "Añadido como propietario de la tabla",
+  "Notify me about data stores I own.": "Avísame de los almacenes de datos de los que soy propietario.",
+  "Notify me about tables and pipelines I own.": "Avísame de las tablas y canalizaciones de las que soy propietario.",
+  "You are added as an owner of a data store.": "Se le ha añadido como propietario de un almacén de datos.",
+  "You are added as an owner of a pipeline.": "Se le ha añadido como propietario de una canalización.",
+  "You are added as an owner of a table.": "Se le ha añadido como propietario de una tabla."
 }

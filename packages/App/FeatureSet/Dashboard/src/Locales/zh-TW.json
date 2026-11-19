@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "管道執行的位置",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "使用 failWithStatusCode 時，停止會以 HTTP 412 回應，因此 curl -f 會讓該步驟失敗，後續步驟也不會執行。",
   "Would Stop": "將停止",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt 的掛鉤在你的資料倉儲中執行 SQL，而不是發出網路請求，所以請在啟動 dbt 的步驟中詢問斷路器。"
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt 的掛鉤在你的資料倉儲中執行 SQL，而不是發出網路請求，所以請在啟動 dbt 的步驟中詢問斷路器。",
+  "Added as data store owner": "已新增為資料儲存區擁有者",
+  "Added as pipeline owner": "已新增為管道擁有者",
+  "Added as table owner": "已新增為資料表擁有者",
+  "Notify me about data stores I own.": "通知我所擁有的資料儲存區的動態。",
+  "Notify me about tables and pipelines I own.": "通知我所擁有的資料表和管道的動態。",
+  "You are added as an owner of a data store.": "您已被新增為資料儲存區的擁有者。",
+  "You are added as an owner of a pipeline.": "您已被新增為管道的擁有者。",
+  "You are added as an owner of a table.": "您已被新增為資料表的擁有者。"
 }

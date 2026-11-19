@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "Var pipelinen körs",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "Med failWithStatusCode svarar ett stopp med HTTP 412, så curl -f får steget att misslyckas och stegen efter det körs inte.",
   "Would Stop": "Skulle stoppa",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt:s hooks kör SQL i ditt warehouse, inte webbförfrågningar, så fråga kretsbrytaren i steget som startar dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt:s hooks kör SQL i ditt warehouse, inte webbförfrågningar, så fråga kretsbrytaren i steget som startar dbt.",
+  "Added as data store owner": "Tillagd som ägare av datalager",
+  "Added as pipeline owner": "Tillagd som ägare av pipeline",
+  "Added as table owner": "Tillagd som ägare av tabell",
+  "Notify me about data stores I own.": "Meddela mig om datalager som jag äger.",
+  "Notify me about tables and pipelines I own.": "Meddela mig om tabeller och pipelines som jag äger.",
+  "You are added as an owner of a data store.": "Du har lagts till som ägare av ett datalager.",
+  "You are added as an owner of a pipeline.": "Du har lagts till som ägare av en pipeline.",
+  "You are added as an owner of a table.": "Du har lagts till som ägare av en tabell."
 }

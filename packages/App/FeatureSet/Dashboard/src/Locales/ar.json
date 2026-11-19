@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "مكان تشغيل مسار المعالجة",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "مع failWithStatusCode، يجيب الإيقاف بـ HTTP 412، فيُفشل curl -f الخطوة ولا تعمل الخطوات التي بعدها.",
   "Would Stop": "سيوقفه",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "تشغّل خطافات dbt استعلامات SQL في مستودع بياناتك، لا طلبات ويب، لذا اسأل قاطع الدائرة في الخطوة التي تبدأ dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "تشغّل خطافات dbt استعلامات SQL في مستودع بياناتك، لا طلبات ويب، لذا اسأل قاطع الدائرة في الخطوة التي تبدأ dbt.",
+  "Added as data store owner": "أُضفت كمالك لمخزن البيانات",
+  "Added as pipeline owner": "أُضفت كمالك لمسار المعالجة",
+  "Added as table owner": "أُضفت كمالك للجدول",
+  "Notify me about data stores I own.": "أخطرني بشأن مخازن البيانات التي أملكها.",
+  "Notify me about tables and pipelines I own.": "أخطرني بشأن الجداول ومسارات المعالجة التي أملكها.",
+  "You are added as an owner of a data store.": "تُضاف كأحد مالكي مخزن بيانات.",
+  "You are added as an owner of a pipeline.": "تُضاف كأحد مالكي مسار معالجة.",
+  "You are added as an owner of a table.": "تُضاف كأحد مالكي جدول."
 }

@@ -57466,5 +57466,13 @@
   "Where the pipeline runs": "Dove viene eseguita la pipeline",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "Con failWithStatusCode, un arresto risponde HTTP 412, quindi curl -f fa fallire il passaggio e i passaggi successivi non vengono eseguiti.",
   "Would Stop": "La fermerebbe",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "Gli hook di dbt eseguono SQL nel tuo warehouse, non richieste web, quindi interroga il circuit breaker nel passaggio che avvia dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "Gli hook di dbt eseguono SQL nel tuo warehouse, non richieste web, quindi interroga il circuit breaker nel passaggio che avvia dbt.",
+  "Added as data store owner": "Aggiunto come proprietario dell'archivio dati",
+  "Added as pipeline owner": "Aggiunto come proprietario della pipeline",
+  "Added as table owner": "Aggiunto come proprietario della tabella",
+  "Notify me about data stores I own.": "Avvisami degli archivi dati di cui sono proprietario.",
+  "Notify me about tables and pipelines I own.": "Avvisami delle tabelle e delle pipeline di cui sono proprietario.",
+  "You are added as an owner of a data store.": "Sei stato aggiunto come proprietario di un archivio dati.",
+  "You are added as an owner of a pipeline.": "Sei stato aggiunto come proprietario di una pipeline.",
+  "You are added as an owner of a table.": "Sei stato aggiunto come proprietario di una tabella."
 }
