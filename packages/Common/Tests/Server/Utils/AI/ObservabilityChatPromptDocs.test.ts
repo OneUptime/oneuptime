@@ -2,11 +2,14 @@ import { describe, expect, test } from "@jest/globals";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
 import {
+  buildDocsNotCoveredInLanguage,
   buildObservabilityChatSystemPrompt,
   DOCS_ANSWER_NOT_COVERED,
   ObservabilityChatSurface,
   ONEUPTIME_QUESTIONS_SECTION,
 } from "../../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
+import fs from "fs";
+import path from "path";
 import {
   FIND_DASHBOARD_PAGE_TOOL_NAME,
   READ_DOCS_TOOL_NAME,
@@ -102,6 +105,52 @@ describe("Ask AI's prompt: questions about OneUptime itself", () => {
     );
     expect(ONEUPTIME_QUESTIONS_SECTION).toContain(
       `A ${SEARCH_DOCS_TOOL_NAME} result is not evidence`,
+    );
+  });
+
+  /*
+   * Said in the reader's own words, "The docs do not cover this." is how
+   * an answer the docs failed is counted (ask_ai/docs_not_covered, #7064).
+   */
+  test("hands the model the words for it in the reader's language, and none for English", () => {
+    const prompt: (language?: string) => string = (
+      language?: string,
+    ): string => {
+      return buildObservabilityChatSystemPrompt({
+        currentTime: NOW,
+        permissionMode: AIChatPermissionMode.ReadOnly,
+        ...(language ? { language } : {}),
+      });
+    };
+
+    expect(prompt("de")).toContain(
+      'When you answer in German, say "The docs do not cover this." in these exact words: "Die Dokumentation deckt das nicht ab."',
+    );
+    expect(prompt("fa")).toContain("مستندات این موضوع را پوشش نمی‌دهد.");
+    expect(prompt("ar")).toContain("When you answer in Arabic");
+
+    for (const language of [undefined, "en", "xx"]) {
+      expect(prompt(language)).not.toContain("When you answer in");
+      expect(prompt(language)).toContain(ONEUPTIME_QUESTIONS_SECTION);
+    }
+
+    expect(buildDocsNotCoveredInLanguage("de")).toContain(
+      "Die Dokumentation deckt das nicht ab.",
+    );
+    expect(buildDocsNotCoveredInLanguage("en")).toBe("");
+  });
+
+  test("Ask AI's turn hands the prompt the reader's language", () => {
+    const runner: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../Server/Utils/AI/Chat/ChatAgentRunner.ts",
+      ),
+      "utf8",
+    );
+
+    expect(runner).toMatch(
+      /buildObservabilityChatSystemPrompt\(\{[^}]*language: request\.language,[^}]*\}\)/,
     );
   });
 

@@ -425,6 +425,26 @@ describe("a how-do-I answer", () => {
       ).reasons[0],
     ).toBe(`Said "${DOCS_ANSWER_NOT_COVERED}"`);
   });
+
+  // In the words the prompt hands the model for the reader's language (#7064).
+  test("a question the docs do not cover, asked in German or Persian, passes when the answer says so in that language", () => {
+    for (const [language, sentence] of [
+      ["de", "Die Dokumentation deckt das nicht ab."],
+      ["fa", "مستندات این موضوع را پوشش نمی‌دهد."],
+    ]) {
+      expect(
+        gradeHowDoITurn(
+          {
+            id: "how-do-i-51",
+            question: "Bitcoin?",
+            language: language!,
+            notCovered: true,
+          },
+          turnOf({ answer: `${sentence!} …` }),
+        ).passed,
+      ).toBe(true);
+    }
+  });
 });
 
 function runOf(passed: boolean, reasons: Array<string> = []): AskAiEvalRun {

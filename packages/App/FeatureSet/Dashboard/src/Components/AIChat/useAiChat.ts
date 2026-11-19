@@ -39,6 +39,10 @@ import {
   getSetupApprovedEvent,
   takeNewSetupProposal,
 } from "./AskAiSetupEvents";
+import {
+  getAnswerRatedEvent,
+  takeNewDocsNotCovered,
+} from "./AskAiAnswerEvents";
 import AIChatUnavailableReason, {
   getAIChatUnavailableReason,
 } from "./AIChatAvailability";
@@ -282,6 +286,17 @@ export function useAiChat(options: {
   const setupPlansSeenRef: React.MutableRefObject<Set<string>> = useRef<
     Set<string>
   >(new Set<string>());
+  /*
+   * The answers seen being written, and those already decided, for
+   * ask_ai/docs_not_covered (#7064): counted once, and only for an answer
+   * the person watched being written.
+   */
+  const answersBeingWrittenRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
+  const answersDecidedRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
   const messagesRef: React.MutableRefObject<Array<AIConversationMessage>> =
     useRef<Array<AIConversationMessage>>([]);
   messagesRef.current = messages;
@@ -501,6 +516,23 @@ export function useAiChat(options: {
 
           if (proposed) {
             ProductEvents.send(ProductEventName.AskAiSetupProposed, proposed);
+          }
+
+          /*
+           * An answer the docs did not cover (#7064), once: the docs pages
+           * it read, never the question.
+           */
+          const notCovered: JSONObject | null = takeNewDocsNotCovered({
+            message: message,
+            writing: answersBeingWrittenRef.current,
+            counted: answersDecidedRef.current,
+          });
+
+          if (notCovered) {
+            ProductEvents.send(
+              ProductEventName.AskAiDocsNotCovered,
+              notCovered,
+            );
           }
         }
 
@@ -1170,10 +1202,21 @@ export function useAiChat(options: {
           throw response;
         }
 
-        // How an answer was rated, or that its rating was cleared (issue #6830).
-        ProductEvents.send(ProductEventName.AskAiAnswerRated, {
-          rating: feedback ? String(feedback) : "cleared",
-        });
+        /*
+         * How an answer was rated, or that its rating was cleared (issue
+         * #6830), and what kind of answer it was (#7064).
+         */
+        ProductEvents.send(
+          ProductEventName.AskAiAnswerRated,
+          getAnswerRatedEvent({
+            feedback: feedback,
+            message: messagesRef.current.find(
+              (message: AIConversationMessage): boolean => {
+                return message.id?.toString() === messageId;
+              },
+            ),
+          }),
+        );
       } catch (err) {
         setError(API.getFriendlyMessage(err));
         if (activeConversationIdRef.current) {

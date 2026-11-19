@@ -13,6 +13,7 @@ import {
   parseWebsiteAddress,
 } from "../../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
 import { DOCS_ANSWER_NOT_COVERED } from "../../Chat/ObservabilityChatPrompt";
+import { isDocsNotCoveredAnswer } from "../../../../../Types/AI/AskAiAnswers";
 import {
   AskAiEvalPerson,
   AskAiEvalProject,
@@ -422,7 +423,8 @@ export function gradeHowDoITurn(
     return { passed: false, reasons: [`The turn failed: ${turn.error}`] };
   }
 
-  const saysNotCovered: boolean = turn.answer.includes(DOCS_ANSWER_NOT_COVERED);
+  // In any language Ask AI answers in (#7064), as its own events count it.
+  const saysNotCovered: boolean = isDocsNotCoveredAnswer(turn.answer);
 
   if (howDoICase.notCovered) {
     return saysNotCovered

@@ -16,6 +16,11 @@ import {
 } from "../../../../Types/AI/AskAiDocsTools";
 import { AskAiRecordKind } from "../../../../Types/AI/AskAiRecordPages";
 import {
+  DOCS_NOT_COVERED_SENTENCE,
+  getDocsNotCoveredSentence,
+} from "../../../../Types/AI/AskAiAnswers";
+import { SUPPORTED_DOCS_LANGUAGES } from "../../../../Types/Docs/DocsLanguage";
+import {
   getPageContextPage,
   PageContextPage,
   RECORD_KIND_OF_PAGE_CONTEXT,
@@ -152,7 +157,45 @@ export const ANSWER_STYLE_SECTION: string = `- Lead with the answer: its first s
  * project where it is done, and "the docs do not cover this" rather than
  * a guess. Questions about the project's data keep the rules above it.
  */
-export const DOCS_ANSWER_NOT_COVERED: string = "The docs do not cover this.";
+export const DOCS_ANSWER_NOT_COVERED: string = DOCS_NOT_COVERED_SENTENCE;
+
+// The languages' English names, as the prompt names the reader's.
+const LANGUAGE_NAMES: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(
+    SUPPORTED_DOCS_LANGUAGES.map(
+      (language: { code: string; englishName: string }): [string, string] => {
+        return [language.code, language.englishName];
+      },
+    ),
+  ),
+  ar: "Arabic",
+};
+
+/*
+ * "The docs do not cover this." in the reader's language (#7064): said in
+ * these exact words, an answer the docs failed is counted
+ * (ask_ai/docs_not_covered), so the docs gaps are found. Nothing for
+ * English, which the section says already, or a language without one.
+ */
+export function buildDocsNotCoveredInLanguage(
+  language: string | undefined,
+): string {
+  const name: string | undefined = language
+    ? LANGUAGE_NAMES[language]
+    : undefined;
+
+  if (!language || language === "en" || !name) {
+    return "";
+  }
+
+  const sentence: string = getDocsNotCoveredSentence(language);
+
+  if (sentence === DOCS_ANSWER_NOT_COVERED) {
+    return "";
+  }
+
+  return `\n- When you answer in ${name}, say "${DOCS_ANSWER_NOT_COVERED}" in these exact words: "${sentence}"`;
+}
 
 export const ONEUPTIME_QUESTIONS_SECTION: string = `## Questions about OneUptime itself
 
@@ -516,6 +559,8 @@ export function buildObservabilityChatSystemPrompt(data: {
   surface?: ObservabilityChatSurface | undefined;
   // Slack or Microsoft Teams, when the answer is read there.
   chatApp?: ObservabilityChatApp | undefined;
+  // The language the person reads the Dashboard in (de, fa, ...), when known.
+  language?: string | undefined;
 }): string {
   const surface: ObservabilityChatSurface = data.chatApp
     ? ObservabilityChatSurface.ChatApp
@@ -552,7 +597,7 @@ ${INFRASTRUCTURE_COMMANDS_GUIDANCE}
 - Platform questions have direct tools — answer them from those, not from telemetry: who is on call or how escalation works (get_on_call_status, query_on_call_policies); whether a page actually reached anyone (query_on_call_pages); who owns a resource (query_teams); what the runbook says (query_runbooks); what is public or has been announced to subscribers (query_status_pages, query_status_page_announcements); how much SLO error budget is left (query_slos); whether automation ran or failed (query_workflows); probe health (query_probes); early warnings that predate an incident (query_ai_insights); whether the project's setup is OK - what would stop the right people from being told, and the fix for each (get_setup_health).
 - When a question is genuinely ambiguous (which service? which time window? which environment?) and a wrong guess would waste queries or mislead, ask one focused clarifying question instead of running default-window queries. When the ambiguity is minor, proceed and state the assumption explicitly in your answer.
 
-${ONEUPTIME_QUESTIONS_SECTION}
+${ONEUPTIME_QUESTIONS_SECTION}${buildDocsNotCoveredInLanguage(data.language)}
 
 ${INCIDENTS_ALERTS_AND_MONITORS_SECTION}
 
