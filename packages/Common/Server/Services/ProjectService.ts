@@ -213,6 +213,7 @@ import IncomingRequestSecretService, {
   NO_INCOMING_REQUEST_SECRET_TO_REQUIRE_MESSAGE,
 } from "./IncomingRequestSecretService";
 import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngestionBudgetSettings";
+import TelemetryIngestAttributionSettings from "../Utils/Telemetry/TelemetryIngestAttributionSettings";
 import TelemetryIngestionBudgetValidation, {
   isTelemetryIngestionBudgetColumnTouched,
 } from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
@@ -1513,6 +1514,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
     if (isTelemetryIngestionBudgetColumnTouched(updateData)) {
       for (const projectId of updatedItemIds) {
         TelemetryIngestionBudgetSettings.clearProjectCache(projectId);
+        // Its team and label budgets are held to it (#6386).
+        TelemetryIngestAttributionSettings.forgetProject(projectId);
+      }
+    }
+
+    /*
+     * Its usage started or stopped being published as metrics (#6355): this
+     * server's telemetry worker reads it again at once, every other server's
+     * within TelemetryIngestAttributionSettings' minute.
+     */
+    if (updateData["publishTelemetryUsageMetrics"] !== undefined) {
+      for (const projectId of updatedItemIds) {
+        TelemetryIngestAttributionSettings.forgetProject(projectId);
       }
     }
 

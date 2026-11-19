@@ -56,6 +56,7 @@ import { PRODUCT_ANALYTICS_DERIVED_METRICS } from "../../Types/Rum/ProductAnalyt
 import { KUBERNETES_COST_METRICS } from "../../Types/Kubernetes/KubernetesCostMetrics";
 import { SESSION_REPLAY_SIGNAL_SESSIONS_METRIC } from "../../Types/Rum/SessionReplaySignalMetric";
 import TelemetryIngestionBudgetMetricTypeUtil from "../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
+import TelemetryUsageMetricTypeUtil from "../../Utils/Telemetry/TelemetryUsageMetricType";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -171,10 +172,16 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * (oneuptime.rum.session.replay.signal.sessions, issue #6518): the replay
  * ingest counts it from recordings the project already sent, under the
  * session replay prefix only it can write.
+ *
+ * And the telemetry usage readings (oneuptime.telemetry.usage.*, issue
+ * #6355): they report on the usage the project already sent, keyed to each
+ * service or resource, and only the usage sweep can write them
+ * (TelemetryUsageMetricTypeUtil.isReservedMetricName).
  */
 export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> = [
   ...SessionReplayBudgetMetricTypeUtil.getAll(),
   ...TelemetryIngestionBudgetMetricTypeUtil.getAll(),
+  ...TelemetryUsageMetricTypeUtil.getAll(),
   ...PRODUCT_ANALYTICS_DERIVED_METRICS,
   ...KUBERNETES_COST_METRICS,
   SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,

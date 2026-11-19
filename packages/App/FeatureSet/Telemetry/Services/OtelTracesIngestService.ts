@@ -112,6 +112,8 @@ import {
   EXCEPTION_SOURCE_ATTRIBUTE,
   ExceptionSource,
 } from "Common/Types/Telemetry/ExceptionSource";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { countOtlpSpans } from "Common/Utils/Telemetry/OtlpRecordCount";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -394,6 +396,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceSpans);
 
+      // Whose telemetry the batch is: null for most projects (#6355, #6386).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
       /*
        * OBI v0.14 records its own requests to a Node.js app's inspector,
        * made while injecting its agent, as that app's SERVER spans. Found
@@ -597,6 +603,23 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
+
+          /*
+           * Whose telemetry this resource is (TelemetryIngestAttribution,
+           * #6355, #6386): its share of the batch's usage, and its team's or
+           * label's budget. A used-up budget drops its records here.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId!,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: countOtlpSpans(resourceSpan),
+            }))
+          ) {
+            continue;
+          }
 
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
@@ -1200,6 +1223,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           logger.error(`Resource span data: ${JSON.stringify(resourceSpan)}`);
         }
       }
+
+      // The batch's attribution, counted in one round trip (#6355, #6386).
+      await attribution?.settle();
 
       await this.submitSpansBuffer(dbSpans, pendingAcks, true);
       await this.submitExceptionsBuffer(dbExceptions, pendingAcks, true);
