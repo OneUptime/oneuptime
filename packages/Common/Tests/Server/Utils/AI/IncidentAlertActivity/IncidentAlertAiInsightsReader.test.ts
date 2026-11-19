@@ -970,10 +970,7 @@ describe("fix pull requests, as their tasks stand", () => {
   }
 
   test.each([
-    [
-      AIRunStatus.Running,
-      { inProgress: 1, failed: 0, pullRequestsOpened: 0 },
-    ],
+    [AIRunStatus.Running, { inProgress: 1, failed: 0, pullRequestsOpened: 0 }],
     [
       AIRunStatus.Completed,
       { inProgress: 0, failed: 0, pullRequestsOpened: 1 },

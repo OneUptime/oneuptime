@@ -509,18 +509,20 @@ export default class IncidentAlertAiInsightsReader {
             },
           )
         : null,
-      fixTasks: readableTasks.map((task: AIRun): IncidentAlertAiFixTaskInput => {
-        // Asked in the window by its first turn; standing as its newest.
-        const latest: AIRun =
-          taskReplies.get(CodeTaskListRows.key(task.id!))?.newest || task;
+      fixTasks: readableTasks.map(
+        (task: AIRun): IncidentAlertAiFixTaskInput => {
+          // Asked in the window by its first turn; standing as its newest.
+          const latest: AIRun =
+            taskReplies.get(CodeTaskListRows.key(task.id!))?.newest || task;
 
-        return {
-          id: task.id!.toString(),
-          status: latest.status,
-          createdAt: new Date(task.createdAt!),
-          subjectId: subjectIdOfRun(task)!,
-        };
-      }),
+          return {
+            id: task.id!.toString(),
+            status: latest.status,
+            createdAt: new Date(task.createdAt!),
+            subjectId: subjectIdOfRun(task)!,
+          };
+        },
+      ),
       subjects,
       occurrenceIds: read.occurrenceIds,
       monitorNames,

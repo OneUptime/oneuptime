@@ -648,11 +648,9 @@ describe("AiActivityInsightsReader.read", () => {
 
       expect(insights.totals.failedCommands).toBe(2);
       expect(
-        insights.failedCommandList!.find(
-          (command: { id: string }): boolean => {
-            return command.id === JOB_FIX.toString();
-          },
-        )!.subject,
+        insights.failedCommandList!.find((command: { id: string }): boolean => {
+          return command.id === JOB_FIX.toString();
+        })!.subject,
       ).toMatchObject({ kind: "alert", id: ALERT_ID.toString() });
     });
 

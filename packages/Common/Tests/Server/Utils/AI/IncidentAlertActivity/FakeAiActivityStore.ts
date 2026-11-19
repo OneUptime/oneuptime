@@ -433,11 +433,11 @@ export function installFakeStore(
   jest
     .spyOn(AlertFeedService, "findBy")
     .mockImplementation(find("alertFeeds") as never);
-  jest
-    .spyOn(CodeTaskListRows, "readReplies")
-    .mockImplementation((async (data: { taskIds: Array<ObjectID> }) => {
-      return readTaskReplies(store.tables, data.taskIds);
-    }) as never);
+  jest.spyOn(CodeTaskListRows, "readReplies").mockImplementation((async (data: {
+    taskIds: Array<ObjectID>;
+  }) => {
+    return readTaskReplies(store.tables, data.taskIds);
+  }) as never);
   jest
     .spyOn(CodeTaskListRows, "readPullRequests")
     .mockImplementation((async (data: { taskIds: Array<ObjectID> }) => {

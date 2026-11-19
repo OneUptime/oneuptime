@@ -111,7 +111,10 @@ describe("AiActivityFailedCommands.getFailedJobIds", () => {
 describe("AiActivityFailedCommands.toFailedCommand", () => {
   test("what it ran, how it ended, why, when it ended, and what for", () => {
     expect(
-      AiActivityFailedCommands.toFailedCommand({ job: job(1), subject: SUBJECT }),
+      AiActivityFailedCommands.toFailedCommand({
+        job: job(1),
+        subject: SUBJECT,
+      }),
     ).toEqual({
       id: jobId(1).toString(),
       at: "2026-11-18T10:00:05.000Z",
@@ -195,7 +198,10 @@ describe("AiActivityFailedCommands.read", () => {
           throw new NotAuthorizedException("You may not read Runner jobs.");
         }
 
-        if (!canReadCommands && (args.select["payload"] || args.select["script"])) {
+        if (
+          !canReadCommands &&
+          (args.select["payload"] || args.select["script"])
+        ) {
           throw new NotAuthorizedException(
             "You do not have permissions to select on - payload.",
           );
@@ -259,9 +265,7 @@ describe("AiActivityFailedCommands.read", () => {
       expect(args.props).toBe(READER);
       expect(args.query["projectId"]).toBe(PROJECT_ID);
       expect(args.query["status"]).toBe(RunnerJobStatus.Failed);
-      expect(JSON.stringify(args.query["_id"])).toContain(
-        jobId(3).toString(),
-      );
+      expect(JSON.stringify(args.query["_id"])).toContain(jobId(3).toString());
     }
 
     const findArgs: {
