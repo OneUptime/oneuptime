@@ -1734,11 +1734,11 @@ which of its Services the URL names (checked against Kubecost 2.8.7, Kubecost
 /metrics; Kubecost 2's frontend and OpenCost's UI answer /metrics with their
 web page and proxy the engine's metrics at /model/metrics; Kubecost 3's
 frontend has them at no path at all, its finops agent's Service does. The
-chart cannot see which while it renders (Helm's lookup sees nothing under helm
-template, Argo CD or a dry run), and relabeling cannot weigh one Service
-against another. The agent reads the engine, so it finds the endpoint
-(agents/KubernetesCostAgent/EngineMetrics.ts) and serves it at
-/scrape-targets, which the job reads through http_sd.
+chart cannot see which while it renders (it reads no cluster objects: under
+helm template, Argo CD or a dry run there are none to read), and relabeling
+cannot weigh one Service against another. The agent reads the engine, so it
+finds the endpoint (agents/KubernetesCostAgent/EngineMetrics.ts) and serves
+it at /scrape-targets, which the job reads through http_sd.
 
 The bundled OpenCost is scraped where the chart put it, an explicit
 cost.metrics.endpoint as written, and with the agent off the engine URL's
