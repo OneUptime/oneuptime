@@ -1,0 +1,12 @@
+/*
+ * A tooltip is drawn on the page's body (TooltipLayer), so nothing its
+ * trigger is in can cut it off, and it follows its trigger as the page or
+ * a box around the trigger scrolls. Once that box has scrolled the trigger
+ * out of sight - a list scrolled sideways, a panel scrolled past - the
+ * tooltip goes too, rather than float over whatever is there now. Popper
+ * says when (its hide modifier), and Tippy marks the box.
+ */
+.tippy-box[data-reference-hidden] {
+  visibility: hidden;
+  pointer-events: none;
+}
