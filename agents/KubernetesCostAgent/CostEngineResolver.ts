@@ -13,11 +13,12 @@ import {
   EngineCandidate,
   EngineKind,
   discoverEngineCandidates,
+  engineKindOfService,
   serviceOfUrl,
 } from "./EngineDiscovery";
 import { MetricsEngine } from "./EngineMetrics";
 import { EnginePricing, readEnginePricing } from "./EnginePricing";
-import { ListServices, listServices } from "./KubernetesApi";
+import { KubernetesService, ListServices, listServices } from "./KubernetesApi";
 import Logger from "./Logger";
 import {
   CostEngineSource,
@@ -28,7 +29,9 @@ import {
 /*
  * WHICH COST ENGINE THE AGENT READS (#9633).
  *
- *   configured - cost.engine.url names an engine: read it, look for nothing.
+ *   configured - cost.engine.url names an engine: read it, look for nothing
+ *                else. The Service it names, if it names one, is read once
+ *                to say which engine it is.
  *   bundled    - the chart bundled OpenCost (cost.engine.url empty, the
  *                default) and the cluster may already run an engine of its
  *                own: read that one when it answers, so the cluster is priced
@@ -87,6 +90,9 @@ export class CostEngineResolver implements CostEngineSource {
   private lastDiscoveryAtMs: number = 0;
   private consecutiveFailures: number = 0;
   private lastNoneReasons: Array<string> = [];
+  // Which engine cost.engine.url's Service belongs to, once read.
+  private configuredKind: EngineKind | null = null;
+  private configuredKindRead: boolean = false;
 
   public constructor(options: CostEngineResolverOptions) {
     this.options = options;
@@ -243,12 +249,61 @@ export class CostEngineResolver implements CostEngineSource {
     return a.origin === b.origin && a.client.baseUrl === b.client.baseUrl;
   }
 
+  /*
+   * Which engine cost.engine.url names, by its Service's labels, when the
+   * URL names an in-cluster Service. The path the Allocation API answered on
+   * only says whether the URL serves the API under /model, which OpenCost's
+   * UI does as well as Kubecost's frontend, and which Kubecost's cost model
+   * does not: read alone, it called Kubecost's cost model OpenCost and
+   * OpenCost's UI Kubecost. One read of that one Service, nothing looked for
+   * beyond it; a read that fails is tried again at the next window, and the
+   * path decides meanwhile.
+   */
+  private async readConfiguredKind(): Promise<void> {
+    if (this.configuredKindRead) {
+      return;
+    }
+
+    const named: { name: string; namespace: string } | null = serviceOfUrl(
+      this.options.engineUrl,
+    );
+
+    if (!named) {
+      this.configuredKindRead = true;
+      return;
+    }
+
+    try {
+      const services: Array<KubernetesService> =
+        await this.options.listServices({
+          fieldSelector: `metadata.name=${named.name},metadata.namespace=${named.namespace}`,
+        });
+
+      const service: KubernetesService | undefined = services.find(
+        (candidate: KubernetesService): boolean => {
+          return (
+            candidate.metadata?.name === named.name &&
+            candidate.metadata?.namespace === named.namespace
+          );
+        },
+      );
+
+      this.configuredKind = service ? engineKindOfService(service) : null;
+      this.configuredKindRead = true;
+    } catch (err: unknown) {
+      Logger.debug("could not read which engine cost.engine.url names", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   // The engine to read the next window from, looking for one when it is time.
   private async resolve(): Promise<SelectedEngine> {
     if (this.options.mode === "configured") {
       if (!this.selected) {
         this.selected = this.ownEngine("configured");
       }
+      await this.readConfiguredKind();
       return this.selected;
     }
 
@@ -430,7 +485,9 @@ export class CostEngineResolver implements CostEngineSource {
     }
 
     const kind: EngineKind | null =
-      engine.candidate?.kind || engine.client.engineKind();
+      engine.candidate?.kind ||
+      (engine.origin === "configured" ? this.configuredKind : null) ||
+      engine.client.engineKind();
 
     return {
       engine: kind || "",

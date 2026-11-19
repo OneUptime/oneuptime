@@ -91,6 +91,44 @@ const isDnsLabel: (value: string) => boolean = (value: string): boolean => {
 };
 
 /*
+ * Which engine a Service belongs to, by the labels its chart gives it (or,
+ * for OpenCost's manifest, its name and selector), whatever port it serves:
+ * the engine a URL naming any of its Services reaches. Null for a Service no
+ * engine's chart creates this way.
+ */
+export const engineKindOfService: (
+  service: KubernetesService,
+) => EngineKind | null = (service: KubernetesService): EngineKind | null => {
+  const name: string = (service.metadata?.name || "").trim();
+  const labels: Record<string, string> | undefined = service.metadata?.labels;
+  const selector: Record<string, string> | undefined = service.spec?.selector;
+
+  const appLabels: Array<string> = [
+    labelOf(labels, APP_LABEL),
+    labelOf(labels, NAME_LABEL),
+  ];
+
+  if (
+    appLabels.some((value: string): boolean => {
+      return KUBECOST_APPS.includes(value);
+    })
+  ) {
+    return "Kubecost";
+  }
+
+  if (
+    appLabels.includes(OPENCOST_APP) ||
+    name === OPENCOST_APP ||
+    labelOf(selector, APP_LABEL) === OPENCOST_APP ||
+    labelOf(selector, NAME_LABEL) === OPENCOST_APP
+  ) {
+    return "OpenCost";
+  }
+
+  return null;
+};
+
+/*
  * The engine a Service is, and the URL its API answers at, or null for a
  * Service that is no cost engine's API (Kubecost's aggregator, an OpenCost
  * UI-only Service, a OneUptime agent's bundled engine).
@@ -103,7 +141,6 @@ export const toEngineCandidate: (
   const name: string = (service.metadata?.name || "").trim();
   const namespace: string = (service.metadata?.namespace || "").trim();
   const labels: Record<string, string> | undefined = service.metadata?.labels;
-  const selector: Record<string, string> | undefined = service.spec?.selector;
   const ports: Array<{ name?: string; port?: number }> = Array.isArray(
     service.spec?.ports,
   )
@@ -118,10 +155,7 @@ export const toEngineCandidate: (
     return null;
   }
 
-  const appLabels: Array<string> = [
-    labelOf(labels, APP_LABEL),
-    labelOf(labels, NAME_LABEL),
-  ];
+  const kind: EngineKind | null = engineKindOfService(service);
 
   const urlFor: (port: number) => string = (port: number): string => {
     return `http://${name}.${namespace}.svc:${port}`;
@@ -138,11 +172,7 @@ export const toEngineCandidate: (
     );
   };
 
-  if (
-    appLabels.some((value: string): boolean => {
-      return KUBECOST_APPS.includes(value);
-    })
-  ) {
+  if (kind === "Kubecost") {
     const frontend: { name?: string; port?: number } | undefined = ports.find(
       (port: { name?: string; port?: number }): boolean => {
         return (
@@ -157,13 +187,7 @@ export const toEngineCandidate: (
       : null;
   }
 
-  const isOpenCost: boolean =
-    appLabels.includes(OPENCOST_APP) ||
-    name === OPENCOST_APP ||
-    labelOf(selector, APP_LABEL) === OPENCOST_APP ||
-    labelOf(selector, NAME_LABEL) === OPENCOST_APP;
-
-  if (!isOpenCost) {
+  if (kind !== "OpenCost") {
     return null;
   }
 
