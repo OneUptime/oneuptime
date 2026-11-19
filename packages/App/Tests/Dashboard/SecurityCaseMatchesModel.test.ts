@@ -113,6 +113,7 @@ function rule(
     falsePositives: [],
     references: [],
     lookFor: [{ field: "targetResource", values: ["../../"] }],
+    responseSteps: [],
     ...overrides,
   };
 }
@@ -184,6 +185,9 @@ function detection(
     windowStart: "2026-11-17T19:22:00.000Z",
     windowEnd: "2026-11-17T19:29:00.000Z",
     events: [event()],
+    isKept: false,
+    keptPastRetentionCount: 0,
+    hiddenEventCount: 0,
     matchedEventCount: 12,
     outcomes: { [SecurityEventRequestOutcome.Rejected]: 12 },
     ...overrides,

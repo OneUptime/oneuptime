@@ -149,6 +149,7 @@ function opening(
       falsePositives: [],
       references: ["https://owasp.org/www-community/attacks/Path_Traversal"],
       lookFor: [{ field: "targetResource", values: ["../../"] }],
+      responseSteps: [],
     },
     threatIntelFeedId: "",
     securityEventConnectionId: "",
@@ -158,6 +159,9 @@ function opening(
     events: [0, 1, 2, 3, 4, 5, 6].map((index: number) => {
       return event(index);
     }),
+    isKept: false,
+    keptPastRetentionCount: 0,
+    hiddenEventCount: 0,
     matchedEventCount: 12,
     outcomes: { Rejected: 12 },
     ...overrides,
