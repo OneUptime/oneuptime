@@ -57001,7 +57001,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "For å se hvilke anbefalte nivåer i feilbudsjettpolicyen et SLO mangler, trenger du en rolle som kan lese SLO-feilbudsjettpolicynivåer.",
   "Show Whole Map": "Vis hele kartet",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "Viser flytene til tabellene, pipelinene, tjenestene og dashbordene med {{search}} i navnet, fra hele prosjektet ditt.",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "Innsamling av tabeller forsøkt den",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "Den anbefalte policyen kunne ikke legges til på dette SLO-et, så ingenting ble lagt til. Legger du den til på nytt, legges det til som mangler.",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "Serveren sa ikke hva som skjedde med dette SLO-et. Siden Feilbudsjettpolicy til SLO-et viser hva det mangler.",

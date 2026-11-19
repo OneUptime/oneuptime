@@ -57001,7 +57001,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "किसी SLO में सुझाई गई एरर बजट नीति के कौन-से स्तर नहीं हैं, यह देखने के लिए ऐसी भूमिका चाहिए जो SLO एरर बजट नीति स्तर पढ़ सके।",
   "Show Whole Map": "पूरा मानचित्र दिखाएं",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "आपके पूरे प्रोजेक्ट से उन टेबलों, पाइपलाइनों, सेवाओं और डैशबोर्ड के फ़्लो दिखाए जा रहे हैं जिनके नाम में {{search}} है।",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "टेबल स्वास्थ्य संग्रह के प्रयास का समय",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "इस SLO में सुझाई गई नीति नहीं जोड़ी जा सकी, इसलिए कुछ नहीं जोड़ा गया। इसे फिर से जोड़ने पर वह जुड़ता है जो नहीं है।",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "सर्वर ने नहीं बताया कि इस SLO का क्या हुआ। इसके एरर बजट नीति पेज पर दिखता है कि इसमें क्या नहीं है।",

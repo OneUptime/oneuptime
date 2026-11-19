@@ -57001,7 +57001,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "查看 SLO 缺少哪些推薦的錯誤預算策略級別需要能讀取 SLO 錯誤預算策略級別的角色。",
   "Show Whole Map": "顯示整張地圖",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "正在顯示整個專案中名稱包含 {{search}} 的資料表、管道、服務和儀表板的資料流。",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "資料表健康收集嘗試時間",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "無法為此 SLO 新增推薦的策略，因此未新增任何內容。再次新增會新增缺少的部分。",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "伺服器沒有說明此 SLO 的處理結果。其「錯誤預算策略」頁面會顯示它缺少的級別。",
