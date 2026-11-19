@@ -10,23 +10,33 @@ interface FilterButtonProps {
   onPress: () => void;
   // What the list holds, for the screen reader: "Filter incidents".
   noun: string;
+  /*
+   * A narrow row (a small phone, a cover screen): while filters are on, the
+   * word gives its room to the search, and the chips under the search say
+   * what the button holds. With no filter on it keeps its word, so it is
+   * found.
+   */
+  compact?: boolean;
   testID?: string;
 }
 
 /**
  * The button beside a list's search that opens its filters. It keeps its
- * word: an icon alone, named only for a screen reader, is found by guessing.
- * While filters are on it is tinted and carries their number, so a list
- * that hides rows always says so beside its search.
+ * word wherever there is room: an icon alone, named only for a screen
+ * reader, is found by guessing. While filters are on it is tinted and
+ * carries their number, so a list that hides rows always says so beside
+ * its search.
  */
 export default function FilterButton({
   activeCount,
   onPress,
   noun,
+  compact = false,
   testID = "list-filter-button",
 }: FilterButtonProps): React.JSX.Element {
   const { theme } = useTheme();
   const active: boolean = activeCount > 0;
+  const showWord: boolean = !(compact && active);
   const contentColor: string = active
     ? theme.colors.actionPrimary
     : theme.colors.textPrimary;
@@ -46,7 +56,7 @@ export default function FilterButton({
         return {
           minHeight: 48,
           minWidth: 48,
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: compact ? spacing.sm + 2 : spacing.md,
           borderRadius: radius.md,
           borderWidth: active ? 2 : 1,
           borderColor: active
@@ -65,15 +75,17 @@ export default function FilterButton({
       }}
     >
       <Ionicons name="options-outline" size={18} color={contentColor} />
-      <Text
-        style={{
-          ...typography.subhead,
-          fontWeight: "600",
-          color: contentColor,
-        }}
-      >
-        Filter
-      </Text>
+      {showWord ? (
+        <Text
+          style={{
+            ...typography.subhead,
+            fontWeight: "600",
+            color: contentColor,
+          }}
+        >
+          Filter
+        </Text>
+      ) : null}
       {active ? (
         <View
           testID={`${testID}-count`}

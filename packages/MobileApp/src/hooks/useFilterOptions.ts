@@ -28,14 +28,24 @@ import {
   type FilterSheetOptions,
 } from "../filters/filterOptions";
 import { rgbToHex } from "../utils/color";
+import { getCurrentUserIdSync } from "../auth/currentUser";
 
 // Options change rarely: read once a few minutes, not on every opening.
 const OPTIONS_STALE_TIME_MS: number = 5 * 60 * 1000;
 
 type StateRow = IncidentState | AlertState | MonitorStatusItem;
 
+// What toOptionList reads of a query: its rows and where it stands.
+interface OptionRowsQuery<T> {
+  data?: Array<T> | undefined;
+  isPending: boolean;
+  isError: boolean;
+  fetchStatus: string;
+  refetch: () => Promise<unknown>;
+}
+
 function toOptionList<T>(
-  query: UseQueryResult<Array<T>, Error> | null,
+  query: OptionRowsQuery<T> | null,
   toOption: (row: T) => FilterOption,
   emptyMessage?: string,
 ): FilterOptionList {
@@ -64,6 +74,7 @@ export function useFilterOptions(
   enabled: boolean,
 ): FilterSheetOptions {
   const projectId: string = useSelectedProjectId() ?? "";
+  const currentUserId: string | null = getCurrentUserIdSync();
   const facets: Array<string> = getFilterFacets(list);
   const isOn: (facet: string) => boolean = (facet: string): boolean => {
     return enabled && Boolean(projectId) && facets.includes(facet);
@@ -157,8 +168,25 @@ export function useFilterOptions(
   });
 
   return {
+    /*
+     * Everybody but the reader, who is You above them (and You takes in
+     * their teams too): the same person twice is a choice nobody can tell
+     * apart.
+     */
     people: toOptionList(
-      isOn("owner") ? people : null,
+      isOn("owner")
+        ? {
+            data: (people.data ?? []).filter(
+              (user: ProjectUserItem): boolean => {
+                return user.userId !== currentUserId;
+              },
+            ),
+            isPending: people.isPending,
+            isError: people.isError,
+            fetchStatus: people.fetchStatus,
+            refetch: people.refetch,
+          }
+        : null,
       (user: ProjectUserItem): FilterOption => {
         return {
           id: user.userId,
