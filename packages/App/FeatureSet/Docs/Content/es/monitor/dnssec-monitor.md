@@ -62,7 +62,7 @@ En **Zona (nombre de dominio)**, introduzca la zona que se va a validar, como `e
 
 ### Probarlo
 
-Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que encontró cada comprobación.
+Haga clic en **Probar monitor**: la prueba empieza en una sonda que comprueba el monitor. Si quiere, elija otra en **Seleccionar sonda** y luego haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que encontró cada comprobación. También dice qué criterio cumple la respuesta y qué vendría después: el estado, el incidente o la alerta, y a quién se avisa.
 
 ### Revisar los criterios
 

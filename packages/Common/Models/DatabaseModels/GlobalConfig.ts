@@ -3026,6 +3026,33 @@ export default class GlobalConfig extends GlobalConfigModel {
   public disableProductFeedback?: boolean = undefined;
 
   /*
+   * Whether the docs on this server keep "Was this page helpful?" answers
+   * for its master admins (issue #7209, Admin Dashboard > Feedback). Off by
+   * default: the docs page then posts nothing, and a no offers the GitHub
+   * issue, already written, as it always did. On, each answer - the page,
+   * its language, yes or no and for a no what went wrong - is kept in
+   * ProductFeedback on this server, and never sent anywhere else.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Keep Docs Feedback",
+    description:
+      "When enabled, the docs on this server keep each Was this page helpful? answer for its master admins: the page, yes or no, and what went wrong. Nothing is sent anywhere else.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public keepDocsFeedback?: boolean = undefined;
+
+  /*
    * The products switched off for every project on this server (issue
    * #6815, Types/Product/ServerProducts): { off: [product keys], changedAt,
    * changedByUserId }. Null until a master admin saves Admin Dashboard >

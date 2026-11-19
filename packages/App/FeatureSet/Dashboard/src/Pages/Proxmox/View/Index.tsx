@@ -78,10 +78,10 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
-import {
-  getResourceConnectionLabel,
-  getResourceHealthLabel,
-} from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import ResourceHealthPill, {
+  ResourceHealthDialogWords,
+} from "../../../Components/ResourcePart/ResourceHealthPill";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -138,7 +138,11 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
-import { toLabelTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  toLabelTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   formatCompactDuration,
   formatCompactDurationAgo,
@@ -149,6 +153,12 @@ import TableEmptyValue, {
 import EmptyValue, {
   EMPTY_VALUE_MARK,
 } from "Common/UI/Components/Detail/EmptyValue";
+
+// What a Degraded or Unhealthy cluster's pill opens (ResourceHealthPill).
+export const PROXMOX_HEALTH_WORDS: ResourceHealthDialogWords = {
+  degradedTitle: translationKey("Why this cluster is Degraded"),
+  unhealthyTitle: translationKey("Why this cluster is Unhealthy"),
+};
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -1422,34 +1432,6 @@ const ProxmoxClusterOverview: FunctionComponent<
     });
 
     /*
-     * Health is derived from the last inventory snapshot, which goes stale
-     * once the collector disconnects. Reporting "Healthy" next to a
-     * "Disconnected" badge is contradictory and misleading, so while the
-     * cluster is not connected the pill says "Health Unknown" (neutral grey),
-     * as a Ceph cluster's and a storage array's do, rather than the
-     * last-known live status.
-     */
-    const healthLabel: string = getResourceHealthLabel({
-      translator: translator,
-      health: clusterHealth,
-      isConnected: isConnected,
-    });
-    const healthBadgeClass: string = !isConnected
-      ? "bg-gray-50 text-gray-600 ring-gray-200"
-      : clusterHealth === "Healthy"
-        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-        : clusterHealth === "Degraded"
-          ? "bg-amber-50 text-amber-700 ring-amber-200"
-          : "bg-red-50 text-red-700 ring-red-200";
-    const healthDotClass: string = !isConnected
-      ? "bg-gray-400"
-      : clusterHealth === "Healthy"
-        ? "bg-emerald-500"
-        : clusterHealth === "Degraded"
-          ? "bg-amber-500"
-          : "bg-red-500";
-
-    /*
      * The count chips open their list: the Overview's one step to the
      * nodes, the guests and the storage (the side menu has the rest).
      */
@@ -1619,15 +1601,19 @@ const ProxmoxClusterOverview: FunctionComponent<
                       !inventoryError &&
                       (inventory?.rows.length ?? 0) > 0 && (
                         <span className="inline-flex items-center gap-1">
-                          <span
-                            data-testid="proxmox-hero-health"
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
-                            />
-                            {healthLabel}
-                          </span>
+                          {/*
+                           * Health Unknown in grey while the cluster is not
+                           * connected (its last inventory is stale);
+                           * Degraded or Unhealthy opens why
+                           * (ResourceHealthPill).
+                           */}
+                          <ResourceHealthPill
+                            health={clusterHealth}
+                            isConnected={isConnected}
+                            items={attentionItems}
+                            testId="proxmox-hero-health"
+                            words={PROXMOX_HEALTH_WORDS}
+                          />
                           <InfoTooltip
                             label="Cluster Health"
                             text={PROXMOX_METRIC_DESCRIPTIONS.clusterHealth}

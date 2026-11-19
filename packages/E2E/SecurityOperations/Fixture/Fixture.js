@@ -3777,6 +3777,11 @@ ModelAPI.getList = async (options) => {
   if (caseSetup.failsRead(modelName, skip)) {
     throw new HTTPErrorResponse(500, caseSetup.failedAnswer(), {});
   }
+  // ?casesetup=notes-sort-held: the sort's read of a case's notes waits for the spec.
+  const held = caseSetup.heldRead(modelName, options.sort);
+  if (held) {
+    await held;
+  }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
@@ -4462,6 +4467,9 @@ const caseSetup = createCaseSetupFixture({
   scenario: caseSetupScenario,
 });
 caseSetup.seed();
+fixture.releaseHeldNotesRead = () => {
+  caseSetup.releaseHeldRead();
+};
 fixture.ids.tasks = [ID.task(1), ID.task(2), ID.task(3)];
 fixture.ids.evidence = [ID.evidence(1), ID.evidence(2)];
 
@@ -4588,7 +4596,9 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/security-case/resource-security")) {
     return memberSecurity(options.data);
   }
-  const context = path.match(/\/security-case-context\/(story|impact)$/);
+  const context = path.match(
+    /\/security-case-context\/(story|impact|matches)$/,
+  );
   if (method === "POST" && context) {
     const answer = caseContext[context[1]](options.data);
     return answer.status === 200

@@ -909,6 +909,155 @@ describe.each(LANGUAGES)(
   },
 );
 
+/*
+ * What Inviting People says of the invitation and of removing someone, on
+ * the English page's lines (#7471, #7169, #6599): Accept an invitation's
+ * sign-up page that names the project and joins it, and the link handed
+ * out where no email went; Remove someone from the project's lock for a
+ * role that reaches only some teams, and the refusal it saves; and where
+ * to see whether an invitation email went out. AdministrationDocsFacts
+ * holds the English to the product; every translation says each on the
+ * English one's line, with the Dashboard's words for what it names.
+ */
+const INVITING_PEOPLE_LINES: ReadonlyArray<{
+  name: string;
+  line: number;
+  labels: ReadonlyArray<string>;
+}> = ((): ReadonlyArray<{
+  name: string;
+  line: number;
+  labels: ReadonlyArray<string>;
+}> => {
+  const lines: Array<string> = englishPage(INVITING_PEOPLE).split("\n");
+  const at: (start: string) => number = (start: string): number => {
+    return lines.findIndex((line: string): boolean => {
+      return line.startsWith(start);
+    });
+  };
+
+  return [
+    {
+      name: "the sign-up page an invitation opens, which joins",
+      line: at("**Create Your Account** opens the sign-up page"),
+      labels: ["Create Your Account"],
+    },
+    {
+      name: "the link handed out where no email went",
+      line: at(
+        "On a self-hosted server that cannot send email yet, nobody is emailed",
+      ),
+      labels: [],
+    },
+    {
+      name: "who accepts in one of two places",
+      line: at("Someone who signs in, or signs up another way"),
+      labels: [],
+    },
+    {
+      name: "Remove from Project locked for a role that reaches only some teams",
+      line: at("If your role removes people only from some teams"),
+      labels: ["Remove from Project"],
+    },
+    {
+      name: "the answer to Remove from Project's refusal",
+      line: at(
+        "Your role removes people only from some of the project's teams",
+      ),
+      labels: ["Teams"],
+    },
+    {
+      name: "where to see whether an invitation email went out",
+      line: at("To see whether it went out"),
+      labels: ["Email", "Notification Logs"],
+    },
+  ];
+})();
+
+describe("Inviting People's lines about the invitation and removing someone", () => {
+  it.each(INVITING_PEOPLE_LINES)(
+    "has $name on a line of its own",
+    (entry: { name: string; line: number; labels: ReadonlyArray<string> }) => {
+      const lines: Array<string> = englishPage(INVITING_PEOPLE).split("\n");
+
+      expect(entry.line).toBeGreaterThan(0);
+      expect(lines[entry.line - 1]).toBe(
+        entry.name === "the answer to Remove from Project's refusal"
+          ? ':::details "You can remove this person from only some of their teams, so you can\'t remove them from the project"'
+          : "",
+      );
+      expect(boldSpans(lines[entry.line] as string)).toEqual([...entry.labels]);
+    },
+  );
+});
+
+describe.each(LANGUAGES)(
+  "%s: Inviting People's lines about the invitation and removing someone",
+  (language: string) => {
+    const english: Array<string> = englishPage(INVITING_PEOPLE).split("\n");
+    const translated: Array<string> = readPage(language, INVITING_PEOPLE).split(
+      "\n",
+    );
+
+    it.each(INVITING_PEOPLE_LINES)(
+      "says $name on the English one's line, in its own words, naming the Dashboard's labels as this language draws them",
+      (entry: {
+        name: string;
+        line: number;
+        labels: ReadonlyArray<string>;
+      }) => {
+        const line: string = translated[entry.line] || "";
+
+        expect(line.trim()).not.toBe("");
+        expect(line).not.toBe(english[entry.line]);
+        expect([...boldSpans(line)].sort()).toEqual(
+          entry.labels
+            .map((label: string): string => {
+              return drawnActionLabel(language, label);
+            })
+            .sort(),
+        );
+      },
+    );
+
+    it("links where to see whether an invitation email went out to the email log, by this language's anchor", () => {
+      const entry: { line: number } = INVITING_PEOPLE_LINES.find(
+        (candidate: { name: string }): boolean => {
+          return (
+            candidate.name ===
+            "where to see whether an invitation email went out"
+          );
+        },
+      ) as { line: number };
+      const expected: string | null = expectedLink(
+        language,
+        INVITING_PEOPLE,
+        "/docs/emails/email-providers#see-what-the-server-sent",
+      );
+      const links: Array<string> = linksOnLine(
+        readPage(language, INVITING_PEOPLE),
+        entry.line,
+      );
+
+      if (expected !== null) {
+        expect(links).toEqual([expected]);
+        return;
+      }
+
+      expect(
+        links.map((link: string): string => {
+          return link.split("#")[0] as string;
+        }),
+      ).toEqual(["/docs/emails/email-providers"]);
+    });
+
+    it("quotes Remove from Project's refusal as the server words it", () => {
+      expect(translated).toContain(
+        ':::details "You can remove this person from only some of their teams, so you can\'t remove them from the project"',
+      );
+    });
+  },
+);
+
 describe.each(LANGUAGES)("%s", (language: string) => {
   describe.each(ADMINISTRATION_PAGES)(
     "$page",

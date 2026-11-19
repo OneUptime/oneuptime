@@ -6,6 +6,7 @@ import {
   getNextFailedRefreshes,
   readDataBiFailedRefreshes,
 } from "../../../../Types/DataObservability/DataBiRefreshAlert";
+import { DataBiLineageSummary } from "../../../../Types/DataObservability/DataBiLineage";
 import DataBiTool, {
   isDataBiTool,
 } from "../../../../Types/DataObservability/DataBiTool";
@@ -32,6 +33,7 @@ import {
   MAX_BI_DASHBOARDS,
   readBiTool,
 } from "./BiConnectors";
+import { summarizeBiLineage } from "./BiLineageSummary";
 import { matchBiTables } from "./BiMatching";
 import {
   BiUsageLedger,
@@ -64,6 +66,13 @@ import {
  * The tool also keeps the datasets whose latest finished refresh failed,
  * until a later one completes (DataBiRefreshAlert): what its alerts on
  * failed refreshes read, every five minutes (DataBiRefreshCheck).
+ *
+ * And it keeps why its dashboards are, or are not, on watched tables
+ * (BiLineageSummary): the tables they read and how many matched, the data
+ * sources behind them, and what keeps the rest off a table - so Tables
+ * Matched says why it is 0. Each dashboard keeps what its tool says it is
+ * built on (Power BI's datasets and their data sources), whether or not
+ * OneUptime watches them.
  */
 
 export interface DataBiSyncResult {
@@ -222,12 +231,23 @@ export default class DataBiSync {
       const catalog: ProjectCatalog = await OpenLineageIngest.readCatalog(
         connection.projectId,
       );
+      const dashboards: Array<BiDashboardRead> = read.dashboards.slice(
+        0,
+        MAX_BI_DASHBOARDS,
+      );
       const result: DataBiSyncResult = await DataBiSync.keep({
         connection,
         tool: tool as DataBiTool,
-        read: read.dashboards.slice(0, MAX_BI_DASHBOARDS),
+        read: dashboards,
         catalog,
         usage: read.usage,
+      });
+      // Why its dashboards are, or are not, on watched tables: what Tables Matched says next to it.
+      const lineageSummary: DataBiLineageSummary = summarizeBiLineage({
+        dashboards,
+        catalog,
+        sources: read.sources,
+        datasets: read.datasetFacts || null,
       });
       // Where the tool says (Power BI): the datasets failing now, by what was read.
       const failedRefreshes: Array<DataBiFailedRefresh> | null = read.datasets
@@ -247,6 +267,8 @@ export default class DataBiSync {
           lastSyncWarning: getWarningText(read.warnings, credentialsText),
           dashboardCount: result.dashboardCount,
           matchedTableCount: result.matchedTableCount,
+          // JSON, as failedRefreshes below: its type is too deep for an update's.
+          lineageSummary: lineageSummary as never,
           ...(read.usage
             ? {
                 usageReadFrom: new Date(read.usage.range.from),
@@ -347,6 +369,8 @@ export default class DataBiSync {
         owner: string | undefined;
         changedAt: Date | undefined;
         tableCount: number;
+        // What it is built on: written only where its tool says (Power BI).
+        upstream?: JSONObject | undefined;
       } = {
         name: dashboard.name,
         url: dashboard.url || undefined,
@@ -354,6 +378,9 @@ export default class DataBiSync {
         owner: dashboard.owner || undefined,
         changedAt: dashboard.changedAt || undefined,
         tableCount: dataAssets.length,
+        ...(dashboard.upstream
+          ? { upstream: dashboard.upstream as unknown as JSONObject }
+          : {}),
       };
       const known: DataDashboard | undefined = byExternalId.get(
         dashboard.externalId,
@@ -410,6 +437,10 @@ export default class DataBiSync {
       }
       model.tableCount = fields.tableCount;
       model.dataAssets = dataAssets;
+
+      if (fields.upstream) {
+        model.upstream = fields.upstream;
+      }
 
       if (usageFields) {
         model.usageLedger = usageFields.usageLedger;

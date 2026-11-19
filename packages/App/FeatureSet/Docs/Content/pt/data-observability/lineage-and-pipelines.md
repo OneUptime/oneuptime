@@ -23,6 +23,8 @@ Quando a origem nomeia colunas, a aba **Colunas** de uma tabela diz de onde vem 
 
 Na aba **Linhagem**, escolha uma coluna da tabela em **Seguir uma coluna** para destacar de onde ela vem e para onde vai: subindo o diagrama até as colunas a partir das quais é construída, descendo até as colunas construídas a partir dela, cada uma nomeada na sua tabela, mesmo onde foi renomeada no caminho. Uma seta cujas origens não nomeiam colunas pode levá-la além do que está destacado, e o diagrama avisa.
 
+Cada visão da linhagem - a guia **Linhagem** de uma tabela, a de um pipeline, a de um alerta, o **Mapa de linhagem** e o que o OneUptime AI e a API dizem - mostra só as tabelas e os pipelines que sua função pode ler. Uma função limitada ao que seus membros possuem, ou a alguns rótulos, nunca vê outra tabela ou outro pipeline: ele não é desenhado, não é nomeado em nenhuma seta e não é contado entre as tabelas mais distantes.
+
 ## Mapa de linhagem
 
 **Observabilidade de dados > Mapa de linhagem** desenha em uma só página cada fluxo de dados que o seu projeto viu, para que você veja quem usa quais dados e para onde eles vão sem precisar antes escolher uma tabela. Ele mostra:
@@ -30,13 +32,13 @@ Na aba **Linhagem**, escolha uma coluna da tabela em **Seguir uma coluna** para 
 - **Serviços** que escrevem e leem tabelas, a partir dos spans de banco de dados nos seus traces: um span que nomeia a sua tabela (`db.collection.name`, ou o mais antigo `db.sql.table`) e a sua instrução (`db.operation.name`), como um `INSERT` ou um `SELECT`.
 - **Tabelas** construídas a partir de outras tabelas, de todas as fontes acima.
 - **Pipelines** que carregam uma tabela a partir de dados que o OneUptime não monitora, como uma sincronização do Fivetran. Um pipeline que move dados entre duas tabelas monitoradas é nomeado na seta entre elas.
-- **Painéis** e sincronizações de reverse ETL nas suas ferramentas de BI, que leem as tabelas sobre as quais são construídos.
+- **Painéis** e sincronizações de reverse ETL nas suas ferramentas de BI, que leem as tabelas sobre as quais são construídos, mesmo quando nada mais toca essas tabelas. Um relatório do Power BI que não é construído sobre nenhuma tabela que o OneUptime monitora é desenhado com os conjuntos de dados que ele representa e as fontes de dados de onde eles carregam; quando nenhum dos painéis de uma ferramenta de BI está sobre uma tabela monitorada, o mapa diz por quê ([Linhagem do Power BI](#linhagem-do-power-bi)).
 
 Cada seta é algo que o OneUptime registrou, nunca um palpite. Os cartões ficam da esquerda para a direita conforme os dados fluem e mostram o seu estado como no diagrama de uma tabela: vermelho para uma tabela atrasada, um alerta aberto ou uma execução com falha. Uma seta fica verde-azulada onde os traces de um serviço a viram.
 
 Pesquise uma tabela, um serviço, um pipeline ou um painel para manter o que corresponde e tudo o que está acima e abaixo dele no fluxo. Selecione um cartão para destacar toda a linhagem dele, ver de onde ele vem e para onde vai, e abrir a página dele; **Mostrar só a linhagem dela** deixa só isso no mapa. As chaves ao lado da pesquisa deixam de fora serviços, pipelines ou painéis. **Lista** mostra cada seta como uma linha, e é o que um celular abre.
 
-Um mapa desenha até 400 cartões, começando pelos fluxos vistos mais recentemente; quando o seu projeto tem mais, o mapa avisa. O mesmo mapa é servido por `POST /api/data-observability/lineage/map`, para quem puder ler os ativos de dados, e as chaves de API deles.
+Um mapa desenha até 400 cartões, começando pelos fluxos vistos mais recentemente; quando o seu projeto tem mais, o mapa avisa. O mesmo mapa é servido por `POST /api/data-observability/lineage/map`, para quem puder ler os ativos de dados, e as chaves de API deles. Um mapa com mais diz quantas tabelas deixou de fora, cada uma contada uma vez, e pode começar em outro lugar: escolha um banco de dados para mapear os fluxos das tabelas dele e os cartões que eles ligam, ou digite um nome e escolha **Pesquisar em todo o projeto** para mapear os fluxos de cada tabela, pipeline, serviço e painel cujo nome o contém, por mais antigos que sejam. **Mostrar o mapa inteiro** volta. Para começar o mapa da API em outro lugar, envie `{ "dataStoreId": "<database ID>" }` ou `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -97,7 +99,7 @@ O impacto real de dados ruins é o painel que alguém abre. Em **Painéis de BI*
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, uma entidade de serviço autorizada a usar as APIs de administração somente leitura do Power BI. Relatórios e painéis são lidos, com suas visualizações e atualizações (abaixo) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, uma entidade de serviço autorizada a usar as APIs de administração somente leitura do Power BI, com as duas configurações de locatário sobre metadados de [Linhagem do Power BI](#linhagem-do-power-bi) ativadas para as tabelas por trás de cada relatório. Relatórios e painéis são lidos, com suas visualizações e atualizações (abaixo) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (ou `eu`) |
 
@@ -136,7 +138,9 @@ Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas ex
 - **Pipeline Run Unusually Long**: uma execução levou o dobro do tempo típico ou mais, verificado a cada cinco minutos enquanto ela roda, para que uma execução travada seja notada antes de terminar.
 - **Pipeline Is Late**: nenhuma execução começa há mais tempo do que o agendamento dele permite.
 
-A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela. Um número de tabelas não desenhadas, no cartão do pipeline ou no de uma tabela, desenha mais delas no lugar aqui também.
+A aba **Proprietários** de um pipeline nomeia as pessoas e equipes que cuidam dele, e os alertas dele vão para elas. A **Visão geral** e **Problemas** nomeiam os proprietários de um pipeline que falhou ou está atrasado, ou mostram **Sem proprietário**, com uma forma de adicionar um.
+
+A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela. Um número de tabelas não desenhadas, no cartão do pipeline ou no de uma tabela, desenha mais delas no lugar aqui também. Escolha uma das colunas que ele grava para segui-la através do pipeline: para cima até a coluna de cada tabela lida a partir da qual ela foi construída, e para baixo até cada tabela em que ele a grava.
 
 ## Um alerta por causa
 
@@ -147,9 +151,33 @@ Quando uma tabela fica desatualizada, todas as tabelas construídas a partir del
 
 O cartão **Dados** da causa lista o **Impacto a jusante** dela: cada alerta que ela causou. O cartão de um alerta de tabela também mostra os serviços que escrevem na tabela, com as escritas que falharam, e as implantações e outras mudanças deles no dia anterior ao alerta.
 
-Abaixo do cartão **Dados**, a página de um alerta desenha a **Linhagem** dele: em torno da tabela dele, como a aba **Linhagem** da tabela a desenha, ou em torno do pipeline dele. O caminho para cima até o alerta que o causou e para baixo até cada alerta que ele causou fica destacado - a tabela ou o pipeline da causa marcado como **Causa**, os de cada alerta causado como **Consequência** - e o resto esmaece, para que quem o abre veja em que ponto da cadeia o problema começou. Quando a causa está em um pipeline desenhado sobre uma seta, a seta mostra **Causa** abaixo do nome do pipeline. Quando a causa é sobre um banco de dados inteiro, ou está mais acima do que o diagrama alcança, o cartão diz isso em palavras. Um alerta de uma verificação sobre uma única coluna, como uma verificação Porcentagem de nulos em `customer_id`, abre com essa coluna seguida ao lado desses caminhos, como na aba **Linhagem** da tabela: de onde ela vem e para onde vai, nomeada em cada tabela. Escolha ali outra coluna da tabela, ou limpe a seleção para ver só os caminhos. **Explorar linhagem** abre a aba **Linhagem** da tabela, ou a página do pipeline.
+Abaixo do cartão **Dados**, a página de um alerta desenha a **Linhagem** dele: em torno da tabela dele, como a aba **Linhagem** da tabela a desenha, ou em torno do pipeline dele. O caminho para cima até o alerta que o causou e para baixo até cada alerta que ele causou fica destacado - a tabela ou o pipeline da causa marcado como **Causa**, os de cada alerta causado como **Consequência** - e o resto esmaece, para que quem o abre veja em que ponto da cadeia o problema começou. Quando a causa está em um pipeline desenhado sobre uma seta, a seta mostra **Causa** abaixo do nome do pipeline. Quando a causa é sobre um banco de dados inteiro, ou está mais acima do que o diagrama alcança, o cartão diz isso em palavras. Um alerta de uma verificação sobre uma única coluna, como uma verificação Porcentagem de nulos em `customer_id`, abre com essa coluna seguida ao lado desses caminhos, como na aba **Linhagem** da tabela: de onde ela vem e para onde vai, nomeada em cada tabela. Escolha ali outra coluna da tabela, ou limpe a seleção para ver só os caminhos. **Explorar linhagem** abre a aba **Linhagem** da tabela, ou a página do pipeline. Um alerta causado por ele em um pipeline desenhado em uma seta diz **Consequência** ali da mesma forma, e o seletor de colunas oferece primeiro a coluna da verificação e depois as outras colunas da tabela na ordem dela.
 
 Quem não pode ver o alerta que o causou não recebe nem o cartão **Dados** nem a linhagem, e um alerta causado que essa pessoa não pode ver não é destacado nem contado.
+
+## Linhagem do Power BI
+
+**Tabelas correspondentes**, em cada ferramenta de BI, diz sobre quantas tabelas monitoradas os painéis dela são construídos e, abaixo, a primeira coisa que impede as demais de corresponderem. **See Why** lista o que a última leitura encontrou e o que fazer: bancos de dados que os seus painéis leem e que não estão conectados ao OneUptime, cada um a um **Connect Database** de distância, com o tipo e o endereço já preenchidos; tabelas que um banco de dados conectado não monitora, que podem ter ficado de fora da verificação dele ou ainda não ter sido coletadas; e fontes que não são um banco de dados, como arquivos e páginas da web. No Power BI, também nomeia uma configuração de locatário desativada, conjuntos de dados que leem de fluxos de dados e conjuntos de dados que o Power BI não consegue descrever. **Baseado em**, em cada painel, diz os conjuntos de dados que ele representa e de onde vêm os dados deles, como o Power BI diz.
+
+O OneUptime lê cada conjunto de dados do Power BI a partir da verificação de metadados do Power BI, com o Power Query por trás de cada uma das tabelas dele:
+
+- **O banco de dados que um conector nomeia**: SQL Server e Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena e Microsoft Dataverse, e o esquema e a tabela que a navegação dele escolhe.
+- **O SQL que uma consulta executa**: a opção **SQL statement** de um conector, `Value.NativeQuery` e `Odbc.Query`, e as tabelas depois de cada `FROM` e `JOIN`.
+- **Parâmetros e consultas compartilhadas**: um parâmetro vale onde quer que seja nomeado, e uma tabela que lê uma consulta de preparo lê o que essa consulta lê.
+- **Modelos compostos** representam as tabelas dos conjuntos de dados sobre os quais são construídos.
+
+Um relatório representa as tabelas do seu conjunto de dados, e um painel as dos conjuntos de dados dos seus blocos. De onde vêm os dados - o servidor e o nome de um banco de dados, o caminho de um arquivo, um endereço da web - vem das fontes de dados da verificação, que não precisam de nada além do acesso às APIs de administração acima.
+
+O Power BI só retorna as tabelas de um conjunto de dados depois que um administrador do Fabric ativa duas configurações de locatário no portal de administração, em **Tenant settings > Admin API settings**, para o grupo de segurança que contém a entidade de serviço:
+
+- **Enhance admin APIs responses with detailed metadata**: as tabelas de cada conjunto de dados.
+- **Enhance admin APIs responses with DAX and mashup expressions**: as consultas que as carregam, que dizem quais tabelas de banco de dados elas leem.
+
+O Power BI então descreve um conjunto de dados depois que ele é atualizado ou republicado; um que só usa DirectQuery, depois que alguém abre um relatório sobre ele. Ele nunca descreve conjuntos de dados em tempo real, conjuntos de dados com conexão dinâmica ao Analysis Services, pastas de trabalho do Excel nem conjuntos de dados com mais de 1 GB em capacidade compartilhada. Um conjunto de dados que lê de um fluxo de dados é lido até o fluxo de dados: o OneUptime ainda não lê quais tabelas um fluxo de dados carrega.
+
+Cada tabela é associada a uma tabela monitorada pelo nome, pelo esquema e pelo banco de dados, e um servidor pelo nome curto ou pelo nome completo. Uma tabela de outro mecanismo nunca é associada, nem uma de outro banco de dados: um relatório sobre `Sales.dbo.Orders` não é ligado a `Archive.dbo.Orders` porque só `Archive` é monitorado.
+
+As [atualizações](#visualizações-e-atualizações-no-power-bi) são lidas à parte das tabelas: um aviso de que as atualizações de alguns conjuntos de dados não puderam ser lidas não diz nada sobre as tabelas deles.
 
 ## Antes de uma alteração ser mesclada
 

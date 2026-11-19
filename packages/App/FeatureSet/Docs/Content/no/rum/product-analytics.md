@@ -13,7 +13,7 @@ Produktanalyse teller menneskene som bruker en RUM-applikasjon, hvordan øktene 
 
 ## Hvordan personer telles
 
-Sidemenyen til en applikasjon har en seksjon **Produktanalyse**: **Brukere**, **Økter**, **Hendelser**, **Trakter**, **Brukerlojalitet**, **Brukerflyter** og **Analyseinnstillinger**. **Brukere** og **Økter** teller øktene som Øktavspilling tar opp, så de begynner når applikasjonens opptaker gjør det, og en økt som avspillingspolicyen ikke tar opp, telles ikke. Hver økt teller for én person, eller for ingen:
+Sidemenyen til en applikasjon har en seksjon **Produktanalyse**: **Brukere**, **Økter**, **Hendelser**, **Trakter**, **Brukerlojalitet**, **Brukerflyter** og **Analyseinnstillinger**. **Brukere** og **Økter** teller øktene som Øktavspilling tar opp, så de begynner når applikasjonens opptaker gjør det, og en økt som avspillingspolicyen ikke tar opp, telles ikke. På en installasjon som er oppgradert fra en versjon uten Produktanalyse, kopierer oppgraderingen inn øktene Øktavspilling fortsatt lagret, så de begynner med det eldste opptaket som er lagret. Hver økt teller for én person, eller for ingen:
 
 ```mermaid title="Hvem en økt teller for"
 flowchart TB
@@ -42,12 +42,12 @@ Dager telles i din egen tidssone.
 | **Nye brukere** | Aktive brukere som hadde sitt første besøk i tidsrommet. |
 | **Tilbakevendende brukere** | Aktive brukere som hadde kommet før tidsrommet begynte. |
 | **Påloggede brukere** | Aktive brukere som appen din logget på med `identify()`, og andelen deres av alle aktive brukere. |
-| **Brukere totalt** | Alle applikasjonen har sett de siste 13 månedene. |
+| **Brukere totalt** | Alle applikasjonen har sett i månedene tallene lagres, 13 som standard. |
 | **Inaktive brukere** | Personer som kom før, men ikke de siste 30 dagene, eller de 7, 14, 60 eller 90 dagene du velger. |
 
 De tre første viser også hvordan de endret seg fra perioden før. Under flisene tegner **Aktive brukere** for hver dag personene som kom den dagen, dem som kom i de 7 dagene fram til den, og dem som kom i de 30 dagene fram til den, og **Nye og tilbakevendende brukere** deler hver dags personer i to.
 
-**Personer** viser alle flisene teller, én rad per person, de sist sette først, og filteret viser én flis' personer, de anonyme besøkende eller alle. Åpne en person for første og siste besøk og hver av vedkommendes økter fra de siste 13 månedene, med **Se** på hver økt der opptaket fortsatt er lagret.
+**Personer** viser alle flisene teller, én rad per person, de sist sette først, og filteret viser én flis' personer, de anonyme besøkende eller alle. Åpne en person for første og siste besøk og hver av vedkommendes økter fra månedene tallene lagres, med **Se** på hver økt der opptaket fortsatt er lagret.
 
 ## Økter
 
@@ -55,13 +55,13 @@ De tre første viser også hvordan de endret seg fra perioden før. Under flisen
 
 - **Økter etter enhet** tegner hver dags økter fra datamaskiner, telefoner og nettbrett. En mobilapps økt på en skjerm der den korte siden er 600 punkter eller mer, teller som et nettbretts.
 - **Øktlengde** deler de avsluttede øktene inn etter hvor lenge de varte, fra under 10 sekunder til over 30 minutter. En økt som fortsatt tas opp, har ingen lengde ennå.
-- **Oppdeling** rangerer brukere og økter etter enhetstype, nettleser, operativsystem, land, appversjon, inngangsside eller side, flest brukere først.
+- **Oppdeling** rangerer brukere og økter etter enhetstype, nettleser, operativsystem, land, appversjon, inngangsside eller side, flest brukere først. Versjonen til en webapp er den siden gir opptakerens `appVersion`-alternativ; en mobilapp rapporterer sin egen.
 
 ## Send hendelser og målinger
 
-Hendelser sendes så lenge **Send produktanalysehendelser** er slått på, på applikasjonens side **Analyseinnstillinger**. Den er slått på fra start for en ny applikasjon, og av for en applikasjon som ble opprettet før den fantes, så slå den på der. Øktavspilling må også være slått på for applikasjonen, siden det er opptakeren dens som sender hendelsene; React Native-opptakeren sender ingen ennå.
+Hendelser sendes så lenge **Send produktanalysehendelser** er slått på, på applikasjonens side **Analyseinnstillinger**. Den er slått på fra start for en ny applikasjon, og av for en applikasjon som ble opprettet før den fantes, så slå den på der. Øktavspilling må også være slått på for applikasjonen, siden det er opptakeren dens som sender hendelsene, fra en nettside og fra en React Native-app.
 
-Hver økt nettleseropptakeren kjører i, sender selv starten sin og hver side den viser, inkludert rutebytter i en enkeltsideapp, enten avspillingens utvalg og policy tar opp økten eller ikke. Dine egne hendelser og tall kommer fra koden på siden din:
+Hver økt nettleseropptakeren kjører i, sender selv starten sin og hver side den viser, inkludert rutebytter i en enkeltsideapp, enten avspillingens utvalg og policy tar opp økten eller ikke. En React Native-app sender starten på økten sin og hver skjerm den gir `setRoute()`, som en sidevisning. Dine egne hendelser og tall kommer fra koden på siden eller i appen din:
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Før opptakeren er lastet, legger du de samme kallene i `window.OneUptimeReplayQueue` som `["track", name, properties]` og `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Hver økt, tatt opp eller ikke.** Avspillingens utvalg og opplastingspolicyen avgjør hvilke økter som tas opp, ikke hvilke som telles. Ingenting sendes under Do Not Track eller Global Privacy Control, og ingenting tas vare på fra en opprinnelse applikasjonen ikke tillater. Når policyen krever samtykke, venter hendelsene på `grantConsent()`, høyst 500 av dem, og `revokeConsent()` forkaster dem.
-- **Maskert som opptaket.** Under _Mask all text_ maskeres verdiene til egenskaper og attributter før de forlater siden, så en oppdeling etter en av dem viser plassholdere, ikke verdiene dine; hendelsesnavn, egenskapsnøkler og verdiene til målinger sendes slik de er skrevet. En verdi du må kunne lese i den modusen, hører hjemme i en økttagg (`setTags()`), som aldri maskeres, så hold personopplysninger utenfor den. Tagger vises på økten og i et søk med `tag:key=value` i øktlisten, ikke i oppdelingene på disse sidene. En side sendes som stien sin, uten spørring og fragment (en hash-rute, `#/orders`, er en del av stien), og hvert segment som ser ut som en identifikator (UUID-er, e-postadresser, lange tallrekker, lange ugjennomsiktige tokener), erstattes med `[redacted]`, som i hver adresse Session Replay beholder; en egenskap, et attributt eller en brukeregenskap med en adresse som verdi renses på samme måte. OneUptime renser dem igjen når hendelsene kommer inn, så hendelsene din egen kode sender med inntaksnøkkelen, følger samme regel.
-- **I små puljer**, hvert 5. sekund og når fanen skjules. En hendelse som når OneUptime mer enn 3 dager etter at den skjedde, forkastes, og et prosjekt kan sende 60 000 hendelser og målepunkter i minuttet, alle applikasjonene til sammen; utover det venter opptakeren og sender dem på nytt.
+- **Maskert som opptaket.** Under _Mask all text_ maskeres verdiene til egenskaper og attributter før de forlater siden, så en oppdeling etter en av dem viser plassholdere, ikke verdiene dine; hendelsesnavn, egenskapsnøkler og verdiene til målinger sendes slik de er skrevet. En verdi du må kunne lese i den modusen, hører hjemme i en økttagg (`setTags()`), som aldri maskeres, så hold personopplysninger utenfor den. Tagger vises på økten og i et søk med `tag:key=value` i øktlisten, ikke i oppdelingene på disse sidene. En React Native-apps verdier maskeres alltid, siden SDK-en dens maskerer all tekst. En side sendes som stien sin, uten spørring og fragment (en hash-rute, `#/orders`, er en del av stien), og hvert segment som ser ut som en identifikator (UUID-er, e-postadresser, lange tallrekker, lange ugjennomsiktige tokener), erstattes med `[redacted]`, som i hver adresse Session Replay beholder; en egenskap, et attributt eller en brukeregenskap med en adresse som verdi renses på samme måte. OneUptime renser dem igjen når hendelsene kommer inn, så hendelsene din egen kode sender med inntaksnøkkelen, følger samme regel.
+- **I små puljer**, hvert 5. sekund og når fanen skjules eller appen går i bakgrunnen. En hendelse som når OneUptime mer enn 3 dager etter at den skjedde, forkastes, og et prosjekt kan sende 60 000 hendelser og målepunkter i minuttet, alle applikasjonene til sammen; utover det venter opptakeren og sender dem på nytt.
 
 `metric()` sender ingenting mens hendelsene er slått av, og `getDiagnostics().productAnalytics` sier om de er slått på (se [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinge
 
 Disse tre faktureres ikke, og `metric()` avviser et navn som begynner med `oneuptime.`, så ingenting siden din sender, kan utgi seg for dem. `metric()`-punktene dine lagres og faktureres som applikasjonens andre målinger.
 
-En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgetene **Trakt** og **Brukerlojalitet**, i widgetkatalogens gruppe **Produktanalyse**, viser en i dashbordets tidsintervall, og **Åpne i Trakter** eller **Åpne i Brukerlojalitet** åpner den på siden dens (se [Dashbord-widgets](/docs/dashboards/widgets#produktanalyse)).
+En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgetene **Trakt** og **Brukerlojalitet**, i widgetkatalogens gruppe **Produktanalyse**, viser en i dashbordets tidsintervall, og **Åpne i Trakter** eller **Åpne i Brukerlojalitet** åpner den på siden dens (se [Dashbord-widgets](/docs/dashboards/widgets#produktanalyse)). Et offentlig dashbord viser bare titlene deres, aldri tallene: de teller applikasjonens sluttbrukere.
 
 ## Personvern og oppbevaring
 
-- **13 måneder.** En måneds tall fjernes den første dagen i den 13. måneden etter, så de siste 12 hele månedene alltid er der, uansett opptakenes egen oppbevaring (7 dager som standard). Hendelser lagres på samme måte.
+- **13 måneder.** En måneds tall fjernes den første dagen i den 13. måneden etter, så de siste 12 hele månedene alltid er der, uansett opptakenes egen oppbevaring (7 dager som standard). Hendelser lagres på samme måte. 13 måneder er standard: en applikasjon kan i stedet beholde 3, 6 eller 25, valgt i **Oppbevaring av produktanalyse** under **Flere innstillinger** på siden **Analyseinnstillinger**, og et kortere valg fjerner de eldre månedene innen et døgn.
 - **Ingen navn lagret.** Tallene tar vare på en pålogget brukers enveisnøkkel og en nettlesers besøks-ID, aldri referansen eller en IP-adresse, og av egenskapene bare brukeregenskapene du oppgir. En rad navngir en pålogget bruker bare så lenge et av vedkommendes opptak fortsatt er lagret, og bare for en rolle som kan lese identitet; ellers står det **Pålogget bruker** eller **Anonym besøkende** og starten av ID-en.
-- **Slettet på forespørsel.** En sletteforespørsel fjerner også de samsvarende tallene og hendelsene her (se [Slett økter](/docs/telemetry/session-replay#slett-økter)).
+- **Slettet på forespørsel.** En sletteforespørsel fjerner også de samsvarende tallene og hendelsene her (se [Slett økter](/docs/telemetry/session-replay#slett-økter)). Tallet `productAnalyticsRowsDeleted` sier hvor mange rader den fjernet her. Den endrer ikke **Lagrede trakter** eller **Lagrede lojalitetstabeller**: navnene og segmentene deres har teamet ditt skrevet selv, som tittelen på et dashbord, så ikke lagre et segment som navngir en person.
 
 ## Hvem kan se det
 
@@ -148,7 +148,7 @@ En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgete
 
 Å lagre, gi nytt navn til og slette lagrede trakter og lojalitetstabeller krever de samme tillatelsene som å lese disse sidene, og en dashbord-widget viser en bare til en leser som har dem.
 
-Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen Prosjekteier, Prosjektadministrator eller Prosjektmedlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer.
+Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen Prosjekteier, Prosjektadministrator eller Prosjektmedlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer. Å velge hvor lenge tallene lagres, krever det samme som å slå hendelsene på eller av.
 
 ## Neste steg
 

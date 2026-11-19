@@ -20,6 +20,7 @@ import {
   DataPipelineMetricName,
 } from "../../../Types/DataObservability/DataPipelineMetric";
 import {
+  getDataPipelineLateAt,
   getDurationRatio,
   getExpectedIntervalInSeconds,
   getTypicalDurationInSeconds,
@@ -519,6 +520,18 @@ export default class OpenLineageIngest {
       endsNow && event.eventType === OpenLineageRunState.Complete
         ? await this.learnTypicalDuration(pipeline.id!)
         : null;
+    /*
+     * When the pipeline is late without another run, from the start and the
+     * interval it holds after this write: what the menu's count of what needs
+     * someone reads (getDataPipelineLateAt, #6552).
+     */
+    const isLateAtMoved: boolean =
+      isLatest || expectedRunIntervalInSeconds !== null;
+    const lateAt: Date | null = getDataPipelineLateAt({
+      lastRunStartedAt: isLatest ? startedAt : pipeline.lastRunStartedAt,
+      expectedRunIntervalInSeconds:
+        expectedRunIntervalInSeconds ?? pipeline.expectedRunIntervalInSeconds,
+    });
 
     await DataPipelineService.updateColumnsByIdWithoutHooks({
       id: pipeline.id!,
@@ -527,6 +540,7 @@ export default class OpenLineageIngest {
         ...(expectedRunIntervalInSeconds !== null
           ? { expectedRunIntervalInSeconds }
           : {}),
+        ...(isLateAtMoved ? { lateAt } : {}),
         ...(typicalRunDurationInSeconds !== null
           ? { typicalRunDurationInSeconds }
           : {}),

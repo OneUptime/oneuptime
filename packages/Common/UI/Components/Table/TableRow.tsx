@@ -1,5 +1,6 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import RowActions from "../ActionButton/RowActions";
+import RowActionsStore from "../ActionButton/RowActionsStore";
 import CheckboxElement from "../Checkbox/Checkbox";
 import ColorInput from "../ColorViewer/ColorViewer";
 import Icon, { ThickProp } from "../Icon/Icon";
@@ -200,6 +201,15 @@ export interface ComponentProps<T extends GenericObject> {
    * or the window.
    */
   isPhone?: boolean | undefined;
+
+  /*
+   * The row's key in its table (TableBody's getRowKey), and where the table
+   * keeps what the row's actions have open - a question, an error, the ⋯
+   * menu (RowActionsStore): a change of how the table fits draws the row
+   * again, as a card or as a row, and they stay open.
+   */
+  rowKey?: string | undefined;
+  rowActionsStore?: RowActionsStore<T> | undefined;
 }
 
 type TableRowFunction = <T extends GenericObject>(
@@ -600,6 +610,23 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   };
 
   /*
+   * What the table keeps the row's actions' open question, error and ⋯
+   * menu under (RowActionsStore): the row's key and its Actions column's,
+   * the same whether the row is drawn as a row or as a card.
+   */
+  const getRowActionsKey: (
+    column: Column<T>,
+    index: number,
+  ) => string | undefined = (
+    column: Column<T>,
+    index: number,
+  ): string | undefined => {
+    return props.rowKey === undefined
+      ? undefined
+      : `${props.rowKey}/${getCellKey(column, index)}`;
+  };
+
+  /*
    * A cell's value, with the values of the columns folded into it on lines
    * of their own under it (TableFoldedValues).
    */
@@ -715,6 +742,8 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                           isMobile={true}
                           className="justify-start"
                           itemLabel={props.itemLabel}
+                          store={props.rowActionsStore}
+                          rowKey={getRowActionsKey(column, i)}
                         />
                       </div>
                     );
@@ -1110,6 +1139,8 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         actionButtons={props.actionButtons}
                         isMobile={isMobileView}
                         itemLabel={props.itemLabel}
+                        store={props.rowActionsStore}
+                        rowKey={getRowActionsKey(column, i)}
                       />
                     </div>
                   )}

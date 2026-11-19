@@ -77,14 +77,7 @@ När den första prenumerationen inte är den där OneUptime läser händelsehub
 
 Strömmen bär nyckelmätvärdena som anslutningen läser minut för minut. Läsningarna fortsätter att skriva resten enligt sitt schema: ett mätvärde som de läser med grövre upplösning, till exempel ett containerregisters använda lagring, och varje nyckelmätvärde som en diagnostikinställning inte kan skicka, som Azure Monitors lista över mätvärden som stöds markerar som inte exporterbart i kolumnen DS Export:
 
-- Virtuella datorer och skalningsuppsättningar: `Network In Total`, `Network Out Total`.
-- Diskar: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Azure Cosmos DB-konton: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Lagringskonton: `UsedCapacity`.
-- AKS-kluster: `kube_pod_status_ready`.
-- Programgatewayer: `ApplicationGatewayTotalTime`, `Throughput`.
-- Brandväggar: `Throughput`.
-- NAT-gatewayer: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 En Service Bus- eller Event Hubs-namnrymd strömmar inga mätvärden. Läsningarna läser dess nyckelmätvärden för varje kö, topic och händelsehubb, och namnrymdens egna totaler summerar dem, medan en diagnostikinställning bara skickar namnrymdens totaler, och inte alls 4 av en Service Bus-namnrymds 6 nyckelmätvärden eller 2 av en Event Hubs-namnrymds 4. Så läsningarna skriver alla, med eller utan strömning, och inget meddelande räknas två gånger.
 

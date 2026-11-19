@@ -1,16 +1,16 @@
 # Monitor dello stato delle sonde
 
-Un monitor dello stato delle sonde ti avvisa quando una sonda smette di farsi sentire: un incidente quando si disconnette, che si risolve da solo quando torna. Puntalo sulle tue sonde personalizzate o, su un OneUptime self-hosted, sulla sonda globale su cui gira ogni monitor, così una sonda che tace non lascia mai i suoi monitor senza controlli all'insaputa di tutti.
+Un monitor dello stato delle sonde ti avvisa quando una sonda smette di farsi sentire: un incidente quando si disconnette, che si risolve da solo quando torna. Puntalo sulle tue sonde personalizzate o, su un OneUptime self-hosted, sulla sonda globale su cui gira ogni monitor, così una sonda che tace non lascia mai i suoi monitor senza controlli all'insaputa di tutti. Un nuovo monitor genera anche un avviso quando una delle sue sonde resta indietro e i suoi monitor vengono controllati, o i suoi dispositivi di rete interrogati, meno spesso di quanto impostato.
 
 :::cards
 - [Crearne uno](#creare-un-monitor-dello-stato-delle-sonde): Scegli le sonde e tieni i criteri predefiniti.
-- [Criteri](#criteri): Conta le sonde connesse o disconnesse, adesso o su una finestra di tempo.
+- [Criteri](#criteri): Conta le sonde connesse, disconnesse o in ritardo, adesso o su una finestra di tempo.
 - [Metriche](#metriche): Quante sonde erano connesse, minuto per minuto.
 :::
 
 ## Come funziona
 
-OneUptime valuta ogni monitor dello stato delle sonde una volta al minuto, e di nuovo nel momento in cui una delle sue sonde si connette o si disconnette. Legge lo stato di connessione di ogni sonda, quello mostrato dalla pagina della sonda: una sonda è disconnessa quando per tre minuti non si è avuta alcuna sua notizia. Dopo che OneUptime stesso è stato fermo o non ha ricevuto dati, aspetta tre minuti interi prima di dichiarare disconnessa una sonda, quindi aggiornare OneUptime non apre mai un incidente.
+OneUptime valuta ogni monitor dello stato delle sonde una volta al minuto, e di nuovo nel momento in cui una delle sue sonde si connette o si disconnette. Legge lo stato di connessione di ogni sonda, quello mostrato dalla pagina della sonda: una sonda è disconnessa quando per tre minuti non si è avuta alcuna sua notizia. Dopo che OneUptime stesso è stato fermo o non ha ricevuto dati, aspetta tre minuti interi prima di dichiarare disconnessa una sonda, quindi aggiornare OneUptime non apre mai un incidente. Legge anche se ogni sonda connessa è in ritardo, come lo dice la pagina della sonda ([Una sonda è in ritardo](/docs/probe/custom-probe#una-sonda-è-in-ritardo)), e valuta di nuovo il monitor appena una resta indietro o si rimette in pari.
 
 ```mermaid title="Da una sonda silenziosa a un solo incidente"
 flowchart TB
@@ -55,13 +55,17 @@ I filtri di un monitor dello stato delle sonde contano sonde:
 | --- | --- |
 | **Sonde disconnesse** | Le sonde sorvegliate che sono disconnesse. |
 | **Sonde connesse** | Le sonde sorvegliate che sono connesse. |
+| **Sonde in ritardo** | Le sonde sorvegliate che sono connesse ma in ritardo: i loro monitor vengono controllati, o i loro dispositivi di rete interrogati, meno spesso di quanto impostato. |
 
-Entrambi sono numeri interi, confrontati con **Maggiore di**, **Minore di**, **Uguale a** e gli altri confronti. Un nuovo monitor parte con due criteri:
+Tutti e tre sono numeri interi, confrontati con **Maggiore di**, **Minore di**, **Uguale a** e gli altri confronti. Un nuovo monitor parte con tre criteri:
 
 | Criterio | Filtro | Cosa fa |
 | --- | --- | --- |
 | Verifica se una sonda è disconnessa | **Sonde disconnesse** maggiore di `0` | Mette il monitor offline e dichiara un incidente intitolato «Sonda disconnessa: {{disconnectedProbeNames}}», che si risolve da solo. |
+| Verifica se una sonda è in ritardo | **Sonde in ritardo** maggiore di `0` | Genera un avviso intitolato «Sonda in ritardo: {{behindProbeNames}}», che si risolve da solo. Non cambia lo stato del monitor e non dichiara alcun incidente: la sonda continua a farsi sentire. |
 | Verifica se tutte le sonde sono connesse | **Sonde disconnesse** uguale a `0` | Mette il monitor in stato operativo. |
+
+Un monitor creato prima che esistesse **Sonde in ritardo** mantiene i suoi criteri, quindi non viene avvisato quando una sonda resta indietro finché non aggiungi il controllo ai suoi criteri.
 
 Il filtro **Sonde connesse** è adatto a un monitor che sorveglia più sonde e può perderne una: **Sonde connesse** minore di `2` dichiara un incidente solo quando ne restano meno di due.
 
@@ -71,7 +75,7 @@ Una sonda è disconnessa solo dopo tre minuti di silenzio, quindi un rapido riav
 
 ## Metriche
 
-Ogni valutazione registra due serie sul monitor: `oneuptime.monitor.probes.connected` e `oneuptime.monitor.probes.disconnected`, il numero di sonde sorvegliate che erano connesse e disconnesse. Sono tracciate nella pagina **Metriche** del monitor, e una dashboard o un monitor di metriche le legge come qualsiasi altra serie.
+Ogni valutazione registra tre serie sul monitor: `oneuptime.monitor.probes.connected`, `oneuptime.monitor.probes.disconnected` e `oneuptime.monitor.probes.behind`, il numero di sonde sorvegliate che erano connesse, disconnesse e in ritardo. Sono tracciate nella pagina **Metriche** del monitor, e una dashboard o un monitor di metriche le legge come qualsiasi altra serie.
 
 ## Variabili dei modelli
 
@@ -83,8 +87,10 @@ I modelli di incidente e di avviso di un monitor dello stato delle sonde possono
 | `{{disconnectedProbeCount}}` | Quante sonde sono disconnesse. |
 | `{{connectedProbeNames}}` | I nomi delle sonde connesse, separati da virgole. |
 | `{{connectedProbeCount}}` | Quante sonde sono connesse. |
-| `{{probeStatusSummary}}` | Una frase che nomina le sonde disconnesse, come `1 of 3 probes is disconnected: EU Probe.`, o che dice che tutte le sonde sono connesse. |
-| `{{probes}}` | Ogni sonda, con `probeName`, `isConnected`, `isGlobalProbe` e `lastAliveAt`. |
+| `{{behindProbeNames}}` | I nomi delle sonde connesse che sono in ritardo, separati da virgole. |
+| `{{behindProbeCount}}` | Quante sonde sono in ritardo. |
+| `{{probeStatusSummary}}` | Una frase che nomina le sonde disconnesse, come `1 of 3 probes is disconnected: EU Probe.`, altrimenti quelle in ritardo, o che dice che tutte le sonde sono connesse. |
+| `{{probes}}` | Ogni sonda, con `probeName`, `isConnected`, `isBehind`, `isGlobalProbe` e `lastAliveAt`. |
 
 ## Risoluzione dei problemi
 

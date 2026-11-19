@@ -44,9 +44,14 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
   return mocked;
 });
 
+import { DATA_OBSERVABILITY_KINDS } from "../../../Server/Utils/DataObservability/DataObservabilityEngines";
+import { OBJECT_STORE_KINDS } from "../../../Types/DataObservability/StoragePaths";
+import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import ProjectProductsService, {
   CHOOSE_PRODUCTS_PERMISSIONS,
   PRODUCT_RECORD_MODELS,
+  PRODUCT_USAGE_RECORDS,
+  ProductUsageRecord,
   ProjectProductsCaller,
   USAGE_TTL_IN_MS,
   getUsageStatement,
@@ -78,6 +83,8 @@ import Permission, {
 import ProductKey, { PRODUCT_KEYS } from "../../../Types/Product/ProductKey";
 import {
   PRODUCTS_USED_BY_RECORDS,
+  PRODUCT_USAGE_MILESTONES,
+  PRODUCT_USAGE_TABLES,
   ProductUsage,
 } from "../../../Types/Product/ProductUsage";
 import {
@@ -276,16 +283,26 @@ afterEach(() => {
 });
 
 describe("the products each product counts", () => {
-  test("every product used by records has a record model, and only those", () => {
-    expect(Object.keys(PRODUCT_RECORD_MODELS).sort()).toEqual(
-      [...PRODUCTS_USED_BY_RECORDS].sort(),
-    );
+  test("every product used by records has a record model or the records it counts, and only those", () => {
+    expect(
+      [
+        ...Object.keys(PRODUCT_RECORD_MODELS),
+        ...Object.keys(PRODUCT_USAGE_RECORDS),
+      ].sort(),
+    ).toEqual([...PRODUCTS_USED_BY_RECORDS].sort());
+
+    // A product is counted one way: by its main record, or by some records.
+    for (const product of Object.keys(PRODUCT_USAGE_RECORDS)) {
+      expect(Object.keys(PRODUCT_RECORD_MODELS)).not.toContain(product);
+    }
   });
 
   test("the usage statement asks every table once, by the project, leaving deleted rows out", () => {
     const statement: string = getUsageStatement();
 
-    for (const product of PRODUCTS_USED_BY_RECORDS) {
+    for (const product of Object.keys(
+      PRODUCT_RECORD_MODELS,
+    ) as Array<ProductKey>) {
       const modelType: { new (): BaseModel } = PRODUCT_RECORD_MODELS[
         product
       ] as { new (): BaseModel };
@@ -296,10 +313,107 @@ describe("the products each product counts", () => {
       );
     }
 
-    expect(statement.startsWith("SELECT EXISTS")).toBe(true);
-    expect(statement.match(/EXISTS \(/g)?.length).toBe(
-      PRODUCTS_USED_BY_RECORDS.length,
+    const countedTables: number = Object.values(PRODUCT_USAGE_RECORDS).reduce(
+      (
+        total: number,
+        records: ReadonlyArray<ProductUsageRecord> | undefined,
+      ) => {
+        return total + (records || []).length;
+      },
+      0,
     );
+
+    expect(statement.startsWith("SELECT EXISTS")).toBe(true);
+    // Still one statement: one EXISTS per table it asks.
+    expect(statement.match(/EXISTS \(/g)?.length).toBe(
+      Object.keys(PRODUCT_RECORD_MODELS).length + countedTables,
+    );
+  });
+
+  /*
+   * #7325: the six products that had no answer, each by what its own first
+   * page counts.
+   */
+  test("Inventory counts its items, none archived", () => {
+    expect(getUsageStatement()).toContain(
+      `(EXISTS (SELECT 1 FROM "InventoryItem" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isArchived" = false))) AS "${ProductKey.Inventory}"`,
+    );
+  });
+
+  test("App Platforms counts its environments, none archived", () => {
+    expect(getUsageStatement()).toContain(
+      `(EXISTS (SELECT 1 FROM "CloudResource" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isArchived" = false AND "cloudResourceKind" = 'environment'))) AS "${ProductKey.AppPlatforms}"`,
+    );
+  });
+
+  test("Data Observability counts the databases it watches and the buckets with paths watched", () => {
+    const where: string =
+      PRODUCT_USAGE_RECORDS[ProductKey.DataObservability]![0]!.where;
+
+    expect(where.startsWith(`"isArchived" = false AND ("kind" IN (`)).toBe(
+      true,
+    );
+
+    // Every kind it can watch is a table of its, as its Overview counts them.
+    for (const kind of DATA_OBSERVABILITY_KINDS) {
+      expect(where).toContain(`'${kind}'`);
+    }
+
+    // A bucket counts only once paths of it are watched.
+    expect(where).toContain(
+      `"kind" IN (${OBJECT_STORE_KINDS.map((kind: string) => {
+        return `'${kind}'`;
+      }).join(", ")}) AND "watchedPaths" IS NOT NULL`,
+    );
+    expect(DATA_OBSERVABILITY_KINDS).not.toContain(DataStoreKind.AwsS3Bucket);
+  });
+
+  test("Data Security counts every data store, none archived", () => {
+    expect(getUsageStatement()).toContain(
+      `(EXISTS (SELECT 1 FROM "DataStore" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isArchived" = false))) AS "${ProductKey.DataSecurity}"`,
+    );
+  });
+
+  test("Security Events counts a source it reads that is on: a connection, your logs, your other data", () => {
+    expect(getUsageStatement()).toContain(
+      `(EXISTS (SELECT 1 FROM "SecurityEventConnection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isEnabled" = true)) OR EXISTS (SELECT 1 FROM "SecurityLogSource" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isEnabled" = true)) OR EXISTS (SELECT 1 FROM "SecurityTelemetrySource" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isEnabled" = true))) AS "${ProductKey.SecurityEvents}"`,
+    );
+  });
+
+  test("AI / LLM is counted by its first AI call, as the telemetry products by their first data", () => {
+    expect(PRODUCT_USAGE_MILESTONES[ProductKey.Llm]).toEqual([
+      ActivationMilestone.FirstLlmCallsReceived,
+    ]);
+    expect(PRODUCTS_USED_BY_RECORDS).not.toContain(ProductKey.Llm);
+  });
+
+  test("every table a product counts is one ProjectUsageCache follows", () => {
+    const fromRecords: Record<string, Array<ProductKey>> = {};
+
+    for (const [product, records] of Object.entries(
+      PRODUCT_USAGE_RECORDS,
+    ) as Array<[ProductKey, ReadonlyArray<ProductUsageRecord>]>) {
+      for (const record of records) {
+        const tableName: string = new record.modelType().tableName as string;
+        fromRecords[tableName] = [...(fromRecords[tableName] || []), product];
+      }
+    }
+
+    const sorted: (
+      map: Readonly<Record<string, ReadonlyArray<ProductKey>>>,
+    ) => Record<string, Array<ProductKey>> = (
+      map: Readonly<Record<string, ReadonlyArray<ProductKey>>>,
+    ): Record<string, Array<ProductKey>> => {
+      return Object.fromEntries(
+        Object.entries(map).map(
+          ([table, products]: [string, ReadonlyArray<ProductKey>]) => {
+            return [table, [...products].sort()];
+          },
+        ),
+      );
+    };
+
+    expect(sorted(PRODUCT_USAGE_TABLES)).toEqual(sorted(fromRecords));
   });
 });
 
@@ -356,9 +470,63 @@ describe("the answer", () => {
     expect(answer.usage[ProductKey.Kubernetes]).toBe(ProductUsage.NotSetUp);
     // No incidents is good news, not a step undone.
     expect(answer.usage[ProductKey.Incidents]).toBe(ProductUsage.NothingYet);
-    // Nobody can tell cheaply, so nothing is said.
-    expect(answer.usage[ProductKey.Inventory]).toBeUndefined();
+    // Nothing to set up, so nothing is said.
+    expect(answer.usage[ProductKey.AIChat]).toBeUndefined();
     expect(answer.usage[ProductKey.ProjectSettings]).toBeUndefined();
+  });
+
+  test("the six products #7325 left unanswered say whether they are in use", async () => {
+    records = {
+      [ProductKey.Inventory]: true,
+      [ProductKey.DataSecurity]: true,
+      [ProductKey.SecurityEvents]: true,
+    };
+    milestones = [ActivationMilestone.FirstLlmCallsReceived];
+
+    const answer: ProjectProductsAnswer =
+      await ProjectProductsService.getAnswer(OWNER());
+
+    expect(answer.usage[ProductKey.Inventory]).toBe(ProductUsage.InUse);
+    expect(answer.usage[ProductKey.DataSecurity]).toBe(ProductUsage.InUse);
+    expect(answer.usage[ProductKey.SecurityEvents]).toBe(ProductUsage.InUse);
+    expect(answer.usage[ProductKey.Llm]).toBe(ProductUsage.InUse);
+    // Each is something you set up: "Not set up" while it has nothing.
+    expect(answer.usage[ProductKey.AppPlatforms]).toBe(ProductUsage.NotSetUp);
+    expect(answer.usage[ProductKey.DataObservability]).toBe(
+      ProductUsage.NotSetUp,
+    );
+
+    // And still from the one statement.
+    expect(usageQueries()).toBe(1);
+  });
+
+  test("AI / LLM is not set up until its first AI call arrives", async () => {
+    milestones = [ActivationMilestone.FirstTracesReceived];
+
+    const answer: ProjectProductsAnswer =
+      await ProjectProductsService.getAnswer(OWNER());
+
+    // Traces are not AI calls: an app's spans say nothing of AI.
+    expect(answer.usage[ProductKey.Traces]).toBe(ProductUsage.InUse);
+    expect(answer.usage[ProductKey.Llm]).toBe(ProductUsage.NotSetUp);
+  });
+
+  test("a product counted by some records is left out for a member who may read none of them", async () => {
+    records = {
+      [ProductKey.Inventory]: true,
+      [ProductKey.SecurityEvents]: true,
+      [ProductKey.DataSecurity]: true,
+    };
+    milestones = [ActivationMilestone.FirstLlmCallsReceived];
+
+    const answer: ProjectProductsAnswer =
+      await ProjectProductsService.getAnswer(MONITOR_READER());
+
+    expect(answer.usage[ProductKey.Inventory]).toBeUndefined();
+    expect(answer.usage[ProductKey.SecurityEvents]).toBeUndefined();
+    expect(answer.usage[ProductKey.DataSecurity]).toBeUndefined();
+    // The milestones are every member's to read.
+    expect(answer.usage[ProductKey.Llm]).toBe(ProductUsage.InUse);
   });
 
   test("a member sees what is in use only for what they may read", async () => {

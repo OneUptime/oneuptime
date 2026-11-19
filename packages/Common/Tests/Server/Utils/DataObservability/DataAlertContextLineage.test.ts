@@ -20,20 +20,28 @@ import {
   MAX_DATA_ALERT_COLUMN_TABLE_NAME_LENGTH,
   describeDataAlertColumn,
 } from "../../../../Server/Utils/DataObservability/DataAlertColumnLineage";
-import DataAlertContext from "../../../../Server/Utils/DataObservability/DataAlertContext";
+import DataAlertContext, {
+  DATA_ALERT_READ_SCOPE_LINE,
+} from "../../../../Server/Utils/DataObservability/DataAlertContext";
 import DataAlertLineageReader, {
   DataAlertLineageRow,
   DataAlertRowReader,
 } from "../../../../Server/Utils/DataObservability/DataAlertLineage";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+} from "../../../../Server/Utils/DataObservability/DataObservabilityReadScope";
 import DataTableAnswerer from "../../../../Server/Utils/DataObservability/DataTableAnswer";
 import DataTableLineageReader, {
+  DataLineageReadable,
   DataLineageTableRow,
   DataPipelineLineageReader,
 } from "../../../../Server/Utils/DataObservability/DataTableLineage";
 import { describeDataAlertLineage } from "../../../../Server/Utils/DataObservability/DataTableLineageAnswer";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import DataAlert from "../../../../Models/DatabaseModels/DataAlert";
+import DataAssetLineage from "../../../../Models/DatabaseModels/DataAssetLineage";
 import DataPipeline from "../../../../Models/DatabaseModels/DataPipeline";
+import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
 import {
   DataAlertLineageAnswer,
   DataLineageSide,
@@ -73,7 +81,14 @@ import {
  * An alert from a check on one column is then told where that column
  * comes from and where it goes, table by table (describeDataAlertColumn).
  *
- * The lineage and the alerts are held in memory (LineageMemoryGraph); the
+ * Nor is a table or pipeline set apart by its owners or labels told
+ * (#9562): the report's readers include roles limited to what is set apart
+ * for them, so the context reads as nobody in particular may - none set
+ * apart, beside the alert's own table or pipeline - and never names,
+ * counts or reaches through one it leaves out.
+ *
+ * The lineage and the alerts are held in memory (LineageMemoryGraph), and
+ * which tables and pipelines are set apart in a set of each (setApart); the
  * context's other reads are stubbed to nothing.
  */
 
@@ -261,6 +276,164 @@ function warehouseWithColumns(): MemoryGraph {
   columns(graph, t(5), t(6), [["buyer_id", "buyers"]]);
 
   return graph;
+}
+
+/*
+ * The tables and pipelines an owner or a label sets apart, and every one
+ * the context asked about, in order: "table:<id>", "pipeline:<id>".
+ */
+interface SetApart {
+  tables: Set<string>;
+  pipelines: Set<string>;
+  asked: Array<string>;
+}
+
+function newSetApart(): SetApart {
+  return { tables: new Set(), pipelines: new Set(), asked: [] };
+}
+
+// What nobody in particular may read, as the database answers it: all but what is set apart.
+function readableBut(setApart: SetApart): DataLineageReadable {
+  return {
+    readableTableIds: async (ids: Array<string>): Promise<Set<string>> => {
+      setApart.asked.push(
+        ...ids.map((id: string): string => {
+          return `table:${id}`;
+        }),
+      );
+
+      return new Set(
+        ids.filter((id: string): boolean => {
+          return !setApart.tables.has(id);
+        }),
+      );
+    },
+    readablePipelineIds: async (ids: Array<string>): Promise<Set<string>> => {
+      setApart.asked.push(
+        ...ids.map((id: string): string => {
+          return `pipeline:${id}`;
+        }),
+      );
+
+      return new Set(
+        ids.filter((id: string): boolean => {
+          return !setApart.pipelines.has(id);
+        }),
+      );
+    },
+  };
+}
+
+// HR's: set apart by their owners and labels, and never to be named.
+const PAYROLL_RAW: string = t(10);
+const HEADCOUNT: string = t(12);
+// Built only from HR's headcount: reached through nothing else.
+const EXEC: string = t(13);
+const PAYROLL_SYNC: string = p(9);
+// Not set apart itself, but its only rows into the alert's table come from HR's.
+const HR_EXTRACT: string = p(7);
+const HR_DASHBOARD: string = uuid(3, 9);
+
+const HR_IDS: Array<string> = [
+  PAYROLL_RAW,
+  HEADCOUNT,
+  EXEC,
+  PAYROLL_SYNC,
+  HR_EXTRACT,
+  HR_DASHBOARD,
+];
+const HR_NAMES: Array<string> = [
+  "hr.payroll_raw",
+  "hr.headcount",
+  "marts.exec",
+  "payroll_sync",
+  "hr_extract",
+  "HR Headcount",
+  "permission denied for table salaries",
+  "employee_id",
+];
+
+/*
+ * The warehouse, and HR's tables next to analytics.daily_revenue, late and
+ * alerting - a problem first, were they ever ranked:
+ *
+ *   hr.payroll_raw -> analytics.daily_revenue -> hr.headcount -> marts.exec
+ *   payroll_sync (failed) writes analytics.daily_revenue, and moves
+ *   raw.orders -> staging.orders beside fivetran_orders' load;
+ *   hr_extract moves hr.payroll_raw -> analytics.daily_revenue;
+ *   the HR Headcount dashboard reads hr.headcount.
+ */
+function warehouseWithHr(): MemoryGraph {
+  const graph: MemoryGraph = warehouse();
+
+  lateTable(graph, PAYROLL_RAW, { assetKey: "hr.payroll_raw" });
+  lateTable(graph, HEADCOUNT, { assetKey: "hr.headcount" });
+  table(graph, EXEC, { assetKey: "marts.exec" });
+  graph.openAlerts.set(PAYROLL_RAW, 3);
+  graph.openAlerts.set(HEADCOUNT, 2);
+  pipeline(graph, PAYROLL_SYNC, {
+    jobName: "payroll_sync",
+    lastRunState: "FAIL",
+    lastRunStartedAt: new Date(NOW.getTime() - 2 * HOUR),
+    lastErrorMessage: "permission denied for table salaries",
+  });
+  pipeline(graph, HR_EXTRACT, { jobName: "hr_extract" });
+
+  feeds(graph, PAYROLL_RAW, t(1));
+  feeds(graph, PAYROLL_RAW, t(1), { dataPipelineId: HR_EXTRACT });
+  writes(graph, PAYROLL_SYNC, t(1));
+  feeds(graph, t(3), t(2), { dataPipelineId: PAYROLL_SYNC });
+  feeds(graph, t(1), HEADCOUNT);
+  feeds(graph, HEADCOUNT, EXEC);
+  columns(graph, t(1), HEADCOUNT, [["customer_id", "employee_id"]]);
+  graph.dashboards.push({
+    dataDashboardId: HR_DASHBOARD,
+    name: "HR Headcount",
+    tool: DataBiTool.Looker,
+    url: null,
+    dataAssetIds: [HEADCOUNT],
+  });
+
+  return graph;
+}
+
+// HR's set apart; marts.exec is not, though only HR's headcount reaches it.
+function hrSetApart(): SetApart {
+  const setApart: SetApart = newSetApart();
+
+  setApart.tables.add(PAYROLL_RAW);
+  setApart.tables.add(HEADCOUNT);
+  setApart.pipelines.add(PAYROLL_SYNC);
+
+  return setApart;
+}
+
+// A row of DataAssetLineage that says a pipeline writes the table, as the database reads it.
+function writeRow(data: {
+  upstream: string | null;
+  downstream: string;
+  pipeline: string;
+}): DataAssetLineage {
+  const row: DataAssetLineage = new DataAssetLineage();
+
+  if (data.upstream) {
+    row.upstreamDataAssetId = new ObjectID(data.upstream);
+  }
+
+  row.downstreamDataAssetId = new ObjectID(data.downstream);
+  row.dataPipelineId = new ObjectID(data.pipeline);
+
+  return row;
+}
+
+function expectNothingOfHr(text: string): void {
+  for (const name of HR_NAMES) {
+    expect(text).not.toContain(name);
+  }
+
+  for (const id of HR_IDS) {
+    expect(text).not.toContain(id);
+  }
 }
 
 describe("an alert's lineage, as an investigation is told it", () => {
@@ -902,8 +1075,12 @@ describe("an investigation's context section", () => {
   let graph: MemoryGraph;
   let alerts: MemoryAlerts;
   let dataAlert: DataAlert;
+  let setApart: SetApart;
   let alertReaderFor: ReturnType<typeof jest.spyOn>;
   let lineageReaderFor: ReturnType<typeof jest.spyOn>;
+  let readableFor: ReturnType<typeof jest.spyOn>;
+  let tableAnswerFor: ReturnType<typeof jest.spyOn>;
+  let pipelineReads: Array<string>;
 
   function stubDataAlert(about: {
     table?: number;
@@ -930,6 +1107,9 @@ describe("an investigation's context section", () => {
 
     graph = warehouse();
     alerts = newAlerts();
+    // Nothing set apart unless a test sets it apart.
+    setApart = newSetApart();
+    pipelineReads = [];
 
     jest.spyOn(DataAlertService, "findOneBy").mockImplementation((async () => {
       return dataAlert;
@@ -946,7 +1126,9 @@ describe("an investigation's context section", () => {
 
       return alert;
     }) as never);
-    jest.spyOn(DataTableAnswerer, "answer").mockResolvedValue(null as never);
+    tableAnswerFor = jest
+      .spyOn(DataTableAnswerer, "answer")
+      .mockResolvedValue(null as never);
     jest
       .spyOn(DataAssetLineageService, "findBy")
       .mockResolvedValue([] as never);
@@ -957,6 +1139,8 @@ describe("an investigation's context section", () => {
       .mockImplementation((async (findBy: {
         query: { _id: ObjectID };
       }): Promise<DataPipeline> => {
+        pipelineReads.push(findBy.query._id.toString());
+
         const row: DataPipeline = new DataPipeline();
         row._id = findBy.query._id.toString();
 
@@ -981,6 +1165,12 @@ describe("an investigation's context section", () => {
       .spyOn(DataTableLineageReader, "getDatabaseReader")
       .mockImplementation(((): DataPipelineLineageReader => {
         return memoryReader(graph);
+      }) as never);
+    // What nobody in particular may read: the database's answer, here what is not set apart.
+    readableFor = jest
+      .spyOn(DataTableLineageReader, "getReadable")
+      .mockImplementation(((): DataLineageReadable => {
+        return readableBut(setApart);
       }) as never);
   });
 
@@ -1150,5 +1340,291 @@ describe("an investigation's context section", () => {
 
     expect(section).toContain("## Data Observability: this is a data alert");
     expect(section).not.toContain("Its lineage");
+  });
+
+  describe("for everyone who may see the alert: nothing an owner or a label sets apart (#9562)", () => {
+    // What the context's writers read hands back: dbt_build's, payroll_sync's and hr_extract's rows into the table.
+    function stubWriters(): void {
+      jest.spyOn(DataAssetLineageService, "findBy").mockResolvedValue([
+        writeRow({ upstream: t(2), downstream: t(1), pipeline: p(1) }),
+        writeRow({ upstream: null, downstream: t(1), pipeline: PAYROLL_SYNC }),
+        writeRow({
+          upstream: PAYROLL_RAW,
+          downstream: t(1),
+          pipeline: HR_EXTRACT,
+        }),
+      ] as never);
+    }
+
+    test("a table or pipeline set apart is never named, nor its id written, anywhere in the section", async () => {
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      stubWriters();
+      alertOn(alerts, a(1), { table: 1 });
+      alerts.columns.set(a(1), "customer_id");
+      stubDataAlert({ table: 1 });
+
+      const section: string = await sectionFor(a(1));
+
+      expectNothingOfHr(section);
+      // What is not set apart is still told.
+      expect(section).toContain(
+        "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+      );
+      expect(section).toContain("raw.orders");
+      expect(section).toContain("marts.kpis");
+      expect(section).toContain("- The pipeline dbt_build writes this table");
+    });
+
+    /*
+     * The regression: before #9562 the context read every table and
+     * pipeline of the project, whatever set it apart, so HR's tables were
+     * counted in "N tables" and named first, being late and alerting. Read
+     * as nobody in particular, the section with HR's tables set apart is
+     * word for word the section of a warehouse that never had them.
+     */
+    test("the counts do not move: the section reads exactly as it would were HR's tables and pipeline not there at all", async () => {
+      alertOn(alerts, a(1), { table: 1 });
+      alertOn(alerts, a(2), { table: 5 }, a(1));
+      alerts.columns.set(a(1), "customer_id");
+      stubDataAlert({ table: 1 });
+      graph = warehouseWithColumns();
+      jest
+        .spyOn(DataAssetLineageService, "findBy")
+        .mockResolvedValue([
+          writeRow({ upstream: t(2), downstream: t(1), pipeline: p(1) }),
+        ] as never);
+
+      const without: string = await sectionFor(a(1));
+
+      graph = warehouseWithHr();
+      columns(graph, t(3), t(2), [
+        ["cust_id", "customer_id"],
+        ["amount", "amount"],
+      ]);
+      columns(graph, t(2), t(1), [
+        ["customer_id", "customer_id"],
+        ["amount", "revenue"],
+      ]);
+      columns(graph, t(1), t(5), [
+        ["customer_id", "buyer_id"],
+        ["revenue", "revenue"],
+      ]);
+      columns(graph, t(5), t(6), [["buyer_id", "buyers"]]);
+      setApart = hrSetApart();
+      stubWriters();
+
+      const withHr: string = await sectionFor(a(1));
+
+      expect(withHr).toBe(without);
+      expect(withHr).toContain(
+        "  Upstream, what it is built from: 2 tables, 1 with a problem.",
+      );
+      expect(withHr).toContain(
+        "  Downstream, what is built from it: 2 tables, none with a problem.",
+      );
+      expect(withHr).toContain(
+        "- 1 alert was raised as a consequence of this one, on: marts.revenue, 1 step down.",
+      );
+    });
+
+    test("the alert's own table is still told when an owner or a label sets it apart: the alert names it", async () => {
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      setApart.tables.add(t(1));
+      alertOn(alerts, a(1), { table: 1 });
+      stubDataAlert({ table: 1 });
+
+      const section: string = await sectionFor(a(1));
+
+      expect(section).toContain(
+        "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:\n  Upstream, what it is built from: 2 tables, 1 with a problem.",
+      );
+      expect(section).toContain(
+        "  Downstream, what is built from it: 2 tables, none with a problem.",
+      );
+      expectNothingOfHr(section);
+      // Never asked about: the alert names it, whatever sets it apart.
+      expect(setApart.asked).not.toContain(`table:${t(1)}`);
+    });
+
+    test("the neighbours nobody set apart are still told: the tables, the pipelines and the dashboards", async () => {
+      graph = warehouseWithHr();
+      graph.dashboards.push({
+        dataDashboardId: uuid(3, 1),
+        name: "Revenue",
+        tool: DataBiTool.Tableau,
+        url: null,
+        dataAssetIds: [t(5), HEADCOUNT],
+      });
+      setApart = hrSetApart();
+      alertOn(alerts, a(1), { table: 1 });
+      stubDataAlert({ table: 1 });
+
+      const section: string = await sectionFor(a(1));
+
+      expect(section).toContain(
+        "  - raw.orders, 2 steps up, through staging.orders: late by 22 hours; the pipeline fivetran_orders that loads it failed its last run 5 hours ago: Connection refused.",
+      );
+      expect(section).toContain(
+        "  Nearest first: marts.revenue (1 step down, fresh), marts.kpis (2 steps down, fresh).",
+      );
+      // A dashboard reading one of theirs and one of HR's is told as reading theirs alone.
+      expect(section).toContain("Revenue (Tableau, reads marts.revenue)");
+      expectNothingOfHr(section);
+    });
+
+    test("an alert on a pipeline set apart is still told its own runs and the tables it reads and writes", async () => {
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      setApart.pipelines.add(p(1));
+      alertOn(alerts, a(1), { pipeline: 1 });
+      stubDataAlert({ pipeline: 1 });
+
+      const section: string = await sectionFor(a(1));
+
+      expect(section).toContain("- The pipeline dbt_build writes this table");
+      expect(section).toContain(
+        "- The pipeline's lineage (the tables it reads, and the tables it writes and what is built from them), 1 step each way:",
+      );
+      expect(section).toContain(
+        "  Upstream, what it reads: 1 table, none with a problem.",
+      );
+      expectNothingOfHr(section);
+      expect(setApart.asked).not.toContain(`pipeline:${p(1)}`);
+    });
+
+    test("the pipelines that write the table: one set apart is never read, nor one whose only rows come from a table set apart", async () => {
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      stubWriters();
+      alertOn(alerts, a(1), { table: 1 });
+      stubDataAlert({ table: 1 });
+
+      const section: string = await sectionFor(a(1));
+
+      // Only dbt_build's runs are read, and told.
+      expect(pipelineReads).toEqual([p(1)]);
+      expect(section).toContain("- The pipeline dbt_build writes this table");
+      expectNothingOfHr(section);
+    });
+
+    test("the table's own answer is read for nobody in particular, its writers and dashboards with what everyone may read", async () => {
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      setApart.tables.add(t(1));
+      alertOn(alerts, a(1), { table: 1 });
+      stubDataAlert({ table: 1 });
+
+      await sectionFor(a(1));
+
+      expect(tableAnswerFor).toHaveBeenCalledTimes(1);
+
+      const [projectId, dataAssetId, now, reader, readable] = tableAnswerFor
+        .mock.calls[0] as [ObjectID, ObjectID, Date, null, DataLineageReadable];
+
+      expect(projectId).toBe(PROJECT_ID);
+      expect(dataAssetId.toString()).toBe(t(1));
+      expect(now).toBe(NOW);
+      // Its alerts as nobody in particular sees them: none private.
+      expect(reader).toBeNull();
+      // Its own table whatever sets it apart; HR's never; the rest.
+      expect(
+        Array.from(
+          await readable.readableTableIds([t(1), PAYROLL_RAW, t(2), HEADCOUNT]),
+        ).sort(),
+      ).toEqual([t(1), t(2)].sort());
+      expect(
+        Array.from(
+          await readable.readablePipelineIds([PAYROLL_SYNC, p(1), p(2)]),
+        ).sort(),
+      ).toEqual([p(1), p(2)].sort());
+    });
+
+    test("everything is read through nobody in particular's scope, asked once for the alert", async () => {
+      const scope: DataObservabilityScope =
+        DataObservabilityReadScope.wholeProject(PROJECT_ID);
+      const nobody: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(DataObservabilityReadScope, "nobodyInParticular")
+        .mockReturnValue({ ...scope, isWholeProject: false });
+      const get: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        DataObservabilityReadScope,
+        "get",
+      );
+
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      alertOn(alerts, a(1), { table: 1 });
+      stubDataAlert({ table: 1 });
+
+      await sectionFor(a(1));
+
+      expect(nobody).toHaveBeenCalledTimes(1);
+      expect(nobody).toHaveBeenCalledWith(PROJECT_ID);
+      // Never the investigation's own root props, nor a person's grants.
+      expect(get).not.toHaveBeenCalled();
+
+      for (const call of readableFor.mock.calls) {
+        expect((call[0] as DataObservabilityScope).isWholeProject).toBe(false);
+      }
+
+      expect(lineageReaderFor).toHaveBeenCalledWith(PROJECT_ID, null);
+    });
+
+    test("the context says what it leaves out in the same words whether it left anything out or not", async () => {
+      alertOn(alerts, a(1), { table: 1 });
+      stubDataAlert({ table: 1 });
+
+      const nothingSetApart: string = await sectionFor(a(1));
+
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+
+      const hrSetApartSection: string = await sectionFor(a(1));
+
+      for (const section of [nothingSetApart, hrSetApartSection]) {
+        expect(section).toContain(DATA_ALERT_READ_SCOPE_LINE);
+        expect(section.split(DATA_ALERT_READ_SCOPE_LINE)).toHaveLength(2);
+      }
+
+      // It names no table, and counts none: it says the same of every alert.
+      expect(DATA_ALERT_READ_SCOPE_LINE).not.toMatch(/\d/);
+      expect(DATA_ALERT_READ_SCOPE_LINE).toBe(
+        "- The tables and pipelines named below are the ones everyone who may see this alert may read: its own, and those no owner or label sets apart from any of them. Any other is left out, never named or counted.",
+      );
+    });
+
+    test("a cause on a table set apart is still the cause its feed names, never placed in the lineage", async () => {
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      alertOn(alerts, a(0), { table: 10 });
+      alertOn(alerts, a(1), { table: 1 }, a(0));
+      stubDataAlert({ table: 1, causeAlertId: a(0) });
+
+      const section: string = await sectionFor(a(1));
+
+      // As the alert's own feed names it to every reader of it (DataAlertCause).
+      expect(section).toContain(
+        '- This alert is a consequence of ALT-9 "orders load failed", opened 1 hour ago',
+      );
+      expect(section).not.toContain("consequence of is on");
+      expectNothingOfHr(section);
+    });
+
+    test("an alert it caused on a table set apart is never placed, and its table never named", async () => {
+      graph = warehouseWithHr();
+      setApart = hrSetApart();
+      alertOn(alerts, a(1), { table: 1 });
+      alertOn(alerts, a(2), { table: 5 }, a(1));
+      alertOn(alerts, a(3), { table: 12 }, a(1));
+      stubDataAlert({ table: 1 });
+
+      const section: string = await sectionFor(a(1));
+
+      expect(section).toContain(
+        "- 2 alerts were raised as a consequence of this one, on: marts.revenue, 1 step down. The rest are further down than this lineage reaches.",
+      );
+      expectNothingOfHr(section);
+    });
   });
 });

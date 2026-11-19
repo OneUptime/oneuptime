@@ -452,7 +452,8 @@ Viele Server betreiben OneUptime für eine einzige Aufgabe, etwa um Websites zu 
 
 - **Voreinstellungen** setzen alle Schalter mit einem Klick: **Monitoring und Status-Seiten** behält Monitore, Vorfälle, Bereitschaft, Statusseiten und Geplante Wartung; **Reaktion auf Vorfälle** fügt Warnungen, SLOs, Arbeitsabläufe und Runbooks hinzu; **Alles** behält alle Produkte. **Produkte einzeln auswählen** schaltet ein einzelnes Produkt um. Benutzer, Teams und Projekteinstellungen sind immer eingeschaltet.
 - Ein ausgeschaltetes Produkt verschwindet aus dem Menü **Produkte** jedes Projekts, von der Startseite und aus der Suche, und **Projekteinstellungen > Produkte** zeigt es als ausgeschaltet an. Ein Link auf eine seiner Seiten sagt, dass das Produkt auf diesem Server ausgeschaltet ist und wer es einschalten kann.
-- Die API lehnt es ab, Datensätze des Produkts anzulegen, zu ändern oder zu löschen, und KI fragen lässt es aus. Lesen funktioniert weiterhin, weil Produkte, die eingeschaltet bleiben, Datensätze anderer zeigen: Ein Vorfall nennt seine Monitore.
+- Die API, Arbeitsabläufe und die Apps für Slack, Microsoft Teams und Mattermost lehnen es ab, Datensätze des Produkts anzulegen, zu ändern oder zu löschen, und KI fragen lässt es aus. Lesen funktioniert weiterhin, weil Produkte, die eingeschaltet bleiben, Datensätze anderer zeigen: Ein Vorfall nennt seine Monitore.
+- OneUptime AI beginnt keine Arbeit am Produkt: keine Untersuchung, keinen Postmortem-Entwurf, keine Behebung, keine Code-Korrektur und keinen Einblick. Solange Runbooks ausgeschaltet ist, wird ein Runbook weiterhin von seinem eigenen Zeitplan, seinem Webhook und seinen Regeln gestartet, und nichts anderes startet eines: weder eine Person noch die automatische Behebung, OneUptime AI oder ein Sicherheits-Playbook.
 - Nichts wird gelöscht, und was bereits läuft, läuft weiter: Monitore prüfen weiter, veröffentlichte Statusseiten bleiben erreichbar, und Telemetrie kommt weiter an, es sei denn, Sie stoppen auch die Telemetrieaufnahme. Ein wieder eingeschaltetes Produkt kommt so zurück, wie es war.
 
 Um die Produkte als Code festzulegen, setzen Sie `SERVER_PRODUCTS` in `config.env` (Helm: `products.onThisServer`) auf `everything`, `monitoring-and-status-pages`, `incident-response` oder die Produkte, die eingeschaltet bleiben sollen, nach ihrem Schlüssel, etwa `monitors,incidents,on-call,status-pages`. Das ist ein Startwert: Sobald ein Administrator **Einstellungen > Produkte** speichert, gilt, was er gespeichert hat.
@@ -475,7 +476,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | Der Dienst `global-runner` startet nicht. Nur Runbooks und die Codekorrekturen von OneUptime AI nutzen ihn. |
 | `MQTT_INGEST_ENABLED=false` | Die MQTT-Listener, an die IoT-Geräte senden, sind ausgeschaltet. |
 
-Sechs Dienste laufen weiterhin: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` und `valkey`. ClickHouse bleibt, weil Monitore ihre Ergebnisse und Logs darin speichern. Auf Kubernetes setzen Sie `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` und `globalRunner.enabled: false` in Ihren Helm-Values. Dimensionieren Sie den Server nach den [Anforderungen](#anforderungen).
+Sechs Dienste laufen weiterhin: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` und `valkey`. ClickHouse bleibt, weil Monitore ihre Ergebnisse und Logs darin speichern. Auf Kubernetes setzen Sie `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` und `globalRunner.enabled: false` in Ihren Helm-Values.
+
+**Was es braucht.** Gemessen mit Release 15.0.0 unter Docker Compose, jeder Dienst auf dieselben 4 CPU-Kerne beschränkt, wie auf einem Server mit 4 Kernen. Speicher ist, was `docker stats` meldet, der Mittelwert aus fünf Messungen im Abstand von 30 Sekunden:
+
+| Dienst | Im Ruhezustand | Mit 100 Monitoren |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| Gesamt | 2.274 MiB | 2.486 MiB |
+
+Im Ruhezustand heißt: 10 Minuten, nachdem OneUptime bereit ist, ohne Monitore. Mit 100 Monitoren heißt: 30 Minuten, nachdem 100 Website-Monitore, die jede Minute prüfen, und eine öffentliche Statusseite, die sie zeigt, angelegt wurden. Während OneUptime startet, brauchen die Dienste ein bis zwei Minuten lang mehr: zusammen bis zu 3.584 MiB. Im Ruhezustand nutzte keiner mehr als ein Zehntel eines CPU-Kerns.
+
+Nach diesen 30 Minuten belegten die Daten von PostgreSQL 163 MiB und die von ClickHouse 452 MiB, fast alles davon ClickHouses eigene Protokolle: Die Prüfungen der Monitore belegten weniger als 2 MiB.
+
+Dieses Profil läuft also auf einem Server mit 4 CPU-Kernen und 6 GB Arbeitsspeicher, mit Platz für das System, Docker und ein Update. nginx in `ingress` startet einen Worker pro Kern, auf einem Server mit mehr Kernen braucht es also mehr: etwa 510 MiB bei 32 Kernen.
+
+Eine Sonde prüft mit ihren Standardeinstellungen bis zu 50 Monitore gleichzeitig: 5 Worker (`GLOBAL_PROBE_1_MONITORING_WORKERS`) mit je 10 Monitoren (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Sie fragt nach weiteren, sobald sie Platz hat, und ist so nicht auf 50 Monitore pro Minute begrenzt: Gemessen mit 252 Website-, API- und Port-Monitoren, die jede Minute prüfen, prüfte sie jeden davon jede Minute. Die Sonde von Release 15.0.0 fragte nur einmal pro Minute und prüfte daher höchstens 50 Monitore pro Minute: Damit die 100 Monitore jede Minute geprüft werden, setzte die Messung oben `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Eine Sonde, die in Rückstand gerät, zeigt das unter OneUptime-Zustand im Admin-Dashboard: Erhöhen Sie eine der beiden Einstellungen in `config.env`, damit sie mehr gleichzeitig prüft.
 
 ## OneUptime aktualisieren
 

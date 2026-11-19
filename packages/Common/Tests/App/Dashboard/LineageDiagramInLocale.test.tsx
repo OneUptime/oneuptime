@@ -124,7 +124,8 @@ const TEXTS: ReadonlyArray<string> = [
   "The tables this pipeline reads and the tables it writes, with the lineage around them",
   "The lineage around this alert, with the way to the alert that caused it and to the alerts it caused",
   "Where this table's data comes from and where it goes, a few steps each way, with how each table and pipeline is now. Open a table to center the diagram on it.",
-  "The tables this pipeline reads and the tables it writes, with how each is now. Pick more steps to see what they are built from and what is built from them.",
+  // A pipeline's page follows a column across it too (#6854), in a card description short enough for two lines.
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.",
   "Where this alert's data comes from and where it goes, with how each table and pipeline is now.",
   // Drawing more where it is (#6667), and following a column (#6665).
   "Reset diagram",

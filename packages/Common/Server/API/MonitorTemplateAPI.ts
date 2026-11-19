@@ -15,6 +15,8 @@ import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /**
  * Pull a `fields` whitelist out of the request body for a sync endpoint.
@@ -52,6 +54,7 @@ export default class MonitorTemplateAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/:monitorTemplateId/sync-to-linked-monitors`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Monitors),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const monitorTemplateId: ObjectID = new ObjectID(
@@ -88,6 +91,7 @@ export default class MonitorTemplateAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/:monitorTemplateId/sync-to-monitor/:monitorId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Monitors),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const monitorTemplateId: ObjectID = new ObjectID(
@@ -125,6 +129,7 @@ export default class MonitorTemplateAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/:monitorTemplateId/link-monitor/:monitorId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Monitors),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const monitorTemplateId: ObjectID = new ObjectID(
@@ -159,6 +164,7 @@ export default class MonitorTemplateAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/:monitorTemplateId/unlink-monitor/:monitorId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Monitors),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const monitorTemplateId: ObjectID = new ObjectID(

@@ -27,6 +27,8 @@ import {
   AI_INSIGHT_HIGHLIGHTS_PATH,
   AIInsightHighlights,
 } from "../../Types/AI/AIInsightHighlights";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -101,6 +103,7 @@ async function findAccessibleInsight(
 router.post(
   "/ai-insight/verdict",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIInsights),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -155,6 +158,7 @@ router.post(
 router.post(
   "/ai-insight/resolve",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIInsights),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -230,6 +234,7 @@ router.post(
 router.post(
   "/ai-insight/reopen",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIInsights),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -269,6 +274,7 @@ router.post(
 router.post(
   "/ai-insight/triage-run",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIInsights),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -324,6 +330,7 @@ router.post(
 router.post(
   "/ai-insight/triage-try-again",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIInsights),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

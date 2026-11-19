@@ -625,26 +625,27 @@ table(DataStoreFinding).push(
     firstSeenAt: ago(3 * DAY),
     lastSeenAt: ago(5 * HOUR),
   },
+  // Email addresses written into the checkout service's log lines (#9549).
   {
     _id: ID.finding(3),
     projectId,
     dataStoreId: new ObjectID(ID.store(4)),
-    findingKey: "email-address:attributes.user.email",
+    findingKey: "email-address:body",
     dataTypeId: "email-address",
     dataTypeName: "Email address",
     dataCategory: DataCategory.ContactAndIdentity,
     sensitivity: DataSensitivity.Confidential,
-    location: "attributes.user.email",
-    locationKind: "Attribute",
-    confidence: "High",
-    matchCount: 37,
-    valueCount: 37,
-    matchPercent: 100,
-    distinctValues: 12,
+    location: "body",
+    locationKind: "Body",
+    confidence: "Medium",
+    matchCount: 18,
+    valueCount: 384,
+    matchPercent: 5,
+    distinctValues: 9,
     testValueCount: 0,
-    maskedSamples: ["k***@a*************.example"],
-    isFreeText: false,
-    isNameHinted: true,
+    maskedSamples: ["k***@a*************.example", "j***@a********.com"],
+    isFreeText: true,
+    isNameHinted: false,
     isFoundByName: false,
     isScrubbed: false,
     isSuppressed: false,
@@ -2118,16 +2119,23 @@ function respond(dataStoreId, body) {
 }
 
 /*
- * The newest records a telemetry finding's data was seen in, as the server
- * answers them (TelemetryFindingOccurrences): log lines of the checkout
- * service, two in a request's trace and one written outside any request,
- * each value masked.
+ * The records a telemetry finding's data was found in, as the server
+ * answers them (TelemetryFindingOccurrences): the very log lines of the
+ * checkout service the last scan found it in (#9549), each with its line -
+ * the data masked and marked, any other sensitive value masked - two in a
+ * request's trace and the rest written outside any request. The phone
+ * number's were found two days ago and are no longer kept.
  */
 const CHECKOUT_TRACE = "4bf92f3577b34da6a3ce929d0e0e4736";
 
 function occurrences(findingId) {
-  const since = ago(7 * DAY).toISOString();
   const until = NOW.toISOString();
+  const finding = table(DataStoreFinding).find((row) => {
+    return row._id === findingId;
+  });
+  const lastSeenAt = finding?.lastSeenAt
+    ? new Date(finding.lastSeenAt).toISOString()
+    : until;
   const line = (minutesAgo, data) => {
     return {
       time: ago(minutesAgo * MINUTE).toISOString(),
@@ -2136,52 +2144,103 @@ function occurrences(findingId) {
       ...data,
     };
   };
+  const text = (value) => {
+    return { kind: "Text", text: value };
+  };
+  const match = (value) => {
+    return { kind: "Match", text: value };
+  };
+  const masked = (value) => {
+    return { kind: "Masked", text: value };
+  };
+  const excerpt = (parts, extra = {}) => {
+    return { parts, isCutAtStart: false, isCutAtEnd: false, ...extra };
+  };
+  const kept = (records) => {
+    return {
+      occurrences: records,
+      since: records.length ? records[records.length - 1].time : lastSeenAt,
+      until: records.length ? records[0].time : lastSeenAt,
+      recordsRead: records.length,
+      isComplete: true,
+      source: "SampledRecords",
+      lastSeenAt,
+    };
+  };
 
   if (findingId === ID.finding(3)) {
-    return {
-      occurrences: [
-        line(3, {
-          traceId: CHECKOUT_TRACE,
-          spanId: "00f067aa0ba902b7",
-          severity: "Info",
-          maskedValue: "k***@a*************.example",
-        }),
-        line(11, {
-          traceId: "a3ce929d0e0e47364bf92f3577b34da6",
-          spanId: "53995c3f42cd8ad8",
-          severity: "Warning",
-          maskedValue: "j***@a********.com",
-        }),
-        line(26, {
-          severity: "Info",
-          maskedValue: "m***@b******.io",
-        }),
-      ],
-      since,
-      until,
-      recordsRead: 37,
-      isComplete: true,
-    };
+    return kept([
+      line(41, {
+        traceId: CHECKOUT_TRACE,
+        spanId: "00f067aa0ba902b7",
+        severity: "Info",
+        maskedValue: "k***@a*************.example",
+        excerpt: excerpt([
+          text("Sent order receipt to "),
+          match("k***@a*************.example"),
+          text(" for order 4417 (3 items)"),
+        ]),
+      }),
+      line(42, {
+        traceId: "a3ce929d0e0e47364bf92f3577b34da6",
+        spanId: "53995c3f42cd8ad8",
+        severity: "Warning",
+        maskedValue: "j***@a********.com",
+        excerpt: excerpt(
+          [
+            text("Payment declined for "),
+            match("j***@a********.com"),
+            text(" with card "),
+            masked("**** **** **** 0609"),
+            text(", retrying in 30 s"),
+          ],
+          { isCutAtEnd: true },
+        ),
+      }),
+      line(44, {
+        severity: "Info",
+        maskedValue: "m***@b******.io",
+        excerpt: excerpt([
+          text("Newsletter sign-up from "),
+          match("m***@b******.io"),
+        ]),
+      }),
+      line(47, {
+        severity: "Info",
+        maskedValue: "s***@n*******.org",
+        excerpt: excerpt([
+          text("Password reset link sent to "),
+          match("s***@n*******.org"),
+        ]),
+      }),
+      line(52, {
+        severity: "Error",
+        maskedValue: "r***@a*************.example",
+        excerpt: excerpt([
+          text("SMTP 550 rejected "),
+          match("r***@a*************.example"),
+          text(": mailbox unavailable"),
+        ]),
+      }),
+    ]);
   }
 
   if (findingId === ID.finding(8)) {
-    return {
-      occurrences: [
-        line(2, {
-          traceId: CHECKOUT_TRACE,
-          spanId: "00f067aa0ba902b7",
-          severity: "Info",
-          maskedValue: "81.***.***.***",
+    return kept([
+      line(40, {
+        traceId: CHECKOUT_TRACE,
+        spanId: "00f067aa0ba902b7",
+        severity: "Info",
+        maskedValue: "81.***.***.***",
+        excerpt: excerpt([match("81.***.***.***")], {
+          field: "http.client_ip",
         }),
-      ],
-      since,
-      until,
-      recordsRead: 50,
-      isComplete: true,
-    };
+      }),
+    ]);
   }
 
-  return { occurrences: [], since, until, recordsRead: 12, isComplete: true };
+  // Found by a scan whose records the logs' retention has since let go.
+  return kept([]);
 }
 
 // Scrub It: the finding is masked at ingest from now on, by a rule as named.

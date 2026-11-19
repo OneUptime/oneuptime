@@ -501,6 +501,71 @@ describe("what the preview draws and says", () => {
     ]);
   });
 
+  /*
+   * #7470: in a service's first minutes the preview said "Nothing matched
+   * in this time." while Matching logs beside it listed the errors - its
+   * windows ended on the last five minutes before now, and the logs were
+   * younger than that. The server's windows now end at now (21:27:17 here,
+   * on no five-minute mark), and the newest holds the first 23 errors.
+   */
+  test("a service's first logs, in the window that ends now, are judged, never 'Nothing matched'", async () => {
+    const now: number = new Date("2026-11-12T21:27:17.000Z").getTime();
+    const start: number = now - 3 * WINDOW_SECONDS * 1000;
+
+    postMock.mockImplementation(() => {
+      return Promise.resolve(
+        new HTTPResponse(
+          200,
+          {
+            windowInSeconds: WINDOW_SECONDS,
+            startTime: new Date(start).toISOString(),
+            endTime: new Date(now).toISOString(),
+            buckets: [
+              {
+                time: new Date(now - WINDOW_SECONDS * 1000).toISOString(),
+                value: 23,
+              },
+            ],
+          },
+          {},
+        ),
+      );
+    });
+
+    render(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Logs}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.GreaterThan}
+        threshold={10}
+      />,
+    );
+
+    await waitForRead();
+
+    const verdict: HTMLElement = screen.getByTestId(
+      "telemetry-rule-preview-verdict",
+    );
+
+    expect(verdict).not.toHaveTextContent("Nothing matched in this time.");
+    expect(verdict).toHaveTextContent(
+      "This rule would have alerted 1 time, for 5 minutes.",
+    );
+    expect(
+      screen.getByTestId("telemetry-rule-preview-facts"),
+    ).toHaveTextContent("Latest: 23");
+    // Three bars, the newest the window that ends now.
+    expect(
+      lastChart().data[0]!.data.map((point: { x: Date; y: number }) => {
+        return [point.x.toISOString(), point.y];
+      }),
+    ).toEqual([
+      ["2026-11-12T21:12:17.000Z", 0],
+      ["2026-11-12T21:17:17.000Z", 0],
+      ["2026-11-12T21:22:17.000Z", 23],
+    ]);
+  });
+
   test("a rule for silence over windows with nothing in them warns it would alert at once", async () => {
     answerWith([0, 0, 0]);
 

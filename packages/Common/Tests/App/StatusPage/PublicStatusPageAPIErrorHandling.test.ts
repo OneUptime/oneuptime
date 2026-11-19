@@ -48,7 +48,7 @@ describe("public Status Page API authentication errors", () => {
 
     dashboardLogoutSpy = jest
       .spyOn(DashboardUser, "logout")
-      .mockImplementation(() => {}) as unknown as RecordedSpy;
+      .mockResolvedValue(null) as unknown as RecordedSpy;
     statusPageLogoutSpy = jest
       .spyOn(StatusPageUser, "logout")
       .mockResolvedValue(undefined) as unknown as RecordedSpy;
@@ -92,7 +92,7 @@ describe("public Status Page API authentication errors", () => {
     },
   );
 
-  test("retains page-scoped login handling for a private Status Page", () => {
+  test("retains page-scoped login handling for a private Status Page", async () => {
     StatusPageUtil.setIsPrivateStatusPage(true);
 
     const error: HTTPErrorResponse = new HTTPErrorResponse(
@@ -102,6 +102,11 @@ describe("public Status Page API authentication errors", () => {
     );
 
     StatusPageAPI.handleError(error);
+
+    // The sign-in page opens once the sign-out has settled (issue #9508).
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
 
     expect(dashboardLogoutSpy).not.toHaveBeenCalled();
     expect(statusPageLogoutSpy).toHaveBeenCalledTimes(1);

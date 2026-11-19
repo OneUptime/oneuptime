@@ -21,7 +21,12 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import MonitorProbe, {
+  MonitorStepProbeResponse,
+} from "Common/Models/DatabaseModels/MonitorProbe";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -29,10 +34,14 @@ import API from "Common/UI/Utils/API/API";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
-import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import SummaryInfo from "../../Monitor/SummaryView/SummaryInfo";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import MonitorTestVerdict from "./MonitorTestVerdict";
+import { WhoIsToldDraftInput } from "../../Monitor/Overview/WhoIsToldApi";
+import { getDraftLabelIds } from "../../Monitor/Overview/MonitorDraftWhoIsTold";
 
 /*
  * How often the dashboard asks whether the probe has reported back, and how
@@ -57,17 +66,133 @@ export const MONITOR_TEST_TIMED_OUT_MESSAGE: string = translationKey(
   "The test did not finish in time. The probe may be offline: check it under Probes, or pick another probe, then test again.",
 );
 
+// The dialog's words, said where they are drawn.
+export const MONITOR_TEST_WORDS: Readonly<{
+  description: string;
+  probeDescription: string;
+  onlyProbe: string;
+  resultDescription: string;
+}> = {
+  description: translationKey("Runs one check now, and shows what it finds."),
+  probeDescription: translationKey("Where the check runs from."),
+  onlyProbe: translationKey("The check runs from {{probe}}."),
+  resultDescription: translationKey(
+    "What one check found, and what would follow.",
+  ),
+};
+
 export interface ComponentProps {
   monitorId?: ObjectID | undefined;
   monitorSteps: MonitorSteps;
   monitorType: MonitorType;
   probes: Array<Probe>;
+  /*
+   * The probes that check this monitor, the likeliest first (#7985): the
+   * probes Create Monitor's form has picked, or the monitor's own, the one
+   * its summary shows first. The test starts on the first of them it
+   * offers; a project with one probe starts on that one, and asks nothing.
+   */
+  preferredProbeIds?: Array<string> | undefined;
+  /*
+   * For what would follow the result (#7074): a monitor not created yet is
+   * read as the form holds it, by its name and labels. A saved monitor's
+   * are read from it.
+   */
+  monitorName?: string | undefined;
+  labels?: Array<unknown> | undefined;
   buttonSize: ButtonSize;
   /*
    * Classes for the wrapper around the trigger button. None by default: the
    * button has no margin of its own, and the row it sits in spaces it.
    */
   className?: string | undefined;
+}
+
+/*
+ * The probe Test Monitor starts on (#7985): the first preferred probe it
+ * offers, else the only probe there is, else none - the person picks. It
+ * opened on an empty Select Probe in a project with one probe, and with
+ * the form's two probes already picked.
+ */
+export function getStartingTestProbeId(data: {
+  probes: ReadonlyArray<Probe>;
+  preferredProbeIds?: ReadonlyArray<string> | undefined;
+}): string | undefined {
+  const offered: Array<string> = data.probes
+    .map((probe: Probe): string => {
+      return probe._id?.toString() || "";
+    })
+    .filter((id: string): boolean => {
+      return Boolean(id);
+    });
+
+  for (const id of data.preferredProbeIds || []) {
+    if (offered.includes(id)) {
+      return id;
+    }
+  }
+
+  return offered.length === 1 ? offered[0] : undefined;
+}
+
+/*
+ * The probes a form or a monitor holds, as ids: a picker's values, the
+ * monitor's own probe rows (their probeId), or ids as they come.
+ */
+export function toProbeIds(values: unknown): Array<string> {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const ids: Array<string> = [];
+
+  for (const value of values) {
+    let id: string = "";
+
+    if (typeof value === "string") {
+      id = value;
+    } else if (value instanceof ObjectID) {
+      id = value.toString();
+    } else if (value && typeof value === "object") {
+      const item: { value?: unknown; _id?: unknown; probeId?: unknown } =
+        value as { value?: unknown; _id?: unknown; probeId?: unknown };
+      const raw: unknown = item.probeId ?? item.value ?? item._id;
+      id = raw ? String(raw) : "";
+    }
+
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
+}
+
+/*
+ * The probes that check a monitor, switched on, oldest first. None when
+ * they cannot be read: Test Monitor then starts as it would with none.
+ */
+export async function getCheckingProbeIds(
+  monitorId: ObjectID,
+): Promise<Array<string>> {
+  try {
+    const result: ListResult<MonitorProbe> = await ModelAPI.getList({
+      modelType: MonitorProbe,
+      query: { monitorId: monitorId },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      select: { probeId: true, isEnabled: true },
+      sort: { createdAt: SortOrder.Ascending },
+    });
+
+    return toProbeIds(
+      result.data.filter((row: MonitorProbe): boolean => {
+        return row.isEnabled !== false;
+      }),
+    );
+  } catch {
+    return [];
+  }
 }
 
 const MonitorTestForm: FunctionComponent<ComponentProps> = (
@@ -84,6 +209,11 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
   const [testedProbeName, setTestedProbeName] = useState<string | undefined>(
     undefined,
   );
+  /*
+   * The steps as the test ran them: what would follow the result is read
+   * for them, not for whatever the form holds by the time it arrives.
+   */
+  const [testedSteps, setTestedSteps] = useState<MonitorSteps | null>(null);
 
   /*
    * The poll that is currently in flight, so it can be stopped. Without this,
@@ -160,6 +290,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
       );
       setShowTestModal(false);
       setShowResultModal(true);
+      setTestedSteps(props.monitorSteps);
 
       // now we need to run the probe and get the result.
 
@@ -255,6 +386,30 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  const startingProbeId: string | undefined = getStartingTestProbeId({
+    probes: props.probes,
+    preferredProbeIds: props.preferredProbeIds,
+  });
+
+  // One probe in all: nothing to pick, so the dialog says which runs it.
+  const onlyProbe: Probe | undefined =
+    props.probes.length === 1 ? props.probes[0] : undefined;
+
+  const resultResponses: Array<ProbeMonitorResponse> = monitorStepProbeResponse
+    ? Object.values(monitorStepProbeResponse)
+    : [];
+
+  // The monitor the test ran, as who is told reads it (#7074).
+  const testedDraft: WhoIsToldDraftInput | null = testedSteps
+    ? {
+        monitorId: props.monitorId,
+        name: props.monitorName || "",
+        monitorType: props.monitorType,
+        monitorSteps: testedSteps,
+        labelIds: getDraftLabelIds(props.labels),
+      }
+    : null;
+
   return (
     <div>
       <div className={props.className}>
@@ -275,27 +430,70 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {showTestModal && (
+      {/*
+       * One probe in the project: no picker to open for the only entry in
+       * it (#7985) - the dialog says which probe runs the check, and Run
+       * Test runs it there.
+       */}
+      {showTestModal && onlyProbe ? (
+        <Modal
+          title={"Test Monitor"}
+          description={MONITOR_TEST_WORDS.description}
+          onClose={() => {
+            return setShowTestModal(false);
+          }}
+          onSubmit={() => {
+            void processResult(new ObjectID(onlyProbe._id!.toString()));
+          }}
+          submitButtonText="Run Test"
+          submitButtonStyleType={ButtonStyleType.PRIMARY}
+        >
+          <p
+            className="text-sm text-gray-700"
+            data-testid="test-monitor-only-probe"
+          >
+            <TranslatedSentence
+              template={MONITOR_TEST_WORDS.onlyProbe}
+              slots={{
+                // A probe's name is its owner's, drawn as written.
+                probe: (
+                  <span className="font-medium text-gray-900" dir="auto">
+                    {onlyProbe.name?.toString() || ""}
+                  </span>
+                ),
+              }}
+            />
+          </p>
+        </Modal>
+      ) : (
+        <></>
+      )}
+
+      {showTestModal && !onlyProbe ? (
         <BasicFormModal
           title={"Test Monitor"}
-          description="Run a test on this monitor to see if it is working correctly."
+          description={MONITOR_TEST_WORDS.description}
           onClose={() => {
             return setShowTestModal(false);
           }}
           onSubmit={async (data: JSONObject) => {
-            await processResult(data["probe"] as ObjectID);
+            await processResult(new ObjectID(String(data["probe"])));
           }}
           submitButtonText="Run Test"
           submitButtonStyleType={ButtonStyleType.PRIMARY}
           formProps={{
-            initialValues: {},
+            /*
+             * Starts on a probe that checks this monitor (#7985): the
+             * first the form or the monitor has.
+             */
+            initialValues: startingProbeId ? { probe: startingProbeId } : {},
             fields: [
               {
                 field: {
                   probe: true,
                 },
                 title: "Select Probe",
-                description: "Select the probe you want to run the test on.",
+                description: MONITOR_TEST_WORDS.probeDescription,
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(
                   {
@@ -310,12 +508,14 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
             ],
           }}
         />
+      ) : (
+        <></>
       )}
 
       {showResultModal && (
         <Modal
           title="Monitor Test Result"
-          description="The result of the monitor test will be shown below."
+          description={MONITOR_TEST_WORDS.resultDescription}
           submitButtonText="Close"
           submitButtonType={ButtonType.Button}
           submitButtonStyleType={ButtonStyleType.NORMAL}
@@ -348,12 +548,23 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
               </div>
             )}
             {monitorStepProbeResponse && (
-              <div className="mt-3">
+              <div className="mt-3 space-y-6">
+                {/*
+                 * What the answer means first (#7074): the criteria it
+                 * matched, and what would follow - then what the probe
+                 * found, with how each criteria judged it.
+                 */}
+                {testedDraft ? (
+                  <MonitorTestVerdict
+                    probeMonitorResponses={resultResponses}
+                    draft={testedDraft}
+                  />
+                ) : (
+                  <></>
+                )}
                 <SummaryInfo
                   monitorType={props.monitorType}
-                  probeMonitorResponses={Object.values(
-                    monitorStepProbeResponse,
-                  )}
+                  probeMonitorResponses={resultResponses}
                   probeName={testedProbeName}
                 />
               </div>

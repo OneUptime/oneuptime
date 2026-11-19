@@ -525,6 +525,9 @@ export class TelemetryFanInWriter {
      */
     const pendingMilestones: PendingTelemetryMilestones | null =
       TelemetryMilestones.collect(tableName, rows);
+    // And, of spans, which projects' first AI call they may be (#7325).
+    const pendingLlmCalls: PendingTelemetryMilestones | null =
+      TelemetryMilestones.collectLlmCalls(tableName, rows);
 
     // Started before the capacity wait, so the span shows that wait too.
     const span: Span | undefined = startSubmissionSpan(tableName, rows.length);
@@ -562,10 +565,11 @@ export class TelemetryFanInWriter {
         },
       );
 
-      if (pendingMilestones) {
+      if (pendingMilestones || pendingLlmCalls) {
         flushed.then(
           (): void => {
             TelemetryMilestones.markReached(pendingMilestones);
+            TelemetryMilestones.markReached(pendingLlmCalls);
           },
           (): void => {
             /*

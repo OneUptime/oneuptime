@@ -452,7 +452,8 @@ Mange servere kjører OneUptime til én oppgave, for eksempel å overvåke netts
 
 - **Forhåndsvalg** setter alle brytere med ett klikk: **Overvåking og statussider** beholder Monitorer, Hendelser, Vakt, Statussider og Planlagt vedlikehold; **Hendelseshåndtering** legger til Varsler, SLOs, Arbeidsflyter og Runbooks; **Alt** beholder alle produkter. **Velg produkter ett og ett** slår om ett enkelt produkt. Brukere, Team og Prosjektinnstillinger er alltid på.
 - Et produkt som er slått av, er borte fra menyen **Produkter** i hvert prosjekt, fra Hjem og fra Søk, og **Prosjektinnstillinger > Produkter** viser det som slått av. En lenke til en av sidene til produktet sier at produktet er slått av på denne serveren, og hvem som kan slå det på.
-- API-et nekter å opprette, endre eller slette produktets poster, og Spør AI utelater det. Lesing virker fortsatt, fordi produkter som forblir på, viser andres poster: en hendelse nevner monitorene sine.
+- API-et, arbeidsflyter og appene for Slack, Microsoft Teams og Mattermost nekter å opprette, endre eller slette produktets poster, og Spør AI utelater det. Lesing virker fortsatt, fordi produkter som forblir på, viser andres poster: en hendelse nevner monitorene sine.
+- OneUptime AI starter ikke noe arbeid på produktet: ingen undersøkelse, intet utkast til etteranalyse, ingen retting, ingen koderetting og ingen innsikt. Mens Runbooks er slått av, kjører et runbook fortsatt etter sin egen tidsplan, webhook og regler, og ingenting annet starter et: verken en person, automatisk utbedring, OneUptime AI eller en sikkerhetsplaybook.
 - Ingenting slettes, og det som allerede kjører, fortsetter å kjøre: monitorer fortsetter å sjekke, publiserte statussider forblir oppe, og telemetri fortsetter å komme, med mindre du også stopper innhentingen. Et produkt som slås på igjen, kommer tilbake slik det var.
 
 For å angi produktene som kode setter du `SERVER_PRODUCTS` i `config.env` (Helm: `products.onThisServer`) til `everything`, `monitoring-and-status-pages`, `incident-response` eller produktene som skal forbli på, etter nøkkel, for eksempel `monitors,incidents,on-call,status-pages`. Det er en startverdi: Så snart en administrator lagrer **Innstillinger > Produkter**, gjelder det vedkommende lagret.
@@ -475,7 +476,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | Tjenesten `global-runner` starter ikke. Bare runbooks og koderettingene til OneUptime AI bruker den. |
 | `MQTT_INGEST_ENABLED=false` | MQTT-lytterne som IoT-enheter sender til, er slått av. |
 
-Seks tjenester kjører fortsatt: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` og `valkey`. ClickHouse blir, fordi monitorer lagrer resultatene og loggene sine i den. På Kubernetes setter du `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` og `globalRunner.enabled: false` i Helm-values. Dimensjoner serveren etter [kravene](#krav).
+Seks tjenester kjører fortsatt: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` og `valkey`. ClickHouse blir, fordi monitorer lagrer resultatene og loggene sine i den. På Kubernetes setter du `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` og `globalRunner.enabled: false` i Helm-values.
+
+**Hva den trenger.** Målt på versjon 15.0.0 med Docker Compose, hver tjeneste begrenset til de samme 4 CPU-kjernene, som på en server med 4 kjerner. Minne er det `docker stats` rapporterer, gjennomsnittet av fem målinger med 30 sekunders mellomrom:
+
+| Tjeneste | I ro | Med 100 monitorer |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| Totalt | 2 274 MiB | 2 486 MiB |
+
+I ro er 10 minutter etter at OneUptime er klar, uten monitorer. Med 100 monitorer er 30 minutter etter at 100 Website-monitorer som sjekker hvert minutt, og en offentlig statusside som viser dem, er lagt til. Mens OneUptime starter, bruker tjenestene mer i et minutt eller to: opptil 3 584 MiB til sammen. I ro brukte ingen av dem mer enn en tidel av en CPU-kjerne.
+
+Etter de 30 minuttene tok PostgreSQLs data 163 MiB og ClickHouses 452 MiB, nesten alt ClickHouses egne logger: monitorenes sjekker tok under 2 MiB.
+
+Denne profilen kjører altså på en server med 4 CPU-kjerner og 6 GB minne, med plass til systemet, Docker og en oppdatering. nginx i `ingress` starter én worker per kjerne, så på en server med flere kjerner bruker den mer: omtrent 510 MiB med 32 kjerner.
+
+Én sonde sjekker med standardinnstillingene opptil 50 monitorer samtidig: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) med 10 monitorer hver (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Den ber om flere så snart den har plass, og er derfor ikke begrenset til 50 monitorer i minuttet: målt med 252 nettsteds-, API- og portmonitorer som sjekker hvert minutt, sjekket den hver av dem hvert minutt. Sonden i versjon 15.0.0 spurte bare én gang i minuttet, og sjekket altså høyst 50 monitorer i minuttet: for at de 100 monitorene skulle sjekkes hvert minutt, satte målingen ovenfor `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` i `config.env`. En sonde som kommer på etterskudd, sier fra i OneUptime-tilstand i Admin-dashbordet: øk en av de to innstillingene i `config.env` så den sjekker flere samtidig.
 
 ## Oppdater OneUptime
 

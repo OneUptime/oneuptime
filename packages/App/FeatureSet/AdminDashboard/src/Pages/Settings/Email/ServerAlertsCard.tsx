@@ -11,14 +11,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * WHERE MASTER ADMINS ARE TOLD WHEN THE SERVER'S EMAIL OR GLOBAL PROBES STOP
- * (#6879, Types/ServerSending/ServerAlerts).
+ * (#6879, Types/ServerSending/ServerAlerts), OR A GLOBAL PROBE FALLS BEHIND
+ * (#9500).
  *
  * The banner says "Email is failing" to whoever opens the product; this is
  * for when nobody does. A worker job tells master admins when the server's
- * email stops working, or every global probe stops reporting, and once
- * more when it works again - by a push to their own devices, by an SMS to
- * the number given here and, for the probes, by the Admin Notification
- * Email above. Never through the channel that stopped, never to a project
+ * email stops working, every global probe stops reporting or one falls
+ * behind, and once more when it is right again - by a push to their own
+ * devices, by an SMS to the number given here and, for the probes, by the
+ * Admin Notification Email above. Never through the channel that stopped, never to a project
  * member, at most once an hour. Push is on until turned off on a
  * self-hosted server; OneUptime Cloud sends nothing until its operator
  * chooses.
@@ -40,7 +41,7 @@ export const SERVER_ALERTS_COPY: {
 } = {
   title: translationKey("Outage Notifications"),
   description: translationKey(
-    "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.",
+    "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.",
   ),
   editButton: translationKey("Edit Outage Notifications"),
   phoneTitle: translationKey("Text This Number"),

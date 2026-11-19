@@ -30,6 +30,8 @@ import { getJestSpyOn } from "../../Spy";
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
+// The lists the page reads: the probes that check the monitor among them.
+const getListMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -53,7 +55,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       count: (): Promise<number> => {
         return Promise.resolve(0);
       },
-      getList: (): Promise<unknown> => {
+      getList: (...args: Array<unknown>): Promise<unknown> => {
+        getListMock(...args);
         return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
       },
     },
@@ -194,6 +197,7 @@ const WHO_IS_TOLD: WhoIsToldResult = {
 
 beforeEach(() => {
   monitorType = MonitorType.Manual;
+  getListMock.mockReset();
   getWhoIsToldMock.mockReset();
   getWhoIsToldMock.mockResolvedValue(WHO_IS_TOLD);
   getItemMock.mockReset();
@@ -341,5 +345,45 @@ describe("the monitor's menu", () => {
 
   test("lists Criteria for a monitor that has criteria", async () => {
     expect(await menuTitles(MonitorType.Website)).toContain("Criteria");
+  });
+});
+
+/*
+ * #7985: Test Monitor starts on a probe that checks the monitor - read from
+ * the monitor's probes, only for a monitor probes check, the one Test
+ * Monitor shows for.
+ */
+describe("the probes Test Monitor starts on", () => {
+  function monitorProbeReads(): Array<unknown> {
+    return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      const request: { modelType?: { name?: string } } = call[0] as {
+        modelType?: { name?: string };
+      };
+      return request?.modelType?.name === "MonitorProbe";
+    });
+  }
+
+  test("are read for a monitor probes check", async () => {
+    monitorType = MonitorType.Website;
+    await renderPage();
+
+    expect(monitorProbeReads()).toHaveLength(1);
+    expect(
+      (monitorProbeReads()[0] as Array<{ query: unknown }>)[0]!.query,
+    ).toEqual({ monitorId: new ObjectID(MONITOR_ID) });
+  });
+
+  test("are not read for a monitor no probe checks", async () => {
+    for (const type of [MonitorType.Logs, MonitorType.IncomingRequest]) {
+      monitorType = type;
+      getListMock.mockReset();
+      await renderPage();
+      cleanup();
+
+      expect({ type, reads: monitorProbeReads().length }).toEqual({
+        type,
+        reads: 0,
+      });
+    }
   });
 });

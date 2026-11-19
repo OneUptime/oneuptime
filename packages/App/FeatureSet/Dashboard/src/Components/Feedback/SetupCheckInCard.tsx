@@ -2,7 +2,7 @@ import AppLink from "../AppLink/AppLink";
 import { getSetupHealthRouteFromHome } from "../Home/NeedsAttention";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import FeedbackWhereItGoes from "./FeedbackWhereItGoes";
+import FeedbackWhereItGoes, { getFeedbackThanks } from "./FeedbackWhereItGoes";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -17,6 +17,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import ProductFeedback, {
   useProductFeedbackSettings,
 } from "Common/UI/Utils/ProductFeedback";
@@ -242,16 +243,24 @@ const SetupCheckInCard: FunctionComponent<ComponentProps> = (
               className="text-sm font-medium text-gray-900 text-pretty"
             >
               {stage === "yes" || stage === "sent"
-                ? translator.translateText("Thanks for telling us.")
+                ? getFeedbackThanks(translator)
                 : translator.translateText(
                     "Is OneUptime set up the way you wanted?",
                   )}
             </p>
             {stage === "asking" ? (
+              /*
+               * Who the one click tells, before it is given (#7462): the
+               * OneUptime team on Cloud, this server's admins elsewhere.
+               */
               <p className="mt-0.5 text-sm text-gray-600 text-pretty">
-                {translator.translateText(
-                  "Your project is a week old. One click tells us how it went.",
-                )}
+                {BILLING_ENABLED
+                  ? translator.translateText(
+                      "Your project is a week old. One click tells us how it went.",
+                    )
+                  : translator.translateText(
+                      "Your project is a week old. One click tells this server's admins how it went.",
+                    )}
               </p>
             ) : (
               <></>

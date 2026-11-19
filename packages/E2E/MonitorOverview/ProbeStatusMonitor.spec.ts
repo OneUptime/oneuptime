@@ -487,7 +487,7 @@ test.describe("Create Monitor: Probe Status", () => {
     await expect(
       moreOptions.getByTestId("card-select-option-Probe Status"),
     ).toContainText(
-      "Alert when a probe disconnects - one incident per outage, resolved when it reconnects.",
+      "Alert when a probe disconnects or falls behind - resolved by itself once it is back.",
     );
   });
 
@@ -531,13 +531,17 @@ test.describe("Create Monitor: Probe Status", () => {
       page.getByRole("combobox", { name: "Probes to watch" }),
     ).toBeVisible();
 
-    // The default criteria, folded: a probe down opens the incident.
+    /*
+     * The default criteria, folded: a probe down opens the incident, and a
+     * probe behind on its checks raises an alert (#9501), between the two.
+     */
     const headers: Locator = page.getByTestId("monitor-criteria-header");
-    await expect(headers).toHaveCount(2, { timeout: 30000 });
+    await expect(headers).toHaveCount(3, { timeout: 30000 });
     await expect(headers.nth(0)).toContainText(
       "Check if a probe is disconnected",
     );
-    await expect(headers.nth(1)).toContainText(
+    await expect(headers.nth(1)).toContainText("Check if a probe is behind");
+    await expect(headers.nth(2)).toContainText(
       "Check if every probe is connected",
     );
 
@@ -574,6 +578,7 @@ test.describe("Create Monitor: Probe Status", () => {
       `"probeStatusMonitor":{"probeIds":["${PROBES.frankfurt!.id}","${PROBES.singapore!.id}"]}`,
     );
     expect(steps).toContain('"checkOn":"Disconnected Probes"');
+    expect(steps).toContain('"checkOn":"Probes Behind"');
   });
 
   test("a self-hosted install with no probe of its own starts on its global probe", async ({

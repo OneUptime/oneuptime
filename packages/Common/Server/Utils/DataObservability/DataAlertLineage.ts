@@ -30,11 +30,13 @@ import { applyAlertRelatedRecordPrivacyFilter } from "../Alert/AlertPrivacyFilte
 import DataTableLineageReader, {
   DataLineageDirection,
   DataLineageEdgeRow,
+  DataLineageNamed,
   DataLineagePins,
   DataLineageReader,
   DataPipelineLineageReader,
   DataPipelineTables,
   MAX_DATA_LINEAGE_EDGE_ROWS,
+  NOTHING_NAMED,
 } from "./DataTableLineage";
 
 /*
@@ -173,6 +175,22 @@ function countsOwnTableAlerts(answer: DataAlertLineageAnswer): boolean {
   );
 }
 
+/*
+ * What a data alert names itself (#9562): its table, or its pipeline. Its
+ * title and its page name them to everyone who may see it, so what is
+ * written for all of them - its investigation's report - may name them,
+ * whoever owns them and whatever labels they carry (DataLineageNamed).
+ */
+export function getDataAlertNamed(row: {
+  dataAssetId?: ObjectID | undefined;
+  dataPipelineId?: ObjectID | undefined;
+}): DataLineageNamed {
+  return {
+    dataAssetIds: row.dataAssetId ? [row.dataAssetId.toString()] : [],
+    dataPipelineIds: row.dataPipelineId ? [row.dataPipelineId.toString()] : [],
+  };
+}
+
 function toAlertRow(row: DataAlert): DataAlertLineageRow {
   return {
     alertId: row.alertId?.toString() || "",
@@ -234,7 +252,12 @@ export default class DataAlertLineageReader {
       alertId: data.alertId.toString(),
       now: data.now,
       alerts: this.getDatabaseAlertReader(data.projectId, data.reader),
-      reader: DataTableLineageReader.getDatabaseReader(
+      /*
+       * Only the tables and pipelines its reader may read (#9526): an alert
+       * whose own table they may not read draws nothing, and no way to a
+       * cause or a consequence goes through one.
+       */
+      reader: await DataTableLineageReader.getScopedDatabaseReader(
         data.projectId,
         data.reader,
       ),
@@ -528,6 +551,17 @@ export default class DataAlertLineageReader {
 
     answer.lineage = lineage;
     answer.column = column;
+
+    // The table's own order of its columns, for the picker to offer the check's first and then these.
+    if (column && focus.dataAssetId && data.reader.readColumnOrder) {
+      const order: Array<string> = await data.reader.readColumnOrder(
+        focus.dataAssetId,
+      );
+
+      if (order.length > 0) {
+        answer.columnOrder = order;
+      }
+    }
     answer.isCauseDrawn = Boolean(causeKey && picked.causes.has(causeKey));
     answer.drawnConsequenceCount = consequences.rows.filter(
       (row: DataAlertLineageRow): boolean => {
@@ -730,6 +764,7 @@ export default class DataAlertLineageReader {
     const consequenceNodeIds: Set<string> = new Set();
     const dataPipelineIds: Set<string> = new Set();
     const causeDataPipelineIds: Set<string> = new Set();
+    const consequenceDataPipelineIds: Set<string> = new Set();
     const causes: Set<string> = new Set();
     const consequences: Set<string> = new Set();
 
@@ -809,9 +844,11 @@ export default class DataAlertLineageReader {
 
         dataPipelineIds.add(entry.way.dataPipelineId || "");
 
-        // The cause's pipeline: its arrows say Cause, an alert it caused's do not.
+        // The cause's pipeline: its arrows say Cause; an alert it caused's say Consequence.
         if (entry.isCause) {
           causeDataPipelineIds.add(entry.way.dataPipelineId || "");
+        } else {
+          consequenceDataPipelineIds.add(entry.way.dataPipelineId || "");
         }
       }
 
@@ -845,10 +882,32 @@ export default class DataAlertLineageReader {
         dataPipelineIds: Array.from(dataPipelineIds).sort(compareText),
         causeDataPipelineIds:
           Array.from(causeDataPipelineIds).sort(compareText),
+        consequenceDataPipelineIds: Array.from(consequenceDataPipelineIds).sort(
+          compareText,
+        ),
       },
       causes,
       consequences,
     };
+  }
+
+  /*
+   * What a data alert names itself (getDataAlertNamed): nothing, for an
+   * alert that is no data alert of the project's. Read as OneUptime: asked
+   * for the alert a run of OneUptime's own investigates, whose report its
+   * readers read (#9562).
+   */
+  public static async readNamed(
+    projectId: ObjectID,
+    alertId: ObjectID,
+  ): Promise<DataLineageNamed> {
+    const row: DataAlert | null = await DataAlertService.findOneBy({
+      query: { projectId, alertId },
+      select: { dataAssetId: true, dataPipelineId: true },
+      props: { isRoot: true },
+    });
+
+    return row ? getDataAlertNamed(row) : NOTHING_NAMED;
   }
 
   /*

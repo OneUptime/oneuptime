@@ -203,9 +203,40 @@ const SMTP_FORM_LINK: string = "/docs/emails/smtp#open-the-form";
  * not arrive. AdministrationDocsTranslations holds every language to them.
  */
 const NO_EMAIL_STEP: string =
-  "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form).";
+  "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form). Email set up later does not send the invitations made before it: they get in with their invitation link, or by signing up with the address you invited.";
 const NO_EMAIL_ANSWER: string =
   "On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can send them a new link, which works once, only for that address, for 7 days: on **Users**, open the person's row menu, **⋯**, and click **Get Invitation Link**.";
+
+/*
+ * Where the answer for an invitation email that did not arrive says to see
+ * whether it went out (#7169): the project's notification logs, and on a
+ * self-hosted server the server's own email log (#6878).
+ */
+const EMAIL_PROVIDERS_PAGE: string = "emails/email-providers";
+const EMAIL_LOG_LINK: string =
+  "/docs/emails/email-providers#see-what-the-server-sent";
+const WENT_OUT_ANSWER: string =
+  "To see whether it went out, open the **Email** tab of the project's **Notification Logs**: each invitation's row says whether it was sent, and why not. On a self-hosted server, a master admin also finds every email the server failed to send in its [email log](/docs/emails/email-providers#see-what-the-server-sent).";
+
+/*
+ * What the answer for a person who shows Email Not Sent says (#9511): what
+ * it means, where its reason comes from, and what to do, as the pill does.
+ */
+const EMAIL_NOT_SENT_ANSWER: string =
+  "The mail service refused their latest invitation email, so nothing reached them. Point at **Email Not Sent**, or tap it, to see why, as the **Email** tab of the project's **Notification Logs** says it. Check the address you invited, then, once email works, open the person's row menu on **Users**, **⋯**, and click **Resend Invitation**: they show as **Invitation Sent** again once it goes out. On a self-hosted server, the server's admin can send them their invitation link instead: a master admin clicks **Get Invitation Link** in the same menu.";
+
+/*
+ * What Accept an invitation says of the sign-up page an invitation opens
+ * (#7471), and of the link handed out where no email went (#7169).
+ */
+const SIGN_UP_JOINS: string =
+  "**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept.";
+const NO_EMAIL_ACCEPT: string =
+  "On a self-hosted server that cannot send email yet, nobody is emailed: the invitation link they are sent instead opens the same sign-up page, or the sign-in page for someone who already has an account.";
+
+// What Remove someone from the project says of a reader who reaches only some teams (#6599).
+const REMOVAL_LOCK: string =
+  "If your role removes people only from some teams, such as the ones you own, **Remove from Project** is locked for someone who is also in a team you can't remove them from, and names the teams that keep them in the project, the ones you may see. Removing several people at once leaves them out, and says so.";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 const PARAGRAPH_BREAK: RegExp = /\n[ \t]*\n/;
@@ -686,20 +717,118 @@ describe("Inviting People", () => {
     );
   });
 
-  it("names the invitation email's subjects and buttons", () => {
+  it("names the invitation email's subjects and buttons, and says it names who invited them", () => {
     const service: string = readCommonSource(
       "Server/Services/TeamMemberService.ts",
+    );
+    const inviter: string = readCommonSource(
+      "Server/Utils/TeamMember/InvitationInviter.ts",
     );
     const template: string = readPackageFile(
       "App/FeatureSet/Notification/Templates/InviteMember.hbs",
     );
 
-    expect(service).toContain('"You have been invited to " + project.name');
-    expect(service).toContain('"You have been added to " + project.name');
+    // The subject says who invited them, or what it always said (#7471).
+    expect(service).toContain("subject: InvitationInviterUtil.getSubject({");
+    expect(inviter).toContain('"You have been invited to " + data.projectName');
+    expect(inviter).toContain('"You have been added to " + data.projectName');
+    expect(inviter).toContain("`${name} invited you to ${data.projectName}`");
+    // The first line names them too.
+    expect(template).toContain(
+      '(concat inviterLabel " invited you to join " projectName " on " (brandName)',
+    );
     expect(template).toContain('buttonText="Create Your Account"');
     expect(template).toContain('buttonText=(concat "Sign In to " (brandName))');
-    expect(page).toContain(
-      "Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one.",
+    expect(section(page, "## Accept an invitation")).toContain(
+      "The invitation email names the project and who invited them. Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one.",
+    );
+  });
+
+  /*
+   * The sign-up page an invitation opens (#7471): it fills in what the
+   * invitation knows, says which project and who, and signing up there
+   * joins - the server accepts that project's invitation once the token
+   * has claimed the account. And where no email went (#7169), the link
+   * handed out instead opens the same pages.
+   */
+  it("says the sign-up page an invitation opens names the project and who invited them, fills in the name, and joins", () => {
+    const register: string = collapsed(
+      readPackageFile("App/FeatureSet/Accounts/src/Pages/Register.tsx"),
+    );
+    const authentication: string = collapsed(
+      readPackageFile("App/FeatureSet/Identity/API/Authentication.ts"),
+    );
+    const signUpInvitation: string = collapsed(
+      readPackageFile("App/FeatureSet/Identity/Utils/SignUpInvitation.ts"),
+    );
+    const accept: Array<string> = paragraphs(
+      section(page, "## Accept an invitation"),
+    );
+
+    // The page draws the invitation, fills in the name, and names the project in the sign-up.
+    expect(register).toContain(
+      "<InvitedSignUpHeader invitation={invitation} />",
+    );
+    expect(register).toContain(
+      'return current["name"] ? current : { ...current, name: name };',
+    );
+    expect(register).toContain(
+      "miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY] = invitation.projectId;",
+    );
+    // The server accepts it once the token has claimed the account.
+    expect(authentication).toContain(
+      "await SignUpInvitationUtil.acceptForClaimedAccount({ userId: alreadySavedUser.id!, projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY], });",
+    );
+    expect(signUpInvitation).toContain(
+      "hasAcceptedInvitation: true, invitationAcceptedAt: OneUptimeDate.getCurrentDate(),",
+    );
+
+    expect(accept[1]).toBe(SIGN_UP_JOINS);
+    expect(boldNames(SIGN_UP_JOINS)).toEqual(["Create Your Account"]);
+  });
+
+  it("says the link handed out where no email went opens the same sign-up page, or the sign-in page for an account", () => {
+    const invitationLink: string = collapsed(
+      readCommonSource("Server/Utils/InvitationLink.ts"),
+    );
+    const accept: Array<string> = paragraphs(
+      section(page, "## Accept an invitation"),
+    );
+
+    // An account with a password is sent the sign-in page; one without, the sign-up link.
+    expect(invitationLink).toContain(
+      "if (user.password) { return { link: await InvitationLink.getSignInLink(),",
+    );
+    expect(invitationLink).toContain(
+      "await UserRegistrationToken.generateRegistrationLink({ userId: user.id, email: user.email, });",
+    );
+    // The sign-up link is the one the email's Create Your Account carries.
+    expect(
+      collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
+    ).toContain("await UserRegistrationToken.generateRegistrationLink({");
+
+    expect(accept[2]).toBe(NO_EMAIL_ACCEPT);
+    // Then the two places for everyone who signs in.
+    expect(accept[3]).toBe(
+      "Someone who signs in, or signs up another way, accepts in one of two places:",
+    );
+  });
+
+  it("says email set up later sends no invitation made before it: an invitation is emailed when it is made", () => {
+    const service: string = readCommonSource(
+      "Server/Services/TeamMemberService.ts",
+    );
+    const onCreate: string = between(
+      service,
+      "protected override async onBeforeCreate(",
+      "protected override async onBeforeUpdate(",
+    );
+
+    // The one InviteMember email, sent as the membership is made.
+    expect(service.split("EmailTemplateType.InviteMember").length - 1).toBe(1);
+    expect(onCreate).toContain("templateType: EmailTemplateType.InviteMember,");
+    expect(NO_EMAIL_STEP).toContain(
+      "Email set up later does not send the invitations made before it: they get in with their invitation link, or by signing up with the address you invited.",
     );
   });
 
@@ -783,6 +912,20 @@ describe("Inviting People", () => {
       ':::details "You have reached the user limit for the free plan"',
     );
 
+    // Remove from Project's refusal, by its first sentence (#6599).
+    const someTeamsOnly: string =
+      "You can remove this person from only some of their teams, so you can't remove them from the project";
+
+    expect(
+      Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY.startsWith(
+        `${someTeamsOnly}.`,
+      ),
+    ).toBe(true);
+    expect(refusals).toContain(`:::details "${someTeamsOnly}"`);
+    expect(detailsText(page, `"${someTeamsOnly}"`)).toBe(
+      "Your role removes people only from some of the project's teams, such as the ones you own, and this person is in others too. Remove them from your own teams on their **Teams** page, or ask a Project Owner or Project Admin to remove them from the project.",
+    );
+
     // The Free plan holds one person.
     const service: string = readCommonSource(
       "Server/Services/TeamMemberService.ts",
@@ -855,6 +998,9 @@ describe("Inviting People", () => {
       readDashboardSource("Utils/ServerEmail.ts"),
     );
     const usersPage: string = collapsed(users);
+    const pendingPill: string = collapsed(
+      readDashboardSource("Components/User/PendingInvitationPill.tsx"),
+    );
 
     it("ends the Send the invitation step with what Invite does there, in a paragraph of its own", () => {
       expect(paragraphs(step)).toEqual([
@@ -870,8 +1016,15 @@ describe("Inviting People", () => {
     });
 
     it("shows the person as Invited, the pill the Users list draws while the server cannot send email", () => {
+      // The Users list draws a pending person's pill with PendingInvitationPill (#9511).
       expect(usersPage).toContain(
-        'text={ cannotSendEmail(serverEmail) ? SERVER_EMAIL_COPY.invitedPill : "Invitation Sent" }',
+        "if (!item.hasAcceptedInvitation) { return ( <PendingInvitationPill serverEmail={serverEmail} notSent={invitationEmailsNotSent.getNotSent(item)} /> ); }",
+      );
+      expect(pendingPill).toContain(
+        "if (cannotSendEmail(props.serverEmail)) { return ( <Pill text={SERVER_EMAIL_COPY.invitedPill} color={Yellow} dataTestId={PENDING_INVITATION_PILL_TEST_ID} /> ); }",
+      );
+      expect(pendingPill).toContain(
+        'if (!props.notSent) { return ( <Pill text="Invitation Sent" color={Yellow} dataTestId={PENDING_INVITATION_PILL_TEST_ID} /> ); }',
       );
       expect(serverEmail).toContain(
         "invitedPill: INVITATION_LINK_COPY.invitedPill,",
@@ -891,7 +1044,7 @@ describe("Inviting People", () => {
     it("hands a master admin the invitation link dialog after Invite, and opens the person's page on Done", () => {
       // After Invite: a master admin gets the dialog; anyone else the person's page.
       expect(usersPage).toContain(
-        "if ( cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin && teamMember.id ) { setInvitationLinkFor({ teamMemberId: teamMember.id, viewPageRoute: new Route(viewPageRoute), }); } else { Navigation.navigate(new Route(viewPageRoute)); }",
+        "if ( cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin && teamMember.id ) { setInvitationLinkFor({ teamMemberId: teamMember.id, viewPageRoute: new Route(viewPageRoute), isEmailNotSent: false, }); } else { Navigation.navigate(new Route(viewPageRoute)); }",
       );
       // Done closes the dialog and goes on to the person's page.
       expect(usersPage).toContain(
@@ -956,6 +1109,7 @@ describe("Inviting People", () => {
     it("ends the troubleshooting answer for a missing invitation email with what happens without email, in a paragraph of its own", () => {
       expect(paragraphs(answer)).toEqual([
         "The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.",
+        WENT_OUT_ANSWER,
         NO_EMAIL_ANSWER,
       ]);
       // The list, its row menu and the action, as the Dashboard draws them.
@@ -1005,9 +1159,13 @@ describe("Inviting People", () => {
         "/remove-user-from-project`",
       );
 
-      // The Users list offers it on a pending row, to a master admin, on a server that cannot send email.
+      /*
+       * The Users list offers it on a pending row, to a master admin, on a
+       * server that cannot send email - or whose latest invitation email
+       * was not sent (#9511) - beside Resend Invitation (#9519).
+       */
       expect(usersPage).toContain(
-        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, onOpen: (teamMemberId: ObjectID) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, }); }, }), ]}",
+        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail) ? (item: TeamMember): boolean => { return Boolean(invitationEmailsNotSent.getNotSent(item)); } : undefined, onOpen: (teamMemberId: ObjectID, item: TeamMember) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, isEmailNotSent: !cannotSendEmail(serverEmail) && Boolean(invitationEmailsNotSent.getNotSent(item)), }); }, }), getResendInvitationRowAction<TeamMember>({ isAvailable: canResendInvitations(serverEmail), getRequestHeaders: () => { return ModelAPI.getCommonHeaders(); }, }), ]}",
       );
       expect(serverEmail).toContain(
         "return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;",
@@ -1021,7 +1179,7 @@ describe("Inviting People", () => {
        * (#8191), whom the same link lets in.
        */
       expect(invitationLink).toContain(
-        "if (!data.isAvailable || !item.id) { return false; } return !item.hasAcceptedInvitation || Boolean(data.isNotSignedUp?.(item));",
+        "if (!item.id) { return false; } if (item.hasAcceptedInvitation) { return data.isAvailable && Boolean(data.isNotSignedUp?.(item)); } return data.isAvailable || Boolean(data.isEmailNotSent?.(item));",
       );
       // In the row menu: the row's button is View, which ModelTable puts first.
       expect(invitationLink).not.toContain("ActionButtonPlacement.Primary");
@@ -1077,16 +1235,42 @@ describe("Inviting People", () => {
     /*
      * Someone who has not accepted yet is Invitation Sent, or Invited on a
      * server that cannot send email, where no invitation email went out
-     * (#6877).
+     * (#6877), or Email Not Sent when the mail service refused their latest
+     * invitation email (#9511): one pill, PendingInvitationPill, drawn for
+     * a pending row.
      */
     const pending: string = between(
       users,
       "if (!item.hasAcceptedInvitation) {",
-      "color={Yellow}",
+      "/>",
+    ).replace(/\s+/g, " ");
+    const pill: string = readDashboardSource(
+      "Components/User/PendingInvitationPill.tsx",
     ).replace(/\s+/g, " ");
 
     expect(pending).toContain(
-      'text={ cannotSendEmail(serverEmail) ? SERVER_EMAIL_COPY.invitedPill : "Invitation Sent" }',
+      "<PendingInvitationPill serverEmail={serverEmail} notSent={invitationEmailsNotSent.getNotSent(item)}",
+    );
+    expect(pill).toContain(
+      "if (cannotSendEmail(props.serverEmail)) { return ( <Pill text={SERVER_EMAIL_COPY.invitedPill}",
+    );
+    expect(pill).toContain(
+      'if (!props.notSent) { return ( <Pill text="Invitation Sent"',
+    );
+    // Email Not Sent: one pill, which the Admin Dashboard draws too (#9518).
+    expect(pill).toContain("<InvitationEmailNotSentPill");
+    expect(
+      readCommonSource(
+        "UI/Components/InvitationLink/InvitationEmailNotSentPill.tsx",
+      ),
+    ).toContain("text={INVITATION_EMAIL_NOT_SENT_COPY.pill}");
+    expect(
+      readCommonSource(
+        "UI/Components/InvitationLink/InvitationEmailNotSentPill.tsx",
+      ),
+    ).toContain('pill: translationKey("Email Not Sent"),');
+    expect(readDashboardSource("Utils/ServerEmail.ts")).toContain(
+      "emailNotSentPill: INVITATION_EMAIL_NOT_SENT_COPY.pill,",
     );
     expect(readDashboardSource("Utils/ServerEmail.ts")).toContain(
       "invitedPill: INVITATION_LINK_COPY.invitedPill,",
@@ -1109,17 +1293,114 @@ describe("Inviting People", () => {
         return row[0] as string;
       }),
     ).toEqual(["**User**", "**Teams**", "**Status**"]);
-    // The Status column's three pills, and when a pending person is Invited.
+    /*
+     * The Status column's four pills: when a pending person is Email Not
+     * Sent, and when Invited.
+     */
     expect(boldNames(columns[2]?.[1] as string)).toEqual([
       "Member",
       "Invitation Sent",
+      "Email Not Sent",
       "Invited",
     ]);
+    expect(columns[2]?.[1]).toContain(
+      "**Invitation Sent** until then, or **Email Not Sent** when the mail service refused their latest invitation email.",
+    );
     expect(columns[2]?.[1]).toContain(
       "On a self-hosted server that cannot send email yet, **Invited** instead: the invitation is created, but no email goes out.",
     );
     expect(list).toContain(
       "Filter the list by **User**, **Status** or **Team**.",
+    );
+  });
+
+  /*
+   * A pending person whose latest invitation email the mail service refused
+   * says Email Not Sent (#9511). The answer for it says what that means,
+   * where its reason comes from and what to do, as the pill and its row do.
+   */
+  it("answers Email Not Sent as the pill says it: why, in the Email Logs' words, and what to do", () => {
+    const answer: string = detailsText(page, "A person shows Email Not Sent");
+    // The pill the Dashboard and the Admin Dashboard draw alike (#9518).
+    const pill: string = collapsed(
+      readCommonSource(
+        "UI/Components/InvitationLink/InvitationEmailNotSentPill.tsx",
+      ),
+    );
+    const serverEmail: string = collapsed(
+      readDashboardSource("Utils/ServerEmail.ts"),
+    );
+    const reader: string = collapsed(
+      readCommonSource("Server/Utils/TeamMember/InvitationEmailsNotSent.ts"),
+    );
+    const modal: string = collapsed(
+      readCommonSource("UI/Components/InvitationLink/InvitationLinkModal.tsx"),
+    );
+    const resend: string = collapsed(
+      readCommonSource("UI/Components/InvitationLink/ResendInvitation.ts"),
+    );
+
+    expect(answer).toBe(EMAIL_NOT_SENT_ANSWER);
+    expect(boldNames(answer)).toEqual([
+      "Email Not Sent",
+      "Email",
+      "Notification Logs",
+      "Users",
+      "⋯",
+      "Resend Invitation",
+      "Invitation Sent",
+      "Get Invitation Link",
+    ]);
+
+    // Resend Invitation (#9519): the row action, on a pending row, in the row's menu.
+    expect(resend).toContain('action: translationKey("Resend Invitation"),');
+    expect(resend).toContain("title: RESEND_INVITATION_COPY.action,");
+    expect(resend).toContain(
+      "return ( data.isAvailable && Boolean(item.id) && !item.hasAcceptedInvitation );",
+    );
+    expect(resend).not.toContain("ActionButtonPlacement.Primary");
+    // The row reads its status again once it went: Invitation Sent.
+    expect(resend).toContain("context?.refresh();");
+    expect(collapsed(users)).toContain(
+      "getResendInvitationRowAction<TeamMember>({",
+    );
+    expect(
+      collapsed(readCommonSource("Server/API/TeamMemberAPI.ts")),
+    ).toContain("/:id${RESEND_INVITATION_ROUTE_END}`");
+
+    // The person's latest invitation email decides, and it was refused.
+    expect(reader).toContain(
+      "templateType: QueryHelper.equalToOrNull(EmailTemplateType.InviteMember),",
+    );
+    expect(reader).toContain(
+      "if (row.status !== MailStatus.Error) { continue; }",
+    );
+
+    // Pointed at or tapped, the pill says why, as the Email Logs table words it.
+    expect(pill).toContain("<ExplainedPill");
+    expect(readCommonSource("UI/Components/Pill/ExplainedPill.tsx")).toContain(
+      "isShownOnPress={true}",
+    );
+    expect(pill).toContain("getEmailLogReason(");
+    expect(
+      readDashboardSource("Components/NotificationLogs/EmailLogsTable.tsx"),
+    ).toContain("getEmailLogReason(");
+
+    // What to do, as the pill tells anybody who is not a master admin: Resend Invitation.
+    expect(serverEmail).toContain(
+      '"Once email works, use Resend Invitation, or ask your server\'s admin for their invitation link."',
+    );
+    expect(serverEmail).toContain(
+      '"Check their email address, then use Resend Invitation."',
+    );
+    expect(serverEmail).not.toContain("remove them and invite them again");
+
+    // A master admin's Get Invitation Link, on that row.
+    expect(serverEmail).toContain(
+      "canGetLinksOfInvitationsNotSent: ( serverEmail: ServerEmail, ) => boolean = (serverEmail: ServerEmail): boolean => { return serverEmail.isMasterAdmin; };",
+    );
+    expect(modal).toContain(
+      "return data.isAvailable || Boolean(data.isEmailNotSent?.(item));",
     );
   });
 
@@ -1217,6 +1498,84 @@ describe("Inviting People", () => {
     expect(section(page, "## Remove someone from the project")).toContain(
       "open the person's row menu, **⋯**, and click **Remove from Project**",
     );
+  });
+
+  /*
+   * Someone whose role removes people only from the teams they own cannot
+   * take a person off a team they do not (#6599): Remove from Project is
+   * locked for them, naming the teams that keep the person - the ones the
+   * reader may read - on the row, in Bulk Actions and on the person's page.
+   */
+  it("says Remove from Project is locked for someone a role reaching only some teams cannot take off every team, naming the teams it may see", () => {
+    const removalReach: string = collapsed(
+      readDashboardSource("Utils/ProjectRemovalReach.ts"),
+    );
+    const personPage: string = collapsed(
+      readDashboardSource("Components/User/RemoveUserFromProject.tsx"),
+    );
+    const route: string = collapsed(
+      readCommonSource("Server/API/TeamMemberAPI.ts"),
+    );
+
+    // The row's lock, which a bulk removal checks too.
+    expect(users).toContain(
+      "getDeleteDisabledReason={removalReach.getDeleteDisabledReason}",
+    );
+    expect(users).toContain("<ProjectRemovalBulkDetails");
+    // Asked only of a reader who may remove people, but not across the whole project.
+    expect(removalReach).toContain(
+      "GrantablePermission.canCurrentUserActOnWholeProject([ ...PROJECT_REMOVAL_PERMISSIONS, ])",
+    );
+    // The person's page locks it too.
+    expect(personPage).toContain("disabled: Boolean(lockReason),");
+    // Teams are named only for a reader who may read them.
+    expect(route).toContain("await ReadableTeamNames.read({");
+
+    const paragraphsOfSection: Array<string> = paragraphs(
+      section(page, "## Remove someone from the project"),
+    );
+
+    expect(paragraphsOfSection[1]).toBe(REMOVAL_LOCK);
+    expect(boldNames(REMOVAL_LOCK)).toEqual(["Remove from Project"]);
+  });
+
+  it("says where to see whether an invitation email went out: the project's notification logs, and the server's email log", () => {
+    const sideMenu: string = readDashboardSource("Pages/Settings/SideMenu.tsx");
+    const tabs: string = readDashboardSource(
+      "Components/NotificationLogs/NotificationLogsTabs.tsx",
+    );
+    const providers: string = english(EMAIL_PROVIDERS_PAGE);
+    const logHeading: DocsHeading | undefined = scanMarkdown(
+      providers,
+    ).headings.find((heading: DocsHeading): boolean => {
+      return heading.text === "See what the server sent";
+    });
+
+    /*
+     * The invitation email is the project's, so its log row is too - sent
+     * again by Resend Invitation as well (#9519).
+     */
+    expect(
+      collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
+    ).toContain(
+      "MailService.sendMail(invitationEmail, { projectId: createBy.data.projectId!, userId: user.id!, }).catch(",
+    );
+    expect(
+      collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
+    ).toContain(
+      "await MailService.sendMail(invitationEmail, { projectId: projectId, userId: user.id, timeoutInMs: RESEND_INVITATION_SEND_TIMEOUT_IN_MS, });",
+    );
+    expect(sideMenu).toContain('title: "Notification Logs"');
+    expect(tabs).toContain('name: "Email"');
+    // And a failed one is in the server's own email log, for a master admin.
+    expect(`/docs/${EMAIL_PROVIDERS_PAGE}#${logHeading?.slug}`).toBe(
+      EMAIL_LOG_LINK,
+    );
+    expect(section(providers, "## See what the server sent")).toContain(
+      "and every email it failed to send, a project's too",
+    );
+    expect(linkTargets(WENT_OUT_ANSWER)).toEqual([EMAIL_LOG_LINK]);
+    expect(boldNames(WENT_OUT_ANSWER)).toEqual(["Email", "Notification Logs"]);
   });
 });
 
@@ -1482,8 +1841,13 @@ describe("Project Settings", () => {
       new Project().getTableColumnMetadata("isFeatureFlagMonitorGroupsEnabled")
         .defaultValue,
     ).toBe(false);
-    expect(section(page, "## Feature flags")).toContain(
-      "Today it holds **Monitor Groups**, off in a new project",
+    // Feature Flags' one switch is on Products, under Monitors (#7324).
+    expect(page).not.toContain("## Feature flags");
+    expect(section(page, "## Products")).toContain(
+      "Under **Monitors**, the **Monitor Groups** switch adds Monitor Groups to the Monitors menu. It is off in a new project and saves when you flip it, and turning it off deletes no group.",
+    );
+    expect(section(page, "## Products")).toContain(
+      "Changing it takes the Project Owner role, or a custom role with the Edit Project or Manage Billing permission.",
     );
   });
 
@@ -2912,6 +3276,8 @@ describe("every page", () => {
       const sent: Array<string> = [
         Errors.TeamMemberService.ALREADY_INVITED,
         Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+        // Remove from Project refused for a role that reaches only some teams (#6599).
+        Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY,
         PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
         // An invitation refused for its address (PublicMessageRateLimit).
         PublicMessageRateLimit.getTeamRefusalMessage({

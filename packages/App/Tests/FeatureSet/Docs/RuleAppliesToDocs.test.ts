@@ -102,11 +102,16 @@ const PAGES: ReadonlyArray<AppliesToPage> = [
     namesAppliesTo: false,
   },
   {
+    // The owner and label rules' Match step, and the reminder rules' (#9026).
     page: "scheduled-maintenance/settings",
     subject: RuleCriteriaSubject.ScheduledMaintenanceEvents,
-    models: ["ScheduledMaintenanceReminderRule"],
+    models: [
+      "ScheduledMaintenanceOwnerRule",
+      "ScheduledMaintenanceLabelRule",
+      "ScheduledMaintenanceReminderRule",
+    ],
     namesMatching: true,
-    namesAppliesTo: false,
+    namesAppliesTo: true,
   },
   {
     page: "rum/applications",

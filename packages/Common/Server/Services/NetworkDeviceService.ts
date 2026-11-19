@@ -135,6 +135,15 @@ const SITE_RULE_IDENTITY_COLUMNS: Array<string> = [
  */
 const SITE_KEYS: Array<string> = ["siteId", "site"];
 
+const MINUTE_IN_MS: number = 60 * 1000;
+
+/*
+ * How many probes one statement of getOldestWaitingPollDueAt reads: each is
+ * one short index range, so a server with thousands of probes still reads
+ * them in a few statements a minute.
+ */
+export const PROBES_PER_LATE_POLL_READ: number = 500;
+
 /*
  * Null, undefined and "  Core-SW " all mean the same thing to a
  * case-insensitive wildcard match, so compare identity values normalised -
@@ -3485,6 +3494,15 @@ export class Service extends ProjectReferencesService<Model> {
    * After the claim, the due devices it stepped over - nothing may poll
    * them now - are set aside (setAsideUnpollable), so the next claim does
    * not step over them again (Utils/Probe/ClaimSetAside).
+   *
+   * A device's next poll is counted from the whole minute nearest the claim
+   * (getPollScheduleStart, OneUptime issue #9499), never from the claim's
+   * own millisecond. A probe asks at the top of each minute, give or take
+   * the few hundred milliseconds its request takes, so a next poll counted
+   * from the claim itself came due a moment after the probe's next ask at
+   * least as often as before it - and that poll then waited a whole minute
+   * more: about every other poll of a 5-minute device came after 6, and a
+   * 1-minute device was polled every 2 minutes half the time.
    */
   @CaptureSpan()
   public async claimDevicesForPolling(data: {
@@ -3520,12 +3538,12 @@ export class Service extends ProjectReferencesService<Model> {
         -- Each device's own interval: NULL (and 0) is the 5-minute default,
         -- and anything below 1 minute is clamped - a walk can take tens of
         -- seconds, so sub-minute schedules would only stack up. Counted from
-        -- the moment the claim compared nextPollAt against, cast as
-        -- ::timestamptz and never ::timestamp: node-postgres sends a Date as
-        -- local wall-clock digits plus an offset, and a ::timestamp cast
-        -- would throw the offset away and skew every schedule by the gap
-        -- between the app's offset and the database session's timezone.
-        SET "nextPollAt" = $2::timestamptz
+        -- the whole minute nearest the claim ($5, getPollScheduleStart),
+        -- cast as ::timestamptz and never ::timestamp: node-postgres sends a
+        -- Date as local wall-clock digits plus an offset, and a ::timestamp
+        -- cast would throw the offset away and skew every schedule by the
+        -- gap between the app's offset and the database session's timezone.
+        SET "nextPollAt" = $5::timestamptz
           + GREATEST(COALESCE(NULLIF(device."pollingIntervalInMinutes", 0), 5), 1)
             * INTERVAL '1 minute'
         FROM "due"
@@ -3547,6 +3565,7 @@ export class Service extends ProjectReferencesService<Model> {
         currentDate,
         data.limit,
         activeSubscriptionStatuses,
+        Service.getPollScheduleStart(currentDate),
       ],
     );
 
@@ -3695,6 +3714,117 @@ export class Service extends ProjectReferencesService<Model> {
    * - The project is served (getActiveProjectStatusQuery): not deleted,
    *   not blocked by a master admin, and its subscriptions not inactive.
    */
+  /*
+   * The moment a claim at `claimedAt` counts its devices' next polls from:
+   * the whole minute nearest it (see claimDevicesForPolling, #9499). A
+   * probe that asks a few hundred milliseconds into a minute, or a few
+   * before it, finds the device due at its ask that many minutes on either
+   * way; one that asks again mid-minute while it catches up counts from
+   * the minute it is nearest, so a device's polls stay its interval apart
+   * on average and never come closer than half a minute short of it.
+   */
+  public static getPollScheduleStart(claimedAt: Date): Date {
+    return new Date(
+      Math.round(claimedAt.getTime() / MINUTE_IN_MS) * MINUTE_IN_MS,
+    );
+  }
+
+  /*
+   * For each probe, when its longest-waiting device poll was due: the
+   * oldest nextPollAt, at or before `dueAt`, of the devices the claim would
+   * hand it now (getPollableSql), or null when none waits. What
+   * Probe:UpdateBehind reads once a minute to say a probe is behind on its
+   * network devices (Types/Probe/ProbeBehind, OneUptime issue #9499): the
+   * device twin of MonitorProbeService.getOldestWaitingCheckDueAt.
+   *
+   * Per probe, the claim's own range of the (probeId, nextPollAt) index,
+   * stopped at its first row that may be polled: a probe that keeps up has
+   * next to nothing in it, and the claim sets aside the due rows nothing
+   * may poll. PROBES_PER_LATE_POLL_READ probes a statement.
+   */
+  @CaptureSpan()
+  public async getOldestWaitingPollDueAt(data: {
+    probeIds: Array<ObjectID>;
+    dueAt: Date;
+  }): Promise<Map<string, Date | null>> {
+    const oldest: Map<string, Date | null> = new Map<string, Date | null>();
+    const probeIds: Array<string> = Array.from(
+      new Set(
+        data.probeIds
+          .map((id: ObjectID): string => {
+            return id.toString();
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    for (
+      let start: number = 0;
+      start < probeIds.length;
+      start += PROBES_PER_LATE_POLL_READ
+    ) {
+      const chunk: Array<string> = probeIds.slice(
+        start,
+        start + PROBES_PER_LATE_POLL_READ,
+      );
+
+      // `watched`, not `pr`: getPollableSql names the device's Probe `pr`.
+      const rows: unknown = await this.getRepository().manager.query(
+        `
+          SELECT watched."probeId"::text AS "probeId",
+            (
+              SELECT nd."nextPollAt"
+              FROM "NetworkDevice" nd
+              INNER JOIN "Project" p ON nd."projectId" = p."_id"
+              INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
+              WHERE nd."probeId" = watched."probeId"
+                AND nd."nextPollAt" <= $2
+                AND ${Service.getPollableSql("$3")}
+              ORDER BY nd."nextPollAt" ASC
+              LIMIT 1
+            ) AS "oldestDueAt"
+          FROM unnest($1::uuid[]) AS watched("probeId")
+        `,
+        [
+          chunk,
+          data.dueAt,
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        ],
+      );
+
+      for (const row of Array.isArray(rows) ? rows : []) {
+        const probeRow: {
+          probeId?: string;
+          oldestDueAt?: Date | string | null;
+        } = row as { probeId?: string; oldestDueAt?: Date | string | null };
+
+        if (probeRow.probeId) {
+          oldest.set(probeRow.probeId, Service.toDate(probeRow.oldestDueAt));
+        }
+      }
+    }
+
+    for (const probeId of probeIds) {
+      if (!oldest.has(probeId)) {
+        oldest.set(probeId, null);
+      }
+    }
+
+    return oldest;
+  }
+
+  private static toDate(value: Date | string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const date: Date = value instanceof Date ? value : new Date(value);
+
+    return isNaN(date.getTime()) ? null : date;
+  }
+
   private static getPollableSql(statusesParameter: string): string {
     return [
       `nd."isPollingEnabled" = true`,

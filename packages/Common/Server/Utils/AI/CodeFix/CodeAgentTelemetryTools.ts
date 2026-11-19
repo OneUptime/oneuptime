@@ -62,6 +62,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { describeChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 
 /*
  * THE CODE AGENT'S PRODUCTION TELEMETRY TOOLS.
@@ -160,12 +161,19 @@ export interface CodeAgentTelemetryTool {
  * The context a read runs in: a system read held to the run's project, as
  * the autonomous investigations read (AIInvestigationEngine). The model
  * layer adds the tenant to every query of a model with a project column,
- * and every query below names the project as well.
+ * and every query below names the project as well. What the agent finds
+ * lands in a pull request, which people outside the project's roles read,
+ * so the read is narrowed for them as an investigation's is for its
+ * subject's readers (CodeAgentScope.readAudience, #9576): an incident set
+ * apart by an owner or a label, where some role reads incidents only by
+ * owner or label, is never read.
  */
 export function getTelemetryToolContext(scope: CodeAgentScope): ToolContext {
   return {
     projectId: scope.projectId,
-    props: { isRoot: true, tenantId: scope.projectId },
+    props: scope.readAudience
+      ? ReadAudiencePermission.getReadProps(scope.readAudience)
+      : { isRoot: true, tenantId: scope.projectId },
   };
 }
 

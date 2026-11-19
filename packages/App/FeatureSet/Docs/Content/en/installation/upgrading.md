@@ -6,7 +6,7 @@ Upgrade a self-hosted OneUptime — Docker Compose, or Kubernetes with Helm — 
 - [How to upgrade](#how-to-upgrade): The procedure, for Docker Compose and Kubernetes.
 - [Notes for each version](#find-the-notes-for-your-version): What each major version asks of you, at a glance.
 - [Community and Enterprise Edition images](#community-and-enterprise-edition-images): Which image to run from 14 on.
-- [Upgrading from OneUptime 15 → 16](#upgrading-from-oneuptime-15-16): The newest major version.
+- [Upgrading from OneUptime 16 → 17](#upgrading-from-oneuptime-16-17): The newest major version.
 :::
 
 ## How to upgrade
@@ -80,6 +80,7 @@ Then check your version again, as in the first step. If you have not reached you
 
 | Upgrade | What you must do |
 | --- | --- |
+| [16 → 17](#upgrading-from-oneuptime-16-17) | In API scripts, move a row with its move request instead of writing its `order`, and add one in the middle of a list by creating it, then moving it. Terraform and OpenTofu need no change. |
 | [15 → 16](#upgrading-from-oneuptime-15-16) | Upgrade the Terraform provider with the server, and take the SCIM bearer tokens, webhook addresses and SNMP credentials 16 no longer gives out of API reads. Update your Runners. Replace every server of 15 soon, and roll back only within a day. |
 | [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. Replace every server of 14 soon. |
 | [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. AI code fixes move to the global Runner: keep it on, and on Helm move `runner.keda` to `globalRunner.keda`. |
@@ -182,6 +183,55 @@ settings that used to show an upgrade prompt.
 - The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs,
   and the global SSO endpoints) keep their exact paths and are served by both
   editions in every license state.
+
+## Upgrading from OneUptime 16 → 17
+
+OneUptime 17 lets Terraform and OpenTofu number a list in one apply. Five
+lists are numbered by `order`: a status page's groups and its resources, an
+on-call policy's escalation rules, an on-call schedule's layers, and the people
+in a layer. Writing a row's `order` used to move it, the rows it passed
+stepping aside. Terraform and OpenTofu number a list with one write per row, in
+no set order, so an apply never settled: the next plan showed new differences,
+two rows at one number among them. Writing `order` now places only its own
+row, and moving a row is a request of its own. Upgrade from 16 — if you are
+still on 15, do 15 → 16 first.
+
+Terraform and OpenTofu need no change: the provider sends only the attributes
+that changed, so the provider versions already released converge once the
+server is upgraded. The next apply puts every row at the number configured,
+and the plan after it is empty. Moving a row in the dashboard works as it did.
+
+### What you need to do for 17
+
+1. **If an API script moves a row by writing its `order`, have it send the
+   move request instead.** A `PUT` of a row's `order` now places that row
+   alone: the rows it passes no longer step aside. To move a row, send
+   `POST /api/<resource>/<id>/move` with `{ "placeOfId": "<id>" }`. The row
+   takes the place of the row named, the rows between them step one place
+   towards where it was, and the list is numbered 1..n in its new order.
+2. **If an API script adds a row in the middle of a list, have it create the
+   row, then move it.** A row created at a number another row holds now
+   shares that number with it, instead of pushing the rows from there down.
+   Create the row without `order`, which puts it after the last row, then
+   move it to the place of the row it goes before.
+
+### Other changes in 17
+
+These change how OneUptime behaves after the upgrade. Read them if you number
+these lists through the API, Terraform or OpenTofu.
+
+:::details Read the other changes in 17
+- **Rows that share a number are read in the order of their IDs, and a gap in
+  the numbers changes nothing.** Two rows of a list can share a number while
+  an apply is under way, or for good if a configuration gives them one, and a
+  deleted row now leaves its gap instead of the rows after it moving up.
+  Groups and resources that share a number are shown in the order of their
+  IDs, layers are ranked that way, and the people of a layer take their turns
+  that way. An on-call policy pages two levels that share a number one after
+  the other, in the order of their IDs: before 17, the second was never
+  paged. A policy's next level is the first after the one it is on, never the
+  one numbered one more.
+:::
 
 ## Upgrading from OneUptime 15 → 16
 

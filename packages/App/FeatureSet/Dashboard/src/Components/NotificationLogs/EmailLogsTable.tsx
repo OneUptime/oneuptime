@@ -21,10 +21,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
-import ServerSendingWords, {
-  SERVER_EMAIL_NOT_SET_UP_MESSAGE,
-} from "Common/Types/ServerSending/ServerSendingWords";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { getEmailLogReason } from "../../Utils/EmailLogReason";
 
 /*
  * What View Subject says for an email sent without one: a dialog with an
@@ -191,15 +189,14 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             onClick: async (item: EmailLog, onCompleteAction: VoidFunction) => {
               /*
                * A send the server had no email set up for reads as that, in
-               * the reader's words - not the SMTP phrase older rows hold.
+               * the reader's words - not the SMTP phrase older rows hold -
+               * as the Users list's Email Not Sent words it (#9511).
                */
-              const statusMessage: string = item["statusMessage"] as string;
-
               setModalText(
-                ServerSendingWords.isServerEmailNotSetUpMessage(statusMessage)
-                  ? translator.translateText(SERVER_EMAIL_NOT_SET_UP_MESSAGE) ||
-                      SERVER_EMAIL_NOT_SET_UP_MESSAGE
-                  : statusMessage,
+                getEmailLogReason(
+                  item["statusMessage"] as string | undefined,
+                  translator,
+                ).text,
               );
               setModalTitle("Status Message");
               setShowModal(true);

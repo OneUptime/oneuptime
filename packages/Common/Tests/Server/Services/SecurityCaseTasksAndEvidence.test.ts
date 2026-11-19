@@ -6,9 +6,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "../../../Models/DatabaseModels/File";
 import Project from "../../../Models/DatabaseModels/Project";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
@@ -28,6 +30,7 @@ import SecurityCasePriorityService, {
   checkResponseTargets,
 } from "../../../Server/Services/SecurityCasePriorityService";
 import SecurityCaseTaskService, {
+  normalizeResponseStepKey,
   normalizeTaskTitle,
 } from "../../../Server/Services/SecurityCaseTaskService";
 import UserService from "../../../Server/Services/UserService";
@@ -50,6 +53,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import MimeType from "../../../Types/File/MimeType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import SecurityCaseEvidenceKind from "../../../Types/SecurityCase/SecurityCaseEvidenceKind";
 import { DEFAULT_SECURITY_CASE_PRIORITIES } from "../../../Utils/SecurityCase/SecurityCasePriorities";
 
@@ -217,6 +221,23 @@ describe("a task's title", () => {
   });
 });
 
+describe("a response plan step's key", () => {
+  test("is kept trimmed, and none for anything that is not text", () => {
+    expect(normalizeResponseStepKey("  fix:patch  ")).toBe("fix:patch");
+    expect(normalizeResponseStepKey("")).toBeUndefined();
+    expect(normalizeResponseStepKey("   ")).toBeUndefined();
+    expect(normalizeResponseStepKey(42)).toBeUndefined();
+    expect(normalizeResponseStepKey(null)).toBeUndefined();
+  });
+
+  test("is at most 100 characters", () => {
+    expect(normalizeResponseStepKey("k".repeat(100))).toHaveLength(100);
+    expect(() => {
+      return normalizeResponseStepKey("k".repeat(101));
+    }).toThrow(BadDataException);
+  });
+});
+
 describe("adding a task", () => {
   function task(overrides: Partial<SecurityCaseTask> = {}): SecurityCaseTask {
     const model: SecurityCaseTask = new SecurityCaseTask();
@@ -325,6 +346,128 @@ describe("adding a task", () => {
         data: { doneAt: NOW, doneByUserId: MAYA_ID },
       },
     ]);
+  });
+
+  /*
+   * A step of the case's response plan, ticked off where it is suggested,
+   * is a task added done (#9557): the timeline says it was done, not that
+   * a task was added for later.
+   */
+  test("added done: on the timeline as done, in green", async () => {
+    await taskHooks.onCreateSuccess(
+      onCreate(task({ isDone: true })),
+      created({ isDone: true, createdByUserId: MAYA_ID }),
+    );
+
+    expect(feedItems).toEqual([
+      {
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        feedInfoInMarkdown:
+          "☑️ Completed the task **Reset the admin password**.",
+        eventType: SecurityCaseFeedEventType.Task,
+        displayColor: Green500,
+        userId: MAYA_ID,
+      },
+    ]);
+  });
+
+  test("made from a response plan step: the step kept, trimmed", async () => {
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    const data: SecurityCaseTask = task({
+      responseStepKey: "  contain:block-ip:203.0.113.7  ",
+      isDone: true,
+    });
+
+    await taskHooks.onBeforeCreate({ data, props: MAYA });
+
+    expect(data.responseStepKey).toBe("contain:block-ip:203.0.113.7");
+    expect(count).toHaveBeenCalledWith({
+      query: {
+        securityCaseId: CASE_ID,
+        responseStepKey: "contain:block-ip:203.0.113.7",
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  /*
+   * A task can name its case by the relation alone: the step is asked
+   * about on that case all the same, and the case is kept in the ID column
+   * the saved row is read by (RelationIdUtil.readIntoIdColumn).
+   */
+  test("a step of a case named by the relation alone is held to one task a step, on that case", async () => {
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    const theCase: SecurityCase = new SecurityCase();
+    theCase._id = CASE_ID.toString();
+
+    // Its case by the relation, and no ID column.
+    const data: SecurityCaseTask = new SecurityCaseTask();
+    data.projectId = PROJECT_ID;
+    data.securityCase = theCase;
+    data.title = "Reset the admin password";
+    data.responseStepKey = "confirm:review-requests";
+
+    await taskHooks.onBeforeCreate({ data, props: MAYA });
+
+    expect(count).toHaveBeenCalledWith({
+      query: {
+        securityCaseId: CASE_ID,
+        responseStepKey: "confirm:review-requests",
+      },
+      props: { isRoot: true },
+    });
+    expect(data.securityCaseId?.toString()).toBe(CASE_ID.toString());
+  });
+
+  test("a step of a task whose two names of its case disagree is refused, and no other task is read", async () => {
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    const anotherCase: SecurityCase = new SecurityCase();
+    anotherCase._id = TASK_ID.toString();
+
+    await expect(
+      taskHooks.onBeforeCreate({
+        data: task({
+          securityCase: anotherCase,
+          responseStepKey: "confirm:review-requests",
+        }),
+        props: MAYA,
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+    expect(count).not.toHaveBeenCalled();
+  });
+
+  test("a step that is a task on the case already is refused: ticked off twice at once, it is done once", async () => {
+    jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+
+    await expect(
+      taskHooks.onBeforeCreate({
+        data: task({ responseStepKey: "confirm:review-requests" }),
+        props: MAYA,
+      }),
+    ).rejects.toThrow(
+      "This step of the response plan is a task on this case already. Tick it off on the case's Tasks page.",
+    );
+  });
+
+  test("a task with no step reads no other task, and keeps no step", async () => {
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    const data: SecurityCaseTask = task({ responseStepKey: "   " });
+
+    await taskHooks.onBeforeCreate({ data, props: MAYA });
+
+    expect(data.responseStepKey).toBeUndefined();
+    expect(count).not.toHaveBeenCalled();
   });
 
   test("a title that reads as Markdown is shown as the text it is", async () => {

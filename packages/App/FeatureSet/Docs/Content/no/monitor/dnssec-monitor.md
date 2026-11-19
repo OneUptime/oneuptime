@@ -62,7 +62,7 @@ Angi sonen som skal valideres, i **Sone (domenenavn)**, som `example.com`. Behol
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva hver sjekk fant.
+Klikk på **Test monitor**: testen starter på en sonde som sjekker monitoren. Velg en annen under **Velg sonde** om du vil, og klikk så på **Kjør test**. **Resultat av monitortest** viser hva hver sjekk fant. Det sier også hvilket kriterium svaret oppfyller og hva som ville fulgt: statusen, hendelsen eller varselet, og hvem som får beskjed.
 
 ### Gå gjennom kriteriene
 

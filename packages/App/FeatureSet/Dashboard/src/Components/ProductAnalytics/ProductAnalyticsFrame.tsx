@@ -97,9 +97,11 @@ export function ProductAnalyticsToolbar(props: {
 }
 
 /*
- * Counting starts with the first session recorded once an installation
- * runs a version with product analytics: nothing recorded before then is
- * in the tables. Said when the range reaches back past that, so a month
+ * Counting starts with the oldest session the tables hold: the oldest
+ * recording still kept when an installation upgraded to a version with
+ * product analytics, which the upgrade copies in
+ * (BackfillProductAnalyticsFromKeptSessions, #6624), or the first one
+ * recorded since. Said when the range reaches back past that, so a month
  * that is half empty reads as new rather than as a month nobody came.
  */
 export const COUNTING_SINCE_SESSIONS: string = translationKey(

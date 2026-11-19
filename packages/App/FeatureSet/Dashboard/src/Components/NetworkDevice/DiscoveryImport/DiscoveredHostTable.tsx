@@ -46,6 +46,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -72,6 +73,14 @@ import {
 } from "../DiscoveredHostFilter";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import DeviceMonitorsLink from "../DeviceMonitorsLink";
+import {
+  DeviceMonitorsByKey,
+  DeviceMonitorsSummary,
+  emptyDeviceMonitorsByKey,
+  getMonitorsOfRow,
+  loadDeviceMonitors,
+} from "../DeviceMonitorsOfDevices";
 
 /*
  * THE HOSTS OF A SCAN, TO CHOOSE FROM (Network > Discovery > Review Results,
@@ -94,6 +103,11 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  *
  * Rows are paged, fifty at a time: a scan of thousands is narrowed with the
  * search and the facets, and the page stays light however large it is.
+ *
+ * A host that is already a device says whether it is monitored too (issue
+ * #9509): "Already monitored" and a link to its monitor - or to the
+ * device's monitors - read for the page's already-added hosts, or "Already
+ * added" when nothing watches it yet or that could not be read.
  */
 
 export const DISCOVERED_HOSTS_PER_PAGE: number = 50;
@@ -215,6 +229,51 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
     (currentPage - 1) * DISCOVERED_HOSTS_PER_PAGE,
     currentPage * DISCOVERED_HOSTS_PER_PAGE,
   );
+
+  /*
+   * The monitors of the page's hosts that are already devices (issue
+   * #9509), read once per page shown, and kept as pages are turned. A read
+   * that fails leaves those hosts "Already added".
+   */
+  const [deviceMonitors, setDeviceMonitors] = useState<DeviceMonitorsByKey>(
+    emptyDeviceMonitorsByKey(),
+  );
+  const monitorsRequestRef: React.MutableRefObject<number> = useRef<number>(0);
+  const alreadyAddedOnPage: string = pageHosts
+    .filter((shown: ShownDiscoveredHost): boolean => {
+      return Boolean(shown.host.isAlreadyRegistered && shown.host.ipAddress);
+    })
+    .map((shown: ShownDiscoveredHost): string => {
+      return shown.host.ipAddress;
+    })
+    .sort()
+    .join(",");
+
+  useEffect(() => {
+    if (!alreadyAddedOnPage) {
+      return;
+    }
+
+    monitorsRequestRef.current += 1;
+    const request: number = monitorsRequestRef.current;
+
+    loadDeviceMonitors({ hostnames: alreadyAddedOnPage.split(",") })
+      .then((loaded: DeviceMonitorsByKey) => {
+        if (request !== monitorsRequestRef.current) {
+          return;
+        }
+
+        setDeviceMonitors((current: DeviceMonitorsByKey) => {
+          return {
+            byDeviceId: new Map([...current.byDeviceId, ...loaded.byDeviceId]),
+            byHostname: new Map([...current.byHostname, ...loaded.byHostname]),
+          };
+        });
+      })
+      .catch(() => {
+        // The hosts stay "Already added", which is still true.
+      });
+  }, [alreadyAddedOnPage]);
 
   const isNarrowed: boolean = isDiscoveredHostQueryNarrowed(query);
 
@@ -535,6 +594,14 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                   }
                   isDisabled={Boolean(props.isDisabled)}
                   naming={props.namingPreview?.get(shown.host.ipAddress)}
+                  monitors={
+                    shown.host.isAlreadyRegistered
+                      ? getMonitorsOfRow({
+                          monitors: deviceMonitors,
+                          hostname: shown.host.ipAddress,
+                        })
+                      : undefined
+                  }
                   onCheckedChange={(value: boolean) => {
                     props.onSelectionChange(
                       (current: Record<string, boolean>) => {
@@ -583,6 +650,11 @@ export interface DiscoveredHostRowProps {
   onCheckedChange: (value: boolean) => void;
   // What the naming rules call the host, when the project has rules.
   naming?: DeviceNamingPreviewItem | undefined;
+  /*
+   * The monitors of the device the host already is, when it has any (issue
+   * #9509): the row says "Already monitored" and links to them.
+   */
+  monitors?: DeviceMonitorsSummary | undefined;
 }
 
 /*
@@ -892,13 +964,32 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
         ) : (
           <></>
         )}
-        {entry.isAlreadyRegistered && (
-          <Pill
-            text="Already added"
-            tone={PillTone.Neutral}
-            className="flex-shrink-0"
-          />
-        )}
+        {entry.isAlreadyRegistered &&
+          (props.monitors ? (
+            /*
+             * Monitored already: said, with the way to its monitor, so
+             * nobody looks for another way to give it a second one.
+             */
+            <Fragment>
+              <Pill
+                text="Already monitored"
+                tone={PillTone.Success}
+                className="flex-shrink-0"
+                dataTestId={`discovered-host-monitored-${entry.ipAddress}`}
+              />
+              <DeviceMonitorsLink
+                summary={props.monitors}
+                className="max-w-[12rem] text-xs"
+                dataTestId={`discovered-host-monitor-link-${entry.ipAddress}`}
+              />
+            </Fragment>
+          ) : (
+            <Pill
+              text="Already added"
+              tone={PillTone.Neutral}
+              className="flex-shrink-0"
+            />
+          ))}
       </div>
     </li>
   );

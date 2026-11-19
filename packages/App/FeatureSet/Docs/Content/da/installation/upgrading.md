@@ -6,7 +6,7 @@ Opgrader en selvhostet OneUptime-installation – med Docker Compose, eller med 
 - [Sådan opgraderer du](#sådan-opgraderer-du): Fremgangsmåden for Docker Compose og Kubernetes.
 - [Noterne for hver version](#find-noterne-for-din-version): Hvad hver hovedversion kræver af dig, på et øjeblik.
 - [Images til Community Edition og Enterprise Edition](#images-til-community-edition-og-enterprise-edition): Hvilket image du kører fra 14 og frem.
-- [Opgradering fra OneUptime 15 → 16](#opgradering-fra-oneuptime-15-16): Den nyeste hovedversion.
+- [Opgradering fra OneUptime 16 → 17](#opgradering-fra-oneuptime-16-17): Den nyeste hovedversion.
 :::
 
 ## Sådan opgraderer du
@@ -80,6 +80,7 @@ Kontrollér derefter din version igen, som i det første trin. Hvis du endnu ikk
 
 | Opgradering | Hvad du skal gøre |
 | --- | --- |
+| [16 → 17](#opgradering-fra-oneuptime-16-17) | Flyt i API-scripts en række med dens flytteforespørgsel i stedet for at skrive dens `order`, og tilføj en række midt i en liste ved at oprette den og derefter flytte den. Terraform og OpenTofu behøver ingen ændring. |
 | [15 → 16](#opgradering-fra-oneuptime-15-16) | Opgrader Terraform-provideren sammen med serveren, og fjern de SCIM-bearer-tokens, webhookadresser og SNMP-loginoplysninger, som 16 ikke længere udleverer, fra læseforespørgsler til API'et. Opdater dine Runnere. Erstat hver server fra 15 snart, og rul kun tilbage inden for en dag. |
 | [14 → 15](#opgradering-fra-oneuptime-14-15) | Kopiér master-API-nøglen først, hvis du læser den i Admin-dashboardet. Opgrader Terraform-provideren sammen med serveren, og fjern de legitimationsoplysninger, som 15 ikke længere udleverer, fra læseforespørgsler til API'et. Står serveren bag en proxy, så lad proxyen nå din identitetsudbyder, dine kalendere, MCP-servere og lageret til dine sikkerhedskopier. Tjek monitorer for indgående anmodninger, der modtager ren tekst. Erstat hver server fra 14 snart. |
 | [13 → 14](#opgradering-fra-oneuptime-13-14) | Vælg en udgave. Docker Compose-installationer, der sætter `IS_ENTERPRISE_EDITION=true`, skifter til `APP_TAG=enterprise-release`. Aktivér en licens på Enterprise Edition. Gem IPv6-monitorer af typen Ping, Port og SSL igen. AI-koderettelser flytter til den globale Runner: Lad den være slået til, og flyt på Helm `runner.keda` til `globalRunner.keda`. |
@@ -124,6 +125,25 @@ For dig ændrer intet sig. OneUptime Cloud kører Enterprise Edition, og din pla
 - Selvhostede installationer leverer ikke længere licensserverens endpoints under `/api/enterprise-license/`. Kun oneuptime.com bruger dem.
 - SCIM-endpoints beholder præcis deres stier på Enterprise Edition, så identitetsudbyderens konfiguration ændrer sig ikke. På Community Edition returnerer de `404`. På Enterprise Edition afviser de forespørgsler, mens licensen er udløbet (efter prøveperioden eller henstandsperioden), og de svarer igen, så snart en licens er aktiveret.
 - SSO- og OIDC-endpoints (SAML-login- og ACS-URL'erne, OIDC-redirect-URI'erne og det globale SSO's endpoints) beholder præcis deres stier og leveres af begge udgaver i enhver licensstatus.
+
+## Opgradering fra OneUptime 16 → 17
+
+Med OneUptime 17 nummererer Terraform og OpenTofu en liste i én apply. Fem lister er nummereret efter `order`: en statussides grupper og dens ressourcer, en vagtpolitiks eskaleringsregler, en vagtplans lag og personerne i et lag. At skrive en rækkes `order` flyttede tidligere rækken, og de rækker, den passerede, rykkede til side. Terraform og OpenTofu nummererer en liste med én skrivning pr. række, i vilkårlig rækkefølge, så en apply faldt aldrig til ro: den næste plan viste nye forskelle, blandt dem to rækker med samme nummer. Nu placerer en skrivning af `order` kun sin egen række, og at flytte en række er en forespørgsel for sig. Opgrader fra 16 – hvis du stadig er på 15, så tag 15 → 16 først.
+
+Terraform og OpenTofu behøver ingen ændring: provideren sender kun de attributter, der er ændret, så også de allerede udgivne versioner af provideren falder til ro, så snart serveren er opgraderet. Den næste apply sætter hver række på det konfigurerede nummer, og planen derefter er tom. Det virker som før at flytte en række i dashboardet.
+
+### Hvad du skal gøre for 17
+
+1. **Hvis et API-script flytter en række ved at skrive dens `order`, så lad det sende flytteforespørgslen i stedet.** En `PUT` af en rækkes `order` placerer nu kun den række: de rækker, den passerer, rykker ikke længere til side. For at flytte en række sender du `POST /api/<resource>/<id>/move` med `{ "placeOfId": "<id>" }`. Rækken tager pladsen fra den navngivne række, rækkerne imellem rykker én plads i retning af der, hvor den flyttede række stod, og listen nummereres 1..n i sin nye rækkefølge.
+2. **Hvis et API-script tilføjer en række midt i en liste, så lad det oprette rækken og derefter flytte den.** En række, der oprettes med et nummer, som en anden række har, deler nu det nummer med den i stedet for at skubbe rækkerne derfra og nedad. Opret rækken uden `order`, så den kommer efter den sidste række, og flyt den derefter til pladsen for den række, den skal stå foran.
+
+### Andre ændringer i 17
+
+Disse ændringer ændrer, hvordan OneUptime opfører sig efter opgraderingen. Læs dem, hvis du nummererer disse lister gennem API'et, Terraform eller OpenTofu.
+
+:::details Læs de øvrige ændringer i 17
+- **Rækker med samme nummer læses i rækkefølgen af deres ID'er, og et hul i numrene ændrer intet.** To rækker i en liste kan dele et nummer, mens en apply er i gang, eller for altid, hvis en konfiguration giver dem det samme, og en slettet række efterlader nu sit hul i stedet for, at rækkerne efter den rykker op. Grupper og ressourcer med samme nummer vises i rækkefølgen af deres ID'er, lag rangeres på samme måde, og personerne i et lag skiftes på samme måde. En vagtpolitik tilkalder to niveauer med samme nummer efter hinanden, i rækkefølgen af deres ID'er: før 17 blev det andet aldrig tilkaldt. Det næste niveau i en politik er det første efter det nuværende, aldrig det med nummeret én højere.
+:::
 
 ## Opgradering fra OneUptime 15 → 16
 

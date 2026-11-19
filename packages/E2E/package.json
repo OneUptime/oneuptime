@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "16.0.0",
+  "version": "17.0.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -45,6 +45,8 @@
     "test-monitor-overview-ui": "playwright test --config playwright.monitor-overview-ui.config.ts",
     "test-home-overview-ui": "playwright test --config playwright.home-overview-ui.config.ts",
     "test-give-feedback-ui": "playwright test --config playwright.give-feedback-ui.config.ts",
+    "test-feedback-questions-ui": "playwright test --config playwright.feedback-questions-ui.config.ts",
+    "test-product-analytics-saved-views-ui": "playwright test --config playwright.product-analytics-saved-views-ui.config.ts",
     "test-network-first-run-ui": "playwright test --config playwright.network-first-run-ui.config.ts",
     "test-meraki-traffic-ui": "playwright test --config playwright.meraki-traffic-ui.config.ts",
     "test-network-traffic-names-ui": "playwright test --config playwright.network-traffic-names-ui.config.ts",
@@ -65,6 +67,7 @@
     "test-packet-capture-ui": "playwright test --config playwright.packet-capture-ui.config.ts",
     "test-llm-provider-test-ui": "playwright test --config playwright.llm-provider-test-ui.config.ts",
     "test-server-setup-ui": "playwright test --config playwright.server-setup-ui.config.ts",
+    "test-server-products-ui": "playwright test --config playwright.server-products-ui.config.ts",
     "test-admin-health-ui": "playwright test --config playwright.admin-health-ui.config.ts",
     "test-pagination-ui": "playwright test --config playwright.pagination-ui.config.ts",
     "test-calendar-feed-ui": "playwright test --config playwright.calendar-feed-ui.config.ts",

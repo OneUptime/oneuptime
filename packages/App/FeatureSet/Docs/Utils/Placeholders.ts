@@ -11,6 +11,10 @@ import {
   CLI_RESOURCE_COMMANDS_PLACEHOLDER,
   getCliResourceCommandsMarkdown,
 } from "./CliCommandsTable";
+import {
+  AZURE_STREAM_KEPT_METRICS_PLACEHOLDER,
+  getAzureStreamKeptMetricsMarkdown,
+} from "./CloudStreamKeptMetrics";
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
 import { AppVersion, IpWhitelist } from "Common/Server/EnvironmentConfig";
 import fs from "fs";
@@ -328,6 +332,14 @@ export default class DocsPlaceholders {
         content,
         CLI_RESOURCE_COMMANDS_PLACEHOLDER,
         getCliResourceCommandsMarkdown(lang),
+      );
+    }
+
+    if (content.includes(AZURE_STREAM_KEPT_METRICS_PLACEHOLDER)) {
+      content = replaceAll(
+        content,
+        AZURE_STREAM_KEPT_METRICS_PLACEHOLDER,
+        getAzureStreamKeptMetricsMarkdown(),
       );
     }
 

@@ -32,6 +32,8 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { ExecuteWorkflowType } from "Common/Server/Types/Workflow/TriggerCode";
 import VMAPI from "Common/Server/Utils/VM/VMAPI";
 import logger from "Common/Server/Utils/Logger";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
+import ProductKey from "Common/Types/Product/ProductKey";
 import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
@@ -251,6 +253,18 @@ export default class QueueWorkflow {
 
     if (!workflow.isEnabled && !startedByUserId) {
       throw new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE);
+    }
+
+    /*
+     * Workflows switched off on the server (#7479): nobody starts a run -
+     * Run Workflow, Run just this step and Run again are refused with who
+     * can switch it on. What already runs keeps running, as everywhere
+     * else a product is switched off: a schedule, a webhook, an event or
+     * another workflow starts it as before, and its steps change no record
+     * of a product that is off (ProductWriteRefusal).
+     */
+    if (startedByUserId) {
+      await ServerProducts.assertProductIsOn(ProductKey.Workflows);
     }
 
     const isTestRun: boolean = !workflow.isEnabled;

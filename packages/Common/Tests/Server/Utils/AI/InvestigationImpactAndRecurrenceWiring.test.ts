@@ -29,6 +29,26 @@ import ObjectID from "../../../../Types/ObjectID";
 import SloStatus from "../../../../Types/ServiceLevelObjective/SloStatus";
 import { IMPACT_SECTION_TITLE } from "../../../../Utils/AI/InvestigationReport";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import ReadAudienceReader, {
+  ReadAudienceSubject,
+} from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
+
+/*
+ * Who reads the report: everyone who may see its incident or alert, worked
+ * out before the starting context is read (ReadAudienceReader, #9576) - here
+ * a project whose roles narrow nobody.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockImplementation(
+      async (subject: ReadAudienceSubject): Promise<ReadAudience> => {
+        return readAudienceOf({ projectId: subject.projectId });
+      },
+    );
+});
 
 /*
  * Contract under test - the runners wire what a report's Impact section and
@@ -172,9 +192,11 @@ describe("the runners wire the Impact block and an alert's recurrence", () => {
   test("an incident's context names the SLOs that count it, read for its own record", async () => {
     const request: InvestigationRequest = await investigateIncident();
 
+    // For everyone who may see the incident (#9576).
     expect(readImpactForIncident).toHaveBeenCalledWith({
       projectId,
       incidentId,
+      readAudience: readAudienceOf({ projectId }),
     });
     expect(request.contextSummary).toContain(`\n# ${IMPACT_SECTION_TITLE}\n`);
     expect(request.contextSummary).toContain(
@@ -189,7 +211,11 @@ describe("the runners wire the Impact block and an alert's recurrence", () => {
   test("an alert's context names its SLOs too", async () => {
     const request: InvestigationRequest = await investigateAlert();
 
-    expect(readImpactForAlert).toHaveBeenCalledWith({ projectId, alertId });
+    expect(readImpactForAlert).toHaveBeenCalledWith({
+      projectId,
+      alertId,
+      readAudience: readAudienceOf({ projectId }),
+    });
     expect(request.contextSummary).toContain(
       "The SLOs that count this alert, as the SLO evaluation last measured them",
     );
@@ -232,6 +258,7 @@ describe("the runners wire the Impact block and an alert's recurrence", () => {
     expect(pastAlerts).toHaveBeenCalledWith({
       projectId,
       currentAlertId: alertId,
+      readAudience: readAudienceOf({ projectId }),
     });
     expect(pastIncidents).not.toHaveBeenCalled();
     expect(request.contextSummary).toContain(PAST_RESOLVED_ALERTS_HEADING);

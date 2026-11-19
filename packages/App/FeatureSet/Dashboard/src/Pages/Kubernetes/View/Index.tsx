@@ -51,10 +51,30 @@ import {
   KubernetesWarningSummary,
 } from "../Utils/KubernetesObjectFetcher";
 import {
+  getOpenShiftAttentionItems,
   getWorseClusterHealth,
   KubernetesClusterHealth,
   OpenShiftClusterHealth,
 } from "../Utils/KubernetesOpenShiftHealth";
+import {
+  KubernetesPodStatusCountsRead,
+  KubernetesStatusChip,
+  countKubernetesPodsThatCannotRun,
+  getKubernetesStatusChipValues,
+  getKubernetesStatusChips,
+  parseKubernetesPodStatusCounts,
+} from "../Utils/KubernetesPodStatus";
+import { loadKubernetesProblemItems } from "../Utils/KubernetesProblemLoader";
+import ResourceAttentionPill, {
+  RESOURCE_ATTENTION_PILL_TONE_CLASS_NAMES,
+} from "../../../Components/ResourcePart/ResourceAttentionPill";
+import ResourceAttentionDialog from "../../../Components/ResourcePart/ResourceAttentionDialog";
+import ResourceHealthPill, {
+  RESOURCE_HEALTH_DEGRADED_DESCRIPTION,
+  RESOURCE_HEALTH_EMPTY_MESSAGE,
+  RESOURCE_HEALTH_UNHEALTHY_DESCRIPTION,
+  ResourceHealthDialogWords,
+} from "../../../Components/ResourcePart/ResourceHealthPill";
 import KubernetesRecentWarningsCard from "../../../Components/Kubernetes/KubernetesRecentWarningsCard";
 import OpenShiftHealthCard from "../../../Components/Kubernetes/OpenShiftHealthCard";
 import URL from "Common/Types/API/URL";
@@ -149,7 +169,10 @@ import useAiAgentAccessStatus, {
 import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  ResourceAttentionItem,
+  ResourceAttentionSeverity,
+} from "../../../Components/ResourcePart/ResourceAttention";
 import {
   KubernetesAttentionFinding,
   getKubernetesClusterHealth,
@@ -163,7 +186,6 @@ import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
-  PluralTemplate,
   translateText,
   translationKey,
   Translator,
@@ -257,6 +279,24 @@ const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
 };
 
 const REFRESH_STORAGE_KEY: string = "kubernetes-overview-auto-refresh-interval";
+
+/*
+ * What a Degraded or Unhealthy cluster's pill opens: what needs attention in
+ * it, the reasons the Needs attention card lists (ResourceHealthPill).
+ */
+export const KUBERNETES_CLUSTER_HEALTH_WORDS: ResourceHealthDialogWords = {
+  degradedTitle: translationKey("Why this cluster is Degraded"),
+  unhealthyTitle: translationKey("Why this cluster is Unhealthy"),
+};
+
+const NO_POD_STATUS_COUNTS: KubernetesPodStatusCountsRead = {
+  running: 0,
+  pending: 0,
+  failed: 0,
+  succeeded: 0,
+  unknown: 0,
+  cannotRun: [],
+};
 
 export type ClusterChartCardColor =
   | "blue"
@@ -432,12 +472,14 @@ const KubernetesClusterOverview: FunctionComponent<
   const [deploymentConfigCount, setDeploymentConfigCount] = useState<number>(0);
   const [routeCount, setRouteCount] = useState<number>(0);
   const [serviceCount, setServiceCount] = useState<number>(0);
-  const [podHealthSummary, setPodHealthSummary] = useState<{
-    running: number;
-    pending: number;
-    failed: number;
-    succeeded: number;
-  }>({ running: 0, pending: 0, failed: 0, succeeded: 0 });
+  /*
+   * Each pod once, as kubectl's STATUS says it: a crash-looping pod is
+   * "CrashLoopBackOff", not "Running" (KubernetesPodStatus).
+   */
+  const [podStatusCounts, setPodStatusCounts] =
+    useState<KubernetesPodStatusCountsRead>(NO_POD_STATUS_COUNTS);
+  // The Cluster Health card's dialog: why the cluster is Degraded.
+  const [isHealthExplained, setIsHealthExplained] = useState<boolean>(false);
   const [nodeHealthSummary, setNodeHealthSummary] = useState<{
     ready: number;
     notReady: number;
@@ -575,17 +617,7 @@ const KubernetesClusterOverview: FunctionComponent<
       }
       setContainerCount(readNum("containerCount"));
 
-      const podPhase: JSONObject =
-        (summary["podPhaseCounts"] as JSONObject) || {};
-      const running: number =
-        typeof podPhase["running"] === "number" ? podPhase["running"] : 0;
-      const pending: number =
-        typeof podPhase["pending"] === "number" ? podPhase["pending"] : 0;
-      const failed: number =
-        typeof podPhase["failed"] === "number" ? podPhase["failed"] : 0;
-      const succeeded: number =
-        typeof podPhase["succeeded"] === "number" ? podPhase["succeeded"] : 0;
-      setPodHealthSummary({ running, pending, failed, succeeded });
+      setPodStatusCounts(parseKubernetesPodStatusCounts(summary));
 
       const nodeReady: JSONObject =
         (summary["nodeReadyCounts"] as JSONObject) || {};
@@ -1417,6 +1449,23 @@ const KubernetesClusterOverview: FunctionComponent<
     },
   );
   /*
+   * What the health pill and the Cluster Health card open when the cluster
+   * is Degraded or Unhealthy - why: what needs attention, and on OpenShift
+   * each operator that is down or degraded and an update that fails, which
+   * make it Degraded while every pod runs. The most urgent first.
+   */
+  const healthItems: Array<ResourceAttentionItem> = [
+    ...getOpenShiftAttentionItems(openShiftHealth),
+    ...attentionItems,
+  ].sort((a: ResourceAttentionItem, b: ResourceAttentionItem): number => {
+    const rank: (item: ResourceAttentionItem) => number = (
+      item: ResourceAttentionItem,
+    ): number => {
+      return item.severity === ResourceAttentionSeverity.Critical ? 0 : 1;
+    };
+    return rank(a) - rank(b);
+  });
+  /*
    * Health is a reading of what the agent reported: before it reported any
    * node or pod, or while what needs attention cannot be read, there is
    * nothing to say, and no pill guesses Healthy.
@@ -1574,27 +1623,36 @@ const KubernetesClusterOverview: FunctionComponent<
     });
   }
 
-  // Build pod health segments for StackedProgressBar
+  /*
+   * The pods as the hero counts them, each once (KubernetesPodStatus): a
+   * pod whose container cannot run is its own segment, never Running. The
+   * bar draws its labels as given, so they are looked up here.
+   */
   const podHealthSegments: Array<StackedProgressBarSegment> = [
     {
-      value: podHealthSummary.running,
+      value: podStatusCounts.running,
       color: "bg-emerald-500",
-      label: "Running",
+      label: translator.translateText("Running") || "Running",
     },
     {
-      value: podHealthSummary.succeeded,
+      value: countKubernetesPodsThatCannotRun(podStatusCounts),
+      color: "bg-rose-700",
+      label: translator.translateText("Can't run") || "Can't run",
+    },
+    {
+      value: podStatusCounts.succeeded,
       color: "bg-blue-500",
-      label: "Succeeded",
+      label: translator.translateText("Succeeded") || "Succeeded",
     },
     {
-      value: podHealthSummary.pending,
+      value: podStatusCounts.pending,
       color: "bg-amber-500",
-      label: "Pending",
+      label: translator.translateText("Pending") || "Pending",
     },
     {
-      value: podHealthSummary.failed,
+      value: podStatusCounts.failed,
       color: "bg-red-500",
-      label: "Failed",
+      label: translator.translateText("Failed") || "Failed",
     },
   ];
 
@@ -2068,34 +2126,6 @@ const KubernetesClusterOverview: FunctionComponent<
       status: status,
     });
 
-    /*
-     * Health is derived from the last inventory snapshot, which goes stale
-     * once the collector disconnects. Reporting "Healthy" next to a
-     * "Disconnected" badge is contradictory and misleading, so while the
-     * cluster is not connected the pill says "Health Unknown" (neutral grey),
-     * as a Ceph cluster's and a storage array's do, rather than the
-     * last-known live status.
-     */
-    const healthLabel: string = getResourceHealthLabel({
-      translator: translator,
-      health: overallHealth,
-      isConnected: isConnected,
-    });
-    const healthBadgeClass: string = !isConnected
-      ? "bg-gray-50 text-gray-600 ring-gray-200"
-      : overallHealth === "Healthy"
-        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-        : overallHealth === "Degraded"
-          ? "bg-amber-50 text-amber-700 ring-amber-200"
-          : "bg-red-50 text-red-700 ring-red-200";
-    const healthDotClass: string = !isConnected
-      ? "bg-gray-400"
-      : overallHealth === "Healthy"
-        ? "bg-emerald-500"
-        : overallHealth === "Degraded"
-          ? "bg-amber-500"
-          : "bg-red-500";
-
     const specChips: Array<{
       icon: IconProp;
       label: string;
@@ -2147,53 +2177,16 @@ const KubernetesClusterOverview: FunctionComponent<
     }
 
     /*
-     * A chip whose words depend on its count says them in the count's form
-     * (plural): "1 Node Not Ready", never "1 Nodes Not Ready". Its label
-     * still names its (i).
+     * Each pod once, as kubectl's STATUS says it, then the nodes not ready
+     * (KubernetesPodStatus). A chip says its words in its count's form
+     * ("1 Node Not Ready", never "1 Nodes Not Ready"). Running is fine and
+     * says what it means in its (i); every count of something wrong opens
+     * exactly those pods or nodes, why and since when (#9537).
      */
-    const podStatusChips: Array<{
-      label: string;
-      value: number;
-      colorClass: string;
-      description: string;
-      plural?: PluralTemplate | undefined;
-    }> = [];
-    if (podHealthSummary.running > 0) {
-      podStatusChips.push({
-        label: "Running",
-        value: podHealthSummary.running,
-        colorClass: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsRunning,
-      });
-    }
-    if (podHealthSummary.pending > 0) {
-      podStatusChips.push({
-        label: "Pending",
-        value: podHealthSummary.pending,
-        colorClass: "bg-amber-50 text-amber-700 ring-amber-200",
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsPending,
-      });
-    }
-    if (podHealthSummary.failed > 0) {
-      podStatusChips.push({
-        label: "Failed",
-        value: podHealthSummary.failed,
-        colorClass: "bg-red-50 text-red-700 ring-red-200",
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsFailed,
-      });
-    }
-    if (nodeHealthSummary.notReady > 0) {
-      podStatusChips.push({
-        label: "Nodes Not Ready",
-        value: nodeHealthSummary.notReady,
-        colorClass: "bg-red-50 text-red-700 ring-red-200",
-        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.nodesNotReady,
-        plural: {
-          one: "{{count}} Node Not Ready",
-          other: "{{count}} Nodes Not Ready",
-        },
-      });
-    }
+    const statusChips: Array<KubernetesStatusChip> = getKubernetesStatusChips({
+      pods: podStatusCounts,
+      nodesNotReady: nodeHealthSummary.notReady,
+    });
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -2245,17 +2238,21 @@ const KubernetesClusterOverview: FunctionComponent<
                       />
                       {connectionLabel}
                     </span>
+                    {/*
+                     * Health is derived from the last inventory snapshot,
+                     * which goes stale once the collector disconnects:
+                     * while the cluster is not connected the pill says
+                     * "Health Unknown" in grey, never a stale Healthy beside
+                     * Disconnected. Degraded or Unhealthy opens why.
+                     */}
                     {isHealthKnown && (
-                      <span
-                        data-testid="kubernetes-cluster-health"
-                        data-health={isConnected ? overallHealth : "Unknown"}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
-                        />
-                        {healthLabel}
-                      </span>
+                      <ResourceHealthPill
+                        health={overallHealth}
+                        isConnected={isConnected}
+                        items={healthItems}
+                        testId="kubernetes-cluster-health"
+                        words={KUBERNETES_CLUSTER_HEALTH_WORDS}
+                      />
                     )}
                   </div>
                   {/*
@@ -2313,64 +2310,99 @@ const KubernetesClusterOverview: FunctionComponent<
               </div>
             )}
 
-            {podStatusChips.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {podStatusChips.map(
-                  (
-                    chip: {
-                      label: string;
-                      value: number;
-                      colorClass: string;
-                      description: string;
-                      plural?: PluralTemplate | undefined;
-                    },
-                    idx: number,
-                  ): ReactElement => {
-                    // In the reader's digits, as the chips above.
-                    const count: ReactElement = (
-                      <span className="font-semibold">
-                        {translator.formatNumber(chip.value)}
-                      </span>
-                    );
+            {statusChips.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {statusChips.map((chip: KubernetesStatusChip): ReactElement => {
+                  // In the reader's digits, as the chips above.
+                  const count: ReactElement = (
+                    <span className="font-semibold">
+                      {translator.formatNumber(chip.count)}
+                    </span>
+                  );
+                  const words: ReactElement = chip.plural ? (
+                    /*
+                     * Spaced as the other chips are, the count where the
+                     * reader's language puts it. Each piece is a box of its
+                     * own, so the gap spaces them; the words keep their
+                     * spaces for a screen reader.
+                     */
+                    <span className="inline-flex items-center gap-1.5">
+                      <TranslatedSentence
+                        template={chip.plural}
+                        count={chip.count}
+                        slots={{ count: count }}
+                        renderText={(text: string): ReactElement => {
+                          return <span>{text}</span>;
+                        }}
+                      />
+                    </span>
+                  ) : (
+                    <>
+                      {count}
+                      {chip.reasonAsWritten ? (
+                        <bdi>{chip.reasonAsWritten}</bdi>
+                      ) : (
+                        <span>
+                          {translator.translateText(chip.word || chip.name)}
+                        </span>
+                      )}
+                    </>
+                  );
+
+                  const problem: KubernetesStatusChip["problem"] = chip.problem;
+
+                  if (problem) {
                     return (
-                      <span
-                        key={`pod-${idx}`}
-                        data-testid="kubernetes-cluster-status-chip"
-                        data-chip={chip.label}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
-                      >
-                        {chip.plural ? (
-                          /*
-                           * Spaced as the other chips are, the count where
-                           * the reader's language puts it. Each piece is a
-                           * box of its own, so the gap spaces them; the
-                           * words keep their spaces for a screen reader.
-                           */
-                          <span className="inline-flex items-center gap-1.5">
-                            <TranslatedSentence
-                              template={chip.plural}
-                              count={chip.value}
-                              slots={{ count: count }}
-                              renderText={(text: string): ReactElement => {
-                                return <span>{text}</span>;
-                              }}
-                            />
-                          </span>
-                        ) : (
-                          <>
-                            {count}
-                            {translator.translateText(chip.label)}
-                          </>
-                        )}
-                        <InfoTooltip
-                          label={chip.label}
-                          text={chip.description}
-                          iconClassName="h-3 w-3"
-                        />
-                      </span>
+                      <ResourceAttentionPill
+                        key={chip.key}
+                        testId="kubernetes-cluster-status-chip"
+                        dataAttributes={{ "data-chip": chip.name }}
+                        label={words}
+                        tone={chip.tone}
+                        hint={problem.hint}
+                        dialog={{
+                          title: translator.translatePlural(
+                            problem.title,
+                            chip.count,
+                            getKubernetesStatusChipValues(chip),
+                          ),
+                          description: problem.description,
+                          load: () => {
+                            return loadKubernetesProblemItems({
+                              clusterId: modelId,
+                              clusterIdentifier: clusterIdentifier,
+                              query: problem.query,
+                            });
+                          },
+                          emptyMessage: problem.emptyMessage,
+                          whatFailed: problem.whatFailed,
+                          showKind: false,
+                        }}
+                      />
                     );
-                  },
-                )}
+                  }
+
+                  // Fine, and only explained: the same pill, with its (i).
+                  return (
+                    <span
+                      key={chip.key}
+                      data-testid="kubernetes-cluster-status-chip"
+                      data-chip={chip.name}
+                      data-tone={chip.tone}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                        RESOURCE_ATTENTION_PILL_TONE_CLASS_NAMES[chip.tone]
+                          .badge
+                      }`}
+                    >
+                      {words}
+                      <InfoTooltip
+                        label={chip.name}
+                        text={chip.description}
+                        iconClassName="h-3 w-3"
+                      />
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2467,6 +2499,20 @@ const KubernetesClusterOverview: FunctionComponent<
             openShiftHealth
               ? KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealthOpenShift
               : KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth
+          }
+          /*
+           * Degraded or Unhealthy opens why, as the hero's pill does: the
+           * card says the same word, and the reader asks the same question.
+           */
+          onClick={
+            isHealthKnown &&
+            isClusterConnected &&
+            overallHealth !== "Healthy" &&
+            healthItems.length > 0
+              ? () => {
+                  setIsHealthExplained(true);
+                }
+              : undefined
           }
           value={
             isSummaryLoading || (attention === null && !attentionError) ? (
@@ -2614,6 +2660,33 @@ const KubernetesClusterOverview: FunctionComponent<
           read={aiAccessStatus}
         />
       </div>
+      {isHealthExplained ? (
+        <ResourceAttentionDialog
+          testId="kubernetes-cluster-health-card-dialog"
+          title={
+            translator.translateText(
+              overallHealth === "Unhealthy"
+                ? KUBERNETES_CLUSTER_HEALTH_WORDS.unhealthyTitle
+                : KUBERNETES_CLUSTER_HEALTH_WORDS.degradedTitle,
+            ) ||
+            (overallHealth === "Unhealthy"
+              ? KUBERNETES_CLUSTER_HEALTH_WORDS.unhealthyTitle
+              : KUBERNETES_CLUSTER_HEALTH_WORDS.degradedTitle)
+          }
+          description={
+            overallHealth === "Unhealthy"
+              ? RESOURCE_HEALTH_UNHEALTHY_DESCRIPTION
+              : RESOURCE_HEALTH_DEGRADED_DESCRIPTION
+          }
+          items={healthItems}
+          emptyMessage={RESOURCE_HEALTH_EMPTY_MESSAGE}
+          onClose={() => {
+            setIsHealthExplained(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       <ResourceActivityCards
         modelId={modelId}

@@ -384,6 +384,22 @@ As requisições que têm sucesso mas levam mais que `PROBE_API_SLOW_REQUEST_THR
 
 No lado do servidor do OneUptime, uma requisição de sonda respondida devagar, ou que a sonda abandonou antes de uma resposta ser enviada, também é registrada, com o id da sonda. Esses dois logs juntos dizem de que lado da conexão está o problema.
 
+### Uma sonda está atrasada
+
+Uma sonda fica com o status **Atrasado** quando seus monitores esperam mais de um minuto além do horário de verificação, então são verificados com menos frequência do que o configurado. O **Status** dela na tabela **Sondas personalizadas** passa a mostrar **Atrasado**, e a página dela diz desde quando em **Verificações dos monitores**. Para as sondas que um OneUptime auto-hospedado executa por conta própria, a Integridade do OneUptime no Painel do administrador avisa. O mesmo vale para os dispositivos de rede que ela consulta: quando eles esperam mais de um minuto além do horário de consulta, o **Status** dela também mostra **Atrasado**, e a página dela mostra **Consultas de dispositivos de rede** com desde quando. Os administradores principais são avisados quando uma sonda global fica atrasada, e um [monitor de status de sondas](/docs/monitor/probe-status-monitor) pode gerar um alerta quando uma das suas fica.
+
+Uma sonda verifica até `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitores ao mesmo tempo, 10 com as configurações padrão, e pede mais assim que tem espaço. Ela se atrasa quando há mais monitores pendentes do que consegue verificar, por exemplo quando muitas das verificações duram até o tempo limite. Para que ela se recupere:
+
+- Atualize a sonda. Uma sonda mais antiga pede seus monitores só uma vez por minuto, então verifica no máximo `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitores por minuto.
+- Deixe que ela verifique mais monitores ao mesmo tempo: aumente `PROBE_MONITORING_WORKERS` e reinicie a sonda. Para as sondas que um OneUptime auto-hospedado executa, é `GLOBAL_PROBE_1_MONITORING_WORKERS` no `config.env` com Docker Compose, ou o `monitoringWorkers` da sonda nos valores do chart do Helm.
+- Dê a ela mais CPU e memória, ou execute outra cópia com o mesmo `PROBE_ID` e o mesmo `PROBE_KEY`: as cópias dividem os monitores dela.
+
+Uma sonda consulta até `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` dispositivos de rede ao mesmo tempo, 25 com as configurações padrão, e pede mais assim que tem espaço. Ela se atrasa com eles quando há mais dispositivos pendentes do que consegue consultar, por exemplo quando muitos não respondem e as consultas deles duram até o tempo limite. Para que ela se recupere:
+
+- Atualize a sonda. Uma sonda mais antiga pede seus dispositivos apenas uma vez por minuto, então consulta no máximo `NETWORK_DEVICE_POLL_FETCH_LIMIT` dispositivos por minuto, 250 por padrão.
+- Deixe que ela consulte mais dispositivos ao mesmo tempo: aumente `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` e reinicie a sonda. Para as sondas que um OneUptime auto-hospedado executa, é `GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY` no `config.env` com Docker Compose, ou o `networkDevicePollConcurrency` da sonda nos valores do chart do Helm.
+- Mova alguns dos dispositivos dela para outra sonda.
+
 ### Outros problemas
 
 :::details A sonda para logo depois de iniciar

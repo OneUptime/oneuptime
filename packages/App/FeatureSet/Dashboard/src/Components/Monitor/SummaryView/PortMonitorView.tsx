@@ -52,6 +52,7 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
       <SummaryFacts>
         <SummaryFact
           isWide={true}
+          readsLeftToRight={true}
           title="Hostname or IP address"
           value={HostAddressUtil.formatHostAndPort({
             host: destination,

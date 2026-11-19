@@ -16,6 +16,8 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 export const EXTERNAL_CALENDAR_NOT_FOUND_MESSAGE: string =
   "Calendar not found, or you do not have access to it.";
@@ -48,6 +50,7 @@ export default class ScheduledMaintenanceExternalCalendarAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/read-now`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.ScheduledMaintenance),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

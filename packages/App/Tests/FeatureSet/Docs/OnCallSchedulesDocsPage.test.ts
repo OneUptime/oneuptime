@@ -127,6 +127,9 @@ const AWAY_LABELS: Array<string> = [
  * (issue #7575) - each label with the file that draws it, so a renamed
  * button fails here rather than leaving the docs naming one nobody sees.
  */
+// The question leaving the page asks, every editor's (#7973).
+const LEAVE_QUESTION_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion.tsx";
 const SAVE_BAR_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayersSaveBar.tsx";
 const LAYER_CONFIG_FORM_FILE: string =
@@ -154,13 +157,21 @@ const HELD_CHANGES_LABELS: Array<{ label: string; drawnBy: Array<string> }> = [
   },
   { label: "Save changes", drawnBy: [SAVE_BAR_FILE, '"Save changes"'] },
   { label: "Discard", drawnBy: [SAVE_BAR_FILE, 'title="Discard"'] },
+  // Saves as the bar does, then leaves (#7402).
+  {
+    label: "Save Changes",
+    drawnBy: [
+      LEAVE_QUESTION_FILE,
+      'submitButtonText={isSaving ? "Saving..." : "Save Changes"}',
+    ],
+  },
   {
     label: "Keep Editing",
-    drawnBy: [LAYERS_FILE, 'closeButtonText={"Keep Editing"}'],
+    drawnBy: [LEAVE_QUESTION_FILE, 'closeButtonText={"Keep Editing"}'],
   },
   {
     label: "Discard Changes",
-    drawnBy: [LAYERS_FILE, 'submitButtonText={"Discard Changes"}'],
+    drawnBy: [LEAVE_QUESTION_FILE, 'title="Discard Changes"'],
   },
   { label: "Reload layers", drawnBy: [SAVE_BAR_FILE, 'title="Reload layers"'] },
   { label: "Add Layer", drawnBy: [LAYERS_FILE, 'title="Add Layer"'] },

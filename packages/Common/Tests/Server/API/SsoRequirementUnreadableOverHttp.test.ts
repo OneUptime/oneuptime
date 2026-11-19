@@ -77,6 +77,7 @@ import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
 import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * A real Express app: an error that walks the routes registered after the
@@ -382,6 +383,7 @@ function readsCanFail(table: InMemoryTable, statement: string): void {
 
 beforeAll(async () => {
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+  treatEverySessionAsLive();
 
   // The server admin's account says they are one still; the member's does not.
   jest.spyOn(UserService, "isUserMasterAdmin").mockImplementation((async (

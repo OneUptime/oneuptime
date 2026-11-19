@@ -480,6 +480,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "DataAlertFeedbackRecorder.retune DataAsset": Why.Derived,
     },
+  /*
+   * How a check stands, kept on it from its run and its monitor's alerts
+   * (#6554): worked out from other records, never a change anybody made.
+   */
+  "packages/Common/Server/Utils/DataObservability/DataCheckHealthSync.ts": {
+    "DataCheckHealthSync.writeHealthOf DataCheck": Why.Derived,
+  },
   "packages/Common/Server/Utils/DataObservability/DataCheckIngest.ts": {
     "DataCheckIngest.recordResults DataCheck": Why.Reported,
   },

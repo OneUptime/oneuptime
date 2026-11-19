@@ -6,6 +6,12 @@ import {
   shouldAskForCompanyDetails,
 } from "../Utils/InvitedSignUp";
 import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
+import InvitedSignUpHeader from "../Components/InvitedSignUpHeader/InvitedSignUpHeader";
+import { fetchSignUpInvitation } from "../Utils/SignUpInvitation";
+import {
+  SIGN_UP_INVITATION_PROJECT_KEY,
+  SignUpInvitation,
+} from "Common/Types/Accounts/SignUpInvitation";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
@@ -129,6 +135,81 @@ const RegisterPage: () => JSX.Element = () => {
 
   const [isReadingFirstAccount, setIsReadingFirstAccount] =
     React.useState<boolean>(!BILLING_ENABLED);
+
+  /*
+   * The invitation this sign-up link is for (#7471, Utils/SignUpInvitation):
+   * which project, who invited them, the name the inviter typed for them.
+   * Asked once, with the link's address and token, when the page opens from
+   * an invitation; until it answers the page draws nothing of its own, as it
+   * does for the first-account answer, so the header never changes under
+   * the reader. No invitation - or no answer within a few seconds - is the
+   * plain sign-up page.
+   */
+  const [invitationLink] = React.useState<{
+    email: string;
+    token: string;
+  } | null>(() => {
+    const email: string | null = Navigation.getQueryStringByName("email");
+    const token: string | null = Navigation.getQueryStringByName("token");
+
+    return isInvitedSignUp({ email, token })
+      ? { email: email!.trim(), token: token!.trim() }
+      : null;
+  });
+
+  const [invitation, setInvitation] = React.useState<SignUpInvitation | null>(
+    null,
+  );
+
+  const [isReadingInvitation, setIsReadingInvitation] = React.useState<boolean>(
+    Boolean(invitationLink),
+  );
+
+  React.useEffect(() => {
+    if (!invitationLink) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    fetchSignUpInvitation(invitationLink)
+      .then((found: SignUpInvitation | null) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setInvitation(found);
+
+        // The name the inviter typed, for them to keep or change.
+        if (found?.name) {
+          const name: string = found.name;
+
+          setInitialValues((current: JSONObject): JSONObject => {
+            return current["name"] ? current : { ...current, name: name };
+          });
+        }
+
+        setIsReadingInvitation(false);
+      })
+      .catch(() => {
+        // The helper answers none rather than throwing; draw the page anyway.
+        if (isCurrent) {
+          setIsReadingInvitation(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  /*
+   * Creating the account from the invitation joins its project, as the
+   * header says: the sign-up names it, and the server accepts it once the
+   * token has claimed the account. Someone added already has nothing to
+   * accept.
+   */
+  const joinsProject: boolean = Boolean(invitation && !invitation.isAccepted);
 
   React.useEffect(() => {
     if (BILLING_ENABLED) {
@@ -291,8 +372,11 @@ const RegisterPage: () => JSX.Element = () => {
     }
 
     if (Navigation.getQueryStringByName("email")) {
-      setInitialValues({
-        email: Navigation.getQueryStringByName("email"),
+      setInitialValues((current: JSONObject): JSONObject => {
+        return {
+          ...current,
+          email: Navigation.getQueryStringByName("email"),
+        };
       });
       setIsEmailLocked(true);
     }
@@ -490,7 +574,7 @@ const RegisterPage: () => JSX.Element = () => {
   }
 
   // The form's own header and links wait for the first-account answer too.
-  if (isLoading || isReadingFirstAccount) {
+  if (isLoading || isReadingFirstAccount || isReadingInvitation) {
     return <AuthPageSkeleton fields={3} />;
   }
 
@@ -527,16 +611,24 @@ const RegisterPage: () => JSX.Element = () => {
     <div className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className="w-full max-w-md mx-auto lg:max-w-2xl">
         <ProductLogo />
-        <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mt-6 sm:text-3xl">
-          {t("register.title")}
-        </h1>
+        {/*
+         * Opened from an invitation the server could read: which project,
+         * and who invited them, in place of the plain sign-up's words.
+         */}
+        {invitation ? (
+          <InvitedSignUpHeader invitation={invitation} />
+        ) : (
+          <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mt-6 sm:text-3xl">
+            {t("register.title")}
+          </h1>
+        )}
         {/*
          * OneUptime Cloud's line asks people to join. A self-hosted server
          * has a line only while it has no account yet: the account made here
          * becomes its admin. Otherwise the title says it all - a line that
          * repeated "create your account" under it was only clutter.
          */}
-        {BILLING_ENABLED || isAwaitingFirstAccount ? (
+        {!invitation && (BILLING_ENABLED || isAwaitingFirstAccount) ? (
           <p
             className="mx-auto mt-3 max-w-md text-balance text-center text-sm leading-6 text-gray-600"
             data-testid="register-subtitle"
@@ -627,6 +719,12 @@ const RegisterPage: () => JSX.Element = () => {
                 miscDataProps["registrationToken"] = registrationToken;
               }
 
+              // The project the header said creating the account joins.
+              if (joinsProject && invitation) {
+                miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY] =
+                  invitation.projectId;
+              }
+
               const utmParams: Dictionary<string> = UserUtil.getUtmParams();
 
               if (utmParams && Object.keys(utmParams).length > 0) {
@@ -671,7 +769,11 @@ const RegisterPage: () => JSX.Element = () => {
               return Promise.resolve(item);
             }}
             formType={FormType.Create}
-            submitButtonText={t("register.submitButton")}
+            submitButtonText={
+              joinsProject
+                ? t("register.joinButton")
+                : t("register.submitButton")
+            }
             onSubmitError={(message: string) => {
               /*
                * The server came to require SSO after this page read that it

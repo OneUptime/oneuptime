@@ -25,7 +25,10 @@ import {
   isNetworkQuickActionRequested,
 } from "../../Components/Network/NetworkQuickActions";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
-import { DEVICES_WITH_INTERFACES_DOWN_SELECTION } from "../../Components/NetworkDevice/DeviceFacets";
+import {
+  DEVICES_WITH_INTERFACES_DOWN_SELECTION,
+  DOWN_DEVICES_FACET_SELECTION,
+} from "../../Components/NetworkDevice/DeviceFacets";
 import { formatRelativeTime } from "../../Components/Home/HomeRelativeTime";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import Route from "Common/Types/API/Route";
@@ -315,10 +318,17 @@ const NetworkOverview: FunctionComponent<
           title="Devices"
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetDevices}
           onClick={() => {
+            /*
+             * While any device is down, the red "2 down" is what the tile
+             * is read for: it opens those two, the list's Status chip set
+             * (#9537). Otherwise every device.
+             */
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.NETWORK_DEVICES] as Route,
-              ),
+              fleet.down > 0
+                ? getDeviceListRouteForFacet(DOWN_DEVICES_FACET_SELECTION)
+                : RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.NETWORK_DEVICES] as Route,
+                  ),
             );
           }}
           value={

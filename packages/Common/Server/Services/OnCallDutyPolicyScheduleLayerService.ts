@@ -4,7 +4,6 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import Recurring from "../../Types/Events/Recurring";
 import RestrictionTimes, {
   RestrictionType,
@@ -17,9 +16,21 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import logger from "../Utils/Logger";
-import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+import ContiguousOrder, {
+  ContiguousOrderMoved,
+} from "../Utils/Database/ContiguousOrder";
 import ScheduleLayerChanges from "../Utils/OnCall/ScheduleLayerChanges";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
+
+/*
+ * The columns that name the list a layer is numbered in: its schedule, in
+ * its project. The lower the number, the higher the layer's priority.
+ */
+const ORDER_LIST_COLUMNS: Array<string> = [
+  "onCallDutyPolicyScheduleId",
+  "projectId",
+];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -209,19 +220,22 @@ export class Service extends ProjectReferencesService<Model> {
     this.validateRotationInterval(createBy.data.rotation);
     this.validateRestrictionTimes(createBy.data.restrictionTimes);
 
+    /*
+     * A layer created at a number keeps it, and moves no other layer
+     * (ContiguousOrder): one created without a number goes below the
+     * schedule's last layer.
+     */
     if (!createBy.data.order) {
-      // count number of users in this layer.
+      const projectId: ObjectID | undefined =
+        createBy.props.tenantId || createBy.data.projectId;
 
-      const count: PositiveNumber = await this.countBy({
-        query: {
-          onCallDutyPolicyScheduleId: createBy.data.onCallDutyPolicyScheduleId!,
-        },
-        props: {
-          isRoot: true,
+      createBy.data.order = await ContiguousOrder.getAppendOrder({
+        service: this,
+        list: {
+          onCallDutyPolicyScheduleId: createBy.data.onCallDutyPolicyScheduleId,
+          ...(projectId ? { projectId: projectId } : {}),
         },
       });
-
-      createBy.data.order = count.toNumber() + 1;
     }
 
     return {
@@ -239,7 +253,6 @@ export class Service extends ProjectReferencesService<Model> {
       select: {
         onCallDutyPolicyScheduleId: true,
         projectId: true,
-        order: true,
       },
       props: {
         isRoot: true,
@@ -248,23 +261,6 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!resource || !resource.onCallDutyPolicyScheduleId) {
       return createdItem;
-    }
-
-    /*
-     * The layers at the new layer's place and after it move one place down -
-     * now that it exists, so a create that is refused or fails leaves the
-     * schedule's order as it was.
-     */
-    if (resource.order && resource.projectId) {
-      await ContiguousOrder.afterCreate({
-        service: this,
-        list: {
-          onCallDutyPolicyScheduleId: resource.onCallDutyPolicyScheduleId,
-          projectId: resource.projectId,
-        },
-        createdItemId: createdItem.id!,
-        order: resource.order,
-      });
     }
 
     await this.tellLayerChange({
@@ -329,15 +325,14 @@ export class Service extends ProjectReferencesService<Model> {
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     /*
-     * Capture the layer's order + schedule id as carryForward so onDeleteSuccess
-     * can re-sequence the remaining layers AND refresh the schedule roster after
-     * a layer is removed. Without this hook, onDeleteSuccess (which gates all of
-     * its work on onDelete.carryForward) was dead code: deleting a layer never
-     * re-sequenced order and never called
-     * refreshCurrentUserIdAndHandoffTimeInSchedule, so the schedule kept showing
-     * the removed layer's user as on-call and the genuinely-now-on-call user got
-     * no handoff notification for up to a full rotation period (audit F3).
-     * Mirrors OnCallDutyPolicyScheduleLayerUserService.onBeforeDelete.
+     * Capture the layer's schedule id as carryForward so onDeleteSuccess can
+     * refresh the schedule roster after a layer is removed. Without this
+     * hook, onDeleteSuccess (which gates all of its work on
+     * onDelete.carryForward) was dead code: deleting a layer never called
+     * refreshCurrentUserIdAndHandoffTimeInSchedule, so the schedule kept
+     * showing the removed layer's user as on-call and the genuinely-now-on-call
+     * user got no handoff notification for up to a full rotation period
+     * (audit F3). Mirrors OnCallDutyPolicyScheduleLayerUserService.onBeforeDelete.
      */
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
       throw new BadDataException(
@@ -349,12 +344,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!deleteBy.props.isRoot) {
       /*
-       * The one layer the delete removes, and the delete held to it:
-       * the layers after it move up a place once it is gone.
+       * The one layer the delete removes, and the delete held to it. The
+       * layers after it keep their numbers (ContiguousOrder): a gap is read
+       * past like any other.
        */
       const found: { row: Model | null; deletesMore: boolean } =
         await this.findOneRowAndHoldDeleteToIt(deleteBy, {
-          order: true,
           onCallDutyPolicyScheduleId: true,
           projectId: true,
         });
@@ -373,8 +368,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Only for a layer the delete actually removed: the layers after it close
-   * its gap (within its schedule and project) and the roster is refreshed.
+   * Only for a layer the delete actually removed: the roster is refreshed.
    */
   @CaptureSpan()
   protected override async onDeleteSuccess(
@@ -392,33 +386,59 @@ export class Service extends ProjectReferencesService<Model> {
         }),
     );
 
-    if (!deleteBy.props.isRoot && resource && wasDeleted) {
-      if (
-        resource.order &&
-        resource.onCallDutyPolicyScheduleId &&
-        resource.projectId
-      ) {
-        await ContiguousOrder.afterDelete({
-          service: this,
-          list: {
-            onCallDutyPolicyScheduleId: resource.onCallDutyPolicyScheduleId,
-            projectId: resource.projectId,
-          },
-          order: resource.order,
-        });
-
-        await this.tellLayerChange({
-          scheduleId: resource.onCallDutyPolicyScheduleId,
-          projectId: resource.projectId,
-          props: deleteBy.props,
-        });
-      }
+    if (
+      !deleteBy.props.isRoot &&
+      resource &&
+      wasDeleted &&
+      resource.onCallDutyPolicyScheduleId
+    ) {
+      await this.tellLayerChange({
+        scheduleId: resource.onCallDutyPolicyScheduleId,
+        projectId: resource.projectId,
+        props: deleteBy.props,
+      });
     }
 
     return {
       deleteBy: deleteBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Moves a layer to the place another layer of its schedule holds (POST
+   * /on-call-duty-policy-schedule-layer/:id/move, Types/Database/MoveInList):
+   * the layers between them step one place towards where it was, in one
+   * transaction holding the schedule's layers, and who is on call is worked
+   * out again. The Layers page saves a new priority order with the rest of
+   * its changes (save-layers); a write of `order` places the layer alone.
+   */
+  @CaptureSpan()
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const moved: ContiguousOrderMoved<Model> = await ContiguousOrder.move({
+      service: this,
+      rowId: data.id,
+      placeOfId: data.placeOfId,
+      listColumns: ORDER_LIST_COLUMNS,
+      props: data.props,
+    });
+
+    const scheduleId: ObjectID | undefined =
+      moved.row.onCallDutyPolicyScheduleId;
+
+    if (moved.changedRows.length > 0 && scheduleId) {
+      await this.tellLayerChange({
+        scheduleId: scheduleId,
+        projectId: moved.row.projectId,
+        props: data.props,
+      });
+    }
+
+    return { changedRows: moved.changedRows };
   }
 }
 

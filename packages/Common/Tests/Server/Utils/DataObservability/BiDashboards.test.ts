@@ -1,16 +1,18 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   BiDashboardRead,
-  BiTableRef,
   LookerConnector,
   MetabaseConnector,
   PowerBiConnector,
-  readPowerQueryTables,
-  readQualifiedName,
-  readSqlTables,
   SupersetConnector,
   TableauConnector,
 } from "../../../../Server/Utils/DataObservability/Bi/BiConnectors";
+import {
+  BiTableRef,
+  readQualifiedName,
+  readSqlTables,
+} from "../../../../Server/Utils/DataObservability/Bi/BiTables";
+import { readPowerQueryTables } from "../../../../Server/Utils/DataObservability/Bi/PowerQuery";
 import { matchBiTable } from "../../../../Server/Utils/DataObservability/Bi/BiMatching";
 import DataBiSync from "../../../../Server/Utils/DataObservability/Bi/DataBiSync";
 import DataTableDashboards, {
@@ -91,6 +93,8 @@ describe("reading SQL and qualified names", () => {
       table: "orders",
       engine: null,
       host: null,
+      // Named in the query itself: as BigQuery names the project.
+      isDatabaseExact: true,
     });
   });
 
@@ -106,6 +110,7 @@ describe("reading SQL and qualified names", () => {
         table: "Orders",
         engine: "sqlserver",
         host: "orders-db.database.windows.net",
+        isDatabaseExact: true,
       },
     ]);
     expect(

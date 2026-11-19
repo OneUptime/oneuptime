@@ -724,30 +724,30 @@ describe("StatusPageResourceExplorerUtil", () => {
     ];
 
     /*
-     * The write is "take the place of whoever is standing there" - the server
-     * renumbers the rest of the group around it.
+     * The move is "take the place of whoever is standing there" - the server
+     * moves the resource there and steps the rest of the group aside.
      */
-    test("writes the order of the resource being displaced", () => {
+    test("takes the place of the resource standing where it was dropped", () => {
       expect(
-        StatusPageResourceExplorerUtil.getReorderTargetOrder({
+        StatusPageResourceExplorerUtil.getReorderTargetId({
           statusPageResources: resources,
           fromIndex: 2,
           toIndex: 0,
         }),
-      ).toBe(1);
+      ).toBe("a");
 
       expect(
-        StatusPageResourceExplorerUtil.getReorderTargetOrder({
+        StatusPageResourceExplorerUtil.getReorderTargetId({
           statusPageResources: resources,
           fromIndex: 0,
           toIndex: 2,
         }),
-      ).toBe(3);
+      ).toBe("c");
     });
 
-    test("writes nothing for a move that does not move anything", () => {
+    test("moves nothing for a move that does not move anything", () => {
       expect(
-        StatusPageResourceExplorerUtil.getReorderTargetOrder({
+        StatusPageResourceExplorerUtil.getReorderTargetId({
           statusPageResources: resources,
           fromIndex: 1,
           toIndex: 1,
@@ -755,7 +755,7 @@ describe("StatusPageResourceExplorerUtil", () => {
       ).toBeNull();
 
       expect(
-        StatusPageResourceExplorerUtil.getReorderTargetOrder({
+        StatusPageResourceExplorerUtil.getReorderTargetId({
           statusPageResources: resources,
           fromIndex: 0,
           toIndex: 9,
@@ -763,12 +763,38 @@ describe("StatusPageResourceExplorerUtil", () => {
       ).toBeNull();
 
       expect(
-        StatusPageResourceExplorerUtil.getReorderTargetOrder({
+        StatusPageResourceExplorerUtil.getReorderTargetId({
+          statusPageResources: resources,
+          fromIndex: -1,
+          toIndex: 0,
+        }),
+      ).toBeNull();
+    });
+
+    /*
+     * A group numbered through the API can have a resource with no number,
+     * or two at one (issue #9573). The drop names the resource standing
+     * there by id, so it still lands where it was made.
+     */
+    test("takes the place of a resource with no number, or of a twin", () => {
+      expect(
+        StatusPageResourceExplorerUtil.getReorderTargetId({
           statusPageResources: [makeResource({ id: "a" }), resources[1]!],
           fromIndex: 1,
           toIndex: 0,
         }),
-      ).toBeNull();
+      ).toBe("a");
+
+      expect(
+        StatusPageResourceExplorerUtil.getReorderTargetId({
+          statusPageResources: [
+            makeResource({ id: "a", order: 2 }),
+            makeResource({ id: "b", order: 2 }),
+          ],
+          fromIndex: 1,
+          toIndex: 0,
+        }),
+      ).toBe("a");
     });
 
     test("puts the row where it was dropped without waiting for the write", () => {

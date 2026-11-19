@@ -191,6 +191,8 @@ Als je OneUptime-instantie hCaptcha aan heeft staan, toont het formulier een cap
 
 Een zelf gehoste installatie kan elk bestand dat mensen sturen met ClamAV op malware laten scannen voordat het wordt opgeslagen: de bestanden van een formulier, en de bestanden die mensen ingelogd of met een API-sleutel uploaden. Stel `CLAMAV_HOST` (en `CLAMAV_PORT`, standaard `3310`) in op een ClamAV-daemon. Met Docker Compose starten `COMPOSE_PROFILES=clamav` en `CLAMAV_HOST=clamav` in `config.env` de ClamAV die bij OneUptime hoort; met Helm zet u `clamav.enabled` aan. Een bestand dat ClamAV markeert, wordt geweigerd met de naam erbij, en van de inzending wordt niets opgeslagen. Zolang ClamAV niet antwoordt, wordt elk bestand geweigerd met "Bestanden kunnen op dit moment niet op virussen worden gecontroleerd, dus ze zijn niet aangenomen. Probeer het over een paar minuten opnieuw." (503), zodat geen bestand ongecontroleerd wordt opgeslagen. Zonder `CLAMAV_HOST` worden bestanden niet gescand, zoals voorheen.
 
+De ClamAV die bij OneUptime hoort, downloadt zijn handtekeningen bij het starten van `database.clamav.net` en houdt ze actueel: een verbinding die uit het netwerk naar buiten gaat. Stel op een netwerk zonder internettoegang `CLAMAV_HOST` (`clamav.host` in de Helm-chart) in op een eigen ClamAV-daemon, die actueel blijft via een mirror binnen dat netwerk: zie [Air-gapped installatie](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Problemen oplossen
 
 :::details De link zegt dat het formulier niet beschikbaar is

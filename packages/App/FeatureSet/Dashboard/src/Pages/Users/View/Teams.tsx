@@ -26,16 +26,26 @@ import {
   SERVER_EMAIL_COPY,
   ServerEmail,
   canGetInvitationLinks,
+  canGetLinksOfInvitationsNotSent,
+  canReadInvitationEmailsNotSent,
+  canResendInvitations,
   cannotSendEmail,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
 import InvitationLinkModal, {
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import { getResendInvitationRowAction } from "Common/UI/Components/InvitationLink/ResendInvitation";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
 } from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
+import {
+  InvitationEmailsNotSent,
+  useInvitationEmailsNotSent,
+} from "Common/UI/Components/InvitationLink/InvitationEmailsNotSent";
+import PendingInvitationPill from "../../../Components/User/PendingInvitationPill";
 
 const UserViewTeams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -49,11 +59,22 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
    * Invite has added this person to another team (#8192).
    */
   const serverEmail: ServerEmail = useServerEmail();
-  const [invitationLinkFor, setInvitationLinkFor] =
-    React.useState<ObjectID | null>(null);
+  const [invitationLinkFor, setInvitationLinkFor] = React.useState<{
+    teamMemberId: ObjectID;
+    // Their latest invitation email was not sent, on a server that sends email.
+    isEmailNotSent: boolean;
+  } | null>(null);
   const membersNotSignedUp: MembersNotSignedUp = useMembersNotSignedUp(
     canGetInvitationLinks(serverEmail),
   );
+
+  /*
+   * Their latest invitation email was refused by the mail service (#9511):
+   * a pending team's row says Email Not Sent, for a reader who may read the
+   * project's Email Logs, and a master admin gets the link from it.
+   */
+  const invitationEmailsNotSent: InvitationEmailsNotSent =
+    useInvitationEmailsNotSent(canReadInvitationEmailsNotSent(serverEmail));
 
   /*
    * A user is in the project only through their teams, so removing their last
@@ -94,6 +115,16 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
           userId: userId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        /*
+         * Whose invitation email a pending row asks about (#9511), and the
+         * address Resend Invitation names before it sends it (#9519).
+         */
+        selectMoreFields={{
+          userId: true,
+          user: {
+            email: true,
+          },
+        }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
           if (!props.currentProject || !props.currentProject._id) {
             throw new BadDataException("Project ID cannot be null");
@@ -112,7 +143,10 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
             canGetInvitationLinks(serverEmail) &&
             item.id
           ) {
-            setInvitationLinkFor(item.id);
+            setInvitationLinkFor({
+              teamMemberId: item.id,
+              isEmailNotSent: false,
+            });
           }
 
           return item;
@@ -174,12 +208,32 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
           getInvitationLinkRowAction<TeamMember>({
             isAvailable: canGetInvitationLinks(serverEmail),
             isNotSignedUp: membersNotSignedUp.isNotSignedUp,
-            onOpen: (teamMemberId: ObjectID) => {
-              setInvitationLinkFor(teamMemberId);
+            isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail)
+              ? (item: TeamMember): boolean => {
+                  return Boolean(invitationEmailsNotSent.getNotSent(item));
+                }
+              : undefined,
+            onOpen: (teamMemberId: ObjectID, item: TeamMember) => {
+              setInvitationLinkFor({
+                teamMemberId: teamMemberId,
+                isEmailNotSent:
+                  !cannotSendEmail(serverEmail) &&
+                  Boolean(invitationEmailsNotSent.getNotSent(item)),
+              });
+            },
+          }),
+          // A pending team's invitation email, sent again (#9519).
+          getResendInvitationRowAction<TeamMember>({
+            isAvailable: canResendInvitations(serverEmail),
+            getRequestHeaders: () => {
+              return ModelAPI.getCommonHeaders();
             },
           }),
         ]}
-        onFetchSuccess={membersNotSignedUp.onFetchSuccess}
+        onFetchSuccess={(rows: Array<TeamMember>) => {
+          membersNotSignedUp.onFetchSuccess(rows);
+          invitationEmailsNotSent.onFetchSuccess(rows);
+        }}
         filters={[
           /*
            * The table lists the project's teams for this filter itself, by
@@ -238,14 +292,11 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
                   </div>
                 );
               }
+              // Invited, Email Not Sent (#9511) or Invitation Sent.
               return (
-                <Pill
-                  text={
-                    cannotSendEmail(serverEmail)
-                      ? SERVER_EMAIL_COPY.invitedPill
-                      : "Invitation Sent"
-                  }
-                  color={Yellow}
+                <PendingInvitationPill
+                  serverEmail={serverEmail}
+                  notSent={invitationEmailsNotSent.getNotSent(item)}
                 />
               );
             },
@@ -254,7 +305,8 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
       />
       {invitationLinkFor && (
         <InvitationLinkModal
-          teamMemberId={invitationLinkFor}
+          teamMemberId={invitationLinkFor.teamMemberId}
+          isEmailNotSent={invitationLinkFor.isEmailNotSent}
           onClose={() => {
             setInvitationLinkFor(null);
           }}

@@ -991,7 +991,8 @@ export default class StatusPageResource extends BaseModel {
     isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Order / Priority of this resource",
+    description:
+      "This resource's place in its group, or among the page's resources in no group, lowest first. Resources that share a place are shown in the order of their IDs. Setting it places this resource and moves no other, so a configuration that numbers every resource of a group ends up exactly as written. Left out when you create a resource, it goes after the last resource of its group.",
   })
   @Column({
     type: ColumnType.Number,

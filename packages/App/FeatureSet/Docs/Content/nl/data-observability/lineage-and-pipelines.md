@@ -23,6 +23,8 @@ Waar de bron kolommen noemt, zegt het tabblad **Kolommen** van een tabel waar el
 
 Kies op het tabblad **Herkomst** een kolom van de tabel in **Een kolom volgen** om te markeren waar ze vandaan komt en waar ze naartoe gaat: omhoog in het diagram naar de kolommen waaruit ze is opgebouwd, omlaag naar de kolommen die uit haar zijn opgebouwd, elk genoemd op haar tabel, ook waar de kolom onderweg een andere naam kreeg. Een pijl waarvan de bronnen geen kolommen noemen, kan haar verder dragen dan gemarkeerd is, en het diagram zegt dat.
 
+Elke weergave van de herkomst - het tabblad **Herkomst** van een tabel, dat van een pipeline, dat van een waarschuwing, de **Herkomstkaart** en wat OneUptime AI en de API vertellen - toont alleen de tabellen en pipelines die uw rol mag lezen. Een rol die beperkt is tot wat de leden ervan bezitten, of tot enkele labels, ziet nooit een andere tabel of pipeline: die wordt niet getekend, op geen enkele pijl genoemd en niet meegeteld bij de tabellen verderop.
+
 ## Herkomstkaart
 
 **Data Observability > Herkomstkaart** tekent elke gegevensstroom die uw project heeft gezien op één pagina, zodat u ziet wie welke data gebruikt en waar ze naartoe gaan, zonder eerst een tabel te kiezen. Ze toont:
@@ -30,13 +32,13 @@ Kies op het tabblad **Herkomst** een kolom van de tabel in **Een kolom volgen** 
 - **Services** die tabellen schrijven en lezen, uit de databasespans in uw traces: een span die zijn tabel (`db.collection.name`, of het oudere `db.sql.table`) en zijn instructie (`db.operation.name`) noemt, zoals een `INSERT` of een `SELECT`.
 - **Tabellen** die uit andere tabellen zijn opgebouwd, uit alle bronnen hierboven.
 - **Pipelines** die een tabel laden uit data die OneUptime niet bewaakt, zoals een Fivetran-synchronisatie. Een pipeline die data tussen twee bewaakte tabellen verplaatst, wordt genoemd op de pijl ertussen.
-- **Dashboards** en reverse-ETL-synchronisaties in uw BI-tools, die de tabellen lezen waarop ze zijn gebouwd.
+- **Dashboards** en reverse-ETL-synchronisaties in uw BI-tools, die de tabellen lezen waarop ze zijn gebouwd, ook als niets anders die tabellen raakt. Een Power BI-rapport dat op geen enkele door OneUptime bewaakte tabel is gebouwd, wordt getekend met de datasets die het weergeeft en de gegevensbronnen waaruit ze laden; als geen van de dashboards van een BI-tool op een bewaakte tabel staat, zegt de kaart waarom ([Herkomst in Power BI](#herkomst-in-power-bi)).
 
 Elke pijl is iets wat OneUptime heeft vastgelegd, nooit een gok. Kaarten staan van links naar rechts in de richting waarin data stromen en tonen hun toestand zoals op het diagram van een tabel: rood voor een late tabel, een openstaande melding of een mislukte uitvoering. Een pijl is turkoois waar de traces van een service hem hebben gezien.
 
 Zoek naar een tabel, service, pipeline of dashboard om te behouden wat overeenkomt en alles stroomopwaarts en stroomafwaarts ervan. Selecteer een kaart om haar hele herkomst te markeren, te zien waar ze vandaan komt en waar ze naartoe gaat, en haar pagina te openen; **Alleen de herkomst ervan tonen** laat alleen dat op de kaart staan. Met de schakelaars naast de zoekbalk laat u services, pipelines of dashboards weg. **Lijst** toont elke pijl als een regel en is wat een telefoon opent.
 
-Eén kaart tekent maximaal 400 kaarten, de meest recent geziene stromen eerst; heeft uw project er meer, dan zegt de kaart dat. Dezelfde kaart wordt geleverd door `POST /api/data-observability/lineage/map`, voor iedereen die data-assets mag lezen, en hun API-sleutels.
+Eén kaart tekent maximaal 400 kaarten, de meest recent geziene stromen eerst; heeft uw project er meer, dan zegt de kaart dat. Dezelfde kaart wordt geleverd door `POST /api/data-observability/lineage/map`, voor iedereen die data-assets mag lezen, en hun API-sleutels. Een kaart met meer vertelt hoeveel tabellen ze heeft weggelaten, elk één keer geteld, en kan ergens anders beginnen: kies een database om de stromen van haar tabellen en de kaarten die ze verbinden in kaart te brengen, of typ een naam en kies **Hele project doorzoeken** om de stromen van elke tabel, pipeline, service en elk dashboard met die naam in kaart te brengen, hoe oud ze ook zijn. **Hele kaart tonen** gaat terug. Laat de kaart van de API ergens anders beginnen door `{ "dataStoreId": "<database ID>" }` of `{ "search": "orders" }` te sturen.
 
 ## OpenLineage
 
@@ -97,7 +99,7 @@ De echte impact van slechte gegevens is het dashboard dat iemand opent. Voeg ond
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de alleen-lezen beheer-API's van Power BI mag gebruiken. Zowel rapporten als dashboards worden gelezen, met hun weergaven en vernieuwingen (hieronder) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de alleen-lezen beheer-API's van Power BI mag gebruiken, met de twee tenantinstellingen voor metadata uit [Herkomst in Power BI](#herkomst-in-power-bi) aangezet voor de tabellen achter elk rapport. Zowel rapporten als dashboards worden gelezen, met hun weergaven en vernieuwingen (hieronder) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (of `eu`) |
 
@@ -136,7 +138,9 @@ Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**,
 - **Pipeline Run Unusually Long**: een uitvoering heeft twee keer haar gebruikelijke tijd of langer geduurd, elke vijf minuten gecontroleerd zolang ze loopt, zodat een uitvoering die vastloopt al wordt opgemerkt voordat ze eindigt.
 - **Pipeline Is Late**: er is langer geen uitvoering gestart dan de planning toestaat.
 
-De pagina van een pipeline tekent zijn **Herkomst**, de eerste plek om te kijken als een uitvoering mislukt of te laat is: links de tabellen die hij leest, rechts de tabellen die hij schrijft, de pipeline ertussen, en elke kaart zegt hoe het er nu voor staat. Kies meer stappen om te zien waaruit die tabellen zijn opgebouwd en wat eruit is opgebouwd, en open een willekeurige tabel om haar eigen tabblad **Herkomst** te zien. Een aantal niet-getekende tabellen, op de kaart van de pipeline of van een tabel, tekent er ook hier ter plekke meer bij.
+Het tabblad **Eigenaren** van een pipeline noemt de mensen en teams die ervoor zorgen, en de waarschuwingen ervan gaan naar hen. Het **Overzicht** en **Problemen** noemen de eigenaren van een mislukte of late pipeline, of tonen **Geen eigenaar**, met een manier om er een toe te voegen.
+
+De pagina van een pipeline tekent zijn **Herkomst**, de eerste plek om te kijken als een uitvoering mislukt of te laat is: links de tabellen die hij leest, rechts de tabellen die hij schrijft, de pipeline ertussen, en elke kaart zegt hoe het er nu voor staat. Kies meer stappen om te zien waaruit die tabellen zijn opgebouwd en wat eruit is opgebouwd, en open een willekeurige tabel om haar eigen tabblad **Herkomst** te zien. Een aantal niet-getekende tabellen, op de kaart van de pipeline of van een tabel, tekent er ook hier ter plekke meer bij. Kies een van de kolommen die ze schrijft om die over de pipeline heen te volgen: omhoog naar de kolom van elke gelezen tabel waaruit die is gebouwd, en omlaag naar elke tabel waarin ze die schrijft.
 
 ## Eén waarschuwing per oorzaak
 
@@ -147,9 +151,33 @@ Wanneer een tabel verouderd raakt, raakt elke tabel die eruit is opgebouwd ook v
 
 De kaart **Gegevens** van de oorzaak toont haar **Impact stroomafwaarts**: elke waarschuwing die ze veroorzaakte. De kaart van een tabelwaarschuwing toont ook de services die naar de tabel schrijven, met hun mislukte schrijfacties, en hun deploys en andere wijzigingen in de dag vóór de waarschuwing.
 
-Onder de kaart **Gegevens** tekent de pagina van een waarschuwing haar **Herkomst**: rond haar tabel, zoals het tabblad **Herkomst** van de tabel die tekent, of rond haar pipeline. De weg omhoog naar de waarschuwing die haar veroorzaakte en omlaag naar elke waarschuwing die ze veroorzaakte, is gemarkeerd - de tabel of pipeline van de oorzaak met **Oorzaak**, die van elke veroorzaakte waarschuwing met **Gevolg** - en de rest vervaagt, zodat wie haar opent ziet waar in de keten het probleem begon. Ligt de oorzaak bij een pipeline die op een pijl is getekend, dan staat op die pijl **Oorzaak** onder de naam van de pipeline. Gaat de oorzaak over een hele database, of ligt ze verder omhoog dan het diagram reikt, dan zegt de kaart dat in woorden. Een waarschuwing uit een controle op één kolom, zoals een controle Percentage NULL op `customer_id`, opent met die kolom gevolgd naast deze wegen, zoals op het tabblad **Herkomst** van de tabel: waar ze vandaan komt en waar ze naartoe gaat, genoemd op elke tabel. Kies daar een andere kolom van de tabel, of wis haar om alleen de wegen te zien. **Herkomst verkennen** opent het tabblad **Herkomst** van de tabel, of de pagina van de pipeline.
+Onder de kaart **Gegevens** tekent de pagina van een waarschuwing haar **Herkomst**: rond haar tabel, zoals het tabblad **Herkomst** van de tabel die tekent, of rond haar pipeline. De weg omhoog naar de waarschuwing die haar veroorzaakte en omlaag naar elke waarschuwing die ze veroorzaakte, is gemarkeerd - de tabel of pipeline van de oorzaak met **Oorzaak**, die van elke veroorzaakte waarschuwing met **Gevolg** - en de rest vervaagt, zodat wie haar opent ziet waar in de keten het probleem begon. Ligt de oorzaak bij een pipeline die op een pijl is getekend, dan staat op die pijl **Oorzaak** onder de naam van de pipeline. Gaat de oorzaak over een hele database, of ligt ze verder omhoog dan het diagram reikt, dan zegt de kaart dat in woorden. Een waarschuwing uit een controle op één kolom, zoals een controle Percentage NULL op `customer_id`, opent met die kolom gevolgd naast deze wegen, zoals op het tabblad **Herkomst** van de tabel: waar ze vandaan komt en waar ze naartoe gaat, genoemd op elke tabel. Kies daar een andere kolom van de tabel, of wis haar om alleen de wegen te zien. **Herkomst verkennen** opent het tabblad **Herkomst** van de tabel, of de pagina van de pipeline. Een veroorzaakte waarschuwing bij een pipeline die op een pijl is getekend, zegt daar op dezelfde manier **Gevolg**, en de kolomkiezer biedt eerst de kolom van de controle aan, daarna de andere kolommen van de tabel in haar eigen volgorde.
 
 Wie de waarschuwing die haar veroorzaakte niet mag zien, krijgt geen kaart **Gegevens** en geen herkomst, en een veroorzaakte waarschuwing die diegene niet mag zien, wordt niet gemarkeerd en niet meegeteld.
+
+## Herkomst in Power BI
+
+**Gekoppelde tabellen** zegt bij elke BI-tool op hoeveel bewaakte tabellen de dashboards ervan zijn gebouwd, en daaronder het eerste wat de rest tegenhoudt om gekoppeld te worden. **See Why** somt op wat de laatste lezing vond en wat u kunt doen: databases die uw dashboards lezen en die niet met OneUptime zijn verbonden, elk maar één **Connect Database** verwijderd, met het soort en het adres al ingevuld; tabellen die een verbonden database niet bewaakt, die mogelijk buiten de scan ervan vallen of nog niet zijn verzameld; en bronnen die geen database zijn, zoals bestanden en webpagina's. Voor Power BI noemt het ook een tenantinstelling die uit staat, datasets die uit gegevensstromen lezen en datasets die Power BI niet kan beschrijven. **Gebaseerd op** zegt bij elk dashboard welke datasets het weergeeft en waar hun gegevens vandaan komen, zoals Power BI het zegt.
+
+OneUptime leest elke Power BI-dataset uit de metadatascan van Power BI, met de Power Query achter elk van de tabellen ervan:
+
+- **De database die een connector noemt**: SQL Server en Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena en Microsoft Dataverse, en het schema en de tabel die de navigatie ervan kiest.
+- **SQL die een query uitvoert**: de optie **SQL statement** van een connector, `Value.NativeQuery` en `Odbc.Query`, en de tabellen na elke `FROM` en `JOIN`.
+- **Parameters en gedeelde query's**: een parameter geldt overal waar hij wordt genoemd, en een tabel die een stagingquery leest, leest wat die query leest.
+- **Samengestelde modellen** geven de tabellen weer van de datasets waarop ze zijn gebouwd.
+
+Een rapport geeft de tabellen van zijn dataset weer, en een dashboard die van de datasets van zijn tegels. Waar de gegevens vandaan komen - de server en naam van een database, het pad van een bestand, een webadres - komt uit de gegevensbronnen van de scan, die niets nodig hebben buiten de beheer-API-toegang hierboven.
+
+Power BI geeft de tabellen van een dataset pas terug zodra een Fabric-beheerder twee tenantinstellingen aanzet in de beheerportal, onder **Tenant settings > Admin API settings**, voor de beveiligingsgroep waarin de service principal zit:
+
+- **Enhance admin APIs responses with detailed metadata**: de tabellen van elke dataset.
+- **Enhance admin APIs responses with DAX and mashup expressions**: de query's die ze laden, die zeggen welke databasetabellen ze lezen.
+
+Power BI beschrijft een dataset daarna zodra die is vernieuwd of opnieuw is gepubliceerd; een die alleen DirectQuery gebruikt, zodra iemand er een rapport op heeft geopend. Het beschrijft nooit realtime datasets, datasets met een liveverbinding met Analysis Services, Excel-werkmappen of datasets van meer dan 1 GB op gedeelde capaciteit. Een dataset die uit een gegevensstroom leest, wordt gelezen tot aan de gegevensstroom: OneUptime leest nog niet welke tabellen een gegevensstroom laadt.
+
+Elke tabel wordt aan een bewaakte tabel gekoppeld op naam, schema en database, en een server op zijn korte of volledige naam. Een tabel van een andere engine wordt nooit gekoppeld, en een in een andere database evenmin: een rapport op `Sales.dbo.Orders` wordt niet verbonden met `Archive.dbo.Orders`, omdat alleen `Archive` wordt bewaakt.
+
+[Vernieuwingen](#weergaven-en-vernieuwingen-in-power-bi) worden los van de tabellen gelezen: een melding dat de vernieuwingen van sommige datasets niet gelezen konden worden, zegt niets over hun tabellen.
 
 ## Voordat een wijziging wordt gemerged
 

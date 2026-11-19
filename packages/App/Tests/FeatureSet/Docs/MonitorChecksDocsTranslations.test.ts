@@ -802,19 +802,23 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("name a new Probe Status monitor's criteria in the reader's language (#8307)", () => {
+    // Offline, the probe-behind alert (#9501), then online.
     expect(defaultCriteriaNames(MonitorType.ProbeStatus)).toEqual([
       "Check if a probe is disconnected",
+      "Check if a probe is behind",
       "Check if every probe is connected",
     ]);
     expect(
       defaultCriteriaNames(MonitorType.ProbeStatus, dashboardTranslator("da")),
     ).toEqual([
       "Tjek, om en sonde er afbrudt",
+      "Tjek, om en sonde er bagud",
       "Tjek, om alle sonder er forbundet",
     ]);
     expect(drawnActionLabel("da", "Disconnected Probes")).toBe(
       "Afbrudte sonder",
     );
+    expect(drawnActionLabel("da", "Probes Behind")).toBe("Sonder bagud");
     expect(
       firstCells(
         "| Criteria | Filter |\n| --- | --- |\n| Tjek, om en sonde er afbrudt | **Afbrudte sonder** |",

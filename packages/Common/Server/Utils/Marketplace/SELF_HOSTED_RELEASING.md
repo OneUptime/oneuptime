@@ -359,19 +359,21 @@ Google approved this product on 6 November 2026 (its solution validation,
 case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
-1). **Where it stands** (17 November 2026): the product exists (step 5); its
+1). **Where it stands** (18 November 2026): the product exists (step 5); its
 pricing (step 6) and listing (step 7) are under Google's review, submitted
-that afternoon with the maintainer's go-ahead; the payments profile is done;
+on 17 November with the maintainer's go-ahead; the payments profile is done;
 and `editions.json` marks the edition ready, so the Marketplace Release
 workflow pushed 15.0.0's images and deployer that evening, and release
 `15.0` is saved on the Container images page (step 8). Google's validation
 of it failed: the deployer refused the edition, and the scan flagged the
 PostgreSQL image (step 8 says why). The edition was fixed the same day and
-15.0.0 pushed again; the second validation flagged no image, but its test failed
-on the tester itself, which is fixed too. **Left**: pushing 15.0.0 a third
-time and Google's validation of it, that page's review once the validation
-passes (step 8), then **Publish** once all three reviews are approved (each
-the maintainer's go-ahead). Google's Marketplace Operations team supports the
+15.0.0 pushed again; the second validation flagged no image, but its test
+failed on the tester itself. With the tester fixed, 15.0.0 went a third time
+on 18 November: that validation passed, and the Container images review was
+submitted the same morning, with the maintainer's go-ahead. **Left**:
+Google's three reviews (the Container images one takes two weeks or more),
+then **Publish** once all three are approved (the maintainer's go-ahead).
+Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
@@ -558,6 +560,11 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    but its own, `localhost` and `ingress`): with no status page there, the
    dashboard answered 404. The tester now asks by the deployment's own
    host (the **Domain name** buyers fill in, `localhost` in Google's test).
+
+   The third validation (18 November, with that fix) passed within 36
+   minutes, and the Container images review was submitted that morning.
+   Changing a release while the review runs cancels it, as the page says:
+   a newer version waits for the approval.
 
 ### The release workflow: one-time setup
 
@@ -842,11 +849,12 @@ the run moves it:
 gcloud artifacts docker tags delete "$REGISTRY/deployer:$VERSION"
 ```
 
-Then run the workflow for the version and `google-cloud`. On the **Container
-images** page, **Edit** the releases: the track's old digest shows as **Out of
+Then run the workflow for the version and `google-cloud`. Once it finishes,
+load the **Container images** page (one opened before lists the old digest
+alone) and **Edit** the releases: the track's old digest shows as **Out of
 sync**; pick the track again at its new digest (the other fields stay), then
-**Save and Validate**. 15.0.0 went to Google a second time this way on 17
-November 2026.
+**Save and Validate**. 15.0.0 went to Google a second and a third time this
+way, on 17 and 18 November 2026.
 
 ## Checking an installation
 
@@ -1398,6 +1406,9 @@ rejection, go-live and price change.
 | 2026-11-17 | Microsoft   | The live listing keeps "OneUptime Enterprise (self-hosted)": the maintainer's choice                | Maintainer |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
+| 2026-11-18 | Google      | Tester fix merged; 15.0.0 pushed a third time (its deployer's tag removed first), `15.0` saved      | Agent      |
+| 2026-11-18 | Google      | Third validation of `15.0` passed: the test deployment and the vulnerability scan                   | Google     |
+| 2026-11-18 | Google      | Container images review submitted, with the maintainer's go-ahead                                   | Agent      |
 
 ## Notes for agents driving the browser
 

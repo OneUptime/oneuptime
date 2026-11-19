@@ -452,7 +452,8 @@ Beaucoup de serveurs font tourner OneUptime pour une seule tâche, comme surveil
 
 - Les **préréglages** règlent tous les interrupteurs en un clic : **Surveillance et pages de statut** garde Moniteurs, Incidents, Astreinte, Pages de statut et Maintenance planifiée ; **Réponse aux incidents** ajoute Alertes, SLOs, Flux de travail et Runbooks ; **Tout** garde tous les produits. **Choisir les produits un par un** bascule un seul produit. Utilisateurs, Équipes et Paramètres du projet sont toujours activés.
 - Un produit désactivé disparaît du menu **Produits** de chaque projet, de l'accueil et de la recherche, et **Paramètres du projet > Produits** l'affiche comme désactivé. Un lien vers l'une de ses pages indique que le produit est désactivé sur ce serveur et qui peut l'activer.
-- L'API refuse de créer, modifier ou supprimer les enregistrements du produit, et Demander à l'IA le laisse de côté. La lecture fonctionne toujours, car les produits qui restent activés affichent des enregistrements d'autres produits : un incident nomme ses moniteurs.
+- L'API, les flux de travail et les applications Slack, Microsoft Teams et Mattermost refusent de créer, modifier ou supprimer les enregistrements du produit, et Demander à l'IA le laisse de côté. La lecture fonctionne toujours, car les produits qui restent activés affichent des enregistrements d'autres produits : un incident nomme ses moniteurs.
+- OneUptime AI ne lance aucun travail sur le produit : ni investigation, ni brouillon de post-mortem, ni correction, ni correctif de code, ni analyse. Tant que Runbooks est désactivé, un runbook s'exécute toujours selon sa propre planification, son webhook et ses règles, et rien d'autre n'en lance un : ni une personne, ni la remédiation automatique, ni OneUptime AI, ni un playbook de sécurité.
 - Rien n'est supprimé, et ce qui tourne déjà continue de tourner : les moniteurs continuent leurs vérifications, les pages de statut publiées restent en ligne, et la télémétrie continue d'arriver, sauf si vous arrêtez aussi l'ingestion. Un produit réactivé revient tel qu'il était.
 
 Pour définir les produits sous forme de code, réglez `SERVER_PRODUCTS` dans `config.env` (Helm : `products.onThisServer`) sur `everything`, `monitoring-and-status-pages`, `incident-response`, ou sur les produits à garder activés, par leur clé, comme `monitors,incidents,on-call,status-pages`. C'est une valeur de départ : dès qu'un administrateur enregistre **Paramètres > Produits**, ce qu'il a enregistré s'applique.
@@ -475,7 +476,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | Le service `global-runner` ne démarre pas. Seuls les runbooks et les corrections de code de OneUptime AI l'utilisent. |
 | `MQTT_INGEST_ENABLED=false` | Les écouteurs MQTT auxquels les appareils IoT envoient leurs données sont désactivés. |
 
-Six services tournent toujours : `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` et `valkey`. ClickHouse reste, car les moniteurs y conservent leurs résultats et leurs logs. Sur Kubernetes, définissez `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` et `globalRunner.enabled: false` dans vos valeurs Helm. Dimensionnez le serveur selon les [prérequis](#prérequis).
+Six services tournent toujours : `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` et `valkey`. ClickHouse reste, car les moniteurs y conservent leurs résultats et leurs logs. Sur Kubernetes, définissez `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` et `globalRunner.enabled: false` dans vos valeurs Helm.
+
+**Ce qu'il lui faut.** Mesuré sur la version 15.0.0 avec Docker Compose, chaque service limité aux mêmes 4 cœurs de processeur, comme sur un serveur à 4 cœurs. La mémoire est celle que rapporte `docker stats`, la moyenne de cinq relevés à 30 secondes d'intervalle :
+
+| Service | Au repos | Avec 100 moniteurs |
+| --- | --- | --- |
+| `ingress` | 304 Mio | 302 Mio |
+| `app` | 782 Mio | 849 Mio |
+| `probe-1` | 286 Mio | 231 Mio |
+| `postgres` | 228 Mio | 269 Mio |
+| `clickhouse` | 661 Mio | 818 Mio |
+| `valkey` | 13 Mio | 17 Mio |
+| Total | 2 274 Mio | 2 486 Mio |
+
+Au repos : 10 minutes après que OneUptime est prêt, sans moniteur. Avec 100 moniteurs : 30 minutes après l'ajout de 100 moniteurs Website qui vérifient chaque minute et d'une page de statut publique qui les affiche. Au démarrage de OneUptime, les services utilisent davantage pendant une minute ou deux : jusqu'à 3 584 Mio à eux tous. Au repos, aucun n'a utilisé plus d'un dixième d'un cœur de processeur.
+
+Au bout de ces 30 minutes, les données de PostgreSQL occupaient 163 Mio et celles de ClickHouse 452 Mio, presque entièrement ses propres journaux : les vérifications des moniteurs occupaient moins de 2 Mio.
+
+Ce profil tourne donc sur un serveur avec 4 cœurs de processeur et 6 Go de mémoire, avec de la marge pour le système, Docker et une mise à jour. nginx dans `ingress` démarre un worker par cœur : sur un serveur avec plus de cœurs, il utilise donc davantage, environ 510 Mio sur 32 cœurs.
+
+Avec ses réglages par défaut, une sonde vérifie jusqu'à 50 moniteurs à la fois : 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) de 10 moniteurs chacun (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Elle en demande d'autres dès qu'elle a de la place, et n'est ainsi pas limitée à 50 moniteurs par minute : mesurée avec 252 moniteurs de site web, d'API et de port qui vérifient chaque minute, elle a vérifié chacun d'eux chaque minute. La sonde de la version 15.0.0 ne demandait qu'une fois par minute, et vérifiait donc au plus 50 moniteurs par minute : pour que les 100 moniteurs soient vérifiés chaque minute, la mesure ci-dessus a défini `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` dans `config.env`. Une sonde qui prend du retard le signale dans Santé OneUptime, dans le tableau de bord admin : augmentez l'un ou l'autre réglage dans `config.env` pour qu'elle en vérifie plus à la fois.
 
 ## Mettre à jour OneUptime
 

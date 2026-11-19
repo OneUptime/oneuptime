@@ -6,6 +6,7 @@ import PermissionGate, {
 } from "../../Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import Navigation from "../../Utils/Navigation";
+import { openDocumentationLink } from "../../Utils/DocsLinkEvents";
 import { ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
@@ -368,9 +369,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           text="View Documentation"
           icon={IconProp.Book}
           onClick={() => {
-            Navigation.navigate(props.documentationLink!, {
-              openInNewTab: true,
-            });
+            openDocumentationLink(props.documentationLink!);
           }}
         />,
       );

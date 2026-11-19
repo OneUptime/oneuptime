@@ -43,17 +43,17 @@ Un serveur qui répond n'est pas interrogé à nouveau, même s'il répond sans 
 
 Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, tapez `ntp` dans la zone de recherche et choisissez **NTP**. Le type figure aussi sous **Plus de types de moniteurs**, dans le groupe Réseau.
 
-### Le nommer
-
-Saisissez un **Nom**, par exemple `Serveur de temps GPS`, puis cliquez sur **Suivant**.
-
 ### Saisir le serveur
 
-Dans **Serveur NTP**, saisissez le nom d'hôte ou l'adresse IP du serveur, par exemple `time.example.com` ou `192.168.1.10`. La requête part vers le port 123. Pour utiliser un autre port, ouvrez **Plus de champs** et renseignez **Port**.
+Dans **Serveur NTP**, saisissez le nom d'hôte ou l'adresse IP du serveur, par exemple `time.example.com` ou `192.168.1.10`. La requête part vers le port 123.
+
+### Le nommer
+
+Le **Nom** se remplit à partir de ce que vous avez saisi, par exemple `time.example.com`. Gardez-le ou saisissez le vôtre, comme `Serveur de temps GPS`, puis cliquez sur **Suivant**.
 
 ### Le tester
 
-Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. **Résultat du test du moniteur** indique si le serveur a répondu, s'il est synchronisé, sa strate et l'écart de son horloge.
+Pour utiliser un autre port, ouvrez **Plus de champs** sous **Cible du moniteur** et renseignez **Port**. Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** indique si le serveur a répondu, s'il est synchronisé, sa strate et l'écart de son horloge. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 
 ### Vérifier les critères
 

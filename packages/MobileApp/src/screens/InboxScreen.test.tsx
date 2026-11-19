@@ -2,11 +2,25 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import InboxScreen, {
   CATEGORY_TAB_MIN_WIDTH_WITH_ICON,
   getInboxViewOfRoute,
+  isInboxCategoryShown,
 } from "./InboxScreen";
+import { AppProduct } from "../api/serverProducts";
+import * as ServerProductsApi from "../api/serverProducts";
+import {
+  loadProductsOffOnServer,
+  resetProductsOffOnServer,
+} from "../hooks/useProductsOffOnServer";
 import type { SecurityCasesAvailability } from "../hooks/useSecurityCases";
 import {
   TEST_WINDOWS,
@@ -439,6 +453,90 @@ describe("What the Inbox shows", () => {
     expect(isSelected(tab("incidents"))).toBe(false);
     expect(screen.getByText("Alerts list (embedded)")).toBeTruthy();
     expect(screen.queryByText(/Incidents list/)).toBeNull();
+  });
+});
+
+/*
+ * A product the server's admin switched off is no category (#7478): with
+ * Incidents off the Inbox opens on Alerts, and Security Events off takes
+ * Security away even from the people who work its cases.
+ */
+describe("Categories of products the server switched off", () => {
+  async function switchOff(products: Array<AppProduct>): Promise<void> {
+    jest
+      .spyOn(ServerProductsApi, "fetchProductsOffOnServer")
+      .mockResolvedValue(new Set(products));
+    await loadProductsOffOnServer("project-1");
+  }
+
+  afterEach(() => {
+    resetProductsOffOnServer();
+    jest.restoreAllMocks();
+  });
+
+  test("Incidents off: no Incidents tab, and the Inbox opens on Alerts", async () => {
+    await switchOff([AppProduct.Incidents]);
+
+    await renderInbox();
+
+    expect(screen.queryByRole("tab", { name: "Incidents" })).toBeNull();
+    expect(isSelected(tab("alerts"))).toBe(true);
+    expect(screen.getByText("Alerts list (embedded)")).toBeTruthy();
+    expect(screen.queryByText(/Incidents list/)).toBeNull();
+  });
+
+  test("a route that asks for an off product's category lands on the next one", async () => {
+    await switchOff([AppProduct.Alerts]);
+    mockRoute.params = { initialView: "alerts" };
+
+    await renderInbox();
+
+    expect(screen.queryByRole("tab", { name: "Alerts" })).toBeNull();
+    expect(isSelected(tab("incidents"))).toBe(true);
+  });
+
+  test("Security Events off: no Security for anybody, a case's push included", async () => {
+    await switchOff([AppProduct.SecurityEvents]);
+    canSeeSecurityCases();
+    mockRoute.params = { initialView: "security" };
+
+    await renderInbox();
+
+    expect(screen.queryByRole("tab", { name: "Security" })).toBeNull();
+    expect(isSelected(tab("incidents"))).toBe(true);
+  });
+
+  test("isInboxCategoryShown says the same, for each category", () => {
+    const productsOff: { isOff: (product: AppProduct) => boolean } = {
+      isOff: (product: AppProduct): boolean => {
+        return product === AppProduct.Alerts;
+      },
+    };
+
+    expect(
+      isInboxCategoryShown({
+        view: "incidents",
+        requestedView: "incidents",
+        isSecurityAvailable: false,
+        productsOff,
+      }),
+    ).toBe(true);
+    expect(
+      isInboxCategoryShown({
+        view: "alerts",
+        requestedView: "incidents",
+        isSecurityAvailable: false,
+        productsOff,
+      }),
+    ).toBe(false);
+    expect(
+      isInboxCategoryShown({
+        view: "security",
+        requestedView: "security",
+        isSecurityAvailable: false,
+        productsOff,
+      }),
+    ).toBe(true);
   });
 });
 

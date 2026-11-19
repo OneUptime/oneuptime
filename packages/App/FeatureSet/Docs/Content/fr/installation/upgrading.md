@@ -6,7 +6,7 @@ Mettez à niveau une instance OneUptime auto-hébergée – avec Docker Compose,
 - [Comment faire la mise à niveau](#comment-faire-la-mise-à-niveau): La procédure, pour Docker Compose et Kubernetes.
 - [Les notes de chaque version](#trouver-les-notes-de-votre-version): Ce que chaque version majeure vous demande, en un coup d'œil.
 - [Images Community Edition et Enterprise Edition](#images-community-edition-et-enterprise-edition): Quelle image exécuter à partir de la 14.
-- [Mise à niveau de OneUptime 15 → 16](#mise-à-niveau-de-oneuptime-15-16): La version majeure la plus récente.
+- [Mise à niveau de OneUptime 16 → 17](#mise-à-niveau-de-oneuptime-16-17): La version majeure la plus récente.
 :::
 
 ## Comment faire la mise à niveau
@@ -80,6 +80,7 @@ Vérifiez ensuite de nouveau votre version, comme à la première étape. Si vou
 
 | Mise à niveau | Ce que vous devez faire |
 | --- | --- |
+| [16 → 17](#mise-à-niveau-de-oneuptime-16-17) | Dans les scripts d'API, déplacer une ligne avec sa requête de déplacement au lieu d'écrire son `order`, et ajouter une ligne au milieu d'une liste en la créant, puis en la déplaçant. Terraform et OpenTofu n'ont besoin d'aucun changement. |
 | [15 → 16](#mise-à-niveau-de-oneuptime-15-16) | Mettre à niveau le fournisseur Terraform avec le serveur, et retirer des lectures de l'API les jetons bearer SCIM, les adresses de webhook et les identifiants SNMP que la 16 ne renvoie plus. Mettre à jour vos Runners. Remplacer sans tarder chaque serveur de la 15, et ne revenir en arrière que dans un délai d'un jour. |
 | [14 → 15](#mise-à-niveau-de-oneuptime-14-15) | Copier d'abord la clé API principale si vous la lisez dans le tableau de bord admin. Mettre à niveau le fournisseur Terraform avec le serveur, et retirer des lectures de l'API les identifiants que la 15 ne renvoie plus. Derrière un proxy, lui permettre d'atteindre votre fournisseur d'identité, vos calendriers, vos serveurs MCP et le stockage de vos sauvegardes. Vérifier les moniteurs de requêtes entrantes qui reçoivent du texte brut. Remplacer sans tarder chaque serveur de la 14. |
 | [13 → 14](#mise-à-niveau-de-oneuptime-13-14) | Choisir une édition. Les installations Docker Compose qui définissent `IS_ENTERPRISE_EDITION=true` passent à `APP_TAG=enterprise-release`. Activer une licence sur l'édition Enterprise. Réenregistrer les moniteurs IPv6 Ping, Port et SSL. Les corrections de code IA passent au Runner global : le garder activé et, sur Helm, déplacer `runner.keda` vers `globalRunner.keda`. |
@@ -124,6 +125,25 @@ Rien ne change pour vous. OneUptime Cloud exécute l'édition Enterprise, et vot
 - Les installations auto-hébergées ne servent plus les points de terminaison du serveur de licences sous `/api/enterprise-license/`. Seul oneuptime.com les utilise.
 - Les points de terminaison SCIM gardent exactement leurs chemins sur l'édition Enterprise, donc la configuration du fournisseur d'identité ne change pas. Sur l'édition Community, ils renvoient `404`. Sur l'édition Enterprise, ils refusent les requêtes tant que la licence est caduque (après l'essai ou le délai de grâce), et répondent de nouveau dès qu'une licence est activée.
 - Les points de terminaison SSO et OIDC (URL de connexion et ACS SAML, URI de redirection OIDC, et points de terminaison du SSO global) gardent exactement leurs chemins et sont servis par les deux éditions, quel que soit l'état de la licence.
+
+## Mise à niveau de OneUptime 16 → 17
+
+OneUptime 17 permet à Terraform et à OpenTofu de numéroter une liste en un seul apply. Cinq listes sont numérotées par `order` : les groupes et les ressources d'une page de statut, les règles d'escalade d'une politique d'astreinte, les couches d'un planning d'astreinte et les personnes d'une couche. Jusqu'ici, écrire l'`order` d'une ligne la déplaçait, et les lignes qu'elle dépassait se décalaient. Terraform et OpenTofu numérotent une liste par une écriture par ligne, dans un ordre quelconque : un apply ne se stabilisait donc jamais, et le plan suivant montrait de nouvelles différences, dont deux lignes au même numéro. Désormais, écrire `order` place seulement sa propre ligne, et déplacer une ligne est une requête à part. Partez de la 16 – si vous êtes encore en 15, faites d'abord 15 → 16.
+
+Terraform et OpenTofu n'ont besoin d'aucun changement : le fournisseur n'envoie que les attributs qui ont changé, si bien que les versions du fournisseur déjà publiées se stabilisent dès que le serveur est mis à niveau. Le prochain apply place chaque ligne au numéro configuré, et le plan qui suit est vide. Déplacer une ligne dans le tableau de bord fonctionne comme avant.
+
+### Ce que vous devez faire pour la 17
+
+1. **Si un script d'API déplace une ligne en écrivant son `order`, faites-lui envoyer la requête de déplacement à la place.** Un `PUT` de l'`order` d'une ligne place désormais cette ligne seule : les lignes qu'elle dépasse ne se décalent plus. Pour déplacer une ligne, envoyez `POST /api/<resource>/<id>/move` avec `{ "placeOfId": "<id>" }`. La ligne prend la place de la ligne nommée, les lignes situées entre les deux se décalent d'une place vers l'endroit où elle se trouvait, et la liste est numérotée 1..n dans son nouvel ordre.
+2. **Si un script d'API ajoute une ligne au milieu d'une liste, faites-lui créer la ligne, puis la déplacer.** Une ligne créée à un numéro qu'une autre ligne occupe partage désormais ce numéro avec elle, au lieu de repousser vers le bas les lignes à partir de là. Créez la ligne sans `order`, ce qui la place après la dernière ligne, puis déplacez-la à la place de la ligne devant laquelle elle doit se trouver.
+
+### Autres changements en 17
+
+Ces changements modifient le comportement de OneUptime après la mise à niveau. Lisez-les si vous numérotez ces listes par l'API, Terraform ou OpenTofu.
+
+:::details Lire les autres changements en 17
+- **Les lignes qui partagent un numéro sont lues dans l'ordre de leurs ID, et un trou dans les numéros ne change rien.** Deux lignes d'une liste peuvent partager un numéro pendant qu'un apply est en cours, ou durablement si une configuration leur donne le même, et une ligne supprimée laisse désormais son trou au lieu que les lignes suivantes remontent. Les groupes et les ressources qui partagent un numéro sont affichés dans l'ordre de leurs ID, les couches sont classées de la même façon, et les personnes d'une couche prennent leur tour de la même façon. Une politique d'astreinte alerte deux niveaux qui partagent un numéro l'un après l'autre, dans l'ordre de leurs ID : avant la 17, le second n'était jamais alerté. Le niveau suivant d'une politique est le premier après le niveau en cours, jamais celui dont le numéro est supérieur d'un.
+:::
 
 ## Mise à niveau de OneUptime 15 → 16
 

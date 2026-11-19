@@ -2,7 +2,10 @@ import ProjectMilestoneService from "./ProjectMilestoneService";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import DatabaseConfig from "../DatabaseConfig";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import Semaphore, {
+  SemaphoreLockTimeoutError,
+  SemaphoreMutex,
+} from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
 import CreateLimit from "../Types/Database/CreateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -43,10 +46,24 @@ import SubscriptionPlan, {
 } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
+import EmailMessage from "../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import Name from "../../Types/Name";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import {
+  RESEND_INVITATION_LOCK_TIMEOUT_IN_MS,
+  RESEND_INVITATION_REFUSALS,
+  RESEND_INVITATION_SEND_TIMEOUT_IN_MS,
+  ResentInvitation,
+  getInvitationMayNotBeResentMessage,
+  getInvitationNotResentMessage,
+} from "../../Types/Team/ResendInvitation";
+import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
@@ -76,6 +93,9 @@ import ProjectLeaveResourceCleanup, {
 import ProjectLeaveNotificationCleanup from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
 import { ProjectLeaveRemovalResult } from "../Utils/TeamMember/ProjectLeaveRows";
 import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
+import InvitationInviterUtil, {
+  InvitationInviter,
+} from "../Utils/TeamMember/InvitationInviter";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import { EntityManager } from "typeorm";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
@@ -127,6 +147,31 @@ export const MEMBERSHIPS_OF_PERSON_STATEMENT: string =
 
 // How many people the Free plan allows: the project's owner.
 export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;
+
+// Where one resend of a person's invitation holds the others back (resendInvitation).
+export const RESEND_INVITATION_LOCK_NAMESPACE: string =
+  "TeamMemberService.resendInvitation";
+
+/*
+ * Someone the caller's Remove from Project would leave in the project
+ * (getTeamsOutOfRemovalReach): the teams the caller's own delete does not
+ * reach, and whether it reaches any of theirs.
+ */
+export interface TeamsOutOfRemovalReach {
+  userId: ObjectID;
+  teamIds: Array<ObjectID>;
+  // Memberships out of reach that name no team: counted, as the check counts them.
+  membershipsWithoutTeam: number;
+  hasTeamInReach: boolean;
+}
+
+// One person's memberships, as getTeamsOutOfRemovalReach groups them.
+interface PersonsMembershipsInReach {
+  userId: ObjectID;
+  teamIds: Map<string, ObjectID>;
+  membershipsWithoutTeam: number;
+  hasTeamInReach: boolean;
+}
 
 // The limits on people a membership create is held to.
 export interface ProjectPeopleLimits {
@@ -664,89 +709,24 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
       if (invitedUser && invitationAddress && !isSignedUpMemberAlready) {
         const user: User = invitedUser;
-        const email: Email = invitationAddress;
 
-        const project: Project | null = await ProjectService.findOneById({
-          id: createBy.data.projectId!,
-          select: {
-            name: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        // The invitation email, as a resend sends it too. See the helper.
+        const invitationEmail: EmailMessage | null =
+          await this.buildInvitationEmail({
+            props: createBy.props,
+            projectId: projectId,
+            user: user,
+            email: invitationAddress,
+            isNewUser: isNewUser,
+            isAccepted: isInvitationAcceptedOnCreate,
+          });
 
-        if (project) {
-          const host: Hostname = await DatabaseConfig.getHost();
-          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-          /*
-           * "Still has to register", not "we just created the row". Someone
-           * invited to a second project before they ever signed up already has a
-           * user row and still has no password, and used to be sent the sign-in
-           * link — which they could not use, having no password to sign in with.
-           */
-          const needsRegistration: boolean = isNewUser || !user.password;
-
-          /*
-           * The token is what lets the recipient claim this account, so it exists
-           * only on the link inside this email and only for someone who has not
-           * registered yet. An already-registered invitee gets the plain link;
-           * they sign in instead, and minting a claim token for an account that
-           * cannot be claimed would just be a spare key lying around.
-           */
-          const registerLink: string = needsRegistration
-            ? (
-                await UserRegistrationToken.generateRegistrationLink({
-                  userId: user.id!,
-                  email: email,
-                })
-              ).toString()
-            : URL.fromString(
-                new URL(
-                  httpProtocol,
-                  host,
-                  new Route(AccountsRoute.toString()),
-                ).toString(),
-              )
-                .addRoute("/register")
-                .addQueryParam("email", email.toString(), true)
-                .toString();
-
-          MailService.sendMail(
-            {
-              toEmail: email,
-              templateType: EmailTemplateType.InviteMember,
-              vars: {
-                signInLink: URL.fromString(
-                  new URL(
-                    httpProtocol,
-                    host,
-                    new Route(AccountsRoute.toString()),
-                  ).toString(),
-                ).toString(),
-                registerLink: registerLink,
-                isNewUser: needsRegistration.toString(),
-                /*
-                 * An auto-accepted member - accepted by a master admin, or
-                 * already in the project through another team - has nothing
-                 * left to accept, so the template drops the "sign in to accept
-                 * your invitation" framing and tells them they are already in.
-                 */
-                isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
-                projectName: project.name!,
-                homeUrl: new URL(httpProtocol, host).toString(),
-              },
-              subject: isInvitationAcceptedOnCreate
-                ? "You have been added to " + project.name
-                : "You have been invited to " + project.name,
-              isSubjectLiteral: true,
-            },
-            {
-              projectId: createBy.data.projectId!,
-              userId: user.id!,
-            },
-          ).catch((err: Error) => {
+        // Not waited for: the invitation is made whatever the mail service says.
+        if (invitationEmail) {
+          MailService.sendMail(invitationEmail, {
+            projectId: createBy.data.projectId!,
+            userId: user.id!,
+          }).catch((err: Error) => {
             logger.error(err, {
               projectId: createBy.data.projectId?.toString(),
               userId: user.id?.toString(),
@@ -761,6 +741,388 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * THE INVITATION EMAIL (the InviteMember template), as it is sent to a
+   * new invitation (onBeforeCreate) and to one sent again
+   * (resendInvitation, #9519) alike. Null when the project is gone.
+   * Sending it is the caller's: a new invitation does not wait for the mail
+   * service, a resend does.
+   */
+  @CaptureSpan()
+  private async buildInvitationEmail(data: {
+    // Whose request it is: the inviter it names (InvitationInviter).
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    // The invitee's account: its id, and its password column.
+    user: User;
+    email: Email;
+    // Its account was made by this invitation.
+    isNewUser: boolean;
+    // Accepted for them as it was made: nothing left for them to accept.
+    isAccepted: boolean;
+  }): Promise<EmailMessage | null> {
+    const user: User = data.user;
+    const email: Email = data.email;
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      return null;
+    }
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    /*
+     * "Still has to register", not "we just created the row". Someone
+     * invited to a second project before they ever signed up already has a
+     * user row and still has no password, and used to be sent the sign-in
+     * link — which they could not use, having no password to sign in with.
+     */
+    const needsRegistration: boolean = data.isNewUser || !user.password;
+
+    /*
+     * The token is what lets the recipient claim this account, so it exists
+     * only on the link inside this email and only for someone who has not
+     * registered yet. An already-registered invitee gets the plain link;
+     * they sign in instead, and minting a claim token for an account that
+     * cannot be claimed would just be a spare key lying around.
+     */
+    const registerLink: string = needsRegistration
+      ? (
+          await UserRegistrationToken.generateRegistrationLink({
+            userId: user.id!,
+            email: email,
+          })
+        ).toString()
+      : URL.fromString(
+          new URL(
+            httpProtocol,
+            host,
+            new Route(AccountsRoute.toString()),
+          ).toString(),
+        )
+          .addRoute("/register")
+          .addQueryParam("email", email.toString(), true)
+          .toString();
+
+    /*
+     * Who is inviting them, named in the subject and the first line,
+     * and - on a self-hosted server - whom they ask, and whom a reply
+     * reaches (#7471, InvitationInviter). Nobody, for an invitation
+     * OneUptime, an API key or a workflow makes. For an invitation sent
+     * again, the person sending it now.
+     */
+    const inviter: InvitationInviter | null = await InvitationInviterUtil.read({
+      props: data.props,
+      inviteeUserId: user.id,
+    });
+
+    return {
+      toEmail: email,
+      templateType: EmailTemplateType.InviteMember,
+      vars: {
+        signInLink: URL.fromString(
+          new URL(
+            httpProtocol,
+            host,
+            new Route(AccountsRoute.toString()),
+          ).toString(),
+        ).toString(),
+        registerLink: registerLink,
+        isNewUser: needsRegistration.toString(),
+        /*
+         * An auto-accepted member - accepted by a master admin, or
+         * already in the project through another team - has nothing
+         * left to accept, so the template drops the "sign in to accept
+         * your invitation" framing and tells them they are already in.
+         */
+        isInvitationAccepted: data.isAccepted.toString(),
+        projectName: project.name!,
+        homeUrl: new URL(httpProtocol, host).toString(),
+        ...InvitationInviterUtil.getTemplateVars(inviter),
+      },
+      subject: InvitationInviterUtil.getSubject({
+        projectName: project.name!,
+        inviter: inviter,
+        isAccepted: data.isAccepted,
+      }),
+      isSubjectLiteral: true,
+      replyToEmail: InvitationInviterUtil.getReplyTo({
+        inviter: inviter,
+        isSelfHosted: !IsBillingEnabled,
+      }),
+    };
+  }
+
+  /*
+   * RESEND INVITATION (#9519, Types/Team/ResendInvitation): a pending
+   * person's invitation email, sent again from their row - the same email
+   * a new invitation sends (buildInvitationEmail), with a new sign-up link
+   * and token for someone who has not signed up yet. Inviting the address
+   * to the same team again is refused while the invitation waits
+   * (ALREADY_INVITED), so this took removing them and inviting them again.
+   *
+   * Held to what inviting them to that team is held to, with the caller's
+   * own permissions: the membership's create, asked without creating it
+   * (checkCallerMayCreate: the table's create permission and its blocks,
+   * and Invite New Members scoped to the teams the caller owns), and the
+   * grant ceiling (TeamPermissionService.assertCanGrantTeamPermissions).
+   * Then, in this order, so nothing is counted, minted or sent for a resend
+   * that is refused:
+   *
+   *   - a membership that is gone - the person was removed, or declined -
+   *     or that is another project's is refused alike (notInvited);
+   *   - someone who has joined has no invitation waiting (joined);
+   *   - a server with no email set up sends nothing (emailNotSetUp);
+   *   - one resend of a person's invitation at a time: a second press, in
+   *     another tab or by somebody else, while the first is still with
+   *     the mail service, sends nothing more (alreadySending);
+   *   - the address is counted with every invitation sent to it
+   *     (PublicMessageRateLimit.assertTeamMaySend, TeamMessageKind
+   *     .Invitation): past its limit, refused with 429, carrying when to
+   *     come back.
+   *
+   * The send is waited for, unlike a new invitation's: the person who
+   * pressed Resend Invitation is told where it went, or why it did not
+   * go. A send the mail service refused gives the address its count back;
+   * one it did not answer in time may still go out, and keeps it. Either
+   * way the Notification service writes the project's Email Log row, with
+   * its template, so the row says Invitation Sent again once it went
+   * (InvitationEmailsNotSent).
+   */
+  @CaptureSpan()
+  public async resendInvitation(data: {
+    teamMemberId: ObjectID;
+    // The request's project; none for a master admin in the Admin Dashboard.
+    projectId: ObjectID | null;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ResentInvitation> {
+    const membership: TeamMember | null = await this.findOneById({
+      id: data.teamMemberId,
+      select: {
+        _id: true,
+        projectId: true,
+        teamId: true,
+        userId: true,
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectId: ObjectID | undefined = membership?.projectId;
+    const teamId: ObjectID | undefined = membership?.teamId;
+    const userId: ObjectID | undefined = membership?.userId;
+
+    if (
+      !membership ||
+      !projectId ||
+      !teamId ||
+      !userId ||
+      (data.projectId &&
+        data.projectId.toString().toLowerCase() !==
+          projectId.toString().toLowerCase())
+    ) {
+      throw new NotFoundException(RESEND_INVITATION_REFUSALS.notInvited);
+    }
+
+    // Whoever may invite to that team, by their own permissions.
+    const invitation: TeamMember = new TeamMember();
+    invitation.projectId = projectId;
+    invitation.teamId = teamId;
+    invitation.userId = userId;
+
+    await this.checkCallerMayCreate({
+      data: invitation,
+      props: data.props,
+    });
+
+    await TeamPermissionService.assertCanGrantTeamPermissions({
+      teamId: teamId,
+      projectId: projectId,
+      props: data.props,
+    });
+
+    // Joined, through this team or another of the project's.
+    if (
+      membership.hasAcceptedInvitation ||
+      (await this.isUserMemberOfProject({
+        projectId: projectId,
+        userId: userId,
+      }))
+    ) {
+      throw new BadDataException(RESEND_INVITATION_REFUSALS.joined);
+    }
+
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: {
+        _id: true,
+        email: true,
+        password: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user?.id || !user.email) {
+      throw new NotFoundException(RESEND_INVITATION_REFUSALS.notInvited);
+    }
+
+    const userEmail: Email = user.email;
+
+    if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+      throw new BadDataException(
+        data.props.isMasterAdmin
+          ? RESEND_INVITATION_REFUSALS.emailNotSetUpForMasterAdmin
+          : RESEND_INVITATION_REFUSALS.emailNotSetUp,
+      );
+    }
+
+    const lock: SemaphoreMutex | null = await this.lockInvitationResend({
+      projectId: projectId,
+      userId: userId,
+    });
+
+    try {
+      const permit: PublicMessageSendPermit =
+        await PublicMessageRateLimit.assertTeamMaySend({
+          kind: TeamMessageKind.Invitation,
+          contacts: [PublicMessageRateLimit.forEmail(userEmail)],
+        });
+
+      // Until the mail service may have taken it, nothing was sent.
+      let mayHaveBeenSent: boolean = false;
+
+      try {
+        const invitationEmail: EmailMessage | null =
+          await this.buildInvitationEmail({
+            props: data.props,
+            projectId: projectId,
+            user: user,
+            email: userEmail,
+            isNewUser: false,
+            isAccepted: false,
+          });
+
+        // The project went with it.
+        if (!invitationEmail) {
+          throw new NotFoundException(RESEND_INVITATION_REFUSALS.notInvited);
+        }
+
+        mayHaveBeenSent = true;
+
+        let response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse;
+
+        try {
+          response = await MailService.sendMail(invitationEmail, {
+            projectId: projectId,
+            userId: user.id,
+            timeoutInMs: RESEND_INVITATION_SEND_TIMEOUT_IN_MS,
+          });
+        } catch (err) {
+          // No answer in time: it may still go out.
+          logger.error(err, {
+            projectId: projectId.toString(),
+            userId: user.id.toString(),
+          } as LogAttributes);
+
+          throw new BadDataException(
+            getInvitationMayNotBeResentMessage({
+              email: userEmail.toString(),
+            }),
+          );
+        }
+
+        // The mail service refused it: nothing went out.
+        if (response instanceof HTTPErrorResponse) {
+          mayHaveBeenSent = false;
+
+          throw new BadDataException(
+            getInvitationNotResentMessage({
+              email: userEmail.toString(),
+              reason: response.message || "",
+            }),
+          );
+        }
+      } catch (err) {
+        // Nothing was sent: the address gets its count back.
+        if (!mayHaveBeenSent) {
+          await permit.giveBack();
+        }
+
+        throw err;
+      }
+    } finally {
+      await this.unlockInvitationResend(lock);
+    }
+
+    return {
+      email: userEmail.toString(),
+    };
+  }
+
+  /*
+   * One resend of a person's invitation to a project at a time
+   * (resendInvitation): the lock, or a refusal while another holds it.
+   * Null when no lock can be taken at all (Valkey away): the resend goes
+   * on unlocked, as the per-address limit lets a team's send through
+   * uncounted then. Never kept alive: a resend that fails half way leaves
+   * it to run out.
+   */
+  private async lockInvitationResend(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<SemaphoreMutex | null> {
+    try {
+      return await Semaphore.lock({
+        key: `${data.projectId.toString()}-${data.userId.toString()}`,
+        namespace: RESEND_INVITATION_LOCK_NAMESPACE,
+        lockTimeout: RESEND_INVITATION_LOCK_TIMEOUT_IN_MS,
+        acquireAttemptsLimit: 1,
+        refreshInterval: 0,
+      });
+    } catch (err) {
+      if (err instanceof SemaphoreLockTimeoutError) {
+        throw new BadDataException(RESEND_INVITATION_REFUSALS.alreadySending);
+      }
+
+      logger.warn(
+        "Resend Invitation: could not lock the person's invitation, so it is sent unlocked.",
+      );
+      logger.warn(err);
+
+      return null;
+    }
+  }
+
+  // Gives a resend's lock back. A failure is logged: the lock runs out by itself.
+  private async unlockInvitationResend(
+    lock: SemaphoreMutex | null,
+  ): Promise<void> {
+    if (!lock) {
+      return;
+    }
+
+    try {
+      await Semaphore.release(lock);
+    } catch (err) {
+      logger.warn("Resend Invitation: could not give the lock back.");
+      logger.warn(err);
+    }
   }
 
   /*
@@ -1667,6 +2029,131 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY,
       );
     }
+  }
+
+  /*
+   * WHOM THE CALLER'S REMOVE FROM PROJECT WOULD LEAVE IN THE PROJECT (#6599):
+   * of these people, the ones assertCallerMayRemoveUserFromProject would
+   * refuse to remove, each with the teams the caller's own delete does not
+   * reach - read the way that check reads them (the memberships as
+   * OneUptime, then those ModelPermission.checkDeleteQueryPermission hands
+   * the caller), so the Users list's lock and the refusal never disagree.
+   * Someone whose every membership the caller reaches is left out, and so
+   * is everyone for OneUptime's own reads and a master admin's, whom the
+   * check never refuses. A caller who may delete no membership at all is
+   * refused by the permission check itself, as the removal would be.
+   *
+   * Team ids only: the route names the teams the caller may read.
+   */
+  @CaptureSpan()
+  public async getTeamsOutOfRemovalReach(data: {
+    userIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<TeamsOutOfRemovalReach>> {
+    if (
+      data.props.isRoot ||
+      data.props.isMasterAdmin ||
+      data.userIds.length === 0
+    ) {
+      return [];
+    }
+
+    const query: Query<TeamMember> = {
+      userId: QueryHelper.any(data.userIds),
+      projectId: data.projectId,
+    } as Query<TeamMember>;
+
+    const memberships: Array<TeamMember> = await this.findBy({
+      query: query,
+      select: {
+        _id: true,
+        userId: true,
+        teamId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // The same memberships, as far as the caller's own delete reaches.
+    const reachableQuery: Query<TeamMember> =
+      await ModelPermission.checkDeleteQueryPermission(
+        TeamMember,
+        query,
+        data.props,
+      );
+
+    const reachable: Array<TeamMember> = await this.findBy({
+      query: reachableQuery,
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const reachableIds: Set<string> = new Set<string>(
+      reachable
+        .map((membership: TeamMember): string => {
+          return membership.id?.toString().toLowerCase() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    const byUser: Map<string, PersonsMembershipsInReach> = new Map();
+
+    for (const membership of memberships) {
+      if (!membership.id || !membership.userId) {
+        continue;
+      }
+
+      const userKey: string = membership.userId.toString().toLowerCase();
+      const person: PersonsMembershipsInReach = byUser.get(userKey) || {
+        userId: membership.userId,
+        teamIds: new Map<string, ObjectID>(),
+        membershipsWithoutTeam: 0,
+        hasTeamInReach: false,
+      };
+
+      if (reachableIds.has(membership.id.toString().toLowerCase())) {
+        person.hasTeamInReach = true;
+      } else if (membership.teamId) {
+        person.teamIds.set(
+          membership.teamId.toString().toLowerCase(),
+          membership.teamId,
+        );
+      } else {
+        // Counted by the check all the same, so counted here.
+        person.membershipsWithoutTeam += 1;
+      }
+
+      byUser.set(userKey, person);
+    }
+
+    const people: Array<TeamsOutOfRemovalReach> = [];
+
+    for (const person of byUser.values()) {
+      if (person.teamIds.size === 0 && person.membershipsWithoutTeam === 0) {
+        continue;
+      }
+
+      people.push({
+        userId: person.userId,
+        teamIds: Array.from(person.teamIds.values()),
+        membershipsWithoutTeam: person.membershipsWithoutTeam,
+        hasTeamInReach: person.hasTeamInReach,
+      });
+    }
+
+    return people;
   }
 
   /*

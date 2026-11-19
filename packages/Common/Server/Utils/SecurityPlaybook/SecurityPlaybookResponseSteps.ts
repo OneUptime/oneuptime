@@ -76,6 +76,11 @@ import type {
   PlaybookStepContext,
   PlaybookStepOutcome,
 } from "./SecurityPlaybookActions";
+import ProductKey from "../../../Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  getProductOffMessage,
+} from "../../../Types/Product/ServerProducts";
 
 /*
  * THE STEPS THAT RESPOND THROUGH THE REST OF ONEUPTIME.
@@ -315,6 +320,12 @@ export function describeRunbookRefusal(
       return "Runbooks cannot run on their own in this project.";
     case RunbookStartRefusal.NotQueued:
       return RUNBOOK_RUN_NOT_QUEUED_REASON;
+    // A playbook starts no runbook while the server has Runbooks off (#9489).
+    case RunbookStartRefusal.ProductSwitchedOff:
+      return getProductOffMessage({
+        product: ProductKey.Runbooks,
+        reason: ServerProductOffReason.SwitchedOff,
+      });
   }
 }
 

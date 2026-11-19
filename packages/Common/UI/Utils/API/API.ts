@@ -1,5 +1,6 @@
 import GlobalEvents from "../GlobalEvents";
 import LocalStorage from "../LocalStorage";
+import { Logger } from "../Logger";
 import Navigation from "../Navigation";
 import PermissionUtil from "../Permission";
 import SessionEndReturn from "../SessionEndReturn";
@@ -254,8 +255,38 @@ class BaseAPI extends API {
     return null;
   }
 
-  protected static logoutUser(): void {
-    return User.logout();
+  /*
+   * Signs the person out, and resolves once the server has answered the
+   * sign-out or the wait for it is over (User.logout). Never rejects. A
+   * client whose 401 ends no session of a person's says so (a status page's
+   * signs its reader out, a form page signs nobody out). A session that
+   * ended this way goes to the sign-in page, never to an identity
+   * provider's sign-out: only the person's own Sign Out does that.
+   */
+  protected static async logoutUser(): Promise<void> {
+    await User.logout();
+  }
+
+  /*
+   * Opens `route` once the sign-out has settled (issue #9508): the page
+   * change would otherwise cancel it in Firefox, and leave the session's
+   * cookies behind. A sign-out that failed still ends on the sign-in page.
+   */
+  private static async navigateOnceSignedOut(
+    signingOut: Promise<void>,
+    route: Route,
+  ): Promise<void> {
+    try {
+      await signingOut;
+    } catch {
+      // Nothing to wait for any more.
+    }
+
+    try {
+      Navigation.navigate(route, { forceNavigate: true });
+    } catch (err) {
+      Logger.error(err as Error);
+    }
   }
 
   public static override handleError(
@@ -297,7 +328,12 @@ class BaseAPI extends API {
         }
       }
 
-      this.logoutUser();
+      /*
+       * Signed out on the server first, and only then sent to the sign-in
+       * page (navigateOnceSignedOut). Wrapped, as a client may still answer
+       * logoutUser with nothing.
+       */
+      const signingOut: Promise<void> = Promise.resolve(this.logoutUser());
 
       /*
        * Already there: a forced navigation would reload the login page, whose
@@ -307,20 +343,13 @@ class BaseAPI extends API {
         return error;
       }
 
-      if (Navigation.getQueryStringByName("token")) {
-        Navigation.navigate(loginRoute.addRouteParam("sso", "true"), {
-          forceNavigate: true,
-        });
-      } else {
-        Navigation.navigate(
-          isUserSessionEnd
-            ? SessionEndReturn.getSignInRoute(loginRoute, sessionEnd.reason)
-            : loginRoute,
-          {
-            forceNavigate: true,
-          },
-        );
-      }
+      const signInRoute: Route = Navigation.getQueryStringByName("token")
+        ? loginRoute.addRouteParam("sso", "true")
+        : isUserSessionEnd
+          ? SessionEndReturn.getSignInRoute(loginRoute, sessionEnd.reason)
+          : loginRoute;
+
+      void BaseAPI.navigateOnceSignedOut(signingOut, signInRoute);
     }
 
     /*
@@ -698,7 +727,7 @@ class BaseAPI extends API {
      * The sentences of an error nobody explained are written here: a card
      * that puts one in a sentence of its own (errorInSentence) says it to
      * the page's reader - Cloud or not, a master admin, a visitor (#7307).
-     * Told here, as a page runs: at load, API and User import each other.
+     * Told here, as a page runs: the first time it asks for a message.
      */
     registerPageErrorReader();
 

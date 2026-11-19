@@ -3,6 +3,8 @@ import useTranslateValue from "../../Utils/Translation";
 import TableColumnsToCsv from "../../Utils/TableColumnsToCsv";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
+import RowActionDialogs from "../ActionButton/RowActionDialogs";
+import RowActionsStore from "../ActionButton/RowActionsStore";
 import { ButtonStyleType } from "../Button/Button";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
@@ -369,6 +371,18 @@ const Table: TableFunction = <T extends GenericObject>(
     Boolean(props.enableDragAndDrop),
   );
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
+
+  /*
+   * What the rows' actions have open - an action's question, an error, the
+   * ⋯ menu - kept here by each row's key rather than by the rows
+   * (RowActionsStore), and the dialogs drawn here, outside them
+   * (RowActionDialogs): the table draws every row again when it changes how
+   * it fits - a phone turned sideways, a window resized across 768px - and
+   * a question a row kept itself was gone without an answer (#9513).
+   */
+  const [rowActionsStore] = useState<RowActionsStore<T>>(() => {
+    return new RowActionsStore<T>();
+  });
 
   /*
    * Where the band over a phone's cards draws the Bulk Actions line
@@ -1150,6 +1164,7 @@ const Table: TableFunction = <T extends GenericObject>(
         bulkItemToString={props.bulkItemToString}
         isMobile={isMobile}
         isPhone={isPhone}
+        rowActionsStore={rowActionsStore}
       />
     );
 
@@ -1538,6 +1553,11 @@ const Table: TableFunction = <T extends GenericObject>(
           />
         )}
       </div>
+      {/*
+       * The rows' dialogs, over the page: drawn here, whatever the rows are
+       * drawn as - rows or cards, or not at all while they load again.
+       */}
+      <RowActionDialogs<T> store={rowActionsStore} />
     </div>
   );
 };

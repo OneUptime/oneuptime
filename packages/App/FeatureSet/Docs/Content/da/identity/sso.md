@@ -259,6 +259,12 @@ Et projekt kan også logge ind via en OpenID Connect-udbyder som Google Workspac
 6. Åbn linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen for at logge ind via den, før du kræver SSO for projektet.
 :::
 
+### Log også ud af identitetsudbyderen
+
+Når man logger ud af OneUptime, forbliver man logget ind hos identitetsudbyderen, så på en delt computer, som en NOC-skærm eller en kiosk, kommer den næste, der vælger udbyderen på login-siden, ind som den, der gik. Slå **Log også ud af identitetsudbyderen** til under **Flere felter** for at afslutte sessionen hos udbyderen, når nogen logger ud af OneUptime. Den er slået fra som standard: På en personlig bærbar ville den også logge personen ud af alle andre apps, der bruger udbyderen.
+
+Når den er slået til, går browseren til udbyderens egen log ud, så snart OneUptime har logget den ud, og udbyderen sender den tilbage til OneUptimes login-side. Registrer den side hos din udbyder: Dialogen **OIDC-konfiguration** viser den som omdirigerings-URI efter log ud, som udbydere kalder en post-logout redirect URI. En udbyder, hvis discovery-dokument ikke nævner noget `end_session_endpoint`, som Google, kan ikke slå den til. Den gælder for personer, der logger ind i en browser, efter at den er slået til; mobilappen logger kun ud af OneUptime. SAML-udbydere logger aldrig nogen ud af identitetsudbyderen.
+
 ## Roller og teams for SSO-brugere
 
 OneUptime overtager ikke roller eller grupper fra din identitetsudbyder. Hvad en person kan gøre, afhænger af de teams, vedkommende er med i: en udbyder tilføjer nye personer til sine **Teams**, og du administrerer teams og deres tilladelser i OneUptime, som beskrevet i [Brugere, teams og tilladelser](/docs/permissions/index). Brug [SCIM](/docs/identity/scim) til at holde teammedlemskaber i takt med din identitetsudbyder. Hvert team, nogen bliver medlem af, når de logger ind, registreres på teamets side **Auditlogs** som en ændring foretaget af den person, der loggede ind.

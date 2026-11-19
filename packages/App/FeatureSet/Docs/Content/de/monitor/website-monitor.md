@@ -46,17 +46,17 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Wählen Sie unter **Monitortyp** den Typ **Website**.
 
-### Ihn benennen
-
-Geben Sie einen **Name** ein, etwa `Marketing site`, und klicken Sie dann auf **Weiter**.
-
 ### Die URL eingeben
 
-Geben Sie unter **Website-URL** die vollständige Adresse der Seite ein, einschließlich `https://`, etwa `https://example.com`. Um Weiterleitungen, Zertifikate, das Zeitlimit oder Wiederholungen zu ändern, öffnen Sie darunter **Weitere Felder** (siehe [Konfigurationsoptionen](#konfigurationsoptionen)).
+Geben Sie unter **Website-URL** die vollständige Adresse der Seite ein, einschließlich `https://`, etwa `https://example.com`.
+
+### Ihn benennen
+
+Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `example.com`. Behalten Sie ihn oder geben Sie einen eigenen ein, etwa `Marketing site`, und klicken Sie dann auf **Weiter**.
 
 ### Ihn testen
 
-Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die Sonde zurückbekommen hat.
+Um Weiterleitungen, Zertifikate, das Zeitlimit oder Wiederholungen zu ändern, öffnen Sie **Weitere Felder** unter **Monitor-Ziel** (siehe [Konfigurationsoptionen](#konfigurationsoptionen)). Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die Sonde zurückbekommen hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 
@@ -99,7 +99,7 @@ Verwenden Sie `{{random}}` auf dieselbe Weise: `https://example.com/health?nocac
 
 ### Weitere Felder
 
-Diese Einstellungen sind unter **Weitere Felder** unterhalb der URL eingeklappt. Die eingeklappte Kopfzeile nennt sie und zeigt, welche Sie geändert haben.
+Diese Einstellungen sind in der Karte **Monitor-Ziel** unter **Weitere Felder** eingeklappt. Die eingeklappte Kopfzeile nennt sie und zeigt, welche Sie geändert haben.
 
 | Feld | Standard | Was es tut |
 | --- | --- | --- |

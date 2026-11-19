@@ -13,7 +13,7 @@ Product Analytics counts the people who use a RUM application, how their session
 
 ## How people are counted
 
-An application's side menu has a **Product Analytics** section: **Users**, **Sessions**, **Events**, **Funnels**, **User Retention**, **User Flows** and **Analytics Settings**. **Users** and **Sessions** count the sessions Session Replay records, so they start when the application's recorder does, and a session the replay policy leaves unrecorded is not counted. Each session counts for one person, or for nobody:
+An application's side menu has a **Product Analytics** section: **Users**, **Sessions**, **Events**, **Funnels**, **User Retention**, **User Flows** and **Analytics Settings**. **Users** and **Sessions** count the sessions Session Replay records, so they start when the application's recorder does, and a session the replay policy leaves unrecorded is not counted. On an installation that upgraded from a version without Product Analytics, the upgrade copies in the sessions Session Replay still kept, so they start with the oldest recording kept. Each session counts for one person, or for nobody:
 
 ```mermaid title="Who a session counts for"
 flowchart TB
@@ -42,12 +42,12 @@ Days are counted in your own time zone.
 | **New users** | Active users whose first visit was in the range. |
 | **Returning users** | Active users who had come before the range began. |
 | **Signed-in users** | Active users your app signed in with `identify()`, and their share of all active users. |
-| **Total users** | Everyone the application has seen in the last 13 months. |
+| **Total users** | Everyone the application has seen in the months it keeps its numbers, 13 by default. |
 | **Dormant users** | People who came before but not in the last 30 days, or the 7, 14, 60 or 90 days you choose. |
 
 The first three also say how they changed on the period before the range. Under the tiles, **Active users** charts, for each day, the people who came that day, in the 7 days up to it and in the 30 days up to it, and **New and returning users** splits each day's people in two.
 
-**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the last 13 months, with **Watch** on each one whose recording is still kept.
+**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the months the numbers are kept, with **Watch** on each one whose recording is still kept.
 
 ## Sessions
 
@@ -55,13 +55,13 @@ The first three also say how they changed on the period before the range. Under 
 
 - **Sessions by device** charts each day's sessions from desktops, phones and tablets. A mobile app's session on a screen whose shorter side is 600 points or more counts as a tablet's.
 - **Session length** sorts the finished sessions by how long they lasted, from under 10 seconds to over 30 minutes. A session that is still recording has no length yet.
-- **Breakdown** ranks users and sessions by device type, browser, operating system, country, app version, entry page or page, most users first.
+- **Breakdown** ranks users and sessions by device type, browser, operating system, country, app version, entry page or page, most users first. A web app's version is the one its page gives the recorder's `appVersion` option; a mobile app reports its own.
 
 ## Send events and metrics
 
-Events are sent while **Send product analytics events** is on, on the application's **Analytics Settings** page. It starts on for a new application, and off for an application created before it existed, so turn it on there. Session Replay must be on for the application too, as its recorder sends the events; the React Native recorder sends none yet.
+Events are sent while **Send product analytics events** is on, on the application's **Analytics Settings** page. It starts on for a new application, and off for an application created before it existed, so turn it on there. Session Replay must be on for the application too, as its recorder sends the events, from a web page and from a React Native app alike.
 
-Each session the browser recorder runs in sends its start and each page it views on its own, a single-page app's route changes included, whether or not the replay sample and policy record that session. Your own events and numbers come from your page's code:
+Each session the browser recorder runs in sends its start and each page it views on its own, a single-page app's route changes included, whether or not the replay sample and policy record that session. A React Native app sends its session's start and each screen it passes to `setRoute()` as a page view. Your own events and numbers come from your page's or app's code:
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Before the recorder has loaded, push the same calls onto `window.OneUptimeReplayQueue` as `["track", name, properties]` and `["metric", name, value, attributes]` (see [JavaScript API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Every session, recorded or not.** The replay sample and the upload policy decide which sessions are recorded, not which are counted. Nothing is sent under Do Not Track or Global Privacy Control, and nothing is kept from an origin the application does not allow. When the policy requires consent, events wait for `grantConsent()`, at most 500 of them, and `revokeConsent()` drops them.
-- **Masked as the recording is.** Under _Mask all text_, property and attribute values are masked before they leave the page, so a breakdown by one of them shows placeholders, not your values; event names, property keys and metric values are sent as written. A value you need to read under that mode goes in a session tag (`setTags()`), which is never masked, so keep personal data out of it. Tags show on the session and in a `tag:key=value` search of the session list, not in these pages' breakdowns. A page is sent as its path, without its query or fragment (a hash route, `#/orders`, is part of the path), and every segment that looks like an identifier (a UUID, an email, a long run of digits, a long opaque token) is replaced with `[redacted]`, as in every address Session Replay keeps; a property, attribute or user property whose value is an address is scrubbed the same way. OneUptime scrubs them again when the events arrive, so the events your own code sends with the ingestion key are held to the same rule.
-- **In small batches**, every 5 seconds and when the tab is hidden. An event that reaches OneUptime more than 3 days after it happened is dropped, and a project may send 60,000 events and metric points a minute, all its applications together; past that, the recorder waits and sends them again.
+- **Masked as the recording is.** Under _Mask all text_, property and attribute values are masked before they leave the page, so a breakdown by one of them shows placeholders, not your values; event names, property keys and metric values are sent as written. A value you need to read under that mode goes in a session tag (`setTags()`), which is never masked, so keep personal data out of it. Tags show on the session and in a `tag:key=value` search of the session list, not in these pages' breakdowns. A React Native app's values are always masked, as its SDK masks all text. A page is sent as its path, without its query or fragment (a hash route, `#/orders`, is part of the path), and every segment that looks like an identifier (a UUID, an email, a long run of digits, a long opaque token) is replaced with `[redacted]`, as in every address Session Replay keeps; a property, attribute or user property whose value is an address is scrubbed the same way. OneUptime scrubs them again when the events arrive, so the events your own code sends with the ingestion key are held to the same rule.
+- **In small batches**, every 5 seconds and when the tab is hidden or the app goes to the background. An event that reaches OneUptime more than 3 days after it happened is dropped, and a project may send 60,000 events and metric points a minute, all its applications together; past that, the recorder waits and sends them again.
 
 `metric()` sends nothing while the events are off, and `getDiagnostics().productAnalytics` says whether they are on (see [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Each event is also counted, minute by minute, as a metric of the application's, 
 
 These three are not billed, and `metric()` refuses a name that starts with `oneuptime.`, so nothing your page sends passes for them. Your `metric()` points are kept and billed as the application's other metrics are.
 
-A saved funnel or retention table goes on a dashboard too: the **Funnel** and **User Retention** widgets, in the widget catalog's **Product Analytics** group, show one in the dashboard's time range, and **Open in Funnels** or **Open in User Retention** opens it on its page (see [Dashboard Widgets](/docs/dashboards/widgets#product-analytics)).
+A saved funnel or retention table goes on a dashboard too: the **Funnel** and **User Retention** widgets, in the widget catalog's **Product Analytics** group, show one in the dashboard's time range, and **Open in Funnels** or **Open in User Retention** opens it on its page (see [Dashboard Widgets](/docs/dashboards/widgets#product-analytics)). A public dashboard shows only their titles, never their numbers: those count your application's end users.
 
 ## Privacy and retention
 
-- **13 months.** A month's numbers are removed on the first day of the 13th month after it, so the last 12 full months are always there, whatever the recordings' own retention (7 days by default). Events are kept the same way.
+- **13 months.** A month's numbers are removed on the first day of the 13th month after it, so the last 12 full months are always there, whatever the recordings' own retention (7 days by default). Events are kept the same way. 13 months is the default: an application can keep 3, 6 or 25 instead, chosen in **Product Analytics Retention** under **More settings** on its **Analytics Settings** page, and a shorter choice removes the older months within a day.
 - **No names stored.** The numbers keep a signed-in user's one-way key and a browser's visitor id, never the reference or an IP address, and of the traits only the user properties you list. A row names a signed-in user only while one of their recordings is still kept, and only to a role that may read identity; otherwise it reads **Signed-in user** or **Anonymous visitor** and the start of the id.
-- **Erased on request.** An erasure request removes the matching numbers and events here too (see [Erasing sessions](/docs/telemetry/session-replay#erasing-sessions)).
+- **Erased on request.** An erasure request removes the matching numbers and events here too (see [Erasing sessions](/docs/telemetry/session-replay#erasing-sessions)). Its `productAnalyticsRowsDeleted` count says how many rows it removed here. It does not change **Saved funnels** or **Saved retention tables**: their names and segments are your team's own writing, as a dashboard's title is, so do not save a segment that names a person.
 
 ## Who can see it
 
@@ -148,7 +148,7 @@ Reading these pages takes what reading the session list takes: `ReadRumSessionRe
 
 Saving, renaming and deleting saved funnels and retention tables takes the same permissions as reading these pages, and a dashboard widget shows one only to a reader who holds them.
 
-Turning the events on or off takes `EditRumApplication` (_Edit RUM Application_) or the Project Owner, Project Admin or Project Member role. Listing user properties takes `EditRumApplication` or an owner's or admin's role, since it decides what is kept about signed-in people.
+Turning the events on or off takes `EditRumApplication` (_Edit RUM Application_) or the Project Owner, Project Admin or Project Member role. Listing user properties takes `EditRumApplication` or an owner's or admin's role, since it decides what is kept about signed-in people. Choosing how long the numbers are kept takes the same as turning the events on or off.
 
 ## Next steps
 

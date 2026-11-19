@@ -13,7 +13,7 @@ Produktanalys räknar de människor som använder en RUM-applikation, hur deras 
 
 ## Hur personer räknas
 
-En applikations sidomeny har ett avsnitt **Produktanalys**: **Användare**, **Sessioner**, **Händelser**, **Trattar**, **Kvarhållning av användare**, **Användarflöden** och **Analysinställningar**. **Användare** och **Sessioner** räknar de sessioner som Sessionsuppspelning spelar in, så de börjar när applikationens inspelare gör det, och en session som uppspelningspolicyn inte spelar in räknas inte. Varje session räknas för en person, eller för ingen:
+En applikations sidomeny har ett avsnitt **Produktanalys**: **Användare**, **Sessioner**, **Händelser**, **Trattar**, **Kvarhållning av användare**, **Användarflöden** och **Analysinställningar**. **Användare** och **Sessioner** räknar de sessioner som Sessionsuppspelning spelar in, så de börjar när applikationens inspelare gör det, och en session som uppspelningspolicyn inte spelar in räknas inte. På en installation som uppgraderats från en version utan Produktanalys kopierar uppgraderingen in de sessioner som Sessionsuppspelning fortfarande sparade, så de börjar med den äldsta inspelning som sparas. Varje session räknas för en person, eller för ingen:
 
 ```mermaid title="Vem en session räknas för"
 flowchart TB
@@ -42,12 +42,12 @@ Dagar räknas i din egen tidszon.
 | **Nya användare** | Aktiva användare vars första besök var under intervallet. |
 | **Återkommande användare** | Aktiva användare som hade kommit innan intervallet började. |
 | **Inloggade användare** | Aktiva användare som din app loggade in med `identify()`, och deras andel av alla aktiva användare. |
-| **Totalt antal användare** | Alla som applikationen har sett under de senaste 13 månaderna. |
+| **Totalt antal användare** | Alla som applikationen har sett under de månader som dess siffror sparas, 13 som standard. |
 | **Inaktiva användare** | Personer som kom tidigare men inte under de senaste 30 dagarna, eller de 7, 14, 60 eller 90 dagar du väljer. |
 
 De tre första visar också hur de har ändrats jämfört med perioden före. Under rutorna ritar **Aktiva användare** för varje dag de personer som kom den dagen, de som kom under de 7 dagarna fram till den och de som kom under de 30 dagarna fram till den, och **Nya och återkommande användare** delar varje dags personer i två.
 
-**Personer** listar alla som rutorna räknar, en rad per person, de senast sedda först, och dess filter visar en rutas personer, de anonyma besökarna eller alla. Öppna en person för att se första och senaste besöket och var och en av personens sessioner från de senaste 13 månaderna, med **Titta** på varje session vars inspelning fortfarande sparas.
+**Personer** listar alla som rutorna räknar, en rad per person, de senast sedda först, och dess filter visar en rutas personer, de anonyma besökarna eller alla. Öppna en person för att se första och senaste besöket och var och en av personens sessioner från de månader som siffrorna sparas, med **Titta** på varje session vars inspelning fortfarande sparas.
 
 ## Sessioner
 
@@ -55,13 +55,13 @@ De tre första visar också hur de har ändrats jämfört med perioden före. Un
 
 - **Sessioner per enhet** ritar varje dags sessioner från datorer, telefoner och surfplattor. En mobilapps session på en skärm vars kortare sida är 600 punkter eller mer räknas som en surfplattas.
 - **Sessionslängd** delar in de avslutade sessionerna efter hur länge de varade, från under 10 sekunder till över 30 minuter. En session som fortfarande spelas in har ingen längd än.
-- **Uppdelning** rangordnar användare och sessioner efter enhetstyp, webbläsare, operativsystem, land, appversion, startsida eller sida, flest användare först.
+- **Uppdelning** rangordnar användare och sessioner efter enhetstyp, webbläsare, operativsystem, land, appversion, startsida eller sida, flest användare först. En webbapps version är den som sidan ger inspelarens `appVersion`-alternativ; en mobilapp rapporterar sin egen.
 
 ## Skicka händelser och mätvärden
 
-Händelser skickas så länge **Skicka produktanalyshändelser** är på, på applikationens sida **Analysinställningar**. Den är på från början för en ny applikation, och av för en applikation som skapades innan den fanns, så slå på den där. Sessionsuppspelning måste också vara på för applikationen, eftersom det är dess inspelare som skickar händelserna; React Native-inspelaren skickar inga ännu.
+Händelser skickas så länge **Skicka produktanalyshändelser** är på, på applikationens sida **Analysinställningar**. Den är på från början för en ny applikation, och av för en applikation som skapades innan den fanns, så slå på den där. Sessionsuppspelning måste också vara på för applikationen, eftersom det är dess inspelare som skickar händelserna, från en webbsida och från en React Native-app.
 
-Varje session som webbläsarinspelaren körs i skickar själv sin start och varje sida den visar, en ensidesapps ruttbyten inräknade, oavsett om uppspelningens urval och policy spelar in sessionen eller inte. Dina egna händelser och siffror kommer från din sidas kod:
+Varje session som webbläsarinspelaren körs i skickar själv sin start och varje sida den visar, en ensidesapps ruttbyten inräknade, oavsett om uppspelningens urval och policy spelar in sessionen eller inte. En React Native-app skickar sin sessions start och varje skärm den ger `setRoute()` som en sidvisning. Dina egna händelser och siffror kommer från din sidas eller apps kod:
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Innan inspelaren har laddats lägger du samma anrop i `window.OneUptimeReplayQueue` som `["track", name, properties]` och `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Varje session, inspelad eller inte.** Uppspelningens urval och uppladdningspolicyn avgör vilka sessioner som spelas in, inte vilka som räknas. Inget skickas under Do Not Track eller Global Privacy Control, och inget sparas från ett ursprung som applikationen inte tillåter. När policyn kräver samtycke väntar händelserna på `grantConsent()`, högst 500 av dem, och `revokeConsent()` kastar dem.
-- **Maskerade som inspelningen.** Under _Mask all text_ maskeras värdena för egenskaper och attribut innan de lämnar sidan, så en uppdelning efter något av dem visar platshållare, inte dina värden; händelsenamn, egenskapsnycklar och mätvärden skickas som de är skrivna. Ett värde du behöver kunna läsa i det läget hör hemma i en sessionstagg (`setTags()`), som aldrig maskeras, så håll personuppgifter utanför den. Taggar visas på sessionen och i en sökning med `tag:key=value` i sessionslistan, inte i uppdelningarna på de här sidorna. En sida skickas som sin sökväg, utan frågesträng och fragment (en hash-rutt, `#/orders`, är en del av sökvägen), och varje segment som ser ut som en identifierare (UUID:er, e-postadresser, långa sifferserier, långa ogenomskinliga token) ersätts med `[redacted]`, som i varje adress som Session Replay behåller; en egenskap, ett attribut eller en användaregenskap vars värde är en adress rensas på samma sätt. OneUptime rensar dem igen när händelserna kommer fram, så de händelser som din egen kod skickar med intagningsnyckeln följer samma regel.
-- **I små omgångar**, var 5:e sekund och när fliken döljs. En händelse som når OneUptime mer än 3 dagar efter att den hände kastas, och ett projekt får skicka 60 000 händelser och mätpunkter per minut, alla dess applikationer tillsammans; därutöver väntar inspelaren och skickar dem igen.
+- **Maskerade som inspelningen.** Under _Mask all text_ maskeras värdena för egenskaper och attribut innan de lämnar sidan, så en uppdelning efter något av dem visar platshållare, inte dina värden; händelsenamn, egenskapsnycklar och mätvärden skickas som de är skrivna. Ett värde du behöver kunna läsa i det läget hör hemma i en sessionstagg (`setTags()`), som aldrig maskeras, så håll personuppgifter utanför den. Taggar visas på sessionen och i en sökning med `tag:key=value` i sessionslistan, inte i uppdelningarna på de här sidorna. En React Native-apps värden maskeras alltid, eftersom dess SDK maskerar all text. En sida skickas som sin sökväg, utan frågesträng och fragment (en hash-rutt, `#/orders`, är en del av sökvägen), och varje segment som ser ut som en identifierare (UUID:er, e-postadresser, långa sifferserier, långa ogenomskinliga token) ersätts med `[redacted]`, som i varje adress som Session Replay behåller; en egenskap, ett attribut eller en användaregenskap vars värde är en adress rensas på samma sätt. OneUptime rensar dem igen när händelserna kommer fram, så de händelser som din egen kod skickar med intagningsnyckeln följer samma regel.
+- **I små omgångar**, var 5:e sekund och när fliken döljs eller appen går till bakgrunden. En händelse som når OneUptime mer än 3 dagar efter att den hände kastas, och ett projekt får skicka 60 000 händelser och mätpunkter per minut, alla dess applikationer tillsammans; därutöver väntar inspelaren och skickar dem igen.
 
 `metric()` skickar inget medan händelserna är av, och `getDiagnostics().productAnalytics` säger om de är på (se [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Varje händelse räknas också, minut för minut, som ett av applikationens mät
 
 De här tre debiteras inte, och `metric()` avvisar ett namn som börjar med `oneuptime.`, så inget som din sida skickar kan utge sig för att vara dem. Dina `metric()`-punkter sparas och debiteras som applikationens andra mätvärden.
 
-En sparad tratt eller kvarhållningstabell kan också visas på en instrumentpanel: widgetarna **Tratt** och **Kvarhållning av användare**, i widgetkatalogens grupp **Produktanalys**, visar en i instrumentpanelens tidsintervall, och **Öppna i Trattar** eller **Öppna i Kvarhållning av användare** öppnar den på dess sida (se [Instrumentpanels-widgetar](/docs/dashboards/widgets#produktanalys)).
+En sparad tratt eller kvarhållningstabell kan också visas på en instrumentpanel: widgetarna **Tratt** och **Kvarhållning av användare**, i widgetkatalogens grupp **Produktanalys**, visar en i instrumentpanelens tidsintervall, och **Öppna i Trattar** eller **Öppna i Kvarhållning av användare** öppnar den på dess sida (se [Instrumentpanels-widgetar](/docs/dashboards/widgets#produktanalys)). En offentlig instrumentpanel visar bara deras rubriker, aldrig deras siffror: de räknar din applikations slutanvändare.
 
 ## Integritet och lagring
 
-- **13 månader.** En månads siffror tas bort den första dagen i den 13:e månaden efter, så de senaste 12 hela månaderna finns alltid kvar, oavsett inspelningarnas egen lagringstid (7 dagar som standard). Händelser sparas på samma sätt.
+- **13 månader.** En månads siffror tas bort den första dagen i den 13:e månaden efter, så de senaste 12 hela månaderna finns alltid kvar, oavsett inspelningarnas egen lagringstid (7 dagar som standard). Händelser sparas på samma sätt. 13 månader är standard: en applikation kan i stället behålla 3, 6 eller 25, valt i **Lagringstid för produktanalys** under **Fler inställningar** på dess sida **Analysinställningar**, och ett kortare val tar bort de äldre månaderna inom ett dygn.
 - **Inga namn sparade.** Siffrorna sparar en inloggad användares envägsnyckel och en webbläsares besökar-id, aldrig referensen eller en IP-adress, och av egenskaperna bara de användaregenskaper du anger. En rad namnger en inloggad användare bara så länge någon av hens inspelningar fortfarande sparas, och bara för en roll som får läsa identitet; annars står det **Inloggad användare** eller **Anonym besökare** och början av id:t.
-- **Raderas på begäran.** En raderingsbegäran tar också bort de matchande siffrorna och händelserna här (se [Radera sessioner](/docs/telemetry/session-replay#radera-sessioner)).
+- **Raderas på begäran.** En raderingsbegäran tar också bort de matchande siffrorna och händelserna här (se [Radera sessioner](/docs/telemetry/session-replay#radera-sessioner)). Dess siffra `productAnalyticsRowsDeleted` anger hur många rader den tog bort här. Den ändrar inte **Sparade trattar** eller **Sparade kvarhållningstabeller**: deras namn och segment har ditt team skrivit självt, som en instrumentpanels rubrik, så spara inte ett segment som namnger en person.
 
 ## Vem kan se det
 
@@ -148,7 +148,7 @@ Att läsa de här sidorna kräver detsamma som att läsa sessionslistan: `ReadRu
 
 Att spara, byta namn på och ta bort sparade trattar och kvarhållningstabeller kräver samma behörigheter som att läsa de här sidorna, och en widget på en instrumentpanel visar en bara för en läsare som har dem.
 
-Att slå på eller av händelserna kräver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektägare, Projektadministratör eller Projektmedlem. Att ange användaregenskaper kräver `EditRumApplication` eller rollen som ägare eller administratör, eftersom det avgör vad som sparas om inloggade personer.
+Att slå på eller av händelserna kräver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektägare, Projektadministratör eller Projektmedlem. Att ange användaregenskaper kräver `EditRumApplication` eller rollen som ägare eller administratör, eftersom det avgör vad som sparas om inloggade personer. Att välja hur länge siffrorna sparas kräver samma sak som att slå på eller av händelserna.
 
 ## Nästa steg
 

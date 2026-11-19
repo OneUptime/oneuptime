@@ -81,6 +81,8 @@ flowchart TB
 | Slack और Microsoft Teams | वर्कस्पेस सूचनाएँ और कार्रवाइयाँ | [Slack इंटीग्रेशन](/docs/self-hosted/slack-integration) |
 | कोई LLM प्रदाता, जैसे OpenAI, Anthropic, Microsoft Foundry, या कोई मॉडल जिसे आप स्वयं चलाते हैं | OneUptime AI | [LLM प्रदाता](/docs/ai/llm-provider) |
 | `oneuptime.com` | Enterprise लाइसेंस को ऑनलाइन सक्रिय करना | [एंटरप्राइज़ संस्करण](/docs/self-hosted/enterprise) |
+| Let's Encrypt | वे प्रमाणपत्र जो OneUptime खुद मँगाता है: आपके इंस्टॉलेशन के पते के लिए `PROVISION_SSL=true` के साथ (Helm चार्ट में `ssl.provision`), और स्थिति पृष्ठों के अपने डोमेन के लिए | [स्थिति पृष्ठ प्रमाणपत्र](/docs/status-pages/branding-and-domains#ssl-प्रमाणपत्र) |
+| ClamAV के सिग्नेचर अपडेट, `database.clamav.net` से | लोगों की भेजी फ़ाइलों का मैलवेयर स्कैन, जब आप OneUptime के साथ आने वाला ClamAV चालू करते हैं | [मैलवेयर स्कैन](/docs/forms/sharing-and-security#मैलवेयर-स्कैन) |
 
 दूसरी दिशा के कनेक्शन - SendGrid का आने वाला ईमेल पहुँचाना, Slack और Microsoft Teams का वापस कॉल करना - के लिए ingress का इंटरनेट से पहुँच योग्य होना ज़रूरी है। ऐप और प्रोब किन निजी पतों तक पहुँच सकते हैं, यह आप तय करते हैं: देखें [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access)।
 

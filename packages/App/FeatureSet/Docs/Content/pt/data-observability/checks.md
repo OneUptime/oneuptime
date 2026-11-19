@@ -42,7 +42,7 @@ Defina **Gerar alerta quando** para alertar sobre uma verificação:
 
 Salvar a verificação cria um monitor de métricas para ela, em seu nome e com as suas permissões. Limpar a condição remove o monitor.
 
-O **Status** de uma verificação, em **Verificações** e na aba **Verificações** da tabela dela, diz como ela está: **Com falha** enquanto o alerta dela está aberto, **Aprovado** enquanto não está, e **Não foi possível executar** quando a consulta dela falhou. Uma verificação sem alerta mostra apenas **Executou**: a consulta dela funcionou. Uma verificação com falha, e uma que não pôde ser executada, aparece também na **Visão geral**.
+O **Status** de uma verificação, em **Verificações** e na aba **Verificações** da tabela dela, diz como ela está: **Com falha** enquanto o alerta dela está aberto, **Aprovado** enquanto não está, e **Não foi possível executar** quando a consulta dela falhou. Uma verificação sem alerta mostra apenas **Executou**: a consulta dela funcionou. Uma verificação com falha, e uma que não pôde ser executada, aparece também na **Visão geral**. **Verificações** lista primeiro as verificações com falha, depois as que não puderam ser executadas, depois as aprovadas, e o filtro **Status** mostra as verificações de um status. **Verificações com falha** na **Visão geral** abre **Verificações** mostrando só as que falham.
 
 ## O que uma verificação custa
 

@@ -90,6 +90,7 @@ Das Skript unter `/v1/recorder.js` ist ein kleiner Loader. Er prüft Do Not Trac
 | `data-oneuptime-respect-do-not-track` | Nein | Beachtet standardmäßig Do Not Track und Global Privacy Control. Setzen Sie es auf `"false"`, um unabhängig vom Signal aufzuzeichnen; siehe [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | Nein | `"true"` gibt die Entscheidungen des Recorders in der Konsole aus. Siehe [Fehlerbehebung bei der Sitzungswiedergabe](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | Nein | Setzen Sie es auf `"false"`, damit Chunks, die aufgezeichnet werden, während der Besucher offline ist, nur im Speicher bleiben statt zusätzlich in der IndexedDB des Browsers. Siehe [Offlinemodus](#offline-modus). |
+| `data-oneuptime-app-version` | Nein | Die Version Ihrer App, etwa `2.3.1`, bis zu 64 Zeichen. Die Produktanalyse schlüsselt Benutzer und Sitzungen danach auf. |
 
 Dieselben Optionen lassen sich statt im Tag in einem Global angeben, was Tag-Manager und gebündelte Installationen verwenden:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -175,8 +177,9 @@ Importieren Sie `OneUptimeReplay` direkt, oder rufen Sie unterhalb des Providers
 | `stop()` | Leert, was gesendet werden kann, stoppt die Aufnahme und löst die Lebenszyklus-Handler. |
 | `identify(userRef, traits?)` | Hängt den angemeldeten Benutzer und optionale Merkmale an, abhängig von **Endbenutzeridentität erfassen**. |
 | `setTags(tags)` / `addTag(key, value)` | Ersetzt alle durchsuchbaren Sitzungs-Tags oder fügt ein Tag hinzu, ohne die anderen zu ersetzen. |
-| `track(name, properties?)` | Setzt ein Anwendungsereignis auf die Zeitleiste der Wiedergabe. |
-| `setRoute(route)` | Hält nach einer Navigation einen bereinigten logischen Bildschirm oder eine Route fest. Rufen Sie es aus dem Routenwechsel-Callback Ihres Navigators auf. |
+| `track(name, properties?)` | Setzt ein Anwendungsereignis auf die Zeitleiste der Wiedergabe. Sind die Produktanalyse-Ereignisse eingeschaltet, ist es zugleich ein Ereignis, das die Seiten der [Produktanalyse](/docs/rum/product-analytics#ereignisse-und-metriken-senden) der Anwendung zählen, aus jeder Sitzung, ob aufgezeichnet oder nicht. |
+| `metric(name, value, attributes?)` | Sind die Produktanalyse-Ereignisse eingeschaltet, sendet es eine Zahl, die die App gemessen hat, als Punkt einer Metrik der Anwendung. Seine Attributwerte werden maskiert. |
+| `setRoute(route)` | Hält nach einer Navigation einen bereinigten logischen Bildschirm oder eine Route fest. Rufen Sie es aus dem Routenwechsel-Callback Ihres Navigators auf. Sind die Produktanalyse-Ereignisse eingeschaltet, ist jeder neue Bildschirm zugleich ein Seitenaufruf. |
 | `captureSession(reason?)` | Lädt unter _On error or frustration_ den rollierenden Puffer aus einem app-spezifischen Grund hoch, etwa wenn ein Benutzer auf „Problem melden“ tippt. |
 | `captureError(error)` | Hält einen behandelten JavaScript-Fehler fest und aktiviert die fehlergesteuerte Aufnahme. |
 | `grantConsent()` / `revokeConsent()` | Erlaubt Uploads, oder leert sofort den Puffer im Speicher, den gespeicherten Postausgang, die Sitzung und die Besucher-ID. Eine spätere Erlaubnis beginnt mit neuen Kennungen. |
@@ -1075,7 +1078,7 @@ Um eine Löschanfrage zu erfüllen, stellen Sie über die OneUptime-API eine Lö
 
 Zwei ehrliche Grenzen bei `ByIdentifiedUserKey`. Der Schlüssel wird nirgends im Dashboard angezeigt: Er kommt als `identifiedUserKey` in jeder Zeile der Sitzungslisten-API (`POST /telemetry/rum/session-replay/list`) zurück, daher beginnt eine Löschung nach Benutzer heute mit einer Suche `user:` dort und einer Kopie dieses Felds. Und eine Sitzung, die aufgezeichnet wurde, während **Endbenutzeridentität erfassen** aus war, hat gar keinen Schlüssel — über die Person wurde nichts gespeichert —, daher ist sie nur über Sitzungs-ID, Zeitraum oder Anwendung erreichbar.
 
-Jede Anfrage hält ihren `status` (`Pending`, `InProgress`, `Completed`, `Failed`), die Zähler `sessionsDeleted` und `chunksDeleted` und einen etwaigen `failureReason` fest; mit `ReadRumSessionErasureRequest` kann jemand sie prüfen. Die Löschung entfernt die Aufzeichnung und die mit diesen Sitzungen verknüpfte Telemetrie, und eine Aufzeichnung, die beim Abschluss der Anfrage noch unterwegs ist, wird verworfen statt geschrieben. Ein Link zu einer gelöschten Sitzung antwortet mit „erased“ statt „not found“. Die verknüpfte Telemetrie ist:
+Jede Anfrage hält ihren `status` (`Pending`, `InProgress`, `Completed`, `Failed`), die Zähler `sessionsDeleted`, `chunksDeleted` und `productAnalyticsRowsDeleted` und einen etwaigen `failureReason` fest; mit `ReadRumSessionErasureRequest` kann jemand sie prüfen. Die Löschung entfernt die Aufzeichnung und die mit diesen Sitzungen verknüpfte Telemetrie, und eine Aufzeichnung, die beim Abschluss der Anfrage noch unterwegs ist, wird verworfen statt geschrieben. Ein Link zu einer gelöschten Sitzung antwortet mit „erased“ statt „not found“. Die verknüpfte Telemetrie ist:
 
 - jeder Span und jede Ausnahme mit der ID der Sitzung, einschließlich der Backend-Spans, die [automatisch](#mit-ihrer-übrigen-telemetrie-verknüpfen) in jedem Dienst gestempelt wurden, der den Trace-Kontext weitergab, und jedes Log, das die ID selbst trägt;
 - die Logs, Ausnahmen und Spans jedes Traces, der allein den gelöschten Sitzungen gehört: Jeder gestempelte Span im Trace trägt eine ihrer IDs, und nichts im Trace begann mehr als zehn Minuten vor dem ersten oder nach dem letzten dieser Spans. Das umfasst die Backend-Logs der Anfragen, die Ihre Seiten an ihren eigenen Ursprung gestellt haben und die eine Trace-ID mit diesen gestempelten Spans teilen.

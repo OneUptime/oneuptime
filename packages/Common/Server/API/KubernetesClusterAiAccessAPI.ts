@@ -1,3 +1,5 @@
+import ProductKey from "../../Types/Product/ProductKey";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import Express, {
@@ -669,6 +671,7 @@ function describeFailure(error: unknown): string {
 router.post(
   "/kubernetes-cluster/ai-access/test",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Kubernetes),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1450,6 +1453,7 @@ async function getLogFixes(data: {
 router.post(
   "/kubernetes-cluster/ai-access/reset-agent",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Kubernetes),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

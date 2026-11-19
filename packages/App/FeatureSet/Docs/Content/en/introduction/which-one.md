@@ -46,7 +46,7 @@ All three bring things together, for different readers. They also work together:
 | [Service](/docs/telemetry/services) | An application OneUptime found in your telemetry, with its logs, traces, metrics, incidents and owners on one page. | You want everything about one application in one place. It appears by itself from its `service.name`. |
 | [Label](/docs/configuration/label-and-owner-rules) | A tag you put on monitors and most other records. A record can carry many. | You want to filter lists, limit a team's permissions, or pick records out in rules. |
 
-Monitor groups start turned off: turn them on under **Project Settings → Advanced → Feature Flags**.
+Monitor groups start turned off: turn them on under **Project Settings → Basic → Products**.
 
 ## Probe, agent, collector or Runner?
 

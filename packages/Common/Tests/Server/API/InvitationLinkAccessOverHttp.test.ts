@@ -267,6 +267,103 @@ describe("POST /team-member/invitation-link is refused to anybody but a master a
 });
 
 /*
+ * THE LINK OF AN INVITATION EMAIL THE SERVER FAILED TO SEND (#7169).
+ *
+ * The server's email log knows a failed invitation by its project and the
+ * address it went to, and its row offers Get Invitation Link: the route
+ * takes those in place of a membership - for a master admin alone, as
+ * ever. Anything that is not a project and an address reads nothing.
+ */
+describe("POST /team-member/invitation-link by a project and the address an invitation went to", () => {
+  const PROJECT_ID: string = "71690000-0000-4000-8000-0000000000c1";
+  const INVITEE: string = "pending@example.com";
+
+  let getForInvitee: SpyInstance<typeof InvitationLink.getForProjectInvitee>;
+
+  beforeEach(() => {
+    getForInvitee = jest
+      .spyOn(InvitationLink, "getForProjectInvitee")
+      .mockResolvedValue({
+        link: REGISTRATION_LINK,
+        isRegistered: false,
+        isAccepted: false,
+        email: INVITEE,
+      });
+  });
+
+  test("a master admin is handed the link of that person's invitation to that project", async () => {
+    sessionIs({ kind: "user", session: session(true) });
+
+    const result: HttpResult = await postInvitationLink(port, {
+      projectId: PROJECT_ID,
+      email: ` ${INVITEE} `,
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      link: REGISTRATION_LINK,
+      isRegistered: false,
+      isAccepted: false,
+      email: INVITEE,
+    });
+    expect(getForInvitee).toHaveBeenCalledTimes(1);
+
+    const asked: { projectId: ObjectID; email: Email } = getForInvitee.mock
+      .calls[0]![0] as { projectId: ObjectID; email: Email };
+
+    expect(asked.projectId.toString()).toBe(PROJECT_ID);
+    expect(asked.email.toString()).toBe(INVITEE);
+    expect(getLink).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["a signed-in Project Owner who is not a master admin", false, 422],
+  ])(
+    "%s: refused, and no link is read or minted",
+    async (_who: string, isMasterAdmin: boolean, status: number) => {
+      sessionIs({ kind: "user", session: session(isMasterAdmin) });
+
+      const result: HttpResult = await postInvitationLink(port, {
+        projectId: PROJECT_ID,
+        email: INVITEE,
+      });
+
+      expect(result.status).toBe(status);
+      expect(getForInvitee).not.toHaveBeenCalled();
+      expect(result.raw).not.toContain("token=");
+    },
+  );
+
+  test.each([
+    ["a project that is not one", { projectId: "walk-co", email: INVITEE }],
+    ["an address that is not one", { projectId: PROJECT_ID, email: "grace" }],
+    ["no address", { projectId: PROJECT_ID }],
+    ["no project", { email: INVITEE }],
+  ])("%s reads nothing", async (_case: string, body: JSONObject) => {
+    sessionIs({ kind: "user", session: session(true) });
+
+    const result: HttpResult = await postInvitationLink(port, body);
+
+    expect(result.status).toBe(400);
+    expect(getForInvitee).not.toHaveBeenCalled();
+    expect(getLink).not.toHaveBeenCalled();
+  });
+
+  test("a membership named alongside wins: the row of a list asks by its membership", async () => {
+    sessionIs({ kind: "user", session: session(true) });
+
+    await postInvitationLink(port, {
+      teamMemberId: TEAM_MEMBER_ID.toString(),
+      projectId: PROJECT_ID,
+      email: INVITEE,
+    });
+
+    expect(getLink).toHaveBeenCalledTimes(1);
+    expect(getForInvitee).not.toHaveBeenCalled();
+  });
+});
+
+/*
  * WHO MAY ASK WHICH MEMBERS HAVE NOT SIGNED UP (#8191).
  *
  * The lists ask, for their accepted rows, whose person has no account yet,

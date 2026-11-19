@@ -43,13 +43,13 @@ Un gruppo di monitor non è un gruppo di una pagina di stato. Un gruppo di una p
 ## Attivare i gruppi di monitor
 
 :::steps
-### Aprire i flag delle funzionalità
+### Aprire la pagina Prodotti
 
-Andate in **Impostazioni del progetto → Avanzato → Flag delle funzionalità**. **Avanzato** è chiuso nel menu laterale: espandetelo prima.
+Andate in **Impostazioni del progetto → Base → Prodotti**.
 
 ### Azionare l'interruttore
 
-Attivate l'interruttore **Gruppi di monitor**. Si salva subito: **Gruppi di monitor** compare nel menu laterale di **Monitor**, e la voce **Monitor** di ogni pagina di stato diventa **Risorse**, dove potete aggiungere un gruppo.
+Attivate l'interruttore **Gruppi di monitor**, sotto **Monitor**. Si salva subito: **Gruppi di monitor** compare nel menu laterale di **Monitor**, e la voce **Monitor** di ogni pagina di stato diventa **Risorse**, dove potete aggiungere un gruppo.
 :::
 
 Disattivare di nuovo l'interruttore nasconde **Gruppi di monitor** dal menu. Nessun gruppo viene eliminato.
@@ -143,7 +143,7 @@ Un gruppo è `/api/monitor-group`, e ogni monitor che contiene è una riga di `/
 ## Risoluzione dei problemi
 
 :::details Gruppi di monitor non è nel menu Monitor
-L'interruttore **Gruppi di monitor** è disattivato. Attivatelo in **Impostazioni del progetto → Avanzato → Flag delle funzionalità**. Su OneUptime Cloud, i gruppi richiedono anche il piano Scale.
+L'interruttore **Gruppi di monitor** è disattivato. Attivatelo in **Impostazioni del progetto → Base → Prodotti**. Su OneUptime Cloud, i gruppi richiedono anche il piano Scale.
 :::
 
 :::details Il gruppo mostra Offline, ma la maggior parte dei suoi monitor funziona

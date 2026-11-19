@@ -1059,6 +1059,19 @@ import { AddProjectDefaultPagingLadder1809183250000 } from "./1809183250000-AddP
 import { AddServerEmailLog1809183300000 } from "./1809183300000-AddServerEmailLog";
 import { AddServerAlerts1809183400000 } from "./1809183400000-AddServerAlerts";
 import { KeepSampleProjectColumns1809183500000 } from "./1809183500000-KeepSampleProjectColumns";
+import { AddProbeChecksLate1809183650000 } from "./1809183650000-AddProbeChecksLate";
+import { AddProbeDevicePollsLate1809183760000 } from "./1809183760000-AddProbeDevicePollsLate";
+import { AddDocsFeedbackKeeping1809183800000 } from "./1809183800000-AddDocsFeedbackKeeping";
+import { AddEmailLogTemplateType1809183830000 } from "./1809183830000-AddEmailLogTemplateType";
+import { AddRumSessionErasureRequestProductAnalyticsRowsDeleted1809183906628 } from "./1809183906628-AddRumSessionErasureRequestProductAnalyticsRowsDeleted";
+import { AddRumApplicationProductAnalyticsRetention1809183906630 } from "./1809183906630-AddRumApplicationProductAnalyticsRetention";
+import { AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000 } from "./1809184550000-AddDataObservabilityAttentionColumnsAndPipelineOwners";
+import { AddDataCheckMonitorIdIndex1809184560000 } from "./1809184560000-AddDataCheckMonitorIdIndex";
+import { AddTableHealthAttemptedAt1809184570000 } from "./1809184570000-AddTableHealthAttemptedAt";
+import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "./1809184620000-AddBiLineageSummaryAndDashboardUpstream";
+import { AddDataStoreFindingSampleRecords1809184700000 } from "./1809184700000-AddDataStoreFindingSampleRecords";
+import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIdentityProviderSignOut";
+import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000-AddSecurityCaseTaskResponseStepKey";
 
 export default [
   InitialMigration,
@@ -2122,4 +2135,17 @@ export default [
   AddServerEmailLog1809183300000,
   AddServerAlerts1809183400000,
   KeepSampleProjectColumns1809183500000,
+  AddProbeChecksLate1809183650000,
+  AddProbeDevicePollsLate1809183760000,
+  AddDocsFeedbackKeeping1809183800000,
+  AddEmailLogTemplateType1809183830000,
+  AddRumSessionErasureRequestProductAnalyticsRowsDeleted1809183906628,
+  AddRumApplicationProductAnalyticsRetention1809183906630,
+  AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000,
+  AddDataCheckMonitorIdIndex1809184560000,
+  AddTableHealthAttemptedAt1809184570000,
+  AddBiLineageSummaryAndDashboardUpstream1809184620000,
+  AddDataStoreFindingSampleRecords1809184700000,
+  AddIdentityProviderSignOut1809184710000,
+  AddSecurityCaseTaskResponseStepKey1809184720000,
 ];

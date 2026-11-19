@@ -14,6 +14,10 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
+import MoveInListUtil, {
+  MoveInListResult,
+  getMoveInListRoute,
+} from "../../../Types/Database/MoveInList";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
@@ -143,6 +147,53 @@ export default class ModelAPI {
 
     if (result.isSuccess()) {
       return result;
+    }
+
+    this.checkStatusCode(result);
+
+    throw result;
+  }
+
+  /*
+   * Moves a row of a numbered list - escalation rules, schedule layers and
+   * their people, status page groups and resources - to the place another
+   * row of its list holds: the rows between step one place towards where it
+   * was (POST <the list's path>/:id/move, Types/Database/MoveInList). What a
+   * drag, or Move up and Move down, sends. A write of the row's `order`
+   * (updateById) places that row alone, as Terraform needs, and never moves
+   * the others. Throws what the server answered when it refused.
+   */
+  public static async moveInList<TBaseModel extends BaseModel>(data: {
+    modelType: { new (): TBaseModel };
+    id: ObjectID;
+    placeOfId: ObjectID;
+    requestOptions?: RequestOptions;
+  }): Promise<MoveInListResult> {
+    const apiPath: Route | null = new data.modelType().getCrudApiPath();
+
+    if (!apiPath) {
+      throw new BadDataException("This list's rows cannot be moved.");
+    }
+
+    const apiUrl: URL = URL.fromURL(APP_API_URL)
+      .addRoute(apiPath)
+      .addRoute(getMoveInListRoute(data.id.toString()));
+
+    const result: HTTPResponse<JSONObject | JSONArray> =
+      await this.getApiClientForRequest(data.requestOptions).fetch<
+        JSONObject | JSONArray
+      >({
+        method: HTTPMethod.POST,
+        url: apiUrl,
+        data: MoveInListUtil.requestToJSON({ placeOfId: data.placeOfId }),
+        headers: this.getCommonHeaders(data.requestOptions),
+        ...(data.requestOptions?.apiRequestOptions
+          ? { options: data.requestOptions.apiRequestOptions }
+          : {}),
+      });
+
+    if (result.isSuccess()) {
+      return MoveInListUtil.resultFromJSON(result.data);
     }
 
     this.checkStatusCode(result);

@@ -1,4 +1,5 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import RowActionsStore from "../ActionButton/RowActionsStore";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import {
   TableCardContext,
@@ -95,6 +96,13 @@ export interface ComponentProps<T extends GenericObject> {
    * column's as the table folds (TableRow).
    */
   getColumnId?: ((column: Column<T>) => string | undefined) | undefined;
+  /*
+   * Where the table keeps what each row's actions have open - a question,
+   * an error, the ⋯ menu - by the row's key (RowActionsStore): this body
+   * draws its rows again as a card or as a row whenever the table changes
+   * how it fits, and they stay open.
+   */
+  rowActionsStore?: RowActionsStore<T> | undefined;
 }
 
 type TableBodyFunction = <T extends GenericObject>(
@@ -253,6 +261,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
         >
           {props.data &&
             props.data.map((item: T, i: number) => {
+              const rowKey: string | number = getRowKey(item, i);
+
               return (
                 <TableRow
                   isBulkActionsEnabled={props.isBulkActionsEnabled}
@@ -262,7 +272,9 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   dragAndDropScope={props.dragAndDropScope}
                   enableDragAndDrop={props.enableDragAndDrop}
                   dragAndDrop={props.dragAndDrop}
-                  key={getRowKey(item, i)}
+                  key={rowKey}
+                  rowKey={String(rowKey)}
+                  rowActionsStore={props.rowActionsStore}
                   {...getDragProps(i)}
                   item={item}
                   rowProps={props.getRowProps?.(item)}
@@ -295,6 +307,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
       >
         {props.data &&
           props.data.map((item: T, i: number) => {
+            const rowKey: string | number = getRowKey(item, i);
+
             return (
               <TableRow
                 isLastRow={i === props.data.length - 1}
@@ -307,7 +321,9 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 dragAndDropScope={props.dragAndDropScope}
                 enableDragAndDrop={props.enableDragAndDrop}
                 dragAndDrop={props.dragAndDrop}
-                key={getRowKey(item, i)}
+                key={rowKey}
+                rowKey={String(rowKey)}
+                rowActionsStore={props.rowActionsStore}
                 {...getDragProps(i)}
                 item={item}
                 rowProps={props.getRowProps?.(item)}

@@ -1,6 +1,7 @@
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { IDENTITY_URL, APP_API_URL } from "Common/UI/Config";
+import { SIGN_UP_INVITATION_ROUTE } from "Common/Types/Accounts/SignUpInvitation";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/signup"),
@@ -16,6 +17,15 @@ export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
 export const FIRST_ACCOUNT_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/first-account"),
 );
+
+/*
+ * The invitation a sign-up link is for (#7471): the register page an
+ * invitation opens asks, with the link's address and token, which project
+ * invited the person and who.
+ */
+export const SIGN_UP_INVITATION_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(SIGN_UP_INVITATION_ROUTE));
 
 export const PASSKEY_LOGIN_OPTIONS_API_URL: URL = URL.fromURL(
   IDENTITY_URL,

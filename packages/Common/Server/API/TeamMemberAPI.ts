@@ -9,9 +9,12 @@ import AccessTokenService from "../Services/AccessTokenService";
 import ProjectSCIMService from "../Services/ProjectSCIMService";
 import TeamMemberService, {
   TeamMemberService as TeamMemberServiceType,
+  TeamsOutOfRemovalReach,
 } from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
 import ProjectMemberSearch from "../Utils/Team/ProjectMemberSearch";
+import ReadableTeamNames from "../Utils/Team/ReadableTeamNames";
+import InvitationEmailsNotSent from "../Utils/TeamMember/InvitationEmailsNotSent";
 import EditionEnforcement from "../Utils/EditionEnforcement";
 import {
   ExpressRequest,
@@ -36,6 +39,26 @@ import {
   readProjectMemberSearchText,
   toProjectMemberSearchAnswerJSON,
 } from "../../Types/Team/ProjectMemberSearch";
+import {
+  PersonKeptInProject,
+  readProjectRemovalReachRequest,
+  toProjectRemovalReachAnswerJSON,
+} from "../../Types/Team/ProjectRemovalReach";
+import {
+  InvitationEmailNotSent,
+  ProjectInvitationEmailNotSent,
+  readInvitationEmailsNotSentInProjectsRequest,
+  readInvitationEmailsNotSentRequest,
+  toInvitationEmailsNotSentAnswerJSON,
+  toInvitationEmailsNotSentInProjectsAnswerJSON,
+} from "../../Types/Team/InvitationEmailsNotSent";
+import {
+  RESEND_INVITATION_ROUTE_END,
+  ResentInvitation,
+  readResendInvitationTeamMemberId,
+  toResentInvitationJSON,
+} from "../../Types/Team/ResendInvitation";
+import PublicMessageRateLimit from "../Utils/RateLimit/PublicMessageRateLimit";
 
 export default class TeamMemberAPI extends BaseAPI<
   TeamMember,
@@ -163,7 +186,9 @@ export default class TeamMemberAPI extends BaseAPI<
      * carries, for a master admin to send the person themselves: on a
      * server that cannot send email, the invite dialogs offer it once the
      * invitation is created (InvitationLink). Master admins only: the link
-     * claims the account at that address.
+     * claims the account at that address. Named by the membership
+     * (teamMemberId), or - from a failed invitation in the server's email
+     * log (#7169) - by the project and the address it went to.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/invitation-link`,
@@ -173,6 +198,41 @@ export default class TeamMemberAPI extends BaseAPI<
           const requested: unknown = req.body?.["teamMemberId"];
           const teamMemberId: string =
             typeof requested === "string" ? requested.trim() : "";
+
+          /*
+           * Or the project and the address it went to: what the server's
+           * email log knows of an invitation email it failed to send
+           * (#7169), whose row offers the link.
+           */
+          const requestedProjectId: unknown = req.body?.["projectId"];
+          const requestedEmail: unknown = req.body?.["email"];
+          const projectId: string =
+            typeof requestedProjectId === "string"
+              ? requestedProjectId.trim()
+              : "";
+          const email: string =
+            typeof requestedEmail === "string" ? requestedEmail.trim() : "";
+
+          if (
+            !teamMemberId &&
+            projectId &&
+            ObjectID.isValidUUID(projectId) &&
+            email &&
+            Email.isValid(email)
+          ) {
+            const answer: InvitationLinkAnswer =
+              await InvitationLink.getForProjectInvitee({
+                projectId: new ObjectID(projectId),
+                email: new Email(email),
+              });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              link: answer.link,
+              isRegistered: answer.isRegistered,
+              isAccepted: answer.isAccepted,
+              email: answer.email,
+            });
+          }
 
           if (!teamMemberId || !ObjectID.isValidUUID(teamMemberId)) {
             return Response.sendErrorResponse(
@@ -251,6 +311,226 @@ export default class TeamMemberAPI extends BaseAPI<
               return id.toString();
             }),
           });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/invitation-emails-not-sent - of the pending people
+     * on a page of the Users list, a person's Teams or a team's Members, the
+     * ones whose latest invitation email was not sent, with the mail
+     * service's answer (#9511, Types/Team/InvitationEmailsNotSent). Read
+     * from the project's Email Logs with the caller's own permissions
+     * (Utils/TeamMember/InvitationEmailsNotSent), in the request's project,
+     * so a page says Email Not Sent - and why - only to someone who could
+     * read it under Notification Logs > Email. One read per page. Reads
+     * only: nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/invitation-emails-not-sent`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const userIds: Array<ObjectID> = readInvitationEmailsNotSentRequest(
+            req.body,
+          );
+
+          const notSent: Array<InvitationEmailNotSent> =
+            await InvitationEmailsNotSent.read({
+              projectId: projectId,
+              userIds: userIds,
+              props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toInvitationEmailsNotSentAnswerJSON(notSent),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/invitation-emails-not-sent-in-projects - the same
+     * question for the Admin Dashboard (#9518, Types/Team/
+     * InvitationEmailsNotSent): of the pending people on a page of a
+     * project's Users, one of its teams, one of its people, or a person's
+     * projects, each named with their row's project, the ones whose latest
+     * invitation email to it was not sent. Master admins only: the Admin
+     * Dashboard works in no project, and only a master admin reads every
+     * project's Email Logs - read with their own props
+     * (InvitationEmailsNotSent.readInProjects). One read per page. Reads
+     * only: nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/invitation-emails-not-sent-in-projects`,
+      UserMiddleware.getUserMiddleware,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const invitees: Array<{ projectId: ObjectID; userId: ObjectID }> =
+            readInvitationEmailsNotSentInProjectsRequest(req.body);
+
+          const notSent: Array<ProjectInvitationEmailNotSent> =
+            await InvitationEmailsNotSent.readInProjects({
+              invitees: invitees,
+              props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toInvitationEmailsNotSentInProjectsAnswerJSON(notSent),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/:id/resend-invitation - a pending person's
+     * invitation email, sent again (#9519, Types/Team/ResendInvitation):
+     * Resend Invitation on their row of the Users list, a person's Teams, a
+     * team's Members and the Admin Dashboard's lists of a project's people.
+     * Checked with the caller's own permissions to invite to the
+     * membership's team, in the request's project - or, for a master admin
+     * in the Admin Dashboard, which works in no project, in the
+     * membership's own (TeamMemberService.resendInvitation). Waits for the
+     * mail service, and answers with the address the email went to. A
+     * refusal of the per-address limit says when to come back
+     * (Retry-After).
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id${RESEND_INVITATION_ROUTE_END}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID | null = props.isMasterAdmin
+            ? props.tenantId || null
+            : CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const teamMemberId: ObjectID = readResendInvitationTeamMemberId(
+            req.params["id"],
+          );
+
+          const resent: ResentInvitation = await this.service.resendInvitation({
+            teamMemberId: teamMemberId,
+            projectId: projectId,
+            props: props,
+          });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toResentInvitationJSON(resent),
+          );
+        } catch (err) {
+          PublicMessageRateLimit.setRetryAfterFor(res, err);
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/project-removal-reach - of the people on a page of
+     * the Users list, the ones the caller's Remove from Project would leave
+     * in the project, with the teams that keep them there (#6599,
+     * Types/Team/ProjectRemovalReach). Asked with the caller's own
+     * permissions, as the removal is (TeamMemberService.
+     * getTeamsOutOfRemovalReach), so the page locks Remove from Project for
+     * exactly the people the server would refuse to remove. A team is named
+     * only for a caller who may read it; the others are counted. Reads
+     * only: nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/project-removal-reach`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const userIds: Array<ObjectID> = readProjectRemovalReachRequest(
+            req.body,
+          );
+
+          const outOfReach: Array<TeamsOutOfRemovalReach> =
+            await this.service.getTeamsOutOfRemovalReach({
+              userIds: userIds,
+              projectId: projectId,
+              props: props,
+            });
+
+          const teamNames: Map<string, string> = await ReadableTeamNames.read({
+            teamIds: outOfReach.flatMap(
+              (person: TeamsOutOfRemovalReach): Array<ObjectID> => {
+                return person.teamIds;
+              },
+            ),
+            projectId: projectId,
+            props: props,
+          });
+
+          const people: Array<PersonKeptInProject> = outOfReach.map(
+            (person: TeamsOutOfRemovalReach): PersonKeptInProject => {
+              const names: Array<string> = [];
+              let hiddenTeamCount: number = person.membershipsWithoutTeam;
+
+              for (const teamId of person.teamIds) {
+                const name: string | undefined = teamNames.get(
+                  teamId.toString().toLowerCase(),
+                );
+
+                if (name) {
+                  names.push(name);
+                } else {
+                  hiddenTeamCount += 1;
+                }
+              }
+
+              return {
+                userId: person.userId.toString(),
+                teamNames: names,
+                hiddenTeamCount: hiddenTeamCount,
+                hasTeamInReach: person.hasTeamInReach,
+              };
+            },
+          );
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toProjectRemovalReachAnswerJSON(people),
+          );
         } catch (err) {
           return next(err);
         }

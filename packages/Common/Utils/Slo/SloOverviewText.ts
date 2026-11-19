@@ -289,6 +289,14 @@ export const getSloHeadline: GetSloHeadlineFunction = (
     return "Disabled — not being measured";
   }
 
+  /*
+   * Set up right, and measured from its monitors' first check (#9354): the
+   * banner's own words, never "Cannot be evaluated".
+   */
+  if (data.sloStatus === SloStatus.Waiting) {
+    return "Waiting for the first check";
+  }
+
   if (data.sloStatus === SloStatus.Misconfigured) {
     return "Cannot be evaluated";
   }

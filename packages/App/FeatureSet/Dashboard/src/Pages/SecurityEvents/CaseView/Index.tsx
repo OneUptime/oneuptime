@@ -2,6 +2,11 @@ import PageComponentProps from "../../PageComponentProps";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import MitreAttackChips from "../../../Components/SecurityCase/MitreAttackChips";
+import SecurityCaseWhyOpenedCard from "../../../Components/SecurityCase/Matches/SecurityCaseWhyOpenedCard";
+import useSecurityCaseMatches, {
+  SecurityCaseMatchesState,
+} from "../../../Components/SecurityCase/Matches/useSecurityCaseMatches";
+import SecurityCaseResponsePlanCard from "../../../Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
 import SecurityCaseAiCard from "../../../Components/SecurityCase/SecurityCaseAiCard";
 import SecurityCaseImpactCard from "../../../Components/SecurityCase/Context/SecurityCaseImpactCard";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
@@ -24,10 +29,12 @@ import SecurityCaseViewContext, {
 } from "./SecurityCaseViewContext";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import {
   SecurityCaseTarget,
@@ -36,19 +43,31 @@ import {
 import Card from "Common/UI/Components/Card/Card";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import User from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * A case's Overview: the case at a glance, under its header (drawn in full
  * here by the layout - what it is, its status steps, who has it). How many
- * detections it holds and for how long it has been worked; what OneUptime
- * AI made of it, first, as the read an analyst starts from (not drawn at
- * all with the project's AI off); and the ATT&CK tactics and techniques its
- * detections map to - the kind of attack this is. Between the two, its
- * Impact: what the case puts at risk, as the rest of OneUptime knows it -
- * whether OneUptime has seen it reached from the internet, who owns what it
- * names and what last changed there, with what each record calls and is
- * watched by folded away until asked for.
+ * detections it holds and for how long it has been worked; then the three
+ * things an analyst asks first (#9556, #9557):
+ *
+ *   Why This Case Was Opened  the detection that opened it, how its rule
+ *                             counts, the events it matched - each with the
+ *                             log line, request and trace it came from -
+ *                             and where to look next;
+ *   Response Plan             what to do about it now: confirm it, contain
+ *                             it, fix what let it happen, close it - each
+ *                             step concrete to the case, one click where
+ *                             OneUptime can do it, ticked off as a task;
+ *
+ * then what OneUptime AI made of it (not drawn at all with the project's AI
+ * off), and the ATT&CK tactics and techniques its detections map to - the
+ * kind of attack this is. Between the two, its Impact: what the case puts
+ * at risk, as the rest of OneUptime knows it - whether OneUptime has seen it
+ * reached from the internet, who owns what it names and what last changed
+ * there, with what each record calls and is watched by folded away until
+ * asked for.
  *
  * Under Time to Acknowledge and Time to Contain, where the case stands
  * against the response target its priority sets (Security Events >
@@ -69,6 +88,11 @@ const SecurityCaseOverviewPage: FunctionComponent<
   const translator: Translator = useTranslator();
   const view: SecurityCaseViewContext = useSecurityCaseView();
   const securityCase: SecurityCase = view.securityCase;
+  // What the case's detections matched: the Why card and the Response Plan both draw from it.
+  const matches: SecurityCaseMatchesState = useSecurityCaseMatches(
+    view.caseId,
+    view.refreshToggle,
+  );
 
   const isClosed: boolean = SecurityCaseStatuses.isClosed(
     view.values.statuses,
@@ -177,6 +201,40 @@ const SecurityCaseOverviewPage: FunctionComponent<
           note={targetNote(SecurityCaseTarget.Contain)}
         />
       </EventStatBar>
+
+      <SecurityCaseWhyOpenedCard caseId={view.caseId} state={matches} />
+
+      <SecurityCaseResponsePlanCard
+        caseId={view.caseId}
+        securityCase={securityCase}
+        values={view.values}
+        matches={matches.matches}
+        refreshToggle={view.refreshToggle}
+        isWorking={view.isWorking}
+        onAssignToMe={() => {
+          void view.updateCase({
+            assignedToUserId: User.getUserId().toString(),
+          });
+        }}
+        onRunPlaybook={(playbookId: ObjectID) => {
+          view.runPlaybook(playbookId);
+        }}
+        onDeclareIncident={view.requestDeclareIncident}
+        onMarkContained={() => {
+          const contained: SecurityCaseStatus | null =
+            SecurityCaseStatuses.getStatusOfStage(
+              view.values.statuses,
+              SecurityCaseStage.Contained,
+            );
+
+          if (contained?.id) {
+            void view.updateCase({
+              securityCaseStatusId: contained.id.toString(),
+            });
+          }
+        }}
+        onCloseCase={view.requestClose}
+      />
 
       <SecurityCaseAiCard
         securityCase={securityCase}

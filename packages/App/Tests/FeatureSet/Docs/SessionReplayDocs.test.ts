@@ -224,6 +224,8 @@ describe("Session Replay docs page", (): void => {
       "setTags",
       "addTag",
       "track",
+      // Product analytics points (issue #6629).
+      "metric",
       "setRoute",
       "captureSession",
       "captureError",
@@ -231,6 +233,15 @@ describe("Session Replay docs page", (): void => {
     ]) {
       expect(mobileInstall).toContain(`\`${method}(`);
     }
+
+    // And each one is a public method of the recorder the singleton is.
+    const recorder: string = fs.readFileSync(
+      path.join(MOBILE_RECORDER_DIR, "src/MobileReplayRecorder.ts"),
+      "utf8",
+    );
+
+    expect(recorder).toMatch(/\n {2}public metric\(/);
+    expect(recorder).toMatch(/\n {2}public track\(/);
   });
 
   it("gives native apps exact app allowlist and privacy instructions", (): void => {

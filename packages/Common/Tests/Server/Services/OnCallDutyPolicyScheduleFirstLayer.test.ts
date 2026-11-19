@@ -668,10 +668,10 @@ describe("the layer services, given the first layer", () => {
 
     const createBy: CreateBy<OnCallDutyPolicyScheduleLayer> = layerCreates[0]!;
 
-    // A new schedule has no layers yet.
+    // A new schedule has no layers yet: no last layer to go after.
     jest
-      .spyOn(OnCallDutyPolicyScheduleLayerService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0) as never);
+      .spyOn(OnCallDutyPolicyScheduleLayerService, "findOneBy")
+      .mockResolvedValue(null as never);
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerService, "findBy")
       .mockResolvedValue([] as never);
@@ -693,11 +693,12 @@ describe("the layer services, given the first layer", () => {
 
     let usersInLayer: number = 0;
 
+    // The layer's last person so far, whom a person added without a turn follows.
     jest
-      .spyOn(OnCallDutyPolicyScheduleLayerUserService, "countBy")
-      .mockImplementation(async (): Promise<PositiveNumber> => {
-        return new PositiveNumber(usersInLayer);
-      });
+      .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findOneBy")
+      .mockImplementation((async () => {
+        return usersInLayer > 0 ? { order: usersInLayer } : null;
+      }) as never);
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findBy")
       .mockResolvedValue([] as never);

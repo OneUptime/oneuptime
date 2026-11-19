@@ -10,7 +10,10 @@ import CheckboxElement, {
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import CodeEditor from "../../CodeEditor/LazyCodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
-import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
+import Dropdown, {
+  DROPDOWN_NO_MATCHES_MESSAGE,
+  DropdownValue,
+} from "../../Dropdown/Dropdown";
 import {
   DropdownChange,
   getDropdownChange,
@@ -828,6 +831,22 @@ const FormField: <T extends GenericObject>(
                  */
                 isClearable={!required}
                 options={props.field.dropdownOptions || []}
+                /*
+                 * The field's own words for an empty list (noOptionsText),
+                 * in the reader's language; a search that finds nothing
+                 * still says so as every dropdown does.
+                 */
+                {...(props.field.noOptionsText
+                  ? {
+                      noOptionsMessage: (inputValue: string): string => {
+                        return translator.translateText(
+                          inputValue.trim()
+                            ? DROPDOWN_NO_MATCHES_MESSAGE
+                            : props.field.noOptionsText!,
+                        ) as string;
+                      },
+                    }
+                  : {})}
                 placeholder={fieldPlaceholder || ""}
                 isPlaceholderTranslated={props.field.isPlaceholderTranslated}
                 /*

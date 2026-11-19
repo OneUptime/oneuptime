@@ -273,6 +273,55 @@ describe("mobile recorder configuration", () => {
     });
   });
 
+  /*
+   * Issue #6629: whether the app sends product analytics events, and which
+   * identify() traits they carry. Absent - a server from before them, or an
+   * application with them off - reads as off, as does anything unreadable.
+   */
+  test("reads product analytics events as off unless the policy turns them on", () => {
+    expect(normalizeReplayConfig(enabledConfig()).productAnalytics).toEqual({
+      enabled: false,
+      userPropertyKeys: [],
+    });
+    expect(normalizeReplayConfig(null).productAnalytics).toEqual({
+      enabled: false,
+      userPropertyKeys: [],
+    });
+
+    for (const productAnalytics of [
+      "on",
+      ["enabled"],
+      { enabled: "true", userPropertyKeys: ["plan"] },
+      { enabled: 1 },
+    ]) {
+      expect(
+        normalizeReplayConfig(enabledConfig({ productAnalytics }))
+          .productAnalytics.enabled,
+      ).toBe(false);
+    }
+
+    expect(
+      normalizeReplayConfig(
+        enabledConfig({
+          productAnalytics: {
+            enabled: true,
+            userPropertyKeys: [" plan ", "Plan", "role", 7, "", "__proto__"],
+          },
+        }),
+      ).productAnalytics,
+    ).toEqual({ enabled: true, userPropertyKeys: ["plan", "role"] });
+
+    /* A closed policy sends nothing either, whatever it says of the events. */
+    expect(
+      normalizeReplayConfig(
+        enabledConfig({
+          enabled: false,
+          productAnalytics: { enabled: true, userPropertyKeys: [] },
+        }),
+      ).enabled,
+    ).toBe(false);
+  });
+
   test("always collapses server masking to strict mobile wireframes", () => {
     const config: ResolvedReplayConfig = normalizeReplayConfig(enabledConfig());
     expect(config.maskingMode).toBe(SessionReplayMaskingMode.MaskAllText);
@@ -517,6 +566,38 @@ describe("remembered policy for offline launches", () => {
       (await loadCachedReplayConfig(storage, NAMESPACE, NOW))
         ?.frustrationSignals,
     ).toEqual({ customSignals: [] });
+  });
+
+  /*
+   * Product analytics (issue #6629): part of the remembered policy too, so
+   * an app launched offline still counts its events, re-read like the rest.
+   */
+  test("remembers whether product analytics events are on, and their trait keys, and re-reads them", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+    const withAnalytics: ResolvedReplayConfig = normalizeReplayConfig(
+      enabledConfig({
+        productAnalytics: { enabled: true, userPropertyKeys: ["plan"] },
+      }),
+    );
+
+    await saveReplayConfig(storage, NAMESPACE, withAnalytics, NOW);
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))?.productAnalytics,
+    ).toEqual({ enabled: true, userPropertyKeys: ["plan"] });
+
+    storage.values.set(
+      replayConfigCacheKey(NAMESPACE),
+      JSON.stringify({
+        savedAtUnixMs: NOW,
+        config: {
+          ...withAnalytics,
+          productAnalytics: { enabled: "yes", userPropertyKeys: "plan" },
+        },
+      }),
+    );
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))?.productAnalytics,
+    ).toEqual({ enabled: false, userPropertyKeys: [] });
   });
 
   test("forgets on request, and never throws when storage does", async () => {

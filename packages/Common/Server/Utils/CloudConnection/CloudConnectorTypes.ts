@@ -81,10 +81,22 @@ export interface CloudConnectionPullState {
   // AWS: Regions the credential cannot use (an opt-in Region not enabled).
   disabledRegions?: Array<string> | undefined;
   /*
-   * Azure: each resource type's metrics as its definitions name them, and
-   * when they were read.
+   * Azure: each resource type's metrics as its definitions name them, when
+   * they were read, and for which of its key metrics (`of`, a fingerprint).
    */
   azureMetricDefinitions?: JSONObject | undefined;
+  /*
+   * Azure: the same, by lowercased ARM id, for the resources that publish
+   * fewer metrics than their type's (a vCore database, a Basic load
+   * balancer), read with their own definitions.
+   */
+  azureResourceMetricDefinitions?: JSONObject | undefined;
+  /*
+   * Google Cloud: per project, the monitored resource types it reported a
+   * key metric of, and when it last did - so a read asks a project only
+   * the metrics of the resource types it has (GcpCloudConnector).
+   */
+  gcpResourceTypesSeen?: Record<string, Record<string, string>> | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
   // When the inventory last listed every resource (CloudInventory).

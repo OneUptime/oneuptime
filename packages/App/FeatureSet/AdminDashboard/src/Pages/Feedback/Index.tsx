@@ -1,28 +1,38 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
 import {
+  deleteFeedbackAnswer,
   fetchFeedbackList,
   fetchFeedbackSummary,
 } from "../../Utils/ProductFeedback";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Route from "Common/Types/API/Route";
+import {
+  AskAiSourceCount,
+  getAskAiSourceTitle,
+} from "Common/Types/AI/AskAiRatings";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import {
   AskAiRatedDownAnswer,
+  DOCS_FEEDBACK_REASON_TITLES,
+  DocsPageFeedbackSummary,
   PRODUCT_FEEDBACK_KIND_TITLES,
   PRODUCT_FEEDBACK_KINDS,
   PRODUCT_FEEDBACK_LIST_PAGE_SIZE,
+  PRODUCT_FEEDBACK_RETENTION_IN_DAYS,
   ProductFeedbackAdminSummary,
   ProductFeedbackKind,
   ProductFeedbackListItem,
   ProductFeedbackListPage,
   ProductFeedbackTopicSummary,
   getProductFeedbackTopicTitle,
+  isDocsFeedbackReason,
 } from "Common/Types/ProductFeedback/ProductFeedback";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Dropdown, {
   DropdownOption,
@@ -43,6 +53,7 @@ import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey } from "Common/Types/Translator";
+import { DELETE_IRREVERSIBLE_SENTENCE } from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -50,6 +61,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * FEEDBACK (/admin/feedback): WHAT PEOPLE TOLD THIS SERVER (issue #6832).
@@ -75,7 +87,16 @@ import { useTranslation } from "react-i18next";
  *   - Ask AI answers: the thumbs Ask AI stored (#6828). The questions rated
  *     down are listed only here on a self-hosted server: on Cloud they are
  *     customers' questions about their own projects, so the team sees
- *     counts only.
+ *     counts only - and, everywhere, what the answers rated down read: the
+ *     products, the docs or nothing, never a word of them (#7365).
+ *   - Docs pages, on a self-hosted server (#7209): the switch that keeps
+ *     "Was this page helpful?" on this server (GlobalConfig.
+ *     keepDocsFeedback, off by default), and the pages people answered for,
+ *     the ones that failed them first, with what went wrong.
+ *
+ * An answer is kept PRODUCT_FEEDBACK_RETENTION_IN_DAYS, then the daily
+ * purge deletes it, as What People Said says; a master admin may delete one
+ * sooner, from its row (#7366).
  */
 
 export const FEEDBACK_PAGE_TITLE: string = "Feedback";
@@ -101,6 +122,9 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
   const [listError, setListError] = useState<string>("");
   const [isListLoading, setIsListLoading] = useState<boolean>(true);
   const [refreshCount, setRefreshCount] = useState<number>(0);
+  // The docs switch's state, once it is read (self-hosted only, #7209).
+  const [isKeepingDocsFeedback, setIsKeepingDocsFeedback] =
+    useState<boolean>(false);
 
   useEffect(() => {
     setIsSummaryLoading(true);
@@ -154,14 +178,27 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
     return translator.translateText(title) || title;
   };
 
+  // What an answer is, in a few words: its topic and when it was given.
+  const answerName: (row: ProductFeedbackListItem) => string = (
+    row: ProductFeedbackListItem,
+  ): string => {
+    const about: string = topicTitle(row);
+
+    return row.createdAt
+      ? `${about} · ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(row.createdAt)}`
+      : about;
+  };
+
   const answerOf: (data: {
     score: number | null;
     isPositive: boolean | null;
     kind: ProductFeedbackKind;
+    reason?: string | null | undefined;
   }) => string = (data: {
     score: number | null;
     isPositive: boolean | null;
     kind: ProductFeedbackKind;
+    reason?: string | null | undefined;
   }): string => {
     if (data.score !== null) {
       return (
@@ -181,6 +218,22 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
           ? translator.translateText("Yes")
           : translator.translateText("Not yet")) || ""
       );
+    }
+
+    // A docs page: helpful or not, and for a no, what went wrong (#7209).
+    if (data.kind === ProductFeedbackKind.DocsPage) {
+      if (data.isPositive) {
+        return translator.translateText("Helpful") || "";
+      }
+
+      return isDocsFeedbackReason(data.reason)
+        ? translator.translateTemplate("Not helpful: {{reason}}", {
+            reason:
+              translator.translateText(
+                DOCS_FEEDBACK_REASON_TITLES[data.reason],
+              ) || DOCS_FEEDBACK_REASON_TITLES[data.reason],
+          }) || ""
+        : translator.translateText("Not helpful") || "";
     }
 
     return (
@@ -353,6 +406,21 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
           return <TableEmptyValue />;
         }
 
+        // A docs page opens on this server's docs, in the language it was read in.
+        if (row.kind === ProductFeedbackKind.DocsPage) {
+          return (
+            <a
+              href={row.page}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-xs text-indigo-600 hover:text-indigo-800"
+              dir="ltr"
+            >
+              {row.page}
+            </a>
+          );
+        }
+
         return (
           <code className="break-all text-xs text-gray-600" dir="ltr">
             {row.page}
@@ -379,6 +447,108 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
         );
       },
     },
+    // Where the table draws each row's Delete (actionButtons, #7366).
+    {
+      title: "Actions",
+      type: FieldType.Actions,
+    },
+  ];
+
+  /*
+   * "Was this page helpful?", by page (#7209): the page, opened on this
+   * server's docs; how many said it helped and how many not; and what went
+   * wrong, most said first.
+   */
+  const docsColumns: Array<Column<DocsPageFeedbackSummary>> = [
+    {
+      id: "page",
+      key: "page",
+      title: "Page",
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (row: DocsPageFeedbackSummary): ReactElement => {
+        return (
+          <a
+            href={`/docs/${row.page}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="break-all text-sm font-medium text-indigo-600 hover:text-indigo-800"
+            dir="ltr"
+            data-testid="admin-feedback-docs-page"
+          >
+            {row.page}
+          </a>
+        );
+      },
+    },
+    {
+      id: "helpful",
+      key: "helpful",
+      title: "Helpful",
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (row: DocsPageFeedbackSummary): ReactElement => {
+        return <span>{translator.formatNumber(row.helpful)}</span>;
+      },
+    },
+    {
+      id: "notHelpful",
+      key: "notHelpful",
+      title: "Not Helpful",
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (row: DocsPageFeedbackSummary): ReactElement => {
+        return (
+          <span data-testid="admin-feedback-docs-not-helpful">
+            {translator.formatNumber(row.notHelpful)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "reasons",
+      key: "reasons",
+      title: "What Went Wrong",
+      type: FieldType.Element,
+      disableSort: true,
+      hideOnMobile: true,
+      getElement: (row: DocsPageFeedbackSummary): ReactElement => {
+        if (row.reasons.length === 0) {
+          return <TableEmptyValue />;
+        }
+
+        return (
+          <ul className="space-y-0.5" data-testid="admin-feedback-docs-reasons">
+            {row.reasons.map(
+              (reason: {
+                reason: keyof typeof DOCS_FEEDBACK_REASON_TITLES;
+                answers: number;
+              }): ReactElement => {
+                // The reason and how many said it, set apart by " · ".
+                return (
+                  <li
+                    key={reason.reason}
+                    className="flex flex-wrap gap-x-1.5 text-sm text-gray-700"
+                  >
+                    <span>
+                      {translator.translateText(
+                        DOCS_FEEDBACK_REASON_TITLES[reason.reason],
+                      )}
+                    </span>
+                    <span className="text-gray-500" aria-hidden="true">
+                      <InlineSeparator markOnly />
+                    </span>
+                    <span className="font-medium text-gray-900">
+                      {translator.formatNumber(reason.answers)}
+                    </span>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        );
+      },
+    },
   ];
 
   const kindOptions: Array<DropdownOption> = [
@@ -394,8 +564,13 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
   ];
 
   const topics: Array<ProductFeedbackTopicSummary> = summary?.topics || [];
+  const docsPages: Array<DocsPageFeedbackSummary> = summary?.docsPages || [];
   const ratedDown: Array<AskAiRatedDownAnswer> | null =
     summary?.askAi.ratedDown || null;
+  const ratedDownDrewOn: Array<AskAiSourceCount> =
+    summary?.askAi.ratedDownDrewOn || [];
+  const retentionInDays: number =
+    summary?.retentionInDays || PRODUCT_FEEDBACK_RETENTION_IN_DAYS;
 
   return (
     <Page
@@ -497,7 +672,14 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
 
       <Card
         title="What People Said"
-        description="Every answer, newest first. Each carries the page it was given on, as a route with no ids, and the OneUptime version. No answer names a person or a project."
+        description={translator.translatePlural(
+          {
+            one: "Every answer, newest first. Answers are kept {{count}} day, then deleted. Each carries the page, as a route with no ids, and the OneUptime version, and names no person or project.",
+            other:
+              "Every answer, newest first. Answers are kept {{count}} days, then deleted. Each carries the page, as a route with no ids, and the OneUptime version, and names no person or project.",
+          },
+          retentionInDays,
+        )}
         headerLayout="toolbar"
         rightElement={
           <div className="w-52">
@@ -532,6 +714,57 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
           error={listError}
           isLoading={isListLoading}
           noItemsMessage="No answers yet."
+          actionButtons={[
+            {
+              title: "Delete",
+              icon: IconProp.Trash,
+              buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+              getConfirmation: (row: ProductFeedbackListItem) => {
+                return {
+                  title: translator.translateText("Delete Answer") || "",
+                  description: (
+                    <div className="space-y-2">
+                      <p>
+                        {translator.translateTemplate(
+                          "Are you sure you want to delete {{name}}?",
+                          { name: answerName(row) },
+                        )}{" "}
+                        {translator.translateText(DELETE_IRREVERSIBLE_SENTENCE)}
+                      </p>
+                      {row.details ? (
+                        <blockquote
+                          className="whitespace-pre-wrap break-words border-s-2 border-gray-200 ps-3 text-sm text-gray-600"
+                          data-testid="admin-feedback-delete-words"
+                        >
+                          <bdi>{row.details}</bdi>
+                        </blockquote>
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                  ),
+                  submitButtonText: translator.translateText("Delete") || "",
+                  submitButtonType: ButtonStyleType.DANGER,
+                };
+              },
+              onClick: async (
+                row: ProductFeedbackListItem,
+                onCompleteAction: () => void,
+                onError: (error: Error) => void,
+              ): Promise<void> => {
+                try {
+                  await deleteFeedbackAnswer(row.id);
+                  onCompleteAction();
+                  // The list, and By Question's counts, read again.
+                  setRefreshCount((count: number): number => {
+                    return count + 1;
+                  });
+                } catch (err) {
+                  onError(new Error(API.getFriendlyMessage(err)));
+                }
+              },
+            },
+          ]}
           onNavigateToPage={(newPage: number, newItemsOnPage: number) => {
             setPageNumber(newPage);
             setItemsOnPage(newItemsOnPage);
@@ -551,8 +784,8 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
         title="Ask AI Answers"
         description={
           BILLING_ENABLED
-            ? "How people rated Ask AI's answers in the last 90 days. On OneUptime Cloud the questions belong to each project, so only the counts are shown."
-            : "How people rated Ask AI's answers in the last 90 days, and the questions behind the answers rated down."
+            ? "How people rated Ask AI's answers in the last 90 days, and what the answers rated down read. The questions belong to each project, so none is shown."
+            : "How people rated Ask AI's answers in the last 90 days, what the answers rated down read, and the questions behind them."
         }
       >
         <div
@@ -570,6 +803,35 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
             dataTestId="admin-feedback-ask-ai-not-helpful"
           />
         </div>
+        {ratedDownDrewOn.length > 0 ? (
+          <div className="mt-5" data-testid="admin-feedback-ask-ai-drew-on">
+            <p className="mb-1 text-xs font-medium text-gray-500">
+              {translator.translateText("What the answers rated down read")}
+            </p>
+            <dl className="divide-y divide-gray-100">
+              {ratedDownDrewOn.map((source: AskAiSourceCount): ReactElement => {
+                const title: string = getAskAiSourceTitle(source.source);
+
+                return (
+                  <div
+                    key={source.source}
+                    className="flex items-center justify-between gap-3 py-1.5 text-sm"
+                    data-testid="admin-feedback-ask-ai-source"
+                  >
+                    <dt className="min-w-0 text-gray-600">
+                      {translator.translateText(title) || title}
+                    </dt>
+                    <dd className="font-medium text-gray-900">
+                      {translator.formatNumber(source.answers)}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
+        ) : (
+          <></>
+        )}
         {ratedDown && ratedDown.length > 0 ? (
           <ul
             className="mt-5 divide-y divide-gray-100"
@@ -596,6 +858,91 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
           <></>
         )}
       </Card>
+
+      {/*
+       * "Was this page helpful?" on this server's docs (#7209): kept only
+       * once switched on, and never sent anywhere else. On OneUptime Cloud
+       * the docs send answers to product analytics, with consent, instead.
+       */}
+      {!BILLING_ENABLED ? (
+        <ModelSwitchCard<GlobalConfig>
+          modelType={GlobalConfig}
+          modelId={ObjectID.getZeroObjectID()}
+          column="keepDocsFeedback"
+          modelAPI={AdminModelAPI}
+          cardTitle={translationKey("Docs Feedback")}
+          cardDescription={translationKey(
+            "Whether this server's docs keep the answers to “Was this page helpful?” for its master admins: the page, yes or no, and what went wrong. Nothing is sent anywhere else.",
+          )}
+          title="Keep answers on this server"
+          getDescription={(isOn: boolean): string => {
+            return isOn
+              ? translationKey(
+                  "Each docs page says, under its question, that answers go to this server's admins.",
+                )
+              : translationKey(
+                  "The docs keep nothing, and a no offers to tell OneUptime on GitHub.",
+                );
+          }}
+          onChange={(isOn: boolean) => {
+            setIsKeepingDocsFeedback(isOn);
+          }}
+          dataTestId="admin-feedback-docs-switch"
+        />
+      ) : (
+        <></>
+      )}
+
+      {!BILLING_ENABLED && (isKeepingDocsFeedback || docsPages.length > 0) ? (
+        <Card
+          title="Docs Pages"
+          description={
+            translator.translateTemplate(
+              "How people answered “Was this page helpful?” on this server's docs in the last {{days}} days: the pages that failed them first.",
+              {
+                days: translator.formatNumber(summary?.sinceDays || 90),
+              },
+            ) || ""
+          }
+        >
+          {!isSummaryLoading && !summaryError && docsPages.length === 0 ? (
+            <TableEmptyState
+              kind={TableEmptyStateKind.Empty}
+              icon={IconProp.Book}
+              title="No answers yet"
+              description="Pages appear here as people answer “Was this page helpful?” at the foot of a docs page."
+              isCompact={true}
+              dataTestId="admin-feedback-docs-empty"
+            />
+          ) : (
+            <Table<DocsPageFeedbackSummary>
+              id="admin-feedback-docs"
+              columnWidthsKey="admin-feedback-docs"
+              data={docsPages}
+              columns={docsColumns}
+              singularLabel="Page"
+              pluralLabel="Pages"
+              currentPageNumber={1}
+              totalItemsCount={docsPages.length}
+              itemsOnPage={Math.max(docsPages.length, 1)}
+              disablePagination={true}
+              error={summaryError}
+              isLoading={isSummaryLoading}
+              onNavigateToPage={() => {}}
+              sortBy={null}
+              sortOrder={SortOrder.Descending}
+              onSortChanged={() => {
+                // The server's order: the pages that failed people first.
+              }}
+              onRefreshClick={() => {
+                setRefreshCount(refreshCount + 1);
+              }}
+            />
+          )}
+        </Card>
+      ) : (
+        <></>
+      )}
     </Page>
   );
 };

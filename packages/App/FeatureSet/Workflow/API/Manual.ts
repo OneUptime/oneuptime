@@ -20,6 +20,8 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 export default class ManualAPI {
   public router!: ExpressRouter;
@@ -37,6 +39,7 @@ export default class ManualAPI {
     this.router.post(
       `/run/:workflowId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Workflows),
       this.manuallyRunWorkflow,
     );
 
@@ -47,6 +50,7 @@ export default class ManualAPI {
     this.router.post(
       `/run-again/:workflowLogId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Workflows),
       this.runAgain,
     );
   }

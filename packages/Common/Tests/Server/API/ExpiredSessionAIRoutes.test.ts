@@ -6,6 +6,7 @@ import "../../../Server/API/AutoRemediationAPI";
 import CodeFixRunAPI from "../../../Server/API/CodeFixRunAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import AIInsightService from "../../../Server/Services/AIInsightService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -735,10 +736,23 @@ describe.each(ALL_ROUTES)(
      * getUserMiddleware is a context loader, not a gate, which is why the
      * handler has to answer the anonymous caller itself.
      */
+    /*
+     * Beside it stand only the refusals while a product the route acts on
+     * is switched off on the server (ServerProductRoutes, #7479, #9489),
+     * which hand an anonymous request on while the product is on.
+     */
     test("is mounted behind getUserMiddleware, so an anonymous request reaches the handler", () => {
-      expect(mockRouter.match("post", route.uri).middlewares).toEqual([
-        UserMiddleware.getUserMiddleware,
-      ]);
+      const middlewares: Array<unknown> = mockRouter.match(
+        "post",
+        route.uri,
+      ).middlewares;
+
+      expect(middlewares[0]).toBe(UserMiddleware.getUserMiddleware);
+      expect(
+        middlewares.slice(1).filter((middleware: unknown): boolean => {
+          return !ServerProductRoutes.isRefusal(middleware);
+        }),
+      ).toEqual([]);
     });
 
     test("answers a caller with no credentials (only a tenantid header) with 401, not 422", async () => {

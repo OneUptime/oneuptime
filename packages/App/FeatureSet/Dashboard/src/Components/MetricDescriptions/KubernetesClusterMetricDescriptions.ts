@@ -38,8 +38,10 @@ export type KubernetesClusterMetric =
   | "networkChart"
   | "inventoryCounts"
   | "podsRunning"
+  | "podsCannotRun"
   | "podsPending"
   | "podsFailed"
+  | "podsUnknown"
   | "nodesNotReady"
   | "clusterHealth"
   | "clusterHealthOpenShift"
@@ -96,13 +98,19 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "Counts from the latest inventory the Kubernetes agent sent: nodes, pods in any phase, namespaces, deployments, and containers defined in pod specs (init containers are not counted). They ignore the time range picker.",
   ),
   podsRunning: translationKey(
-    "Pods placed on a node with at least one container running, starting or restarting. Running does not mean healthy - a container can still be failing its readiness check.",
+    "Pods placed on a node with their containers running or starting. A pod whose container cannot run is counted under that problem instead, such as CrashLoopBackOff. Running does not mean healthy - a container can still be failing its readiness check.",
+  ),
+  podsCannotRun: translationKey(
+    "Pods with a container that cannot run: it keeps crashing (CrashLoopBackOff), its image cannot be pulled (ImagePullBackOff) or its configuration is wrong. Kubernetes retries in vain until the cause is fixed. Any such pod marks the cluster Unhealthy.",
   ),
   podsPending: translationKey(
     "Pods the cluster has accepted but not started yet - usually waiting for a node with enough free CPU or memory, for an image to download, or for a volume. A pod pending for more than five minutes marks the cluster Degraded.",
   ),
   podsFailed: translationKey(
     "Pods whose containers have all stopped, with at least one ending in an error; they will not be restarted. One that failed in the last hour marks the cluster Degraded; older ones, and a finished job's, are history.",
+  ),
+  podsUnknown: translationKey(
+    "Pods whose state Kubernetes cannot tell, usually because the node they run on stopped reporting. Any such pod marks the cluster Degraded.",
   ),
   nodesNotReady: translationKey(
     "Nodes whose Ready check is not passing - the node agent (kubelet) is unhealthy, cannot run pods or has stopped reporting - so no new pods are placed on them. Any such node marks the cluster Unhealthy.",
@@ -132,7 +140,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   ),
 
   podHealth: translationKey(
-    "Pods by phase in the latest inventory: Running, Succeeded (all containers finished without error, such as completed jobs), Pending (not started yet) and Failed (stopped with an error). Not tied to the time range.",
+    "Pods in the latest inventory, by kubectl status: Running, Can't run (keeps crashing or cannot start), Pending (not started yet), Failed (stopped with an error) and Succeeded (finished without error, such as completed jobs). Not tied to the time range.",
   ),
 
   // Top consumers - each pod's latest minute from the past hour.

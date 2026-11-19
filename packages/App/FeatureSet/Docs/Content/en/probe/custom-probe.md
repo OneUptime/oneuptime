@@ -384,6 +384,22 @@ Requests that succeed but take longer than `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_
 
 On the OneUptime server side, a probe request that is answered slowly — or that the probe gave up on before a response was sent — is logged there too, with the probe's id. Those two logs together tell you which side of the connection is at fault.
 
+### A probe is behind
+
+A probe is **Behind** when its monitors wait more than a minute past their check time, so they are checked less often than set. Its **Status** in the **Custom Probes** table then reads **Behind**, and its page says since when under **Monitor Checks**. For the probes a self-hosted OneUptime runs itself, OneUptime Health in the Admin Dashboard says so. The same goes for the network devices it polls: when they wait more than a minute past their poll time, its **Status** reads **Behind** too, and its page shows **Network Device Polls** with since when. Master admins are told when a global probe falls behind, and a [Probe Status monitor](/docs/monitor/probe-status-monitor) can raise an alert when one of yours does.
+
+A probe checks up to `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitors at once, 10 with its defaults, and asks for more as soon as it has room. It falls behind when more monitors are due than it can check, for example when many of their checks run until they time out. To let it catch up:
+
+- Update the probe. An older probe asks for its monitors only once a minute, so it checks at most `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitors a minute.
+- Let it check more monitors at once: raise `PROBE_MONITORING_WORKERS`, then restart the probe. For the probes a self-hosted OneUptime runs, that is `GLOBAL_PROBE_1_MONITORING_WORKERS` in `config.env` with Docker Compose, or the probe's `monitoringWorkers` in the Helm chart's values.
+- Give it more CPU and memory, or run another copy of it with the same `PROBE_ID` and `PROBE_KEY`: the copies share its monitors.
+
+A probe polls up to `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` network devices at once, 25 with its defaults, and asks for more as soon as it has room. It falls behind on them when more devices are due than it can poll, for example when many of them do not answer and their polls run until they time out. To let it catch up:
+
+- Update the probe. An older probe asks for its devices only once a minute, so it polls at most `NETWORK_DEVICE_POLL_FETCH_LIMIT` devices a minute, 250 by default.
+- Let it poll more devices at once: raise `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY`, then restart the probe. For the probes a self-hosted OneUptime runs, that is `GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY` in `config.env` with Docker Compose, or the probe's `networkDevicePollConcurrency` in the Helm chart's values.
+- Move some of its devices to another probe.
+
 ### Other problems
 
 :::details The probe stops right after it starts

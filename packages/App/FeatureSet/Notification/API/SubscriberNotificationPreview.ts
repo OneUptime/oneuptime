@@ -33,6 +33,8 @@ import SubscriberNotificationPreview, {
   SubscriberNotificationPreviewResult,
   SubscriberNotificationSendTestRequest,
 } from "Common/Types/StatusPage/SubscriberNotificationPreview";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /*
  * "Preview notification" and "Send test to me" for status page subscriber
@@ -176,6 +178,7 @@ router.post(
   SubscriberNotificationPreview.sendTestPath,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.StatusPages),
   // Per user, before anything is read (SubscriberNotificationTestSendRateLimit).
   SubscriberNotificationTestSendRateLimit.getMiddleware(),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {

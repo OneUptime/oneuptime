@@ -55,6 +55,10 @@ import RunbookWebhookRateLimit, {
   RunbookWebhookRateLimitOutcome,
 } from "Common/Server/Utils/Runbook/RunbookWebhookRateLimit";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
+import ProductSwitchedOffException from "Common/Types/Exception/ProductSwitchedOffException";
+import { ServerProductOffReason } from "Common/Types/Product/ServerProducts";
 
 /*
  * A RUNBOOK'S WEBHOOK URL, AND WHERE ITS TRIGGERS PAGE READS IT.
@@ -169,6 +173,16 @@ function getStartRefusalException(refusal: RunbookStartRefusal): Exception {
       return new BadDataException(RunbookWebhookMessages.noSteps);
     case RunbookStartRefusal.ProjectBlocked:
       return new ProjectBlockedException();
+    /*
+     * A webhook's run keeps running while Runbooks is switched off
+     * (RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF): this answers a start that one
+     * day is not.
+     */
+    case RunbookStartRefusal.ProductSwitchedOff:
+      return new ProductSwitchedOffException({
+        product: ProductKey.Runbooks,
+        reason: ServerProductOffReason.SwitchedOff,
+      });
     case RunbookStartRefusal.NotQueued:
       return new ServiceUnavailableException(
         RunbookWebhookMessages.counterUnavailable,
@@ -215,11 +229,13 @@ export default class RunbookWebhookAPI {
     this.router.post(
       RUNBOOK_WEBHOOK_SECRET_ROUTE,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.readSecretKey,
     );
     this.router.post(
       RUNBOOK_WEBHOOK_SECRET_RESET_ROUTE,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.resetSecretKey,
     );
   }

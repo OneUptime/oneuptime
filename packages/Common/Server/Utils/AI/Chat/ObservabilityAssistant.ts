@@ -396,6 +396,14 @@ export default class ObservabilityAssistant {
         ? { codeRepositoryAllowance: request.codeRepositoryAllowance }
         : {}),
       ...(request.pageContext ? { pageContext: request.pageContext } : {}),
+      /*
+       * The alert a run of OneUptime's own investigates: its readers read
+       * what the run writes (ToolContext.subjectAlertId). Only for a run
+       * read as root - a person reads as themselves.
+       */
+      ...(request.alertId && request.props.isRoot
+        ? { subjectAlertId: request.alertId }
+        : {}),
     };
 
     /*

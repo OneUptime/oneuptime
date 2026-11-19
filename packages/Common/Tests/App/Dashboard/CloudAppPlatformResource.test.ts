@@ -16,7 +16,7 @@ import {
   summarizeAppServiceSeries,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformResource";
 import {
-  getAzureKeyMetrics,
+  getAzureKeyMetricNames,
   getAzureKeyMetricOfStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { ManagedCloudPlatform } from "../../../Types/Cloud/CloudPlatform";
@@ -312,8 +312,9 @@ describe("finding the app's site among what the connection lists", () => {
 
 describe("the site's metrics, as the connection stores them", () => {
   test("each is one of the site type's key metrics, so a connected subscription reads it", () => {
-    const keyMetrics: Array<string> =
-      getAzureKeyMetrics(APP_SERVICE_SITE_TYPE)?.metrics || [];
+    const keyMetrics: Array<string> = getAzureKeyMetricNames(
+      APP_SERVICE_SITE_TYPE,
+    );
 
     for (const definition of Object.values(APP_SERVICE_METRICS)) {
       expect(keyMetrics).toContain(definition.metricName);

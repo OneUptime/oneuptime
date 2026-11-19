@@ -5703,6 +5703,27 @@ export default abstract class OtelIngestBaseService {
       return null;
     }
 
+    /*
+     * A browser's or a mobile app's telemetry is its RUM application's
+     * (getRumClientType), whatever else its resource says. It describes the
+     * device the app runs on - one of thousands, nobody's server - and it
+     * carries no host metrics for a Host page to draw.
+     *
+     * The gate below would not keep it out on its own: the mobile SDKs set
+     * `os.type` themselves (OpenTelemetry Android stamps `os.type=linux` on
+     * every resource), so an app that also names its device in `host.name`
+     * - a kiosk fleet that wants each device in Inventory - minted a Host
+     * per device. That Host then owned the app's telemetry, because
+     * selectPrimaryEntity reads a hostId before a rumApplicationId, and the
+     * RUM application's own pages went empty. The device still reaches
+     * Inventory: its `host.name` is a host entity's identity
+     * (Utils/Telemetry/TelemetryEntity), with the make, model and OS the
+     * SDK reports.
+     */
+    if (this.getRumClientType(data.attributes)) {
+      return null;
+    }
+
     const hostName: string | null = this.getStringAttribute(
       data.attributes,
       "host.name",

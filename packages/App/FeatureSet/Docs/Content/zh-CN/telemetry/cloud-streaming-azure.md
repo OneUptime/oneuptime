@@ -77,14 +77,7 @@ flowchart TB
 
 流传送的是连接按分钟读取的关键指标。其余的仍由读取按计划继续写入：连接以更粗的粒度读取的指标，例如容器注册表的已用存储，以及诊断设置无法发送的每个关键指标，即 Azure Monitor 支持的指标列表在 DS Export 列中标记为不可导出的指标：
 
-- 虚拟机和规模集：`Network In Total`、`Network Out Total`。
-- 磁盘：`Composite Disk Read Bytes/sec`、`Composite Disk Write Bytes/sec`、`Composite Disk Read Operations/sec`、`Composite Disk Write Operations/sec`。
-- Azure Cosmos DB 账户：`TotalRequests`、`TotalRequestUnits`、`NormalizedRUConsumption`、`ServerSideLatency`。
-- 存储账户：`UsedCapacity`。
-- AKS 群集：`kube_pod_status_ready`。
-- 应用程序网关：`ApplicationGatewayTotalTime`、`Throughput`。
-- 防火墙：`Throughput`。
-- NAT 网关：`ByteCount`、`SNATConnectionCount`、`DatapathAvailability`。
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Service Bus 或 Event Hubs 命名空间不流式传输任何指标。读取按每个队列、主题和事件中心读取它的关键指标，命名空间自己的总计是它们之和；而诊断设置只发送命名空间的总计，并且完全不发送 Service Bus 命名空间 6 个关键指标中的 4 个，或 Event Hubs 命名空间 4 个中的 2 个。因此无论是否流式传输，读取都会写入全部这些指标，不会有消息被计算两次。
 

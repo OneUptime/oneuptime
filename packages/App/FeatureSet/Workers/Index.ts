@@ -268,6 +268,7 @@ import "./Jobs/ToolImport/SweepStaleToolImports";
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
+import "./Jobs/Probe/UpdateBehind";
 
 // Probe Status monitors: one incident when a probe a project watches goes offline.
 import "./Jobs/ProbeStatusMonitor/CheckProbeStatus";
@@ -432,6 +433,11 @@ import "./Jobs/Rum/CleanupStaleResources";
 import "./Jobs/Rum/MaterializePinnedSessions";
 // GDPR / CCPA erasure of recordings and their correlated telemetry.
 import "./Jobs/Rum/ProcessSessionErasureRequests";
+/*
+ * Each application's product analytics retention (3, 6, 13 or 25 months):
+ * the tables' TTL keeps the longest, this deletes what is past a shorter one.
+ */
+import "./Jobs/Rum/EnforceProductAnalyticsRetention";
 /*
  * The storage budgets as oneuptime.rum.session.replay.budget.* metrics, so a
  * budget about to run out can alert instead of recordings silently stopping.

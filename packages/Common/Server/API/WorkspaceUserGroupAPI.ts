@@ -25,6 +25,8 @@ import {
   WorkspaceUserGroupView,
 } from "../../Types/Workspace/WorkspaceUserGroup";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * On-call user groups (WorkspaceUserGroup) through the API: the CRUD routes
@@ -42,7 +44,9 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
  * and answers a schedule or group they may not read like one that is not
  * there. Connecting, disconnecting and Try again change a group in Slack or
  * Microsoft Teams, so they ask what changing the record asks: its create
- * permission and its plan.
+ * permission and its plan - and, a group being On-Call's, are refused while
+ * the server has On-Call switched off (#9489), before anything is changed
+ * in the chat.
  */
 export const USER_GROUP_PERMISSION_MESSAGE: string =
   "You do not have permission to change the user groups of this project's on-call schedules.";
@@ -128,6 +132,7 @@ export default class WorkspaceUserGroupAPI extends BaseAPI<
       `${path}/connect`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const caller: {
@@ -182,6 +187,7 @@ export default class WorkspaceUserGroupAPI extends BaseAPI<
       `${path}/disconnect`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const caller: {
@@ -217,6 +223,7 @@ export default class WorkspaceUserGroupAPI extends BaseAPI<
       `${path}/sync/:workspaceUserGroupId`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const caller: {

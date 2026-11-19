@@ -2,6 +2,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import { SparklinePoint } from "./SparklinePoint";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What a metric row shows when its host page knows more than the metric
@@ -31,6 +32,16 @@ import { SparklinePoint } from "./SparklinePoint";
  *    reads the same number. A row read as a total (Sum, Count) keeps its
  *    whole intervals only, as the Queue and Database pages' counts do: its
  *    newest interval is still filling, so it would read as a drop.
+ *
+ * 4. A row's section. A host that knows what each of its metrics is about
+ *    - a cloud resource's key metrics: Availability, Traffic, Errors,
+ *    Latency, then what it runs on - names each metric's section and its
+ *    place in it (MetricRowGroup). The list then reads in those sections,
+ *    most important first, each under its heading, and its other metrics
+ *    after them under "Other": a page of twenty metrics a person reads top
+ *    down, instead of twenty names in alphabetical order. The order holds
+ *    across pages: the list pages through the names in section order
+ *    (orderMetricNamesByGroup), not in alphabetical order.
  */
 
 export interface MetricRowValueOverride {
@@ -146,4 +157,117 @@ export function resolveMetricRowValueOverride(
     points,
     value: points.length > 0 ? points[points.length - 1]!.value : undefined,
   };
+}
+
+// The section a metric row is listed in (see 4. at the top).
+export interface MetricRowGroup {
+  // Tells one section from another.
+  key: string;
+  /*
+   * The section's heading in English: a key of the locale files, which the
+   * list draws in the reader's language.
+   */
+  title: string;
+  // Where the section comes among the others: lower first.
+  order: number;
+  // Where the metric comes in its section: lower first.
+  rank: number;
+}
+
+/*
+ * The section a metric's row is listed in, undefined for a metric in none
+ * (it is listed after every section, under OTHER_METRICS_GROUP_TITLE).
+ * Must be referentially stable: the list reorders when it changes.
+ */
+export type GetMetricRowGroup = (
+  metricName: string,
+) => MetricRowGroup | undefined;
+
+// The heading of the metrics no section holds, after every section.
+export const OTHER_METRICS_GROUP_TITLE: string = translationKey("Other");
+export const OTHER_METRICS_GROUP_KEY: string = "__other";
+
+/*
+ * Metric names in the order the list shows them: the ones in a section by
+ * the section's order, then their place in it, then name; after them, the
+ * ones in no section, by name. Names are not repeated.
+ */
+export function orderMetricNamesByGroup(
+  names: ReadonlyArray<string>,
+  getRowGroup: GetMetricRowGroup,
+): Array<string> {
+  const unique: Array<string> = Array.from(new Set<string>(names));
+  const groupOf: Map<string, MetricRowGroup | undefined> = new Map();
+
+  for (const name of unique) {
+    groupOf.set(name, getRowGroup(name));
+  }
+
+  return unique.sort((a: string, b: string): number => {
+    const groupA: MetricRowGroup | undefined = groupOf.get(a);
+    const groupB: MetricRowGroup | undefined = groupOf.get(b);
+
+    if (groupA && !groupB) {
+      return -1;
+    }
+
+    if (!groupA && groupB) {
+      return 1;
+    }
+
+    if (groupA && groupB) {
+      if (groupA.order !== groupB.order) {
+        return groupA.order - groupB.order;
+      }
+
+      if (groupA.rank !== groupB.rank) {
+        return groupA.rank - groupB.rank;
+      }
+    }
+
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
+}
+
+/*
+ * The heading drawn above the row at `index` of a page of names, in
+ * English: the row's section's, when the row starts it (the page's first
+ * row, or one in another section than the row before), else null. A page
+ * none of whose names is in a section has no headings at all: it reads as
+ * a plain list.
+ */
+export function getMetricRowGroupHeading(data: {
+  names: ReadonlyArray<string>;
+  index: number;
+  getRowGroup: GetMetricRowGroup;
+}): string | null {
+  if (
+    !data.names.some((name: string): boolean => {
+      return Boolean(data.getRowGroup(name));
+    })
+  ) {
+    return null;
+  }
+
+  const keyOf: (name: string | undefined) => string | null = (
+    name: string | undefined,
+  ): string | null => {
+    if (name === undefined) {
+      return null;
+    }
+
+    return data.getRowGroup(name)?.key || OTHER_METRICS_GROUP_KEY;
+  };
+
+  const name: string | undefined = data.names[data.index];
+  const key: string | null = keyOf(name);
+
+  if (
+    key === null ||
+    (data.index > 0 && keyOf(data.names[data.index - 1]) === key)
+  ) {
+    return null;
+  }
+
+  return data.getRowGroup(name!)?.title || OTHER_METRICS_GROUP_TITLE;
 }

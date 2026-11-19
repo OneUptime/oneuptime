@@ -1129,7 +1129,9 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]: `pipelines/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS]: `pipelines/${RouteParams.ModelID}/audit-logs`,
+  [PageMap.DATA_OBSERVABILITY_ISSUES]: "issues",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: "reconciliations",
   [PageMap.DATA_OBSERVABILITY_SETTINGS]: "settings",
@@ -1598,7 +1600,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_VIDEO_CALLS]: "video-calls",
 
   [PageMap.SETTINGS_DOMAINS]: "domains",
-  [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
   [PageMap.SETTINGS_SCIM]: "scim",
   [PageMap.SETTINGS_BILLING]: "billing",
@@ -8954,6 +8955,20 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_ISSUES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_ISSUES]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_PIPELINES]
@@ -9668,12 +9683,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_DOMAINS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_FEATURE_FLAGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_FEATURE_FLAGS]
     }`,
   ),
 

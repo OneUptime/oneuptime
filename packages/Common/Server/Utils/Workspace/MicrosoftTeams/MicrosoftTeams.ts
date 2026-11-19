@@ -119,6 +119,8 @@ import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
 import WorkspaceAiContext from "../WorkspaceAiContext";
 import MicrosoftTeamsMentionText from "./MicrosoftTeamsMentionText";
 import MicrosoftTeamsHome from "./MicrosoftTeamsHome";
+import { getProductOfMicrosoftTeamsAction } from "./Actions/ProductOfAction";
+import WorkspaceProductRefusal from "../WorkspaceProductRefusal";
 import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "./MicrosoftTeamsCommands";
@@ -4532,6 +4534,30 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
+      /*
+       * A command of a product the server switched off (#7479) - "incident",
+       * "maintenance", "oncall", "page", or a list of its records - is
+       * answered with what happened and who can switch it on, and nothing
+       * is opened or read out (WorkspaceProductRefusal).
+       */
+      const commandRefusal: string | null =
+        await WorkspaceProductRefusal.getRefusal(
+          listCommand
+            ? MicrosoftTeamsCommands.getProductOfListCommand(listCommand)
+            : WorkspaceProductRefusal.getProductOfCommand(input.command),
+        );
+
+      if (commandRefusal) {
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: {
+            markdown: mdText`${commandRefusal}`.toString(),
+            text: commandRefusal,
+          },
+        });
+        return;
+      }
+
       if (listCommand) {
         /*
          * Teams' own lists, read as the member the sender's account is
@@ -5762,6 +5788,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         });
       }
 
+      /*
+       * A button or card of a product the server switched off (#7479):
+       * answered where it was pressed, and nothing is opened, read out or
+       * changed (WorkspaceProductRefusal).
+       */
+      const productRefusal: string | null =
+        await WorkspaceProductRefusal.getRefusal(
+          getProductOfMicrosoftTeamsAction(actionType),
+        );
+
+      if (productRefusal) {
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: {
+            markdown: mdText`${productRefusal}`.toString(),
+            text: productRefusal,
+          },
+        });
+        return;
+      }
+
       const fromObj: JSONObject = ((data.activity["from"] as JSONObject) ||
         {}) as JSONObject;
       const teamsUserId: string | undefined =
@@ -6032,8 +6079,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
-      // Tell the user why they were refused; the message is written for them.
-      if (error instanceof NotAuthorizedException) {
+      /*
+       * Tell the user why they were refused; the message is written for
+       * them - a product switched off on the server too (#7479).
+       */
+      if (
+        error instanceof NotAuthorizedException ||
+        WorkspaceProductRefusal.isRefusal(error)
+      ) {
         logger.debug("Bot invoke activity refused: " + error.message, {
           actionType: actionType,
         });

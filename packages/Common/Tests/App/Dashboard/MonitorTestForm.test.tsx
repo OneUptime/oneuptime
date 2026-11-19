@@ -69,6 +69,31 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+const getForDraftMock: MockFunction = getJestMockFunction();
+
+/*
+ * Who is told, as the result's verdict reads it (#7074): the resolver's
+ * answer for the monitor the test ran, stood in for.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+    ) as Record<string, unknown>;
+
+    return {
+      ...actual,
+      __esModule: true,
+      default: {
+        getForDraft: (...args: Array<unknown>): unknown => {
+          return getForDraftMock(...args);
+        },
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
     __esModule: true,
@@ -101,10 +126,22 @@ jest.mock("../../../UI/Utils/User", () => {
 });
 
 import MonitorTestForm, {
+  getStartingTestProbeId,
   MONITOR_TEST_MAX_POLL_ATTEMPTS,
   MONITOR_TEST_TIMED_OUT_MESSAGE,
   MONITOR_TEST_POLL_INTERVAL_IN_MS,
+  toProbeIds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorTest";
+import { getMonitorTestJudgement } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorTestVerdict";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import { MonitorEvaluationCriteriaResult } from "../../../Types/Monitor/MonitorEvaluationSummary";
+import {
+  WhoIsToldCriteria,
+  WhoIsToldOwnersSource,
+  WhoIsToldResult,
+} from "../../../Types/Monitor/WhoIsTold";
+import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { MonitorStepProbeResponse } from "../../../Models/DatabaseModels/MonitorProbe";
 import MonitorTest from "../../../Models/DatabaseModels/MonitorTest";
 import Probe from "../../../Models/DatabaseModels/Probe";
@@ -158,26 +195,24 @@ interface RenderOptions {
   probes?: Array<Probe> | undefined;
   // The create-monitor flow tests steps that belong to no monitor yet.
   withoutMonitorId?: boolean | undefined;
+  preferredProbeIds?: Array<string> | undefined;
+  monitorSteps?: MonitorSteps | undefined;
+  monitorName?: string | undefined;
+  labels?: Array<unknown> | undefined;
 }
 
 function renderForm(options: RenderOptions = {}): RenderResult {
-  if (options.withoutMonitorId) {
-    return render(
-      <MonitorTestForm
-        monitorSteps={steps()}
-        monitorType={options.monitorType || MonitorType.Website}
-        probes={options.probes || PROBES}
-        buttonSize={ButtonSize.Normal}
-      />,
-    );
-  }
-
   return render(
     <MonitorTestForm
-      monitorId={new ObjectID(MONITOR_ID)}
-      monitorSteps={steps()}
+      monitorId={
+        options.withoutMonitorId ? undefined : new ObjectID(MONITOR_ID)
+      }
+      monitorSteps={options.monitorSteps || steps()}
       monitorType={options.monitorType || MonitorType.Website}
       probes={options.probes || PROBES}
+      preferredProbeIds={options.preferredProbeIds}
+      monitorName={options.monitorName}
+      labels={options.labels}
       buttonSize={ButtonSize.Normal}
     />,
   );
@@ -227,6 +262,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   createMock.mockReset();
   getItemMock.mockReset();
+  getForDraftMock.mockReset();
   currentPermissions = [Permission.ProjectAdmin];
   isMasterAdmin = false;
   createMock.mockResolvedValue({
@@ -347,6 +383,7 @@ describe("choosing a probe", () => {
     await clickTestMonitor();
 
     expect(screen.getByText("Select Probe")).toBeInTheDocument();
+    expect(screen.getByText("Where the check runs from.")).toBeInTheDocument();
 
     const combobox: HTMLElement = screen.getByRole("combobox");
 
@@ -713,5 +750,435 @@ describe("where the button sits", () => {
         0,
       ]);
     }
+  });
+});
+
+// The value the open dialog's probe picker shows, or null when it is empty.
+function pickedProbeName(): string | null {
+  const dialog: HTMLElement | null = screen
+    .getByText("Test Monitor", { selector: "h3, h2, [id]" })
+    .closest("[role='dialog']");
+  const root: HTMLElement = (dialog as HTMLElement) || document.body;
+
+  for (const name of ["Ohio Probe", "Frankfurt Probe", "Probe-1"]) {
+    if (within(root).queryByText(name)) {
+      return name;
+    }
+  }
+
+  return null;
+}
+
+async function pressRunTest(): Promise<void> {
+  await act(async () => {
+    fireEvent.click(screen.getByText("Run Test"));
+  });
+
+  await flush();
+}
+
+/*
+ * #7985: Select Probe opened empty in a project with one probe, and with
+ * the two probes the form had already picked. The walker opened the list to
+ * pick the only entry in it.
+ */
+describe("the probe the test starts on", () => {
+  test("one probe in the project: no picker, the dialog says which probe runs it, and Run Test runs there", async () => {
+    renderForm({ probes: [probe(PROBE_ID, "Probe-1")] });
+    await clickTestMonitor();
+
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.getByTestId("test-monitor-only-probe")).toHaveTextContent(
+      "The check runs from Probe-1.",
+    );
+
+    await pressRunTest();
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+
+    const request: { model: MonitorTest } = createMock.mock.calls[0]![0] as {
+      model: MonitorTest;
+    };
+
+    expect(request.model.probeId?.toString()).toBe(PROBE_ID);
+  });
+
+  test("two probes the form picked: the picker starts on the first, and Run Test runs there untouched", async () => {
+    renderForm({ preferredProbeIds: [OTHER_PROBE_ID, PROBE_ID] });
+    await clickTestMonitor();
+
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    expect(pickedProbeName()).toBe("Frankfurt Probe");
+
+    await pressRunTest();
+
+    const request: { model: MonitorTest } = createMock.mock.calls[0]![0] as {
+      model: MonitorTest;
+    };
+
+    expect(request.model.probeId?.toString()).toBe(OTHER_PROBE_ID);
+  });
+
+  test("a picked probe the list does not offer is passed over for the next", async () => {
+    renderForm({
+      preferredProbeIds: ["99999999-9999-4999-8999-999999999999", PROBE_ID],
+    });
+    await clickTestMonitor();
+
+    expect(pickedProbeName()).toBe("Ohio Probe");
+  });
+
+  test("two probes and none picked: the picker starts empty, and asks for one", async () => {
+    renderForm();
+    await clickTestMonitor();
+
+    expect(pickedProbeName()).toBeNull();
+
+    await pressRunTest();
+
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("the starting probe, worked out", () => {
+    const two: Array<Probe> = PROBES;
+    const one: Array<Probe> = [probe(PROBE_ID, "Probe-1")];
+
+    expect(getStartingTestProbeId({ probes: one })).toBe(PROBE_ID);
+    expect(
+      getStartingTestProbeId({
+        probes: two,
+        preferredProbeIds: [OTHER_PROBE_ID],
+      }),
+    ).toBe(OTHER_PROBE_ID);
+    expect(getStartingTestProbeId({ probes: two })).toBeUndefined();
+    expect(
+      getStartingTestProbeId({ probes: two, preferredProbeIds: ["unknown"] }),
+    ).toBeUndefined();
+    expect(getStartingTestProbeId({ probes: [] })).toBeUndefined();
+  });
+
+  test("a form's or a monitor's probes, read as ids", () => {
+    expect(
+      toProbeIds([
+        PROBE_ID,
+        new ObjectID(OTHER_PROBE_ID),
+        { value: PROBE_ID },
+        { probeId: new ObjectID(OTHER_PROBE_ID) },
+        { _id: "55555555-5555-4555-8555-000000000000" },
+        null,
+        7,
+      ]),
+    ).toEqual([
+      PROBE_ID,
+      OTHER_PROBE_ID,
+      "55555555-5555-4555-8555-000000000000",
+    ]);
+    expect(toProbeIds(undefined)).toEqual([]);
+    expect(toProbeIds("not a list")).toEqual([]);
+  });
+});
+
+// A finished test row whose answer its criteria judged (#7074).
+function judgedRow(
+  criteriaResults: Array<MonitorEvaluationCriteriaResult>,
+): MonitorTest {
+  const row: MonitorTest = finishedRow();
+  const response: MonitorStepProbeResponse =
+    row.monitorStepProbeResponse as MonitorStepProbeResponse;
+
+  response["step-1"] = {
+    ...response["step-1"]!,
+    isOnline: false,
+    responseCode: 503,
+    evaluationSummary: {
+      evaluatedAt: new Date(),
+      criteriaResults: criteriaResults,
+      events: [],
+    },
+  };
+
+  return row;
+}
+
+function criteriaResult(
+  overrides: Partial<MonitorEvaluationCriteriaResult>,
+): MonitorEvaluationCriteriaResult {
+  return {
+    criteriaId: "offline",
+    criteriaName: "Check if Acme is offline",
+    filterCondition: FilterCondition.Any,
+    met: false,
+    message: "",
+    filters: [],
+    ...overrides,
+  };
+}
+
+function whoIsTold(criteria: Array<WhoIsToldCriteria>): WhoIsToldResult {
+  return {
+    monitorId: "",
+    monitorName: "Acme",
+    checkedAt: new Date().toISOString(),
+    criteria: criteria,
+    channels: {
+      isBillingEnabled: false,
+      isSmsOn: true,
+      isCallOn: true,
+      isWhatsAppOn: true,
+      isTelegramOn: true,
+      hasOwnTwilioForSms: false,
+      hasOwnTwilioForCalls: false,
+      serverCanSendEmail: true,
+      serverCanSendSms: true,
+      serverCanCall: true,
+    },
+    breaks: [],
+  };
+}
+
+const OFFLINE_CRITERIA: WhoIsToldCriteria = {
+  id: "offline",
+  name: "Check if Acme is offline",
+  statusName: "Offline",
+  events: [
+    {
+      kind: OnCallTestPageRecordKind.Incident,
+      title: "Acme is offline",
+      severityName: "Critical Incident",
+      owners: {
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: ["Ana Lopez"],
+        teamNames: [],
+      },
+      ownerRules: [],
+      rules: [],
+      policies: [],
+      statusPages: [],
+    },
+  ],
+};
+
+async function runJudgedTest(row: MonitorTest): Promise<void> {
+  getItemMock.mockImplementation((request: unknown) => {
+    const modelType: unknown = (request as { modelType: unknown }).modelType;
+
+    if (modelType === MonitorStatus) {
+      return Promise.resolve(
+        Object.assign(new MonitorStatus(), { name: "Operational" }),
+      );
+    }
+
+    return Promise.resolve(row);
+  });
+
+  await clickTestMonitor();
+  await runTestOnProbe("Ohio Probe");
+  await tick();
+  await flush();
+  await flush();
+}
+
+/*
+ * #7074: Test Monitor's result said what the probe found and nothing of
+ * what it meant. It says which criteria the answer matched and what would
+ * follow - the status, what opens and its severity, who is told - in the
+ * words the monitor's "When this goes down" card says them in.
+ */
+describe("what the result says would follow", () => {
+  test("a matched criteria: which it is, and what it sets off, who is told included", async () => {
+    getForDraftMock.mockResolvedValue(whoIsTold([OFFLINE_CRITERIA]));
+
+    renderForm();
+    await runJudgedTest(
+      judgedRow([
+        criteriaResult({
+          criteriaId: "online",
+          criteriaName: "Check if Acme is online",
+        }),
+        criteriaResult({ met: true }),
+      ]),
+    );
+
+    const verdict: HTMLElement = screen.getByTestId("monitor-test-verdict");
+
+    expect(verdict).toHaveAttribute("data-matched", "true");
+    expect(
+      within(verdict).getByTestId("monitor-test-verdict-criteria"),
+    ).toHaveTextContent("This result matches Check if Acme is offline.");
+    expect(
+      within(verdict).getByTestId("monitor-test-verdict-follows"),
+    ).toHaveTextContent(
+      "OneUptime marks it Offline and opens an incident (Critical Incident). It emails the Project Owners (Ana Lopez). Nobody is paged.",
+    );
+  });
+
+  test("who is told is read for the monitor the test ran, its steps as they were tested", async () => {
+    getForDraftMock.mockResolvedValue(whoIsTold([OFFLINE_CRITERIA]));
+    const tested: MonitorSteps = steps();
+
+    renderForm({
+      withoutMonitorId: true,
+      monitorSteps: tested,
+      monitorName: "Acme",
+      labels: ["66666666-6666-4666-8666-666666666666"],
+    });
+    await runJudgedTest(judgedRow([criteriaResult({ met: true })]));
+
+    expect(getForDraftMock).toHaveBeenCalledTimes(1);
+
+    const draft: {
+      monitorId?: ObjectID;
+      name: string;
+      monitorType: MonitorType;
+      monitorSteps: MonitorSteps;
+      labelIds: Array<ObjectID>;
+    } = (getForDraftMock.mock.calls[0]![0] as { draft: never }).draft;
+
+    expect(draft.monitorId).toBeUndefined();
+    expect(draft.name).toBe("Acme");
+    expect(draft.monitorType).toBe(MonitorType.Website);
+    expect(draft.monitorSteps).toBe(tested);
+    expect(
+      draft.labelIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual(["66666666-6666-4666-8666-666666666666"]);
+  });
+
+  test("a saved monitor's test is read as that monitor", async () => {
+    getForDraftMock.mockResolvedValue(whoIsTold([OFFLINE_CRITERIA]));
+
+    renderForm();
+    await runJudgedTest(judgedRow([criteriaResult({ met: true })]));
+
+    const draft: { monitorId?: ObjectID } = (
+      getForDraftMock.mock.calls[0]![0] as { draft: { monitorId?: ObjectID } }
+    ).draft;
+
+    expect(draft.monitorId?.toString()).toBe(MONITOR_ID);
+  });
+
+  test("no criteria matched: it says so, and that the monitor shows its default status", async () => {
+    const tested: MonitorSteps = steps();
+    tested.data!.defaultMonitorStatusId = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+
+    renderForm({ monitorSteps: tested });
+    await runJudgedTest(judgedRow([criteriaResult({ met: false })]));
+
+    const verdict: HTMLElement = screen.getByTestId("monitor-test-verdict");
+
+    expect(verdict).toHaveAttribute("data-matched", "false");
+    expect(verdict).toHaveTextContent("This result matches no criteria.");
+    expect(verdict).toHaveTextContent(
+      "The monitor shows its default status, Operational, and nothing opens.",
+    );
+    // Nothing matched, so nobody is asked who would be told.
+    expect(getForDraftMock).not.toHaveBeenCalled();
+  });
+
+  test("a matched criteria that sets nothing off says so", async () => {
+    // The resolver leaves out a criteria with no status and nothing to open.
+    getForDraftMock.mockResolvedValue(whoIsTold([]));
+
+    renderForm();
+    await runJudgedTest(judgedRow([criteriaResult({ met: true })]));
+
+    expect(
+      screen.getByTestId("monitor-test-verdict-follows"),
+    ).toHaveTextContent("It changes no status and opens nothing.");
+  });
+
+  test("a private incident the reader can't see: what opens, never whom it tells", async () => {
+    getForDraftMock.mockResolvedValue(
+      whoIsTold([
+        {
+          ...OFFLINE_CRITERIA,
+          events: [
+            {
+              ...OFFLINE_CRITERIA.events[0]!,
+              owners: {
+                source: WhoIsToldOwnersSource.Named,
+                userNames: [],
+                teamNames: [],
+              },
+              isPrivate: true,
+              isHidden: true,
+            },
+          ],
+        },
+      ]),
+    );
+
+    renderForm();
+    await runJudgedTest(judgedRow([criteriaResult({ met: true })]));
+
+    const follows: HTMLElement = screen.getByTestId(
+      "monitor-test-verdict-follows",
+    );
+
+    expect(follows).toHaveTextContent(
+      "It's private, so you can't see who it tells.",
+    );
+    expect(follows).not.toHaveTextContent("Ana Lopez");
+  });
+
+  test("who is told cannot be worked out: it says so, the criteria still named", async () => {
+    getForDraftMock.mockRejectedValue(
+      new Error("You can't read this monitor."),
+    );
+
+    renderForm();
+    await runJudgedTest(judgedRow([criteriaResult({ met: true })]));
+
+    expect(
+      screen.getByTestId("monitor-test-verdict-criteria"),
+    ).toHaveTextContent("This result matches Check if Acme is offline.");
+    expect(screen.getByTestId("monitor-test-verdict-error")).toHaveTextContent(
+      "Couldn't work out who is told.",
+    );
+  });
+
+  test("a result kept before answers were judged says nothing more than it did", async () => {
+    getItemMock.mockResolvedValue(finishedRow());
+
+    renderForm();
+    await clickTestMonitor();
+    await runTestOnProbe("Ohio Probe");
+    await tick();
+
+    expect(
+      screen.queryByTestId("monitor-test-verdict"),
+    ).not.toBeInTheDocument();
+    expect(getForDraftMock).not.toHaveBeenCalled();
+  });
+
+  test("the criteria that matched is the first met, as the monitor acts on it", () => {
+    expect(getMonitorTestJudgement([])).toBeUndefined();
+    expect(
+      getMonitorTestJudgement([
+        finishedRow().monitorStepProbeResponse!["step-1"]!,
+      ]),
+    ).toBeUndefined();
+
+    const judged: MonitorTest = judgedRow([
+      criteriaResult({ criteriaId: "a", met: false }),
+      criteriaResult({ criteriaId: "b", met: true, skipped: true }),
+      criteriaResult({ criteriaId: "c", met: true }),
+      criteriaResult({ criteriaId: "d", met: true }),
+    ]);
+
+    expect(
+      getMonitorTestJudgement([judged.monitorStepProbeResponse!["step-1"]!])
+        ?.matched?.criteriaId,
+    ).toBe("c");
+    expect(
+      getMonitorTestJudgement([
+        judgedRow([criteriaResult({ met: false })]).monitorStepProbeResponse![
+          "step-1"
+        ]!,
+      ]),
+    ).toEqual({ matched: null });
   });
 });

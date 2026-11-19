@@ -54,8 +54,9 @@ export default class FormAPI extends BaseAPI {
     return error;
   }
 
-  public static override logoutUser(): void {
+  public static override logoutUser(): Promise<void> {
     // The page has no session of its own, and the visitor's is not its to end.
+    return Promise.resolve();
   }
 
   protected static override getRefreshSessionUrl(): URL | null {

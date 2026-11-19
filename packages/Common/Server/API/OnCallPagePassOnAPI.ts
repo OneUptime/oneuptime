@@ -1,3 +1,5 @@
+import ProductKey from "../../Types/Product/ProductKey";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import UserService from "../Services/UserService";
 import logger from "../Utils/Logger";
@@ -240,6 +242,7 @@ router.post(
   `${ON_CALL_PAGE_PASS_ON_ROUTE}/:recordType/:recordId`,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -318,6 +321,7 @@ router.post(
   `${ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE}/:recordType/:recordId`,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -418,6 +422,7 @@ router.post(
   `${ON_CALL_OBSERVER_PAGE_SEEN_ROUTE}/:recordType/:recordId`,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

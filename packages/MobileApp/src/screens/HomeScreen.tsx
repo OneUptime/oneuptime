@@ -31,6 +31,11 @@ import {
 } from "../layout/FoldSplitView";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useSecurityCaseCounts } from "../hooks/useSecurityCases";
+import {
+  useProductsOffOnServer,
+  type ProductsOffOnServer,
+} from "../hooks/useProductsOffOnServer";
+import { AppProduct } from "../api/serverProducts";
 import { useActiveProject } from "../hooks/useProject";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
@@ -311,6 +316,16 @@ export default function HomeScreen(): React.JSX.Element {
   const now: number = useNow();
 
   /*
+   * A product the server's admin switched off has nothing on Home (#7478):
+   * no count, row or card of it, as it has no tab.
+   */
+  const productsOff: ProductsOffOnServer = useProductsOffOnServer();
+  const showIncidents: boolean = !productsOff.isOff(AppProduct.Incidents);
+  const showAlerts: boolean = !productsOff.isOff(AppProduct.Alerts);
+  const showOnCall: boolean = !productsOff.isOff(AppProduct.OnCall);
+  const showMonitors: boolean = !productsOff.isOff(AppProduct.Monitors);
+
+  /*
    * Security cases, for the people the Inbox shows them to: those who can see
    * the project's cases, in a project that has had one. A row of its own, so
    * its requests failing - or being refused - never retire the counts above.
@@ -580,99 +595,106 @@ export default function HomeScreen(): React.JSX.Element {
       />
     ) : null;
 
-  const needsAttention: React.JSX.Element = (
-    <View>
-      <SectionHeader title="Needs attention" iconName="flash-outline" />
-      {countsError ? (
-        <QueryErrorNotice
-          message="Counts are unavailable. Open a list or retry to check the latest status."
-          retryLabel="Retry counts"
-          onRetry={refetch}
-        />
-      ) : null}
-      <View
-        style={{
-          flexDirection: stackTiles ? "column" : "row",
-          gap: spacing.md,
-        }}
-      >
-        <AttentionTile
-          testID="home-tile-incidents"
-          count={incidentCount}
-          label="Active Incidents"
-          accentColor={theme.colors.severityCritical}
-          iconName="warning-outline"
-          known={countIsKnown}
-          checking={countsChecking}
-          stacked={stackTiles}
-          accessibilityHint="Opens active incidents in the inbox"
-          onPress={() => {
-            return navigation.navigate("Inbox", {
-              screen: "InboxList",
-              params: {
-                initialView: "incidents",
-                initialSegment: "incidents",
-                initialFilter: "active",
-              },
-            });
-          }}
-        />
-        <AttentionTile
-          testID="home-tile-alerts"
-          count={alertCount}
-          label="Active Alerts"
-          accentColor={theme.colors.severityMajor}
-          iconName="notifications-outline"
-          known={countIsKnown}
-          checking={countsChecking}
-          stacked={stackTiles}
-          accessibilityHint="Opens active alerts in the inbox"
-          onPress={() => {
-            return navigation.navigate("Inbox", {
-              screen: "InboxList",
-              params: {
-                initialView: "alerts",
-                initialSegment: "alerts",
-                initialFilter: "active",
-              },
-            });
-          }}
-        />
-      </View>
-      {securityCounts.isAvailable ? (
-        <ListGroup testID="home-security" style={{ marginTop: spacing.md }}>
-          <CountRow
-            testID="home-row-security-cases"
-            count={securityCounts.openCount}
-            label="Open security cases"
-            subtitle={
-              securityKnown && awaitingApproval > 0
-                ? awaitingApproval === 1
-                  ? "Approval needed on 1 case"
-                  : `Approval needed on ${awaitingApproval} cases`
-                : undefined
-            }
-            iconColor={theme.colors.statusWarning}
-            highlightColor={theme.colors.statusWarning}
-            iconName="shield-outline"
-            known={securityKnown}
-            accessibilityHint="Opens the open security cases in the inbox"
-            onPress={() => {
-              return navigation.navigate("Inbox", {
-                screen: "InboxList",
-                params: {
-                  initialView: "security",
-                  initialCaseFilter: "open",
-                },
-              });
-            }}
+  const needsAttention: React.JSX.Element | null =
+    showIncidents || showAlerts || securityCounts.isAvailable ? (
+      <View>
+        <SectionHeader title="Needs attention" iconName="flash-outline" />
+        {countsError ? (
+          <QueryErrorNotice
+            message="Counts are unavailable. Open a list or retry to check the latest status."
+            retryLabel="Retry counts"
+            onRetry={refetch}
           />
-        </ListGroup>
-      ) : null}
-    </View>
-  );
+        ) : null}
+        {showIncidents || showAlerts ? (
+          <View
+            style={{
+              flexDirection: stackTiles ? "column" : "row",
+              gap: spacing.md,
+            }}
+          >
+            {showIncidents ? (
+              <AttentionTile
+                testID="home-tile-incidents"
+                count={incidentCount}
+                label="Active Incidents"
+                accentColor={theme.colors.severityCritical}
+                iconName="warning-outline"
+                known={countIsKnown}
+                checking={countsChecking}
+                stacked={stackTiles}
+                accessibilityHint="Opens active incidents in the inbox"
+                onPress={() => {
+                  return navigation.navigate("Inbox", {
+                    screen: "InboxList",
+                    params: {
+                      initialView: "incidents",
+                      initialSegment: "incidents",
+                      initialFilter: "active",
+                    },
+                  });
+                }}
+              />
+            ) : null}
+            {showAlerts ? (
+              <AttentionTile
+                testID="home-tile-alerts"
+                count={alertCount}
+                label="Active Alerts"
+                accentColor={theme.colors.severityMajor}
+                iconName="notifications-outline"
+                known={countIsKnown}
+                checking={countsChecking}
+                stacked={stackTiles}
+                accessibilityHint="Opens active alerts in the inbox"
+                onPress={() => {
+                  return navigation.navigate("Inbox", {
+                    screen: "InboxList",
+                    params: {
+                      initialView: "alerts",
+                      initialSegment: "alerts",
+                      initialFilter: "active",
+                    },
+                  });
+                }}
+              />
+            ) : null}
+          </View>
+        ) : null}
+        {securityCounts.isAvailable ? (
+          <ListGroup testID="home-security" style={{ marginTop: spacing.md }}>
+            <CountRow
+              testID="home-row-security-cases"
+              count={securityCounts.openCount}
+              label="Open security cases"
+              subtitle={
+                securityKnown && awaitingApproval > 0
+                  ? awaitingApproval === 1
+                    ? "Approval needed on 1 case"
+                    : `Approval needed on ${awaitingApproval} cases`
+                  : undefined
+              }
+              iconColor={theme.colors.statusWarning}
+              highlightColor={theme.colors.statusWarning}
+              iconName="shield-outline"
+              known={securityKnown}
+              accessibilityHint="Opens the open security cases in the inbox"
+              onPress={() => {
+                return navigation.navigate("Inbox", {
+                  screen: "InboxList",
+                  params: {
+                    initialView: "security",
+                    initialCaseFilter: "open",
+                  },
+                });
+              }}
+            />
+          </ListGroup>
+        ) : null}
+      </View>
+    ) : null;
 
-  const onCallCard: React.JSX.Element = (
+  const onCallCard: React.JSX.Element | null = showOnCall ? (
     <Card
       testID="home-oncall-card"
       accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
@@ -715,9 +737,9 @@ export default function HomeScreen(): React.JSX.Element {
         />
       </View>
     </Card>
-  );
+  ) : null;
 
-  const serviceHealth: React.JSX.Element = (
+  const serviceHealth: React.JSX.Element | null = showMonitors ? (
     <View>
       <SectionHeader title="Service health" iconName="pulse-outline" />
       <ListGroup testID="home-service-health">
@@ -769,60 +791,65 @@ export default function HomeScreen(): React.JSX.Element {
         />
       </ListGroup>
     </View>
-  );
+  ) : null;
 
-  const groupedEvents: React.JSX.Element = (
-    <View>
-      <SectionHeader title="Grouped events" iconName="layers-outline" />
-      <AppText
-        variant="subhead"
-        tone="secondary"
-        style={{ marginTop: -spacing.xs, marginBottom: spacing.md }}
-      >
-        Episodes bring related incidents or alerts together.
-      </AppText>
-      <ListGroup testID="home-grouped-events">
-        <CountRow
-          testID="home-row-incident-episodes"
-          count={incidentEpisodeCount}
-          label="Incident Episodes"
-          iconColor={theme.colors.severityCritical}
-          iconName="layers-outline"
-          known={countIsKnown}
-          accessibilityHint="Opens active incident episodes in the inbox"
-          onPress={() => {
-            return navigation.navigate("Inbox", {
-              screen: "InboxList",
-              params: {
-                initialView: "incidents",
-                initialSegment: "episodes",
-                initialFilter: "active",
-              },
-            });
-          }}
-        />
-        <CountRow
-          testID="home-row-alert-episodes"
-          count={alertEpisodeCount}
-          label="Alert Episodes"
-          iconColor={theme.colors.severityMajor}
-          iconName="layers-outline"
-          known={countIsKnown}
-          accessibilityHint="Opens active alert episodes in the inbox"
-          onPress={() => {
-            return navigation.navigate("Inbox", {
-              screen: "InboxList",
-              params: {
-                initialView: "alerts",
-                initialSegment: "episodes",
-                initialFilter: "active",
-              },
-            });
-          }}
-        />
-      </ListGroup>
-    </View>
-  );
+  const groupedEvents: React.JSX.Element | null =
+    showIncidents || showAlerts ? (
+      <View>
+        <SectionHeader title="Grouped events" iconName="layers-outline" />
+        <AppText
+          variant="subhead"
+          tone="secondary"
+          style={{ marginTop: -spacing.xs, marginBottom: spacing.md }}
+        >
+          Episodes bring related incidents or alerts together.
+        </AppText>
+        <ListGroup testID="home-grouped-events">
+          {showIncidents ? (
+            <CountRow
+              testID="home-row-incident-episodes"
+              count={incidentEpisodeCount}
+              label="Incident Episodes"
+              iconColor={theme.colors.severityCritical}
+              iconName="layers-outline"
+              known={countIsKnown}
+              accessibilityHint="Opens active incident episodes in the inbox"
+              onPress={() => {
+                return navigation.navigate("Inbox", {
+                  screen: "InboxList",
+                  params: {
+                    initialView: "incidents",
+                    initialSegment: "episodes",
+                    initialFilter: "active",
+                  },
+                });
+              }}
+            />
+          ) : null}
+          {showAlerts ? (
+            <CountRow
+              testID="home-row-alert-episodes"
+              count={alertEpisodeCount}
+              label="Alert Episodes"
+              iconColor={theme.colors.severityMajor}
+              iconName="layers-outline"
+              known={countIsKnown}
+              accessibilityHint="Opens active alert episodes in the inbox"
+              onPress={() => {
+                return navigation.navigate("Inbox", {
+                  screen: "InboxList",
+                  params: {
+                    initialView: "alerts",
+                    initialSegment: "episodes",
+                    initialFilter: "active",
+                  },
+                });
+              }}
+            />
+          ) : null}
+        </ListGroup>
+      </View>
+    ) : null;
 
   /*
    * Half open on a table: what needs the reader - the two counts and whether
@@ -848,7 +875,7 @@ export default function HomeScreen(): React.JSX.Element {
             {ssoBanner}
             <HomeSections testID="home-response" twoColumns={twoColumns}>
               {needsAttention}
-              {twoColumns ? (
+              {!onCallCard ? null : twoColumns ? (
                 /*
                  * Beside the counts, the card heads its column the way they
                  * do, so the two start on one line.
@@ -986,11 +1013,16 @@ function HomeSections({
         gap: spacing.xxl,
       }}
     >
-      {React.Children.map(
-        children,
-        (child: React.ReactNode): React.JSX.Element => {
+      {/*
+       * A section of a product switched off on the server is no column
+       * (#7478): toArray leaves out what is null.
+       */}
+      {React.Children.toArray(children).map(
+        (child: React.ReactNode, index: number): React.JSX.Element => {
           return (
-            <View style={{ flex: twoColumns ? 1 : undefined }}>{child}</View>
+            <View key={index} style={{ flex: twoColumns ? 1 : undefined }}>
+              {child}
+            </View>
           );
         },
       )}

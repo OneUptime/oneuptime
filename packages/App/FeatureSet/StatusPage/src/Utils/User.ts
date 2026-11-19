@@ -2,9 +2,10 @@ import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
-import API from "Common/Utils/API";
 import { STATUS_PAGE_IDENTITY_API_URL } from "./Config";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
+import { Logger } from "Common/UI/Utils/Logger";
+import SignOutRequest, { SignOutAnswer } from "Common/UI/Utils/SignOutRequest";
 
 export default class User {
   private static getMasterPasswordStorageKeys(
@@ -84,21 +85,37 @@ export default class User {
     return Boolean(this.getEmail(statusPageId));
   }
 
+  /*
+   * Signs the reader out of this page: forgets them here at once, then ends
+   * their session on the server, whose answer clears the page's HttpOnly
+   * cookies. Resolves once the server has answered, or once the wait for it
+   * is over, and never rejects: await it before the page changes (issue
+   * #9508). The request is sent so that no page change cancels it
+   * (SignOutRequest, keepalive), and it is no API client's, so a sign-out
+   * run from API.handleError never refreshes or signs out again.
+   */
   public static async logout(statusPageId: ObjectID): Promise<void> {
-    /*
-     * Same origin as the page, like the refresh in ./API.ts: on a custom domain
-     * the session cookies are not sent to IDENTITY_URL's host, so a logout
-     * there cleared nothing. The bare API client on purpose - this runs from
-     * API.handleError, and must not trigger another refresh or logout.
-     */
-    await API.post({
-      url: URL.fromURL(STATUS_PAGE_IDENTITY_API_URL).addRoute(
-        `/logout/${statusPageId.toString()}`,
-      ),
-    });
     this.removeUser(statusPageId);
     for (const storageKey of this.getMasterPasswordStorageKeys(statusPageId)) {
       LocalStorage.removeItem(storageKey);
+    }
+
+    /*
+     * Same origin as the page, like the refresh in ./API.ts: on a custom domain
+     * the session cookies are not sent to IDENTITY_URL's host, so a logout
+     * there cleared nothing.
+     */
+    const answer: SignOutAnswer = await SignOutRequest.send(
+      URL.fromURL(STATUS_PAGE_IDENTITY_API_URL).addRoute(
+        `/logout/${statusPageId.toString()}`,
+      ),
+    );
+
+    if (
+      answer === SignOutAnswer.Refused ||
+      answer === SignOutAnswer.Unreachable
+    ) {
+      Logger.error(`Error during logout: ${answer}`);
     }
   }
 }

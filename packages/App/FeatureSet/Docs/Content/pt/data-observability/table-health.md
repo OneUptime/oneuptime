@@ -17,6 +17,8 @@ Só o catálogo é lido e, no MongoDB, os nomes dos campos dos documentos mais r
 
 O **ritmo** de uma tabela é a frequência com que ela costuma mudar, aprendida a partir do tempo entre as suas mudanças. Uma tabela que passa bem do seu ritmo aparece como **Atrasada**, na página dela e em **Tabelas**, e grava o quanto já passou. A atualidade dela é conhecida assim que ela muda duas vezes: uma tabela carregada de hora em hora é aprendida em poucas horas, e uma carregada todas as noites, em poucos dias.
 
+Em **Tabelas**, e na aba **Tabelas** de um banco de dados, o filtro **Atualização** mostra só as tabelas atrasadas, ou só as atualizadas, e ordenar por **Atualização** põe primeiro as mais atrasadas. **Tabelas atrasadas** na **Visão geral**, e na página de um banco de dados, abre essa lista com **Atualização** em **Atrasada**.
+
 Uma view não tem linhas próprias, então a atualidade dela é a atualidade das suas origens: veja [Linhagem e pipelines](/docs/data-observability/lineage-and-pipelines).
 
 Um catálogo pode dizer que uma tabela mudou quando só a manutenção dela mudou, ou não dizer nada. Nas **Configurações** de uma tabela, informe uma **Coluna de Freshness** como `updated_at`, e a última alteração dela passa a ser o valor mais recente dessa coluna. O login precisa ler a coluna, e ela é lida a cada coleta, então deve ser indexada; no BigQuery e no Athena, que cobram pelo que uma consulta lê, ela é lida uma vez por hora. Horários sem fuso são considerados UTC.
@@ -85,11 +87,11 @@ A aba **Proprietários** de uma tabela nomeia as pessoas e equipes a quem ela pe
 
 Você não deveria ter que fazer isso centenas de vezes. As **Regras de proprietário** e as **Regras de Rótulos** valem para cada tabela quando ela aparece pela primeira vez, associadas pelos rótulos dela, ou por uma expressão regular sobre o nome, o esquema ou o banco de dados: tudo em `finance` vai para a equipe de finanças, e tudo chamado `*_pii` recebe um rótulo.
 
-Uma permissão limitada a `Owned` alcança apenas as tabelas de que seu titular ou as equipes dele são proprietários, com as verificações, a atividade e os problemas relatados delas. Ser proprietário de um banco de dados não torna alguém proprietário das tabelas dele: use uma regra de proprietários para entregar um banco de dados inteiro a uma equipe.
+Uma permissão limitada a `Owned` alcança apenas as tabelas de que seu titular ou as equipes dele são proprietários, com as verificações, a atividade e os problemas relatados delas. Ser proprietário de um banco de dados não torna alguém proprietário das tabelas dele: use uma regra de proprietários para entregar um banco de dados inteiro a uma equipe. A **Visão geral**, **Problemas** e o número ao lado de **Visão geral** contam e listam só as tabelas que essa permissão alcança, como fazem **Tabelas** e **Verificações**.
 
 ## Quando um alerta é aberto
 
-O alerta de uma tabela tem um cartão **Dados** que diz por que ele provavelmente aconteceu, em ordem de probabilidade: um alerta a montante, uma execução com falha, uma implantação de um serviço que escreve nela, as escritas dela que falham, uma coluna que mudou, o próprio banco de dados ou o servidor em que ele roda. Abaixo está o que depende dela: tabelas a jusante na linhagem, painéis, serviços e as pessoas que são proprietárias deles.
+O alerta de uma tabela tem um cartão **Dados** que diz por que ele provavelmente aconteceu, em ordem de probabilidade: um alerta a montante, uma execução com falha, uma implantação de um serviço que escreve nela, as escritas dela que falham, uma coluna que mudou, o próprio banco de dados ou o servidor em que ele roda. Abaixo está o que depende dela: tabelas a jusante na linhagem, painéis, serviços e as pessoas que são proprietárias deles. Como o cartão **Linhagem** do alerta, ele só fala das tabelas e dos pipelines que sua função pode ler.
 
 Diga o que você concluiu:
 

@@ -17,6 +17,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { IDENTITY_PROVIDER_SIGN_OUT_ENCRYPTED_FIELDS } from "../../Types/SSO/IdentityProviderSignOut";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -321,6 +322,36 @@ class UserSession extends BaseModel {
     nullable: true,
   })
   public additionalInfo?: JSONObject = undefined;
+
+  /*
+   * What signing this session's person out of their identity provider too
+   * takes (Types/SSO/IdentityProviderSignOut, #9535): kept only for a
+   * browser sign-in through an OpenID Connect provider whose "Sign out of
+   * the identity provider too" switch is on - the provider, its
+   * end_session_endpoint, and the sign-in's ID token, the id_token_hint,
+   * encrypted at rest. Read by POST /identity/logout once the session has
+   * ended, and cleared then. Nobody reads or writes it through the API, and
+   * it is never sent to the browser while the session lives.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Identity Provider Sign-Out",
+    description:
+      "Internal: what signing this session's person out of their OpenID Connect provider takes. Its ID token is kept encrypted.",
+    encrypted: true,
+    encryptedFields: IDENTITY_PROVIDER_SIGN_OUT_ENCRYPTED_FIELDS,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public identityProviderSignOut?: JSONObject = undefined;
 }
 
 export default UserSession;

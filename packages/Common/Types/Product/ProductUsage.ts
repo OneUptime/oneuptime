@@ -15,13 +15,16 @@ import ActivationMilestone from "../Analytics/ActivationMilestone";
  *
  *   - its records exist (a monitor, a status page, a host, a dashboard -
  *     archived ones too), for the products in PRODUCTS_USED_BY_RECORDS;
+ *     a few count only the records their first page counts (#7325): the
+ *     inventory's items, App Platforms' environments, the databases and
+ *     buckets Data Observability watches, the data stores Data Security
+ *     scans - none archived - and the sources Security Events reads, on;
  *   - its first data arrived, by the project's activation milestones
- *     (#6830), for the telemetry products in PRODUCT_USAGE_MILESTONES.
+ *     (#6830), for the telemetry products in PRODUCT_USAGE_MILESTONES - and
+ *     AI / LLM, once its first AI call arrived.
  *
- * The others - Chat, Inventory, AI / LLM, Data Observability, Security
- * Events, Data Security, App Platforms and Settings - are not answered: no
- * cheap question says whether they are in use, and no mark is better than a
- * wrong one.
+ * The others - Chat and Settings - are not answered: there is nothing to
+ * set up in them, and no mark is better than a wrong one.
  *
  * Pure: the server, the Dashboard and their tests read it.
  */
@@ -59,6 +62,8 @@ export const PRODUCT_USAGE_MILESTONES: Readonly<
   [ProductKey.Exceptions]: [ActivationMilestone.FirstExceptionsReceived],
   // The map of services is drawn from their traces.
   [ProductKey.Topology]: [ActivationMilestone.FirstTracesReceived],
+  // Conversations lists the AI calls apps and AI tools send.
+  [ProductKey.Llm]: [ActivationMilestone.FirstLlmCallsReceived],
 };
 
 /*
@@ -98,7 +103,47 @@ export const PRODUCTS_USED_BY_RECORDS: ReadonlyArray<ProductKey> = [
   ProductKey.Workflows,
   ProductKey.Runbooks,
   ProductKey.Forms,
+  // Counted by some of their records only (ProjectProductsService).
+  ProductKey.DataObservability,
+  ProductKey.SecurityEvents,
+  ProductKey.DataSecurity,
+  ProductKey.Inventory,
+  ProductKey.AppPlatforms,
 ];
+
+/*
+ * The tables beside the products' main records (ProductOfTable) whose
+ * records a product counts to say it is in use (#7325) - the records its
+ * first page counts. A first one created, or the last one deleted, changes
+ * what the project uses (ProjectUsageCache). ProjectProductsService holds
+ * the exact rule of each, which a test holds this to.
+ */
+export const PRODUCT_USAGE_TABLES: Readonly<
+  Record<string, ReadonlyArray<ProductKey>>
+> = {
+  InventoryItem: [ProductKey.Inventory],
+  CloudResource: [ProductKey.AppPlatforms],
+  DataStore: [ProductKey.DataObservability, ProductKey.DataSecurity],
+  SecurityEventConnection: [ProductKey.SecurityEvents],
+  SecurityLogSource: [ProductKey.SecurityEvents],
+  SecurityTelemetrySource: [ProductKey.SecurityEvents],
+};
+
+// The products a table's records count for, beside its main record's.
+export const getProductsCountingTable: (
+  tableName: string | null | undefined,
+) => ReadonlyArray<ProductKey> = (
+  tableName: string | null | undefined,
+): ReadonlyArray<ProductKey> => {
+  if (
+    !tableName ||
+    !Object.prototype.hasOwnProperty.call(PRODUCT_USAGE_TABLES, tableName)
+  ) {
+    return [];
+  }
+
+  return PRODUCT_USAGE_TABLES[tableName] || [];
+};
 
 /*
  * The products with nothing to set up, where having nothing is no step left

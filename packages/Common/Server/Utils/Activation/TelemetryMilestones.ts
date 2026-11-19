@@ -106,6 +106,55 @@ export default class TelemetryMilestones {
   }
 
   /*
+   * The projects in these spans whose first AI call they may be
+   * (FirstLlmCallsReceived, #7325): a span the ingest marked as a GenAI call
+   * (isLlmSpan), of a project this process does not know has the mark. Null
+   * for any other table, and for spans that hold no AI call - one property
+   * read a span, so the busiest path pays nothing for a project that sends
+   * none. Never throws.
+   */
+  public static collectLlmCalls(
+    tableName: string,
+    rows: Array<JSONObject>,
+  ): PendingTelemetryMilestones | null {
+    try {
+      if (tableName !== AnalyticsTableName.Span || !rows || rows.length === 0) {
+        return null;
+      }
+
+      const milestone: ActivationMilestone =
+        ActivationMilestone.FirstLlmCallsReceived;
+      let projectIds: Array<string> | null = null;
+
+      for (const row of rows) {
+        if (row?.["isLlmSpan"] !== true) {
+          continue;
+        }
+
+        const projectId: JSONValue | undefined = row["projectId"];
+
+        if (
+          typeof projectId !== "string" ||
+          projectIds?.includes(projectId) ||
+          ProjectMilestoneService.isKnownReached(projectId, milestone)
+        ) {
+          continue;
+        }
+
+        if (!projectIds) {
+          projectIds = [projectId];
+        } else {
+          projectIds.push(projectId);
+        }
+      }
+
+      return projectIds ? { milestone, projectIds } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
    * Rows a writer inserted itself, outside the fan-in writer: called once
    * ClickHouse has accepted them, so a failed insert - which throws before
    * this is reached - keeps nothing. Never throws.

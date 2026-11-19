@@ -28,6 +28,8 @@ import {
   PACKET_CAPTURE_STOP_REFUSED_MESSAGE,
 } from "../../Types/PacketCapture/PacketCapturePermissions";
 import PacketCaptureStatus from "../../Types/PacketCapture/PacketCaptureStatus";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 export const FILE_GONE_MESSAGE: string =
   "This capture has no file to download: it captured no packets, or its file has been deleted.";
@@ -71,6 +73,7 @@ export default class PacketCaptureAPI extends BaseAPI<
     this.router.post(
       `${path}/:packetCaptureId/stop`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const { props, projectId } = await PacketCaptureAPI.getCaller(req);

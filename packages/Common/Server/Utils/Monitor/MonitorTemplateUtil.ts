@@ -739,6 +739,9 @@ export default class MonitorTemplateUtil {
           ProbeStatusMonitorUtil.getConnectedProbes({ probes: probes });
         const disconnectedProbes: Array<ProbeStatusMonitorProbe> =
           ProbeStatusMonitorUtil.getDisconnectedProbes({ probes: probes });
+        // Connected, but behind (#9501): "Probe behind: EU Probe".
+        const behindProbes: Array<ProbeStatusMonitorProbe> =
+          ProbeStatusMonitorUtil.getBehindProbes({ probes: probes });
 
         storageMap = {
           probeStatusSummary: ProbeStatusMonitorUtil.describe({
@@ -748,14 +751,17 @@ export default class MonitorTemplateUtil {
           }),
           connectedProbeCount: connectedProbes.length,
           disconnectedProbeCount: disconnectedProbes.length,
+          behindProbeCount: behindProbes.length,
           connectedProbeNames:
             ProbeStatusMonitorUtil.joinProbeNames(connectedProbes),
           disconnectedProbeNames:
             ProbeStatusMonitorUtil.joinProbeNames(disconnectedProbes),
+          behindProbeNames: ProbeStatusMonitorUtil.joinProbeNames(behindProbes),
           probes: probes.map((probe: ProbeStatusMonitorProbe): JSONObject => {
             return {
               probeName: probe.probeName,
               isConnected: probe.isConnected,
+              isBehind: probe.isBehind === true,
               isGlobalProbe: probe.isGlobalProbe,
               lastAliveAt: probe.lastAliveAt
                 ? MonitorTemplateUtil.toTimestamp(probe.lastAliveAt)

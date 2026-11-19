@@ -81,8 +81,13 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   };
 });
 
-import RumApplicationProductAnalyticsUsers from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsUsers";
+import RumApplicationProductAnalyticsUsers, {
+  buildProductAnalyticsUserTiles,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsUsers";
+import { ResourceOverviewTile } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import { createTranslator, DEFAULT_LANGUAGE } from "../../../Types/Translator";
 import { PRODUCT_ANALYTICS_PEOPLE_PAGE_SIZE } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsPeopleCard";
+import { parseProductAnalyticsSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsApi";
 import {
   chooseDropdownOption,
   closeDropdown,
@@ -410,6 +415,46 @@ describe("ProductAnalyticsUsers tiles", () => {
     expect(tiles[5]).toContain("Not seen for 30 days");
   });
 
+  /*
+   * The total is everyone the months the application keeps hold (issue
+   * #6626): the tile says the application's months, as the summary read
+   * says them, and the default when an older server leaves them out.
+   */
+  it("the total says the months the application keeps", async () => {
+    mockReads({ summary: { ...summary(), retentionMonths: 25 } });
+
+    renderPage();
+
+    const tiles: Array<string> = await waitForTiles();
+
+    expect(tiles[4]).toContain("Total users");
+    expect(tiles[4]).toMatch(/In the last 25\s+months/);
+    expect(tiles[4]).not.toMatch(/13\s+months/);
+
+    /* Read as the page reads the summary route's answer. */
+    const tile: ResourceOverviewTile = buildProductAnalyticsUserTiles({
+      summary: parseProductAnalyticsSummary({
+        ...summary(),
+        retentionMonths: 3,
+      }),
+      isLoading: false,
+      translator: createTranslator(undefined, DEFAULT_LANGUAGE),
+    })[4]!;
+
+    expect(tile.sublabel).toBe("In the last 3 months");
+    expect(tile.description).toBe(
+      "Everyone this application has seen in the last 3 months, the time these numbers are kept.",
+    );
+
+    expect(
+      buildProductAnalyticsUserTiles({
+        summary: parseProductAnalyticsSummary(summary()),
+        isLoading: false,
+        translator: createTranslator(undefined, DEFAULT_LANGUAGE),
+      })[4]!.sublabel,
+    ).toBe("In the last 13 months");
+  });
+
   it("each tile says what it counts in its (i)", async () => {
     mockReads({});
 
@@ -455,9 +500,15 @@ describe("ProductAnalyticsUsers tiles", () => {
     expect(requestsTo("summary")).toHaveLength(1);
     expect(summaryRequest["rumApplicationId"]).toBe(APP_ID);
     expect(summaryRequest["dormantAfterDays"]).toBe(30);
-    /* A month: 28 to 31 days. */
-    expect((end - start) / DAY_MS).toBeGreaterThanOrEqual(28);
-    expect((end - start) / DAY_MS).toBeLessThanOrEqual(31);
+    /*
+     * Past 1 Month: a calendar month back on the reader's clock, at the same
+     * time of day (RangeStartAndEndDateTimeUtil). An hour longer or shorter
+     * than its days when the reader's clocks changed inside it: 31 days and
+     * an hour in London from 18 October to 18 November 2026.
+     */
+    expect(new Date(start).toISOString()).toBe(
+      OneUptimeDate.addRemoveMonths(new Date(end), -1).toISOString(),
+    );
 
     expect(requestsTo("trend")).toHaveLength(1);
     expect(requestsTo("trend")[0]!.data).toEqual(

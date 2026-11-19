@@ -134,6 +134,9 @@ import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChe
 import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
+import BackfillProductAnalyticsFromKeptSessions from "./BackfillProductAnalyticsFromKeptSessions";
+import KeepProductAnalyticsForTheLongestRetention from "./KeepProductAnalyticsForTheLongestRetention";
+import ReadWebAppVersionsInProductAnalyticsSessions from "./ReadWebAppVersionsInProductAnalyticsSessions";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
@@ -196,6 +199,7 @@ import RestoreCutMicrosoftTeamsChatIds from "./RestoreCutMicrosoftTeamsChatIds";
 import BackfillNetworkDeviceManufacturer from "./BackfillNetworkDeviceManufacturer";
 import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledgedBeforeFirstSteps";
 import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilestonesFromClickhouse";
+import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1412,6 +1416,51 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new BackfillTelemetryMilestonesFromClickhouse(),
+  /*
+   * When each table and pipeline is late without a change or a run, and how
+   * each check stands now (#6550, #6552, #6554), for the rows that were there
+   * before AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000
+   * added the columns: Tables' Late filter, Checks' order and the menu's
+   * count read them. Postgres only, a page at a time by id, and idempotent;
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillDataObservabilityAttentionColumns(),
+  /*
+   * A web app's own version in Product Analytics (#6625): the browser
+   * recorder's appVersion option reaches RumSessionV1.appVersion, and
+   * RumProductAnalyticsSessionV1_mv's query is replaced in place (ALTER
+   * TABLE ... MODIFY QUERY, ON CLUSTER) with the model's, which reads it
+   * before a mobile app's browser version. Atomic, so no session header
+   * goes by unfiled; idempotent; after ReadHashRoutesInProductAnalyticsEntryPages,
+   * which set the query before it, and before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ReadWebAppVersionsInProductAnalyticsSessions(),
+  /*
+   * Each RUM application chooses how long product analytics keeps it
+   * (#6626): the three product analytics tables keep the longest choice,
+   * 25 months, and Rum:EnforceProductAnalyticsRetention deletes each
+   * application's older rows. Per table, ON CLUSTER: MODIFY SETTING
+   * materialize_ttl_recalculate_only = 1, then MODIFY TTL, whose
+   * recalculation of each part's expiry runs in the background and rewrites
+   * nothing else. Deletes nothing; idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new KeepProductAnalyticsForTheLongestRetention(),
+  /*
+   * Product Analytics after an upgrade (#6624): copies the sessions
+   * RumSessionV1 still keeps into RumProductAnalyticsSessionV1 and
+   * RumProductAnalyticsUserV1 with each view's own SELECT, a day partition
+   * at a time, newest first, so the Users and Sessions pages count back to
+   * the oldest recording kept. Re-filing a session folds into its row;
+   * progress is kept in Valkey, so a retried run resumes and a finished one
+   * copies nothing. Each day runs under the erasure job's lock, once the
+   * deletes of RumSessionV1 have landed, so no erased session is copied.
+   * After KeepProductAnalyticsForTheLongestRetention, so what it copies is
+   * kept for its application's retention, and before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillProductAnalyticsFromKeptSessions(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

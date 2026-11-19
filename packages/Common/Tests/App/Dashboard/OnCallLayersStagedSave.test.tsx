@@ -211,8 +211,16 @@ import ScheduleLayersSaveUtil, {
 import Timezone from "../../../Types/Timezone";
 import API from "../../../UI/Utils/API/API";
 import LeaveGuard from "../../../UI/Utils/LeaveGuard";
+import { afterHistorySteps } from "../../Helpers/HistorySteps";
 
 jest.setTimeout(60000);
+
+// The question leaving the page asks, in the voice every editor asks in (#7973).
+const LEAVE_TITLE: string = "Leave without saving?";
+const LEAVE_SENTENCE: string =
+  "You have unsaved changes to this schedule's layers. If you leave now, they will be lost.";
+const CONFLICT_SENTENCE: string =
+  "Your changes were not saved. Reload to see the layers as they are now, then make your changes again.";
 
 const PROJECT_ID: string = "0d750000-0000-4000-8000-000000000001";
 const SCHEDULE_ID: string = "0d750000-0000-4000-8000-000000000002";
@@ -1570,5 +1578,184 @@ describe("leaving the page with changes", () => {
 
     expect(leave).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Leave without saving?")).toBeNull();
+  });
+});
+
+/*
+ * The Layers page asks through the one question every editor asks with
+ * (LeaveWithoutSavingQuestion, issue #7973), so it offers what that one
+ * offers: Save Changes, which saves as the bar does and then leaves (#7402).
+ */
+describe("the question leaving the page asks (issues #7973, #7402)", () => {
+  // A step to another page the side menu would take.
+  async function leaveForElsewhere(): Promise<ReturnType<typeof jest.fn>> {
+    const leave: ReturnType<typeof jest.fn> = jest.fn();
+
+    await act(async () => {
+      LeaveGuard.whenLeaving("/dashboard/elsewhere", leave as () => void);
+    });
+
+    return leave;
+  }
+
+  function question(): HTMLElement {
+    return screen.getByRole("dialog", { name: LEAVE_TITLE });
+  }
+
+  async function answer(name: string): Promise<void> {
+    await act(async () => {
+      fireEvent.click(within(question()).getByRole("button", { name: name }));
+    });
+    await wait(50);
+  }
+
+  test("is the shared one: named Leave without saving?, described by the schedule's sentence, with its three answers", async () => {
+    await renderLayers();
+    await drag(CAROL, -2);
+    await leaveForElsewhere();
+
+    const dialog: HTMLElement = question();
+
+    expect(dialog).toHaveAccessibleDescription(LEAVE_SENTENCE);
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Save Changes");
+    expect(
+      within(dialog).getByTestId("modal-footer-close-button"),
+    ).toHaveTextContent("Keep Editing");
+    expect(
+      within(dialog).getByTestId("leave-question-discard"),
+    ).toHaveTextContent("Discard Changes");
+    // The focus starts on Keep Editing: a stray Enter pages nobody anew.
+    await waitFor(() => {
+      expect(
+        within(dialog).getByTestId("modal-footer-close-button"),
+      ).toHaveFocus();
+    });
+  });
+
+  test("Save Changes saves every change in one request, then leaves", async () => {
+    await renderLayers();
+    await drag(CAROL, -2);
+    const leave: ReturnType<typeof jest.fn> = await leaveForElsewhere();
+
+    await answer("Save Changes");
+
+    await waitFor(() => {
+      expect(leave).toHaveBeenCalledTimes(1);
+    });
+    expect(saveCalls.length).toBe(1);
+    expect(
+      stored.rows
+        .filter((row: StoredRow) => {
+          return row.layerId === PRIMARY;
+        })
+        .sort((first: StoredRow, second: StoredRow) => {
+          return first.order - second.order;
+        })
+        .map((row: StoredRow) => {
+          return row.userId;
+        }),
+    ).toEqual([CAROL, ALICE, BOB]);
+    expect(LeaveGuard.isHeld()).toBe(false);
+    expect(screen.queryByRole("dialog", { name: LEAVE_TITLE })).toBeNull();
+  });
+
+  test("someone else changed the layers first: nothing is saved, the question stays and says so in the bar's words", async () => {
+    await renderLayers();
+    await drag(CAROL, -2);
+
+    // Someone else adds Erin to Backup meanwhile.
+    stored.rows.push({
+      id: "0d750000-0000-4000-8000-000000000301",
+      layerId: BACKUP,
+      userId: ERIN,
+      order: 2,
+    });
+
+    const leave: ReturnType<typeof jest.fn> = await leaveForElsewhere();
+
+    await answer("Save Changes");
+
+    await waitFor(() => {
+      expect(within(question()).getByTestId("modal-error")).toHaveTextContent(
+        CONFLICT_SENTENCE,
+      );
+    });
+    expect(leave).not.toHaveBeenCalled();
+    expect(LeaveGuard.isHeld()).toBe(true);
+    expect(shownPeople()[0]).toBe("Carol Chen");
+
+    // Keep Editing: the bar asks for a reload, as after its own Save.
+    await answer("Keep Editing");
+
+    expect(screen.getByTestId("layers-save-bar-conflict")).toHaveTextContent(
+      CONFLICT_SENTENCE,
+    );
+    expect(leave).not.toHaveBeenCalled();
+  });
+
+  test("a refused save says why in the question, and Discard Changes still leaves", async () => {
+    answerSave = async (): Promise<HTTPErrorResponse> => {
+      return new HTTPErrorResponse(
+        400,
+        { error: "Carol Chen is no longer a member of this project." },
+        {},
+      );
+    };
+
+    await renderLayers();
+    await drag(CAROL, -2);
+    const leave: ReturnType<typeof jest.fn> = await leaveForElsewhere();
+
+    await answer("Save Changes");
+
+    await waitFor(() => {
+      expect(within(question()).getByTestId("modal-error")).toHaveTextContent(
+        "Carol Chen is no longer a member of this project.",
+      );
+    });
+    expect(leave).not.toHaveBeenCalled();
+
+    await answer("Discard Changes");
+
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(
+      stored.rows
+        .filter((row: StoredRow) => {
+          return row.layerId === PRIMARY;
+        })
+        .map((row: StoredRow) => {
+          return `${row.userId}:${row.order}`;
+        }),
+    ).toEqual([`${ALICE}:1`, `${BOB}:2`, `${CAROL}:3`]);
+  });
+
+  test("the browser's Back asks the same question, and Keep Editing stays with the changes", async () => {
+    // The page, opened from another of the app's.
+    window.history.replaceState(null, "", "/dashboard/schedules");
+    window.history.pushState(null, "", "/dashboard/schedules/layers");
+
+    await renderLayers();
+    await drag(CAROL, -2);
+
+    await act(async () => {
+      window.history.back();
+    });
+    await act(async () => {
+      await afterHistorySteps();
+    });
+
+    const dialog: HTMLElement = question();
+
+    expect(dialog).toHaveAccessibleDescription(LEAVE_SENTENCE);
+    expect(window.location.pathname).toBe("/dashboard/schedules/layers");
+
+    await answer("Keep Editing");
+
+    expect(screen.queryByRole("dialog", { name: LEAVE_TITLE })).toBeNull();
+    expect(window.location.pathname).toBe("/dashboard/schedules/layers");
+    expect(shownPeople()[0]).toBe("Carol Chen");
+    expect(saveCalls).toEqual([]);
   });
 });

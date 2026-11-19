@@ -13,7 +13,7 @@ L'analisi del prodotto conta le persone che usano un'applicazione RUM, come vann
 
 ## Come si contano le persone
 
-Il menu laterale di un'applicazione ha una sezione **Analisi del prodotto**: **Utenti**, **Sessioni**, **Eventi**, **Funnel**, **Fidelizzazione degli utenti**, **Flussi utente** e **Impostazioni di analisi**. **Utenti** e **Sessioni** contano le sessioni che la Riproduzione delle sessioni registra, quindi iniziano quando inizia il registratore dell'applicazione, e una sessione che la policy di riproduzione non registra non viene contata. Ogni sessione conta per una persona, o per nessuno:
+Il menu laterale di un'applicazione ha una sezione **Analisi del prodotto**: **Utenti**, **Sessioni**, **Eventi**, **Funnel**, **Fidelizzazione degli utenti**, **Flussi utente** e **Impostazioni di analisi**. **Utenti** e **Sessioni** contano le sessioni che la Riproduzione delle sessioni registra, quindi iniziano quando inizia il registratore dell'applicazione, e una sessione che la policy di riproduzione non registra non viene contata. Su un'installazione aggiornata da una versione senza Analisi del prodotto, l'aggiornamento vi copia le sessioni che la Riproduzione delle sessioni conservava ancora, quindi partono dalla registrazione più vecchia conservata. Ogni sessione conta per una persona, o per nessuno:
 
 ```mermaid title="Per chi conta una sessione"
 flowchart TB
@@ -42,12 +42,12 @@ I giorni sono contati nel tuo fuso orario.
 | **Nuovi utenti** | Gli utenti attivi la cui prima visita è stata nell'intervallo. |
 | **Utenti di ritorno** | Gli utenti attivi che erano già venuti prima dell'inizio dell'intervallo. |
 | **Utenti autenticati** | Gli utenti attivi che la tua app ha autenticato con `identify()`, e la loro quota di tutti gli utenti attivi. |
-| **Utenti totali** | Tutti quelli che l'applicazione ha visto negli ultimi 13 mesi. |
+| **Utenti totali** | Tutti quelli che l'applicazione ha visto nei mesi per cui conserva i suoi numeri, 13 per impostazione predefinita. |
 | **Utenti inattivi** | Le persone venute prima ma non negli ultimi 30 giorni, o nei 7, 14, 60 o 90 giorni che scegli. |
 
 I primi tre dicono anche come sono cambiati rispetto al periodo precedente. Sotto i riquadri, **Utenti attivi** traccia, per ogni giorno, le persone venute quel giorno, quelle venute nei 7 giorni fino a quel giorno e quelle venute nei 30 giorni fino a quel giorno, e **Utenti nuovi e di ritorno** divide in due le persone di ogni giorno.
 
-**Persone** elenca tutti quelli che i riquadri contano, una riga per persona, prima i visti più di recente, e il suo filtro mostra le persone di un riquadro, i visitatori anonimi o tutti. Apri una persona per vedere la sua prima e la sua ultima visita e ognuna delle sue sessioni degli ultimi 13 mesi, con **Guarda** su ognuna la cui registrazione è ancora conservata.
+**Persone** elenca tutti quelli che i riquadri contano, una riga per persona, prima i visti più di recente, e il suo filtro mostra le persone di un riquadro, i visitatori anonimi o tutti. Apri una persona per vedere la sua prima e la sua ultima visita e ognuna delle sue sessioni dei mesi per cui i numeri vengono conservati, con **Guarda** su ognuna la cui registrazione è ancora conservata.
 
 ## Sessioni
 
@@ -55,13 +55,13 @@ I primi tre dicono anche come sono cambiati rispetto al periodo precedente. Sott
 
 - **Sessioni per dispositivo** traccia le sessioni di ogni giorno da desktop, telefoni e tablet. La sessione di un'app mobile su uno schermo il cui lato corto misura 600 punti o più conta come quella di un tablet.
 - **Durata delle sessioni** ordina le sessioni concluse per quanto sono durate, da meno di 10 secondi a oltre 30 minuti. Una sessione che è ancora in registrazione non ha ancora una durata.
-- **Dettaglio** classifica utenti e sessioni per tipo di dispositivo, browser, sistema operativo, paese, versione dell'app, pagina di ingresso o pagina, prima quelli con più utenti.
+- **Dettaglio** classifica utenti e sessioni per tipo di dispositivo, browser, sistema operativo, paese, versione dell'app, pagina di ingresso o pagina, prima quelli con più utenti. La versione di un'app web è quella che la sua pagina passa all'opzione `appVersion` del registratore; un'app mobile indica la propria.
 
 ## Inviare eventi e metriche
 
-Gli eventi vengono inviati finché **Invia eventi di analisi del prodotto** è attivo, nella pagina **Impostazioni di analisi** dell'applicazione. Parte attivo per un'applicazione nuova e disattivo per un'applicazione creata prima che esistesse, quindi attivalo lì. Anche la Riproduzione delle sessioni deve essere attiva per l'applicazione, perché è il suo registratore a inviare gli eventi; il registratore React Native non ne invia ancora.
+Gli eventi vengono inviati finché **Invia eventi di analisi del prodotto** è attivo, nella pagina **Impostazioni di analisi** dell'applicazione. Parte attivo per un'applicazione nuova e disattivo per un'applicazione creata prima che esistesse, quindi attivalo lì. Anche la Riproduzione delle sessioni deve essere attiva per l'applicazione, perché è il suo registratore a inviare gli eventi, da una pagina web come da un'app React Native.
 
-Ogni sessione in cui è attivo il registratore del browser invia da sé il proprio inizio e ogni pagina che visualizza, compresi i cambi di rotta di un'app a pagina singola, che il campione e la policy di riproduzione registrino quella sessione o no. I tuoi eventi e numeri arrivano dal codice della tua pagina:
+Ogni sessione in cui è attivo il registratore del browser invia da sé il proprio inizio e ogni pagina che visualizza, compresi i cambi di rotta di un'app a pagina singola, che il campione e la policy di riproduzione registrino quella sessione o no. Un'app React Native invia l'inizio della sua sessione e, come visualizzazione di pagina, ogni schermata che passa a `setRoute()`. I tuoi eventi e numeri arrivano dal codice della tua pagina o della tua app:
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Prima che il registratore sia caricato, aggiungi le stesse chiamate a `window.OneUptimeReplayQueue` come `["track", name, properties]` e `["metric", name, value, attributes]` (vedi [API JavaScript](/docs/telemetry/session-replay#api-javascript)).
 
 - **Ogni sessione, registrata o no.** Il campione e la policy di caricamento della riproduzione decidono quali sessioni vengono registrate, non quali vengono contate. Non viene inviato nulla con Do Not Track o Global Privacy Control, e non viene conservato nulla da un'origine che l'applicazione non consente. Quando la policy richiede il consenso, gli eventi aspettano `grantConsent()`, al massimo 500, e `revokeConsent()` li scarta.
-- **Mascherati come la registrazione.** Con _Mask all text_, i valori delle proprietà e degli attributi vengono mascherati prima di lasciare la pagina, quindi una suddivisione per uno di essi mostra segnaposto, non i tuoi valori; i nomi degli eventi, le chiavi delle proprietà e i valori delle metriche vengono inviati così come sono scritti. Un valore che devi leggere in quella modalità va in un tag di sessione (`setTags()`), che non viene mai mascherato, quindi non metterci dati personali. I tag compaiono sulla sessione e in una ricerca `tag:key=value` nell'elenco delle sessioni, non nelle suddivisioni di queste pagine. Una pagina viene inviata come il suo percorso, senza query né frammento (una route hash, `#/orders`, fa parte del percorso), e ogni segmento con forma di identificatore (UUID, email, lunghe sequenze di cifre, lunghi token opachi) viene sostituito con `[redacted]`, come in ogni indirizzo che Session Replay conserva; una proprietà, un attributo o una proprietà utente il cui valore è un indirizzo viene ripulito allo stesso modo. OneUptime li ripulisce di nuovo quando arrivano gli eventi, quindi gli eventi che il tuo codice invia con la chiave di acquisizione seguono la stessa regola.
-- **In piccoli lotti**, ogni 5 secondi e quando la scheda viene nascosta. Un evento che raggiunge OneUptime più di 3 giorni dopo essere accaduto viene scartato, e un progetto può inviare 60.000 eventi e punti di metrica al minuto, tutte le sue applicazioni insieme; oltre, il registratore aspetta e li invia di nuovo.
+- **Mascherati come la registrazione.** Con _Mask all text_, i valori delle proprietà e degli attributi vengono mascherati prima di lasciare la pagina, quindi una suddivisione per uno di essi mostra segnaposto, non i tuoi valori; i nomi degli eventi, le chiavi delle proprietà e i valori delle metriche vengono inviati così come sono scritti. Un valore che devi leggere in quella modalità va in un tag di sessione (`setTags()`), che non viene mai mascherato, quindi non metterci dati personali. I tag compaiono sulla sessione e in una ricerca `tag:key=value` nell'elenco delle sessioni, non nelle suddivisioni di queste pagine. I valori di un'app React Native vengono sempre mascherati, perché il suo SDK maschera tutto il testo. Una pagina viene inviata come il suo percorso, senza query né frammento (una route hash, `#/orders`, fa parte del percorso), e ogni segmento con forma di identificatore (UUID, email, lunghe sequenze di cifre, lunghi token opachi) viene sostituito con `[redacted]`, come in ogni indirizzo che Session Replay conserva; una proprietà, un attributo o una proprietà utente il cui valore è un indirizzo viene ripulito allo stesso modo. OneUptime li ripulisce di nuovo quando arrivano gli eventi, quindi gli eventi che il tuo codice invia con la chiave di acquisizione seguono la stessa regola.
+- **In piccoli lotti**, ogni 5 secondi e quando la scheda viene nascosta o l'app passa in background. Un evento che raggiunge OneUptime più di 3 giorni dopo essere accaduto viene scartato, e un progetto può inviare 60.000 eventi e punti di metrica al minuto, tutte le sue applicazioni insieme; oltre, il registratore aspetta e li invia di nuovo.
 
 `metric()` non invia nulla finché gli eventi sono disattivati, e `getDiagnostics().productAnalytics` dice se sono attivi (vedi [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Ogni evento viene anche contato, minuto per minuto, come una metrica dell'applic
 
 Queste tre non vengono fatturate, e `metric()` rifiuta un nome che inizia con `oneuptime.`, quindi nulla di ciò che invia la tua pagina passa per una di esse. I tuoi punti `metric()` vengono conservati e fatturati come le altre metriche dell'applicazione.
 
-Un funnel o una tabella di fidelizzazione salvati vanno anche su una dashboard: i widget **Funnel** e **Fidelizzazione degli utenti**, nel gruppo **Analisi del prodotto** del catalogo dei widget, ne mostrano uno nell'intervallo di tempo della dashboard, e **Apri in Funnel** o **Apri in Fidelizzazione degli utenti** lo apre nella sua pagina (vedi [Widget della dashboard](/docs/dashboards/widgets#analisi-del-prodotto)).
+Un funnel o una tabella di fidelizzazione salvati vanno anche su una dashboard: i widget **Funnel** e **Fidelizzazione degli utenti**, nel gruppo **Analisi del prodotto** del catalogo dei widget, ne mostrano uno nell'intervallo di tempo della dashboard, e **Apri in Funnel** o **Apri in Fidelizzazione degli utenti** lo apre nella sua pagina (vedi [Widget della dashboard](/docs/dashboards/widgets#analisi-del-prodotto)). Una dashboard pubblica ne mostra solo i titoli, mai i numeri: quelli contano gli utenti finali della tua applicazione.
 
 ## Privacy e conservazione
 
-- **13 mesi.** I numeri di un mese vengono rimossi il primo giorno del 13° mese successivo, quindi gli ultimi 12 mesi completi ci sono sempre, qualunque sia la conservazione propria delle registrazioni (7 giorni per impostazione predefinita). Gli eventi vengono conservati allo stesso modo.
+- **13 mesi.** I numeri di un mese vengono rimossi il primo giorno del 13° mese successivo, quindi gli ultimi 12 mesi completi ci sono sempre, qualunque sia la conservazione propria delle registrazioni (7 giorni per impostazione predefinita). Gli eventi vengono conservati allo stesso modo. 13 mesi è il valore predefinito: un'applicazione può invece conservarne 3, 6 o 25, scelti in **Conservazione dell'analisi del prodotto** sotto **Altre impostazioni** nella sua pagina **Impostazioni di analisi**, e una scelta più breve rimuove i mesi più vecchi entro un giorno.
 - **Nessun nome memorizzato.** I numeri conservano la chiave unidirezionale di un utente autenticato e l'ID visitatore di un browser, mai il riferimento o un indirizzo IP, e dei tratti solo le proprietà utente che elenchi. Una riga nomina un utente autenticato solo finché una delle sue registrazioni è ancora conservata, e solo per un ruolo che può leggere l'identità; altrimenti mostra **Utente autenticato** o **Visitatore anonimo** e l'inizio dell'ID.
-- **Cancellati su richiesta.** Una richiesta di cancellazione rimuove anche qui i numeri e gli eventi corrispondenti (vedi [Cancellare le sessioni](/docs/telemetry/session-replay#cancellare-le-sessioni)).
+- **Cancellati su richiesta.** Una richiesta di cancellazione rimuove anche qui i numeri e gli eventi corrispondenti (vedi [Cancellare le sessioni](/docs/telemetry/session-replay#cancellare-le-sessioni)). Il suo conteggio `productAnalyticsRowsDeleted` dice quante righe ha rimosso qui. Non modifica i **Funnel salvati** né le **Tabelle di fidelizzazione salvate**: i loro nomi e segmenti li ha scritti il tuo team, come il titolo di una dashboard, quindi non salvare un segmento che nomina una persona.
 
 ## Chi può vederla
 
@@ -148,7 +148,7 @@ Leggere queste pagine richiede ciò che richiede la lista delle sessioni: `ReadR
 
 Salvare, rinominare ed eliminare funnel e tabelle di fidelizzazione salvati richiede gli stessi permessi della lettura di queste pagine, e un widget della dashboard ne mostra uno solo a chi li ha.
 
-Attivare o disattivare gli eventi richiede `EditRumApplication` (_Edit RUM Application_) o il ruolo Proprietario del progetto, Amministratore del progetto o Membro del progetto. Elencare le proprietà utente richiede `EditRumApplication` o il ruolo di proprietario o amministratore, perché decide che cosa viene conservato sulle persone autenticate.
+Attivare o disattivare gli eventi richiede `EditRumApplication` (_Edit RUM Application_) o il ruolo Proprietario del progetto, Amministratore del progetto o Membro del progetto. Elencare le proprietà utente richiede `EditRumApplication` o il ruolo di proprietario o amministratore, perché decide che cosa viene conservato sulle persone autenticate. Scegliere per quanto tempo vengono conservati i numeri richiede lo stesso che attivare o disattivare gli eventi.
 
 ## Passaggi successivi
 

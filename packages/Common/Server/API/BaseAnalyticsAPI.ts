@@ -37,6 +37,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger from "../Utils/Logger";
 import { getWatchlistNamesInQuery } from "../../Types/SecurityEvent/SecurityWatchlistFilter";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 
 /*
  * Aggregate cache TTL. Dashboards typically auto-refresh every 30s+,
@@ -618,6 +619,7 @@ export default class BaseAnalyticsAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    await this.assertProductIsOn();
     await this.onBeforeDelete(req, res);
     const objectId: ObjectID = new ObjectID(req.params["id"] as string);
 
@@ -650,6 +652,7 @@ export default class BaseAnalyticsAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    await this.assertProductIsOn();
     await this.onBeforeUpdate(req, res);
     const objectId: ObjectID = new ObjectID(req.params["id"] as string);
     const objectIdString: string = objectId.toString();
@@ -728,6 +731,7 @@ export default class BaseAnalyticsAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    await this.assertProductIsOn();
     await this.onBeforeCreate(req, res);
     const body: JSONObject = req.body;
 
@@ -749,6 +753,15 @@ export default class BaseAnalyticsAPI<
 
   public getRouter(): ExpressRouter {
     return this.router;
+  }
+
+  /*
+   * Refuses a create, change or delete of a record of a product switched
+   * off on the server (#7479) - a log, a span, a security event - before a
+   * hook runs, as BaseAPI does. Reads are never refused.
+   */
+  public async assertProductIsOn(): Promise<void> {
+    await ServerProducts.assertRecordTableIsOn(new this.entityType().tableName);
   }
 
   public getEntityName(): string {

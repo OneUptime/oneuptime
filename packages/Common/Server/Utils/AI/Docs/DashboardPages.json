@@ -202,10 +202,21 @@
       "products menu",
       "more products",
       "customize menu",
-      "show every product"
+      "show every product",
+      "feature flags"
     ],
     "path": "/dashboard/:projectId/settings/products",
     "kind": "page"
+  },
+  {
+    "title": "Monitor Groups",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Products"
+    ],
+    "path": "/dashboard/:projectId/settings/products",
+    "kind": "setting"
   },
   {
     "title": "Labels",
@@ -896,30 +907,6 @@
     ],
     "path": "/dashboard/:projectId/settings/api-keys",
     "kind": "page"
-  },
-  {
-    "title": "Feature Flags",
-    "where": [
-      "Project Settings",
-      "Advanced"
-    ],
-    "keywords": [
-      "beta features",
-      "experimental",
-      "early access"
-    ],
-    "path": "/dashboard/:projectId/settings/feature-flags",
-    "kind": "page"
-  },
-  {
-    "title": "Monitor Groups",
-    "where": [
-      "Project Settings",
-      "Advanced",
-      "Feature Flags"
-    ],
-    "path": "/dashboard/:projectId/settings/feature-flags",
-    "kind": "setting"
   },
   {
     "title": "Import from another tool",
@@ -5002,6 +4989,22 @@
       "stale data"
     ],
     "path": "/dashboard/:projectId/data-observability/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Issues",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "data incidents",
+      "data issues",
+      "failed runs",
+      "failing checks",
+      "late tables",
+      "no owner"
+    ],
+    "path": "/dashboard/:projectId/data-observability/issues",
     "kind": "page"
   },
   {

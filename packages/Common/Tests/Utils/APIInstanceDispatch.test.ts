@@ -98,7 +98,7 @@ beforeEach(() => {
 
   server = new FakeAxiosServer(mockedAxios);
 
-  logoutSpy = jest.spyOn(User, "logout").mockImplementation((): void => {});
+  logoutSpy = jest.spyOn(User, "logout").mockResolvedValue(null);
 
   navigateSpy = jest
     .spyOn(Navigation, "navigate")

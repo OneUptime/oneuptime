@@ -64,6 +64,8 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../../Types/Date";
 import CloudChangeDryRun from "../../../../Server/Utils/AutoRemediation/CloudChangeDryRun";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * Contract under test — a RESOURCE round of RemediationExecutionRunner
@@ -267,6 +269,18 @@ function resourceArgs(
     ...overrides,
   } as JSONObject;
 }
+
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+});
 
 describe("resource round classification", () => {
   it("a suggestion that names a resource and no rule is a resource round", () => {

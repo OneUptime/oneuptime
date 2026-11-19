@@ -32,6 +32,11 @@ enum AIChatPageContextType {
   DataStore = "DataStore",
   DataSecurityIssue = "DataSecurityIssue",
   /*
+   * One table's pages in Data Observability - its overview, Lineage tab and
+   * the rest: "this table" is the one on screen (#6735).
+   */
+  DataTable = "DataTable",
+  /*
    * One cloud account's pages (Cloud > Accounts > an account): an AWS
    * account, an Azure subscription or a Google Cloud project.
    */
@@ -102,6 +107,7 @@ const ENTITY_TYPES: Array<AIChatPageContextType> = [
   AIChatPageContextType.SecurityCase,
   AIChatPageContextType.DataStore,
   AIChatPageContextType.DataSecurityIssue,
+  AIChatPageContextType.DataTable,
   AIChatPageContextType.CloudAccount,
   AIChatPageContextType.Workflow,
 ];

@@ -711,6 +711,51 @@ export default class ProjectOIDC extends BaseModel {
   public isTested?: boolean = undefined;
 
   /*
+   * Whether signing out of OneUptime signs the person out of this provider
+   * too (Types/SSO/IdentityProviderSignOut, #9535): for shared computers.
+   * Off by default, since on a single-user laptop it also signs the person
+   * out of every other app that uses the provider. Turning it on asks the
+   * provider's discovery document for its end_session_endpoint first
+   * (Utils/SSO/IdentityProviderSignOutCheck), and is refused without one.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectOIDC,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectOIDC,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectOIDC,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Sign Out of the Identity Provider Too",
+    description:
+      "When enabled, signing out of OneUptime also signs the person out of this identity provider (OpenID Connect RP-initiated sign-out), so the next person on a shared computer signs in as themselves. It also signs them out of every other app that uses the provider. The provider must publish an end_session_endpoint and allow OneUptime's sign-in page as a sign-out redirect URI (post_logout_redirect_uri).",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public signOutOfIdentityProvider?: boolean = undefined;
+
+  /*
    * When this provider was last turned off. Turning a provider off ends the
    * sign-ins it gave: a project SSO sign-in made before this time no longer
    * counts, even once the provider is turned on again, so the person signs

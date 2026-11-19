@@ -304,6 +304,9 @@ const CollectorConfigView: FunctionComponent<
         collectorConfigStatus: true,
         isCollectorHealthy: true,
         isCollectorConfigPinned: true,
+        // Why a host's config failed, or its collector reports an error.
+        collectorConfigError: true,
+        collectorHealthError: true,
       }}
       filters={[]}
       columns={[
@@ -321,7 +324,8 @@ const CollectorConfigView: FunctionComponent<
           title: "Collector",
           type: FieldType.Element,
           getElement: (item: Host): ReactElement => {
-            return <HostCollectorStatePill host={item} />;
+            // "Config failed" says why under it: the hosts this config broke.
+            return <HostCollectorStatePill host={item} isErrorShown={true} />;
           },
         },
         {

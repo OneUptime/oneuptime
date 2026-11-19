@@ -107,6 +107,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import Select from "../../Types/Database/Select";
 import logger from "../Logger";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import RemediationFixProducts from "./RemediationFixProducts";
 
 // How many of a round's events are read: the newest ones, put back in order.
 const MAX_ROUND_EVENTS: number = 500;
@@ -729,6 +730,15 @@ export default class RemediationRound {
         REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED[round.subjectKind],
       );
     }
+
+    /*
+     * Not for a record of a product switched off on the server, nor, for a
+     * round that picks a runbook, while Runbooks is (RemediationFixProducts):
+     * a round started again writes to the record, as the server.
+     */
+    await RemediationFixProducts.assertMayActOn(
+      RemediationFixProducts.ofApproval(suggestion),
+    );
 
     const refuse: (refusal: RemediationRoundTryAgainRefusal) => never = (
       refusal: RemediationRoundTryAgainRefusal,

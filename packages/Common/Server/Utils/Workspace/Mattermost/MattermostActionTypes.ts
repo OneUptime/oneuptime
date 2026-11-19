@@ -1,4 +1,5 @@
 import SlackActionType from "../Slack/Actions/ActionTypes";
+import ProductKey from "../../../../Types/Product/ProductKey";
 
 /*
  * THE BUTTONS A MATTERMOST MESSAGE CARRIES.
@@ -42,6 +43,48 @@ export enum MattermostRecordType {
   AlertEpisode = "AlertEpisode",
   ScheduledMaintenance = "ScheduledMaintenance",
 }
+
+/*
+ * The product each kind of record is (#7479): a press of its buttons is
+ * answered "switched off on this server" while the server has switched
+ * the product off (WorkspaceProductRefusal).
+ */
+export const PRODUCT_OF_MATTERMOST_RECORD_TYPE: Readonly<
+  Record<MattermostRecordType, ProductKey>
+> = {
+  [MattermostRecordType.Incident]: ProductKey.Incidents,
+  [MattermostRecordType.Alert]: ProductKey.Alerts,
+  [MattermostRecordType.IncidentEpisode]: ProductKey.Incidents,
+  [MattermostRecordType.AlertEpisode]: ProductKey.Alerts,
+  [MattermostRecordType.ScheduledMaintenance]: ProductKey.ScheduledMaintenance,
+};
+
+/*
+ * The products a press or a form acts in: its record's, and On-Call's too
+ * for one that starts an on-call policy.
+ */
+export const getProductsOfMattermostAction: (spec: {
+  recordType: MattermostRecordType;
+  press?: MattermostPress | undefined;
+  submit?: MattermostSubmit | undefined;
+}) => Array<ProductKey> = (spec: {
+  recordType: MattermostRecordType;
+  press?: MattermostPress | undefined;
+  submit?: MattermostSubmit | undefined;
+}): Array<ProductKey> => {
+  const products: Array<ProductKey> = [
+    PRODUCT_OF_MATTERMOST_RECORD_TYPE[spec.recordType],
+  ];
+
+  if (
+    spec.press === MattermostPress.OpenOnCallPolicyForm ||
+    spec.submit === MattermostSubmit.OnCallPolicy
+  ) {
+    products.push(ProductKey.OnCall);
+  }
+
+  return products;
+};
 
 export interface MattermostPressSpec {
   recordType: MattermostRecordType;

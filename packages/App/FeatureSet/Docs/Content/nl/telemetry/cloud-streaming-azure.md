@@ -77,14 +77,7 @@ Als het eerste abonnement niet het abonnement is waarin OneUptime de Event Hubs 
 
 De stream draagt de belangrijke metrieken die de koppeling per minuut leest. De leesacties blijven de rest volgens hun schema schrijven: een metriek die ze grover lezen, zoals de gebruikte opslag van een containerregister, en elke belangrijke metriek die een diagnostische instelling niet kan sturen, die de lijst met ondersteunde metrieken van Azure Monitor in de kolom DS Export als niet exporteerbaar markeert:
 
-- Virtuele machines en schaalsets: `Network In Total`, `Network Out Total`.
-- Schijven: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Azure Cosmos DB-accounts: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Opslagaccounts: `UsedCapacity`.
-- AKS-clusters: `kube_pod_status_ready`.
-- Toepassingsgateways: `ApplicationGatewayTotalTime`, `Throughput`.
-- Firewalls: `Throughput`.
-- NAT-gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Een Service Bus- of Event Hubs-namespace streamt geen metrieken. De leesacties lezen zijn belangrijke metrieken voor elke wachtrij, elk topic en elke Event Hub, en de eigen totalen van de namespace tellen die op, terwijl een diagnostische instelling alleen de totalen van de namespace stuurt, en 4 van de 6 belangrijke metrieken van een Service Bus-namespace of 2 van de 4 van een Event Hubs-namespace helemaal niet. Dus schrijven de leesacties ze allemaal, met of zonder stream, en telt geen bericht dubbel.
 

@@ -1140,6 +1140,8 @@ interface StoredWarehouse {
   // The reads of the rows that name columns (columnMappings: not null).
   columnQueries: Array<FindCall>;
   checkRead: ReturnType<typeof jest.spyOn>;
+  // The read of the alert's table's own columns, in its order (#6853).
+  columnOrderRead: ReturnType<typeof jest.spyOn>;
 }
 
 // The one alert a read asks for, whether or not a privacy clause sits beside it.
@@ -1217,7 +1219,20 @@ function storeWarehouse(check: DataCheck | null): StoredWarehouse {
     .spyOn(DataDashboardService, "countBy")
     .mockResolvedValue(new PositiveNumber(0) as never);
 
-  return { edgeRead, columnQueries, checkRead };
+  // The alert's table's columns, as its last collection read them: out of order, as a probe may send them.
+  const withColumns: DataAsset = new DataAsset();
+  withColumns._id = id(1);
+  withColumns.columns = [
+    { name: "total", dataType: "numeric", isNullable: true, position: 3 },
+    { name: "id", dataType: "uuid", isNullable: false, position: 1 },
+    { name: "customer_id", dataType: "uuid", isNullable: true, position: 2 },
+  ];
+
+  const columnOrderRead: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(DataAssetService, "findOneBy")
+    .mockResolvedValue(withColumns as never);
+
+  return { edgeRead, columnQueries, checkRead, columnOrderRead };
 }
 
 function arrowInto(answer: DataAlertLineageAnswer): DataTableLineageEdge {
@@ -1256,6 +1271,15 @@ describe("a column check's alert, read from the database", () => {
     expect(arrowInto(answer!).columnMappings).toEqual([
       { upstreamColumn: "cust_id", downstreamColumn: "customer_id" },
     ]);
+    // The table's own order of its columns, by position, for the picker (#6853).
+    expect(answer?.columnOrder).toEqual(["id", "customer_id", "total"]);
+    expect(stored.columnOrderRead).toHaveBeenCalledTimes(1);
+
+    const orderRead: FindCall = calls(stored.columnOrderRead)[0]!;
+
+    expect(orderRead.query["projectId"]).toBe(PROJECT_ID);
+    expect(String(orderRead.query["_id"])).toBe(id(1));
+    expect(orderRead.select).toEqual({ columns: true });
     expect(stored.columnQueries).toHaveLength(1);
 
     const query: Record<string, unknown> = stored.columnQueries[0]!.query;
@@ -1283,6 +1307,9 @@ describe("a column check's alert, read from the database", () => {
     expect(arrowInto(answer!).columnMappings).toBeUndefined();
     expect(stored.columnQueries).toEqual([]);
     expect(stored.edgeRead).toHaveBeenCalled();
+    // No column to follow: no picker, so no order read or sent.
+    expect(answer?.columnOrder).toBeUndefined();
+    expect(stored.columnOrderRead).not.toHaveBeenCalled();
   });
 });
 
@@ -1371,6 +1398,7 @@ describe("POST /data-observability/alerts/:id/lineage, read from the database", 
     expect(arrowInto(answer).columnMappings).toEqual([
       { upstreamColumn: "cust_id", downstreamColumn: "customer_id" },
     ]);
+    expect(answer.columnOrder).toEqual(["id", "customer_id", "total"]);
     // Read for the member who asked: their own clause on the alert itself.
     expect(idAndClause(calls(alertRead)[0]!.query["alertId"]).id).toBe(ALERT);
     expectOwnerClause(

@@ -17,6 +17,7 @@ import UserService from "Common/Server/Services/UserService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
+import GlobalProbesBehind from "Common/Server/Utils/Probe/GlobalProbesBehind";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -25,6 +26,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import PartialEntity from "Common/Types/Database/PartialEntity";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { InstallationHealthProbeBehind } from "Common/Types/InstallationHealth/InstallationHealth";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
@@ -42,7 +44,8 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 
 /*
  * TELLING MASTER ADMINS WHEN THE SERVER'S EMAIL OR GLOBAL PROBES STOP
- * WORKING, AND WORK AGAIN (#6879).
+ * WORKING, OR A GLOBAL PROBE FALLS BEHIND, AND WHEN IT IS RIGHT AGAIN
+ * (#6879, #9500).
  *
  * Every five minutes, under the instance-health lease so two replicas never
  * tell twice: where the server stands (ServerSendingStatus) against what was
@@ -55,6 +58,11 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
  * the probes - the Admin Notification Email. A channel that refuses is
  * logged and the others go on; nothing is thrown. The state is written
  * only when it changes.
+ *
+ * Which global probes are behind - their monitors checked, or their
+ * network devices polled, later than their interval - is read as OneUptime
+ * Health reads it (GlobalProbesBehind). A read that fails says nothing of
+ * them this time, and changes nothing.
  */
 
 export const SERVER_ALERTS_JOB_NAME: string = "ServerAlerts:TellMasterAdmins";
@@ -255,6 +263,20 @@ const sendThrough: (data: {
   return false;
 };
 
+// The global probes behind, or null when they could not be read.
+const readGlobalProbesBehind: () => Promise<Array<InstallationHealthProbeBehind> | null> =
+  async (): Promise<Array<InstallationHealthProbeBehind> | null> => {
+    try {
+      return await GlobalProbesBehind.read();
+    } catch (err) {
+      logger.warn(
+        "Could not read which global probes are behind; master admins are told nothing of them this time.",
+      );
+      logger.warn(err);
+      return null;
+    }
+  };
+
 export const tellMasterAdmins: (options?: {
   now?: Date;
   senders?: ServerAlertSenders;
@@ -286,11 +308,15 @@ export const tellMasterAdmins: (options?: {
   const answer: ServerSendingStatusAnswer =
     await ServerSendingStatus.getAnswer();
 
+  const globalProbesBehind: Array<InstallationHealthProbeBehind> | null =
+    await readGlobalProbesBehind();
+
   const plan: ServerAlertPlan = ServerAlertsUtil.plan({
     answer: answer,
     state: ServerAlertsUtil.readState(config?.serverAlertState),
     settings: settings,
     now: now,
+    globalProbesBehind: globalProbesBehind,
   });
 
   let state: ServerAlertState = plan.state;
@@ -301,6 +327,7 @@ export const tellMasterAdmins: (options?: {
       message: message,
       serverName: Host || "OneUptime",
       probes: answer.globalProbes,
+      globalProbesBehind: globalProbesBehind,
     });
 
     const sentThrough: Array<ServerAlertChannel> = [];

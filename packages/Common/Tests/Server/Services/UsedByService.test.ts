@@ -668,6 +668,7 @@ describe("every relation is defined, in one place", () => {
       [UsedByRowKind.RumApplication]: "RumApplication",
       [UsedByRowKind.DataStore]: "DataStore",
       [UsedByRowKind.DataAsset]: "DataAsset",
+      [UsedByRowKind.DataPipeline]: "DataPipeline",
       [UsedByRowKind.Probe]: "Probe",
       [UsedByRowKind.Runner]: "Runner",
       [UsedByRowKind.AIAgent]: "AIAgent",
@@ -998,6 +999,40 @@ describe("a schedule's, a service's and a team's relations", () => {
         `SELECT "${table}"."${column}" FROM "${table}" WHERE "${table}"."teamId" IN`,
       );
     }
+  });
+
+  /*
+   * A family's rows are read by the column that names them, and a column
+   * the model does not have refuses the whole read: a data pipeline read by
+   * a "name" it does not have refused a team's card of what it owns.
+   */
+  test("every kind of a family names and numbers its rows by columns its model has", () => {
+    const context: UsedByReadContext = {
+      projectId: new ObjectID("68130000-0000-4000-8000-000000000001"),
+      recordIds: [new ObjectID("68130000-0000-4000-8000-000000000002")],
+      props: { isRoot: true },
+      now: new Date("2026-11-12T10:00:00.000Z"),
+    };
+    const missing: Array<string> = [];
+
+    for (const build of [
+      ...MONITOR_RULE_PLANS,
+      ...MONITOR_TEMPLATE_PLANS,
+      ...TEAM_OWNED_OTHER_PLANS,
+      ...ON_CALL_POLICY_RULE_PLANS,
+      ...ON_CALL_POLICY_OTHER_PLANS,
+    ]) {
+      const plan: UsedByReadPlan = build(context);
+      const model: BaseModel = plan.service.getModel();
+
+      for (const column of [plan.nameColumn, plan.numberColumn]) {
+        if (column && !model.hasColumn(column)) {
+          missing.push(`${model.tableName}.${column}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
   });
 
   test("the monitors watching a service", async () => {

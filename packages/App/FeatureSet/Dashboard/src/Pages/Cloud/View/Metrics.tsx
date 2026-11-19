@@ -16,11 +16,13 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
+import { GetMetricRowGroup } from "../../../Components/Metrics/Utils/MetricRowScope";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
   getCloudMonitoredResourceRowAggregation,
+  getCloudMonitoredResourceRowGroup,
   isCloudMonitoredResourceScoped,
 } from "../Utils/CloudMonitoredResourceScope";
 
@@ -110,6 +112,14 @@ const CloudResourceMetrics: FunctionComponent<
       return getCloudMonitoredResourceRowAggregation(cloudResource);
     }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
 
+  /*
+   * Its key metrics in sections - Availability, Traffic, Errors, Latency
+   * and the rest, most telling first - and its other metrics after them.
+   */
+  const getRowGroup: GetMetricRowGroup | undefined = useMemo(() => {
+    return getCloudMonitoredResourceRowGroup(cloudResource);
+  }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
+
   if (isLoading) {
     return <PageSkeleton shape="chart" />;
   }
@@ -139,6 +149,7 @@ const CloudResourceMetrics: FunctionComponent<
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}
         eventScope={eventScope}
         getRowAggregation={rowAggregation?.getRowAggregation}
+        getRowGroup={getRowGroup}
         defaultRowValueCaption={rowAggregation?.defaultRowValueCaption}
       />
     </Fragment>

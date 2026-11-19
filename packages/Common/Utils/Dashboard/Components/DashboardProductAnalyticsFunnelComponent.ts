@@ -52,8 +52,13 @@ export default class DashboardProductAnalyticsFunnelComponentUtil extends Dashbo
     return [
       {
         name: "Saved Funnel",
+        /*
+         * A public dashboard draws only the widget's title (issue #6717):
+         * a funnel's numbers count the application's end users, which a
+         * page anyone with the link can open never shows.
+         */
         description:
-          "The funnel this widget shows. Save one on a RUM application's Funnels page.",
+          "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.",
         required: true,
         type: ComponentInputType.EntityDropdown,
         id: "savedViewId",

@@ -171,6 +171,15 @@ next, and how to change it last.
 - **The hero is laid out one way.** Every resource's Overview opens with its icon, name and badges,
   when it was last seen, and the page's controls in one top row (`ResourceHeroLayout`). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
+- **A count or a state that says something is wrong opens what failed and why.** "3 Failed" on a
+  Kubernetes cluster's hero and "Degraded" beside a host's name said something was wrong and nothing
+  else: the reasons were a card further down, or nowhere (#9537). Pressed, each opens the list of
+  exactly what it counts (`ResourceAttentionDialog`), the most urgent first: why, in the resource's
+  own words (a container's reason and exit code, the scheduler's message), which one it is (its
+  namespace, its owner, its node), since when, what it reported lately, and View, a step from its
+  page. A hero's health is `ResourceHealthPill`, handed what needs attention; a count is
+  `ResourceAttentionPill`, which reads its parts only when it is pressed. Enforced by
+  [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by
   [RecordIdLineGuard](../../packages/App/Tests/RecordIdLineGuard.test.ts).
@@ -665,16 +674,23 @@ work out, starts from a default for everything else, and folds what most people 
   on: what failed, a value shown once, a run's report, details they opened. Enforced by
   [SuccessDialogsGuard](../../packages/Common/Tests/UI/SuccessDialogsGuard.test.ts).
 - **Leaving unsaved work asks first.** While a page holds work it has not saved (a dashboard being
-  edited), a step to another page waits for its answer, Keep Editing or Discard Changes: a link,
-  the side menu, the breadcrumbs, a button, the project picker, the browser's Back and Forward.
-  Closing or reloading the tab asks with the browser's own dialog (`useLeaveGuard`, #7173). With
-  nothing unsaved, nothing asks. Enforced by
+  edited), a step to another page waits for its answer: a link, the side menu, the breadcrumbs, a
+  button, the project picker, the browser's Back and Forward. Closing or reloading the tab asks with
+  the browser's own dialog (`useLeaveGuard`, #7173). With nothing unsaved, nothing asks. Every
+  editor asks with one question, `LeaveWithoutSavingQuestion`, and hands it its own save: Save
+  Changes saves, then goes on only once the save worked, and a refusal keeps the person on the
+  page, still asked, and says why; Keep Editing, where the focus starts, stays; Discard Changes
+  goes on without saving. The Layers page drew a copy of its own (#7973), and keeping your work
+  took Keep Editing, the page's Save and the link again (#7402). While it holds unsaved work, the
+  page says so where its title is: a dashboard's toolbar says Unsaved changes (#7403). Enforced by
   [LeaveGuard](../../packages/Common/Tests/UI/Utils/LeaveGuard.test.ts),
   [UseLeaveGuard](../../packages/Common/Tests/UI/Utils/UseLeaveGuard.test.tsx),
   [NavigationLeaveGuard](../../packages/Common/Tests/UI/Utils/NavigationLeaveGuard.test.ts),
   [LinkLeaveGuard](../../packages/Common/Tests/UI/Components/LinkLeaveGuard.test.tsx),
-  [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx) and
-  [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx).
+  [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx),
+  [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx)
+  and
+  [LeaveWithoutSavingQuestionGuard](../../packages/Common/Tests/App/Dashboard/LeaveWithoutSavingQuestionGuard.test.ts).
 
 ### Help dialogs
 
@@ -1409,6 +1425,28 @@ person writes in Give Feedback also reaches whoever can answer it.
   breadcrumbs do ("SLOs", never the route it sends, "/dashboard/:projectId/slos"), and once sent says
   only what the server did: "A copy is on its way to you@example.com". Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Once an answer is given, say where it went before offering anything else.** On a self-hosted
+  server the thanks says "This server's admins can read it in the Admin Dashboard, under Feedback.",
+  and only then offers the GitHub issue, which says it is public and that nothing is posted until
+  the person posts it (#7462). "Nothing leaves this server" is said before an answer is given, never
+  under a link to a public issue, and a self-hosted server's thanks never says "us". Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Answers are kept a set time, said where they are read.** A year, then the daily purge deletes
+  them; Admin Dashboard > Feedback says so over the answers, and a master admin can delete one after
+  a question that quotes its words (#7366). Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **The docs keep "Was this page helpful?" only once a server's admin switches it on, and say so
+  under the question.** A self-hosted server's docs keep nothing until a master admin switches on
+  Docs Feedback in Admin Dashboard > Feedback; then each page says its answers go to this server's
+  admins, and nothing is sent anywhere else (#7209). On Cloud, docs answers, searches that find
+  nothing (with any word that could name someone dropped) and docs links opened from the product
+  go to product analytics only with consent (#7207). Enforced by
+  [DocsSearchAndFeedbackRoutes](../../packages/App/Tests/FeatureSet/Docs/DocsSearchAndFeedbackRoutes.test.ts).
+- **How Ask AI's answers were rated is counts, never words, and only for whom may read it.** A
+  project's owners and admins see its answers' ratings and what the answers rated down read (a
+  product, the docs, nothing), never a question or an answer: a conversation stays its person's
+  (#7365). Enforced by
+  [AskAiRatingsRoute](../../packages/Common/Tests/Server/API/AskAiRatingsRoute.test.ts).
 - **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
   and posts what made them hesitate, guess or go back on the epic #6802:
   [the newcomer walkthrough](newcomer-walkthrough.md). Not enforced: use judgement.

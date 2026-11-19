@@ -81,6 +81,8 @@ Everything else reaches out only when you turn it on, and each has a page that n
 | Slack and Microsoft Teams | Workspace notifications and actions | [Slack Integration](/docs/self-hosted/slack-integration) |
 | An LLM provider, such as OpenAI, Anthropic, Microsoft Foundry, or a model you run yourself | OneUptime AI | [LLM Providers](/docs/ai/llm-provider) |
 | `oneuptime.com` | Activating an Enterprise license online | [Enterprise Edition](/docs/self-hosted/enterprise) |
+| Let's Encrypt | Certificates OneUptime orders itself: for your install's address with `PROVISION_SSL=true` (`ssl.provision` in the Helm chart), and for status pages' own domains | [Status page certificates](/docs/status-pages/branding-and-domains#ssl-certificates) |
+| ClamAV's signature updates, from `database.clamav.net` | Malware scanning of the files people send, once you turn on the ClamAV bundled with OneUptime | [Malware scanning](/docs/forms/sharing-and-security#malware-scanning) |
 
 Connections the other way - SendGrid delivering inbound email, Slack and Microsoft Teams calling back - need the ingress to be reachable from the internet. Which private addresses the app and the probes may reach is up to you: see [Private Network Access](/docs/self-hosted/private-network-access).
 

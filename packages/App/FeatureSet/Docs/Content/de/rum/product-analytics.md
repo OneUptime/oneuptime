@@ -13,7 +13,7 @@ Die Produktanalyse zählt die Menschen, die eine RUM-Anwendung nutzen, wie ihre 
 
 ## Wie Personen gezählt werden
 
-Das Seitenmenü einer Anwendung hat einen Abschnitt **Produktanalyse**: **Benutzer**, **Sitzungen**, **Ereignisse**, **Trichter**, **Benutzerbindung**, **Benutzerflüsse** und **Analyseeinstellungen**. **Benutzer** und **Sitzungen** zählen die Sitzungen, die die Sitzungswiedergabe aufzeichnet: Sie beginnen also, wenn der Recorder der Anwendung beginnt, und eine Sitzung, die die Wiedergaberichtlinie nicht aufzeichnet, wird nicht gezählt. Jede Sitzung zählt für eine Person oder für niemanden:
+Das Seitenmenü einer Anwendung hat einen Abschnitt **Produktanalyse**: **Benutzer**, **Sitzungen**, **Ereignisse**, **Trichter**, **Benutzerbindung**, **Benutzerflüsse** und **Analyseeinstellungen**. **Benutzer** und **Sitzungen** zählen die Sitzungen, die die Sitzungswiedergabe aufzeichnet: Sie beginnen also, wenn der Recorder der Anwendung beginnt, und eine Sitzung, die die Wiedergaberichtlinie nicht aufzeichnet, wird nicht gezählt. Auf einer Installation, die von einer Version ohne Produktanalyse aktualisiert wurde, kopiert das Upgrade die Sitzungen hinein, die die Sitzungswiedergabe noch aufbewahrte, sodass sie mit der ältesten noch aufbewahrten Aufzeichnung beginnen. Jede Sitzung zählt für eine Person oder für niemanden:
 
 ```mermaid title="Für wen eine Sitzung zählt"
 flowchart TB
@@ -42,12 +42,12 @@ Tage werden in Ihrer eigenen Zeitzone gezählt.
 | **Neue Benutzer** | Aktive Benutzer, deren erster Besuch im Zeitraum lag. |
 | **Wiederkehrende Benutzer** | Aktive Benutzer, die schon vor Beginn des Zeitraums gekommen waren. |
 | **Angemeldete Benutzer** | Aktive Benutzer, die Ihre App mit `identify()` angemeldet hat, und ihr Anteil an allen aktiven Benutzern. |
-| **Benutzer insgesamt** | Alle, die die Anwendung in den letzten 13 Monaten gesehen hat. |
+| **Benutzer insgesamt** | Alle, die die Anwendung in den Monaten gesehen hat, für die ihre Zahlen aufbewahrt werden (standardmäßig 13). |
 | **Inaktive Benutzer** | Personen, die früher gekommen sind, aber nicht in den letzten 30 Tagen, oder in den 7, 14, 60 oder 90 Tagen, die Sie wählen. |
 
 Die ersten drei zeigen auch, wie sie sich gegenüber dem Zeitraum davor verändert haben. Unter den Kacheln zeichnet **Aktive Benutzer** für jeden Tag die Personen, die an diesem Tag gekommen sind, die in den 7 Tagen bis dahin und die in den 30 Tagen bis dahin, und **Neue und wiederkehrende Benutzer** teilt die Personen jedes Tages in zwei.
 
-**Personen** listet alle, die die Kacheln zählen, eine Zeile pro Person, zuletzt gesehene zuerst, und sein Filter zeigt die Personen einer Kachel, die anonymen Besucher oder alle. Öffnen Sie eine Person, um ihren ersten und letzten Besuch und jede ihrer Sitzungen aus den letzten 13 Monaten zu sehen, mit **Ansehen** bei jeder, deren Aufzeichnung noch aufbewahrt wird.
+**Personen** listet alle, die die Kacheln zählen, eine Zeile pro Person, zuletzt gesehene zuerst, und sein Filter zeigt die Personen einer Kachel, die anonymen Besucher oder alle. Öffnen Sie eine Person, um ihren ersten und letzten Besuch und jede ihrer Sitzungen aus den aufbewahrten Monaten zu sehen, mit **Ansehen** bei jeder, deren Aufzeichnung noch aufbewahrt wird.
 
 ## Sitzungen
 
@@ -55,13 +55,13 @@ Die ersten drei zeigen auch, wie sie sich gegenüber dem Zeitraum davor verände
 
 - **Sitzungen nach Gerät** zeichnet die Sitzungen jedes Tages von Desktops, Telefonen und Tablets. Die Sitzung einer mobilen App auf einem Bildschirm, dessen kürzere Seite 600 Punkte oder mehr misst, zählt als die eines Tablets.
 - **Sitzungsdauer** ordnet die beendeten Sitzungen danach, wie lange sie gedauert haben, von unter 10 Sekunden bis über 30 Minuten. Eine Sitzung, die noch aufgezeichnet wird, hat noch keine Dauer.
-- **Aufschlüsselung** reiht Benutzer und Sitzungen nach Gerätetyp, Browser, Betriebssystem, Land, App-Version, Einstiegsseite oder Seite, die meisten Benutzer zuerst.
+- **Aufschlüsselung** reiht Benutzer und Sitzungen nach Gerätetyp, Browser, Betriebssystem, Land, App-Version, Einstiegsseite oder Seite, die meisten Benutzer zuerst. Die Version einer Web-App ist die, die ihre Seite der Option `appVersion` des Recorders übergibt; eine mobile App meldet ihre eigene.
 
 ## Ereignisse und Metriken senden
 
-Ereignisse werden gesendet, solange **Produktanalyse-Ereignisse senden** auf der Seite **Analyseeinstellungen** der Anwendung eingeschaltet ist. Bei einer neuen Anwendung ist es von Anfang an eingeschaltet, bei einer Anwendung, die angelegt wurde, bevor es diesen Schalter gab, ausgeschaltet, also schalten Sie es dort ein. Auch die Sitzungswiedergabe muss für die Anwendung eingeschaltet sein, denn ihr Recorder sendet die Ereignisse; der React-Native-Recorder sendet noch keine.
+Ereignisse werden gesendet, solange **Produktanalyse-Ereignisse senden** auf der Seite **Analyseeinstellungen** der Anwendung eingeschaltet ist. Bei einer neuen Anwendung ist es von Anfang an eingeschaltet, bei einer Anwendung, die angelegt wurde, bevor es diesen Schalter gab, ausgeschaltet, also schalten Sie es dort ein. Auch die Sitzungswiedergabe muss für die Anwendung eingeschaltet sein, denn ihr Recorder sendet die Ereignisse, aus einer Webseite wie aus einer React-Native-App.
 
-Jede Sitzung, in der der Browser-Recorder läuft, sendet ihren Start und jede Seite, die sie aufruft, von selbst, die Routenwechsel einer Single-Page-App eingeschlossen, ob die Stichprobe und die Richtlinie der Wiedergabe diese Sitzung aufzeichnen oder nicht. Ihre eigenen Ereignisse und Zahlen kommen aus dem Code Ihrer Seite:
+Jede Sitzung, in der der Browser-Recorder läuft, sendet ihren Start und jede Seite, die sie aufruft, von selbst, die Routenwechsel einer Single-Page-App eingeschlossen, ob die Stichprobe und die Richtlinie der Wiedergabe diese Sitzung aufzeichnen oder nicht. Eine React-Native-App sendet den Start ihrer Sitzung und jeden Bildschirm, den sie `setRoute()` übergibt, als Seitenaufruf. Ihre eigenen Ereignisse und Zahlen kommen aus dem Code Ihrer Seite oder Ihrer App:
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Bevor der Recorder geladen ist, legen Sie dieselben Aufrufe als `["track", name, properties]` und `["metric", name, value, attributes]` in `window.OneUptimeReplayQueue` ab (siehe [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Jede Sitzung, aufgezeichnet oder nicht.** Die Stichprobe und die Upload-Richtlinie der Wiedergabe entscheiden, welche Sitzungen aufgezeichnet werden, nicht, welche gezählt werden. Unter Do Not Track oder Global Privacy Control wird nichts gesendet, und von einem Ursprung, den die Anwendung nicht zulässt, wird nichts aufbewahrt. Verlangt die Richtlinie eine Einwilligung, warten die Ereignisse auf `grantConsent()`, höchstens 500, und `revokeConsent()` verwirft sie.
-- **Maskiert wie die Aufzeichnung.** Unter _Mask all text_ werden die Werte von Eigenschaften und Attributen maskiert, bevor sie die Seite verlassen, sodass eine Aufschlüsselung nach einem davon Platzhalter statt Ihrer Werte zeigt; Ereignisnamen, Eigenschaftsschlüssel und Metrikwerte werden so gesendet, wie sie geschrieben sind. Ein Wert, den Sie in diesem Modus lesen müssen, gehört in ein Sitzungs-Tag (`setTags()`), das nie maskiert wird, also halten Sie personenbezogene Daten heraus. Tags erscheinen an der Sitzung und in einer Suche mit `tag:key=value` in der Sitzungsliste, nicht in den Aufschlüsselungen dieser Seiten. Eine Seite wird als ihr Pfad gesendet, ohne Query und Fragment (eine Hash-Route, `#/orders`, gehört zum Pfad), und jedes Segment, das wie eine Kennung aussieht (UUIDs, E-Mail-Adressen, lange Ziffernfolgen, lange undurchsichtige Tokens), wird durch `[redacted]` ersetzt, wie in jeder Adresse, die Session Replay speichert; eine Eigenschaft, ein Attribut oder eine Benutzereigenschaft, deren Wert eine Adresse ist, wird genauso bereinigt. OneUptime bereinigt sie erneut, wenn die Ereignisse ankommen, sodass für die Ereignisse, die Ihr eigener Code mit dem Ingestion-Schlüssel sendet, dieselbe Regel gilt.
-- **In kleinen Stapeln**, alle 5 Sekunden und wenn der Tab ausgeblendet wird. Ein Ereignis, das OneUptime mehr als 3 Tage nach seinem Geschehen erreicht, wird verworfen, und ein Projekt darf 60.000 Ereignisse und Metrikpunkte pro Minute senden, alle seine Anwendungen zusammen; darüber wartet der Recorder und sendet sie erneut.
+- **Maskiert wie die Aufzeichnung.** Unter _Mask all text_ werden die Werte von Eigenschaften und Attributen maskiert, bevor sie die Seite verlassen, sodass eine Aufschlüsselung nach einem davon Platzhalter statt Ihrer Werte zeigt; Ereignisnamen, Eigenschaftsschlüssel und Metrikwerte werden so gesendet, wie sie geschrieben sind. Ein Wert, den Sie in diesem Modus lesen müssen, gehört in ein Sitzungs-Tag (`setTags()`), das nie maskiert wird, also halten Sie personenbezogene Daten heraus. Tags erscheinen an der Sitzung und in einer Suche mit `tag:key=value` in der Sitzungsliste, nicht in den Aufschlüsselungen dieser Seiten. Die Werte einer React-Native-App werden immer maskiert, da ihr SDK allen Text maskiert. Eine Seite wird als ihr Pfad gesendet, ohne Query und Fragment (eine Hash-Route, `#/orders`, gehört zum Pfad), und jedes Segment, das wie eine Kennung aussieht (UUIDs, E-Mail-Adressen, lange Ziffernfolgen, lange undurchsichtige Tokens), wird durch `[redacted]` ersetzt, wie in jeder Adresse, die Session Replay speichert; eine Eigenschaft, ein Attribut oder eine Benutzereigenschaft, deren Wert eine Adresse ist, wird genauso bereinigt. OneUptime bereinigt sie erneut, wenn die Ereignisse ankommen, sodass für die Ereignisse, die Ihr eigener Code mit dem Ingestion-Schlüssel sendet, dieselbe Regel gilt.
+- **In kleinen Stapeln**, alle 5 Sekunden und wenn der Tab ausgeblendet wird oder die App in den Hintergrund geht. Ein Ereignis, das OneUptime mehr als 3 Tage nach seinem Geschehen erreicht, wird verworfen, und ein Projekt darf 60.000 Ereignisse und Metrikpunkte pro Minute senden, alle seine Anwendungen zusammen; darüber wartet der Recorder und sendet sie erneut.
 
 `metric()` sendet nichts, solange die Ereignisse ausgeschaltet sind, und `getDiagnostics().productAnalytics` sagt, ob sie eingeschaltet sind (siehe [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Jedes Ereignis wird außerdem Minute für Minute als Metrik der Anwendung gezäh
 
 Diese drei werden nicht abgerechnet, und `metric()` lehnt einen Namen ab, der mit `oneuptime.` beginnt, sodass nichts, was Ihre Seite sendet, als eine von ihnen durchgeht. Ihre `metric()`-Punkte werden aufbewahrt und abgerechnet wie die anderen Metriken der Anwendung.
 
-Ein gespeicherter Trichter oder eine gespeicherte Bindungstabelle kommt auch auf ein Dashboard: Die Widgets **Trichter** und **Benutzerbindung** in der Gruppe **Produktanalyse** des Widget-Katalogs zeigen sie im Zeitbereich des Dashboards, und **In „Trichter“ öffnen** oder **In „Benutzerbindung“ öffnen** öffnet sie auf ihrer Seite (siehe [Dashboard-Widgets](/docs/dashboards/widgets#produktanalyse)).
+Ein gespeicherter Trichter oder eine gespeicherte Bindungstabelle kommt auch auf ein Dashboard: Die Widgets **Trichter** und **Benutzerbindung** in der Gruppe **Produktanalyse** des Widget-Katalogs zeigen sie im Zeitbereich des Dashboards, und **In „Trichter“ öffnen** oder **In „Benutzerbindung“ öffnen** öffnet sie auf ihrer Seite (siehe [Dashboard-Widgets](/docs/dashboards/widgets#produktanalyse)). Ein öffentliches Dashboard zeigt nur ihre Titel, nie ihre Zahlen: Diese zählen die Endbenutzer Ihrer Anwendung.
 
 ## Datenschutz und Aufbewahrung
 
-- **13 Monate.** Die Zahlen eines Monats werden am ersten Tag des 13. Monats danach entfernt, sodass die letzten 12 vollen Monate immer da sind, unabhängig von der eigenen Aufbewahrung der Aufzeichnungen (standardmäßig 7 Tage). Ereignisse werden ebenso aufbewahrt.
+- **13 Monate.** Die Zahlen eines Monats werden am ersten Tag des 13. Monats danach entfernt, sodass die letzten 12 vollen Monate immer da sind, unabhängig von der eigenen Aufbewahrung der Aufzeichnungen (standardmäßig 7 Tage). Ereignisse werden ebenso aufbewahrt. 13 Monate sind der Standard: Eine Anwendung kann stattdessen 3, 6 oder 25 aufbewahren, gewählt in **Aufbewahrung der Produktanalyse** unter **Weitere Einstellungen** auf ihrer Seite **Analyseeinstellungen**, und eine kürzere Wahl entfernt die älteren Monate innerhalb eines Tages.
 - **Keine gespeicherten Namen.** Die Zahlen bewahren den Einweg-Schlüssel eines angemeldeten Benutzers und die Besucher-ID eines Browsers auf, nie die Referenz oder eine IP-Adresse, und von den Merkmalen nur die Benutzereigenschaften, die Sie auflisten. Eine Zeile nennt einen angemeldeten Benutzer nur, solange eine seiner Aufzeichnungen noch aufbewahrt wird, und nur einer Rolle, die die Identität lesen darf; sonst steht dort **Angemeldeter Benutzer** oder **Anonymer Besucher** und der Anfang der ID.
-- **Auf Anfrage gelöscht.** Eine Löschanfrage entfernt auch hier die passenden Zahlen und Ereignisse (siehe [Sitzungen löschen](/docs/telemetry/session-replay#sitzungen-löschen)).
+- **Auf Anfrage gelöscht.** Eine Löschanfrage entfernt auch hier die passenden Zahlen und Ereignisse (siehe [Sitzungen löschen](/docs/telemetry/session-replay#sitzungen-löschen)). Ihr Zähler `productAnalyticsRowsDeleted` sagt, wie viele Zeilen sie hier entfernt hat. **Gespeicherte Trichter** und **Gespeicherte Bindungstabellen** ändert sie nicht: Deren Namen und Segmente hat Ihr Team selbst geschrieben, wie den Titel eines Dashboards, also speichern Sie kein Segment, das eine Person nennt.
 
 ## Wer sie sehen kann
 
@@ -148,7 +148,7 @@ Diese Seiten zu lesen erfordert dasselbe wie das Lesen der Sitzungsliste: `ReadR
 
 Gespeicherte Trichter und Bindungstabellen zu speichern, umzubenennen und zu löschen erfordert dieselben Berechtigungen wie das Lesen dieser Seiten, und ein Dashboard-Widget zeigt sie nur einem Leser, der sie hat.
 
-Die Ereignisse ein- oder auszuschalten erfordert `EditRumApplication` (_Edit RUM Application_) oder die Rolle Projektinhaber, Projektadministrator oder Projektmitglied. Benutzereigenschaften aufzulisten erfordert `EditRumApplication` oder die Rolle eines Inhabers oder Administrators, da es festlegt, was über angemeldete Personen aufbewahrt wird.
+Die Ereignisse ein- oder auszuschalten erfordert `EditRumApplication` (_Edit RUM Application_) oder die Rolle Projektinhaber, Projektadministrator oder Projektmitglied. Benutzereigenschaften aufzulisten erfordert `EditRumApplication` oder die Rolle eines Inhabers oder Administrators, da es festlegt, was über angemeldete Personen aufbewahrt wird. Festzulegen, wie lange die Zahlen aufbewahrt werden, erfordert dasselbe wie das Ein- oder Ausschalten der Ereignisse.
 
 ## Nächste Schritte
 

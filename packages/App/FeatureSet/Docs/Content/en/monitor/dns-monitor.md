@@ -48,7 +48,7 @@ Enter the **Domain Name** to query, such as `example.com`, and pick its **Record
 
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows the records the probe got back.
+Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows the records the probe got back. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 

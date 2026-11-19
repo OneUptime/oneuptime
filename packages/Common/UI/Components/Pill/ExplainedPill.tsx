@@ -1,5 +1,6 @@
 import Color from "../../../Types/Color";
 import Pill, { PillSize } from "./Pill";
+import { PillTone } from "./PillTone";
 import Tooltip from "../Tooltip/Tooltip";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement, useId } from "react";
@@ -34,7 +35,22 @@ export interface ComponentProps {
   text: string;
   // Why, as one or two plain sentences (translated where it is drawn).
   explanation: string;
-  color: Color;
+  /*
+   * The explanation is in the reader's words already - sentences the page
+   * built around a value someone else wrote, such as a mail service's
+   * answer - drawn as given, never looked up again.
+   */
+  isExplanationTranslated?: boolean | undefined;
+  /*
+   * What the tooltip draws instead of the explanation's plain text, when its
+   * sentences read best apart - one of them in another system's words, set
+   * apart to keep its own direction. It says what the explanation says,
+   * which a screen reader still hears as the button's description.
+   */
+  explanationContent?: ReactElement | undefined;
+  // A colour someone picked, as Pill takes it; or the chip's tone.
+  color?: Color | undefined;
+  tone?: PillTone | undefined;
   size?: PillSize | undefined;
   // On the button: what a test or a page finds the pill by.
   dataTestId?: string | undefined;
@@ -48,8 +64,9 @@ const ExplainedPill: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const descriptionId: string = useId();
-  const explanation: string =
-    translateString(props.explanation) ?? props.explanation;
+  const explanation: string = props.isExplanationTranslated
+    ? props.explanation
+    : translateString(props.explanation) ?? props.explanation;
 
   return (
     <span className="inline-flex max-w-full">
@@ -57,6 +74,9 @@ const ExplainedPill: FunctionComponent<ComponentProps> = (
         text={explanation}
         // Looked up once, above, for the tooltip and the description alike.
         isTextTranslated={true}
+        richContent={props.explanationContent}
+        // Nothing in it to click: it mounts on the page, never clipped by a table.
+        interactive={props.explanationContent ? false : undefined}
         isShownOnPress={true}
         isTriggerAlreadyDescribed={true}
       >
@@ -79,7 +99,12 @@ const ExplainedPill: FunctionComponent<ComponentProps> = (
             }
           }}
         >
-          <Pill text={props.text} color={props.color} size={props.size} />
+          <Pill
+            text={props.text}
+            color={props.color}
+            tone={props.tone}
+            size={props.size}
+          />
         </button>
       </Tooltip>
       <span id={descriptionId} hidden={true}>

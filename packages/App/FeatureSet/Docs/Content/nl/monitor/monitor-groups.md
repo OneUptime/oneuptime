@@ -43,13 +43,13 @@ Een monitorgroep is geen statuspaginagroep. Een statuspaginagroep is een kop op 
 ## Monitorgroepen inschakelen
 
 :::steps
-### Functievlaggen openen
+### Producten openen
 
-Ga naar **Projectinstellingen → Geavanceerd → Functievlaggen**. **Geavanceerd** is ingeklapt in het zijmenu: klap het eerst uit.
+Ga naar **Projectinstellingen → Basis → Producten**.
 
 ### De schakelaar omzetten
 
-Zet de schakelaar **Monitorgroepen** aan. Hij slaat direct op: **Monitorgroepen** verschijnt in het zijmenu van **Monitoren**, en het item **Monitoren** van elke statuspagina heet nu **Middelen**, waar u een groep kunt toevoegen.
+Zet de schakelaar **Monitorgroepen** onder **Monitoren** aan. Hij slaat direct op: **Monitorgroepen** verschijnt in het zijmenu van **Monitoren**, en het item **Monitoren** van elke statuspagina heet nu **Middelen**, waar u een groep kunt toevoegen.
 :::
 
 Zet u de schakelaar weer uit, dan verdwijnt **Monitorgroepen** uit het menu. Er wordt geen groep verwijderd.
@@ -143,7 +143,7 @@ Een groep is `/api/monitor-group`, en elke monitor erin is een rij van `/api/mon
 ## Problemen oplossen
 
 :::details Monitorgroepen staat niet in het menu Monitoren
-De schakelaar **Monitorgroepen** staat uit. Zet hem aan onder **Projectinstellingen → Geavanceerd → Functievlaggen**. In OneUptime Cloud vereisen groepen ook het Scale-abonnement.
+De schakelaar **Monitorgroepen** staat uit. Zet hem aan onder **Projectinstellingen → Basis → Producten**. In OneUptime Cloud vereisen groepen ook het Scale-abonnement.
 :::
 
 :::details De groep toont Offline, maar de meeste monitoren werken

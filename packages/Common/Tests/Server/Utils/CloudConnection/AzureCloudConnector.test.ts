@@ -1,6 +1,13 @@
 import { describe, expect, test } from "@jest/globals";
 import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import AzureCloudConnector, {
+  AZURE_DEFINITION_SAMPLES,
+  AZURE_MAX_RESOURCE_DEFINITIONS,
+  SelectedMetric,
+  getAzureKeyMetricsFingerprint,
+  isAzureUnsupportedMetricsRefusal,
+  mergeAzureSelections,
+  pickAzureDefinitionSamples,
   pickAzureGrain,
   selectAzureMetrics,
 } from "../../../../Server/Utils/CloudConnection/Azure/AzureCloudConnector";
@@ -13,7 +20,11 @@ import {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
-import { getAzureKeyMetrics } from "../../../../Types/Cloud/CloudKeyMetrics";
+import {
+  AzureTypeKeyMetrics,
+  getAzureKeyMetrics,
+} from "../../../../Types/Cloud/CloudKeyMetrics";
+import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
 import {
   CloudMonitoredResource,
   resolveCloudMonitoredResource,
@@ -85,6 +96,11 @@ interface FakeAzureOptions {
   metricsError?: Record<string, FakeResponse>;
   resourcesError?: Record<string, FakeResponse>;
   tokenError?: FakeResponse;
+  /*
+   * As Azure Monitor does: a metrics call naming a metric the resource's
+   * own definitions do not list is refused whole, with a 400 that says so.
+   */
+  refuseUnpublished?: boolean;
 }
 
 function definition(
@@ -108,7 +124,7 @@ const VM_DEFINITIONS: Array<JSONObject> = [
   definition("Network In Total", "Total", ["PT1M", "PT1H"], "Bytes"),
   definition("Disk Read Bytes", "Total", ["PT1M"], "Bytes"),
   // Published, but not a key metric: never read.
-  definition("CPU Credits Remaining", "Average", ["PT1M"], "Count"),
+  definition("Data Disk Read Bytes/sec", "Average", ["PT1M"], "BytesPerSecond"),
 ];
 
 const SQL_DEFINITIONS: Array<JSONObject> = [
@@ -123,8 +139,9 @@ function resource(
   type: string,
   name: string,
   location: string = "westeurope",
+  kind: string = "",
 ): JSONObject {
-  return { id, name, type, location, kind: "" };
+  return { id, name, type, location, kind };
 }
 
 interface FakeAzure extends FakeProviderApi {
@@ -133,6 +150,17 @@ interface FakeAzure extends FakeProviderApi {
 
 function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
   const metricCalls: Array<URL> = [];
+  // A resource's own definitions: the ones named for it, else its type's.
+  const definitionsOf: (resourceId: string) => Array<JSONObject> = (
+    resourceId: string,
+  ): Array<JSONObject> => {
+    return (
+      options.definitions?.[resourceId] ||
+      (resourceId.includes("virtualMachines")
+        ? VM_DEFINITIONS
+        : SQL_DEFINITIONS)
+    );
+  };
 
   const routes: Array<FakeRoute> = [
     {
@@ -202,15 +230,8 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
           "/providers/Microsoft.Insights/metricDefinitions",
           "",
         );
-        const type: string = resourceId.includes("virtualMachines")
-          ? "vm"
-          : "sql";
 
-        return json({
-          value:
-            options.definitions?.[resourceId] ||
-            (type === "vm" ? VM_DEFINITIONS : SQL_DEFINITIONS),
-        });
+        return json({ value: definitionsOf(resourceId) });
       },
     },
     {
@@ -232,6 +253,31 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
           .filter((name: string): boolean => {
             return Boolean(name);
           });
+
+        if (options.refuseUnpublished) {
+          const published: Array<string> = definitionsOf(resourceId).map(
+            (definition: JSONObject): string => {
+              return String(
+                (definition["name"] as JSONObject)["value"],
+              ).toLowerCase();
+            },
+          );
+          const unpublished: string | undefined = names.find(
+            (name: string): boolean => {
+              return !published.includes(name.toLowerCase());
+            },
+          );
+
+          if (unpublished) {
+            return {
+              status: 400,
+              body: JSON.stringify({
+                code: "BadRequest",
+                message: `Failed to find metric configuration for provider: Microsoft.Sql, resource Type: servers/databases, metric: ${unpublished}, Valid metrics: ${published.join(",")}`,
+              }),
+            };
+          }
+        }
         const start: number = Date.parse(
           (url.searchParams.get("timespan") || "").split("/")[0]!,
         );
@@ -883,5 +929,461 @@ describe("choosing metrics", () => {
         dimensions: [],
       },
     ]);
+  });
+});
+
+/*
+ * Resources of one type publish different metrics - a vCore database has
+ * no DTUs, a master database a handful of metrics - and Azure Monitor
+ * refuses a whole metrics call that names one a resource does not publish.
+ * A type's definitions come from up to three of its resources, of
+ * different kinds first, and a resource Azure refuses is read with its own.
+ */
+const DTU_DB: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.Sql/servers/sql-prod/databases/orders`;
+const VCORE_DB: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.Sql/servers/sql-prod/databases/billing`;
+const MASTER_DB: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.Sql/servers/sql-prod/databases/master`;
+
+const DTU_DEFINITIONS: Array<JSONObject> = [
+  definition("cpu_percent", "Average", ["PT1M"]),
+  definition("dtu_consumption_percent", "Average", ["PT1M"]),
+  definition("storage_percent", "Maximum", ["PT1M"]),
+];
+const VCORE_DEFINITIONS: Array<JSONObject> = [
+  definition("cpu_percent", "Average", ["PT1M"]),
+  definition("storage_percent", "Maximum", ["PT1M"]),
+  definition("workers_percent", "Average", ["PT1M"]),
+];
+const MASTER_DEFINITIONS: Array<JSONObject> = [
+  definition("connection_successful", "Total", ["PT1M"], "Count"),
+];
+
+const MIXED_DATABASES: Record<string, Array<JSONObject>> = {
+  [SUB_A]: [
+    resource(
+      DTU_DB,
+      "Microsoft.Sql/servers/databases",
+      "sql-prod/orders",
+      "westeurope",
+      "v12.0,user",
+    ),
+    resource(
+      VCORE_DB,
+      "Microsoft.Sql/servers/databases",
+      "sql-prod/billing",
+      "westeurope",
+      "v12.0,user,vcore",
+    ),
+    resource(
+      MASTER_DB,
+      "Microsoft.Sql/servers/databases",
+      "sql-prod/master",
+      "westeurope",
+      "v12.0,system",
+    ),
+  ],
+};
+
+const MIXED_DEFINITIONS: Record<string, Array<JSONObject>> = {
+  [DTU_DB]: DTU_DEFINITIONS,
+  [VCORE_DB]: VCORE_DEFINITIONS,
+  [MASTER_DB]: MASTER_DEFINITIONS,
+};
+
+function metricNamesAsked(fake: FakeAzure, resourceId: string): Array<string> {
+  return fake.metricCalls
+    .filter((url: URL): boolean => {
+      return url.pathname.startsWith(`${resourceId}/`);
+    })
+    .map((url: URL): string => {
+      return url.searchParams.get("metricnames") || "";
+    });
+}
+
+function definitionCallsOf(fake: FakeAzure): Array<string> {
+  return fake.requests
+    .filter((request: DataSourceHttpRequest): boolean => {
+      return request.url.includes("metricDefinitions");
+    })
+    .map((request: DataSourceHttpRequest): string => {
+      return new URL(request.url).pathname.replace(
+        "/providers/Microsoft.Insights/metricDefinitions",
+        "",
+      );
+    });
+}
+
+function writtenNamesOf(
+  result: CloudReadResult,
+  resourceId: string,
+): Array<string> {
+  return Array.from(
+    new Set(
+      datapoints(result)
+        .filter((point: { stored: JSONObject }): boolean => {
+          return point.stored["azuremonitor.resource_id"] === resourceId;
+        })
+        .map((point: { metricName: string }): string => {
+          return point.metricName;
+        }),
+    ),
+  ).sort();
+}
+
+describe("resources of one type that publish different metrics", () => {
+  test("a type's definitions are read from a resource of each kind, and its selection is their key metrics together", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: MIXED_DATABASES,
+      definitions: MIXED_DEFINITIONS,
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(definitionCallsOf(fake).sort()).toEqual(
+      [DTU_DB, VCORE_DB, MASTER_DB].sort(),
+    );
+
+    const cached: JSONObject = (
+      result.nextState.azureMetricDefinitions as JSONObject
+    )["microsoft.sql/servers/databases"] as JSONObject;
+
+    // In the catalog's order, each metric once.
+    expect(
+      (cached["metrics"] as Array<JSONObject>).map(
+        (metric: JSONObject): unknown => {
+          return metric["name"];
+        },
+      ),
+    ).toEqual([
+      "cpu_percent",
+      "dtu_consumption_percent",
+      "storage_percent",
+      "workers_percent",
+      "connection_successful",
+    ]);
+    expect(cached["of"]).toBe(
+      getAzureKeyMetricsFingerprint(
+        getAzureKeyMetrics("Microsoft.Sql/servers/databases")!,
+      ),
+    );
+  });
+
+  test("a resource Azure refuses for a metric it does not publish is read with its own definitions, in the same read", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: MIXED_DATABASES,
+      definitions: MIXED_DEFINITIONS,
+      refuseUnpublished: true,
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    // Every database is written, each with what it publishes.
+    expect(writtenNamesOf(result, DTU_DB)).toEqual([
+      "azure_cpu_percent_average",
+      "azure_dtu_consumption_percent_average",
+      "azure_storage_percent_maximum",
+    ]);
+    expect(writtenNamesOf(result, VCORE_DB)).toEqual([
+      "azure_cpu_percent_average",
+      "azure_storage_percent_maximum",
+      "azure_workers_percent_average",
+    ]);
+    expect(writtenNamesOf(result, MASTER_DB)).toEqual([
+      "azure_connection_successful_total",
+    ]);
+    expect(result.warnings).not.toContain(
+      "Could not read the metrics of 1 resource this time.",
+    );
+
+    // Refused once each with the type's selection, then read with its own.
+    expect(metricNamesAsked(fake, MASTER_DB)).toEqual([
+      "cpu_percent,dtu_consumption_percent,storage_percent,workers_percent,connection_successful",
+      "connection_successful",
+    ]);
+
+    // Their own selections are kept, by ARM id, for the next reads.
+    const own: JSONObject = result.nextState
+      .azureResourceMetricDefinitions as JSONObject;
+
+    expect(Object.keys(own).sort()).toEqual(
+      [DTU_DB, VCORE_DB, MASTER_DB]
+        .map((id: string): string => {
+          return id.toLowerCase();
+        })
+        .sort(),
+    );
+  });
+
+  test("the next read asks a resource with its own selection straight away", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: MIXED_DATABASES,
+      definitions: MIXED_DEFINITIONS,
+      refuseUnpublished: true,
+    });
+
+    const first: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+    const callsBefore: number = fake.metricCalls.length;
+    const definitionsBefore: number = definitionCallsOf(fake).length;
+
+    // Between listings: the resources the connection holds.
+    const second: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, first.nextState, {
+        now: () => {
+          return new Date(NOW.getTime() + 5 * 60000);
+        },
+        knownResources: [
+          [DTU_DB, "orders"],
+          [VCORE_DB, "billing"],
+          [MASTER_DB, "master"],
+        ].map(([id, name]: Array<string>) => {
+          return {
+            providerResourceId: id!,
+            resourceType: "Microsoft.Sql/servers/databases",
+            name: `sql-prod/${name}`,
+            region: "westeurope",
+            accountId: SUB_A,
+            resourceGroup: "rg-data",
+          };
+        }),
+      }),
+    );
+
+    // One call each, no refusal, and no definitions read again.
+    expect(fake.metricCalls.length - callsBefore).toBe(3);
+    expect(definitionCallsOf(fake).length).toBe(definitionsBefore);
+    expect(writtenNamesOf(second, MASTER_DB)).toEqual([
+      "azure_connection_successful_total",
+    ]);
+  });
+
+  test("a refusal for any other reason is not read again: the resource is counted as failed", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: STANDARD_RESOURCES,
+      metricsError: {
+        [SQL]: {
+          status: 400,
+          body: '{"code":"BadRequest","message":"Invalid timespan."}',
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(metricNamesAsked(fake, SQL)).toHaveLength(1);
+    expect(result.warnings).toContain(
+      "Could not read the metrics of 1 resource this time.",
+    );
+    expect(result.nextState.azureResourceMetricDefinitions).toEqual({});
+  });
+
+  test("a definitions cache made for another list of key metrics is read again at once", async () => {
+    const fake: FakeAzure = createFakeAzure({ resources: STANDARD_RESOURCES });
+    const state: CloudConnectionPullState = {
+      azureMetricDefinitions: {
+        "microsoft.compute/virtualmachines": {
+          at: NOW.toISOString(),
+          of: "made-for-eight-metrics",
+          metrics: [
+            {
+              name: "Percentage CPU",
+              unit: "Percent",
+              aggregation: "Average",
+              grain: "PT1M",
+            },
+          ],
+        },
+      },
+    };
+
+    await connector.read(settings(), readOptions(fake, state));
+
+    expect(definitionCallsOf(fake)).toContain(VM);
+    expect(
+      fake.metricCalls
+        .find((url: URL): boolean => {
+          return url.pathname.includes("virtualMachines");
+        })!
+        .searchParams.get("metricnames"),
+    ).toBe("Percentage CPU,Network In Total,Disk Read Bytes");
+  });
+
+  test("between listings a day-old selection stays until the next listing, which knows each resource's kind", async () => {
+    const fake: FakeAzure = createFakeAzure({ resources: STANDARD_RESOURCES });
+    const keyMetrics: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.Compute/virtualMachines",
+    )!;
+    const stale: CloudConnectionPullState = {
+      inventoryAt: new Date(NOW.getTime() - 10 * 60000).toISOString(),
+      accounts: [SUB_A],
+      azureMetricDefinitions: {
+        "microsoft.compute/virtualmachines": {
+          at: new Date(NOW.getTime() - 2 * 24 * 3600000).toISOString(),
+          of: getAzureKeyMetricsFingerprint(keyMetrics),
+          metrics: [
+            {
+              name: "Percentage CPU",
+              unit: "Percent",
+              aggregation: "Average",
+              grain: "PT1M",
+            },
+          ],
+        },
+      },
+    };
+    const known: Parameters<AzureCloudConnector["read"]>[1]["knownResources"] =
+      [
+        {
+          providerResourceId: VM,
+          resourceType: "Microsoft.Compute/virtualMachines",
+          name: "vm-web-1",
+          region: "westeurope",
+          accountId: SUB_A,
+          resourceGroup: "rg-prod",
+        },
+      ];
+
+    await connector.read(
+      settings(),
+      readOptions(fake, stale, { knownResources: known }),
+    );
+
+    expect(definitionCallsOf(fake)).toEqual([]);
+    expect(fake.metricCalls[0]!.searchParams.get("metricnames")).toBe(
+      "Percentage CPU",
+    );
+
+    // A read that lists resources reads them again.
+    await connector.read(
+      settings(),
+      readOptions(fake, { ...stale, inventoryAt: undefined }),
+    );
+
+    expect(definitionCallsOf(fake)).toContain(VM);
+  });
+});
+
+describe("choosing which resources' definitions to read", () => {
+  test("one of each kind first, then the others, three at most", () => {
+    expect(
+      pickAzureDefinitionSamples([
+        { id: "a", kind: "app" },
+        { id: "b", kind: "app" },
+        { id: "c", kind: "functionapp" },
+        { id: "d", kind: "functionapp,linux" },
+        { id: "e", kind: "app,linux" },
+      ]).map((sample: { id: string }): string => {
+        return sample.id;
+      }),
+    ).toEqual(["a", "c", "d"]);
+    expect(
+      pickAzureDefinitionSamples([
+        { id: "a", kind: "app" },
+        { id: "b", kind: "APP" },
+        { id: "c" },
+      ]).map((sample: { id: string }): string => {
+        return sample.id;
+      }),
+    ).toEqual(["a", "c", "b"]);
+    expect(pickAzureDefinitionSamples([])).toEqual([]);
+    expect(AZURE_DEFINITION_SAMPLES).toBe(3);
+  });
+
+  test("selections together keep each metric once, the first's way, in the catalog's order", () => {
+    const keyMetrics: AzureTypeKeyMetrics = {
+      type: "Microsoft.Test/things",
+      metrics: [
+        { name: "a", group: CloudKeyMetricGroup.Traffic },
+        { name: "b", group: CloudKeyMetricGroup.Errors },
+        { name: "c", group: CloudKeyMetricGroup.Latency },
+      ],
+    };
+    const selected: (name: string, aggregation: string) => SelectedMetric = (
+      name: string,
+      aggregation: string,
+    ): SelectedMetric => {
+      return { name, aggregation, grain: "PT1M", unit: "Count" };
+    };
+
+    expect(
+      mergeAzureSelections(keyMetrics, [
+        [selected("c", "Average")],
+        [selected("A", "Total"), selected("c", "Maximum")],
+        [],
+      ]),
+    ).toEqual([selected("A", "Total"), selected("c", "Average")]);
+    expect(mergeAzureSelections(keyMetrics, [])).toEqual([]);
+  });
+
+  test("a type's fingerprint follows its key metrics", () => {
+    const keyMetrics: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.Web/sites",
+    )!;
+
+    expect(getAzureKeyMetricsFingerprint(keyMetrics)).toBe(
+      getAzureKeyMetricsFingerprint({ ...keyMetrics }),
+    );
+    expect(
+      getAzureKeyMetricsFingerprint({
+        ...keyMetrics,
+        metrics: keyMetrics.metrics.slice(1),
+      }),
+    ).not.toBe(getAzureKeyMetricsFingerprint(keyMetrics));
+    expect(getAzureKeyMetricsFingerprint(keyMetrics)).toMatch(/^[0-9a-f]+$/);
+  });
+
+  test("only Azure Monitor's refusal of a metric a resource does not publish is read again", () => {
+    const refusal: (body: string, status?: number) => LlmProviderError = (
+      body: string,
+      status: number = 400,
+    ): LlmProviderError => {
+      return new LlmProviderError({
+        message: `Azure metrics request failed (${status})`,
+        kind: CloudConnectionFailureKind.Other,
+        statusCode: status,
+        responseBody: body,
+      });
+    };
+
+    expect(
+      isAzureUnsupportedMetricsRefusal(
+        refusal(
+          '{"code":"BadRequest","message":"Failed to find metric configuration for provider: Microsoft.Network, resource Type: loadBalancers, metric: VipAvailability, Valid metrics: "}',
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      isAzureUnsupportedMetricsRefusal(
+        refusal('{"message":"Metric: Foo is unknown. Valid metrics: a,b"}'),
+      ),
+    ).toBe(true);
+    expect(
+      isAzureUnsupportedMetricsRefusal(
+        refusal('{"code":"BadRequest","message":"Invalid timespan."}'),
+      ),
+    ).toBe(false);
+    expect(
+      isAzureUnsupportedMetricsRefusal(
+        refusal("Failed to find metric configuration", 403),
+      ),
+    ).toBe(false);
+    expect(
+      isAzureUnsupportedMetricsRefusal(
+        new Error("Failed to find metric configuration"),
+      ),
+    ).toBe(false);
+    expect(isAzureUnsupportedMetricsRefusal(undefined)).toBe(false);
+    expect(AZURE_MAX_RESOURCE_DEFINITIONS).toBe(500);
   });
 });

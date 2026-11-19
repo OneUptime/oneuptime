@@ -2,13 +2,11 @@ import AdminModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import HealthPage from "./HealthPage";
+import GlobalProbeStatusElement from "../../Components/Probe/GlobalProbeStatus";
 import Route from "Common/Types/API/Route";
-import { Green, Red } from "Common/Types/BrandColors";
-import OneUptimeDate from "Common/Types/Date";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
-import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -44,6 +42,11 @@ const HealthProbes: FunctionComponent = (): ReactElement => {
         showRefreshButton={true}
         selectMoreFields={{
           lastAlive: true,
+          // Whether it is behind (GlobalProbeStatus).
+          checksLateSince: true,
+          checksLastLateAt: true,
+          devicePollsLateSince: true,
+          devicePollsLastLateAt: true,
         }}
         filters={[
           {
@@ -73,31 +76,9 @@ const HealthProbes: FunctionComponent = (): ReactElement => {
             },
             title: "Status",
             type: FieldType.Text,
+            // Connected, Behind - its monitors checked late (#9488) - or Disconnected.
             getElement: (item: Probe): ReactElement => {
-              if (
-                item &&
-                item["lastAlive"] &&
-                OneUptimeDate.getNumberOfMinutesBetweenDates(
-                  OneUptimeDate.fromString(item["lastAlive"]),
-                  OneUptimeDate.getCurrentDate(),
-                ) < 5
-              ) {
-                return (
-                  <Statusbubble
-                    text="Connected"
-                    color={Green}
-                    shouldAnimate={true}
-                  />
-                );
-              }
-
-              return (
-                <Statusbubble
-                  text="Disconnected"
-                  color={Red}
-                  shouldAnimate={false}
-                />
-              );
+              return <GlobalProbeStatusElement probe={item} />;
             },
           },
           {

@@ -36,6 +36,14 @@ import AiResourceType from "../../../../../Types/ResourceAiAgent/AiResourceType"
 import { ResourceCommandTier } from "../../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import RunbookStepType from "../../../../../Types/Runbook/RunbookStepType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ReadAudience from "../../../../../Types/BaseDatabase/ReadAudience";
+import Permission from "../../../../../Types/Permission";
+import {
+  keptForAudience,
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../../Helpers/ReadAudienceFixtures";
 
 /*
  * Contract under test - what OneUptime AI's fixes did before on the same
@@ -53,7 +61,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *    record;
  *  - the planner's lines say what ran, how verification judged it and how
  *    long ago, inside an untrusted frame its text cannot close;
- *  - nothing here throws: a record that cannot be read is none.
+ *  - nothing here throws: a record that cannot be read is none;
+ *  - given who reads the fix, only the incidents and alerts all of them
+ *    may read are named or counted (#9612).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -70,6 +80,7 @@ const CURRENT_INCIDENT: ObjectID = new ObjectID(
 );
 const NOW: Date = new Date("2026-11-01T12:00:00.000Z");
 const ECS: string = "arn:aws:ecs:us-east-1:123456789012:service/prod/web";
+const RUNBOOK_ID: string = "84000000-0000-4000-8000-000000000001";
 
 function incidentId(index: number): string {
   return `7000000${index}-0000-4000-8000-00000000000${index}`;
@@ -965,5 +976,189 @@ describe("what the planner reads", () => {
         return line.startsWith("Ignore the rules");
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * A TRACK RECORD NAMES OTHER INCIDENTS AND ALERTS WHERE A FIX IS POSTED
+ * (#9612): in the round's context, on the Remediation step and in the
+ * Slack and Microsoft Teams message of the fix that waits for approval -
+ * everyone who may see this incident or alert reads it. Given those
+ * readers, the incidents and alerts are read for them: the permission
+ * layer leaves out a private one and one an owner or a label sets apart
+ * from any of them, where some role reads incidents or alerts only by
+ * owner or label (here the database answers as its conditions make it
+ * answer: keptForAudience). What is left out is neither named nor counted.
+ */
+describe("a track record, read for who reads the fix", () => {
+  const SET_APART: string = incidentId(1);
+  const OPEN: string = incidentId(2);
+  // A project where a team reads incidents only for some labels.
+  const NARROWED: ReadAudience = readAudienceOf({
+    projectId: PROJECT_ID,
+    labelledPermissions: [Permission.ProjectMember],
+  });
+  let incidentReads: Array<DatabaseCommonInteractionProps>;
+  let alertReads: Array<DatabaseCommonInteractionProps>;
+
+  function fixOf(id: string, incident: string): AutoRemediationSuggestion {
+    return fixRow({
+      id,
+      incident,
+      commands: [ran(kubectlCommand("kubectl rollout restart deployment/web"))],
+      verification: AutoRemediationVerificationStatus.Verified,
+      at: "2026-10-30T12:00:00.000Z",
+    });
+  }
+
+  beforeEach(() => {
+    incidentReads = [];
+    alertReads = [];
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockImplementation(
+        async (): Promise<Array<AutoRemediationSuggestion>> => {
+          return [
+            fixOf("82000000-0000-4000-8000-000000000001", SET_APART),
+            fixOf("82000000-0000-4000-8000-000000000002", OPEN),
+          ];
+        },
+      );
+    jest.spyOn(IncidentService, "findBy").mockImplementation((async (findBy: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<Incident>> => {
+      incidentReads.push(findBy.props);
+      return keptForAudience({
+        modelType: Incident,
+        rows: [incident(SET_APART, 41), incident(OPEN, 42)],
+        props: findBy.props,
+        setApartIds: [SET_APART],
+      });
+    }) as never);
+    jest.spyOn(AlertService, "findBy").mockImplementation((async (findBy: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<Alert>> => {
+      alertReads.push(findBy.props);
+      return [];
+    }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the incidents it names are read for the readers", async () => {
+    await RemediationTrackRecordReader.readEarlierFixes({
+      projectId: PROJECT_ID,
+      target: { kubernetesClusterId: CLUSTER_ID },
+      now: NOW,
+      readAudience: NARROWED,
+    });
+
+    expect(incidentReads).toEqual([readAudienceProps(NARROWED)]);
+  });
+
+  test("an incident set apart is neither named nor counted; one nobody set apart is", async () => {
+    const fixes: Array<EarlierFix> =
+      await RemediationTrackRecordReader.readEarlierFixes({
+        projectId: PROJECT_ID,
+        target: { kubernetesClusterId: CLUSTER_ID },
+        now: NOW,
+        readAudience: NARROWED,
+      });
+
+    expect(
+      fixes.map((fix: EarlierFix): string | undefined => {
+        return fix.subjectNumber;
+      }),
+    ).toEqual(["INC-42"]);
+    expect(JSON.stringify(fixes)).not.toContain("INC-41");
+    expect(JSON.stringify(fixes)).not.toContain(SET_APART);
+  });
+
+  test("a plan's change counts only the fixes of incidents the readers may read", async () => {
+    const plan: AiRemediationCommandPlan =
+      await RemediationTrackRecordReader.withTrackRecords({
+        projectId: PROJECT_ID,
+        plan: {
+          commands: [kubectlCommand("kubectl rollout restart deployment/web")],
+        },
+        readAudience: NARROWED,
+      });
+
+    expect(plan.commands[0]?.trackRecord).toEqual({
+      workedCount: 1,
+      didNotWorkCount: 0,
+      runs: [expect.objectContaining({ subjectNumber: "INC-42" })],
+    });
+    expect(incidentReads).toEqual([readAudienceProps(NARROWED)]);
+  });
+
+  test("a project whose roles narrow nobody names and counts them both, as before", async () => {
+    const fixes: Array<EarlierFix> =
+      await RemediationTrackRecordReader.readEarlierFixes({
+        projectId: PROJECT_ID,
+        target: { kubernetesClusterId: CLUSTER_ID },
+        now: NOW,
+        readAudience: readAudienceOf({ projectId: PROJECT_ID }),
+      });
+
+    expect(
+      fixes.map((fix: EarlierFix): string | undefined => {
+        return fix.subjectNumber;
+      }),
+    ).toEqual(["INC-41", "INC-42"]);
+  });
+
+  test("a runbook's record counts only the runs on incidents the readers may read", async () => {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockImplementation(
+        async (): Promise<Array<AutoRemediationSuggestion>> => {
+          return [SET_APART, OPEN].map(
+            (subject: string, index: number): AutoRemediationSuggestion => {
+              const row: AutoRemediationSuggestion =
+                new AutoRemediationSuggestion();
+              row.id = new ObjectID(
+                `8300000${index}-0000-4000-8000-000000000001`,
+              );
+              row.incidentId = new ObjectID(subject);
+              row.runbookId = new ObjectID(RUNBOOK_ID);
+              row.verificationStatus =
+                AutoRemediationVerificationStatus.Verified;
+              row.createdAt = new Date("2026-10-30T12:00:00.000Z");
+              return row;
+            },
+          );
+        },
+      );
+
+    const records: Map<string, RemediationTrackRecord> =
+      await RemediationTrackRecordReader.readRunbookTrackRecords({
+        projectId: PROJECT_ID,
+        runbookIds: [new ObjectID(RUNBOOK_ID)],
+        now: NOW,
+        readAudience: NARROWED,
+      });
+
+    expect(records.get(RUNBOOK_ID)).toEqual({
+      workedCount: 1,
+      didNotWorkCount: 0,
+      runs: [expect.objectContaining({ subjectNumber: "INC-42" })],
+    });
+    expect(incidentReads).toEqual([readAudienceProps(NARROWED)]);
+  });
+
+  test("without readers, as OneUptime: every incident but the private ones", async () => {
+    await RemediationTrackRecordReader.readEarlierFixes({
+      projectId: PROJECT_ID,
+      target: { kubernetesClusterId: CLUSTER_ID },
+      now: NOW,
+    });
+
+    expect(incidentReads).toEqual([{ isRoot: true }]);
   });
 });

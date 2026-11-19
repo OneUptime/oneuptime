@@ -22,6 +22,7 @@ export const ServerProductsCopy: {
   nothingDeleted: string;
   keepsRunning: string;
   apiRefuses: string;
+  aiStartsNothing: string;
   startingValue: string;
   startingValueUnknown: string;
   ingestionStopped: string;
@@ -59,7 +60,10 @@ export const ServerProductsCopy: {
     "What already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion.",
   ),
   apiRefuses: translationKey(
-    "The API refuses to create, change or delete its records, and Ask AI leaves it out.",
+    "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.",
+  ),
+  aiStartsNothing: translationKey(
+    "OneUptime AI starts no work on it, and while Runbooks is off a runbook runs only by its own schedule, webhook and rules.",
   ),
   startingValue: translationKey(
     "Set by SERVER_PRODUCTS={{value}} in this server's configuration, until you change it here.",

@@ -345,7 +345,7 @@ describe("the presets", () => {
     }
   });
 
-  test("says what switching off does: nothing deleted, what runs keeps running, the API refuses changes", async () => {
+  test("says what switching off does: nothing deleted, what runs keeps running, the API refuses changes, OneUptime AI starts nothing", async () => {
     mockFetch.mockResolvedValue(answer({}));
     await renderPage();
 
@@ -362,7 +362,13 @@ describe("the presets", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "The API refuses to create, change or delete its records, and Ask AI leaves it out.",
+        "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.",
+      ),
+    ).toBeInTheDocument();
+    // What the server itself no longer starts on it (#9489).
+    expect(
+      screen.getByText(
+        "OneUptime AI starts no work on it, and while Runbooks is off a runbook runs only by its own schedule, webhook and rules.",
       ),
     ).toBeInTheDocument();
   });

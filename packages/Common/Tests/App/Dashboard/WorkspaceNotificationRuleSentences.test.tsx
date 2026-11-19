@@ -591,8 +591,9 @@ describe("the sentences that say what a rule does", () => {
       NotificationRuleEventType.ServiceLevelObjective;
 
     expect(Copy.NOTIFICATION_RULE_CONDITIONS_TITLES[slo]).toBe("Which SLOs");
+    // Status changes only for a rule that picks them (#6596).
     expect(Copy.NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[slo]).toBe(
-      "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.",
+      "Conditions are checked each time an SLO's error budget policy changes, and, for a rule with an SLO Status Change condition, each time its status changes.",
     );
     expect(Copy.APPLIES_TO_ALL_ANSWERS[slo]).toBe("All SLOs");
     expect(Copy.APPLIES_TO_MATCHING_ANSWERS[slo]).toBe(
@@ -602,7 +603,7 @@ describe("the sentences that say what a rule does", () => {
     expect(Copy.RULE_SINGULAR_NAMES[slo]).toBe("SLO Notification Rule");
     expect(Copy.RULE_PLURAL_NAMES[slo]).toBe("SLO Notification Rules");
     expect(Copy.NOTIFICATION_RULES_CARD_DESCRIPTIONS[slo]).toBe(
-      "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.",
+      "Each rule picks the SLOs it is for, then posts to channels you have when an SLO's error budget policy changes, and, if the rule picks them, when its status changes.",
     );
     // The only kind of rule on the SLOs' Slack and Microsoft Teams pages.
     expect(Copy.getNotificationRulesCardTitle(slo)).toBe(

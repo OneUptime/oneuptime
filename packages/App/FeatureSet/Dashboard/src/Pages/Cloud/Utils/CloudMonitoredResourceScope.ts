@@ -24,8 +24,18 @@ import {
 } from "Common/Types/Cloud/CloudMonitoredResource";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  CloudKeyMetricReference,
+  getCloudKeyMetricOfStoredName,
+} from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  CLOUD_KEY_METRIC_GROUP_LABELS,
+  getCloudKeyMetricGroupOrder,
+} from "Common/Types/Cloud/CloudKeyMetricGroup";
+import {
   GetMetricRowAggregation,
+  GetMetricRowGroup,
   MetricRowAggregation,
+  MetricRowGroup,
 } from "../../../Components/Metrics/Utils/MetricRowScope";
 
 /*
@@ -239,5 +249,45 @@ export function getCloudMonitoredResourceRowAggregation(
       };
     },
     defaultRowValueCaption: CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+  };
+}
+
+/*
+ * The sections a resource's metric rows read in (MetricsViewer's
+ * getRowGroup): each key metric its cloud connection reads for the
+ * resource's type (CloudKeyMetrics) in its group - Availability, Traffic,
+ * Errors, Latency, Compute, Memory, Storage, Network, Connections, Cache,
+ * Backlog, Replication, in that order - the type's most telling first in
+ * each; any other metric (a collector's, an app's) after them, under
+ * "Other". Undefined without a provider: the list reads as one, as before.
+ */
+export function getCloudMonitoredResourceRowGroup(
+  source: CloudMonitoredResourceAggregationSource | null | undefined,
+): GetMetricRowGroup | undefined {
+  const provider: string =
+    typeof source?.cloudProvider === "string" ? source.cloudProvider : "";
+  const type: string =
+    typeof source?.cloudResourceType === "string"
+      ? source.cloudResourceType
+      : "";
+
+  if (!provider.trim()) {
+    return undefined;
+  }
+
+  return (metricName: string): MetricRowGroup | undefined => {
+    const reference: CloudKeyMetricReference | null =
+      getCloudKeyMetricOfStoredName({ provider, type, metricName });
+
+    if (!reference) {
+      return undefined;
+    }
+
+    return {
+      key: reference.group,
+      title: CLOUD_KEY_METRIC_GROUP_LABELS[reference.group],
+      order: getCloudKeyMetricGroupOrder(reference.group),
+      rank: reference.rank,
+    };
   };
 }

@@ -90,6 +90,7 @@ interface OpenOptions {
     | "notes-more-fail"
     | "notes-more-pages"
     | "note-post-fail"
+    | "notes-sort-held"
     | undefined;
 }
 
@@ -1734,10 +1735,11 @@ test.describe("a case's notes feed, when Load more fails", () => {
    * The banner stayed up until it was dismissed: Load more pressed again
    * brought the notes under "Couldn't load more notes." (#7646). Its notes
    * take the banner away now, and a focus on the banner goes where Dismiss
-   * puts it while Load more reads - the feed, just before the notes - not
-   * to the page.
+   * puts it while Load more reads - the feed, just before the notes - and
+   * on, as Load more's own press does: the last page's first note has it
+   * (#7793). Never the page.
    */
-  test("Load more pressed again brings the notes and takes the banner away, and a focus on the banner stays in the feed", async ({
+  test("Load more pressed again brings the notes and takes the banner away, and a focus on the banner stays in the feed, on the first new note", async ({
     page,
   }: {
     page: Page;
@@ -1771,7 +1773,9 @@ test.describe("a case's notes feed, when Load more fails", () => {
 
     await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
     await expect(banner).toHaveCount(0);
-    await expect(page.getByTestId("notes-feed-body")).toBeFocused();
+    await expect(
+      page.getByTestId("note-card").nth(FIRST_PAGE).locator("article"),
+    ).toBeFocused();
     expect(
       await page.evaluate((): number => {
         return (window as Window & { focusFellToPage?: number })
@@ -1788,9 +1792,10 @@ test.describe("a case's notes feed, when Load more fails", () => {
    * over at the top of the page. The feed holds the focus while Load more
    * reads, with the page left where it is; a failure gives it to the
    * banner, which comes into view; its Dismiss gives it back to Load more;
-   * and after the last page the feed keeps it, just before the notes.
+   * and after the last page the first note that page brought has it
+   * (#7793).
    */
-  test("pressed from the keyboard, Load more keeps the focus in the feed while it reads, gives it to the banner when it fails, and keeps it in the feed after the last page", async ({
+  test("pressed from the keyboard, Load more keeps the focus in the feed while it reads, gives it to the banner when it fails, and to the first new note after the last page", async ({
     page,
   }: {
     page: Page;
@@ -1891,11 +1896,19 @@ test.describe("a case's notes feed, when Load more fails", () => {
     await expect(banner).toHaveCount(0);
     await expect(loadMore).toBeFocused();
 
-    // Enter: the last page comes, Load more goes, and the feed keeps the focus.
+    /*
+     * Enter: the last page comes, Load more goes, and the first note it
+     * brought has the focus (#7793).
+     */
     const secondScrollY: number = await pressEnter(2);
     await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
     await expect(loadMore).toHaveCount(0);
-    await expect(feed).toBeFocused();
+    const firstNewNote: Locator = page
+      .getByTestId("note-card")
+      .nth(FIRST_PAGE)
+      .locator("article");
+    await expect(firstNewNote).toBeFocused();
+    await expect(feed).not.toHaveAttribute("tabindex");
 
     const records: Array<FocusRecord> = await page.evaluate(
       (): Array<FocusRecord> => {
@@ -1935,17 +1948,18 @@ test.describe("a case's notes feed, when Load more fails", () => {
       );
     }
 
-    // The next Tab reaches the first control in the feed, and the feed lets go.
+    // The next Tab reaches a control of that note, and the note lets go.
     await page.keyboard.press("Tab");
     expect(
-      await feed.evaluate((element: Element): boolean => {
+      await firstNewNote.evaluate((element: Element): boolean => {
         return (
           document.activeElement !== element &&
           element.contains(document.activeElement)
         );
       }),
-      "the focus is on a control in the feed",
+      "the focus is on a control of the first new note",
     ).toBe(true);
+    await expect(firstNewNote).not.toHaveAttribute("tabindex");
     await expect(feed).not.toHaveAttribute("tabindex");
   });
 
@@ -1997,10 +2011,13 @@ test.describe("a case's notes feed, when Load more fails", () => {
  * focus waits on the feed while it reads - in Firefox it fell to the page
  * as Load more was disabled - and goes back to Load more once the notes
  * are drawn, so the next page is one key away, with the page left on the
- * notes that came; after the last page the feed keeps it.
+ * notes that came. After the last page it stayed on the feed, just before
+ * the notes, and the next Tab went back to the first of 60 (#7793): the
+ * first note that page brought has it now, ringed, with the page left
+ * where it was, and the next Tab goes into that note.
  */
 test.describe("a case's notes feed, paged with Load more", () => {
-  test("pressed from the keyboard, Load more has the focus back once the next page is drawn, with the page left on the notes that came", async ({
+  test("pressed from the keyboard, Load more has the focus back once the next page is drawn, and gives it to the first note of the last page", async ({
     page,
   }: {
     page: Page;
@@ -2039,11 +2056,32 @@ test.describe("a case's notes feed, paged with Load more", () => {
     await expect(cards.nth(25)).toBeInViewport();
     await expect(feed).not.toHaveAttribute("tabindex");
 
-    // The last page: Load more goes, and the feed keeps the focus.
+    // The reader goes down to Load more, which still has the focus.
+    await loadMore.scrollIntoViewIfNeeded();
+    await expect(loadMore).toBeInViewport();
+    await expect(loadMore).toBeFocused();
+
+    // The last page: Load more goes, and its first note has the focus.
+    const scrollYBeforeLastPage: number = await scrollY();
     await page.keyboard.press("Enter");
     await expect(cards).toHaveCount(60);
     await expect(loadMore).toHaveCount(0);
-    await expect(feed).toBeFocused();
+    const firstNewNote: Locator = cards.nth(50).locator("article");
+    await expect(firstNewNote).toBeFocused();
+    await expect(firstNewNote).toHaveAttribute("tabindex", "-1");
+    await expect(feed).not.toHaveAttribute("tabindex");
+    // Nothing moved: the page is where it was, on the note that has the focus.
+    expect(await scrollY(), "how far down the page is").toBe(
+      scrollYBeforeLastPage,
+    );
+    await expect(firstNewNote).toBeInViewport();
+    // Ringed, as the keyboard brought the focus there.
+    expect(
+      await firstNewNote.evaluate((element: Element): string => {
+        return getComputedStyle(element).boxShadow;
+      }),
+      "the note's ring",
+    ).toContain("rgb(99, 102, 241)");
     expect(
       await page.evaluate((): number => {
         return (window as Window & { focusFellToPage?: number })
@@ -2051,6 +2089,295 @@ test.describe("a case's notes feed, paged with Load more", () => {
       }),
       "changes to the page that left the focus on the page itself",
     ).toBe(0);
+
+    // One Tab goes into that note - not back to the first note of the feed.
+    await page.keyboard.press("Tab");
+    expect(
+      await cards.evaluateAll((elements: Array<Element>): number => {
+        return elements.findIndex((element: Element) => {
+          return element.contains(document.activeElement);
+        });
+      }),
+      "the note the focus is in, counted from 0",
+    ).toBe(50);
+    await expect(firstNewNote).not.toBeFocused();
+    await expect(firstNewNote).not.toHaveAttribute("tabindex");
+  });
+
+  /*
+   * Load more had the focus back out of sight, with the page kept on the
+   * notes the page before brought: pressed again from there, its last page
+   * is drawn below the window. Its first note is brought just into it - no
+   * further - so the focus is never somewhere the reader cannot see.
+   */
+  test("pressed again while out of sight, Load more's last page brings its first note just into the window, with the focus", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-pages" });
+    const cards: Locator = page.getByTestId("note-card");
+    await expect(cards).toHaveCount(25, { timeout: 30000 });
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.focus();
+
+    await page.keyboard.press("Enter");
+    await expect(cards).toHaveCount(50);
+    await expect(loadMore).toBeFocused();
+    await expect(loadMore).not.toBeInViewport();
+    const scrollYBefore: number = await page.evaluate((): number => {
+      return Math.round(window.scrollY);
+    });
+
+    await page.keyboard.press("Enter");
+    await expect(cards).toHaveCount(60);
+    const firstNewNote: Locator = cards.nth(50).locator("article");
+    await expect(firstNewNote).toBeFocused();
+    await expect(firstNewNote).toBeInViewport();
+    // Just into the window: its foot on the window's.
+    const drawn: { scrollY: number; bottom: number; windowHeight: number } =
+      await firstNewNote.evaluate(
+        (
+          element: Element,
+        ): { scrollY: number; bottom: number; windowHeight: number } => {
+          return {
+            scrollY: Math.round(window.scrollY),
+            bottom: Math.round(element.getBoundingClientRect().bottom),
+            windowHeight: window.innerHeight,
+          };
+        },
+      );
+    expect(drawn.scrollY, "how far down the page is").toBeGreaterThan(
+      scrollYBefore,
+    );
+    expect(
+      Math.abs(drawn.bottom - drawn.windowHeight),
+      "how far the note's foot is from the window's",
+    ).toBeLessThanOrEqual(1);
+  });
+
+  // How the first note of the last page looks with the focus, at a laptop's and a phone's width.
+  for (const theme of ["light", "dark"] as const) {
+    for (const width of [1280, 390]) {
+      test(`the first note of the last page, focused from the keyboard, in ${theme} at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await open(page, CASE_NOTES_PATH, {
+          caseSetup: "notes-more-pages",
+          width,
+          ...(theme === "dark" ? { theme: "dark" as const } : {}),
+        });
+        const cards: Locator = page.getByTestId("note-card");
+        await expect(cards).toHaveCount(25, { timeout: 30000 });
+        const loadMore: Locator = page.getByTestId("notes-load-more");
+
+        await loadMore.focus();
+        await page.keyboard.press("Enter");
+        await expect(cards).toHaveCount(50);
+        await expect(loadMore).toBeFocused();
+        // Down to Load more, as a reader who presses it sees it.
+        await loadMore.scrollIntoViewIfNeeded();
+        await page.keyboard.press("Enter");
+        await expect(cards).toHaveCount(60);
+
+        const firstNewNote: Locator = cards.nth(50).locator("article");
+        await expect(firstNewNote).toBeFocused();
+        await expect(firstNewNote).toBeInViewport();
+        await expectNoSidewaysScroll(page);
+        await screenshot(page, `case-notes-last-page-focus-${theme}-${width}`, {
+          fullPage: false,
+        });
+      });
+    }
+  }
+});
+
+/*
+ * A sort pressed just before Load more was dropped (#7707): Load more read
+ * a page in the order on screen, its answer was taken for the newer one,
+ * and the notes stayed in the order the reader had asked to leave. Load more
+ * is locked now while the sort's notes are on their way (?casesetup=
+ * notes-sort-held holds that read until the spec lets it answer), and goes
+ * on from them; a focus on it waits in the feed - in Firefox it fell to the
+ * page as the button it was on was disabled - and comes back to Load more.
+ */
+test.describe("a case's notes feed, sorted just before Load more", () => {
+  // The reads of a case's notes so far, as the fixture recorded them.
+  const notesReads: (
+    page: Page,
+  ) => Promise<Array<{ skip: number; sort: Record<string, string> }>> = (
+    page: Page,
+  ): Promise<Array<{ skip: number; sort: Record<string, string> }>> => {
+    return page.evaluate(
+      (): Array<{ skip: number; sort: Record<string, string> }> => {
+        const recorded: {
+          listRequests: Array<{
+            modelName: string;
+            skip: number;
+            sort: Record<string, string>;
+          }>;
+        } = (
+          window as unknown as {
+            __securityOperationsFixture: {
+              listRequests: Array<{
+                modelName: string;
+                skip: number;
+                sort: Record<string, string>;
+              }>;
+            };
+          }
+        ).__securityOperationsFixture;
+
+        return recorded.listRequests
+          .filter((request: { modelName: string }) => {
+            return request.modelName === "SecurityCaseNote";
+          })
+          .map((request: { skip: number; sort: Record<string, string> }) => {
+            return { skip: request.skip, sort: request.sort };
+          });
+      },
+    );
+  };
+
+  const releaseTheSort: (page: Page) => Promise<void> = (
+    page: Page,
+  ): Promise<void> => {
+    return page.evaluate((): void => {
+      (
+        window as unknown as {
+          __securityOperationsFixture: { releaseHeldNotesRead: () => void };
+        }
+      ).__securityOperationsFixture.releaseHeldNotesRead();
+    });
+  };
+
+  test("Load more is locked while the sort's notes are on their way, reads nothing when pressed, and goes on from the sorted notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-142's 28 notes under ?casesetup=notes-sort-held: two pages.
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-sort-held" });
+    const cards: Locator = page.getByTestId("note-card");
+    await expect(cards).toHaveCount(25, { timeout: 30000 });
+    const sort: Locator = page.getByTestId("notes-sort");
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await expect(sort).toHaveText("Newest first");
+    await expect(loadMore).toBeEnabled();
+
+    await sort.click();
+    await expect(loadMore).toBeDisabled();
+    // In the look of a button that cannot be pressed (ButtonStates), faded in.
+    await expect(loadMore).toHaveCSS("opacity", "0.5");
+    await expect(loadMore).toHaveCSS("cursor", "not-allowed");
+    await expect(sort).toHaveText("Newest first");
+    await loadMore.scrollIntoViewIfNeeded();
+    await screenshot(page, "case-notes-sort-held-1280-light", {
+      fullPage: false,
+    });
+
+    // Pressed all the same, it reads nothing.
+    const readsBefore: number = (await notesReads(page)).length;
+    await loadMore.click({ force: true });
+    expect((await notesReads(page)).length).toBe(readsBefore);
+
+    // The sort's notes come: oldest first, and Load more goes on from them.
+    await releaseTheSort(page);
+    await expect(sort).toHaveText("Oldest first");
+    await expect(cards.first()).toContainText("Shift log 26:");
+    await expect(loadMore).toBeEnabled();
+    await expect(loadMore).toContainText("Show newer notes");
+
+    await loadMore.click();
+    await expect(cards).toHaveCount(28);
+    const reads: Array<{ skip: number; sort: Record<string, string> }> =
+      await notesReads(page);
+    expect(reads[reads.length - 1]).toEqual({
+      skip: 25,
+      sort: { createdAt: "ASC" },
+    });
+    await expect(sort).toHaveText("Oldest first");
+  });
+
+  test("Load more with the focus as the sort locks it: the focus waits in the feed - never on the page - and is back on Load more once the notes are in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-sort-held" });
+    const cards: Locator = page.getByTestId("note-card");
+    await expect(cards).toHaveCount(25, { timeout: 30000 });
+    const feed: Locator = page.getByTestId("notes-feed-body");
+    const sort: Locator = page.getByTestId("notes-sort");
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.focus();
+
+    // Counts each change to the page that left the focus on the page itself.
+    await page.evaluate((): void => {
+      const tracked: Window & { focusFellToPage?: number } = window;
+      tracked.focusFellToPage = 0;
+      new MutationObserver((): void => {
+        if (document.activeElement === document.body) {
+          tracked.focusFellToPage = (tracked.focusFellToPage || 0) + 1;
+        }
+      }).observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["disabled"],
+      });
+    });
+
+    // A press that leaves the focus where it was, as a click does in Safari.
+    await sort.dispatchEvent("click");
+    await expect(loadMore).toBeDisabled();
+    await expect(feed).toBeFocused();
+
+    await releaseTheSort(page);
+    await expect(sort).toHaveText("Oldest first");
+    await expect(loadMore).toBeEnabled();
+    await expect(loadMore).toBeFocused();
+    await expect(feed).not.toHaveAttribute("tabindex");
+    expect(
+      await page.evaluate((): number => {
+        return (window as Window & { focusFellToPage?: number })
+          .focusFellToPage as number;
+      }),
+      "changes to the page that left the focus on the page itself",
+    ).toBe(0);
+
+    // Enter: the next page of the sorted notes.
+    await page.keyboard.press("Enter");
+    await expect(cards).toHaveCount(28);
+  });
+
+  test("in the dark theme, Load more is locked in the same look while the sort's notes are on their way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, {
+      caseSetup: "notes-sort-held",
+      theme: "dark",
+    });
+    await expect(page.getByTestId("note-card")).toHaveCount(25, {
+      timeout: 30000,
+    });
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+
+    await page.getByTestId("notes-sort").click();
+    await expect(loadMore).toBeDisabled();
+    await expect(loadMore).toHaveCSS("opacity", "0.5");
+    await expect(loadMore).toHaveCSS("cursor", "not-allowed");
+    await loadMore.scrollIntoViewIfNeeded();
+    await screenshot(page, "case-notes-sort-held-1280-dark", {
+      fullPage: false,
+    });
+
+    await releaseTheSort(page);
+    await expect(loadMore).toBeEnabled();
   });
 });
 

@@ -139,17 +139,19 @@ OneUptime ger varje utvärderat SLO en status:
 | **Felfri** | Mer budget finns kvar än tröskeln för riskzon. |
 | **I riskzonen** | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard. |
 | **Budget förbrukad** | Budgeten är helt förbrukad, eller överskriden. |
-| **Felkonfigurerad** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre, ingenting har kontrollerat dem än eller de har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. Ett SLO för begäranden är felkonfigurerat utan tjänster, utan latensgräns eller innan dess tjänster har besvarat en begäran i fönstret. |
+| **Väntar** | Inget har kontrollerat dess monitorer ännu: en monitor som skapades för en minut sedan, eller en egenhostad sond som inte är ansluten. Det mäts från deras första kontroll. |
+| **Felkonfigurerad** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre eller har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. Ett SLO för begäranden är felkonfigurerat utan tjänster, utan latensgräns eller innan dess tjänster har besvarat en begäran i fönstret. |
 | **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av schemalagt underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
 
-Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **I riskzonen** eller **Budget förbrukad**: se [Felbudgetar](/docs/slo/error-budget).
+Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **I riskzonen** eller **Budget förbrukad**: se [Felbudgetar](/docs/slo/error-budget). En regel kan också publicera statusändringar i Slack, Microsoft Teams eller Mattermost: se [Statusändringar](/docs/slo/error-budget-policy#statusändringar).
 
 ## SLO-listan
 
 Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återstående budget, förbrukningstakt, mål, fönster, monitorer, etiketter och ägare. Kolumnen **Vad den mäter** visar tjänsterna för ett SLO för begäranden där den visar monitorerna för ett drifttids-SLO, och filtret **Tjänster** hittar de SLO:er som mäter en tjänst.
 
-- Rutorna ovanför listan räknar SLO:er per status: **Felfri**, **I riskzonen**, **Budget förbrukad**, **Felkonfigurerad**, **Pausad** och **Inaktiverad**. De visas så snart det finns ett SLO som inte är arkiverat. Klicka på en ruta för att bara se de SLO:erna, och igen för att se alla.
-- Markera SLO:er för att lägga till eller ta bort etiketter och ägare, aktivera eller inaktivera dem, ge dem de [rekommenderade reglerna för förbrukningstakt](/docs/slo/burn-rate-alerts#lägg-till-dem-i-många-sloer-på-en-gång) som de saknar, arkivera dem eller radera dem, alla på en gång.
+- Rutorna ovanför listan räknar SLO:er per status: **Felfri**, **I riskzonen**, **Budget förbrukad**, **Väntar**, **Felkonfigurerad**, **Pausad** och **Inaktiverad**. De visas så snart det finns ett SLO som inte är arkiverat. Klicka på en ruta för att bara se de SLO:erna, och igen för att se alla.
+- Markera SLO:er för att lägga till eller ta bort etiketter och ägare, aktivera eller inaktivera dem, ge dem de [rekommenderade reglerna för förbrukningstakt](/docs/slo/burn-rate-alerts#lägg-till-dem-i-många-sloer-på-en-gång) som de saknar eller den [rekommenderade felbudgetpolicyn](/docs/slo/error-budget-policy#den-rekommenderade-policyn), arkivera dem eller radera dem, alla på en gång.
+- Filtret **Distributioner** visar de SLO:er vars felbudgetpolicy fryser distributioner just nu, eller dem där den tillåter dem. Visa kolumnen **Distributioner** från listans kolumnväljare för att se sedan när vart och ett är fryst: se [Distributionsspärr](/docs/slo/error-budget-policy#distributionsspärr).
 - Sidomenyns avsnitt **Inställningar** innehåller **Etikettregler** och **Ägarregler**, som sätter etiketter på nya SLO:er och ger dem ägare: se [Etikett- och ägarregler](/docs/slo/label-and-owner-rules).
 - Sidomenyns avsnitt **Avancerad** innehåller **Arkiverad**, listan över arkiverade SLO:er.
 

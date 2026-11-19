@@ -252,7 +252,7 @@ Alcune modifiche risolvono sempre ciò che una regola ha aperto, qualunque cosa 
 - cambiare **Quando scatta** per togliere l'avviso o l'incidente chiude ciò che quell'uscita aveva aperto;
 - disattivare la regola o eliminarla;
 - disattivare la valutazione dello SLO, archiviare lo SLO o eliminarlo;
-- il passaggio dello SLO a **In pausa** o **Configurato male**, perché allora non misura nulla;
+- il passaggio dello SLO a **In attesa**, **In pausa** o **Configurato male**, perché allora non misura nulla;
 - la perdita della soglia o delle finestre della regola, o il fatto che lo SLO non abbia più una finestra lunga completa di cronologia.
 
 ## Manutenzione programmata

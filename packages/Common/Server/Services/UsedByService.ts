@@ -20,6 +20,7 @@ import CloudResourceOwnerTeam from "../../Models/DatabaseModels/CloudResourceOwn
 import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import DashboardOwnerTeam from "../../Models/DatabaseModels/DashboardOwnerTeam";
 import DataAssetOwnerTeam from "../../Models/DatabaseModels/DataAssetOwnerTeam";
+import DataPipelineOwnerTeam from "../../Models/DatabaseModels/DataPipelineOwnerTeam";
 import DataStoreOwnerTeam from "../../Models/DatabaseModels/DataStoreOwnerTeam";
 import DatabaseServerOwnerTeam from "../../Models/DatabaseModels/DatabaseServerOwnerTeam";
 import DockerHostOwnerTeam from "../../Models/DatabaseModels/DockerHostOwnerTeam";
@@ -146,6 +147,7 @@ import CloudBudgetService from "./CloudBudgetService";
 import CloudResourceService from "./CloudResourceService";
 import DashboardService from "./DashboardService";
 import DataAssetService from "./DataAssetService";
+import DataPipelineService from "./DataPipelineService";
 import DataStoreService from "./DataStoreService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseService from "./DatabaseService";
@@ -1206,6 +1208,14 @@ export const TEAM_OWNED_OTHER_PLANS: Array<
     ownerTeamModel: DataAssetOwnerTeam,
     ownerColumn: "dataAssetId",
     rowKind: UsedByRowKind.DataAsset,
+  }),
+  ownedByTeam({
+    service: asService(DataPipelineService),
+    ownerTeamModel: DataPipelineOwnerTeam,
+    ownerColumn: "dataPipelineId",
+    rowKind: UsedByRowKind.DataPipeline,
+    // A pipeline has no name of its own: it is its OpenLineage job's.
+    namedBy: { nameColumn: "jobName" },
   }),
   ownedByTeam({
     service: asService(ProbeService),

@@ -86,6 +86,7 @@ import { ComponentArgument } from "Common/Types/Dashboard/DashboardComponents/Co
 import { DataSourceValueReduce } from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceValueComponent";
 import { DashboardValueTrendDirection } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES } from "Common/Types/Dashboard/PublicDashboardServedSettings";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import {
   DashboardTemplate,
@@ -1098,6 +1099,7 @@ describe("Authoring a Dashboard, against the product", () => {
 
     for (const control of [
       "Editing",
+      "Unsaved changes",
       "Add Widget",
       "Variables",
       "Cancel",
@@ -1146,16 +1148,37 @@ describe("Authoring a Dashboard, against the product", () => {
     expect(view).toContain("<LeaveWithoutSavingQuestion");
     expect(view).toContain("prompt={leavePrompt}");
     expect(question).toContain('title={"Leave without saving?"}');
-    expect(question).toContain('submitButtonText={"Discard Changes"}');
     expect(question).toContain('closeButtonText={"Keep Editing"}');
+    /*
+     * Save Changes, the board's own save, then on - only once it worked
+     * (issue #7402) - and Discard Changes beside it.
+     */
+    expect(question).toContain(
+      'submitButtonText={isSaving ? "Saving..." : "Save Changes"}',
+    );
+    expect(question).toContain('title="Discard Changes"');
+    expect(question).toContain(
+      "await props.prompt.saveAndLeave(onSaveChanges);",
+    );
+    expect(view).toContain("onSaveChanges={saveChanges}");
     expect(editAndSave).toContain(
       `A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open ${bold(
         "Leave without saving?",
-      )} with the same two choices: ${bold(
+      )} with three choices: ${bold(
+        "Save Changes",
+      )} saves the dashboard and then goes on to the page you were opening, ${bold(
         "Keep Editing",
       )} stays on the dashboard with your changes, and ${bold(
         "Discard Changes",
-      )} goes on to the page you were opening.`,
+      )} goes on without saving. If the save is refused, you stay on the dashboard, and the question says why.`,
+    );
+    // The toolbar says so while there is something to save (issue #7403).
+    expect(toolbar).toContain('text="Unsaved changes"');
+    expect(toolbar).toContain("props.hasUnsavedChanges ? (");
+    expect(editAndSave).toContain(
+      `Once you change something, the toolbar says ${bold(
+        "Unsaved changes",
+      )} where it said ${bold("Editing")}.`,
     );
     expect(editAndSave).toContain(
       "Closing or reloading the tab asks with your browser's own dialog.",
@@ -1822,6 +1845,26 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     );
     expect(section).toContain(
       "(/docs/rum/product-analytics#saved-funnels-and-retention-tables)",
+    );
+
+    /*
+     * Issue #6717: their numbers count an application's end users, so a
+     * public dashboard serves both only their titles, and the section says
+     * so, as the widget's editor does.
+     */
+    for (const componentType of [
+      DashboardComponentType.ProductAnalyticsFunnel,
+      DashboardComponentType.ProductAnalyticsRetention,
+    ]) {
+      expect(
+        PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.includes(componentType),
+      ).toBe(true);
+    }
+    expect(section).toContain(
+      "Seeing it takes what seeing the page takes. A public dashboard shows only its title: its numbers count your application's end users.",
+    );
+    expect(catalogCategory("Product Analytics").description).toContain(
+      "Not available on public dashboards.",
     );
   });
 

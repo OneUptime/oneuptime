@@ -78,7 +78,7 @@ As mudanças em quem se reveza esperam até você salvá-las, para você poder f
 - Cada camada e o agendamento final mostram a rotação como ela vai ficar. O agendamento final fica marcado com **Inclui alterações não salvas**.
 - Uma barra no rodapé da página lista as mudanças, com **Salvar alterações** e **Descartar**.
 
-**Salvar alterações** salva todas as mudanças de uma vez. Quem está de plantão é então calculado uma única vez, para as camadas como foram salvas: quem entra ou sai do plantão, ou é o próximo, é avisado uma vez, e não uma vez por mudança. **Descartar** devolve as camadas ao estado em que foram salvas pela última vez. Sair da página antes de salvar pergunta primeiro: **Continuar Editando** fica na página, **Descartar alterações** sai sem salvar.
+**Salvar alterações** salva todas as mudanças de uma vez. Quem está de plantão é então calculado uma única vez, para as camadas como foram salvas: quem entra ou sai do plantão, ou é o próximo, é avisado uma vez, e não uma vez por mudança. **Descartar** devolve as camadas ao estado em que foram salvas pela última vez. Sair da página antes de salvar pergunta primeiro: **Salvar alterações** salva e depois sai, **Continuar Editando** fica na página, e **Descartar alterações** sai sem salvar.
 
 Se outra pessoa alterou as camadas depois que você abriu a página, suas mudanças não são salvas por cima das dela. A barra avisa, e **Recarregar camadas** mostra as camadas como estão agora, para você refazer suas mudanças. **Adicionar camada** adiciona a camada na hora, e as configurações de uma camada são salvas com o próprio botão **Salvar camada**.
 

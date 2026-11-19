@@ -37,6 +37,8 @@ import PipelineViewLayout from "../Pages/DataPipeline/View/Layout";
 import PipelineOverviewPage from "../Pages/DataPipeline/View/Overview";
 import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommendations";
 import DataPipelineAuditLogsPage from "../Pages/DataPipeline/View/AuditLogs";
+import DataPipelineOwnersPage from "../Pages/DataPipeline/View/Owners";
+import DataObservabilityIssuesPage from "../Pages/DataObservability/Issues";
 import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
 import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
 import DataObservabilitySettingsPage from "../Pages/DataObservability/Settings";
@@ -101,6 +103,11 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
         {page(PageMap.DATA_OBSERVABILITY_OVERVIEW, (pageRoute: Route) => {
           return (
             <DataObservabilityOverviewPage {...props} pageRoute={pageRoute} />
+          );
+        })}
+        {page(PageMap.DATA_OBSERVABILITY_ISSUES, (pageRoute: Route) => {
+          return (
+            <DataObservabilityIssuesPage {...props} pageRoute={pageRoute} />
           );
         })}
         {page(PageMap.DATA_OBSERVABILITY_TABLES, (pageRoute: Route) => {
@@ -453,6 +460,22 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS,
+          )}
+          element={
+            <DataPipelineOwnersPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS
                 ] as Route
               }
             />

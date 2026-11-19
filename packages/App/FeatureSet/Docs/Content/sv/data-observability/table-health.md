@@ -17,6 +17,8 @@ Bara katalogen läses, och i MongoDB fältnamnen i en samlings nyaste dokument. 
 
 En tabells **rytm** är hur ofta den brukar ändras, inlärd från tiden mellan dess ändringar. En tabell som går en bra bit förbi sin rytm visas som **Sen**, på sin sida och under **Tabeller**, och skriver hur långt förbi den är. Dess aktualitet är känd när den har ändrats två gånger: en tabell som laddas varje timme lärs in inom några timmar, en som laddas varje natt inom några dagar.
 
+I **Tabeller**, och på fliken **Tabeller** för en databas, visar filtret **Färskhet** bara de sena tabellerna, eller bara de färska, och sortering efter **Färskhet** sätter de mest försenade först. **Sena tabeller** på **Översikt**, och på en databas egen sida, öppnar den listan med **Färskhet** satt till **Sen**.
+
 En vy har inga egna rader, så dess aktualitet är dess källors aktualitet: se [Härkomst och pipelines](/docs/data-observability/lineage-and-pipelines).
 
 En katalog kan säga att en tabell ändrades när bara dess underhåll gjorde det, eller inte säga något alls. Ange under en tabells **Inställningar** en **Aktualitetskolumn** som `updated_at`, så blir dess senaste ändring den kolumnens nyaste värde. Inloggningen måste få läsa kolumnen, och den läses vid varje insamling, så den bör vara indexerad; i BigQuery och Athena, som debiterar efter vad en fråga läser, läses den en gång i timmen. Tider utan zon tolkas som UTC.
@@ -85,11 +87,11 @@ En tabells flik **Ägare** namnger de personer och team den tillhör, och en tab
 
 Du ska inte behöva göra det hundratals gånger. **Ägarregler** och **Etikettregler** gäller för varje tabell när den först dyker upp, matchade på dess etiketter, eller på ett reguljärt uttryck för dess namn, schema eller databas: allt i `finance` går till ekonomiteamet, och allt som heter `*_pii` får en etikett.
 
-En behörighet begränsad till `Owned` når bara de tabeller som dess innehavare eller innehavarens team äger, med deras kontroller, aktivitet och rapporterade problem. Att äga en databas gör dig inte till ägare av dess tabeller: använd en ägarregel för att ge ett team en hel databas.
+En behörighet begränsad till `Owned` når bara de tabeller som dess innehavare eller innehavarens team äger, med deras kontroller, aktivitet och rapporterade problem. Att äga en databas gör dig inte till ägare av dess tabeller: använd en ägarregel för att ge ett team en hel databas. **Översikt**, **Problem** och talet vid **Översikt** räknar och visar bara de tabeller som en sådan behörighet når, precis som **Tabeller** och **Kontroller** gör.
 
 ## När ett larm öppnas
 
-Ett tabellarm har ett kort **Data** som säger varför det troligast hände, rangordnat: ett larm uppströms, en misslyckad körning, en driftsättning av en tjänst som skriver till den, dess misslyckade skrivningar, en kolumn som ändrades, databasen själv eller servern den körs på. Under det står vad som beror på den: tabeller nedåt i dess härkomst, instrumentpaneler, tjänster och de personer som äger dem.
+Ett tabellarm har ett kort **Data** som säger varför det troligast hände, rangordnat: ett larm uppströms, en misslyckad körning, en driftsättning av en tjänst som skriver till den, dess misslyckade skrivningar, en kolumn som ändrades, databasen själv eller servern den körs på. Under det står vad som beror på den: tabeller nedåt i dess härkomst, instrumentpaneler, tjänster och de personer som äger dem. Precis som larmets kort **Härkomst** berättar det bara om de tabeller och pipelines som din roll får läsa.
 
 Säg vad du drog för slutsats:
 

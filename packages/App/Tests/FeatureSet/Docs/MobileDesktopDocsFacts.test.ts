@@ -1070,18 +1070,22 @@ describe("what the mobile app keeps and shows", () => {
 
     /*
      * The Inbox's category and Home's row show only when the project's
-     * cases can be counted: a role without them is refused the count.
+     * cases can be counted: a role without them is refused the count. The
+     * Inbox decides its categories in isInboxCategoryShown, which also
+     * leaves Security out while the server has Security Events switched
+     * off (#7478).
      */
     expect(inbox).toContain('{ key: "security", label: "Security",');
     expect(inbox).toContain(
-      'category.key !== "security" || security.isAvailable ||',
+      '(data.isSecurityAvailable || data.requestedView === "security")',
     );
+    expect(inbox).toContain("isSecurityAvailable: security.isAvailable,");
     expect(home).toContain(
       '{securityCounts.isAvailable ? ( <ListGroup testID="home-security"',
     );
     expect(home).toContain('label="Open security cases"');
     expect(availability).toContain(
-      "isAvailable: Boolean(projectId) && (query.data ?? 0) > 0,",
+      "isAvailable: Boolean(projectId) && !isSwitchedOff && (query.data ?? 0) > 0,",
     );
     expect(mobile("src/api/securityCases.ts")).toContain(
       '"/api/security-case/count",',

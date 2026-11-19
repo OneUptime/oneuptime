@@ -60,7 +60,7 @@ Ange **Domännamn**, som `example.com`. Låt **Uppslagsmetod** stå på **Auto**
 
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar registreringsposten som sonden läste, och om RDAP eller WHOIS svarade.
+Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar registreringsposten som sonden läste, och om RDAP eller WHOIS svarade. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 

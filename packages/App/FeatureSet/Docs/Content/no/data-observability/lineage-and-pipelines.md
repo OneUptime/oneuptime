@@ -23,6 +23,8 @@ Der kilden oppgir kolonner, sier fanen **Kolonner** for en tabell hvor hver kolo
 
 Velg i fanen **Opphav** en av tabellens kolonner i **Følg en kolonne** for å utheve hvor den kommer fra og hvor den går: opp i diagrammet til kolonnene den er bygget fra, ned til kolonnene som er bygget fra den, hver navngitt på sin tabell, også der kolonnen fikk nytt navn underveis. En pil der kildene ikke oppgir kolonner, kan føre den lenger enn det som er uthevet, og diagrammet sier fra om det.
 
+Hver visning av opphav - fanen **Opphav** for en tabell, for en pipeline og for et varsel, **Opphavskart** og det OneUptime AI og API-et forteller - viser bare tabellene og pipelinene rollen din kan lese. En rolle som er begrenset til det medlemmene eier, eller til noen etiketter, ser aldri en annen tabell eller pipeline: den tegnes ikke, nevnes ikke på noen pil og telles ikke med blant tabellene lenger unna.
+
 ## Opphavskart
 
 **Dataobserverbarhet > Opphavskart** tegner hver dataflyt prosjektet ditt har sett, på én side, så du kan se hvem som bruker hvilke data og hvor de flyter, uten først å velge en tabell. Det viser:
@@ -30,13 +32,13 @@ Velg i fanen **Opphav** en av tabellens kolonner i **Følg en kolonne** for å u
 - **Tjenester** som skriver til og leser tabeller, fra databasespannene i sporene dine: et spann som navngir tabellen sin (`db.collection.name`, eller den eldre `db.sql.table`) og setningen sin (`db.operation.name`), for eksempel en `INSERT` eller en `SELECT`.
 - **Tabeller** som er bygget av andre tabeller, fra alle kildene over.
 - **Pipelines** som laster en tabell fra data OneUptime ikke overvåker, for eksempel en Fivetran-synkronisering. En pipeline som flytter data mellom to overvåkede tabeller, er navngitt på pilen mellom dem.
-- **Dashbord** og reverse ETL-synkroniseringer i BI-verktøyene dine, som leser tabellene de er bygget på.
+- **Dashbord** og reverse ETL-synkroniseringer i BI-verktøyene dine, som leser tabellene de er bygget på, også når ingenting annet berører de tabellene. En Power BI-rapport som ikke er bygget på noen tabell OneUptime overvåker, tegnes med datasettene den viser og datakildene de laster fra; når ingen av dashbordene til et BI-verktøy står på en overvåket tabell, sier kartet hvorfor ([Avstamning i Power BI](#avstamning-i-power-bi)).
 
 Hver pil er noe OneUptime har registrert, aldri et gjett. Kortene står fra venstre mot høyre slik dataene flyter, og sier hvordan de har det, som på en tabells diagram: rødt for en sen tabell, et åpent varsel eller en mislykket kjøring. En pil er blågrønn der sporene til en tjeneste har sett den.
 
 Søk etter en tabell, tjeneste, pipeline eller dashbord for å beholde det som samsvarer, og alt oppstrøms og nedstrøms for det. Velg et kort for å utheve hele opphavet, se hva det kommer fra og hva det går til, og åpne siden; **Vis bare opphavet** lar bare det stå igjen på kartet. Bryterne ved siden av søket lar tjenester, pipelines eller dashbord stå av. **Liste** viser hver pil som en linje, og er det en telefon åpner med.
 
-Ett kart tegner opptil 400 kort, de sist sette flytene først; når prosjektet ditt har flere, sier kartet fra om det. Det samme kartet leveres av `POST /api/data-observability/lineage/map`, til alle som kan lese dataressurser, og API-nøklene deres.
+Ett kart tegner opptil 400 kort, de sist sette flytene først; når prosjektet ditt har flere, sier kartet fra om det. Det samme kartet leveres av `POST /api/data-observability/lineage/map`, til alle som kan lese dataressurser, og API-nøklene deres. Et kart med flere sier hvor mange tabeller det har utelatt, hver telt én gang, og kan begynne et annet sted: velg en database for å kartlegge flytene til tabellene i den og kortene de forbinder, eller skriv et navn og velg **Søk i hele prosjektet** for å kartlegge flytene til hver tabell, pipeline, tjeneste og dashbord med det i navnet, uansett hvor gamle de er. **Vis hele kartet** går tilbake. Send `{ "dataStoreId": "<database ID>" }` eller `{ "search": "orders" }` for å la API-ets kart begynne et annet sted.
 
 ## OpenLineage
 
@@ -97,7 +99,7 @@ Den virkelige følgen av dårlige data er dashbordet noen åpner. Under **BI-das
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en tjenestekontohaver (service principal) som kan bruke Power BIs skrivebeskyttede administrator-API-er. Både rapporter og dashbord leses, med visninger og oppdateringer (nedenfor) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en tjenestekontohaver (service principal) som kan bruke Power BIs skrivebeskyttede administrator-API-er, med de to leierinnstillingene for metadata fra [Avstamning i Power BI](#avstamning-i-power-bi) slått på for tabellene bak hver rapport. Både rapporter og dashbord leses, med visninger og oppdateringer (nedenfor) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (eller `eu`) |
 
@@ -136,7 +138,9 @@ Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, 
 - **Pipeline Run Unusually Long**: en kjøring har tatt dobbelt så lang tid som vanlig eller mer, sjekket hvert femte minutt mens den kjører, så en kjøring som henger, oppdages før den er ferdig.
 - **Pipeline Is Late**: ingen kjøring har startet på lengre tid enn tidsplanen tillater.
 
-Siden for en pipeline har kortet **Opphav**, det første stedet å se når en kjøring feiler eller er forsinket: til venstre tabellene den leser, til høyre tabellene den skriver, pipelinen imellom, og hvert kort viser hvordan det står til nå. Velg flere trinn for å se hva disse tabellene er bygget fra, og hva som er bygget fra dem, og åpne en hvilken som helst tabell for å se dens egen fane **Opphav**. Et tall for tabeller som ikke er tegnet, på pipelinens kort eller en tabells, tegner flere av dem på stedet her også.
+Fanen **Eiere** for en pipeline nevner personene og teamene som tar seg av den, og varslene dens går til dem. **Oversikt** og **Problemer** nevner eierne av en pipeline som feilet eller er sen, eller viser **Ingen eier**, med en måte å legge til en på.
+
+Siden for en pipeline har kortet **Opphav**, det første stedet å se når en kjøring feiler eller er forsinket: til venstre tabellene den leser, til høyre tabellene den skriver, pipelinen imellom, og hvert kort viser hvordan det står til nå. Velg flere trinn for å se hva disse tabellene er bygget fra, og hva som er bygget fra dem, og åpne en hvilken som helst tabell for å se dens egen fane **Opphav**. Et tall for tabeller som ikke er tegnet, på pipelinens kort eller en tabells, tegner flere av dem på stedet her også. Velg en av kolonnene den skriver for å følge den gjennom pipelinen: opp til kolonnen i hver tabell den leser som den er bygget fra, og ned til hver tabell den skriver den til.
 
 ## Én sak per årsak
 
@@ -147,9 +151,33 @@ Når en tabell blir utdatert, blir hver tabell som er bygget fra den, også utda
 
 **Data**-kortet til årsaken viser **Påvirkning nedstrøms**: hvert varsel den forårsaket. Kortet for et tabellvarsel viser også tjenestene som skriver til tabellen, med de mislykkede skrivingene deres, og utrullingene og andre endringer deres i døgnet før varselet.
 
-Under **Data**-kortet har siden for et varsel kortet **Opphav**: opphavet rundt tabellen, slik fanen **Opphav** for tabellen tegner det, eller rundt pipelinen. Veien opp til varselet som forårsaket det, og ned til hvert varsel det forårsaket, er uthevet - tabellen eller pipelinen til årsaken merket **Årsak**, den til hvert forårsaket varsel merket **Følge** - og resten tones ned, slik at den som åpner det, ser hvor i kjeden problemet startet. Ligger årsaken på en pipeline som er tegnet på en pil, står det **Årsak** under navnet på pipelinen på pilen. Gjelder årsaken en hel database, eller ligger den lenger opp enn diagrammet når, sier kortet det med ord. Et varsel fra en kontroll av én kolonne, som en kontroll av typen Andel NULL på `customer_id`, åpnes med den kolonnen fulgt ved siden av disse veiene, som i fanen **Opphav** for tabellen: hvor den kommer fra og hvor den går, navngitt på hver tabell. Velg en annen av tabellens kolonner der, eller fjern den for å se bare veiene. **Utforsk opphav** åpner fanen **Opphav** for tabellen, eller siden for pipelinen.
+Under **Data**-kortet har siden for et varsel kortet **Opphav**: opphavet rundt tabellen, slik fanen **Opphav** for tabellen tegner det, eller rundt pipelinen. Veien opp til varselet som forårsaket det, og ned til hvert varsel det forårsaket, er uthevet - tabellen eller pipelinen til årsaken merket **Årsak**, den til hvert forårsaket varsel merket **Følge** - og resten tones ned, slik at den som åpner det, ser hvor i kjeden problemet startet. Ligger årsaken på en pipeline som er tegnet på en pil, står det **Årsak** under navnet på pipelinen på pilen. Gjelder årsaken en hel database, eller ligger den lenger opp enn diagrammet når, sier kortet det med ord. Et varsel fra en kontroll av én kolonne, som en kontroll av typen Andel NULL på `customer_id`, åpnes med den kolonnen fulgt ved siden av disse veiene, som i fanen **Opphav** for tabellen: hvor den kommer fra og hvor den går, navngitt på hver tabell. Velg en annen av tabellens kolonner der, eller fjern den for å se bare veiene. **Utforsk opphav** åpner fanen **Opphav** for tabellen, eller siden for pipelinen. Et forårsaket varsel på en pipeline som er tegnet på en pil, sier **Følge** der på samme måte, og kolonnevelgeren tilbyr først kontrollens kolonne og deretter tabellens andre kolonner i dens egen rekkefølge.
 
 Den som ikke har tilgang til varselet som forårsaket det, får verken **Data**-kortet eller opphavet, og et forårsaket varsel vedkommende ikke har tilgang til, blir verken uthevet eller talt med.
+
+## Avstamning i Power BI
+
+**Samsvarende tabeller** på hvert BI-verktøy sier hvor mange overvåkede tabeller dashbordene er bygget på, og under det det første som hindrer resten i å samsvare. **See Why** viser hva den siste lesingen fant, og hva du skal gjøre: databaser som dashbordene dine leser, og som ikke er koblet til OneUptime, hver bare én **Connect Database** unna, med type og adresse fylt ut; tabeller som en tilkoblet database ikke overvåker, og som kan være utelatt fra skanningen eller ikke samlet inn ennå; og kilder som ikke er en database, som filer og nettsider. For Power BI nevner den også en leierinnstilling som er slått av, datasett som leser fra dataflyter, og datasett Power BI ikke kan beskrive. **Bygger på** for hvert dashbord sier hvilke datasett det viser, og hvor dataene deres kommer fra, slik Power BI oppgir det.
+
+OneUptime leser hvert Power BI-datasett fra Power BIs metadataskanning, med Power Query bak hver av tabellene:
+
+- **Databasen en kobling nevner**: SQL Server og Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena og Microsoft Dataverse, og skjemaet og tabellen navigasjonen velger.
+- **SQL en spørring kjører**: alternativet **SQL statement** i en kobling, `Value.NativeQuery` og `Odbc.Query`, og tabellene etter hver `FROM` og `JOIN`.
+- **Parametere og delte spørringer**: en parameter gjelder overalt der den nevnes, og en tabell som leser en staging-spørring, leser det den spørringen leser.
+- **Sammensatte modeller** viser tabellene i datasettene de er bygget på.
+
+En rapport viser tabellene i datasettet sitt, og et dashbord tabellene i datasettene bak flisene sine. Hvor dataene kommer fra - serveren og navnet til en database, banen til en fil, en nettadresse - kommer fra datakildene i skanningen, som ikke trenger noe mer enn administrator-API-tilgangen ovenfor.
+
+Power BI returnerer tabellene til et datasett først når en Fabric-administrator slår på to leierinnstillinger i administrasjonsportalen, under **Tenant settings > Admin API settings**, for sikkerhetsgruppen som tjenestekontohaveren er med i:
+
+- **Enhance admin APIs responses with detailed metadata**: tabellene i hvert datasett.
+- **Enhance admin APIs responses with DAX and mashup expressions**: spørringene som laster dem, og som sier hvilke databasetabeller de leser.
+
+Power BI beskriver så et datasett når det er oppdatert eller publisert på nytt; et som bare bruker DirectQuery, når noen har åpnet en rapport på det. Det beskriver aldri sanntidsdatasett, datasett med direkte tilkobling til Analysis Services, Excel-arbeidsbøker eller datasett over 1 GB på delt kapasitet. Et datasett som leser fra en dataflyt, leses frem til dataflyten: OneUptime leser ennå ikke hvilke tabeller en dataflyt laster.
+
+Hver tabell samsvares med en overvåket tabell etter navn, skjema og database, og en server etter det korte eller det fulle navnet. En tabell fra en annen databasemotor samsvares aldri, og heller ikke en i en annen database: en rapport på `Sales.dbo.Orders` knyttes ikke til `Archive.dbo.Orders`, fordi bare `Archive` overvåkes.
+
+[Oppdateringer](#visninger-og-oppdateringer-i-power-bi) leses atskilt fra tabellene: en melding om at oppdateringene til noen datasett ikke kunne leses, sier ingenting om tabellene deres.
 
 ## Før en endring slås sammen
 

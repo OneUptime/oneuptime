@@ -22,6 +22,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { withoutRefusals } from "./RouteRefusals";
 
 // Avoid the unrelated PasswordHash TS5.9 Buffer/BinaryLike compile failure.
 jest.mock("../../../Server/Utils/PasswordHash", () => {
@@ -126,9 +127,10 @@ describe("the monitor group's monitoring routes", () => {
     "/monitor-group/turn-monitoring-off/:monitorGroupId",
     "/monitor-group/turn-monitoring-on/:monitorGroupId",
   ])("%s is a POST for a signed-in caller", (route: string) => {
-    expect(mockRouter.match("post", route).middlewares).toEqual([
-      UserMiddleware.getUserMiddleware,
-    ]);
+    // Its chain as it was, beside the refusal while its product is off (#7479).
+    expect(
+      withoutRefusals(mockRouter.match("post", route).middlewares),
+    ).toEqual([UserMiddleware.getUserMiddleware]);
   });
 
   it("monitoring-summary answers the group's counts, read as the caller", async () => {

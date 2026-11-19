@@ -6,7 +6,7 @@ Actualice una instalación autoalojada de OneUptime – con Docker Compose, o co
 - [Cómo actualizar](#cómo-actualizar): El procedimiento, para Docker Compose y Kubernetes.
 - [Notas de cada versión](#encuentre-las-notas-de-su-versión): Lo que cada versión principal le pide, de un vistazo.
 - [Imágenes de la Community Edition y la Enterprise Edition](#imágenes-de-la-community-edition-y-la-enterprise-edition): Qué imagen ejecutar a partir de la 14.
-- [Actualización de OneUptime 15 → 16](#actualización-de-oneuptime-15-16): La versión principal más reciente.
+- [Actualización de OneUptime 16 → 17](#actualización-de-oneuptime-16-17): La versión principal más reciente.
 :::
 
 ## Cómo actualizar
@@ -80,6 +80,7 @@ Después compruebe de nuevo su versión, como en el primer paso. Si todavía no 
 
 | Actualización | Lo que debe hacer |
 | --- | --- |
+| [16 → 17](#actualización-de-oneuptime-16-17) | En los scripts de API, mover una fila con su solicitud de movimiento en lugar de escribir su `order`, y añadir una fila en medio de una lista creándola y luego moviéndola. Terraform y OpenTofu no necesitan ningún cambio. |
 | [15 → 16](#actualización-de-oneuptime-15-16) | Actualizar el proveedor de Terraform junto con el servidor, y quitar de las lecturas de la API los tokens bearer de SCIM, las direcciones de webhook y las credenciales SNMP que la 16 ya no devuelve. Actualizar sus Runners. Sustituir pronto cada servidor de la 15, y volver a la versión anterior solo en el plazo de un día. |
 | [14 → 15](#actualización-de-oneuptime-14-15) | Copiar primero la clave API maestra si la lee en el panel de administración. Actualizar el proveedor de Terraform junto con el servidor, y quitar de las lecturas de la API las credenciales que la 15 ya no devuelve. Detrás de un proxy, dejar que llegue a su proveedor de identidad, sus calendarios, sus servidores MCP y el almacenamiento de sus copias de seguridad. Revisar los monitores de solicitudes entrantes que reciben texto plano. Sustituir pronto cada servidor de la 14. |
 | [13 → 14](#actualización-de-oneuptime-13-14) | Elegir una edición. Las instalaciones de Docker Compose que definen `IS_ENTERPRISE_EDITION=true` pasan a `APP_TAG=enterprise-release`. Activar una licencia en la edición Enterprise. Volver a guardar los monitores IPv6 Ping, Port y SSL. Las correcciones de código con IA pasan al Runner global: mantenerlo activado y, en Helm, mover `runner.keda` a `globalRunner.keda`. |
@@ -124,6 +125,25 @@ Para usted no cambia nada. OneUptime Cloud ejecuta la edición Enterprise, y su 
 - Las instalaciones autoalojadas ya no sirven los endpoints del servidor de licencias bajo `/api/enterprise-license/`. Solo oneuptime.com los usa.
 - Los endpoints de SCIM mantienen sus rutas exactas en la edición Enterprise, así que la configuración del proveedor de identidad no cambia. En la edición Community devuelven `404`. En la edición Enterprise rechazan las peticiones mientras la licencia está vencida (después de la prueba o del periodo de gracia), y vuelven a responder en cuanto se activa una licencia.
 - Los endpoints de SSO y OIDC (las URL de inicio de sesión y ACS de SAML, las URI de redirección de OIDC y los endpoints del SSO global) mantienen sus rutas exactas y los sirven ambas ediciones en cualquier estado de la licencia.
+
+## Actualización de OneUptime 16 → 17
+
+OneUptime 17 permite que Terraform y OpenTofu numeren una lista en un solo apply. Cinco listas se numeran por `order`: los grupos y los recursos de una página de estado, las reglas de escalado de una política de guardia, las capas de una programación de guardia y las personas de una capa. Escribir el `order` de una fila la movía, y las filas por las que pasaba se apartaban. Terraform y OpenTofu numeran una lista con una escritura por fila, sin un orden fijo, así que un apply nunca se estabilizaba: el siguiente plan mostraba diferencias nuevas, entre ellas dos filas con el mismo número. Ahora escribir `order` coloca solo su propia fila, y mover una fila es una solicitud aparte. Actualice desde la 16 – si todavía está en la 15, haga primero 15 → 16.
+
+Terraform y OpenTofu no necesitan ningún cambio: el proveedor envía solo los atributos que cambiaron, así que las versiones del proveedor ya publicadas se estabilizan en cuanto se actualiza el servidor. El siguiente apply coloca cada fila en el número configurado, y el plan posterior queda vacío. Mover una fila en el panel funciona como antes.
+
+### Lo que tiene que hacer para la 17
+
+1. **Si un script de API mueve una fila escribiendo su `order`, haga que envíe en su lugar la solicitud de movimiento.** Un `PUT` del `order` de una fila ahora coloca solo esa fila: las filas por las que pasa ya no se apartan. Para mover una fila, envíe `POST /api/<resource>/<id>/move` con `{ "placeOfId": "<id>" }`. La fila ocupa el lugar de la fila indicada, las filas que hay entre ambas se desplazan un lugar hacia donde estaba la fila movida, y la lista se numera 1..n en su nuevo orden.
+2. **Si un script de API añade una fila en medio de una lista, haga que cree la fila y luego la mueva.** Una fila creada con un número que ya tiene otra fila ahora comparte ese número con ella, en lugar de empujar hacia abajo las filas desde ahí. Cree la fila sin `order`, lo que la coloca después de la última fila, y luego muévala al lugar de la fila delante de la cual debe ir.
+
+### Otros cambios en la 17
+
+Estos cambios modifican cómo se comporta OneUptime después de la actualización. Léalos si numera estas listas mediante la API, Terraform u OpenTofu.
+
+:::details Leer los demás cambios de la 17
+- **Las filas que comparten un número se leen en el orden de sus ID, y un hueco en los números no cambia nada.** Dos filas de una lista pueden compartir un número mientras hay un apply en curso, o para siempre si una configuración les da el mismo, y una fila eliminada ahora deja su hueco en lugar de que suban las filas siguientes. Los grupos y los recursos que comparten un número se muestran en el orden de sus ID, las capas se clasifican del mismo modo, y las personas de una capa se turnan del mismo modo. Una política de guardia avisa a dos niveles que comparten un número uno tras otro, en el orden de sus ID: antes de la 17, el segundo nunca recibía el aviso. El siguiente nivel de una política es el primero después del actual, nunca el que tiene el número siguiente.
+:::
 
 ## Actualización de OneUptime 15 → 16
 

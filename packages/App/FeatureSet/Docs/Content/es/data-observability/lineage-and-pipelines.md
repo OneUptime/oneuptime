@@ -23,6 +23,8 @@ Cuando la fuente nombra columnas, la pestaña **Columnas** de una tabla indica d
 
 En la pestaña **Linaje**, elige una columna de la tabla en **Seguir una columna** para resaltar de dónde viene y adónde va: hacia arriba en el diagrama, hasta las columnas a partir de las que se construye; hacia abajo, hasta las columnas que se construyen a partir de ella, cada una nombrada en su tabla, incluso donde se renombró por el camino. Una flecha cuyas fuentes no nombran columnas puede llevarla más lejos de lo resaltado, y el diagrama lo indica.
 
+Cada vista del linaje - la pestaña **Linaje** de una tabla, la de una canalización, la de una alerta, el **Mapa de linaje** y lo que dicen OneUptime AI y la API - muestra solo las tablas y canalizaciones que tu rol puede leer. Un rol limitado a lo que poseen sus miembros, o a algunas etiquetas, nunca ve otra tabla ni otra canalización: no se dibuja, no se nombra en ninguna flecha y no se cuenta entre las tablas más lejanas.
+
 ## Mapa de linaje
 
 **Observabilidad de datos > Mapa de linaje** dibuja en una sola página cada flujo de datos que tu proyecto ha visto, para que veas quién usa qué datos y adónde van sin tener que elegir antes una tabla. Muestra:
@@ -30,13 +32,13 @@ En la pestaña **Linaje**, elige una columna de la tabla en **Seguir una columna
 - **Servicios** que escriben y leen tablas, a partir de los spans de base de datos de tus trazas: un span que nombra su tabla (`db.collection.name`, o el antiguo `db.sql.table`) y su sentencia (`db.operation.name`), como un `INSERT` o un `SELECT`.
 - **Tablas** construidas a partir de otras tablas, de todas las fuentes anteriores.
 - **Canalizaciones** que cargan una tabla a partir de datos que OneUptime no vigila, como una sincronización de Fivetran. Una canalización que mueve datos entre dos tablas vigiladas se nombra en la flecha que las une.
-- **Paneles** y sincronizaciones de reverse ETL en tus herramientas de BI, que leen las tablas sobre las que están construidos.
+- **Paneles** y sincronizaciones de reverse ETL en tus herramientas de BI, que leen las tablas sobre las que están construidos, aunque nada más toque esas tablas. Un informe de Power BI que no está construido sobre ninguna tabla que OneUptime vigile se dibuja con los conjuntos de datos que representa y los orígenes de datos de los que se cargan; cuando ninguno de los paneles de una herramienta de BI está sobre una tabla vigilada, el mapa dice por qué ([Linaje de Power BI](#linaje-de-power-bi)).
 
 Cada flecha es algo que OneUptime registró, nunca una suposición. Las tarjetas se colocan de izquierda a derecha según fluyen los datos e indican su estado como en el diagrama de una tabla: rojo para una tabla con retraso, una alerta abierta o una ejecución fallida. Una flecha es turquesa cuando las trazas de un servicio la vieron.
 
 Busca una tabla, un servicio, una canalización o un panel para conservar lo que coincide y todo lo que está aguas arriba y aguas abajo. Selecciona una tarjeta para resaltar todo su linaje, ver de dónde viene y adónde va, y abrir su página; **Mostrar solo su linaje** deja solo eso en el mapa. Los interruptores junto a la búsqueda dejan fuera los servicios, las canalizaciones o los paneles. **Lista** muestra cada flecha como una línea, y es lo que abre un teléfono.
 
-Un mapa dibuja hasta 400 tarjetas, empezando por los flujos vistos más recientemente; cuando tu proyecto tiene más, el mapa lo indica. El mismo mapa lo sirve `POST /api/data-observability/lineage/map`, para quien pueda leer los activos de datos, y sus claves de API.
+Un mapa dibuja hasta 400 tarjetas, empezando por los flujos vistos más recientemente; cuando tu proyecto tiene más, el mapa lo indica. El mismo mapa lo sirve `POST /api/data-observability/lineage/map`, para quien pueda leer los activos de datos, y sus claves de API. Un mapa con más dice cuántas tablas dejó fuera, cada una contada una vez, y puede empezar en otro sitio: elige una base de datos para trazar los flujos de sus tablas y las tarjetas que unen, o escribe un nombre y elige **Buscar en todo el proyecto** para trazar los flujos de cada tabla, canalización, servicio y panel cuyo nombre lo contenga, por antiguos que sean. **Mostrar todo el mapa** vuelve atrás. Para que el mapa de la API empiece en otro sitio, envía `{ "dataStoreId": "<database ID>" }` o `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -97,7 +99,7 @@ El impacto real de los datos malos es el panel que alguien abre. En **Paneles de
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, una entidad de servicio autorizada a usar las API de administración de solo lectura de Power BI. Se leen tanto los informes como los paneles, con sus vistas y actualizaciones (abajo) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, una entidad de servicio autorizada a usar las API de administración de solo lectura de Power BI, con las dos configuraciones de inquilino sobre metadatos de [Linaje de Power BI](#linaje-de-power-bi) activadas para las tablas que hay detrás de cada informe. Se leen tanto los informes como los paneles, con sus vistas y actualizaciones (abajo) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (o `eu`) |
 
@@ -136,7 +138,9 @@ Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con s
 - **Pipeline Run Unusually Long**: una ejecución ha tardado el doble de lo habitual o más, comprobado cada cinco minutos mientras se ejecuta, de modo que una ejecución que se cuelga se detecta antes de que termine.
 - **Pipeline Is Late**: no ha empezado ninguna ejecución en más tiempo del que permite su programación.
 
-La página de un pipeline dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o se retrasa: a la izquierda, las tablas que lee; a la derecha, las tablas que escribe; en medio, el pipeline; y cada tarjeta dice cómo está ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas, y abre cualquier tabla para ver su propia pestaña **Linaje**. Un número de tablas sin dibujar, en la tarjeta del pipeline o en la de una tabla, dibuja más en su sitio aquí también.
+La pestaña **Propietarios** de una canalización nombra a las personas y los equipos que se ocupan de ella, y sus alertas les llegan a ellos. La **Vista general** y **Problemas** nombran a los propietarios de una canalización que falló o va con retraso, o muestran **Sin propietario**, con una forma de añadir uno.
+
+La página de un pipeline dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o se retrasa: a la izquierda, las tablas que lee; a la derecha, las tablas que escribe; en medio, el pipeline; y cada tarjeta dice cómo está ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas, y abre cualquier tabla para ver su propia pestaña **Linaje**. Un número de tablas sin dibujar, en la tarjeta del pipeline o en la de una tabla, dibuja más en su sitio aquí también. Elige una de las columnas que escribe para seguirla a través de la canalización: hacia arriba hasta la columna de cada tabla leída a partir de la que se construyó, y hacia abajo hasta cada tabla en la que la escribe.
 
 ## Una incidencia por causa
 
@@ -147,9 +151,33 @@ Cuando una tabla se queda desactualizada, todas las tablas construidas a partir 
 
 La tarjeta **Datos** de la causa enumera su **Impacto aguas abajo**: todas las alertas que causó. La tarjeta de una alerta de tabla también muestra los servicios que escriben en la tabla, con sus escrituras fallidas, y sus despliegues y otros cambios en el día anterior a la alerta.
 
-Bajo la tarjeta **Datos**, la página de una alerta dibuja su **Linaje**: alrededor de su tabla, tal como lo dibuja la pestaña **Linaje** de la tabla, o alrededor de su pipeline. El camino hacia arriba hasta la alerta que la causó y hacia abajo hasta cada alerta que causó aparece resaltado - la tabla o el pipeline de la causa marcado como **Causa**, los de cada alerta causada como **Consecuencia** - y el resto se atenúa, así que quien la abre ve en qué punto de la cadena empezó el problema. Cuando la causa está en un pipeline dibujado sobre una flecha, la flecha dice **Causa** bajo el nombre del pipeline. Cuando la causa trata de una base de datos entera, o está más arriba de lo que alcanza el diagrama, la tarjeta lo dice con palabras. Una alerta de una comprobación sobre una sola columna, como una comprobación Porcentaje de nulos sobre `customer_id`, se abre con esa columna seguida junto a estos caminos, como en la pestaña **Linaje** de la tabla: de dónde viene y adónde va, nombrada en cada tabla. Elige allí otra columna de la tabla, o quítala para ver solo los caminos. **Explorar linaje** abre la pestaña **Linaje** de la tabla, o la página del pipeline.
+Bajo la tarjeta **Datos**, la página de una alerta dibuja su **Linaje**: alrededor de su tabla, tal como lo dibuja la pestaña **Linaje** de la tabla, o alrededor de su pipeline. El camino hacia arriba hasta la alerta que la causó y hacia abajo hasta cada alerta que causó aparece resaltado - la tabla o el pipeline de la causa marcado como **Causa**, los de cada alerta causada como **Consecuencia** - y el resto se atenúa, así que quien la abre ve en qué punto de la cadena empezó el problema. Cuando la causa está en un pipeline dibujado sobre una flecha, la flecha dice **Causa** bajo el nombre del pipeline. Cuando la causa trata de una base de datos entera, o está más arriba de lo que alcanza el diagrama, la tarjeta lo dice con palabras. Una alerta de una comprobación sobre una sola columna, como una comprobación Porcentaje de nulos sobre `customer_id`, se abre con esa columna seguida junto a estos caminos, como en la pestaña **Linaje** de la tabla: de dónde viene y adónde va, nombrada en cada tabla. Elige allí otra columna de la tabla, o quítala para ver solo los caminos. **Explorar linaje** abre la pestaña **Linaje** de la tabla, o la página del pipeline. Una alerta causada por ella en una canalización dibujada en una flecha dice **Consecuencia** allí de la misma forma, y el selector de columnas ofrece primero la columna de la comprobación y después las demás columnas de la tabla en su propio orden.
 
 Quien no puede ver la alerta que la causó no recibe ni la tarjeta **Datos** ni el linaje, y una alerta causada que no puede ver ni se resalta ni se cuenta.
+
+## Linaje de Power BI
+
+**Tablas encontradas**, en cada herramienta de BI, indica sobre cuántas tablas vigiladas están construidos sus paneles y, debajo, lo primero que impide que las demás coincidan. **See Why** enumera lo que encontró la última lectura y qué hacer: las bases de datos que leen sus paneles y que no están conectadas a OneUptime, cada una a un **Connect Database** de distancia, con su tipo y su dirección ya rellenados; las tablas que una base de datos conectada no vigila, que pueden haber quedado fuera de su examen o no haberse recopilado todavía; y los orígenes que no son una base de datos, como archivos y páginas web. En Power BI también nombra una configuración de inquilino que está desactivada, los conjuntos de datos que leen de flujos de datos y los conjuntos de datos que Power BI no puede describir. **Basado en**, en cada panel, indica los conjuntos de datos que representa y de dónde vienen sus datos, tal como lo dice Power BI.
+
+OneUptime lee cada conjunto de datos de Power BI del examen de metadatos de Power BI, con la consulta de Power Query que hay detrás de cada una de sus tablas:
+
+- **La base de datos que nombra un conector**: SQL Server y Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena y Microsoft Dataverse, y el esquema y la tabla que elige su navegación.
+- **El SQL que ejecuta una consulta**: la opción **SQL statement** de un conector, `Value.NativeQuery` y `Odbc.Query`, y las tablas que siguen a cada `FROM` y `JOIN`.
+- **Parámetros y consultas compartidas**: un parámetro vale dondequiera que se nombre, y una tabla que lee una consulta de almacenamiento provisional lee lo que lee esa consulta.
+- **Los modelos compuestos** representan las tablas de los conjuntos de datos sobre los que están construidos.
+
+Un informe representa las tablas de su conjunto de datos, y un panel las de los conjuntos de datos de sus iconos. De dónde vienen los datos - el servidor y el nombre de una base de datos, la ruta de un archivo, una dirección web - sale de los orígenes de datos del examen, que no necesitan nada más que el acceso a las API de administración de arriba.
+
+Power BI devuelve las tablas de un conjunto de datos solo cuando un administrador de Fabric activa dos configuraciones de inquilino en el portal de administración, en **Tenant settings > Admin API settings**, para el grupo de seguridad que contiene la entidad de servicio:
+
+- **Enhance admin APIs responses with detailed metadata**: las tablas de cada conjunto de datos.
+- **Enhance admin APIs responses with DAX and mashup expressions**: las consultas que las cargan, que dicen qué tablas de base de datos leen.
+
+Después, Power BI describe un conjunto de datos una vez que se ha actualizado o vuelto a publicar; uno que solo usa DirectQuery, una vez que alguien ha abierto un informe sobre él. Nunca describe conjuntos de datos en tiempo real, conjuntos de datos con conexión dinámica a Analysis Services, libros de Excel ni conjuntos de datos de más de 1 GB en capacidad compartida. Un conjunto de datos que lee de un flujo de datos se lee hasta el flujo de datos: OneUptime todavía no lee qué tablas carga un flujo de datos.
+
+Cada tabla se asocia con una tabla vigilada por su nombre, su esquema y su base de datos, y un servidor por su nombre corto o por el completo. Una tabla de otro motor nunca se asocia, ni tampoco una de otra base de datos: un informe sobre `Sales.dbo.Orders` no se vincula con `Archive.dbo.Orders` porque solo `Archive` está vigilada.
+
+Las [actualizaciones](#vistas-y-actualizaciones-en-power-bi) se leen aparte de las tablas: un aviso de que no se pudieron leer las actualizaciones de algunos conjuntos de datos no dice nada de sus tablas.
 
 ## Antes de que se fusione un cambio
 

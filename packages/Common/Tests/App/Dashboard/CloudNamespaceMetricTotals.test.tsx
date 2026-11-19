@@ -255,6 +255,14 @@ const VIRTUAL_MACHINE: Resource = {
   },
 };
 
+const APP_SERVICE: Resource = {
+  provider: CloudProvider.Azure,
+  type: "Microsoft.Web/sites",
+  telemetryAttributes: {
+    [RESOURCE_ID_ATTRIBUTE]: armId("Microsoft.Web/sites", "shop"),
+  },
+};
+
 const SQS_QUEUE: Resource = {
   provider: CloudProvider.AWS,
   type: "AWS::SQS::Queue",
@@ -693,6 +701,38 @@ describe("a resource whose metrics are not split reads exactly as before", () =>
       ).toBe(MetricsAggregationType.Avg);
     },
   );
+});
+
+/*
+ * A resource's tab lists its key metrics by what they are about - Traffic,
+ * Errors, Latency, then what it runs on - the type's most telling first,
+ * and its apps' own metrics after them (#9505), where it listed them all
+ * by name.
+ */
+describe("a resource's Metrics tab in sections", () => {
+  test("an App Service lists the issue's five metrics first, most telling first, and its app's own after them", async () => {
+    await openTab(APP_SERVICE, [
+      "app.orders.placed",
+      "azure_cputime_total",
+      "azure_http4xx_total",
+      "azure_http5xx_total",
+      "azure_memoryworkingset_average",
+      "azure_requests_total",
+    ]);
+
+    expect(
+      screen.getAllByRole("button").map((row: HTMLElement): string => {
+        return row.textContent || "";
+      }),
+    ).toEqual([
+      "azure_requests_total",
+      "azure_http5xx_total",
+      "azure_http4xx_total",
+      "azure_cputime_total",
+      "azure_memoryworkingset_average",
+      "app.orders.placed",
+    ]);
+  });
 });
 
 describe("what a row opens, and the monitor created from it", () => {

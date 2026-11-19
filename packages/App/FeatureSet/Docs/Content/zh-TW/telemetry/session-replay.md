@@ -90,6 +90,7 @@ flowchart TB
 | `data-oneuptime-respect-do-not-track` | 否 | 預設遵守 Do Not Track 與 Global Privacy Control。設為 `"false"` 則無視該訊號進行錄製；請參閱 [Do Not Track](#do-not-track) 。 |
 | `data-oneuptime-debug` | 否 | `"true"` 會把錄製器的決定輸出到主控台。請參閱 [工作階段重播疑難排解](/docs/rum/session-replay-troubleshooting) 。 |
 | `data-oneuptime-offline-storage` | 否 | 設為 `"false"` 時，訪客離線期間錄製的區塊只保存在記憶體中，而不會同時保存到瀏覽器的 IndexedDB。請參閱 [離線模式](#離線模式) 。 |
+| `data-oneuptime-app-version` | 否 | 應用程式的版本，例如 `2.3.1` ，最多 64 個字元。產品分析依它細分使用者和工作階段。 |
 
 同樣的選項也可以透過一個全域物件而不是標籤提供，標籤管理工具與打包安裝就是這樣做的：
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -175,8 +177,9 @@ export default function App() {
 | `stop()` | 清出可以傳送的內容，停止擷取，並解除生命週期處理常式。 |
 | `identify(userRef, traits?)` | 附加已登入的使用者與選用的特徵，受 **擷取終端使用者身分** 約束。 |
 | `setTags(tags)` / `addTag(key, value)` | 取代所有可搜尋的工作階段標籤，或在不取代其他標籤的情況下新增一個標籤。 |
-| `track(name, properties?)` | 在重播時間軸上放置一個應用程式事件。 |
-| `setRoute(route)` | 在導覽後記錄經過清理的邏輯畫面或路由。請在導覽器的路由變更回呼中呼叫它。 |
+| `track(name, properties?)` | 在重播時間軸上放置一個應用程式事件。開啟產品分析事件後，它也是應用程式的 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 頁面所計算的事件，來自每個工作階段，無論是否錄製。 |
+| `metric(name, value, attributes?)` | 開啟產品分析事件後，把應用程式測得的數值當作應用程式某個指標的資料點傳送。其屬性值會被遮罩。 |
+| `setRoute(route)` | 在導覽後記錄經過清理的邏輯畫面或路由。請在導覽器的路由變更回呼中呼叫它。開啟產品分析事件後，每個新畫面也是一次頁面瀏覽。 |
 | `captureSession(reason?)` | 在 _On error or frustration_ 下，因應用程式自訂的原因（例如使用者點按「回報問題」）上傳滾動緩衝區。 |
 | `captureError(error)` | 記錄一個已處理的 JavaScript 錯誤，並啟動錯誤觸發的擷取。 |
 | `grantConsent()` / `revokeConsent()` | 允許上傳，或立即清除記憶體緩衝區、已儲存的發件匣、工作階段與訪客 ID。之後再次同意會以新的識別碼開始。 |
@@ -1075,7 +1078,7 @@ flowchart TB
 
 關於 `ByIdentifiedUserKey` ，坦白說有兩個限制。這個鍵在儀表板中的任何地方都不會顯示：它會作為 `identifiedUserKey` 出現在工作階段清單 API（ `POST /telemetry/rum/session-replay/list` ）的每一行中，因此目前依使用者抹除要從在那裡搜尋 `user:` 並複製該欄位開始。另外，在 **擷取終端使用者身分** 關閉期間錄製的工作階段根本沒有鍵 — 沒有儲存關於這個人的任何內容 — 因此只能透過工作階段 ID、日期範圍或應用程式來找到它。
 
-每個請求都會記錄它的 `status` （ `Pending` 、 `InProgress` 、 `Completed` 、 `Failed` ）、 `sessionsDeleted` 與 `chunksDeleted` 計數，以及任何 `failureReason` ； `ReadRumSessionErasureRequest` 允許查看它們。抹除會移除錄製以及與這些工作階段關聯的遙測資料，在請求完成時仍在傳輸中的任何錄製會被捨棄而不是寫入。指向已抹除工作階段的連結會傳回「erased」而不是「not found」。關聯的遙測資料包括：
+每個請求都會記錄它的 `status` （ `Pending` 、 `InProgress` 、 `Completed` 、 `Failed` ）、 `sessionsDeleted` 、 `chunksDeleted` 與 `productAnalyticsRowsDeleted` 計數，以及任何 `failureReason` ； `ReadRumSessionErasureRequest` 允許查看它們。抹除會移除錄製以及與這些工作階段關聯的遙測資料，在請求完成時仍在傳輸中的任何錄製會被捨棄而不是寫入。指向已抹除工作階段的連結會傳回「erased」而不是「not found」。關聯的遙測資料包括：
 
 - 每個帶有該工作階段 ID 標記的 span 與例外狀況，包括在每個轉送了追蹤內容的服務中被 [自動](#與其他遙測資料關聯) 加上標記的後端 span，以及本身帶有該 ID 的任何日誌；
 - 僅屬於被抹除之工作階段的每條追蹤中的日誌、例外狀況與 span：追蹤中每個帶標記的 span 都帶有這些工作階段的某個 ID，而且追蹤中沒有任何內容在這些 span 中的第一個之前十分鐘以上開始，或在最後一個之後十分鐘以上開始。這涵蓋了你的頁面傳往其自身來源的請求所產生的後端日誌，它們與帶標記的 span 共用追蹤 ID。

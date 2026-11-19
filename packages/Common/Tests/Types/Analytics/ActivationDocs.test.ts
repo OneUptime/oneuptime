@@ -167,6 +167,15 @@ const HELPERS: Array<{
     entryPoints: ["ProductFeedback.submit(", "ProductFeedback.giveFeedback("],
     events: [ProductEventName.FeedbackGiven],
   },
+  /*
+   * A docs page opened from the product (#7207): Learn more, View
+   * Documentation and Search's docs results, through one helper.
+   */
+  {
+    file: "packages/Common/UI/Utils/DocsLinkEvents.ts",
+    entryPoints: ["recordDocsLinkOpened(", "openDocumentationLink("],
+    events: [ProductEventName.DocsLinkOpened],
+  },
 ];
 
 // Where a page of the product sends the event, if anywhere.

@@ -41,17 +41,17 @@ Når et tjek fejler, sporer sonden også ruten til værten og slår dens navn op
 
 Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Port** under **Monitortype**.
 
-### Navngiv den
-
-Angiv et **Navn**, som `Orders database`, og klik så på **Næste**.
-
 ### Angiv værten og porten
 
 Angiv under **Værtsnavn eller IP-adresse** den vært, porten er på, som `db.example.com` eller `10.0.0.12`. Angiv portnummeret under **Port**, som `5432`.
 
+### Navngiv den
+
+**Navn** udfyldes ud fra det, du angav, som `db.example.com:5432`. Behold det, eller angiv dit eget, som `Orders database`, og klik så på **Næste**.
+
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, om forbindelsen åbnede, og hvor lang tid hver del tog.
+Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, om forbindelsen åbnede, og hvor lang tid hver del tog. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 

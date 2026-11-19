@@ -54,6 +54,8 @@ export interface MemoryColumnRow {
   upstreamDataAssetId: string;
   downstreamDataAssetId: string;
   columnMappings: unknown;
+  // The pipeline whose run named them; none for query history or a view.
+  dataPipelineId?: string | undefined;
 }
 
 export interface MemoryGraph {
@@ -63,6 +65,8 @@ export interface MemoryGraph {
   openAlerts: Map<string, number>;
   dashboards: Array<DataLineageDashboardRow>;
   columnRows: Array<MemoryColumnRow>;
+  // By table, its columns in its own order, as its last collection read them.
+  columnOrders: Map<string, Array<string>>;
   // Every read the walk made, in order.
   edgeReads: Array<{ direction: DataLineageDirection; ids: Array<string> }>;
   pipelineEdgeReads: Array<string>;
@@ -73,6 +77,10 @@ export interface MemoryGraph {
     drawnDataAssetIds: Array<string>;
   }>;
   columnReads: Array<Array<DataLineageTablePair>>;
+  // The pipeline each read of columns was narrowed to, in the same order: null for none.
+  columnReadPipelines: Array<string | null>;
+  // Every table whose column order was asked for, in order.
+  columnOrderReads: Array<string>;
   // Rows to hand back however many are asked for: more rows than are read.
   overflow?: boolean;
 }
@@ -85,20 +93,24 @@ export function newGraph(): MemoryGraph {
     openAlerts: new Map(),
     dashboards: [],
     columnRows: [],
+    columnOrders: new Map(),
     edgeReads: [],
     pipelineEdgeReads: [],
     alertReads: [],
     dashboardReads: [],
     columnReads: [],
+    columnReadPipelines: [],
+    columnOrderReads: [],
   };
 }
 
-// The columns one row of an arrow names: [upstream column, downstream column] pairs.
+// The columns one row of an arrow names: [upstream column, downstream column] pairs, by a pipeline's run when one is named.
 export function columns(
   graph: MemoryGraph,
   upstream: string,
   downstream: string,
   pairs: Array<[string, string]>,
+  dataPipelineId?: string | undefined,
 ): void {
   graph.columnRows.push({
     upstreamDataAssetId: upstream,
@@ -108,6 +120,7 @@ export function columns(
         return { upstreamColumn, downstreamColumn };
       },
     ),
+    dataPipelineId,
   });
 }
 
@@ -374,18 +387,24 @@ export function memoryReader(graph: MemoryGraph): DataPipelineLineageReader {
     },
     readColumnMappings: async (
       pairs: Array<DataLineageTablePair>,
+      dataPipelineId?: string | undefined,
     ): Promise<Map<string, Array<DataColumnMapping>>> => {
       graph.columnReads.push(
         pairs.map((pair: DataLineageTablePair): DataLineageTablePair => {
           return { ...pair };
         }),
       );
+      graph.columnReadPipelines.push(dataPipelineId || null);
 
       const wanted: Set<string> = new Set(pairs.map(getLineageTablePairKey));
       const found: Map<string, Array<DataColumnMapping>> = new Map();
 
       for (const row of graph.columnRows) {
         const key: string = getLineageTablePairKey(row);
+
+        if (dataPipelineId && row.dataPipelineId !== dataPipelineId) {
+          continue;
+        }
 
         if (wanted.has(key)) {
           const merged: Array<DataColumnMapping> = mergeColumnMappings(
@@ -400,6 +419,11 @@ export function memoryReader(graph: MemoryGraph): DataPipelineLineageReader {
       }
 
       return found;
+    },
+    readColumnOrder: async (dataAssetId: string): Promise<Array<string>> => {
+      graph.columnOrderReads.push(dataAssetId);
+
+      return [...(graph.columnOrders.get(dataAssetId) || [])];
     },
   };
 }

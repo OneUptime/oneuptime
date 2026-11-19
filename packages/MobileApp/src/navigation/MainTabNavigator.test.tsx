@@ -18,6 +18,12 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { describe, expect, test, jest, afterEach } from "@jest/globals";
 import MainTabNavigator from "./MainTabNavigator";
 import type { MainTabParamList } from "./types";
+import { AppProduct } from "../api/serverProducts";
+import * as ServerProductsApi from "../api/serverProducts";
+import {
+  loadProductsOffOnServer,
+  resetProductsOffOnServer,
+} from "../hooks/useProductsOffOnServer";
 import {
   ThemeProvider,
   darkColors,
@@ -341,6 +347,69 @@ describe("The routes the navigator registers", () => {
     expect(navigationRef.getCurrentRoute()?.name).toBe("Home");
     expect(screen.getByTestId("screen-home")).toBeTruthy();
     expect(screen.queryByTestId("screen-inbox")).toBeNull();
+  });
+});
+
+/*
+ * A product the server's admin switched off has no tab (#7478), as it has
+ * no place in the web's menus: with Monitors and On-Call off the bar is
+ * Home, Inbox and Settings, and the Inbox goes once Incidents, Alerts and
+ * Security Events are all off.
+ */
+describe("The tabs of products the server switched off", () => {
+  async function switchOff(products: Array<AppProduct>): Promise<void> {
+    jest
+      .spyOn(ServerProductsApi, "fetchProductsOffOnServer")
+      .mockResolvedValue(new Set(products));
+    await loadProductsOffOnServer("project-1");
+  }
+
+  afterEach(() => {
+    resetProductsOffOnServer();
+    jest.restoreAllMocks();
+  });
+
+  test("Monitors and On-Call have no tab while they are off", async () => {
+    await switchOff([AppProduct.Monitors, AppProduct.OnCall]);
+
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+
+    expect(navigationRef.getRootState()?.routeNames).toEqual([
+      "Home",
+      "Inbox",
+      "Settings",
+    ]);
+    expect(screen.queryByLabelText("Monitors")).toBeNull();
+    expect(screen.queryByLabelText("On-Call")).toBeNull();
+    expect(screen.getByLabelText("Inbox")).toBeTruthy();
+  });
+
+  test("the Inbox stays while one product it lists is on", async () => {
+    await switchOff([AppProduct.Incidents, AppProduct.SecurityEvents]);
+
+    await renderTabs();
+
+    expect(screen.getByLabelText("Inbox")).toBeTruthy();
+  });
+
+  test("the Inbox goes once nothing it lists is on", async () => {
+    await switchOff([
+      AppProduct.Incidents,
+      AppProduct.Alerts,
+      AppProduct.SecurityEvents,
+    ]);
+
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+
+    expect(screen.queryByLabelText("Inbox")).toBeNull();
+    expect(navigationRef.getRootState()?.routeNames).toEqual([
+      "Home",
+      "Monitors",
+      "OnCall",
+      "Settings",
+    ]);
   });
 });
 

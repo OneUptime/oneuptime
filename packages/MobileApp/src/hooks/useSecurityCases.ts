@@ -11,6 +11,8 @@ import {
   toStatusIdsQuery,
 } from "../api/securityCases";
 import { getOpenCaseStatusIds } from "../security/caseValues";
+import { useProductsOffOnServer } from "./useProductsOffOnServer";
+import { AppProduct } from "../api/serverProducts";
 import type {
   ListResponse,
   ProjectItem,
@@ -99,18 +101,22 @@ export interface SecurityCasesAvailability {
 export function useSecurityCasesAvailability(): SecurityCasesAvailability {
   const { activeProject, isLoadingProjects } = useActiveProject();
   const projectId: string | null = activeProject?._id ?? null;
+  // Security Events switched off on the server is no category at all (#7478).
+  const isSwitchedOff: boolean = useProductsOffOnServer().isOff(
+    AppProduct.SecurityEvents,
+  );
   const query: UseQueryResult<number, Error> = useQuery({
     queryKey: ["security-cases-available", projectId],
     queryFn: () => {
       return countSecurityCases(projectId as string);
     },
-    enabled: Boolean(projectId) && !isLoadingProjects,
+    enabled: Boolean(projectId) && !isLoadingProjects && !isSwitchedOff,
     staleTime: 60 * 1000,
     retry: retryUnlessDenied,
   });
 
   return {
-    isAvailable: Boolean(projectId) && (query.data ?? 0) > 0,
+    isAvailable: Boolean(projectId) && !isSwitchedOff && (query.data ?? 0) > 0,
     isChecking: Boolean(projectId) && query.isLoading,
     isDenied: query.isError && isAccessDenied(query.error),
     projectId,

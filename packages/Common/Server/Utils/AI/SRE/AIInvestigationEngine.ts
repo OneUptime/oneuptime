@@ -77,6 +77,8 @@ import {
 } from "../../../../Types/AI/AiContext";
 import AiContextReader from "../AiContext/AiContextReader";
 import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import { getReportLanguageInstructions } from "./InvestigationReportLanguagePrompt";
 
 /*
@@ -431,6 +433,18 @@ export interface InvestigationRequest {
    * investigations (triage, remediation) omit it.
    */
   recordForReplay?: boolean | undefined;
+  /*
+   * Everyone who may see the subject reads what the run posts: an
+   * incident's or an alert's investigation, a follow-up check and the fixes
+   * worked out for it, a security case's triage, an AI insight's triage -
+   * so each reads only what every one of them may read
+   * (Types/BaseDatabase/ReadAudience, #9576, #9612). Their runners work it
+   * out before reading the starting context, which reads the same way.
+   * Every tool reads with it (ReadAudiencePermission). Every runner passes
+   * it (EngineRunsReadForTheirReaders); left out, the run reads the whole
+   * project as OneUptime.
+   */
+  readAudience?: ReadAudience | undefined;
 }
 
 export default class AIInvestigationEngine {
@@ -983,13 +997,18 @@ export default class AIInvestigationEngine {
           // The rule's pick, when the run uses it; else the project's provider.
           llmProviderId,
           /*
-           * System run — full read access to the project's telemetry, and
-           * to this project only. The tenant is what holds a root read to
-           * one project: the model layer adds it to every query of a model
-           * with a project column, so a tool that does not name the project
-           * itself still reads only this one.
+           * System run — read access to the project's telemetry, and to
+           * this project only. The tenant is what holds a root read to one
+           * project: the model layer adds it to every query of a model with
+           * a project column, so a tool that does not name the project
+           * itself still reads only this one. A run reads only what
+           * everyone who may see its subject may read
+           * (request.readAudience): the permission layer narrows every
+           * tool's read by it.
            */
-          props: { isRoot: true, tenantId: projectId },
+          props: request.readAudience
+            ? ReadAudiencePermission.getReadProps(request.readAudience)
+            : { isRoot: true, tenantId: projectId },
           feature: request.feature,
           // Read above, and recorded: null when there is none to read.
           aiContext,

@@ -13,6 +13,11 @@ import ProjectUsersModelAPI from "Common/UI/Utils/ModelAPI/ProjectUsersModelAPI"
 import TeamMembershipRemoval, {
   RemovalConfirmation,
 } from "../../Utils/TeamMembershipRemoval";
+import {
+  PersonRemovalReach,
+  getProjectRemovalLockReason,
+  usePersonRemovalReach,
+} from "../../Utils/ProjectRemovalReach";
 import React, { ReactElement, useEffect, useState } from "react";
 import {
   composedValue,
@@ -74,6 +79,16 @@ const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
     });
   }, [props.userId.toString(), props.projectId.toString()]);
 
+  /*
+   * Whether the reader's role would leave this person on some of their
+   * teams (#6599): then Remove from Project is locked, and the card says
+   * which teams keep them, before anything is pressed. Read on arrival,
+   * as the memberships are.
+   */
+  const removalReach: PersonRemovalReach = usePersonRemovalReach({
+    userId: props.userId.toString(),
+  });
+
   const removeUserFromProject: PromiseVoidFunction =
     async (): Promise<void> => {
       setIsLoading(true);
@@ -115,7 +130,8 @@ const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
     );
   }
 
-  if (!memberships) {
+  // The lock is known before the button is drawn: never one that locks itself.
+  if (!memberships || removalReach.isReading) {
     return (
       <Card title={CARD_TITLE}>
         <TableSkeleton rows={3} />
@@ -176,18 +192,33 @@ const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
           { user: userLabel },
         );
 
+  /*
+   * The reader's role would leave them on some of their teams: the card
+   * says which, and where to take them off the reader's own, in place of
+   * what removing them would do - which would not happen.
+   */
+  const lockReason: string | undefined = removalReach.person
+    ? getProjectRemovalLockReason(removalReach.person, translator)
+    : undefined;
+
   return (
     <>
       <Card
         title={CARD_TITLE}
-        description={description}
+        description={lockReason || description}
         buttons={[
           {
             title: `Remove from Project`,
             buttonStyle: ButtonStyleType.DANGER,
             onClick: () => {
+              if (lockReason) {
+                return;
+              }
+
               setShowModal(true);
             },
+            disabled: Boolean(lockReason),
+            tooltip: lockReason,
             isLoading: isLoading,
             icon: IconProp.Trash,
           },

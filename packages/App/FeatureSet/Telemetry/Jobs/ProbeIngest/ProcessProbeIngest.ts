@@ -14,6 +14,8 @@ import MonitorTestService, {
 } from "Common/Server/Services/MonitorTestService";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorRecordEvidence from "Common/Server/Utils/Monitor/MonitorRecordEvidence";
+import MonitorTestEvaluation from "Common/Server/Utils/Monitor/MonitorTestEvaluation";
+import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import ProbeReportIdentity, {
   NamedProbe,
 } from "Common/Server/Utils/Probe/ProbeReportIdentity";
@@ -252,11 +254,34 @@ export async function processProbeFromQueue(
         id: testId,
         select: {
           monitorSteps: true,
+          monitorType: true,
+          projectId: true,
+          monitorId: true,
+          probeId: true,
         },
         props: {
           isRoot: true,
         },
       });
+
+    /*
+     * Which criteria the answer matches, judged as the monitor's checks are
+     * and kept with it, so the result can say what would follow (#7074).
+     * Only a test handed to this probe is judged - any other is refused
+     * below - and read only, never in the result's way: a step that cannot
+     * be judged is kept without an evaluation.
+     */
+    const evaluationSummary: MonitorEvaluationSummary | undefined =
+      monitorTest?.probeId?.toString() === reportingProbeId.toString()
+        ? await MonitorTestEvaluation.evaluate({
+            monitorTest: monitorTest,
+            probeResponse: probeResponse,
+          })
+        : undefined;
+
+    if (evaluationSummary) {
+      probeResponse.evaluationSummary = evaluationSummary;
+    }
 
     const stepResponse: MonitorStepProbeResponse = {
       [probeResponse.monitorStepId.toString()]: {

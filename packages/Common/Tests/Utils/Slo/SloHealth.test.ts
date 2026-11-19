@@ -578,6 +578,50 @@ describe("SloHealth", () => {
         },
       );
 
+      /*
+       * The status of its own the worker gives such an SLO now (#9354): the
+       * banner says the same thing for it, whatever the page read of its
+       * monitors, and an SLO stored as Misconfigured for it before Waiting
+       * existed keeps the same banner until its next evaluation.
+       */
+      it("says a Waiting SLO waits for its monitors' first check, whatever was read of its monitors", () => {
+        for (const isWaitingForFirstCheck of [true, false, null, undefined]) {
+          expect(
+            getSloNotice({
+              ...MEASURING,
+              sloStatus: SloStatus.Waiting,
+              monitorCount: 2,
+              isWaitingForFirstCheck,
+            }),
+          ).toEqual({
+            type: SloNoticeType.Info,
+            title: "Waiting for the first check",
+            body: "Nothing has checked this SLO's monitors yet. It is measured from their first check.",
+            action: {
+              label: "View monitors",
+              target: SloNoticeActionTarget.Monitors,
+            },
+          });
+        }
+      });
+
+      it("still names archived and disabled before Waiting", () => {
+        expect(
+          getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Waiting,
+            isArchived: true,
+          })?.title,
+        ).toBe("This SLO is archived");
+        expect(
+          getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Waiting,
+            isEnabled: false,
+          })?.title,
+        ).toBe("This SLO is disabled");
+      });
+
       it("names a real setup problem before the first check", () => {
         expect(
           getSloNotice({

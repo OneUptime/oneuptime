@@ -1,6 +1,6 @@
 # Configurações do projeto
 
-As configurações do projeto reúnem o que vale para o projeto inteiro: o nome dele, as ferramentas a que se conecta, as chaves, como as pessoas entram, a cobrança e a trilha de auditoria. Quase tudo você configura uma vez e revisita raramente. Esta página é um mapa delas e cobre as configurações que não têm página própria: os detalhes do projeto, os rótulos, os sinalizadores de recursos e a exclusão do projeto.
+As configurações do projeto reúnem o que vale para o projeto inteiro: o nome dele, as ferramentas a que se conecta, as chaves, como as pessoas entram, a cobrança e a trilha de auditoria. Quase tudo você configura uma vez e revisita raramente. Esta página é um mapa delas e cobre as configurações que não têm página própria: os detalhes do projeto, os rótulos e a exclusão do projeto.
 
 :::cards
 - [Encontrar uma configuração](#encontrar-uma-configuração): O que cada seção do menu lateral contém.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetria e APM** | **Chaves de ingestão**, **Retenção de dados**, **Uso** | [Chaves de ingestão](/docs/telemetry/ingestion-keys), [Retenção de dados](/docs/telemetry/data-retention), [Uso de telemetria](/docs/telemetry/usage) |
 | **Notificações** | **Canais de notificação**, **Logs de notificação**, **Aplicativos móveis** | [Notificações](#notificações) |
 | **IA** | **Recursos de IA**, **Provedores LLM**, **Servidores MCP externos**, **Créditos de IA**, **Resultados de IA**, **Registros de IA**, **Servidor MCP** | [Provedores de LLM](/docs/ai/llm-provider), [Servidores MCP externos](/docs/ai/external-mcp-servers), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controle-de-custos) |
-| **Avançado** | **Domínios**, **Chaves de API**, **Sinalizadores de recursos**, **Importar de outra ferramenta** | [Domínios personalizados](/docs/status-pages/branding-and-domains#domínios-personalizados), [Chaves de API](/docs/permissions/index#chaves-de-api), [Sinalizadores de recursos](#sinalizadores-de-recursos), [Migrar do Opsgenie](/docs/moving-to-oneuptime/opsgenie) e os outros guias de migração |
+| **Avançado** | **Domínios**, **Chaves de API**, **Importar de outra ferramenta** | [Domínios personalizados](/docs/status-pages/branding-and-domains#domínios-personalizados), [Chaves de API](/docs/permissions/index#chaves-de-api), [Migrar do Opsgenie](/docs/moving-to-oneuptime/opsgenie) e os outros guias de migração |
 | **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Cobrança e faturas** | **Cobrança**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
 | **Registros de auditoria** | **Registros de auditoria**, **Configurações**, **Exportar** | [Registros de auditoria](/docs/configuration/audit-logs), [Exportação do registro de auditoria](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Cada produto diz o que ele é para este projeto: **Em uso**, **Não configurado*
 
 Os Proprietários do projeto, os Administradores do projeto e quem pode editar o projeto a alteram; todos os outros no projeto podem vê-la.
 
+Em **Monitores**, a chave **Grupos de monitores** adiciona os grupos de monitores ao menu Monitores. Ela vem desativada em um projeto novo, salva quando você a aciona, e desativá-la não exclui nenhum grupo. Alterá-la exige o papel Proprietário do projeto, ou um papel personalizado com a permissão Edit Project ou Manage Billing. Veja [Grupos de monitores](/docs/monitor/monitor-groups).
+
 ## Rótulos
 
 Rótulos são marcadores que você coloca em monitores, incidentes, páginas de status e outros recursos. Eles filtram e agrupam listas, e limitam até onde chegam as permissões de uma equipe e as regras do projeto.
@@ -101,10 +103,6 @@ Para aposentar um rótulo, arquive-o pelo menu **⋯** da sua linha em vez de ex
 - **Canais de notificação**: o cartão **Canais de notificação** ativa ou desativa SMS, chamadas telefônicas, WhatsApp e Telegram para o projeto. Os quatro começam desativados. Quem os ativa é um Proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing**. A página também reúne, recolhidos em **Mais configurações**, como os membros são acionados por padrão, em **Sequência padrão para novos membros** e **Telefone para quem está de plantão** (veja [A sequência padrão](/docs/notifications/on-call-rules#a-sequência-padrão)), os servidores de e-mail próprios do projeto, em **Configurações SMTP Personalizadas** (veja [SMTP](/docs/emails/smtp)), e a conta Twilio própria dele (veja [Integração do Twilio](/docs/self-hosted/twilio-integration)). No OneUptime Cloud, ela mostra o saldo que paga essas mensagens: veja [Saldos pré-pagos](/docs/configuration/billing#saldos-pré-pagos).
 - **Logs de notificação**: cada notificação que o projeto enviou, com uma aba por canal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chamada**, **Push** e **Espaço de trabalho**. A aba **Webhook** guarda de cada endereço apenas o esquema e o host: o resto é o segredo do webhook.
 - **Aplicativos móveis**: onde obter os aplicativos para iOS e Android. Veja [Visão geral dos aplicativos](/docs/mobile-desktop-apps/index).
-
-## Sinalizadores de recursos
-
-**Configurações do projeto → Avançado → Sinalizadores de recursos** ativa ou desativa recursos opcionais do projeto. Cada um é uma chave que salva quando você a aciona. Hoje há **Grupos de monitores**, desativado em um projeto novo: ative-o para adicionar os grupos de monitores ao menu Monitores. Desativá-lo não exclui nenhum grupo. Veja [Grupos de monitores](/docs/monitor/monitor-groups).
 
 ## Excluir o projeto
 

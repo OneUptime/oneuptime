@@ -291,6 +291,58 @@ describe("the row action", () => {
     },
   );
 
+  /*
+   * On a server that sends email, a pending row whose latest invitation
+   * email was not sent offers it too (#9511) - never a member's row.
+   */
+  test.each([
+    // [available, email not sent, accepted, shown]
+    [false, true, false, true],
+    [false, false, false, false],
+    [false, true, true, false],
+    [true, false, false, true],
+    [true, true, true, false],
+  ])(
+    "available %p, email not sent %p, accepted %p: shown %p",
+    (
+      isAvailable: boolean,
+      isEmailNotSent: boolean,
+      hasAccepted: boolean,
+      isShown: boolean,
+    ) => {
+      const action: CapturedAction = getInvitationLinkRowAction<TeamMember>({
+        isAvailable: isAvailable,
+        isEmailNotSent: (): boolean => {
+          return isEmailNotSent;
+        },
+        onOpen: (): void => {},
+      }) as unknown as CapturedAction;
+
+      expect(
+        Boolean(action.isVisible!(membership(PENDING_ID, hasAccepted))),
+      ).toBe(isShown);
+    },
+  );
+
+  test("hands its page the row it was opened from, so the dialog can say why", () => {
+    const opened: Array<TeamMember> = [];
+    const row: TeamMember = membership(PENDING_ID, false);
+    const action: CapturedAction = getInvitationLinkRowAction<TeamMember>({
+      isAvailable: true,
+      onOpen: (_teamMemberId: ObjectID, item: TeamMember): void => {
+        opened.push(item);
+      },
+    }) as unknown as CapturedAction;
+
+    action.onClick(
+      row,
+      () => {},
+      () => {},
+    );
+
+    expect(opened).toEqual([row]);
+  });
+
   test("a row with no id offers nothing to open", () => {
     const action: CapturedAction = getInvitationLinkRowAction<TeamMember>({
       isAvailable: true,

@@ -7,14 +7,14 @@ Pour un site web ou une API, une configuration guidée vous mène plutôt de son
 > [!NOTE]
 > Pour créer un moniteur, il vous faut le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 
-## Informations sur le moniteur
+## Quoi surveiller
 
-La première étape demande quoi surveiller et comment appeler le moniteur.
+La première étape demande quoi surveiller, où le trouver et comment appeler le moniteur.
 
 :::steps
 ### Ouvrir Créer un moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Le formulaire s'ouvre sur sa première étape, **Informations sur le moniteur**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Le formulaire s'ouvre sur sa première étape, **Quoi surveiller**.
 
 ### Choisir le type de moniteur
 
@@ -26,9 +26,13 @@ La première question est le **Type de moniteur** : que voulez-vous surveiller ?
 
 Le type choisi se réduit à une ligne. Cliquez sur **Modifier** pour en choisir un autre ; appuyez sur **Escape** pendant le choix pour garder le type que vous aviez.
 
+### Saisir où le trouver
+
+Un type dont la vérification porte sur une adresse la demande juste après le type : l'**URL du site web** d'un site web ou d'un certificat SSL, l'**URL de l'API** d'une API, l'hôte ou l'adresse IP à pinguer, un hôte et son **Port**, ou un serveur NTP. Le champ montre un exemple. Sous l'adresse d'un site web ou d'une API, **Contourner les caches à chaque vérification** montre comment y mettre une valeur qui change à chaque vérification. Les autres types demandent où regarder à l'étape suivante, comme le domaine d'un moniteur DNS ou la connexion d'une base de données.
+
 ### Nommer le moniteur
 
-Renseignez le **Nom**. Il est utilisé dans les alertes et les titres d'incident. **Description** et **Étiquettes** sont facultatifs et attendent sous **Plus de champs**.
+Renseignez le **Nom**. Après une adresse, il se remplit tout seul, par exemple avec `example.com`, jusqu'à ce que vous en écriviez un vous-même. Il est utilisé dans les alertes et les titres d'incident. **Description** et **Étiquettes** sont facultatifs et attendent sous **Plus de champs**.
 
 Un moniteur **Manuel** n'a besoin de rien de plus, donc **Créer un moniteur** se trouve sur cette étape. Pour tout autre type, cliquez sur **Suivant**.
 :::
@@ -40,9 +44,9 @@ La deuxième étape demande quoi vérifier et décide de ce qui compte comme un 
 :::steps
 ### Saisir ce qu'il faut vérifier
 
-Cette étape s'ouvre sur ce qu'il faut vérifier. Pour un site web, c'est son URL, avec un exemple dans le champ ; les autres types demandent un hôte, une requête, un cluster ou un filtre de journaux. Les réglages que la plupart des moniteurs ne changent jamais, comme les délais d'expiration et les nouvelles tentatives, sont repliés sous **Plus de champs**.
+Cette étape s'ouvre sur le reste de ce que lit la vérification. Un moniteur d'une adresse l'affiche sous **Cible du moniteur**, avec ce qu'il demande d'autre, comme la méthode de requête d'une API ; les autres types demandent ici un domaine, une requête, un cluster ou un filtre de journaux. Les réglages que la plupart des moniteurs ne changent jamais, comme les délais d'expiration et les nouvelles tentatives, sont repliés sous **Plus de champs**.
 
-Pour un moniteur que des sondes vérifient, **Tester le moniteur** exécute la vérification une fois avant que vous enregistriez : choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. La réponse s'ouvre dans **Résultat du test du moniteur**.
+Pour un moniteur que des sondes vérifient, **Tester le moniteur** exécute la vérification une fois avant que vous enregistriez, sur une sonde qui vérifie le moniteur : cliquez sur **Exécuter le test**, ou choisissez d'abord une autre sonde sous **Sélectionner la sonde**. **Résultat du test du moniteur** dit à quel critère la réponse correspond et ce qui s'ensuivrait (le statut, l'incident ou l'alerte et qui est prévenu), puis montre ce que la sonde a trouvé.
 
 ### Passer en revue les critères
 

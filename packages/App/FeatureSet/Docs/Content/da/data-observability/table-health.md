@@ -17,6 +17,8 @@ Kun kataloget læses, og i MongoDB feltnavnene på en samlings nyeste dokumenter
 
 En tabels **rytme** er, hvor ofte den plejer at ændre sig, lært ud fra tiden mellem dens ændringer. En tabel, der går et godt stykke forbi sin rytme, vises som **Forsinket**, på sin side og under **Tabeller**, og skriver, hvor langt forbi den er. Dens aktualitet kendes, når den har ændret sig to gange: en tabel, der indlæses hver time, læres inden for få timer, en, der indlæses hver nat, inden for få dage.
 
+I **Tabeller**, og på en databases fane **Tabeller**, viser filteret **Friskhed** kun de forsinkede tabeller eller kun de friske, og sortering efter **Friskhed** sætter de mest forsinkede først. **Forsinkede tabeller** på **Oversigt**, og på en databases egen side, åbner den liste med **Friskhed** sat til **Forsinket**.
+
 Et view har ingen egne rækker, så dets aktualitet er dets kilders aktualitet: se [Afstamning og pipelines](/docs/data-observability/lineage-and-pipelines).
 
 Et katalog kan sige, at en tabel er ændret, når kun dens vedligeholdelse er det, eller slet ikke sige noget. Angiv på en tabels **Indstillinger** en **Friskhedskolonne** som `updated_at`, og dens seneste ændring bliver den kolonnes nyeste værdi. Login skal kunne læse kolonnen, og den læses ved hver indsamling, så den bør være indekseret; på BigQuery og Athena, som afregner efter det, en forespørgsel læser, læses den én gang i timen. Tidspunkter uden tidszone antages at være UTC.
@@ -85,11 +87,11 @@ En tabels fane **Ejere** nævner de personer og teams, den tilhører, og en tabe
 
 Du bør ikke skulle gøre det hundredvis af gange. **Ejerregler** og **Etiketregler** gælder for hver tabel, når den første gang vises, matchet efter dens etiketter eller efter et regulært udtryk på dens navn, skema eller database: alt i `finance` går til finansteamet, og alt med navnet `*_pii` får en etiket.
 
-En tilladelse begrænset til `Owned` når kun de tabeller, som dens indehaver eller dennes teams ejer, med deres tjek, aktivitet og rapporterede problemer. At eje en database gør dig ikke til ejer af dens tabeller: brug en ejerregel til at give et team en hel database.
+En tilladelse begrænset til `Owned` når kun de tabeller, som dens indehaver eller dennes teams ejer, med deres tjek, aktivitet og rapporterede problemer. At eje en database gør dig ikke til ejer af dens tabeller: brug en ejerregel til at give et team en hel database. **Oversigt**, **Problemer** og tallet ved **Oversigt** tæller og viser kun de tabeller, en sådan tilladelse når, ligesom **Tabeller** og **Tjek** gør.
 
 ## Når en advarsel åbnes
 
-En tabels advarsel har et **Data**-kort, der siger, hvorfor det mest sandsynligt skete, rangeret: en advarsel opstrøms, en mislykket kørsel, en udrulning af en tjeneste, der skriver til den, dens mislykkede skrivninger, en kolonne, der er ændret, databasen selv eller den server, den kører på. Under det står, hvad der afhænger af den: tabeller nedstrøms i dens afstamning, dashboards, tjenester og de personer, der ejer dem.
+En tabels advarsel har et **Data**-kort, der siger, hvorfor det mest sandsynligt skete, rangeret: en advarsel opstrøms, en mislykket kørsel, en udrulning af en tjeneste, der skriver til den, dens mislykkede skrivninger, en kolonne, der er ændret, databasen selv eller den server, den kører på. Under det står, hvad der afhænger af den: tabeller nedstrøms i dens afstamning, dashboards, tjenester og de personer, der ejer dem. Ligesom advarslens **Afstamning**-kort fortæller det kun om de tabeller og pipelines, din rolle må læse.
 
 Sig, hvad du udledte af den:
 

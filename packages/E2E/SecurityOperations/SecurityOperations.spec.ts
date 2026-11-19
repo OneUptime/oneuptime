@@ -3801,9 +3801,18 @@ test.describe("a case", () => {
     await expect(page.getByTestId("security-case-ai-card")).toBeVisible();
     await expect(page.getByText("TA0006 Credential Access")).toBeVisible();
 
-    // The case's other parts are pages of their own, not on its Overview.
+    // Why the case was opened, and what to do about it (#9556, #9557).
+    await expect(page.getByTestId("security-case-why-opened")).toBeVisible();
+    await expect(page.getByTestId("security-case-response-plan")).toBeVisible();
+
+    /*
+     * The case's other parts are pages of their own, not on its Overview:
+     * the list of its detections, its timeline and its notes. The detection
+     * that opened it is explained on the Overview; the list stays on
+     * Detections.
+     */
     for (const text of [
-      "31 times",
+      "Showing 1-3 of 3 security detections",
       "took the case.",
       "Approving the suspend.",
     ]) {

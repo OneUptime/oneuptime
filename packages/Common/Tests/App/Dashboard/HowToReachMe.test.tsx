@@ -830,10 +830,101 @@ describe("moving between the ladder and the grid", () => {
     expect(screen.queryByText("Leave without saving?")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("paging-ladder-open-grid"));
-    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    // Discard Changes, at the question's start: Save Changes is its primary (#7402).
+    fireEvent.click(screen.getByTestId("leave-question-discard"));
 
     expect(pageView()).toBe("grid");
     expect(saveMock).not.toHaveBeenCalled();
+  });
+
+  test("over changes not saved yet, Save Changes saves the ladder as its own Save Changes does, then opens the grid (#7402)", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    changeStepWait(1, 10);
+    fireEvent.click(screen.getByTestId("paging-ladder-open-grid"));
+
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Save Changes",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(pageView()).toBe("grid");
+    });
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    expect(
+      (saveMock.mock.calls[0]![0] as { steps: Array<PagingLadderStep> }).steps,
+    ).toHaveLength(2);
+    expect(screen.queryByText("Leave without saving?")).not.toBeInTheDocument();
+  });
+
+  test("a refused save keeps the ladder and its question, and says why (#7402)", async () => {
+    givenRules(ONE_LADDER);
+    saveMock.mockRejectedValue(
+      new Error("Your notification rules were not saved. Try again."),
+    );
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    changeStepWait(1, 10);
+    fireEvent.click(screen.getByTestId("paging-ladder-open-grid"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    const question: HTMLElement = await screen.findByRole("dialog", {
+      name: "Leave without saving?",
+    });
+
+    await waitFor(() => {
+      expect(within(question).getByTestId("modal-error")).toHaveTextContent(
+        "Your notification rules were not saved. Try again.",
+      );
+    });
+    expect(pageView()).toBe("ladder");
+    expect(drawnSteps()[1]!.wait).toBe("After 10\u00A0minutes");
+    expect(LeaveGuard.isHeld()).toBe(true);
+    await settle();
+  });
+
+  test("leaving the page with changes not saved yet, Save Changes saves the ladder, then goes on (#7402)", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    changeStepWait(1, 10);
+
+    const leave: MockFunction = getJestMockFunction();
+
+    await act(async () => {
+      LeaveGuard.whenLeaving("/dashboard/elsewhere", leave as () => void);
+    });
+
+    const question: HTMLElement = screen.getByRole("dialog", {
+      name: "Leave without saving?",
+    });
+
+    expect(
+      within(question).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Save Changes");
+
+    await act(async () => {
+      fireEvent.click(
+        within(question).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(leave).toHaveBeenCalledTimes(1);
+    });
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    await settle();
   });
 
   test("Back to One Ladder leaves the grid's tab out of the address", async () => {

@@ -92,6 +92,7 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
 import logger from "../../../../Server/Utils/Logger";
+import { everyServerProductIsOn } from "../../TestingUtils/ServerProductsOn";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../Models/DatabaseModels/Project";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -496,6 +497,13 @@ beforeEach(() => {
 
   (MicrosoftTeamsUtil as unknown as CachedAdapterSlot).cachedAdapter =
     new CloudAdapter(new ConfigurationBotFrameworkAuthentication({}));
+
+  /*
+   * Every product is on. A command asks what the server has switched off
+   * before it acts (WorkspaceProductRefusal), a read of the database, which
+   * nothing connects here.
+   */
+  everyServerProductIsOn();
 
   jest
     .spyOn(

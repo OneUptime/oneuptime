@@ -45,12 +45,12 @@ Uma regra nova começa habilitada; desative **Habilitado** no formulário de edi
 
 As **Regras de proprietário** adicionam usuários e equipes proprietários aos eventos novos que correspondem, e as **Regras de Rótulos** adicionam rótulos. Criar uma leva dois passos: **Corresponder**, as condições, e depois **Proprietários** ou **Rótulos**, o que a regra adiciona.
 
-| Condição                                                        | Corresponde a                                                              |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitores**, **Rótulos do evento**, **Rótulos do Monitor**    | Eventos com qualquer um dos monitores ou rótulos que você escolher.        |
-| **Título do evento**, **Descrição do evento**, **Nome do Monitor**, **Descrição do Monitor** | Um padrão, como expressão regular, sem diferenciar maiúsculas e minúsculas. |
+Na etapa **Corresponder**, **Aplica-se a** começa em **Todos os eventos de manutenção**: a regra age sobre cada evento novo. Para restringi-la, escolha **Somente os eventos de manutenção que atendem às condições**, preencha a condição que se abre e clique em **Adicionar condição** para cada uma das outras. Com duas ou mais condições, escolha **Corresponder a todas**, em que todas precisam valer, ou **Corresponder a qualquer**, em que uma basta.
 
-Uma regra só corresponde quando todas as condições que você preencheu se cumprem; uma condição deixada vazia é ignorada.
+| Condição                                                        | Compara com                                                                |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitores**, **Rótulos do evento**, **Rótulos do Monitor**    | **Tem algum de**, **Tem todos os** ou **Não tem nenhum de** os monitores ou rótulos que você escolher. |
+| **Título do evento**, **Descrição do evento**, **Nome do Monitor**, **Descrição do Monitor** | **Contém**, **Não contém**, **Igual a**, **Diferente de**, **Começa com**, **Termina com**, sem diferenciar maiúsculas, ou **Corresponde ao padrão** e **Não corresponde ao padrão**, para uma expressão regular ou um curinga `*`. |
 
 - **Uma regra pode herdar.** Recolhidas em **Herdar Proprietários** ou **Herdar Rótulos**, seis chaves repassam os proprietários ou os rótulos dos monitores, hosts, clusters Kubernetes, hosts Docker, hosts Podman e serviços do evento.
 - **Uma regra nova precisa adicionar algo**: escolha pelo menos um proprietário ou um rótulo, ou ative uma chave.
@@ -132,7 +132,7 @@ Regras, campos personalizados e medições exigem **Proprietário do projeto** o
 ## Solução de problemas
 
 :::details Uma regra de proprietário não adicionou ninguém a um evento novo
-Abra a regra e confira as condições: todas as condições preenchidas precisam se cumprir. Um padrão de título é uma expressão regular, então `db upgrade` não corresponde a «DB-Upgrade»; escreva `db.upgrade`. Além disso, uma regra só age sobre os eventos criados depois que ela foi salva: use **Executar agora** para os que você já tem.
+Abra a regra e confira as condições: com **Corresponder a todas**, todas precisam se cumprir. O texto é comparado como está escrito, exceto por maiúsculas e minúsculas, então **Contém** `db upgrade` não corresponde a «DB-Upgrade»; escolha **Corresponde ao padrão** e escreva `db.upgrade`. Além disso, uma regra só age sobre os eventos criados depois que ela foi salva: use **Executar agora** para os que você já tem.
 :::
 
 :::details Os proprietários não receberam nenhum lembrete

@@ -40,17 +40,17 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 
 Vá em **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, escolha **Certificado SSL**.
 
-### Dar um nome a ele
-
-Digite um **Nome**, como `example.com certificate`, e clique em **Próximo**.
-
 ### Informar a URL
 
 Em **URL do site**, digite o site cujo certificado será verificado, como `https://example.com`. Para um serviço em outra porta, inclua-a: `https://example.com:8443`.
 
+### Dar um nome a ele
+
+O **Nome** é preenchido com o que você informou, como `example.com`. Mantenha-o ou informe um seu, como `example.com certificate`, e clique em **Próximo**.
+
 ### Testá-lo
 
-Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o certificado que a sonda recebeu, com o emissor e a data de vencimento.
+Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o certificado que a sonda recebeu, com o emissor e a data de vencimento. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 

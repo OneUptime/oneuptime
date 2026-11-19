@@ -1671,7 +1671,10 @@ describe("an alert's drawing: the ways it picks out", () => {
     lastRunState: "COMPLETE",
   };
 
-  // focus <- a <- cause, focus -> b (a consequence), and c off the ways.
+  /*
+   * focus <- a <- cause, focus -> b (a consequence), and c off the ways. No
+   * consequence's pipeline is named (#6853): no arrow says Consequence.
+   */
   function withWays(
     edges: Array<DataTableLineageEdge> = [
       feeds("cause", "a"),
@@ -1805,6 +1808,7 @@ describe("an alert's drawing: the ways it picks out", () => {
       pipeline: failed,
       isFailed: true,
       isCause: false,
+      isConsequence: false,
     });
     expect(look.isHighlighted).toBe(true);
   });
@@ -1820,7 +1824,12 @@ describe("an alert's drawing: the ways it picks out", () => {
       color: style.color,
       width: style.width,
       dash: style.dash,
-      label: { pipeline: failed, isFailed: true, isCause: false },
+      label: {
+        pipeline: failed,
+        isFailed: true,
+        isCause: false,
+        isConsequence: false,
+      },
       isHighlighted: false,
       isDimmed: false,
     });
@@ -1834,6 +1843,7 @@ describe("an alert's drawing: the ways it picks out", () => {
       pipeline: onTheWay,
       isFailed: false,
       isCause: false,
+      isConsequence: false,
     });
     // The same pipeline on an arrow off the ways: nothing.
     expect(
@@ -1869,7 +1879,12 @@ describe("an alert's drawing: the ways it picks out", () => {
         FOCUS,
         getLineageHighlightSets(lineage),
       ),
-    ).toEqual({ pipeline: failed, isFailed: true, isCause: false });
+    ).toEqual({
+      pipeline: failed,
+      isFailed: true,
+      isCause: false,
+      isConsequence: false,
+    });
   });
 
   test("never a pipeline whose card starts the arrow, nor the pipeline the drawing is about", () => {
@@ -1917,7 +1932,8 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
   /*
    * focus <- staging <-[orders_load]- raw, the way up ending on orders_load's
    * arrow; focus -[orders_load]-> mart, the way down to an alert it caused;
-   * c -[orders_load]-> focus off the ways.
+   * c -[orders_load]-> focus off the ways. No consequence's pipeline is named
+   * (#6853): no arrow says Consequence, orders_load's into mart included.
    */
   function withCausePipeline(
     edges: Array<DataTableLineageEdge> = [
@@ -1978,12 +1994,18 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: causeRun,
       isFailed: false,
       isCause: true,
+      isConsequence: false,
     });
     // The arrow it draws keeps the way's look, with the label.
     expect(getLineageArrowLook(lineage.edges[0]!, FOCUS, sets)).toMatchObject({
       color: LINEAGE_HIGHLIGHT_COLOR,
       isHighlighted: true,
-      label: { pipeline: causeRun, isFailed: false, isCause: true },
+      label: {
+        pipeline: causeRun,
+        isFailed: false,
+        isCause: true,
+        isConsequence: false,
+      },
     });
   });
 
@@ -1994,6 +2016,7 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: causeRun,
       isFailed: false,
       isCause: false,
+      isConsequence: false,
     });
   });
 
@@ -2020,6 +2043,7 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: causeRun,
       isFailed: false,
       isCause: true,
+      isConsequence: false,
     });
     expect(labelOf(lineage, "raw", "staging")).toBeNull();
   });
@@ -2046,6 +2070,7 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: failedCause,
       isFailed: true,
       isCause: true,
+      isConsequence: false,
     });
   });
 
@@ -2061,6 +2086,7 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: otherFailed,
       isFailed: true,
       isCause: false,
+      isConsequence: false,
     });
   });
 
@@ -2076,6 +2102,7 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: onTheWay,
       isFailed: false,
       isCause: false,
+      isConsequence: false,
     });
     expect(getLineageHighlightSets(lineage)!.causeEdgeIds.size).toBe(0);
   });
@@ -2091,6 +2118,7 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: causeRun,
       isFailed: false,
       isCause: false,
+      isConsequence: false,
     });
   });
 
@@ -2205,6 +2233,7 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       pipeline: { ...causeRun, lastRunState: "FAIL" },
       isFailed: true,
       isCause: false,
+      isConsequence: false,
     });
   });
 
@@ -2355,6 +2384,8 @@ describe("an alert's drawing with a column followed", () => {
       dataPipelineIds: new Set(),
       causeDataPipelineIds: new Set(),
       causeEdgeIds: new Set(),
+      consequenceDataPipelineIds: new Set(),
+      consequenceEdgeIds: new Set(),
     };
   }
 

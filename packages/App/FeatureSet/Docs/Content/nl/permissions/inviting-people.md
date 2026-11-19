@@ -53,7 +53,7 @@ Vul het adres in bij **E-mail**. Gebruikt nog geen OneUptime-account dit adres, 
 
 Klik op **Uitnodigen**. OneUptime e-mailt de uitnodiging en opent de pagina van die persoon. Tot de acceptatie staat die persoon als **Uitnodiging verzonden**.
 
-Op een zelfgehoste server die nog geen e-mail kan versturen, gaat er geen e-mail uit en staat die persoon als **Uitgenodigd**. Een hoofdbeheerder ziet eerst **Stuur ze hun uitnodigingslink**: kopieer de link, stuur die zelf naar die persoon en klik dan op **Klaar**. Ieder ander vraagt de beheerder van de server om [e-mail in te stellen](/docs/emails/smtp#het-formulier-openen).
+Op een zelfgehoste server die nog geen e-mail kan versturen, gaat er geen e-mail uit en staat die persoon als **Uitgenodigd**. Een hoofdbeheerder ziet eerst **Stuur ze hun uitnodigingslink**: kopieer de link, stuur die zelf naar die persoon en klik dan op **Klaar**. Ieder ander vraagt de beheerder van de server om [e-mail in te stellen](/docs/emails/smtp#het-formulier-openen). E-mail die later wordt ingesteld, verstuurt de uitnodigingen van daarvoor niet: de persoon komt binnen met de uitnodigingslink, of door zich te registreren met het uitgenodigde adres.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ Op een zelfgehoste server die nog geen e-mail kan versturen, gaat er geen e-mail
 
 ## Een uitnodiging accepteren
 
-De uitnodigingsmail noemt het project. De knop erin is **Create Your Account** voor wie nog geen OneUptime-account heeft, en **Sign In to OneUptime** voor wie er al een heeft. Na het inloggen accepteert de persoon op een van twee plekken:
+De uitnodigingsmail noemt het project en wie de persoon heeft uitgenodigd. De knop erin is **Create Your Account** voor wie nog geen OneUptime-account heeft, en **Sign In to OneUptime** voor wie er al een heeft.
+
+**Create Your Account** opent de registratiepagina met het adres en de naam die u typte al ingevuld, en zegt welk project de persoon uitnodigt en wie. Wie zich daar registreert, komt in het project, zonder nog iets te hoeven accepteren.
+
+Op een zelfgehoste server die nog geen e-mail kan versturen, krijgt niemand een e-mail: de uitnodigingslink die de persoon in plaats daarvan krijgt, opent dezelfde registratiepagina, of de inlogpagina voor wie al een account heeft.
+
+Wie inlogt, of zich op een andere manier registreert, accepteert op een van twee plekken:
 
 | Waar de persoon is | Wat die ziet | Waar die op klikt |
 | --- | --- | --- |
@@ -78,7 +84,7 @@ Na het accepteren zit de persoon meteen in het project, met de machtigingen van 
 | --- | --- |
 | **Gebruiker** | Naam en e-mailadres. |
 | **Teams** | Elk team van het project waarin die persoon zit of waarvoor die is uitgenodigd. |
-| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan. Op een zelfgehoste server die nog geen e-mail kan versturen, in plaats daarvan **Uitgenodigd**: de uitnodiging wordt aangemaakt, maar er gaat geen e-mail uit. |
+| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan, of **E-mail niet verzonden** als de maildienst de laatste uitnodigingsmail heeft geweigerd. Op een zelfgehoste server die nog geen e-mail kan versturen, in plaats daarvan **Uitgenodigd**: de uitnodiging wordt aangemaakt, maar er gaat geen e-mail uit. |
 
 Filter de lijst op **Gebruiker**, **Status** of **Team**. Klik op een rij om de pagina van die persoon te openen:
 
@@ -112,6 +118,8 @@ Het Owners-team houdt altijd minstens één toegetreden lid, zodat een project n
 
 Open bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klik op **Verwijderen uit project**. Of open de persoon en kies **Verwijderen uit project** in het zijmenu. Om meerdere mensen tegelijk te verwijderen, selecteert u hun rijen en verwijdert u de selectie: elke persoon wordt op dezelfde manier verwijderd.
 
+Als uw rol mensen alleen uit sommige teams kan verwijderen, zoals de teams waarvan u eigenaar bent, is **Verwijderen uit project** vergrendeld voor iemand die ook in een team zit waaruit u die persoon niet kunt verwijderen, en noemt het de teams die de persoon in het project houden, voor zover u ze mag zien. Bij het verwijderen van meerdere mensen tegelijk wordt die persoon overgeslagen, en dat wordt gemeld.
+
 Verwijderen haalt iemand uit elk team van het project. Die persoon verliest meteen de toegang, ook als die is ingelogd, gaat uit de piketroosters en escalatieregels en krijgt de meldingen van het project niet meer. Het OneUptime-account wordt niet verwijderd, en u kunt die persoon opnieuw uitnodigen. [Gebruikers, teams en machtigingen](/docs/permissions/index#gebruikers) somt alles op wat het verlaten van een project meeneemt.
 
 ## Andere manieren om toe te treden
@@ -134,10 +142,20 @@ In OneUptime Cloud heeft een project met het Free-abonnement ruimte voor één p
 Naar één adres kunnen 10 uitnodigingen per uur worden gestuurd, voor projecten en privéstatuspagina's samen, wie ze ook stuurt. Wacht een uur en nodig de persoon daarna opnieuw uit.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Uw rol kan mensen alleen uit sommige teams van het project verwijderen, zoals de teams waarvan u eigenaar bent, en deze persoon zit ook in andere. Verwijder de persoon uit uw eigen teams op diens pagina **Teams**, of vraag een Projecteigenaar of Projectbeheerder om de persoon uit het project te verwijderen.
+:::
+
 :::details De uitnodigingsmail is niet aangekomen, of de link is verlopen
 De uitnodiging hangt niet af van de e-mail. Vraag de persoon zich te registreren met het uitgenodigde adres: OneUptime stuurt dat adres een nieuwe link om het account af te maken. Wie al een account heeft, logt in en vindt de uitnodiging klaarstaan.
 
+Of hij verstuurd is, ziet u op het tabblad **E-mail** van de **Meldingslogboeken** van het project: de rij van elke uitnodiging zegt of die verstuurd is, en zo niet, waarom. Op een zelfgehoste server vindt een hoofdbeheerder bovendien elke e-mail die de server niet kon versturen in het [e-maillogboek](/docs/emails/email-providers#zien-wat-de-server-heeft-verstuurd) van de server.
+
 Op een zelfgehoste server die nog geen e-mail kan versturen, kan registreren ook geen nieuwe link e-mailen: in plaats daarvan krijgt die persoon de melding om de uitnodigingslink te vragen. Zodra de beheerder van de server [e-mail heeft ingesteld](/docs/emails/smtp#het-formulier-openen), werkt registreren zoals hierboven. Tot dan kan een hoofdbeheerder die persoon een nieuwe link sturen, die één keer werkt, alleen voor dat adres, 7 dagen lang: open bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klik op **Uitnodigingslink ophalen**.
+:::
+
+:::details Iemand toont E-mail niet verzonden
+De maildienst heeft de laatste uitnodigingsmail geweigerd, dus er is niets bij die persoon aangekomen. Wijs **E-mail niet verzonden** aan, of tik erop, om de reden te zien, zoals het tabblad **E-mail** van de **Meldingslogboeken** van het project die geeft. Controleer het uitgenodigde adres, en open zodra e-mail werkt bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klik op **Uitnodiging opnieuw verzenden**: zodra de mail verstuurd is, staat die persoon weer als **Uitnodiging verzonden**. Op een zelfgehoste server kan de beheerder van de server die persoon in plaats daarvan de uitnodigingslink sturen: een hoofdbeheerder klikt in hetzelfde menu op **Uitnodigingslink ophalen**.
 :::
 
 :::details Gebruiker uitnodigen meldt dat gebruikers via SCIM Push Groups worden beheerd

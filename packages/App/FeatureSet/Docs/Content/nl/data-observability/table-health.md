@@ -17,6 +17,8 @@ Alleen de catalogus wordt gelezen, en bij MongoDB de veldnamen van de nieuwste d
 
 Het **ritme** van een tabel is hoe vaak ze gewoonlijk verandert, geleerd uit de tijd tussen haar wijzigingen. Een tabel die ruim voorbij haar ritme gaat, wordt getoond als **Te laat**, op haar pagina en in **Tabellen**, en schrijft hoe ver ze erover is. Haar actualiteit is bekend zodra ze twee keer is gewijzigd: een tabel die elk uur wordt geladen, is binnen enkele uren geleerd, een tabel die elke nacht wordt geladen, binnen enkele dagen.
 
+In **Tabellen**, en op het tabblad **Tabellen** van een database, toont het filter **Versheid** alleen de late tabellen, of alleen de verse, en sorteren op **Versheid** zet de meest achterstallige bovenaan. **Late tabellen** op het **Overzicht**, en op de eigen pagina van een database, opent die lijst met **Versheid** op **Te laat**.
+
 Een view heeft geen eigen rijen, dus haar actualiteit is die van haar bronnen: zie [Lineage en pipelines](/docs/data-observability/lineage-and-pipelines).
 
 Een catalogus kan zeggen dat een tabel is gewijzigd terwijl alleen het huishoudelijke werk is gedaan, of helemaal niets zeggen. Geef op de **Instellingen** van een tabel een **Freshness-kolom** op, zoals `updated_at`, en haar laatste wijziging wordt de nieuwste waarde van die kolom. De login moet de kolom kunnen lezen, en ze wordt bij elke verzamelronde gelezen, dus ze hoort geïndexeerd te zijn; op BigQuery en Athena, die afrekenen op wat een query leest, wordt ze eens per uur gelezen. Tijden zonder zone worden als UTC beschouwd.
@@ -85,11 +87,11 @@ Het tabblad **Eigenaren** van een tabel noemt de mensen en teams waartoe ze beho
 
 Je zou dit niet honderden keren moeten hoeven doen. **Eigenaarsregels** en **Labelregels** gelden voor elke tabel zodra ze voor het eerst verschijnt, gekoppeld op haar labels, of op een reguliere expressie op haar naam, schema of database: alles in `finance` gaat naar het financeteam, en alles met de naam `*_pii` krijgt een label.
 
-Een machtiging beperkt tot `Owned` bereikt alleen de tabellen waarvan de houder of diens teams eigenaar zijn, met hun controles, activiteit en gemelde problemen. Eigenaar zijn van een database maakt je geen eigenaar van de tabellen: gebruik een eigenaarsregel om een hele database aan een team te geven.
+Een machtiging beperkt tot `Owned` bereikt alleen de tabellen waarvan de houder of diens teams eigenaar zijn, met hun controles, activiteit en gemelde problemen. Eigenaar zijn van een database maakt je geen eigenaar van de tabellen: gebruik een eigenaarsregel om een hele database aan een team te geven. Het **Overzicht**, **Problemen** en het getal naast **Overzicht** tellen en tonen alleen de tabellen die zo'n machtiging bereikt, zoals **Tabellen** en **Controles** dat doen.
 
 ## Wanneer een waarschuwing opent
 
-De waarschuwing van een tabel heeft een kaart **Gegevens** die zegt waarom het waarschijnlijk is gebeurd, gerangschikt: een waarschuwing stroomopwaarts, een mislukte uitvoering, een deploy van een service die ernaar schrijft, haar mislukte schrijfacties, een kolom die is gewijzigd, de database zelf of de server waarop ze draait. Daaronder staat wat ervan afhangt: tabellen verderop in haar herkomst, dashboards, services en de mensen die ze beheren.
+De waarschuwing van een tabel heeft een kaart **Gegevens** die zegt waarom het waarschijnlijk is gebeurd, gerangschikt: een waarschuwing stroomopwaarts, een mislukte uitvoering, een deploy van een service die ernaar schrijft, haar mislukte schrijfacties, een kolom die is gewijzigd, de database zelf of de server waarop ze draait. Daaronder staat wat ervan afhangt: tabellen verderop in haar herkomst, dashboards, services en de mensen die ze beheren. Net als de kaart **Herkomst** van de waarschuwing vertelt ze alleen over de tabellen en pipelines die uw rol mag lezen.
 
 Zeg wat je ervan vond:
 

@@ -36,7 +36,7 @@ For an SLO in **Monitor Seconds Average** mode, `oneuptime.slo.error.budget.rema
 ### When no point is written
 
 - A turned-off or archived SLO is not evaluated, so it posts nothing.
-- A **Paused** or **Misconfigured** SLO measures nothing, so it posts only `oneuptime.slo.target.percent`, which is configuration rather than a measurement. Its SLI, budget, burn rate and status charts show a gap.
+- A **Waiting**, **Paused** or **Misconfigured** SLO measures nothing, so it posts only `oneuptime.slo.target.percent`, which is configuration rather than a measurement. Its SLI, budget, burn rate and status charts show a gap.
 - A value that is not a real number, such as a burn rate over a window with no data, is skipped, never written as 0.
 
 ### Attributes
@@ -115,7 +115,7 @@ One SLO variable in the toolbar scopes the whole board. It is a Telemetry Attrib
 ## Troubleshooting
 
 :::details An SLO is missing from the toolbar's SLO picker
-The picker lists the SLO names posted in the last day. A new SLO appears after its first evaluation; a **Paused** or **Misconfigured** SLO stays pickable because it still posts its target; a turned-off or archived SLO drops out about a day after its last point.
+The picker lists the SLO names posted in the last day. A new SLO appears after its first evaluation; a **Waiting**, **Paused** or **Misconfigured** SLO stays pickable because it still posts its target; a turned-off or archived SLO drops out about a day after its last point.
 :::
 
 :::details Picking a name shows two SLOs

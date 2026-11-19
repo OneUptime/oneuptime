@@ -452,7 +452,8 @@ Many servers run OneUptime for one job, such as watching websites and publishing
 
 - **Presets** set every switch in one click: **Monitoring and status pages** keeps Monitors, Incidents, On-Call, Status Pages and Scheduled Maintenance; **Incident response** adds Alerts, SLOs, Workflows and Runbooks; **Everything** keeps every product. **Choose products one by one** switches a single product. Users, Teams and Project Settings are always on.
 - A product that is off is gone from every project's **Products** menu, from Home and from Search, and **Project Settings > Products** shows it as switched off. A link to one of its pages says the product is switched off on this server and who can switch it on.
-- The API refuses to create, change or delete the product's records, and Ask AI leaves it out. Reading still works, because products that stay on show records of others: an incident names its monitors.
+- The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete the product's records, and Ask AI leaves it out. Reading still works, because products that stay on show records of others: an incident names its monitors.
+- OneUptime AI starts no work on the product: no investigation, postmortem draft, fix, code fix or insight. While Runbooks is off, a runbook still runs by its own schedule, webhook and rules, and nothing else starts one: not a person, auto-remediation, OneUptime AI or a security playbook.
 - Nothing is deleted, and what already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion. A product switched on again comes back as it was.
 
 To set the products as code, set `SERVER_PRODUCTS` in `config.env` (Helm: `products.onThisServer`) to `everything`, `monitoring-and-status-pages`, `incident-response`, or the products to keep on by key, such as `monitors,incidents,on-call,status-pages`. It is a starting value: once an admin saves **Settings > Products**, what they saved applies.
@@ -475,7 +476,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | The `global-runner` service does not start. Only runbooks and OneUptime AI's code fixes use it. |
 | `MQTT_INGEST_ENABLED=false` | The MQTT listeners that IoT devices send to are turned off. |
 
-Six services still run: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` and `valkey`. ClickHouse stays, because monitors keep their results and logs in it. On Kubernetes, set `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` and `globalRunner.enabled: false` in the Helm values. Size the server by the [requirements](#requirements).
+Six services still run: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` and `valkey`. ClickHouse stays, because monitors keep their results and logs in it. On Kubernetes, set `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` and `globalRunner.enabled: false` in the Helm values.
+
+**What it needs.** Measured on release 15.0.0 with Docker Compose, each service held to the same 4 CPU cores, as on a 4-core server. Memory is what `docker stats` reports, the mean of five readings 30 seconds apart:
+
+| Service | At rest | With 100 monitors |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| Total | 2,274 MiB | 2,486 MiB |
+
+At rest is 10 minutes after OneUptime is up, with no monitors. With 100 monitors is 30 minutes after adding 100 Website monitors that check every minute and a public status page that shows them. While OneUptime starts, the services use more for a minute or two: up to 3,584 MiB together. At rest, none of them used more than a tenth of a CPU core.
+
+After those 30 minutes, PostgreSQL's data took 163 MiB and ClickHouse's 452 MiB, nearly all of it ClickHouse's own logs: the monitors' checks took under 2 MiB.
+
+So this profile runs on a server with 4 CPU cores and 6 GB of memory, with room for the system, Docker and an update. nginx in `ingress` starts one worker per core, so on a server with more cores it uses more: about 510 MiB on 32 cores.
+
+With its default settings, one probe checks up to 50 monitors at once: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). It asks for more as soon as it has room, so it is not limited to 50 monitors a minute: measured with 252 Website, API and Port monitors that check every minute, it checked each of them every minute. The probe of release 15.0.0 asked only once a minute, so it checked at most 50 monitors a minute: for the 100 monitors to be checked every minute, the measurement above set `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. A probe that falls behind says so on OneUptime Health in the Admin Dashboard: raise either setting in `config.env` so it checks more at once.
 
 ## Update OneUptime
 

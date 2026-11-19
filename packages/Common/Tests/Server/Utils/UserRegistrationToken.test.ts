@@ -320,3 +320,67 @@ describe("UserRegistrationToken.consumeRegistrationToken", () => {
     expect(query["token"].toString()).toBe(TOKEN.toString());
   });
 });
+
+/*
+ * The sign-up page an invitation opens asks whether its token would be
+ * spent, to say which project invited the person (#7471): the same checks
+ * as spending it, and the token left for the sign-up to spend.
+ */
+describe("UserRegistrationToken.isRegistrationTokenLive", () => {
+  const isLive: (email?: Email) => Promise<boolean> = (
+    email: Email = INVITED_EMAIL,
+  ): Promise<boolean> => {
+    return UserRegistrationToken.isRegistrationTokenLive({
+      token: TOKEN,
+      email: email,
+    });
+  };
+
+  test("says yes to a live token minted for this address, and leaves it unspent", async () => {
+    await expect(isLive()).resolves.toBe(true);
+    expect(deleteOneBySpy).not.toHaveBeenCalled();
+
+    // Still there for the sign-up to spend.
+    await expect(
+      UserRegistrationToken.consumeRegistrationToken({
+        token: TOKEN,
+        email: INVITED_EMAIL,
+      }),
+    ).resolves.toBe(true);
+  });
+
+  test("matches the address case-insensitively", async () => {
+    await expect(isLive(new Email("ALICE@company.com"))).resolves.toBe(true);
+  });
+
+  test.each([
+    ["does not exist", null],
+    ["has expired", { expires: OneUptimeDate.getSomeDaysAgo(1) }],
+    ["has no expiry", { expires: undefined }],
+    ["has no address", { email: undefined }],
+  ])(
+    "says no to a token that %s",
+    async (_case: string, row: Record<string, unknown> | null) => {
+      findOneBySpy.mockResolvedValue(row === null ? null : tokenRow(row));
+
+      await expect(isLive()).resolves.toBe(false);
+      expect(deleteOneBySpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("says no to a token minted for somebody else's address", async () => {
+    await expect(isLive(OTHER_EMAIL)).resolves.toBe(false);
+  });
+
+  test("looks the token up by the token itself, as OneUptime", async () => {
+    await isLive();
+
+    const read: Record<string, any> = findOneBySpy.mock.calls[0]![0] as Record<
+      string,
+      any
+    >;
+
+    expect(read["query"]["token"].toString()).toBe(TOKEN.toString());
+    expect(read["props"]).toEqual({ isRoot: true });
+  });
+});

@@ -14,6 +14,10 @@ export type {
   ReplayFetch,
   ReplayFetchResponse,
 } from "./Config";
+export type {
+  ProductAnalyticsDiagnostics,
+  ProductAnalyticsStopReason,
+} from "./ProductAnalytics";
 export {
   OneUptimeReplayProvider,
   ReplayMask,

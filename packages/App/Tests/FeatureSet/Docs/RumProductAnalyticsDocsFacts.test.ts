@@ -47,6 +47,10 @@ import {
   WidgetCatalogCategory,
   WidgetCatalogItem,
 } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/WidgetCatalog";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { isPublicDashboardUndrawnWidgetType } from "Common/Types/Dashboard/PublicDashboardServedSettings";
+import { PRODUCT_ANALYTICS_EVENTS_PATH } from "Common/Types/Rum/ProductAnalyticsEvents";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -209,14 +213,15 @@ function rumGroup(): NavGroup {
 }
 
 describe("Product Analytics: its place in the docs", () => {
-  it("is the RUM group's fifth link, after Core Web Vitals and before Managing Applications", () => {
+  it("is the RUM group's sixth link, after Core Web Vitals and before Managing Applications", () => {
     const links: Array<NavLink> = rumGroup().links;
     const urls: Array<string> = links.map((link: NavLink): string => {
       return link.url;
     });
     const at: number = urls.indexOf(`/docs/${PRODUCT_ANALYTICS}`);
 
-    expect(at).toBe(4);
+    // Right after the five setup pages, Android Setup (#9533) among them.
+    expect(at).toBe(5);
     expect(urls[at - 1]).toBe("/docs/rum/web-vitals");
     expect(urls[at + 1]).toBe("/docs/rum/applications");
     expect(links[at]?.title).toBe("Product Analytics");
@@ -384,9 +389,15 @@ describe("Product Analytics: the Users page", () => {
 
   it("counts total users over the months the numbers are kept", () => {
     expect(rows[4]?.[1]).toBe(
-      `Everyone the application has seen in the last ${PRODUCT_ANALYTICS_RETENTION_MONTHS} months.`,
+      `Everyone the application has seen in the months it keeps its numbers, ${PRODUCT_ANALYTICS_RETENTION_MONTHS} by default.`,
     );
-    expect(source("usersPage")).toContain('sublabel: "In the last 13 months",');
+    // The tile says the application's own months (#6626), 13 by default.
+    expect(source("usersPage")).toContain(
+      'other: "In the last {{count}} months",',
+    );
+    expect(source("usersPage")).toContain(
+      "const retentionMonths: number = readProductAnalyticsRetentionMonths(summary);",
+    );
   });
 
   it("names the two charts and the windows the active-users chart counts over", () => {
@@ -440,10 +451,10 @@ describe("Product Analytics: the Users page", () => {
       '{translator.translateText("Recording no longer kept")}',
     );
     expect(person).toContain(
-      'description="Every session of theirs the last 13 months hold, newest first."',
+      '"Every session of theirs the last {{count}} months hold, newest first.",',
     );
     expect(lineStartingWith(users, "**People**")).toBe(
-      "**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the last 13 months, with **Watch** on each one whose recording is still kept.",
+      "**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the months the numbers are kept, with **Watch** on each one whose recording is still kept.",
     );
   });
 });
@@ -833,6 +844,196 @@ describe("Product Analytics: All cohorts, and saved funnels and retention tables
 
     expect(who).toContain(
       "Saving, renaming and deleting saved funnels and retention tables takes the same permissions as reading these pages, and a dashboard widget shows one only to a reader who holds them.",
+    );
+  });
+
+  /*
+   * Issue #6717: a public dashboard never draws a saved funnel's or
+   * retention table's numbers - they count an application's end users -
+   * and the page says so where it puts them on a dashboard.
+   */
+  it("says a public dashboard shows only the widgets' titles, as it serves them", () => {
+    for (const componentType of [
+      DashboardComponentType.ProductAnalyticsFunnel,
+      DashboardComponentType.ProductAnalyticsRetention,
+    ]) {
+      expect(isPublicDashboardUndrawnWidgetType(componentType)).toBe(true);
+    }
+
+    expect(dashboards).toContain(
+      "A public dashboard shows only their titles, never their numbers: those count your application's end users.",
+    );
+  });
+});
+
+/*
+ * Issue #6719: an erasure request removes a person's sessions, numbers and
+ * events, but not what the team saved - a saved funnel's or retention
+ * table's name and segment are the team's own writing - and the Privacy
+ * section says so, in every language, beside the erasure it qualifies.
+ */
+describe("Product Analytics: what an erasure leaves of saved funnels and retention tables", () => {
+  const ERASED: string = "- **Erased on request.**";
+  const SENTENCE: string =
+    "It does not change **Saved funnels** or **Saved retention tables**: their names and segments are your team's own writing, as a dashboard's title is, so do not save a segment that names a person.";
+
+  function erasedLineIndex(): number {
+    const lines: Array<string> = englishPage().split("\n");
+    const indexes: Array<number> = lines
+      .map((line: string, index: number): number => {
+        return line.startsWith(ERASED) ? index : -1;
+      })
+      .filter((index: number): boolean => {
+        return index >= 0;
+      });
+
+    expect(indexes).toHaveLength(1);
+
+    return indexes[0] as number;
+  }
+
+  it("says it in the Privacy section's erasure bullet", () => {
+    const privacy: string = section("## Privacy and retention");
+    const bullet: string = lineStartingWith(privacy, ERASED);
+
+    expect(bullet.endsWith(SENTENCE)).toBe(true);
+    // The erasure itself still comes first.
+    expect(bullet.indexOf("An erasure request removes")).toBeLessThan(
+      bullet.indexOf(SENTENCE),
+    );
+  });
+
+  it("the erasure job reads and edits no saved view: what the page says is what it does", () => {
+    const job: string = fs.readFileSync(
+      path.join(
+        REPO_DIR,
+        "packages/App/FeatureSet/Workers/Jobs/Rum/ProcessSessionErasureRequests.ts",
+      ),
+      "utf8",
+    );
+    const erasure: string = fs.readFileSync(
+      path.join(
+        REPO_DIR,
+        "packages/Common/Server/Utils/RumProductAnalytics/RumProductAnalyticsErasure.ts",
+      ),
+      "utf8",
+    );
+
+    for (const source of [job, erasure]) {
+      expect(source).not.toMatch(/SavedView/);
+    }
+  });
+
+  it.each(DOCS_LANGUAGES)(
+    "%s says it on the line the English says it, naming both lists as its Dashboard draws them",
+    (language: string) => {
+      const line: string =
+        readPage(language, PRODUCT_ANALYTICS).split("\n")[erasedLineIndex()] ||
+        "";
+
+      expect({
+        language,
+        bullet: line.startsWith("- **"),
+        erasureCount: line.includes("`productAnalyticsRowsDeleted`"),
+        funnels: line.includes(
+          `**${drawnActionLabel(language, "Saved funnels")}**`,
+        ),
+        tables: line.includes(
+          `**${drawnActionLabel(language, "Saved retention tables")}**`,
+        ),
+      }).toEqual({
+        language,
+        bullet: true,
+        erasureCount: true,
+        funnels: true,
+        tables: true,
+      });
+    },
+  );
+});
+
+/*
+ * Issue #6629: the React Native recorder sends product analytics events and
+ * metric() points, as the browser recorder does, so the page no longer says
+ * it sends none - and what it says it sends, the recorder's source does.
+ */
+describe("Product Analytics: events from a React Native app", () => {
+  const MOBILE: string = "packages/App/FeatureSet/MobileRecorder/src";
+  const send: string = section("## Send events and metrics");
+
+  function mobileSource(file: string): string {
+    return fs.readFileSync(path.join(REPO_DIR, MOBILE, file), "utf8");
+  }
+
+  it("posts to the events route the browser recorder posts to", () => {
+    expect(mobileSource("ProductAnalyticsContract.ts")).toContain(
+      `export const PRODUCT_ANALYTICS_EVENTS_PATH: string =\n  "${PRODUCT_ANALYTICS_EVENTS_PATH}";`,
+    );
+    expect(mobileSource("MobileReplayRecorder.ts")).toContain(
+      "url: `${options.host}${PRODUCT_ANALYTICS_EVENTS_PATH}`,",
+    );
+  });
+
+  it("says the React Native recorder sends them, and no longer that it sends none", () => {
+    expect(englishPage()).not.toContain("sends none yet");
+    expect(send).toContain(
+      "Session Replay must be on for the application too, as its recorder sends the events, from a web page and from a React Native app alike.",
+    );
+
+    /*
+     * Every translation says what a React Native app sends on the line the
+     * English says it, with the call it names.
+     */
+    const lines: Array<string> = englishPage().split("\n");
+    const sends: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith("Each session the browser recorder runs in");
+    });
+
+    expect(lines[sends]).toContain("`setRoute()`");
+
+    for (const language of DOCS_LANGUAGES) {
+      const line: string =
+        readPage(language, PRODUCT_ANALYTICS).split("\n")[sends] || "";
+
+      expect({
+        language,
+        // German joins it into one word with its noun: "React-Native-App".
+        reactNative:
+          line.includes("React Native") || line.includes("React-Native"),
+        setRoute: line.includes("`setRoute()`"),
+      }).toEqual({ language, reactNative: true, setRoute: true });
+    }
+  });
+
+  it("names a screen setRoute() is given as a page view, as the recorder files it", () => {
+    const recorder: string = mobileSource("MobileReplayRecorder.ts");
+    const setRoute: string = between(
+      recorder,
+      "public async setRoute(route: string): Promise<void> {",
+      "/*\n     * Paused for idle",
+    );
+
+    expect(setRoute).toContain("this.analytics?.page(sanitizeRoute(route));");
+    expect(send).toContain(
+      "A React Native app sends its session's start and each screen it passes to `setRoute()` as a page view.",
+    );
+  });
+
+  it("sends metric() from the React Native recorder too, masked as its text is", () => {
+    const recorder: string = mobileSource("MobileReplayRecorder.ts");
+
+    expect(recorder).toContain("public metric(");
+    expect(recorder).toContain(
+      "return maskStringMapValues(sanitizeEventProperties(value));",
+    );
+    /* Said after Mask all text and tags, which it is the mobile form of. */
+    expect(
+      lineStartingWith(send, "- **Masked as the recording is.**"),
+    ).toContain(
+      "not in these pages' breakdowns. A React Native app's values are always masked, as its SDK masks all text. A page is sent as its path",
+    );
+    expect(lineStartingWith(send, "- **In small batches**")).toContain(
+      "every 5 seconds and when the tab is hidden or the app goes to the background.",
     );
   });
 });

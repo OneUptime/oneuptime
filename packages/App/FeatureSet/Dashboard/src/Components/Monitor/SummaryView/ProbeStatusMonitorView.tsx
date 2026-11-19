@@ -1,11 +1,14 @@
-import { Gray500, Green, Red } from "Common/Types/BrandColors";
+import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
+import { ProbeBehindWork } from "Common/Types/Probe/ProbeBehind";
 import ProbeStatusMonitorResponse, {
   ProbeStatusMonitorProbe,
 } from "Common/Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey } from "Common/Types/Translator";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ProbeStatusMonitorUtil, {
   ProbeSilence,
@@ -15,6 +18,28 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   probeStatusMonitorResponse: ProbeStatusMonitorResponse;
 }
+
+/*
+ * What a probe that is behind is behind on, and since when (#9501): its
+ * monitors checked, its network devices polled, or both, later than set.
+ */
+export const PROBE_BEHIND_WORDS: {
+  status: string;
+  monitors: string;
+  devices: string;
+  both: string;
+} = {
+  status: translationKey("Behind"),
+  monitors: translationKey(
+    "Since {{time}}, its monitors are checked less often than set.",
+  ),
+  devices: translationKey(
+    "Since {{time}}, its network devices are polled less often than set.",
+  ),
+  both: translationKey(
+    "Since {{time}}, its monitors and network devices are checked less often than set.",
+  ),
+};
 
 // "No heartbeat for 15 minutes", in the unit getSilence picked.
 const SILENCE_TEMPLATES: Record<ProbeSilence["unit"], PluralTemplate> = {
@@ -34,14 +59,16 @@ const SILENCE_TEMPLATES: Record<ProbeSilence["unit"], PluralTemplate> = {
 
 /*
  * What a Probe Status monitor found on one evaluation: each probe it watches
- * and whether it was connected. Drawn on the monitor's overview (its newest
- * evaluation), on an incident or alert it opened (the evaluation that opened
- * it) and in its Monitoring Logs, always with that evaluation's Evaluation
- * Logs under it - which already count the probes and say when it ran, so
- * this card does neither.
+ * and whether it was connected, and keeping up. Drawn on the monitor's
+ * overview (its newest evaluation), on an incident or alert it opened (the
+ * evaluation that opened it) and in its Monitoring Logs, always with that
+ * evaluation's Evaluation Logs under it - which already count the probes and
+ * say when it ran, so this card does neither.
  *
- * Disconnected probes come first: they are why anyone is looking, and each
- * says how long it had gone without a heartbeat when the evaluation ran.
+ * Disconnected probes come first, then the ones behind (#9501): they are
+ * why anyone is looking. A disconnected one says how long it had gone
+ * without a heartbeat when the evaluation ran; one behind says since when,
+ * and whether its monitors or its network devices wait.
  * That is measured to the evaluation, not to now, so a three-day-old
  * incident does not claim its probe was silent for three days. A connected
  * probe needs no time: connected means a heartbeat in the last three
@@ -54,10 +81,21 @@ const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const response: ProbeStatusMonitorResponse = props.probeStatusMonitorResponse;
 
+  // Disconnected first, then behind, then connected and keeping up.
+  const rankOf: (probe: ProbeStatusMonitorProbe) => number = (
+    probe: ProbeStatusMonitorProbe,
+  ): number => {
+    if (!probe.isConnected) {
+      return 0;
+    }
+
+    return probe.isBehind ? 1 : 2;
+  };
+
   const probes: Array<ProbeStatusMonitorProbe> = [...response.probes].sort(
     (a: ProbeStatusMonitorProbe, b: ProbeStatusMonitorProbe): number => {
-      if (a.isConnected !== b.isConnected) {
-        return a.isConnected ? 1 : -1;
+      if (rankOf(a) !== rankOf(b)) {
+        return rankOf(a) - rankOf(b);
       }
 
       return a.probeName.localeCompare(b.probeName);
@@ -71,6 +109,34 @@ const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
   ) => ReactElement | null = (
     probe: ProbeStatusMonitorProbe,
   ): ReactElement | null => {
+    if (probe.isConnected && probe.isBehind) {
+      const work: Array<ProbeBehindWork> = probe.behindOn || [];
+      const isOnDevices: boolean = work.includes(ProbeBehindWork.DevicePolls);
+      const isOnMonitors: boolean =
+        work.length === 0 || work.includes(ProbeBehindWork.MonitorChecks);
+      const words: string =
+        isOnMonitors && isOnDevices
+          ? PROBE_BEHIND_WORDS.both
+          : isOnDevices
+            ? PROBE_BEHIND_WORDS.devices
+            : PROBE_BEHIND_WORDS.monitors;
+
+      return (
+        <div
+          className="mt-0.5 break-words text-xs text-gray-600"
+          data-testid="probe-status-monitor-probe-behind"
+        >
+          {translator.translateTemplate(words, {
+            time: probe.behindSince
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  probe.behindSince,
+                )
+              : EMPTY_VALUE_MARK,
+          })}
+        </div>
+      );
+    }
+
     if (probe.isConnected) {
       return null;
     }
@@ -159,8 +225,16 @@ const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="sm:flex-none">
                   <Statusbubble
-                    text={probe.isConnected ? "Connected" : "Disconnected"}
-                    color={probe.isConnected ? Green : Red}
+                    text={
+                      !probe.isConnected
+                        ? "Disconnected"
+                        : probe.isBehind
+                          ? PROBE_BEHIND_WORDS.status
+                          : "Connected"
+                    }
+                    color={
+                      !probe.isConnected ? Red : probe.isBehind ? Yellow : Green
+                    }
                     shouldAnimate={false}
                   />
                 </div>

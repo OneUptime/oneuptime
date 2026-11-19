@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
@@ -18,8 +19,18 @@ const Logout: FunctionComponent<PageComponentProps> = (): ReactElement => {
   useAsyncEffect(async () => {
     try {
       UiAnalytics.logout();
-      UserUtil.logout();
-      Navigation.navigate(ACCOUNTS_URL);
+      /*
+       * The sign-in page opens only once the server has signed this browser
+       * out, or the wait for it is over (issue #9508): opened at once, it
+       * cancelled the sign-out in Firefox, which left the session's cookies
+       * behind for the next person on the browser.
+       *
+       * A person who signed in through an identity provider set to sign
+       * people out of it too goes to the provider's sign-out instead, which
+       * ends their session there and comes back to the sign-in page (#9535).
+       */
+      const identityProviderSignOutUrl: URL | null = await UserUtil.logout();
+      Navigation.navigate(identityProviderSignOutUrl || ACCOUNTS_URL);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message || err.toString());

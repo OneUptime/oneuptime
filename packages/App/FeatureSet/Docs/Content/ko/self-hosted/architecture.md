@@ -81,6 +81,8 @@ flowchart TB
 | Slack과 Microsoft Teams | 워크스페이스 알림과 작업 | [Slack 연동](/docs/self-hosted/slack-integration) |
 | OpenAI, Anthropic, Microsoft Foundry 또는 직접 실행하는 모델 같은 LLM 공급자 | OneUptime AI | [LLM 공급자](/docs/ai/llm-provider) |
 | `oneuptime.com` | Enterprise 라이선스 온라인 활성화 | [엔터프라이즈 에디션](/docs/self-hosted/enterprise) |
+| Let's Encrypt | OneUptime이 직접 발급을 요청하는 인증서: `PROVISION_SSL=true`일 때 설치 주소용(Helm 차트에서는 `ssl.provision`)과 상태 페이지 자체 도메인용 | [상태 페이지 인증서](/docs/status-pages/branding-and-domains#ssl-인증서) |
+| ClamAV 시그니처 업데이트(`database.clamav.net`에서) | 사람들이 보내는 파일의 악성 코드 검사. OneUptime에 포함된 ClamAV를 켰을 때 | [악성 코드 검사](/docs/forms/sharing-and-security#악성-코드-검사) |
 
 반대 방향의 연결, 즉 SendGrid가 수신 이메일을 전달하거나 Slack과 Microsoft Teams가 콜백하는 경우에는 인터넷에서 ingress에 접근할 수 있어야 합니다. 앱과 프로브가 어떤 사설 주소에 접근할 수 있는지는 직접 정합니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참고하세요.
 

@@ -1166,6 +1166,87 @@ export function getOwnerNotEmailedFixLink(data: {
 }
 
 /*
+ * What opens - with the status it sets, when this is the criteria's first
+ * record - and who it tells: the sentences of one incident or alert.
+ */
+function getEventSentences(data: {
+  event: WhoIsToldEvent;
+  status: string | undefined;
+  translator: Translator;
+}): Array<string> {
+  const isAlert: boolean = data.event.kind === OnCallTestPageRecordKind.Alert;
+
+  let opens: string = isAlert
+    ? OPENS_SENTENCES.alert
+    : OPENS_SENTENCES.incident;
+
+  if (data.status) {
+    opens = isAlert
+      ? OPENS_SENTENCES.statusAndAlert
+      : OPENS_SENTENCES.statusAndIncident;
+  }
+
+  return [
+    data.translator.translateTemplate(
+      opens,
+      {
+        severity: getWhoIsToldSeverityValue(data.event),
+        ...(data.status
+          ? { status: getWhoIsToldStatusValue(data.status) }
+          : {}),
+      },
+      // A Latin name stays in order on a right-to-left page.
+      { setsValuesApart: true },
+    ),
+    ...getToldSentences(data.event, data.translator),
+  ];
+}
+
+/*
+ * WHAT ONE CRITERIA SETS OFF (#7074): the status it sets, each incident and
+ * alert it opens and who each tells, in the card's words - what a Test
+ * Monitor result that matches it would follow with. A criteria that opens
+ * nothing says the status alone, as the card says it; one that sets no
+ * status and opens nothing is no criteria of the chain's (the resolver
+ * leaves it out), and its caller says so.
+ */
+export function getWhoIsToldCriteriaSentences(
+  criteria: WhoIsToldResult["criteria"][number],
+  translator: Translator,
+): Array<string> {
+  if (criteria.events.length === 0) {
+    if (!criteria.statusName) {
+      return [];
+    }
+
+    const sentences: Array<string> = [
+      translator.translateTemplate(
+        STATUS_ONLY_SENTENCE,
+        { status: getWhoIsToldStatusValue(criteria.statusName) },
+        { setsValuesApart: true },
+      ),
+    ];
+
+    if (criteria.statusOwners) {
+      sentences.push(getOwnersSentence(criteria.statusOwners, translator));
+    }
+
+    return sentences;
+  }
+
+  // The status is said once, with the first record it opens.
+  return criteria.events.flatMap(
+    (event: WhoIsToldEvent, index: number): Array<string> => {
+      return getEventSentences({
+        event: event,
+        status: index === 0 ? criteria.statusName : undefined,
+        translator: translator,
+      });
+    },
+  );
+}
+
+/*
  * THE CARD'S FIRST WORDS: what happens when the monitor goes down, and who
  * is told, in two or three sentences. About the first criteria that opens
  * an incident or an alert (getWhoIsToldHeadline); with none, about the
@@ -1205,32 +1286,11 @@ export function getWhoIsToldSentences(
     return sentences;
   }
 
-  const event: WhoIsToldEvent = headline.event;
-  const isAlert: boolean = event.kind === OnCallTestPageRecordKind.Alert;
-  const status: string | undefined = headline.criteria.statusName;
-
-  let opens: string = isAlert
-    ? OPENS_SENTENCES.alert
-    : OPENS_SENTENCES.incident;
-
-  if (status) {
-    opens = isAlert
-      ? OPENS_SENTENCES.statusAndAlert
-      : OPENS_SENTENCES.statusAndIncident;
-  }
-
-  const sentences: Array<string> = [
-    translator.translateTemplate(
-      opens,
-      {
-        severity: getWhoIsToldSeverityValue(event),
-        ...(status ? { status: getWhoIsToldStatusValue(status) } : {}),
-      },
-      // A Latin name stays in order on a right-to-left page.
-      { setsValuesApart: true },
-    ),
-    ...getToldSentences(event, translator),
-  ];
+  const sentences: Array<string> = getEventSentences({
+    event: headline.event,
+    status: headline.criteria.statusName,
+    translator: translator,
+  });
 
   const more: number = result.criteria.filter(
     (item: WhoIsToldResult["criteria"][number]): boolean => {

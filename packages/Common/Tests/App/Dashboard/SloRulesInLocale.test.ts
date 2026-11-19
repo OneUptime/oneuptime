@@ -12,9 +12,11 @@ import {
   NO_CONDITIONS_SENTENCES,
   RULE_PLURAL_NAMES,
   RULE_SINGULAR_NAMES,
+  SLO_STATUS_CHANGE_WORDS,
   getNotificationRulesCardTitle,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
 import { SLO_ERROR_BUDGET_POLICY_CHANGES } from "../../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import { SLO_STATUS_CHANGES } from "../../../Types/ServiceLevelObjective/SloStatusChange";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import {
   NotificationRuleConditionCheckOn,
@@ -95,6 +97,7 @@ const SLO_RULE_WORDS: Array<string> = Array.from(
       NO_CONDITIONS_SENTENCES[SLO],
       ...NotificationRuleConditionUtil.getCheckOnByEventType(SLO),
       ...ERROR_BUDGET_POLICY_CHANGE_WORDS,
+      ...SLO_STATUS_CHANGE_WORDS,
     ].filter((text: string | undefined): text is string => {
       return Boolean(text);
     }),
@@ -109,18 +112,20 @@ describe("an SLO rule's words, in every language", () => {
   test("are listed, as the rule form, its card and its conditions draw them", () => {
     expect(SLO_RULE_WORDS).toEqual([
       "Which SLOs",
-      "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.",
+      "Conditions are checked each time an SLO's error budget policy changes, and, for a rule with an SLO Status Change condition, each time its status changes.",
       "All SLOs",
       "Only SLOs that match conditions",
       "SLO Notification Rule",
       "SLO Notification Rules",
       "Notification Rules",
-      "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.",
+      "Each rule picks the SLOs it is for, then posts to channels you have when an SLO's error budget policy changes, and, if the rule picks them, when its status changes.",
       "Every SLO.",
       "SLOs",
       "SLO Labels",
       "SLO Name",
       "Error Budget Policy Change",
+      // How its status changed (#6596), for a rule that posts status changes.
+      "SLO Status Change",
       // Who owns the SLO (#7583): the people and teams on its list of owners.
       "SLO Owner",
       "Entered a more severe tier",
@@ -128,7 +133,14 @@ describe("an SLO rule's words, in every language", () => {
       "Left every tier",
       "Deployments frozen",
       "Deployments allowed again",
+      "Became At Risk",
+      "Budget exhausted",
+      "Healthy again",
     ]);
+  });
+
+  test("the status changes a rule can pick are the words listed to translate", () => {
+    expect([...SLO_STATUS_CHANGE_WORDS]).toEqual([...SLO_STATUS_CHANGES]);
   });
 
   test("the changes a rule can pick are the words listed to translate, and the conditions are among the condition words", () => {

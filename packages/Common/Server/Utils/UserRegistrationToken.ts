@@ -138,6 +138,48 @@ export default class UserRegistrationToken {
     email: Email;
   }): Promise<boolean> {
     const savedToken: EmailVerificationToken | null =
+      await UserRegistrationToken.findLiveToken(data);
+
+    if (!savedToken) {
+      return false;
+    }
+
+    const deletedCount: number =
+      await EmailVerificationTokenService.deleteOneBy({
+        query: {
+          _id: savedToken._id!,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return deletedCount === 1;
+  }
+
+  /*
+   * Whether a token would be spent: it exists, was minted for this exact
+   * address and has not expired - and it is left as it is. The sign-up page
+   * an invitation opens asks, to say which project invited the person and
+   * fill in what the invitation knows (Identity's SignUpInvitation): the
+   * token is the proof that whoever asks holds the invited mailbox, as it is
+   * when the sign-up spends it. The same `false` for every failure, as
+   * consumeRegistrationToken gives.
+   */
+  @CaptureSpan()
+  public static async isRegistrationTokenLive(data: {
+    token: ObjectID;
+    email: Email;
+  }): Promise<boolean> {
+    return Boolean(await UserRegistrationToken.findLiveToken(data));
+  }
+
+  // The token's row, when it is minted for this address and has not expired.
+  private static async findLiveToken(data: {
+    token: ObjectID;
+    email: Email;
+  }): Promise<EmailVerificationToken | null> {
+    const savedToken: EmailVerificationToken | null =
       await EmailVerificationTokenService.findOneBy({
         query: {
           token: data.token,
@@ -153,7 +195,7 @@ export default class UserRegistrationToken {
       });
 
     if (!savedToken || !savedToken.email || !savedToken.expires) {
-      return false;
+      return null;
     }
 
     /*
@@ -163,23 +205,13 @@ export default class UserRegistrationToken {
      * string comparison is already case-insensitive.
      */
     if (savedToken.email.toString() !== data.email.toString()) {
-      return false;
+      return null;
     }
 
     if (OneUptimeDate.hasExpired(savedToken.expires)) {
-      return false;
+      return null;
     }
 
-    const deletedCount: number =
-      await EmailVerificationTokenService.deleteOneBy({
-        query: {
-          _id: savedToken._id!,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    return deletedCount === 1;
+    return savedToken;
   }
 }

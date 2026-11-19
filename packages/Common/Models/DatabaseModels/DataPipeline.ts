@@ -172,6 +172,11 @@ export default class DataPipeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.LongText,
     required: true,
+    /*
+     * Readable through a relation, as a data store's name is: a data alert
+     * names the pipeline it came from (DataAlertLineage).
+     */
+    canReadOnRelationQuery: true,
     title: "Name",
     description:
       "The job's OpenLineage name, such as orders_daily.load_orders.",
@@ -369,6 +374,25 @@ export default class DataPipeline extends BaseModel {
     nullable: true,
   })
   public expectedRunIntervalInSeconds?: number = undefined;
+
+  /*
+   * Written as its runs arrive (getDataPipelineLateAt), so the pipelines
+   * late now are counted by it on the server, with no row read (#6552).
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    title: "Late At",
+    description:
+      "When the pipeline is late if no run has started by then: its expected interval after its last start, plus a quarter of it and at least fifteen minutes. Empty until it has a schedule to judge by.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lateAt?: Date = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

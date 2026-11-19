@@ -40,6 +40,7 @@ import Permission, {
 } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { treatEverySessionAsLive } from "../../TestingUtils/LiveSessions";
 
 /*
  * ---------------------------------------------------------------------------
@@ -120,6 +121,7 @@ beforeEach(() => {
     .spyOn(GlobalConfigService, "getRequireSsoForLogin")
     .mockResolvedValue(false);
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  treatEverySessionAsLive();
   // A session that says master admin is one whose person still is one.
   jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   jest

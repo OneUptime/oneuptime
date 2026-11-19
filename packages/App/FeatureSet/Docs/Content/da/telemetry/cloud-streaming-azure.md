@@ -77,14 +77,7 @@ Når det første abonnement ikke er det, OneUptime læser hændelseshubbene i, s
 
 Streamen bærer de nøglemetrikker, forbindelsen læser minut for minut. Læsningerne bliver ved med at skrive resten efter deres tidsplan: en metrik, de læser med en grovere opløsning, fx et containerregistrys brugte lager, og hver nøglemetrik, en diagnosticeringsindstilling ikke kan sende, og som Azure Monitors liste over understøttede metrikker markerer som ikke eksporterbar i kolonnen DS Export:
 
-- Virtuelle maskiner og skaleringssæt: `Network In Total`, `Network Out Total`.
-- Diske: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Azure Cosmos DB-konti: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Lagerkonti: `UsedCapacity`.
-- AKS-klynger: `kube_pod_status_ready`.
-- Applikationsgateways: `ApplicationGatewayTotalTime`, `Throughput`.
-- Firewalls: `Throughput`.
-- NAT-gateways: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Et Service Bus- eller Event Hubs-navnerum streamer ingen metrikker. Læsningerne læser dets nøglemetrikker for hver kø, hvert topic og hver hændelseshub, og navnerummets egne totaler lægger dem sammen, mens en diagnosticeringsindstilling kun sender navnerummets totaler, og slet ikke 4 af et Service Bus-navnerums 6 nøglemetrikker eller 2 af et Event Hubs-navnerums 4. Så læsningerne skriver dem alle, med eller uden stream, og ingen besked tælles to gange.
 

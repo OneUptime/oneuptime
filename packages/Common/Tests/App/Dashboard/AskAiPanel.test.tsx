@@ -65,6 +65,7 @@ import {
   ASK_AI_PANEL_WIDTH_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanelLayout";
 import { PAGE_START_ALIGN_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/TitleDirection";
+import * as LazyChartWidgetModule from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/LazyChartWidget";
 import AskAI from "../../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
 import AICopilot from "../../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
@@ -744,6 +745,35 @@ describe("Ask AI opens from every way in", () => {
 
     expect(askAi()).not.toBeNull();
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
+  });
+});
+
+/*
+ * A chart in an answer is a file of its own (LazyChartWidget), so recharts
+ * is not in the first load of every page the panel is part of (issue #9335).
+ * The panel asks for it as it opens, so it is there by the time an answer
+ * draws one.
+ */
+describe("an answer's chart is on its way before the answer", () => {
+  test("the chart's file is asked for as the panel opens, and not while it is closed", async () => {
+    const load: SpyInstance = jest
+      .spyOn(LazyChartWidgetModule, "loadChartWidget")
+      .mockImplementation(() => {
+        return new Promise<never>((): void => {});
+      });
+
+    try {
+      await renderAt();
+      expect(askAi()).toBeNull();
+      expect(load).not.toHaveBeenCalled();
+
+      await toggle();
+
+      expect(askAi()).not.toBeNull();
+      expect(load).toHaveBeenCalledTimes(1);
+    } finally {
+      load.mockRestore();
+    }
   });
 });
 

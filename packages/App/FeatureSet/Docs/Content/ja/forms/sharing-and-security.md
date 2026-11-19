@@ -191,6 +191,8 @@ OneUptime インスタンスで hCaptcha がオンの場合、フォームには
 
 セルフホストのインストールでは、送られてくるすべてのファイルを保存前に ClamAV でマルウェアスキャンできます。フォームのファイルと、サインインした人や API キーがアップロードするファイルが対象です。`CLAMAV_HOST`（と `CLAMAV_PORT`、既定は `3310`）に ClamAV デーモンを設定してください。Docker Compose では、`config.env` の `COMPOSE_PROFILES=clamav` と `CLAMAV_HOST=clamav` で OneUptime に同梱の ClamAV が起動します。Helm では `clamav.enabled` を有効にします。ClamAV が検出したファイルは、そのファイル名を示して拒否され、送信の内容は何も保存されません。ClamAV が応答しない間は、すべてのファイルが "現在ファイルのウイルスチェックができないため、ファイルは受け付けられませんでした。数分後にもう一度お試しください。" (503) で拒否されるため、未チェックのファイルが保存されることはありません。`CLAMAV_HOST` がなければ、これまでどおりファイルはスキャンされません。
 
+OneUptime に同梱の ClamAV は、起動時に `database.clamav.net` からシグネチャをダウンロードし、最新に保ちます。これはネットワークの外への接続です。インターネットに接続できないネットワークでは、`CLAMAV_HOST` (Helm チャートでは `clamav.host`) に、そのネットワーク内のミラーから最新に保つ独自の ClamAV デーモンを設定してください。詳しくは [エアギャップ環境へのインストール](/docs/installation/air-gapped#what-still-reaches-out) を参照してください。
+
 ## トラブルシューティング
 
 :::details リンクにフォームが利用できないと表示される

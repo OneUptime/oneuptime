@@ -269,7 +269,7 @@ Kommandoen for et lavere nivå erstatter AWS-policyen med den lavere. **Av** leg
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Ressurser | Hver ressurs av typene OneUptime kjenner, i hver region du bruker, fra Cloud Control | Hver ressurs i abonnementene, fra Resource Graph | Hver ressurs i prosjektene, fra Cloud Asset Inventory |
-| Målinger | De viktigste målingene for hver tjeneste, som CPU, nettverk og statussjekker for en instans | Opptil 8 viktige målinger per ressurs | De viktigste målingene for hver ressurstype |
+| Målinger | De viktigste målingene for hver tjeneste, som CPU, nettverk og statussjekker for en instans | Opptil 20 viktige målinger per ressurs | De viktigste målingene for hver ressurstype |
 | Endringer | Administrasjonshendelsene i CloudTrail | De administrative hendelsene i aktivitetsloggen | Revisjonsloggen Admin Activity |
 | Helsehendelser | AWS Health | Service Health og Resource Health | Service Health |
 | Kostnader | Hver dags, etter tjeneste og region, og etter ressurs med Kostnader per ressurs slått på, fra Cost Explorer | Hver dags, etter ressurs og tjeneste, fra Cost Management | Hver dags, etter tjeneste, region og ressurs, fra fakturaeksporten din til BigQuery |

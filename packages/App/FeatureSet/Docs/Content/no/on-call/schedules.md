@@ -78,7 +78,7 @@ Endringer i hvem som bytter på, venter til du lagrer dem, så du kan gjøre fle
 - Hvert lag og den endelige vaktplanen viser rotasjonen slik den blir. Den endelige vaktplanen er merket **Inneholder ulagrede endringer**.
 - En linje nederst på siden nevner endringene, med **Lagre endringer** og **Forkast**.
 
-**Lagre endringer** lagrer alle endringene på én gang. Hvem som har vakt, regnes så ut én gang, for lagene slik de er lagret: Den som går på eller av vakt, eller er neste, får beskjed én gang, ikke én gang per endring. **Forkast** setter lagene tilbake slik de sist ble lagret. Hvis du forlater siden før du lagrer, blir du spurt først: **Fortsett å redigere** blir på siden, **Forkast endringer** forlater den uten å lagre.
+**Lagre endringer** lagrer alle endringene på én gang. Hvem som har vakt, regnes så ut én gang, for lagene slik de er lagret: Den som går på eller av vakt, eller er neste, får beskjed én gang, ikke én gang per endring. **Forkast** setter lagene tilbake slik de sist ble lagret. Hvis du forlater siden før du lagrer, blir du spurt først: **Lagre endringer** lagrer og forlater deretter siden, **Fortsett å redigere** blir på siden, og **Forkast endringer** forlater den uten å lagre.
 
 Hvis noen andre endret lagene etter at du åpnet siden, lagres ikke endringene dine over deres. Linjen sier fra, og **Last inn lag på nytt** viser lagene slik de er nå, så du kan gjøre endringene dine på nytt. **Legg til lag** legger til laget med en gang, og innstillingene for et lag lagres med lagets egen knapp **Lagre lag**.
 

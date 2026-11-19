@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { FindOperator } from "typeorm";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -43,6 +44,13 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { parseInvestigationReport } from "../../../../Utils/AI/InvestigationReport";
 import { ObservabilityAssistantResult } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import Permission from "../../../../Types/Permission";
+import {
+  keptForAudience,
+  readAudienceOf,
+} from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * AN INCIDENT IS CHECKED AGAIN, ONCE, WHEN AN ALERT OPENS ON ITS
@@ -82,6 +90,17 @@ const QUEUED_RUN_ID: ObjectID = new ObjectID(
 );
 const MINUTE: number = 60 * 1000;
 const DECLARED_AT: Date = new Date("2026-10-16T14:30:00.000Z");
+// Everyone who may see the incident, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({
+  projectId: PROJECT_ID,
+  named: { Incident: [INCIDENT_ID.toString()] },
+});
+// A team of the project reads alerts only for some labels.
+const NARROWED: ReadAudience = readAudienceOf({
+  projectId: PROJECT_ID,
+  labelledPermissions: [Permission.ProjectMember],
+  named: { Incident: [INCIDENT_ID.toString()] },
+});
 
 function at(minutesFromIncident: number): Date {
   return new Date(DECLARED_AT.getTime() + minutesFromIncident * MINUTE);
@@ -108,6 +127,10 @@ interface World {
   runs: Array<AIRun>;
   // The alerts on the incident's infrastructure, for a settled run's check.
   laterAlerts: Array<Alert>;
+  // Who may see the incident (ReadAudienceReader.forSubject, #9576).
+  readers: ReadAudience;
+  // The alerts set apart by an owner or a label from some of them.
+  setApartAlertIds: Array<string>;
 }
 
 let world: World;
@@ -166,11 +189,18 @@ beforeEach(() => {
       }),
     ],
     laterAlerts: [],
+    readers: READERS,
+    setApartAlertIds: [],
   };
 
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockImplementation(async (): Promise<ReadAudience> => {
+      return world.readers;
+    });
 
   jest
     .spyOn(AlertService, "findOneBy")
@@ -190,7 +220,16 @@ beforeEach(() => {
           alert.alertSeverity = { name: "Warning" } as never;
         }
 
-        return alert;
+        // As the read's own conditions keep it, for the incident's readers.
+        return (
+          keptForAudience({
+            modelType: Alert,
+            rows: [alert],
+            props: findOneBy.props,
+            setApartIds: world.setApartAlertIds,
+            privateIds: world.alertIsPrivate ? [ALERT_ID.toString()] : [],
+          })[0] || null
+        );
       },
     );
   jest
@@ -296,9 +335,45 @@ beforeEach(() => {
     );
   jest
     .spyOn(AlertService, "findBy")
-    .mockImplementation(async (): Promise<Array<Alert>> => {
-      return world.laterAlerts;
-    });
+    .mockImplementation(
+      async (findBy: FindBy<Alert>): Promise<Array<Alert>> => {
+        const query: JSONObject = findBy.query as unknown as JSONObject;
+        const known: Array<Alert> = [
+          newAlert(ALERT_ID, world.alertOpenedAt, world.alertIsPrivate),
+          ...world.laterAlerts,
+        ];
+        // Whether the incident's readers may read an alert, by its id.
+        const rows: Array<Alert> =
+          query["_id"] !== undefined && query["createdAt"] === undefined
+            ? Object.values(
+                ((query["_id"] as unknown as FindOperator<unknown>)
+                  .objectLiteralParameters || {}) as Record<string, unknown>,
+              )
+                .flat()
+                .map((id: unknown): Alert => {
+                  return (
+                    known.find((alert: Alert): boolean => {
+                      return alert.id?.toString() === String(id);
+                    }) || newAlert(new ObjectID(String(id)), at(1), false)
+                  );
+                })
+            : world.laterAlerts;
+
+        return keptForAudience({
+          modelType: Alert,
+          rows,
+          props: findBy.props,
+          setApartIds: world.setApartAlertIds,
+          privateIds: rows
+            .filter((alert: Alert): boolean => {
+              return alert.isPrivate === true;
+            })
+            .map((alert: Alert): string => {
+              return alert.id!.toString();
+            }),
+        });
+      },
+    );
   /*
    * The queue, with its subject lock: one enqueue at a time admits and
    * creates, as InvestigationSubjectLock serializes them.
@@ -602,6 +677,7 @@ describe("what the follow-up run is told, and says", () => {
   async function context(): Promise<FollowUpCheckContext> {
     const result: FollowUpCheckContext | null =
       await IncidentFollowUpCheck.readContext({
+        readAudience: world.readers,
         projectId: PROJECT_ID,
         incidentId: INCIDENT_ID,
         alertId: ALERT_ID,
@@ -646,6 +722,7 @@ describe("what the follow-up run is told, and says", () => {
 
     expect(
       await IncidentFollowUpCheck.readContext({
+        readAudience: world.readers,
         projectId: PROJECT_ID,
         incidentId: INCIDENT_ID,
         alertId: ALERT_ID,
@@ -1289,5 +1366,85 @@ describe("the LLM provider of a follow-up check", () => {
         return select["llmProviderId"] === true;
       }),
     ).toBe(true);
+  });
+});
+
+/*
+ * ONLY FOR AN ALERT EVERY READER OF THE INCIDENT MAY READ (#9576). A check
+ * names its alert on the incident's feed and channels, which everyone who
+ * may see the incident reads. Where some role reads alerts only for some
+ * labels, an alert carrying a label is set apart from somebody who reads
+ * it: it checks nothing again, and a run that does check reads no context
+ * of it. A project whose roles narrow nobody checks again as before.
+ */
+describe("an alert set apart from somebody who may see the incident", () => {
+  async function opens(): Promise<Array<ObjectID>> {
+    return await IncidentFollowUpCheck.onAlertOpened({
+      projectId: PROJECT_ID,
+      alertId: ALERT_ID,
+    });
+  }
+
+  test("checks nothing again", async () => {
+    world.readers = NARROWED;
+    world.setApartAlertIds = [ALERT_ID.toString()];
+
+    expect(await opens()).toEqual([]);
+    expect(enqueued).toEqual([]);
+  });
+
+  test("the incident's readers are asked about, for the incident checked again", async () => {
+    world.readers = NARROWED;
+    world.setApartAlertIds = [ALERT_ID.toString()];
+
+    await opens();
+
+    expect(ReadAudienceReader.forSubject).toHaveBeenCalledWith(
+      { projectId: PROJECT_ID, incidentId: INCIDENT_ID },
+      { withTelemetry: false },
+    );
+  });
+
+  test("one nobody set apart still does", async () => {
+    world.readers = NARROWED;
+
+    expect(await opens()).toEqual([QUEUED_RUN_ID]);
+  });
+
+  test("a project whose roles narrow nobody checks again for it, as before", async () => {
+    world.setApartAlertIds = [ALERT_ID.toString()];
+
+    expect(await opens()).toEqual([QUEUED_RUN_ID]);
+  });
+
+  test("a settled investigation skips it for the next alert its readers may read", async () => {
+    const LATER: ObjectID = ObjectID.generate();
+    world.readers = NARROWED;
+    world.setApartAlertIds = [ALERT_ID.toString()];
+    world.laterAlerts = [
+      newAlert(ALERT_ID, at(1), false),
+      newAlert(LATER, at(2), false),
+    ];
+
+    await IncidentFollowUpCheck.onInvestigationSettled({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      aiRunId: FIRST_RUN_ID,
+    });
+
+    expect(enqueued[0]!.followUpForAlertId).toEqual(LATER);
+  });
+
+  test("its context is none: the run checks the incident as a plain investigation, never naming it", async () => {
+    world.setApartAlertIds = [ALERT_ID.toString()];
+
+    expect(
+      await IncidentFollowUpCheck.readContext({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertId: ALERT_ID,
+        readAudience: NARROWED,
+      }),
+    ).toBeNull();
   });
 });

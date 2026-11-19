@@ -7,6 +7,7 @@ import {
 import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
+import ProductSwitchedOffException from "../../../../../Types/Exception/ProductSwitchedOffException";
 import CallerPlan from "../../../../Utils/Billing/CallerPlan";
 import ColumnWriteRefusedException from "../../../Database/Permissions/ColumnWriteRefusedException";
 import WorkflowAccessChangeRefusedException from "../../../Database/Permissions/WorkflowAccessChangeRefusedException";
@@ -94,6 +95,15 @@ export const describeRefusal: DescribeRefusalFunction = (data: {
   }
 
   if (data.error instanceof WorkflowAccessChangeRefusedException) {
+    return `${step} was refused. ${data.message}`;
+  }
+
+  /*
+   * The record's product is switched off on the server (#7479): no step
+   * changes it, whatever a Project Admin may do, and the words say who can
+   * switch it on.
+   */
+  if (ProductSwitchedOffException.isException(data.error)) {
     return `${step} was refused. ${data.message}`;
   }
 

@@ -35,6 +35,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { withoutRefusals } from "./RouteRefusals";
 
 /*
  * The customer report, replayed at the server.
@@ -490,7 +491,10 @@ describe("the request an expired session actually sends", () => {
     ] as Array<[string, string]>) {
       const route: RegisteredRoute = findRoute(method, uri);
 
-      expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route.middlewares)).toEqual([
+        UserMiddleware.getUserMiddleware,
+      ]);
     }
 
     // The module exports the router the routes were registered on.

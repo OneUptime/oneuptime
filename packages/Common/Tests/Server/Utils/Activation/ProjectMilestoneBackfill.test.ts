@@ -79,7 +79,7 @@ const runWith: (data: {
 };
 
 describe("ProjectMilestoneBackfill", () => {
-  test("has a source for every milestone old data can show - all but the test page, which is new", () => {
+  test("has a source for every milestone old data can show - all but the test page and the first AI call, which are new", () => {
     const sourced: Array<ActivationMilestone> = MILESTONE_BACKFILL_SOURCES.map(
       (source: MilestoneBackfillSource): ActivationMilestone => {
         return source.milestone;
@@ -89,7 +89,15 @@ describe("ProjectMilestoneBackfill", () => {
     expect(new Set(sourced).size).toBe(sourced.length);
     expect([...sourced].sort()).toEqual(
       ALL_ACTIVATION_MILESTONES.filter((milestone: ActivationMilestone) => {
-        return milestone !== ActivationMilestone.FirstTestPageAcknowledged;
+        /*
+         * The first AI call (#7325) needs none: a project still sending AI
+         * calls gets it with its next one, and one that stopped has no
+         * conversations to show either.
+         */
+        return (
+          milestone !== ActivationMilestone.FirstTestPageAcknowledged &&
+          milestone !== ActivationMilestone.FirstLlmCallsReceived
+        );
       }).sort(),
     );
   });

@@ -6,7 +6,7 @@ Une politique de budget d'erreur écrit ce que votre équipe s'est engagée à f
 - [Fonctionnement des paliers](#fonctionnement-des-paliers): Quel palier s'applique, et quand le SLO le quitte.
 - [Mettre en place une politique](#mettre-en-place-une-politique): Partir de la politique recommandée, ou écrire vos propres paliers.
 - [Alertes et incidents](#alertes-et-incidents): Alerter votre équipe quand le SLO entre dans un palier.
-- [Publier dans Slack, Microsoft Teams et Mattermost](#publier-dans-slack-microsoft-teams-et-mattermost): Prévenir un canal quand un SLO entre dans un palier, sans alerter personne.
+- [Publier dans Slack, Microsoft Teams et Mattermost](#publier-dans-slack-microsoft-teams-et-mattermost): Prévenir un canal quand un SLO entre dans un palier ou change de statut, sans alerter personne.
 - [Barrière de déploiement](#barrière-de-déploiement): Retenir les mises en production dans la CI/CD tant qu'un palier gèle les déploiements.
 - [Lire le palier par l'API](#lire-le-palier-par-lapi): Vérifier le palier depuis la CI et des scripts.
 :::
@@ -84,6 +84,10 @@ Ajouter, modifier ou supprimer un palier prend effet tout de suite : OneUptime �
 
 Aucun d'eux ne déclenche d'alerte ni ne déclare d'incident tant que vous ne l'activez pas. **Budget exhausted** gèle les déploiements, comme le dit son engagement, et la confirmation le signale : voir [Barrière de déploiement](#barrière-de-déploiement). Les paliers ajoutés avant que la barrière existe ne gèlent rien tant que vous n'activez pas le gel. Seuls les paliers que le SLO n'a pas sont ajoutés : un palier avec le même nom, ou avec le même seuil, compte comme présent, qu'il soit activé ou non. Le demander deux fois, depuis un deuxième onglet ou par l'API, n'ajoute donc rien en double. Si l'un des paliers ne peut pas être ajouté, aucun ne l'est : le SLO reste tel qu'il était, et vous pouvez réessayer. Chaque palier ajouté ainsi est enregistré dans les journaux d'audit du SLO comme ajouté par vous.
 
+Un SLO qui a une partie des paliers recommandés et aucun palier à lui, par exemple un SLO qui a reçu la politique recommandée avant qu'elle comprenne **Budget exhausted**, affiche au-dessus de ses paliers une note, **Politique recommandée incomplète**, qui nomme les paliers qui lui manquent. Cliquez sur **Ajouter les paliers manquants** pour voir ce qui sera ajouté, puis confirmez. Un SLO qui a un palier à vous ne se voit jamais proposer le reste : la politique que vous avez construite reste telle quelle. Pour que la note ne propose plus un palier dont vous ne voulez pas, gardez ce palier et désactivez-le au lieu de le supprimer.
+
+Pour l'appliquer à plusieurs SLO à la fois, sélectionnez-les sur la page **SLO** et choisissez **Utiliser la politique recommandée** dans **Actions groupées**. Avant que quoi que ce soit soit ajouté, la confirmation compte combien d'entre eux reçoivent chaque palier, et combien restent tels quels parce qu'ils ont déjà la politique recommandée ou qu'ils ont leur propre politique de budget d'erreur. Chaque SLO reçoit les paliers qui lui manquent, comme sa propre page les ajouterait, et le résultat indique pour chaque SLO si des paliers ont été ajoutés, ou pourquoi non. La relancer sur les mêmes SLO n'ajoute rien. Les SLO archivés ne sont pas dans la liste, et elle ne leur est jamais proposée.
+
 ## Où le palier apparaît
 
 - La **Vue d'ensemble** du SLO affiche le palier dans lequel il se trouve et ce que l'équipe s'est engagée à y faire, pour que chaque personne qui ouvre le SLO voie l'engagement qui s'applique maintenant. Tant que le palier gèle les déploiements, un badge rouge sous son nom indique depuis quand.
@@ -126,7 +130,7 @@ La description intégrée nomme le palier, compare le budget restant au seuil du
 
 ## Publier dans Slack, Microsoft Teams et Mattermost
 
-Une règle peut publier chaque changement de la politique de budget d'erreur d'un SLO dans les canaux Slack, Microsoft Teams ou Mattermost que lit votre équipe, sans alerter personne : quand le SLO entre dans un palier, revient à un palier moins grave ou sort de tous les paliers, et quand ses déploiements sont gelés ou de nouveau autorisés. Chaque règle choisit les SLO et les changements qu'elle publie. Connectez d'abord l'espace de travail au projet : voir [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) ou [Mattermost](/docs/workspace-connections/mattermost).
+Une règle peut publier chaque changement de la politique de budget d'erreur d'un SLO dans les canaux Slack, Microsoft Teams ou Mattermost que lit votre équipe, sans alerter personne : quand le SLO entre dans un palier, revient à un palier moins grave ou sort de tous les paliers, et quand ses déploiements sont gelés ou de nouveau autorisés. Chaque règle choisit les SLO et les changements qu'elle publie, et une règle peut aussi publier les changements de statut du SLO : voir [Changements de statut](#changements-de-statut). Connectez d'abord l'espace de travail au projet : voir [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) ou [Mattermost](/docs/workspace-connections/mattermost).
 
 :::steps
 ### Ouvrir la section Espace de travail des SLO
@@ -147,7 +151,7 @@ Le message décrit le changement avec les mots du **Fil d'activité** du SLO : l
 - Un changement est publié une seule fois, après l'enregistrement de l'évaluation qui l'a produit. Une évaluation qui n'est pas enregistrée ne publie rien, et la suivante publie le changement.
 - Rien n'est publié tant que le SLO reste dans son palier, même si le budget oscille longtemps autour d'un seuil : voir [Entrer dans un palier et en sortir](#entrer-dans-un-palier-et-en-sortir).
 - Activer ou désactiver **Geler les déploiements** pour le palier dans lequel se trouve le SLO publie un message à part.
-- Un SLO en pause, mal configuré, désactivé ou archivé garde son palier et ne publie rien.
+- Un SLO en attente, en pause, mal configuré, désactivé ou archivé garde son palier et ne publie rien.
 - Un message qui ne peut pas être envoyé est journalisé, et l'évaluation, le fil d'activité du SLO et ce que le palier déclenche continuent sans lui.
 
 ### Ce qu'une règle cible
@@ -158,13 +162,25 @@ Le message décrit le changement avec les mots du **Fil d'activité** du SLO : l
 | **Étiquettes du SLO** | Les étiquettes du SLO : l'une de celles que vous choisissez, toutes, ou aucune. |
 | **Nom du SLO** | Le nom du SLO : égal à votre texte ou non, le contenant ou non, commençant ou se terminant par ce texte. |
 | **Changement de la politique de budget d'erreur** | Ce qui a changé : **Entré dans un palier plus sévère**, **Revenu à un palier moins sévère**, **Sorti de tous les paliers**, **Déploiements gelés** ou **Déploiements de nouveau autorisés**. |
+| **Changement de statut du SLO** | Comment le statut du SLO a changé : **Passé à risque**, **Budget épuisé** ou **De nouveau sain**. Seule une règle avec cette condition publie les changements de statut : voir [Changements de statut](#changements-de-statut). |
 | **Propriétaire du SLO** | Les personnes et équipes enregistrées comme propriétaires du SLO : l'une de celles que vous choisissez, ou aucune. Faire partie d'une équipe propriétaire du SLO ne compte pas. |
 
 Un changement de palier qui a gelé les déploiements, ou les a de nouveau autorisés, est un seul message qui porte les deux changements. Une règle pour **Déploiements gelés** publie donc aussi le changement qui fait entrer le SLO dans un palier qui les gèle : un canal dédié aux mises en production est prévenu de chaque gel.
 
+### Changements de statut
+
+Une règle ne publie les changements de statut du SLO que si elle a une condition **Changement de statut du SLO**, et alors seulement ceux que cette condition choisit. Une telle règle ne publie les changements de la politique de budget d'erreur que si elle a aussi une condition **Changement de la politique de budget d'erreur**. Ainsi, une règle créée avant que les changements de statut soient publiés continue de publier ce qu'elle publiait, et ne se met jamais à publier des changements de statut que personne n'a choisis.
+
+Le message décrit le changement avec les mots du **Fil d'activité** du SLO : le statut où se trouve le SLO et celui que le canal a appris en dernier, le SLI par rapport à son objectif, le budget d'erreur restant, le taux de consommation actuel et le seuil à risque.
+
+- Un canal apprend au plus un changement de statut d'un SLO par heure, si bien qu'un SLO qui oscille entre **À risque** et **Sain** ne peut pas l'inonder. Un changement survenu dans l'heure attend, et il est publié une fois l'heure écoulée si le SLO y est toujours. Une oscillation qui revient à ce que le canal a appris en dernier ne publie rien.
+- Un budget épuisé est publié tout de suite, quelle que soit l'heure.
+- Un passage à **En attente**, **Mal configuré** ou **En pause** ne publie rien : rien n'a changé dans la fiabilité. Une fois le SLO de nouveau mesuré, un changement est publié par rapport à ce que le canal a appris en dernier.
+- Les propriétaires d'un SLO restent notifiés des changements de statut par e-mail, SMS, appel et notification push, quoi que publient les règles.
+
 ## Quand le budget n'est pas mesuré
 
-- Un SLO **En pause** ou **Mal configuré** ne mesure aucun budget : son palier reste donc où il était, et ce que le palier a déclenché reste ouvert jusqu'à la reprise de la mesure. Les règles de taux de consommation, elles, résolvent alors ce qu'elles ont d'ouvert.
+- Un SLO **En attente**, **En pause** ou **Mal configuré** ne mesure aucun budget : son palier reste donc où il était, et ce que le palier a déclenché reste ouvert jusqu'à la reprise de la mesure. Les règles de taux de consommation, elles, résolvent alors ce qu'elles ont d'ouvert.
 - Désactiver l'évaluation du SLO, ou archiver le SLO, résout ce que ses paliers ont déclenché. Le palier dans lequel se trouve le SLO reste tel quel.
 - Supprimer le SLO supprime ses paliers et résout ce qu'ils ont déclenché.
 - Dans chacun de ces cas, le SLO garde la réponse qu'il donnait sur les déploiements, parce qu'il garde son palier : voir [Barrière de déploiement](#barrière-de-déploiement).
@@ -257,7 +273,7 @@ Comment la réponse évolue :
 
 - Les déploiements sont gelés par l'évaluation qui place le SLO dans un palier qui les gèle, et de nouveau autorisés par celle qui l'en fait sortir, avec les marges de sortie propres au palier : voir [Entrer dans un palier et en sortir](#entrer-dans-un-palier-et-en-sortir). D'un palier qui gèle à un autre, ils restent gelés, et `deploymentsFrozenAt` garde son heure.
 - Activer ou désactiver **Geler les déploiements** pour le palier dans lequel se trouve le SLO prend effet en une minute environ. Pour mettre en production avant que le budget se rétablisse, désactivez-le : le changement est enregistré à votre nom dans les journaux d'audit du SLO.
-- Un SLO **En pause** ou **Mal configuré** garde la réponse qu'il avait, comme il garde son palier : une fenêtre de maintenance qui met en pause tous les moniteurs ne lève pas de gel et n'en déclenche pas non plus. Un SLO désactivé ou archivé n'est pas évalué du tout, il garde donc lui aussi sa réponse.
+- Un SLO **En attente**, **En pause** ou **Mal configuré** garde la réponse qu'il avait, comme il garde son palier : une fenêtre de maintenance qui met en pause tous les moniteurs ne lève pas de gel et n'en déclenche pas non plus. Un SLO désactivé ou archivé n'est pas évalué du tout, il garde donc lui aussi sa réponse.
 - Tant que les déploiements sont gelés, la **Vue d'ensemble** du SLO indique depuis quand, et son **Fil d'activité** indique quand ils sont gelés puis de nouveau autorisés.
 
 ## Lire le palier par l'API
@@ -279,12 +295,14 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
   -d '{ "select": { "name": true, "errorBudgetRemainingPercentage": true, "currentErrorBudgetPolicyTierName": true, "currentErrorBudgetPolicyTierEnteredAt": true } }'
 ```
 
-Les paliers eux-mêmes sont une ressource à part entière, `/api/service-level-objective-error-budget-policy-tier`, avec les requêtes de liste, de lecture, de création, de modification et de suppression qu'a chaque ressource. Deux requêtes de plus servent la politique recommandée. Toutes deux prennent `{ "serviceLevelObjectiveId": "..." }` et répondent avec les paliers dans `tiers` :
+Les paliers eux-mêmes sont une ressource à part entière, `/api/service-level-objective-error-budget-policy-tier`, avec les requêtes de liste, de lecture, de création, de modification et de suppression qu'a chaque ressource. Quatre requêtes de plus servent la politique recommandée. Les requêtes pour un SLO prennent `{ "serviceLevelObjectiveId": "..." }` et répondent avec les paliers dans `tiers`. Les requêtes groupées prennent `{ "serviceLevelObjectiveIds": ["..."] }`, 100 SLO au plus par requête, et répondent avec une entrée pour chaque SLO dans `results`, dans l'ordre demandé :
 
 | Requête | Ce qu'elle fait |
 | --- | --- |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy` | Liste les paliers recommandés qui manquent au SLO. Elle n'écrit rien. |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/add` | Les ajoute, et liste ce qu'elle a ajouté. La demander de nouveau n'ajoute rien. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk` | Indique ce que chaque SLO recevrait : `Missing` avec les paliers, `NothingMissing`, `OwnPolicy` pour un SLO qui a sa propre politique de budget d'erreur, ou `Refused` pour un SLO que vous ne pouvez pas lire. Elle n'écrit rien. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk/add` | Ajoute ce qui manque à chaque SLO, un SLO après l'autre : `Added` avec les paliers, `NothingMissing`, `OwnPolicy`, `Refused`, ou `Failed`, quand rien ne lui a été ajouté. La demander de nouveau n'ajoute que ce qui manque encore. |
 
 ## Autorisations
 
@@ -299,7 +317,7 @@ Ces autorisations se trouvent dans le groupe SLO d'un rôle. Les rôles Proprié
 
 ## Pas encore disponible
 
-Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : un déclencheur de flux de travail propre à chaque palier, une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant. OneUptime n'arrête pas de lui-même une mise en production : c'est un pipeline qui vérifie `deploymentsAllowed` qui le fait, comme le montre [Barrière de déploiement](#barrière-de-déploiement).
+Certaines parties d'une politique de budget d'erreur ne sont pas encore disponibles : une politique partagée par plusieurs SLO, l'acquittement d'un palier ou l'octroi d'une exception, et des paliers fondés sur l'autonomie du budget plutôt que sur le budget restant. OneUptime n'arrête pas de lui-même une mise en production : c'est un pipeline qui vérifie `deploymentsAllowed` qui le fait, comme le montre [Barrière de déploiement](#barrière-de-déploiement). Un flux de travail peut démarrer quand un SLO entre dans un palier, ou quand ses déploiements sont gelés ou de nouveau autorisés : donnez-lui le déclencheur de mise à jour du SLO, et choisissez **ID du palier actuel de la politique de budget d'erreur** ou **Déploiements autorisés** dans ses **Champs à surveiller**, pour qu'il s'exécute une fois par changement.
 
 ## Prochaines étapes
 

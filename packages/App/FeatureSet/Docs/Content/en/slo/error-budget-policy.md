@@ -6,7 +6,7 @@ An error budget policy writes down what your team agreed to do as an SLO's error
 - [How tiers work](#how-tiers-work): Which tier applies, and when the SLO leaves it.
 - [Set up a policy](#set-up-a-policy): Start from the recommended policy, or write your own tiers.
 - [Alerts and incidents](#alerts-and-incidents): Page your team when the SLO enters a tier.
-- [Post to Slack, Microsoft Teams and Mattermost](#post-to-slack-microsoft-teams-and-mattermost): Tell a channel when an SLO enters a tier, without paging anyone.
+- [Post to Slack, Microsoft Teams and Mattermost](#post-to-slack-microsoft-teams-and-mattermost): Tell a channel when an SLO enters a tier or changes status, without paging anyone.
 - [Deployment gate](#deployment-gate): Hold back releases from CI/CD while a tier freezes deployments.
 - [Read the tier from the API](#read-the-tier-from-the-api): Check the tier from CI and scripts.
 :::
@@ -84,6 +84,10 @@ Adding, editing or deleting a tier applies right away: OneUptime evaluates the S
 
 None of them raises an alert or declares an incident until you switch that on. **Budget exhausted** freezes deployments, as its agreement says, and the confirmation marks it so: see [Deployment gate](#deployment-gate). Tiers added before the gate existed freeze nothing until you switch it on. It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off. So asking for it twice, from a second tab or through the API, adds nothing twice. If one of the tiers cannot be added, none is: the SLO is left as it was, and you can try again. Each tier it adds is recorded in the SLO's audit logs as added by you.
 
+An SLO that has some of the recommended tiers and no tier of its own, such as one that got the recommended policy before it had **Budget exhausted**, shows a note above its tiers, **Recommended policy not complete**, that names the tiers it is missing. Click **Add missing tiers** to see what it adds, and confirm. An SLO with a tier of your own is never offered the rest: the policy you built is left as it is. To stop the note offering a tier you do not want, keep the tier and disable it instead of deleting it.
+
+To use it on many SLOs at once, select them on the **SLOs** page and choose **Use the recommended policy** in **Bulk Actions**. Before anything is added, the confirmation counts how many of them get each tier, and how many are left as they are because they already have the recommended policy or have an error budget policy of their own. Each SLO gets the tiers it is missing, as its own page would add them, and the result says for each SLO whether tiers were added, or why not. Running it again on the same SLOs adds nothing. Archived SLOs are not on the list, and are never offered it.
+
 ## Where the tier shows
 
 - The SLO's **Overview** shows the tier it is in and what the team agreed to do there, so everyone who opens the SLO sees the agreement that holds now. While the tier freezes deployments, a red badge under its name says since when.
@@ -126,7 +130,7 @@ The built-in description names the tier, gives the budget left against the tier'
 
 ## Post to Slack, Microsoft Teams and Mattermost
 
-A rule can post each change of an SLO's error budget policy to the Slack, Microsoft Teams or Mattermost channels your team reads, without paging anyone: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. Each rule picks the SLOs and the changes it posts. Connect the workspace to the project first: see [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) or [Mattermost](/docs/workspace-connections/mattermost).
+A rule can post each change of an SLO's error budget policy to the Slack, Microsoft Teams or Mattermost channels your team reads, without paging anyone: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. Each rule picks the SLOs and the changes it posts, and a rule can post the SLO's status changes too: see [Status changes](#status-changes). Connect the workspace to the project first: see [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) or [Mattermost](/docs/workspace-connections/mattermost).
 
 :::steps
 ### Open the SLOs' Workspace section
@@ -147,7 +151,7 @@ The message says the change in the words of the SLO's **Feed**: the tier the SLO
 - A change is posted once, after the evaluation that made it is saved. An evaluation that is not saved posts nothing, and the next one posts the change.
 - Nothing is posted while the SLO stays in its tier, however long the budget hovers at a threshold: see [Entering and leaving a tier](#entering-and-leaving-a-tier).
 - Switching **Freeze Deployments** on or off for the tier the SLO is in posts a message of its own.
-- A Paused, Misconfigured, disabled or archived SLO keeps its tier, and posts nothing.
+- A Waiting, Paused, Misconfigured, disabled or archived SLO keeps its tier, and posts nothing.
 - A message that cannot be sent is logged, and the evaluation, the SLO's feed and what the tier raises go on without it.
 
 ### What a rule matches
@@ -158,13 +162,25 @@ The message says the change in the words of the SLO's **Feed**: the tier the SLO
 | **SLO Labels** | The SLO's labels: any of the ones you pick, all of them, or none of them. |
 | **SLO Name** | The SLO's name: equal to your text or not, containing it or not, starting or ending with it. |
 | **Error Budget Policy Change** | What changed: **Entered a more severe tier**, **Recovered to a less severe tier**, **Left every tier**, **Deployments frozen** or **Deployments allowed again**. |
+| **SLO Status Change** | How the SLO's status changed: **Became At Risk**, **Budget exhausted** or **Healthy again**. Only a rule with this condition posts status changes: see [Status changes](#status-changes). |
 | **SLO Owner** | The people and teams recorded as the SLO's owners: any of the ones you pick, or none of them. Being in a team that owns the SLO does not count. |
 
 A tier change that froze deployments, or allowed them again, is one message that is both changes. So a rule for **Deployments frozen** also posts the change that entered a tier that freezes them: a release channel hears of every freeze.
 
+### Status changes
+
+A rule posts the SLO's status changes only when it has an **SLO Status Change** condition, and then only the ones the condition picks. Such a rule posts the error budget policy's changes only if it has an **Error Budget Policy Change** condition as well. So a rule made before status changes were posted goes on posting what it did, and never starts posting status changes nobody chose.
+
+The message says the change in the words of the SLO's **Feed**: the status the SLO is in and the one the channel last heard, the SLI against its target, the error budget left, the current burn rate and the at-risk threshold.
+
+- A channel hears at most one status change of an SLO an hour, so an SLO that flaps between **At Risk** and **Healthy** cannot flood it. A change within the hour waits, and is posted once the hour is up if the SLO is still there. A flap that comes back to what the channel last heard posts nothing.
+- An exhausted budget is posted at once, whatever the hour.
+- A move into **Waiting**, **Misconfigured** or **Paused** posts nothing: nothing about reliability changed. Once the SLO is measured again, a change is posted against what the channel last heard.
+- SLO owners are still notified of status changes by email, SMS, call and push, whatever the rules post.
+
 ## When the budget is not measured
 
-- A **Paused** or **Misconfigured** SLO measures no budget, so its tier stays where it was, and what the tier raised stays open until measuring resumes. Burn rate rules resolve what they have open instead.
+- A **Waiting**, **Paused** or **Misconfigured** SLO measures no budget, so its tier stays where it was, and what the tier raised stays open until measuring resumes. Burn rate rules resolve what they have open instead.
 - Turning the SLO's evaluation off, or archiving the SLO, resolves what its tiers raised. The tier the SLO is in stays as it was.
 - Deleting the SLO deletes its tiers and resolves what they raised.
 - In each of these cases the SLO keeps the answer it gave about deployments, because it keeps its tier: see [Deployment gate](#deployment-gate).
@@ -257,7 +273,7 @@ How the answer moves:
 
 - Deployments are frozen by the evaluation that puts the SLO in a tier that freezes them, and allowed again by the one that takes it out, with the tier's own recovery margins: see [Entering and leaving a tier](#entering-and-leaving-a-tier). From one tier that freezes to another, they stay frozen, and `deploymentsFrozenAt` keeps its time.
 - Switching **Freeze Deployments** on or off for the tier the SLO is in applies within about a minute. To release before the budget recovers, switch it off: the change is recorded in the SLO's audit logs as yours.
-- A **Paused** or **Misconfigured** SLO keeps the answer it had, as it keeps its tier: a maintenance window that pauses every monitor neither lifts a freeze nor starts one. A disabled or archived SLO is not evaluated at all, so it keeps its answer too.
+- A **Waiting**, **Paused** or **Misconfigured** SLO keeps the answer it had, as it keeps its tier: a maintenance window that pauses every monitor neither lifts a freeze nor starts one. A disabled or archived SLO is not evaluated at all, so it keeps its answer too.
 - While deployments are frozen, the SLO's **Overview** shows since when, and its **Feed** says when they are frozen and allowed again.
 
 ## Read the tier from the API
@@ -279,12 +295,14 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
   -d '{ "select": { "name": true, "errorBudgetRemainingPercentage": true, "currentErrorBudgetPolicyTierName": true, "currentErrorBudgetPolicyTierEnteredAt": true } }'
 ```
 
-The tiers themselves are a resource of their own, `/api/service-level-objective-error-budget-policy-tier`, with the list, read, create, change and delete requests every resource has. Two more requests serve the recommended policy. Both take `{ "serviceLevelObjectiveId": "..." }` and answer with the tiers in `tiers`:
+The tiers themselves are a resource of their own, `/api/service-level-objective-error-budget-policy-tier`, with the list, read, create, change and delete requests every resource has. Four more requests serve the recommended policy. The requests for one SLO take `{ "serviceLevelObjectiveId": "..." }` and answer with the tiers in `tiers`. The bulk requests take `{ "serviceLevelObjectiveIds": ["..."] }`, at most 100 SLOs per request, and answer with one entry for each SLO in `results`, in the order asked:
 
 | Request | What it does |
 | --- | --- |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy` | Lists the recommended tiers the SLO is missing. It writes nothing. |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/add` | Adds them, and lists what it added. Asking again adds nothing. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk` | Says what each SLO would get: `Missing` with the tiers, `NothingMissing`, `OwnPolicy` for an SLO with an error budget policy of its own, or `Refused` for an SLO you may not read. It writes nothing. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk/add` | Adds what each SLO is missing, one SLO after another: `Added` with the tiers, `NothingMissing`, `OwnPolicy`, `Refused`, or `Failed`, when nothing was added to it. Asking again adds only what is still missing. |
 
 ## Permissions
 
@@ -299,7 +317,7 @@ These permissions are in the SLO group of a role. The Project Owner and Project 
 
 ## Not available yet
 
-Some parts of an error budget policy are not available yet: a workflow trigger of its own for each tier, a policy shared by several SLOs, acknowledging a tier or granting an exception to it, and tiers based on the budget runway rather than the budget left. OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does, as [Deployment gate](#deployment-gate) shows.
+Some parts of an error budget policy are not available yet: a policy shared by several SLOs, acknowledging a tier or granting an exception to it, and tiers based on the budget runway rather than the budget left. OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does, as [Deployment gate](#deployment-gate) shows. A workflow can start when an SLO enters a tier, or when its deployments are frozen or allowed again: give it the SLO's On Update trigger, and pick **Current Error Budget Policy Tier ID** or **Deployments Allowed** in its **Fields to watch**, so it runs once for each change.
 
 ## Next steps
 

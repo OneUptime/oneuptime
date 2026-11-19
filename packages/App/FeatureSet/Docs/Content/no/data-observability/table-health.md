@@ -17,6 +17,8 @@ Bare katalogen leses, og i MongoDB feltnavnene til de nyeste dokumentene i en sa
 
 **Rytmen** til en tabell er hvor ofte den vanligvis endres, lært ut fra tiden mellom endringene. En tabell som går godt over rytmen sin, vises som **Sen**, på siden sin og under **Tabeller**, og skriver hvor langt over den er. Aktualiteten er kjent når tabellen har endret seg to ganger: en tabell som lastes hver time, læres i løpet av noen timer, en som lastes hver natt, i løpet av noen dager.
 
+I **Tabeller**, og på fanen **Tabeller** for en database, viser filteret **Ferskhet** bare de sene tabellene, eller bare de ferske, og sortering etter **Ferskhet** setter de mest forsinkede først. **Sene tabeller** på **Oversikt**, og på en databases egen side, åpner den listen med **Ferskhet** satt til **Sen**.
+
 En visning har ingen egne rader, så aktualiteten dens er aktualiteten til kildene: se [Avstamning og pipelines](/docs/data-observability/lineage-and-pipelines).
 
 En katalog kan si at en tabell er endret når bare husholdningen den gjør noe, eller ikke si noe i det hele tatt. Under **Innstillinger** for en tabell oppgir du en **Freshness-kolonne** som `updated_at`, og siste endring blir da den nyeste verdien i den kolonnen. Brukeren må kunne lese kolonnen, og den leses ved hver innsamling, så den bør være indeksert; på BigQuery og Athena, som fakturerer etter det en spørring leser, leses den én gang i timen. Tidspunkter uten sone tolkes som UTC.
@@ -85,11 +87,11 @@ Fanen **Eiere** for en tabell nevner menneskene og teamene den tilhører, og et 
 
 Du skal ikke måtte gjøre dette hundrevis av ganger. **Eierregler** og **Etikettregler** gjelder for hver tabell første gang den dukker opp, matchet etter etikettene, eller etter et regulært uttrykk på navnet, skjemaet eller databasen: alt i `finance` går til økonomiteamet, og alt som heter `*_pii`, får en etikett.
 
-En tillatelse begrenset til `Owned` når bare tabellene som innehaveren eller teamene deres eier, med sjekkene, aktiviteten og de rapporterte problemene deres. Å eie en database gjør deg ikke til eier av tabellene: bruk en eierregel for å gi et team en hel database.
+En tillatelse begrenset til `Owned` når bare tabellene som innehaveren eller teamene deres eier, med sjekkene, aktiviteten og de rapporterte problemene deres. Å eie en database gjør deg ikke til eier av tabellene: bruk en eierregel for å gi et team en hel database. **Oversikt**, **Problemer** og tallet ved **Oversikt** teller og viser bare tabellene en slik tillatelse når, slik **Tabeller** og **Sjekker** gjør.
 
 ## Når et varsel åpnes
 
-Et varsel på en tabell har et **Data**-kort som sier hvorfor det mest sannsynlig skjedde, rangert: et varsel oppstrøms, en mislykket kjøring, en utrulling av en tjeneste som skriver til den, de mislykkede skrivingene, en kolonne som endret seg, databasen selv eller serveren den kjører på. Under det står det som avhenger av den: tabeller nedover avstamningen, dashbord, tjenester og menneskene som eier dem.
+Et varsel på en tabell har et **Data**-kort som sier hvorfor det mest sannsynlig skjedde, rangert: et varsel oppstrøms, en mislykket kjøring, en utrulling av en tjeneste som skriver til den, de mislykkede skrivingene, en kolonne som endret seg, databasen selv eller serveren den kjører på. Under det står det som avhenger av den: tabeller nedover avstamningen, dashbord, tjenester og menneskene som eier dem. Som varselets **Opphav**-kort forteller det bare om tabellene og pipelinene rollen din kan lese.
 
 Si hva du gjorde ut av det:
 

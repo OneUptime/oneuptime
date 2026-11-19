@@ -128,8 +128,10 @@ import RecommendationFilterUtil, {
 } from "../../../Components/Recommendations/RecommendationFilterUtil";
 import {
   getDatabaseHealthPill,
+  getDatabaseHealthPillWithReasons,
   getDatabaseOwnAttentionItems,
 } from "../Utils/DatabaseHealthPresentation";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -771,6 +773,19 @@ const DatabaseServerOverview: FunctionComponent<
     },
   ];
 
+  /*
+   * What on it needs someone: its Needs attention card's rows, and what its
+   * health pill opens when it is Degraded or Unhealthy - one list, so the
+   * two never disagree.
+   */
+  const attentionItems: Array<ResourceAttentionItem> =
+    getDatabaseOwnAttentionItems({
+      assessment: assessment,
+      translator: translator,
+      metricsRoute: populate(PageMap.DATABASE_SERVER_VIEW_METRICS),
+      documentationRoute: populate(PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION),
+    });
+
   return (
     /*
      * One zoom for the whole page (issue #4105): a drag on any chart - the
@@ -801,7 +816,10 @@ const DatabaseServerOverview: FunctionComponent<
         statusLabel={getDatabaseLivenessLabel(liveness)}
         statusTone={getDatabaseLivenessTone(liveness)}
         statusDescription={DATABASE_LIVENESS_DESCRIPTION}
-        health={getDatabaseHealthPill(assessment)}
+        health={getDatabaseHealthPillWithReasons(
+          getDatabaseHealthPill(assessment),
+          attentionItems,
+        )}
         needsAttention={
           /*
            * What on it needs someone, the most urgent first, before any
@@ -810,14 +828,7 @@ const DatabaseServerOverview: FunctionComponent<
            */
           <NeedsAttentionCard
             testId="database-needs-attention"
-            items={getDatabaseOwnAttentionItems({
-              assessment: assessment,
-              translator: translator,
-              metricsRoute: populate(PageMap.DATABASE_SERVER_VIEW_METRICS),
-              documentationRoute: populate(
-                PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION,
-              ),
-            })}
+            items={attentionItems}
             showKind={false}
           />
         }

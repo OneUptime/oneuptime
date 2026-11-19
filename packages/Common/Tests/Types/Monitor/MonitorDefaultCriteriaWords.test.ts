@@ -377,6 +377,7 @@ const recordingTranslator: () => {
 // The template variables an incident is created with (MonitorTemplateUtil).
 const SERVER_PLACEHOLDERS: Array<string> = [
   "disconnectedProbeNames",
+  "behindProbeNames",
   "probeStatusSummary",
 ];
 

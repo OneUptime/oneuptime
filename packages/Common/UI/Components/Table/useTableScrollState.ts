@@ -697,6 +697,35 @@ const useTableScrollState: (data: {
     isSettling: false,
   });
 
+  /*
+   * The state last asked for, which every measurement is compared with: one
+   * that finds the table as it was asks for nothing. Asked for all the same
+   * from the layout effect below, an unchanged state stayed in React's
+   * queue at the highest priority there is, and the table's next update at
+   * a lower one (its rows, or its failure, arriving from the server) passed
+   * it by, then drew the whole table once more in the same task to take it
+   * up (#7707).
+   */
+  const askedState: React.MutableRefObject<TableScrollState> =
+    useRef<TableScrollState>(state);
+
+  const askFor: (next: TableScrollState) => void = (
+    next: TableScrollState,
+  ): void => {
+    const current: TableScrollState = askedState.current;
+
+    if (
+      current.isOverflowing === next.isOverflowing &&
+      current.canStickHeader === next.canStickHeader &&
+      current.isSettling === next.isSettling
+    ) {
+      return;
+    }
+
+    askedState.current = next;
+    setState(next);
+  };
+
   useLayoutEffect(() => {
     /*
      * A ResizeObserver tells of a box's size once it starts to watch it: the
@@ -759,14 +788,10 @@ const useTableScrollState: (data: {
        * keep the cards in a sideways scroll box of their own.
        */
       if (!table) {
-        setState((current: TableScrollState): TableScrollState => {
-          return current.isOverflowing || current.isSettling
-            ? {
-                isOverflowing: false,
-                canStickHeader: current.canStickHeader,
-                isSettling: false,
-              }
-            : current;
+        askFor({
+          isOverflowing: false,
+          canStickHeader: askedState.current.canStickHeader,
+          isSettling: false,
         });
 
         return;
@@ -1047,17 +1072,7 @@ const useTableScrollState: (data: {
       const isSettling: boolean =
         isProvisional || (isTooWide && !isWidthToTrust);
 
-      setState((current: TableScrollState): TableScrollState => {
-        if (
-          current.isOverflowing === isOverflowing &&
-          current.canStickHeader === canStickHeader &&
-          current.isSettling === isSettling
-        ) {
-          return current;
-        }
-
-        return { isOverflowing, canStickHeader, isSettling };
-      });
+      askFor({ isOverflowing, canStickHeader, isSettling });
 
       if (isTooWide) {
         if (isWidthToTrust) {

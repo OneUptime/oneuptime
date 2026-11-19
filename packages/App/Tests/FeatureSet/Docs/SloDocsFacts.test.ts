@@ -44,8 +44,11 @@ import {
   SloExistingPolicyTier,
   SloRecommendedPolicyTier,
   SloStoredDeploymentGate,
+  SloRecommendedPolicyState,
   computeSloPolicyTier,
   getMissingSloRecommendedPolicyTiers,
+  getSloRecommendedPolicyStanding,
+  isSloRecommendedPolicyOffered,
   getSloDeploymentGateChange,
   getSloPolicyTierExitPercentage,
   readSloPolicyTierThreshold,
@@ -112,6 +115,18 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
 import { canRuleCreateChannel } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import { SLO_ERROR_BUDGET_POLICY_CHANGES } from "Common/Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import {
+  SLO_STATUS_CHANGES,
+  getSloStatusChange,
+} from "Common/Types/ServiceLevelObjective/SloStatusChange";
+import SloRuleChanges, {
+  SloRuleChangeKind,
+} from "Common/Types/Workspace/NotificationRules/SloRuleChanges";
+import {
+  SLO_STATUS_POST_MIN_INTERVAL_MINUTES,
+  decideSloStatusPost,
+} from "Common/Utils/Slo/SloStatusPosts";
+import { SloBulkRecommendedPolicyStatus } from "Common/Utils/Slo/SloBulkRecommendedPolicy";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import {
   ConditionType,
@@ -193,6 +208,9 @@ const SOURCES: Record<string, string> = {
   policyTierCopy: `${DASHBOARD}/Components/Slo/SloPolicyTier.ts`,
   policyTierCard: `${DASHBOARD}/Components/Slo/SloErrorBudgetPolicyTierCard.tsx`,
   recommendedPolicyModal: `${DASHBOARD}/Components/Slo/SloRecommendedPolicyTiersModal.tsx`,
+  recommendedPolicyBanner: `${DASHBOARD}/Components/Slo/SloRecommendedPolicyTiersBanner.tsx`,
+  recommendedPolicyBulkAction: `${DASHBOARD}/Components/Slo/useSloRecommendedPolicyBulkAction.tsx`,
+  recommendedPolicyBulkCopy: `${DASHBOARD}/Components/Slo/SloBulkRecommendedPolicyCopy.ts`,
   feedService: "Common/Server/Services/ServiceLevelObjectiveFeedService.ts",
   notificationSettingService:
     "Common/Server/Services/UserNotificationSettingService.ts",
@@ -717,8 +735,16 @@ describe("SLOs Overview, against the product", () => {
     expect(page).toContain(
       "So is the time before a monitor's first check: until something has checked a monitor, its status is only the operational one every monitor is created in, so an SLO is measured from its monitors' first checks, and one whose monitors nothing has checked yet has nothing to measure until they are checked.",
     );
+    /*
+     * Such an SLO is Waiting, not Misconfigured, as the worker's
+     * zero-data guard gives it (#9354): the list counts it apart.
+     */
+    expect(worker).toContain("status: SloStatus.Waiting,");
     expect(section(page, "SLO status")).toContain(
-      "its monitors no longer exist, nothing has checked them yet or they have not recorded a status in its window yet",
+      "| **Waiting** | Nothing has checked its monitors yet: a monitor created a minute ago, or a self-hosted probe that is not connected. It is measured from their first check. |",
+    );
+    expect(section(page, "SLO status")).toContain(
+      "its monitors no longer exist or have not recorded a status in its window yet",
     );
   });
 
@@ -740,6 +766,8 @@ describe("SLOs Overview, against the product", () => {
       "Healthy",
       "At Risk",
       "Budget Exhausted",
+      // An SLO waiting for its monitors' first check (#9354).
+      "Waiting",
       "Misconfigured",
       "Paused",
       "Disabled",
@@ -751,6 +779,25 @@ describe("SLOs Overview, against the product", () => {
           return `**${tile}**`;
         })
         .join(", ")} and **${tiles[tiles.length - 1]}**.`,
+    );
+  });
+
+  it("names the Deployments filter and column the SLO list draws (#6377)", () => {
+    const tiles: string = readSource("statusTiles");
+    const column: string = blockFrom(
+      readSource("slosPage"),
+      "export const getSloDeploymentsColumns",
+      "\n  };\n",
+    );
+
+    expect(
+      blockFrom(tiles, "key: SLO_DEPLOYMENTS_FACET_KEY,", "toQueryValue"),
+    ).toContain('label: "Deployments",');
+    expect(column).toContain('title: "Deployments",');
+    // Shown from the column picker: the list is as it was for a team that gates nothing.
+    expect(column).toContain("isHiddenByDefault: true,");
+    expect(section(page, "The SLO list")).toContain(
+      "- The **Deployments** filter shows the SLOs whose error budget policy freezes deployments right now, or those it allows. Show the **Deployments** column from the list's column picker to see since when each one is frozen: see [Deployment gate](/docs/slo/error-budget-policy#deployment-gate).",
     );
   });
 
@@ -1079,12 +1126,8 @@ describe("SLOs Overview, against the product", () => {
         sloStatus: SloStatus.Misconfigured,
       }),
       getSloNotice({ ...base, sloStatus: SloStatus.Misconfigured }),
-      // Nothing has checked its monitors yet (#9089).
-      getSloNotice({
-        ...base,
-        sloStatus: SloStatus.Misconfigured,
-        isWaitingForFirstCheck: true,
-      }),
+      // Nothing has checked its monitors yet (#9089): Waiting (#9354).
+      getSloNotice({ ...base, sloStatus: SloStatus.Waiting }),
       getSloNotice({ ...base, sloStatus: SloStatus.Paused }),
       getSloNotice({
         ...base,
@@ -2070,7 +2113,7 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "a new SLO cannot fire its **Fast burn** rule for its first hour, its **Slow burn** rule for its first six, or its **Slow leak** rule for its first three days",
     );
     expect(page).toContain(
-      "the SLO turning **Paused** or **Misconfigured**, because it then measures nothing;",
+      "the SLO turning **Waiting**, **Paused** or **Misconfigured**, because it then measures nothing;",
     );
     expect(page).toContain(
       `each time it evaluates the SLO, every ${SLO_EVALUATION_CADENCE_MINUTES} minutes`,
@@ -2660,7 +2703,7 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
 
     // Worked out again under a lock, and created as the caller.
     expect(adding).toContain("await Semaphore.lock({");
-    expect(adding).toContain("await this.getMissingRecommendedTiers(data);");
+    expect(adding).toContain("await this.getMissingRecommendedTiers({");
     expect(adding).toContain("props: data.props,");
     // All or nothing: a create that fails takes the tiers added before it back out.
     expect(adding).toContain("await this.removeRecommendedTiersAdded({");
@@ -2675,6 +2718,101 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
     );
     expect(recommended).toContain(
       "Each tier it adds is recorded in the SLO's audit logs as added by you.",
+    );
+  });
+
+  it("offers an SLO with part of the recommended policy the rest, and never an SLO with a policy of its own (#7351)", () => {
+    const banner: string = readSource("recommendedPolicyBanner");
+    const recommended: string = section(page, "The recommended policy");
+    const caution: SloRecommendedPolicyTier =
+      SLO_RECOMMENDED_POLICY_TIERS[0] as SloRecommendedPolicyTier;
+    const reliabilityFirst: SloRecommendedPolicyTier =
+      SLO_RECOMMENDED_POLICY_TIERS[1] as SloRecommendedPolicyTier;
+
+    // Part of it, and nothing else: offered the rest.
+    const partial: SloRecommendedPolicyState = getSloRecommendedPolicyStanding({
+      existingTiers: [caution, reliabilityFirst],
+    }).state;
+    // A tier of the team's own beside it: offered nothing.
+    const ownPolicy: SloRecommendedPolicyState =
+      getSloRecommendedPolicyStanding({
+        existingTiers: [caution, { name: "Freeze", thresholdPercentage: 10 }],
+      }).state;
+
+    expect(partial).toBe(SloRecommendedPolicyState.Partial);
+    expect(isSloRecommendedPolicyOffered(partial)).toBe(true);
+    expect(ownPolicy).toBe(SloRecommendedPolicyState.OwnPolicy);
+    expect(isSloRecommendedPolicyOffered(ownPolicy)).toBe(false);
+
+    // The note and its button, as the page draws them.
+    expect(banner).toMatch(
+      /RECOMMENDED_POLICY_NOT_COMPLETE_TITLE: string = translationKey\(\s*"Recommended policy not complete",?\s*\)/,
+    );
+    expect(banner).toMatch(
+      /ADD_MISSING_POLICY_TIERS_TITLE: string =\s*translationKey\("Add missing tiers"\)/,
+    );
+    expect(recommended).toContain(
+      "shows a note above its tiers, **Recommended policy not complete**, that names the tiers it is missing. Click **Add missing tiers** to see what it adds, and confirm.",
+    );
+    expect(recommended).toContain(
+      "An SLO with a tier of your own is never offered the rest: the policy you built is left as it is.",
+    );
+  });
+
+  it("offers Use the recommended policy for many SLOs at once in the SLO list's Bulk Actions, and says what it adds and leaves (#6358)", () => {
+    const slosPage: string = readSource("slosPage");
+    const bulkAction: string = readSource("recommendedPolicyBulkAction");
+    const bulkCopy: string = readSource("recommendedPolicyBulkCopy");
+    const recommended: string = section(page, "The recommended policy");
+
+    // In the live SLO list's Bulk Actions, by the Error Budget Policy page's own button.
+    expect(slosPage).toContain("...recommendedPolicyBulkActions,");
+    expect(readSource("sloBulkActions")).toContain(
+      "useSloRecommendedPolicyBulkAction()",
+    );
+    expect(readSource("archivedSlosPage")).not.toContain(
+      "recommendedPolicyBulkActions",
+    );
+    expect(bulkAction).toContain("title: USE_RECOMMENDED_POLICY_TITLE,");
+    expect(slosPage).toContain(
+      "select them and choose **Use the recommended policy** in **Bulk Actions**",
+    );
+    expect(recommended).toContain(
+      "To use it on many SLOs at once, select them on the **SLOs** page and choose **Use the recommended policy** in **Bulk Actions**.",
+    );
+
+    // What the confirmation counts, in its own words.
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs get the recommended tiers they are missing:",
+    );
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs already have the recommended policy and are left as they are.",
+    );
+    expect(bulkCopy).toContain(
+      "{{count}} SLOs have an error budget policy of their own and are left as they are.",
+    );
+    expect(recommended).toContain(
+      "the confirmation counts how many of them get each tier, and how many are left as they are because they already have the recommended policy or have an error budget policy of their own.",
+    );
+
+    // The same add as the SLO's own page, only where the page would offer it.
+    expect(
+      blockFrom(
+        readSource("policyTierService"),
+        "public async addMissingRecommendedTiersToMany(",
+        "@CaptureSpan()",
+      ),
+    ).toContain("onlyWhenOffered: true,");
+    expect(recommended).toContain(
+      "Each SLO gets the tiers it is missing, as its own page would add them",
+    );
+    expect(recommended).toContain(
+      "Running it again on the same SLOs adds nothing. Archived SLOs are not on the list, and are never offered it.",
+    );
+
+    // The SLO list's own page sends readers here.
+    expect(section(englishPage(INTRODUCTION), "The SLO list")).toContain(
+      "or the [recommended error budget policy](/docs/slo/error-budget-policy#the-recommended-policy)",
     );
   });
 
@@ -2852,7 +2990,7 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
     );
 
     expect(notMeasured).toContain(
-      "A **Paused** or **Misconfigured** SLO measures no budget, so its tier stays where it was, and what the tier raised stays open until measuring resumes.",
+      "A **Waiting**, **Paused** or **Misconfigured** SLO measures no budget, so its tier stays where it was, and what the tier raised stays open until measuring resumes.",
     );
     expect(notMeasured).toContain(
       "Turning the SLO's evaluation off, or archiving the SLO, resolves what its tiers raised.",
@@ -2970,15 +3108,55 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
     ).toEqual([
       `\`POST /api${crudPath}${route("SLO_RECOMMENDED_POLICY_ROUTE")}\``,
       `\`POST /api${crudPath}${route("SLO_ADD_RECOMMENDED_POLICY_ROUTE")}\``,
+      // The SLO list's Use the recommended policy, for many SLOs (#6358).
+      `\`POST /api${crudPath}${route("SLO_BULK_RECOMMENDED_POLICY_ROUTE")}\``,
+      `\`POST /api${crudPath}${route("SLO_BULK_ADD_RECOMMENDED_POLICY_ROUTE")}\``,
     ]);
 
-    // Both read the SLO from the body, and answer with the tiers.
+    // The two for one SLO read it from the body, and answer with the tiers.
     expect(
       routes.split("readServiceLevelObjectiveId(req.body)").length - 1,
     ).toBe(2);
-    expect(routes.split("tiers: ").length - 1).toBe(2);
     expect(api).toContain(
-      'Both take `{ "serviceLevelObjectiveId": "..." }` and answer with the tiers in `tiers`',
+      'The requests for one SLO take `{ "serviceLevelObjectiveId": "..." }` and answer with the tiers in `tiers`',
+    );
+
+    // The bulk two read the SLOs, at most as many as Add recommended rules', and answer for each.
+    expect(
+      routes.split("readServiceLevelObjectiveIds(req.body)").length - 1,
+    ).toBe(2);
+    expect(routes.split("results: results.map(").length - 1).toBe(2);
+    expect(api).toContain(
+      `The bulk requests take \`{ "serviceLevelObjectiveIds": ["..."] }\`, at most ${SLO_RECOMMENDED_BURN_RATE_RULES_BULK_MAX_SLOS} SLOs per request, and answer with one entry for each SLO in \`results\`, in the order asked`,
+    );
+
+    for (const status of Object.values(SloBulkRecommendedPolicyStatus)) {
+      expect({ status, named: api.includes(`\`${status}\``) }).toEqual({
+        status,
+        named: true,
+      });
+    }
+  });
+
+  /*
+   * A workflow on a tier change needs no trigger of its own (#6597): the
+   * SLO's On Update trigger, watching the field the change writes, runs
+   * once for each committed change.
+   */
+  it("starts a workflow on a tier or a gate change with the SLO's On Update trigger and its Fields to watch", () => {
+    const slo: ServiceLevelObjective = new ServiceLevelObjective();
+    const notYet: string = section(page, "Not available yet");
+
+    expect(slo.enableWorkflowOn?.update).toBe(true);
+    expect(
+      slo.getTableColumnMetadata("currentErrorBudgetPolicyTierId").title,
+    ).toBe("Current Error Budget Policy Tier ID");
+    expect(slo.getTableColumnMetadata("deploymentsAllowed").title).toBe(
+      "Deployments Allowed",
+    );
+    expect(notYet).not.toContain("workflow trigger of its own");
+    expect(notYet).toContain(
+      "give it the SLO's On Update trigger, and pick **Current Error Budget Policy Tier ID** or **Deployments Allowed** in its **Fields to watch**, so it runs once for each change.",
     );
   });
 
@@ -3258,7 +3436,7 @@ describe("Deployment gate, against the policy, the worker and the API", () => {
     expect(guard).not.toContain("deploymentsAllowed");
     expect(guard).not.toContain("DeploymentGate");
     expect(gate).toContain(
-      "A **Paused** or **Misconfigured** SLO keeps the answer it had, as it keeps its tier",
+      "A **Waiting**, **Paused** or **Misconfigured** SLO keeps the answer it had, as it keeps its tier",
     );
     expect(section(page, "When the budget is not measured")).toContain(
       "In each of these cases the SLO keeps the answer it gave about deployments, because it keeps its tier",
@@ -3529,6 +3707,72 @@ describe("Error Budget Policy in Slack, Microsoft Teams and Mattermost, against 
     );
     expect(matches.get("**SLO Name**")).toBe(
       "The SLO's name: equal to your text or not, containing it or not, starting or ending with it.",
+    );
+  });
+
+  it("posts status changes only for a rule that picks them, at most once an hour for each SLO, after the evaluation is saved (#6596)", () => {
+    const statusChanges: string = section(page, "Status changes");
+    const worker: string = readSource("worker");
+    const now: Date = new Date("2026-11-18T12:00:00.000Z");
+
+    // The changes the condition offers, in the order its dropdown lists them.
+    expect(section(page, "What a rule matches")).toContain(
+      `How the SLO's status changed: ${SLO_STATUS_CHANGES.slice(0, -1)
+        .map((change: string): string => {
+          return `**${change}**`;
+        })
+        .join(", ")} or **${
+        SLO_STATUS_CHANGES[SLO_STATUS_CHANGES.length - 1]
+      }**.`,
+    );
+
+    // A rule without the condition posts the policy's changes, and no status change.
+    expect(SloRuleChanges.getKinds([])).toEqual([
+      SloRuleChangeKind.ErrorBudgetPolicy,
+    ]);
+    expect(statusChanges).toContain(
+      "A rule posts the SLO's status changes only when it has an **SLO Status Change** condition, and then only the ones the condition picks.",
+    );
+
+    // At most once an hour, and an exhausted budget at once.
+    expect(SLO_STATUS_POST_MIN_INTERVAL_MINUTES).toBe(60);
+    expect(statusChanges).toContain(
+      "A channel hears at most one status change of an SLO an hour",
+    );
+    expect(
+      decideSloStatusPost({
+        lastPost: {
+          status: SloStatus.AtRisk,
+          postedAt: new Date(now.getTime() - 5 * 60 * 1000),
+        },
+        previousStatus: SloStatus.AtRisk,
+        newStatus: SloStatus.BudgetExhausted,
+        now: now,
+      }),
+    ).not.toBeNull();
+    expect(statusChanges).toContain(
+      "An exhausted budget is posted at once, whatever the hour.",
+    );
+
+    // Nothing for a status that measures nothing.
+    for (const status of [
+      SloStatus.Waiting,
+      SloStatus.Misconfigured,
+      SloStatus.Paused,
+    ]) {
+      expect(getSloStatusChange(SloStatus.AtRisk, status)).toBeNull();
+    }
+
+    expect(statusChanges).toContain(
+      "A move into **Waiting**, **Misconfigured** or **Paused** posts nothing",
+    );
+
+    // After the evaluation's one state write, through the same poster.
+    expect(worker).toContain("SloWorkspaceNotifications.postStatusChange(");
+    expect(
+      worker.indexOf("await postStatusChangeToWorkspaces({"),
+    ).toBeGreaterThan(
+      worker.indexOf("await ServiceLevelObjectiveService.updateOneById({"),
     );
   });
 

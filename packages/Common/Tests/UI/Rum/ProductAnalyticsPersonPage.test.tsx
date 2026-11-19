@@ -607,6 +607,52 @@ describe("ProductAnalyticsPerson", () => {
     );
   });
 
+  /*
+   * The months the application keeps (issue #6626), as the person read says
+   * them: the facts, the sessions card and nobody-found all say them.
+   */
+  it("says the months the application keeps, not 13 for everyone", async () => {
+    mockDetail({ ...detail(), retentionMonths: 6 });
+
+    renderAt(personPath(`u-${USER_KEY}`));
+
+    const facts: HTMLElement = await screen.findByTestId(
+      "product-analytics-person-facts",
+    );
+
+    expect(within(facts).getByText("In the last 6 months")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Every session of theirs the last 6 months hold, newest first.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/13\s+months/)).toBeNull();
+  });
+
+  it("nobody by this key says the months the application keeps too", async () => {
+    mockDetail({
+      ...detail({ person: null, sessions: [] }),
+      retentionMonths: 25,
+    });
+
+    renderAt(personPath(`u-${USER_KEY}`));
+
+    await waitFor(() => {
+      expect(
+        document.getElementById("product-analytics-person-not-found"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText("Nobody by this ID in the last 25 months"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Their sessions may be older than the 25 months these numbers are kept, or may have been erased.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("an address that names nobody is said so, and nothing is asked", async () => {
     mockDetail(detail());
 

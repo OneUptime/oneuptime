@@ -173,6 +173,7 @@ function traitsHeaderRow(): JSONObject {
     recorderKind: "dom",
     recorderVersion: "1.0.0",
     rrwebVersion: "2.1.0",
+    appVersion: "",
     countryCode: "",
     identifiedUserKey: "k".repeat(64),
     identifiedUserLabel: "ada@example.com",

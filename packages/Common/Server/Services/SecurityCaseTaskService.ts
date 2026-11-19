@@ -19,6 +19,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import {
   taskAddedMarkdown,
   taskAssignedMarkdown,
@@ -42,6 +43,9 @@ import {
  */
 
 const ASSIGNEE_KEYS: Array<string> = ["assignedToUserId", "assignedToUser"];
+
+// The case a task is of, under both of its names (RelationIdUtil).
+const SECURITY_CASE_KEYS: Array<string> = ["securityCaseId", "securityCase"];
 
 // A task's columns its hooks look at, as they were before a change.
 interface TaskBeforeChange {
@@ -68,6 +72,26 @@ export function normalizeTaskTitle(value: unknown): string {
   }
 
   return title;
+}
+
+/*
+ * A response plan step's key as it is kept: trimmed, at most 100
+ * characters; none for anything else.
+ */
+export function normalizeResponseStepKey(value: unknown): string | undefined {
+  const key: string = typeof value === "string" ? value.trim() : "";
+
+  if (!key) {
+    return undefined;
+  }
+
+  if (key.length > ColumnLength.ShortText) {
+    throw new BadDataException(
+      `A response plan step's key can be at most ${ColumnLength.ShortText.toString()} characters.`,
+    );
+  }
+
+  return key;
 }
 
 /*
@@ -111,6 +135,45 @@ export class Service extends ProjectReferencesService<Model> {
     createBy.data.title = normalizeTaskTitle(createBy.data.title);
     readAssignee(data);
 
+    const stepKey: string | undefined = normalizeResponseStepKey(
+      createBy.data.responseStepKey,
+    );
+
+    if (stepKey) {
+      createBy.data.responseStepKey = stepKey;
+
+      /*
+       * The case under either of its names - the two must agree - kept in
+       * the ID column for the saved row: the case asked about is the case
+       * the task is written to.
+       */
+      const securityCaseId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+        data,
+        SECURITY_CASE_KEYS,
+        "Security Case",
+      );
+
+      // One task a step: a step ticked off twice at once is done once.
+      if (securityCaseId) {
+        const existing: PositiveNumber = await this.countBy({
+          query: {
+            securityCaseId: securityCaseId,
+            responseStepKey: stepKey,
+          },
+          props: { isRoot: true },
+        });
+
+        if (existing.toNumber() > 0) {
+          throw new BadDataException(
+            "This step of the response plan is a task on this case already. Tick it off on the case's Tasks page.",
+          );
+        }
+      }
+    } else {
+      // A blank one is no step.
+      delete data["responseStepKey"];
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -141,17 +204,25 @@ export class Service extends ProjectReferencesService<Model> {
         });
       }
 
+      /*
+       * A task added already done - a step of the case's response plan,
+       * ticked off where it is suggested - reads on the timeline as what
+       * happened: it was done.
+       */
       await SecurityCaseFeedService.createSecurityCaseFeedItem({
         projectId: createdItem.projectId,
         securityCaseId: createdItem.securityCaseId,
-        feedInfoInMarkdown: taskAddedMarkdown({
-          title: createdItem.title || "",
-          assigneeName: createdItem.assignedToUserId
-            ? await this.getUserName(createdItem.assignedToUserId)
-            : undefined,
-        }).toString(),
+        feedInfoInMarkdown: (createdItem.isDone
+          ? taskDoneMarkdown({ title: createdItem.title || "" })
+          : taskAddedMarkdown({
+              title: createdItem.title || "",
+              assigneeName: createdItem.assignedToUserId
+                ? await this.getUserName(createdItem.assignedToUserId)
+                : undefined,
+            })
+        ).toString(),
         eventType: SecurityCaseFeedEventType.Task,
-        displayColor: Gray500,
+        displayColor: createdItem.isDone ? Green500 : Gray500,
         userId: createdItem.createdByUserId || actorUserId,
       });
 

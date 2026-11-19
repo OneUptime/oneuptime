@@ -20,6 +20,7 @@ import {
   SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
 } from "./SloArchiveCopy";
 import useSloRecommendedRulesBulkAction from "./useSloRecommendedRulesBulkAction";
+import useSloRecommendedPolicyBulkAction from "./useSloRecommendedPolicyBulkAction";
 import React, { ReactElement } from "react";
 
 /**
@@ -56,6 +57,15 @@ export interface SloBulkActionsResult {
    * monitor.
    */
   recommendedRulesBulkActions: Array<
+    BulkActionButtonSchema<ServiceLevelObjective>
+  >;
+  /*
+   * Use the recommended policy (useSloRecommendedPolicyBulkAction, #6358):
+   * the recommended error budget policy, or the rest of it, for every
+   * selected SLO that has none or part of it. For the live SLO list alone,
+   * as Add recommended rules: an archived SLO's policy never applies.
+   */
+  recommendedPolicyBulkActions: Array<
     BulkActionButtonSchema<ServiceLevelObjective>
   >;
   /*
@@ -149,6 +159,11 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       BulkActionButtonSchema<ServiceLevelObjective>
     > = useSloRecommendedRulesBulkAction();
 
+    // The same, for the recommended error budget policy.
+    const recommendedPolicyBulkActions: Array<
+      BulkActionButtonSchema<ServiceLevelObjective>
+    > = useSloRecommendedPolicyBulkAction();
+
     return {
       bulkActions: [
         ...switchBulkActions,
@@ -158,6 +173,7 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       archiveBulkActions: archiveBulkActions,
       unarchiveBulkActions: unarchiveBulkActions,
       recommendedRulesBulkActions: recommendedRulesBulkActions,
+      recommendedPolicyBulkActions: recommendedPolicyBulkActions,
       rowActions: switchRowActions,
       archiveRowActions: archiveRowActions,
       unarchiveRowActions: unarchiveRowActions,

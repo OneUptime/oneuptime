@@ -1,6 +1,9 @@
 import OneUptimeDate from "Common/Types/Date";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
-import { ProductAnalyticsPersonDto } from "Common/Types/Rum/ProductAnalytics";
+import {
+  ProductAnalyticsPersonDto,
+  getProductAnalyticsRetentionMonths,
+} from "Common/Types/Rum/ProductAnalytics";
 import Card from "Common/UI/Components/Card/Card";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -21,7 +24,7 @@ import {
 /*
  * Who one person of Product Analytics > Users is (issue #6444): their name
  * or kind as the card's title, their key under it, and when they first and
- * last came, how many sessions the last 13 months hold, their device and
+ * last came, how many sessions the months kept hold, their device and
  * their country. The way back to the list sits in the card's header.
  *
  * A card of facts, not a list: the person page's sessions are a table of
@@ -89,7 +92,12 @@ interface PersonFact {
 
 export const ProductAnalyticsPersonFacts: FunctionComponent<{
   person: ProductAnalyticsPersonDto;
-}> = (props: { person: ProductAnalyticsPersonDto }): ReactElement => {
+  // How many months the application keeps these numbers; left out, the default.
+  retentionMonths?: number | undefined;
+}> = (props: {
+  person: ProductAnalyticsPersonDto;
+  retentionMonths?: number | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const firstSeen: Date = new Date(props.person.firstSeenAt);
   const lastSeen: Date = new Date(props.person.lastSeenAt);
@@ -118,7 +126,13 @@ export const ProductAnalyticsPersonFacts: FunctionComponent<{
         props.person.totalSessions,
         translator,
       ),
-      detail: translator.translateText("In the last 13 months"),
+      detail: translator.translatePlural(
+        {
+          one: "In the last {{count}} month",
+          other: "In the last {{count}} months",
+        },
+        getProductAnalyticsRetentionMonths(props.retentionMonths),
+      ),
     },
     {
       label: "Device",
@@ -179,6 +193,11 @@ export interface ProductAnalyticsPersonCardProps {
   person: ProductAnalyticsPersonDto;
   // Whether the read named signed-in users: false for a role that may not.
   includesLabels: boolean;
+  /*
+   * How many months the application keeps these numbers (issue #6626), as
+   * the read said; left out, the default.
+   */
+  retentionMonths?: number | undefined;
   // Back to the people list, at the range and filter it was opened from.
   backLink: ReactElement;
 }
@@ -213,7 +232,10 @@ const ProductAnalyticsPersonCard: FunctionComponent<
       buttons={[<Fragment key="back">{props.backLink}</Fragment>]}
     >
       <div className="space-y-4">
-        <ProductAnalyticsPersonFacts person={props.person} />
+        <ProductAnalyticsPersonFacts
+          person={props.person}
+          retentionMonths={props.retentionMonths}
+        />
         {props.person.kind === "identified" && !props.includesLabels ? (
           <p
             className="text-xs text-gray-500"

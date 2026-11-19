@@ -60,7 +60,7 @@ Enter the **Domain Name**, such as `example.com`. Leave **Lookup Method** on **A
 
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows the registration record the probe read, and whether RDAP or WHOIS answered.
+Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows the registration record the probe read, and whether RDAP or WHOIS answered. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 

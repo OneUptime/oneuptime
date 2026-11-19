@@ -6,6 +6,10 @@ import {
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { getOffProductOfPath } from "../../Utils/ProjectProducts/ProductOfRoute";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import { ServerProductsOff } from "Common/Types/Product/ServerProducts";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -112,19 +116,50 @@ export interface HomeQuickActions {
   create: Array<HomeQuickAction>;
 }
 
-// The actions these gates allow.
+/*
+ * Whether an action opens a page of a product switched off on the server
+ * (#7478): Declare Incident while Incidents is off would open the page that
+ * says so, so it is not offered.
+ */
+const isOfProductOff: (
+  definition: QuickActionDefinition,
+  offOnServer: ServerProductsOff,
+) => boolean = (
+  definition: QuickActionDefinition,
+  offOnServer: ServerProductsOff,
+): boolean => {
+  const route: Route | undefined = RouteMap[definition.pageMap];
+
+  return Boolean(
+    route &&
+      getOffProductOfPath({
+        pathname: route.toString(),
+        offOnServer: offOnServer,
+      }),
+  );
+};
+
+// The actions these gates allow, but those of a product off on the server.
 export const getHomeQuickActions: (
   gates: PaletteCreateActionGates,
-) => HomeQuickActions = (gates: PaletteCreateActionGates): HomeQuickActions => {
+  offOnServer?: ServerProductsOff,
+) => HomeQuickActions = (
+  gates: PaletteCreateActionGates,
+  offOnServer: ServerProductsOff = {},
+): HomeQuickActions => {
+  const isOffered: (definition: QuickActionDefinition) => boolean = (
+    definition: QuickActionDefinition,
+  ): boolean => {
+    return (
+      definition.isAllowed(gates) && !isOfProductOff(definition, offOnServer)
+    );
+  };
+
   return {
-    declareIncident: DECLARE_INCIDENT_ACTION.isAllowed(gates)
+    declareIncident: isOffered(DECLARE_INCIDENT_ACTION)
       ? toAction(DECLARE_INCIDENT_ACTION)
       : null,
-    create: CREATE_ACTIONS.filter(
-      (definition: QuickActionDefinition): boolean => {
-        return definition.isAllowed(gates);
-      },
-    ).map(toAction),
+    create: CREATE_ACTIONS.filter(isOffered).map(toAction),
   };
 };
 
@@ -157,7 +192,11 @@ const HomeCommandBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const actions: HomeQuickActions = getHomeQuickActions(props.gates);
+  const products: ProjectProductsState = useProjectProducts();
+  const actions: HomeQuickActions = getHomeQuickActions(
+    props.gates,
+    products.answer.offOnServer || {},
+  );
 
   const openSearch: () => void = (): void => {
     UiAnalytics.capture("dashboard/home/search-opened", {

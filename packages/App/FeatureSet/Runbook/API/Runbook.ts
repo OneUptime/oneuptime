@@ -45,6 +45,8 @@ import RunRunbook from "../Services/RunRunbook";
 import RunbookRunAccess from "Common/Server/Utils/Runbook/RunbookRunAccess";
 import { RunbookStarterClass } from "Common/Server/Utils/Runbook/RunbookStarter";
 import RunbookPrivateRecordAccess from "Common/Server/Utils/Runbook/RunbookPrivateRecordAccess";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 export default class RunbookAPI {
   public router!: ExpressRouter;
@@ -55,24 +57,28 @@ export default class RunbookAPI {
     this.router.post(
       `/run/:runbookId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.runRunbook,
     );
 
     this.router.post(
       `/execution/:executionId/step/:stepId/complete`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.completeManualStep,
     );
 
     this.router.post(
       `/execution/:executionId/step/:stepId/skip`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.skipStep,
     );
 
     this.router.post(
       `/execution/:executionId/cancel`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
       this.cancelExecution,
     );
   }

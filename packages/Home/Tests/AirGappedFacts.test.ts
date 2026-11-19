@@ -56,6 +56,7 @@ const HAS_EE: boolean = fs.existsSync(path.join(REPO_ROOT, "ee"));
 const CHART: string = "HelmChart/Public/oneuptime";
 const CHART_VALUES: string = `${CHART}/values.yaml`;
 const CHART_HELPERS: string = `${CHART}/templates/_helpers.tpl`;
+const CLAMAV_TEMPLATE: string = `${CHART}/templates/clamav.yaml`;
 const CHART_CONFIGURATION: string = `${CHART}/docs/configuration.md`;
 const AIR_GAPPED_VALUES_FILE: string = "HelmChart/Tests/air-gapped-values.yaml";
 const AIR_GAPPED_SUITE: string = "HelmChart/Tests/suites/air-gapped.sh";
@@ -126,6 +127,52 @@ function withoutComments(yaml: string): string {
     })
     .join("\n")
     .trim();
+}
+
+/*
+ * The section of a markdown file under `heading` ("## X"): from the heading
+ * to the next heading of its level or above. A heading the file lacks fails,
+ * naming it.
+ */
+function sectionOf(relativePath: string, heading: string): string {
+  const markdown: string = repoFile(relativePath);
+  const start: number = markdown.indexOf(`\n${heading}\n`);
+
+  expect([relativePath, heading, start >= 0]).toEqual([
+    relativePath,
+    heading,
+    true,
+  ]);
+
+  const level: number = heading.indexOf(" ");
+  const rest: string = markdown.slice(start + heading.length + 2);
+  const end: number = rest.search(new RegExp(`\\n#{1,${level}} `));
+
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+// The first cell of each body row of the first table in a piece of markdown.
+function firstCells(markdown: string): Array<string> {
+  const rows: Array<string> = [];
+  let inTable: boolean = false;
+
+  for (const line of markdown.split("\n")) {
+    if (!line.startsWith("|")) {
+      if (inTable) {
+        break;
+      }
+
+      continue;
+    }
+
+    inTable = true;
+    rows.push(line);
+  }
+
+  // Past the header and the delimiter row.
+  return rows.slice(2).map((row: string): string => {
+    return row.split("|")[1]!.trim();
+  });
 }
 
 function connection(key: string): AirGappedConnection {
@@ -1012,6 +1059,102 @@ describe("what reaches out, and how it is stopped", () => {
     expect(LlmType.Anthropic).toBe("Anthropic");
   });
 
+  /*
+   * #9163: the chart's own ClamAV, off by default, downloads its signatures
+   * with freshclam once it is turned on - a connection out that the page
+   * and the docs did not list. The chart cannot point it at a mirror (#9580:
+   * the day it can, the checks below fail - change the row's "inside" and
+   * the docs with it), so inside a gap the way is a clamd of your own, at
+   * clamav.host.
+   */
+  test("ClamAV's signatures come from database.clamav.net once clamav.enabled runs it, and the chart has no setting for a mirror", () => {
+    const template: string = repoFile(CLAMAV_TEMPLATE);
+    const rendered: string = template
+      .slice(template.indexOf("*/}}"))
+      .toLowerCase();
+    const row: AirGappedConnection = connection("malware-signatures");
+
+    // Off by default: no ClamAV runs, so nothing reaches out until it is on.
+    expect(row.onByDefault).toBe(false);
+    expectFileToSay(
+      CHART_VALUES,
+      "clamav:\n  # Run ClamAV in the cluster (a Deployment and a Service) and scan with it.\n  enabled: false\n",
+    );
+    expectTextToSay(
+      CLAMAV_TEMPLATE,
+      template,
+      "{{- if .Values.clamav.enabled }}",
+    );
+    expect(row.when).toContain("`clamav.enabled: true`");
+
+    /*
+     * ClamAV's own image, whose freshclam downloads from database.clamav.net
+     * into a volume that starts empty with every pod.
+     */
+    expectFileToSay(
+      CHART_VALUES,
+      '  image:\n    repository: clamav/clamav\n    tag: "1.4"\n',
+    );
+    expectTextToSay(
+      CLAMAV_TEMPLATE,
+      template,
+      "keeps them up to date itself (freshclam),\nfrom database.clamav.net",
+    );
+    expectTextToSay(
+      CLAMAV_TEMPLATE,
+      template,
+      "- name: signatures\n        emptyDir: {}",
+    );
+    expect(plainText(row.destination)).toBe("database.clamav.net");
+    expect(row.when).toContain(
+      "it downloads its signatures as it starts, and keeps them up to date.",
+    );
+
+    // Nothing points freshclam elsewhere: no configuration, mirror or file of its own.
+    for (const words of ["freshclam", "mirror", "configmap"]) {
+      expect([CLAMAV_TEMPLATE, words, rendered.includes(words)]).toEqual([
+        CLAMAV_TEMPLATE,
+        words,
+        false,
+      ]);
+    }
+
+    expectFileToSay(
+      CHART_VALUES,
+      "# out of your network. It has no setting for a signature mirror, so on a",
+    );
+    expect(row.inside).toContain(
+      "The chart's ClamAV has no setting for a signature mirror yet.",
+    );
+
+    // Instead: a clamd of your own, at clamav.host, where the app then scans.
+    expectFileToSay(
+      CHART_VALUES,
+      '  # Or scan with a ClamAV daemon (clamd) of your own: its address. Used only\n  # while enabled is false; empty scans nothing.\n  host: ""\n',
+    );
+    expectFileToSay(
+      CHART_HELPERS,
+      '- name: CLAMAV_HOST\n  value: {{ ternary (printf "%s-clamav" $.Release.Name) (default "" ($.Values.clamav).host) (($.Values.clamav).enabled | default false) | quote }}',
+    );
+    expect(row.inside).toContain(
+      "Run a ClamAV daemon of your own, kept up to date from a mirror inside the gap, and set `clamav.host` to its address.",
+    );
+
+    // The docs say the same, and so does the page where ClamAV is turned on.
+    expectFileToSay(
+      docsPagePath("self-hosted/architecture"),
+      "| ClamAV's signature updates, from `database.clamav.net` |",
+    );
+    expectFileToSay(
+      docsPagePath("installation/air-gapped"),
+      "| Malware scanning | With `clamav.enabled`, the chart's ClamAV downloads its signatures from `database.clamav.net` when it starts, and keeps them up to date. | The chart's ClamAV has no setting for a signature mirror yet.",
+    );
+    expectFileToSay(
+      docsPagePath("forms/sharing-and-security"),
+      "The ClamAV bundled with OneUptime downloads its signatures from `database.clamav.net` when it starts, and keeps them up to date: a connection out of your network.",
+    );
+  });
+
   test("the docs the page links for connections out name the same four, with the same settings", () => {
     /*
      * The note under the table sends readers to this docs section, which the
@@ -1122,6 +1265,238 @@ describe("what reaches out, and how it is stopped", () => {
       expect([address, typeof row]).toEqual([address, "string"]);
       connection(row!);
     }
+  });
+});
+
+/*
+ * THE PAGE'S TABLE AND THE DOCS' LISTS NAME THE SAME CONNECTIONS (#9163).
+ *
+ * The page sends readers to the docs for each connection's addresses
+ * (AirGappedDocs.connectionsOut, the architecture page's "Connections out of
+ * your network"), and the air-gapped installation guide says what still
+ * reaches out from inside the gap. ClamAV's signature downloads were in none
+ * of the three, and Let's Encrypt was on the page and in the guide but not
+ * in the docs' list. Each row of the page is found in both docs by the words
+ * below; each connection the docs' tables list is a row of the page, or is
+ * listed with the reason the page leaves it out. A new row anywhere fails
+ * here until the other two say it too, or the reason is written down.
+ */
+const ARCHITECTURE_PAGE: string = docsPagePath("self-hosted/architecture");
+const INSTALLATION_GUIDE: string = docsPagePath("installation/air-gapped");
+
+interface ConnectionInDocs {
+  // How the architecture page's "Connections out of your network" names it.
+  architecture: string;
+  // How the installation guide names it.
+  guide: string;
+}
+
+const CONNECTIONS_IN_DOCS: Record<string, ConnectionInDocs> = {
+  "update-check": {
+    architecture: "GitHub's API (`api.github.com`)",
+    guide: "| `updateCheck.disabled` |",
+  },
+  "instance-check-in": {
+    architecture:
+      "the app tells `oneuptime.com` your install's address and the version it runs",
+    guide: "| `instanceCheckIn.disabled` |",
+  },
+  "release-emails": {
+    architecture:
+      "Signing up with “Notify me about security patches and new releases” ticked",
+    guide: "the sign-up form's offer of release emails",
+  },
+  "probe-dns": {
+    architecture: "`8.8.8.8` and `1.1.1.1`",
+    guide: "| `dnsConfig.nameservers` |",
+  },
+  "enterprise-license": {
+    architecture:
+      "| `oneuptime.com` | Activating an Enterprise license online |",
+    guide: "activates with a signed license token instead of a license key",
+  },
+  certificates: {
+    architecture: "| Let's Encrypt |",
+    guide: "| Certificates |",
+  },
+  "malware-signatures": {
+    architecture: "| ClamAV's signature updates, from `database.clamav.net` |",
+    guide: "| Malware scanning |",
+  },
+  paging: {
+    architecture: "| Twilio |",
+    guide: "| Mobile app push |",
+  },
+  chat: {
+    architecture: "| Slack and Microsoft Teams |",
+    guide: "Slack and Microsoft Teams",
+  },
+  "hosted-ai": {
+    architecture: "| An LLM provider,",
+    guide: "hosted AI models",
+  },
+};
+
+/*
+ * The page's row (or rows) a table row of the docs is, or why the page has
+ * none.
+ */
+type DocsRowOnPage = string | Array<string> | { leftOut: string };
+
+// The page's rows a docs row names, none for one the page leaves out.
+function pageRowsOf(onPage: DocsRowOnPage): Array<string> {
+  if (typeof onPage === "string") {
+    return [onPage];
+  }
+
+  return Array.isArray(onPage) ? onPage : [];
+}
+
+const ARCHITECTURE_ROWS: Record<string, DocsRowOnPage> = {
+  "Email (SMTP, or SendGrid's API)": {
+    leftOut:
+      "Email goes to the mail server you set up: the page says it works inside, through your own mail server (capabilities: notifications).",
+  },
+  Twilio: "paging",
+  "OneUptime's push relay, or Expo": "paging",
+  "Slack and Microsoft Teams": "chat",
+  "An LLM provider, such as OpenAI, Anthropic, Microsoft Foundry, or a model you run yourself":
+    "hosted-ai",
+  "`oneuptime.com`": "enterprise-license",
+  "Let's Encrypt": "certificates",
+  "ClamAV's signature updates, from `database.clamav.net`":
+    "malware-signatures",
+};
+
+const GUIDE_ROWS: Record<string, DocsRowOnPage> = {
+  "Mobile app push": "paging",
+  "DNSSEC checks of DNS monitors": {
+    leftOut:
+      "A check a DNS monitor makes, which a monitor given your own DNS server never makes: the guide says how.",
+  },
+  "Domain monitors": {
+    leftOut:
+      "Registration data lives only outside the gap; the page names the monitors that work inside, which leave these out.",
+  },
+  "MCP sign-in": {
+    leftOut:
+      "Only an MCP client that names its metadata by an address; one setting stops it, which the guide gives.",
+  },
+  Certificates: "certificates",
+  "Malware scanning": "malware-signatures",
+  // Email goes to your own mail server, as on the page; SMS and calls, chat, AI.
+  Integrations: ["paging", "chat", "hosted-ai"],
+};
+
+describe("the page's table and the docs' lists name the same connections", () => {
+  const architecture: string = sectionOf(
+    ARCHITECTURE_PAGE,
+    "## Connections out of your network",
+  );
+  const valuesTable: string = sectionOf(
+    INSTALLATION_GUIDE,
+    "## Install from your registry",
+  );
+  const stillReachesOut: string = sectionOf(
+    INSTALLATION_GUIDE,
+    "## What still reaches out",
+  );
+  const licenseOffline: string = sectionOf(
+    INSTALLATION_GUIDE,
+    "## License the Enterprise Edition offline",
+  );
+
+  test("the words below name every row of the page, and only those", () => {
+    expect(Object.keys(CONNECTIONS_IN_DOCS).sort()).toEqual(
+      AirGappedConnections.map((entry: AirGappedConnection): string => {
+        return entry.key;
+      }).sort(),
+    );
+  });
+
+  test("every connection on the page is in the docs' list of connections out", () => {
+    expect(AirGappedDocs.connectionsOut).toBe(
+      "/docs/self-hosted/architecture#connections-out-of-your-network",
+    );
+
+    for (const entry of AirGappedConnections) {
+      const words: string = CONNECTIONS_IN_DOCS[entry.key]!.architecture;
+
+      expect([entry.key, words, architecture.includes(words)]).toEqual([
+        entry.key,
+        words,
+        true,
+      ]);
+    }
+  });
+
+  test("every connection on the page is in the installation guide: turned off by its values, or still reaching out", () => {
+    for (const entry of AirGappedConnections) {
+      const words: string = CONNECTIONS_IN_DOCS[entry.key]!.guide;
+      // Made by default: the guide's values turn it off. Else it is set up later.
+      const section: string = entry.onByDefault
+        ? valuesTable
+        : entry.key === "enterprise-license"
+          ? licenseOffline
+          : stillReachesOut;
+
+      expect([entry.key, words, section.includes(words)]).toEqual([
+        entry.key,
+        words,
+        true,
+      ]);
+    }
+  });
+
+  test("every row of the docs' table of connections out is a row of the page, or says why not", () => {
+    const rows: Array<string> = firstCells(
+      architecture.slice(architecture.indexOf("| Outbound connection |")),
+    );
+
+    expect(rows).toEqual(Object.keys(ARCHITECTURE_ROWS));
+
+    for (const onPage of Object.values(ARCHITECTURE_ROWS)) {
+      for (const key of pageRowsOf(onPage)) {
+        connection(key);
+      }
+    }
+
+    // The row the page leaves out: email, which the page sends inside.
+    expect(capability("notifications")).toContain(
+      "Email through your own mail server",
+    );
+  });
+
+  test("every row the guide says still reaches out is a row of the page, or says why not", () => {
+    const rows: Array<string> = firstCells(stillReachesOut);
+
+    expect(rows).toEqual(Object.keys(GUIDE_ROWS));
+
+    for (const onPage of Object.values(GUIDE_ROWS)) {
+      for (const key of pageRowsOf(onPage)) {
+        connection(key);
+      }
+    }
+
+    // The integrations row: email inside, SMS and calls, chat and hosted AI.
+    const integrations: string =
+      stillReachesOut.split("\n").find((line: string): boolean => {
+        return line.startsWith("| Integrations |");
+      }) || "";
+
+    expect(integrations).toContain(
+      "Email, SMS and calls, Slack and Microsoft Teams, hosted AI models: each only once you set it up.",
+    );
+    expect(integrations).toContain("Use your own mail server");
+
+    // What the guide gives for the rows the page leaves out.
+    expect(stillReachesOut).toContain(
+      "Give each DNS monitor your own DNS server.",
+    );
+    expect(stillReachesOut).toContain("Leave domain monitors out.");
+    expect(stillReachesOut).toContain(
+      "Set `mcpOAuth.disableClientIdMetadataDocuments: true`.",
+    );
   });
 });
 

@@ -46,17 +46,17 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 
 Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Websted** under **Monitortype**.
 
-### Navngiv den
-
-Angiv et **Navn**, som `Marketing site`, og klik så på **Næste**.
-
 ### Angiv URL'en
 
-Angiv sidens fulde adresse under **Websteds-URL**, inklusive `https://`, som `https://example.com`. For at ændre omdirigeringer, certifikater, timeout eller genforsøg åbner du **Flere felter** nedenunder (se [Konfigurationsmuligheder](#konfigurationsmuligheder)).
+Angiv sidens fulde adresse under **Websteds-URL**, inklusive `https://`, som `https://example.com`.
+
+### Navngiv den
+
+**Navn** udfyldes ud fra det, du angav, som `example.com`. Behold det, eller angiv dit eget, som `Marketing site`, og klik så på **Næste**.
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, hvad sonden fik tilbage.
+For at ændre omdirigeringer, certifikater, timeout eller genforsøg åbner du **Flere felter** under **Monitor-mål** (se [Konfigurationsmuligheder](#konfigurationsmuligheder)). Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, hvad sonden fik tilbage. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 
@@ -99,7 +99,7 @@ Brug `{{random}}` på samme måde: `https://example.com/health?nocache={{random}
 
 ### Flere felter
 
-Disse indstillinger er foldet sammen under **Flere felter** under URL'en. Den sammenfoldede overskrift nævner dem og viser, hvilke du har ændret.
+Disse indstillinger er foldet sammen under **Flere felter** i **Monitor-mål**. Den sammenfoldede overskrift nævner dem og viser, hvilke du har ændret.
 
 | Felt | Standard | Hvad det gør |
 | --- | --- | --- |

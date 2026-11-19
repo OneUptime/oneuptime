@@ -57,6 +57,8 @@ import Response from "../Utils/Response";
 import SSRFProtection from "../Utils/SSRFProtection";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * ------------------------------------------------------------------
@@ -101,61 +103,61 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
     const path: string =
       new this.entityType().getCrudApiPath()?.toString() || "";
 
-    this.register(
+    this.registerRead(
       `${path}/preview/:noticeId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.preview(req, res);
       },
     );
-    this.register(
+    this.registerChange(
       `${path}/turn-on/:noticeId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.turnOn(req, res);
       },
     );
-    this.register(
+    this.registerChange(
       `${path}/turn-off/:noticeId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.turnOff(req, res);
       },
     );
-    this.register(
+    this.registerRead(
       `${path}/who-would-be-told/:cloudId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.whoWouldBeTold(req, res);
       },
     );
-    this.register(
+    this.registerRead(
       `${path}/status-page-plan/:cloudId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.statusPagePlan(req, res);
       },
     );
-    this.register(
+    this.registerChange(
       `${path}/make-status-page/:cloudId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.makeStatusPage(req, res);
       },
     );
-    this.register(
+    this.registerChange(
       `${path}/make-objectives/:cloudId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.makeObjectives(req, res);
       },
     );
-    this.register(
+    this.registerRead(
       `${path}/project-page-plan/:cloudId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.projectPagePlan(req, res);
       },
     );
-    this.register(
+    this.registerChange(
       `${path}/make-project-page/:cloudId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.makeProjectPage(req, res);
       },
     );
-    this.register(
+    this.registerRead(
       `${path}/maintenance-covering/:cloudId`,
       (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         return this.maintenanceCovering(req, res);
@@ -163,21 +165,54 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
     );
   }
 
-  private register(
+  // A route that only reads: who would be told, a plan, what covers a host.
+  private registerRead(
     route: string,
     handler: (req: ExpressRequest, res: ExpressResponse) => Promise<void>,
   ): void {
     this.router.post(
       route,
       UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          await handler(req, res);
-        } catch (err) {
-          next(err);
-        }
-      },
+      OpenStackProjectNoticeAPI.answerWith(handler),
     );
+  }
+
+  /*
+   * A route that changes something - a notice turned on or off, a status
+   * page or objectives made: refused while the server has OpenStack
+   * switched off (#9489). What it makes of another product is refused
+   * again where every write is, while that product is off.
+   */
+  private registerChange(
+    route: string,
+    handler: (req: ExpressRequest, res: ExpressResponse) => Promise<void>,
+  ): void {
+    this.router.post(
+      route,
+      UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OpenStack),
+      OpenStackProjectNoticeAPI.answerWith(handler),
+    );
+  }
+
+  private static answerWith(
+    handler: (req: ExpressRequest, res: ExpressResponse) => Promise<void>,
+  ): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        await handler(req, res);
+      } catch (err) {
+        next(err);
+      }
+    };
   }
 
   // The notice, for someone who may change it. Anyone else is told it isn't there.

@@ -150,10 +150,34 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
   };
 });
 
+const refreshUserAllPermissions: jest.Mock = jest.fn();
+
 jest.mock("Common/Server/Services/AccessTokenService", () => {
   return {
     __esModule: true,
-    default: { refreshUserAllPermissions: jest.fn() },
+    default: {
+      refreshUserAllPermissions: (...args: Array<unknown>): unknown => {
+        return refreshUserAllPermissions(...args);
+      },
+    },
+  };
+});
+
+// What the sign-up page may say, and the invitation a claim accepts (#7471).
+const readSignUpInvitation: jest.Mock = jest.fn();
+const acceptForClaimedAccount: jest.Mock = jest.fn();
+
+jest.mock("../../../FeatureSet/Identity/Utils/SignUpInvitation", () => {
+  return {
+    __esModule: true,
+    default: {
+      read: (...args: Array<unknown>): unknown => {
+        return readSignUpInvitation(...args);
+      },
+      acceptForClaimedAccount: (...args: Array<unknown>): unknown => {
+        return acceptForClaimedAccount(...args);
+      },
+    },
   };
 });
 
@@ -308,6 +332,8 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 const sendErrorResponse: jest.Mock = jest.fn();
 const sendEntityResponse: jest.Mock = jest.fn();
+const sendJsonObjectResponse: jest.Mock = jest.fn();
+const setNoCacheHeaders: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Utils/Response", () => {
   return {
@@ -320,7 +346,12 @@ jest.mock("Common/Server/Utils/Response", () => {
       sendEntityResponse: (...args: Array<unknown>): unknown => {
         return sendEntityResponse(...args);
       },
-      sendJsonObjectResponse: jest.fn(),
+      sendJsonObjectResponse: (...args: Array<unknown>): unknown => {
+        return sendJsonObjectResponse(...args);
+      },
+      setNoCacheHeaders: (...args: Array<unknown>): unknown => {
+        return setNoCacheHeaders(...args);
+      },
     },
   };
 });
@@ -420,6 +451,7 @@ function expectNothingHappened(): void {
 beforeEach(() => {
   jest.clearAllMocks();
 
+  acceptForClaimedAccount.mockResolvedValue(null);
   userFindOneBy.mockResolvedValue(unclaimedInvitedUser());
   consumeRegistrationToken.mockResolvedValue(false);
   sendCompleteRegistrationEmail.mockResolvedValue(undefined);
@@ -874,5 +906,166 @@ describe("Identity /signup - the paths that must not have changed", () => {
         ? "SignupWelcomeEmail.hbs"
         : "SignupAccountReadyEmail.hbs",
     );
+  });
+});
+
+/*
+ * #7471: the sign-up page an invitation opens says which project invited
+ * them, and creating the account joins it - nothing is asked twice. The
+ * page asks POST /sign-up-invitation with the address and the token, and
+ * sends back the project it showed; a sign-up that claims the account with
+ * the token accepts that project's invitation, before the session opens.
+ * Anything short of a claim accepts nothing.
+ */
+describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
+  it("hands the address and the token to SignUpInvitation, and answers with what it read", async () => {
+    readSignUpInvitation.mockResolvedValue({
+      projectId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      projectName: "Walk Co",
+      inviterName: "Ada Walker",
+      name: "Grace Member",
+      isAccepted: false,
+    });
+
+    await invoke("/sign-up-invitation", {
+      email: VICTIM_EMAIL,
+      token: VALID_TOKEN,
+    });
+
+    expect(readSignUpInvitation).toHaveBeenCalledWith({
+      email: VICTIM_EMAIL,
+      token: VALID_TOKEN,
+    });
+    expect(sendJsonObjectResponse.mock.calls[0]![2]).toEqual({
+      invitation: {
+        projectId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        projectName: "Walk Co",
+        inviterName: "Ada Walker",
+        name: "Grace Member",
+        isAccepted: false,
+      },
+    });
+    expect(setNoCacheHeaders).toHaveBeenCalled();
+  });
+
+  it("answers none, the same for everyone, when there is nothing to say", async () => {
+    readSignUpInvitation.mockResolvedValue(null);
+
+    await invoke("/sign-up-invitation", { email: VICTIM_EMAIL });
+
+    expect(sendJsonObjectResponse.mock.calls[0]![2]).toEqual({
+      invitation: null,
+    });
+  });
+
+  it("never spends the token: only /signup does", async () => {
+    readSignUpInvitation.mockResolvedValue(null);
+
+    await invoke("/sign-up-invitation", {
+      email: VICTIM_EMAIL,
+      token: VALID_TOKEN,
+    });
+
+    expect(consumeRegistrationToken).not.toHaveBeenCalled();
+    expect(userUpdateOneByIdAndFetch).not.toHaveBeenCalled();
+    expect(createSession).not.toHaveBeenCalled();
+  });
+});
+
+describe("Identity /signup - joining the project the sign-up page named", () => {
+  const PROJECT_ID: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+
+  function signupBodyNaming(projectId: unknown): JSONObject {
+    const body: JSONObject = signupBody({
+      email: VICTIM_EMAIL,
+      password: "alice-chosen-passphrase",
+      registrationToken: VALID_TOKEN,
+    });
+
+    (body["miscDataProps"] as JSONObject)["invitationProjectId"] =
+      projectId as string;
+
+    return body;
+  }
+
+  it("accepts the named project's invitation for the account the token claimed", async () => {
+    consumeRegistrationToken.mockResolvedValue(true);
+
+    await invoke("/signup", signupBodyNaming(PROJECT_ID));
+
+    expect(acceptForClaimedAccount).toHaveBeenCalledTimes(1);
+
+    const call: Record<string, any> = acceptForClaimedAccount.mock
+      .calls[0]![0] as Record<string, any>;
+
+    expect(call["userId"].toString()).toBe(INVITED_USER_ID);
+    expect(call["projectId"]).toBe(PROJECT_ID);
+  });
+
+  it("accepts it after the account is claimed, and before the session opens with its permissions", async () => {
+    consumeRegistrationToken.mockResolvedValue(true);
+
+    await invoke("/signup", signupBodyNaming(PROJECT_ID));
+
+    const accepted: number =
+      acceptForClaimedAccount.mock.invocationCallOrder[0]!;
+
+    expect(accepted).toBeGreaterThan(
+      userUpdateOneByIdAndFetch.mock.invocationCallOrder[0]!,
+    );
+    expect(accepted).toBeLessThan(
+      refreshUserAllPermissions.mock.invocationCallOrder[0]!,
+    );
+    expect(accepted).toBeLessThan(createSession.mock.invocationCallOrder[0]!);
+  });
+
+  it("accepts nothing when the token does not claim the account", async () => {
+    consumeRegistrationToken.mockResolvedValue(false);
+
+    await invoke("/signup", signupBodyNaming(PROJECT_ID));
+
+    expect(acceptForClaimedAccount).not.toHaveBeenCalled();
+    expectNothingHappened();
+  });
+
+  it("accepts nothing for a brand-new account: there is no invitation behind it", async () => {
+    userFindOneBy.mockResolvedValue(null);
+    userCreateUserOnSignup.mockResolvedValue({
+      _id: INVITED_USER_ID,
+      id: {
+        toString: (): string => {
+          return INVITED_USER_ID;
+        },
+      },
+      email: {
+        toString: (): string => {
+          return "newcomer@example.com";
+        },
+      },
+      name: {
+        toString: (): string => {
+          return "Newcomer";
+        },
+      },
+    });
+
+    await invoke("/signup", signupBodyNaming(PROJECT_ID));
+
+    expect(acceptForClaimedAccount).not.toHaveBeenCalled();
+  });
+
+  it("hands on whatever the page sent, for SignUpInvitation to refuse what is not a project", async () => {
+    consumeRegistrationToken.mockResolvedValue(true);
+
+    await invoke("/signup", signupBodyNaming(undefined));
+
+    expect(acceptForClaimedAccount).toHaveBeenCalledTimes(1);
+    expect(
+      (acceptForClaimedAccount.mock.calls[0]![0] as Record<string, unknown>)[
+        "projectId"
+      ],
+    ).toBeUndefined();
+    // The account is still claimed, and signed in.
+    expect(createSession).toHaveBeenCalledTimes(1);
   });
 });

@@ -252,7 +252,7 @@ Vissa ändringar löser alltid det som en regel har öppnat, oavsett vad dess in
 - att ändra **När den utlöses** så att larmet eller incidenten utelämnas stänger det som den utdatan hade öppnat;
 - att stänga av regeln eller radera den;
 - att stänga av SLO:ets utvärdering, arkivera SLO:et eller radera det;
-- att SLO:et går över till **Pausad** eller **Felkonfigurerad**, eftersom det då inte mäter något;
+- att SLO:et går över till **Väntar**, **Pausad** eller **Felkonfigurerad**, eftersom det då inte mäter något;
 - att regeln förlorar sin tröskel eller sina fönster, eller att SLO:et inte längre har ett helt långt fönster med historik.
 
 ## Schemalagt underhåll

@@ -42,17 +42,17 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **Ping**.
 
-### Hem een naam geven
-
-Vul een **Naam** in, zoals `Core router`, en klik dan op **Volgende**.
-
 ### De host invullen
 
 Vul onder **Hostnaam of IP-adres** de hostnaam of het IPv4- of IPv6-adres in dat gepingd moet worden, zoals `example.com` of `192.168.1.1`. Vul alleen de host in, zonder `http://` en zonder poort.
 
+### Hem een naam geven
+
+De **Naam** wordt ingevuld met wat u invulde, zoals `example.com`. Houd die of vul uw eigen naam in, zoals `Core router`, en klik dan op **Volgende**.
+
 ### Hem testen
 
-Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. **Testresultaat van monitor** toont de roundtriptijden en het pakketverlies dat de sonde zag.
+Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont de roundtriptijden en het pakketverlies dat de sonde zag. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 

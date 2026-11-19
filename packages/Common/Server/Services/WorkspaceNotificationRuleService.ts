@@ -93,6 +93,10 @@ import SecurityHuntService from "./SecurityHuntService";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import SloErrorBudgetPolicyChange from "../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import SloStatusChange from "../../Types/ServiceLevelObjective/SloStatusChange";
+import SloRuleChanges, {
+  SloRuleChangeKind,
+} from "../../Types/Workspace/NotificationRules/SloRuleChanges";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -247,12 +251,18 @@ export interface NotificationFor {
   serviceLevelObjectivePolicyChanges?:
     | Array<SloErrorBudgetPolicyChange>
     | undefined;
+  /*
+   * Or how its status changed (#6596): a message of the other kind of SLO
+   * change, posted only by the rules that pick status changes with their
+   * SLO Status Change condition (SloRuleChanges).
+   */
+  serviceLevelObjectiveStatusChange?: SloStatusChange | undefined;
 }
 
 // The fields of NotificationFor that name a record, by its id.
 export type NotificationForRecordKey = Exclude<
   keyof NotificationFor,
-  "serviceLevelObjectivePolicyChanges"
+  "serviceLevelObjectivePolicyChanges" | "serviceLevelObjectiveStatusChange"
 >;
 
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
@@ -6688,6 +6698,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       values[NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange] = [
         ...(data.notificationFor.serviceLevelObjectivePolicyChanges || []),
       ];
+      values[NotificationRuleConditionCheckOn.SloStatusChange] = data
+        .notificationFor.serviceLevelObjectiveStatusChange
+        ? [data.notificationFor.serviceLevelObjectiveStatusChange]
+        : [];
 
       return values;
     }
@@ -6747,14 +6761,36 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     const matchingNotificationRules: Array<WorkspaceNotificationRule> = [];
 
+    /*
+     * An SLO's message is one kind of change - of its error budget policy,
+     * or of its status - and each rule posts the kinds its change
+     * conditions pick, matched without the other kind's condition
+     * (SloRuleChanges, #6596).
+     */
+    const sloChangeKind: SloRuleChangeKind | null =
+      data.notificationRuleEventType ===
+      NotificationRuleEventType.ServiceLevelObjective
+        ? data.notificationFor.serviceLevelObjectiveStatusChange
+          ? SloRuleChangeKind.Status
+          : SloRuleChangeKind.ErrorBudgetPolicy
+        : null;
+
     for (const notificationRule of notificationRules) {
       logger.debug("Checking if rule matches:", {
         projectId: data.projectId?.toString(),
       } as LogAttributes);
-      if (
-        WorkspaceNotificationRuleUtil.isRuleMatching({
-          notificationRule:
+
+      const ruleToMatch: IncidentNotificationRule | null = sloChangeKind
+        ? SloRuleChanges.getRuleForKind(
             notificationRule.notificationRule as IncidentNotificationRule,
+            sloChangeKind,
+          )
+        : (notificationRule.notificationRule as IncidentNotificationRule);
+
+      if (
+        ruleToMatch &&
+        WorkspaceNotificationRuleUtil.isRuleMatching({
+          notificationRule: ruleToMatch,
           values: values,
         })
       ) {

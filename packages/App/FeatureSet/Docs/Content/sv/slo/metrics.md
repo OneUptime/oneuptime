@@ -36,7 +36,7 @@ För ett SLO i läget **Genomsnitt av monitorsekunder** räknar `oneuptime.slo.e
 ### När ingen punkt skrivs
 
 - Ett inaktiverat eller arkiverat SLO utvärderas inte, så det skickar ingenting.
-- Ett SLO som är **Pausad** eller **Felkonfigurerad** mäter ingenting, så det skickar bara `oneuptime.slo.target.percent`, som är konfiguration och inte en mätning. Dess diagram för SLI, budget, förbrukningstakt och status visar ett glapp.
+- Ett SLO med status **Väntar**, **Pausad** eller **Felkonfigurerad** mäter ingenting, så det skickar bara `oneuptime.slo.target.percent`, som är konfiguration och inte en mätning. Dess diagram för SLI, budget, förbrukningstakt och status visar ett glapp.
 - Ett värde som inte är ett riktigt tal, som en förbrukningstakt över ett fönster utan data, hoppas över och skrivs aldrig som 0.
 
 ### Attribut
@@ -115,7 +115,7 @@ En SLO-variabel i verktygsfältet avgränsar hela tavlan. Det är en variabel av
 ## Felsökning
 
 :::details Ett SLO saknas i verktygsfältets SLO-väljare
-Väljaren listar de SLO-namn som skickats det senaste dygnet. Ett nytt SLO dyker upp efter sin första utvärdering; ett SLO som är **Pausad** eller **Felkonfigurerad** går fortfarande att välja eftersom det fortfarande skickar sitt mål; ett inaktiverat eller arkiverat SLO försvinner ungefär ett dygn efter sin senaste punkt.
+Väljaren listar de SLO-namn som skickats det senaste dygnet. Ett nytt SLO dyker upp efter sin första utvärdering; ett SLO med status **Väntar**, **Pausad** eller **Felkonfigurerad** går fortfarande att välja eftersom det fortfarande skickar sitt mål; ett inaktiverat eller arkiverat SLO försvinner ungefär ett dygn efter sin senaste punkt.
 :::
 
 :::details Att välja ett namn visar två SLO:er

@@ -17,6 +17,8 @@ Only the catalog is read, and on MongoDB the field names of a collection's newes
 
 A table's **rhythm** is how often it usually changes, learned from the time between its changes. A table that goes well past its rhythm shows as **Late**, on its page and in **Tables**, and writes how far past it is. Its freshness is known once it has changed twice: a table loaded hourly is learned within hours, one loaded nightly within days.
 
+In **Tables**, and on a database's **Tables** tab, the **Freshness** filter shows only the late tables, or only the fresh ones, and sorting by **Freshness** puts the most overdue first. **Late Tables** on the **Overview**, and on a database's own page, opens that list with **Freshness** set to **Late**.
+
 A view holds no rows of its own, so its freshness is its sources' freshness: see [Lineage and Pipelines](/docs/data-observability/lineage-and-pipelines).
 
 A catalog can say a table changed when only its housekeeping did, or say nothing at all. On a table's **Settings**, name a **Freshness Column** such as `updated_at`, and its last change becomes that column's newest value. The login needs to read the column, and it is read at every collection, so it should be indexed; on BigQuery and Athena, which bill by what a query reads, it is read once an hour. Times without a zone are taken as UTC.
@@ -85,11 +87,11 @@ A table's **Owners** tab names the people and teams it belongs to, and a table's
 
 You should not have to do this hundreds of times. **Owner Rules** and **Label Rules** apply to every table as it first appears, matched by its labels, or by a regular expression on its name, schema or database: everything in `finance` goes to the finance team, and everything named `*_pii` gets a label.
 
-A permission scoped to `Owned` reaches only the tables its holder or their teams own, with those tables' checks, activity and reported problems. Owning a database does not make someone an owner of its tables: use an owner rule to give a team a whole database.
+A permission scoped to `Owned` reaches only the tables its holder or their teams own, with those tables' checks, activity and reported problems. Owning a database does not make someone an owner of its tables: use an owner rule to give a team a whole database. The **Overview**, **Issues** and the count beside **Overview** count and list only the tables such a permission reaches, as **Tables** and **Checks** do.
 
 ## When an alert opens
 
-A table's alert has a **Data** card that says why it most likely happened, ranked: an alert upstream, a failed run, a deploy of a service that writes it, its failing writes, a column that changed, the database itself or the server it runs on. Below that is what depends on it: tables down its lineage, dashboards, services and the people who own them.
+A table's alert has a **Data** card that says why it most likely happened, ranked: an alert upstream, a failed run, a deploy of a service that writes it, its failing writes, a column that changed, the database itself or the server it runs on. Below that is what depends on it: tables down its lineage, dashboards, services and the people who own them. Like the alert's **Lineage** card, it tells only of the tables and pipelines your role lets you read.
 
 Say what you made of it:
 

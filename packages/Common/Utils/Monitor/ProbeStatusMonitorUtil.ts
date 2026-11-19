@@ -1,5 +1,9 @@
 import { ProbeConnectionStatus } from "../../Models/DatabaseModels/Probe";
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import ProbeBehindUtil, {
+  ProbeBehindRead,
+  ProbeBehindWork,
+} from "../../Types/Probe/ProbeBehind";
 import ObjectID from "../../Types/ObjectID";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import { MonitorStepProbeStatusMonitorUtil } from "../../Types/Monitor/MonitorStepProbeStatusMonitor";
@@ -22,7 +26,7 @@ const MINUTES_PER_DAY: number = 24 * MINUTES_PER_HOUR;
 const SILENCE_IN_HOURS_UNTIL_MINUTES: number = 2 * MINUTES_PER_DAY;
 
 // The fields of a probe a Probe Status monitor is judged from.
-export interface ProbeStatusSource {
+export interface ProbeStatusSource extends ProbeBehindRead {
   id: string;
   name?: string | undefined;
   isGlobalProbe?: boolean | undefined;
@@ -100,6 +104,20 @@ export default class ProbeStatusMonitorUtil {
         watchedProbe.lastAliveAt = probe.lastAlive;
       }
 
+      /*
+       * Behind only while connected (#9501): a probe that is not checks
+       * nothing, and Disconnected says more.
+       */
+      const behindSince: Date | null = watchedProbe.isConnected
+        ? ProbeBehindUtil.getProbeBehindSince(probe)
+        : null;
+
+      if (behindSince) {
+        watchedProbe.isBehind = true;
+        watchedProbe.behindSince = behindSince;
+        watchedProbe.behindOn = ProbeBehindUtil.getBehindWork(probe);
+      }
+
       watched.push(watchedProbe);
     }
 
@@ -116,6 +134,9 @@ export default class ProbeStatusMonitorUtil {
       probes: watched,
       connectedProbeCount: connectedProbeCount,
       disconnectedProbeCount: watched.length - connectedProbeCount,
+      behindProbeCount: ProbeStatusMonitorUtil.getBehindProbes({
+        probes: watched,
+      }).length,
       missingProbeIds: missingProbeIds,
       checkedAt: data.checkedAt,
     };
@@ -195,6 +216,35 @@ export default class ProbeStatusMonitorUtil {
         probe.lastAliveAt = lastAliveAt;
       }
 
+      // Behind only while connected, as buildResponse says it.
+      if (probe.isConnected && probeJson["isBehind"] === true) {
+        probe.isBehind = true;
+
+        const behindSince: Date | undefined = ProbeStatusMonitorUtil.readDate(
+          probeJson["behindSince"],
+        );
+
+        if (behindSince) {
+          probe.behindSince = behindSince;
+        }
+
+        const behindOn: Array<ProbeBehindWork> = Array.isArray(
+          probeJson["behindOn"],
+        )
+          ? (probeJson["behindOn"] as Array<JSONValue>).filter(
+              (work: JSONValue): work is ProbeBehindWork => {
+                return Object.values(ProbeBehindWork).includes(
+                  work as ProbeBehindWork,
+                );
+              },
+            )
+          : [];
+
+        if (behindOn.length > 0) {
+          probe.behindOn = behindOn;
+        }
+      }
+
       probes.push(probe);
     }
 
@@ -213,6 +263,9 @@ export default class ProbeStatusMonitorUtil {
       probes: probes,
       connectedProbeCount: connectedProbeCount,
       disconnectedProbeCount: probes.length - connectedProbeCount,
+      behindProbeCount: ProbeStatusMonitorUtil.getBehindProbes({
+        probes: probes,
+      }).length,
       missingProbeIds: Array.isArray(json["missingProbeIds"])
         ? (json["missingProbeIds"] as Array<JSONValue>)
             .map((id: JSONValue): string => {
@@ -289,6 +342,29 @@ export default class ProbeStatusMonitorUtil {
     );
   }
 
+  // The connected probes that are behind (#9501).
+  public static getBehindProbes(
+    response: Pick<ProbeStatusMonitorResponse, "probes">,
+  ): Array<ProbeStatusMonitorProbe> {
+    return (response.probes || []).filter(
+      (probe: ProbeStatusMonitorProbe): boolean => {
+        return probe.isConnected && probe.isBehind === true;
+      },
+    );
+  }
+
+  /*
+   * How many of the probes are behind: the count the evaluation kept, or,
+   * for one from before #9501, read from its probes - none of them then.
+   */
+  public static getBehindProbeCount(
+    response: Pick<ProbeStatusMonitorResponse, "probes" | "behindProbeCount">,
+  ): number {
+    return typeof response.behindProbeCount === "number"
+      ? response.behindProbeCount
+      : ProbeStatusMonitorUtil.getBehindProbes(response).length;
+  }
+
   // "EU Probe, US Probe", or "" for none. Plain text: escape where shown.
   public static joinProbeNames(probes: Array<ProbeStatusMonitorProbe>): string {
     return probes
@@ -296,6 +372,25 @@ export default class ProbeStatusMonitorUtil {
         return probe.probeName;
       })
       .join(", ");
+  }
+
+  /*
+   * What a probe behind is behind on, as a clause: "its monitors are
+   * checked less often than set", and the same of its network devices.
+   */
+  public static describeBehindWork(probe: ProbeStatusMonitorProbe): string {
+    const work: Array<ProbeBehindWork> = probe.behindOn || [];
+    const isOnMonitors: boolean =
+      work.length === 0 || work.includes(ProbeBehindWork.MonitorChecks);
+    const isOnDevices: boolean = work.includes(ProbeBehindWork.DevicePolls);
+
+    if (isOnMonitors && isOnDevices) {
+      return "its monitors and network devices are checked less often than set";
+    }
+
+    return isOnDevices
+      ? "its network devices are polled less often than set"
+      : "its monitors are checked less often than set";
   }
 
   /*
@@ -361,6 +456,20 @@ export default class ProbeStatusMonitorUtil {
     }
 
     if (response.disconnectedProbeCount === 0) {
+      const behind: Array<ProbeStatusMonitorProbe> =
+        ProbeStatusMonitorUtil.getBehindProbes(response);
+
+      // Connected, but not keeping up (#9501): which, and on what.
+      if (behind.length > 0) {
+        if (total === 1) {
+          return `${ProbeStatusMonitorUtil.joinProbeNames(behind)} is connected, but behind: ${ProbeStatusMonitorUtil.describeBehindWork(behind[0]!)}.`;
+        }
+
+        return `All ${total} probes are connected; ${behind.length} ${
+          behind.length === 1 ? "is" : "are"
+        } behind: ${ProbeStatusMonitorUtil.joinProbeNames(behind)}.`;
+      }
+
       return total === 1
         ? `${ProbeStatusMonitorUtil.joinProbeNames(response.probes)} is connected.`
         : `All ${total} probes are connected.`;

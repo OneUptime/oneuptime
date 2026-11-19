@@ -346,7 +346,10 @@ export function getCloudStreamOptionsProblem(data: {
  * keep reading it: S3's daily storage metrics, which a metric stream does
  * not carry, and ACM's DaysToExpiry, published twice a day and read once
  * an hour, which a stream would bring an hour or two sooner - nothing to a
- * count of days - for a bigger template.
+ * count of days - for a bigger template. So is every key metric added
+ * since streams began (AwsKeyMetric.isStreamed): a stack made before it
+ * does not carry it, so the reads write it whatever the account streams,
+ * and the filters stay the ones every stack has.
  */
 export function getCloudStreamKeyMetricFilters(): Array<{
   Namespace: string;
@@ -357,7 +360,10 @@ export function getCloudStreamKeyMetricFilters(): Array<{
   for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
     const metricNames: Array<string> = namespace.metrics
       .filter((metric: AwsKeyMetric): boolean => {
-        return metric.periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS;
+        return (
+          metric.isStreamed &&
+          metric.periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS
+        );
       })
       .map((metric: AwsKeyMetric): string => {
         return metric.metricName;

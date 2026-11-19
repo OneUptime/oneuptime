@@ -78,7 +78,7 @@ Le modifiche a chi si alterna aspettano che tu le salvi, così puoi farne divers
 - Ogni livello e la pianificazione finale mostrano la rotazione come sarà. La pianificazione finale è contrassegnata con **Include modifiche non salvate**.
 - Una barra in fondo alla pagina elenca le modifiche, con **Salva modifiche** e **Scarta**.
 
-**Salva modifiche** salva tutte le modifiche in una volta. Chi è di turno viene poi calcolato una sola volta, per i livelli come sono stati salvati: chi entra o esce dal turno, o è il prossimo, lo viene a sapere una volta, non una volta per ogni modifica. **Scarta** riporta i livelli a com'erano all'ultimo salvataggio. Lasciare la pagina prima di salvare chiede prima conferma: **Continua a modificare** resta sulla pagina, **Annulla modifiche** la lascia senza salvare.
+**Salva modifiche** salva tutte le modifiche in una volta. Chi è di turno viene poi calcolato una sola volta, per i livelli come sono stati salvati: chi entra o esce dal turno, o è il prossimo, lo viene a sapere una volta, non una volta per ogni modifica. **Scarta** riporta i livelli a com'erano all'ultimo salvataggio. Lasciare la pagina prima di salvare chiede prima conferma: **Salva modifiche** salva e poi lascia la pagina, **Continua a modificare** resta sulla pagina, e **Annulla modifiche** la lascia senza salvare.
 
 Se qualcun altro ha modificato i livelli dopo che hai aperto la pagina, le tue modifiche non vengono salvate sopra le sue. La barra lo dice, e **Ricarica livelli** mostra i livelli come sono ora, così puoi rifare le tue modifiche. **Aggiungi livello** aggiunge subito il suo livello, e le impostazioni di un livello si salvano con il suo pulsante **Salva livello**.
 

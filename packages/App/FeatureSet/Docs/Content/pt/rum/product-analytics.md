@@ -13,7 +13,7 @@ A análise de produto conta as pessoas que usam uma aplicação RUM, como correm
 
 ## Como as pessoas são contadas
 
-O menu lateral de uma aplicação tem uma seção **Análise de produto**: **Usuários**, **Sessões**, **Eventos**, **Funis**, **Retenção de usuários**, **Fluxos de usuários** e **Configurações de análise**. **Usuários** e **Sessões** contam as sessões que a Reprodução de sessões grava, por isso começam quando o gravador da aplicação começa, e uma sessão que a política de reprodução deixa sem gravar não é contada. Cada sessão conta para uma pessoa, ou para ninguém:
+O menu lateral de uma aplicação tem uma seção **Análise de produto**: **Usuários**, **Sessões**, **Eventos**, **Funis**, **Retenção de usuários**, **Fluxos de usuários** e **Configurações de análise**. **Usuários** e **Sessões** contam as sessões que a Reprodução de sessões grava, por isso começam quando o gravador da aplicação começa, e uma sessão que a política de reprodução deixa sem gravar não é contada. Numa instalação atualizada a partir de uma versão sem Análise de produto, a atualização copia as sessões que a Reprodução de sessões ainda mantinha, então elas começam pela gravação mais antiga mantida. Cada sessão conta para uma pessoa, ou para ninguém:
 
 ```mermaid title="Para quem uma sessão conta"
 flowchart TB
@@ -42,12 +42,12 @@ Os dias são contados no seu próprio fuso horário.
 | **Novos usuários** | Usuários ativos cuja primeira visita foi no intervalo. |
 | **Usuários recorrentes** | Usuários ativos que já tinham vindo antes de o intervalo começar. |
 | **Usuários conectados** | Usuários ativos que a sua aplicação conectou com `identify()`, e a parte deles em todos os usuários ativos. |
-| **Total de usuários** | Todos os que a aplicação viu nos últimos 13 meses. |
+| **Total de usuários** | Todos os que a aplicação viu nos meses em que mantém seus números, 13 por padrão. |
 | **Usuários inativos** | Pessoas que vieram antes, mas não nos últimos 30 dias, ou nos 7, 14, 60 ou 90 dias que você escolher. |
 
 Os três primeiros também dizem como mudaram em relação ao período anterior. Abaixo dos blocos, **Usuários ativos** traça, para cada dia, as pessoas que vieram nesse dia, as que vieram nos 7 dias até ele e as que vieram nos 30 dias até ele, e **Usuários novos e recorrentes** divide em dois as pessoas de cada dia.
 
-**Pessoas** lista todos os que os blocos contam, uma linha por pessoa, primeiro os vistos mais recentemente, e o seu filtro mostra as pessoas de um bloco, os visitantes anônimos ou todos. Abra uma pessoa para ver a primeira e a última visita e cada uma das suas sessões dos últimos 13 meses, com **Assistir** em cada uma cuja gravação ainda é mantida.
+**Pessoas** lista todos os que os blocos contam, uma linha por pessoa, primeiro os vistos mais recentemente, e o seu filtro mostra as pessoas de um bloco, os visitantes anônimos ou todos. Abra uma pessoa para ver a primeira e a última visita e cada uma das suas sessões dos meses em que os números são mantidos, com **Assistir** em cada uma cuja gravação ainda é mantida.
 
 ## Sessões
 
@@ -55,13 +55,13 @@ Os três primeiros também dizem como mudaram em relação ao período anterior.
 
 - **Sessões por dispositivo** traça as sessões de cada dia vindas de computadores, telefones e tablets. A sessão de um aplicativo móvel numa tela cujo lado menor mede 600 pontos ou mais conta como de tablet.
 - **Duração das sessões** ordena as sessões terminadas pelo tempo que duraram, de menos de 10 segundos a mais de 30 minutos. Uma sessão que ainda está sendo gravada ainda não tem duração.
-- **Detalhamento** classifica usuários e sessões por tipo de dispositivo, navegador, sistema operacional, país, versão do aplicativo, página de entrada ou página, primeiro os com mais usuários.
+- **Detalhamento** classifica usuários e sessões por tipo de dispositivo, navegador, sistema operacional, país, versão do aplicativo, página de entrada ou página, primeiro os com mais usuários. A versão de um aplicativo web é a que a página dele passa à opção `appVersion` do gravador; um aplicativo móvel informa a sua.
 
 ## Enviar eventos e métricas
 
-Os eventos são enviados enquanto **Enviar eventos de análise de produto** está ativado, na página **Configurações de análise** da aplicação. Ele começa ativado numa aplicação nova, e desativado numa aplicação criada antes de ele existir, por isso ative-o lá. A Reprodução de sessões também precisa estar ativada para a aplicação, pois é o gravador dela que envia os eventos; o gravador de React Native ainda não envia nenhum.
+Os eventos são enviados enquanto **Enviar eventos de análise de produto** está ativado, na página **Configurações de análise** da aplicação. Ele começa ativado numa aplicação nova, e desativado numa aplicação criada antes de ele existir, por isso ative-o lá. A Reprodução de sessões também precisa estar ativada para a aplicação, pois é o gravador dela que envia os eventos, tanto de uma página web como de um app React Native.
 
-Cada sessão em que o gravador do navegador é executado envia sozinha o seu início e cada página que visualiza, incluindo as mudanças de rota de um app de página única, quer a amostra e a política de reprodução gravem essa sessão, quer não. Os seus próprios eventos e números vêm do código da sua página:
+Cada sessão em que o gravador do navegador é executado envia sozinha o seu início e cada página que visualiza, incluindo as mudanças de rota de um app de página única, quer a amostra e a política de reprodução gravem essa sessão, quer não. Um app React Native envia o início da sua sessão e, como visualização de página, cada tela que passa a `setRoute()`. Os seus próprios eventos e números vêm do código da sua página ou do seu app:
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Antes de o gravador ser carregado, coloque as mesmas chamadas em `window.OneUptimeReplayQueue` como `["track", name, properties]` e `["metric", name, value, attributes]` (veja [API JavaScript](/docs/telemetry/session-replay#api-javascript)).
 
 - **Cada sessão, gravada ou não.** A amostra e a política de envio da reprodução decidem quais sessões são gravadas, não quais são contadas. Nada é enviado com Do Not Track ou Global Privacy Control, e nada é guardado de uma origem que a aplicação não permite. Quando a política exige consentimento, os eventos esperam por `grantConsent()`, no máximo 500, e `revokeConsent()` os descarta.
-- **Mascarados como a gravação.** Com _Mask all text_, os valores de propriedades e atributos são mascarados antes de saírem da página, então um detalhamento por um deles mostra marcadores, não os seus valores; nomes de eventos, chaves de propriedades e valores de métricas são enviados como foram escritos. Um valor que você precisa ler nesse modo vai em uma tag de sessão (`setTags()`), que nunca é mascarada, então não coloque dados pessoais nela. As tags aparecem na sessão e em uma pesquisa `tag:key=value` na lista de sessões, não nos detalhamentos destas páginas. Uma página é enviada como o seu caminho, sem a query nem o fragmento (uma rota de hash, `#/orders`, faz parte do caminho), e cada segmento com formato de identificador (UUIDs, e-mails, longas sequências de dígitos, tokens opacos longos) é substituído por `[redacted]`, como em cada endereço que o Session Replay guarda; uma propriedade, um atributo ou uma propriedade de usuário cujo valor é um endereço é limpo do mesmo jeito. O OneUptime os limpa de novo quando os eventos chegam, então os eventos que o seu próprio código envia com a chave de ingestão seguem a mesma regra.
-- **Em pequenos lotes**, a cada 5 segundos e quando a aba fica oculta. Um evento que chega ao OneUptime mais de 3 dias depois de acontecer é descartado, e um projeto pode enviar 60.000 eventos e pontos de métrica por minuto, somando todas as suas aplicações; acima disso, o gravador espera e os envia de novo.
+- **Mascarados como a gravação.** Com _Mask all text_, os valores de propriedades e atributos são mascarados antes de saírem da página, então um detalhamento por um deles mostra marcadores, não os seus valores; nomes de eventos, chaves de propriedades e valores de métricas são enviados como foram escritos. Um valor que você precisa ler nesse modo vai em uma tag de sessão (`setTags()`), que nunca é mascarada, então não coloque dados pessoais nela. As tags aparecem na sessão e em uma pesquisa `tag:key=value` na lista de sessões, não nos detalhamentos destas páginas. Os valores de um app React Native são sempre mascarados, pois o SDK dele mascara todo o texto. Uma página é enviada como o seu caminho, sem a query nem o fragmento (uma rota de hash, `#/orders`, faz parte do caminho), e cada segmento com formato de identificador (UUIDs, e-mails, longas sequências de dígitos, tokens opacos longos) é substituído por `[redacted]`, como em cada endereço que o Session Replay guarda; uma propriedade, um atributo ou uma propriedade de usuário cujo valor é um endereço é limpo do mesmo jeito. O OneUptime os limpa de novo quando os eventos chegam, então os eventos que o seu próprio código envia com a chave de ingestão seguem a mesma regra.
+- **Em pequenos lotes**, a cada 5 segundos e quando a aba fica oculta ou o app vai para segundo plano. Um evento que chega ao OneUptime mais de 3 dias depois de acontecer é descartado, e um projeto pode enviar 60.000 eventos e pontos de métrica por minuto, somando todas as suas aplicações; acima disso, o gravador espera e os envia de novo.
 
 `metric()` não envia nada enquanto os eventos estão desativados, e `getDiagnostics().productAnalytics` diz se estão ativados (veja [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Cada evento também é contado, minuto a minuto, como uma métrica da aplicaçã
 
 Estas três não são cobradas, e `metric()` recusa um nome que começa com `oneuptime.`, por isso nada do que a sua página envia se passa por elas. Os seus pontos de `metric()` são guardados e cobrados como as outras métricas da aplicação.
 
-Um funil ou uma tabela de retenção salvos também vão para um painel: os widgets **Funil** e **Retenção de usuários**, no grupo **Análise de produto** do catálogo de widgets, mostram um no intervalo de tempo do painel, e **Abrir em Funis** ou **Abrir em Retenção de usuários** o abre na sua página (veja [Widgets de painel](/docs/dashboards/widgets#análise-de-produto)).
+Um funil ou uma tabela de retenção salvos também vão para um painel: os widgets **Funil** e **Retenção de usuários**, no grupo **Análise de produto** do catálogo de widgets, mostram um no intervalo de tempo do painel, e **Abrir em Funis** ou **Abrir em Retenção de usuários** o abre na sua página (veja [Widgets de painel](/docs/dashboards/widgets#análise-de-produto)). Um painel público mostra apenas os títulos deles, nunca os números: esses contam os usuários finais da sua aplicação.
 
 ## Privacidade e retenção
 
-- **13 meses.** Os números de um mês são removidos no primeiro dia do 13º mês seguinte, por isso os últimos 12 meses completos estão sempre lá, seja qual for a retenção própria das gravações (7 dias por padrão). Os eventos são guardados da mesma forma.
+- **13 meses.** Os números de um mês são removidos no primeiro dia do 13º mês seguinte, por isso os últimos 12 meses completos estão sempre lá, seja qual for a retenção própria das gravações (7 dias por padrão). Os eventos são guardados da mesma forma. 13 meses é o padrão: um aplicativo pode manter 3, 6 ou 25 no lugar, escolhidos em **Retenção da análise de produto** sob **Mais configurações** na sua página **Configurações de análise**, e uma escolha mais curta remove os meses mais antigos em até um dia.
 - **Nenhum nome guardado.** Os números guardam a chave unidirecional de um usuário conectado e o ID de visitante de um navegador, nunca a referência ou um endereço IP, e das características só as propriedades de usuário que você lista. Uma linha nomeia um usuário conectado só enquanto uma das suas gravações ainda é mantida, e só para uma função que pode ler a identidade; senão, mostra **Usuário conectado** ou **Visitante anônimo** e o início do ID.
-- **Apagado a pedido.** Um pedido de apagamento remove também aqui os números e eventos correspondentes (veja [Apagar sessões](/docs/telemetry/session-replay#apagar-sessões)).
+- **Apagado a pedido.** Um pedido de apagamento remove também aqui os números e eventos correspondentes (veja [Apagar sessões](/docs/telemetry/session-replay#apagar-sessões)). A contagem `productAnalyticsRowsDeleted` diz quantas linhas ela removeu aqui. Ele não altera os **Funis salvos** nem as **Tabelas de retenção salvas**: os nomes e os segmentos deles foram escritos pela sua equipe, como o título de um painel, por isso não salve um segmento que nomeie uma pessoa.
 
 ## Quem pode vê-la
 
@@ -148,7 +148,7 @@ Ler estas páginas exige o mesmo que ler a lista de sessões: `ReadRumSessionRep
 
 Salvar, renomear e excluir funis e tabelas de retenção salvos exige as mesmas permissões que ler estas páginas, e um widget de painel só mostra um a quem as tem.
 
-Ativar ou desativar os eventos exige `EditRumApplication` (_Edit RUM Application_) ou a função Proprietário do projeto, Administrador do projeto ou Membro do projeto. Listar propriedades de usuário exige `EditRumApplication` ou a função de proprietário ou administrador, já que isso decide o que é guardado sobre as pessoas conectadas.
+Ativar ou desativar os eventos exige `EditRumApplication` (_Edit RUM Application_) ou a função Proprietário do projeto, Administrador do projeto ou Membro do projeto. Listar propriedades de usuário exige `EditRumApplication` ou a função de proprietário ou administrador, já que isso decide o que é guardado sobre as pessoas conectadas. Escolher por quanto tempo os números são mantidos exige o mesmo que ativar ou desativar os eventos.
 
 ## Próximos passos
 

@@ -16,6 +16,12 @@ import {
   isSetupKnown,
   normalizeDataObservabilityOverview,
 } from "../../Components/DataObservability/OverviewAttention";
+import { getIssuesRoute } from "../../Components/DataObservability/IssuesCopy";
+import {
+  getChecksOfHealthRoute,
+  getLateTablesRoute,
+} from "../../Components/DataObservability/DataObservabilityListRoutes";
+import { DataCheckHealth } from "Common/Types/DataObservability/DataObservabilityAttention";
 import EventStatBar from "../../Components/EventView/EventStatBar";
 import EventStatTile from "../../Components/EventView/EventStatTile";
 import PageMap from "../../Utils/PageMap";
@@ -68,6 +74,13 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
  * Data Observability itself is doing comes last. A project with no
  * database yet sees how it works, and connects one in one click.
  */
+export const NEEDS_ATTENTION_TILE_LINK_TEST_ID: string =
+  "data-observability-needs-attention-tile-link";
+export const LATE_TABLES_TILE_LINK_TEST_ID: string =
+  "data-observability-late-tables-tile-link";
+export const FAILING_CHECKS_TILE_LINK_TEST_ID: string =
+  "data-observability-failing-checks-tile-link";
+
 // A share, or a dash until there is anything to measure.
 function formatPercent(value: number | null): string {
   return value === null ? EMPTY_VALUE_MARK : `${value}%`;
@@ -149,6 +162,31 @@ const DataObservabilityOverviewPage: FunctionComponent<
     return RouteUtil.populateRouteParams(
       RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW] as Route,
       { modelId: new ObjectID(id) },
+    );
+  };
+
+  // A tile's count, opening the list of what it counts once there is any.
+  const countLink: (
+    count: number,
+    to: Route,
+    testId: string,
+  ) => ReactElement | string = (
+    count: number,
+    to: Route,
+    testId: string,
+  ): ReactElement | string => {
+    if (count <= 0) {
+      return translator.formatNumber(count);
+    }
+
+    return (
+      <AppLink
+        to={to}
+        className="hover:text-indigo-700 hover:underline"
+        dataTestId={testId}
+      >
+        {translator.formatNumber(count)}
+      </AppLink>
     );
   };
 
@@ -235,10 +273,19 @@ const DataObservabilityOverviewPage: FunctionComponent<
             overview.storeCount,
           )}
         />
+        {/*
+         * Each count opens the list of what it counts, already filtered
+         * (#6549, #6550, #6554): every issue, the late tables, the failing
+         * checks.
+         */}
         <EventStatTile
           variant="segment"
           label="Needs Attention"
-          value={translator.formatNumber(overview.attentionCount)}
+          value={countLink(
+            overview.attentionCount,
+            getIssuesRoute(),
+            NEEDS_ATTENTION_TILE_LINK_TEST_ID,
+          )}
           icon={IconProp.Alert}
           description={translator.translateText(
             "Broken, late or drifting now.",
@@ -247,7 +294,11 @@ const DataObservabilityOverviewPage: FunctionComponent<
         <EventStatTile
           variant="segment"
           label="Late Tables"
-          value={translator.formatNumber(overview.lateAssetCount)}
+          value={countLink(
+            overview.lateAssetCount,
+            getLateTablesRoute(),
+            LATE_TABLES_TILE_LINK_TEST_ID,
+          )}
           icon={IconProp.Clock}
           description={translator.translateText(
             "Tables that have gone well past their usual interval without a change.",
@@ -256,7 +307,11 @@ const DataObservabilityOverviewPage: FunctionComponent<
         <EventStatTile
           variant="segment"
           label="Failing Checks"
-          value={translator.formatNumber(overview.failingCheckCount)}
+          value={countLink(
+            overview.failingCheckCount,
+            getChecksOfHealthRoute(DataCheckHealth.Failing),
+            FAILING_CHECKS_TILE_LINK_TEST_ID,
+          )}
           icon={IconProp.CheckCircle}
           description={translator.translateText("Checks whose alert is open.")}
         />
@@ -388,6 +443,23 @@ const DataObservabilityOverviewPage: FunctionComponent<
                         <span>{store.kind}</span>
                         <StoreAlertStatus store={store} />
                       </span>
+                      {/*
+                       * Why the collection failed, in the database's own
+                       * words, as the store's page says it: "Collection
+                       * failed" alone sent the reader to open each store
+                       * to find out (#9537).
+                       */}
+                      {store.status === "Failed" && store.message ? (
+                        <p
+                          data-testid="data-observability-store-failure"
+                          title={store.message}
+                          className="mt-0.5 line-clamp-2 text-xs text-red-700 [overflow-wrap:anywhere]"
+                        >
+                          <bdi>{store.message}</bdi>
+                        </p>
+                      ) : (
+                        <></>
+                      )}
                     </div>
                     <span
                       className={`text-sm [@container(min-width:24rem)]:flex-none ${

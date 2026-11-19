@@ -2,6 +2,7 @@ import { WatchedTablePricing } from "../Billing/PayAsYouGoPricing";
 import { DataCheckAlertCondition } from "./DataCheckType";
 import {
   DataAttentionItem,
+  DataAttentionKind,
   DataCheckHealthAnswer,
   DataObservabilitySetup,
 } from "./DataObservabilityAttention";
@@ -16,6 +17,8 @@ import {
 
 export const DATA_OBSERVABILITY_API_ROUTES: {
   overview: string;
+  attentionCount: string;
+  issues: string;
   stores: string;
   connectStore: string;
   collectNow: (dataStoreId: string) => string;
@@ -54,6 +57,13 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   spendSummary: string;
 } = {
   overview: "/data-observability/overview",
+  /*
+   * How many things need someone now, counted, never listed: the count
+   * beside Overview in the menu, on every Data Observability page.
+   */
+  attentionCount: "/data-observability/attention/count",
+  // A page of what needs someone, worst first, filtered: the Issues page.
+  issues: "/data-observability/issues",
   // Why a data alert most likely happened, and what depends on it.
   alertExplanation: (alertId: string): string => {
     return `/data-observability/alerts/${alertId}/explanation`;
@@ -276,6 +286,12 @@ export interface DataObservabilityStoreSummary {
   status: string | null;
   message: string | null;
   collectedAt: string | null;
+  /*
+   * When the last collection ended, collected or failed: what Collect Now
+   * waits to pass the time it asked (requestedAt). Null for a store not
+   * collected since the server began keeping it; left out by an older one.
+   */
+  attemptedAt?: string | null | undefined;
   assetCount: number;
   lateAssetCount: number;
   // The monitors on, scoped to the whole database: its recommended alerts, or its own.
@@ -329,6 +345,63 @@ export interface DataObservabilityOverview {
   setup: DataObservabilitySetup;
 }
 
+// How many things need someone now: what the menu's count beside Overview says.
+export interface DataObservabilityAttentionCountResponse {
+  count: number;
+}
+
+// Whether anyone has been told of an item: an alert about it is open, or none is.
+export enum DataObservabilityIssueAlertFilter {
+  Open = "open",
+  None = "none",
+}
+
+// The owner filter's value for the items that can have owners and have none.
+export const DATA_OBSERVABILITY_NO_OWNER_FILTER: string = "none";
+
+export interface DataObservabilityIssuesRequest {
+  // Only these kinds; every kind when left out.
+  kinds?: Array<DataAttentionKind> | undefined;
+  // One database's: the database itself, and its tables and checks.
+  dataStoreId?: string | undefined;
+  /*
+   * Whose: an owner's key ("user:<id>" or "team:<id>"), or
+   * DATA_OBSERVABILITY_NO_OWNER_FILTER for what can have owners and has none.
+   */
+  owner?: string | undefined;
+  alert?: DataObservabilityIssueAlertFilter | undefined;
+  skip?: number | undefined;
+  limit?: number | undefined;
+}
+
+// Someone who owns at least one of the items: what the owner filter offers.
+export interface DataObservabilityIssueOwner {
+  // "user:<id>" or "team:<id>".
+  key: string;
+  kind: "user" | "team";
+  id: string;
+  name: string;
+}
+
+export interface DataObservabilityIssuesResponse {
+  // This page of the items that match, worst first.
+  items: Array<DataAttentionItem>;
+  // How many match the filters.
+  count: number;
+  // How many need someone in all, whatever the filters.
+  totalCount: number;
+  skip: number;
+  limit: number;
+  // The databases: the database filter's choices, and whether each one's alerts are on.
+  stores: Array<DataObservabilityStoreSummary>;
+  // Everyone who owns one of the items, for the owner filter.
+  owners: Array<DataObservabilityIssueOwner>;
+}
+
+// The most items one page of Issues holds, and how many it holds when not asked.
+export const MAX_DATA_OBSERVABILITY_ISSUES_PAGE: number = 100;
+export const DEFAULT_DATA_OBSERVABILITY_ISSUES_PAGE: number = 25;
+
 export interface DataObservabilityCheckHealthRequest {
   // The checks to answer for: the page of a list, at most MAX_CHECK_HEALTH_IDS.
   dataCheckIds: Array<string>;
@@ -356,6 +429,15 @@ export interface DataObservabilityConnectStoreRequest {
   probeConnectionVariable?: string | undefined;
 }
 
+/*
+ * Collect Now's answer: when the server asked for the collection, by its
+ * own clock, so the page knows the collection it asked for has ended once
+ * the store's attemptedAt passes it.
+ */
+export interface DataObservabilityCollectNowResponse {
+  requestedAt: string;
+}
+
 export interface DataObservabilityConnectStoreResponse {
   dataStoreId: string;
 }
@@ -365,6 +447,8 @@ export enum DataObservabilitySourceOrigin {
   Traces = "Traces",
   DatabaseMonitoring = "Database Monitoring",
   CloudAccount = "Cloud Account",
+  // Read by a BI tool's dashboards (DataBiLineageSummary): offered from Tables Matched.
+  BiTool = "BI Tool",
 }
 
 export interface DataObservabilitySourceSuggestion {

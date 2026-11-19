@@ -75,11 +75,16 @@ jest.mock("Common/Server/Utils/Express", () => {
 
   type RegisterFunction = (
     method: string,
-  ) => (uri: string, _middleware: unknown, handler: RouterFunction) => void;
+  ) => (uri: string, ...functions: Array<RouterFunction>) => void;
 
+  // The handler last: a switched-off product's refusal may stand before it (#7479).
   const register: RegisterFunction = (method: string) => {
-    return (uri: string, _middleware: unknown, handler: RouterFunction) => {
-      mockRoutes.push({ method: method, uri: uri, handler: handler });
+    return (uri: string, ...functions: Array<RouterFunction>) => {
+      mockRoutes.push({
+        method: method,
+        uri: uri,
+        handler: functions[functions.length - 1]!,
+      });
     };
   };
 

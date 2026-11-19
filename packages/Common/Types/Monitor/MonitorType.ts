@@ -700,7 +700,7 @@ export class MonitorTypeHelper {
         monitorType: MonitorType.ProbeStatus,
         title: "Probe Status",
         description:
-          "Alert when a probe disconnects - one incident per outage, resolved when it reconnects.",
+          "Alert when a probe disconnects or falls behind - resolved by itself once it is back.",
         icon: IconProp.SignalSlash,
         keywords: [
           "offline",
@@ -709,6 +709,7 @@ export class MonitorTypeHelper {
           "global probe",
           "private location",
           "probe down",
+          "probe behind",
         ],
       },
       {

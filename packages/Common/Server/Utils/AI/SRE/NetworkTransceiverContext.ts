@@ -1,4 +1,6 @@
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -306,13 +308,18 @@ export default class NetworkTransceiverContext {
   /*
    * The section for an alert or incident: empty unless one of its monitors
    * is a Network Device monitor whose device reports transceivers. Never
-   * throws for a missing monitor or device - it is enrichment.
+   * throws for a missing monitor or device - it is enrichment. Read for the
+   * subject's readers (readAudience, #9576): a device set apart by an owner
+   * or a label from one of them, where some role reads devices only by
+   * owner or label, is never told - unless the subject links it itself.
    */
   public static async buildContextSection(data: {
     projectId: ObjectID;
     monitorIds: Array<ObjectID>;
     focusText?: string | undefined;
     seriesLabels?: JSONObject | undefined;
+    // Everyone who may see the subject: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<string> {
     if (data.monitorIds.length === 0) {
       return "";
@@ -334,9 +341,7 @@ export default class NetworkTransceiverContext {
       },
       limit: data.monitorIds.length,
       skip: 0,
-      props: {
-        isRoot: true,
-      },
+      props: ReadAudiencePermission.getReadProps(data.readAudience),
     });
 
     const deviceIds: Set<string> = new Set<string>();
@@ -369,9 +374,7 @@ export default class NetworkTransceiverContext {
       },
       limit: deviceIds.size,
       skip: 0,
-      props: {
-        isRoot: true,
-      },
+      props: ReadAudiencePermission.getReadProps(data.readAudience),
     });
 
     return NetworkTransceiverContext.renderSection({

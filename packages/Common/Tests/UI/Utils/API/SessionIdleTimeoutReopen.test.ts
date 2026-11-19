@@ -341,7 +341,7 @@ beforeEach(() => {
   jest.spyOn(Math, "random").mockReturnValue(0.5);
 
   jest.spyOn(User, "getUserId").mockReturnValue(new ObjectID(USER_ID));
-  logoutSpy = jest.spyOn(User, "logout").mockImplementation((): void => {});
+  logoutSpy = jest.spyOn(User, "logout").mockResolvedValue(null);
   navigateSpy = jest
     .spyOn(Navigation, "navigate")
     .mockImplementation((): void => {});

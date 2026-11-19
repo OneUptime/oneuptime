@@ -13,6 +13,14 @@ import DataTableLineageAnswerer, {
   DataTableLineageAnswer,
   formatDataTableLineageReply,
 } from "../../DataObservability/DataTableLineageAnswer";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+} from "../../DataObservability/DataObservabilityReadScope";
+import DataAlertLineageReader from "../../DataObservability/DataAlertLineage";
+import DataTableLineageReader, {
+  DataLineageNamed,
+  DataLineageReadable,
+} from "../../DataObservability/DataTableLineage";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
   ObservabilityTool,
@@ -45,6 +53,11 @@ import { citationSentence, countFigure } from "./ReadTableWords";
  * A table is named the way a person says it: schema.table, its name alone,
  * or its ID. A name several databases share answers with each, so nobody is
  * told the wrong table is fresh.
+ *
+ * Each tells only of the tables and pipelines its caller may read
+ * (getToolReadScope): a person's own, and an investigation's - read as
+ * root, for everyone who may see its alert - none an owner or a label sets
+ * apart (#9562).
  */
 
 // Who may read the watched tables: whoever may read a data asset.
@@ -58,6 +71,71 @@ const DATA_ASSET_READ_PERMISSIONS: Array<Permission> = [
   Permission.TelemetryViewer,
   Permission.ReadDataAsset,
 ];
+
+// What a tool reads of the tables and pipelines, and what its alert names besides.
+interface ToolReadScope {
+  scope: DataObservabilityScope;
+  named: DataLineageNamed | undefined;
+}
+
+/*
+ * What a tool tells of the tables and pipelines (#6553, #9526, #9562):
+ *
+ *   - a person, or an API key, what their own grants read: a role limited
+ *     to what its members own, or to some labels, is told only of those,
+ *     as on Data Observability's own routes;
+ *   - a run of OneUptime's own, read as root - an investigation - what
+ *     everyone who may see its subject may read: none an owner or a label
+ *     sets apart from one of them, beside what the alert it investigates
+ *     names itself - every table and pipeline in a project whose roles read
+ *     none of them only by owner or label (DataObservabilityReadScope
+ *     .forRootRun, #9576). Its report goes where everyone who may see that
+ *     alert reads it, as the context it starts from was read
+ *     (DataAlertContext).
+ */
+async function getToolReadScope(ctx: ToolContext): Promise<ToolReadScope> {
+  if (!ctx.props.isRoot) {
+    return {
+      scope: await DataObservabilityReadScope.get(ctx.projectId, ctx.props),
+      named: undefined,
+    };
+  }
+
+  return {
+    scope: DataObservabilityReadScope.forRootRun(ctx.projectId, ctx.props),
+    named: ctx.subjectAlertId
+      ? await DataAlertLineageReader.readNamed(
+          ctx.projectId,
+          ctx.subjectAlertId,
+        )
+      : undefined,
+  };
+}
+
+/*
+ * Of the tables a name matches, the ones the tool may tell of (#6553,
+ * #9526, #9562) - never that another table of that name is there.
+ */
+async function readableTables(data: {
+  tables: Array<DataAsset>;
+  readable: DataLineageReadable | null;
+}): Promise<Array<DataAsset>> {
+  if (!data.readable || data.tables.length === 0) {
+    return data.tables;
+  }
+
+  const readableIds: Set<string> = await data.readable.readableTableIds(
+    data.tables
+      .map((table: DataAsset): string => {
+        return table.id?.toString() || "";
+      })
+      .filter(Boolean),
+  );
+
+  return data.tables.filter((table: DataAsset): boolean => {
+    return readableIds.has(table.id?.toString() || "");
+  });
+}
 
 export const GetDataTableFreshnessTool: ObservabilityTool = {
   name: "get_data_table_freshness",
@@ -88,10 +166,13 @@ export const GetDataTableFreshnessTool: ObservabilityTool = {
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
-    const tables: Array<DataAsset> = await DataTableAnswerer.findTables(
-      ctx.projectId,
-      reference,
-    );
+    const { scope, named }: ToolReadScope = await getToolReadScope(ctx);
+    const readable: DataLineageReadable | null =
+      DataTableLineageReader.getNamedReadable(scope, named);
+    const tables: Array<DataAsset> = await readableTables({
+      tables: await DataTableAnswerer.findTables(ctx.projectId, reference),
+      readable,
+    });
     const answers: Array<DataTableAnswer> = [];
 
     for (const table of tables) {
@@ -99,13 +180,15 @@ export const GetDataTableFreshnessTool: ObservabilityTool = {
        * Its alerts as the caller may see them: a person's - in Ask AI, an
        * investigation's thread, Slack or Microsoft Teams - their own; a run
        * of OneUptime's own, read as root, none that is private
-       * (DataTableAnswer).
+       * (DataTableAnswer). Its writers and dashboards as the tool tells of
+       * tables and pipelines.
        */
       const answer: DataTableAnswer | null = await DataTableAnswerer.answer(
         ctx.projectId,
         table.id!,
         now,
         ctx.props,
+        readable,
       );
 
       if (answer) {
@@ -191,11 +274,13 @@ export const GetDataTableLineageTool: ObservabilityTool = {
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
+    const { scope, named }: ToolReadScope = await getToolReadScope(ctx);
     /*
      * Its tables' open alerts as the caller may see them: a person's - in
      * Ask AI, an investigation's thread, Slack or Microsoft Teams - their
      * own; a run of OneUptime's own, read as root, none that is private
-     * (DataTableLineageAnswer).
+     * (DataTableLineageAnswer). Its tables and pipelines as the tool tells
+     * of them: an investigation's, none set apart (#9562).
      */
     const answers: Array<DataTableLineageAnswer> =
       await DataTableLineageAnswerer.answer({
@@ -204,6 +289,8 @@ export const GetDataTableLineageTool: ObservabilityTool = {
         depth: readDataLineageDepth(args["depth"]),
         now,
         reader: ctx.props,
+        scope,
+        named,
       });
     const serialized: SerializedResult = ToolResultSerializer.serializeText(
       formatDataTableLineageReply({ reference, answers, now }),

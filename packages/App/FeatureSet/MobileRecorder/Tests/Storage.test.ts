@@ -106,6 +106,117 @@ describe("mobile replay session identity", () => {
     expect(resolved.chunkIndex).toBe(0);
   });
 
+  /*
+   * Issue #6629: a session the replay sample left out records nothing, so
+   * its product analytics events are what keeps it going - or end it, past
+   * the idle window or the longest a session lasts - as resolve() decides
+   * at a launch, and what they decide is there for the next launch.
+   */
+  describe("continueSession, for an unrecorded session's events", () => {
+    test("is null before the session is resolved", () => {
+      const store: ReplaySessionStore = new ReplaySessionStore(
+        new MemoryStorage(),
+        "app",
+      );
+
+      expect(store.continueSession(1_000)).toBeNull();
+    });
+
+    test("carries the session on inside the idle window, each event moving it", async () => {
+      const storage: MemoryStorage = new MemoryStorage();
+      const store: ReplaySessionStore = new ReplaySessionStore(storage, "app");
+      const first: ReplaySessionIdentity = await store.resolve(1_000);
+      const almostIdle: number = SESSION_REPLAY_IDLE_ROLLOVER_MS - 1;
+
+      const second: ReplaySessionIdentity | null = store.continueSession(
+        1_000 + almostIdle,
+      );
+      const third: ReplaySessionIdentity | null = store.continueSession(
+        1_000 + 2 * almostIdle,
+      );
+
+      expect(second?.sessionId).toBe(first.sessionId);
+      expect(third?.sessionId).toBe(first.sessionId);
+      expect(third?.sessionStartUnixMs).toBe(1_000);
+      expect(third?.visitorId).toBe(first.visitorId);
+    });
+
+    test("starts the next session after the idle window, keeping the visitor", async () => {
+      const storage: MemoryStorage = new MemoryStorage();
+      const store: ReplaySessionStore = new ReplaySessionStore(storage, "app");
+      const first: ReplaySessionIdentity = await store.resolve(1_000);
+
+      const next: ReplaySessionIdentity | null = store.continueSession(
+        1_000 + SESSION_REPLAY_IDLE_ROLLOVER_MS,
+      );
+
+      expect(next?.sessionId).toMatch(/^[0-9a-f]{32}$/u);
+      expect(next?.sessionId).not.toBe(first.sessionId);
+      expect(next?.visitorId).toBe(first.visitorId);
+      expect(next?.sessionStartUnixMs).toBe(
+        1_000 + SESSION_REPLAY_IDLE_ROLLOVER_MS,
+      );
+      expect(next?.chunkIndex).toBe(0);
+    });
+
+    test("starts the next session once one has lasted as long as a session may", async () => {
+      const store: ReplaySessionStore = new ReplaySessionStore(
+        new MemoryStorage(),
+        "app",
+      );
+      const first: ReplaySessionIdentity = await store.resolve(1_000);
+      let now: number = 1_000;
+
+      /* Busy the whole time: an event every ten minutes. */
+      while (now < 1_000 + SESSION_REPLAY_MAX_SESSION_MS - 600_000) {
+        now += 600_000;
+        expect(store.continueSession(now)?.sessionId).toBe(first.sessionId);
+      }
+
+      const next: ReplaySessionIdentity | null = store.continueSession(
+        1_000 + SESSION_REPLAY_MAX_SESSION_MS,
+      );
+      expect(next?.sessionId).not.toBe(first.sessionId);
+    });
+
+    test("leaves what it decided for the next launch to resume", async () => {
+      const storage: MemoryStorage = new MemoryStorage();
+      const store: ReplaySessionStore = new ReplaySessionStore(storage, "app");
+      await store.resolve(1_000);
+      const rolled: ReplaySessionIdentity | null = store.continueSession(
+        1_000 + SESSION_REPLAY_IDLE_ROLLOVER_MS + 5,
+      );
+      /* The write is in the background; let it land. */
+      await Promise.resolve();
+
+      const relaunched: ReplaySessionIdentity = await new ReplaySessionStore(
+        storage,
+        "app",
+      ).resolve(1_000 + SESSION_REPLAY_IDLE_ROLLOVER_MS + 60_000);
+
+      expect(relaunched.sessionId).toBe(rolled?.sessionId);
+    });
+
+    test("never throws when storage does", async () => {
+      const failing: ReplayStorage = {
+        async getItem(): Promise<string | null> {
+          return null;
+        },
+        async setItem(): Promise<void> {
+          throw new Error("full");
+        },
+        async removeItem(): Promise<void> {
+          throw new Error("blocked");
+        },
+      };
+      const store: ReplaySessionStore = new ReplaySessionStore(failing, "app");
+      await store.resolve(1);
+
+      expect(store.continueSession(2)?.sessionId).toMatch(/^[0-9a-f]{32}$/u);
+      await Promise.resolve();
+    });
+  });
+
   test("storage failures never throw into the host application", async () => {
     const failing: ReplayStorage = {
       async getItem(): Promise<string | null> {

@@ -13,7 +13,7 @@ Produktanalyse tæller de mennesker, der bruger en RUM-applikation, hvordan dere
 
 ## Hvordan personer tælles
 
-En applikations sidemenu har en sektion **Produktanalyse**: **Brugere**, **Sessioner**, **Begivenheder**, **Tragte**, **Fastholdelse af brugere**, **Brugerforløb** og **Analyseindstillinger**. **Brugere** og **Sessioner** tæller de sessioner, som Sessionsafspilning optager, så de begynder, når applikationens optager gør, og en session, som afspilningspolitikken ikke optager, tælles ikke. Hver session tæller for én person eller for ingen:
+En applikations sidemenu har en sektion **Produktanalyse**: **Brugere**, **Sessioner**, **Begivenheder**, **Tragte**, **Fastholdelse af brugere**, **Brugerforløb** og **Analyseindstillinger**. **Brugere** og **Sessioner** tæller de sessioner, som Sessionsafspilning optager, så de begynder, når applikationens optager gør, og en session, som afspilningspolitikken ikke optager, tælles ikke. På en installation, der er opgraderet fra en version uden Produktanalyse, kopierer opgraderingen de sessioner ind, som Sessionsafspilning stadig gemte, så de begynder med den ældste optagelse, der gemmes. Hver session tæller for én person eller for ingen:
 
 ```mermaid title="Hvem en session tæller for"
 flowchart TB
@@ -42,12 +42,12 @@ Dage tælles i din egen tidszone.
 | **Nye brugere** | Aktive brugere, hvis første besøg var i intervallet. |
 | **Tilbagevendende brugere** | Aktive brugere, der var kommet, før intervallet begyndte. |
 | **Indloggede brugere** | Aktive brugere, som din app loggede ind med `identify()`, og deres andel af alle aktive brugere. |
-| **Brugere i alt** | Alle, som applikationen har set i de seneste 13 måneder. |
+| **Brugere i alt** | Alle, som applikationen har set i de måneder, dens tal gemmes, som standard 13. |
 | **Inaktive brugere** | Personer, der kom før, men ikke i de seneste 30 dage, eller i de 7, 14, 60 eller 90 dage, du vælger. |
 
 De første tre viser også, hvordan de ændrede sig i forhold til perioden før. Under felterne tegner **Aktive brugere** for hver dag de personer, der kom den dag, dem, der kom i de 7 dage op til den, og dem, der kom i de 30 dage op til den, og **Nye og tilbagevendende brugere** deler hver dags personer i to.
 
-**Personer** viser alle, som felterne tæller, én række pr. person, de senest sete først, og dens filter viser ét felts personer, de anonyme besøgende eller alle. Åbn en person for at se første og seneste besøg og hver af vedkommendes sessioner fra de seneste 13 måneder, med **Se** på hver, hvis optagelse stadig gemmes.
+**Personer** viser alle, som felterne tæller, én række pr. person, de senest sete først, og dens filter viser ét felts personer, de anonyme besøgende eller alle. Åbn en person for at se første og seneste besøg og hver af vedkommendes sessioner fra de måneder, tallene gemmes, med **Se** på hver, hvis optagelse stadig gemmes.
 
 ## Sessioner
 
@@ -55,13 +55,13 @@ De første tre viser også, hvordan de ændrede sig i forhold til perioden før.
 
 - **Sessioner efter enhed** tegner hver dags sessioner fra computere, telefoner og tablets. En mobilapps session på en skærm, hvis korte side er 600 punkter eller mere, tæller som en tablets.
 - **Sessionsvarighed** inddeler de afsluttede sessioner efter, hvor længe de varede, fra under 10 sekunder til over 30 minutter. En session, der stadig optages, har endnu ingen varighed.
-- **Opdeling** rangerer brugere og sessioner efter enhedstype, browser, styresystem, land, appversion, indgangsside eller side, flest brugere først.
+- **Opdeling** rangerer brugere og sessioner efter enhedstype, browser, styresystem, land, appversion, indgangsside eller side, flest brugere først. En webapps version er den, siden giver optagerens `appVersion`-indstilling; en mobilapp rapporterer sin egen.
 
 ## Send begivenheder og metrikker
 
-Begivenheder sendes, mens **Send produktanalysebegivenheder** er slået til på applikationens side **Analyseindstillinger**. Den er slået til fra start for en ny applikation og slået fra for en applikation, der blev oprettet, før den fandtes, så slå den til der. Sessionsafspilning skal også være slået til for applikationen, da det er dens optager, der sender begivenhederne; React Native-optageren sender endnu ingen.
+Begivenheder sendes, mens **Send produktanalysebegivenheder** er slået til på applikationens side **Analyseindstillinger**. Den er slået til fra start for en ny applikation og slået fra for en applikation, der blev oprettet, før den fandtes, så slå den til der. Sessionsafspilning skal også være slået til for applikationen, da det er dens optager, der sender begivenhederne, fra en webside og fra en React Native-app.
 
-Hver session, browseroptageren kører i, sender selv sin start og hver side, den viser, inklusive en single-page-apps ruteskift, uanset om afspilningens stikprøve og politik optager sessionen eller ej. Dine egne begivenheder og tal kommer fra din sides kode:
+Hver session, browseroptageren kører i, sender selv sin start og hver side, den viser, inklusive en single-page-apps ruteskift, uanset om afspilningens stikprøve og politik optager sessionen eller ej. En React Native-app sender sin sessions start og hver skærm, den giver `setRoute()`, som en sidevisning. Dine egne begivenheder og tal kommer fra din sides eller apps kode:
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Før optageren er indlæst, skal du lægge de samme kald i `window.OneUptimeReplayQueue` som `["track", name, properties]` og `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Hver session, optaget eller ej.** Afspilningens stikprøve og uploadpolitik afgør, hvilke sessioner der optages, ikke hvilke der tælles. Intet sendes under Do Not Track eller Global Privacy Control, og intet gemmes fra en oprindelse, applikationen ikke tillader. Når politikken kræver samtykke, venter begivenhederne på `grantConsent()`, højst 500 af dem, og `revokeConsent()` kasserer dem.
-- **Maskeret som optagelsen.** Under _Mask all text_ maskeres værdierne af egenskaber og attributter, før de forlader siden, så en opdeling efter en af dem viser pladsholdere og ikke dine værdier; begivenhedsnavne, egenskabsnøgler og metrikværdier sendes, som de er skrevet. En værdi, du skal kunne læse i den tilstand, hører hjemme i et sessionstag (`setTags()`), som aldrig maskeres, så hold personoplysninger ude af det. Tags vises på sessionen og i en søgning med `tag:key=value` i sessionslisten, ikke i disse siders opdelinger. En side sendes som sin sti, uden forespørgsel og fragment (en hashrute, `#/orders`, er en del af stien), og hvert segment, der ligner en identifikator (UUID'er, e-mailadresser, lange cifferrækker, lange uigennemsigtige tokens), erstattes med `[redacted]`, som i hver adresse, Session Replay gemmer; en egenskab, en attribut eller en brugeregenskab, hvis værdi er en adresse, renses på samme måde. OneUptime renser dem igen, når begivenhederne ankommer, så de begivenheder, din egen kode sender med indtagelsesnøglen, holdes til samme regel.
-- **I små portioner**, hvert 5. sekund og når fanen skjules. En begivenhed, der når OneUptime mere end 3 dage efter, at den skete, kasseres, og et projekt må sende 60.000 begivenheder og metrikpunkter i minuttet, alle dets applikationer tilsammen; derudover venter optageren og sender dem igen.
+- **Maskeret som optagelsen.** Under _Mask all text_ maskeres værdierne af egenskaber og attributter, før de forlader siden, så en opdeling efter en af dem viser pladsholdere og ikke dine værdier; begivenhedsnavne, egenskabsnøgler og metrikværdier sendes, som de er skrevet. En værdi, du skal kunne læse i den tilstand, hører hjemme i et sessionstag (`setTags()`), som aldrig maskeres, så hold personoplysninger ude af det. Tags vises på sessionen og i en søgning med `tag:key=value` i sessionslisten, ikke i disse siders opdelinger. En React Native-apps værdier maskeres altid, da dens SDK maskerer al tekst. En side sendes som sin sti, uden forespørgsel og fragment (en hashrute, `#/orders`, er en del af stien), og hvert segment, der ligner en identifikator (UUID'er, e-mailadresser, lange cifferrækker, lange uigennemsigtige tokens), erstattes med `[redacted]`, som i hver adresse, Session Replay gemmer; en egenskab, en attribut eller en brugeregenskab, hvis værdi er en adresse, renses på samme måde. OneUptime renser dem igen, når begivenhederne ankommer, så de begivenheder, din egen kode sender med indtagelsesnøglen, holdes til samme regel.
+- **I små portioner**, hvert 5. sekund og når fanen skjules eller appen går i baggrunden. En begivenhed, der når OneUptime mere end 3 dage efter, at den skete, kasseres, og et projekt må sende 60.000 begivenheder og metrikpunkter i minuttet, alle dets applikationer tilsammen; derudover venter optageren og sender dem igen.
 
 `metric()` sender intet, mens begivenhederne er slået fra, og `getDiagnostics().productAnalytics` siger, om de er slået til (se [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Hver begivenhed tælles også, minut for minut, som en af applikationens metrikk
 
 Disse tre faktureres ikke, og `metric()` afviser et navn, der begynder med `oneuptime.`, så intet, din side sender, kan forveksles med dem. Dine `metric()`-punkter gemmes og faktureres som applikationens andre metrikker.
 
-En gemt tragt eller fastholdelsestabel kan også komme på et dashboard: widgetsene **Tragt** og **Fastholdelse af brugere**, i widgetkatalogets gruppe **Produktanalyse**, viser en i dashboardets tidsinterval, og **Åbn i Tragte** eller **Åbn i Fastholdelse af brugere** åbner den på dens side (se [Dashboard-widgets](/docs/dashboards/widgets#produktanalyse)).
+En gemt tragt eller fastholdelsestabel kan også komme på et dashboard: widgetsene **Tragt** og **Fastholdelse af brugere**, i widgetkatalogets gruppe **Produktanalyse**, viser en i dashboardets tidsinterval, og **Åbn i Tragte** eller **Åbn i Fastholdelse af brugere** åbner den på dens side (se [Dashboard-widgets](/docs/dashboards/widgets#produktanalyse)). Et offentligt dashboard viser kun deres titler, aldrig deres tal: de tæller din applikations slutbrugere.
 
 ## Privatliv og opbevaring
 
-- **13 måneder.** En måneds tal fjernes den første dag i den 13. måned efter den, så de seneste 12 hele måneder altid er der, uanset optagelsernes egen opbevaring (7 dage som standard). Begivenheder gemmes på samme måde.
+- **13 måneder.** En måneds tal fjernes den første dag i den 13. måned efter den, så de seneste 12 hele måneder altid er der, uanset optagelsernes egen opbevaring (7 dage som standard). Begivenheder gemmes på samme måde. 13 måneder er standarden: en applikation kan i stedet beholde 3, 6 eller 25, valgt i **Opbevaring af produktanalyse** under **Yderligere indstillinger** på dens side **Analyseindstillinger**, og et kortere valg fjerner de ældre måneder inden for et døgn.
 - **Ingen navne gemt.** Tallene gemmer en indlogget brugers envejsnøgle og en browsers besøgs-id, aldrig referencen eller en IP-adresse, og af egenskaberne kun de brugeregenskaber, du angiver. En række navngiver kun en indlogget bruger, så længe en af brugerens optagelser stadig gemmes, og kun for en rolle, der må læse identitet; ellers står der **Indlogget bruger** eller **Anonym besøgende** og starten af id'et.
-- **Slettet efter anmodning.** En sletteanmodning fjerner også de tilsvarende tal og begivenheder her (se [Slet sessioner](/docs/telemetry/session-replay#slet-sessioner)).
+- **Slettet efter anmodning.** En sletteanmodning fjerner også de tilsvarende tal og begivenheder her (se [Slet sessioner](/docs/telemetry/session-replay#slet-sessioner)). Dens tal `productAnalyticsRowsDeleted` siger, hvor mange rækker den fjernede her. Den ændrer ikke **Gemte tragte** eller **Gemte fastholdelsestabeller**: deres navne og segmenter er dit teams egen tekst, ligesom et dashboards titel, så gem ikke et segment, der navngiver en person.
 
 ## Hvem kan se det
 
@@ -148,7 +148,7 @@ At læse disse sider kræver det samme som at læse sessionslisten: `ReadRumSess
 
 At gemme, omdøbe og slette gemte tragte og fastholdelsestabeller kræver de samme tilladelser som at læse disse sider, og en dashboard-widget viser en kun for en læser, der har dem.
 
-At slå begivenhederne til eller fra kræver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektejer, Projektadministrator eller Projektmedlem. At angive brugeregenskaber kræver `EditRumApplication` eller rollen som ejer eller administrator, da det afgør, hvad der gemmes om indloggede personer.
+At slå begivenhederne til eller fra kræver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektejer, Projektadministrator eller Projektmedlem. At angive brugeregenskaber kræver `EditRumApplication` eller rollen som ejer eller administrator, da det afgør, hvad der gemmes om indloggede personer. At vælge, hvor længe tallene gemmes, kræver det samme som at slå begivenhederne til eller fra.
 
 ## Næste skridt
 

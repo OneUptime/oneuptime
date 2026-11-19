@@ -188,6 +188,7 @@ const SOURCES: Record<string, string> = {
   adminSettingsSideMenu: `${ADMIN_DASHBOARD}/Pages/Settings/SideMenu.tsx`,
   adminAuthentication: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
   adminProbes: `${ADMIN_DASHBOARD}/Pages/Settings/Probes/Index.tsx`,
+  adminGlobalProbeStatus: `${ADMIN_DASHBOARD}/Components/Probe/GlobalProbeStatus.tsx`,
   adminCallSms: `${ADMIN_DASHBOARD}/Pages/Settings/CallSMS/Index.tsx`,
   githubApi: `${COMMON_SERVER}/API/GitHubAPI.ts`,
   githubUtil: `${COMMON_SERVER}/Utils/CodeRepository/GitHub/GitHub.ts`,
@@ -2048,8 +2049,14 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(
       adminText("pages.settings.authentication.magicLinkSwitchTitle"),
     ).toBe("Let people sign in with an emailed link");
-    expect(readSource("adminProbes")).toContain('t("common.disconnected")');
-    expect(adminText("common.disconnected")).toBe("Disconnected");
+    // The Status column is GlobalProbeStatus's, as on OneUptime Health (#9488).
+    expect(readSource("adminProbes")).toContain(
+      "<GlobalProbeStatusElement probe={item} />",
+    );
+    expect(readSource("adminGlobalProbeStatus")).toContain(
+      '[GlobalProbeStatus.Disconnected]: translationKey("Disconnected")',
+    );
+    expect(adminText("Disconnected")).toBe("Disconnected");
 
     for (const words of [
       "**Settings > Authentication**",

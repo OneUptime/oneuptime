@@ -53,7 +53,7 @@ Geben Sie die Adresse unter **E-Mail** ein. Verwendet noch kein OneUptime-Konto 
 
 Klicken Sie auf **Einladen**. OneUptime sendet die Einladung per E-Mail und öffnet die Seite der Person. Bis zur Annahme erscheint sie als **Einladung gesendet**.
 
-Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, geht keine E-Mail hinaus, und die Person erscheint als **Eingeladen**. Ein Master-Admin sieht zuerst **Einladungslink selbst senden**: Kopieren Sie den Link, senden Sie ihn der Person selbst und klicken Sie dann auf **Fertig**. Alle anderen bitten den Admin des Servers, [E-Mail einzurichten](/docs/emails/smtp#das-formular-öffnen).
+Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, geht keine E-Mail hinaus, und die Person erscheint als **Eingeladen**. Ein Master-Admin sieht zuerst **Einladungslink selbst senden**: Kopieren Sie den Link, senden Sie ihn der Person selbst und klicken Sie dann auf **Fertig**. Alle anderen bitten den Admin des Servers, [E-Mail einzurichten](/docs/emails/smtp#das-formular-öffnen). Eine später eingerichtete E-Mail sendet die Einladungen von vorher nicht: Die Person kommt mit ihrem Einladungslink hinein oder indem sie sich mit der eingeladenen Adresse registriert.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, geht kei
 
 ## Eine Einladung annehmen
 
-Die Einladungs-E-Mail nennt das Projekt. Ihre Schaltfläche heißt **Create Your Account** für jemanden ohne OneUptime-Konto und **Sign In to OneUptime** für jemanden mit Konto. Nach der Anmeldung nimmt die Person an einer von zwei Stellen an:
+Die Einladungs-E-Mail nennt das Projekt und wer die Person eingeladen hat. Ihre Schaltfläche heißt **Create Your Account** für jemanden ohne OneUptime-Konto und **Sign In to OneUptime** für jemanden mit Konto.
+
+**Create Your Account** öffnet die Registrierungsseite, auf der ihre Adresse und der Name, den Sie eingegeben haben, schon ausgefüllt sind, und sagt, welches Projekt sie eingeladen hat und wer. Wer sich dort registriert, tritt dem Projekt bei, ohne noch etwas annehmen zu müssen.
+
+Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, bekommt niemand eine E-Mail: Der Einladungslink, den die Person stattdessen erhält, öffnet dieselbe Registrierungsseite, oder die Anmeldeseite für jemanden, der schon ein Konto hat.
+
+Wer sich anmeldet oder auf anderem Weg registriert, nimmt an einer von zwei Stellen an:
 
 | Wo die Person ist | Was sie sieht | Was sie anklickt |
 | --- | --- | --- |
@@ -78,7 +84,7 @@ Mit der Annahme ist die Person sofort im Projekt, mit den Berechtigungen ihres T
 | --- | --- |
 | **Benutzer** | Name und E-Mail-Adresse. |
 | **Teams** | Jedes Team des Projekts, in dem die Person ist oder zu dem sie eingeladen ist. |
-| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, stattdessen **Eingeladen**: Die Einladung wird erstellt, aber keine E-Mail verschickt. |
+| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin, oder **E-Mail nicht gesendet**, wenn der Mail-Dienst die letzte Einladungs-E-Mail abgelehnt hat. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, stattdessen **Eingeladen**: Die Einladung wird erstellt, aber keine E-Mail verschickt. |
 
 Filtern Sie die Liste nach **Benutzer**, **Status** oder **Team**. Klicken Sie auf eine Zeile, um die Seite der Person zu öffnen:
 
@@ -112,6 +118,8 @@ Das Owners-Team behält immer mindestens ein beigetretenes Mitglied, damit ein P
 
 Öffnen Sie unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klicken Sie auf **Aus Projekt entfernen**. Oder öffnen Sie die Person und wählen Sie **Aus Projekt entfernen** in ihrem Seitenmenü. Um mehrere Personen auf einmal zu entfernen, wählen Sie ihre Zeilen aus und löschen Sie die Auswahl: Jede wird auf dieselbe Weise entfernt.
 
+Wenn Ihre Rolle Personen nur aus einigen Teams entfernen kann, etwa aus denen, die Ihnen gehören, ist **Aus Projekt entfernen** für jemanden gesperrt, der auch in einem Team ist, aus dem Sie ihn nicht entfernen können, und nennt die Teams, die ihn im Projekt halten, soweit Sie sie sehen dürfen. Beim Entfernen mehrerer Personen auf einmal wird er ausgelassen, und das wird gesagt.
+
 Das Entfernen nimmt die Person aus jedem Team des Projekts. Sie verliert sofort den Zugriff, auch wenn sie angemeldet ist, wird aus den Bereitschaftsplänen und Eskalationsregeln genommen und erhält keine Benachrichtigungen des Projekts mehr. Ihr OneUptime-Konto wird nicht gelöscht, und Sie können sie wieder einladen. [Benutzer, Teams & Berechtigungen](/docs/permissions/index#benutzer) listet alles auf, was das Verlassen eines Projekts mitnimmt.
 
 ## Andere Wege in ein Projekt
@@ -134,10 +142,20 @@ In OneUptime Cloud hat ein Projekt im Free-Tarif Platz für eine Person. Ändern
 An eine Adresse können 10 Einladungen pro Stunde gesendet werden, zu Projekten und privaten Statusseiten zusammen, egal wer sie sendet. Warten Sie eine Stunde und laden Sie die Person dann erneut ein.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Ihre Rolle kann Personen nur aus einigen Teams des Projekts entfernen, etwa aus denen, die Ihnen gehören, und diese Person ist auch in anderen. Entfernen Sie sie auf ihrer Seite **Teams** aus Ihren eigenen Teams, oder bitten Sie einen Projektinhaber oder Projektadministrator, sie aus dem Projekt zu entfernen.
+:::
+
 :::details Die Einladungs-E-Mail kam nicht an, oder ihr Link ist abgelaufen
 Die Einladung hängt nicht an der E-Mail. Bitten Sie die Person, sich mit der eingeladenen Adresse zu registrieren: OneUptime sendet an diese Adresse einen neuen Link, um das Konto fertig anzulegen. Wer schon ein Konto hat, meldet sich an und findet die Einladung vor.
 
+Ob sie hinausging, sehen Sie auf dem Tab **E-Mail** der **Benachrichtigungsprotokolle** des Projekts: Die Zeile jeder Einladung sagt, ob sie gesendet wurde, und warum nicht. Auf einem selbst gehosteten Server findet ein Master-Admin außerdem jede E-Mail, die der Server nicht senden konnte, in dessen [E-Mail-Protokoll](/docs/emails/email-providers#sehen-was-der-server-gesendet-hat).
+
 Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, kann auch die Registrierung keinen neuen Link per E-Mail senden: Sie bittet die Person stattdessen, nach ihrem Einladungslink zu fragen. Sobald der Admin des Servers [E-Mail eingerichtet](/docs/emails/smtp#das-formular-öffnen) hat, funktioniert die Registrierung wie oben. Bis dahin kann ein Master-Admin der Person einen neuen Link senden, der einmal funktioniert, nur für diese Adresse, 7 Tage lang: Öffnen Sie unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klicken Sie auf **Einladungslink abrufen**.
+:::
+
+:::details Bei einer Person steht E-Mail nicht gesendet
+Der Mail-Dienst hat die letzte Einladungs-E-Mail abgelehnt, also hat die Person nichts erhalten. Zeigen Sie auf **E-Mail nicht gesendet** oder tippen Sie darauf, um den Grund zu sehen, so wie ihn der Tab **E-Mail** der **Benachrichtigungsprotokolle** des Projekts nennt. Prüfen Sie die eingeladene Adresse, öffnen Sie dann, sobald E-Mail funktioniert, unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klicken Sie auf **Einladung erneut senden**: Sobald die E-Mail versendet ist, erscheint die Person wieder als **Einladung gesendet**. Auf einem selbst gehosteten Server kann der Admin des Servers ihr stattdessen ihren Einladungslink senden: Ein Master-Admin klickt im selben Menü auf **Einladungslink abrufen**.
 :::
 
 :::details Benutzer einladen meldet, dass Benutzer über SCIM Push Groups verwaltet werden

@@ -7,7 +7,10 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import IconProp from "../../Types/Icon/IconProp";
-import { ProductFeedbackKind } from "../../Types/ProductFeedback/ProductFeedback";
+import {
+  DocsFeedbackReason,
+  ProductFeedbackKind,
+} from "../../Types/ProductFeedback/ProductFeedback";
 import { Column, Entity, Index } from "typeorm";
 
 /*
@@ -24,6 +27,13 @@ import { Column, Entity, Index } from "typeorm";
  * answer, the page as a route pattern with no ids and the product version
  * (Types/ProductFeedback/ProductFeedback, readProductFeedbackSubmission),
  * and when it was given (createdAt).
+ *
+ * "Was this page helpful?" on a docs page is kept here too, where a master
+ * admin switched keeping it on (#7209): its kind docs_page, the docs page
+ * as its topic, and for a no what went wrong (reason).
+ *
+ * Kept PRODUCT_FEEDBACK_RETENTION_IN_DAYS, then deleted by the daily purge
+ * (ProductFeedbackService); a master admin may delete one sooner (#7366).
  */
 @TableAccessControl({
   create: [],
@@ -55,7 +65,7 @@ export default class ProductFeedback extends BaseModel {
     allowedValues: Object.values(ProductFeedbackKind),
     title: "Kind",
     description:
-      "How the answer was given: setup_flow (the end of a guided setup), general (Give feedback), explanation (Was this clear?) or check_in (the first-week check-in).",
+      "How the answer was given: setup_flow (the end of a guided setup), general (Give feedback), explanation (Was this clear?), check_in (the first-week check-in) or docs_page (Was this page helpful? on a docs page).",
   })
   @Column({
     nullable: false,
@@ -74,7 +84,7 @@ export default class ProductFeedback extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Topic",
     description:
-      "What the answer is about, as the code names it: the guided setup (website_down), the explanation (how_oneuptime_works, term.criteria), first_week or help.",
+      "What the answer is about, as the code names it: the guided setup (website_down), the explanation (how_oneuptime_works, term.criteria), first_week, help, or the docs page (monitor/website-monitor).",
   })
   @Column({
     nullable: true,
@@ -136,6 +146,30 @@ export default class ProductFeedback extends BaseModel {
     type: ColumnType.VeryLongText,
   })
   public details?: string = undefined;
+
+  /*
+   * One of four words the docs page offers after a no, never words anyone
+   * wrote (Types/ProductFeedback/ProductFeedback's DocsFeedbackReason).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(DocsFeedbackReason),
+    title: "Reason",
+    description:
+      "What went wrong, for a no to Was this page helpful? on a docs page: unclear, missing, wrong or not_found.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public reason?: DocsFeedbackReason = undefined;
 
   @ColumnAccessControl({
     create: [],

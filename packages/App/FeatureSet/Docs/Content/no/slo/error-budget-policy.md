@@ -6,7 +6,7 @@ En feilbudsjettpolicy skriver ned hva teamet ditt har avtalt å gjøre mens feil
 - [Slik fungerer nivåer](#slik-fungerer-nivåer): Hvilket nivå som gjelder, og når SLO-et forlater det.
 - [Sett opp en policy](#sett-opp-en-policy): Start med den anbefalte policyen, eller skriv dine egne nivåer.
 - [Varsler og hendelser](#varsler-og-hendelser): Varsle teamet ditt når SLO-et går inn i et nivå.
-- [Publiser i Slack, Microsoft Teams og Mattermost](#publiser-i-slack-microsoft-teams-og-mattermost): Gi en kanal beskjed når et SLO går inn i et nivå, uten å varsle noen.
+- [Publiser i Slack, Microsoft Teams og Mattermost](#publiser-i-slack-microsoft-teams-og-mattermost): Gi en kanal beskjed når et SLO går inn i et nivå eller endrer status, uten å varsle noen.
 - [Distribusjonssperre](#distribusjonssperre): Hold utgivelser tilbake fra CI/CD mens et nivå fryser distribusjoner.
 - [Les nivået via API-et](#les-nivået-via-api-et): Sjekk nivået fra CI og skript.
 :::
@@ -84,6 +84,10 @@ Et nivå registrerer og viser avtalen. For også å varsle noen når SLO-et går
 
 Ingen av dem utløser et varsel eller erklærer en hendelse før du slår det på. **Budget exhausted** fryser distribusjoner, slik avtalen for nivået sier, og bekreftelsen markerer det: se [Distribusjonssperre](#distribusjonssperre). Nivåer som ble lagt til før sperren fantes, fryser ingenting før du slår på frysingen. Bare nivåene SLO-et ikke har, legges til: Et nivå med samme navn, eller med samme terskel, regnes som til stede, enten det er slått på eller av. Å be om det to ganger, fra en annen fane eller via API-et, legger altså ikke til noe to ganger. Kan ett av nivåene ikke legges til, legges ingen av dem til: SLO-et blir som det var, og du kan prøve igjen. Hvert nivå som legges til slik, registreres i revisjonsloggene til SLO-et som lagt til av deg.
 
+Et SLO som har noen av de anbefalte nivåene og ingen egne nivåer, for eksempel et SLO som fikk den anbefalte policyen før den inneholdt **Budget exhausted**, viser over nivåene en merknad, **Anbefalt policy ikke fullstendig**, som nevner nivåene det mangler. Klikk på **Legg til manglende nivåer** for å se hva som legges til, og bekreft. Et SLO med et nivå dere har laget selv, får aldri resten tilbudt: Policyen dere har bygget, blir som den er. Vil du at merknaden skal slutte å tilby et nivå du ikke vil ha, så behold nivået og deaktiver det i stedet for å slette det.
+
+For å bruke den på mange SLO-er på én gang velger du dem på siden **SLOs** og velger **Bruk den anbefalte policyen** under **Massehandlinger**. Før noe legges til, teller bekreftelsen hvor mange av dem som får hvert nivå, og hvor mange som blir som de er fordi de allerede har den anbefalte policyen eller har sin egen feilbudsjettpolicy. Hvert SLO får nivåene det mangler, slik den egne siden ville lagt dem til, og resultatet sier for hvert SLO om nivåer ble lagt til, eller hvorfor ikke. Å kjøre den igjen på de samme SLO-ene legger ikke til noe. Arkiverte SLO-er er ikke på listen og får den aldri tilbudt.
+
 ## Hvor nivået vises
 
 - **Oversikt** for SLO-et viser nivået det er i og hva teamet har avtalt å gjøre der, så alle som åpner SLO-et ser avtalen som gjelder nå. Mens nivået fryser distribusjoner, viser et rødt merke under navnet på nivået siden når.
@@ -126,7 +130,7 @@ Den innebygde beskrivelsen nevner nivået, setter gjenværende budsjett opp mot 
 
 ## Publiser i Slack, Microsoft Teams og Mattermost
 
-En regel kan publisere hver endring i feilbudsjettpolicyen til et SLO i kanalene i Slack, Microsoft Teams eller Mattermost som teamet ditt leser, uten å varsle noen: når SLO-et går inn i et nivå, kommer seg til et mindre alvorlig nivå eller forlater alle nivåer, og når distribusjonene fryses eller tillates igjen. Hver regel velger SLO-ene og endringene den publiserer. Koble først workspacet til prosjektet: se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) eller [Mattermost](/docs/workspace-connections/mattermost).
+En regel kan publisere hver endring i feilbudsjettpolicyen til et SLO i kanalene i Slack, Microsoft Teams eller Mattermost som teamet ditt leser, uten å varsle noen: når SLO-et går inn i et nivå, kommer seg til et mindre alvorlig nivå eller forlater alle nivåer, og når distribusjonene fryses eller tillates igjen. Hver regel velger SLO-ene og endringene den publiserer, og en regel kan også publisere statusendringene til SLO-et: se [Statusendringer](#statusendringer). Koble først workspacet til prosjektet: se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) eller [Mattermost](/docs/workspace-connections/mattermost).
 
 :::steps
 ### Åpne seksjonen Arbeidsområde for SLO-er
@@ -147,7 +151,7 @@ Meldingen beskriver endringen med ordene fra **Feed** for SLO-et: nivået SLO-et
 - En endring publiseres én gang, etter at evalueringen som førte til den, er lagret. En evaluering som ikke lagres, publiserer ingenting, og den neste publiserer endringen.
 - Ingenting publiseres mens SLO-et blir i nivået sitt, uansett hvor lenge budsjettet svinger rundt en terskel: se [Å gå inn i et nivå og forlate det](#å-gå-inn-i-et-nivå-og-forlate-det).
 - Å slå **Frys distribusjoner** på eller av for nivået SLO-et er i, publiserer en egen melding.
-- Et SLO som er pauset, feilkonfigurert, deaktivert eller arkivert, beholder nivået sitt og publiserer ingenting.
+- Et SLO som venter, er pauset, feilkonfigurert, deaktivert eller arkivert, beholder nivået sitt og publiserer ingenting.
 - En melding som ikke kan sendes, logges, og evalueringen, feeden til SLO-et og det nivået utløser, fortsetter uten den.
 
 ### Hva en regel samsvarer med
@@ -158,13 +162,25 @@ Meldingen beskriver endringen med ordene fra **Feed** for SLO-et: nivået SLO-et
 | **SLO-etiketter** | Etikettene til SLO-et: hvilken som helst av dem du velger, alle sammen eller ingen av dem. |
 | **SLO-navn** | Navnet på SLO-et: lik teksten din eller ikke, inneholder den eller ikke, begynner eller slutter med den. |
 | **Endring i feilbudsjettpolicy** | Hva som endret seg: **Gikk inn i et mer alvorlig nivå**, **Kom tilbake til et mindre alvorlig nivå**, **Forlot alle nivåer**, **Distribusjoner frosset** eller **Distribusjoner tillatt igjen**. |
+| **SLO-statusendring** | Hvordan statusen til SLO-et endret seg: **Kom i faresonen**, **Budsjett oppbrukt** eller **Feilfri igjen**. Bare en regel med denne betingelsen publiserer statusendringer: se [Statusendringer](#statusendringer). |
 | **Eier av SLO** | Personene og teamene som er registrert som eiere av SLO-et: hvilken som helst av dem du velger, eller ingen av dem. Å være med i et team som eier SLO-et, teller ikke. |
 
 En endring av nivå som frøs distribusjoner, eller tillot dem igjen, er én melding som teller som begge endringene. En regel for **Distribusjoner frosset** publiserer altså også endringen når SLO-et går inn i et nivå som fryser dem: En utgivelseskanal får vite om hver frysing.
 
+### Statusendringer
+
+En regel publiserer statusendringene til SLO-et bare når den har en betingelse **SLO-statusendring**, og da bare de endringene betingelsen velger. En slik regel publiserer endringene i feilbudsjettpolicyen bare hvis den også har en betingelse **Endring i feilbudsjettpolicy**. En regel som ble opprettet før statusendringer ble publisert, fortsetter altså å publisere det den publiserte, og begynner aldri å publisere statusendringer som ingen har valgt.
+
+Meldingen beskriver endringen med ordene fra **Feed** for SLO-et: statusen SLO-et er i, og den kanalen sist fikk vite om, SLI-en sammenlignet med målet, gjenværende feilbudsjett, den nåværende forbruksraten og risikoterskelen.
+
+- En kanal får vite om høyst én statusendring for et SLO i timen, så et SLO som veksler mellom **I faresonen** og **Feilfri**, kan ikke oversvømme den. En endring innenfor timen venter og publiseres når timen er omme, hvis SLO-et fortsatt er der. En veksling som går tilbake til det kanalen sist fikk vite om, publiserer ingenting.
+- Et oppbrukt budsjett publiseres med en gang, uansett hvor langt timen har kommet.
+- En overgang til **Venter**, **Feilkonfigurert** eller **Pauset** publiserer ingenting: Ingenting ved påliteligheten har endret seg. Når SLO-et måles igjen, publiseres en endring sammenlignet med det kanalen sist fikk vite om.
+- Eierne av SLO-et får fortsatt beskjed om statusendringer via e-post, SMS, anrop og push-varsel, uansett hva reglene publiserer.
+
 ## Når budsjettet ikke måles
 
-- Et SLO som er **Pauset** eller **Feilkonfigurert**, måler ikke noe budsjett, så nivået blir der det var, og det nivået utløste, forblir åpent til målingen fortsetter. Forbruksrateregler løser derimot da det de har åpent.
+- Et SLO med status **Venter**, **Pauset** eller **Feilkonfigurert** måler ikke noe budsjett, så nivået blir der det var, og det nivået utløste, forblir åpent til målingen fortsetter. Forbruksrateregler løser derimot da det de har åpent.
 - Å slå av evalueringen av SLO-et, eller å arkivere SLO-et, løser det nivåene utløste. Nivået SLO-et er i, forblir som det var.
 - Å slette SLO-et sletter nivåene og løser det de utløste.
 - I hvert av disse tilfellene beholder SLO-et svaret det ga om distribusjoner, fordi det beholder nivået sitt: se [Distribusjonssperre](#distribusjonssperre).
@@ -257,7 +273,7 @@ Slik endres svaret:
 
 - Distribusjoner fryses av evalueringen som plasserer SLO-et i et nivå som fryser dem, og tillates igjen av evalueringen som tar det ut, med nivåets egne marginer for å komme seg: se [Å gå inn i et nivå og forlate det](#å-gå-inn-i-et-nivå-og-forlate-det). Fra ett nivå som fryser, til et annet forblir de frosset, og `deploymentsFrozenAt` beholder tidspunktet sitt.
 - Å slå **Frys distribusjoner** på eller av for nivået SLO-et er i, virker innen omtrent et minutt. For å gi ut før budsjettet har kommet seg, slår du av frysingen: Endringen registreres i revisjonsloggene til SLO-et som din.
-- Et SLO som er **Pauset** eller **Feilkonfigurert**, beholder svaret det hadde, slik det beholder nivået sitt: Et vedlikeholdsvindu som pauser alle monitorer, verken opphever en frysing eller starter en. Et deaktivert eller arkivert SLO evalueres ikke i det hele tatt, så det beholder også svaret sitt.
+- Et SLO med status **Venter**, **Pauset** eller **Feilkonfigurert** beholder svaret det hadde, slik det beholder nivået sitt: Et vedlikeholdsvindu som pauser alle monitorer, verken opphever en frysing eller starter en. Et deaktivert eller arkivert SLO evalueres ikke i det hele tatt, så det beholder også svaret sitt.
 - Mens distribusjoner er frosset, viser **Oversikt** for SLO-et siden når, og **Feed** sier når de fryses og tillates igjen.
 
 ## Les nivået via API-et
@@ -279,12 +295,14 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
   -d '{ "select": { "name": true, "errorBudgetRemainingPercentage": true, "currentErrorBudgetPolicyTierName": true, "currentErrorBudgetPolicyTierEnteredAt": true } }'
 ```
 
-Selve nivåene er en egen ressurs, `/api/service-level-objective-error-budget-policy-tier`, med forespørslene for å liste, lese, opprette, endre og slette som hver ressurs har. To forespørsler til betjener den anbefalte policyen. Begge tar `{ "serviceLevelObjectiveId": "..." }` og svarer med nivåene i `tiers`:
+Selve nivåene er en egen ressurs, `/api/service-level-objective-error-budget-policy-tier`, med forespørslene for å liste, lese, opprette, endre og slette som hver ressurs har. Fire forespørsler til betjener den anbefalte policyen. Forespørslene for ett SLO tar `{ "serviceLevelObjectiveId": "..." }` og svarer med nivåene i `tiers`. Masseforespørslene tar `{ "serviceLevelObjectiveIds": ["..."] }`, høyst 100 SLO-er per forespørsel, og svarer med én oppføring for hvert SLO i `results`, i rekkefølgen det ble spurt om:
 
 | Forespørsel | Hva den gjør |
 | --- | --- |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy` | Lister de anbefalte nivåene SLO-et mangler. Den skriver ingenting. |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/add` | Legger dem til og lister det den la til. Å spørre igjen legger ikke til noe. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk` | Sier hva hvert SLO ville fått: `Missing` med nivåene, `NothingMissing`, `OwnPolicy` for et SLO med sin egen feilbudsjettpolicy, eller `Refused` for et SLO du ikke kan lese. Den skriver ingenting. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk/add` | Legger til det hvert SLO mangler, ett SLO etter det andre: `Added` med nivåene, `NothingMissing`, `OwnPolicy`, `Refused` eller `Failed`, når ingenting ble lagt til. Å spørre igjen legger bare til det som fortsatt mangler. |
 
 ## Tillatelser
 
@@ -299,7 +317,7 @@ Disse tillatelsene ligger i SLO-gruppen til en rolle. Rollene Prosjekteier og Pr
 
 ## Ikke tilgjengelig ennå
 
-Noen deler av en feilbudsjettpolicy er ikke tilgjengelige ennå: en egen arbeidsflytutløser for hvert nivå, en policy som flere SLO-er deler, å kvittere for et nivå eller gi et unntak fra det, og nivåer som bygger på rekkevidden til budsjettet i stedet for gjenværende budsjett. OneUptime stopper ikke en utgivelse selv: Det gjør en pipeline som sjekker `deploymentsAllowed`, slik [Distribusjonssperre](#distribusjonssperre) viser.
+Noen deler av en feilbudsjettpolicy er ikke tilgjengelige ennå: en policy som flere SLO-er deler, å kvittere for et nivå eller gi et unntak fra det, og nivåer som bygger på rekkevidden til budsjettet i stedet for gjenværende budsjett. OneUptime stopper ikke en utgivelse selv: Det gjør en pipeline som sjekker `deploymentsAllowed`, slik [Distribusjonssperre](#distribusjonssperre) viser. En arbeidsflyt kan starte når et SLO går inn i et nivå, eller når distribusjonene fryses eller tillates igjen: Gi den utløseren ved oppdatering av SLO-et, og velg **ID for gjeldende nivå i feilbudsjettpolicyen** eller **Distribusjoner tillatt** under **Felt som overvåkes**, så kjører den én gang for hver endring.
 
 ## Neste steg
 

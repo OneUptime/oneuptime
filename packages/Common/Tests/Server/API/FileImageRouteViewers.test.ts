@@ -58,6 +58,7 @@ import http from "http";
 import jwt from "jsonwebtoken";
 import { AddressInfo } from "net";
 import timers from "timers";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * A real Express app: an error that walks the routes registered after the
@@ -426,6 +427,9 @@ describe("the image routes serve a file only to the people who may see it", () =
     ) => {
       return blocked.has(userId.toString());
     }) as never);
+
+    // Every session is live: what an ended one does is EndedSessionAccessToken.test.ts.
+    treatEverySessionAsLive();
 
     // The server admin's account says they are one; nobody else's does.
     jest.spyOn(UserService, "isUserMasterAdmin").mockImplementation((async (

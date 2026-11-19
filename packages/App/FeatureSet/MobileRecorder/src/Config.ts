@@ -15,6 +15,10 @@ import {
   SessionReplayMaskingMode,
 } from "./Contract";
 import { readCustomSignals } from "./CustomSignals";
+import {
+  ProductAnalyticsRecorderConfig,
+  readProductAnalyticsRecorderConfig,
+} from "./ProductAnalyticsContract";
 import { ReplayStorage } from "./Storage";
 
 export const CONFIG_FETCH_TIMEOUT_MS: number = 5_000;
@@ -98,6 +102,14 @@ export interface ResolvedReplayConfig {
   configEpoch: number;
   isTargeted: boolean;
   frustrationSignals: ResolvedFrustrationSignals;
+  /*
+   * Product analytics events (issue #6629): whether the app also sends its
+   * session starts, screens, track() events and metric() points - from
+   * every session, recorded or not - and which identify() traits they may
+   * carry. Kept under the response's own field name, like
+   * frustrationSignals, so a cached policy reads back the same.
+   */
+  productAnalytics: ProductAnalyticsRecorderConfig;
   disabledReason?: string;
 }
 
@@ -281,6 +293,7 @@ function failClosed(reason: string): ResolvedReplayConfig {
     configEpoch: 0,
     isTargeted: false,
     frustrationSignals: { customSignals: [] },
+    productAnalytics: { enabled: false, userPropertyKeys: [] },
     disabledReason: reason,
   };
 }
@@ -332,6 +345,13 @@ export function normalizeReplayConfig(value: unknown): ResolvedReplayConfig {
     frustrationSignals: {
       customSignals: readCustomSignals(config.frustrationSignals),
     },
+    /*
+     * Absent - a server from before product analytics, or an application
+     * with it off - reads as off, so no batch is sent nobody asked for.
+     */
+    productAnalytics: readProductAnalyticsRecorderConfig(
+      config.productAnalytics,
+    ),
   };
   if (typeof config.disabledReason === "string") {
     resolved.disabledReason = config.disabledReason.slice(0, 100);

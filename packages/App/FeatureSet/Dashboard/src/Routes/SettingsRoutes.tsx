@@ -4,6 +4,7 @@ import SettingsLayout from "../Pages/Settings/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
 import {
+  MOVED_FEATURE_FLAGS_SETTINGS_PATH,
   MOVED_OIDC_SETTINGS_PATH,
   MOVED_RUNNER_SETTINGS_PATHS,
   MOVED_USERS_SETTINGS_PATHS,
@@ -29,8 +30,6 @@ import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
 import SettingLabels from "../Pages/Settings/Labels";
 
 import SettingsProducts from "../Pages/Settings/Products";
-
-import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
 
 import SettingsDomains from "../Pages/Settings/Domains";
 
@@ -123,6 +122,14 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MOVED_OIDC_SETTINGS_PATH}
         element={<MovedPageRedirect pageMap={PageMap.SETTINGS_SSO} />}
+      />
+      {/*
+       * Feature Flags' one switch, Monitor Groups, moved to Products, under
+       * Monitors (#7324). Bookmarks and links to the old page open Products.
+       */}
+      <PageRoute
+        path={MOVED_FEATURE_FLAGS_SETTINGS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.SETTINGS_PRODUCTS} />}
       />
       {/*
        * Runner Credentials, later AI Access, is gone: its oldest address
@@ -337,16 +344,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsUsageHistory
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_FEATURE_FLAGS)}
-          element={
-            <SettingFeatureFlags
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route}
             />
           }
         />

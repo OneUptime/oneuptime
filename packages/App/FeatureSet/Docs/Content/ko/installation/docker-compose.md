@@ -452,7 +452,8 @@ PostgreSQL을 복원하려면 `config.env`에서 `DATABASE_RESTORE_*` 값을 설
 
 - **프리셋**은 클릭 한 번으로 모든 스위치를 설정합니다. **모니터링 및 상태 페이지**는 모니터, 인시던트, 온콜, 상태 페이지, 예정된 유지 관리를 남기고, **인시던트 대응**은 경고, SLOs, 워크플로, 런북을 더하며, **전체**는 모든 제품을 남깁니다. **제품을 하나씩 선택**에서는 제품 하나를 켜거나 끕니다. 사용자, 팀, 프로젝트 설정은 항상 켜져 있습니다.
 - 꺼진 제품은 모든 프로젝트의 **제품** 메뉴, 홈, 검색에서 사라지며, **프로젝트 설정 > 제품**에는 꺼진 것으로 표시됩니다. 그 제품의 페이지로 가는 링크는 이 서버에서 제품이 꺼져 있다는 것과 누가 켤 수 있는지를 알려 줍니다.
-- API는 그 제품의 레코드를 만들거나 바꾸거나 삭제하는 것을 거부하며, AI에게 질문은 그 제품을 제외합니다. 켜져 있는 제품이 다른 제품의 레코드를 보여 주기 때문에 읽기는 계속 작동합니다. 예를 들어 인시던트는 자신의 모니터를 표시합니다.
+- API, 워크플로, Slack·Microsoft Teams·Mattermost 앱은 그 제품의 레코드를 만들거나 바꾸거나 삭제하는 것을 거부하며, AI에게 질문은 그 제품을 제외합니다. 켜져 있는 제품이 다른 제품의 레코드를 보여 주기 때문에 읽기는 계속 작동합니다. 예를 들어 인시던트는 자신의 모니터를 표시합니다.
+- OneUptime AI는 해당 제품에 대해 어떤 작업도 시작하지 않습니다. 조사, 포스트모템 초안, 수정, 코드 수정, 인사이트 모두 시작하지 않습니다. 런북이 꺼져 있는 동안에도 런북은 자체 일정, 웹훅, 규칙으로는 실행되지만, 그 밖의 어떤 것도 런북을 시작하지 않습니다. 사람, 자동 복구, OneUptime AI, 보안 플레이북 모두 마찬가지입니다.
 - 아무것도 삭제되지 않으며, 이미 실행 중인 것은 계속 실행됩니다. 모니터는 계속 검사하고, 게시된 상태 페이지는 계속 열려 있으며, 수집도 멈추지 않는 한 텔레메트리는 계속 들어옵니다. 다시 켠 제품은 원래 상태 그대로 돌아옵니다.
 
 제품을 코드로 설정하려면 `config.env`의 `SERVER_PRODUCTS`(Helm: `products.onThisServer`)를 `everything`, `monitoring-and-status-pages`, `incident-response` 또는 켜 둘 제품의 키(예: `monitors,incidents,on-call,status-pages`)로 설정합니다. 이 값은 시작값입니다. 관리자가 **설정 > 제품**을 저장하면 저장한 내용이 적용됩니다.
@@ -475,7 +476,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` 서비스가 시작되지 않습니다. 이 서비스는 런북과 OneUptime AI의 코드 수정만 사용합니다. |
 | `MQTT_INGEST_ENABLED=false` | IoT 기기가 데이터를 보내는 MQTT 리스너가 꺼집니다. |
 
-여섯 개의 서비스는 계속 실행됩니다: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse`, `valkey`. ClickHouse는 남습니다. 모니터가 결과와 로그를 여기에 보관하기 때문입니다. Kubernetes에서는 Helm values에 `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true`, `globalRunner.enabled: false`를 설정합니다. 서버 크기는 [요구 사항](#요구-사항)에 따라 정하세요.
+여섯 개의 서비스는 계속 실행됩니다: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse`, `valkey`. ClickHouse는 남습니다. 모니터가 결과와 로그를 여기에 보관하기 때문입니다. Kubernetes에서는 Helm values에 `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true`, `globalRunner.enabled: false`를 설정합니다.
+
+**필요한 것.** 릴리스 15.0.0을 Docker Compose로 실행하고, 4코어 서버처럼 각 서비스를 같은 CPU 코어 4개로 제한해 측정했습니다. 메모리는 `docker stats`가 보고하는 값으로, 30초 간격으로 다섯 번 잰 값의 평균입니다.
+
+| 서비스 | 유휴 상태 | 모니터 100개 |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| 합계 | 2,274 MiB | 2,486 MiB |
+
+유휴 상태는 OneUptime이 준비되고 10분 뒤, 모니터가 없는 상태입니다. 모니터 100개는 매분 확인하는 Website 모니터 100개와 이를 보여 주는 공개 상태 페이지를 추가하고 30분 뒤입니다. OneUptime이 시작되는 동안에는 1~2분 정도 서비스가 더 많이 사용하며, 합쳐서 최대 3,584 MiB였습니다. 유휴 상태에서는 어떤 서비스도 CPU 코어의 10분의 1 넘게 쓰지 않았습니다.
+
+그 30분 뒤 PostgreSQL 데이터는 163 MiB, ClickHouse 데이터는 452 MiB였고, 대부분이 ClickHouse 자체 로그였습니다. 모니터 확인 결과는 2 MiB 미만이었습니다.
+
+따라서 이 프로필은 CPU 코어 4개와 메모리 6 GB 서버에서 실행되며, 시스템과 Docker, 업데이트를 위한 여유도 남습니다. `ingress`의 nginx는 코어마다 worker를 하나씩 시작하므로 코어가 더 많은 서버에서는 더 많이 사용합니다. 32코어에서는 약 510 MiB였습니다.
+
+프로브 하나는 기본 설정으로 한 번에 최대 50개의 모니터를 확인합니다. worker 5개(`GLOBAL_PROBE_1_MONITORING_WORKERS`)가 각각 10개씩(`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`) 확인합니다. 자리가 나는 대로 더 요청하므로 1분에 50개로 제한되지 않습니다. 매분 확인하는 웹사이트, API, 포트 모니터 252개로 측정한 결과, 모두를 매분 확인했습니다. 릴리스 15.0.0의 프로브는 1분에 한 번만 요청했기 때문에 1분에 최대 50개만 확인했습니다. 그래서 위의 측정에서는 모니터 100개를 매분 확인하도록 `config.env`에 `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`을 설정했습니다. 지연되는 프로브는 관리자 대시보드의 OneUptime 상태에 표시됩니다. `config.env`에서 두 설정 중 하나를 높이면 한 번에 더 많이 확인합니다.
 
 ## OneUptime 업데이트
 

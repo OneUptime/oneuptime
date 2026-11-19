@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 /*
  * A library a page loads the first time something on it needs it, rather
@@ -72,9 +72,32 @@ export function useLazyLibraryLoad<T>(
   });
   const [error, setError] = useState<Error | null>(null);
 
+  /*
+   * The error last asked for. Each ask starts with none, and asks for that
+   * only when there was one: asked for all the same as every component that
+   * loads a library was first drawn - every table - an unchanged null stayed
+   * in React's queue, and the component's next update at another priority
+   * (a click before its rows arrived) passed it by, then drew the component
+   * once more to take it up (#7707).
+   */
+  const askedError: React.MutableRefObject<Error | null> = useRef<Error | null>(
+    null,
+  );
+
+  const askForError: (next: Error | null) => void = (
+    next: Error | null,
+  ): void => {
+    if (next === askedError.current) {
+      return;
+    }
+
+    askedError.current = next;
+    setError(next);
+  };
+
   useEffect(() => {
     // Only what this ask comes to counts.
-    setError(null);
+    askForError(null);
 
     if (!isNeeded || arrived) {
       return;
@@ -90,7 +113,7 @@ export function useLazyLibraryLoad<T>(
       },
       (loadError: unknown): void => {
         if (isMounted) {
-          setError(
+          askForError(
             loadError instanceof Error ? loadError : new Error(`${loadError}`),
           );
         }

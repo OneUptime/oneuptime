@@ -452,7 +452,8 @@ ClickHouse 把遙測資料保存在 Docker 磁碟區 `oneuptime_clickhouse` 中�
 
 - **預設組合** 一鍵設定所有開關：**監測與狀態頁面** 保留監測器、事件、待命、狀態頁面和排定維護；**事件應變** 再加上警示、SLOs、工作流程和運行手冊；**全部** 保留所有產品。**逐一選擇產品** 可切換單一產品。使用者、團隊和專案設定一律開啟。
 - 已關閉的產品會從每個專案的 **產品** 選單、首頁和搜尋中消失，**專案設定 > 產品** 會將其顯示為已關閉。指向其某個頁面的連結會說明該產品已在此伺服器上關閉，以及誰可以開啟它。
-- API 會拒絕建立、變更或刪除該產品的記錄，詢問 AI 也會將其排除在外。讀取仍然有效，因為保持開啟的產品會顯示其他產品的記錄：事件會列出它的監控。
+- API、工作流程以及 Slack、Microsoft Teams 和 Mattermost 應用程式會拒絕建立、變更或刪除該產品的記錄，詢問 AI 也會將其排除在外。讀取仍然有效，因為保持開啟的產品會顯示其他產品的記錄：事件會列出它的監控。
+- OneUptime AI 不會對該產品啟動任何工作：不會進行調查、起草事後分析、修復、程式碼修復或洞察。在運行手冊關閉期間，運行手冊仍會依其自身的排程、Webhook 和規則執行，其他任何東西都不會啟動它：無論是人、自動修復、OneUptime AI 還是安全劇本。
 - 不會刪除任何內容，已在執行的內容會繼續執行：監控會繼續檢查，已發布的狀態頁面維持上線，遙測資料也會持續送達，除非你同時停止資料接收。重新開啟的產品會恢復原樣。
 
 若要以程式碼方式設定產品，請在 `config.env` 中把 `SERVER_PRODUCTS`（Helm：`products.onThisServer`）設為 `everything`、`monitoring-and-status-pages`、`incident-response`，或依鍵名列出要保持開啟的產品，例如 `monitors,incidents,on-call,status-pages`。這是一個初始值：一旦管理員儲存了 **設定 > 產品**，就以其儲存的內容為準。
@@ -475,7 +476,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` 服務不會啟動。只有運行手冊和 OneUptime AI 的程式碼修正會用到它。 |
 | `MQTT_INGEST_ENABLED=false` | 關閉 IoT 裝置傳送資料所用的 MQTT 監聽器。 |
 
-仍有六個服務在執行：`ingress`、`app`、`probe-1`、`postgres`、`clickhouse` 和 `valkey`。ClickHouse 會保留，因為監控會把結果和日誌保存在其中。在 Kubernetes 上，請在 Helm values 中設定 `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true` 和 `globalRunner.enabled: false`。請依照[需求](#需求)決定伺服器規格。
+仍有六個服務在執行：`ingress`、`app`、`probe-1`、`postgres`、`clickhouse` 和 `valkey`。ClickHouse 會保留，因為監控會把結果和日誌保存在其中。在 Kubernetes 上，請在 Helm values 中設定 `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true` 和 `globalRunner.enabled: false`。
+
+**所需資源。** 在 15.0.0 版本上以 Docker Compose 測量，每個服務都限制在相同的 4 個 CPU 核心上，與 4 核心伺服器相同。記憶體為 `docker stats` 回報的值，取間隔 30 秒的五次讀數平均值：
+
+| 服務 | 閒置時 | 100 個監測器 |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| 合計 | 2,274 MiB | 2,486 MiB |
+
+閒置時是指 OneUptime 就緒 10 分鐘後、沒有任何監測器時。100 個監測器是指新增 100 個每分鐘檢查一次的 Website 監測器，以及一個顯示它們的公開狀態頁面 30 分鐘後。OneUptime 啟動期間，各服務會在一兩分鐘內用得更多：合計最多 3,584 MiB。閒置時，沒有任何服務使用超過十分之一個 CPU 核心。
+
+這 30 分鐘後，PostgreSQL 的資料占用 163 MiB，ClickHouse 的資料占用 452 MiB，幾乎全是 ClickHouse 自己的日誌：監測器的檢查結果占用不到 2 MiB。
+
+因此，這個設定組合可以在 4 個 CPU 核心、6 GB 記憶體的伺服器上執行，還為系統、Docker 和更新留有餘裕。`ingress` 中的 nginx 會為每個核心啟動一個 worker，因此在核心更多的伺服器上會用得更多：32 核心時約 510 MiB。
+
+在預設設定下，一個探測器一次最多檢查 50 個監測器：5 個 worker（`GLOBAL_PROBE_1_MONITORING_WORKERS`），每個檢查 10 個監測器（`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`）。它一有空位就請求更多，因此每分鐘不限於 50 個監測器：用 252 個每分鐘檢查一次的網站、API 和連接埠監測器測量時，它每分鐘都檢查了其中每一個。版本 15.0.0 的探測器每分鐘只請求一次，所以每分鐘最多檢查 50 個監測器：為了讓 100 個監測器每分鐘都被檢查，上面的測量在 `config.env` 中設定了 `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`。落後的探測器會在管理員儀表板的 OneUptime 健康狀態中提示：在 `config.env` 中調高其中任一設定，讓它一次檢查更多。
 
 ## 更新 OneUptime
 

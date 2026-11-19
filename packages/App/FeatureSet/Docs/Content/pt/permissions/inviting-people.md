@@ -53,7 +53,7 @@ Digite o endereço em **E-mail**. Se nenhuma conta do OneUptime usa esse endere�
 
 Clique em **Convidar**. O OneUptime envia o convite por e-mail e abre a página da pessoa. Ela aparece como **Convite enviado** até aceitar.
 
-Em um servidor auto-hospedado que ainda não consegue enviar e-mails, nenhum e-mail é enviado, e a pessoa aparece como **Convidado**. Um administrador mestre vê primeiro **Envie o link de convite**: copie o link, envie-o você mesmo à pessoa e depois clique em **Concluído**. Qualquer outra pessoa pede ao administrador do servidor que [configure o e-mail](/docs/emails/smtp#abrir-o-formulário).
+Em um servidor auto-hospedado que ainda não consegue enviar e-mails, nenhum e-mail é enviado, e a pessoa aparece como **Convidado**. Um administrador mestre vê primeiro **Envie o link de convite**: copie o link, envie-o você mesmo à pessoa e depois clique em **Concluído**. Qualquer outra pessoa pede ao administrador do servidor que [configure o e-mail](/docs/emails/smtp#abrir-o-formulário). Configurar o e-mail depois não envia os convites feitos antes: a pessoa entra com o link de convite dela, ou se cadastrando com o endereço convidado.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ Em um servidor auto-hospedado que ainda não consegue enviar e-mails, nenhum e-m
 
 ## Aceitar um convite
 
-O e-mail de convite nomeia o projeto. O botão dele é **Create Your Account** para quem ainda não tem conta no OneUptime e **Sign In to OneUptime** para quem já tem. Depois de entrar, a pessoa aceita em um de dois lugares:
+O e-mail de convite nomeia o projeto e quem convidou a pessoa. O botão dele é **Create Your Account** para quem ainda não tem conta no OneUptime e **Sign In to OneUptime** para quem já tem.
+
+**Create Your Account** abre a página de cadastro com o endereço dela e o nome que você digitou já preenchidos, e diz qual projeto a convidou e quem. Cadastrar-se ali a coloca no projeto, sem mais nada para aceitar.
+
+Em um servidor auto-hospedado que ainda não consegue enviar e-mails, ninguém recebe e-mail: o link de convite que a pessoa recebe no lugar abre a mesma página de cadastro, ou a página de entrada para quem já tem conta.
+
+Quem entra, ou se cadastra de outro jeito, aceita em um de dois lugares:
 
 | Onde ela está | O que ela vê | Onde ela clica |
 | --- | --- | --- |
@@ -78,7 +84,7 @@ Ao aceitar, a pessoa entra no projeto na hora, com as permissões da equipe dela
 | --- | --- |
 | **Usuário** | O nome e o endereço de e-mail dela. |
 | **Equipes** | Cada equipe do projeto de que ela participa, ou para a qual foi convidada. |
-| **Status** | **Membro** depois que ela entrou, com o número de convites para outras equipes que ainda não aceitou. **Convite enviado** até lá. Em um servidor auto-hospedado que ainda não consegue enviar e-mails, **Convidado** no lugar: o convite é criado, mas nenhum e-mail é enviado. |
+| **Status** | **Membro** depois que ela entrou, com o número de convites para outras equipes que ainda não aceitou. **Convite enviado** até lá, ou **E-mail não enviado** quando o serviço de e-mail recusou o último e-mail de convite dela. Em um servidor auto-hospedado que ainda não consegue enviar e-mails, **Convidado** no lugar: o convite é criado, mas nenhum e-mail é enviado. |
 
 Filtre a lista por **Usuário**, **Status** ou **Equipe**. Clique em uma linha para abrir a página da pessoa:
 
@@ -112,6 +118,8 @@ A equipe Owners sempre mantém pelo menos um membro que entrou, para que um proj
 
 Em **Usuários**, abra o menu da linha da pessoa, **⋯**, e clique em **Remover do Projeto**. Ou abra a pessoa e escolha **Remover do Projeto** no menu lateral dela. Para remover várias pessoas de uma vez, selecione as linhas delas e exclua a seleção: cada uma é removida do mesmo jeito.
 
+Se a sua função remove pessoas só de algumas equipes, como as que são suas, **Remover do Projeto** fica bloqueado para quem também está em uma equipe da qual você não pode removê-la, e nomeia as equipes que a mantêm no projeto, as que você pode ver. Remover várias pessoas de uma vez a deixa de fora, e diz isso.
+
 Remover alguém tira a pessoa de todas as equipes do projeto. Ela perde o acesso na hora, mesmo com a sessão aberta, sai das escalas de plantão e das regras de escalonamento e deixa de receber as notificações do projeto. A conta dela no OneUptime não é excluída, e você pode convidá-la de novo. [Usuários, equipes e permissões](/docs/permissions/index#usuários) lista tudo o que sair de um projeto leva junto.
 
 ## Outras formas de entrar
@@ -134,10 +142,20 @@ No OneUptime Cloud, um projeto no plano Free tem espaço para uma pessoa. Mude o
 Um endereço pode receber 10 convites por hora, para projetos e páginas de status privadas juntos, seja quem for que os envie. Aguarde uma hora e convide a pessoa de novo.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+A sua função remove pessoas só de algumas equipes do projeto, como as que são suas, e essa pessoa também está em outras. Remova-a das suas próprias equipes na página **Equipes** dela, ou peça a um Proprietário do projeto ou a um Administrador do projeto que a remova do projeto.
+:::
+
 :::details O e-mail de convite não chegou, ou o link expirou
 O convite não depende do e-mail. Peça à pessoa que se cadastre com o endereço convidado: o OneUptime envia para esse endereço um novo link para terminar de criar a conta. Quem já tem conta entra e encontra o convite esperando.
 
+Para ver se ele saiu, abra a guia **E-mail** dos **Logs de notificação** do projeto: a linha de cada convite diz se ele foi enviado, e por que não. Em um servidor auto-hospedado, um administrador mestre também encontra cada e-mail que o servidor não conseguiu enviar no [log de e-mails](/docs/emails/email-providers#ver-o-que-o-servidor-enviou) dele.
+
 Em um servidor auto-hospedado que ainda não consegue enviar e-mails, o cadastro também não consegue enviar um novo link por e-mail: em vez disso, pede à pessoa que solicite o seu link de convite. Depois que o administrador do servidor [configurar o e-mail](/docs/emails/smtp#abrir-o-formulário), o cadastro funciona como acima. Até lá, um administrador mestre pode enviar a ela um novo link, que funciona uma vez, só para esse endereço, por 7 dias: em **Usuários**, abra o menu da linha da pessoa, **⋯**, e clique em **Obter link de convite**.
+:::
+
+:::details Uma pessoa mostra E-mail não enviado
+O serviço de e-mail recusou o último e-mail de convite dela, então nada chegou até ela. Aponte para **E-mail não enviado**, ou toque nele, para ver o motivo, como a guia **E-mail** dos **Logs de notificação** do projeto o mostra. Confira o endereço convidado e, quando o e-mail funcionar, abra o menu da linha da pessoa em **Usuários**, **⋯**, e clique em **Reenviar convite**: ela volta a aparecer como **Convite enviado** assim que ele sai. Em um servidor auto-hospedado, o administrador do servidor pode enviar a ela o link de convite em vez disso: um administrador mestre clica em **Obter link de convite** no mesmo menu.
 :::
 
 :::details Convidar Usuário diz que os usuários são gerenciados pelo SCIM Push Groups

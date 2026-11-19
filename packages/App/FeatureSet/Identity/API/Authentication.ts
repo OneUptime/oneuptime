@@ -2,7 +2,14 @@ import crypto from "crypto";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import CredentialGuard from "../Utils/CredentialGuard";
 import SignupUser from "../Utils/SignupUser";
+import SignUpInvitationUtil from "../Utils/SignUpInvitation";
 import UserResponse from "../Utils/UserResponse";
+import {
+  SIGN_UP_INVITATION_PROJECT_KEY,
+  SIGN_UP_INVITATION_ROUTE,
+  SignUpInvitation,
+  toSignUpInvitationAnswerJSON,
+} from "Common/Types/Accounts/SignUpInvitation";
 import VerificationEmailResendPolicy, {
   VERIFICATION_EMAIL_RESEND_COOLDOWN_IN_SECONDS,
   VERIFICATION_EMAIL_RESEND_INVALID_MESSAGE,
@@ -88,9 +95,12 @@ import TwoFactorBackupCode from "Common/Server/Utils/TwoFactorBackupCode";
 import TwoFactorBackupCodeNotification from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import UserSessionService, {
   RevokeSessionOptions,
+  SessionIdentityProviderSignOut,
   SessionMetadata,
   SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
+import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import { IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD } from "Common/Types/SSO/IdentityProviderSignOut";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
@@ -593,6 +603,62 @@ router.post(
   },
 );
 
+/*
+ * POST /sign-up-invitation: the invitation a sign-up link is for (#7471,
+ * Common/Types/Accounts/SignUpInvitation) - which project, who invited
+ * them and the name the inviter typed - for the sign-up page an invitation
+ * opens, asked with the invited address and its registration token. Nobody
+ * is signed in to ask: the token is the proof of the invited mailbox, read
+ * and never spent (Utils/SignUpInvitation). Every answer but the invited
+ * address's own is { invitation: null }, so asking tells nobody else
+ * anything, not even whether the address has an account.
+ *
+ * The token is a server-minted random UUID - 122 bits - so there is
+ * nothing to guess, but the route is anonymous and every ask looks its
+ * token up, and a live one reads the user, their memberships and who
+ * invited them. The limiter in front of it, on a bucket of its own, bounds
+ * that work, as it does for a sign-in link's token (IdentityRateLimit's
+ * SIGN_UP_INVITATION_BUCKET). Its refusal - and its 503 while Redis is
+ * unreachable - is an answer the page takes as no invitation, so the page
+ * is the plain sign-up page. Beside /signup, whose page asks it; nothing is
+ * cached.
+ */
+const signUpInvitationRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.SignUpInvitation,
+);
+
+router.post(
+  SIGN_UP_INVITATION_ROUTE,
+  signUpInvitationRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      const invitation: SignUpInvitation | null =
+        await SignUpInvitationUtil.read({
+          email: req.body?.["email"],
+          token: req.body?.["token"],
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        toSignUpInvitationAnswerJSON(invitation),
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 router.post(
   "/signup",
   async (
@@ -878,6 +944,21 @@ router.post(
           props: {
             isRoot: true,
           },
+        });
+
+        /*
+         * The sign-up page said which project invited them, and that
+         * creating the account joins it (#7471, SignUpInvitation): the
+         * token this request spent proves it is the invited person, so the
+         * invitation is accepted now rather than asked about again on the
+         * next screen. Before the permissions below are refreshed, so the
+         * session opens with the project. A page that named no project -
+         * an older page, or one whose ask failed - accepts nothing, and the
+         * invitation waits in the Dashboard as before.
+         */
+        await SignUpInvitationUtil.acceptForClaimedAccount({
+          userId: alreadySavedUser.id!,
+          projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY],
         });
       } else {
         /*
@@ -2313,6 +2394,28 @@ router.post(
 );
 
 /*
+ * What the session a sign-out is about to end kept to sign its person out of
+ * their identity provider too (Types/SSO/IdentityProviderSignOut, #9535), or
+ * null. Never fails the sign-out: one that cannot read it signs out of
+ * OneUptime alone, as every sign-out did before.
+ */
+const findIdentityProviderSignOutBeforeSignOut: (
+  data: { refreshToken: string } | { sessionId: ObjectID; userId: ObjectID },
+) => Promise<SessionIdentityProviderSignOut | null> = async (
+  data: { refreshToken: string } | { sessionId: ObjectID; userId: ObjectID },
+): Promise<SessionIdentityProviderSignOut | null> => {
+  try {
+    return await UserSessionService.findIdentityProviderSignOut(data);
+  } catch (err) {
+    logger.warn(
+      "Could not read whether this session signs out of its identity provider too; it signs out of OneUptime alone.",
+    );
+    logger.warn(err);
+    return null;
+  }
+};
+
+/*
  * A refresh of a session that is no longer live. A session the server's session
  * lengths ended already - a master admin shortened them, and every session past
  * them was ended at once (UserSessionService.endSessionsPastLengths) - says why,
@@ -2581,12 +2684,30 @@ router.post(
         requestOrigin: RequestOriginUtil.fromRequest(req),
       };
 
+      /*
+       * What the session this sign-out ends kept to sign its person out of
+       * their identity provider too (#9535), read from it just before it
+       * ends, by whichever of its credentials ends it below - so it is the
+       * very session that ended.
+       */
+      let endedSessionProviderSignOut: SessionIdentityProviderSignOut | null =
+        null;
+
+      let providerSignOutBeforeEnd: SessionIdentityProviderSignOut | null =
+        refreshToken
+          ? await findIdentityProviderSignOutBeforeSignOut({ refreshToken })
+          : null;
+
       let hasEndedSession: boolean = refreshToken
         ? await UserSessionService.revokeSessionByRefreshToken(
             refreshToken,
             revokeOptions,
           )
         : false;
+
+      if (hasEndedSession) {
+        endedSessionProviderSignOut = providerSignOutBeforeEnd;
+      }
 
       /*
        * The refresh token matched no live session: the session it named
@@ -2625,6 +2746,12 @@ router.post(
         }
 
         if (sessionOfAccessToken) {
+          providerSignOutBeforeEnd =
+            await findIdentityProviderSignOutBeforeSignOut({
+              sessionId: sessionOfAccessToken.sessionId,
+              userId: sessionOfAccessToken.userId,
+            });
+
           hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
             {
               userId: sessionOfAccessToken.userId,
@@ -2632,6 +2759,10 @@ router.post(
             },
             revokeOptions,
           );
+
+          if (hasEndedSession) {
+            endedSessionProviderSignOut = providerSignOutBeforeEnd;
+          }
         }
       }
 
@@ -2660,20 +2791,62 @@ router.post(
         }
 
         if (sessionToSignOut) {
-          await UserSessionService.revokeLiveSessionOfUser(
+          providerSignOutBeforeEnd =
+            await findIdentityProviderSignOutBeforeSignOut({
+              sessionId: sessionToSignOut.sessionId,
+              userId: sessionToSignOut.userId,
+            });
+
+          hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
             {
               userId: sessionToSignOut.userId,
               sessionId: sessionToSignOut.sessionId,
             },
             revokeOptions,
           );
+
+          if (hasEndedSession) {
+            endedSessionProviderSignOut = providerSignOutBeforeEnd;
+          }
         }
       }
 
       CookieUtil.removeAllCookies(req, res);
 
+      /*
+       * The OneUptime session has ended, so the browser may now be sent on
+       * to the identity provider, to end its session there too: only for a
+       * session that kept what that takes, and while its provider is still
+       * on and still asks for it (IdentityProviderSignOut.getSignOutUrl).
+       * The sign-out page goes there instead of the sign-in page, and the
+       * provider sends the browser back to the sign-in page.
+       */
+      const identityProviderSignOutUrl: string | null =
+        endedSessionProviderSignOut
+          ? await IdentityProviderSignOut.getSignOutUrl(
+              endedSessionProviderSignOut,
+            )
+          : null;
+
+      if (identityProviderSignOutUrl) {
+        return Response.sendJsonObjectResponse(req, res, {
+          [IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD]: identityProviderSignOutUrl,
+        });
+      }
+
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
+      /*
+       * Ending the session failed - the database could not be reached, say.
+       * The browser is still left with none of the session's cookies, so it
+       * holds no token of the session any more and the next person on it is
+       * not signed in (issue #9508); the failure is still answered, and
+       * logged, as one.
+       */
+      if (!res.headersSent) {
+        CookieUtil.removeAllCookies(req, res);
+      }
+
       return next(err);
     }
   },

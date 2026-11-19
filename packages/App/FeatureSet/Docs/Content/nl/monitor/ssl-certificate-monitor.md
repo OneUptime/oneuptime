@@ -40,17 +40,17 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat en kan
 
 Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **SSL-certificaat**.
 
-### Hem een naam geven
-
-Voer een **Naam** in, zoals `example.com certificate`, en klik op **Volgende**.
-
 ### De URL invoeren
 
 Voer bij **Website-URL** de site in waarvan het certificaat moet worden gecontroleerd, zoals `https://example.com`. Neem voor een service op een andere poort die poort op: `https://example.com:8443`.
 
+### Hem een naam geven
+
+De **Naam** wordt ingevuld met wat u invulde, zoals `example.com`. Houd die of vul uw eigen naam in, zoals `example.com certificate`, en klik dan op **Volgende**.
+
 ### Hem testen
 
-Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. **Testresultaat van monitor** toont het certificaat dat de sonde kreeg, met de uitgever en de vervaldatum.
+Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont het certificaat dat de sonde kreeg, met de uitgever en de vervaldatum. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 

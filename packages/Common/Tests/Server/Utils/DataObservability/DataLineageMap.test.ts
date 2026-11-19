@@ -1,13 +1,37 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { Mock } from "jest-mock";
 import CommonAPI from "../../../../Server/API/CommonAPI";
 import DataObservabilityAPI from "../../../../Server/API/DataObservabilityAPI";
+import DataAssetLineageService from "../../../../Server/Services/DataAssetLineageService";
+import DataAssetService from "../../../../Server/Services/DataAssetService";
+import DataAssetUsageService from "../../../../Server/Services/DataAssetUsageService";
+import DataDashboardService from "../../../../Server/Services/DataDashboardService";
+import DataPipelineService from "../../../../Server/Services/DataPipelineService";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import DataLineageMapReader, {
   DataLineageMapFlowReader,
+  DataLineageMapFocus,
 } from "../../../../Server/Utils/DataObservability/DataLineageMap";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+} from "../../../../Server/Utils/DataObservability/DataObservabilityReadScope";
+import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
+import DataAssetLineage from "../../../../Models/DatabaseModels/DataAssetLineage";
+import DataAssetUsage from "../../../../Models/DatabaseModels/DataAssetUsage";
+import DataDashboard from "../../../../Models/DatabaseModels/DataDashboard";
+import DataPipeline from "../../../../Models/DatabaseModels/DataPipeline";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import {
   DataLineageDashboardRow,
   DataLineagePipelineRow,
+  DataLineageReadable,
   DataLineageReader,
   DataLineageTableRow,
 } from "../../../../Server/Utils/DataObservability/DataTableLineage";
@@ -23,12 +47,27 @@ import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../../Types/DataObservability/DataAssetLineageSource";
 import { DataAssetAccessKind } from "../../../../Types/DataObservability/DataAssetUsage";
 import {
+  DataBiLineageProblem,
+  DataBiSource,
+  readDataBiLineageSummary,
+} from "../../../../Types/DataObservability/DataBiLineage";
+import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
+import { JSONObject } from "../../../../Types/JSON";
+import DataBiConnection from "../../../../Models/DatabaseModels/DataBiConnection";
+import DataBiConnectionService from "../../../../Server/Services/DataBiConnectionService";
+import {
   DataLineageMap,
+  DataLineageMapBiTool,
+  DataLineageMapDashboardRow,
   DataLineageMapLineageRow,
   DataLineageMapNode,
   DataLineageMapUsageRow,
+  MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS,
+  MAX_DATA_LINEAGE_MAP_BI_TOOLS,
+  MAX_DATA_LINEAGE_MAP_FOCUS_TABLES,
   MAX_DATA_LINEAGE_MAP_LINEAGE_ROWS,
   MAX_DATA_LINEAGE_MAP_USAGE_ROWS,
+  getLineageMapSourceNodeId,
 } from "../../../../Types/DataObservability/DataLineageMap";
 import { DATA_OBSERVABILITY_API_ROUTES } from "../../../../Types/DataObservability/DataObservabilityApiTypes";
 import ObjectID from "../../../../Types/ObjectID";
@@ -236,7 +275,13 @@ describe("DataLineageMapReader.build", () => {
       now: NOW,
     });
 
-    expect(map).toEqual({ nodes: [], edges: [], isTruncated: false });
+    expect(map).toEqual({
+      nodes: [],
+      edges: [],
+      isTruncated: false,
+      hiddenTableCount: 0,
+      isHiddenTableCountAtLeast: false,
+    });
     expect(r.asked.tables).toEqual([]);
     expect(r.asked.dashboards).toEqual([]);
   });
@@ -269,6 +314,378 @@ describe("DataLineageMapReader.build", () => {
 
     expect(map.isTruncated).toBe(true);
     expect(map.edges).toHaveLength(1);
+  });
+});
+
+/*
+ * A project whose only lineage is its BI tool's still has a map (#9507):
+ * it said "No lineage yet" while hundreds of Power BI reports were read,
+ * because a dashboard was drawn only on tables another flow drew.
+ */
+describe("DataLineageMapReader.build, with BI dashboards no flow draws", () => {
+  const SHAREPOINT: DataBiSource = {
+    type: "SharePoint",
+    engine: null,
+    server: null,
+    database: null,
+    location: "https://acme.sharepoint.com/sites/facilities",
+  };
+
+  function withBi(
+    r: Readers,
+    rows: Array<DataLineageMapDashboardRow>,
+  ): { flows: DataLineageMapFlowReader; limits: Array<number> } {
+    const limits: Array<number> = [];
+
+    return {
+      limits,
+      flows: {
+        ...r.flows,
+        readBiDashboards: async (limit: number) => {
+          limits.push(limit);
+          return rows.slice(0, limit);
+        },
+      },
+    };
+  }
+
+  test("a project with only a BI tool: its dashboards with their watched tables, and Power BI's own lineage", async () => {
+    const r: Readers = readers({
+      lineage: [],
+      usages: [],
+      tables: [tableRow("orders")],
+    });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, [
+        {
+          dataDashboardId: "revenue",
+          name: "Revenue",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+          upstream: null,
+        },
+        {
+          dataDashboardId: "checklist",
+          name: "15 29 EMG NUO Master Checklist- GANTT View.xlsx",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: [],
+          upstream: {
+            datasets: [
+              {
+                id: "ds-checklist",
+                name: "Master Checklist",
+                workspace: "New Unit Readiness",
+                sources: [SHAREPOINT],
+              },
+            ],
+            sources: [SHAREPOINT],
+          },
+        },
+      ]);
+
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+    });
+
+    expect(bi.limits).toEqual([MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS + 1]);
+    // Only the tables on the map are read, with their open alerts.
+    expect(r.asked.tables).toEqual([["orders"]]);
+    expect(r.asked.alerts).toEqual([["orders"]]);
+    expect(
+      map.nodes.map((node: DataLineageMapNode): string => {
+        return node.id;
+      }),
+    ).toEqual([
+      "dashboard:checklist",
+      "dashboard:revenue",
+      "dataset:ds-checklist",
+      getLineageMapSourceNodeId(SHAREPOINT),
+      "table:orders",
+    ]);
+    expect(
+      map.edges.map((edge: { id: string }): string => {
+        return edge.id;
+      }),
+    ).toEqual([
+      `Feeds:${getLineageMapSourceNodeId(SHAREPOINT)}>dataset:ds-checklist`,
+      "Reads:dataset:ds-checklist>dashboard:checklist",
+      "Reads:table:orders>dashboard:revenue",
+    ]);
+    expect(map.isTruncated).toBe(false);
+  });
+
+  test("dashboards the flows draw already are not drawn twice", async () => {
+    const r: Readers = readers({
+      lineage: [
+        {
+          upstreamDataAssetId: "raw",
+          downstreamDataAssetId: "orders",
+          dataPipelineId: null,
+          source: DataAssetLineageSource.QueryHistory,
+          lastSeenAt: NOW,
+        },
+      ],
+      usages: [],
+      tables: [tableRow("raw"), tableRow("orders")],
+      dashboards: [
+        {
+          dataDashboardId: "d1",
+          name: "Revenue",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+        },
+      ],
+    });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, [
+        {
+          dataDashboardId: "d1",
+          name: "Revenue",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+        },
+      ]);
+
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+    });
+
+    expect(
+      map.nodes.filter((node: DataLineageMapNode): boolean => {
+        return node.id === "dashboard:d1";
+      }),
+    ).toHaveLength(1);
+    expect(r.asked.tables).toEqual([["orders", "raw"]]);
+  });
+
+  test("a full map reads no BI dashboards", async () => {
+    const r: Readers = readers({
+      lineage: [
+        {
+          upstreamDataAssetId: "raw",
+          downstreamDataAssetId: "orders",
+          dataPipelineId: null,
+          source: DataAssetLineageSource.QueryHistory,
+          lastSeenAt: NOW,
+        },
+      ],
+      usages: [],
+      tables: [tableRow("raw"), tableRow("orders")],
+    });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, []);
+
+    await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+      maxNodes: 2,
+    });
+
+    expect(bi.limits).toEqual([]);
+  });
+
+  test("BI dashboards on nothing - no table, no dataset - draw nothing, and read nothing more", async () => {
+    const r: Readers = readers({ lineage: [], usages: [], tables: [] });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, [
+        {
+          dataDashboardId: "empty",
+          name: "Empty",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: [],
+          upstream: { datasets: [], sources: [] },
+        },
+      ]);
+
+    expect(
+      await DataLineageMapReader.build({
+        flows: bi.flows,
+        details: r.details,
+        now: NOW,
+      }),
+    ).toEqual({
+      nodes: [],
+      edges: [],
+      isTruncated: false,
+      hiddenTableCount: 0,
+      isHiddenTableCountAtLeast: false,
+    });
+    expect(r.asked.tables).toEqual([]);
+  });
+
+  test("a reader limited to some tables is drawn only the dashboards the flows of their tables lead to", async () => {
+    const r: Readers = readers({
+      lineage: [],
+      usages: [],
+      tables: [tableRow("orders")],
+    });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, [
+        {
+          dataDashboardId: "facilities",
+          name: "Facilities",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+          upstream: null,
+        },
+      ]);
+    const onlyOrders: DataLineageReadable = {
+      readableTableIds: async (ids: Array<string>): Promise<Set<string>> => {
+        return new Set(
+          ids.filter((id: string): boolean => {
+            return id === "orders";
+          }),
+        );
+      },
+      readablePipelineIds: async (): Promise<Set<string>> => {
+        return new Set();
+      },
+    };
+
+    const whole: DataLineageMap = await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+    });
+    const limited: DataLineageMap = await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+      readable: onlyOrders,
+    });
+
+    expect(
+      whole.nodes.map((node: DataLineageMapNode): string => {
+        return node.id;
+      }),
+    ).toEqual(["dashboard:facilities", "table:orders"]);
+    // Read once: for the whole map, not the limited one.
+    expect(bi.limits).toHaveLength(1);
+    expect(limited.nodes).toEqual([]);
+  });
+});
+
+/*
+ * The BI tools the map tells of (#9507): each whose dashboards were read
+ * but are on no watched table, with why; the map carries them, so the page
+ * says why it cannot draw them on tables without asking twice.
+ */
+describe("the BI tools the map tells of", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function connection(fields: Partial<DataBiConnection>): DataBiConnection {
+    const model: DataBiConnection = new DataBiConnection();
+
+    model._id = ObjectID.generate().toString();
+    Object.assign(model, fields);
+
+    return model;
+  }
+
+  const SUMMARY: JSONObject = {
+    dashboardCount: 783,
+    tableCount: 0,
+    matchedTableCount: 0,
+    datasets: { count: 59, withTables: 0, withQueries: 0 },
+    sources: [],
+    problems: [DataBiLineageProblem.NoTablesFromTool],
+  };
+
+  test("a tool whose dashboards were read but matched no table, with why; no other", async () => {
+    const off: DataBiConnection = connection({
+      name: "Oneuptime PBI Data Observability",
+      tool: DataBiTool.PowerBI,
+      dashboardCount: 783,
+      matchedTableCount: 0,
+      lineageSummary: SUMMARY,
+    });
+    const find: jest.SpyInstance = jest
+      .spyOn(DataBiConnectionService, "findBy")
+      .mockResolvedValue([
+        off,
+        // On watched tables already.
+        connection({
+          name: "Metabase",
+          dashboardCount: 12,
+          matchedTableCount: 3,
+          lineageSummary: SUMMARY,
+        }),
+        // Never read, or read before a summary was kept, or with nothing in the way.
+        connection({ name: "New", dashboardCount: 0, matchedTableCount: 0 }),
+        connection({ name: "Old", dashboardCount: 5, matchedTableCount: 0 }),
+        connection({
+          name: "Fine",
+          dashboardCount: 5,
+          matchedTableCount: 0,
+          lineageSummary: { ...SUMMARY, problems: [] },
+        }),
+      ] as never) as unknown as jest.SpyInstance;
+
+    const tools: Array<DataLineageMapBiTool> =
+      await DataLineageMapReader.readBiToolsOffTables(PROJECT_ID);
+
+    expect(tools).toEqual([
+      {
+        dataBiConnectionId: off.id!.toString(),
+        name: "Oneuptime PBI Data Observability",
+        tool: DataBiTool.PowerBI,
+        dashboardCount: 783,
+        summary: expect.objectContaining({
+          dashboardCount: 783,
+          problems: [DataBiLineageProblem.NoTablesFromTool],
+        }),
+      },
+    ]);
+    expect(find.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      limit: MAX_DATA_LINEAGE_MAP_BI_TOOLS,
+    });
+  });
+
+  test("the map carries them, and leaves them out when there are none", async () => {
+    const drawn: DataLineageMap = { nodes: [], edges: [], isTruncated: false };
+    const tool: DataLineageMapBiTool = {
+      dataBiConnectionId: "77777777-7777-4777-8777-000000000001",
+      name: "Power BI",
+      tool: DataBiTool.PowerBI,
+      dashboardCount: 783,
+      summary: readDataBiLineageSummary(SUMMARY)!,
+    };
+
+    jest.spyOn(DataLineageMapReader, "build").mockResolvedValue(drawn);
+    const readTools: jest.SpyInstance = jest
+      .spyOn(DataLineageMapReader, "readBiToolsOffTables")
+      .mockResolvedValueOnce([tool])
+      .mockResolvedValueOnce([]) as unknown as jest.SpyInstance;
+
+    expect(
+      await DataLineageMapReader.read({
+        projectId: PROJECT_ID,
+        now: NOW,
+        reader: null,
+      }),
+    ).toEqual({ ...drawn, biToolsOffTables: [tool] });
+    expect(
+      await DataLineageMapReader.read({
+        projectId: PROJECT_ID,
+        now: NOW,
+        reader: null,
+      }),
+    ).toEqual(drawn);
+    expect(readTools).toHaveBeenCalledWith(PROJECT_ID);
   });
 });
 
@@ -394,5 +811,468 @@ describe("the lineage map route", () => {
     expect(asked.read).not.toHaveBeenCalled();
     expect(asked.sent).not.toHaveBeenCalled();
     expect(asked.next).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A MAP THAT STARTS SOMEWHERE (#6547), READ FROM THE DATABASE.
+ *
+ * One database, or a search of the whole project, reads the rows of the
+ * tables it starts from - their rows each way, the services on them, and
+ * the rows of the pipelines a search names - a few hundred ids a read, each
+ * row once, the newest first. A reader limited to some tables starts from
+ * the ones they may read (#9526). A whole map, read by someone who may read
+ * the whole project, reads the project's newest rows as it always did.
+ */
+type FindCall = {
+  query: Record<string, unknown>;
+  select?: Record<string, unknown>;
+  sort?: Record<string, unknown>;
+  limit?: number;
+  props: DatabaseCommonInteractionProps;
+};
+
+function callsOf(spy: ReturnType<typeof jest.spyOn>): Array<FindCall> {
+  return spy.mock.calls.map((call: Array<unknown>): FindCall => {
+    return call[0] as FindCall;
+  });
+}
+
+function uuidOf(index: number): string {
+  return `00000009-0000-4000-8000-${index.toString().padStart(12, "0")}`;
+}
+
+function idsIn(value: unknown): Array<string> {
+  expect(value).toBeInstanceOf(Includes);
+
+  return (value as Includes).values.map((entry: unknown): string => {
+    return String(entry);
+  });
+}
+
+function lineageModel(fields: {
+  id: number;
+  upstream: string | null;
+  downstream: string;
+  pipeline?: string | null;
+  hoursAgo: number;
+}): DataAssetLineage {
+  const row: DataAssetLineage = new DataAssetLineage();
+
+  row._id = uuidOf(1000 + fields.id);
+  row.upstreamDataAssetId = fields.upstream
+    ? new ObjectID(fields.upstream)
+    : undefined!;
+  row.downstreamDataAssetId = new ObjectID(fields.downstream);
+  row.dataPipelineId = fields.pipeline
+    ? new ObjectID(fields.pipeline)
+    : undefined!;
+  row.lastSeenAt = new Date(NOW.getTime() - fields.hoursAgo * 60 * 60 * 1000);
+
+  return row;
+}
+
+describe("the rows of the tables a map starts from (getFocusedFlowReader)", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("each table's rows both ways and each pipeline's own, every row once, the newest first, the project's own", async () => {
+    const A: string = uuidOf(1);
+    const B: string = uuidOf(2);
+    const PIPE: string = uuidOf(50);
+    const read: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataAssetLineageService, "findBy")
+      .mockImplementation((async (findBy: FindCall) => {
+        if (findBy.query["downstreamDataAssetId"]) {
+          return [
+            lineageModel({ id: 1, upstream: B, downstream: A, hoursAgo: 5 }),
+          ];
+        }
+
+        if (findBy.query["upstreamDataAssetId"]) {
+          // The same row again, read from its other end: kept once.
+          return [
+            lineageModel({ id: 1, upstream: B, downstream: A, hoursAgo: 5 }),
+            lineageModel({ id: 2, upstream: A, downstream: B, hoursAgo: 1 }),
+          ];
+        }
+
+        return [
+          lineageModel({
+            id: 3,
+            upstream: null,
+            downstream: B,
+            pipeline: PIPE,
+            hoursAgo: 3,
+          }),
+        ];
+      }) as never);
+    const focus: DataLineageMapFocus = {
+      dataAssetIds: [A, B],
+      dataPipelineIds: [PIPE],
+      isTruncated: false,
+    };
+
+    const rows: Array<DataLineageMapLineageRow> =
+      await DataLineageMapReader.getFocusedFlowReader(
+        PROJECT_ID,
+        focus,
+      ).readLineage(10);
+
+    expect(
+      rows.map((row: DataLineageMapLineageRow): string => {
+        return `${row.upstreamDataAssetId || row.dataPipelineId}>${row.downstreamDataAssetId}`;
+      }),
+    ).toEqual([`${A}>${B}`, `${PIPE}>${B}`, `${B}>${A}`]);
+
+    const calls: Array<FindCall> = callsOf(read);
+
+    expect(calls).toHaveLength(3);
+
+    for (const call of calls) {
+      expect(call.query["projectId"]).toBe(PROJECT_ID);
+      expect(call.props).toEqual({ isRoot: true });
+      expect(call.limit).toBe(10);
+    }
+
+    expect(idsIn(calls[0]!.query["downstreamDataAssetId"])).toEqual([A, B]);
+    expect(idsIn(calls[1]!.query["upstreamDataAssetId"])).toEqual([A, B]);
+    expect(idsIn(calls[2]!.query["dataPipelineId"])).toEqual([PIPE]);
+  });
+
+  test("many tables are read a few hundred ids at a time, at most as many rows as asked", async () => {
+    const read: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataAssetLineageService, "findBy")
+      .mockResolvedValue([] as never);
+    const tables: Array<string> = [];
+
+    for (let index: number = 0; index < 1001; index++) {
+      tables.push(uuidOf(index));
+    }
+
+    await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
+      dataAssetIds: tables,
+      dataPipelineIds: [],
+      isTruncated: false,
+    }).readLineage(5);
+
+    // Three chunks, each read both ways.
+    expect(
+      callsOf(read).map((call: FindCall): number => {
+        return idsIn(
+          call.query["downstreamDataAssetId"] ||
+            call.query["upstreamDataAssetId"],
+        ).length;
+      }),
+    ).toEqual([500, 500, 500, 500, 1, 1]);
+  });
+
+  test("the services reading and writing each table, each row once, the newest first", async () => {
+    const A: string = uuidOf(1);
+    const usageModel: (id: number, hoursAgo: number) => DataAssetUsage = (
+      id: number,
+      hoursAgo: number,
+    ): DataAssetUsage => {
+      const row: DataAssetUsage = new DataAssetUsage();
+      row._id = uuidOf(2000 + id);
+      row.dataAssetId = new ObjectID(A);
+      row.serviceName = `svc-${id}`;
+      row.accessKind = DataAssetAccessKind.Read;
+      row.lastSeenAt = new Date(NOW.getTime() - hoursAgo * 60 * 60 * 1000);
+      return row;
+    };
+    const read: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataAssetUsageService, "findBy")
+      .mockResolvedValue([usageModel(1, 4), usageModel(2, 1)] as never);
+
+    const rows: Array<DataLineageMapUsageRow> =
+      await DataLineageMapReader.getFocusedFlowReader(PROJECT_ID, {
+        dataAssetIds: [A],
+        dataPipelineIds: [],
+        isTruncated: false,
+      }).readUsages(10);
+
+    expect(
+      rows.map((row: DataLineageMapUsageRow): string => {
+        return row.serviceName;
+      }),
+    ).toEqual(["svc-2", "svc-1"]);
+    expect(idsIn(callsOf(read)[0]!.query["dataAssetId"])).toEqual([A]);
+  });
+});
+
+describe("the tables a map starts from (readFocus)", () => {
+  const WHOLE: DataObservabilityScope =
+    DataObservabilityReadScope.wholeProject(PROJECT_ID);
+  const STORE: string = uuidOf(900);
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function stubTables(ids: Array<string>): ReturnType<typeof jest.spyOn> {
+    return jest.spyOn(DataAssetService, "findBy").mockResolvedValue(
+      ids.map((id: string): DataAsset => {
+        const asset: DataAsset = new DataAsset();
+        asset._id = id;
+        return asset;
+      }) as never,
+    );
+  }
+
+  test("one database: its tables, the most recently updated first, the project's own", async () => {
+    const read: ReturnType<typeof jest.spyOn> = stubTables([
+      uuidOf(1),
+      uuidOf(2),
+    ]);
+
+    const focus: DataLineageMapFocus = await DataLineageMapReader.readFocus({
+      projectId: PROJECT_ID,
+      scope: WHOLE,
+      request: { dataStoreId: STORE },
+    });
+
+    expect(focus).toEqual({
+      dataAssetIds: [uuidOf(1), uuidOf(2)],
+      dataPipelineIds: [],
+      isTruncated: false,
+    });
+
+    const call: FindCall = callsOf(read)[0]!;
+
+    expect(call.query["projectId"]).toBe(PROJECT_ID);
+    expect(String(call.query["dataStoreId"])).toBe(STORE);
+    expect(call.query["assetKey"]).toBeUndefined();
+    expect(call.sort).toEqual({ updatedAt: "DESC" });
+    expect(call.limit).toBe(MAX_DATA_LINEAGE_MAP_FOCUS_TABLES + 1);
+    expect(call.props).toEqual({ isRoot: true });
+  });
+
+  test("more tables than one map reads the flows of: the most it reads, and it says it was cut short", async () => {
+    const ids: Array<string> = [];
+
+    for (
+      let index: number = 0;
+      index <= MAX_DATA_LINEAGE_MAP_FOCUS_TABLES;
+      index++
+    ) {
+      ids.push(uuidOf(index));
+    }
+
+    stubTables(ids);
+
+    const focus: DataLineageMapFocus = await DataLineageMapReader.readFocus({
+      projectId: PROJECT_ID,
+      scope: WHOLE,
+      request: { dataStoreId: STORE },
+    });
+
+    expect(focus.dataAssetIds).toHaveLength(MAX_DATA_LINEAGE_MAP_FOCUS_TABLES);
+    expect(focus.isTruncated).toBe(true);
+  });
+
+  test("a search: the tables whose key holds it, the pipelines whose name does, and the tables of the services and dashboards it names - of what the reader may read", async () => {
+    const OWNED: ReturnType<typeof QueryHelper.any> = QueryHelper.any([
+      uuidOf(1),
+      uuidOf(7),
+    ]);
+    const scope: DataObservabilityScope = {
+      isWholeProject: false,
+      assetQuery: { projectId: PROJECT_ID, _id: OWNED },
+      checkQuery: { projectId: PROJECT_ID },
+      pipelineQuery: {
+        projectId: PROJECT_ID,
+        _id: QueryHelper.any([uuidOf(50)]),
+      },
+    };
+    const tableRead: ReturnType<typeof jest.spyOn> = stubTables([uuidOf(1)]);
+    const pipelineRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataPipelineService, "findBy")
+      .mockImplementation((async () => {
+        const pipeline: DataPipeline = new DataPipeline();
+        pipeline._id = uuidOf(50);
+        return [pipeline];
+      }) as never);
+    const usageRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataAssetUsageService, "findBy")
+      .mockImplementation((async () => {
+        const usage: DataAssetUsage = new DataAssetUsage();
+        usage.dataAssetId = new ObjectID(uuidOf(7));
+        const theirsNot: DataAssetUsage = new DataAssetUsage();
+        theirsNot.dataAssetId = new ObjectID(uuidOf(8));
+        return [usage, theirsNot];
+      }) as never);
+    const dashboardRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataDashboardService, "findBy")
+      .mockImplementation((async () => {
+        const dashboard: DataDashboard = new DataDashboard();
+        const theirsNot: DataAsset = new DataAsset();
+        theirsNot._id = uuidOf(9);
+        dashboard.dataAssets = [theirsNot];
+        return [dashboard];
+      }) as never);
+    const readable: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataObservabilityReadScope, "getReadableIds")
+      .mockImplementation((async (data: { ids: Array<string> }) => {
+        return new Set(
+          data.ids.filter((id: string): boolean => {
+            return id === uuidOf(7);
+          }),
+        );
+      }) as never);
+
+    const focus: DataLineageMapFocus = await DataLineageMapReader.readFocus({
+      projectId: PROJECT_ID,
+      scope,
+      request: { search: "orders" },
+    });
+
+    expect(focus).toEqual({
+      dataAssetIds: [uuidOf(1), uuidOf(7)],
+      dataPipelineIds: [uuidOf(50)],
+      isTruncated: false,
+    });
+    // The tables read with the reader's scope, the search beside it.
+    expect(callsOf(tableRead)[0]!.query["_id"]).toBe(OWNED);
+    expect(callsOf(tableRead)[0]!.query["assetKey"]).toBeDefined();
+    // The pipelines with theirs.
+    expect(callsOf(pipelineRead)[0]!.query["_id"]).toBe(
+      scope.pipelineQuery["_id" as keyof typeof scope.pipelineQuery],
+    );
+    expect(callsOf(pipelineRead)[0]!.query["jobName"]).toBeDefined();
+    expect(callsOf(usageRead)[0]!.query["serviceName"]).toBeDefined();
+    expect(callsOf(dashboardRead)[0]!.query["name"]).toBeDefined();
+    // The tables the services and dashboards name, asked of the reader's scope.
+    expect(
+      (readable.mock.calls[0]![0] as { ids: Array<string> }).ids.sort(),
+    ).toEqual([uuidOf(7), uuidOf(8), uuidOf(9)].sort());
+  });
+});
+
+describe("which rows a map reads (DataLineageMapReader.read)", () => {
+  const MEMBER_PROPS: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: USER_ID,
+    userType: UserType.User,
+  };
+
+  beforeEach(() => {
+    // No BI tool is on no watched table (the BI tools the map tells of).
+    jest
+      .spyOn(DataLineageMapReader, "readBiToolsOffTables")
+      .mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a whole map for someone who may read the whole project: the project's newest rows, as ever", async () => {
+    jest
+      .spyOn(DataObservabilityReadScope, "get")
+      .mockResolvedValue(
+        DataObservabilityReadScope.wholeProject(PROJECT_ID) as never,
+      );
+
+    const newest: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataLineageMapReader, "getDatabaseFlowReader")
+      .mockReturnValue({
+        readLineage: async () => {
+          return [];
+        },
+        readUsages: async () => {
+          return [];
+        },
+      });
+    const focused: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DataLineageMapReader,
+      "readFocus",
+    );
+
+    await DataLineageMapReader.read({
+      projectId: PROJECT_ID,
+      now: NOW,
+      reader: MEMBER_PROPS,
+    });
+
+    expect(newest).toHaveBeenCalledWith(PROJECT_ID);
+    expect(focused).not.toHaveBeenCalled();
+  });
+
+  test.each([[{ dataStoreId: uuidOf(900) }], [{ search: "orders" }]])(
+    "a map that starts somewhere (%p) reads the rows of the tables it starts from",
+    async (request: { dataStoreId?: string; search?: string }) => {
+      jest
+        .spyOn(DataObservabilityReadScope, "get")
+        .mockResolvedValue(
+          DataObservabilityReadScope.wholeProject(PROJECT_ID) as never,
+        );
+
+      const newest: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        DataLineageMapReader,
+        "getDatabaseFlowReader",
+      );
+      const focused: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(DataLineageMapReader, "readFocus")
+        .mockResolvedValue({
+          dataAssetIds: [],
+          dataPipelineIds: [],
+          isTruncated: true,
+        } as never);
+
+      const map: DataLineageMap = await DataLineageMapReader.read({
+        projectId: PROJECT_ID,
+        now: NOW,
+        reader: MEMBER_PROPS,
+        request,
+      });
+
+      expect(newest).not.toHaveBeenCalled();
+      expect(focused.mock.calls[0]![0]).toMatchObject({
+        projectId: PROJECT_ID,
+        request,
+      });
+      // It started from more tables than it reads: it says it was cut short.
+      expect(map.isTruncated).toBe(true);
+      expect(map.isHiddenTableCountAtLeast).toBe(true);
+    },
+  );
+
+  test("a reader limited to some tables starts a whole map from the ones they may read", async () => {
+    const scope: DataObservabilityScope = {
+      isWholeProject: false,
+      assetQuery: { projectId: PROJECT_ID, _id: QueryHelper.any([uuidOf(1)]) },
+      checkQuery: { projectId: PROJECT_ID },
+      pipelineQuery: { projectId: PROJECT_ID, _id: QueryHelper.any([]) },
+    };
+
+    jest
+      .spyOn(DataObservabilityReadScope, "get")
+      .mockResolvedValue(scope as never);
+
+    const newest: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DataLineageMapReader,
+      "getDatabaseFlowReader",
+    );
+    const focused: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataLineageMapReader, "readFocus")
+      .mockResolvedValue({
+        dataAssetIds: [],
+        dataPipelineIds: [],
+        isTruncated: false,
+      } as never);
+
+    await DataLineageMapReader.read({
+      projectId: PROJECT_ID,
+      now: NOW,
+      reader: MEMBER_PROPS,
+    });
+
+    expect(newest).not.toHaveBeenCalled();
+    expect(focused.mock.calls[0]![0]).toMatchObject({
+      scope,
+      request: {},
+    });
   });
 });

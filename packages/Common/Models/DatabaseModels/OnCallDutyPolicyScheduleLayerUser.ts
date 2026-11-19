@@ -493,7 +493,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Order",
     description:
-      "Order / Priority of this layer. Lower the number, higher the priority.",
+      "This person's turn in the layer's rotation, lowest first. People who share a turn take it in the order of their IDs. Setting it places this person and moves no other, so a configuration that numbers everyone in a layer ends up exactly as written. Left out when you add someone, they take the layer's last turn.",
   })
   @Column({
     type: ColumnType.Number,

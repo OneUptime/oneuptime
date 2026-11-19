@@ -127,9 +127,21 @@ describe("the product of an address", () => {
   });
 
   test("an address outside a project is no product's", () => {
-    expect(getProductOfPath("/dashboard/active-incidents")).toBeNull();
+    expect(getProductOfPath("/dashboard/project-invitations")).toBeNull();
     expect(getProductOfPath("/admin/settings/products")).toBeNull();
     expect(getProductOfPath("")).toBeNull();
+  });
+
+  test("but a page outside a project of one product's records is that product's (#7478)", () => {
+    expect(getProductOfPath("/dashboard/active-incidents")).toBe(
+      ProductKey.Incidents,
+    );
+    expect(getProductOfPath("/dashboard/active-alerts")).toBe(
+      ProductKey.Alerts,
+    );
+    expect(getProductOfPath("/dashboard/my-on-call-policies")).toBe(
+      ProductKey.OnCall,
+    );
   });
 
   test("a word that only starts like a product's path is not that product", () => {

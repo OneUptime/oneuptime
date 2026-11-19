@@ -65,11 +65,11 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
-import {
-  getResourceConnectionLabel,
-  getResourceHealthLabel,
-} from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import ResourceHealthPill, {
+  ResourceHealthDialogWords,
+} from "../../../Components/ResourcePart/ResourceHealthPill";
 import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import {
   ResourceAttentionItem,
@@ -110,7 +110,13 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+// What a Degraded or Unhealthy Ceph cluster's pill opens (ResourceHealthPill).
+export const CEPH_HEALTH_WORDS: ResourceHealthDialogWords = {
+  degradedTitle: translationKey("Why this cluster is Degraded"),
+  unhealthyTitle: translationKey("Why this cluster is Unhealthy"),
+};
 
 /*
  * A Ceph cluster's Overview, what `ceph status` and `ceph health detail`
@@ -774,25 +780,6 @@ const CephClusterOverview: FunctionComponent<
       !inventoryError &&
       (inventoryRows.length > 0 ||
         (cluster.healthStatus !== null && cluster.healthStatus !== undefined));
-    const healthLabel: string = getResourceHealthLabel({
-      translator: translator,
-      health: clusterHealth,
-      isConnected: isConnected,
-    });
-    const healthBadgeClass: string = !isConnected
-      ? "bg-gray-50 text-gray-600 ring-gray-200"
-      : clusterHealth === "Healthy"
-        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-        : clusterHealth === "Degraded"
-          ? "bg-amber-50 text-amber-700 ring-amber-200"
-          : "bg-red-50 text-red-700 ring-red-200";
-    const healthDotClass: string = !isConnected
-      ? "bg-gray-400"
-      : clusterHealth === "Healthy"
-        ? "bg-emerald-500"
-        : clusterHealth === "Degraded"
-          ? "bg-amber-500"
-          : "bg-red-500";
 
     /*
      * The count chips open their list: the Overview's one step to the
@@ -919,16 +906,14 @@ const CephClusterOverview: FunctionComponent<
                     </span>
                     {showsHealth ? (
                       <span className="inline-flex items-center gap-1">
-                        <span
-                          data-testid="ceph-hero-health"
-                          data-health={isConnected ? clusterHealth : "Unknown"}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
-                          />
-                          {healthLabel}
-                        </span>
+                        {/* Degraded or Unhealthy opens why (ResourceHealthPill). */}
+                        <ResourceHealthPill
+                          health={clusterHealth}
+                          isConnected={isConnected}
+                          items={attentionItems}
+                          testId="ceph-hero-health"
+                          words={CEPH_HEALTH_WORDS}
+                        />
                         <InfoTooltip
                           label="Cluster health"
                           text={CEPH_METRIC_DESCRIPTIONS.health}

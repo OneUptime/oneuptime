@@ -43,13 +43,13 @@ En monitorgrupp är inte en statussidegrupp. En statussidegrupp är en rubrik p�
 ## Slå på monitorgrupper
 
 :::steps
-### Öppna funktionsflaggor
+### Öppna Produkter
 
-Gå till **Projektinställningar → Avancerad → Funktionsflaggor**. **Avancerad** är hopfällt i sidomenyn: fäll ut det först.
+Gå till **Projektinställningar → Grundläggande → Produkter**.
 
 ### Slå om brytaren
 
-Slå på brytaren **Monitorgrupper**. Den sparas direkt: **Monitorgrupper** visas i sidomenyn för **Monitorer**, och varje statussidas menyval **Monitorer** heter nu **Resurser**, där du kan lägga till en grupp.
+Slå på brytaren **Monitorgrupper** under **Monitorer**. Den sparas direkt: **Monitorgrupper** visas i sidomenyn för **Monitorer**, och varje statussidas menyval **Monitorer** heter nu **Resurser**, där du kan lägga till en grupp.
 :::
 
 Stänger du av brytaren igen döljs **Monitorgrupper** i menyn. Ingen grupp tas bort.
@@ -143,7 +143,7 @@ En grupp är `/api/monitor-group`, och varje monitor i den är en rad i `/api/mo
 ## Felsökning
 
 :::details Monitorgrupper finns inte i menyn Monitorer
-Brytaren **Monitorgrupper** är avstängd. Slå på den under **Projektinställningar → Avancerad → Funktionsflaggor**. På OneUptime Cloud kräver grupper också Scale-planen.
+Brytaren **Monitorgrupper** är avstängd. Slå på den under **Projektinställningar → Grundläggande → Produkter**. På OneUptime Cloud kräver grupper också Scale-planen.
 :::
 
 :::details Gruppen visar Offline, men de flesta av dess monitorer fungerar

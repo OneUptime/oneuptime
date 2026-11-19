@@ -65,7 +65,10 @@ export enum ProbeFailureCause {
   NtpPortUnreachable = "NtpPortUnreachable",
   NtpRequestFailedWithCode = "NtpRequestFailedWithCode",
   NtpRequestFailed = "NtpRequestFailed",
-  // NtpMonitor: an attempt's cause, after every attempt failed.
+  /*
+   * NtpMonitor: an attempt's cause, after every attempt failed. Dataverse's
+   * client (DataverseApi) says it of a request it asked again, too.
+   */
   TriedTimes = "TriedTimes",
 
   // ProbeNetworkFailureUtil.describe: a failure on the probe's own side.

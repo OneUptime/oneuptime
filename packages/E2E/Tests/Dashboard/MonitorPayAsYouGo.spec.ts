@@ -245,7 +245,7 @@ test.describe("Monitor pay-as-you-go pricing", () => {
   test("keeps Manual monitor setup usable without a payment method", async () => {
     const form: Locator = ctx.page.locator("#create-monitor-form");
     await expect(form).toBeVisible();
-    // What to monitor comes first on Monitor Info, then the name.
+    // The type comes first on What to Monitor, then the name.
     await selectMonitorTypeCard({ page: ctx.page, cardValue: "Manual" });
     await form
       .getByPlaceholder("Monitor Name", { exact: true })
@@ -254,9 +254,9 @@ test.describe("Monitor pay-as-you-go pricing", () => {
       form.getByRole("checkbox", { name: "I agree to these usage charges" }),
     ).toHaveCount(0);
     /*
-     * A Manual monitor asks nothing more: Monitor Info is its only step - its
-     * last - so Create Monitor is there with no Next, and its optional labels
-     * wait under More fields on the same step.
+     * A Manual monitor asks nothing more: What to Monitor is its only step -
+     * its last - so Create Monitor is there with no Next, and its optional
+     * labels wait under More fields on the same step.
      */
     await expect(ctx.page.getByTestId("Create Monitor")).toHaveText(
       "Create Monitor",

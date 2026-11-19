@@ -53,7 +53,7 @@ Skriv adressen i **E-post**. Om inget OneUptime-konto använder den ännu ber di
 
 Klicka på **Bjud in**. OneUptime skickar inbjudan via e-post och öppnar personens sida. Personen visas som **Inbjudan skickad** tills inbjudan har accepterats.
 
-På en egenvärdad server som inte kan skicka e-post ännu skickas inget mejl, och personen visas som **Inbjuden**. En huvudadministratör ser först **Skicka deras inbjudningslänk**: kopiera länken, skicka den själv till personen och klicka sedan på **Klar**. Alla andra ber serverns administratör att [konfigurera e-post](/docs/emails/smtp#öppna-formuläret).
+På en egenvärdad server som inte kan skicka e-post ännu skickas inget mejl, och personen visas som **Inbjuden**. En huvudadministratör ser först **Skicka deras inbjudningslänk**: kopiera länken, skicka den själv till personen och klicka sedan på **Klar**. Alla andra ber serverns administratör att [konfigurera e-post](/docs/emails/smtp#öppna-formuläret). E-post som konfigureras senare skickar inte inbjudningarna som gjordes innan: personen kommer in med sin inbjudningslänk, eller genom att registrera sig med den inbjudna adressen.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ På en egenvärdad server som inte kan skicka e-post ännu skickas inget mejl, o
 
 ## Acceptera en inbjudan
 
-Inbjudningsmeddelandet nämner projektet. Knappen i det är **Create Your Account** för den som inte har ett OneUptime-konto ännu, och **Sign In to OneUptime** för den som har ett. Efter inloggningen accepterar personen på ett av två ställen:
+Inbjudningsmeddelandet nämner projektet och vem som bjöd in personen. Knappen i det är **Create Your Account** för den som inte har ett OneUptime-konto ännu, och **Sign In to OneUptime** för den som har ett.
+
+**Create Your Account** öppnar registreringssidan med personens adress och namnet du skrev redan ifyllda, och säger vilket projekt som bjöd in personen, och vem. Den som registrerar sig där går med i projektet utan något mer att acceptera.
+
+På en egenvärdad server som inte kan skicka e-post ännu får ingen något mejl: inbjudningslänken som personen får i stället öppnar samma registreringssida, eller inloggningssidan för den som redan har ett konto.
+
+Den som loggar in, eller registrerar sig på annat sätt, accepterar på ett av två ställen:
 
 | Var personen är | Vad personen ser | Vad personen klickar på |
 | --- | --- | --- |
@@ -78,7 +84,7 @@ När personen accepterar är den med i projektet direkt, med teamets behörighet
 | --- | --- |
 | **Användare** | Namn och e-postadress. |
 | **Team** | Vart och ett av projektets team som personen är med i eller inbjuden till. |
-| **Status** | **Medlem** när personen har gått med, med antalet inbjudningar till andra team som inte har accepterats ännu. **Inbjudan skickad** fram till dess. På en egenvärdad server som inte kan skicka e-post ännu visas **Inbjuden** i stället: inbjudan skapas, men inget mejl skickas. |
+| **Status** | **Medlem** när personen har gått med, med antalet inbjudningar till andra team som inte har accepterats ännu. **Inbjudan skickad** fram till dess, eller **Mejl inte skickat** när e-posttjänsten avvisade det senaste inbjudningsmejlet. På en egenvärdad server som inte kan skicka e-post ännu visas **Inbjuden** i stället: inbjudan skapas, men inget mejl skickas. |
 
 Filtrera listan efter **Användare**, **Status** eller **Team**. Klicka på en rad för att öppna personens sida:
 
@@ -112,6 +118,8 @@ Owners-teamet behåller alltid minst en medlem som har gått med, så att ett pr
 
 Under **Användare** öppnar du personens radmeny, **⋯**, och klickar på **Ta bort från projekt**. Eller öppna personen och välj **Ta bort från projekt** i sidomenyn. För att ta bort flera personer på en gång markerar du deras rader och tar bort urvalet: var och en tas bort på samma sätt.
 
+Om din roll bara tar bort personer från vissa team, till exempel de du äger, är **Ta bort från projekt** låst för någon som också finns i ett team du inte kan ta bort personen från, och nämner de team som håller kvar personen i projektet, de du får se. När du tar bort flera personer på en gång hoppas personen över, och det sägs.
+
 Att ta bort någon tar bort personen från alla projektets team. Personen förlorar åtkomsten direkt, även om den är inloggad, tas bort från jourscheman och eskaleringsregler och får inte längre projektets aviseringar. OneUptime-kontot tas inte bort, och du kan bjuda in personen igen. [Användare, team och behörigheter](/docs/permissions/index#användare) visar allt som det innebär att lämna ett projekt.
 
 ## Andra sätt att gå med
@@ -134,10 +142,20 @@ I OneUptime Cloud har ett projekt på Free-planen plats för en person. Byt plan
 En adress kan få 10 inbjudningar i timmen, till projekt och privata statussidor tillsammans, oavsett vem som skickar dem. Vänta en timme och bjud sedan in personen igen.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Din roll tar bara bort personer från vissa av projektets team, till exempel de du äger, och den här personen finns också i andra. Ta bort personen från dina egna team på personens sida **Team**, eller be en Projektägare eller Projektadministratör att ta bort personen från projektet.
+:::
+
 :::details Inbjudningsmeddelandet kom aldrig fram, eller länken har gått ut
 Inbjudan beror inte på e-postmeddelandet. Be personen registrera sig med den inbjudna adressen: OneUptime skickar en ny länk till den adressen för att slutföra kontot. Den som redan har ett konto loggar in och hittar inbjudan.
 
+För att se om det skickades öppnar du fliken **E-post** under projektets **Aviseringsloggar**: raden för varje inbjudan säger om den skickades, och varför inte. På en egenvärdad server hittar en huvudadministratör också varje mejl som servern inte kunde skicka i dess [e-postlogg](/docs/emails/email-providers#se-vad-servern-har-skickat).
+
 På en egenvärdad server som inte kan skicka e-post ännu kan inte heller registreringen mejla en ny länk: i stället ber den personen att be om sin inbjudningslänk. När serverns administratör har [konfigurerat e-post](/docs/emails/smtp#öppna-formuläret) fungerar registreringen som ovan. Till dess kan en huvudadministratör skicka personen en ny länk, som fungerar en gång, bara för den adressen, i 7 dagar: under **Användare** öppnar du personens radmeny, **⋯**, och klickar på **Hämta inbjudningslänk**.
+:::
+
+:::details En person visar Mejl inte skickat
+E-posttjänsten avvisade det senaste inbjudningsmejlet, så inget nådde personen. Peka på **Mejl inte skickat**, eller tryck på den, för att se varför, så som fliken **E-post** under projektets **Aviseringsloggar** säger det. Kontrollera adressen du bjöd in, och när e-posten fungerar öppnar du personens radmeny under **Användare**, **⋯**, och klickar på **Skicka inbjudan igen**: personen visas som **Inbjudan skickad** igen när mejlet har skickats. På en egenvärdad server kan serverns administratör i stället skicka personen dess inbjudningslänk: en huvudadministratör klickar på **Hämta inbjudningslänk** i samma meny.
 :::
 
 :::details Bjud in användare säger att användarna hanteras av SCIM Push Groups

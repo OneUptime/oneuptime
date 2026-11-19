@@ -53,7 +53,7 @@ Saisissez son adresse dans **E-mail**. Si aucun compte OneUptime ne l'utilise en
 
 Cliquez sur **Inviter**. OneUptime envoie l'invitation par e-mail et ouvre la page de la personne. Elle apparaît comme **Invitation envoyée** jusqu'à ce qu'elle accepte.
 
-Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, aucun e-mail ne part, et la personne apparaît comme **Invité**. Un administrateur principal voit d'abord **Envoyez-leur leur lien d'invitation** : copiez le lien, envoyez-le vous-même à la personne, puis cliquez sur **Terminé**. Toute autre personne demande à l'admin du serveur de [configurer l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire).
+Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, aucun e-mail ne part, et la personne apparaît comme **Invité**. Un administrateur principal voit d'abord **Envoyez-leur leur lien d'invitation** : copiez le lien, envoyez-le vous-même à la personne, puis cliquez sur **Terminé**. Toute autre personne demande à l'admin du serveur de [configurer l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire). Configurer l'e-mail plus tard n'envoie pas les invitations faites avant : la personne entre avec son lien d'invitation, ou en s'inscrivant avec l'adresse invitée.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, aucun e-
 
 ## Accepter une invitation
 
-L'e-mail d'invitation nomme le projet. Son bouton est **Create Your Account** pour quelqu'un qui n'a pas encore de compte OneUptime, et **Sign In to OneUptime** pour quelqu'un qui en a un. Une fois connectée, la personne accepte à l'un de deux endroits :
+L'e-mail d'invitation nomme le projet et la personne qui a envoyé l'invitation. Son bouton est **Create Your Account** pour quelqu'un qui n'a pas encore de compte OneUptime, et **Sign In to OneUptime** pour quelqu'un qui en a un.
+
+**Create Your Account** ouvre la page d'inscription avec son adresse et le nom que vous avez saisi déjà remplis, et indique quel projet l'invite et qui. S'inscrire sur cette page fait rejoindre le projet, sans rien d'autre à accepter.
+
+Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, personne ne reçoit d'e-mail : le lien d'invitation envoyé à la place ouvre la même page d'inscription, ou la page de connexion pour quelqu'un qui a déjà un compte.
+
+Une personne qui se connecte, ou qui s'inscrit autrement, accepte à l'un de deux endroits :
 
 | Où elle se trouve | Ce qu'elle voit | Ce sur quoi elle clique |
 | --- | --- | --- |
@@ -78,7 +84,7 @@ L'acceptation la place aussitôt dans le projet, avec les autorisations de son �
 | --- | --- |
 | **Utilisateur** | Son nom et son adresse e-mail. |
 | **Équipes** | Chaque équipe du projet dont elle fait partie, ou à laquelle elle est invitée. |
-| **Statut** | **Membre** une fois qu'elle a rejoint le projet, avec le nombre d'invitations vers d'autres équipes qu'elle n'a pas encore acceptées. **Invitation envoyée** jusque-là. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, **Invité** à la place : l'invitation est créée, mais aucun e-mail ne part. |
+| **Statut** | **Membre** une fois qu'elle a rejoint le projet, avec le nombre d'invitations vers d'autres équipes qu'elle n'a pas encore acceptées. **Invitation envoyée** jusque-là, ou **E-mail non envoyé** lorsque le service de messagerie a refusé son dernier e-mail d'invitation. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, **Invité** à la place : l'invitation est créée, mais aucun e-mail ne part. |
 
 Filtrez la liste par **Utilisateur**, **Statut** ou **Équipe**. Cliquez sur une ligne pour ouvrir la page de la personne :
 
@@ -112,6 +118,8 @@ L'équipe Owners garde toujours au moins un membre qui a rejoint le projet, pour
 
 Dans **Utilisateurs**, ouvrez le menu de la ligne de la personne, **⋯**, et cliquez sur **Retirer du projet**. Ou ouvrez la personne et choisissez **Retirer du projet** dans son menu latéral. Pour retirer plusieurs personnes à la fois, sélectionnez leurs lignes et supprimez la sélection : chacune est retirée de la même façon.
 
+Si votre rôle ne retire des personnes que de certaines équipes, comme celles qui vous appartiennent, **Retirer du projet** est verrouillé pour une personne qui est aussi dans une équipe dont vous ne pouvez pas la retirer, et nomme les équipes qui la gardent dans le projet, celles que vous pouvez voir. Un retrait de plusieurs personnes à la fois la laisse de côté, et le dit.
+
 La retirer l'enlève de chaque équipe du projet. Elle perd l'accès aussitôt, même si elle est connectée, est retirée des plannings d'astreinte et des règles d'escalade, et ne reçoit plus les notifications du projet. Son compte OneUptime n'est pas supprimé, et vous pouvez l'inviter de nouveau. [Utilisateurs, équipes et autorisations](/docs/permissions/index#utilisateurs) liste tout ce que quitter un projet emporte.
 
 ## Autres façons de rejoindre un projet
@@ -134,10 +142,20 @@ Sur OneUptime Cloud, un projet au forfait Free a de la place pour une personne. 
 Une adresse peut recevoir 10 invitations par heure, aux projets et aux pages de statut privées ensemble, quel qu'en soit l'expéditeur. Attendez une heure, puis invitez la personne de nouveau.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Votre rôle ne retire des personnes que de certaines équipes du projet, comme celles qui vous appartiennent, et cette personne est aussi dans d'autres. Retirez-la de vos propres équipes depuis sa page **Équipes**, ou demandez à un Propriétaire du projet ou à un Administrateur du projet de la retirer du projet.
+:::
+
 :::details L'e-mail d'invitation n'est pas arrivé, ou son lien a expiré
 L'invitation ne dépend pas de l'e-mail. Demandez à la personne de s'inscrire avec l'adresse invitée : OneUptime envoie à cette adresse un nouveau lien pour finir de créer le compte. Une personne qui a déjà un compte se connecte et trouve l'invitation qui l'attend.
 
+Pour savoir s'il est parti, ouvrez l'onglet **E-mail** des **Journaux de notification** du projet : la ligne de chaque invitation dit si elle a été envoyée, et sinon pourquoi. Sur un serveur auto-hébergé, un administrateur principal trouve aussi chaque e-mail que le serveur n'a pas pu envoyer dans son [journal des e-mails](/docs/emails/email-providers#voir-ce-que-le-serveur-a-envoyé).
+
 Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, l'inscription ne peut pas non plus envoyer de nouveau lien par e-mail : elle invite plutôt la personne à demander son lien d'invitation. Une fois que l'admin du serveur a [configuré l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire), l'inscription fonctionne comme ci-dessus. D'ici là, un administrateur principal peut lui envoyer un nouveau lien, qui fonctionne une fois, uniquement pour cette adresse, pendant 7 jours : dans **Utilisateurs**, ouvrez le menu de la ligne de la personne, **⋯**, et cliquez sur **Obtenir le lien d'invitation**.
+:::
+
+:::details Une personne affiche E-mail non envoyé
+Le service de messagerie a refusé son dernier e-mail d'invitation : rien ne lui est parvenu. Pointez **E-mail non envoyé**, ou touchez-le, pour en voir la raison, telle que l'onglet **E-mail** des **Journaux de notification** du projet la donne. Vérifiez l'adresse invitée, puis, une fois l'e-mail fonctionnel, ouvrez le menu de la ligne de la personne dans **Utilisateurs**, **⋯**, et cliquez sur **Renvoyer l'invitation** : elle apparaît de nouveau comme **Invitation envoyée** dès qu'il est parti. Sur un serveur auto-hébergé, l'admin du serveur peut plutôt lui envoyer son lien d'invitation : un administrateur principal clique sur **Obtenir le lien d'invitation** dans le même menu.
 :::
 
 :::details Inviter un utilisateur indique que les utilisateurs sont gérés par SCIM Push Groups

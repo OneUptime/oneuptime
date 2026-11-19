@@ -13,7 +13,7 @@ L'analyse produit compte les personnes qui utilisent une application RUM, le dé
 
 ## Comment les personnes sont comptées
 
-Le menu latéral d'une application a une section **Analyse produit** : **Utilisateurs**, **Sessions**, **Événements**, **Entonnoirs**, **Rétention des utilisateurs**, **Parcours utilisateur** et **Paramètres d'analyse**. **Utilisateurs** et **Sessions** comptent les sessions que la Relecture de session enregistre : elles commencent donc quand l'enregistreur de l'application commence, et une session que la politique de relecture n'enregistre pas n'est pas comptée. Chaque session compte pour une personne, ou pour personne :
+Le menu latéral d'une application a une section **Analyse produit** : **Utilisateurs**, **Sessions**, **Événements**, **Entonnoirs**, **Rétention des utilisateurs**, **Parcours utilisateur** et **Paramètres d'analyse**. **Utilisateurs** et **Sessions** comptent les sessions que la Relecture de session enregistre : elles commencent donc quand l'enregistreur de l'application commence, et une session que la politique de relecture n'enregistre pas n'est pas comptée. Sur une installation mise à niveau depuis une version sans Analyse produit, la mise à niveau y copie les sessions que la Relecture de session conservait encore, si bien qu'elles commencent au plus ancien enregistrement conservé. Chaque session compte pour une personne, ou pour personne :
 
 ```mermaid title="Pour qui une session compte"
 flowchart TB
@@ -42,12 +42,12 @@ Les jours sont comptés dans votre propre fuseau horaire.
 | **Nouveaux utilisateurs** | Les utilisateurs actifs dont la première visite a eu lieu pendant la période. |
 | **Utilisateurs récurrents** | Les utilisateurs actifs qui étaient déjà venus avant le début de la période. |
 | **Utilisateurs connectés** | Les utilisateurs actifs que votre application a connectés avec `identify()`, et leur part de tous les utilisateurs actifs. |
-| **Total des utilisateurs** | Tous ceux que l'application a vus au cours des 13 derniers mois. |
+| **Total des utilisateurs** | Tous ceux que l'application a vus au cours des mois dont elle conserve les chiffres, 13 par défaut. |
 | **Utilisateurs inactifs** | Les personnes venues auparavant mais pas au cours des 30 derniers jours, ou des 7, 14, 60 ou 90 jours que vous choisissez. |
 
 Les trois premières indiquent aussi leur évolution par rapport à la période précédente. Sous les tuiles, **Utilisateurs actifs** trace, pour chaque jour, les personnes venues ce jour-là, celles venues dans les 7 jours jusqu'à ce jour et celles venues dans les 30 jours jusqu'à ce jour, et **Nouveaux utilisateurs et utilisateurs récurrents** partage en deux les personnes de chaque jour.
 
-**Personnes** liste tous ceux que les tuiles comptent, une ligne par personne, les plus récemment vus en premier, et son filtre affiche les personnes d'une tuile, les visiteurs anonymes ou tout le monde. Ouvrez une personne pour voir sa première et sa dernière visite et chacune de ses sessions des 13 derniers mois, avec **Regarder** sur chacune dont l'enregistrement est encore conservé.
+**Personnes** liste tous ceux que les tuiles comptent, une ligne par personne, les plus récemment vus en premier, et son filtre affiche les personnes d'une tuile, les visiteurs anonymes ou tout le monde. Ouvrez une personne pour voir sa première et sa dernière visite et chacune de ses sessions des mois dont les chiffres sont conservés, avec **Regarder** sur chacune dont l'enregistrement est encore conservé.
 
 ## Sessions
 
@@ -55,13 +55,13 @@ Les trois premières indiquent aussi leur évolution par rapport à la période 
 
 - **Sessions par appareil** trace les sessions de chaque jour venues d'ordinateurs, de téléphones et de tablettes. La session d'une application mobile sur un écran dont le petit côté mesure 600 points ou plus compte comme celle d'une tablette.
 - **Durée des sessions** range les sessions terminées selon leur durée, de moins de 10 secondes à plus de 30 minutes. Une session encore en cours d'enregistrement n'a pas encore de durée.
-- **Répartition** classe les utilisateurs et les sessions par type d'appareil, navigateur, système d'exploitation, pays, version de l'application, page d'entrée ou page, les plus d'utilisateurs en premier.
+- **Répartition** classe les utilisateurs et les sessions par type d'appareil, navigateur, système d'exploitation, pays, version de l'application, page d'entrée ou page, les plus d'utilisateurs en premier. La version d'une application web est celle que sa page donne à l'option `appVersion` de l'enregistreur. Une application mobile indique la sienne.
 
 ## Envoyer des événements et des métriques
 
-Les événements sont envoyés tant que **Envoyer les événements d'analyse produit** est activé, sur la page **Paramètres d'analyse** de l'application. Il est activé dès le départ pour une nouvelle application, et désactivé pour une application créée avant qu'il n'existe : activez-le alors là. La Relecture de session doit aussi être activée pour l'application, car son enregistreur envoie les événements ; l'enregistreur React Native n'en envoie encore aucun.
+Les événements sont envoyés tant que **Envoyer les événements d'analyse produit** est activé, sur la page **Paramètres d'analyse** de l'application. Il est activé dès le départ pour une nouvelle application, et désactivé pour une application créée avant qu'il n'existe : activez-le alors là. La Relecture de session doit aussi être activée pour l'application, car son enregistreur envoie les événements, depuis une page web comme depuis une application React Native.
 
-Chaque session dans laquelle l'enregistreur du navigateur s'exécute envoie d'elle-même son début et chaque page qu'elle affiche, changements de route d'une application monopage compris, que l'échantillon et la politique de relecture enregistrent cette session ou non. Vos propres événements et valeurs viennent du code de votre page :
+Chaque session dans laquelle l'enregistreur du navigateur s'exécute envoie d'elle-même son début et chaque page qu'elle affiche, changements de route d'une application monopage compris, que l'échantillon et la politique de relecture enregistrent cette session ou non. Une application React Native envoie le début de sa session et, comme page vue, chaque écran qu'elle passe à `setRoute()`. Vos propres événements et valeurs viennent du code de votre page ou de votre application :
 
 ```js
 OneUptimeReplay.track("Signed up", { plan: "pro" });
@@ -76,8 +76,8 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Avant que l'enregistreur soit chargé, poussez les mêmes appels dans `window.OneUptimeReplayQueue` sous la forme `["track", name, properties]` et `["metric", name, value, attributes]` (voir [API JavaScript](/docs/telemetry/session-replay#api-javascript)).
 
 - **Chaque session, enregistrée ou non.** L'échantillon et la politique d'envoi de la relecture décident quelles sessions sont enregistrées, pas lesquelles sont comptées. Rien n'est envoyé sous Do Not Track ou Global Privacy Control, et rien n'est conservé d'une origine que l'application n'autorise pas. Quand la politique exige le consentement, les événements attendent `grantConsent()`, 500 au plus, et `revokeConsent()` les abandonne.
-- **Masqués comme l'enregistrement.** Sous _Mask all text_, les valeurs des propriétés et des attributs sont masquées avant de quitter la page, donc une répartition selon l'une d'elles affiche des valeurs de remplacement, pas les vôtres ; les noms d'événements, les clés de propriétés et les valeurs des métriques sont envoyés tels qu'écrits. Une valeur que vous devez lire dans ce mode va dans un tag de session (`setTags()`), qui n'est jamais masqué, alors n'y mettez pas de données personnelles. Les tags s'affichent sur la session et dans une recherche `tag:key=value` de la liste des sessions, pas dans les répartitions de ces pages. Une page est envoyée sous la forme de son chemin, sans sa requête ni son fragment (une route en hash, `#/orders`, fait partie du chemin), et chaque segment qui a la forme d'un identifiant (UUID, adresses e-mail, longues suites de chiffres, longs jetons opaques) est remplacé par `[redacted]`, comme dans chaque adresse que conserve Session Replay ; une propriété, un attribut ou une propriété d'utilisateur dont la valeur est une adresse est nettoyé de la même façon. OneUptime les nettoie de nouveau à l'arrivée des événements, donc les événements que votre propre code envoie avec la clé d'ingestion suivent la même règle.
-- **Par petits lots**, toutes les 5 secondes et quand l'onglet est masqué. Un événement qui atteint OneUptime plus de 3 jours après s'être produit est abandonné, et un projet peut envoyer 60 000 événements et points de métrique par minute, toutes ses applications réunies ; au-delà, l'enregistreur attend et les renvoie.
+- **Masqués comme l'enregistrement.** Sous _Mask all text_, les valeurs des propriétés et des attributs sont masquées avant de quitter la page, donc une répartition selon l'une d'elles affiche des valeurs de remplacement, pas les vôtres ; les noms d'événements, les clés de propriétés et les valeurs des métriques sont envoyés tels qu'écrits. Une valeur que vous devez lire dans ce mode va dans un tag de session (`setTags()`), qui n'est jamais masqué, alors n'y mettez pas de données personnelles. Les tags s'affichent sur la session et dans une recherche `tag:key=value` de la liste des sessions, pas dans les répartitions de ces pages. Les valeurs d'une application React Native sont toujours masquées, car son SDK masque tout le texte. Une page est envoyée sous la forme de son chemin, sans sa requête ni son fragment (une route en hash, `#/orders`, fait partie du chemin), et chaque segment qui a la forme d'un identifiant (UUID, adresses e-mail, longues suites de chiffres, longs jetons opaques) est remplacé par `[redacted]`, comme dans chaque adresse que conserve Session Replay ; une propriété, un attribut ou une propriété d'utilisateur dont la valeur est une adresse est nettoyé de la même façon. OneUptime les nettoie de nouveau à l'arrivée des événements, donc les événements que votre propre code envoie avec la clé d'ingestion suivent la même règle.
+- **Par petits lots**, toutes les 5 secondes et quand l'onglet est masqué ou que l'application passe en arrière-plan. Un événement qui atteint OneUptime plus de 3 jours après s'être produit est abandonné, et un projet peut envoyer 60 000 événements et points de métrique par minute, toutes ses applications réunies ; au-delà, l'enregistreur attend et les renvoie.
 
 `metric()` n'envoie rien tant que les événements sont désactivés, et `getDiagnostics().productAnalytics` indique s'ils sont activés (voir [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
 
@@ -134,13 +134,13 @@ Chaque événement est aussi compté, minute par minute, comme une métrique de 
 
 Ces trois-là ne sont pas facturées, et `metric()` refuse un nom qui commence par `oneuptime.`, si bien que rien de ce qu'envoie votre page ne passe pour elles. Vos points `metric()` sont conservés et facturés comme les autres métriques de l'application.
 
-Un entonnoir ou un tableau de rétention enregistré va aussi sur un tableau de bord : les widgets **Entonnoir** et **Rétention des utilisateurs**, dans le groupe **Analyse produit** du catalogue de widgets, en affichent un sur la plage temporelle du tableau de bord, et **Ouvrir dans Entonnoirs** ou **Ouvrir dans Rétention des utilisateurs** l'ouvre sur sa page (voir [Widgets de tableau de bord](/docs/dashboards/widgets#analyse-produit)).
+Un entonnoir ou un tableau de rétention enregistré va aussi sur un tableau de bord : les widgets **Entonnoir** et **Rétention des utilisateurs**, dans le groupe **Analyse produit** du catalogue de widgets, en affichent un sur la plage temporelle du tableau de bord, et **Ouvrir dans Entonnoirs** ou **Ouvrir dans Rétention des utilisateurs** l'ouvre sur sa page (voir [Widgets de tableau de bord](/docs/dashboards/widgets#analyse-produit)). Un tableau de bord public n'en affiche que les titres, jamais les chiffres : ceux-ci comptent les utilisateurs finaux de votre application.
 
 ## Confidentialité et conservation
 
-- **13 mois.** Les chiffres d'un mois sont supprimés le premier jour du 13e mois qui suit, si bien que les 12 derniers mois complets sont toujours là, quelle que soit la conservation propre des enregistrements (7 jours par défaut). Les événements sont conservés de la même façon.
+- **13 mois.** Les chiffres d'un mois sont supprimés le premier jour du 13e mois qui suit, si bien que les 12 derniers mois complets sont toujours là, quelle que soit la conservation propre des enregistrements (7 jours par défaut). Les événements sont conservés de la même façon. 13 mois est la valeur par défaut. Une application peut conserver 3, 6 ou 25 mois à la place, choisis dans **Conservation de l'analyse produit** sous **Plus de paramètres** sur sa page **Paramètres d'analyse**, et un choix plus court supprime les mois plus anciens en moins d'une journée.
 - **Aucun nom stocké.** Les chiffres gardent la clé à sens unique d'un utilisateur connecté et l'ID de visiteur d'un navigateur, jamais la référence ni une adresse IP, et des traits seulement les propriétés utilisateur que vous listez. Une ligne ne nomme un utilisateur connecté que tant que l'un de ses enregistrements est encore conservé, et seulement pour un rôle qui peut lire l'identité ; sinon elle affiche **Utilisateur connecté** ou **Visiteur anonyme** et le début de l'ID.
-- **Effacé sur demande.** Une demande d'effacement supprime aussi les chiffres et les événements correspondants ici (voir [Effacer des sessions](/docs/telemetry/session-replay#effacer-des-sessions)).
+- **Effacé sur demande.** Une demande d'effacement supprime aussi les chiffres et les événements correspondants ici (voir [Effacer des sessions](/docs/telemetry/session-replay#effacer-des-sessions)). Son compteur `productAnalyticsRowsDeleted` indique combien de lignes elle a supprimées ici. Elle ne modifie pas les **Entonnoirs enregistrés** ni les **Tableaux de rétention enregistrés** : leurs noms et leurs segments sont écrits par votre équipe, comme le titre d'un tableau de bord, alors n'enregistrez pas un segment qui nomme une personne.
 
 ## Qui peut la voir
 
@@ -148,7 +148,7 @@ Lire ces pages demande ce que demande la liste des sessions : `ReadRumSessionRep
 
 Enregistrer, renommer et supprimer des entonnoirs et des tableaux de rétention enregistrés demande les mêmes permissions que lire ces pages, et un widget de tableau de bord n'en montre un qu'à un lecteur qui les détient.
 
-Activer ou désactiver les événements demande `EditRumApplication` (_Edit RUM Application_) ou le rôle Propriétaire du projet, Administrateur du projet ou Membre du projet. Lister des propriétés utilisateur demande `EditRumApplication` ou le rôle de propriétaire ou d'administrateur, car cela décide de ce qui est conservé sur les personnes connectées.
+Activer ou désactiver les événements demande `EditRumApplication` (_Edit RUM Application_) ou le rôle Propriétaire du projet, Administrateur du projet ou Membre du projet. Lister des propriétés utilisateur demande `EditRumApplication` ou le rôle de propriétaire ou d'administrateur, car cela décide de ce qui est conservé sur les personnes connectées. Choisir combien de temps les chiffres sont conservés demande la même chose qu'activer ou désactiver les événements.
 
 ## Prochaines étapes
 

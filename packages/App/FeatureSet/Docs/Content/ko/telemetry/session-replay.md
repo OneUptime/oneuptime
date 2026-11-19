@@ -90,6 +90,7 @@ flowchart TB
 | `data-oneuptime-respect-do-not-track` | 아니요 | 기본적으로 Do Not Track과 Global Privacy Control을 존중합니다. 신호와 관계없이 녹화하려면 `"false"`로 설정하세요. [Do Not Track](#do-not-track)을 참고하세요. |
 | `data-oneuptime-debug` | 아니요 | `"true"`이면 레코더의 결정을 콘솔에 출력합니다. [세션 리플레이 문제 해결](/docs/rum/session-replay-troubleshooting)을 참고하세요. |
 | `data-oneuptime-offline-storage` | 아니요 | `"false"`로 설정하면 방문자가 오프라인인 동안 녹화한 청크를 브라우저의 IndexedDB에도 저장하지 않고 메모리에만 둡니다. [오프라인 모드](#오프라인-모드)를 참고하세요. |
+| `data-oneuptime-app-version` | 아니요 | 앱의 버전(예: `2.3.1`)으로, 최대 64자입니다. 제품 분석은 이 값으로 사용자와 세션을 나눕니다. |
 
 같은 옵션을 태그 대신 전역 객체로 줄 수도 있으며, 태그 관리자와 번들 설치에서는 이 방법을 사용합니다.
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -175,8 +177,9 @@ export default function App() {
 | `stop()` | 보낼 수 있는 것을 비우고, 녹화를 멈추고, 수명 주기 핸들러를 분리합니다. |
 | `identify(userRef, traits?)` | 로그인한 사용자와 선택적 특성을 연결하며, **최종 사용자 신원 캡처**를 따릅니다. |
 | `setTags(tags)` / `addTag(key, value)` | 검색 가능한 세션 태그를 모두 바꾸거나, 다른 태그를 바꾸지 않고 태그 하나를 추가합니다. |
-| `track(name, properties?)` | 애플리케이션 이벤트를 리플레이 타임라인에 놓습니다. |
-| `setRoute(route)` | 탐색 후 정리된 논리적 화면이나 경로를 기록합니다. 내비게이터의 경로 변경 콜백에서 호출하세요. |
+| `track(name, properties?)` | 애플리케이션 이벤트를 리플레이 타임라인에 놓습니다. 제품 분석 이벤트가 켜져 있으면 녹화 여부와 관계없이 모든 세션에서 애플리케이션의 [제품 분석](/docs/rum/product-analytics#이벤트와-메트릭-보내기) 페이지가 세는 이벤트이기도 합니다. |
+| `metric(name, value, attributes?)` | 제품 분석 이벤트가 켜져 있으면 앱이 측정한 숫자를 애플리케이션 메트릭의 포인트로 보냅니다. 속성 값은 마스킹됩니다. |
+| `setRoute(route)` | 탐색 후 정리된 논리적 화면이나 경로를 기록합니다. 내비게이터의 경로 변경 콜백에서 호출하세요. 제품 분석 이벤트가 켜져 있으면 새 화면마다 페이지 조회이기도 합니다. |
 | `captureSession(reason?)` | _On error or frustration_ 설정에서, 사용자가 "문제 신고"를 누르는 것처럼 앱이 정한 이유로 순환 버퍼를 업로드합니다. |
 | `captureError(error)` | 처리된 JavaScript 오류를 기록하고 오류 기반 녹화를 활성화합니다. |
 | `grantConsent()` / `revokeConsent()` | 업로드를 허용하거나, 메모리 버퍼, 저장된 보낼 편지함, 세션, 방문자 ID를 즉시 지웁니다. 이후의 동의는 새 식별자로 시작합니다. |
@@ -1075,7 +1078,7 @@ SVG 스프라이트 파일(`<use href="/icons.svg#close">`)에서 그려지는 �
 
 `ByIdentifiedUserKey`에는 솔직히 말해 두 가지 제한이 있습니다. 키는 대시보드 어디에도 표시되지 않습니다. 세션 목록 API(`POST /telemetry/rum/session-replay/list`)의 모든 행에 `identifiedUserKey`로 돌아오므로, 지금은 사용자별 삭제가 그곳에서의 `user:` 검색과 그 필드의 복사로 시작합니다. 그리고 **최종 사용자 신원 캡처**가 꺼져 있는 동안 녹화된 세션에는 키가 전혀 없습니다. 그 사람에 대해 아무것도 저장되지 않았으므로, 세션 ID, 날짜 범위, 애플리케이션으로만 대상을 정할 수 있습니다.
 
-각 요청은 `status`(`Pending`, `InProgress`, `Completed`, `Failed`), `sessionsDeleted`와 `chunksDeleted` 숫자, 그리고 있다면 `failureReason`을 기록하며, `ReadRumSessionErasureRequest`로 이를 검토할 수 있습니다. 삭제는 녹화와 그 세션들에 연결된 텔레메트리를 제거하며, 요청이 완료될 때 아직 전송 중인 녹화는 기록되지 않고 버려집니다. 삭제된 세션으로의 링크는 "not found" 대신 "erased"로 응답합니다. 연결된 텔레메트리는 다음과 같습니다.
+각 요청은 `status`(`Pending`, `InProgress`, `Completed`, `Failed`), `sessionsDeleted`, `chunksDeleted`, `productAnalyticsRowsDeleted` 숫자, 그리고 있다면 `failureReason`을 기록하며, `ReadRumSessionErasureRequest`로 이를 검토할 수 있습니다. 삭제는 녹화와 그 세션들에 연결된 텔레메트리를 제거하며, 요청이 완료될 때 아직 전송 중인 녹화는 기록되지 않고 버려집니다. 삭제된 세션으로의 링크는 "not found" 대신 "erased"로 응답합니다. 연결된 텔레메트리는 다음과 같습니다.
 
 - 세션 ID가 찍힌 모든 스팬과 모든 예외. 트레이스 컨텍스트를 전달한 모든 서비스에서 [자동으로](#나머지-텔레메트리와-연결하기) 찍힌 백엔드 스팬과, ID를 스스로 담은 모든 로그를 포함합니다.
 - 삭제되는 세션에만 속한 모든 트레이스의 로그, 예외, 스팬. 즉 트레이스의 표시된 모든 스팬이 그 세션들의 ID 중 하나를 담고, 트레이스의 어떤 것도 그 스팬들의 첫 번째보다 십 분 넘게 먼저, 또는 마지막 것보다 십 분 넘게 나중에 시작되지 않은 트레이스입니다. 여기에는 페이지가 자체 출처로 보낸 요청의 백엔드 로그가 포함되며, 이 로그는 표시된 스팬과 트레이스 ID를 공유합니다.

@@ -54,7 +54,9 @@ import VersionUtil from "Common/Utils/VersionUtil";
 import InstallationHealthUtil, {
   InstallationHealthAnswer,
   InstallationHealthFacts,
+  InstallationHealthProbeBehind,
 } from "Common/Types/InstallationHealth/InstallationHealth";
+import GlobalProbesBehind from "Common/Server/Utils/Probe/GlobalProbesBehind";
 import { ServerSetupChecklistAnswer } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import {
   ClickhouseJsonResult,
@@ -995,8 +997,8 @@ router.get(
  *
  * /api/admin/health/doctor answers the findings of
  * Common/Types/InstallationHealth: the datastores, the migrations,
- * ClickHouse's disks, the queues, the version and the server setup
- * checklist, worst first, each with its fix. Every edition: a self-hoster
+ * ClickHouse's disks, the queues, the global probes that are behind, the
+ * version and the server setup checklist, worst first, each with its fix. Every edition: a self-hoster
  * who cannot tell why their server is broken needs the answer, not an
  * upsell.
  *
@@ -1025,6 +1027,23 @@ export interface InstallationHealthReaders {
   serverSetup: () => Promise<ServerSetupChecklistAnswer>;
   // Which products the server switches off (#7481): what Settings > Products reads.
   serverProducts: () => Promise<ServerProductsAnswer>;
+  /*
+   * The global probes that are behind (#9488, #9499): what Health > Global
+   * Probes reads.
+   */
+  globalProbesBehind: () => Promise<Array<InstallationHealthProbeBehind>>;
+}
+
+/*
+ * The connected global probes that are behind - their monitors checked, or
+ * their network devices polled, later than their interval (#9488, #9499) -
+ * by what Probe:UpdateBehind keeps on each (Types/Probe/ProbeBehind). The
+ * master admins' notifications read the same (Common's GlobalProbesBehind).
+ */
+export async function readGlobalProbesBehind(): Promise<
+  Array<InstallationHealthProbeBehind>
+> {
+  return await GlobalProbesBehind.read();
 }
 
 /*
@@ -1101,6 +1120,9 @@ const DEFAULT_INSTALLATION_HEALTH_READERS: InstallationHealthReaders = {
   serverProducts: (): Promise<ServerProductsAnswer> => {
     return ServerProducts.getAnswer();
   },
+  globalProbesBehind: (): Promise<Array<InstallationHealthProbeBehind>> => {
+    return readGlobalProbesBehind();
+  },
 };
 
 // A reader that fails answers its fallback: one datastore down must not hide the rest.
@@ -1175,6 +1197,7 @@ export async function getInstallationHealthFacts(
     latestVersion,
     serverSetup,
     serverProducts,
+    globalProbesBehind,
   ] = await Promise.all([
     isPostgresConnected
       ? readOr<JSONObject | null>(readers.migrations, null, "migrations")
@@ -1201,6 +1224,13 @@ export async function getInstallationHealthFacts(
           readers.serverProducts,
           null,
           "the products switched off on this server",
+        )
+      : Promise.resolve(null),
+    isPostgresConnected
+      ? readOr<Array<InstallationHealthProbeBehind> | null>(
+          readers.globalProbesBehind,
+          null,
+          "whether the global probes are behind",
         )
       : Promise.resolve(null),
   ]);
@@ -1244,6 +1274,7 @@ export async function getInstallationHealthFacts(
       .filter((queue: { name: string }): boolean => {
         return Boolean(queue.name);
       }),
+    globalProbesBehind: globalProbesBehind,
     version: {
       current: AppVersion,
       latest: latestVersion,

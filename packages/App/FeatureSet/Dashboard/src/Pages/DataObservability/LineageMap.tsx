@@ -1,5 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
+import BiLineageNotes from "../../Components/DataObservability/BiLineageNotes";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import {
   LineageRead,
@@ -33,17 +34,25 @@ import {
 import URL from "Common/Types/API/URL";
 import {
   DataLineageMap,
+  DataLineageMapBiTool,
   DataLineageMapNode,
   DataLineageMapNodeKind,
+  DataLineageMapRequest,
   DataLineageMapTrace,
+  MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH,
   traceDataLineageMap,
 } from "Common/Types/DataObservability/DataLineageMap";
+import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { HelpContent } from "Common/UI/Components/Help/HelpContent";
@@ -55,6 +64,7 @@ import ViewSwitch, {
 } from "Common/UI/Components/ViewSwitch/ViewSwitch";
 import { DOCS_URL } from "Common/UI/Config";
 import {
+  PluralTemplate,
   Translator,
   formatInline,
   translationKey,
@@ -62,10 +72,12 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -82,6 +94,18 @@ import React, {
  * it matches and everything upstream and downstream of them; the switches
  * leave services, pipelines or dashboards off; selecting a card picks out
  * its whole lineage and says what it is, with its page one click away.
+ *
+ * A real project has more flows than one map is read by (#6547), so a map
+ * past its most cards says how many tables it left out, and can start
+ * somewhere instead: from one database - the flows of its tables, and the
+ * cards they join - or from a search of the whole project, for a table
+ * whose flows are older than the newest the map draws. Either is a read of
+ * its own, drawn the same way; a table's own Lineage tab walks further from
+ * any one table. The map holds only what its reader may read (#9526).
+ *
+ * A BI tool whose dashboards were read but are on no watched table is told
+ * of, with why and See Why for the steps that fix it (#9507): first on an
+ * empty map, and above a drawn one.
  */
 
 export const LINEAGE_MAP_DOCS_URL: URL = URL.fromString(
@@ -111,7 +135,28 @@ const NOTHING_MATCHES: string = translationKey(
   "Nothing on the map matches your search.",
 );
 const TRUNCATED: string = translationKey(
-  "Your project has more flows than one map draws, so the most recently seen are drawn. Search to find a table.",
+  "Your project has more flows than one map draws, so the most recently seen are drawn. Pick a database, or search your whole project, to find a table.",
+);
+// How many tables a map past its most cards leaves out, each counted once.
+const HIDDEN_TABLES: PluralTemplate = {
+  one: "{{count}} more table is not on this map: it draws the most recently seen flows first. Pick a database, or search your whole project, to find it.",
+  other:
+    "{{count}} more tables are not on this map: it draws the most recently seen flows first. Pick a database, or search your whole project, to find them.",
+};
+// The same, when there were more flows than were read.
+const HIDDEN_TABLES_AT_LEAST: PluralTemplate = {
+  one: "At least {{count}} more table is not on this map: it draws the most recently seen flows first. Pick a database, or search your whole project, to find it.",
+  other:
+    "At least {{count}} more tables are not on this map: it draws the most recently seen flows first. Pick a database, or search your whole project, to find them.",
+};
+const PROJECT_SEARCH_NOTE: string = translationKey(
+  "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.",
+);
+const NOTHING_IN_DATABASE: string = translationKey(
+  "No flows of this database's tables have been seen yet.",
+);
+const NOTHING_IN_PROJECT_SEARCH: string = translationKey(
+  "No table, pipeline, service or dashboard whose name holds {{search}} has lineage yet.",
 );
 
 // A phone opens on the list: a map needs room to be read.
@@ -253,8 +298,14 @@ const LineageMapLegend: FunctionComponent = (): ReactElement => {
   );
 };
 
+const BI_TOOLS_OFF_TABLES: string = translationKey(
+  "Your BI tools were read, but their dashboards are built on no table OneUptime watches yet. The map draws them once they are, from any of these:",
+);
+
 // What the map is waiting for: where lineage comes from, and the guide to send it.
-const LineageMapEmpty: FunctionComponent = (): ReactElement => {
+const LineageMapEmpty: FunctionComponent<{
+  biTools: Array<DataLineageMapBiTool>;
+}> = (props: { biTools: Array<DataLineageMapBiTool> }): ReactElement => {
   const translator: Translator = useTranslator();
   const sources: Array<string> = [
     translationKey(
@@ -274,11 +325,19 @@ const LineageMapEmpty: FunctionComponent = (): ReactElement => {
       id="lineage-map-empty"
       icon={IconProp.FlowDiagram}
       title={translationKey("No lineage yet")}
-      description={translationKey(
-        "The map draws where your data flows as soon as OneUptime sees it, from any of these:",
-      )}
+      description={
+        props.biTools.length > 0
+          ? BI_TOOLS_OFF_TABLES
+          : translationKey(
+              "The map draws where your data flows as soon as OneUptime sees it, from any of these:",
+            )
+      }
       footer={
         <div className="mx-auto mt-4 max-w-xl text-start">
+          <BiLineageNotes
+            tools={props.biTools}
+            className="mb-5 space-y-1.5 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700"
+          />
           <ul className="list-disc space-y-1.5 ps-5 text-sm text-gray-600">
             {sources.map((source: string): ReactElement => {
               return <li key={source}>{translator.translateText(source)}</li>;
@@ -302,17 +361,98 @@ const LineageMapEmpty: FunctionComponent = (): ReactElement => {
   );
 };
 
+/*
+ * The sentence under the toolbar of a map past its most cards: how many
+ * tables it left out, each once - "at least" when there were more flows
+ * than were read - or, when it left none out but other cards, that it was
+ * cut short. Nothing for a map that drew everything.
+ */
+export function getLineageMapTruncatedNote(
+  map: Pick<
+    DataLineageMap,
+    "isTruncated" | "hiddenTableCount" | "isHiddenTableCountAtLeast"
+  >,
+  translator: Translator,
+): string | null {
+  if (!map.isTruncated) {
+    return null;
+  }
+
+  const hidden: number = map.hiddenTableCount || 0;
+
+  if (hidden > 0) {
+    return translator.translatePlural(
+      map.isHiddenTableCountAtLeast ? HIDDEN_TABLES_AT_LEAST : HIDDEN_TABLES,
+      hidden,
+    );
+  }
+
+  return translator.translateText(TRUNCATED) || TRUNCATED;
+}
+
 const DataObservabilityLineageMapPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * Where the map starts: the whole project, one database, or a search of
+   * the whole project - one at a time, so each says what it is.
+   */
+  const [dataStoreId, setDataStoreId] = useState<string | null>(null);
+  const [projectSearch, setProjectSearch] = useState<string>("");
+  const searchWholeProject: (words: string) => void = (words: string): void => {
+    setDataStoreId(null);
+    setProjectSearch(words);
+  };
   const read: LineageRead<DataLineageMap> = useLineageRead<DataLineageMap>(
-    "lineage-map",
+    `lineage-map:${dataStoreId || ""}:${projectSearch}`,
     (): Promise<DataLineageMap> => {
-      return DataObservabilityApi.getLineageMap();
+      const request: DataLineageMapRequest = {
+        ...(dataStoreId ? { dataStoreId } : {}),
+        ...(projectSearch ? { search: projectSearch } : {}),
+      };
+
+      return DataObservabilityApi.getLineageMap(request);
     },
     READ_FAILED,
   );
+  const isFocused: boolean = Boolean(dataStoreId || projectSearch);
+  // The databases a map can start from: those holding a table the reader may read.
+  const [stores, setStores] = useState<Array<DataObservabilityStoreSummary>>(
+    [],
+  );
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    DataObservabilityApi.getStores()
+      .then((found: Array<DataObservabilityStoreSummary>): void => {
+        if (isCurrent) {
+          setStores(found);
+        }
+      })
+      .catch((): void => {
+        // Without the list, the map is the whole project's: nothing to pick from.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const storeOptions: Array<DropdownOption> = useMemo(() => {
+    return stores
+      .map((store: DataObservabilityStoreSummary): DropdownOption => {
+        return {
+          value: store.dataStoreId,
+          label: store.name,
+          isUserContent: true,
+        };
+      })
+      .sort((a: DropdownOption, b: DropdownOption): number => {
+        return String(a.label).localeCompare(String(b.label));
+      });
+  }, [stores]);
   const [view, setView] = useState<LineageMapView>(
     isPhoneWidth() ? LineageMapView.List : LineageMapView.Map,
   );
@@ -332,9 +472,25 @@ const DataObservabilityLineageMapPage: FunctionComponent<
     };
   }, [search, hiddenKinds, isShowingOnlyItsLineage, selectedNodeId]);
 
+  /*
+   * The map on screen: the read for where the map starts now, or - while
+   * the next one is read, after a database is picked or the project is
+   * searched - the one before, so the search box and the picker stay where
+   * the reader is and only the drawing waits.
+   */
+  const lastAnswerRef: MutableRefObject<DataLineageMap | null> =
+    useRef<DataLineageMap | null>(null);
+
+  if (read.answer) {
+    lastAnswerRef.current = read.answer;
+  }
+
+  const shown: DataLineageMap | null =
+    read.answer || (read.isLoading ? lastAnswerRef.current : null);
+
   const visible: DataLineageMap | null = useMemo(() => {
-    return read.answer ? filterLineageMap(read.answer, filter) : null;
-  }, [read.answer, filter]);
+    return shown ? filterLineageMap(shown, filter) : null;
+  }, [shown, filter]);
 
   const selectedNode: DataLineageMapNode | null =
     (selectedNodeId &&
@@ -370,18 +526,17 @@ const DataObservabilityLineageMapPage: FunctionComponent<
 
   let body: ReactElement;
 
-  if (read.isLoading) {
+  if (read.isLoading && !shown) {
     body = <ChartSkeleton hasLegend={false} />;
-  } else if (read.error || !read.answer || !visible) {
+  } else if (read.error || !shown || !visible) {
     body = (
       <ErrorMessage message={read.error || ""} onRefreshClick={read.retry} />
     );
-  } else if (isLineageMapEmpty(read.answer)) {
-    body = <LineageMapEmpty />;
+  } else if (isLineageMapEmpty(shown) && !isFocused && !read.isLoading) {
+    body = <LineageMapEmpty biTools={shown.biToolsOffTables || []} />;
   } else {
-    const counts: Record<DataLineageMapNodeKind, number> = countLineageMapKinds(
-      read.answer,
-    );
+    const counts: Record<DataLineageMapNodeKind, number> =
+      countLineageMapKinds(shown);
     const shownCounts: Record<DataLineageMapNodeKind, number> =
       countLineageMapKinds(visible);
     /*
@@ -402,23 +557,88 @@ const DataObservabilityLineageMapPage: FunctionComponent<
         <></>
       );
 
+    const words: string = search.trim();
+    // A map that does not hold every flow can be searched whole, on the server.
+    const canSearchProject: boolean =
+      Boolean(words) &&
+      words.length <= MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH &&
+      words !== projectSearch &&
+      (shown.isTruncated || Boolean(projectSearch));
+    const truncatedNote: string | null = read.isLoading
+      ? null
+      : getLineageMapTruncatedNote(shown, translator);
+
     body = (
       <div className="space-y-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="w-full md:max-w-sm">
-            <Input
-              isSearchOrFilter={true}
-              value={search}
-              onChange={(value: string): void => {
-                setSearch(value);
-              }}
-              placeholder={translationKey(
-                "Search tables, services, pipelines and dashboards",
-              )}
-              ariaLabel={translator.translateText("Search the lineage map")}
-              dataTestId="lineage-map-search"
-              disableSpellCheck={true}
-            />
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:max-w-2xl">
+            <div className="w-full sm:max-w-sm">
+              <Input
+                isSearchOrFilter={true}
+                value={search}
+                onChange={(value: string): void => {
+                  setSearch(value);
+
+                  // Cleared: back to where the map started before the search.
+                  if (!value.trim()) {
+                    setProjectSearch("");
+                  }
+                }}
+                onEnterPress={(): void => {
+                  if (canSearchProject) {
+                    searchWholeProject(words);
+                  }
+                }}
+                placeholder={translationKey(
+                  "Search tables, services, pipelines and dashboards",
+                )}
+                ariaLabel={translator.translateText("Search the lineage map")}
+                dataTestId="lineage-map-search"
+                disableSpellCheck={true}
+              />
+            </div>
+            {canSearchProject ? (
+              <Button
+                title="Search Whole Project"
+                icon={IconProp.Search}
+                buttonStyle={ButtonStyleType.NORMAL}
+                buttonSize={ButtonSize.Small}
+                dataTestId="lineage-map-search-project"
+                onClick={(): void => {
+                  searchWholeProject(words);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+            {storeOptions.length > 1 ? (
+              <div
+                className="w-full sm:w-56"
+                data-testid="lineage-map-database"
+              >
+                <Dropdown
+                  options={storeOptions}
+                  value={storeOptions.find((option: DropdownOption) => {
+                    return option.value === dataStoreId;
+                  })}
+                  placeholder={translationKey("All databases")}
+                  ariaLabel={translationKey("Database to map")}
+                  isClearable={true}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ): void => {
+                    select(null);
+                    setProjectSearch("");
+                    setDataStoreId(
+                      typeof value === "string" && value ? value : null,
+                    );
+                  }}
+                  dataTestId="lineage-map-database-picker"
+                />
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
           <div
             className="flex flex-wrap items-center gap-2"
@@ -475,6 +695,8 @@ const DataObservabilityLineageMapPage: FunctionComponent<
                 DataLineageMapNodeKind.Service,
                 DataLineageMapNodeKind.Pipeline,
                 DataLineageMapNodeKind.Dashboard,
+                DataLineageMapNodeKind.Dataset,
+                DataLineageMapNodeKind.Source,
               ] as Array<DataLineageMapNodeKind>
             )
               .filter((kind: DataLineageMapNodeKind): boolean => {
@@ -490,20 +712,68 @@ const DataObservabilityLineageMapPage: FunctionComponent<
           )}
         </p>
 
-        {read.answer.isTruncated ? (
+        {projectSearch ? (
+          <div
+            className="flex flex-col gap-2 rounded-md bg-indigo-50 px-3 py-2 text-xs text-indigo-900 sm:flex-row sm:items-center sm:justify-between"
+            data-testid="lineage-map-project-search"
+          >
+            <p className="min-w-0 break-words">
+              {translator.translateTemplate(
+                PROJECT_SEARCH_NOTE,
+                { search: projectSearch },
+                // The words as typed keep their place in a sentence read right to left.
+                { setsValuesApart: true },
+              )}
+            </p>
+            <Button
+              title="Show Whole Map"
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              dataTestId="lineage-map-search-project-clear"
+              onClick={(): void => {
+                select(null);
+                setProjectSearch("");
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {truncatedNote ? (
           <p
             className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600"
             data-testid="lineage-map-truncated"
           >
-            {translator.translateText(TRUNCATED)}
+            {truncatedNote}
           </p>
         ) : (
           <></>
         )}
 
+        <BiLineageNotes
+          tools={shown.biToolsOffTables || []}
+          className="space-y-1 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600"
+        />
+
         {view === LineageMapView.List ? details : <></>}
 
-        {visible.nodes.length === 0 ? (
+        {read.isLoading ? (
+          <ChartSkeleton hasLegend={false} />
+        ) : isLineageMapEmpty(shown) ? (
+          <p
+            className="py-10 text-center text-sm text-gray-500"
+            data-testid="lineage-map-focus-empty"
+          >
+            {projectSearch
+              ? translator.translateTemplate(
+                  NOTHING_IN_PROJECT_SEARCH,
+                  { search: projectSearch },
+                  { setsValuesApart: true },
+                )
+              : translator.translateText(NOTHING_IN_DATABASE)}
+          </p>
+        ) : visible.nodes.length === 0 ? (
           <p
             className="py-10 text-center text-sm text-gray-500"
             data-testid="lineage-map-no-match"
@@ -533,7 +803,7 @@ const DataObservabilityLineageMapPage: FunctionComponent<
   }
 
   const hasMap: boolean = Boolean(
-    read.answer && !isLineageMapEmpty(read.answer),
+    shown && (isFocused || !isLineageMapEmpty(shown)),
   );
 
   return (
@@ -559,7 +829,7 @@ Search for a table, service, pipeline or dashboard: the map keeps what matches a
 - **Services:** the database spans in your traces name the table and the statement, so a service is drawn writing the tables it inserts into or updates and reading the tables it selects from.
 - **Pipelines:** OpenLineage events, dbt artifacts, Fivetran and Airbyte syncs, and scheduled jobs in your traces say which tables each run read and wrote.
 - **Databases:** a view is built from the tables it is defined on, and the query history of Snowflake, BigQuery, Redshift, ClickHouse and Databricks shows queries that read one table and wrote another.
-- **BI tools:** each dashboard is drawn reading the tables it is built on.
+- **BI tools:** each dashboard is drawn reading the tables it is built on, even when nothing else touches them. A Power BI report or dashboard built on no table OneUptime watches is drawn with the datasets it charts and the data sources they load from, such as a database you have not connected, a SharePoint list or an Excel file.
 
 ## Reading the Map
 
@@ -567,7 +837,9 @@ Cards sit left to right as data flows. A card's top edge is red for a table that
 
 ## Large Projects
 
-One map draws up to 400 cards, the most recently seen flows first. When your project has more, the map says so: search to find the table you are after.`,
+One map draws up to 400 cards, the most recently seen flows first. When your project has more, the map says how many tables it left out. Pick a database to map the flows of its tables, and the cards they join; or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service and dashboard whose name holds it. **Show Whole Map** goes back. To walk further from one table, open its page's Lineage tab.
+
+You see the tables and pipelines your role lets you read: one you may not read is never drawn, named or counted.`,
             }}
           />
           {hasMap ? (

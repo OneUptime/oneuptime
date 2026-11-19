@@ -330,8 +330,13 @@ const NoteCard: FunctionComponent<ComponentProps> = (
         />
       </div>
 
+      {/*
+       * Focusable from script alone, for a moment: the first note of the
+       * feed's last page takes the focus from Load more (EventNotes'
+       * holdFocusOnNote), ringed when the keyboard brought it there.
+       */}
       <article
-        className={`min-w-0 flex-1 rounded-lg border bg-white ${
+        className={`min-w-0 flex-1 rounded-lg border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
           isEditingThis
             ? "border-transparent"
             : "border-gray-200 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"

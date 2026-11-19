@@ -15,6 +15,7 @@ import AdminHealthRouter, {
   getInstallationHealthFacts,
   getPendingMigrationFailure,
   InstallationHealthReaders,
+  readGlobalProbesBehind,
 } from "../../API/AdminHealth";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -45,9 +46,16 @@ import InstallationHealthUtil, {
   InstallationHealthAnswer,
   InstallationHealthFacts,
   InstallationHealthFindingId,
+  InstallationHealthLevel,
+  InstallationHealthProbeBehind,
 } from "Common/Types/InstallationHealth/InstallationHealth";
+import ProbeService from "Common/Server/Services/ProbeService";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { ProbeBehindWork } from "Common/Types/Probe/ProbeBehind";
 import {
   ServerProductsPreset,
   getOffByPreset,
@@ -142,6 +150,11 @@ const readers: (
     serverProducts: async (): Promise<ServerProductsAnswer> => {
       return MONITORING_ONLY;
     },
+    globalProbesBehind: async (): Promise<
+      Array<InstallationHealthProbeBehind>
+    > => {
+      return [];
+    },
     ...overrides,
   };
 };
@@ -218,6 +231,188 @@ describe("the facts", () => {
     expect(facts.serverProducts).toBe(null);
     expect(facts.serverSetup).toEqual(EMPTY_CHECKLIST);
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("a global probe that is behind is a finding to look at, with when it fell behind and where to fix it (#9488)", async () => {
+    const facts: InstallationHealthFacts = await getInstallationHealthFacts(
+      readers({
+        globalProbesBehind: async (): Promise<
+          Array<InstallationHealthProbeBehind>
+        > => {
+          return [
+            {
+              id: "11111111-1111-4111-8111-111111111111",
+              name: "Probe-1",
+              since: "2026-11-18T09:12:00.000Z",
+            },
+          ];
+        },
+      }),
+    );
+
+    expect(facts.globalProbesBehind).toHaveLength(1);
+
+    const findings: Array<{
+      id: string;
+      level: InstallationHealthLevel;
+      sentence: string;
+      adminPath: string | null;
+    }> = InstallationHealthUtil.evaluate(facts);
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.id).toBe(
+      `${InstallationHealthFindingId.GlobalProbeBehind}-11111111-1111-4111-8111-111111111111`,
+    );
+    expect(findings[0]!.level).toBe(InstallationHealthLevel.Warn);
+    expect(findings[0]!.sentence).toBe(
+      "Probe-1 is behind: since 2026-11-18 09:12 UTC, its monitors have waited more than a minute past their check time, so they are checked less often than set.",
+    );
+    expect(findings[0]!.adminPath).toBe("/admin/health/probes");
+  });
+
+  test("whether the global probes are behind is read only while PostgreSQL answers, and a failed read is none", async () => {
+    let asked: boolean = false;
+    const down: InstallationHealthFacts = await getInstallationHealthFacts(
+      readers({
+        isPostgresConnected: async (): Promise<boolean> => {
+          return false;
+        },
+        globalProbesBehind: async (): Promise<
+          Array<InstallationHealthProbeBehind>
+        > => {
+          asked = true;
+          return [];
+        },
+      }),
+    );
+
+    expect(asked).toBe(false);
+    expect(down.globalProbesBehind).toBe(null);
+
+    const failed: InstallationHealthFacts = await getInstallationHealthFacts(
+      readers({
+        globalProbesBehind: async (): Promise<
+          Array<InstallationHealthProbeBehind>
+        > => {
+          throw new Error("column does not exist");
+        },
+      }),
+    );
+
+    expect(failed.globalProbesBehind).toBe(null);
+    expect(InstallationHealthUtil.evaluate(failed)).toEqual([]);
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("the global probes behind are the connected ones whose late checks span a minute, since the first", async () => {
+    const behind: Probe = new Probe();
+    behind.id = new ObjectID("22222222-2222-4222-8222-222222222222");
+    behind.name = "Probe-1";
+    behind.checksLateSince = new Date("2026-11-18T09:00:00.000Z");
+    behind.checksLastLateAt = new Date("2026-11-18T09:03:00.000Z");
+
+    // One late reading only: a restart, not yet behind.
+    const once: Probe = new Probe();
+    once.id = ObjectID.generate();
+    once.name = "Probe-2";
+    once.checksLateSince = new Date("2026-11-18T09:03:00.000Z");
+    once.checksLastLateAt = new Date("2026-11-18T09:03:00.000Z");
+
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const findBy = jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValue([behind, once] as never);
+
+    expect(await readGlobalProbesBehind()).toEqual([
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        name: "Probe-1",
+        since: "2026-11-18T09:00:00.000Z",
+        work: ProbeBehindWork.MonitorChecks,
+      },
+    ]);
+
+    const query: Record<string, unknown> = (
+      findBy.mock.calls[0]![0] as unknown as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query["isGlobalProbe"]).toBe(true);
+    expect(query["connectionStatus"]).toBe(ProbeConnectionStatus.Connected);
+    expect(Object.keys(query).sort()).toEqual(
+      ["connectionStatus", "isGlobalProbe"].sort(),
+    );
+
+    // Both kinds of work are read, so a probe behind on either is found.
+    const select: Record<string, unknown> = (
+      findBy.mock.calls[0]![0] as unknown as {
+        select: Record<string, unknown>;
+      }
+    ).select;
+    for (const column of [
+      "checksLateSince",
+      "checksLastLateAt",
+      "devicePollsLateSince",
+      "devicePollsLastLateAt",
+    ]) {
+      expect(select[column]).toBe(true);
+    }
+  });
+
+  test("a global probe behind on its network devices is found too, and one behind on both is found for each (#9499)", async () => {
+    const devices: Probe = new Probe();
+    devices.id = new ObjectID("33333333-3333-4333-8333-333333333333");
+    devices.name = "Probe-3";
+    devices.devicePollsLateSince = new Date("2026-11-18T09:01:00.000Z");
+    devices.devicePollsLastLateAt = new Date("2026-11-18T09:04:00.000Z");
+
+    const both: Probe = new Probe();
+    both.id = new ObjectID("44444444-4444-4444-8444-444444444444");
+    both.name = "Probe-4";
+    both.checksLateSince = new Date("2026-11-18T09:02:00.000Z");
+    both.checksLastLateAt = new Date("2026-11-18T09:05:00.000Z");
+    both.devicePollsLateSince = new Date("2026-11-18T08:59:00.000Z");
+    both.devicePollsLastLateAt = new Date("2026-11-18T09:05:00.000Z");
+
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValue([devices, both] as never);
+
+    const behind: Array<InstallationHealthProbeBehind> =
+      await readGlobalProbesBehind();
+
+    expect(behind).toEqual([
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        name: "Probe-3",
+        since: "2026-11-18T09:01:00.000Z",
+        work: ProbeBehindWork.DevicePolls,
+      },
+      {
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "Probe-4",
+        since: "2026-11-18T09:02:00.000Z",
+        work: ProbeBehindWork.MonitorChecks,
+      },
+      {
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "Probe-4",
+        since: "2026-11-18T08:59:00.000Z",
+        work: ProbeBehindWork.DevicePolls,
+      },
+    ]);
+
+    // Each is a finding of its own, with its own fix, the longest first.
+    const findings: Array<string> = InstallationHealthUtil.probeFindings({
+      globalProbesBehind: behind,
+    } as InstallationHealthFacts).map((finding: { id: string }): string => {
+      return finding.id;
+    });
+
+    expect(findings).toEqual([
+      `${InstallationHealthFindingId.GlobalProbeDevicesBehind}-44444444-4444-4444-8444-444444444444`,
+      `${InstallationHealthFindingId.GlobalProbeDevicesBehind}-33333333-3333-4333-8333-333333333333`,
+      `${InstallationHealthFindingId.GlobalProbeBehind}-44444444-4444-4444-8444-444444444444`,
+    ]);
   });
 
   test("PostgreSQL down: what needs it is not asked, and the rest still is", async () => {

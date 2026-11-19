@@ -406,6 +406,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What Ask AI's answers rated down drew on that is no product - the
+   * docs, other data, nothing - as Settings > AI > AI Results' Ask AI
+   * Answers card names it (#7365). Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AskAiRatings.ts",
+    kind: "keys",
+  },
+  /*
    * An audit log entry's action in words - Sign In, Session Timeout - as
    * the audit log's Action column and its Action filter draw it, and a
    * workflow run's status - Timeout, Execution Exceeded Current Plan - as
@@ -726,6 +735,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Cloud/CloudResourceHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * The sections a cloud resource's metrics read in - Availability,
+   * Traffic, Errors, Latency and the rest - on its Overview's Metrics card
+   * and its Metrics tab, each heading in the reader's language. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudKeyMetricGroup.ts",
     kind: "keys",
   },
   /*

@@ -14,7 +14,18 @@
  * packages and folders that weigh the most in it, and one with less than 1%
  * of it left warns (WARNING_HEADROOM_SHARE).
  *
- * The Compile workflow's compile-frontends job runs it once the three
+ * It builds every other frontend of the shared esbuild config too - the
+ * Dashboard and the Admin Dashboard - and reads each build for a package it
+ * bundles twice, from two installs (Common's and the frontend's own, say).
+ * Common/UI/esbuild-single-copy.js gives each frontend Common's copy of a
+ * package both install; a package OneUptime's own code still imports from
+ * two installs fails the run, naming them and their versions (issue
+ * #9335: a public dashboard carried two copies of recharts, one for
+ * Common's charts and one for the Dashboard's widgets). A second copy that
+ * only a package of the frontend's own install brings in is listed, and
+ * does not fail it.
+ *
+ * The Compile workflow's compile-frontends job runs it once the
  * frontends' dependencies are installed (issue #5608). It measures bytes,
  * which a build gives the same every time, where a Lighthouse performance
  * score would move with the speed of the runner.
@@ -27,8 +38,22 @@ const childProcess = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
+const { packagesFromSeveralInstalls } = require("../UI/esbuild-single-copy.js");
 
 const FEATURE_SETS = path.resolve(__dirname, "..", "..", "App", "FeatureSet");
+
+/*
+ * Every frontend built from the shared esbuild config
+ * (Common/UI/esbuild-config.js), each checked for a package it bundles from
+ * two installs. The pages below are in three of them.
+ */
+const FRONTENDS = [
+  "Accounts",
+  "Dashboard",
+  "AdminDashboard",
+  "StatusPage",
+  "PublicDashboard",
+];
 
 // Where the shared esbuild config writes a build, and its entry point.
 const DIST = path.join("public", "dist");
@@ -110,7 +135,8 @@ const PAGES = [
     // 2026-11-10: 1,535,455 bytes, loading the investigation drawer only when a chart opens it - a public dashboard never does - and the people picker only for a form that has one.
     // 2026-11-15: 1,497,302 bytes, loading a widget's settings only when they open - a public dashboard, which has no edit mode, never does - and the API client and a form's default names without the probe's and the lists' code.
     // 2026-11-16: 1,455,800 bytes (1,503,403 on main that day), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
-    ceiling: 1450 * KIB,
+    // 2026-11-18: 1,315,342 bytes (1,443,146 on main that day), bundling one copy of recharts where Common's charts and the Dashboard's widgets each brought their own (#9335).
+    ceiling: 1310 * KIB,
   },
 ];
 
@@ -286,10 +312,93 @@ function warnNearCeiling(result) {
 }
 
 /*
- * What the run prints for the pages it measured, and whether it fails: a
- * line for each page, and a warning for each that is close to its ceiling.
+ * A frontend's packages bundled from more than one install, read from its
+ * metafile (packagesFromSeveralInstalls, Common/UI/esbuild-single-copy.js):
+ * `twice`, those OneUptime's own code imports from more than one install,
+ * which fail the run, and `alsoTwice`, those only packages of the
+ * frontend's own install bring a second copy of, which do not.
+ * versionOf(install, name) reads a copy's version (null when it cannot).
  */
-function report(results) {
+function singleCopies(frontend, metafile, versionOf = () => null) {
+  const found = packagesFromSeveralInstalls(metafile).map((bundled) => {
+    return {
+      ...bundled,
+      installs: bundled.installs.map((copy) => {
+        return { ...copy, version: versionOf(copy.install, bundled.name) };
+      }),
+    };
+  });
+
+  const importedFromSeveral = (bundled) => {
+    return (
+      bundled.installs.filter((copy) => {
+        return copy.importedByOwnCode;
+      }).length > 1
+    );
+  };
+
+  return {
+    frontend,
+    twice: found.filter(importedFromSeveral),
+    alsoTwice: found.filter((bundled) => {
+      return !importedFromSeveral(bundled);
+    }),
+  };
+}
+
+// "3.8.1 (285.1 KiB) from <install> and 3.9.0 (284.6 KiB) from <install>"
+function describeCopies(bundled) {
+  return bundled.installs
+    .map((copy) => {
+      return `${copy.version ? `${copy.version} ` : ""}(${kib(copy.bytes)}) from ${copy.install}`;
+    })
+    .join(" and ");
+}
+
+function times(count) {
+  return count === 2 ? "twice" : `${count} times`;
+}
+
+/*
+ * What the run prints for one frontend's copies: a line that says it bundles
+ * one copy of each package its code imports, or a failure for each package
+ * it does not, saying what to do; and the second copies packages of its own
+ * install bring, when there are any.
+ */
+function describeSingleCopies(result) {
+  const lines =
+    result.twice.length === 0
+      ? [
+          `${result.frontend} bundles one copy of each package its code imports.`,
+        ]
+      : result.twice.map((bundled) => {
+          return [
+            `${result.frontend} bundles ${bundled.name} ${times(bundled.installs.length)}, and its own code imports it from more than one install: ${describeCopies(bundled)}, before gzip.`,
+            `  Common's copy stands in for another install's when Common installs the package and its copy has the same major version and is no older (packages/Common/UI/esbuild-single-copy.js). Run npm update ${bundled.name} where the copy is older, so one version serves both; a different major version needs the code on the older one moved to the newer.`,
+          ].join("\n");
+        });
+
+  if (result.alsoTwice.length > 0) {
+    lines.push(
+      `  Packages of its own install also bring a second copy of ${result.alsoTwice
+        .map((bundled) => {
+          return `${bundled.name}: ${describeCopies(bundled)}`;
+        })
+        .join("; ")}.`,
+    );
+  }
+
+  return lines;
+}
+
+/*
+ * What the run prints for the pages it measured, and whether it fails: a
+ * line for each page, and a warning for each that is close to its ceiling;
+ * then, for each frontend checked for its copies (singleCopies), what
+ * describeSingleCopies says of it. A page over its ceiling fails the run,
+ * as does a package a frontend's code imports from two installs.
+ */
+function report(results, copies = []) {
   return {
     lines: [
       ...results.map(describe),
@@ -298,10 +407,15 @@ function report(results) {
           return result.nearCeiling;
         })
         .map(warnNearCeiling),
+      ...copies.flatMap(describeSingleCopies),
     ],
-    failed: results.some((result) => {
-      return result.over;
-    }),
+    failed:
+      results.some((result) => {
+        return result.over;
+      }) ||
+      copies.some((result) => {
+        return result.twice.length > 0;
+      }),
   };
 }
 
@@ -330,25 +444,49 @@ function buildFrontend(frontend) {
   );
 }
 
-function main() {
-  const metafiles = new Map();
-  const results = [];
+// The version of the copy of a package in an install, as a build names it.
+function installedVersion(folder, install, name) {
+  try {
+    return (
+      JSON.parse(
+        fs.readFileSync(
+          path.join(folder, install, name, "package.json"),
+          "utf8",
+        ),
+      ).version || null
+    );
+  } catch (error) {
+    return null;
+  }
+}
 
-  for (const page of PAGES) {
-    if (!metafiles.has(page.frontend)) {
-      metafiles.set(page.frontend, buildFrontend(page.frontend));
+function main() {
+  const results = [];
+  const copies = [];
+
+  // One frontend at a time: the Dashboard's metafile alone is some 28 MB.
+  for (const frontend of FRONTENDS) {
+    const metafile = buildFrontend(frontend);
+    const folder = path.join(FEATURE_SETS, frontend);
+
+    for (const page of PAGES) {
+      if (page.frontend === frontend) {
+        results.push(
+          measurePage(metafile, page, (file) => {
+            return fs.readFileSync(path.join(folder, file));
+          }),
+        );
+      }
     }
 
-    const folder = path.join(FEATURE_SETS, page.frontend);
-
-    results.push(
-      measurePage(metafiles.get(page.frontend), page, (file) => {
-        return fs.readFileSync(path.join(folder, file));
+    copies.push(
+      singleCopies(frontend, metafile, (install, name) => {
+        return installedVersion(folder, install, name);
       }),
     );
   }
 
-  const { lines, failed } = report(results);
+  const { lines, failed } = report(results, copies);
 
   for (const line of lines) {
     console.log(line);
@@ -364,16 +502,19 @@ if (require.main === module) {
 }
 
 module.exports = {
+  FRONTENDS,
   GZIP_LEVEL,
   PAGES,
   WARNING_HEADROOM_SHARE,
   describe,
+  describeSingleCopies,
   escapeAnnotation,
   firstLoadOutputs,
   heaviest,
   measurePage,
   outputFor,
   report,
+  singleCopies,
   warnNearCeiling,
   weightKey,
 };

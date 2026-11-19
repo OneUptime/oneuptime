@@ -1,4 +1,6 @@
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { DiscoveryImportTemplateChoice } from "./DiscoveryImportOutcome";
 
 /*
  * What the import's Monitoring step calls its monitor templates (OneUptime
@@ -46,3 +48,43 @@ export const UNNAMED_TEMPLATE_NAME: string = translationKey("Unnamed template");
 export const NO_DEVICE_MONITOR_TEMPLATE_REASON: string = translationKey(
   "This project has no Network Device, Ping, IP, Port or NTP monitor template, and you may not create one. Ask a Project Owner or Project Admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
 );
+
+/*
+ * What a Ping, IP, Port or NTP template's monitor does, in the words its
+ * option in a list carries under its name: the import's Monitoring step's,
+ * and an auto import rule's Monitor Template (issue #9510).
+ */
+export function describeAddressTemplate(
+  translator: Translator,
+  choice: Pick<DiscoveryImportTemplateChoice, "monitorType" | "ports">,
+): string {
+  if (choice.monitorType === MonitorType.IP) {
+    return translator.translateText("Pings each device's IP address") as string;
+  }
+
+  if (choice.monitorType === MonitorType.Port) {
+    const ports: Array<number> = choice.ports || [];
+
+    if (ports.length === 1) {
+      return translator.translateTemplate(
+        "Checks port {{port}} on each device",
+        { port: String(ports[0]) },
+      );
+    }
+
+    if (ports.length > 1) {
+      return translator.translateTemplate(
+        "Checks ports {{ports}} on each device",
+        { ports: ports.join(", ") },
+      );
+    }
+
+    return translator.translateText("Checks a port on each device") as string;
+  }
+
+  if (choice.monitorType === MonitorType.NTP) {
+    return translator.translateText("Asks each device for the time") as string;
+  }
+
+  return translator.translateText("Pings each device") as string;
+}
