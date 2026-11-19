@@ -291,9 +291,10 @@ const getFitToWindowModifier: (data: {
 };
 
 /*
- * Cuts the menu down to the room its side has. It scrolls inside itself
- * only while it is cut short: a menu with all its room keeps its own
- * overflow, so nothing of it is clipped that was not before.
+ * Cuts the menu down to the room its side has, and it scrolls inside
+ * itself, only while it is taller than that room. A menu with all its room
+ * keeps its own height and overflow - its own max-height too - so nothing
+ * of it is cut or clipped that was not before.
  */
 const APPLY_MAX_HEIGHT_MODIFIER: PopperModifier = {
   name: "layeredPopoverMaxHeight",
@@ -311,7 +312,7 @@ const APPLY_MAX_HEIGHT_MODIFIER: PopperModifier = {
 
     const isCutShort: boolean = getMenuHeight(state) > fit.maxHeight;
 
-    menu.style.maxHeight = `${fit.maxHeight}px`;
+    menu.style.maxHeight = isCutShort ? `${fit.maxHeight}px` : "";
     menu.style.overflowY = isCutShort ? "auto" : "";
   },
 };

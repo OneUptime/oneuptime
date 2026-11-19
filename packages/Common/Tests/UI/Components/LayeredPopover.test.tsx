@@ -525,6 +525,8 @@ describe("LayeredPopover - placed against the window", () => {
     expect(shown.top + menuHeight).toBeLessThanOrEqual(WINDOW_HEIGHT - 60);
     // It had all its room there: not cut down, nothing scrolls in it.
     expect(shown.menu.style.overflowY).toBe("");
+    // Its own height, and any max-height of its own, are left to it.
+    expect(shown.menu.style.maxHeight).toBe("");
   });
 
   test("with its end on its control's end, at the window's right edge", async () => {
