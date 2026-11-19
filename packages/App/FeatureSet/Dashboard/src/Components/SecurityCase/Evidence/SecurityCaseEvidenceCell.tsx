@@ -14,6 +14,7 @@ import {
   HUNTS_TEST_IDS,
 } from "../../SecurityEvents/Hunts/HuntsCopy";
 import { getHuntViewRoute } from "../../SecurityEvents/Hunts/HuntsModel";
+import { EVENT_PANEL_NOTE } from "../Matches/SecurityCaseMatchesCopy";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -107,7 +108,8 @@ export const SECURITY_CASE_EVENT_EVIDENCE_META_PART_CLASS_NAME: string =
  * A security event kept on the case reads the same way, with a bookmark:
  * what it said, then when it happened, how severe it was, its kind and
  * where it came from, and the hunt that found it - a link to the hunt -
- * as it was named when the event was kept.
+ * or the detection on the case it was matched by (#9622), as each was
+ * named when the event was kept.
  */
 const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -208,6 +210,25 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
                 </Link>
               ) : (
                 <IsolatedText text={event.hunt.name} />
+              ),
+            }}
+          />
+        </span>
+      ) : (
+        <></>
+      )}
+      {event?.detection ? (
+        <span
+          className="mt-0.5 ps-6 text-xs text-gray-500"
+          data-testid={SECURITY_CASE_EVIDENCE_TEST_IDS.eventDetection}
+        >
+          <TranslatedSentence
+            template={EVENT_PANEL_NOTE}
+            slots={{
+              detection: (
+                <span className="font-medium text-gray-700">
+                  <IsolatedText text={event.detection.name} />
+                </span>
               ),
             }}
           />

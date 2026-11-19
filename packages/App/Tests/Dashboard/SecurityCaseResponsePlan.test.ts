@@ -117,6 +117,7 @@ function rule(
     falsePositives: ["Vulnerability scanners your team runs"],
     references: [],
     lookFor: [],
+    responseSteps: [],
     ...overrides,
   };
 }
@@ -185,6 +186,9 @@ function detection(
     windowStart: "2026-11-17T19:22:00.000Z",
     windowEnd: "2026-11-17T19:29:00.000Z",
     events: [event()],
+    isKept: false,
+    keptPastRetentionCount: 0,
+    hiddenEventCount: 0,
     matchedEventCount: 12,
     outcomes: { [SecurityEventRequestOutcome.Rejected]: 12 },
     ...overrides,
@@ -1142,5 +1146,222 @@ describe("where its links go", () => {
     expect(url.pathname).toBe(`${BASE}/traces`);
     expect(route!.toString()).toContain("trace-1");
     expect(route!.toString()).toContain("trace-2");
+  });
+});
+
+/*
+ * A rule's own response steps (#9621): the steps its author wrote, in their
+ * words, first in the part of the plan each goes under - after taking the
+ * case - and ticked off like any other, by a key their words never change.
+ * A rule that says how to fix what let it happen is followed: its Fix steps
+ * take the place of the general ones.
+ */
+describe("a rule's own response steps", () => {
+  const RULE_STEPS: Array<{ id: string; phase: string; text: string }> = [
+    {
+      id: "page-payments",
+      phase: "Contain",
+      text: "Page the payments on-call.",
+    },
+    {
+      id: "check-billing-audit",
+      phase: "Confirm",
+      text: "Check the admin audit log in the billing app.",
+    },
+    { id: "rotate-vault-key", phase: "Fix", text: "Rotate the key in Vault." },
+  ];
+
+  function withSteps(
+    steps: Array<{ id: string; phase: string; text: string }> = RULE_STEPS,
+    overrides: Partial<SecurityCaseMatchedDetectionJson> = {},
+  ): SecurityCaseMatchedDetectionJson {
+    return detection({
+      rule: rule({ responseSteps: steps as never }),
+      ...overrides,
+    });
+  }
+
+  test("each goes first in its part of the plan, after taking the case, in the author's words", () => {
+    const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({ matches: matches(withSteps()) }),
+    );
+
+    expect(keys(built)).toEqual([
+      "confirm:take",
+      "rule:check-billing-audit",
+      "confirm:requests",
+      `confirm:false-positive:${RULE_ID}`,
+      "rule:page-payments",
+      "contain:block-ip:35.196.249.14",
+      "contain:incident",
+      "contain:mark-contained",
+      "rule:rotate-vault-key",
+      "close",
+    ]);
+
+    const page: ReturnType<typeof step> = step(built, "rule:page-payments");
+
+    expect(page.ruleText).toBe("Page the payments on-call.");
+    expect(page.aiText).toBeUndefined();
+    expect(page.phase).toBe(types.ResponsePhase.Contain);
+    expect(page.completion).toBe(types.ResponseStepCompletion.ByTask);
+    expect(page.action).toBeUndefined();
+    expect(plan.isAiStep(page)).toBe(false);
+  });
+
+  test("a rule's Fix steps take the place of the general ones; without any, the general ones stay", () => {
+    expect(
+      keys(
+        plan.buildResponsePlan(input({ matches: matches(withSteps()) })),
+      ).filter((key: string): boolean => {
+        return key.startsWith("fix:");
+      }),
+    ).toEqual([]);
+
+    const withoutFix: ReturnType<Plan["buildResponsePlan"]> =
+      plan.buildResponsePlan(
+        input({
+          matches: matches(
+            withSteps(
+              RULE_STEPS.filter((ruleStep: { phase: string }): boolean => {
+                return ruleStep.phase !== "Fix";
+              }),
+            ),
+          ),
+        }),
+      );
+
+    expect(keys(withoutFix)).toContain("fix:public-app");
+  });
+
+  test("ticked off, a step stays ticked whatever its words become", () => {
+    const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({
+        matches: matches(
+          withSteps([
+            {
+              id: "page-payments",
+              phase: "Contain",
+              text: "Page the payments on-call, and the platform lead.",
+            },
+          ]),
+        ),
+        tasks: [
+          {
+            id: "task-1",
+            responseStepKey: "rule:page-payments",
+            isDone: true,
+            doneByName: "Maya",
+          },
+        ],
+      }),
+    );
+
+    const page: ReturnType<typeof step> = step(built, "rule:page-payments");
+
+    expect(page.isDone).toBe(true);
+    expect(page.taskId).toBe("task-1");
+    expect(page.doneByName).toBe("Maya");
+  });
+
+  test("a rule's containment steps must be done before the case is offered to be marked Contained", () => {
+    const notYet: ReturnType<Plan["buildResponsePlan"]> =
+      plan.buildResponsePlan(
+        input({
+          matches: matches(withSteps()),
+          tasks: [
+            {
+              id: "task-1",
+              responseStepKey: "contain:block-ip:35.196.249.14",
+              isDone: true,
+            },
+          ],
+        }),
+      );
+
+    expect(notYet.isReadyToMarkContained).toBe(false);
+
+    const done: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({
+        matches: matches(withSteps()),
+        tasks: [
+          {
+            id: "task-1",
+            responseStepKey: "contain:block-ip:35.196.249.14",
+            isDone: true,
+          },
+          { id: "task-2", responseStepKey: "rule:page-payments", isDone: true },
+        ],
+      }),
+    );
+
+    expect(done.isReadyToMarkContained).toBe(true);
+  });
+
+  test("the opening detection's rule first, then the others', a step two rules share once, at most the bound", () => {
+    const other: SecurityCaseMatchedDetectionJson = detection({
+      id: "77777777-7777-4777-8777-777777777777",
+      isOpening: false,
+      rule: rule({
+        id: "55555555-5555-4555-8555-555555555555",
+        responseSteps: [
+          { id: "page-payments", phase: "Contain", text: "Shared." },
+          { id: "lock-account", phase: "Contain", text: "Lock the account." },
+        ] as never,
+      }),
+    });
+
+    expect(
+      plan
+        .getRuleResponseSteps({
+          ...matches(withSteps()),
+          detections: [other, withSteps()],
+        })
+        .map((ruleStep: { id: string }): string => {
+          return ruleStep.id;
+        }),
+    ).toEqual([
+      "page-payments",
+      "check-billing-audit",
+      "rotate-vault-key",
+      "lock-account",
+    ]);
+
+    const many: SecurityCaseMatchedDetectionJson = withSteps(
+      Array.from({ length: 15 }, (_: unknown, index: number) => {
+        return { id: `s${index}`, phase: "Contain", text: `Step ${index}.` };
+      }),
+    );
+
+    expect(plan.getRuleResponseSteps(matches(many))).toHaveLength(
+      plan.RESPONSE_MAX_RULE_STEPS,
+    );
+  });
+
+  test("a rule the reader may not read, or no case read yet, carries none", () => {
+    expect(
+      plan.getRuleResponseSteps(matches(detection({ rule: null }))),
+    ).toEqual([]);
+    expect(plan.getRuleResponseSteps(null)).toEqual([]);
+  });
+
+  test("a closed case keeps a rule's steps, with nothing more to press", () => {
+    const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({
+        matches: matches(withSteps()),
+        stage: SecurityCaseStage.Closed,
+      }),
+    );
+
+    expect(step(built, "rule:rotate-vault-key").action).toBeUndefined();
+  });
+
+  test("a ticked step's task keeps the author's words", () => {
+    expect(
+      data.getResponseStepTitle({
+        step: { ruleText: "Rotate the key in Vault." },
+        text: "",
+      }),
+    ).toBe("Rotate the key in Vault.");
   });
 });

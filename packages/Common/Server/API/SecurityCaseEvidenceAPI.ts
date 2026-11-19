@@ -88,10 +88,13 @@ export default class SecurityCaseEvidenceAPI extends BaseAPI<
    * It takes a role that adds evidence to cases and one that reads security
    * events: what is kept is read from the events table as them.
    *
-   *   { securityCaseId, events: [{ eventUid, time }], securityHuntId? }
+   *   { securityCaseId, events: [{ eventUid, time }], securityHuntId?,
+   *     securityDetectionId? }
    *
    * answers { added, alreadyOnCase, notFound }, each a list of event ids.
-   * A hunt named that is not there is left out of what is kept.
+   * A hunt named that is not there is left out of what is kept. A detection
+   * named - one of the case's, the events were matched by - is named on
+   * each, and an event past its retention is kept as it kept it (#9622).
    */
   private async addEvents(
     req: ExpressRequest,
@@ -144,6 +147,11 @@ export default class SecurityCaseEvidenceAPI extends BaseAPI<
           projectId,
           props,
         }),
+        detectionId:
+          typeof body["securityDetectionId"] === "string" &&
+          ObjectID.isValidUUID(body["securityDetectionId"])
+            ? new ObjectID(body["securityDetectionId"])
+            : null,
         props,
       });
 

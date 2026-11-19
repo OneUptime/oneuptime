@@ -100,6 +100,11 @@ import {
   getSecurityAddressScope,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { toTracesExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalScope";
+import {
+  DetectionRuleResponsePhase,
+  DetectionRuleResponseStep,
+  getDetectionRuleResponseStepKey,
+} from "Common/Types/SecurityEvent/DetectionRuleResponseSteps";
 
 /*
  * A CASE'S RESPONSE PLAN: what to do about it now, most urgent first
@@ -124,6 +129,12 @@ import { toTracesExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalS
  *
  * OneUptime AI's triage adds its own suggested next steps, in its words.
  *
+ * The rules behind the case's detections add their own (#9621): the steps
+ * their authors wrote, in their words, first in the part of the plan each
+ * goes under - after taking the case, which comes first whatever the case
+ * is. A rule that says how to fix what let it happen is followed: its Fix
+ * steps take the place of the general ones the tactics give.
+ *
  * A step is done when the case says so - assigned, an incident declared, a
  * playbook run, contained, closed - or when somebody ticks it off, which
  * makes it one of the case's tasks, keyed by the step (a task's
@@ -142,6 +153,9 @@ export const RESPONSE_AI_STEP_MAX_LENGTH: number = 300;
 
 // The longest a step's key is (SecurityCaseTask.responseStepKey).
 export const RESPONSE_STEP_KEY_MAX_LENGTH: number = 100;
+
+// The most of the rules' own steps a plan shows, the opening rule's first.
+export const RESPONSE_MAX_RULE_STEPS: number = 10;
 
 // The most traces a step's link carries.
 export const RESPONSE_MAX_TRACES: number = 20;
@@ -307,6 +321,48 @@ export function readAiSuggestedSteps(
 
     if (steps.length >= RESPONSE_MAX_AI_STEPS) {
       break;
+    }
+  }
+
+  return steps;
+}
+
+// ---------- The rules' own steps ----------
+
+/*
+ * The steps the rules behind the case's detections carry (#9621): the rule
+ * of the detection that opened the case first, then the others', each step
+ * once (a library step two rules share is one step), at most
+ * RESPONSE_MAX_RULE_STEPS. None for a detection whose rule the reader may
+ * not read.
+ */
+export function getRuleResponseSteps(
+  matches: SecurityCaseMatchesJson | null,
+): Array<DetectionRuleResponseStep> {
+  if (!matches) {
+    return [];
+  }
+
+  const opening: SecurityCaseMatchedDetectionJson | null =
+    getOpeningMatchedDetection(matches);
+  const steps: Array<DetectionRuleResponseStep> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const detection of [
+    ...(opening ? [opening] : []),
+    ...matches.detections.filter(
+      (candidate: SecurityCaseMatchedDetectionJson): boolean => {
+        return candidate !== opening;
+      },
+    ),
+  ]) {
+    for (const step of detection.rule?.responseSteps || []) {
+      if (seen.has(step.id) || steps.length >= RESPONSE_MAX_RULE_STEPS) {
+        continue;
+      }
+
+      seen.add(step.id);
+      steps.push(step);
     }
   }
 
@@ -612,6 +668,7 @@ interface StepToAdd {
   phase: ResponsePhase;
   text: ResponseText;
   aiText?: string | undefined;
+  ruleText?: string | undefined;
   detail?: ResponseText | undefined;
   isDetailWarning?: boolean | undefined;
   quotes?: Array<string> | undefined;
@@ -730,6 +787,7 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       phase: step.phase,
       text: step.text,
       aiText: step.aiText,
+      ruleText: step.ruleText,
       detail: step.detail,
       isDetailWarning: step.isDetailWarning,
       quotes: step.quotes || [],
@@ -745,6 +803,36 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     });
   };
 
+  // The rules' own steps, each added first in its part of the plan.
+  const ruleSteps: Array<DetectionRuleResponseStep> = getRuleResponseSteps(
+    input.matches,
+  );
+  const addRuleSteps: (
+    phase: DetectionRuleResponsePhase,
+    planPhase: ResponsePhase,
+  ) => number = (
+    phase: DetectionRuleResponsePhase,
+    planPhase: ResponsePhase,
+  ): number => {
+    let added: number = 0;
+
+    for (const step of ruleSteps) {
+      if (step.phase !== phase) {
+        continue;
+      }
+
+      add({
+        key: getDetectionRuleResponseStepKey(step.id),
+        phase: planPhase,
+        text: { template: "", values: {} },
+        ruleText: step.text,
+      });
+      added++;
+    }
+
+    return added;
+  };
+
   // ----- Confirm -----
 
   add({
@@ -755,6 +843,8 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     isDoneByCase: input.isAssigned || isClosed,
     isOnlyDoneByCase: true,
   });
+
+  addRuleSteps(DetectionRuleResponsePhase.Confirm, ResponsePhase.Confirm);
 
   if (opening) {
     const outcomes: RequestOutcomeSummary = getRequestOutcomeSummary(
@@ -868,6 +958,8 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
   }
 
   // ----- Contain -----
+
+  addRuleSteps(DetectionRuleResponsePhase.Contain, ResponsePhase.Contain);
 
   const aiPlaybook: ResponsePlaybook | null = input.ai?.suggestedPlaybookId
     ? playbooksById.get(input.ai.suggestedPlaybookId) || null
@@ -1046,6 +1138,15 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
 
   // ----- Fix -----
 
+  /*
+   * A rule that says how to fix what let it happen is followed: its steps
+   * take the place of the general ones.
+   */
+  const ruleFixes: number = addRuleSteps(
+    DetectionRuleResponsePhase.Fix,
+    ResponsePhase.Fix,
+  );
+
   const attackIds: Array<string> = [
     ...input.mitreTactics,
     ...input.mitreTechniques,
@@ -1055,8 +1156,9 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     : "";
 
   if (
-    holdsAttackId(attackIds, ["T1190"]) ||
-    (holdsAttackId(attackIds, ["TA0001"]) && Boolean(requestedRoute))
+    ruleFixes === 0 &&
+    (holdsAttackId(attackIds, ["T1190"]) ||
+      (holdsAttackId(attackIds, ["TA0001"]) && Boolean(requestedRoute)))
   ) {
     add({
       key: getResponseStepKey("fix:public-app"),
@@ -1073,7 +1175,7 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
   let tacticFixes: number = 0;
 
   for (const rule of FIX_RULES) {
-    if (tacticFixes >= RESPONSE_MAX_FIX_STEPS) {
+    if (ruleFixes > 0 || tacticFixes >= RESPONSE_MAX_FIX_STEPS) {
       break;
     }
 

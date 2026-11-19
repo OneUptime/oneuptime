@@ -63,7 +63,7 @@ Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en 
 Klik på en række. Dens detaljer åbner ved siden af listen.
 :::
 
-Din søgning, dine chips og tidsintervallet gemmes i sidens adresse, så en genindlæsning, et bogmærke eller et delt link åbner de samme protokoller.
+Din søgning, dine chips og tidsintervallet gemmes i sidens adresse, så en genindlæsning, et bogmærke eller et delt link åbner de samme protokoller. Et link til én loglinje, såsom **Vis loglinje** på en sikkerhedsbegivenhed, åbner den linje over listen, læst med dine egne tilladelser.
 
 ## Læs en protokol
 

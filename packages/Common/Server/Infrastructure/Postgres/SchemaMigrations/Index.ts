@@ -1095,6 +1095,7 @@ import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210
 import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
 import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
 import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
+import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
 
 export default [
   InitialMigration,
@@ -2194,4 +2195,5 @@ export default [
   AddComplianceSettingTurnedOffBy1809185300000,
   AddComplianceSettingTurnedOffByKey1809185300100,
   AddCloudConnectionAddedMetrics1809185310000,
+  AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
 ];
