@@ -57376,7 +57376,7 @@
   "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "此管道读取和写入的表，以及每个表的当前状况。追踪某一列可查看它从哪里来、到哪里去；选择更多步数可查看它们由什么构建、又构建了什么。",
   "Almost out of space": "空间即将用尽",
   "Block device": "块设备",
-  "Bytes still free to write on a mounted volume's filesystem. Falling is bad, so alert with a 'less than' threshold; for a share of the capacity, use the PVC Almost Full template.": "已挂载卷的文件系统上仍可写入的空闲字节数。下降意味着不好，因此请使用“小于”阈值告警；若要按容量占比告警，请使用 PVC Almost Full 模板。",
+  "Bytes still free to write on a mounted volume's filesystem. Falling is bad, so alert with a 'less than' threshold; for a share of the capacity, use the PVC Almost Full template.": "已挂载卷的文件系统上仍可写入的空闲字节数。下降意味着不好，因此请使用“小于”阈值发出警报；若要按容量占比发出警报，请使用 PVC Almost Full 模板。",
   "Capacity and Free Space": "容量与可用空间",
   "Every claim in this cluster: how much of it is used, how much is free, and its status.": "此集群中的每个声明：已用多少、可用多少，以及其状态。",
   "Every volume in this cluster: how much of it is used, how much is free, and its status.": "此集群中的每个卷：已用多少、可用多少，以及其状态。",
