@@ -150,6 +150,7 @@ import {
   ManagedDeviceStatus,
 } from "Common/Types/DeviceManagement/ManagedDeviceStatus";
 import { REMOVED_DEVICE_RETENTION_DAYS } from "Common/Server/Utils/DeviceManagement/ManagedDeviceSync";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
 import { EVERY_FIFTEEN_MINUTE, EVERY_THREE_HOURS } from "Common/Utils/CronTime";
@@ -921,11 +922,17 @@ describe("Inventory Overview: finding your way around", () => {
   });
 
   it("lists the Asset Details card's facts in the card's order", () => {
+    /*
+     * As the card draws each in English: a meaning key draws its word
+     * (Model, a machine's model, #9838).
+     */
     const facts: string = listOf(
       INVENTORY_ASSET_FIELDS.map((field: string): string => {
-        return INVENTORY_ASSET_FIELD_LABELS[
-          field as keyof typeof INVENTORY_ASSET_FIELD_LABELS
-        ];
+        return withMeaningKeyAsItsWord(
+          INVENTORY_ASSET_FIELD_LABELS[
+            field as keyof typeof INVENTORY_ASSET_FIELD_LABELS
+          ],
+        );
       }),
       "and",
     );
