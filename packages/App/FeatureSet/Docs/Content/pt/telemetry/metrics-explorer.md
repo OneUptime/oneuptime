@@ -189,7 +189,7 @@ Reinicie o collector. Cada serviço cujos traces passam por ele passa então a e
 | Renomear Atributo | Renomeia a chave de um atributo nos pontos de dados que correspondem. |
 | Adicionar atributo | Adiciona um atributo aos pontos de dados que correspondem. |
 | Remover Atributo | Remove um atributo, como um com valores demais para ser útil. |
-| Redigir Atributo | Substitui o valor de um atributo por um marcador. |
+| Ocultar Atributo | Substitui o valor de um atributo por um marcador. |
 | Amostra | Mantém uma porcentagem dos pontos de dados que correspondem. |
 
 **Métricas → Configurações → Regras de gravação** calcula a cada minuto novas métricas a partir de outras métricas. Veja [Regras de gravação de registros](/docs/telemetry/log-recording-rules) para saber como as regras de gravação funcionam.

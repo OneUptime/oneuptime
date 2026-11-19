@@ -221,7 +221,7 @@ De instellingen van Gegevensbeveiliging zijn één set per project, in de sectie
 | --- | --- | --- |
 | **Configuratie controleren** | Aan | Voert de controles uit op elke opslag. Staat het uit, dan opent, wijzigt of sluit er geen probleem. |
 | **Inhoud scannen** | Aan | Bemonstert de inhoud van opslagen waar de inhoudsmachtiging is gegeven. |
-| **Telemetrie scannen** | Aan | Bemonstert de logs, traces, uitzonderingen, herhalingen en AI-gesprekken van het project. |
+| **Telemetrie scannen** | Aan | Bemonstert de logs, traces, metrieken, uitzonderingen, herhalingen en AI-gesprekken van het project. |
 | **Gemaskeerde voorbeelden bewaren** | Aan | Bewaart tot drie gemaskeerde voorbeelden bij elke bevinding. Uit bewaart alleen tellingen. |
 | **Beveiligingszaken openen** | Aan | Opent een beveiligingszaak, gegroepeerd per opslag, wanneer een kritiek probleem opent. |
 | **Waarschuwingen aanmaken** | Uit | Maakt een waarschuwing aan, die de dienstdoende oproept, wanneer een kritiek probleem opent. |

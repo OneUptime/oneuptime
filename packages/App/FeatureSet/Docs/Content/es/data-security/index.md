@@ -33,7 +33,7 @@ flowchart TB
 
 ## En qué se diferencia
 
-- **Tu telemetría es un almacén de datos.** Los registros, trazas, excepciones, reproducciones de sesiones y conversaciones de IA de cada servicio se comprueban como un bucket, cada hora. Una dirección de correo electrónico en una línea de registro es un hallazgo, y **Depurar** la enmascara en la ingesta a partir de entonces. Consulta [Datos sensibles en la telemetría](/docs/data-security/telemetry).
+- **Tu telemetría es un almacén de datos.** Los registros, trazas, métricas, excepciones, reproducciones de sesiones y conversaciones de IA de cada servicio se comprueban como un bucket, cada hora. Una dirección de correo electrónico en una línea de registro es un hallazgo, y **Depurar** la enmascara en la ingesta a partir de entonces. Consulta [Datos sensibles en la telemetría](/docs/data-security/telemetry).
 - **Los flujos salen del tráfico real.** El mapa de servicios dice qué servicio usa qué base de datos, las llamadas de IA nombran el proveedor al que llegan, y las copias de datos de producción se encuentran comparando huellas. Consulta [Flujos de datos, acceso y residencia](/docs/data-security/flows-access-residency).
 - **El acceso se lee desde los dos lados.** Seguridad de datos lee a quién dejan entrar los propios ajustes de cada almacén y, en AWS, a qué puede llegar cada rol y cada usuario mediante sus políticas de IAM, y cuándo se usó cada uno por última vez. **Acceso** ordena cada identidad por el daño que podría causar, y el acceso a datos sensibles sin usar en 90 días es un problema. Consulta [Quién puede acceder a un almacén](/docs/data-security/flows-access-residency#quién-puede-acceder-a-un-almacén).
 - **La evidencia siempre se enmascara.** Un hallazgo guarda recuentos y como máximo tres muestras enmascaradas, como `j***@e******.com`, enmascaradas dentro del escáner antes de que nada salga de él. Desactiva las muestras y solo guarda recuentos.
@@ -70,7 +70,7 @@ Abre **Seguridad de datos**. Los almacenes aparecen en **Almacenes de datos** a 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Bases de datos que gestionas | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA |
+| OneUptime | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas |
 
 Cada almacén recibe las comprobaciones que se aplican a su tipo. Un almacén cuyo contenido no se puede muestrear se comprueba igualmente: un bucket público o una base de datos sin cifrar es un problema, contenga lo que contenga.
 

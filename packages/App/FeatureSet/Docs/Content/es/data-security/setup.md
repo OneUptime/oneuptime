@@ -221,7 +221,7 @@ Los ajustes de Seguridad de datos son un único conjunto por proyecto, en la sec
 | --- | --- | --- |
 | **Comprobar configuración** | Activado | Ejecuta las comprobaciones en cada almacén. Desactivado, no se abre, cambia ni cierra ningún problema. |
 | **Escanear contenido** | Activado | Muestrea el contenido de los almacenes donde se concedió el permiso de contenido. |
-| **Escanear telemetría** | Activado | Muestrea los registros, trazas, excepciones, reproducciones y conversaciones de IA del proyecto. |
+| **Escanear telemetría** | Activado | Muestrea los registros, trazas, métricas, excepciones, reproducciones y conversaciones de IA del proyecto. |
 | **Conservar muestras enmascaradas** | Activado | Guarda hasta tres muestras enmascaradas con cada hallazgo. Desactivado, guarda solo recuentos. |
 | **Abrir casos de seguridad** | Activado | Abre un caso de seguridad, agrupado por almacén, cuando se abre un problema crítico. |
 | **Generar alertas** | Desactivado | Genera una alerta, que avisa a quien esté de guardia, cuando se abre un problema crítico. |

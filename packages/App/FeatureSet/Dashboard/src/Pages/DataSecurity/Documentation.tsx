@@ -62,7 +62,7 @@ const SETUP_STEPS: ReadonlyArray<SetupStep> = [
     icon: IconProp.Logs,
     title: "Your telemetry is checked on its own",
     description:
-      "The logs, traces, exceptions, session replays and AI conversations your services send are scanned for sensitive data as well. Scrub It masks what is found at ingest, from then on.",
+      "The logs, traces, metrics, exceptions, session replays and AI conversations your services send are scanned for sensitive data as well. Scrub It masks what is found at ingest, from then on.",
     linkText: "See your telemetry",
     page: PageMap.DATA_SECURITY_TELEMETRY,
   },
