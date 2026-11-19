@@ -57,14 +57,17 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
      * once from Bulk Actions are one email. 58 with public note approval: a
      * note waiting for the person's approval, never rolled up - customers
      * wait for it - and how a note they sent was decided, which rolls up
-     * with the status pages' emails.
+     * with the status pages' emails. 61 with being made an owner of a
+     * table, a pipeline or a data store (#9681), which roll up in sections
+     * of their own, Data Observability and Data Security, as every other
+     * owner-added email rolls up in its product's.
      */
-    expect(allEventTypes.length).toBe(58);
+    expect(allEventTypes.length).toBe(61);
     expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(8);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(50);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(53);
   });
 
-  test("their union is exactly the enum, so a 59th member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 62nd member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -271,6 +274,52 @@ describe("NotificationEmailRollupCategory", () => {
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
       ),
     ).toBe(RollupCategory.OnCall);
+  });
+
+  /*
+   * #9681: an owner rule run over a thousand tables rolls up with itself,
+   * never with an incident's email - and a data store's, Data Security's
+   * page, apart from Data Observability's tables and pipelines.
+   */
+  test("being made an owner of a table or a pipeline rolls up under Data Observability, of a data store under Data Security", () => {
+    expect(
+      getRollupCategory(
+        NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION,
+      ),
+    ).toBe(RollupCategory.DataObservability);
+    expect(
+      getRollupCategory(
+        NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION,
+      ),
+    ).toBe(RollupCategory.DataObservability);
+    expect(
+      getRollupCategory(
+        NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION,
+      ),
+    ).toBe(RollupCategory.DataSecurity);
+
+    expect(ROLLUP_CATEGORY_LABEL[RollupCategory.DataObservability]).toBe(
+      "Data Observability",
+    );
+    expect(ROLLUP_CATEGORY_LABEL[RollupCategory.DataSecurity]).toBe(
+      "Data Security",
+    );
+
+    // Routine news: after what pages people, before the Other bucket.
+    expect(
+      ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.DataObservability),
+    ).toBeGreaterThan(ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Monitors));
+    expect(
+      ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.DataSecurity),
+    ).toBeLessThan(ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Other));
+
+    for (const eventType of [
+      NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION,
+    ]) {
+      expect(isRollupEligible(eventType)).toBe(true);
+    }
   });
 
   test("getRollupCategory falls back to Other for a value cast in from the database", () => {

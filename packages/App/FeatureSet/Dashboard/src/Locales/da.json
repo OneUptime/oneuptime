@@ -57551,5 +57551,13 @@
   "Only the latest {{count}} steps of this run are shown._one": "Kun det seneste {{count}} trin i denne kørsel vises.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Dette projekt bruger den globale LLM-udbyder, som din OneUptime-servers administrator sætter op. Bed administratoren om at kontrollere dens API-nøgle og model, eller tilføj din egen LLM-udbyder under Projektindstillinger > AI > LLM-udbydere.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Dette projekt bruger den globale LLM-udbyder, som din OneUptime-servers administrator sætter op. Prøv igen om et par minutter. Bliver den ved med at give timeout, så bed administratoren om at hæve dens svartimeout, eller tilføj din egen LLM-udbyder under Projektindstillinger > AI > LLM-udbydere.",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Dette projekt bruger den globale LLM-udbyder, som din OneUptime-servers administrator sætter op. Prøv igen om et par minutter. Forbliver den utilgængelig, så bed administratoren om at kontrollere den, eller tilføj din egen LLM-udbyder under Projektindstillinger > AI > LLM-udbydere."
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Dette projekt bruger den globale LLM-udbyder, som din OneUptime-servers administrator sætter op. Prøv igen om et par minutter. Forbliver den utilgængelig, så bed administratoren om at kontrollere den, eller tilføj din egen LLM-udbyder under Projektindstillinger > AI > LLM-udbydere.",
+  "Added as data store owner": "Tilføjet som datalagerejer",
+  "Added as pipeline owner": "Tilføjet som pipelineejer",
+  "Added as table owner": "Tilføjet som tabelejer",
+  "Notify me about data stores I own.": "Giv mig besked om datalagre, jeg ejer.",
+  "Notify me about tables and pipelines I own.": "Giv mig besked om tabeller og pipelines, jeg ejer.",
+  "You are added as an owner of a data store.": "Du er tilføjet som ejer af et datalager.",
+  "You are added as an owner of a pipeline.": "Du er tilføjet som ejer af en pipeline.",
+  "You are added as an owner of a table.": "Du er tilføjet som ejer af en tabel."
 }

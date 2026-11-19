@@ -57551,5 +57551,13 @@
   "Only the latest {{count}} steps of this run are shown._one": "Only the latest {{count}} step of this run is shown.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers."
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  "Added as data store owner": "Added as data store owner",
+  "Added as pipeline owner": "Added as pipeline owner",
+  "Added as table owner": "Added as table owner",
+  "Notify me about data stores I own.": "Notify me about data stores I own.",
+  "Notify me about tables and pipelines I own.": "Notify me about tables and pipelines I own.",
+  "You are added as an owner of a data store.": "You are added as an owner of a data store.",
+  "You are added as an owner of a pipeline.": "You are added as an owner of a pipeline.",
+  "You are added as an owner of a table.": "You are added as an owner of a table."
 }

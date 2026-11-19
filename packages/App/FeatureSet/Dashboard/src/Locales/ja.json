@@ -57551,5 +57551,13 @@
   "Only the latest {{count}} steps of this run are shown._one": "この実行の最新 {{count}} ステップのみを表示しています。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。管理者に API キーとモデルの確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。タイムアウトが続く場合は、管理者に応答タイムアウトを大きくするよう依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。接続できない状態が続く場合は、管理者に確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。"
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。接続できない状態が続く場合は、管理者に確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
+  "Added as data store owner": "データストアの所有者として追加されました",
+  "Added as pipeline owner": "パイプラインの所有者として追加されました",
+  "Added as table owner": "テーブルの所有者として追加されました",
+  "Notify me about data stores I own.": "自分が所有するデータストアについて通知します。",
+  "Notify me about tables and pipelines I own.": "自分が所有するテーブルとパイプラインについて通知します。",
+  "You are added as an owner of a data store.": "データストアの所有者として追加されました。",
+  "You are added as an owner of a pipeline.": "パイプラインの所有者として追加されました。",
+  "You are added as an owner of a table.": "テーブルの所有者として追加されました。"
 }

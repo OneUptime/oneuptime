@@ -3,13 +3,29 @@ import { ROUTINE_EMAIL_EVENT_TYPES } from "../../../Types/NotificationSetting/Ro
 
 describe("routine email preset allowlist", () => {
   test("contains only known, unique event types and cannot be mutated", () => {
-    expect(ROUTINE_EMAIL_EVENT_TYPES).toHaveLength(21);
-    expect(new Set(ROUTINE_EMAIL_EVENT_TYPES).size).toBe(21);
+    expect(ROUTINE_EMAIL_EVENT_TYPES).toHaveLength(24);
+    expect(new Set(ROUTINE_EMAIL_EVENT_TYPES).size).toBe(24);
     expect(Object.isFrozen(ROUTINE_EMAIL_EVENT_TYPES)).toBe(true);
     for (const eventType of ROUTINE_EMAIL_EVENT_TYPES) {
       expect(Object.values(NotificationSettingEventType)).toContain(eventType);
     }
   });
+
+  /*
+   * Being made an owner of a table, a pipeline or a data store (#9681) is
+   * the news every other owner-added email is: Reduce routine emails drops
+   * it with theirs.
+   */
+  test.each([
+    NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION,
+  ])(
+    "treats %s as routine, as every owner-added email",
+    (eventType: NotificationSettingEventType) => {
+      expect(ROUTINE_EMAIL_EVENT_TYPES).toContain(eventType);
+    },
+  );
 
   test.each([
     NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,

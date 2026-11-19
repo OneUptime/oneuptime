@@ -57551,5 +57551,13 @@
   "Only the latest {{count}} steps of this run are shown._one": "لا تُعرض إلا أحدث {{count}} خطوة من هذا التشغيل.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. اطلب منه التحقّق من مفتاح API والنموذج الخاصين به، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. حاول مرة أخرى بعد بضع دقائق. وإذا استمرت مهلة الاستجابة في الانتهاء، فاطلب منه رفع «مهلة الاستجابة» الخاصة به، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM.",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. حاول مرة أخرى بعد بضع دقائق. وإذا ظل الوصول إليه متعذرًا، فاطلب منه التحقّق منه، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM."
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. حاول مرة أخرى بعد بضع دقائق. وإذا ظل الوصول إليه متعذرًا، فاطلب منه التحقّق منه، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM.",
+  "Added as data store owner": "أُضفت كمالك لمخزن البيانات",
+  "Added as pipeline owner": "أُضفت كمالك لمسار المعالجة",
+  "Added as table owner": "أُضفت كمالك للجدول",
+  "Notify me about data stores I own.": "أخطرني بشأن مخازن البيانات التي أملكها.",
+  "Notify me about tables and pipelines I own.": "أخطرني بشأن الجداول ومسارات المعالجة التي أملكها.",
+  "You are added as an owner of a data store.": "تُضاف كأحد مالكي مخزن بيانات.",
+  "You are added as an owner of a pipeline.": "تُضاف كأحد مالكي مسار معالجة.",
+  "You are added as an owner of a table.": "تُضاف كأحد مالكي جدول."
 }

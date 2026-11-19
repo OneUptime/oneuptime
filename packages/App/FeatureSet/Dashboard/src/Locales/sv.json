@@ -57551,5 +57551,13 @@
   "Only the latest {{count}} steps of this run are shown._one": "Bara det senaste {{count}} steget i den här körningen visas.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Det här projektet använder den globala LLM-leverantören, som din OneUptime-servers administratör konfigurerar. Be administratören kontrollera dess API-nyckel och modell, eller lägg till en egen LLM-leverantör under Projektinställningar > AI > LLM-leverantörer.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Det här projektet använder den globala LLM-leverantören, som din OneUptime-servers administratör konfigurerar. Försök igen om några minuter. Om den fortsätter att överskrida tidsgränsen, be administratören höja dess svarstidsgräns, eller lägg till en egen LLM-leverantör under Projektinställningar > AI > LLM-leverantörer.",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Det här projektet använder den globala LLM-leverantören, som din OneUptime-servers administratör konfigurerar. Försök igen om några minuter. Om den fortfarande inte går att nå, be administratören kontrollera den, eller lägg till en egen LLM-leverantör under Projektinställningar > AI > LLM-leverantörer."
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Det här projektet använder den globala LLM-leverantören, som din OneUptime-servers administratör konfigurerar. Försök igen om några minuter. Om den fortfarande inte går att nå, be administratören kontrollera den, eller lägg till en egen LLM-leverantör under Projektinställningar > AI > LLM-leverantörer.",
+  "Added as data store owner": "Tillagd som ägare av datalager",
+  "Added as pipeline owner": "Tillagd som ägare av pipeline",
+  "Added as table owner": "Tillagd som ägare av tabell",
+  "Notify me about data stores I own.": "Meddela mig om datalager som jag äger.",
+  "Notify me about tables and pipelines I own.": "Meddela mig om tabeller och pipelines som jag äger.",
+  "You are added as an owner of a data store.": "Du har lagts till som ägare av ett datalager.",
+  "You are added as an owner of a pipeline.": "Du har lagts till som ägare av en pipeline.",
+  "You are added as an owner of a table.": "Du har lagts till som ägare av en tabell."
 }
