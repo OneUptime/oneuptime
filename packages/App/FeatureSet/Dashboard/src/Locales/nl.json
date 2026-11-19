@@ -58668,5 +58668,14 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} bereikbaarheidsschema heeft dezelfde naam als een ander schema, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk hun lagen en hernoem er dan één.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} team heeft dezelfde naam als een ander team, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk hun leden en hernoem er dan één.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} teams hebben dezelfde naam als een ander team, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk hun leden en hernoem er dan één.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team heeft dezelfde naam als een ander team, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk hun leden en hernoem er dan één."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team heeft dezelfde naam als een ander team, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk hun leden en hernoem er dan één.",
+  "Download Signing Certificate": "Ondertekeningscertificaat downloaden",
+  "Instance SAML Signing Key": "SAML-ondertekeningssleutel van de instantie",
+  "Instance SAML Signing Keys": "SAML-ondertekeningssleutels van de instantie",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "Intern: het sleutelpaar waarmee deze installatie haar SAML-afmeldberichten ondertekent.",
+  "Private Key": "Privésleutel",
+  "Sign Out URL": "Afmeldings-URL",
+  "Single Logout URL:": "Single Logout-URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Geef de identiteitsprovider ook de Single Logout-URL en het ondertekeningscertificaat van OneUptime om mensen ook daar af te melden.",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "De afmeldings-URL van je identiteitsprovider (Single Sign-out). Nodig om mensen ook daar af te melden."
 }

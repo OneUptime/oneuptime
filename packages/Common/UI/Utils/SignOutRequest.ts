@@ -1,7 +1,7 @@
 import URL from "../../Types/API/URL";
 import {
   IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD,
-  isUsableEndSessionEndpoint,
+  isUsableIdentityProviderSignOutUrl,
 } from "../../Types/SSO/IdentityProviderSignOut";
 
 /*
@@ -127,7 +127,11 @@ export default class SignOutRequest {
    * Where the server's answer says the browser goes next, or null: an
    * http(s) address it names in IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD, and
    * nothing else - no other scheme, whatever the answer holds. An answer
-   * with no body, or one that is not JSON, names none.
+   * with no body, or one that is not JSON, names none. The address is held
+   * to the length of a whole sign-out - an ID token or a signed SAML
+   * LogoutRequest rides in it - not to an endpoint's: an ID token with many
+   * claims made it longer than 2048 characters, and the person was signed
+   * out of OneUptime alone (#9603).
    */
   public static async readIdentityProviderSignOutUrl(
     response: Response,
@@ -143,7 +147,7 @@ export default class SignOutRequest {
         IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD
       ];
 
-      return isUsableEndSessionEndpoint(address) ? address : null;
+      return isUsableIdentityProviderSignOutUrl(address) ? address : null;
     } catch {
       return null;
     }

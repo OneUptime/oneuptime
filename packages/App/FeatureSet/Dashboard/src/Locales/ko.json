@@ -58668,5 +58668,14 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "온콜 일정 {{count}}개가 다른 일정과 이름이 같아 선택기에서 구분할 수 없습니다. 레이어를 비교한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요.",
+  "Download Signing Certificate": "서명 인증서 다운로드",
+  "Instance SAML Signing Key": "인스턴스 SAML 서명 키",
+  "Instance SAML Signing Keys": "인스턴스 SAML 서명 키 목록",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "내부용: 이 설치가 SAML 로그아웃 메시지에 서명할 때 사용하는 키 쌍입니다.",
+  "Private Key": "개인 키",
+  "Sign Out URL": "로그아웃 URL",
+  "Single Logout URL:": "단일 로그아웃 URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID 공급자에서도 로그아웃시키려면 단일 로그아웃 URL과 OneUptime의 서명 인증서도 공급자에 등록하세요.",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다."
 }

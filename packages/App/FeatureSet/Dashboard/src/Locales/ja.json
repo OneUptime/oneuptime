@@ -58668,5 +58668,14 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} 件のオンコールスケジュールが他のスケジュールと同じ名前のため、選択欄では区別できません。レイヤーを比較してから、どちらかの名前を変更してください。",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。"
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。",
+  "Download Signing Certificate": "署名証明書をダウンロード",
+  "Instance SAML Signing Key": "インスタンスの SAML 署名鍵",
+  "Instance SAML Signing Keys": "インスタンスの SAML 署名鍵一覧",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "内部用: このインストールが SAML のサインアウトメッセージの署名に使う鍵ペアです。",
+  "Private Key": "秘密鍵",
+  "Sign Out URL": "サインアウト URL",
+  "Single Logout URL:": "シングルログアウト URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID プロバイダーからもサインアウトさせるには、シングルログアウト URL と OneUptime の署名証明書もプロバイダーに登録してください。",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID プロバイダーのシングルサインアウト URL です。プロバイダーからもサインアウトさせるのに必要です。"
 }

@@ -58668,5 +58668,14 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} расписание дежурства называется так же, как другое расписание, и в полях выбора их не различить. Сравните их слои, затем переименуйте одно из них.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} команда называется так же, как другая команда, и в полях выбора их не различить. Сравните их участников, затем переименуйте одну из них.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "Команд, названных так же, как другая команда: {{count}}. В полях выбора их не различить. Сравните их участников, затем переименуйте одну из них.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} команда называется так же, как другая команда, и в полях выбора их не различить. Сравните их участников, затем переименуйте одну из них."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} команда называется так же, как другая команда, и в полях выбора их не различить. Сравните их участников, затем переименуйте одну из них.",
+  "Download Signing Certificate": "Скачать сертификат подписи",
+  "Instance SAML Signing Key": "Ключ подписи SAML экземпляра",
+  "Instance SAML Signing Keys": "Ключи подписи SAML экземпляра",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "Внутренний: пара ключей, которой эта установка подписывает свои сообщения о выходе по SAML.",
+  "Private Key": "Закрытый ключ",
+  "Sign Out URL": "URL выхода",
+  "Single Logout URL:": "URL Single Logout:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Чтобы выходить и из поставщика удостоверений, передайте ему также URL Single Logout и сертификат подписи OneUptime.",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "URL единого выхода вашего поставщика удостоверений. Нужен, чтобы выходить и из него."
 }

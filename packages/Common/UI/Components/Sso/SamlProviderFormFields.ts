@@ -49,10 +49,12 @@ import {
  *   Sign-in    The teams newcomers join (a project's provider, starting on
  *              the members team), Enabled, and one folded Advanced section:
  *              the signature and digest methods, at RSA-SHA256 and SHA256;
- *              the description, which follows the name; and, on the Global
- *              form, its two sign-up and access switches. While all of it is
- *              at those defaults the folded header says so in a sentence;
- *              once something differs it says "Configured".
+ *              the description, which follows the name; on the Global form,
+ *              its two sign-up and access switches; and, on a project's and
+ *              the Global form, the identity provider's Sign Out URL and
+ *              Sign Out of the Identity Provider Too, off (#9603). While all
+ *              of it is at those defaults the folded header says so in a
+ *              sentence; once something differs it says "Configured".
  *
  * The Sign-in step needs nothing typed, so the dialog can be finished from
  * the first step. The edit dialogs use the same layout, and a rename moves
@@ -77,7 +79,34 @@ export interface SamlProviderFormOptions {
    * folded under Advanced.
    */
   withGlobalAccessSwitches?: boolean | undefined;
+  /*
+   * A provider people sign in to OneUptime itself with - a project's, or
+   * the instance's, not a status page's: the identity provider's Sign Out
+   * URL and the "Sign out of the identity provider too" switch
+   * (signOutOfIdentityProvider, #9603), off by default and folded under
+   * Advanced.
+   */
+  withIdentityProviderSignOut?: boolean | undefined;
 }
+
+/*
+ * The switch, in the words the OpenID Connect form uses for it
+ * (OidcProviderFormFields): the same title, and the same trade-off.
+ */
+export const SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE: string = translationKey(
+  "Sign Out of the Identity Provider Too",
+);
+
+export const SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION: string =
+  translationKey(
+    "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.",
+  );
+
+export const SAML_SIGN_OUT_URL_TITLE: string = translationKey("Sign Out URL");
+
+export const SAML_SIGN_OUT_URL_DESCRIPTION: string = translationKey(
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.",
+);
 
 export const SAML_SIGN_ON_URL_DESCRIPTION: string = translationKey(
   "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.",
@@ -190,6 +219,20 @@ export const isSamlAdvancedAtDefaults: (
   if (
     options?.withGlobalAccessSwitches &&
     !isSsoGlobalAccessAtDefaults(values)
+  ) {
+    return false;
+  }
+
+  /*
+   * Signing out of the identity provider too is off by default, and the
+   * provider has no Sign Out URL until one is entered.
+   */
+  if (
+    options?.withIdentityProviderSignOut &&
+    (readSsoFormValue(values, "signOutOfIdentityProvider") === true ||
+      !isBlankSsoValue(
+        ssoFormValueAsText(readSsoFormValue(values, "singleLogoutURL")),
+      ))
   ) {
     return false;
   }
@@ -331,6 +374,42 @@ export const getSamlProviderFormFields: GetSamlProviderFormFieldsFunction = <
             collapsibleSection: advancedSection,
           }),
           getSsoProviderReachColumnField<TEntity>({ stepId: "sign-in" }),
+        ]
+      : []),
+    /*
+     * Last, as they are about the sign-out rather than the sign-in. Turning
+     * the switch on is refused, in words this form shows, while the
+     * provider has no Sign Out URL (Server/Utils/IdentityProviderSignOutCheck);
+     * OneUptime's Single Logout URL and signing certificate to give the
+     * identity provider are shown beside its Entity ID and Reply URL.
+     */
+    ...(options?.withIdentityProviderSignOut
+      ? [
+          {
+            field: {
+              singleLogoutURL: true,
+            } as unknown as SelectFormFields<TEntity>,
+            title: SAML_SIGN_OUT_URL_TITLE,
+            fieldType: FormFieldSchemaType.URL,
+            required: false,
+            description: SAML_SIGN_OUT_URL_DESCRIPTION,
+            placeholder: "https://yourapp.example.com/apps/appId/slo",
+            stepId: "sign-in",
+            disableSpellCheck: true,
+            collapsibleSection: advancedSection,
+          },
+          {
+            field: {
+              signOutOfIdentityProvider: true,
+            } as unknown as SelectFormFields<TEntity>,
+            title: SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description: SAML_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+            defaultValue: false,
+            stepId: "sign-in",
+            collapsibleSection: advancedSection,
+          },
         ]
       : []),
   ];

@@ -58668,5 +58668,14 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} ऑन-कॉल अनुसूची का नाम किसी दूसरी अनुसूची जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनकी परतों की तुलना करें, फिर किसी एक का नाम बदलें।",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} टीम का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} टीमों का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में उन्हें अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} टीम का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।"
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} टीम का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।",
+  "Download Signing Certificate": "साइनिंग प्रमाणपत्र डाउनलोड करें",
+  "Instance SAML Signing Key": "इंस्टेंस SAML साइनिंग कुंजी",
+  "Instance SAML Signing Keys": "इंस्टेंस SAML साइनिंग कुंजियां",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "आंतरिक: वह कुंजी जोड़ी जिससे यह इंस्टॉलेशन अपने SAML साइन आउट संदेश साइन करता है।",
+  "Private Key": "निजी कुंजी",
+  "Sign Out URL": "साइन आउट URL",
+  "Single Logout URL:": "सिंगल लॉगआउट URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "लोगों को पहचान प्रदाता से भी साइन आउट करने के लिए उसे सिंगल लॉगआउट URL और OneUptime का साइनिंग प्रमाणपत्र भी दें।",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "आपके पहचान प्रदाता का सिंगल साइन आउट URL। लोगों को वहां से भी साइन आउट करने के लिए ज़रूरी है।"
 }

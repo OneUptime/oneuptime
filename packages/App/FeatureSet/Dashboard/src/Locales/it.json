@@ -58668,5 +58668,14 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} pianificazione di reperibilità ha lo stesso nome di un'altra pianificazione e i selettori non permettono di distinguerle. Confronta i loro livelli, poi rinominane una.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} team ha lo stesso nome di un altro team e i selettori non permettono di distinguerli. Confronta i loro membri, poi rinominane uno.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} team hanno lo stesso nome di un altro team e i selettori non permettono di distinguerli. Confronta i loro membri, poi rinominane uno.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team ha lo stesso nome di un altro team e i selettori non permettono di distinguerli. Confronta i loro membri, poi rinominane uno."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team ha lo stesso nome di un altro team e i selettori non permettono di distinguerli. Confronta i loro membri, poi rinominane uno.",
+  "Download Signing Certificate": "Scarica il certificato di firma",
+  "Instance SAML Signing Key": "Chiave di firma SAML dell'istanza",
+  "Instance SAML Signing Keys": "Chiavi di firma SAML dell'istanza",
+  "Internal: the key pair this installation signs its SAML sign-out messages with.": "Interna: la coppia di chiavi con cui questa installazione firma i suoi messaggi di uscita SAML.",
+  "Private Key": "Chiave privata",
+  "Sign Out URL": "URL di uscita",
+  "Single Logout URL:": "URL di Single Logout:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Per far uscire le persone anche dal provider di identità, fornisci anche a lui l'URL di Single Logout e il certificato di firma di OneUptime.",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "L'URL di uscita unica del tuo provider di identità. Serve per far uscire le persone anche da lì."
 }
