@@ -18,6 +18,7 @@ import {
   TableColumnMetadata,
 } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
+import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -181,12 +182,17 @@ function generateExampleObjects(
       selectCount++;
     }
 
-    // Add to create example (only fields with create permission)
+    /*
+     * Add to create example (only fields with create permission). What only
+     * OneUptime writes is no field of a request (ModelSchema
+     * .isWrittenOnlyByOneUptime): a create drops it, an update is refused
+     * for it (#10053).
+     */
     if (
       createCount < 5 &&
       accessControl?.create &&
       accessControl.create.length > 0 &&
-      !column.computed
+      !ModelSchema.isWrittenOnlyByOneUptime(column)
     ) {
       simpleCreateExample[key] = exampleValue;
       createCount++;
@@ -197,7 +203,7 @@ function generateExampleObjects(
       updateCount < 3 &&
       accessControl?.update &&
       accessControl.update.length > 0 &&
-      !column.computed
+      !ModelSchema.isWrittenOnlyByOneUptime(column)
     ) {
       simpleUpdateExample[key] = exampleValue;
       updateCount++;
