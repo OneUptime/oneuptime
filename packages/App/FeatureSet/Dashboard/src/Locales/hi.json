@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "फिर {{count}} मिनट बाद {{responders}} को पेज करती है",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "वे {{team}} टीम में शामिल होते हैं, और हर किसी को आमंत्रण स्वीकार करने के लिए एक ईमेल मिलता है।",
   "They join the {{team}} team.": "वे {{team}} टीम में शामिल होते हैं।",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "यह हर गंभीरता की हर घटना और अलर्ट के लिए, अभी पेज आप तक पहुंचने का तरीका बदल देता है।"
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "यह हर गंभीरता की हर घटना और अलर्ट के लिए, अभी पेज आप तक पहुंचने का तरीका बदल देता है।",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "कीमतें: {{provider}} की सूची कीमतें, Kubecost के इन्हें आपके बिल से मिलाने से पहले",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "आपका Kubecost आपका क्लाउड बिल पढ़ता है और हर घंटे के लगभग डेढ़ दिन बाद अपनी कीमतों को आपके चुकाए गए भुगतान से मिलाता है। OneUptime हर घंटे को उसी कीमत पर दर्ज करता है जो उसके ख़त्म होने के समय थी: क्लाउड की सार्वजनिक सूची कीमतें।"
 }

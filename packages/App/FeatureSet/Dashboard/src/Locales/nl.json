@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Roept daarna {{responders}} op na {{count}} minuut",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "Ze worden lid van het team {{team}} en krijgen elk een e-mail om de uitnodiging te accepteren.",
   "They join the {{team}} team.": "Ze worden lid van het team {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dit vervangt hoe oproepen je nu bereiken, voor elk incident en elke waarschuwing van elke ernst."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dit vervangt hoe oproepen je nu bereiken, voor elk incident en elke waarschuwing van elke ernst.",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Prijzen: lijstprijzen van {{provider}}, voordat Kubecost ze afstemt op uw factuur",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Uw Kubecost leest uw cloudfactuur en stemt zijn prijzen ongeveer anderhalve dag na elk uur af op wat u hebt betaald. OneUptime legt elk uur vast met de prijs die het had toen het afliep: de openbare lijstprijzen van de cloud."
 }

@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Alerte ensuite {{responders}} après {{count}} minute",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "Ils rejoignent l'équipe {{team}}, et chacun reçoit un e-mail pour accepter l'invitation.",
   "They join the {{team}} team.": "Ils rejoignent l'équipe {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Cela remplace la façon dont les alertes vous joignent aujourd'hui, pour chaque incident et chaque alerte, quelle que soit la gravité."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Cela remplace la façon dont les alertes vous joignent aujourd'hui, pour chaque incident et chaque alerte, quelle que soit la gravité.",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Tarifs : prix catalogue de {{provider}}, avant que Kubecost ne les rapproche de votre facture",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Votre Kubecost lit votre facture cloud et rapproche ses prix de ce que vous avez payé, environ un jour et demi après chaque heure. OneUptime enregistre chaque heure telle qu'elle était tarifée à sa clôture : au prix catalogue public du cloud."
 }

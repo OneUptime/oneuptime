@@ -6,6 +6,11 @@ import {
   LOOKBACK_WINDOWS,
   WINDOW_SECONDS,
 } from "./Config";
+import {
+  CostPrometheus,
+  CostPrometheusSource,
+  redactUrl,
+} from "./EnginePrometheus";
 import Logger from "./Logger";
 import { Poller } from "./Poller";
 import { Shipper } from "./Shipper";
@@ -154,16 +159,70 @@ export const assessHealth: (args: {
  * The JSON keys status / lastPollError / lastShipError are parsed by the
  * chart's troubleshoot.sh — keep them.
  */
+/*
+ * Where the memory peaks come from (#9777), for /healthz: the Prometheus in
+ * use, without anything secret in its address, or why there is none.
+ */
+export const describeCostPrometheus: (
+  source: CostPrometheusSource | undefined,
+) => {
+  costPrometheusUrl?: string;
+  costPrometheus?: {
+    origin: string;
+    source: string;
+    cadvisorJob: string;
+    cluster?: { label: string; value: string };
+    note?: string;
+  };
+  costPrometheusError?: string;
+} = (
+  source: CostPrometheusSource | undefined,
+): {
+  costPrometheusUrl?: string;
+  costPrometheus?: {
+    origin: string;
+    source: string;
+    cadvisorJob: string;
+    cluster?: { label: string; value: string };
+    note?: string;
+  };
+  costPrometheusError?: string;
+} => {
+  if (!source) {
+    return {};
+  }
+
+  const prometheus: CostPrometheus | null = source.current();
+
+  if (!prometheus) {
+    const reason: string = source.reason();
+    return reason ? { costPrometheusError: reason } : {};
+  }
+
+  return {
+    costPrometheusUrl: redactUrl(prometheus.url),
+    costPrometheus: {
+      origin: prometheus.origin,
+      source: prometheus.source,
+      cadvisorJob: prometheus.cadvisorJob,
+      ...(prometheus.cluster ? { cluster: prometheus.cluster } : {}),
+      ...(prometheus.note ? { note: prometheus.note } : {}),
+    },
+  };
+};
+
 export const startHealthServer: (args: {
   poller: Poller;
   shipper: Shipper;
   engine?: CostEngineSource | undefined;
   metrics?: EngineMetricsSource | undefined;
+  prometheus?: CostPrometheusSource | undefined;
 }) => http.Server = (args: {
   poller: Poller;
   shipper: Shipper;
   engine?: CostEngineSource | undefined;
   metrics?: EngineMetricsSource | undefined;
+  prometheus?: CostPrometheusSource | undefined;
 }): http.Server => {
   const server: http.Server = http.createServer(
     (req: http.IncomingMessage, res: http.ServerResponse): void => {
@@ -212,6 +271,13 @@ export const startHealthServer: (args: {
           ? args.metrics.reason()
           : "";
 
+        // Where the memory peaks are read, or why they are not (#9777).
+        const prometheus: {
+          costPrometheusUrl?: string;
+          costPrometheus?: unknown;
+          costPrometheusError?: string;
+        } = describeCostPrometheus(args.prometheus);
+
         res.end(
           /*
            * The engine first: troubleshoot.sh reads only the start of a
@@ -220,9 +286,18 @@ export const startHealthServer: (args: {
           JSON.stringify({
             ...(costEngineUrl ? { costEngineUrl } : {}),
             ...(costEngineMetricsUrl ? { costEngineMetricsUrl } : {}),
+            ...(prometheus.costPrometheusUrl
+              ? { costPrometheusUrl: prometheus.costPrometheusUrl }
+              : {}),
             ...(costEngine ? { costEngine } : {}),
             ...report,
+            ...(prometheus.costPrometheus
+              ? { costPrometheus: prometheus.costPrometheus }
+              : {}),
             ...(costEngineMetricsError ? { costEngineMetricsError } : {}),
+            ...(prometheus.costPrometheusError
+              ? { costPrometheusError: prometheus.costPrometheusError }
+              : {}),
           }),
         );
         return;

@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Larmar sedan {{responders}} efter {{count}} minut",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "De går med i teamet {{team}}, och var och en får ett e-postmeddelande för att acceptera inbjudan.",
   "They join the {{team}} team.": "De går med i teamet {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Detta ersätter hur larm når dig nu, för varje incident och larm av alla allvarlighetsgrader."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Detta ersätter hur larm når dig nu, för varje incident och larm av alla allvarlighetsgrader.",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Priser: listpriser från {{provider}}, innan Kubecost stämmer av dem mot din faktura",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Din Kubecost läser din molnfaktura och stämmer av sina priser mot vad du har betalat, ungefär ett och ett halvt dygn efter varje timme. OneUptime registrerar varje timme med det pris den hade när den avslutades: molnets offentliga listpriser."
 }

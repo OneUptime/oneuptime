@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "{{count}}분 후 {{responders}} 호출",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "{{team}} 팀에 합류하며, 각자 초대를 수락할 이메일을 받습니다.",
   "They join the {{team}} team.": "{{team}} 팀에 합류합니다.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "모든 심각도의 인시던트와 경고에 대해, 지금 호출이 나에게 전달되는 방법을 바꿉니다."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "모든 심각도의 인시던트와 경고에 대해, 지금 호출이 나에게 전달되는 방법을 바꿉니다.",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "가격: Kubecost가 청구서와 대조하기 전의 {{provider}} 정가",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Kubecost는 클라우드 청구서를 읽고, 각 시간이 지나고 약 하루 반 뒤에 가격을 실제로 결제한 금액과 대조합니다. OneUptime은 각 시간을 그 시간이 끝난 시점의 가격, 즉 클라우드의 공개 정가로 기록합니다."
 }

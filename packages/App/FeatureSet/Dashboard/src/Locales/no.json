@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Tilkaller deretter {{responders}} etter {{count}} minutt",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "De blir med i teamet {{team}}, og hver får en e-post for å godta invitasjonen.",
   "They join the {{team}} team.": "De blir med i teamet {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dette erstatter hvordan tilkallinger når deg nå, for hver hendelse og hvert varsel av alle alvorlighetsgrader."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dette erstatter hvordan tilkallinger når deg nå, for hver hendelse og hvert varsel av alle alvorlighetsgrader.",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Priser: listepriser fra {{provider}}, før Kubecost avstemmer dem mot fakturaen din",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "Din Kubecost leser skyfakturaen din og avstemmer prisene sine mot det du har betalt, omtrent halvannet døgn etter hver time. OneUptime registrerer hver time med prisen den hadde da den ble avsluttet: skyens offentlige listepriser."
 }

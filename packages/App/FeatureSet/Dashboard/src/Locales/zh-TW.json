@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "{{count}} 分鐘後呼叫 {{responders}}",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "他們將加入 {{team}} 團隊，每人都會收到一封接受邀請的電子郵件。",
   "They join the {{team}} team.": "他們將加入 {{team}} 團隊。",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "這將取代你現在被呼叫的方式，適用於所有嚴重程度的每個事件和警示。"
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "這將取代你現在被呼叫的方式，適用於所有嚴重程度的每個事件和警示。",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "價格：Kubecost 依你的帳單核對之前的 {{provider}} 牌價",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約一天半後，依你實際支付的金額核對其價格。OneUptime 依每個小時結束時的價格記錄該小時：即雲端的公開牌價。"
 }

@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "ثم تستدعي {{responders}} بعد {{count}} دقيقة",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "ينضمون إلى فريق {{team}}، ويتلقى كل منهم بريدًا لقبول الدعوة.",
   "They join the {{team}} team.": "ينضمون إلى فريق {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "يستبدل هذا طريقة وصول الاستدعاءات إليك الآن، لكل حادثة وتنبيه بكل درجات الخطورة."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "يستبدل هذا طريقة وصول الاستدعاءات إليك الآن، لكل حادثة وتنبيه بكل درجات الخطورة.",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "الأسعار: الأسعار المعلنة لدى {{provider}}، قبل أن يطابقها Kubecost مع فاتورتك",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "يقرأ Kubecost لديك فاتورة السحابة ويطابق أسعاره مع ما دفعته، بعد نحو يوم ونصف من كل ساعة. يسجّل OneUptime كل ساعة بالسعر الذي كان لها عند انتهائها: أسعار السحابة المعلنة للعموم."
 }

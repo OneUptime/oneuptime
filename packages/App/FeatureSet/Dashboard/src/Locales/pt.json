@@ -58965,5 +58965,7 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Depois aciona {{responders}} após {{count}} minuto",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "Entram na equipe {{team}}, e cada pessoa recebe um e-mail para aceitar o convite.",
   "They join the {{team}} team.": "Entram na equipe {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Isso substitui como os acionamentos chegam até você agora, para todo incidente e alerta de qualquer gravidade."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Isso substitui como os acionamentos chegam até você agora, para todo incidente e alerta de qualquer gravidade.",
+  "Prices: {{provider}} list prices, before Kubecost reconciles them with your bill": "Preços: preços de tabela da {{provider}}, antes de o Kubecost os conciliar com a sua fatura",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.": "O seu Kubecost lê a sua fatura da nuvem e concilia os preços dele com o que você pagou, cerca de um dia e meio depois de cada hora. O OneUptime registra cada hora com o preço que ela tinha ao fechar: os preços de tabela públicos da nuvem."
 }
