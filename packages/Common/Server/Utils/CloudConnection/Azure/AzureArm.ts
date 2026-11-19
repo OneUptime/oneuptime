@@ -128,6 +128,8 @@ export interface AzureMetricDefinition {
   description?: string | undefined;
   supportedAggregationTypes?: Array<string> | undefined;
   isDimensionRequired?: boolean | undefined;
+  // The dimensions it can be split by (#9808): each name, and its name in words.
+  dimensions?: Array<{ name: string; displayName: string }> | undefined;
 }
 
 export interface AzureMetricSeriesPoint {
@@ -173,6 +175,8 @@ export interface AzureMetricsAnswer {
 
 // A dimension name a split read may name in its filter: letters and digits.
 const DIMENSION_NAME_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
+// A split read's order: an aggregation, its busiest first ("sum desc").
+const SPLIT_ORDER_PATTERN: RegExp = /^[a-z]+ desc$/;
 
 export interface AzureArmOptions {
   tenantId: string;
@@ -694,6 +698,19 @@ export default class AzureArm {
           .filter((aggregation: string): boolean => {
             return Boolean(aggregation) && aggregation !== "None";
           });
+        const dimensions: Array<{ name: string; displayName: string }> =
+          readArray(definition["dimensions"])
+            .map((raw: unknown): { name: string; displayName: string } => {
+              const dimension: JSONObject = readObject(raw);
+
+              return {
+                name: readText(dimension["value"]),
+                displayName: readText(dimension["localizedValue"]),
+              };
+            })
+            .filter((dimension: { name: string }): boolean => {
+              return Boolean(dimension.name);
+            });
 
         return {
           name: readText(readObject(definition["name"])["value"]),
@@ -716,6 +733,7 @@ export default class AzureArm {
           ...(definition["isDimensionRequired"] === true
             ? { isDimensionRequired: true }
             : {}),
+          ...(dimensions.length > 0 ? { dimensions } : {}),
         };
       })
       .filter((definition: AzureMetricDefinition): boolean => {
@@ -740,6 +758,12 @@ export default class AzureArm {
     end: Date;
     splitBy?: string | undefined;
     top?: number | undefined;
+    /*
+     * A split read's order, the busiest values first: the aggregation the
+     * `top` values are picked by ("sum desc"), for an added metric split by
+     * a dimension of its own (#9808).
+     */
+    orderBy?: string | undefined;
   }): Promise<AzureMetricsAnswer> {
     AzureMonitorClient.assertResourceId(data.resourceId);
 
@@ -780,6 +804,9 @@ export default class AzureArm {
           ? ([
               ["$filter", `${splitBy} eq '*'`],
               ["top", top],
+              ...(data.orderBy && SPLIT_ORDER_PATTERN.test(data.orderBy)
+                ? [["orderby", data.orderBy]]
+                : []),
               ["ValidateDimensions", "false"],
             ] as Array<[string, string | number]>)
           : []),
