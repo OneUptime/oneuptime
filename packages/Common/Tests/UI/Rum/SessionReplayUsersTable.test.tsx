@@ -76,7 +76,13 @@ import SessionReplayUsersTable, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersTable";
 import { parseSessionReplayUserRollup } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersApi";
 import { SessionReplayUserSessionsHandoff } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
-import { closeDropdown, openDropdown } from "../../DropdownPicks";
+import {
+  chooseDropdownOption,
+  closeDropdown,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
+import { DefaultItemsOnPageOptions } from "../../../UI/Components/Pagination/PaginationUtil";
 
 /*
  * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
@@ -996,7 +1002,11 @@ describe("SessionReplayUsersTable row actions on a phone", () => {
 });
 
 describe("SessionReplayUsersTable paging, reload, empty and error", () => {
-  it("uses the shared ModelTable footer with the fixed users page size", async () => {
+  /*
+   * #6565: the picker offered the one size the table read, a control that
+   * did nothing. It offers the shared sizes now, 50 still first.
+   */
+  it("uses the shared ModelTable footer and offers the shared page sizes, 50 by default", async () => {
     mockUsers(() => {
       return usersResponse([wireRollup()]);
     });
@@ -1010,7 +1020,105 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
     );
 
     expect(pagination.parentElement).toHaveClass("bg-gray-50", "md:-mx-6");
-    expect(listRowsPerPage()).toEqual([String(SESSION_REPLAY_USERS_PAGE_SIZE)]);
+    expect(listRowsPerPage()).toEqual(
+      DefaultItemsOnPageOptions.map((size: number): string => {
+        return String(size);
+      }),
+    );
+    expect(listRowsPerPage().length).toBeGreaterThan(1);
+    expect(getShownDropdownValue(rowsPerPage())).toBe(
+      String(SESSION_REPLAY_USERS_PAGE_SIZE),
+    );
+    expect(SESSION_REPLAY_USERS_PAGE_SIZE).toBe(50);
+    expect(requests()[0]!.data["limit"]).toBe(50);
+  });
+
+  /*
+   * The table pages by cursor, and a cursor marks where a page of one size
+   * ended: a new size reads page 1 again with no cursor, and its own next
+   * page reads with the cursor its page returned, never one the old size
+   * left behind.
+   */
+  it("choosing 25 reads 25 rows with no cursor, and its next page reads with the 25-row page's cursor", async () => {
+    const fiftyRowCursor: JSONObject = {
+      lastSeenUnixMs: NOW - 50 * 60_000,
+      groupKey: "u:fifty",
+    };
+    const twentyFiveRowCursor: JSONObject = {
+      lastSeenUnixMs: NOW - 25 * 60_000,
+      groupKey: "u:twenty-five",
+    };
+
+    mockUsers((data: JSONObject) => {
+      if (data["limit"] === 25) {
+        return usersResponse(
+          [wireRollup()],
+          data["cursor"] ? null : twentyFiveRowCursor,
+        );
+      }
+
+      return usersResponse([wireRollup()], fiftyRowCursor);
+    });
+
+    renderTable();
+
+    await waitForUserRows(1);
+
+    /* Page 2 at 50 a page, so a cursor of the old size is kept. */
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+
+    await waitFor(() => {
+      expect(requests().length).toBe(2);
+    });
+
+    expect(requests()[1]!.data).toMatchObject({
+      limit: 50,
+      cursor: fiftyRowCursor,
+    });
+
+    /* The picker is locked while a page loads. */
+    await waitFor(() => {
+      expect(rowsPerPage()).not.toBeDisabled();
+    });
+
+    chooseDropdownOption(rowsPerPage(), "25");
+
+    await waitFor(() => {
+      expect(requests().length).toBe(3);
+    });
+
+    expect(requests()[2]!.data["limit"]).toBe(25);
+    expect(requests()[2]!.data["cursor"]).toBeUndefined();
+
+    await waitFor(() => {
+      expect(getShownDropdownValue(rowsPerPage())).toBe("25");
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pagination-next-button")).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+
+    await waitFor(() => {
+      expect(requests().length).toBe(4);
+    });
+
+    expect(requests()[3]!.data).toMatchObject({
+      limit: 25,
+      cursor: twentyFiveRowCursor,
+    });
+    expect(requests()[3]!.data["cursor"]).not.toEqual(fiftyRowCursor);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pagination-next-button")).toBeDisabled();
+    });
+  });
+
+  it("a size never goes past the route's ceiling of 200 rows", () => {
+    for (const size of DefaultItemsOnPageOptions) {
+      expect(size).toBeLessThanOrEqual(200);
+    }
   });
 
   it("Next pages with the server's cursor and Next is disabled on the last page", async () => {
