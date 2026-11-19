@@ -34,8 +34,10 @@ import {
   DataObservabilityStoreSummary,
   DataObservabilityWatchedTables,
   DataObservabilityTableDashboard,
+  DataPipelineCircuitBreakerState,
   MAX_CHECK_HEALTH_IDS,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { DataCircuitBreakerAnswer } from "Common/Types/DataObservability/DataCircuitBreaker";
 import { DataCheckHealthAnswer } from "Common/Types/DataObservability/DataObservabilityAttention";
 import {
   DataAlertLineageAnswer,
@@ -527,5 +529,29 @@ export default class DataObservabilityApi {
       DATA_OBSERVABILITY_API_ROUTES.connectStore,
       request as unknown as JSONObject,
     )) as unknown as DataObservabilityConnectStoreResponse;
+  }
+
+  // How a pipeline's circuit breaker stands: its page's status card (#6548).
+  public static async getPipelineCircuitBreaker(
+    dataPipelineId: ObjectID,
+  ): Promise<DataPipelineCircuitBreakerState> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.pipelineCircuitBreaker(
+        dataPipelineId.toString(),
+      ),
+    )) as unknown as DataPipelineCircuitBreakerState;
+  }
+
+  /*
+   * What the pipeline's circuit breaker would answer now, as a dry run: it
+   * keeps nothing on the pipeline, so Test Now never stops or starts it.
+   */
+  public static async testPipelineCircuitBreaker(
+    dataPipelineId: ObjectID,
+  ): Promise<DataCircuitBreakerAnswer> {
+    return (await post(DATA_OBSERVABILITY_API_ROUTES.circuitBreaker, {
+      pipeline: dataPipelineId.toString(),
+      dryRun: true,
+    })) as unknown as DataCircuitBreakerAnswer;
   }
 }

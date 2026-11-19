@@ -53,9 +53,17 @@ import {
   DataObservabilityOverviewChange,
   DataObservabilityStoragePathStore,
   DataObservabilityStoreSummary,
+  DataPipelineCircuitBreakerState,
   MAX_CHECK_HEALTH_IDS,
   SCHEMA_CHANGE_WINDOW_IN_DAYS,
 } from "../../Types/DataObservability/DataObservabilityApiTypes";
+import {
+  DATA_CIRCUIT_BREAKER_STOP_STATUS_CODE,
+  DataCircuitBreakerVerdict,
+  readDataCircuitBreakerRequest,
+} from "../../Types/DataObservability/DataCircuitBreaker";
+import StatusCode from "../../Types/API/StatusCode";
+import DataCircuitBreaker from "../Utils/DataObservability/DataCircuitBreaker";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "../Services/AlertService";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -176,6 +184,10 @@ import ProductKey from "../../Types/Product/ProductKey";
  *  - whether a table is fresh, as one answer (DataTableAnswer), for anyone
  *    who may read data assets and their API keys - what the MCP server's
  *    get_data_table_freshness tool asks;
+ *  - a pipeline's circuit breaker (DataCircuitBreaker, #6548): go, or stop
+ *    with why, for the tables a pipeline reads, asked by a pipeline step
+ *    with an API key before it runs - and how a pipeline's breaker stands,
+ *    for its page - for the same people and their API keys;
  *  - a table's lineage several steps each way, with how each table on it
  *    is now (DataTableLineage), for the same people and their API keys -
  *    what a table's Lineage tab draws - and the same told in words,
@@ -694,6 +706,69 @@ export default class DataObservabilityAPI extends BaseAPI<
        * Read-only, so the MCP server's tool answers an agent signed in with
        * a project API key too: its alerts as the key may see them.
        */
+      { allowsApiKey: true },
+    );
+
+    /*
+     * The circuit breaker (#6548): should a pipeline run, given the tables
+     * it reads? A pipeline step asks before it runs, with a project API
+     * key, and is told go, or stop with why (DataCircuitBreaker). It
+     * decides from what is known - the tables its caller may read, their
+     * checks as their alerts stand and how fresh they are - so it is a
+     * read, and a request that names a pipeline keeps its answer on the
+     * pipeline as the pipeline's own report, as its runs' events are kept.
+     * While Data Observability is switched off it answers go and keeps
+     * nothing: switching a product off never stops what runs elsewhere.
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.circuitBreaker,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataCircuitBreaker.check({
+          projectId,
+          request: readDataCircuitBreakerRequest(req.body),
+          props,
+          now: OneUptimeDate.getCurrentDate(),
+        })) as unknown as JSONObject;
+      },
+      {
+        allowsApiKey: true,
+        // A stop is HTTP 412 when the step asks for it, so curl -f fails the step.
+        getStatusCode: (answer: JSONObject, req: ExpressRequest) => {
+          return ((req.body || {}) as JSONObject)["failWithStatusCode"] ===
+            true && answer["verdict"] === DataCircuitBreakerVerdict.Stop
+            ? DATA_CIRCUIT_BREAKER_STOP_STATUS_CODE
+            : null;
+        },
+      },
+    );
+
+    // How a pipeline's circuit breaker stands: its reasons narrowed to the tables its reader may read.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.pipelineCircuitBreaker(":id"),
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const state: DataPipelineCircuitBreakerState | null =
+          await DataCircuitBreaker.readState({
+            projectId,
+            dataPipelineId: DataObservabilityAPI.readId(req),
+            props,
+          });
+
+        if (!state) {
+          throw new BadDataException("Pipeline not found.");
+        }
+
+        return state as unknown as JSONObject;
+      },
       { allowsApiKey: true },
     );
 
@@ -2239,8 +2314,17 @@ export default class DataObservabilityAPI extends BaseAPI<
       req: ExpressRequest,
       props: DatabaseCommonInteractionProps,
     ) => Promise<JSONObject>,
-    // Whether a project API key may call it too: what a build in CI signs in with.
-    options: { allowsApiKey: boolean } = { allowsApiKey: false },
+    /*
+     * Whether a project API key may call it too: what a build in CI signs in
+     * with - and the status an answer goes out with, when it is not 200 (a
+     * circuit breaker's stop, for a step that reads only the status code).
+     */
+    options: {
+      allowsApiKey: boolean;
+      getStatusCode?:
+        | ((answer: JSONObject, req: ExpressRequest) => number | null)
+        | undefined;
+    } = { allowsApiKey: false },
   ): void {
     this.router.post(
       route,
@@ -2269,8 +2353,16 @@ export default class DataObservabilityAPI extends BaseAPI<
           });
 
           const answer: JSONObject = await handler(projectId, req, props);
+          const statusCode: number | null = options.getStatusCode
+            ? options.getStatusCode(answer, req)
+            : null;
 
-          return Response.sendJsonObjectResponse(req, res, answer);
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer,
+            statusCode ? { statusCode: new StatusCode(statusCode) } : undefined,
+          );
         } catch (error) {
           next(error);
         }
