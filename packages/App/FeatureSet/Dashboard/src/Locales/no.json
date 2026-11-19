@@ -58179,5 +58179,12 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Denne turen ble ikke bedt om i Code, så den kan ikke bes om på nytt. Svar heller med hva du vil at AI skal gjøre.",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} oppgaver kunne ikke prøves på nytt: Hver sier nedenfor hvorfor.",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} oppgave kunne ikke prøves på nytt: Den sier nedenfor hvorfor.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} ba OneUptime AI prøve igjen."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} ba OneUptime AI prøve igjen.",
+  "No one in these teams can be picked.": "Ingen i disse teamene kan velges.",
+  "Only people in {{teams}} are listed: the teams that let you manage user overrides.": "Bare personer i {{teams}} vises: teamene der du kan administrere brukeroverstyringer.",
+  "The person who covers is not in a team that lets you manage their user overrides. Pick someone from your team, or leave it to the next person in the rotation.": "Personen som dekker, er ikke på et team der du kan administrere brukeroverstyringene deres. Velg noen fra teamet ditt, eller overlat det til neste person i rotasjonen.",
+  "The person who is away is not in a team that lets you manage their user overrides. Pick someone from your team.": "Personen som er borte, er ikke på et team der du kan administrere brukeroverstyringene deres. Velg noen fra teamet ditt.",
+  "This user override names someone who is not in a team that lets you manage their user overrides, so you can't change it. Ask someone who can manage every user override.": "Denne brukeroverstyringen nevner noen som ikke er på et team der du kan administrere brukeroverstyringene deres, så du kan ikke endre den. Spør noen som kan administrere alle brukeroverstyringer.",
+  "This user override names someone who is not in a team that lets you manage their user overrides, so you can't delete it. Ask someone who can manage every user override.": "Denne brukeroverstyringen nevner noen som ikke er på et team der du kan administrere brukeroverstyringene deres, så du kan ikke slette den. Spør noen som kan administrere alle brukeroverstyringer.",
+  "Your permission to manage user overrides covers only the people in the teams it is given to, and no team gives it to you. An API key is in no team: give it Create, Edit and Delete On-Call Policy User Override instead.": "Tillatelsen din til å administrere brukeroverstyringer gjelder bare personene i teamene den er gitt til, og ingen team gir den til deg. En API-nøkkel er ikke på noe team: gi den heller tillatelsene til å opprette, redigere og slette brukeroverstyringer."
 }

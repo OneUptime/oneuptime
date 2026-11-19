@@ -58179,5 +58179,12 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "此回合不是在 Code 中提出的，因此無法再次提出。請改為回覆您希望 AI 做什麼。",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} 個任務無法重試：各自的原因見下方。",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} 個任務無法重試：各自的原因見下方。",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} 請 OneUptime AI 再試一次。"
+  "{{name}} asked OneUptime AI to try again.": "{{name}} 請 OneUptime AI 再試一次。",
+  "No one in these teams can be picked.": "這些團隊中沒有可選擇的人。",
+  "Only people in {{teams}} are listed: the teams that let you manage user overrides.": "只列出 {{teams}} 中的人：這些團隊允許你管理使用者覆寫。",
+  "The person who covers is not in a team that lets you manage their user overrides. Pick someone from your team, or leave it to the next person in the rotation.": "代班者不在允許你管理其使用者覆寫的團隊中。請從你的團隊中選擇一個人，或交給輪換中的下一個人。",
+  "The person who is away is not in a team that lets you manage their user overrides. Pick someone from your team.": "不在崗者不在允許你管理其使用者覆寫的團隊中。請從你的團隊中選擇一個人。",
+  "This user override names someone who is not in a team that lets you manage their user overrides, so you can't change it. Ask someone who can manage every user override.": "此使用者覆寫涉及的人不在允許你管理其使用者覆寫的團隊中，因此你無法變更它。請聯絡可以管理所有使用者覆寫的人。",
+  "This user override names someone who is not in a team that lets you manage their user overrides, so you can't delete it. Ask someone who can manage every user override.": "此使用者覆寫涉及的人不在允許你管理其使用者覆寫的團隊中，因此你無法刪除它。請聯絡可以管理所有使用者覆寫的人。",
+  "Your permission to manage user overrides covers only the people in the teams it is given to, and no team gives it to you. An API key is in no team: give it Create, Edit and Delete On-Call Policy User Override instead.": "你管理使用者覆寫的權限只涵蓋被授予該權限的團隊中的人，而沒有任何團隊授予你該權限。API 金鑰不屬於任何團隊：請改為授予它建立、編輯和刪除使用者覆寫的權限。"
 }
