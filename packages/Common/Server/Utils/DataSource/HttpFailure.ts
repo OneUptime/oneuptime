@@ -1,4 +1,8 @@
 import Dictionary from "../../../Types/Dictionary";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "../../../Utils/Monitor/ProbeFailureCauses";
 
 /*
  * WHAT A DATA SOURCE'S FAILED ANSWER SAYS, IN ONE SENTENCE A PERSON CAN ACT ON.
@@ -14,7 +18,8 @@ import Dictionary from "../../../Types/Dictionary";
  *  - the provider's status, its own error code and the first line of its own
  *    message, cut short enough that the whole sentence fits the store's
  *    message;
- *  - how many times it was asked, when more than once;
+ *  - how many times it was asked, when more than once, in the words the
+ *    table of why a check failed gives it (withAttempts);
  *  - the ID the provider's support finds the request by, when it gave one.
  *
  * A refusal (401, 403) says who was refused instead, and what to do where
@@ -56,6 +61,23 @@ export function asSentence(text: string): string {
   const trimmed: string = text.trim();
 
   return !trimmed || SENTENCE_END.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+/*
+ * A failure and how many times it was asked, once it was asked more than
+ * once: "... Tried 3 times.", written from the table of why a check failed
+ * (ProbeFailureCauses, TriedTimes), which words it in every language the
+ * Dashboard reads, as a probe's check writes it.
+ */
+export function withAttempts(sentence: string, attempts: number): string {
+  if (attempts <= 1) {
+    return sentence;
+  }
+
+  return writeProbeFailureCause(ProbeFailureCause.TriedTimes, {
+    cause: sentence,
+    count: attempts,
+  });
 }
 
 // The first line of a text, trimmed.
@@ -226,16 +248,17 @@ export function describeFailedAnswer(answer: FailedAnswer): {
     : isRefusal && answer.refused
       ? "."
       : ", with no error message.";
-  const parts: Array<string> = [`${head} while ${answer.operation}${tail}`];
+  const read: string = `${head} while ${answer.operation}${tail}`;
+  const parts: Array<string> = [];
 
   if (isRefusal && answer.refused) {
+    parts.push(read);
+
     if (answer.refused.advice) {
       parts.push(answer.refused.advice);
     }
   } else {
-    if (answer.attempts > 1) {
-      parts.push(`Tried ${answer.attempts} times.`);
-    }
+    parts.push(withAttempts(read, answer.attempts));
 
     if (answer.requestId) {
       parts.push(

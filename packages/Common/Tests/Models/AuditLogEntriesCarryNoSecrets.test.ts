@@ -109,7 +109,7 @@ const NOT_SECRETS: Record<string, string> = {
   "SecurityCase.groupingKey":
     "what the case's detections were grouped by, worked out from their fields",
   "SecurityCaseTask.responseStepKey":
-    "which step of the case's Response Plan the task ticks off (contain:block-ip:203.0.113.7, rule:page-payments), worked out from the step and what it is about, as the task's title says it (#9557)",
+    "which step of the case's response plan the task was made from, as the plan names it",
   "SecurityEntityRisk.entityKey":
     "the entity a risk score is for (a user name, a host), as detections name it",
   "ApiKeyCustomRole.apiKey":
