@@ -2,6 +2,10 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { IDENTITY_URL, APP_API_URL } from "Common/UI/Config";
 import { SIGN_UP_INVITATION_ROUTE } from "Common/Types/Accounts/SignUpInvitation";
+import {
+  SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
+  VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
+} from "Common/Types/Accounts/SecondStepEnrolment";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/signup"),
@@ -49,6 +53,21 @@ export const VERIFY_TOTP_AUTH_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
 export const VERIFY_TOTP_ENROLMENT_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/verify-totp-enrolment"));
+
+/*
+ * The other way to finish that setup (#9764,
+ * Common/Types/Accounts/SecondStepEnrolment): a security key. The options
+ * for the browser's prompt, then the key's answer to them, which signs the
+ * user in. Like the route above, both carry the email and password again
+ * (or the sign-in link's token): there is no session until the key works.
+ */
+export const SECURITY_KEY_ENROLMENT_OPTIONS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE));
+
+export const VERIFY_SECURITY_KEY_ENROLMENT_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(VERIFY_SECURITY_KEY_ENROLMENT_ROUTE));
 
 /*
  * Signs a user in with one of their single-use recovery codes, for the day the

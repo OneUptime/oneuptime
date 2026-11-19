@@ -8,26 +8,78 @@ import {
 } from "./ExampleValues";
 import { getTerraformTypeName } from "./TerraformSchema";
 import { getApiPluralName, getApiSingularName } from "../ModelApiName";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import {
+  getTableColumns,
+  TableColumnMetadata,
+} from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
+import Dictionary from "../../Types/Dictionary";
 
 /*
  * What the dashboard's Developer > AI Assistants pages show: how to connect
  * an assistant to OneUptime's MCP server, which of its tools work on a
  * resource, and prompts to start from.
  *
- * The MCP server (App/FeatureSet/MCP) generates six tools for every model
- * marked @EnableMCP. Their names are worked out here the way its
+ * The MCP server (App/FeatureSet/MCP) generates a create, get, list, delete
+ * and count tool for every model marked @EnableMCP, and an update tool for
+ * one with a field to change. Their names are worked out here the way its
  * ToolGenerator works them out, and
- * Common/Tests/Utils/DeveloperDocs/AiAssistantExamples.test.ts holds this file
- * to the real tool list.
+ * Common/Tests/Utils/DeveloperDocs/AiAssistantExamples.test.ts and
+ * App/FeatureSet/MCP/Tests/DeveloperDocsAiAssistant.test.ts hold this file to
+ * the real tool list.
  */
 
 export interface McpToolNames {
   create: string;
   get: string;
   list: string;
-  update: string;
+  // None for a resource with no field to change once it is made.
+  update?: string | undefined;
   delete: string;
   count: string;
+}
+
+// Set by the database, never by an update (ModelSchema.getUpdateModelSchema).
+const FIELDS_NO_UPDATE_SETS: ReadonlyArray<string> = [
+  "createdAt",
+  "updatedAt",
+  "deletedAt",
+  "version",
+];
+
+/*
+ * Whether a caller may change any of a model's fields once it is made: the
+ * fields ModelSchema.getUpdateModelSchema puts in an update, which the MCP
+ * server's update tool takes. A model with none, such as an incident's link
+ * to an alert, gets no update tool (MCP/Tools/ToolGenerator).
+ */
+export function hasUpdatableFields(modelType: DatabaseBaseModelType): boolean {
+  const model: DatabaseBaseModel = new modelType();
+  const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+  const accessControl: Dictionary<ColumnAccessControl> =
+    model.getColumnAccessControlForAllColumns();
+
+  return Object.keys(columns).some((key: string): boolean => {
+    const column: TableColumnMetadata | undefined = columns[key];
+
+    if (
+      !column ||
+      column.hideColumnInDocumentation ||
+      column.type === TableColumnType.Entity ||
+      column.computed ||
+      FIELDS_NO_UPDATE_SETS.includes(key)
+    ) {
+      return false;
+    }
+
+    const columnAccess: ColumnAccessControl | undefined = accessControl[key];
+
+    return (
+      !columnAccess ||
+      Boolean(columnAccess.update && columnAccess.update.length > 0)
+    );
+  });
 }
 
 /*
@@ -67,7 +119,7 @@ export function getMcpToolNames(
     create: `create_${singular}`,
     get: `get_${singular}`,
     list: `list_${plural}`,
-    update: `update_${singular}`,
+    ...(hasUpdatableFields(modelType) ? { update: `update_${singular}` } : {}),
     delete: `delete_${singular}`,
     count: `count_${plural}`,
   };

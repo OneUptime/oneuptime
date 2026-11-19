@@ -124,6 +124,33 @@ Monitorer som sonder inte kontrollerar (Manuell, Inkommande förfrågan, Inkomma
 > [!TIP]
 > En sond som ska kontrollera privata adresser, som `http://10.0.0.5/health`, behöver `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`. Sonder avvisar privata adresser tills du tillåter dem: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 
+## Uppdatera en sond
+
+En sond kör versionen av den image den startades från, så för att uppdatera den startar du den igen från en nyare image med samma sond-ID och nyckel. Imagen `oneuptime/probe:release` är alltid den senaste versionen.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+Kör sedan kommandot från [Kör sonden](#kör-sonden) igen.
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+Ersätt `<version>` med den version som ska köras, till exempel `17.0.1`, och skriv samma image i `oneuptime-probe.yaml`, så att den ligger kvar när du tillämpar filen igen.
+:::
+
+Sondens sida visar versionen den kör, under **Sondstatus**. En sond äldre än 17.0.1 kan inte generera koderna för en [engångskodshemlighet](/docs/monitor/monitor-secrets#logga-in-med-en-engångskod): dess sida säger det, och det gör också formuläret för en monitor som den kontrollerar.
+
 ## Ansluta via en proxy
 
 Om sonden måste gå via en proxy för att nå OneUptime eller webbplatserna den kontrollerar, ger du den proxyns adress:

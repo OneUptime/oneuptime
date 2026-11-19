@@ -246,10 +246,12 @@ tests:
       - template: templates/prometheus-cost.yaml
         hasDocuments:
           count: 0
+      # Scraped where the agent finds that engine's price metrics
+      # (cost-engine-metrics_test.yaml).
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "- \"opencost\\.opencost\\.svc\\.cluster\\.local:9003\""
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+http_sd_configs:\\n\\s+- url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
 
   - it: refuses a value that is neither true, false nor auto
     template: templates/deployment-cost-agent.yaml

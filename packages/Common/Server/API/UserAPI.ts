@@ -31,8 +31,15 @@ import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
-import UserMiddleware from "../Middleware/UserAuthorization";
+import UserMiddleware, {
+  RequestSession,
+} from "../Middleware/UserAuthorization";
 import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import LocalSignInClearing from "../Utils/LocalSignInClearing";
+import {
+  CLEAR_LOCAL_SIGN_IN_ACTION,
+  ClearLocalSignInAnswer,
+} from "../../Types/SSO/LocalSignInClearing";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import { SignInManagement } from "../../Types/SSO/SsoManagedSignIn";
 import { TwoFactorAuthSetup } from "../../Types/TwoFactorAuthSetup";
@@ -46,11 +53,13 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
 
     /*
      * Whether the signed-in person's organization manages how they sign in
-     * (Types/SSO/SsoManagedSignIn, #9688), for User Profile: while it does,
-     * the profile has no Security section and names the server's SSO
-     * providers instead. The caller's own answer only - there is no user id
-     * to name, so there is none to substitute - and nothing secret in it:
-     * the providers' names are what the sign-in page shows anyone.
+     * (Types/SSO/SsoManagedSignIn, #9688, #9763), for User Profile: while it
+     * does, the profile has no Security section and names the SSO providers
+     * instead; while only some of their projects do, it names the others,
+     * which keep their settings theirs. The caller's own answer only - there
+     * is no user id to name, so there is none to substitute - and nothing
+     * secret in it: the providers' names are what the sign-in pages show
+     * anyone, and the projects are the caller's own.
      */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/sign-in-management`,
@@ -69,6 +78,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
           return Response.sendJsonObjectResponse(req, res, {
             isManagedBySso: answer.isManagedBySso,
             ssoProviderNames: answer.ssoProviderNames,
+            localSignInProjectNames: answer.localSignInProjectNames,
           });
         } catch (err) {
           return next(err);
@@ -518,6 +528,60 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
       },
     );
 
+    /*
+     * Clear one person's sign-in settings (#9762, Types/SSO/
+     * LocalSignInClearing): their password and its links, passkeys and
+     * security keys, authenticator apps, backup codes and two-factor
+     * authentication, with their sessions not signed in with SSO. It cannot
+     * be undone, and the Authentication page asks first.
+     *
+     * Session-only middleware, like every write here: a leaked static key
+     * that could strip people's sign-in would be a lockout of everyone. The
+     * master admin is the session's own person, never one named in the
+     * body; their own account is refused (LocalSignInClearing says why), and
+     * another master admin's only with `isMasterAdminConfirmed: true` - the
+     * dialog sends it only after naming them as one. Type-checked, so a
+     * string "true" confirms nothing.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/${CLEAR_LOCAL_SIGN_IN_ACTION}`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+          const clearedByUserId: ObjectID =
+            await UserAPI.getMasterAdminSessionUserId(req);
+
+          const isMasterAdminConfirmed: unknown =
+            req.body?.["isMasterAdminConfirmed"];
+
+          if (
+            isMasterAdminConfirmed !== undefined &&
+            typeof isMasterAdminConfirmed !== "boolean"
+          ) {
+            throw new BadDataException(
+              "Say whether you confirm clearing a master admin's sign-in settings with true or false (isMasterAdminConfirmed).",
+            );
+          }
+
+          const answer: ClearLocalSignInAnswer =
+            await LocalSignInClearing.clearForPerson({
+              userId: userId,
+              clearedByUserId: clearedByUserId,
+              isMasterAdminConfirmed: isMasterAdminConfirmed === true,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/profile-picture/:userId`,
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -615,6 +679,27 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     }
 
     return userId;
+  }
+
+  /*
+   * The master admin a master-admin route was asked by, as their session
+   * names them (UserMiddleware.readRequestSession, as MasterAdminAuthorization
+   * read it before the handler, which sets no userAuthorization for the
+   * handler to read): never an id from the request.
+   */
+  private static async getMasterAdminSessionUserId(
+    req: ExpressRequest,
+  ): Promise<ObjectID> {
+    const session: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    if (session.kind !== "user" || !session.session.userId) {
+      throw new NotAuthenticatedException(
+        "Sign in as a master admin to clear someone's sign-in settings.",
+      );
+    }
+
+    return new ObjectID(session.session.userId.toString());
   }
 
   private static getUserIdFromParams(req: ExpressRequest): ObjectID {

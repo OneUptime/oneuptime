@@ -83,9 +83,10 @@ Com `cost.engine.url=auto`, nada é incluído, e o agente lê o seu motor onde q
 | Motor | URL habitual do serviço |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-O caminho da Allocation API é encontrado sozinho (`/model/allocation` para o Kubecost, `/allocation/compute` ou `/allocation` para o OpenCost). Defina `cost.engine.allocationPath` só em uma instalação incomum. Com `auto` ou uma URL, nada é incluído, então para recomendações de memória defina também `cost.engine.prometheusUrl` (veja [Os dados por trás](#os-dados-por-trás)).
+O caminho da Allocation API é encontrado sozinho (`/model/allocation` para o Kubecost, `/allocation/compute` ou `/allocation` para o OpenCost). Defina `cost.engine.allocationPath` só em uma instalação incomum. Com `auto` ou uma URL, nada é incluído, então para recomendações de memória defina também `cost.engine.prometheusUrl` (veja [Os dados por trás](#os-dados-por-trás)). As métricas de preço são encontradas do mesmo jeito, qualquer que seja o Service do motor que você indicar: o agente tenta o `/metrics` dele, depois o `/model/metrics` que um frontend do Kubecost 2 ou a interface do OpenCost repassa ao motor, depois o agente FinOps do Kubecost 3, e o coletor coleta o primeiro endereço que tem séries de preço. Para indicá-las você mesmo, defina `cost.metrics.endpoint`.
 
 ## Preços on-premises e bare metal
 
@@ -202,7 +203,7 @@ Um chart mais antigo executava o OpenCost sem um diretório de configuração gr
 :::
 
 :::details O Kubernetes Cost Dashboard não mostra dados
-O modelo lê as métricas de custo coletadas: verifique se `cost.metrics.enabled` é `true`.
+O modelo lê as métricas de custo coletadas: verifique se `cost.metrics.enabled` é `true`. Com `cost.engine.url` definido, o agente de custos encontra onde o seu motor as expõe, e o log dele diz onde ou quais endereços ele tentou: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Para indicá-las você mesmo, defina `cost.metrics.endpoint`.
 :::
 
 :::details O cartão Right-Sizing está vazio

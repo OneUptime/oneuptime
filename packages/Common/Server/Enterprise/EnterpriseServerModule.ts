@@ -7,6 +7,7 @@ import type BillingProvider from "../Types/Billing/BillingProvider";
 import type BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import type { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
 import type { SignInFailureAuditEvent } from "../../Types/AuditLog/AuditLogSignInFailure";
+import type { SignInSettingsClearedAuditEvent } from "../../Types/AuditLog/AuditLogSignInSettingsCleared";
 import type { StatusPageSessionAuditEvent } from "../../Types/AuditLog/AuditLogStatusPageSession";
 import type DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import type { ProductBranding } from "../../Types/Branding/ProductBranding";
@@ -97,6 +98,17 @@ export interface AuditLogRecorder {
    * (Server/Utils/AuditLog/FailedSignInAuditLog).
    */
   recordSignInFailures(events: Array<SignInFailureAuditEvent>): Promise<void>;
+
+  /*
+   * A master admin clearing people's sign-in settings (issue #9762): each
+   * person's recorded in every project they are a member of that records
+   * audit logs, as their sessions are, by the master admin who did it
+   * (Types/AuditLog/AuditLogSignInSettingsCleared). Several at once, for a
+   * clear of everyone the server's SSO requirement covers.
+   */
+  recordSignInSettingsCleared(
+    events: Array<SignInSettingsClearedAuditEvent>,
+  ): Promise<void>;
 
   /*
    * A private status page's readers' sessions (issue #6790): a sign-in, a

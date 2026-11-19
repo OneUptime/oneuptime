@@ -249,6 +249,12 @@ Depois, passe `token` para `baseHeaders` no lugar de `BuildConfig.ONEUPTIME_TOKE
 
 Faça a convergência dos dispositivos depois de uma alteração, para que eles leiam os novos valores. Declare as mesmas chaves em um `app_restrictions.xml` se o seu MDM pedir um schema. O Esper recusa um APK sem assinatura v1, então assine a versão com o esquema v1, além do v2 ou do v3.
 
+### Importar a frota do Esper
+
+Conecte o seu locatário do Esper ao inventário, e todos os dispositivos que o Esper registra são listados, inclusive os dispositivos cujo aplicativo nunca foi iniciado, com o que só o Esper sabe: o grupo, a versão do Android, o nível do patch de segurança, o número de série, a bateria, o armazenamento, os aplicativos instalados e o último check-in. Um dispositivo que para de fazer check-in aparece como offline, com o tempo que passou desde o último. Veja [Importar dispositivos do Esper](/docs/inventory/overview#importar-dispositivos-do-esper).
+
+Um dispositivo cujo aplicativo o nomeia como acima é um só item com o que o aplicativo envia: `host.name` é o nome dele no Esper. O OneUptime encontra o item de um dispositivo por `host.name` e depois por `host.serial_number`, então dê a cada dispositivo o mesmo nome e o mesmo número de série em todos os aplicativos que reportam a partir dele e nas configurações `device_name` e `device_serial` do Android Agent.
+
 ### Guardar o que é registrado enquanto está offline
 
 O agente grava cada span, registro e métrica em disco antes de enviá-los. Enquanto a rede está fora do ar, ele os mantém ali e os envia quando ela volta, até 18 horas depois. Ele guarda 10 MB; aumente esse limite para um dispositivo que fica offline com frequência:

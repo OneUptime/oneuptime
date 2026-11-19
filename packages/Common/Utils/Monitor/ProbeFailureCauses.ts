@@ -65,7 +65,11 @@ export enum ProbeFailureCause {
   NtpPortUnreachable = "NtpPortUnreachable",
   NtpRequestFailedWithCode = "NtpRequestFailedWithCode",
   NtpRequestFailed = "NtpRequestFailed",
-  // NtpMonitor: an attempt's cause, after every attempt failed.
+  /*
+   * NtpMonitor: an attempt's cause, after every attempt failed. A data
+   * source's failed answer (DataSource/HttpFailure) says it of a request it
+   * asked again, too.
+   */
   TriedTimes = "TriedTimes",
 
   // ProbeNetworkFailureUtil.describe: a failure on the probe's own side.
@@ -116,6 +120,13 @@ export enum ProbeFailureCause {
   ClauseHasNoRoute = "ClauseHasNoRoute",
   ClauseMayHaveNoRoute = "ClauseMayHaveNoRoute",
   ClauseCouldNotSendTraffic = "ClauseCouldNotSendTraffic",
+
+  /*
+   * A step that needs a one-time code, withheld from a custom probe too old
+   * to make one (issue #9759): OneUptime writes it as the probe's result,
+   * since the probe would have sent {{monitorSecrets.NAME}} as written.
+   */
+  ProbeTooOldForOneTimeCodes = "ProbeTooOldForOneTimeCodes",
 }
 
 /*
@@ -283,6 +294,10 @@ export const PROBE_FAILURE_CAUSES: Readonly<Record<ProbeFailureCause, string>> =
     [ProbeFailureCause.ClauseCouldNotSendTraffic]: translationKey(
       "this probe could not send traffic to {{host}} ({{detail}})",
     ),
+
+    [ProbeFailureCause.ProbeTooOldForOneTimeCodes]: translationKey(
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.",
+    ),
   };
 
 /*
@@ -310,6 +325,8 @@ export interface ProbeFailureCauseValues {
   output?: string | undefined;
   monitorId?: string | undefined;
   clause?: string | undefined;
+  // The first release that does what the check needs.
+  version?: string | undefined;
 }
 
 // A cause read back: its values as stored.
@@ -323,7 +340,8 @@ export interface ProbeFailureCauseReading {
 /*
  * What a value can hold, which says how a stored text is split round it:
  *
- *   - "token": a host, an address with its port - no space, so no piece;
+ *   - "token": a host, an address with its port, a release - no space, so
+ *     no piece;
  *   - "code": an error code as Node writes one (ENOTFOUND, EAI_AGAIN);
  *   - "digits": a count or a port, Latin digits as String() writes them;
  *   - "seconds": a timeout as writeProbeSeconds wrote it ("2.5 seconds");
@@ -348,6 +366,7 @@ const kindOf: (name: string) => ValueKind = (name: string): ValueKind => {
     case "target":
     case "kissCode":
     case "monitorId":
+    case "version":
       return ValueKind.Token;
     case "code":
       return ValueKind.Code;
@@ -671,6 +690,7 @@ const READING_ORDER: ReadonlyArray<ProbeFailureCause> = [
   ProbeFailureCause.PingIcmpNotUsable,
   ProbeFailureCause.PingCouldNotResolve,
   ProbeFailureCause.PingNoEchoReply,
+  ProbeFailureCause.ProbeTooOldForOneTimeCodes,
   ...PROBE_SIDE_CAUSES,
   ...CLAUSES,
 ];

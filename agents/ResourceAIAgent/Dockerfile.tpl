@@ -15,11 +15,43 @@
 # the agent's tests out of the image (see the copy of the agent below).
 #
 
+# govc, from VMware's own release rather than Alpine's package, downloaded
+# and verified in its own stage so the download tool never ships, and pinned
+# by version AND sha256 per architecture (as the Kubernetes AI agent pins
+# kubectl). Alpine 3.24's govc 0.53.0-r4 is built with golang.org/x/text
+# 0.34.0, which has two high vulnerabilities fixed in 0.41.0 (GO-2026-5970,
+# GO-2026-6629; #9830); govmomi's v0.56.2 release is built with 0.41.0 and
+# Go 1.26.10, and changed nothing in how govc reads a command line since 0.53
+# (no breaking change in 0.53.1 to 0.56.2), so GovcCommandPolicy holds as
+# written. Bump GOVC_VERSION and both digests together (checksums.txt is
+# published with each release), whenever a scan reports findings a release
+# clears; going back to Alpine's package is fine once Alpine's build is clean.
+FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS govc
+ARG TARGETARCH
+ARG GOVC_VERSION=v0.56.2
+ARG GOVC_SHA256_AMD64=12889f30e42e868487041f6628e9789606c80e13a194fb37c099abffc92d5a59
+ARG GOVC_SHA256_ARM64=9c34a018300fbb02b943e48f277b9cee8f90ab7a6e6936427ef9f48c1e93af50
+RUN set -eu \
+  && apk add --no-cache curl \
+  && arch="${TARGETARCH:-amd64}" \
+  && case "${arch}" in \
+       amd64) asset=govc_Linux_x86_64.tar.gz; sha256="${GOVC_SHA256_AMD64}" ;; \
+       arm64) asset=govc_Linux_arm64.tar.gz; sha256="${GOVC_SHA256_ARM64}" ;; \
+       *) echo "unsupported TARGETARCH ${arch}" >&2; exit 1 ;; \
+     esac \
+  && curl -fsSL --retry 6 --retry-all-errors -o /tmp/govc.tar.gz \
+       "https://github.com/vmware/govmomi/releases/download/${GOVC_VERSION}/${asset}" \
+  && echo "${sha256}  /tmp/govc.tar.gz" | sha256sum -c - \
+  && tar -xzf /tmp/govc.tar.gz -C /tmp govc \
+  && install -m 0755 /tmp/govc /usr/bin/govc \
+  && rm -f /tmp/govc.tar.gz /tmp/govc \
+  && /usr/bin/govc version
+
 # Alpine, like the other agents. The agent itself is plain JavaScript (no
 # native modules); the image adds only the CLIs its executors spawn, each
-# from Alpine's own packages:
+# from Alpine's own packages but govc (the stage above):
 #   docker-cli       docker / podman hosts and swarm managers (DockerExecutor)
-#   govc             VMware vCenter (GovcExecutor)
+#   govc             VMware vCenter (GovcExecutor), copied in below
 #   ceph19-common    the ceph CLI (CephExecutor)
 #   util-linux-misc  nsenter, to run a host's own programs (HostExecutor)
 # Proxmox and the clouds are reached over their HTTPS APIs and databases
@@ -65,8 +97,11 @@ COPY ./SslCertificates /usr/local/share/ca-certificates
 # `apk upgrade` pulls in Alpine security fixes published since the base
 # image was built; --no-cache keeps the apk index out of the layer.
 RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates tini docker-cli govc ceph19-common util-linux-misc \
+    && apk add --no-cache ca-certificates tini docker-cli ceph19-common util-linux-misc \
     && update-ca-certificates
+
+# Where Alpine's package put it, on the PATH every executor spawns with.
+COPY --from=govc /usr/bin/govc /usr/bin/govc
 
 ENV PRODUCTION=true
 

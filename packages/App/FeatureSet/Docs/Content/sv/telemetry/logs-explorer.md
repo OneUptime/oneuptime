@@ -63,7 +63,7 @@ Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett 
 Klicka på en rad. Dess detaljer öppnas bredvid listan.
 :::
 
-Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar.
+Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar. En länk till en enda loggrad, till exempel en säkerhetshändelses **Visa loggrad**, öppnar den raden ovanför listan, läst med dina egna behörigheter.
 
 ## Läs en logg
 

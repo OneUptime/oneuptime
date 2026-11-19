@@ -393,17 +393,23 @@ export default class FixFromIncidentTaskTrigger {
       return NO_INVESTIGATION_CODE_FIX_SUGGESTION;
     }
 
+    /*
+     * The fix on its way, or the newest that did its work: a turn of a fix
+     * task of this record - its first, or the fix asked again from Code
+     * (Try again, #6509), which is a later turn of the same task with the
+     * same recipe and record. Read by its turns, so a fix asked again is on
+     * its way here too, and done once it did its work: the step never
+     * offers a second fix beside it.
+     */
     const activeRun: AIRun | null = await AIRunService.findOneBy({
       query: {
         projectId: data.projectId,
         runType: AIRunType.CodeFix,
         codeFixTaskType: CodeFixTaskType.FixFromIncident,
-        // A task's first turn: its replies are the same task.
-        codeTaskId: QueryHelper.isNull(),
         status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
         ...subjectQuery,
       },
-      select: { _id: true, userId: true },
+      select: { _id: true, userId: true, codeTaskId: true },
       sort: { createdAt: SortOrder.Descending },
       props: { isRoot: true },
     });
@@ -415,7 +421,6 @@ export default class FixFromIncidentTaskTrigger {
             projectId: data.projectId,
             runType: AIRunType.CodeFix,
             codeFixTaskType: CodeFixTaskType.FixFromIncident,
-            codeTaskId: QueryHelper.isNull(),
             status: QueryHelper.any([...FINISHED_FIX_STATUSES]),
             ...subjectQuery,
           },
@@ -424,6 +429,7 @@ export default class FixFromIncidentTaskTrigger {
             status: true,
             needsUserInput: true,
             userId: true,
+            codeTaskId: true,
           },
           sort: { createdAt: SortOrder.Descending },
           props: { isRoot: true },
@@ -433,16 +439,18 @@ export default class FixFromIncidentTaskTrigger {
      * The fix the step would show, read as its task's own page reads it: a
      * task a reply carried a private incident or alert into, which the
      * reader does not see, says it is there - so no second one is offered -
-     * and nothing of how it stands, nor where it is.
+     * and nothing of how it stands, nor where it is. A task is named by its
+     * first turn's id: a later turn's names it (codeTaskId).
      */
     const fixRun: AIRun | null = activeRun || finishedRun;
+    const fixTaskId: ObjectID | null = SubjectCodeFixRun.taskIdOf(fixRun);
 
     if (
-      fixRun?.id &&
+      fixTaskId &&
       (
         await CodeTaskThread.findTasksHiddenFrom({
           projectId: data.projectId,
-          taskIds: [fixRun.id],
+          taskIds: [fixTaskId],
           reader: data.reader,
         })
       ).size > 0
@@ -452,14 +460,22 @@ export default class FixFromIncidentTaskTrigger {
 
     let finishedFix: InvestigationCodeFixSuggestionInput["finishedFix"] = null;
 
-    if (finishedRun?.id) {
+    if (finishedRun?.id && fixTaskId) {
+      // The task's latest turn: a later turn's task is its first turn.
+      let task: AIRun = finishedRun;
+
+      if (finishedRun.codeTaskId) {
+        task = new AIRun();
+        task.id = finishedRun.codeTaskId;
+      }
+
       const latestTurn: AIRun = await CodeTaskRuns.getLatestTurn({
         projectId: data.projectId,
-        task: finishedRun,
+        task,
       });
 
       finishedFix = {
-        aiRunId: finishedRun.id.toString(),
+        aiRunId: fixTaskId.toString(),
         isAutomatic: !finishedRun.userId,
         outcome: getFinishedFixOutcome({ fix: finishedRun, latestTurn }),
       };
@@ -497,9 +513,13 @@ export default class FixFromIncidentTaskTrigger {
     return getInvestigationCodeFixSuggestion({
       isAiEnabled: true,
       isCodeFixRecommended,
-      activeFix: activeRun?.id
-        ? { aiRunId: activeRun.id.toString(), isAutomatic: !activeRun.userId }
-        : null,
+      activeFix:
+        activeRun?.id && fixTaskId
+          ? {
+              aiRunId: fixTaskId.toString(),
+              isAutomatic: !activeRun.userId,
+            }
+          : null,
       finishedFix,
       hasConnectedRepository,
       blocker,

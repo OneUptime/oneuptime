@@ -86,6 +86,7 @@ import TwoFactorAuthSetupUtil, {
   TwoFactorAuthSetup,
 } from "../../Types/TwoFactorAuthSetup";
 import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import { SsoManagedBy } from "../../Types/SSO/SsoManagedSignIn";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsNull, MoreThan, UpdateResult } from "typeorm";
@@ -1536,6 +1537,7 @@ export class Service extends DatabaseService<Model> {
         enableTwoFactorAuth: true,
         resetPasswordToken: true,
         resetPasswordExpires: true,
+        isMasterAdmin: true,
       },
       props: {
         isRoot: true,
@@ -1544,6 +1546,31 @@ export class Service extends DatabaseService<Model> {
 
     if (!user) {
       throw new NotFoundException("User not found.");
+    }
+
+    const isMasterAdmin: boolean = user.isMasterAdmin === true;
+
+    /*
+     * Why SSO manages their sign-in, for the page's warnings: a password or
+     * a second step given to them now opens none of their projects. A rule
+     * that cannot be read is logged and reads as not managed - this is what
+     * the page says, never what the server allows, and it still refuses
+     * what it must.
+     */
+    let signInManagedBy: SsoManagedBy | null = null;
+
+    try {
+      signInManagedBy = (
+        await SsoManagedSignIn.getStateFor({
+          userId: userId,
+          isMasterAdmin: isMasterAdmin,
+        })
+      ).managedBy;
+    } catch (err) {
+      logger.error(
+        "Could not read whether SSO manages a person's sign-in, for the Admin Dashboard.",
+      );
+      logger.error(err);
     }
 
     /*
@@ -1585,6 +1612,8 @@ export class Service extends DatabaseService<Model> {
       verifiedTwoFactorAuthMethodCount: verifiedTwoFactorAuthMethodCount,
       unusedTwoFactorBackupCodeCount: unusedTwoFactorBackupCodeCount,
       hasPendingPasswordResetLink: hasPendingPasswordResetLink,
+      isMasterAdmin: isMasterAdmin,
+      signInManagedBy: signInManagedBy,
     };
   }
 

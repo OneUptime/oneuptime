@@ -26,6 +26,7 @@ import InventoryItemScheduledMaintenance from "../Pages/Inventory/View/Scheduled
 import InventoryItemCustomFields from "../Pages/Inventory/View/CustomFields";
 import InventoryItemAuditLogs from "../Pages/Inventory/View/AuditLogs";
 import InventoryArchived from "../Pages/Inventory/Archived";
+import InventoryManagedDevices from "../Pages/Inventory/ManagedDevices";
 import InventoryCustomFields from "../Pages/Inventory/Settings/CustomFields";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
@@ -74,6 +75,15 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
             <InventoryDocumentation
               {...props}
               pageRoute={RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={InventoryRoutePath[PageMap.INVENTORY_MANAGED_DEVICES] || ""}
+          element={
+            <InventoryManagedDevices
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_MANAGED_DEVICES] as Route}
             />
           }
         />

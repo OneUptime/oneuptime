@@ -242,6 +242,14 @@ function wordsOf(element: HTMLElement): string {
   return (element.textContent || "").replace(ISOLATE_MARKS, "");
 }
 
+/*
+ * The hairline of the turns not shown, with its words: under it, Show
+ * earlier turns reads them (#7128).
+ */
+function lineOf(gap: HTMLElement): HTMLElement {
+  return within(gap).getByTestId("code-task-turns-not-shown-divider");
+}
+
 async function drawLongTask(
   turnsNotShown: CodeTaskTurnsNotShownJSON,
   turns: Array<CodeTaskTurnJSON> = NEWEST_OF_205,
@@ -260,7 +268,7 @@ describe("a long task's conversation", () => {
       workMilliseconds: 201 * 60000,
     });
 
-    expect(wordsOf(gap)).toBe("201 earlier turns are not shown");
+    expect(wordsOf(lineOf(gap))).toBe("201 earlier turns are not shown");
 
     // An item of the conversation's own list, read in its place.
     const list: HTMLElement = screen.getByTestId("code-task-turns");
@@ -315,7 +323,7 @@ describe("a long task's conversation", () => {
       workMilliseconds: 60000,
     });
 
-    expect(wordsOf(gap)).toBe("1 earlier turn is not shown");
+    expect(wordsOf(lineOf(gap))).toBe("1 earlier turn is not shown");
   });
 
   test("a count in the thousands is written the reader's way", async () => {
@@ -324,7 +332,7 @@ describe("a long task's conversation", () => {
       workMilliseconds: 0,
     });
 
-    expect(wordsOf(gap)).toBe("1,234 earlier turns are not shown");
+    expect(wordsOf(lineOf(gap))).toBe("1,234 earlier turns are not shown");
   });
 
   test("negative control: a task shown whole draws no hairline at all", async () => {
@@ -492,10 +500,16 @@ describe("a reply sent from far up a long task", () => {
       context: [],
     });
     await waitFor(() => {
-      expect(wordsOf(screen.getByTestId("code-task-turns-not-shown"))).toBe(
-        "202 earlier turns are not shown",
-      );
+      expect(screen.getAllByText("Turn 206: keep going")).toHaveLength(1);
     });
+    /*
+     * Turn 203, which the read no longer sends, stays where the reader saw
+     * it (#7128): the line still says 201, the turns before it.
+     */
+    expect(screen.getAllByText("Turn 203: keep going")).toHaveLength(1);
+    expect(
+      wordsOf(screen.getByTestId("code-task-turns-not-shown-divider")),
+    ).toBe("201 earlier turns are not shown");
     // The end of the page with turn 206 drawn (20,200), not of the page before it (20,100).
     expect(scrollTop).toBe(206 * 100 + 400 - WINDOW_HEIGHT);
   });
@@ -741,7 +755,7 @@ describe("the turns not shown, in the reader's language", () => {
       workMilliseconds: 0,
     });
 
-    expect(wordsOf(gap)).toBe(
+    expect(wordsOf(lineOf(gap))).toBe(
       "1.234 frühere Durchgänge werden nicht angezeigt",
     );
   });
@@ -754,7 +768,9 @@ describe("the turns not shown, in the reader's language", () => {
       workMilliseconds: 0,
     });
 
-    expect(wordsOf(gap)).toBe("1 früherer Durchgang wird nicht angezeigt");
+    expect(wordsOf(lineOf(gap))).toBe(
+      "1 früherer Durchgang wird nicht angezeigt",
+    );
   });
 
   test("Arabic: the words, then the count - right for any count - in Latin digits", async () => {
@@ -765,7 +781,7 @@ describe("the turns not shown, in the reader's language", () => {
       workMilliseconds: 0,
     });
 
-    expect(wordsOf(gap)).toBe("جولات سابقة غير معروضة: 5");
+    expect(wordsOf(lineOf(gap))).toBe("جولات سابقة غير معروضة: 5");
   });
 
   test("Arabic, one", async () => {
@@ -776,7 +792,7 @@ describe("the turns not shown, in the reader's language", () => {
       workMilliseconds: 0,
     });
 
-    expect(wordsOf(gap)).toBe("1 جولة سابقة غير معروضة");
+    expect(wordsOf(lineOf(gap))).toBe("1 جولة سابقة غير معروضة");
   });
 
   test("Persian, in Persian digits", async () => {
@@ -787,7 +803,7 @@ describe("the turns not shown, in the reader's language", () => {
       workMilliseconds: 0,
     });
 
-    expect(wordsOf(gap)).toBe(`۵ نوبت قبلی نمایش داده نمی${ZWNJ}شود`);
+    expect(wordsOf(lineOf(gap))).toBe(`۵ نوبت قبلی نمایش داده نمی${ZWNJ}شود`);
   });
 
   test("the words are the component's own plural, in English", () => {

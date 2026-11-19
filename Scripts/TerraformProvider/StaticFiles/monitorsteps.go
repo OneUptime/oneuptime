@@ -228,6 +228,7 @@ var monitorStepsCheckOnValues = []string{
 	"External Status Page Response Time (in ms)",
 	"Connected Probes",
 	"Disconnected Probes",
+	"Probes Behind",
 }
 
 // FilterType enum (Common/Types/Monitor/CriteriaFilter.ts). "Recieved" is

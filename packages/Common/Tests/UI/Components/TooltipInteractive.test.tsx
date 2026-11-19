@@ -19,10 +19,12 @@ import Tooltip from "../../../UI/Components/Tooltip/Tooltip";
 
 /*
  * Where a rich tooltip is mounted. Tippy mounts an INTERACTIVE tooltip inside
- * the trigger's parent, which is right for tooltips with links in them but
- * wrong inside an overflow-clipped container (the schedule timeline's
- * scrolling grid): the popup is cut off by its own ancestor. interactive={false}
- * opts out, which mounts it on <body>.
+ * the trigger's parent, so that Tab reaches its links - and there an
+ * overflow-clipped container cut it off: the schedule timeline's scrolling
+ * grid, and the owner avatars of a list's first row (#9769). Every tooltip
+ * is mounted on <body> now, interactive or not; interactive={false} only
+ * makes it hide as the pointer leaves its trigger. Tab still reaches an
+ * interactive one's links (TooltipLayer.test).
  */
 
 async function hover(trigger: HTMLElement): Promise<void> {
@@ -42,7 +44,7 @@ afterEach(() => {
 });
 
 describe("Tooltip - interactive", () => {
-  test("a rich tooltip is interactive and mounts beside its trigger by default", async () => {
+  test("a rich tooltip is interactive by default, and mounts on the body", async () => {
     render(
       <div data-testid="clipping-host" style={{ overflow: "hidden" }}>
         <Tooltip richContent={<div>Rich body</div>}>
@@ -53,9 +55,14 @@ describe("Tooltip - interactive", () => {
 
     await hover(screen.getByRole("button", { name: "Open" }));
 
-    expect(screen.getByTestId("clipping-host")).toContainElement(
-      screen.getByText("Rich body"),
-    );
+    const content: HTMLElement = screen.getByText("Rich body");
+    const root: HTMLElement | null =
+      content.closest<HTMLElement>("[data-tippy-root]");
+
+    expect(screen.getByTestId("clipping-host")).not.toContainElement(content);
+    expect(root?.parentElement).toBe(document.body);
+    // Interactive: the pointer can move onto it, where Tippy lets it through one that is not.
+    expect(root?.style.pointerEvents).not.toBe("none");
   });
 
   test("interactive={false} mounts the rich tooltip on the body", async () => {

@@ -21,7 +21,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONArray } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -531,6 +531,37 @@ export default class SecurityDetection extends BaseModel {
     length: ColumnLength.LongText,
   })
   public eventUid?: string = undefined;
+
+  /*
+   * The events the detection matched, kept when it fired
+   * (Types/SecurityCase/SecurityDetectionMatchedEvents): at most 25, and
+   * 64 KB, the earliest first, with how far their requests got. The case
+   * shows them as they were matched, after a rule is edited and after the
+   * events pass their retention (#9619).
+   *
+   * Read by OneUptime alone, never through the API: a Security role scoped
+   * to some sources reads a case's detections, not every source's events,
+   * so the case's "Why This Case Was Opened" route checks each kept event's
+   * source against the reader's own access before it shows one
+   * (Server/Utils/SecurityCase/Context/SecurityCaseMatches).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Matched Events",
+    description:
+      "The events the detection matched when it fired, as OneUptime kept them, with how far their requests got.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public matchedEvents?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],

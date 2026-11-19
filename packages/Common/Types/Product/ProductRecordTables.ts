@@ -389,12 +389,16 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "RunnerOwnerUser",
   ],
   [ProductKey.Inventory]: [
+    "DeviceManagementConnection",
     "InventoryItem",
     "InventoryItemCustomField",
     "InventoryItemRelationship",
+    "ManagedDevice",
+    "ManagedDeviceApp",
   ],
   [ProductKey.Services]: [
     "Service",
+    "ServiceAINote",
     "ServiceFeed",
     "ServiceLabelRule",
     "ServiceOwnerRule",

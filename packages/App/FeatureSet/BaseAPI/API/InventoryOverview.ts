@@ -53,6 +53,7 @@ async function getRecentlyAdded(data: {
       displayName: true,
       entityType: true,
       source: true,
+      resourceType: true,
       firstSeenAt: true,
       lastSeenAt: true,
     },
@@ -121,6 +122,8 @@ export default class InventoryOverviewAPI {
                   displayName: item.displayName || "",
                   entityType: item.entityType || "",
                   source: item.source || "",
+                  // A managed device's host has a heartbeat of its own.
+                  resourceType: item.resourceType || "",
                   firstSeenAt: item.firstSeenAt
                     ? OneUptimeDate.toString(item.firstSeenAt)
                     : null,

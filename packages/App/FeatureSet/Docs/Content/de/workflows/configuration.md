@@ -217,15 +217,19 @@ Standardmäßig läuft ein Workflow mit den oben beschriebenen Berechtigungen, u
 
 Womit der Workflow auch läuft: Ein Schritt liest nie Einstellungen mit Zugangsdaten, sieht nie private Vorfälle, Warnungen oder Episoden und ändert nie API-Schlüssel, Single Sign-On oder SCIM-Einstellungen. Wenn er einem Team eine Berechtigung oder eine Rolle gibt, kann er nur geben, was er selbst hat, und fehlt ihm etwas, nennt das Protokoll der Ausführung die Berechtigung.
 
-Ein Workflow, der mit mehr als den Standardberechtigungen läuft, läuft mit den Berechtigungen der Person, die sie ihm gegeben hat: wer zuletzt sein **Run As** gewählt oder seine Schritte oder Variablen gespeichert hat. Damit niemand über ihn mehr bekommt, als er selbst hat:
+Ein Workflow, der mit mehr als den Standardberechtigungen läuft, läuft mit den Berechtigungen dessen, der sie ihm gegeben hat: der Person oder des API-Schlüssels des Projekts, die oder der zuletzt sein **Run As** gewählt oder seine Schritte oder Variablen gespeichert hat. Damit niemand über ihn mehr bekommt, als er selbst hat:
 
 - Nur Personen, die diese Berechtigungen haben, können ihn oder seine Variablen ändern, ihn archivieren oder löschen, ihn oder einen seiner Schritte von Hand ausführen oder seine Webhook-URL und eingehende E-Mail-Adresse sehen. Wer ihn bearbeiten darf, kann ihn trotzdem ausschalten. Sobald er mit mehr als den Standardberechtigungen läuft oder sich ändert, womit er läuft, bekommt er eine neue Webhook-URL und eingehende E-Mail-Adresse, sodass Kopien der alten ihn nicht mehr starten.
-- Nur eine Person kann sie geben, nie ein API-Schlüssel.
-- Jede Ausführung prüft zuerst, ob die Person, die sie gegeben hat, sie noch hat. Wenn nicht, stoppt die Ausführung vor ihrem ersten Schritt, und ihr Protokoll sagt, warum und wer sie wieder geben kann.
+- Eine Person oder einer der API-Schlüssel des Projekts kann sie geben, und nur, was sie selbst haben: Die Berechtigungen eines Schlüssels, seine benutzerdefinierten Rollen eingeschlossen, werden gewogen wie die einer Person. Die Schritte eines Workflows und der Master-API-Schlüssel können sie nicht geben, und das Zurücksetzen eines Schlüssels erfordert jede Berechtigung, die der Schlüssel hat.
+- Jede Ausführung prüft zuerst, ob der, der sie gegeben hat, sie noch hat: eine Person, die noch im Projekt ist, oder ein Schlüssel, der noch existiert, nicht abgelaufen ist und sie nicht verloren hat. Wenn nicht, stoppt die Ausführung vor ihrem ersten Schritt, und ihr Protokoll sagt, warum und wer sie wieder geben kann.
 - Er liest die globalen Variablen des Projekts nicht, die jeder ändern kann, der Workflow-Variablen bearbeiten darf.
 - Ein **Anderen Arbeitsablauf ausführen**-Schritt eines anderen Workflows kann ihn nur starten, wenn dieser Workflow mit denselben oder mehr Berechtigungen läuft.
 
-Jede Ausführung hält fest, womit sie lief und mit wessen Berechtigungen, zu sehen im Fenster der Ausführung und in einem heruntergeladenen Protokoll, und das [Audit-Protokoll](/docs/configuration/audit-logs) hält fest, wer das **Run As** eines Workflows geändert hat.
+Ein exportierter, importierter oder duplizierter Workflow läuft mit den Standardberechtigungen, womit auch immer das Original lief: Wer mehr hat, wählt sein **Run As** erneut.
+
+Jede Ausführung hält fest, womit sie lief und mit wessen Berechtigungen, zu sehen im Fenster der Ausführung und in einem heruntergeladenen Protokoll. Das [Audit-Protokoll](/docs/configuration/audit-logs) hält fest, wer das **Run As** eines Workflows geändert hat, eine Person oder ein API-Schlüssel mit Namen, und jede Änderung, die ein Schritt eines Workflows vornimmt, sagt, womit der Schritt lief und mit wessen Berechtigungen. Die Filter **Arbeitsablauf ausgeführt als** und **Berechtigungen des Arbeitsablaufs gegeben von** des Audit-Protokolls finden diese Änderungen.
+
+Das Löschen einer benutzerdefinierten Rolle, mit der Workflows laufen, würde sie stoppen, deshalb listet das Löschen sie auf und fragt, womit sie von nun an laufen: **Standardberechtigungen** oder eine andere benutzerdefinierte Rolle, die Sie einem Team geben könnten. Wer Workflows nicht bearbeiten darf, kann die Rolle erst löschen, wenn ihr Run As geändert wurde. Über die API wird das Löschen einer solchen Rolle abgelehnt, wenn die Anfrage nicht sagt, womit sie stattdessen laufen: `miscDataProps` mit `workflowsRunAs` auf `Default` gesetzt oder auf `CustomRole` mit der ID der Rolle in `workflowsRunAsCustomRoleId`.
 
 ## Plan-Grenzen
 

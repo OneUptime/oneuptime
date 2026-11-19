@@ -21,7 +21,8 @@ import {
   MAX_DESCRIPTION_LENGTH,
 } from "./MetricDescriptionRules";
 import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
-import { getMountBarClassName } from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostFilesystemsTable";
+import { getHostMountUsage } from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostFilesystemsTable";
+import { StorageUsageLevel } from "../../../Utils/Storage/StorageUsage";
 import {
   HOST_DISK_FULL_PERCENT,
   HOST_DISK_NEAR_FULL_PERCENT,
@@ -84,8 +85,9 @@ const TITLED: Array<[string, HostMetric]> = [
   ["Memory", "memoryChart"],
   ["Disk space", "diskSpaceChart"],
   ["Network", "networkChart"],
-  ["Used / Total", "filesystemUsedTotal"],
-  ["Utilization", "filesystemUtilization"],
+  ["Used", "filesystemUtilization"],
+  ["Free", "filesystemFree"],
+  ["Size", "filesystemSize"],
   ["Process Count (cached)", "processCountCached"],
   ["CPU", "processCpu"],
   ["Memory (RSS)", "processMemoryRss"],
@@ -316,10 +318,13 @@ describe("time windows are the ones the pages use", () => {
   test("the filesystem tile says it is a whole-range average, not a 5-minute one", () => {
     expect(D.filesystem).toContain("whole selected range");
     expect(D.filesystem).toContain("not the last 5 minutes");
-    expect(D.filesystemUsedTotal).toContain("averaged over the selected range");
-    expect(D.filesystemUtilization).toContain(
-      "averaged over the selected range",
-    );
+    for (const key of [
+      "filesystemSize",
+      "filesystemFree",
+      "filesystemUtilization",
+    ] as Array<HostMetric>) {
+      expect(D[key]).toContain("averaged over the selected range");
+    }
   });
 
   test("load average and processes are the newest interval, not a mean", () => {
@@ -402,7 +407,7 @@ describe("denominators, units and caps", () => {
      * used / (used + free), as df and the collector's
      * system.filesystem.utilization work it out - so the tile, the chart,
      * the table, the Hosts list and High Filesystem Usage say one number.
-     * Used / Total still counts the reserved space in the total.
+     * Size still counts the reserved space; Free never does (#9647).
      */
     for (const key of [
       "filesystem",
@@ -413,7 +418,10 @@ describe("denominators, units and caps", () => {
       expect(D[key]).toContain("df's Use%");
       expect(D[key]).toContain("reserved for root not counted");
     }
-    expect(D.filesystemUsedTotal).toContain("used, free and reserved");
+    expect(D.filesystemSize).toContain(
+      "used, free and the space reserved for root added up",
+    );
+    expect(D.filesystemFree).toContain("reserved for root is not counted");
     expect(D.filesystem).toContain("fullest filesystem");
     expect(D.diskSpaceChart).toContain("same mount as the Filesystem tile");
     expect(readPage("Overview.tsx")).toContain("used / (used + free)");
@@ -425,11 +433,17 @@ describe("denominators, units and caps", () => {
     expect(HOST_DISK_NEAR_FULL_PERCENT).toBe(85);
     expect(HOST_DISK_FULL_PERCENT).toBe(95);
 
-    // The bar the Filesystems table draws (HostFilesystemsTable).
-    expect(getMountBarClassName(85)).toBe("bg-emerald-500");
-    expect(getMountBarClassName(85.1)).toBe("bg-amber-500");
-    expect(getMountBarClassName(95)).toBe("bg-amber-500");
-    expect(getMountBarClassName(95.1)).toBe("bg-red-500");
+    // The shared bar the Filesystems table draws (HostFilesystemsTable).
+    const level: (percent: number) => StorageUsageLevel | undefined = (
+      percent: number,
+    ): StorageUsageLevel | undefined => {
+      return getHostMountUsage({ usedBytes: percent, freeBytes: 100 - percent })
+        ?.level;
+    };
+    expect(level(85)).toBe(StorageUsageLevel.Normal);
+    expect(level(85.1)).toBe(StorageUsageLevel.Warning);
+    expect(level(95)).toBe(StorageUsageLevel.Warning);
+    expect(level(95.1)).toBe(StorageUsageLevel.Critical);
   });
 
   /*
@@ -438,8 +452,8 @@ describe("denominators, units and caps", () => {
    * says: 1,024 MiB is "1.0 GiB".
    */
   test("sizes are called out as 1024-based, as formatMemoryBytes renders them", () => {
-    expect(D.filesystemUsedTotal).toContain("1024-based");
-    expect(D.filesystemUsedTotal).toContain("1 GiB is 1,024 MiB");
+    expect(D.filesystemSize).toContain("1024-based");
+    expect(D.filesystemSize).toContain("1 GiB is 1,024 MiB");
     expect(readPage("Overview.tsx")).toContain(
       "const formatMemoryBytes: (bytes: number | null | undefined) => string =\n  formatHostBytes;",
     );

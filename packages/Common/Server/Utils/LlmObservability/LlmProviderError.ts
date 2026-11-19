@@ -1,5 +1,6 @@
 import APIException from "../../../Types/Exception/ApiException";
 import { LlmConnectionFailureKind } from "../../../Types/LlmObservability/LlmConnectionTest";
+import { DataSourceStatusException } from "../DataSource/HttpFailure";
 import { redactLogString } from "../LogRedaction";
 
 /*
@@ -103,14 +104,19 @@ export default class LlmProviderError extends APIException {
   }
 
   /*
-   * The status and body of a non-2xx answer, read back from the message the
-   * shared transport throws (it keeps only those two). Null when the error
-   * is not an HTTP answer at all (a timeout, a refused connection, a DNS
-   * failure).
+   * The status and body of a non-2xx answer: as the retry client's
+   * transport keeps them (DataSourceStatusException, Google's sign-in for
+   * BigQuery), else read back from the message the shared transport throws
+   * (it keeps only those two). Null when the error is not an HTTP answer at
+   * all (a timeout, a refused connection, a DNS failure).
    */
   public static readTransportHttpError(
     error: unknown,
   ): { status: number; body: string } | null {
+    if (error instanceof DataSourceStatusException) {
+      return { status: error.statusCode, body: error.bodyText };
+    }
+
     const message: string =
       error instanceof Error ? error.message : String(error ?? "");
     const match: RegExpExecArray | null =

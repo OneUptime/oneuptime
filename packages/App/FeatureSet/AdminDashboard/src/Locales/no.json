@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "Vi sender denne brukeren en e-post med en lenke for å angi et nytt passord. Lenken utløper om 24 timer og erstatter enhver lenke som er sendt tidligere.",
       "resetLinkModalSubmit": "Send lenke",
       "resetLinkSuccess": "Lenke for tilbakestilling av passord er sendt.",
-      "resetLinkSentTo": "Lenke for tilbakestilling av passord er sendt til {{email}}."
+      "resetLinkSentTo": "Lenke for tilbakestilling av passord er sendt til {{email}}.",
+      "ssoManagedByServerWarning": "Så lenge denne serveren krever SSO, kan ikke denne personen logge inn med et passord.",
+      "ssoManagedByProjectsWarning": "Alle prosjektene til denne personen styrer pålogging med SSO, så et passord åpner ingen av dem.",
+      "clearSignInCardTitle": "Fjern påloggingsinnstillinger",
+      "clearSignInCardDescription": "Slett personens passord, passnøkler, sikkerhetsnøkler, autentiseringsapper og reservekoder, og slå av tofaktorautentisering.",
+      "clearSignInButton": "Fjern påloggingsinnstillinger",
+      "clearSignInOwnAccountTooltip": "Endre dine egne påloggingsinnstillinger i Brukerprofil.",
+      "clearSignInModalTitle": "Fjern påloggingsinnstillinger",
+      "clearSignInModalDescription": "Sletter personens passord, passnøkler, sikkerhetsnøkler, autentiseringsapper og reservekoder og slår av tofaktorautentisering. Dette kan ikke angres.",
+      "clearSignInMasterAdminConfirmation": "Denne personen er hovedadministrator. Jeg forstår at personen trenger SSO eller en lenke for tilbakestilling av passord for å logge inn.",
+      "clearSignInModalSubmit": "Fjern påloggingsinnstillinger",
+      "clearSignInSuccess": "Påloggingsinnstillinger fjernet. Øktene personen logget inn i uten SSO, er avsluttet."
     },
     "userProjects": {
       "title": "Brukerens prosjekter",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "Kontroller hvem som kan opprette nye prosjekter på denne OneUptime-serveren.",
         "projectCreationSwitchTitle": "La brukere opprette prosjekter",
         "projectCreationSwitchOnDescription": "Alle som er logget inn på denne serveren, kan opprette et prosjekt.",
-        "projectCreationSwitchOffDescription": "Bare hovedadministratorer kan opprette prosjekter."
+        "projectCreationSwitchOffDescription": "Bare hovedadministratorer kan opprette prosjekter.",
+        "inviteSuggestionsCardTitle": "Invitasjonsforslag",
+        "inviteSuggestionsCardDescription": "Om de som inviterer til et prosjekt kan finne alle med en konto på denne serveren. La det være av hvis serveren har mer enn én organisasjon.",
+        "inviteSuggestionsSwitchTitle": "Foreslå alle kontoer på denne serveren",
+        "inviteSuggestionsSwitchOnDescription": "Alle som kan invitere personer til et prosjekt, ser navnet og e-posten til hver konto mens de skriver, merket Ikke i dette prosjektet ennå.",
+        "inviteSuggestionsSwitchOffDescription": "Invitasjonsskjemaene foreslår prosjektets egne personer. Hovedadministratorer får også tilbud om serverens andre kontoer."
       },
       "email": {
         "adminNotificationCardTitle": "E-post for administratorvarslinger",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "Versjon 2 forteller også hva som endret seg i trinnene i en arbeidsflyt og i JSON. Versjon 1 er den opprinnelige posten, for lesere som er laget for den.",
   "Version 2 (newest)": "Versjon 2 (nyeste)",
   "Version 1 (original)": "Versjon 1 (opprinnelig)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "Versjon 3 legger til hva hvert trinn i en arbeidsflyt kjørte som. Versjon 2 legger til hva som endret seg i trinnene og i JSON. Versjon 1 er originalen.",
+  "Version 3 (newest)": "Versjon 3 (nyeste)",
+  "Version 2": "Versjon 2",
   "Unchanged": "Uendret",
   "Setup guide": "Oppsettveiledning",
   "Write a test file": "Skriv en testfil",
@@ -4110,6 +4129,13 @@
   "Sign them out": "Logg dem ut",
   "Sign out everyone signed in without SSO?": "Logge ut alle som er logget inn uten SSO?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Øktene deres avsluttes nå på alle enheter, og de logger inn igjen med SSO. Hovedadministratorer forblir pålogget.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "{{count}} personer har fortsatt et passord eller tofaktorautentisering lagret i OneUptime. Det ville logge dem inn igjen hvis SSO ikke lenger var påkrevd.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "{{count}} person har fortsatt et passord eller tofaktorautentisering lagret i OneUptime. Det ville logge vedkommende inn igjen hvis SSO ikke lenger var påkrevd.",
+  "Clear Sign-In Settings": "Fjern påloggingsinnstillinger",
+  "Clear everyone's saved sign-in settings?": "Fjerne alles lagrede påloggingsinnstillinger?",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Deres passord, passnøkler, sikkerhetsnøkler, autentiseringsapper og reservekoder slettes. Dette kan ikke angres. Hovedadministratorer beholder sine.",
+  "Cleared the sign-in settings of {{count}} people.": "Påloggingsinnstillingene til {{count}} personer er fjernet.",
+  "Cleared the sign-in settings of {{count}} people._one": "Påloggingsinnstillingene til {{count}} person er fjernet.",
   "Made by {{name}} on {{date}}": "Opprettet av {{name}} den {{date}}",
   "Made on {{date}}": "Opprettet den {{date}}",
   "Ends in {{hint}}": "Slutter på {{hint}}",
@@ -4284,5 +4310,9 @@
   "Sign Out of the Identity Provider Too": "Logg også ut av identitetsleverandøren",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Når man logger ut av OneUptime, logges man også ut av denne leverandøren og av alle andre apper som bruker den. Slå på for delte datamaskiner.",
   "Sign-out Redirect URI:": "Omdirigerings-URI etter utlogging:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrer omdirigerings-URI-en hos OIDC-identitetsleverandøren din, og også omdirigerings-URI-en etter utlogging når «Logg også ut av identitetsleverandøren» er slått på."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrer omdirigerings-URI-en hos OIDC-identitetsleverandøren din, og også omdirigerings-URI-en etter utlogging når «Logg også ut av identitetsleverandøren» er slått på.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Har personen ingen OneUptime-konto ennå, opprettes den med dette navnet.",
+  "Suggest every account on this server?": "Foreslå alle kontoer på denne serveren?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Alle som kan invitere personer, ser navnet og e-posten til hver konto mens de skriver. Slå det bare på hvis alle kontoer her hører til én organisasjon.",
+  "Suggest Every Account": "Foreslå alle kontoer"
 }

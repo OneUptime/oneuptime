@@ -254,6 +254,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntHeader";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import SecurityCaseEvidenceCell from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Evidence/SecurityCaseEvidenceCell";
+import { SECURITY_CASE_EVIDENCE_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Evidence/SecurityCaseEvidenceCopy";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
@@ -1968,5 +1969,60 @@ describe("a kept event on a case's Evidence page", () => {
     expect(
       flat(within(container).getByTestId(HUNTS_TEST_IDS.eventEvidenceHunt)),
     ).toBe("Found by the hunt Old hunt");
+  });
+
+  /*
+   * #9622: an event kept from "Why This Case Was Opened" names the
+   * detection on the case it was matched by, as it was named when kept.
+   */
+  test("an event kept from what a detection matched names the detection", () => {
+    const item: SecurityCaseEvidence = new SecurityCaseEvidence();
+    item.kind = SecurityCaseEvidenceKind.Event;
+    item.name = "Path traversal attempt";
+    item.eventSnapshot = buildSecurityCaseEventSnapshot({
+      event: { eventUid: "log:abc:0", time: "2026-11-17T19:22:10.000Z" },
+      detection: {
+        id: "66666666-6666-4666-8666-666666666666",
+        name: "Path traversal attempts",
+      },
+    }) as unknown as JSONObject;
+
+    const { container } = render(
+      <MemoryRouter>
+        <SecurityCaseEvidenceCell item={item} />
+      </MemoryRouter>,
+    );
+
+    expect(
+      flat(
+        within(container).getByTestId(
+          SECURITY_CASE_EVIDENCE_TEST_IDS.eventDetection,
+        ),
+      ),
+    ).toBe("Matched by Path traversal attempts.");
+    expect(
+      within(container).queryByTestId(HUNTS_TEST_IDS.eventEvidenceHunt),
+    ).toBeNull();
+  });
+
+  test("an event kept another way names no detection", () => {
+    const item: SecurityCaseEvidence = new SecurityCaseEvidence();
+    item.kind = SecurityCaseEvidenceKind.Event;
+    item.name = "Some event";
+    item.eventSnapshot = buildSecurityCaseEventSnapshot({
+      event: { eventUid: "evt-9", time: "2026-10-28T22:42:00.000Z" },
+    }) as unknown as JSONObject;
+
+    const { container } = render(
+      <MemoryRouter>
+        <SecurityCaseEvidenceCell item={item} />
+      </MemoryRouter>,
+    );
+
+    expect(
+      within(container).queryByTestId(
+        SECURITY_CASE_EVIDENCE_TEST_IDS.eventDetection,
+      ),
+    ).toBeNull();
   });
 });

@@ -9,6 +9,8 @@ import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import logger from "../../../Server/Utils/Logger";
 import ServerSendingStatus from "../../../Server/Utils/ServerSending/ServerSendingStatus";
+import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
+import { SsoManagedBy } from "../../../Types/SSO/SsoManagedSignIn";
 import User from "../../../Models/DatabaseModels/User";
 import Hostname from "../../../Types/API/Hostname";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -84,6 +86,7 @@ type BuildUserFunction = (data: {
   twoFactorAuthEnabled?: boolean | undefined;
   resetPasswordToken?: string | undefined;
   resetPasswordExpires?: Date | undefined;
+  isMasterAdmin?: boolean | undefined;
 }) => User;
 
 const buildUser: BuildUserFunction = (data: {
@@ -95,6 +98,7 @@ const buildUser: BuildUserFunction = (data: {
   twoFactorAuthEnabled?: boolean | undefined;
   resetPasswordToken?: string | undefined;
   resetPasswordExpires?: Date | undefined;
+  isMasterAdmin?: boolean | undefined;
 }): User => {
   const user: User = new User();
   user.id = data.id;
@@ -132,6 +136,10 @@ const buildUser: BuildUserFunction = (data: {
     user.resetPasswordExpires = data.resetPasswordExpires;
   }
 
+  if (data.isMasterAdmin !== undefined) {
+    user.isMasterAdmin = data.isMasterAdmin;
+  }
+
   return user;
 };
 
@@ -144,6 +152,7 @@ describe("UserService -- master-admin authentication management", () => {
   let totpCountSpy: any;
   let webAuthnCountSpy: any;
   let emailKnownNotSetUpSpy: any;
+  let getStateForSpy: any;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -252,6 +261,20 @@ describe("UserService -- master-admin authentication management", () => {
      */
     getJestSpyOn(logger, "error").mockImplementation((): void => {
       return undefined;
+    });
+
+    /*
+     * Whether SSO manages the person's sign-in (#9762, #9763), for the
+     * page's warnings: not, unless a test says so. The rule itself is
+     * pinned in Tests/Server/Utils/SsoManagedSignIn.
+     */
+    getStateForSpy = getJestSpyOn(
+      SsoManagedSignIn,
+      "getStateFor",
+    ).mockResolvedValue({
+      managedBy: null,
+      managingProjects: [],
+      otherProjects: [],
     });
   });
 
@@ -375,6 +398,66 @@ describe("UserService -- master-admin authentication management", () => {
       expect(status.isTwoFactorAuthEnabled).toBe(false);
     });
 
+    test("isMasterAdmin mirrors the account, and the SSO rule is asked about this account as it is", async () => {
+      resolveUser(buildUser({ id: userId, isMasterAdmin: true }));
+
+      const admin: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(admin.isMasterAdmin).toBe(true);
+      expect(getStateForSpy).toHaveBeenCalledTimes(1);
+      expect(getStateForSpy.mock.calls[0][0].userId.toString()).toBe(
+        userId.toString(),
+      );
+      expect(getStateForSpy.mock.calls[0][0].isMasterAdmin).toBe(true);
+
+      resolveUser(buildUser({ id: userId }));
+
+      const person: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(person.isMasterAdmin).toBe(false);
+      expect(getStateForSpy.mock.calls[1][0].isMasterAdmin).toBe(false);
+    });
+
+    test.each([
+      [SsoManagedBy.Server, SsoManagedBy.Server],
+      [SsoManagedBy.Projects, SsoManagedBy.Projects],
+      [null, null],
+    ])(
+      "signInManagedBy says why SSO manages their sign-in (%s), for the page's warnings",
+      async (managedBy: SsoManagedBy | null, expected: SsoManagedBy | null) => {
+        getStateForSpy.mockResolvedValue({
+          managedBy: managedBy,
+          managingProjects: [],
+          otherProjects: [],
+        });
+        resolveUser(buildUser({ id: userId }));
+
+        const status: UserAuthenticationStatus =
+          await UserService.getAuthenticationStatus(userId);
+
+        expect(status.signInManagedBy).toBe(expected);
+      },
+    );
+
+    test("a rule that cannot be read is logged, and the page is still shown: never an error over the whole status", async () => {
+      getStateForSpy.mockRejectedValue(new Error("connection refused"));
+      resolveUser(
+        buildUser({
+          id: userId,
+          password: new HashedString("a-stored-scrypt-digest", true),
+        }),
+      );
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.signInManagedBy).toBeNull();
+      expect(status.hasPassword).toBe(true);
+      expect(logger.error).toHaveBeenCalled();
+    });
+
     test("hasPendingPasswordResetLink is false when no token has ever been minted", async () => {
       resolveUser(buildUser({ id: userId }));
 
@@ -468,7 +551,9 @@ describe("UserService -- master-admin authentication management", () => {
         "hasPassword",
         "hasPendingPasswordResetLink",
         "isEmailVerified",
+        "isMasterAdmin",
         "isTwoFactorAuthEnabled",
+        "signInManagedBy",
         "twoFactorAuthStatus",
         "unusedTwoFactorBackupCodeCount",
         "verifiedTwoFactorAuthMethodCount",
@@ -491,6 +576,12 @@ describe("UserService -- master-admin authentication management", () => {
       expect(typeof status.twoFactorAuthStatus).toBe("string");
       expect(typeof status.verifiedTwoFactorAuthMethodCount).toBe("number");
       expect(typeof status.unusedTwoFactorBackupCodeCount).toBe("number");
+      expect(typeof status.isMasterAdmin).toBe("boolean");
+      // Why SSO manages their sign-in, a word - or null.
+      expect(
+        status.signInManagedBy === null ||
+          typeof status.signInManagedBy === "string",
+      ).toBe(true);
     });
 
     test("selects exactly the columns the row-derived fields come from", async () => {
@@ -514,6 +605,8 @@ describe("UserService -- master-admin authentication management", () => {
         enableTwoFactorAuth: true,
         resetPasswordToken: true,
         resetPasswordExpires: true,
+        // Whether SSO manages their sign-in is never asked of a master admin.
+        isMasterAdmin: true,
       });
 
       expect(call.query).toEqual({ _id: userId });

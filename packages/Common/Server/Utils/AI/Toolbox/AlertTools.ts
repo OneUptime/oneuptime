@@ -13,12 +13,18 @@ import AlertOwnerTeamService from "../../../Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "../../../Services/AlertOwnerUserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
+import MeaningSearch, {
+  MAX_SEARCH_CANDIDATES,
+  MeaningSearchCandidate,
+  MeaningSearchMatch,
+} from "../MeaningSearch";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
   AI_READ_CITATIONS,
   AI_READ_WIDGET_LINES,
   AI_READ_WIDGET_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
 import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
@@ -451,6 +457,215 @@ export const QueryAlertsTool: ObservabilityTool = {
                     : aiActionSentence(AI_READ_WIDGET_LINES.createdInHours, {
                         hours: countFigure(createdWithinHours),
                       }),
+              },
+              items: rows,
+              link: { type: AIChatCitationTargetType.Alerts },
+            })
+          : undefined,
+    };
+  },
+};
+
+/*
+ * The texts search_alerts looks in, as the Alert model names them: what
+ * happened, why and how it was fixed.
+ */
+export const SEARCHED_ALERT_COLUMNS: Array<string> = [
+  "title",
+  "description",
+  "rootCause",
+  "remediationNotes",
+];
+
+/*
+ * search_incidents' twin for alerts (#7673): past alerts that say what the
+ * search says, by meaning, the closest first, each with what it matched on.
+ * Alerts recur far more often than incidents, so "has this fired before,
+ * and what fixed it?" is asked of them most.
+ */
+export const SearchAlertsTool: ObservabilityTool = {
+  name: "search_alerts",
+  description:
+    "Search PAST alerts by what happened, across their title, description, root cause and remediation notes. Matches by meaning, not one exact phrase: 'disk full' finds an alert that says 'no space left on device', and 'OOMKilled' one that says 'out of memory'. Use this to answer 'has this fired before, and what fixed it?'. Returns the closest matches first, each with what it matched on (matchedOn), its monitor, root cause and remediation notes. A match by meaning alone is a lead to check, not proof.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      searchText: {
+        type: "string",
+        description:
+          "What happened, in your words or the error's (e.g. 'disk full on the database host'). Matched by meaning across alert title, description, root cause and remediation notes; an id or error code is matched as typed too.",
+      },
+      createdWithinHours: {
+        type: "number",
+        description:
+          "Only alerts created within this many hours (default 2160 = 90 days, max 8760 = 1 year).",
+      },
+      limit: {
+        type: "number",
+        description: "Maximum alerts to return (default 5, max 15).",
+      },
+    },
+    required: ["searchText"],
+  },
+  get requiredPermissions(): Array<Permission> {
+    return resolveReadPermissions();
+  },
+  execute: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<ToolExecutionResult> => {
+    const searchText: string | undefined = ToolArgs.getString(
+      args,
+      "searchText",
+    );
+
+    if (!searchText) {
+      return {
+        dataForLlm:
+          "Error: searchText is required. Provide the text to search past alerts for.",
+        rowCount: 0,
+        ...citationSentence(AI_TOOL_CITATIONS.alertSearchNoQuery),
+        redactionCount: 0,
+        isTruncated: false,
+      };
+    }
+
+    const createdWithinHours: number = ToolArgs.getNumber(
+      args,
+      "createdWithinHours",
+      { defaultValue: 2160, min: 1, max: 8760 },
+    );
+    const limit: number = ToolArgs.getNumber(args, "limit", {
+      defaultValue: 5,
+      min: 1,
+      max: 15,
+    });
+
+    const endTime: Date = OneUptimeDate.getCurrentDate();
+    const startTime: Date = OneUptimeDate.addRemoveHours(
+      endTime,
+      -1 * createdWithinHours,
+    );
+
+    /*
+     * The candidates: the newest alerts the caller may read whose text says
+     * what the search says, in any of the words that say it, or holds it as
+     * typed (MeaningSearch). The condition sits on title and names every
+     * searched column.
+     */
+    const candidates: Array<Alert> = await AlertService.findBy({
+      query: {
+        createdAt: QueryHelper.inBetween(startTime, endTime),
+        title: MeaningSearch.getCondition({
+          columns: SEARCHED_ALERT_COLUMNS,
+          text: searchText,
+        }),
+      },
+      select: {
+        _id: true,
+        title: true,
+        description: true,
+        alertNumber: true,
+        createdAt: true,
+        currentAlertState: {
+          name: true,
+        },
+        alertSeverity: {
+          name: true,
+        },
+        monitor: {
+          name: true,
+        },
+        rootCause: true,
+        remediationNotes: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      limit: MAX_SEARCH_CANDIDATES,
+      skip: 0,
+      props: ctx.props,
+    });
+
+    // Ranked by meaning: the closest first, each with what it matched on.
+    const matches: Array<MeaningSearchMatch<Alert>> = MeaningSearch.rank({
+      text: searchText,
+      limit: limit,
+      candidates: candidates.map(
+        (alert: Alert): MeaningSearchCandidate<Alert> => {
+          return {
+            record: alert,
+            text: MeaningSearch.documentText({
+              title: alert.title,
+              texts: [
+                alert.rootCause,
+                alert.remediationNotes,
+                alert.description,
+              ],
+            }),
+            wholeText: [
+              alert.title,
+              alert.description,
+              alert.rootCause,
+              alert.remediationNotes,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          };
+        },
+      ),
+    });
+
+    const rows: Array<JSONObject> = matches.map(
+      (match: MeaningSearchMatch<Alert>) => {
+        const alert: Alert = match.record;
+
+        return {
+          id: alert.id?.toString(),
+          alertNumber: alert.alertNumber,
+          title: alert.title,
+          state: alert.currentAlertState?.name,
+          severity: alert.alertSeverity?.name,
+          monitor: alert.monitor?.name,
+          createdAt: alert.createdAt,
+          matchedOn: MeaningSearch.describeMatch({
+            match: match,
+            text: searchText,
+          }),
+          similarity: Number(match.score.similarity.toFixed(2)),
+          rootCause: MeaningSearch.resultField(alert.rootCause),
+          remediationNotes: MeaningSearch.resultField(alert.remediationNotes),
+        };
+      },
+    );
+
+    const serialized: SerializedResult =
+      ToolResultSerializer.serializeRows(rows);
+
+    return {
+      dataForLlm:
+        rows.length > 0
+          ? serialized.text
+          : `No past alert created in the last ${createdWithinHours} hours matches "${searchText}", by meaning or as typed. Try other words for what happened, or a longer createdWithinHours.`,
+      rowCount: serialized.rowCount,
+      ...citationSentence(AI_READ_CITATIONS.alertSearch, {
+        query: searchText,
+        count: countFigure(serialized.rowCount),
+      }),
+      citationTarget: {
+        type: AIChatCitationTargetType.Alerts,
+      },
+      redactionCount: serialized.redactionCount,
+      isTruncated: serialized.isTruncated,
+      widget:
+        rows.length > 0
+          ? WidgetBuilder.alertList({
+              // In the reader's language (issue #8312).
+              words: {
+                title: aiActionSentence(AI_READ_WIDGET_TITLES.alertsMatching, {
+                  query: searchText,
+                  count: countFigure(rows.length),
+                }),
               },
               items: rows,
               link: { type: AIChatCitationTargetType.Alerts },

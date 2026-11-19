@@ -21,7 +21,9 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * private user POST /login
  * (App/FeatureSet/Identity/API/StatusPageAuthentication.ts). And POST
  * /login-with-magic-link, whose credential is a sign-in link's token: not
- * guessable, but bounded all the same (MAGIC_LINK_BUCKET).
+ * guessable, but bounded all the same (MAGIC_LINK_BUCKET). And POST
+ * /sign-up-invitation, whose credential is an invited address's registration
+ * token, bounded the same way (SIGN_UP_INVITATION_BUCKET).
  *
  * WHY THESE ROUTES NEED IT
  *
@@ -199,6 +201,15 @@ export enum IdentityRateLimitBucket {
    * anonymous, and every request looks its token up. See MAGIC_LINK_BUCKET.
    */
   MagicLink = "magic-link",
+
+  /*
+   * POST /sign-up-invitation -- the sign-up page an invitation opens, asking
+   * what the invitation knows with the invited address and its registration
+   * token (Types/Accounts/SignUpInvitation). Not a guessing oracle either --
+   * the token is a server-minted random UUID -- but anonymous, and every
+   * request looks its token up. See SIGN_UP_INVITATION_BUCKET.
+   */
+  SignUpInvitation = "sign-up-invitation",
 }
 
 export enum IdentityRateLimitScope {
@@ -543,6 +554,45 @@ const MAGIC_LINK_BUCKET: BucketConfig = {
 };
 
 /*
+ * Sign-up invitation budget (POST /sign-up-invitation).
+ *
+ * Nothing is guessed here either: the registration token is a random UUID
+ * the server minted and mailed to the invited address, and every answer but
+ * that address's own is the same none. What this bounds is work, as the
+ * sign-in link bucket does. Every request with a well-formed address and
+ * token looks the token up, and a live one goes on to read the user, their
+ * memberships and who invited them; an anonymous route that reads the
+ * database on every request needs a ceiling in front of it.
+ *
+ * The request does name an account -- the invited address -- so the account
+ * counter is keyed on that address and the client address together. It gets
+ * the address counter's number rather than a tighter one: with nothing to
+ * guess, a per-account count has nothing to hold back. The sign-up page asks
+ * once each time an invitation opens it; a hundred and fifty a quarter hour
+ * is the per-address ceiling of /login, sized for an office behind one NAT,
+ * invited together, opening its links the same morning.
+ *
+ * A counter of its own, so that people opening their invitations cannot
+ * spend the sign-in attempts of everybody else behind their address, nor
+ * sign-in noise refuse the page. Refused with the sign-in pair
+ * (getRefusalMessages), which no reader sees: the page takes any failure as
+ * no invitation and is the plain sign-up page
+ * (Accounts/src/Utils/SignUpInvitation.ts).
+ */
+const SIGN_UP_INVITATION_RATE_LIMIT: number = parsePositiveIntFromEnv(
+  "IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_PER_IP_PER_WINDOW",
+  150,
+);
+const SIGN_UP_INVITATION_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_SIGN_UP_INVITATION_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: SIGN_UP_INVITATION_RATE_LIMIT,
+  perIpLimit: SIGN_UP_INVITATION_RATE_LIMIT,
+};
+
+/*
  * What a refused caller is told. See getRefusalMessages for why the sign-in
  * routes all share one pair and the resend route has its own.
  */
@@ -724,6 +774,10 @@ export default class IdentityRateLimit {
       return MAGIC_LINK_BUCKET;
     }
 
+    if (bucket === IdentityRateLimitBucket.SignUpInvitation) {
+      return SIGN_UP_INVITATION_BUCKET;
+    }
+
     return LOGIN_BUCKET;
   }
 
@@ -732,7 +786,9 @@ export default class IdentityRateLimit {
    *
    * Every sign-in bucket gets the same pair, byte for byte, whichever counter
    * fired and whichever route was hit -- see the note in getMiddleware on why
-   * a sign-in limiter must not answer differently for different accounts.
+   * a sign-in limiter must not answer differently for different accounts. So
+   * does the sign-up invitation bucket, whose one caller, the sign-up page,
+   * shows no refusal (SIGN_UP_INVITATION_BUCKET).
    *
    * The resend route gets its own pair because the sign-in wording is simply
    * wrong there: somebody who pressed "resend verification email" has made no

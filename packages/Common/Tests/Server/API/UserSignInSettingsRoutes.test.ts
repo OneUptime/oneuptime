@@ -131,6 +131,7 @@ beforeEach(() => {
   ).mockResolvedValue({
     isManagedBySso: true,
     ssoProviderNames: ["Okta"],
+    localSignInProjectNames: [],
   });
 
   getTwoFactorAuthSetup = getJestSpyOn(
@@ -182,6 +183,7 @@ describe("GET /user/sign-in-management", () => {
     expect(sentJson()).toEqual({
       isManagedBySso: true,
       ssoProviderNames: ["Okta"],
+      localSignInProjectNames: [],
     });
   });
 
@@ -189,6 +191,7 @@ describe("GET /user/sign-in-management", () => {
     getSignInManagement.mockResolvedValue({
       isManagedBySso: false,
       ssoProviderNames: [],
+      localSignInProjectNames: [],
       somethingElse: "secret",
     });
 
@@ -196,8 +199,25 @@ describe("GET /user/sign-in-management", () => {
 
     expect(Object.keys(sentJson()).sort()).toEqual([
       "isManagedBySso",
+      "localSignInProjectNames",
       "ssoProviderNames",
     ]);
+  });
+
+  test("says which projects keep the caller's settings theirs, when only some manage their sign-in (#9763)", async () => {
+    getSignInManagement.mockResolvedValue({
+      isManagedBySso: false,
+      ssoProviderNames: ["Okta"],
+      localSignInProjectNames: ["Contractors"],
+    });
+
+    await call({ route: SIGN_IN_ROUTE });
+
+    expect(sentJson()).toEqual({
+      isManagedBySso: false,
+      ssoProviderNames: ["Okta"],
+      localSignInProjectNames: ["Contractors"],
+    });
   });
 
   test("is never kept by a cache: it changes when a master admin flips the requirement", async () => {

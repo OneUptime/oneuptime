@@ -48,6 +48,21 @@ let mockIsMasterAdmin: boolean = false;
 let mockCanSendEmail: boolean | null = true;
 let projectPermissionsForTest: unknown = null;
 
+/*
+ * A self-hosted server, which the pages are drawn on here: what a reader
+ * who is not a master admin is told to do depends on it (OneUptime Cloud
+ * has no server's admin to ask: getInvitationEmailNotSentAdvice), and the
+ * Common Test job runs with billing on, as Cloud does. Cloud's words are
+ * held below, on getInvitationEmailNotSentAdvice itself.
+ */
+jest.mock("../../../UI/Config", () => {
+  return {
+    __esModule: true,
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+    BILLING_ENABLED: false,
+  };
+});
+
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
     __esModule: true,
@@ -112,18 +127,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
         translateValue: (value: unknown): unknown => {
           return value;
         },
-      };
-    },
-  };
-});
-
-jest.mock("../../../UI/Utils/UserEmailRegistrationStatus", () => {
-  return {
-    __esModule: true,
-    useUserEmailRegistrationStatus: () => {
-      return {
-        isEmailRegistered: true,
-        checkEmail: (): void => {},
       };
     },
   };

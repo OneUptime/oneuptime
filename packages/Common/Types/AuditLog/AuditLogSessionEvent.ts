@@ -152,6 +152,9 @@ export const SESSION_END_CAUSE_DESCRIPTIONS: Readonly<
   [SessionEndCause.SignedInWithoutSso]: translationKey(
     "Signed out by a server admin because single sign-on is required",
   ),
+  [SessionEndCause.SignInSettingsCleared]: translationKey(
+    "Signed out by a server admin who cleared their sign-in settings",
+  ),
   [SessionEndCause.Other]: translationKey("Session ended"),
 };
 

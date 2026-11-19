@@ -50,6 +50,7 @@ import MonitorSteps, {
 } from "../../Components/Form/Monitor/MonitorSteps";
 import MonitorDraftWhoIsTold from "../../Components/Monitor/Overview/MonitorDraftWhoIsTold";
 import { toProbeIds } from "../../Components/Form/Monitor/MonitorTest";
+import OneTimeCodeProbesWarning from "../../Components/Monitor/OneTimeCodeProbesWarning";
 import {
   getMonitorAddressFormFields,
   getMonitorAddressSeed,
@@ -2283,6 +2284,23 @@ const MonitorCreate: FunctionComponent<
                   showIf: () => {
                     // Nothing to choose from - keep the step uncluttered.
                     return probeOptions.length > 0;
+                  },
+                  /*
+                   * A picked probe too old to make the one-time codes the
+                   * monitor's steps need is named under the picker (#9759).
+                   */
+                  getFooterElement: (
+                    values: FormValues<Monitor>,
+                  ): ReactElement => {
+                    return (
+                      <OneTimeCodeProbesWarning
+                        monitorSteps={
+                          values.monitorSteps as MonitorStepsType | undefined
+                        }
+                        monitorType={values.monitorType as MonitorType}
+                        probeIds={toProbeIds((values as JSONObject)["probes"])}
+                      />
+                    );
                   },
                 },
                 {

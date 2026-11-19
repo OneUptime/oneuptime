@@ -6,6 +6,7 @@ import ProbesAndIntervalCopy, {
   NOT_CHECKED_BY_PROBES_TEST_ID,
 } from "../../../Components/Monitor/ProbesAndIntervalCopy";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
+import OneTimeCodeProbesWarning from "../../../Components/Monitor/OneTimeCodeProbesWarning";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -80,6 +81,9 @@ const MonitorProbes: FunctionComponent<
 
   const [monitor, setMonitor] = useState<Monitor | null>(null);
 
+  // How many times the probes list was read: the warning reads with it.
+  const [probesReadCount, setProbesReadCount] = useState<number>(0);
+
   /*
    * Bumped by every read. The page stays mounted when the reader follows a
    * link from one monitor's page to another's, so it reads again for the new
@@ -129,6 +133,8 @@ const MonitorProbes: FunctionComponent<
           monitorType: true,
           monitoringInterval: true,
           minimumProbeAgreement: true,
+          // Whether its steps need one-time codes, which old probes cannot make.
+          monitorSteps: true,
         },
       });
 
@@ -197,6 +203,24 @@ const MonitorProbes: FunctionComponent<
         getItemName={getProbeName}
         bulkActions={{
           buttons: [...switchBulkActions],
+        }}
+        /*
+         * The probes too old to make the one-time codes this monitor's
+         * steps need (#9759), read again whenever the list is: a probe
+         * added, removed, or switched on or off.
+         */
+        topContent={
+          <OneTimeCodeProbesWarning
+            monitorSteps={monitor?.monitorSteps}
+            monitorType={monitorType}
+            monitorId={modelId}
+            refreshToggle={String(probesReadCount)}
+          />
+        }
+        onFetchSuccess={() => {
+          setProbesReadCount((count: number): number => {
+            return count + 1;
+          });
         }}
         isEditable={true}
         isCreateable={true}

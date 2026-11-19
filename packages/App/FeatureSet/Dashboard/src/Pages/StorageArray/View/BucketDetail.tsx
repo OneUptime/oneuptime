@@ -8,6 +8,10 @@ import { SummaryField } from "../../../Components/Infrastructure/ResourceOvervie
 import StorageArrayResourceDetail from "../../../Components/StorageArray/StorageArrayResourceDetail";
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
+import {
+  getStorageArrayBucketNoUsageText,
+  getStorageArrayBucketUsage,
+} from "../Utils/StorageArrayHealth";
 
 /*
  * One FlashBlade S3 bucket. Its series carry the bucket's name in the
@@ -39,8 +43,9 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
       ),
     },
     {
-      title: "Used",
-      description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.bucketUsedColumn,
+      // The flash it takes after data reduction; its Storage card has the rest.
+      title: "Physical",
+      description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.physicalColumn,
       value: StorageArrayResourceUtils.formatBytes(
         StorageArrayResourceUtils.freshMetricValue(row, row.usedBytes),
       ),
@@ -129,6 +134,14 @@ const StorageArrayBucketDetail: FunctionComponent<
       )}
       metricsTitleTemplate={translationKey("Bucket Metrics: {{name}}")}
       description="Latency, space and object count of this bucket, as the FlashBlade reports them."
+      storage={{
+        description:
+          "What the bucket stores, before data reduction, against its quota.",
+        getUsage: (row: StorageArrayResource) => {
+          return getStorageArrayBucketUsage(row);
+        },
+        getNoUsageText: getStorageArrayBucketNoUsageText,
+      }}
     />
   );
 };

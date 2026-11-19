@@ -108,13 +108,19 @@ export function readResponsePlaybooks(
 
 /*
  * A ticked step's task: its words as the person who ticked it read them -
- * OneUptime AI's own for one of its steps - kept to a task's line.
+ * OneUptime AI's own for one of its steps, the rule's author's for one of
+ * the rule's - kept to a task's line.
  */
 export function getResponseStepTitle(data: {
-  step: Pick<ResponseStep, "aiText">;
+  step: Pick<ResponseStep, "aiText" | "ruleText">;
   text: string;
 }): string {
-  const title: string = (data.step.aiText || data.text || "")
+  const title: string = (
+    data.step.aiText ||
+    data.step.ruleText ||
+    data.text ||
+    ""
+  )
     .replace(/\s+/g, " ")
     .trim();
 

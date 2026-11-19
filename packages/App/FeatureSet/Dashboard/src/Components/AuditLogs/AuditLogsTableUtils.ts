@@ -16,6 +16,11 @@ import {
 } from "Common/Utils/ModelApiName";
 import { getNameInitials } from "Common/Utils/NameInitials";
 import { translationKey, Translator } from "Common/Types/Translator";
+import {
+  WorkflowRunAs,
+  readWorkflowRunAs,
+} from "Common/Types/Workflow/WorkflowRunAs";
+import type { WorkflowRunRanAs } from "Common/UI/Components/Workflow/WorkflowRunRanAs";
 import PageMap from "../../Utils/PageMap";
 
 /*
@@ -675,6 +680,65 @@ export const getActorTypeLabel: (userType: string | undefined) => string = (
 
   return AUDIT_LOG_ACTOR_TYPE_LABELS[userType] || userType;
 };
+
+/*
+ * WHAT A WORKFLOW'S STEP RAN AS, AS ITS ENTRY RECORDED IT (#9766): Default,
+ * Project Owner or a custom role by its name then, and - for the last two -
+ * whose permissions, a person's or a project API key's (#9765). Null for an
+ * entry that recorded none: no workflow made it, or it was recorded before
+ * entries said it - never read as Default, which it may not have been.
+ */
+export const getAuditLogWorkflowRanAs: (
+  entry: Pick<
+    AuditLog,
+    | "workflowRunAs"
+    | "workflowRunAsCustomRoleName"
+    | "workflowRunAsGivenByName"
+    | "workflowRunAsGivenByApiKeyId"
+  >,
+) => WorkflowRunRanAs | null = (
+  entry: Pick<
+    AuditLog,
+    | "workflowRunAs"
+    | "workflowRunAsCustomRoleName"
+    | "workflowRunAsGivenByName"
+    | "workflowRunAsGivenByApiKeyId"
+  >,
+): WorkflowRunRanAs | null => {
+  if (!entry.workflowRunAs) {
+    return null;
+  }
+
+  const runAs: WorkflowRunAs | null = readWorkflowRunAs(entry.workflowRunAs);
+
+  if (!runAs) {
+    return null;
+  }
+
+  if (runAs === WorkflowRunAs.Default) {
+    return { runAs: runAs };
+  }
+
+  return {
+    runAs: runAs,
+    roleName: entry.workflowRunAsCustomRoleName || null,
+    givenBy: entry.workflowRunAsGivenByName || null,
+    isGivenByApiKey: Boolean(entry.workflowRunAsGivenByApiKeyId),
+  };
+};
+
+/*
+ * The Workflow Ran As filter's choices: what a workflow's step can run as,
+ * by its name, valued as entries store it.
+ */
+export const AUDIT_LOG_WORKFLOW_RAN_AS_FILTER_OPTIONS: Array<DropdownOption> = [
+  { label: translationKey("Default"), value: WorkflowRunAs.Default },
+  {
+    label: translationKey("Project Owner"),
+    value: WorkflowRunAs.ProjectOwner,
+  },
+  { label: translationKey("Custom Role"), value: WorkflowRunAs.CustomRole },
+];
 
 export interface AuditLogsQueryOptions {
   projectId: ObjectID | null;

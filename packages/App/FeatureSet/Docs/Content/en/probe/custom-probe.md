@@ -124,6 +124,33 @@ Monitors that probes do not check (Manual, Incoming Request, Incoming Email, Ser
 > [!TIP]
 > A probe that should check private addresses, such as `http://10.0.0.5/health`, needs `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`. Probes refuse private addresses until you allow them: see [Private Network Access](/docs/self-hosted/private-network-access).
 
+## Update a probe
+
+A probe runs the release of the image it was started from, so to update it, start it again from a newer image with the same probe ID and key. The `oneuptime/probe:release` image is always the newest release.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+Then run the command from [Run the probe](#run-the-probe) again.
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+Replace `<version>` with the release to run, such as `17.0.1`, and write the same image in `oneuptime-probe.yaml`, so that applying the file again keeps it.
+:::
+
+The probe's page shows the release it runs, under **Probe Status**. A probe older than 17.0.1 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code): its page says so, and so does the form of a monitor it checks.
+
 ## Connecting through a proxy
 
 If the probe has to go through a proxy to reach OneUptime or the sites it checks, give it the proxy's address:

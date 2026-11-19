@@ -3,6 +3,7 @@ import {
   CodeRepositoryTaskStatsJSON,
   CodeTaskBlocker,
   CodeTaskContextInput,
+  CodeTaskEarlierTurnsJSON,
   CodeTaskLinkedTurnJSON,
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
@@ -15,6 +16,7 @@ import {
   CodeTaskTurnsNotShownJSON,
   MAX_CODE_TASKS_PER_REQUEST,
 } from "Common/Types/AI/CodeTask";
+import { UNEXPLAINED_ERROR_MESSAGES } from "Common/Types/Exception/UnexplainedError";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -99,7 +101,59 @@ export interface CodeTaskResponse {
    * is not the task's is never sent.
    */
   linkedTurn?: CodeTaskLinkedTurnJSON | null | undefined;
+  /*
+   * Why the failed or stopped latest turn - a fix OneUptime started - is
+   * not asked again: it may already have written (#6509). Said where Try
+   * again would be. None otherwise.
+   */
+  tryAgainRefusal?: string | null | undefined;
 }
+
+/*
+ * A page of a long task's turns its page does not show (Show earlier
+ * turns, #7128): whole turns, each a turn of the task's, and the place of
+ * the first - a whole number from 2. Null for anything else.
+ */
+export const parseEarlierTurns: (
+  value: unknown,
+) => CodeTaskEarlierTurnsJSON | null = (
+  value: unknown,
+): CodeTaskEarlierTurnsJSON | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const firstNumber: unknown = (value as JSONObject)["firstNumber"];
+  const turns: unknown = (value as JSONObject)["turns"];
+
+  if (
+    typeof firstNumber !== "number" ||
+    !Number.isInteger(firstNumber) ||
+    firstNumber < 2 ||
+    !Array.isArray(turns)
+  ) {
+    return null;
+  }
+
+  const isTurn: (turn: unknown) => boolean = (turn: unknown): boolean => {
+    return (
+      Boolean(turn) &&
+      typeof turn === "object" &&
+      !Array.isArray(turn) &&
+      typeof (turn as JSONObject)["runId"] === "string" &&
+      ObjectID.isValidUUID((turn as JSONObject)["runId"] as string)
+    );
+  };
+
+  if (!turns.every(isTurn)) {
+    return null;
+  }
+
+  return {
+    firstNumber,
+    turns: turns as unknown as Array<CodeTaskTurnJSON>,
+  };
+};
 
 /*
  * The turns a task's page is told it does not show: a whole count of one or
@@ -348,7 +402,38 @@ export default class CodeApi {
       blocker: (data["blocker"] as unknown as CodeTaskBlocker | null) || null,
       turnsNotShown: parseTurnsNotShown(data["turnsNotShown"]),
       linkedTurn: parseLinkedTurn(data["linkedTurn"]),
+      tryAgainRefusal:
+        typeof data["tryAgainRefusal"] === "string" && data["tryAgainRefusal"]
+          ? data["tryAgainRefusal"]
+          : null,
     };
+  }
+
+  /*
+   * A long task's turns its page does not show, a page at a time (Show
+   * earlier turns): the turns just before `before` - the oldest turn after
+   * the first the page has - oldest first, with the place of the first.
+   * An answer that is not one is a failed read.
+   */
+  public static async getEarlierTurns(data: {
+    taskId: string;
+    before: string;
+    limit?: number | undefined;
+  }): Promise<CodeTaskEarlierTurnsJSON> {
+    const response: JSONObject = await CodeApi.post(`/turns/${data.taskId}`, {
+      before: data.before,
+      ...(data.limit ? { limit: data.limit } : {}),
+    });
+
+    const earlier: CodeTaskEarlierTurnsJSON | null =
+      parseEarlierTurns(response);
+
+    // Not the server's answer: said as a page that failed, in every language.
+    if (!earlier) {
+      throw new Error(UNEXPLAINED_ERROR_MESSAGES.page);
+    }
+
+    return earlier;
   }
 
   /*

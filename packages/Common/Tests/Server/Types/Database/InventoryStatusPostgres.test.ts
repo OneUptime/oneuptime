@@ -14,6 +14,7 @@ import {
   InventoryLiveness,
   getInventoryLivenessState,
 } from "../../../../Types/Telemetry/InventoryLiveness";
+import { MANAGED_DEVICE_RESOURCE_TYPE } from "../../../../Types/DeviceManagement/ManagedDeviceIdentity";
 import { DataSource, FindOptionsWhere, QueryRunner } from "typeorm";
 
 /*
@@ -61,6 +62,7 @@ describePostgres("inventory status facets against Postgres", () => {
       "displayName" varchar NOT NULL,
       "entityType" varchar NOT NULL,
       "source" varchar,
+      "resourceType" varchar,
       "lastSeenAt" timestamptz,
       "isArchived" boolean NOT NULL DEFAULT false,
       "deletedAt" timestamptz
@@ -95,6 +97,22 @@ describePostgres("inventory status facets against Postgres", () => {
     await seed("host-stale", EntitySource.Discovered, 3000 * 60_000, {
       entityType: EntityType.Host,
     });
+    /*
+     * A device an Esper connection imports has a heartbeat of its own, its
+     * check-ins (issue #9586); any other mirrored host has none.
+     */
+    await seed("managed-device-live", EntitySource.Inventory, 60_000, {
+      entityType: EntityType.Host,
+      resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+    });
+    await seed("managed-device-stale", EntitySource.Inventory, 3000 * 60_000, {
+      entityType: EntityType.Host,
+      resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+    });
+    await seed("network-device-old", EntitySource.Inventory, 3000 * 60_000, {
+      entityType: EntityType.NetworkDevice,
+      resourceType: "NetworkDevice",
+    });
   });
 
   afterAll(async () => {
@@ -118,18 +136,20 @@ describePostgres("inventory status facets against Postgres", () => {
       archived?: boolean;
       projectId?: ObjectID;
       entityType?: EntityType;
+      resourceType?: string;
     } = {},
   ): Promise<void> {
     const id: string = ObjectID.generate().toString();
     ids[name] = id;
     await runner.query(
-      `INSERT INTO "${schema}"."InventoryItem" ("_id", "projectId", "displayName", "entityType", "source", "lastSeenAt", "isArchived") VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO "${schema}"."InventoryItem" ("_id", "projectId", "displayName", "entityType", "source", "resourceType", "lastSeenAt", "isArchived") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         id,
         (options.projectId || projectId).toString(),
         name,
         options.entityType || EntityType.Service,
         source,
+        options.resourceType || null,
         age === null ? null : new Date(now.getTime() - age),
         Boolean(options.archived),
       ],
@@ -154,6 +174,7 @@ describePostgres("inventory status facets against Postgres", () => {
         _id: true,
         displayName: true,
         source: true,
+        resourceType: true,
         lastSeenAt: true,
         inventoryStatus: true,
       },
@@ -170,12 +191,13 @@ describePostgres("inventory status facets against Postgres", () => {
 
   test("every SQL classification matches the shared badge rule at exact boundaries", async () => {
     const rows: Array<InventoryItem> = await find();
-    expect(rows).toHaveLength(13);
+    expect(rows).toHaveLength(16);
     for (const item of rows) {
       expect({ name: item.displayName, status: item.inventoryStatus }).toEqual({
         name: item.displayName,
         status: getInventoryLivenessState({
           source: item.source,
+          resourceType: item.resourceType,
           lastSeenAt: item.lastSeenAt,
           now,
         }),
@@ -186,7 +208,7 @@ describePostgres("inventory status facets against Postgres", () => {
   test.each([
     [
       InventoryLiveness.Live,
-      ["live-future", "live-now", "live-upper-boundary"],
+      ["live-future", "live-now", "live-upper-boundary", "managed-device-live"],
     ],
     [
       InventoryLiveness.Recent,
@@ -194,7 +216,12 @@ describePostgres("inventory status facets against Postgres", () => {
     ],
     [
       InventoryLiveness.Stale,
-      ["host-stale", "stale-lower-boundary", "stale-old"],
+      [
+        "host-stale",
+        "managed-device-stale",
+        "stale-lower-boundary",
+        "stale-old",
+      ],
     ],
     [InventoryLiveness.Never, ["never-seen"]],
     [
@@ -203,6 +230,7 @@ describePostgres("inventory status facets against Postgres", () => {
         "manual-old",
         "mirrored-no-heartbeat",
         "missing-source",
+        "network-device-old",
         "unknown-source",
       ],
     ],
@@ -224,6 +252,7 @@ describePostgres("inventory status facets against Postgres", () => {
     });
     expect(selected).toEqual([
       "host-stale",
+      "managed-device-stale",
       "never-seen",
       "stale-lower-boundary",
       "stale-old",
@@ -234,7 +263,7 @@ describePostgres("inventory status facets against Postgres", () => {
         InventoryLiveness.Never,
       ]),
     });
-    expect(excluded).toHaveLength(9);
+    expect(excluded).toHaveLength(11);
     expect(excluded).toEqual(
       expect.arrayContaining(["manual-old", "missing-source"]),
     );
@@ -254,7 +283,7 @@ describePostgres("inventory status facets against Postgres", () => {
         inventoryStatus: new Includes([InventoryLiveness.Stale]),
         entityType: new Includes([EntityType.Host]),
       }),
-    ).toEqual(["host-stale"]);
+    ).toEqual(["host-stale", "managed-device-stale"]);
     expect(
       await names({
         inventoryStatus: new Includes([InventoryLiveness.Stale]),
@@ -324,12 +353,12 @@ describePostgres("inventory status facets against Postgres", () => {
         skip: 2,
         take: 2,
       });
-    expect(count).toBe(5);
+    expect(count).toBe(6);
     expect(
       rows.map((item: InventoryItem): string => {
         return item.displayName!;
       }),
-    ).toEqual(["live-upper-boundary", "recent-lower-boundary"]);
+    ).toEqual(["live-upper-boundary", "managed-device-live"]);
   });
 
   test("a serialized API query applies the same status filter", async () => {

@@ -124,6 +124,33 @@ spec:
 > [!TIP]
 > जिस प्रोब को निजी पतों की जाँच करनी है, जैसे `http://10.0.0.5/health`, उसे `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` चाहिए। जब तक आप अनुमति नहीं देते, प्रोब निजी पतों को अस्वीकार करते हैं: [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access) देखें।
 
+## प्रोब अपडेट करें
+
+प्रोब उसी इमेज का संस्करण चलाता है जिससे उसे शुरू किया गया था, इसलिए उसे अपडेट करने के लिए उसी प्रोब ID और कुंजी के साथ उसे किसी नई इमेज से फिर से शुरू करें। `oneuptime/probe:release` इमेज में हमेशा सबसे नया संस्करण होता है।
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+फिर [प्रोब चलाएँ](#प्रोब-चलाएँ) वाला कमांड दोबारा चलाएँ।
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+`<version>` की जगह वह संस्करण लिखें जिसे चलाना है, जैसे `17.0.1`, और यही इमेज `oneuptime-probe.yaml` में भी लिखें, ताकि फ़ाइल दोबारा लागू करने पर भी वह बनी रहे।
+:::
+
+प्रोब के पेज पर **प्रोब स्थिति** के नीचे वह संस्करण दिखता है जो वह चलाता है। 17.0.1 से पुराना प्रोब किसी [वन-टाइम कोड सीक्रेट](/docs/monitor/monitor-secrets#वन-टाइम-कोड-से-साइन-इन-करना) के कोड नहीं बना सकता: उसका पेज यह बताता है, और वह जिस मॉनिटर की जाँच करता है, उसका फ़ॉर्म भी।
+
 ## प्रॉक्सी से कनेक्ट करना
 
 अगर प्रोब को OneUptime या जिन साइटों की वह जाँच करता है उन तक पहुँचने के लिए प्रॉक्सी से गुज़रना पड़ता है, तो उसे प्रॉक्सी का पता दें:

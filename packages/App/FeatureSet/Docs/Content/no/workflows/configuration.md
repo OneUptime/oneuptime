@@ -217,15 +217,19 @@ Som standard kjører en arbeidsflyt med tillatelsene ovenfor, og de fleste arbei
 
 Uansett hva arbeidsflyten kjører som, leser et trinn aldri innstillinger som inneholder påloggingsinformasjon, ser aldri private hendelser, varsler eller episoder og endrer aldri API-nøkler, single sign-on eller SCIM-innstillinger. Når det gir et team en tillatelse eller en rolle, kan det bare gi det det selv har, og mangler det noe, nevner loggen til kjøringen tillatelsen.
 
-En arbeidsflyt som kjører med mer enn standardtillatelsene, kjører med tillatelsene til personen som ga den dem: den som sist valgte **Run As** for den, eller lagret trinnene eller variablene dens. Slik at ingen får mer gjennom den enn de selv har:
+En arbeidsflyt som kjører med mer enn standardtillatelsene, kjører med tillatelsene til den som ga den dem: personen eller API-nøkkelen i prosjektet som sist valgte **Run As** for den, eller lagret trinnene eller variablene dens. Slik at ingen får mer gjennom den enn de selv har:
 
 - Bare personer som har de tillatelsene, kan endre den eller variablene dens, arkivere eller slette den, kjøre den eller ett av trinnene dens manuelt, eller se webhook-URL-en og den innkommende e-postadressen dens. Alle som kan redigere den, kan fortsatt slå den av. Når den begynner å kjøre med mer enn standardtillatelsene, eller det endres hva den kjører som, får den en ny webhook-URL og en ny innkommende e-postadresse, så kopier av de gamle ikke lenger starter den.
-- Bare en person kan gi dem, aldri en API-nøkkel.
-- Hver kjøring sjekker først at personen som ga dem, fortsatt har dem. Hvis ikke, stopper kjøringen før det første trinnet, og loggen sier hvorfor og hvem som kan gi dem på nytt.
+- En person eller en av prosjektets API-nøkler kan gi dem, og bare det de selv har: tillatelsene til en nøkkel, med de egendefinerte rollene dens, veies som en persons. Trinnene i en arbeidsflyt og master-API-nøkkelen kan ikke gi dem, og å tilbakestille en nøkkel krever alle tillatelsene nøkkelen har.
+- Hver kjøring sjekker først at den som ga dem, fortsatt har dem: en person som fortsatt er i prosjektet, eller en nøkkel som fortsatt finnes, ikke har utløpt og ikke har mistet dem. Hvis ikke, stopper kjøringen før det første trinnet, og loggen sier hvorfor og hvem som kan gi dem på nytt.
 - Den leser ikke prosjektets globale variabler, som alle som kan redigere arbeidsflytvariabler, kan endre.
 - Et **Kjør en annen arbeidsflyt**-trinn i en annen arbeidsflyt kan bare starte den hvis den arbeidsflyten kjører med de samme tillatelsene eller flere.
 
-Hver kjøring registrerer hva den kjørte som og med hvems tillatelser, vist i vinduet til kjøringen og i en nedlastet logg, og [revisjonsloggen](/docs/configuration/audit-logs) registrerer hvem som endret **Run As** for en arbeidsflyt.
+En eksportert, importert eller duplisert arbeidsflyt kjører med standardtillatelsene, uansett hva originalen kjørte som: den som har mer, velger **Run As** for den på nytt.
+
+Hver kjøring registrerer hva den kjørte som og med hvems tillatelser, vist i vinduet til kjøringen og i en nedlastet logg. [Revisjonsloggen](/docs/configuration/audit-logs) registrerer hvem som endret **Run As** for en arbeidsflyt, en person eller en API-nøkkel med navn, og hver endring et trinn i en arbeidsflyt gjør, sier hva trinnet kjørte som og med hvems tillatelser. Revisjonsloggens filtre **Arbeidsflyt kjørt som** og **Arbeidsflytens tillatelser gitt av** finner disse endringene.
+
+Å slette en egendefinert rolle som arbeidsflyter kjører som, ville stoppe dem, så slettingen viser dem og spør hva de skal kjøre som fra nå av: **Standardtillatelser** eller en annen egendefinert rolle du kunne gi et team. Den som ikke kan redigere arbeidsflyter, kan ikke slette rollen før Run As for dem er endret. Via API-et avvises sletting av en slik rolle med mindre forespørselen sier hva de skal kjøre som i stedet: `miscDataProps` med `workflowsRunAs` satt til `Default`, eller til `CustomRole` med rollens id i `workflowsRunAsCustomRoleId`.
 
 ## Plangrenser
 

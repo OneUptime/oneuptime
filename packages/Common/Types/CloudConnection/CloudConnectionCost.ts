@@ -114,6 +114,98 @@ export function countRetiredMetrics(data: {
   return metrics;
 }
 
+/*
+ * WHAT ONE ADDED METRIC COSTS A MONTH (CloudAddedMetrics, #9563), shown
+ * before it is added, for the resources it would be read for:
+ *
+ *   - AWS: one more metric each read per resource in GetMetricData, which
+ *     bills every metric from the first;
+ *   - Azure: nothing while it rides in a call the resource makes anyway -
+ *     its minute call while that has fewer than 20 metrics, its five-minute
+ *     call (every 15 minutes) for one kept at five minutes - else one more
+ *     call per resource each time that grain is read, free within each
+ *     subscription's first 1,000,000 calls a month;
+ *   - Google Cloud: one more time series per resource each read, free
+ *     within a billing account's first 1,000,000 a month.
+ *
+ * The cost is at the cloud's list price before any free allowance: whether
+ * the allowance covers it depends on the rest of the account's use.
+ */
+export interface CloudAddedMetricCostEstimate {
+  // The extra units a month: metrics read, calls, or time series.
+  monthlyUnits: number;
+  monthlyCostUsd: number;
+  // Azure: it rides in a call the resource makes anyway, at no cost.
+  ridesInExistingCall: boolean;
+}
+
+// Minutes between two of a grain's calls (an Azure ISO 8601 grain).
+const AZURE_GRAIN_MINUTES: Readonly<Record<string, number>> = {
+  PT1M: 1,
+  PT5M: 5,
+  PT15M: 15,
+  PT30M: 30,
+  PT1H: 60,
+};
+
+export function estimateCloudAddedMetricCost(data: {
+  provider: CloudProvider;
+  // The resources it would be read for: one, or every one of its type.
+  resources: number;
+  readIntervalInMinutes: number;
+  // Azure: the grain it is read at, and the call it would ride in.
+  azureGrain?: string | undefined;
+  azureMetricsInCall?: number | undefined;
+  azureHasFiveMinuteCall?: boolean | undefined;
+}): CloudAddedMetricCostEstimate {
+  const resources: number = Math.max(0, data.resources);
+  const reads: number = getReadsPerMonth(data.readIntervalInMinutes);
+
+  if (data.provider === CloudProvider.AWS) {
+    const units: number = resources * reads;
+
+    return {
+      monthlyUnits: units,
+      monthlyCostUsd:
+        (units / 1000) * AWS_GET_METRIC_DATA_USD_PER_THOUSAND_METRICS,
+      ridesInExistingCall: false,
+    };
+  }
+
+  if (data.provider === CloudProvider.Azure) {
+    const grain: string = (data.azureGrain || "PT1M").toUpperCase();
+    const isFiveMinutes: boolean = grain === "PT5M";
+    const ridesInMinuteCall: boolean =
+      grain === "PT1M" &&
+      (data.azureMetricsInCall || 0) < AZURE_MAX_METRICS_PER_RESOURCE;
+
+    if (ridesInMinuteCall || (isFiveMinutes && data.azureHasFiveMinuteCall)) {
+      return { monthlyUnits: 0, monthlyCostUsd: 0, ridesInExistingCall: true };
+    }
+
+    const callsPerResource: number = isFiveMinutes
+      ? getAzureFiveMinuteReadsPerMonth(data.readIntervalInMinutes)
+      : getReadsPerMonth(
+          Math.max(data.readIntervalInMinutes, AZURE_GRAIN_MINUTES[grain] || 1),
+        );
+    const units: number = resources * callsPerResource;
+
+    return {
+      monthlyUnits: units,
+      monthlyCostUsd: (units / 1000) * AZURE_USD_PER_THOUSAND_METRIC_READS,
+      ridesInExistingCall: false,
+    };
+  }
+
+  const units: number = resources * reads;
+
+  return {
+    monthlyUnits: units,
+    monthlyCostUsd: (units / 1000000) * GCP_USD_PER_MILLION_TIME_SERIES,
+    ridesInExistingCall: false,
+  };
+}
+
 export function estimateCloudConnectionCost(data: {
   provider: CloudProvider;
   resourceTypes: Array<CloudConnectionTypeCount>;

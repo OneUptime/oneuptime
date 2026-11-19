@@ -197,8 +197,11 @@ interface InviteFormHarnessProps {
  * identity on every render, an Email field that reports every keystroke back to
  * the page, and a required Team dropdown whose options come from the API.
  *
- * The real page debounces the account check by 400ms; here it resolves
- * synchronously so the test pins the behaviour rather than the timing.
+ * The page debounced the account check by 400ms; here it resolves
+ * synchronously so the test pins the behaviour rather than the timing. The
+ * check is gone (#9745), and the invite forms' page state now changes when a
+ * suggestion is picked, but any page that changes state while its form is
+ * typed into is held to this.
  */
 const InviteFormHarness: React.FunctionComponent<InviteFormHarnessProps> = (
   props: InviteFormHarnessProps,
@@ -379,8 +382,9 @@ describe("ModelForm preserves what the user typed while inviting a user", () => 
     await user.tab();
 
     /*
-     * The account check resolving is a page-level state change, exactly as in
-     * useUserEmailRegistrationStatus once the debounce fires.
+     * The account check resolving was a page-level state change, as the
+     * invite forms' picked suggestion is now (the check itself is gone,
+     * #9745: Common/UI/Utils/InviteeName).
      */
     await settle(() => {
       setRegisteredStatus(true);
