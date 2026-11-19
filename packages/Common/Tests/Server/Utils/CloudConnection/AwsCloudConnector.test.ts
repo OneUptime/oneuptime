@@ -1,5 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
 import { storedAttributesOf } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
@@ -235,6 +243,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  jest.restoreAllMocks();
 });
 
 function giveOneUptimeAnAwsIdentity(): void {
@@ -785,6 +794,8 @@ describe("read", () => {
   });
 
   test("throttling is waited out and retried", async () => {
+    // The jitter at its most: each wait is its whole backoff (AwsRetry).
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
     const fake: FakeAws = createFakeAws({
       regions: {
         "us-east-1": {
@@ -812,13 +823,49 @@ describe("read", () => {
     expect(result.pointsWritten).toBe(2);
   });
 
+  test("a 503 from CloudWatch for a moment is asked again, as the AWS SDKs ask, and the read goes on", async () => {
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: ec2("i-0aaa", [10]),
+          getMetricDataAnswers: [
+            awsError(503, "ServiceUnavailable", "Please try again"),
+          ],
+        },
+      },
+    });
+    const waits: Array<number> = [];
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(fake),
+        sleep: async (milliseconds: number) => {
+          waits.push(milliseconds);
+        },
+      },
+    );
+
+    // A failure for now waits 50 ms at most before its first retry.
+    expect(waits).toEqual([50]);
+    expect(result.warnings).toEqual([]);
+    expect(result.pointsWritten).toBe(2);
+    expect(result.nextState.cursors?.["300"]).toBeDefined();
+  });
+
   test("a Region whose metrics fail keeps the whole window for the next read, so nothing is written twice", async () => {
+    // Every try fails: the failure is not one a retry gets past.
+    const failure: { status: number; body: string } = {
+      status: 500,
+      body: "Internal failure",
+    };
     const fake: FakeAws = createFakeAws({
       regions: {
         "us-east-1": { metrics: ec2("i-0aaa", [10]) },
         "eu-west-1": {
           metrics: ec2("i-0bbb", [20]),
-          getMetricDataAnswers: [{ status: 500, body: "Internal failure" }],
+          getMetricDataAnswers: [failure, failure, failure],
         },
       },
     });

@@ -30,6 +30,12 @@ export interface LlmProviderRequest {
   timeoutInMs?: number | undefined;
   // Keep the body's bytes in the answer's bodyBytes: a file, not text.
   keepBodyBytes?: boolean | undefined;
+  /*
+   * Answer every status rather than throw for one outside 2xx, with its
+   * headers: for a client that reads the answer itself before it says
+   * whether the request failed (AWS's, which asks again as the AWS SDKs do).
+   */
+  acceptAnyStatus?: boolean | undefined;
   // What the request is for, in the error: "usage report".
   step: string;
   providerTitle: string;
@@ -116,6 +122,7 @@ export default class LlmProviderHttp {
           formUrlEncoded: request.formUrlEncoded,
           timeoutInMs: timeoutInMs,
           ...(request.keepBodyBytes ? { keepBodyBytes: true } : {}),
+          ...(request.acceptAnyStatus ? { acceptAnyStatus: true } : {}),
         }),
         deadline,
       ]);

@@ -14,9 +14,9 @@ import BigQueryApi, {
   readBigQueryConnection,
 } from "../../../../Server/Utils/DataObservability/BigQueryApi";
 import AthenaApi, {
-  classifyAwsAnswer,
   readAthenaConnection,
 } from "../../../../Server/Utils/DataObservability/AthenaApi";
+import { classifyAwsAnswer } from "../../../../Server/Utils/CloudConnection/Aws/AwsApi";
 import ClickHouseHttpApi, {
   classifyClickHouseAnswer,
   readClickHouseConnection,
