@@ -8,10 +8,13 @@ import {
   EC2_RESOURCE_ID_KINDS,
   MAX_CLOUD_AUDIT_RESOURCE_IDS,
   buildCatalogAwsArn,
+  canCloudResourceHaveSecurityEvents,
+  canServerlessFunctionBeNamedByAuditLog,
   getAzureTopLevelResourceId,
   getGoogleTopLevelResourceName,
   getServerlessFunctionCloudResourceId,
   isCloudFrontDistributionId,
+  isCloudResourceNamedByItsId,
   isEc2ResourceId,
   isKmsKeyId,
   normalizeAwsArn,
@@ -890,5 +893,131 @@ describe("getServerlessFunctionCloudResourceId: a function's own id at its cloud
     ]) {
       expect(getServerlessFunctionCloudResourceId(fn)).toBeNull();
     }
+  });
+});
+
+describe("canServerlessFunctionBeNamedByAuditLog: whose functions an audit log can name (#9780)", () => {
+  test("a Lambda function's and a Google Cloud function's", () => {
+    expect(
+      canServerlessFunctionBeNamedByAuditLog({
+        cloudPlatform: FaasCloudPlatform.AwsLambda,
+      }),
+    ).toBe(true);
+    // An AWS function whose platform was not reported.
+    expect(
+      canServerlessFunctionBeNamedByAuditLog({ cloudProvider: "AWS" }),
+    ).toBe(true);
+    expect(
+      canServerlessFunctionBeNamedByAuditLog({
+        cloudProvider: "gcp",
+        cloudPlatform: FaasCloudPlatform.GcpCloudFunctions,
+      }),
+    ).toBe(true);
+  });
+
+  test("never an Azure function's, nor one of no known cloud", () => {
+    expect(
+      canServerlessFunctionBeNamedByAuditLog({
+        cloudProvider: "azure",
+        cloudPlatform: FaasCloudPlatform.AzureFunctions,
+      }),
+    ).toBe(false);
+    expect(canServerlessFunctionBeNamedByAuditLog({})).toBe(false);
+    expect(
+      canServerlessFunctionBeNamedByAuditLog({ cloudProvider: "gcp" }),
+    ).toBe(false);
+  });
+});
+
+describe("canCloudResourceHaveSecurityEvents: a resource an event can reach (#9779)", () => {
+  const AZURE_NSG: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/prod/providers/Microsoft.Network/networkSecurityGroups/web-nsg`;
+  const STAND_IN: string = "AWS/AmazonMQ Broker=orders";
+
+  test("one its cloud's audit log names by its own ID, in each cloud", () => {
+    for (const resource of [
+      {
+        provider: "aws",
+        type: "AWS::S3::Bucket",
+        providerResourceId: "arn:aws:s3:::payments-bucket",
+      },
+      {
+        provider: "azure",
+        type: "Microsoft.Network/networkSecurityGroups",
+        providerResourceId: AZURE_NSG,
+      },
+      {
+        provider: "gcp",
+        type: "storage.googleapis.com/Bucket",
+        providerResourceId:
+          "//storage.googleapis.com/projects/_/buckets/acme-backups",
+      },
+    ]) {
+      expect(canCloudResourceHaveSecurityEvents(resource)).toBe(true);
+      expect(isCloudResourceNamedByItsId(resource.providerResourceId)).toBe(
+        true,
+      );
+    }
+  });
+
+  test("one kept by a stand-in, with logs of its own its stream stamps with that stand-in", () => {
+    expect(
+      canCloudResourceHaveSecurityEvents({
+        provider: "AWS",
+        type: "AWS::DocDB::DBCluster",
+        providerResourceId: "AWS/DocDB DBClusterIdentifier=orders",
+      }),
+    ).toBe(true);
+    // Its audit log still cannot name it.
+    expect(
+      isCloudResourceNamedByItsId("AWS/DocDB DBClusterIdentifier=orders"),
+    ).toBe(false);
+  });
+
+  test("one kept by a stand-in that answers on a name or a public address of its own", () => {
+    expect(
+      canCloudResourceHaveSecurityEvents({
+        provider: "aws",
+        type: "AWS::AmazonMQ::Broker",
+        providerResourceId: STAND_IN,
+        cloudEndpoints: ["b-1234.mq.us-east-1.amazonaws.com"],
+      }),
+    ).toBe(true);
+    expect(
+      canCloudResourceHaveSecurityEvents({
+        provider: "aws",
+        type: "AWS::AmazonMQ::Broker",
+        providerResourceId: STAND_IN,
+        cloudEndpoints: ["203.0.113.10"],
+      }),
+    ).toBe(true);
+  });
+
+  test("never one known only by a stand-in, with no logs and no name or address of its own", () => {
+    expect(
+      canCloudResourceHaveSecurityEvents({
+        provider: "aws",
+        type: "AWS::AmazonMQ::Broker",
+        providerResourceId: STAND_IN,
+      }),
+    ).toBe(false);
+    // A loopback address is no address of its own.
+    expect(
+      canCloudResourceHaveSecurityEvents({
+        provider: "aws",
+        type: "AWS::AmazonMQ::Broker",
+        providerResourceId: STAND_IN,
+        cloudEndpoints: ["127.0.0.1"],
+      }),
+    ).toBe(false);
+    // A row with no ID at all, and nothing else.
+    expect(
+      canCloudResourceHaveSecurityEvents({
+        provider: "aws",
+        type: "AWS::Lambda::Function",
+        providerResourceId: "  ",
+      }),
+    ).toBe(false);
+    expect(isCloudResourceNamedByItsId(STAND_IN)).toBe(false);
+    expect(isCloudResourceNamedByItsId(null)).toBe(false);
   });
 });

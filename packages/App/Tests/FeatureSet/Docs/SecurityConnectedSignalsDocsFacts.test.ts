@@ -44,6 +44,11 @@ import {
   SecurityTelemetrySignal,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import { FaasCloudPlatform } from "Common/Types/Cloud/CloudPlatform";
+import {
+  canCloudResourceHaveSecurityEvents,
+  getServerlessFunctionCloudResourceId,
+} from "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources";
 import {
   getCaseConnectionWindow,
   getEventConnectionWindow,
@@ -222,10 +227,9 @@ describe("the Connected Signals page", () => {
   });
 
   /*
-   * The records with a Security Events page of their own (#9547, #9628):
-   * the ones whose Security card opens it, which the docs name in the
-   * Security card's order. A cloud resource and a serverless function have
-   * none yet.
+   * The records with a Security Events page of their own (#9547, #9628,
+   * #9779, #9780): the ones whose Security card opens it, which the docs
+   * name in the Security card's order.
    */
   it("names every kind of record with a Security Events page of its own, and no other", () => {
     const model: string = fs.readFileSync(
@@ -259,14 +263,59 @@ describe("the Connected Signals page", () => {
       SecurityConnectionKind.KubernetesCluster,
       SecurityConnectionKind.OpenStackCloud,
       SecurityConnectionKind.NetworkDevice,
+      SecurityConnectionKind.CloudResource,
+      SecurityConnectionKind.ServerlessFunction,
       SecurityConnectionKind.Service,
     ]);
     expect(flat(section("Where you see it"))).toContain(
-      `${bold("Security Events")} in the menu of a host, a Docker or Podman host, a Kubernetes cluster, an OpenStack cloud, a network device and a service, beside its logs:`,
+      `${bold("Security Events")} in the menu of a host, a Docker or Podman host, a Kubernetes cluster, an OpenStack cloud, a network device, a cloud resource, a serverless function and a service, beside its logs:`,
     );
     expect(flat(section("Where you see it"))).toContain(
       "A Docker or Podman host's own logs are its containers' logs, and a service's events are those read from its logs and traces.",
     );
+  });
+
+  /*
+   * Where a cloud resource's and a function's own events come from, and the
+   * ones left out (#9779, #9780): what canCloudResourceHaveSecurityEvents
+   * and getServerlessFunctionCloudResourceId decide.
+   */
+  it("says where a cloud resource's and a serverless function's events come from, and which have none", () => {
+    const where: string = flat(section("Where you see it"));
+
+    expect(where).toContain(
+      "A cloud resource's come from its cloud's audit log, which names it by its own ID - CloudTrail, the Azure Activity Log, Google Cloud's audit logs, read with **Cloud audit logs** or from your logs - and from the logs its account's stream sends;",
+    );
+    expect(where).toContain(
+      "one OneUptime knows only by a name its metrics give it, with no logs and no name or address of its own, has no entry: no event can name it.",
+    );
+    expect(where).toContain(
+      "A serverless function's come from its logs and traces, whatever service they are filed under, and from its cloud's audit log once its telemetry sets `cloud.account.id` and `cloud.region`; an Azure function's audit records reach its Function App's page instead.",
+    );
+
+    // The rules the sentences say.
+    expect(
+      canCloudResourceHaveSecurityEvents({
+        provider: "aws",
+        type: "AWS::AmazonMQ::Broker",
+        providerResourceId: "AWS/AmazonMQ Broker=orders",
+      }),
+    ).toBe(false);
+    expect(
+      getServerlessFunctionCloudResourceId({
+        functionIdentifier: "orders-func",
+        cloudPlatform: FaasCloudPlatform.AzureFunctions,
+        cloudRegion: "westeurope",
+        cloudAccountId: "00000000-0000-4000-8000-000000000000",
+      }),
+    ).toBeNull();
+    expect(
+      getServerlessFunctionCloudResourceId({
+        functionIdentifier: "checkout",
+        cloudPlatform: FaasCloudPlatform.AwsLambda,
+        cloudRegion: "us-east-1",
+      }),
+    ).toBeNull();
   });
 
   it("says how sure each kind of match is, as the matching rules decide it", () => {

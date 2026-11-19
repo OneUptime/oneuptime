@@ -68,6 +68,10 @@ describe("the resource pages that show another product", () => {
       [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.SERVICE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+      // A cloud resource's and a serverless function's (#9779, #9780).
+      [PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+      [PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]:
+        ProductKey.SecurityEvents,
       [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
       // A cluster's Compliance is not: it scores the cluster itself (#9627).
       [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
@@ -88,6 +92,8 @@ describe("the resource pages that show another product", () => {
     [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS, ProductKey.Podman],
     [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS, ProductKey.OpenStack],
     [PageMap.SERVICE_VIEW_SECURITY_EVENTS, ProductKey.Services],
+    [PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS, ProductKey.Cloud],
+    [PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS, ProductKey.Serverless],
   ])(
     "%s stays a page of %s, and needs Security Events too (#9628)",
     (page: PageMap, product: ProductKey) => {

@@ -19,6 +19,7 @@ import CloudResourceViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/
 import DockerHostSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/SideMenu";
 import PodmanHostSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/SideMenu";
 import OpenStackCloudSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SideMenu";
+import ServerlessFunctionSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/SideMenu";
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import { forgetResourceScopes } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/UseResourceDataScope";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -659,8 +660,9 @@ describe.each(DATA_STORE_RESOURCE_MENUS)(
 
 /*
  * A Docker or Podman host, an OpenStack cloud and a service list their own
- * Security Events right after their Logs (#9628), as a host does, and only
- * where the product is on, shown, in use and readable.
+ * Security Events right after their Logs (#9628), as a host does, and so do
+ * a cloud resource and a serverless function (#9779, #9780) - only where
+ * the product is on, shown, in use and readable.
  */
 interface SecurityEventsMenu {
   section: string;
@@ -711,6 +713,35 @@ const SECURITY_EVENTS_MENUS: Array<[string, SecurityEventsMenu]> = [
       securityEvents: PageMap.SERVICE_VIEW_SECURITY_EVENTS,
       draw: (modelId: ObjectID): ReactElement => {
         return <ServiceSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  // A cloud resource with logs of its own, as its layout reads it (#9779).
+  [
+    "a cloud resource",
+    {
+      section: "Observability",
+      overview: PageMap.CLOUD_RESOURCE_VIEW,
+      securityEvents: PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
+      draw: (modelId: ObjectID): ReactElement => {
+        return (
+          <CloudResourceViewSideMenu
+            modelId={modelId}
+            hasStreamedLogs={true}
+            hasSecurityEvents={true}
+          />
+        );
+      },
+    },
+  ],
+  [
+    "a serverless function",
+    {
+      section: "Observability",
+      overview: PageMap.SERVERLESS_FUNCTION_VIEW,
+      securityEvents: PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <ServerlessFunctionSideMenu modelId={modelId} />;
       },
     },
   ],
@@ -788,3 +819,48 @@ describe.each(SECURITY_EVENTS_MENUS)(
     });
   },
 );
+
+/*
+ * A cloud resource no security event can reach - one OneUptime knows only
+ * by a stand-in name its metrics give it, with no logs of its own - has no
+ * Security Events entry: it would always open an empty page (#9779). One
+ * its cloud's audit log names, but with no logs of its own, has the entry
+ * right after its Metrics.
+ */
+describe("a cloud resource's menu, by what can reach it", () => {
+  beforeEach(() => {
+    goTo(pageOf(PageMap.CLOUD_RESOURCE_VIEW, RESOURCE_ID));
+  });
+
+  test("has no Security Events for a resource no event can reach", async () => {
+    await renderMenu(
+      <CloudResourceViewSideMenu
+        modelId={RESOURCE_ID}
+        hasSecurityEvents={false}
+      />,
+    );
+
+    expect(titles(linksIn("Observability"))).not.toContain("Security Events");
+    expect(titles(linksIn("Observability"))).toContain("Metrics");
+  });
+
+  test("has none when the layout has not said, as while the resource loads", async () => {
+    await renderMenu(<CloudResourceViewSideMenu modelId={RESOURCE_ID} />);
+
+    expect(titles(linksIn("Observability"))).not.toContain("Security Events");
+  });
+
+  test("lists it right after Metrics for a resource its audit log names, with no logs of its own", async () => {
+    await renderMenu(
+      <CloudResourceViewSideMenu
+        modelId={RESOURCE_ID}
+        hasSecurityEvents={true}
+      />,
+    );
+
+    const names: Array<string> = titles(linksIn("Observability"));
+
+    expect(names).not.toContain("Logs");
+    expect(names.indexOf("Security Events")).toBe(names.indexOf("Metrics") + 1);
+  });
+});
