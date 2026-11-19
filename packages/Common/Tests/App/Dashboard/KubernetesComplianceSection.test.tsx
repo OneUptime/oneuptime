@@ -14,6 +14,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
@@ -58,12 +59,14 @@ import { Translator, createTranslator } from "../../../Types/Translator";
 import fs from "fs";
 import path from "path";
 import KubernetesComplianceApi from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceApi";
+import { ACCEPT_FINDING_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/KubernetesCompliance/AcceptFindingModal";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import { ComplianceRequirementStatus } from "../../../Types/DataSecurity/ComplianceRequirementCatalog";
 import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
 import { JSONObject } from "../../../Types/JSON";
 import { readPodSecurity } from "../../../Types/Kubernetes/KubernetesPodSecurity";
 import {
+  KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
   KubernetesComplianceResponse,
   KubernetesComplianceTurnedOff,
@@ -1104,5 +1107,466 @@ describe("its exports", () => {
         },
       )?.["failingCount"],
     ).toBe(1);
+  });
+});
+
+/*
+ * ONE OBJECT'S FINDING, ACCEPTED (#9874): a failing finding offers Accept,
+ * which asks why, for what and until when, and makes the cluster's
+ * acceptance; an accepted finding is listed apart under its control, with
+ * who, when, why and until when, and Revoke; the framework's fold lists
+ * every acceptance - expired ones and ones whose object is gone too.
+ */
+const KUBE_PROXY: { kind: string; namespace: string; name: string } = {
+  kind: "DaemonSet",
+  namespace: "kube-system",
+  name: "kube-proxy",
+};
+
+const ACCEPTANCE_ID: string = "77777777-0000-4000-8000-000000000007";
+
+function acceptanceEntry(
+  data: Partial<KubernetesComplianceAcceptanceEntry> = {},
+): KubernetesComplianceAcceptanceEntry {
+  return {
+    id: ACCEPTANCE_ID,
+    framework: BASELINE,
+    requirement: "Privileged Containers",
+    object: KUBE_PROXY,
+    note: "kube-proxy programs the node's iptables.",
+    acceptedAt: "2026-11-12T09:00:00.000Z",
+    acceptedBy: "Jane Doe",
+    expiresAt: null,
+    isExpired: false,
+    isOnCluster: true,
+    ...data,
+  };
+}
+
+// The answer with these acceptances: those in force accept their findings.
+function answerWithAcceptances(
+  entries: Array<KubernetesComplianceAcceptanceEntry>,
+  snapshot: KubernetesComplianceSnapshot = snapshotOf(),
+): KubernetesComplianceResponse {
+  const frameworks: Array<KubernetesComplianceFrameworkResponse> =
+    scoreKubernetesFrameworks(
+      snapshot,
+      [],
+      entries
+        .filter((entry: KubernetesComplianceAcceptanceEntry): boolean => {
+          return !entry.isExpired;
+        })
+        .map((entry: KubernetesComplianceAcceptanceEntry) => {
+          return {
+            id: entry.id,
+            framework: entry.framework,
+            requirement: entry.requirement || "",
+            object: entry.object,
+          };
+        }),
+    ).map(
+      (
+        framework: KubernetesComplianceFrameworkResult,
+      ): KubernetesComplianceFrameworkResponse => {
+        return {
+          ...framework,
+          turnedOff: [],
+          acceptances: entries.filter(
+            (entry: KubernetesComplianceAcceptanceEntry): boolean => {
+              return entry.framework === framework.framework;
+            },
+          ),
+        };
+      },
+    );
+
+  return { ...answerOf({ snapshot }), frameworks };
+}
+
+function acceptanceRow(
+  data: Partial<DataSecurityComplianceSetting>,
+): DataSecurityComplianceSetting {
+  const row: DataSecurityComplianceSetting =
+    new DataSecurityComplianceSetting();
+  row.id = new ObjectID(ACCEPTANCE_ID);
+  row.framework = BASELINE;
+  row.requirement = "Privileged Containers";
+  row.namespace = "kube-system";
+  row.objectKind = "DaemonSet";
+  row.objectName = "kube-proxy";
+  row.isEnabled = true;
+  row.note = "kube-proxy programs the node's iptables.";
+  Object.assign(row, data);
+  return row;
+}
+
+async function acceptKubeProxy(reason: string | null): Promise<void> {
+  await press(
+    `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-Privileged Containers-kube-proxy`,
+  );
+
+  expect(screen.getByRole("dialog")).toHaveTextContent("Accept Finding");
+
+  if (reason !== null) {
+    await act(async () => {
+      fireEvent.change(screen.getByTestId(`${ACCEPT_FINDING_TEST_ID}-reason`), {
+        target: { value: reason },
+      });
+    });
+  }
+
+  await act(async () => {
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Accept Finding",
+      }),
+    );
+  });
+}
+
+describe("accepting one object's finding", () => {
+  test("a failing finding offers Accept; the dialog asks why, and makes the acceptance for that object of that control", async () => {
+    await drawSection();
+    await pick(BASELINE);
+    await acceptKubeProxy("kube-proxy programs the node's iptables.");
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const made: DataSecurityComplianceSetting = (
+      createSpy.mock.calls[0]![0] as { model: DataSecurityComplianceSetting }
+    ).model;
+
+    expect(made.resourceType).toBe(DataStoreResourceKind.KubernetesCluster);
+    expect(made.resourceId?.toString()).toBe(CLUSTER_ID.toString());
+    expect(made.framework).toBe(BASELINE);
+    expect(made.requirement).toBe("Privileged Containers");
+    expect(made.namespace).toBe("kube-system");
+    expect(made.objectKind).toBe("DaemonSet");
+    expect(made.objectName).toBe("kube-proxy");
+    expect(made.note).toBe("kube-proxy programs the node's iptables.");
+    // Until it is revoked, by default.
+    expect(made.expiresAt).toBeUndefined();
+    expect(made.isEnabled).toBe(false);
+    expect(toastSpy).toHaveBeenCalledWith("Finding accepted");
+    expect(complianceSpy).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("never without a reason: the dialog asks for one and makes nothing", async () => {
+    await drawSection();
+    await pick(BASELINE);
+    await acceptKubeProxy(null);
+
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  test("a failed save says why in the dialog, which stays open", async () => {
+    createSpy.mockRejectedValueOnce(
+      new Error("Say why this finding is accepted."),
+    );
+
+    await drawSection();
+    await pick(BASELINE);
+    await acceptKubeProxy("CNI");
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toHaveTextContent(
+        "Say why this finding is accepted.",
+      );
+    });
+    expect(toastSpy).not.toHaveBeenCalled();
+  });
+
+  test("accepted before and revoked, it is accepted again on its own row, its reason given back", async () => {
+    rows = [acceptanceRow({ isEnabled: true })];
+
+    await drawSection();
+    await pick(BASELINE);
+    await press(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-Privileged Containers-kube-proxy`,
+    );
+
+    expect(screen.getByTestId(`${ACCEPT_FINDING_TEST_ID}-reason`)).toHaveValue(
+      "kube-proxy programs the node's iptables.",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", {
+          name: "Accept Finding",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(updateSpy.mock.calls[0]![0]).toMatchObject({
+      modelType: DataSecurityComplianceSetting,
+      id: new ObjectID(ACCEPTANCE_ID),
+      data: {
+        isEnabled: false,
+        note: "kube-proxy programs the node's iptables.",
+        expiresAt: null,
+      },
+    });
+  });
+
+  test("an acceptance's row is never read as a switch: its namespace still applies", async () => {
+    rows = [acceptanceRow({ requirement: undefined, isEnabled: false })];
+
+    await drawSection();
+    await pick(BASELINE);
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-namespaces`);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-applies-${BASELINE}-namespace-kube-system`,
+      ),
+    ).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("a reader who may not change the cluster's settings sees Accept locked, and why", async () => {
+    canChange = false;
+
+    await drawSection();
+    await pick(BASELINE);
+
+    const accept: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-Privileged Containers-kube-proxy`,
+    );
+
+    expect(accept).toBeDisabled();
+    expect(accept).toHaveAccessibleName(
+      "Accept DaemonSet kube-system/kube-proxy's finding",
+    );
+  });
+});
+
+describe("an accepted finding", () => {
+  test("is listed apart under its control, which passes, with who, when, why and until when", async () => {
+    complianceSpy.mockResolvedValue(
+      answerWithAcceptances([
+        acceptanceEntry({ expiresAt: "2027-02-12T09:00:00.000Z" }),
+      ]),
+    );
+
+    await drawSection();
+    await pick(BASELINE);
+
+    const privileged: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-control-Privileged Containers`,
+    );
+    const accepted: HTMLElement = within(privileged).getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-accepted-Privileged Containers`,
+    );
+
+    // Nothing fails it now, and it offers no Accept.
+    expect(
+      within(privileged).queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-findings-Privileged Containers`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(accepted).toHaveTextContent("1 accepted");
+    expect(accepted).toHaveTextContent("kube-system/kube-proxy");
+    expect(accepted).toHaveTextContent("Accepted by Jane Doe on");
+    expect(accepted).toHaveTextContent("Fails again on");
+    expect(accepted).toHaveTextContent(
+      "kube-proxy programs the node's iptables.",
+    );
+    expect(
+      within(privileged).queryByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-Privileged Containers-kube-proxy`,
+      ),
+    ).not.toBeInTheDocument();
+    // The framework counts it.
+    expect(
+      screen.getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-accepted-count`),
+    ).toHaveTextContent("1 finding accepted");
+  });
+
+  test("Revoke turns it on again, says so and reads the scores again", async () => {
+    complianceSpy.mockResolvedValue(answerWithAcceptances([acceptanceEntry()]));
+
+    await drawSection();
+    await pick(BASELINE);
+    await press(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-accepted-note-Privileged Containers-kube-proxy-revoke`,
+    );
+
+    expect(updateSpy).toHaveBeenCalledWith({
+      modelType: DataSecurityComplianceSetting,
+      id: new ObjectID(ACCEPTANCE_ID),
+      data: { isEnabled: true },
+    });
+    expect(toastSpy).toHaveBeenCalledWith("Acceptance revoked");
+    expect(complianceSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("a revoke that fails says why where it was pressed", async () => {
+    complianceSpy.mockResolvedValue(answerWithAcceptances([acceptanceEntry()]));
+    updateSpy.mockRejectedValueOnce(new Error("The network went away."));
+
+    await drawSection();
+    await pick(BASELINE);
+    await press(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-accepted-note-Privileged Containers-kube-proxy-revoke`,
+    );
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-accepted-note-Privileged Containers-kube-proxy`,
+      ),
+    ).toHaveTextContent("The network went away.");
+    expect(toastSpy).not.toHaveBeenCalled();
+  });
+
+  test("the framework's fold lists every acceptance: in force, expired - whose finding fails again - and gone", async () => {
+    complianceSpy.mockResolvedValue(
+      answerWithAcceptances([
+        acceptanceEntry({
+          id: "a-expired",
+          isExpired: true,
+          expiresAt: "2026-11-01T00:00:00.000Z",
+        }),
+        acceptanceEntry({
+          id: "a-gone",
+          requirement: null,
+          object: {
+            kind: "DaemonSet",
+            namespace: "kube-system",
+            name: "weave-net",
+          },
+          isOnCluster: false,
+        }),
+      ]),
+    );
+
+    await drawSection();
+    await pick(BASELINE);
+
+    // Expired: kube-proxy fails again, and can be accepted again.
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-accept-Privileged Containers-kube-proxy`,
+      ),
+    ).toBeInTheDocument();
+
+    const fold: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-acceptances`,
+    );
+
+    expect(fold).toHaveTextContent("1 accepted · 1 expired");
+
+    await openFold(`${KUBERNETES_COMPLIANCE_TEST_ID}-acceptances`);
+
+    const expired: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-acceptance-a-expired`,
+    );
+    const gone: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-acceptance-a-gone`,
+    );
+
+    expect(expired).toHaveTextContent("Expired");
+    expect(expired).toHaveTextContent("Expired on");
+    expect(expired).toHaveTextContent("it fails again.");
+    expect(expired).toHaveTextContent("Control Privileged Containers");
+    expect(gone).toHaveTextContent("Every control of the framework");
+    expect(gone).toHaveTextContent("Not on this cluster now");
+    // Listed in force first, then expired, then gone.
+    expect(
+      within(fold)
+        .getAllByTestId(/-acceptance-a-/)
+        .map((item: HTMLElement): string => {
+          return item.getAttribute("data-testid") || "";
+        }),
+    ).toEqual([
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-acceptance-a-expired`,
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-acceptance-a-gone`,
+    ]);
+  });
+
+  test("a reader who may not change settings sees Revoke locked", async () => {
+    canChange = false;
+    complianceSpy.mockResolvedValue(answerWithAcceptances([acceptanceEntry()]));
+
+    await drawSection();
+    await pick(BASELINE);
+
+    expect(
+      screen.getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-accepted-note-Privileged Containers-kube-proxy-revoke`,
+      ),
+    ).toBeDisabled();
+  });
+});
+
+/*
+ * A WORKLOAD THAT RUNS NO POD (#9880): scored from its pod template, and the
+ * page says so where it lists it, and how many were.
+ */
+describe("a workload scored from its pod template", () => {
+  function templateSnapshot(
+    pods: Array<KubernetesCompliancePod>,
+  ): KubernetesComplianceSnapshot {
+    return {
+      ...snapshotOf(),
+      pods,
+      templates: [
+        {
+          workload: {
+            kind: "CronJob",
+            namespace: "ops",
+            name: "nightly-backup",
+          },
+          security: readPodSecurity(PRIVILEGED),
+        },
+      ],
+    };
+  }
+
+  test("says it was read from its pod template, as no pod of it runs", async () => {
+    complianceSpy.mockResolvedValue(
+      answerOf({ snapshot: templateSnapshot(snapshotOf().pods) }),
+    );
+
+    await drawSection();
+    await pick(BASELINE);
+
+    const privileged: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COMPLIANCE_TEST_ID}-control-Privileged Containers`,
+    );
+
+    expect(privileged).toHaveTextContent("ops/nightly-backup");
+    expect(
+      within(privileged).getByTestId(
+        `${KUBERNETES_COMPLIANCE_TEST_ID}-from-template`,
+      ),
+    ).toHaveTextContent("From its pod template, no pod running");
+    expect(
+      screen.getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-note-templates`),
+    ).toHaveTextContent(
+      "1 workload runs no pod now, so it is scored from its pod template.",
+    );
+  });
+
+  test("a cluster running no pod, its workloads scaled to zero, is still scored from their templates", async () => {
+    complianceSpy.mockResolvedValue({
+      ...answerOf({ snapshot: templateSnapshot([]) }),
+      podCount: 0,
+      podsRead: 0,
+      templateCount: 1,
+    });
+
+    await drawSection();
+
+    expect(
+      screen.getByTestId(KUBERNETES_COMPLIANCE_TEST_ID),
+    ).not.toHaveTextContent("Nothing to score yet");
+    expect(tiles()).toEqual([BASELINE, RESTRICTED, CIS]);
   });
 });
