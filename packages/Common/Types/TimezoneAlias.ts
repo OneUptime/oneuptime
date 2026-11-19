@@ -62,7 +62,10 @@ import Timezone from "./Timezone";
  * have left Ukraine, Greenland and Kanton with no entry at all once their
  * old spellings were hidden.
  *
- * Source: tzdata 2024b, the release the bundled moment-timezone carries.
+ * Source: tzdata 2026f, the release the bundled moment-timezone (0.6.6)
+ * carries. Tests/Types/TimezoneAlias.test.ts classifies the whole enum
+ * against that data, so a moment-timezone whose tzdata adds, renames or
+ * retires a zone fails there, naming it (2025b added America/Coyhaique).
  */
 export const LEGACY_TIMEZONE_NAMES: Readonly<
   Partial<Record<Timezone, Timezone>>
@@ -206,11 +209,13 @@ export const LEGACY_TIMEZONE_NAMES: Readonly<
   [Timezone.PacificJohnston]: Timezone.PacificHonolulu,
   [Timezone.PacificYap]: Timezone.PacificChuuk,
   /*
-   * System V rule names. Since tzdata 2024b each is a plain link to a city,
-   * and several were a trap to pick: "EST" never observes daylight saving,
-   * so a New York user who chose it was an hour off every summer. Each maps
-   * to the zone it has always matched, which keeps a stored value's clock
-   * exactly as it was.
+   * System V rule names, and several were a trap to pick: "EST" never
+   * observes daylight saving, so a New York user who chose it was an hour
+   * off every summer. Each maps to the zone it has always matched, which
+   * keeps a stored value's clock exactly as it was. Most are plain links to
+   * a city since tzdata 2024b; EST5EDT, CST6CDT, MST7MDT and PST8PDT follow
+   * US federal rules again since 2026d, which part from their city's only
+   * before 1967.
    */
   [Timezone.CET]: Timezone.EuropeBrussels,
   [Timezone.CST6CDT]: Timezone.AmericaChicago,
