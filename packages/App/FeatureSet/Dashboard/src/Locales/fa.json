@@ -58068,7 +58068,7 @@
   "How this connection is listed.": "این اتصال با چه نامی فهرست می‌شود.",
   "How to update a custom probe": "نحوه به‌روزرسانی یک پراب سفارشی",
   "IMEI": "IMEI",
-  "Imported by the Esper connection {{name}} ({{tenant}}.esper.cloud).": "با اتصال Esper به نام {{name}} ({{tenant}}.esper.cloud) وارد شده است.",
+  "Imported by the Esper connection {{name}} ({{tenant}}.esper.cloud).": "با اتصال Esper به نام {{name}} (مستأجر {{tenant}}.esper.cloud) وارد شده است.",
   "Installed Apps": "برنامه‌های نصب‌شده",
   "Inventory Attributes Written": "ویژگی‌های نوشته‌شده در موجودی",
   "Inventory Item ID": "شناسه مورد موجودی",
