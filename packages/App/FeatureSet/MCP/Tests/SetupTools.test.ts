@@ -86,7 +86,7 @@ const SIGNED_IN: McpCredential = oauthCredential([
 function spyOnApi(answer: unknown): ApiCallSpy {
   return jest
     .spyOn(OneUptimeApiService, "makeAuthenticatedApiCall")
-    .mockResolvedValue(answer as never);
+    .mockResolvedValue(answer as never) as unknown as ApiCallSpy;
 }
 
 afterEach(() => {

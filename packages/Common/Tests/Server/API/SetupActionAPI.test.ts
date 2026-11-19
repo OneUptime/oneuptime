@@ -24,14 +24,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import ProductKey from "../../../Types/Product/ProductKey";
 import { customDomainCaller } from "./CustomDomainCallers";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {

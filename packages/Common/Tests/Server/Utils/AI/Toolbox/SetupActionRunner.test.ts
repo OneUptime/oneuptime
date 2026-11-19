@@ -178,9 +178,9 @@ interface Spies {
 
 function installSpies(data?: {
   run?: AIRun | undefined;
-  policies?: number;
+  policies?: number | undefined;
   // A monitor of example.com the project has: a status page can show it.
-  hasMonitor?: boolean;
+  hasMonitor?: boolean | undefined;
 }): Spies {
   jest.spyOn(AIRunEventService, "create").mockResolvedValue({} as never);
   jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1 as never);
@@ -364,7 +364,7 @@ function createdBy(spy: SpyInstance): { data: unknown; props: unknown } {
 async function approvedOnAskAisCard(data: {
   call: { name: string; arguments: JSONObject };
   props: DatabaseCommonInteractionProps;
-  hasMonitor?: boolean;
+  hasMonitor?: boolean | undefined;
 }): Promise<Spies> {
   const call: { id: string; name: string; arguments: JSONObject } = {
     id: "call-1",
@@ -420,7 +420,7 @@ async function approvedOnAskAisCard(data: {
 async function calledByAnAgent(data: {
   call: { name: string; arguments: JSONObject };
   props: DatabaseCommonInteractionProps;
-  hasMonitor?: boolean;
+  hasMonitor?: boolean | undefined;
 }): Promise<{ spies: Spies; result: SetupActionRunResult }> {
   const spies: Spies = installSpies({ hasMonitor: data.hasMonitor });
   const result: SetupActionRunResult = await SetupActionRunner.run({
