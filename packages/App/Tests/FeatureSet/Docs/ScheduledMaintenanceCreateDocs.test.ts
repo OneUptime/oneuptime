@@ -128,11 +128,9 @@ describe("the scheduled maintenance create form in the docs", () => {
    */
   test("quotes the folded section's line word for word, for a page that notifies", () => {
     const line: Array<string> =
-      getEventSubscriberNotificationsFold(
-        (): PickedStatusPagesReachResult => {
-          return { nothingSentReason: null };
-        },
-      ).getSummary?.({ statusPages: [STATUS_PAGE_ID] }) || [];
+      getEventSubscriberNotificationsFold((): PickedStatusPagesReachResult => {
+        return { nothingSentReason: null };
+      }).getSummary?.({ statusPages: [STATUS_PAGE_ID] }) || [];
 
     expect(line).toEqual([
       PUBLISHING_SUMMARIES.rightAway,

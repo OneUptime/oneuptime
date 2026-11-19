@@ -911,7 +911,9 @@ describe("under the Edit's ticked update box", () => {
   const LATER: Date = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const EARLIER: Date = new Date("2026-01-01T00:00:00.000Z");
 
-  function edit(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  function edit(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
     return {
       statusPages: [STATUS_PAGE_ID],
       [ANNOUNCEMENT_STARTS_AT_KEY]: EARLIER,

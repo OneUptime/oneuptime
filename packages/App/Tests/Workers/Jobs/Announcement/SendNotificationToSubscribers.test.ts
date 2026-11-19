@@ -75,7 +75,11 @@ jest.mock("Common/Server/Services/StatusPageAnnouncementService", () => {
      * notification (AnnouncementReachBuilder), in the parity tests at the
      * end.
      */
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn(), findOneBy: jest.fn() },
+    default: {
+      findAllBy: jest.fn(),
+      updateOneById: jest.fn(),
+      findOneBy: jest.fn(),
+    },
   };
 });
 

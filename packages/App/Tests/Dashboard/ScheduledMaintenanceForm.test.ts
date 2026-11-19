@@ -201,7 +201,10 @@ describe("the Subscriber Notifications line", () => {
   test("names the moments its switches leave on, and its reminders, for a page that notifies", () => {
     const reminders: Settings = {
       [SUBSCRIBER_REMINDERS_KEY]: [
-        { _type: "Recurring", value: { intervalType: "Day", intervalCount: 1 } },
+        {
+          _type: "Recurring",
+          value: { intervalType: "Day", intervalCount: 1 },
+        },
       ],
     };
 

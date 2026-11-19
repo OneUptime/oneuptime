@@ -34,7 +34,14 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import { PickedStatusPagesReachResult } from "Common/Types/StatusPage/PickedStatusPagesReach";
 import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
 import Timezone from "Common/Types/Timezone";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
@@ -69,8 +76,9 @@ const NO_STATUS_PAGES: PickedStatusPagesReachResult = {
 };
 
 const HIDDEN: string =
-  STATUS_PAGE_VISIBILITY_KIND_COPY[StatusPageVisibilityKind.ScheduledMaintenance]
-    .switchOffDescription;
+  STATUS_PAGE_VISIBILITY_KIND_COPY[
+    StatusPageVisibilityKind.ScheduledMaintenance
+  ].switchOffDescription;
 
 const ALL_MOMENTS: string =
   SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"]!;
@@ -189,12 +197,12 @@ describe("Schedule Maintenance Event's line", () => {
   test("only the moments that tell someone: one published after it starts tells nobody that it started", () => {
     const publishAt: Date = new Date("2026-11-11T01:00:00.000Z");
 
-    expect(
-      line(event({ publishOnStatusPageAt: publishAt }), NOTIFIES),
-    ).toEqual([
-      `Shown on its status pages from ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(publishAt)}.`,
-      SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,ended"],
-    ]);
+    expect(line(event({ publishOnStatusPageAt: publishAt }), NOTIFIES)).toEqual(
+      [
+        `Shown on its status pages from ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(publishAt)}.`,
+        SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,ended"],
+      ],
+    );
   });
 
   test("published later, before it starts: from that time, and every moment", () => {
@@ -305,7 +313,9 @@ describe("a maintenance template's line", () => {
   test("a page that notifies: every moment its switches leave on, and its reminders - none gone by, nothing published later", () => {
     expect(
       getTemplateSubscriberNotificationsSummary(
-        template({ [SUBSCRIBER_REMINDERS_KEY]: [reminder(EventInterval.Day, 30)] }),
+        template({
+          [SUBSCRIBER_REMINDERS_KEY]: [reminder(EventInterval.Day, 30)],
+        }),
         NOTIFIES,
       ),
     ).toEqual([ALL_MOMENTS, SUBSCRIBER_REMINDERS_SUMMARY]);
@@ -372,11 +382,7 @@ describe("the note under the three boxes", () => {
       MaintenanceStatusPagesCopy.notShownWarning,
     );
     expect(
-      reason(
-        { statusPages: [] },
-        null,
-        MaintenanceReachRecord.Template,
-      ),
+      reason({ statusPages: [] }, null, MaintenanceReachRecord.Template),
     ).toBe(MaintenanceStatusPagesCopy.templateNotShownWarning);
     expect(reason(event(), NO_STATUS_PAGES)).toBe(
       MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED,
@@ -446,7 +452,10 @@ describe("the note under the reminders", () => {
     }
 
     expect(
-      reason(event({ ...SOME_NOT_SENT, isVisibleOnStatusPage: false }), NOTIFIES),
+      reason(
+        event({ ...SOME_NOT_SENT, isVisibleOnStatusPage: false }),
+        NOTIFIES,
+      ),
     ).toEqual([]);
     expect(reason(event({ ...SOME_NOT_SENT, statusPages: [] }), null)).toEqual(
       [],
