@@ -64,6 +64,24 @@ interface CapturedTableProps {
 let tableProps: CapturedTableProps | null = null;
 const archiveActionsMock: MockFunction = getJestMockFunction();
 
+/*
+ * The list asks the server which of its records share a name (#9746,
+ * Components/SharedName): none here.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SharedName/SharedNamesApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        read: async (): Promise<{ groups: Array<Array<string>> }> => {
+          return { groups: [] };
+        },
+      },
+    };
+  },
+);
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
@@ -347,6 +365,11 @@ interface ArchivableList {
    * where nothing reads that for it.
    */
   usedByRecordKind: UsedByRecordKind | null;
+  /*
+   * The Rename it gives a row that shares its name with another record
+   * (#9746, Components/SharedName), or null where the list marks none.
+   */
+  sharedNameRename: string | null;
 }
 
 const LISTS: Array<ArchivableList> = [
@@ -365,6 +388,7 @@ const LISTS: Array<ArchivableList> = [
     viewPath: `/dashboard/${PROJECT_ID}/workflows/${RESOURCE_ID}`,
     isSwitched: true,
     usedByRecordKind: null,
+    sharedNameRename: null,
   },
   {
     name: "Status Pages",
@@ -381,6 +405,7 @@ const LISTS: Array<ArchivableList> = [
     viewPath: `/dashboard/${PROJECT_ID}/status-pages/${RESOURCE_ID}`,
     isSwitched: false,
     usedByRecordKind: UsedByRecordKind.StatusPage,
+    sharedNameRename: null,
   },
   {
     name: "Dashboards",
@@ -397,6 +422,7 @@ const LISTS: Array<ArchivableList> = [
     viewPath: `/dashboard/${PROJECT_ID}/dashboards/${RESOURCE_ID}`,
     isSwitched: false,
     usedByRecordKind: null,
+    sharedNameRename: null,
   },
   {
     name: "On-Call Policies",
@@ -413,6 +439,7 @@ const LISTS: Array<ArchivableList> = [
     viewPath: `/dashboard/${PROJECT_ID}/on-call-duty/policies/${RESOURCE_ID}`,
     isSwitched: false,
     usedByRecordKind: UsedByRecordKind.OnCallPolicy,
+    sharedNameRename: "Rename On-Call Policy",
   },
 ];
 
@@ -566,6 +593,13 @@ describe.each(LISTS)("$name list", (list: ArchivableList) => {
     const props: CapturedTableProps = await renderPage(list.renderLive());
 
     expect(props.actionButtons).toEqual([
+      /*
+       * First, Rename: the button of a row that shares its name with
+       * another record, and of no other row (#9746).
+       */
+      ...(list.sharedNameRename
+        ? [expect.objectContaining({ title: list.sharedNameRename })]
+        : []),
       ...(list.isSwitched ? ["switch-row-action"] : []),
       "archive-row-action",
     ]);

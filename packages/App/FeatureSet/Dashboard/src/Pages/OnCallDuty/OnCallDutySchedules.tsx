@@ -147,6 +147,11 @@ const OnCallDutyPage: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Above the list while records share a name (#9746): how many, and
+       * how to tell them apart. Nothing otherwise.
+       */}
+      {sharedNames.note}
       <ModelTable<OnCallDutySchedule>
         modelType={OnCallDutySchedule}
         /*
@@ -169,12 +174,7 @@ const OnCallDutyPage: FunctionComponent<
         opensCreateFormFromAddress={true}
         refreshToggle={sharedNames.refreshToken}
         actionButtons={[sharedNames.renameAction]}
-        topContent={
-          <Fragment>
-            {sharedNames.note}
-            {filterBar}
-          </Fragment>
-        }
+        topContent={filterBar}
         /*
          * Beside the empty list's Create, a link to bring the schedules over
          * from PagerDuty, Opsgenie and the rest (ToolImportOffer).

@@ -364,6 +364,11 @@ const Teams: FunctionComponent<PageComponentProps> = (
           }}
         />
       )}
+      {/*
+       * Above the list while records share a name (#9746): how many, and
+       * how to tell them apart. Nothing otherwise.
+       */}
+      {sharedNames.note}
       <ModelTable<Team>
         modelType={Team}
         id="teams-table"
@@ -389,12 +394,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isViewable={true}
         userPreferencesKey="teams-table"
         customFieldsModelType={TeamCustomField}
-        topContent={
-          <Fragment>
-            {sharedNames.note}
-            {filterBar}
-          </Fragment>
-        }
+        topContent={filterBar}
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}

@@ -195,6 +195,11 @@ const OnCallDutyPage: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Above the list while records share a name (#9746): how many, and
+       * how to tell them apart. Nothing otherwise.
+       */}
+      {sharedNames.note}
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
         refreshToggle={`${firstRun.refreshToken}-${sharedNames.refreshToken}`}
@@ -210,12 +215,7 @@ const OnCallDutyPage: FunctionComponent<
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
         customFieldsModelType={OnCallDutyPolicyCustomField}
-        topContent={firstRun.getTopContent(
-          <Fragment>
-            {sharedNames.note}
-            {filterBar}
-          </Fragment>,
-        )}
+        topContent={firstRun.getTopContent(filterBar)}
         /*
          * Beside the empty list's Create, a link to bring the policies over
          * from PagerDuty, Opsgenie and the rest (ToolImportOffer).
