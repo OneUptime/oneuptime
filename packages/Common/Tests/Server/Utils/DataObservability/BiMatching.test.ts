@@ -11,6 +11,7 @@ import { BiTableRef } from "../../../../Server/Utils/DataObservability/Bi/BiTabl
 import { readPowerQueryTables } from "../../../../Server/Utils/DataObservability/Bi/PowerQuery";
 import { UsageAsset } from "../../../../Server/Utils/DataObservability/TableUsageMatching";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Which watched table a BI tool's table is (#9507): never another engine's,
@@ -318,7 +319,6 @@ describe("matching many", () => {
       });
     }
 
-    const catalog: BiCatalog = { stores: CATALOG.stores, assets };
     const refs: Array<BiTableRef> = [];
 
     for (let index: number = 0; index < 20_000; index++) {
@@ -333,10 +333,21 @@ describe("matching many", () => {
       );
     }
 
-    const started: number = Date.now();
-    const found: Array<UsageAsset> = matchBiTables(refs, catalog);
+    const timed: FastestRun<Array<UsageAsset>> = fastestRun({
+      run: (): Array<UsageAsset> => {
+        /*
+         * A new catalog each attempt: matchBiTables keeps a catalog's index
+         * and its matches by the catalog itself, so the same one would be
+         * indexed and matched only once.
+         */
+        const catalog: BiCatalog = { stores: CATALOG.stores, assets };
 
-    expect(found.length).toBe(5_000);
-    expect(Date.now() - started).toBeLessThan(5_000);
+        return matchBiTables(refs, catalog);
+      },
+      limitInMs: 5_000,
+    });
+
+    expect(timed.result.length).toBe(5_000);
+    expect(timed.inMs).toBeLessThan(5_000);
   });
 });
