@@ -8,7 +8,9 @@ import EmailVerificationTokenService from "../../../Server/Services/EmailVerific
 import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamMemberService, {
+  TeamMemberService as TeamMemberServiceClass,
+} from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -370,4 +372,123 @@ describe("the invitation goes on alike, whoever the address belongs to", () => {
       ).toBe(INVITEE_EMAIL.toString());
     },
   );
+});
+
+describe("the name typed is kept on the membership, whoever the address belongs to (#9823)", () => {
+  /*
+   * Until the person accepts, the project sees only what it invited: the
+   * address, and this name (PendingInviteeProfiles reads it in place of
+   * the account's own). So it is the same on the membership whether the
+   * address had an account, an unclaimed one, or none.
+   */
+  test.each([
+    ["nobody", null],
+    [
+      "an unclaimed invitation",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: false });
+      },
+    ],
+    [
+      "someone signed up",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: true });
+      },
+    ],
+  ])(
+    "an address that belongs to %s: the membership keeps the name typed, trimmed",
+    async (_case: string, account: (() => User) | null) => {
+      findUserSpy.mockResolvedValue(account ? account() : null);
+      findUserByIdSpy.mockResolvedValue(withName("Their Own Name"));
+
+      const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy("  Grace Hopper  "),
+      )) as { createBy: CreateBy<TeamMember> };
+
+      expect(result.createBy.data.inviteeName).toBe("Grace Hopper");
+    },
+  );
+
+  test.each([
+    ["no name", undefined],
+    ["an empty name", ""],
+    ["a name of spaces", "   "],
+  ])(
+    "the membership keeps no name when the form sent %s",
+    async (_case: string, name: string | undefined) => {
+      findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
+
+      const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy(name),
+      )) as { createBy: CreateBy<TeamMember> };
+
+      expect(result.createBy.data.inviteeName).toBeUndefined();
+    },
+  );
+
+  test("a name longer than the column is cut to fit", async () => {
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      inviteBy("G".repeat(250)),
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeName).toBe("G".repeat(100));
+  });
+
+  test("an API client's own inviteeName is kept as the form's is, and the form's Name wins", async () => {
+    const fromApi: CreateBy<TeamMember> = inviteBy();
+    fromApi.data.inviteeName = "  Ada Lovelace ";
+
+    const kept: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      fromApi,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(kept.createBy.data.inviteeName).toBe("Ada Lovelace");
+
+    const both: CreateBy<TeamMember> = inviteBy("Grace Hopper");
+    both.data.inviteeName = "Ada Lovelace";
+
+    const won: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      both,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(won.createBy.data.inviteeName).toBe("Grace Hopper");
+  });
+
+  test("an API client's blank inviteeName is no name at all", async () => {
+    const blank: CreateBy<TeamMember> = inviteBy();
+    blank.data.inviteeName = "   ";
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      blank,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeName).toBeUndefined();
+    expect("inviteeName" in result.createBy.data).toBe(false);
+  });
+});
+
+describe("TeamMemberService.toInviteeName", () => {
+  test.each([
+    [undefined, undefined],
+    [null, undefined],
+    [42, undefined],
+    ["", undefined],
+    ["   ", undefined],
+    [" Grace ", "Grace"],
+    ["G".repeat(101), "G".repeat(100)],
+  ])("%p is kept as %p", (value: unknown, expected: string | undefined) => {
+    expect(TeamMemberServiceClass.toInviteeName(value)).toBe(expected);
+  });
 });

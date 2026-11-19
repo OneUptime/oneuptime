@@ -620,9 +620,11 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
          * belongs to - never the profile of an account it already had
          * (PendingInviteeProfiles).
          */
-        if (nameValue) {
-          createBy.data.inviteeName =
-            TeamMemberService.toInviteeName(nameValue);
+        const typedInviteeName: string | undefined =
+          TeamMemberService.toInviteeName(nameValue);
+
+        if (typedInviteeName) {
+          createBy.data.inviteeName = typedInviteeName;
         }
 
         let user: User | null = userWithInvitedEmail;

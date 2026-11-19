@@ -191,6 +191,7 @@ import {
   shouldBypassRecordPrivacy,
 } from "../Utils/PrivacyFilterUtil";
 import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import ArchivedValueCheck, {
   ArchivableValueColumn,
@@ -10958,6 +10959,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * PrivateRecordReadFilter.keepSeenRelatedRecords.
        */
       await PrivateRecordReadFilter.keepSeenRelatedRecords({
+        modelType: this.modelType,
+        rows: decryptedItems,
+        select: onBeforeFind.select,
+        props: narrowed.asker,
+      });
+
+      /*
+       * A person reached through a relation, only as the asker may see
+       * them: someone only invited to the asker's projects shows the name
+       * typed for them, not their own profile, and nobody's account dates
+       * are anyone else's to read (#9823). See PendingInviteeProfiles.
+       */
+      await PendingInviteeProfiles.withholdFromRows({
         modelType: this.modelType,
         rows: decryptedItems,
         select: onBeforeFind.select,
