@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (toont geen incidenten)",
   "{{name}} (already sent this notification in full)": "{{name}} (heeft deze melding al volledig ontvangen)",
   "{{name}} (lists none of these monitors)": "{{name}} (vermeldt geen van deze monitoren)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Er worden geen statuspagina-abonnees geïnformeerd: geen enkele statuspagina die deze monitoren vermeldt, toont dit incident.",
+  "No status page subscribers will be notified.": "Er worden geen statuspagina-abonnees geïnformeerd.",
   "No one will be notified: these status pages have no subscribers yet.": "Niemand wordt geïnformeerd: deze statuspagina's hebben nog geen abonnees.",
   "Nothing will be sent: this incident is hidden from status pages.": "Er wordt niets verzonden: dit incident is verborgen op statuspagina's.",
   "Send the incident-created notification to newly added pages": "De melding dat het incident is aangemaakt naar nieuw toegevoegde pagina's sturen",

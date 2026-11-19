@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (حادثه‌ها را نشان نمی‌دهد)",
   "{{name}} (already sent this notification in full)": "{{name}} (این اعلان را پیش‌تر به‌طور کامل دریافت کرده است)",
   "{{name}} (lists none of these monitors)": "{{name}} (هیچ‌یک از این مانیتورها را فهرست نمی‌کند)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "به هیچ مشترک صفحهٔ وضعیتی اطلاع داده نمی‌شود: هیچ صفحهٔ وضعیتی که این مانیتورها را فهرست می‌کند این حادثه را نمایش نخواهد داد.",
+  "No status page subscribers will be notified.": "به هیچ مشترک صفحهٔ وضعیتی اطلاع داده نمی‌شود.",
   "No one will be notified: these status pages have no subscribers yet.": "به هیچ‌کس اطلاع داده نمی‌شود: این صفحات وضعیت هنوز مشترکی ندارند.",
   "Nothing will be sent: this incident is hidden from status pages.": "چیزی ارسال نمی‌شود: این حادثه در صفحات وضعیت پنهان است.",
   "Send the incident-created notification to newly added pages": "ارسال اعلان ایجاد حادثه به صفحه‌های تازه افزوده‌شده",

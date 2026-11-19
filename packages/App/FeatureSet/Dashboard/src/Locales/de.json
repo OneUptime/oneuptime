@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (zeigt keine Vorfälle an)",
   "{{name}} (already sent this notification in full)": "{{name}} (hat diese Benachrichtigung bereits vollständig erhalten)",
   "{{name}} (lists none of these monitors)": "{{name}} (listet keinen dieser Monitore auf)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Es werden keine Statusseiten-Abonnenten benachrichtigt: Keine Statusseite, die diese Monitore auflistet, wird diesen Vorfall anzeigen.",
+  "No status page subscribers will be notified.": "Es werden keine Statusseiten-Abonnenten benachrichtigt.",
   "No one will be notified: these status pages have no subscribers yet.": "Niemand wird benachrichtigt: Diese Statusseiten haben noch keine Abonnenten.",
   "Nothing will be sent: this incident is hidden from status pages.": "Es wird nichts gesendet: Dieser Vorfall ist auf Statusseiten ausgeblendet.",
   "Send the incident-created notification to newly added pages": "Benachrichtigung über die Erstellung des Vorfalls an neu hinzugefügte Seiten senden",

@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (visar inte incidenter)",
   "{{name}} (already sent this notification in full)": "{{name}} (har redan fått hela detta meddelande)",
   "{{name}} (lists none of these monitors)": "{{name}} (listar ingen av dessa monitorer)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Inga statussideprenumeranter meddelas: ingen statussida som listar dessa monitorer kommer att visa incidenten.",
+  "No status page subscribers will be notified.": "Inga statussideprenumeranter meddelas.",
   "No one will be notified: these status pages have no subscribers yet.": "Ingen meddelas: dessa statussidor har inga prenumeranter än.",
   "Nothing will be sent: this incident is hidden from status pages.": "Inget skickas: incidenten är dold på statussidor.",
   "Send the incident-created notification to newly added pages": "Skicka meddelandet om skapad incident till nyligen tillagda sidor",

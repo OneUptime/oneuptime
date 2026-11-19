@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (does not show incidents)",
   "{{name}} (already sent this notification in full)": "{{name}} (already sent this notification in full)",
   "{{name}} (lists none of these monitors)": "{{name}} (lists none of these monitors)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "No status page subscribers will be notified: no status page that lists these monitors will show this incident.",
+  "No status page subscribers will be notified.": "No status page subscribers will be notified.",
   "No one will be notified: these status pages have no subscribers yet.": "No one will be notified: these status pages have no subscribers yet.",
   "Nothing will be sent: this incident is hidden from status pages.": "Nothing will be sent: this incident is hidden from status pages.",
   "Send the incident-created notification to newly added pages": "Send the incident-created notification to newly added pages",

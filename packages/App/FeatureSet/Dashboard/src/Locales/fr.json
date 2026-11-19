@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (n'affiche pas les incidents)",
   "{{name}} (already sent this notification in full)": "{{name}} (a déjà reçu cette notification en entier)",
   "{{name}} (lists none of these monitors)": "{{name}} (ne répertorie aucun de ces moniteurs)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Aucun abonné de page de statut ne sera notifié : aucune page de statut qui répertorie ces moniteurs n'affichera cet incident.",
+  "No status page subscribers will be notified.": "Aucun abonné de page de statut ne sera notifié.",
   "No one will be notified: these status pages have no subscribers yet.": "Personne ne sera notifié : ces pages de statut n'ont pas encore d'abonnés.",
   "Nothing will be sent: this incident is hidden from status pages.": "Rien ne sera envoyé : cet incident est masqué sur les pages de statut.",
   "Send the incident-created notification to newly added pages": "Envoyer la notification de création de l'incident aux pages nouvellement ajoutées",

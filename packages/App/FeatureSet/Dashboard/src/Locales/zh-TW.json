@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}}（不顯示事件）",
   "{{name}} (already sent this notification in full)": "{{name}}（已完整傳送過此通知）",
   "{{name}} (lists none of these monitors)": "{{name}}（未列出這些監測器中的任何一個）",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "不會通知任何狀態頁面訂閱者：列出這些監測器的狀態頁面都不會顯示此事件。",
+  "No status page subscribers will be notified.": "不會通知任何狀態頁面訂閱者。",
   "No one will be notified: these status pages have no subscribers yet.": "不會通知任何人：這些狀態頁面還沒有訂閱者。",
   "Nothing will be sent: this incident is hidden from status pages.": "不會傳送任何內容：此事件已在狀態頁面上隱藏。",
   "Send the incident-created notification to newly added pages": "向新加入的頁面傳送事件建立通知",

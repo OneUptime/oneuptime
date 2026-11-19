@@ -264,7 +264,11 @@ export const buildSubscriberAudienceView: (
       return null;
     }
 
-    // No page will show it - with no monitor, no page can.
+    /*
+     * No page will be sent it. Nothing is said of which pages show it: the
+     * pages left out say why each one is, and one may show it all the same
+     * (it sends its subscribers nothing, or a Retry sent it in full).
+     */
     if (pageCount === 0) {
       return {
         tone: "warning",

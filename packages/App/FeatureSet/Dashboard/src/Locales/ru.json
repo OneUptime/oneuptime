@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (не показывает инциденты)",
   "{{name}} (already sent this notification in full)": "{{name}} (уже получила это уведомление полностью)",
   "{{name}} (lists none of these monitors)": "{{name}} (не указан ни один из этих мониторов)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Подписчики страниц статуса не получат уведомлений: ни одна страница статуса, где указаны эти мониторы, не покажет этот инцидент.",
+  "No status page subscribers will be notified.": "Подписчики страниц статуса не получат уведомлений.",
   "No one will be notified: these status pages have no subscribers yet.": "Никто не получит уведомление: у этих страниц статуса пока нет подписчиков.",
   "Nothing will be sent: this incident is hidden from status pages.": "Ничего не будет отправлено: этот инцидент скрыт на страницах статуса.",
   "Send the incident-created notification to newly added pages": "Отправить уведомление о создании инцидента на новые добавленные страницы",

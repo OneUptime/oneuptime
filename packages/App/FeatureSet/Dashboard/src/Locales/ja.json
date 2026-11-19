@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (インシデントを表示しない設定)",
   "{{name}} (already sent this notification in full)": "{{name}} (この通知はすでに全員に送信済み)",
   "{{name}} (lists none of these monitors)": "{{name}} (これらのモニターを掲載していません)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "ステータスページの購読者には通知されません。これらのモニターを掲載しているステータスページのうち、このインシデントを表示するページがないためです。",
+  "No status page subscribers will be notified.": "ステータスページの購読者には通知されません。",
   "No one will be notified: these status pages have no subscribers yet.": "誰にも通知されません。これらのステータスページにはまだ購読者がいません。",
   "Nothing will be sent: this incident is hidden from status pages.": "何も送信されません。このインシデントはステータスページで非表示になっています。",
   "Send the incident-created notification to newly added pages": "新しく追加したページにインシデント作成の通知を送信",

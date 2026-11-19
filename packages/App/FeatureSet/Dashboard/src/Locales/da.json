@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (viser ikke hændelser)",
   "{{name}} (already sent this notification in full)": "{{name}} (har allerede fået denne underretning i sin helhed)",
   "{{name}} (lists none of these monitors)": "{{name}} (viser ingen af disse monitorer)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Ingen statussideabonnenter underrettes: ingen statusside, der viser disse monitorer, vil vise denne hændelse.",
+  "No status page subscribers will be notified.": "Ingen statussideabonnenter underrettes.",
   "No one will be notified: these status pages have no subscribers yet.": "Ingen underrettes: disse statussider har endnu ingen abonnenter.",
   "Nothing will be sent: this incident is hidden from status pages.": "Intet sendes: hændelsen er skjult på statussider.",
   "Send the incident-created notification to newly added pages": "Send meddelelsen om oprettet hændelse til nyligt tilføjede sider",

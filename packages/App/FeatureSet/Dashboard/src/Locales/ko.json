@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (인시던트를 표시하지 않음)",
   "{{name}} (already sent this notification in full)": "{{name}} (이 알림을 이미 모두 받음)",
   "{{name}} (lists none of these monitors)": "{{name}} (이 모니터를 하나도 표시하지 않음)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "상태 페이지 구독자에게 알림이 전송되지 않습니다. 이 모니터를 표시하는 상태 페이지 중 이 인시던트를 표시하는 페이지가 없습니다.",
+  "No status page subscribers will be notified.": "상태 페이지 구독자에게 알림이 전송되지 않습니다.",
   "No one will be notified: these status pages have no subscribers yet.": "아무에게도 알림이 전송되지 않습니다. 이 상태 페이지에는 아직 구독자가 없습니다.",
   "Nothing will be sent: this incident is hidden from status pages.": "아무것도 전송되지 않습니다. 이 인시던트는 상태 페이지에서 숨겨져 있습니다.",
   "Send the incident-created notification to newly added pages": "새로 추가한 페이지에 인시던트 생성 알림 보내기",

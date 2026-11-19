@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (لا تعرض الحوادث)",
   "{{name}} (already sent this notification in full)": "{{name}} (أُرسل هذا الإشعار إليها كاملًا بالفعل)",
   "{{name}} (lists none of these monitors)": "{{name}} (لا تدرج أيًا من هذه المراقبات)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "لن يُخطَر أي مشترك في صفحات الحالة: إذ لن تعرض هذه الحادثة أي صفحة حالة تدرج هذه المراقبات.",
+  "No status page subscribers will be notified.": "لن يُخطَر أي مشترك في صفحات الحالة.",
   "No one will be notified: these status pages have no subscribers yet.": "لن يُخطَر أحد: ليس لصفحات الحالة هذه مشتركون بعد.",
   "Nothing will be sent: this incident is hidden from status pages.": "لن يُرسل شيء: هذه الحادثة مخفية من صفحات الحالة.",
   "Send the incident-created notification to newly added pages": "إرسال إشعار إنشاء الحادثة إلى الصفحات المضافة حديثًا",

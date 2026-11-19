@@ -6335,7 +6335,7 @@
   "{{name}} (does not show incidents)": "{{name}} (viser ikke hendelser)",
   "{{name}} (already sent this notification in full)": "{{name}} (har allerede fått hele denne varslingen)",
   "{{name}} (lists none of these monitors)": "{{name}} (viser ingen av disse monitorene)",
-  "No status page subscribers will be notified: no status page that lists these monitors will show this incident.": "Ingen statussideabonnenter varsles: ingen statusside som viser disse monitorene, vil vise denne hendelsen.",
+  "No status page subscribers will be notified.": "Ingen statussideabonnenter varsles.",
   "No one will be notified: these status pages have no subscribers yet.": "Ingen varsles: disse statussidene har ingen abonnenter ennå.",
   "Nothing will be sent: this incident is hidden from status pages.": "Ingenting sendes: hendelsen er skjult på statussider.",
   "Send the incident-created notification to newly added pages": "Send varslingen om opprettet hendelse til nylig lagt til sider",
