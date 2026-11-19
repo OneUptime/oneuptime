@@ -218,6 +218,7 @@ Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** i
 - Elk record wordt gelezen zoals **Uw logboeken** het uit een pijplijn leest, zodat de CloudTrail-, Google Cloud- en Azure-regels van de regelbibliotheek erop matchen.
 - Een gebeurtenis krijgt het tijdstip waarop ze wordt opgeslagen, met de eigen tijd van het record in `oneuptime.cloud.record_time`: een auditlog bereikt OneUptime minuten te laat, en een regel leest gebeurtenissen op hun tijd.
 - De leesbeurt van het account zelf levert niets meer op: data-events, Data Access-logs en de logs van Microsoft Entra ID hebben nog steeds **Uw logboeken** of een [verbinding](/docs/integrations/microsoft-entra-id) nodig.
+- Elke gebeurtenis noemt de cloud-resources waar de record over gaat bij hun eigen ID's - een ARN, een Azure-resource-ID, een resourcenaam van Google Cloud - en staat dus op de pagina **Beveiligingsgebeurtenissen** van elk ervan, en op die van een serverless functie zodra de telemetrie ervan `cloud.account.id` en `cloud.region` instelt.
 
 ### Een beveiligingsproduct koppelen
 
