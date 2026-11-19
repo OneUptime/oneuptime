@@ -13,13 +13,29 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   DEVICE_MONITOR_CHECK_QUERY_PARAM,
   DeviceMonitorCheck,
 } from "Common/Utils/NetworkDevice/DeviceWebUiUtil";
+import { DEVICE_TARGET_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
+import Toast from "Common/UI/Utils/Toast";
+import { translationKey } from "Common/Types/Translator";
 
 export interface ComponentProps {
   monitors: Array<Monitor>;
@@ -43,6 +59,33 @@ export interface ComponentProps {
    * saves for someone who may create monitors.
    */
   canCreateMonitor: boolean;
+  /*
+   * Read the device's monitors again: a monitor someone made by hand was
+   * just added to the device ("Add Existing Monitor", issue #9545). Left
+   * out, the card offers no way to add one.
+   */
+  onMonitorAdded?: (() => void) | undefined;
+}
+
+/*
+ * The monitors "Add Existing Monitor" offers (issue #9545): the ones a
+ * person made, of a kind that checks a host, tied to no device yet. A
+ * monitor an import made for a device is that device's already.
+ */
+export const ADDABLE_MONITOR_QUERY: Record<string, unknown> = {
+  monitorType: new Includes([...DEVICE_TARGET_MONITOR_TYPES]),
+  networkDeviceId: new IsNull(),
+  autoProvisionedNetworkDeviceId: new IsNull(),
+};
+
+interface AddExistingMonitorFormData {
+  monitorId?: string | undefined;
+}
+
+// Whether the reader may tie a monitor to a device: write its column.
+export function canAddExistingMonitor(): boolean {
+  return PermissionGate.checkColumnUpdate(new Monitor(), "networkDeviceId")
+    .isAllowed;
 }
 
 /*
@@ -88,6 +131,7 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const [isAddingMonitor, setIsAddingMonitor] = useState<boolean>(false);
 
   type GetCardContentFunction = () => ReactElement;
 
@@ -223,28 +267,122 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
       />
     ) : null;
 
+  /*
+   * "Add Existing Monitor" (issue #9545): a Ping, Port or Website monitor
+   * someone made by hand from Monitors > Create, before the device was
+   * added or on another of its names, tied to this device - listed here
+   * from then on, and counted by the duplicate check imports run. For a
+   * reader who may tie monitors to devices; hidden otherwise, as Monitor
+   * web UI is.
+   */
+  const addExistingButton: ReactElement | null =
+    props.networkDeviceId && props.onMonitorAdded && canAddExistingMonitor() ? (
+      <Button
+        key="add-existing-monitor"
+        title="Add Existing Monitor"
+        icon={IconProp.Link}
+        buttonStyle={ButtonStyleType.NORMAL}
+        dataTestId="device-monitors-add-existing"
+        onClick={() => {
+          setIsAddingMonitor(true);
+        }}
+      />
+    ) : null;
+
+  const buttons: Array<ReactElement> = [webUiButton, addExistingButton].filter(
+    (button: ReactElement | null): button is ReactElement => {
+      return Boolean(button);
+    },
+  );
+
+  /*
+   * The monitor to add, from the ones a person made that check a host and
+   * are no device's yet. The server checks the reader may read the device
+   * and refuses a monitor an import made for another one.
+   */
+  const addExistingModal: ReactElement | null =
+    isAddingMonitor && props.networkDeviceId ? (
+      <BasicFormModal<AddExistingMonitorFormData>
+        title="Add Existing Monitor"
+        description="A monitor someone made that checks this device. It is listed here, and an import never gives the device a second one like it."
+        submitButtonText="Add Monitor"
+        onClose={() => {
+          setIsAddingMonitor(false);
+        }}
+        onSubmit={async (formData: AddExistingMonitorFormData) => {
+          const monitorId: string = String(formData.monitorId || "").trim();
+
+          if (!monitorId) {
+            setIsAddingMonitor(false);
+            return;
+          }
+
+          await ModelAPI.updateById<Monitor>({
+            modelType: Monitor,
+            id: new ObjectID(monitorId),
+            data: {
+              networkDeviceId: new ObjectID(props.networkDeviceId as string),
+            },
+          });
+
+          setIsAddingMonitor(false);
+          Toast.success(
+            translator.translateText("Monitor added to this device.") ||
+              "Monitor added to this device.",
+          );
+          props.onMonitorAdded?.();
+        }}
+        formProps={{
+          fields: [
+            {
+              field: {
+                monitorId: true,
+              },
+              title: "Monitor",
+              description:
+                "Ping, IP, Port, NTP, Website, API and SSL Certificate monitors tied to no device are listed.",
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownModal: {
+                type: Monitor,
+                labelField: "name",
+                valueField: "_id",
+                sort: { name: SortOrder.Ascending },
+                query: ADDABLE_MONITOR_QUERY,
+                emptyListText: translationKey("No monitors to add yet."),
+              },
+              required: true,
+              placeholder: "Select a monitor",
+            },
+          ],
+        }}
+      />
+    ) : null;
+
   return (
-    <Card
-      title={
-        props.isMonitorBacked
-          ? "Monitors reporting on this device"
-          : "Monitors alerting on this device"
-      }
-      buttons={webUiButton ? [webUiButton] : undefined}
-      /*
-       * Every kind of monitor the card lists: Network Device monitors that
-       * read the device's polls and traps, and - since a discovery import
-       * can give each device one from a template (OneUptime issue #5145) -
-       * Ping, IP, Port and NTP monitors that check its address.
-       */
-      description={
-        props.isMonitorBacked
-          ? "The monitor bound to this device decides its status; any other monitors here check it too."
-          : "Monitors that check this device and open incidents or alerts."
-      }
-    >
-      {getCardContent()}
-    </Card>
+    <Fragment>
+      <Card
+        title={
+          props.isMonitorBacked
+            ? "Monitors reporting on this device"
+            : "Monitors alerting on this device"
+        }
+        buttons={buttons.length > 0 ? buttons : undefined}
+        /*
+         * Every kind of monitor the card lists: Network Device monitors that
+         * read the device's polls and traps, and - since a discovery import
+         * can give each device one from a template (OneUptime issue #5145) -
+         * Ping, IP, Port and NTP monitors that check its address.
+         */
+        description={
+          props.isMonitorBacked
+            ? "The monitor bound to this device decides its status; any other monitors here check it too."
+            : "Monitors that check this device and open incidents or alerts."
+        }
+      >
+        {getCardContent()}
+      </Card>
+      {addExistingModal}
+    </Fragment>
   );
 };
 

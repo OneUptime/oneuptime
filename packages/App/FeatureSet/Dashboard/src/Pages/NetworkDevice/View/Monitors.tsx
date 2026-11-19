@@ -34,6 +34,8 @@ const NetworkDeviceMonitors: FunctionComponent<
   const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // Bumped when a monitor is added to the device, to read its monitors again.
+  const [readCount, setReadCount] = useState<number>(0);
 
   /*
    * "Monitor web UI" is for a reader who may create monitors - hidden, not
@@ -62,7 +64,7 @@ const NetworkDeviceMonitors: FunctionComponent<
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     });
-  }, []);
+  }, [readCount]);
 
   return (
     <Fragment>
@@ -73,6 +75,11 @@ const NetworkDeviceMonitors: FunctionComponent<
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
         canCreateMonitor={canCreateMonitor}
+        onMonitorAdded={() => {
+          setReadCount((count: number): number => {
+            return count + 1;
+          });
+        }}
       />
     </Fragment>
   );
