@@ -1,3 +1,11 @@
+import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardChartComponent";
+import {
+  DashboardTemplateType,
+  getTemplateConfig,
+} from "../../../Types/Dashboard/DashboardTemplates";
+import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MetricQueryOverlay, {
@@ -390,6 +398,77 @@ describe("readUnit: how an overlaid query's values read on the chart's axis", ()
       expect({ a, self: read(a, a).fit }).toEqual({
         a,
         self: OverlayUnitFit.Same,
+      });
+    }
+  });
+});
+
+/*
+ * A dashboard created from a template before the switch existed draws as it
+ * did: no template's Chart widget overlays a query, so each draws a chart
+ * per query and per formula.
+ */
+describe("the dashboard templates draw a chart per query, as before", () => {
+  interface TemplateChart {
+    template: string;
+    chart: DashboardChartComponent;
+  }
+
+  const templateCharts: Array<TemplateChart> = Object.values(
+    DashboardTemplateType,
+  ).flatMap((template: DashboardTemplateType): Array<TemplateChart> => {
+    const config: DashboardViewConfig | null = getTemplateConfig(template);
+
+    return (config?.components || [])
+      .filter((component: DashboardBaseComponent): boolean => {
+        return component.componentType === DashboardComponentType.Chart;
+      })
+      .map((component: DashboardBaseComponent): TemplateChart => {
+        return {
+          template: template,
+          chart: component as unknown as DashboardChartComponent,
+        };
+      });
+  });
+
+  test("the templates have Chart widgets to hold to it", () => {
+    expect(templateCharts.length).toBeGreaterThan(10);
+  });
+
+  test("no template's chart overlays a query", () => {
+    const overlaid: Array<string> = templateCharts
+      .filter((entry: TemplateChart): boolean => {
+        return JSON.stringify(entry.chart.arguments).includes(
+          "overlayWithPreviousQuery",
+        );
+      })
+      .map((entry: TemplateChart): string => {
+        return `${entry.template}: ${entry.chart.arguments.chartTitle || "Chart"}`;
+      });
+
+    expect(overlaid).toEqual([]);
+  });
+
+  test("each template chart draws a chart per query and per formula", () => {
+    for (const entry of templateCharts) {
+      const queries: Array<MetricQueryConfigData> = [
+        ...(entry.chart.arguments.metricQueryConfig
+          ? [entry.chart.arguments.metricQueryConfig]
+          : []),
+        ...(entry.chart.arguments.metricQueryConfigs || []),
+      ];
+      const formulas: number = (
+        entry.chart.arguments.metricFormulaConfigs || []
+      ).length;
+
+      expect({
+        template: entry.template,
+        chart: entry.chart.arguments.chartTitle,
+        charts: MetricQueryOverlay.getChartCount(queries, formulas),
+      }).toEqual({
+        template: entry.template,
+        chart: entry.chart.arguments.chartTitle,
+        charts: queries.length + formulas,
       });
     }
   });
