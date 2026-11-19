@@ -57538,5 +57538,9 @@
   "Only the latest {{count}} steps of this run are shown._one": "僅顯示此執行最近的 {{count}} 個步驟。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請讓管理員檢查它的 API 金鑰與模型，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請幾分鐘後再試一次。如果仍然逾時，請讓管理員調高它的回應逾時，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請幾分鐘後再試一次。如果仍然無法連線，請讓管理員檢查它，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。"
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請幾分鐘後再試一次。如果仍然無法連線，請讓管理員檢查它，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。",
+  "Google Cloud reads a VM's memory and disk use only from the Ops Agent on it. Once the agent runs, they show here within an hour.": "Google Cloud 只能透過 VM 上的 Ops Agent 讀取該 VM 的記憶體和磁碟使用率。代理程式執行後，一小時內會顯示在這裡。",
+  "Install the Ops Agent": "安裝 Ops Agent",
+  "Needs the Ops Agent": "需要 Ops Agent",
+  "every 5 minutes": "每 5 分鐘"
 }
