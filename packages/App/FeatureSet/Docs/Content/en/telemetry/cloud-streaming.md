@@ -154,7 +154,7 @@ Give each Firehose stream an HTTP endpoint destination with these values, and th
 | Content encoding | `GZIP` |
 | Buffer | 1 MiB or 60 seconds |
 | Retry duration | 3600 seconds, with an S3 bucket for what could not be delivered |
-| Common attributes | On the metrics Firehose stream, `oneuptime-stream-template` set to `3` and `oneuptime-stream-metrics` set to `key`, or `all` for a stream of every metric. Only when the metric stream's filters are the template's: copy them from **Download the template** |
+| Common attributes | On the metrics Firehose stream, `oneuptime-stream-template` set to `3` and `oneuptime-stream-metrics` set to `key`, or `all` for a stream of every metric. Only when the metric stream's filters are the template's, which **Download the template** has to copy |
 
 On a self-hosted OneUptime, replace `https://oneuptime.com` with your OneUptime's HTTPS address. The metrics endpoint also takes a metric stream in the JSON format. Without the common attributes, OneUptime takes a metric stream set up this way to carry only the key metrics streams began with, and reads the others from CloudWatch. With them, it leaves to the stream every key metric the template carries, as it does for a stack the command made.
 

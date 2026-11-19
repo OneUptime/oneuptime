@@ -86,7 +86,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 `apigateway:GET` 只允許用於 API 本身的定義，從不用於它們的金鑰，而且只有管理帳戶的角色可以列出組織的帳戶。AWS Health 只回應使用 Business、Enterprise On-Ramp 或 Enterprise 支援方案的帳戶：沒有這類方案時，OneUptime 會在一天後再次詢問。
 
-OneUptime 會列出每個區域中的 EC2 執行個體和磁碟區、VPC、子網路和安全群組、NAT 閘道、Auto Scaling 群組、負載平衡器（Application、Network、Gateway 和 Classic）、EKS 叢集、ECS 叢集和服務、Lambda 函式、RDS 資料庫、ElastiCache、SQS 佇列、SNS 主題、DynamoDB 資料表、Kinesis 資料串流、Step Functions 狀態機、API Gateway API、EFS 檔案系統、OpenSearch 網域、App Runner 服務和 Elastic Beanstalk 環境，並附上它們的標籤；CloudFront 分佈只在 us-east-1 中列出一次。它還會記錄它們之間的連接：每個資源所在的子網路和 VPC 以及保護它的安全群組、每個負載平衡器把流量送往何處，以及每個 EKS 叢集的網路和節點執行個體。在 OneUptime 列出某種類型之前建立的角色仍會被讀取，只是不含該類型，也不會顯示警告：再次執行命令即可同時列出該類型，例如子網路、安全群組和 EKS 叢集。
+OneUptime 會列出每個區域中的 EC2 執行個體和磁碟區、VPC、子網路和安全群組、NAT 閘道、Auto Scaling 群組、負載平衡器（Application、Network、Gateway 和 Classic）、EKS 叢集、ECS 叢集和服務、Lambda 函式、RDS 資料庫、ElastiCache、SQS 佇列、SNS 主題、DynamoDB 資料表、Kinesis 資料串流、Step Functions 狀態機、API Gateway API、EFS 檔案系統、OpenSearch 網域、App Runner 服務、Elastic Beanstalk 環境、WAF Web ACL、Network Firewall 防火牆、Cognito 使用者集區、AppSync GraphQL API 和 SageMaker 端點，並附上它們的標籤；CloudFront 分佈及其 Web ACL 只在 us-east-1 中列出一次，Global Accelerator 加速器只在 us-west-2 中列出一次。它還會記錄它們之間的連接：每個資源所在的子網路和 VPC 以及保護它的安全群組、每個負載平衡器把流量送往何處，以及每個 EKS 叢集的網路和節點執行個體。在 OneUptime 列出某種類型之前建立的角色仍會被讀取，只是不含該類型，也不會顯示警告：再次執行命令即可同時列出該類型，例如子網路、安全群組和 EKS 叢集，或之後新增的 Web ACL、防火牆、加速器、使用者集區、GraphQL API 和端點，它們隨後會在回報指標之前就被列出。
 
 > [!NOTE]
 > 在自行託管的 OneUptime 上，**IAM 角色** 方式需要 OneUptime 自己的 AWS 身分：將 `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` 和 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` 設定為一個可以呼叫 `sts:AssumeRole` 的 IAM 使用者的金鑰。未設定時，表單會提供 **存取金鑰**。
