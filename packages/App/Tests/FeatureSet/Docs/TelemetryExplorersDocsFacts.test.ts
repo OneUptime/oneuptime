@@ -12,6 +12,11 @@ import {
 } from "./TelemetryExplorersDocsPages";
 import { readPage } from "./DocsContentSupport";
 import {
+  LOGS_EXPLORER_LOG_PARAM,
+  LOGS_EXPLORER_LOG_TIME_PARAM,
+} from "Common/Utils/Telemetry/CrossSignalScope";
+import { VIEW_LOG_LINE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventRequestCopy";
+import {
   MenuSection,
   PACKAGES_DIR,
   developerSection,
@@ -864,6 +869,21 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
         ...firstColumn(section(page, "## What happens to logs as they arrive")),
       ].sort(),
     ).toEqual([...settingsPages].sort());
+  });
+
+  /*
+   * One log line opened by its id (#9620): the address names it (`log`,
+   * `logTime`), the Dashboard's explorer reads it, the Common viewer draws
+   * it above the list, and a security event's View log line links to it.
+   */
+  it("opens one log line from a link, above the list, as the address names it", () => {
+    expect(page).toContain(
+      `A link to one log line, such as a security event's **${VIEW_LOG_LINE}**, opens that line above the list, read with your own permissions.`,
+    );
+    expect(LOGS_EXPLORER_LOG_PARAM).toBe("log");
+    expect(LOGS_EXPLORER_LOG_TIME_PARAM).toBe("logTime");
+    expect(dashboardViewer).toContain("useOpenedLogLine(");
+    expect(commonViewer).toContain("<OpenedLogLine");
   });
 
   it("opens on the past hour, newest first, 100 logs per page", () => {

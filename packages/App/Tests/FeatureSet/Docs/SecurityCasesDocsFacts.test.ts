@@ -89,11 +89,14 @@ import {
   EVENT_LINK_EXCEPTION,
   EVENT_LINK_LOGS,
   EVENT_LINK_TRACE,
+  KEEP_ON_CASE,
   LOOK_NEXT_HEADING,
   OTHER_DETECTIONS_HEADING,
   WHAT_MATCHED_HEADING,
   WHY_OPENED_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseMatchesCopy";
+import { RESPONSE_STEPS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsCopy";
+import { SECURITY_DETECTION_MATCHED_EVENTS_MAX } from "Common/Types/SecurityCase/SecurityDetectionMatchedEvents";
 import {
   ACTION_ADD_EXCEPTION,
   ACTION_ASSIGN_TO_ME,
@@ -692,6 +695,37 @@ describe("Security Cases and Playbooks docs", () => {
         said: true,
       });
     }
+  });
+
+  /*
+   * What a detection keeps when it fires (#9619), the log line an event
+   * came from (#9620), and keeping an event on the case from the card
+   * (#9622): said as the card and the server do them.
+   */
+  it("says a detection keeps the events it matched, up to the number it keeps, and how to keep one on the case", () => {
+    const work: string = flat(section(page, "Work a case"));
+
+    expect(work).toContain(
+      `A detection keeps up to ${SECURITY_DETECTION_MATCHED_EVENTS_MAX} of the events it matched when it fires, and lists those, even once they are past their retention`,
+    );
+    expect(work).toContain(
+      "the log line it came from opens in the Logs explorer at that line",
+    );
+    expect(work).toContain(
+      `**${KEEP_ON_CASE}**, on its row or in its panel, keeps the event on the case's **${SECURITY_CASE_EVIDENCE_COPY.title}**, naming the detection that matched it`,
+    );
+    // The Evidence page names the way in too.
+    expect(work).toContain(
+      `or with **${KEEP_ON_CASE}** on an event a detection matched`,
+    );
+  });
+
+  it("says a rule's own response steps lead the plan, and the library's rules come with theirs", () => {
+    const work: string = flat(section(page, "Work a case"));
+
+    expect(work).toContain(
+      `The steps a detection rule carries of its own, written under **${RESPONSE_STEPS_TITLE}** on its form, come first in the part of the plan they go under, and the rule library's rules come with steps of their own.`,
+    );
   });
 
   it("says what the Overview's Response Plan does, its sections in their order and its buttons by their words", () => {
