@@ -194,9 +194,6 @@ describe("a person who switched a data owner event off", () => {
         } as SMSMessage,
         callRequestMessage: { data: [] } as unknown as CallRequestMessage,
         pushNotificationMessage: {} as PushNotificationMessage,
-        whatsAppMessage: {
-          body: "You have been added as an owner of the table orders.",
-        },
       });
 
       // Read through the person's own setting for this very event.

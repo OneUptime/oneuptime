@@ -44,7 +44,8 @@ import path from "path";
  *   - a row is told once, through the person's own setting for the event,
  *     seeded first, and the next run tells nobody again;
  *   - what each channel says: the email's own template and literal subject,
- *     the text, the call, the push, and WhatsApp's plain body;
+ *     the text, the call and the push - and no WhatsApp message, which
+ *     only an approved template could carry;
  *   - a record that is gone tells nobody;
  *   - while its product is switched off on the server the job reads and
  *     sends nothing, and the rows wait - a data store's job asks by its own
@@ -502,8 +503,11 @@ describe.each(CASES)("the new owner of $title", (jobCase: JobCase) => {
         tag: jobCase.pushTag,
       }),
     );
-    // No WhatsApp template is approved for these events: the text's body.
-    expect(sent.whatsAppMessage).toEqual({ body: sent.smsMessage.message });
+    /*
+     * No WhatsApp template is approved for these events, and WhatsApp sends
+     * only approved ones: none is handed over, so the channel is skipped.
+     */
+    expect(sent.whatsAppMessage).toBeUndefined();
   });
 
   test("tells nobody of a record that is gone, and takes its rows", async () => {

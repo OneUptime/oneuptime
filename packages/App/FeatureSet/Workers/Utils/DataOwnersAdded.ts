@@ -10,7 +10,6 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "Common/Types/SMS/SMS";
-import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 
 /*
@@ -33,8 +32,10 @@ import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
  *     sends nothing to a person with no setting for one, so each person's
  *     setting is seeded (email on) before the send. A person who switched it
  *     off keeps it off.
- *   - No WhatsApp template is approved for these events, so WhatsApp gets
- *     the text message's body, as the SLO owner job sends it.
+ *   - No WhatsApp template is approved for these events, and WhatsApp
+ *     delivers only Meta-approved templates (WhatsAppService refuses a
+ *     message without one), so no WhatsApp message is handed over and
+ *     sendUserNotification skips the channel, as it is written to.
  *
  * The owner rows that were already not notified when the jobs came were
  * marked told by a migration (MarkDataOwnersAddedBeforeNotificationsAsTold),
@@ -94,7 +95,6 @@ export function buildDataOwnerAddedMessages(added: DataOwnerAdded): {
   smsMessage: SMSMessage;
   callRequestMessage: CallRequestMessage;
   pushNotificationMessage: PushNotificationMessage;
-  whatsAppMessage: WhatsAppMessagePayload;
 } {
   const sentence: string = getDataOwnerAddedSentence(added);
 
@@ -125,10 +125,6 @@ export function buildDataOwnerAddedMessages(added: DataOwnerAdded): {
       tag: added.pushTag,
       requireInteraction: false,
     }),
-    // No WhatsApp template is approved for these events: the text's body.
-    whatsAppMessage: {
-      body: sms.message,
-    },
   };
 }
 
