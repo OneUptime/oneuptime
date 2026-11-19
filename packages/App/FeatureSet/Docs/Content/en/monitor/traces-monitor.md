@@ -78,7 +78,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Filter by Attributes** (under **More fields**) | Spans whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
 | **Takes at least (ms)** (under **More fields**) | Spans that took this long or longer, in milliseconds, such as 5000 for a five-second cold start. | Empty: any duration |
 
-All the filters you set must match for a span to be counted.
+All the filters you set must match for a span to be counted. The spans behind an alert or an incident the monitor opens are listed with the same filters, **Takes at least (ms)** included as a **Duration** filter, so they are the spans it counted.
 
 ### Span Status Codes
 

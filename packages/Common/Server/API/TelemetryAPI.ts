@@ -1493,6 +1493,15 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
       typeof body["exactDurationNano"] === "number"
         ? (body["exactDurationNano"] as number)
         : undefined,
+    // Inclusive: `duration:>=N`, and a Traces monitor's Takes at least (ms).
+    atLeastDurationNano:
+      typeof body["atLeastDurationNano"] === "number"
+        ? (body["atLeastDurationNano"] as number)
+        : undefined,
+    atMostDurationNano:
+      typeof body["atMostDurationNano"] === "number"
+        ? (body["atMostDurationNano"] as number)
+        : undefined,
     rootOnly:
       body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
     // The explorer's default list: where work enters a service.

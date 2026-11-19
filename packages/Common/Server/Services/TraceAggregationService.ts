@@ -125,6 +125,15 @@ export interface TraceFilters {
   minDurationNano?: number | undefined;
   maxDurationNano?: number | undefined;
   exactDurationNano?: number | undefined;
+  /*
+   * Inclusive bounds (`>=` / `<=`): `duration:>=N` and `duration:<=N`, and
+   * a Traces monitor's "Takes at least (ms)", which counts the spans of
+   * exactly that duration too (MonitorStepTraceMonitorUtil.toQuery writes
+   * GreaterThanOrEqual). Strict bounds above could not carry it: a span
+   * of exactly 5 s is a slow cold start to the monitor.
+   */
+  atLeastDurationNano?: number | undefined;
+  atMostDurationNano?: number | undefined;
   rootOnly?: boolean | undefined;
   /*
    * Only the spans where work enters a service (isEntrySpan: a root span, or
@@ -1596,6 +1605,30 @@ export class TraceAggregationService {
         SQL` AND durationUnixNano = ${{
           type: TableColumnType.LongNumber,
           value: request.exactDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.atLeastDurationNano !== undefined &&
+      !isNaN(request.atLeastDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano >= ${{
+          type: TableColumnType.LongNumber,
+          value: request.atLeastDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.atMostDurationNano !== undefined &&
+      !isNaN(request.atMostDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano <= ${{
+          type: TableColumnType.LongNumber,
+          value: request.atMostDurationNano,
         }}`,
       );
     }
