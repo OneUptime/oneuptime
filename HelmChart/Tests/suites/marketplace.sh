@@ -34,7 +34,9 @@
 # Kubernetes version it names; no hook, no lookup, no CRD, no Release object
 # but .Name and .Namespace; every image from the add-on's registry and named
 # in its version; a Deployment or DaemonSet to follow; the ingestion key only
-# ever read from the buyer's Secret; the configuration's examples rendering.
+# ever read from the buyer's Secret; the configuration's examples rendering;
+# nodes/proxy granted by default on the EKS versions whose nodes may run a
+# kubelet older than 1.33, and dropped by the add-on's kubeletstats.nodesProxy.
 #
 # Everything here is `helm template` and Python: no cluster, no images.
 
@@ -513,6 +515,71 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace aws-eks-addon --version "
     FARGATE="$(cat "${WORK_DIR}/aws-eks-addon-fargate.yaml")"
     assert_absent "aws-eks-addon: on Fargate, no DaemonSet" "$FARGATE" "kind: DaemonSet"
     assert_present "aws-eks-addon: on Fargate, the log tailer reads pod logs" "$FARGATE" "image: \"${ADDON_REGISTRY}/kubernetes-log-tailer:${VERSION}\""
+
+    # nodes/proxy (#9928). A kubelet older than Kubernetes 1.33 lists its node's pods only for it,
+    # and a kubelet may be three minor versions behind EKS's, so auto grants it on 1.34 and 1.35
+    # and not from 1.36. A buyer whose nodes all run 1.33 or later drops it with the add-on's own
+    # value (kubeletstats.nodesProxy), and CIS 5.1.10 then passes; the pod list is read with
+    # nodes/pods, which the role always grants.
+    agent_role_grants() {
+        # agent_role_grants <rendered.yaml> <resource> -> yes or no, of the agent's own ClusterRole
+        python3 - "$1" "$2" <<'PY'
+import sys
+
+rendered, resource = sys.argv[1], sys.argv[2]
+roles = [
+    doc
+    for doc in open(rendered, encoding="utf-8").read().split("\n---\n")
+    if "\nkind: ClusterRole\n" in "\n" + doc and "\n  name: kubernetes-agent\n" in doc
+]
+if len(roles) != 1:
+    sys.exit(f"{rendered}: {len(roles)} ClusterRoles named kubernetes-agent")
+print("yes" if f"\n      - {resource}\n" in roles[0] else "no")
+PY
+    }
+
+    while read -r kubernetes; do
+        expected="no"
+        if [ "$(printf '%s\n' "$kubernetes" 1.36 | sort -V | head -n 1)" != "1.36" ]; then
+            expected="yes"
+        fi
+        assert_eq "aws-eks-addon: on EKS ${kubernetes}, nodes/proxy by default: ${expected}" \
+            "$expected" "$(agent_role_grants "${WORK_DIR}/aws-eks-addon-${kubernetes}.yaml" nodes/proxy)"
+        if [ "$expected" = "yes" ]; then
+            assert_present "aws-eks-addon: on EKS ${kubernetes}, the role says it grants nodes/proxy for the kubelet's pod list" \
+                "$(cat "${WORK_DIR}/aws-eks-addon-${kubernetes}.yaml")" 'oneuptime.com/nodes-proxy: "kubelet-pods"'
+        fi
+    done < <(addon_field compatibleKubernetesVersions)
+
+    OLDEST="$(addon_field compatibleKubernetesVersions | head -n 1)"
+    ADDON_NO_NODES_PROXY_VALUES="${WORK_DIR}/aws-eks-addon-no-nodes-proxy.json"
+    printf '%s\n' '{"kubeletstats": {"nodesProxy": false}}' >"$ADDON_NO_NODES_PROXY_VALUES"
+    if [ -n "$(python3 -c 'import json,sys; s=json.load(open(sys.argv[1])); print("" if {"kubeletstats": {"nodesProxy": False}} in s["examples"] else "missing")' "${ADDON_CHART}/aws_mp_configuration_schema.json")" ]; then
+        fail "aws-eks-addon: the configuration's examples drop nodes/proxy"
+    else
+        pass "aws-eks-addon: the configuration's examples drop nodes/proxy"
+    fi
+    render_addon "${WORK_DIR}/aws-eks-addon-no-nodes-proxy.yaml" "$OLDEST" --set clusterName=prod-eks -f "$ADDON_NO_NODES_PROXY_VALUES"
+    NO_NODES_PROXY="$(cat "${WORK_DIR}/aws-eks-addon-no-nodes-proxy.yaml")"
+    assert_eq "aws-eks-addon: {\"kubeletstats\": {\"nodesProxy\": false}} drops nodes/proxy on EKS ${OLDEST}" \
+        "no" "$(agent_role_grants "${WORK_DIR}/aws-eks-addon-no-nodes-proxy.yaml" nodes/proxy)"
+    assert_eq "aws-eks-addon: and still reads each node's pod list with nodes/pods" \
+        "yes" "$(agent_role_grants "${WORK_DIR}/aws-eks-addon-no-nodes-proxy.yaml" nodes/pods)"
+    assert_absent "aws-eks-addon: and the role names no reason for it" "$NO_NODES_PROXY" "oneuptime.com/nodes-proxy"
+    assert_present "aws-eks-addon: and the node collector still runs" "$NO_NODES_PROXY" "kind: DaemonSet"
+
+    # On Fargate no node collector runs: what keeps nodes/proxy there is the cost Prometheus, which
+    # reads cAdvisor through the API server, and cost.enabled false drops it.
+    render_addon "${WORK_DIR}/aws-eks-addon-fargate-no-nodes-proxy.yaml" "$OLDEST" --set clusterName=prod-eks \
+        --set preset=eks-fargate --set cost.enabled=true -f "$ADDON_NO_NODES_PROXY_VALUES"
+    assert_eq "aws-eks-addon: on Fargate, the value leaves the cost Prometheus its nodes/proxy" \
+        "yes" "$(agent_role_grants "${WORK_DIR}/aws-eks-addon-fargate-no-nodes-proxy.yaml" nodes/proxy)"
+    assert_present "aws-eks-addon: and the role says that is what it is for" \
+        "$(cat "${WORK_DIR}/aws-eks-addon-fargate-no-nodes-proxy.yaml")" 'oneuptime.com/nodes-proxy: "cost-prometheus"'
+    render_addon "${WORK_DIR}/aws-eks-addon-fargate-no-cost.yaml" "$OLDEST" --set clusterName=prod-eks \
+        --set preset=eks-fargate
+    assert_eq "aws-eks-addon: on Fargate with cost off, as it is by default there, no nodes/proxy" \
+        "no" "$(agent_role_grants "${WORK_DIR}/aws-eks-addon-fargate-no-cost.yaml" nodes/proxy)"
 
     # A buyer's configuration values, as the schema's examples give them (JSON is YAML).
     python3 -c 'import json,sys; [open(f"{sys.argv[2]}-{i}.json", "w").write(json.dumps(e)) for i, e in enumerate(json.load(open(sys.argv[1]))["examples"])]' \

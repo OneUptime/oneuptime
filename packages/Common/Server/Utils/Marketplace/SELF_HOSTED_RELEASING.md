@@ -1118,9 +1118,13 @@ marketplace suite checks each rule:
 - **What a buyer may set** is `aws_mp_configuration_schema.json`
   (`aws-eks-addon/configuration-schema.json`, JSON Schema draft-07: EKS takes
   no 2020-12): the URL, the Secret's name, labels, the `eks-fargate` preset,
-  and logs, eBPF, the AI agent, kube-state-metrics and costs on or off. Each
-  default there is the add-on's values.yaml's. The chart's own schema is
-  open at its root, for the `k8version` value EKS renders add-ons with.
+  logs, eBPF, the AI agent, kube-state-metrics and costs on or off, and
+  `kubeletstats.nodesProxy`, which drops `nodes/proxy` (CIS Kubernetes
+  Benchmark 5.1.10) once every node runs Kubernetes 1.33 or later; by default
+  (`auto`) the role grants it on EKS 1.34 and 1.35, whose nodes may run older
+  kubelets. Each default there is the add-on's values.yaml's. The chart's own
+  schema is open at its root, for the `k8version` value EKS renders add-ons
+  with.
 - **Nothing EKS cannot run**: no hook, no `lookup`, no CRD, no Release object
   but `.Name` and `.Namespace`, no subchart; no profiler and no debug sidecar
   (not offered, so their images are not shipped). Resources are named as the
@@ -1191,7 +1195,12 @@ python3 HelmChart/Marketplace/automation/aws_catalog.py submit --change-set "$OU
    OneUptime under its EKS name (not `set-by-amazon-eks`) with metrics, logs
    and eBPF traces. Try a configuration value (`{"kubeStateMetrics": {"enabled": true}}`
    with `update-addon`), and on one cluster a Fargate profile with
-   `{"preset": "eks-fargate"}`.
+   `{"preset": "eks-fargate"}`. On a 1.34 or 1.35 cluster, whose nodes run
+   1.33 or later, `{"kubeletstats": {"nodesProxy": false}}`: the
+   `kubernetes-agent` ClusterRole loses `nodes/proxy`
+   (`kubectl get clusterrole kubernetes-agent -o yaml`), every node still
+   sends its CPU, memory and disk, and the cluster's Compliance page passes
+   CIS 5.1.10 for the agent's binding.
 4. Keep the clusters until AWS makes the version public; scale the nodes down
    meanwhile.
 
