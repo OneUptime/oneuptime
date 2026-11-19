@@ -78,6 +78,10 @@ import {
   CUSTOM_ROLES_REQUIRED_PLAN,
   isEnterpriseFeatureEligible,
 } from "../../Enterprise/EnterpriseEligibility";
+import useSharedNames, {
+  SharedNamesOfList,
+} from "../../Components/SharedName/UseSharedNames";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
 
 /*
  * A team whose access could not be added after it was made: what to say,
@@ -325,6 +329,21 @@ const Teams: FunctionComponent<PageComponentProps> = (
     UsedByRecordKind.Team,
   );
 
+  /*
+   * Teams that share a name with another team (#9746): made before a
+   * team's name was one team's (#9674), they keep it, and every picker
+   * draws them alike. Marked beside their name, counted above the list
+   * with how to tell them apart, and each given Rename. Owners and Admin
+   * cannot be renamed: their twin is the one to rename.
+   */
+  const sharedNames: SharedNamesOfList<Team> = useSharedNames<Team>({
+    kind: SharedNameKind.Team,
+    modelType: Team,
+    canRename: (team: Team): boolean => {
+      return team.isTeamEditable !== false;
+    },
+  });
+
   return (
     <Fragment>
       {accessNotice && (
@@ -354,6 +373,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
         }}
         isDeleteable={true}
         getDeleteConfirmation={usedBy.getDeleteConfirmation}
+        refreshToggle={sharedNames.refreshToken}
+        actionButtons={[sharedNames.renameAction]}
         selectMoreFields={{
           isTeamDeleteable: true,
           isTeamEditable: true,
@@ -368,12 +389,18 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isViewable={true}
         userPreferencesKey="teams-table"
         customFieldsModelType={TeamCustomField}
-        topContent={filterBar}
+        topContent={
+          <Fragment>
+            {sharedNames.note}
+            {filterBar}
+          </Fragment>
+        }
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         onFetchSuccess={(items: Array<Team>): void => {
           onResourcesFetched(items);
+          sharedNames.onListFetched();
         }}
         cardProps={{
           title: "Teams",
@@ -471,13 +498,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         filters={[]}
         columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
+          // The team's name, marked when another team shares it (#9746).
+          sharedNames.nameColumn,
           {
             field: {
               description: true,
@@ -504,6 +526,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         ]}
       />
       {ownerBulkActionModals}
+      {sharedNames.renameModal}
     </Fragment>
   );
 };

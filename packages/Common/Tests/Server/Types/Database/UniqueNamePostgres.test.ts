@@ -22,6 +22,7 @@ import TeamService from "../../../../Server/Services/TeamService";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
+import UniqueNameInProject from "../../../../Server/Utils/Database/UniqueNameInProject";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import {
   NAME_WHITE_SPACE_RUN_PATTERN,
@@ -63,7 +64,10 @@ const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
  *   - OnCallDutyPolicyService and OnCallDutyPolicyScheduleService refuse a
  *     new one, and a rename, onto a name another of the project has
  *     (#9742), and a policy's refusal says where to unarchive an archived
- *     one, naming a policy in service first.
+ *     one, naming a policy in service first;
+ *   - the teams that share a name, as their list marks them (#9746), are
+ *     found as Postgres reads names, deleted ones and other projects' left
+ *     out.
  *
  * Needs only a bare Postgres: each model's table is made from its own column
  * metadata in a schema of its own, dropped afterwards. CI's Common test job
@@ -597,5 +601,82 @@ describePostgres("a name as it reads, on Postgres", () => {
         name: "Weekdays (EU)",
       }),
     ).resolves.toBeUndefined();
+  });
+
+  /*
+   * #9746: the records of a project that share a name, as their list marks
+   * them - counted by their name in Postgres, as findWithSameName reads it,
+   * among the project's records that are not deleted, then narrowed to the
+   * ones the reader may read (TeamService.findBy, stubbed here as a reader
+   * who may read every team but one).
+   */
+  test("the teams that share a name are found as names are compared, and only those", async () => {
+    const tenantsA: string = await team("Tenants");
+    const tenantsB: string = await team(` tenants${NO_BREAK_SPACE}`);
+    const platformA: string = await team("Platform  Team");
+    const platformHidden: string = await team(
+      `platform${IDEOGRAPHIC_SPACE}team`,
+    );
+    await team("Solo");
+    await team("Tenants", OTHER_PROJECT_ID);
+    const deletedSolo: string = await team("SOLO");
+
+    await database.query(
+      `UPDATE ${tableOf(Team)} SET "deletedAt" = now() WHERE "_id" = $1`,
+      [deletedSolo],
+    );
+
+    const asked: Array<string> = [];
+
+    jest
+      .spyOn(TeamService, "findBy")
+      .mockImplementation(
+        async (findBy: {
+          query: Record<string, unknown>;
+        }): Promise<Array<Team>> => {
+          const ids: Array<unknown> = Object.values(
+            (
+              findBy.query["_id"] as {
+                objectLiteralParameters: Record<string, unknown>;
+              }
+            ).objectLiteralParameters,
+          )[0] as Array<unknown>;
+
+          return ids
+            .map((id: unknown): string => {
+              return String(id).toLowerCase();
+            })
+            .filter((id: string): boolean => {
+              asked.push(id);
+              return id !== platformHidden;
+            })
+            .map((id: string): Team => {
+              return new Team(new ObjectID(id));
+            });
+        },
+      );
+
+    const groups: Array<Array<string>> =
+      await UniqueNameInProject.findRecordsSharingName({
+        service: TeamService,
+        projectId: PROJECT_ID,
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+      });
+
+    const sorted: (ids: Array<string>) => Array<string> = (
+      ids: Array<string>,
+    ): Array<string> => {
+      return [...ids].sort();
+    };
+
+    // Asked of the reader: every team whose name another of the project has.
+    expect(sorted(asked)).toEqual(
+      sorted([tenantsA, tenantsB, platformA, platformHidden]),
+    );
+    // "platform team" before "tenants"; Platform's twin is one the reader may not read.
+    expect(groups.map(sorted)).toEqual([
+      [platformA],
+      sorted([tenantsA, tenantsB]),
+    ]);
   });
 });
