@@ -68,7 +68,8 @@ import User from "Common/Models/DatabaseModels/User";
  * ---------------------------------------------------------------------------
  */
 
-const MESSAGE_VIEW: string = "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
+const MESSAGE_VIEW: string =
+  "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
 
 export const SAML_SIGN_OUT_NOT_CONFIRMED_TITLE: string =
   "Signed out of OneUptime.";

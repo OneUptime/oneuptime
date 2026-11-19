@@ -638,7 +638,11 @@ describe("the URLs the product hands out are all served", () => {
     ],
   ] as Array<[string, () => string | undefined, PathShape]>)(
     "%s gives identity providers a Single Logout URL it serves on both bindings",
-    (_file: string, singleLogoutUrl: () => string | undefined, shape: PathShape) => {
+    (
+      _file: string,
+      singleLogoutUrl: () => string | undefined,
+      shape: PathShape,
+    ) => {
       expect(shapeAfterIdentity(singleLogoutUrl()!)).toEqual(shape);
       expect(isServed(shape, "GET")).toBe(true);
       expect(isServed(shape, "POST")).toBe(true);

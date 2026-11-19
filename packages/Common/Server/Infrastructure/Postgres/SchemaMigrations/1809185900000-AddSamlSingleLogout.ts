@@ -37,7 +37,9 @@ export class AddSamlSingleLogout1809185900000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "ProjectSSO" ADD "signOutOfIdentityProvider" boolean NOT NULL DEFAULT false`,
     );
-    await queryRunner.query(`ALTER TABLE "GlobalSSO" ADD "singleLogoutURL" text`);
+    await queryRunner.query(
+      `ALTER TABLE "GlobalSSO" ADD "singleLogoutURL" text`,
+    );
     await queryRunner.query(
       `ALTER TABLE "GlobalSSO" ADD "signOutOfIdentityProvider" boolean NOT NULL DEFAULT false`,
     );
@@ -47,7 +49,9 @@ export class AddSamlSingleLogout1809185900000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "GlobalSSO" DROP COLUMN "signOutOfIdentityProvider"`,
     );
-    await queryRunner.query(`ALTER TABLE "GlobalSSO" DROP COLUMN "singleLogoutURL"`);
+    await queryRunner.query(
+      `ALTER TABLE "GlobalSSO" DROP COLUMN "singleLogoutURL"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "ProjectSSO" DROP COLUMN "signOutOfIdentityProvider"`,
     );

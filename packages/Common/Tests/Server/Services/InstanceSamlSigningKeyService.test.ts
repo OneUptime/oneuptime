@@ -63,40 +63,38 @@ beforeEach(() => {
   database.storedMeanwhile = null;
   InstanceSamlSigningKeyService.forgetKeyPairForTests();
 
-  jest
-    .spyOn(InstanceSamlSigningKeyService, "getRepository")
-    .mockReturnValue({
-      manager: {
-        query: async (
-          sql: string,
-          parameters: Array<unknown>,
-        ): Promise<unknown> => {
-          database.statements.push({ sql, parameters });
+  jest.spyOn(InstanceSamlSigningKeyService, "getRepository").mockReturnValue({
+    manager: {
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        database.statements.push({ sql, parameters });
 
-          if (sql.trim().startsWith("SELECT")) {
-            expect(parameters).toEqual([INSTANCE_SAML_SIGNING_KEY_ROW_ID]);
-            return database.row ? [database.row] : [];
+        if (sql.trim().startsWith("SELECT")) {
+          expect(parameters).toEqual([INSTANCE_SAML_SIGNING_KEY_ROW_ID]);
+          return database.row ? [database.row] : [];
+        }
+
+        if (sql.trim().startsWith("INSERT")) {
+          if (database.storedMeanwhile) {
+            database.row = database.storedMeanwhile;
           }
 
-          if (sql.trim().startsWith("INSERT")) {
-            if (database.storedMeanwhile) {
-              database.row = database.storedMeanwhile;
-            }
-
-            if (!database.row) {
-              database.row = {
-                privateKey: parameters[1],
-                certificate: parameters[2],
-              };
-            }
-
-            return [];
+          if (!database.row) {
+            database.row = {
+              privateKey: parameters[1],
+              certificate: parameters[2],
+            };
           }
 
-          throw new Error(`Unexpected statement: ${sql}`);
-        },
+          return [];
+        }
+
+        throw new Error(`Unexpected statement: ${sql}`);
       },
-    } as never);
+    },
+  } as never);
 });
 
 afterEach(() => {
@@ -158,7 +156,9 @@ describe("InstanceSamlSigningKeyService.getKeyPair", () => {
       keyPair.certificate,
     );
 
-    expect(certificate.subject).toBe(`CN=${SAML_SIGNING_CERTIFICATE_COMMON_NAME}`);
+    expect(certificate.subject).toBe(
+      `CN=${SAML_SIGNING_CERTIFICATE_COMMON_NAME}`,
+    );
     expect(
       certificate.checkPrivateKey(crypto.createPrivateKey(keyPair.privateKey)),
     ).toBe(true);
@@ -200,9 +200,13 @@ describe("InstanceSamlSigningKeyService.getKeyPair", () => {
 
     await InstanceSamlSigningKeyService.getKeyPair();
 
-    expect(new Set(all.map((pair: SelfSignedKeyPair) => {
-      return pair.privateKey;
-    })).size).toBe(1);
+    expect(
+      new Set(
+        all.map((pair: SelfSignedKeyPair) => {
+          return pair.privateKey;
+        }),
+      ).size,
+    ).toBe(1);
     expect(database.statements).toHaveLength(1);
   });
 
@@ -282,8 +286,8 @@ describe("InstanceSamlSigningKeyService.getKeyPair", () => {
   test("the certificate alone, for anyone to download", async () => {
     await storeEncrypted(stored);
 
-    await expect(
-      InstanceSamlSigningKeyService.getCertificate(),
-    ).resolves.toBe(stored.certificate);
+    await expect(InstanceSamlSigningKeyService.getCertificate()).resolves.toBe(
+      stored.certificate,
+    );
   });
 });

@@ -97,7 +97,10 @@ describe("AddSamlSingleLogout1809185900000", () => {
   test("the models declare the columns it adds", () => {
     for (const model of [new ProjectSSO(), new GlobalSSO()]) {
       expect(model.getTableColumns().columns).toEqual(
-        expect.arrayContaining(["singleLogoutURL", "signOutOfIdentityProvider"]),
+        expect.arrayContaining([
+          "singleLogoutURL",
+          "signOutOfIdentityProvider",
+        ]),
       );
       expect(model.getTableColumnMetadata("singleLogoutURL").type).toBe(
         TableColumnType.LongURL,

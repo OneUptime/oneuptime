@@ -225,6 +225,23 @@ const LOGOUT_PARAMETERS: ReadonlyArray<string> = [
   "Signature",
 ];
 
+/*
+ * A LogoutRequest ID OneUptime wrote: "_", then its issue time, its nonce
+ * and its MAC, in hex (createRequestId).
+ */
+const OWN_REQUEST_ID_PATTERN: RegExp =
+  /^_([0-9a-f]{24})([0-9a-f]{12})([0-9a-f]{32})$/;
+
+/*
+ * A Microsoft Entra ID issuer, in any of its clouds and under either of its
+ * hosts: the tenant is the part that names who issued it.
+ */
+const ENTRA_ISSUER_PATTERN: RegExp =
+  /^https:\/\/(?:sts\.windows\.net|login\.microsoftonline\.com|login\.microsoftonline\.us|sts\.chinacloudapi\.cn|login\.partner\.microsoftonline\.cn|login\.chinacloudapi\.cn)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i;
+
+// What a SAML status code looks like, to be written to a log.
+const STATUS_CODE_PATTERN: RegExp = /^[A-Za-z0-9:._/-]{1,200}$/;
+
 export default class SamlSingleLogout {
   /*
    * -------------------------------------------------------------------------
@@ -252,7 +269,9 @@ export default class SamlSingleLogout {
     const xml: string = SamlSingleLogout.buildLogoutRequestXml({
       id: id,
       issueInstant: data.now,
-      notOnOrAfter: new Date(data.now.getTime() + LOGOUT_REQUEST_LIFETIME_IN_MS),
+      notOnOrAfter: new Date(
+        data.now.getTime() + LOGOUT_REQUEST_LIFETIME_IN_MS,
+      ),
       destination: data.provider.identityProviderSignOutUrl,
       issuer: data.provider.entityId,
       record: data.record,
@@ -481,10 +500,9 @@ export default class SamlSingleLogout {
     signingKey: SamlSigningKey;
     now: Date;
   }): boolean {
-    const match: RegExpExecArray | null =
-      /^_([0-9a-f]{24})([0-9a-f]{12})([0-9a-f]{32})$/.exec(
-        data.requestId || "",
-      );
+    const match: RegExpExecArray | null = OWN_REQUEST_ID_PATTERN.exec(
+      data.requestId || "",
+    );
 
     if (!match) {
       return false;
@@ -508,8 +526,7 @@ export default class SamlSingleLogout {
     }
 
     return (
-      data.now.getTime() <
-      parseInt(endsAt, 16) * 1000 + LOGOUT_CLOCK_SKEW_IN_MS
+      data.now.getTime() < parseInt(endsAt, 16) * 1000 + LOGOUT_CLOCK_SKEW_IN_MS
     );
   }
 
@@ -570,7 +587,9 @@ export default class SamlSingleLogout {
    * SAMLResponse, and SigAlg and Signature when it is signed. Every one of
    * them at most once.
    */
-  public static readRedirectMessage(rawQuery: string): ReceivedSamlLogoutMessage {
+  public static readRedirectMessage(
+    rawQuery: string,
+  ): ReceivedSamlLogoutMessage {
     if (rawQuery.length > MAX_SAML_MESSAGE_BYTES * 2) {
       throw new SamlLogoutRefusal("The SAML sign-out message is too long.");
     }
@@ -1191,10 +1210,7 @@ export default class SamlSingleLogout {
     const entraTenantOf: (value: string) => string | null = (
       value: string,
     ): string | null => {
-      const match: RegExpExecArray | null =
-        /^https:\/\/(?:sts\.windows\.net|login\.microsoftonline\.com|login\.microsoftonline\.us|sts\.chinacloudapi\.cn|login\.partner\.microsoftonline\.cn|login\.chinacloudapi\.cn)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i.exec(
-          value,
-        );
+      const match: RegExpExecArray | null = ENTRA_ISSUER_PATTERN.exec(value);
 
       return match ? match[1]!.toLowerCase() : null;
     };
@@ -1290,7 +1306,9 @@ export default class SamlSingleLogout {
       root.localName !== kind ||
       root.namespaceURI !== SAML_PROTOCOL_NAMESPACE
     ) {
-      throw new SamlLogoutRefusal(`The SAML sign-out message is not a ${kind}.`);
+      throw new SamlLogoutRefusal(
+        `The SAML sign-out message is not a ${kind}.`,
+      );
     }
 
     return root;
@@ -1310,7 +1328,9 @@ export default class SamlSingleLogout {
       );
     }
 
-    return issuers[0] ? SamlSingleLogout.getPlainText(issuers[0]) || null : null;
+    return issuers[0]
+      ? SamlSingleLogout.getPlainText(issuers[0]) || null
+      : null;
   }
 
   // The top-level StatusCode of a LogoutResponse, or null when it has none.
@@ -1338,7 +1358,7 @@ export default class SamlSingleLogout {
 
   // A status code for the log: only when it looks like one.
   private static describeStatusCode(statusCode: string | null): string {
-    return statusCode && /^[A-Za-z0-9:._/-]{1,200}$/.test(statusCode)
+    return statusCode && STATUS_CODE_PATTERN.test(statusCode)
       ? statusCode
       : "no status";
   }

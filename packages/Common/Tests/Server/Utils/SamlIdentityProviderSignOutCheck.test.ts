@@ -105,7 +105,10 @@ describe("IdentityProviderSignOutCheck.beforeSamlProviderCreate", () => {
     ["one of spaces", "   "],
     ["a javascript: address", "javascript:alert(document.cookie)"],
     ["a relative path", "/saml/slo"],
-    ["one with a user name and password", "https://user:secret@idp.example.com/slo"],
+    [
+      "one with a user name and password",
+      "https://user:secret@idp.example.com/slo",
+    ],
   ])(
     "a provider created with the switch on and %s is refused, saying what to do",
     (_: string, singleLogoutURL: string | undefined) => {
@@ -132,9 +135,10 @@ describe("IdentityProviderSignOutCheck.beforeSamlProviderUpdate", () => {
    * The providers the update reaches, read with the update held to them
    * (DatabaseService.findRowsAndHoldUpdateToThem).
    */
-  function stored(
-    ...providers: Array<GlobalSSO>
-  ): { service: DatabaseService<GlobalSSO>; read: jest.Mock } {
+  function stored(...providers: Array<GlobalSSO>): {
+    service: DatabaseService<GlobalSSO>;
+    read: jest.Mock;
+  } {
     const read: jest.Mock = jest.fn(async () => {
       return providers;
     });

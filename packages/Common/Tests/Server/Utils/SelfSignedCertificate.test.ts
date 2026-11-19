@@ -90,7 +90,9 @@ describe("SelfSignedCertificate.create", () => {
 
   test("is a version 3 certificate signed with sha256WithRSAEncryption, so identity providers that refuse SHA-1 take it", () => {
     // tbsCertificate's version, [0] EXPLICIT INTEGER 2.
-    expect(certificate.raw.includes(Buffer.from([0xa0, 0x03, 0x02, 0x01, 0x02]))).toBe(true);
+    expect(
+      certificate.raw.includes(Buffer.from([0xa0, 0x03, 0x02, 0x01, 0x02])),
+    ).toBe(true);
     // sha256WithRSAEncryption, 1.2.840.113549.1.1.11.
     expect(
       certificate.raw.includes(
@@ -149,13 +151,15 @@ describe("SelfSignedCertificate.create", () => {
 });
 
 describe("SelfSignedCertificate.certify", () => {
-  const keys: () => { privateKey: crypto.KeyObject; publicKey: crypto.KeyObject } =
-    (): { privateKey: crypto.KeyObject; publicKey: crypto.KeyObject } => {
-      return {
-        privateKey: crypto.createPrivateKey(made.privateKey),
-        publicKey: crypto.createPublicKey(made.privateKey),
-      };
+  const keys: () => {
+    privateKey: crypto.KeyObject;
+    publicKey: crypto.KeyObject;
+  } = (): { privateKey: crypto.KeyObject; publicKey: crypto.KeyObject } => {
+    return {
+      privateKey: crypto.createPrivateKey(made.privateKey),
+      publicKey: crypto.createPublicKey(made.privateKey),
     };
+  };
 
   test("writes times through 2049 as UTCTime and from 2050 as GeneralizedTime, as RFC 5280 has them", () => {
     const pem: string = SelfSignedCertificate.certify({
@@ -175,7 +179,9 @@ describe("SelfSignedCertificate.certify", () => {
     );
 
     // UTCTime "491231235959Z", GeneralizedTime "20500102235959Z".
-    expect(crossing.raw.includes(Buffer.from("\x17\x0d491231235959Z", "latin1"))).toBe(true);
+    expect(
+      crossing.raw.includes(Buffer.from("\x17\x0d491231235959Z", "latin1")),
+    ).toBe(true);
     expect(
       crossing.raw.includes(Buffer.from("\x18\x0f20500102235959Z", "latin1")),
     ).toBe(true);

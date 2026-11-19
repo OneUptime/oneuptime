@@ -61,9 +61,12 @@ function verify(options: {
   });
 
   return SSOUtil.getSamlResponseFromXML(
-    (options.signed || ((unsigned: string): string => {
-      return signElement(unsigned, "Assertion", idpKeys.privateKey);
-    }))(xml),
+    (
+      options.signed ||
+      ((unsigned: string): string => {
+        return signElement(unsigned, "Assertion", idpKeys.privateKey);
+      })
+    )(xml),
     idpKeys.publicKey,
     PROVIDER,
     NOW,

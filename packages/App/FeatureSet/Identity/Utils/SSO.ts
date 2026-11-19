@@ -1938,7 +1938,9 @@ export default class SSOUtil {
       : null;
 
     if (!nameId) {
-      throw new BadRequestException("SAML NAME ID not found");
+      throw new BadRequestException(
+        "The SAML assertion has no Name ID. Set your identity provider to send the person's email address as the Name ID.",
+      );
     }
 
     SSOUtil.assertPlainTextOnly(nameId);

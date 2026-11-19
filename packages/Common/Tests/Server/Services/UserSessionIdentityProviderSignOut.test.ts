@@ -89,10 +89,9 @@ describe("the column", () => {
   });
 
   test("a SAML record is stored with its Name ID and session index as ciphertext, and read back whole (#9603)", async () => {
-    const stored: JSONObject = (await EncryptedColumnValue.encrypt(
-      metadata(),
-      { ...SAML_RECORD },
-    )) as JSONObject;
+    const stored: JSONObject = (await EncryptedColumnValue.encrypt(metadata(), {
+      ...SAML_RECORD,
+    })) as JSONObject;
 
     expect(Encryption.looksEncrypted(stored["nameId"] as string)).toBe(true);
     expect(Encryption.looksEncrypted(stored["sessionIndex"] as string)).toBe(
@@ -112,14 +111,11 @@ describe("the column", () => {
   });
 
   test("an OIDC record is still stored with its ID token alone as ciphertext", async () => {
-    const stored: JSONObject = (await EncryptedColumnValue.encrypt(
-      metadata(),
-      { ...RECORD },
-    )) as JSONObject;
+    const stored: JSONObject = (await EncryptedColumnValue.encrypt(metadata(), {
+      ...RECORD,
+    })) as JSONObject;
 
-    expect(
-      Encryption.looksEncrypted(stored["idToken"] as string),
-    ).toBe(true);
+    expect(Encryption.looksEncrypted(stored["idToken"] as string)).toBe(true);
     expect(stored["endSessionEndpoint"]).toBe(
       (RECORD as { endSessionEndpoint: string }).endSessionEndpoint,
     );

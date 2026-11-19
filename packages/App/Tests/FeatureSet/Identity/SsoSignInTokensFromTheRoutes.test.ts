@@ -545,7 +545,8 @@ let idpKeys: SamlKeyPair;
 let responseCounter: number = 0;
 
 // The person's session at the identity provider, as its assertions name it.
-const SAML_SESSION_INDEX: string = "_be9967abd904ddcae3c0eb4189adbe3f71e327cf93";
+const SAML_SESSION_INDEX: string =
+  "_be9967abd904ddcae3c0eb4189adbe3f71e327cf93";
 
 /*
  * What the identity provider's assertions carry besides who signed in: a

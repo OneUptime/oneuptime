@@ -124,7 +124,9 @@ export default class SelfSignedCertificate {
     notBefore: Date;
     validForDays: number;
   }): string {
-    const name: Buffer = SelfSignedCertificate.distinguishedName(data.commonName);
+    const name: Buffer = SelfSignedCertificate.distinguishedName(
+      data.commonName,
+    );
 
     const signatureAlgorithm: Buffer = SelfSignedCertificate.sequence(
       SelfSignedCertificate.objectIdentifier(OID_SHA256_WITH_RSA_ENCRYPTION),

@@ -209,12 +209,12 @@ function logoutResponseXml(
     issuerElement?: string;
   } = {},
 ): string {
-  const attribute: (name: string, value: string | null | undefined) => string =
-    (name: string, value: string | null | undefined): string => {
-      return value === null || value === undefined
-        ? ""
-        : ` ${name}="${value}"`;
-    };
+  const attribute: (
+    name: string,
+    value: string | null | undefined,
+  ) => string = (name: string, value: string | null | undefined): string => {
+    return value === null || value === undefined ? "" : ` ${name}="${value}"`;
+  };
 
   const issuer: string | null =
     overrides.issuer === undefined ? IDP_ISSUER : overrides.issuer;
@@ -250,12 +250,12 @@ function logoutRequestXml(
     sessionIndexes?: Array<string>;
   } = {},
 ): string {
-  const attribute: (name: string, value: string | null | undefined) => string =
-    (name: string, value: string | null | undefined): string => {
-      return value === null || value === undefined
-        ? ""
-        : ` ${name}="${value}"`;
-    };
+  const attribute: (
+    name: string,
+    value: string | null | undefined,
+  ) => string = (name: string, value: string | null | undefined): string => {
+    return value === null || value === undefined ? "" : ` ${name}="${value}"`;
+  };
 
   const issueInstant: Date | null =
     overrides.issueInstant === undefined ? NOW : overrides.issueInstant;
@@ -275,9 +275,7 @@ function logoutRequestXml(
     overrides.destination === undefined
       ? SINGLE_LOGOUT_URL
       : overrides.destination,
-  )}>${
-    issuer === null ? "" : `<saml:Issuer>${issuer}</saml:Issuer>`
-  }${
+  )}>${issuer === null ? "" : `<saml:Issuer>${issuer}</saml:Issuer>`}${
     overrides.nameIdElement ??
     '<saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">dana.scully@example.com</saml:NameID>'
   }${(overrides.sessionIndexes || ["_0c3b5d0f-1d2e-4f5a-9b8c-7d6e5f4a3b2c"])
@@ -548,9 +546,7 @@ describe("the LogoutRequest OneUptime sends the browser with", () => {
     expect(queryOf(url).get("SigAlg")).toBe(
       SAML_SIGNATURE_ALGORITHM_RSA_SHA256,
     );
-    expect(isSignedBy(url, "SAMLRequest", oneUptimeKey.certificate)).toBe(
-      true,
-    );
+    expect(isSignedBy(url, "SAMLRequest", oneUptimeKey.certificate)).toBe(true);
     expect(
       isSignedBy(url, "SAMLRequest", otherInstallationKey.certificate),
     ).toBe(false);
@@ -602,9 +598,7 @@ describe("the LogoutRequest OneUptime sends the browser with", () => {
     expect(query.getAll("SAMLRequest")).toHaveLength(1);
     expect(query.get("SAMLRequest")).not.toBe("planted");
     expect(query.getAll("Signature")).toHaveLength(1);
-    expect(isSignedBy(url, "SAMLRequest", oneUptimeKey.certificate)).toBe(
-      true,
-    );
+    expect(isSignedBy(url, "SAMLRequest", oneUptimeKey.certificate)).toBe(true);
   });
 
   test("an identity provider reading it with the same rules finds it signed by OneUptime's certificate", () => {
@@ -659,9 +653,9 @@ describe("OneUptime's answer to an identity provider's own sign-out", () => {
       inflate(queryOf(url).get("SAMLResponse")!),
     );
 
-    expect(`${new globalThis.URL(url).origin}${new globalThis.URL(url).pathname}`).toBe(
-      IDP_SIGN_OUT_URL,
-    );
+    expect(
+      `${new globalThis.URL(url).origin}${new globalThis.URL(url).pathname}`,
+    ).toBe(IDP_SIGN_OUT_URL);
     expect(response.localName).toBe("LogoutResponse");
     expect(response.getAttribute("InResponseTo")).toBe(`_idp"request<1>`);
     expect(response.getAttribute("Destination")).toBe(IDP_SIGN_OUT_URL);
@@ -841,7 +835,7 @@ describe("a sign-out message on the HTTP-Redirect binding", () => {
     ).toBe(SamlLogoutMessageKind.Request);
   });
 
-  test("a base64 \"+\" an identity provider left unencoded stays a \"+\"", () => {
+  test('a base64 "+" an identity provider left unencoded stays a "+"', () => {
     const xml: string = logoutResponseXml();
     const encoded: string = zlib
       .deflateRawSync(Buffer.from(xml, "utf8"))
@@ -964,7 +958,9 @@ describe("a sign-out message on the HTTP-Redirect binding", () => {
   test("is refused when the query is longer than any sign-out message's", () => {
     expectRefused(() => {
       return SamlSingleLogout.readMessage(
-        getRequest(`SAMLResponse=${"A".repeat(MAX_SAML_MESSAGE_BYTES * 2 + 1)}`),
+        getRequest(
+          `SAMLResponse=${"A".repeat(MAX_SAML_MESSAGE_BYTES * 2 + 1)}`,
+        ),
       );
     }, /too long/);
   });
@@ -1104,7 +1100,9 @@ describe("a LogoutResponse is read only from what its signature covers", () => {
   test("a signed query whose message was swapped after signing: refused", () => {
     const signed: string = redirectQuery({
       parameter: "SAMLResponse",
-      xml: logoutResponseXml({ statusCode: "urn:oasis:names:tc:SAML:2.0:status:Responder" }),
+      xml: logoutResponseXml({
+        statusCode: "urn:oasis:names:tc:SAML:2.0:status:Responder",
+      }),
       privateKey: idpKeys.privateKey,
     });
 
@@ -1172,9 +1170,8 @@ describe("a LogoutResponse is read only from what its signature covers", () => {
 
   test("unsigned on the HTTP-POST binding: read, and not signed", () => {
     expect(
-      readResponse(
-        postRequest({ SAMLResponse: toBase64(logoutResponseXml()) }),
-      ).isSigned,
+      readResponse(postRequest({ SAMLResponse: toBase64(logoutResponseXml()) }))
+        .isSigned,
     ).toBe(false);
   });
 
@@ -1234,9 +1231,7 @@ describe("a LogoutResponse is read only from what its signature covers", () => {
     });
 
     expectRefused(() => {
-      return readResponse(
-        postRequest({ SAMLResponse: toBase64(signed) }),
-      );
+      return readResponse(postRequest({ SAMLResponse: toBase64(signed) }));
     }, /does not verify/);
   });
 
@@ -1251,9 +1246,7 @@ describe("a LogoutResponse is read only from what its signature covers", () => {
     });
 
     expectRefused(() => {
-      return readResponse(
-        postRequest({ SAMLResponse: toBase64(signed) }),
-      );
+      return readResponse(postRequest({ SAMLResponse: toBase64(signed) }));
     }, /one signature/);
   });
 
@@ -1291,9 +1284,7 @@ describe("a LogoutResponse is read only from what its signature covers", () => {
     );
 
     expectRefused(() => {
-      return readResponse(
-        postRequest({ SAMLResponse: toBase64(signed) }),
-      );
+      return readResponse(postRequest({ SAMLResponse: toBase64(signed) }));
     }, /content of its own/);
   });
 
@@ -1433,7 +1424,8 @@ describe("a LogoutResponse confirms the sign-out only when it answers OneUptime'
         statusCode: SAML_STATUS_SUCCESS,
       },
       provider: provider({
-        issuerUrl: "https://sts.windows.net/aaaabbbb-0000-cccc-1111-dddd2222eeee/",
+        issuerUrl:
+          "https://sts.windows.net/aaaabbbb-0000-cccc-1111-dddd2222eeee/",
       }),
       signingKey: signingKey(),
       now: NOW,
@@ -1542,11 +1534,7 @@ describe("a LogoutResponse confirms the sign-out only when it answers OneUptime'
     ],
   ])(
     "refuses %s",
-    (
-      _: string,
-      response: () => Partial<ReadLogoutResponse>,
-      words: RegExp,
-    ) => {
+    (_: string, response: () => Partial<ReadLogoutResponse>, words: RegExp) => {
       expectRefused(() => {
         return confirm(response());
       }, words);
@@ -1723,7 +1711,11 @@ describe("an identity provider's own LogoutRequest", () => {
 
   test.each([
     ["no Issuer", { issuer: null }, /Issuer/],
-    ["another identity provider's", { issuer: "https://evil.example.com" }, /Issuer/],
+    [
+      "another identity provider's",
+      { issuer: "https://evil.example.com" },
+      /Issuer/,
+    ],
     [
       "sent to another address",
       { destination: "https://evil.example.com/slo" },
@@ -1735,7 +1727,11 @@ describe("an identity provider's own LogoutRequest", () => {
       { id: `_${"a".repeat(MAX_SAML_ID_LENGTH)}` },
       /no ID/,
     ],
-    ["past its NotOnOrAfter", { notOnOrAfter: NOW.getTime() - LOGOUT_CLOCK_SKEW_IN_MS - 1000 }, /expired/],
+    [
+      "past its NotOnOrAfter",
+      { notOnOrAfter: NOW.getTime() - LOGOUT_CLOCK_SKEW_IN_MS - 1000 },
+      /expired/,
+    ],
     ["with no IssueInstant", { issueInstant: null }, /issued/],
     [
       "issued too long ago",
@@ -1804,7 +1800,10 @@ describe("an identity provider's own LogoutRequest", () => {
     expect(named({ nameId: "Dana.Scully@example.com" })).toBe(false);
     // A session that kept no index is the person's, whichever they name.
     expect(
-      named({ sessionIndexes: ["_another_session"] }, { sessionIndex: undefined }),
+      named(
+        { sessionIndexes: ["_another_session"] },
+        { sessionIndex: undefined },
+      ),
     ).toBe(true);
   });
 

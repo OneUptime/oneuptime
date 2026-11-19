@@ -120,14 +120,14 @@ const END_SESSION_ENDPOINT: string =
 
 // The SAML providers' (#9603), and a project's provider's project.
 const GLOBAL_SAML_PROVIDER_ID: string = "5d5d0000-0000-4000-8000-0000000000d1";
-const PROJECT_SAML_PROVIDER_ID: string =
-  "5d5d0000-0000-4000-8000-0000000000d2";
+const PROJECT_SAML_PROVIDER_ID: string = "5d5d0000-0000-4000-8000-0000000000d2";
 const PROJECT_ID: string = "5d5d0000-0000-4000-8000-0000000000e1";
 
 const SAML_SIGN_OUT_URL: string =
   "https://acme.okta.com/app/acme_oneuptime_1/exk1fcia6d6EMsf331d8/slo/saml";
 
-const SAML_SESSION_INDEX: string = "_be9967abd904ddcae3c0eb4189adbe3f71e327cf93";
+const SAML_SESSION_INDEX: string =
+  "_be9967abd904ddcae3c0eb4189adbe3f71e327cf93";
 
 // What happened, in the order it happened.
 const events: Array<string> = [];
@@ -366,7 +366,8 @@ const samlProviderLookup: (query: {
 
   return {
     issuerURL: "http://www.okta.com/exk1fcia6d6EMsf331d8",
-    publicCertificate: "-----BEGIN CERTIFICATE-----\nMIIC\n-----END CERTIFICATE-----",
+    publicCertificate:
+      "-----BEGIN CERTIFICATE-----\nMIIC\n-----END CERTIFICATE-----",
     singleLogoutURL: provider.singleLogoutURL
       ? {
           toString: (): string => {

@@ -11,7 +11,12 @@ import {
   SAML_SIGN_OUT_NOT_SET_UP_MESSAGE,
   SAML_SIGN_OUT_NOT_SET_UP_TITLE,
 } from "../../../FeatureSet/Identity/Utils/SamlSingleLogoutEndpoint";
-import { SamlKeyPair, generateRsaKeyPair, signXml, toBase64 } from "./SamlTestKit";
+import {
+  SamlKeyPair,
+  generateRsaKeyPair,
+  signXml,
+  toBase64,
+} from "./SamlTestKit";
 import SelfSignedCertificate, {
   SelfSignedKeyPair,
 } from "Common/Server/Utils/SelfSignedCertificate";
@@ -87,14 +92,10 @@ interface ProviderRow {
 const providers: Map<string, ProviderRow> = new Map();
 const providerQueries: Array<JSONObject> = [];
 
-function providerLookup(data: {
-  query: JSONObject;
-}): Promise<unknown> {
+function providerLookup(data: { query: JSONObject }): Promise<unknown> {
   providerQueries.push(data.query);
 
-  const row: ProviderRow | undefined = providers.get(
-    String(data.query["_id"]),
-  );
+  const row: ProviderRow | undefined = providers.get(String(data.query["_id"]));
 
   if (
     !row ||
@@ -155,8 +156,11 @@ jest.mock("Common/Server/Services/GlobalSsoService", () => {
 });
 
 // The installation's key, made for this suite.
-const keys: { oneUptime: SelfSignedKeyPair; idp: SamlKeyPair; stranger: SamlKeyPair } =
-  {} as never;
+const keys: {
+  oneUptime: SelfSignedKeyPair;
+  idp: SamlKeyPair;
+  stranger: SamlKeyPair;
+} = {} as never;
 
 jest.mock("Common/Server/Services/InstanceSamlSigningKeyService", () => {
   return {
@@ -233,7 +237,10 @@ jest.mock("Common/Server/Services/UserSessionService", () => {
               );
             })
             .map((row: SessionRow) => {
-              return { sessionId: new ObjectIDType(row.id), record: row.record };
+              return {
+                sessionId: new ObjectIDType(row.id),
+                record: row.record,
+              };
             }),
         );
       },
@@ -242,7 +249,9 @@ jest.mock("Common/Server/Services/UserSessionService", () => {
         options: { cause: unknown },
       ): Promise<void> => {
         if (failures.endingSessions) {
-          return Promise.reject(new Error("connect ECONNREFUSED 10.0.0.5:5432"));
+          return Promise.reject(
+            new Error("connect ECONNREFUSED 10.0.0.5:5432"),
+          );
         }
 
         const row: SessionRow | undefined = sessions.find(
@@ -406,7 +415,10 @@ beforeEach(() => {
 
 function ourRequestId(route: Route): string {
   return SamlSingleLogout.createRequestId({
-    provider: { providerType: route.providerType, providerId: route.providerId },
+    provider: {
+      providerType: route.providerType,
+      providerId: route.providerId,
+    },
     signingKey: keys.oneUptime,
     now: new Date(),
   });
@@ -519,7 +531,8 @@ async function arrive(
   const sent: Array<unknown> | undefined = responseRedirect.mock.calls[0];
 
   return {
-    redirectedTo: (resRedirect.mock.calls[0]?.[0] as string | undefined) || null,
+    redirectedTo:
+      (resRedirect.mock.calls[0]?.[0] as string | undefined) || null,
     sentTo: sent ? String(sent[2]) : null,
     page: page ? (page[3] as JSONObject) : null,
     nextError,
@@ -578,7 +591,10 @@ function answerIn(url: string): {
 function statusOf(response: XmlElement): string | null {
   return (
     response
-      .getElementsByTagNameNS("urn:oasis:names:tc:SAML:2.0:protocol", "StatusCode")
+      .getElementsByTagNameNS(
+        "urn:oasis:names:tc:SAML:2.0:protocol",
+        "StatusCode",
+      )
       .item(0)
       ?.getAttribute("Value") || null
   );
@@ -923,7 +939,10 @@ describe.each(ROUTES)("the Single Logout URL of $name", (route: Route) => {
       ["turned off", { isEnabled: false }],
       ["with the switch off", { signOutOfIdentityProvider: false }],
       ["with no Sign Out URL", { singleLogoutURL: null }],
-      ["with a Sign Out URL no browser may be sent to", { singleLogoutURL: "javascript:alert(1)" }],
+      [
+        "with a Sign Out URL no browser may be sent to",
+        { singleLogoutURL: "javascript:alert(1)" },
+      ],
     ])(
       "%s: the page that says so, and nothing ends",
       async (_: string, change: Partial<ProviderRow>) => {
@@ -998,7 +1017,11 @@ describe("the signing certificate", () => {
 
     await (handlerFor(SSORouter, "get", "/saml-signing-certificate")(
       { params: {}, query: {}, headers: {} } as unknown as ExpressRequest,
-      { setHeader, status: jest.fn().mockReturnThis(), send: jest.fn() } as unknown as ExpressResponse,
+      {
+        setHeader,
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as unknown as ExpressResponse,
       jest.fn(),
     ) as unknown as Promise<void>);
 
