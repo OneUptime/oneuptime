@@ -12,6 +12,7 @@ import {
   isAzureFiveMinuteKeyMetric,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CloudAddedMetric,
   CloudAddedMetricScope,
   getCloudAddedMetricsOfType,
@@ -214,6 +215,49 @@ export interface SelectedMetric {
    * five minutes in the five-minute call, every 15 minutes.
    */
   isAdded?: boolean | undefined;
+  /*
+   * An addition read split by one of its dimensions (#9808): in a call of
+   * its own, whose filter splits it alone, the busiest
+   * CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES values of it.
+   */
+  splitBy?: string | undefined;
+}
+
+/*
+ * A selection with each addition's split as it is added now (#9808): a
+ * selection is kept a day, an addition's split is read from the additions.
+ */
+export function applyAzureSplits(
+  selected: Array<SelectedMetric>,
+  added: ReadonlyArray<Pick<CloudAddedMetric, "name" | "splitBy">>,
+): Array<SelectedMetric> {
+  return selected.map((metric: SelectedMetric): SelectedMetric => {
+    if (!metric.isAdded) {
+      return metric;
+    }
+
+    const splitBy: string | undefined = added.find(
+      (addition: Pick<CloudAddedMetric, "name">): boolean => {
+        return addition.name.toLowerCase() === metric.name.toLowerCase();
+      },
+    )?.splitBy;
+    const next: SelectedMetric = { ...metric };
+
+    delete next.splitBy;
+
+    if (splitBy) {
+      next.splitBy = splitBy;
+    }
+
+    return next;
+  });
+}
+
+// The aggregation a split read picks its busiest values by, as Azure Monitor's orderby names it.
+export function getAzureSplitOrder(aggregation: string): string {
+  const name: string = aggregation.trim().toLowerCase();
+
+  return `${name === "total" ? "sum" : name || "average"} desc`;
 }
 
 /*
@@ -2172,16 +2216,44 @@ export default class AzureCloudConnector implements CloudConnector {
       entry: AzureResourceToRead,
       selected: Array<SelectedMetric>,
     ): Promise<AzureResourceMetricsRead> => {
-      const splitBy: string | undefined = getAzureKeyMetrics(
+      const typeSplitBy: string | undefined = getAzureKeyMetrics(
         entry.type,
       )?.splitByDimension;
-      const byGroup: Map<string, Array<SelectedMetric>> = new Map();
+      /*
+       * A call per read group - and per split an addition is read with,
+       * which its filter splits alone (#9808).
+       */
+      const byGroup: Map<
+        string,
+        {
+          key: string;
+          splitBy?: string | undefined;
+          orderBy?: string | undefined;
+          metrics: Array<SelectedMetric>;
+        }
+      > = new Map();
 
       for (const metric of selected) {
         const key: string = getAzureReadGroupKey(entry.type, metric);
-        const list: Array<SelectedMetric> = byGroup.get(key) || [];
-        list.push(metric);
-        byGroup.set(key, list);
+        const orderBy: string | undefined = metric.splitBy
+          ? getAzureSplitOrder(metric.aggregation)
+          : undefined;
+        const callKey: string = [key, metric.splitBy || "", orderBy || ""].join(
+          "\n",
+        );
+        const group: {
+          key: string;
+          splitBy?: string | undefined;
+          orderBy?: string | undefined;
+          metrics: Array<SelectedMetric>;
+        } = byGroup.get(callKey) || {
+          key,
+          ...(metric.splitBy ? { splitBy: metric.splitBy, orderBy } : {}),
+          metrics: [],
+        };
+
+        group.metrics.push(metric);
+        byGroup.set(callKey, group);
       }
 
       const read: AzureResourceMetricsRead = {
@@ -2191,7 +2263,10 @@ export default class AzureCloudConnector implements CloudConnector {
         selected,
       };
 
-      for (const [key, metrics] of byGroup) {
+      for (const call of byGroup.values()) {
+        const key: string = call.key;
+        const metrics: Array<SelectedMetric> = call.metrics;
+        const splitBy: string | undefined = call.splitBy || typeSplitBy;
         const group: AzureReadGroup | undefined = readGroups.get(key);
 
         // Nothing new of its grain yet, or not due: the next read reads it.
@@ -2210,14 +2285,24 @@ export default class AzureCloudConnector implements CloudConnector {
             interval: group.grain,
             start: group.window.start,
             end: group.window.end,
-            ...(splitBy
-              ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
-              : {}),
+            ...(call.splitBy
+              ? {
+                  splitBy: call.splitBy,
+                  top: CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+                  orderBy: call.orderBy,
+                }
+              : splitBy
+                ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
+                : {}),
           });
 
           readGroupsRead.add(key);
           read.failures.push(...answer.failures);
-          read.capped.push(...answer.capped);
+
+          // An added metric's split stops at its cap by design: no queue is left unread.
+          if (!call.splitBy) {
+            read.capped.push(...answer.capped);
+          }
 
           for (const item of answer.series) {
             const unit: string =
@@ -2273,11 +2358,14 @@ export default class AzureCloudConnector implements CloudConnector {
           try {
             return await readResource(
               entry,
-              own ||
-                withAzureResourceAdditions(
-                  selectedByType.get(entry.type.toLowerCase()) || [],
-                  ownAdded,
-                ),
+              applyAzureSplits(
+                own ||
+                  withAzureResourceAdditions(
+                    selectedByType.get(entry.type.toLowerCase()) || [],
+                    ownAdded,
+                  ),
+                added,
+              ),
             );
           } catch (error) {
             if (own || !isAzureUnsupportedMetricsRefusal(error)) {
@@ -2287,14 +2375,17 @@ export default class AzureCloudConnector implements CloudConnector {
             // It publishes fewer than its type's selection: read it with its own.
             return await readResource(
               entry,
-              await this.getResourceSelection({
-                arm,
-                entry,
-                keyMetrics,
-                cache: resourceDefinitionsCache,
-                now,
+              applyAzureSplits(
+                await this.getResourceSelection({
+                  arm,
+                  entry,
+                  keyMetrics,
+                  cache: resourceDefinitionsCache,
+                  now,
+                  added,
+                }),
                 added,
-              }),
+              ),
             );
           }
         },

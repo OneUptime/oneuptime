@@ -1,5 +1,5 @@
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import { AddDomainVerifiedNameIndex1809186720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186720000-AddDomainVerifiedNameIndex";
+import { AddDomainVerifiedNameIndex1809186820000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186820000-AddDomainVerifiedNameIndex";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectSsoDiscovery, {
   VerifiedProjectDomains,
@@ -34,7 +34,7 @@ import { DataSource, Logger as TypeOrmLogger, QueryRunner } from "typeorm";
  *
  *   - without the index, it reads every row of the table (a Seq Scan) and
  *     throws all but one away;
- *   - after the migration builds it (AddDomainVerifiedNameIndex1809186720000,
+ *   - after the migration builds it (AddDomainVerifiedNameIndex1809186820000,
  *     run here as it is, on a copy of the table), it reads the index and the
  *     one row the lookup returns, a handful of pages in all;
  *   - rows nobody verified - "gmail.com" added to thousands of projects -
@@ -253,7 +253,7 @@ describePostgres(
 
       try {
         await queryRunner.connect();
-        await new AddDomainVerifiedNameIndex1809186720000()[direction](
+        await new AddDomainVerifiedNameIndex1809186820000()[direction](
           queryRunner,
         );
       } finally {

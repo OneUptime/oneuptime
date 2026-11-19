@@ -65,7 +65,7 @@ Nothing is sent until you pick a status page: an event shown on no status page t
 | **Monitors**                         | **Resources Affected** | None                        | The monitors that are not checked while the event is in progress.               |
 | **Change Monitor Status to**         | **Resources Affected** | No change                   | The status those monitors show during the event. Asked once a monitor is picked. |
 | **Other Affected Resources**         | **Resources Affected** | None                        | Hosts, clusters, databases, network sites, services and more.                    |
-| **Show event on these status pages** | **Resources Affected** | None                        | The status pages that show the event and tell their subscribers.                 |
+| **Show event on these status pages** | **Resources Affected** | None                        | The only status pages that can show the event or tell their subscribers.         |
 | **Subscriber Notifications**         | **Resources Affected** | Published right away, all three moments on, no reminders | When the event shows on those pages, and when their subscribers are told. |
 
 Two things fill the form in for you as you go:
@@ -104,8 +104,9 @@ Plan the work as early as you like, and keep it with your team until your custom
 | Its **Ends At**    | It ends                                                       | Over                 |
 
 - **Until then, subscribers hear nothing.** Reminders before the event, state changes and public notes are not sent to them while the event waits.
-- **Its page says so.** Its header says **Not on status pages yet**, with the time it shows from, and **Publish Now** publishes it at once, after asking. Its **Settings** say the same, and the list of events shows the time under its status pages.
+- **Its page says so.** Its header says **Not on status pages yet**, with the time it shows from, and **Publish Now** publishes it at once, after asking. When none of its status pages shows maintenance events, the header says that instead of the time. Its **Settings** say the same, and the list of events shows the time under its status pages.
 - **Change it, or publish right away.** Move the **Publish At** on the **Status Pages** step of its **Edit**, or pick **Right away**. Turn **Visible on Status Page** off in its **Settings** to keep it off its status pages whatever the time.
+- **What its status pages do.** On the same step, a note under the status pages says when the pages picked will show the event to nobody or tell nobody, and why, and a note under **Reminders before the event** says which reminders are not sent. The **Maintenance Details** card says it under **Shown on Status Pages** when none of them shows maintenance events.
 
 ## Change an event later
 

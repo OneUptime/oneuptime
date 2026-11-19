@@ -143,7 +143,7 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-store/<id>/scan-now` | **Scan Now**: samples the store's content now |
 | `/data-store/<id>/check-now` | **Check Now**: reads the store's configuration again and runs its checks |
 | `/data-store-finding/<id>/scrub` | **Scrub It** on a telemetry finding |
-| `/data-store-finding/<id>/drop-metric-impact` | What **Drop This Metric** would drop for a finding in a metric's name: how many metrics, and the monitors and dashboards that read them |
+| `/data-store-finding/<id>/drop-metric-impact` | What **Drop This Metric** would drop for a finding in a metric's name: how many metrics, and the monitors, dashboards, SLOs and recording rules that read them |
 | `/data-store-finding/<id>/drop-metric` | **Drop This Metric**: a metric pipeline rule that drops the service's new data points of those metrics for good. It takes `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Explain with AI** on an issue |
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |

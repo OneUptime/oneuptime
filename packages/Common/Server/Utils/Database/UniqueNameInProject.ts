@@ -7,6 +7,7 @@ import Sort from "../../Types/Database/Sort";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../Types/Exception/NameTakenException";
 import { RefusalWithValues } from "../../../Types/Exception/RefusalWithValues";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -319,7 +320,12 @@ export default class UniqueNameInProject {
         })
       : null;
 
-    throw new BadDataException(
+    /*
+     * With its code beside its words (NameTakenException): nothing was
+     * written, so a client may ask again once the other record gives the
+     * name up, as the Terraform provider does inside one apply (#9855).
+     */
+    throw new NameTakenException(
       described || getNameTakenRefusalText(data.rules.takenRefusal, data.name),
     );
   }

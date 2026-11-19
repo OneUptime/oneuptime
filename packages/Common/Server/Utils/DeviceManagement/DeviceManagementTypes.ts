@@ -1,6 +1,7 @@
 import { DeviceManagementConfig } from "../../../Types/DeviceManagement/DeviceManagementConnectionSettings";
 import { DeviceManagementTestResult } from "../../../Types/DeviceManagement/DeviceManagementConnectionTest";
 import DeviceManagementProvider from "../../../Types/DeviceManagement/DeviceManagementProvider";
+import { ManagedDevicePlatform } from "../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataSourceHttpRequest,
@@ -23,14 +24,33 @@ import {
  */
 
 /*
- * Decrypted, server-only settings of one connection. Never serialize this
- * into a response or a log line: it holds the API key.
+ * A connection's secrets, decrypted: whichever its service takes. Esper
+ * takes an API key; Microsoft Intune an app registration's client secret.
  */
-export interface DeviceManagementSettings {
+export interface DeviceManagementSecrets {
+  apiKey: string;
+  clientSecret?: string | undefined;
+}
+
+/*
+ * Decrypted, server-only settings of one connection. Never serialize this
+ * into a response or a log line: it holds the connection's secrets.
+ */
+export interface DeviceManagementSettings extends DeviceManagementSecrets {
   provider: DeviceManagementProvider;
   projectId: string;
   config: DeviceManagementConfig;
-  apiKey: string;
+}
+
+// Every secret a connection holds, for redacting them out of any text.
+export function getDeviceManagementSecretValues(
+  secrets: DeviceManagementSecrets,
+): Array<string> {
+  return [secrets.apiKey, secrets.clientSecret || ""].filter(
+    (value: string): boolean => {
+      return Boolean(value);
+    },
+  );
 }
 
 /*
@@ -82,6 +102,8 @@ export interface DeviceManagementPullState {
  */
 export interface ProviderDevice {
   providerDeviceId: string;
+  // What it runs: Android, iOS, iPadOS, Windows... (ManagedDevicePlatform).
+  platform: ManagedDevicePlatform;
   deviceName: string;
   alias: string;
   serialNumber: string;
@@ -142,7 +164,11 @@ export interface DeviceManagementFleetRead {
   isDeviceListComplete: boolean;
   groups: Array<ProviderGroup>;
   isGroupListComplete: boolean;
-  // Check-ins within the window, newest per device.
+  /*
+   * Check-ins within the window, newest per device - and, for a service
+   * whose device list says when each device last checked in (an Esper Apple
+   * device's last_seen, Intune's lastSyncDateTime), every listed device's.
+   */
   checkIns: Array<ProviderCheckIn>;
   /*
    * The end of the check-in window read, when it was read to its end: the
@@ -165,8 +191,20 @@ export interface DeviceManagementSession {
    * part way, and says what it did not finish.
    */
   readFleet(data: { checkInSince: Date }): Promise<DeviceManagementFleetRead>;
-  // One device's last check-in, asked on its own. Null when it has none.
-  readCheckIn(providerDeviceId: string): Promise<Date | null>;
+  /*
+   * One device's last check-in, asked on its own. Null when it has none.
+   * Absent for a service whose device list already says it of every device
+   * (readFleet's checkIns): nothing is then asked one by one.
+   */
+  readCheckIn?:
+    | ((providerDeviceId: string) => Promise<Date | null>)
+    | undefined;
+  /*
+   * Whether the service lists a device's installed apps, by its platform:
+   * Esper lists an Android device's, but an Apple device's only as the IDs
+   * of the apps it pushed. A device it does not is never due.
+   */
+  readsAppsOf(device: { platform: ManagedDevicePlatform }): boolean;
   // One device's installed apps, every page of them.
   readApps(data: {
     enterpriseId: string;
@@ -186,8 +224,7 @@ export interface DeviceManagementConnector {
    * "fail".
    */
   testConnection(
-    data: {
-      apiKey: string;
+    data: DeviceManagementSecrets & {
       config: DeviceManagementConfig;
     },
     options: DeviceManagementCallOptions,

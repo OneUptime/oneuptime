@@ -30,7 +30,7 @@ In de modus **Alleen-lezen** krijgt het model nooit acties aangeboden, dus het g
 
 AI vragen beantwoordt ook vragen over OneUptime zelf: 'Hoe krijg ik een sms als mijn site plat ligt?', 'Wat is een episode?', 'Waar voeg ik een tweede telefoonnummer toe?'. Het antwoordt uit deze documentatie, de kopie die uw OneUptime zelf serveert, dus het werkt zonder internettoegang en stuurt niets naar nieuwe plekken. Een vertaalde pagina leest het in uw taal, bij elke stap noemt het de pagina en de sectie, en staat iets niet in de documentatie, dan zegt het dat in plaats van te gokken.
 
-Een antwoord op 'hoe doe ik' eindigt met een knop die de pagina van uw project opent waar u het doet, zoals **Monitor maken** of **Meldingsmethoden**. Die opent alleen pagina's die OneUptime heeft: de pagina's die Zoeken (`Ctrl` + `K`) vindt.
+Een antwoord op 'hoe doe ik' eindigt met een knop die de pagina van uw project opent waar u het doet, zoals **Monitor maken** of **Meldingsmethoden**. Die opent alleen pagina's die OneUptime heeft: de pagina's die Zoeken (`Ctrl` + `K`) vindt. Vraag je naar één record, zoals een statuspagina, dan opent hij de eigen pagina van dat record, zoals de **Aangepaste domeinen**, en alleen voor een record dat je mag openen.
 
 ## AI vragen openen
 
@@ -60,7 +60,7 @@ AI vragen leest je project met je eigen machtigingen, dus hij ziet wat jij mag z
 
 ## Paginacontext
 
-AI vragen weet vanaf welke pagina je hem hebt geopend. Op een incidentpagina betekent "waarom is dit gebeurd?" dat incident: het invoervak toont een chip met het onderwerp van de pagina, en de vragen die hij voorstelt zijn die van die pagina. Verwijder de chip om over het hele project te vragen, en voeg hem op dezelfde manier weer toe. Open AI vragen op een andere pagina en de context gaat mee. Het gesprek onthoudt zijn eerste onderwerp ook op de server, zodat een vervolgvraag dagen later "dit incident" nog goed begrijpt.
+AI vragen weet vanaf welke pagina je hem hebt geopend. Op een incidentpagina betekent "waarom is dit gebeurd?" dat incident: het invoervak toont een chip met het onderwerp van de pagina, en de vragen die hij voorstelt zijn die van die pagina. Verwijder de chip om over het hele project te vragen, en voeg hem op dezelfde manier weer toe. Open AI vragen op een andere pagina en de context gaat mee. Het gesprek onthoudt zijn eerste onderwerp ook op de server, zodat een vervolgvraag dagen later "dit incident" nog goed begrijpt. AI vragen kent ook de pagina's waar je een project inricht: **Start**, **Projectinstellingen**, **Gebruikersinstellingen**, **Bereikbaarheid**, **Statuspagina's** en de formulieren die iets maken, zodat 'hoe voeg ik er hier een toe?' wordt beantwoord voor de pagina waarop je bent.
 
 Op een incident, een waarschuwing, een monitor of een onderhoudsgebeurtenis volgen de vragen ook waar dat record staat, gelezen elke keer dat AI vragen erop opent. Een opgelost incident vraagt hoe de reactie verliep en wat zou voorkomen dat het opnieuw gebeurt, een opgeloste waarschuwing of het een echt probleem was en hoe vaak waarschuwingen zoals deze afgaan, en een monitor die niet operationeel is vraagt waarom. Een onderhoudsgebeurtenis die nog niet is begonnen vraagt of de monitoren vooraf gezond zijn, en een die voorbij is of ze weer normaal zijn.
 
@@ -147,7 +147,7 @@ AI vragen telt mee voor de eigen dagelijkse AI-limieten van het project wanneer 
 ## Problemen oplossen
 
 :::details AI vragen zegt dat AI niet beschikbaar is
-AI vragen zegt waarom voordat je typt: het abonnement van het project omvat geen AI, **AI inschakelen** staat uit, of het project heeft geen LLM-provider. Elke melding linkt naar de pagina waar je dat wijzigt.
+AI vragen zegt waarom voordat je typt: het abonnement van het project omvat geen AI, **AI inschakelen** staat uit, of het project heeft geen LLM-provider. Elke melding linkt naar de pagina waar je dat wijzigt. Boven de melding zoekt AI vragen je vraag toch op in deze documentatie. Een antwoord dat mislukt, door een daglimiet of omdat de provider niet reageert, toont eronder ook de pagina's van de documentatie over die vraag.
 :::
 
 :::details Een actie werd geweigerd

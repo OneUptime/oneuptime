@@ -6,17 +6,26 @@ import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 import Dictionary from "../../../Types/Dictionary";
 import {
   ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE,
-  ESPER_DEVICE_ID_ATTRIBUTE,
-  ESPER_DEVICE_NAME_ATTRIBUTE,
-  ESPER_GROUP_ATTRIBUTE,
   MANAGED_DEVICE_HOST_NAME_ATTRIBUTE,
   MANAGED_DEVICE_RESOURCE_TYPE,
   ManagedDeviceHostMatch,
+  ManagedDeviceNaming,
+  ManagedDeviceServiceAttributeKeys,
   canonicalizeManagedDeviceIdentity,
+  getAllManagedDeviceServiceAttributeKeys,
+  getManagedDeviceFallbackHostName,
   getManagedDeviceHostName,
+  getManagedDeviceServiceAttributeKeys,
+  getManagedDeviceUniqueHostName,
+  getSharedManagedDeviceNames,
   getUsableSerialNumber,
   isManagedDeviceHostMatch,
 } from "../../../Types/DeviceManagement/ManagedDeviceIdentity";
+import {
+  ManagedDevicePlatform,
+  getManagedDeviceOperatingSystemName,
+  readManagedDevicePlatform,
+} from "../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
@@ -53,10 +62,12 @@ import { truncateDescriptiveAttributeValue } from "../Telemetry/TelemetryEntity"
  * service knows:
  *
  *   - its asset details, under the keys every machine in Inventory uses
- *     (InventoryAssetDetails): serial number, make, model, build, Android
+ *     (InventoryAssetDetails): serial number, make, model, build, its
+ *     operating system (its platform's: Android, iOS, iPadOS, Windows...)
  *     and its version, IP and MAC addresses, and "kiosk" as its type when
  *     the device runs in kiosk mode; and the service's own facts beside
- *     them, namespaced (esper.device.id, esper.group, the patch level);
+ *     them, namespaced by the service (esper.device.id, esper.group), and
+ *     an Android device's patch level;
  *   - its last check-in as its last-seen time, so a device that stops
  *     checking in goes quiet in Inventory as any host does;
  *   - a pointer back to the device (resourceType "ManagedDevice"), which
@@ -85,22 +96,16 @@ import { truncateDescriptiveAttributeValue } from "../Telemetry/TelemetryEntity"
 // A device's check-in moves its host's last-seen time once it is this much newer.
 export const LAST_SEEN_BUMP_MS: number = 5 * 60 * 1000;
 
-// What the operating system of every device a connection imports is.
-export const MANAGED_DEVICE_OPERATING_SYSTEM: string = "Android";
-
 // The device type a device in kiosk mode is given, as kiosk apps name it.
 export const KIOSK_DEVICE_TYPE: string = "kiosk";
 
 /*
- * The keys only the import writes: let go with the host, since nothing
- * else keeps them current. Not the patch level, which the Android agent
- * sends under the same key.
+ * The keys only the import writes - every service's - let go with the
+ * host, since nothing else keeps them current. Not the patch level, which
+ * the Android agent sends under the same key.
  */
-export const IMPORT_ONLY_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
-  ESPER_DEVICE_ID_ATTRIBUTE,
-  ESPER_DEVICE_NAME_ATTRIBUTE,
-  ESPER_GROUP_ATTRIBUTE,
-];
+export const IMPORT_ONLY_ATTRIBUTE_KEYS: ReadonlyArray<string> =
+  getAllManagedDeviceServiceAttributeKeys();
 
 // What the import wrote to a device's host last time (ManagedDevice.inventoryAttributes).
 export interface WrittenHostState {
@@ -138,6 +143,12 @@ export function readWrittenHostState(value: unknown): WrittenHostState {
 // The facts of a device its host is described by.
 export interface ManagedDeviceHostFacts {
   providerDeviceId: string;
+  // The device's service: what its own facts are namespaced by. Esper when absent.
+  provider?: string | undefined;
+  // What it runs: its operating system. Android when absent.
+  platform?: string | undefined;
+  // The service's own word for its operating system, for a platform OneUptime does not name.
+  serviceOperatingSystem?: string | undefined;
   deviceName?: string | undefined;
   alias?: string | undefined;
   serialNumber?: string | undefined;
@@ -183,11 +194,14 @@ export function getManagedDeviceHostAttributes(
 
   put(asset(InventoryAssetField.Manufacturer), device.manufacturer);
   put(asset(InventoryAssetField.Model), device.model);
-  // An Android device's firmware is the build it runs.
+  // A phone's or a tablet's firmware is the build it runs.
   put(asset(InventoryAssetField.FirmwareVersion), device.buildNumber);
   put(
     asset(InventoryAssetField.OperatingSystem),
-    MANAGED_DEVICE_OPERATING_SYSTEM,
+    getManagedDeviceOperatingSystemName({
+      platform: device.platform,
+      serviceOperatingSystem: device.serviceOperatingSystem,
+    }),
   );
   put(asset(InventoryAssetField.OsVersion), device.osVersion);
   put(
@@ -211,10 +225,19 @@ export function getManagedDeviceHostAttributes(
     put(asset(InventoryAssetField.DeviceType), KIOSK_DEVICE_TYPE);
   }
 
-  put(ESPER_DEVICE_ID_ATTRIBUTE, device.providerDeviceId);
-  put(ESPER_DEVICE_NAME_ATTRIBUTE, device.deviceName);
-  put(ESPER_GROUP_ATTRIBUTE, device.groupPath || device.groupName);
-  put(ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE, device.securityPatchLevel);
+  const keys: ManagedDeviceServiceAttributeKeys =
+    getManagedDeviceServiceAttributeKeys(device.provider);
+
+  put(keys.deviceId, device.providerDeviceId);
+  put(keys.deviceName, device.deviceName);
+  put(keys.group, device.groupPath || device.groupName);
+
+  // Android's security patch level: no other platform has one.
+  if (
+    readManagedDevicePlatform(device.platform) === ManagedDevicePlatform.Android
+  ) {
+    put(ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE, device.securityPatchLevel);
+  }
 
   return attributes;
 }
@@ -439,6 +462,8 @@ const DEVICE_SELECT: {
   projectId: true;
   connectionId: true;
   providerDeviceId: true;
+  platform: true;
+  details: true;
   deviceName: true;
   alias: true;
   serialNumber: true;
@@ -464,6 +489,8 @@ const DEVICE_SELECT: {
   projectId: true,
   connectionId: true,
   providerDeviceId: true,
+  platform: true,
+  details: true,
   deviceName: true,
   alias: true,
   serialNumber: true,
@@ -547,9 +574,26 @@ function toSubject(device: ManagedDevice): ManagedDeviceHostSubject {
   };
 }
 
-function toFacts(device: ManagedDevice): ManagedDeviceHostFacts {
+function toFacts(
+  device: ManagedDevice,
+  provider: string | undefined,
+): ManagedDeviceHostFacts {
+  const details: JSONObject =
+    device.details &&
+    typeof device.details === "object" &&
+    !Array.isArray(device.details)
+      ? (device.details as JSONObject)
+      : {};
+  const serviceOperatingSystem: unknown = details["operatingSystem"];
+
   return {
     providerDeviceId: device.providerDeviceId || "",
+    provider: provider,
+    platform: device.platform,
+    serviceOperatingSystem:
+      typeof serviceOperatingSystem === "string"
+        ? serviceOperatingSystem
+        : undefined,
     deviceName: device.deviceName,
     alias: device.alias,
     serialNumber: device.serialNumber,
@@ -575,6 +619,8 @@ export default class ManagedDeviceInventory {
   public static async record(data: {
     projectId: ObjectID;
     connectionId: ObjectID;
+    // The connection's service: what its devices' own facts are namespaced by.
+    provider?: string | undefined;
     now: Date;
   }): Promise<ManagedDeviceInventoryOutcome> {
     const outcome: ManagedDeviceInventoryOutcome = {
@@ -582,6 +628,10 @@ export default class ManagedDeviceInventory {
       createdHostCount: 0,
       releasedHostCount: 0,
     };
+
+    // The names two of the connection's devices share, which neither's host goes by.
+    const sharedNames: Set<string> =
+      await ManagedDeviceInventory.loadSharedNames(data);
 
     let skip: number = 0;
 
@@ -601,7 +651,9 @@ export default class ManagedDeviceInventory {
 
       await ManagedDeviceInventory.recordPage({
         projectId: data.projectId,
+        provider: data.provider,
         devices,
+        sharedNames,
         now: data.now,
         outcome,
       });
@@ -616,9 +668,61 @@ export default class ManagedDeviceInventory {
     return outcome;
   }
 
+  /*
+   * The names more than one of a connection's devices in service has
+   * (getSharedManagedDeviceNames), read over all of them before any page
+   * is recorded, so two that share a name are told apart whichever pages
+   * they are on.
+   */
+  private static async loadSharedNames(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+  }): Promise<Set<string>> {
+    const naming: Array<ManagedDeviceNaming> = [];
+    let skip: number = 0;
+
+    for (;;) {
+      const devices: Array<ManagedDevice> = await ManagedDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          connectionId: data.connectionId,
+          removedAt: QueryHelper.isNull(),
+        },
+        select: {
+          _id: true,
+          deviceName: true,
+          serialNumber: true,
+          providerDeviceId: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        skip: skip,
+        limit: PAGE_SIZE,
+        props: { isRoot: true },
+      });
+
+      for (const device of devices) {
+        naming.push({
+          deviceName: device.deviceName,
+          serialNumber: device.serialNumber,
+          providerDeviceId: device.providerDeviceId,
+        });
+      }
+
+      if (devices.length < PAGE_SIZE) {
+        break;
+      }
+
+      skip += PAGE_SIZE;
+    }
+
+    return getSharedManagedDeviceNames(naming);
+  }
+
   private static async recordPage(data: {
     projectId: ObjectID;
+    provider: string | undefined;
     devices: Array<ManagedDevice>;
+    sharedNames: ReadonlySet<string>;
     now: Date;
     outcome: ManagedDeviceInventoryOutcome;
   }): Promise<void> {
@@ -629,28 +733,45 @@ export default class ManagedDeviceInventory {
       },
     );
 
-    // Every host a device here could be, read at once.
+    /*
+     * Every host a device here could be, read at once: the one its name
+     * keys, and the one its fallback name keys, which it goes by when its
+     * name is another device's host already.
+     */
+    const keyOf: (name: string) => string = (name: string): string => {
+      return keyForHost(projectId, canonicalizeManagedDeviceIdentity(name));
+    };
+    const hostNameByDevice: Map<string, string> = new Map<string, string>();
+    const fallbackNameByDevice: Map<string, string> = new Map<string, string>();
     const keyByDevice: Map<string, string> = new Map<string, string>();
 
     for (const device of present) {
-      keyByDevice.set(
-        device._id!.toString(),
-        keyForHost(
-          projectId,
-          canonicalizeManagedDeviceIdentity(
-            getManagedDeviceHostName({
-              deviceName: device.deviceName,
-              serialNumber: device.serialNumber,
-              providerDeviceId: device.providerDeviceId,
-            }),
-          ),
-        ),
+      const hostName: string = getManagedDeviceUniqueHostName(
+        device,
+        data.sharedNames,
       );
+      const fallbackName: string = getManagedDeviceFallbackHostName(device);
+
+      hostNameByDevice.set(device._id!.toString(), hostName);
+      keyByDevice.set(device._id!.toString(), keyOf(hostName));
+
+      if (
+        fallbackName &&
+        canonicalizeManagedDeviceIdentity(fallbackName) !==
+          canonicalizeManagedDeviceIdentity(hostName)
+      ) {
+        fallbackNameByDevice.set(device._id!.toString(), fallbackName);
+      }
     }
 
     const byKey: Map<string, InventoryItem> = new Map<string, InventoryItem>();
     const byId: Map<string, InventoryItem> = new Map<string, InventoryItem>();
-    const keys: Array<string> = Array.from(new Set(keyByDevice.values()));
+    const keys: Array<string> = Array.from(
+      new Set([
+        ...keyByDevice.values(),
+        ...Array.from(fallbackNameByDevice.values()).map(keyOf),
+      ]),
+    );
 
     if (keys.length > 0) {
       const named: Array<InventoryItem> = await InventoryItemService.findBy({
@@ -761,6 +882,22 @@ export default class ManagedDeviceInventory {
 
         const serial: string = getUsableSerialNumber(device.serialNumber) || "";
 
+        /*
+         * A name another device's host goes by already (a device of another
+         * connection named the same) is not this one's to share: it goes by
+         * its fallback name instead.
+         */
+        let key: string = keyByDevice.get(deviceId) || "";
+        let hostName: string = hostNameByDevice.get(deviceId) || "";
+        const named: InventoryItem | undefined = byKey.get(key);
+        const fallbackName: string | undefined =
+          fallbackNameByDevice.get(deviceId);
+
+        if (named && heldByOthers.has(named._id!.toString()) && fallbackName) {
+          hostName = fallbackName;
+          key = keyOf(fallbackName);
+        }
+
         const choice: ManagedDeviceHostChoice = chooseManagedDeviceHost({
           device: toSubject(device),
           current: candidate(
@@ -768,7 +905,7 @@ export default class ManagedDeviceInventory {
               ? byId.get(device.inventoryItemId.toString())
               : undefined,
           ),
-          byName: candidate(byKey.get(keyByDevice.get(deviceId) || "")),
+          byName: candidate(byKey.get(key)),
           bySerial: serialHosts
             .filter((host: SerialNumberHost): boolean => {
               return (
@@ -803,10 +940,12 @@ export default class ManagedDeviceInventory {
 
         const itemId: string = await ManagedDeviceInventory.writeHost({
           projectId: data.projectId,
+          provider: data.provider,
           device,
           choice,
           item: choice.itemId ? byId.get(choice.itemId) : undefined,
-          key: keyByDevice.get(deviceId) || "",
+          key,
+          hostName,
           now: data.now,
         });
 
@@ -877,14 +1016,17 @@ export default class ManagedDeviceInventory {
    */
   private static async writeHost(data: {
     projectId: ObjectID;
+    provider: string | undefined;
     device: ManagedDevice;
     choice: ManagedDeviceHostChoice;
     item: InventoryItem | undefined;
     key: string;
+    // The host.name a new host is made with: the one `key` keys.
+    hostName: string;
     now: Date;
   }): Promise<string> {
     const device: ManagedDevice = data.device;
-    const facts: ManagedDeviceHostFacts = toFacts(device);
+    const facts: ManagedDeviceHostFacts = toFacts(device, data.provider);
     const desired: Dictionary<string> = getManagedDeviceHostAttributes(facts);
     const written: WrittenHostState = readWrittenHostState(
       device.inventoryAttributes,
@@ -898,11 +1040,7 @@ export default class ManagedDeviceInventory {
     let writtenNow: WrittenHostState = written;
 
     if (!data.item) {
-      const hostName: string = getManagedDeviceHostName({
-        deviceName: device.deviceName,
-        serialNumber: device.serialNumber,
-        providerDeviceId: device.providerDeviceId,
-      });
+      const hostName: string = data.hostName;
 
       if (!hostName || !data.key) {
         return "";

@@ -106,7 +106,7 @@ Só os monitores que o evento indica em **Monitores** deixam de ser verificados,
 :::
 
 :::details O evento não aparece na minha página de status
-Confira se o evento indica a página em **Mostrar evento nestas páginas de status** e se **Visível na página de status** está ativado nas **Configurações** do evento. Se o cabeçalho dele mostra **Ainda não está nas páginas de status**, ele aparece a partir do seu **Publicar em**: veja [Publicar mais tarde](/docs/scheduled-maintenance/creating-events#publicar-mais-tarde). Depois confira a própria página de status: ela precisa mostrar eventos de manutenção, e um evento que começou há mais tempo que a janela de histórico da página, 14 dias se você não a mudou, não é mais listado.
+Confira se o evento indica a página em **Mostrar evento nestas páginas de status** e se **Visível na página de status** está ativado nas **Configurações** do evento. Se o cabeçalho dele mostra **Ainda não está nas páginas de status**, ele aparece a partir do seu **Publicar em**: veja [Publicar mais tarde](/docs/scheduled-maintenance/creating-events#publicar-mais-tarde). Depois confira a própria página de status: ela precisa mostrar eventos de manutenção (o cartão **Detalhes da manutenção** do evento diz isso quando nenhuma das páginas de status dele mostra), e um evento que começou há mais tempo que a janela de histórico da página, 14 dias se você não a mudou, não é mais listado.
 :::
 
 ## Próximos passos

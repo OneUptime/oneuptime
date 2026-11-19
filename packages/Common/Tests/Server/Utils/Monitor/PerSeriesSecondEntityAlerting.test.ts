@@ -444,6 +444,152 @@ describe("A second breaching series alerts even while the first is open", () => 
     });
   });
 
+  describe("the evaluation log names the series an open record blocks", () => {
+    /*
+     * The skip is per criteria AND series. The log used to say only "an
+     * active incident exists for this criteria", which read as if host
+     * A's open incident held back host B's too, so it names the series.
+     */
+    function skipMessages(
+      summary: MonitorEvaluationSummary,
+      type: string,
+    ): Array<string | undefined> {
+      return summary.events
+        .filter((event: { type: string }) => {
+          return event.type === type;
+        })
+        .map((event: { message?: string | undefined }) => {
+          return event.message;
+        });
+    }
+
+    it("alerts: the skip for host A names host A, and host B still gets its alert", async () => {
+      openAlerts = [
+        openAlertModel({
+          id: "open-a",
+          criteriaId: CRITICAL_CRITERIA_ID,
+          fingerprint: FP_HOST_A,
+        }),
+      ];
+
+      const summary: MonitorEvaluationSummary = emptyEvaluationSummary();
+
+      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+        criteriaInstance: criteria({
+          id: CRITICAL_CRITERIA_ID,
+          name: "Disk > 90%",
+        }),
+        monitor: monitorModel(),
+        dataToProcess: dataToProcess,
+        rootCause: "Disk usage is above 90%",
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+        matchesPerSeries: [
+          seriesMatch(CRITICAL_CRITERIA_ID, FP_HOST_A, "host-a"),
+          seriesMatch(CRITICAL_CRITERIA_ID, FP_HOST_B, "host-b"),
+        ],
+        evaluationSummary: summary,
+        props: {},
+      });
+
+      expect(skipMessages(summary, "alert-skipped")).toEqual([
+        "Skipped creating a new alert because an active alert exists for this criteria and series (Host: host-a).",
+      ]);
+      expect(createdAlerts).toHaveLength(1);
+      expect(createdAlerts[0]!.seriesFingerprint).toBe(FP_HOST_B);
+    });
+
+    it("incidents: the skip for host A names host A, and host B still gets its incident", async () => {
+      openIncidents = [
+        openIncidentModel({
+          id: "open-a",
+          criteriaId: CRITICAL_CRITERIA_ID,
+          fingerprint: FP_HOST_A,
+        }),
+      ];
+
+      const summary: MonitorEvaluationSummary = emptyEvaluationSummary();
+
+      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+        criteriaInstance: criteria({
+          id: CRITICAL_CRITERIA_ID,
+          name: "Disk > 90%",
+        }),
+        monitor: monitorModel(),
+        dataToProcess: dataToProcess,
+        rootCause: "Disk usage is above 90%",
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
+        matchesPerSeries: [
+          seriesMatch(CRITICAL_CRITERIA_ID, FP_HOST_A, "host-a"),
+          seriesMatch(CRITICAL_CRITERIA_ID, FP_HOST_B, "host-b"),
+        ],
+        evaluationSummary: summary,
+        props: {},
+      });
+
+      expect(skipMessages(summary, "incident-skipped")).toEqual([
+        "Skipped creating a new incident because an active incident exists for this criteria and series (Host: host-a).",
+      ]);
+      expect(createdIncidents).toHaveLength(1);
+      expect(createdIncidents[0]!.seriesFingerprint).toBe(FP_HOST_B);
+    });
+
+    it("incidents: an ungrouped monitor's skip still speaks for the criteria alone", async () => {
+      openIncidents = [
+        openIncidentModel({
+          id: "open-monitor",
+          criteriaId: CRITICAL_CRITERIA_ID,
+        }),
+      ];
+
+      const summary: MonitorEvaluationSummary = emptyEvaluationSummary();
+
+      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+        criteriaInstance: criteria({
+          id: CRITICAL_CRITERIA_ID,
+          name: "Disk > 90%",
+        }),
+        monitor: monitorModel(),
+        dataToProcess: dataToProcess,
+        rootCause: "Disk usage is above 90%",
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
+        evaluationSummary: summary,
+        props: {},
+      });
+
+      expect(skipMessages(summary, "incident-skipped")).toEqual([
+        "Skipped creating a new incident because an active incident exists for this criteria.",
+      ]);
+    });
+
+    it("alerts: an ungrouped monitor's skip still speaks for the criteria alone", async () => {
+      openAlerts = [
+        openAlertModel({
+          id: "open-monitor",
+          criteriaId: CRITICAL_CRITERIA_ID,
+        }),
+      ];
+
+      const summary: MonitorEvaluationSummary = emptyEvaluationSummary();
+
+      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+        criteriaInstance: criteria({
+          id: CRITICAL_CRITERIA_ID,
+          name: "Disk > 90%",
+        }),
+        monitor: monitorModel(),
+        dataToProcess: dataToProcess,
+        rootCause: "Disk usage is above 90%",
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+        evaluationSummary: summary,
+        props: {},
+      });
+
+      expect(skipMessages(summary, "alert-skipped")).toEqual([
+        "Skipped creating a new alert because an active alert exists for this criteria.",
+      ]);
+    });
+  });
+
   describe("ungrouped monitors keep the whole-monitor contract", () => {
     /*
      * A monitor with no group-by raises one alert for the monitor. The

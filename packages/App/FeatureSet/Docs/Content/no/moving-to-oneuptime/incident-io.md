@@ -54,9 +54,9 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | I incident.io | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. Deaktiverte brukere overføres ikke. |
-| Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
-| Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme vaktlengde og samme arbeidstid, i vaktplanens tidssone. Versjonen av rotasjonen som gjelder nå, er den som overføres. |
-| Eskaleringsbaner | Vaktpolicyer | Hvert nivå blir en eskaleringsregel som varsler de samme vaktplanene, brukerne og teamene etter samme ventetid. En gjentakelse blir policyens gjentakelser, og fra en forgrening overføres den første banen. |
+| Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. Har to team samme navn, overføres det andre elementet med et nummer, for eksempel `Platform 2`, og rapporten viser navnet det ble opprettet med. |
+| Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme vaktlengde og samme arbeidstid, i vaktplanens tidssone. Versjonen av rotasjonen som gjelder nå, er den som overføres. Har to vaktplaner samme navn, overføres det andre elementet med et nummer, for eksempel `Primary 2`, og rapporten viser navnet det ble opprettet med. |
+| Eskaleringsbaner | Vaktpolicyer | Hvert nivå blir en eskaleringsregel som varsler de samme vaktplanene, brukerne og teamene etter samme ventetid. En gjentakelse blir policyens gjentakelser, og fra en forgrening overføres den første banen. Har to eskaleringsbaner samme navn, overføres det andre elementet med et nummer, for eksempel `Primary 2`, og rapporten viser navnet det ble opprettet med. |
 | Katalogtjenester | Tjenester | Oppføringene i katalogtypene dine i tjenestekategorien, opprettet i tjenestekatalogen. Arkiverte oppføringer utelates. |
 | Alvorlighetsgrader | Hendelsesalvorligheter | Opprettes i incident.ios rekkefølge, den mest alvorlige først. En alvorlighetsgrad som prosjektet allerede har navnet på, brukes som den er. |
 | Statuser | Hendelsestilstander | En triagestatus tilsvarer tilstanden OneUptime starter hendelser i, og en lukket status tilstanden der hendelser er løst. Aktive og pausede statuser opprettes mellom Bekreftet og Løst. |

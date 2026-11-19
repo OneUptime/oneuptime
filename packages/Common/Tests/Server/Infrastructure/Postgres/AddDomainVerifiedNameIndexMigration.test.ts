@@ -6,7 +6,7 @@ import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import Domain from "../../../../Models/DatabaseModels/Domain";
 import dataSourceOptions from "../../../../Server/Infrastructure/Postgres/DataSourceOptions";
 import { ONLINE_DDL_LIMITS } from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddDomainVerifiedNameIndex1809186720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186720000-AddDomainVerifiedNameIndex";
+import { AddDomainVerifiedNameIndex1809186820000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186820000-AddDomainVerifiedNameIndex";
 import { BackfillSsoProviderDomains1809186620000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186620000-BackfillSsoProviderDomains";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
@@ -24,7 +24,7 @@ import logger from "../../../../Server/Utils/Logger";
  * Postgres in AddDomainVerifiedNameIndexPostgres.test.ts.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186720000";
+const MIGRATION_TIMESTAMP: string = "1809186820000";
 const MIGRATION_BASE_NAME: string = "AddDomainVerifiedNameIndex";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
@@ -105,7 +105,7 @@ afterEach(() => {
 
 describe("up()", () => {
   test("TypeORM is told to run it outside a transaction, as an online build must", () => {
-    expect(new AddDomainVerifiedNameIndex1809186720000().transaction).toBe(
+    expect(new AddDomainVerifiedNameIndex1809186820000().transaction).toBe(
       false,
     );
   });
@@ -117,7 +117,7 @@ describe("up()", () => {
 
     const run: FakeRun = fakeRunner({ indexState: "missing" });
 
-    await new AddDomainVerifiedNameIndex1809186720000().up(run.runner);
+    await new AddDomainVerifiedNameIndex1809186820000().up(run.runner);
 
     expect(run.statements).toEqual([
       LOOKUP,
@@ -145,7 +145,7 @@ describe("up()", () => {
 
     const run: FakeRun = fakeRunner({ indexState: "missing" });
 
-    await new AddDomainVerifiedNameIndex1809186720000().up(run.runner);
+    await new AddDomainVerifiedNameIndex1809186820000().up(run.runner);
 
     /*
      * Unqualified, so on every install it is public's, and the Postgres
@@ -157,7 +157,7 @@ describe("up()", () => {
   test("an index already there - built by hand ahead of the upgrade, or a run stopped after it - is left as it is", async () => {
     const run: FakeRun = fakeRunner({ indexState: "valid" });
 
-    await new AddDomainVerifiedNameIndex1809186720000().up(run.runner);
+    await new AddDomainVerifiedNameIndex1809186820000().up(run.runner);
 
     expect(run.statements).toEqual([LOOKUP]);
     expect(run.builds).toEqual([]);
@@ -170,7 +170,7 @@ describe("up()", () => {
     });
 
     await expect(
-      new AddDomainVerifiedNameIndex1809186720000().up(run.runner),
+      new AddDomainVerifiedNameIndex1809186820000().up(run.runner),
     ).rejects.toThrow("transaction");
     expect(run.builds).toEqual([]);
   });
@@ -180,7 +180,7 @@ describe("down()", () => {
   test("outside a transaction: dropped online, by its unqualified name", async () => {
     const run: FakeRun = fakeRunner({ indexState: "valid" });
 
-    await new AddDomainVerifiedNameIndex1809186720000().down(run.runner);
+    await new AddDomainVerifiedNameIndex1809186820000().down(run.runner);
 
     expect(run.statements).toEqual([
       `SET statement_timeout = ${ONLINE_DDL_LIMITS.statementTimeoutInMs}`,
@@ -197,7 +197,7 @@ describe("down()", () => {
       inTransaction: true,
     });
 
-    await new AddDomainVerifiedNameIndex1809186720000().down(run.runner);
+    await new AddDomainVerifiedNameIndex1809186820000().down(run.runner);
 
     expect(run.statements[run.statements.length - 1]).toBe(
       `DROP INDEX IF EXISTS "${INDEX_NAME}"`,
@@ -266,11 +266,11 @@ describe("the migration runs", () => {
   test("it is in the exported migration list, exactly once, after the backfill that fills the lookup's domain lists", () => {
     expect(
       SchemaMigrations.filter((migration: unknown): boolean => {
-        return migration === AddDomainVerifiedNameIndex1809186720000;
+        return migration === AddDomainVerifiedNameIndex1809186820000;
       }),
     ).toHaveLength(1);
     expect(
-      SchemaMigrations.indexOf(AddDomainVerifiedNameIndex1809186720000),
+      SchemaMigrations.indexOf(AddDomainVerifiedNameIndex1809186820000),
     ).toBeGreaterThan(
       SchemaMigrations.indexOf(BackfillSsoProviderDomains1809186620000),
     );
@@ -282,14 +282,14 @@ describe("the migration runs", () => {
 
   // TypeORM records applied migrations by `name`; a mismatch would run it on every boot.
   test("its declared name, its class name and its timestamp agree", () => {
-    expect(new AddDomainVerifiedNameIndex1809186720000().name).toBe(
+    expect(new AddDomainVerifiedNameIndex1809186820000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
-    expect(AddDomainVerifiedNameIndex1809186720000.name).toBe(
+    expect(AddDomainVerifiedNameIndex1809186820000.name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
-      AddDomainVerifiedNameIndex1809186720000.name.match(CLASS_TIMESTAMP)?.[1],
+      AddDomainVerifiedNameIndex1809186820000.name.match(CLASS_TIMESTAMP)?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
   });
 
@@ -303,7 +303,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddDomainVerifiedNameIndex1809186720000,
+      AddDomainVerifiedNameIndex1809186820000,
     );
     const earlier: Array<number> = SchemaMigrations.slice(0, position)
       .map((migration: unknown): RegExpMatchArray | null => {

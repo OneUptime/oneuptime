@@ -254,7 +254,9 @@ Teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's hebben in een pr
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen. Voor teams, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden.
+Naast de melding bevat het antwoord `"refusalCode": "name_taken"`. Herken deze weigering aan die code, niet aan de zin, die anders geformuleerd kan worden. Er is niets geschreven, dus hetzelfde verzoek kan opnieuw worden gestuurd zodra het andere record de naam opgeeft: de Terraform-provider vraagt het tot 30 seconden lang opnieuw.
+
+Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen. Voor teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `label`, `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden. Gearchiveerde labels en gearchiveerd bereikbaarheidsbeleid tellen niet mee.
 
 ### Schakelaars
 

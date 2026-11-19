@@ -143,7 +143,7 @@ flowchart TB
 | `/data-store/<id>/scan-now` | **今すぐスキャン**: データストアのコンテンツをすぐにサンプリングします |
 | `/data-store/<id>/check-now` | **今すぐチェック**: データストアの設定を再度読み取り、チェックを実行します |
 | `/data-store-finding/<id>/scrub` | テレメトリの検出結果での **スクラブ** |
-| `/data-store-finding/<id>/drop-metric-impact` | メトリクスの名前にある検出結果で **このメトリクスを破棄** が破棄するもの: メトリクスの数と、それらを読み取るモニターとダッシュボード |
+| `/data-store-finding/<id>/drop-metric-impact` | メトリクスの名前にある検出結果で **このメトリクスを破棄** が破棄するもの: メトリクスの数と、それらを読み取るモニター、ダッシュボード、SLO、記録ルール |
 | `/data-store-finding/<id>/drop-metric` | **このメトリクスを破棄**: サービスのそれらのメトリクスの新しいデータポイントを完全に破棄するメトリクスのパイプラインルール。 `{"confirmDataLoss": true}` を受け取ります |
 | `/data-security-issue/<id>/explain` | 問題での **AI で説明** |
 | `/data-security-issue/<id>/fix-with-ai` | 問題での **AI で修正** |

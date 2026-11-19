@@ -96,6 +96,8 @@ Para aposentar um rótulo, arquive-o pelo menu **⋯** da sua linha em vez de ex
 
 **Usado por**, no menu da linha de um rótulo, conta os registros de cada tipo que levam o rótulo e os abre uma página por vez. Os registros que você não pode abrir são contados, não nomeados.
 
+Um rótulo que tem o mesmo nome que outro rótulo, de antes de os nomes precisarem ser diferentes, é marcado com **Mesmo nome que outro rótulo**, e a lista diz quantos são: compare onde cada um é usado, com **Usado por**, e depois renomeie um com **Renomear** na linha dele.
+
 ## Notificações
 
 **Configurações do projeto → Notificações** reúne como o projeto envia notificações:

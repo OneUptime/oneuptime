@@ -153,6 +153,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Until then, subscribers hear nothing.",
     "Its page says so.",
     "Change it, or publish right away.",
+    // What its Edit and its details say of its status pages (#9974).
+    "What its status pages do.",
   ],
   [MAINTENANCE_STATES]: [
     "The clock",
@@ -173,7 +175,16 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Archived states are listed apart",
     "The four built-in states can't be archived",
   ],
-  [TEMPLATES_AND_RECURRING]: ["Your plan.", "Your role."],
+  [TEMPLATES_AND_RECURRING]: [
+    "Your plan.",
+    "Your role.",
+    // The days a recurring template's events work out differently (#10037).
+    "A day the month does not have.",
+    "The night the clocks go forward.",
+    "The night the clocks go back.",
+    "Every few hours.",
+    "A time zone without daylight saving time.",
+  ],
   [RULES_AND_SETTINGS]: [
     "A rule can inherit.",
     "A new rule has to add something",

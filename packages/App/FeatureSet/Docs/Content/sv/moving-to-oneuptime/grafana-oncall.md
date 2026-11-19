@@ -56,9 +56,9 @@ Rapporten räknar vad som skapades, bjöds in och inte fördes över, och visar 
 | I Grafana OnCall | I OneUptime | Hur |
 | --- | --- | --- |
 | Användare | Projektmedlemmar | Matchas på e-postadress. Alla som inte är med i projektet ännu bjuds in till teamet du väljer. |
-| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. |
-| Scheman | Jourscheman | Varje rotation blir ett lager med samma personer, samma start, samma överlämning och samma jourtimmar, i schemats tidszon, ägt av schemats team. En rotation på ett högre lager går fortfarande före lagren under det. |
-| Eskaleringskedjor | Jourpolicyer | Stegen som aviserar personer, ett team eller den som har jour i ett schema blir eskaleringsregler, och ett vänta-steg blir väntetiden före nästa regel. Ett steg som upprepar kedjan blir policyns upprepningar. |
+| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. Har två team samma namn, förs det andra objektet över med ett nummer, till exempel `Platform 2`, och rapporten visar namnet det skapades med. |
+| Scheman | Jourscheman | Varje rotation blir ett lager med samma personer, samma start, samma överlämning och samma jourtimmar, i schemats tidszon, ägt av schemats team. En rotation på ett högre lager går fortfarande före lagren under det. Har två scheman samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
+| Eskaleringskedjor | Jourpolicyer | Stegen som aviserar personer, ett team eller den som har jour i ett schema blir eskaleringsregler, och ett vänta-steg blir väntetiden före nästa regel. Ett steg som upprepar kedjan blir policyns upprepningar. Har två eskaleringskedjor samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
 
 Rotationer på samma lager som har jour samtidigt, och en rotation som sätter flera personer i jour på en gång, blir var sitt OneUptime-schema, eftersom ett OneUptime-schema har en person i jour åt gången. Varje jourpolicy som larmade schemat larmar alla.
 

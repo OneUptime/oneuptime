@@ -1115,7 +1115,11 @@ import { AddTeamMemberInviteeName1809186500000 } from "./1809186500000-AddTeamMe
 import { AddHostLogSessions1809186600000 } from "./1809186600000-AddHostLogSessions";
 import { AddProjectDetectVoicemailOnCalls1809186610000 } from "./1809186610000-AddProjectDetectVoicemailOnCalls";
 import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-BackfillSsoProviderDomains";
-import { AddDomainVerifiedNameIndex1809186720000 } from "./1809186720000-AddDomainVerifiedNameIndex";
+import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-AddMonitorNetworkDeviceTieSource";
+import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
+import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
+import { AddManagedDevicePlatform1809186810000 } from "./1809186810000-AddManagedDevicePlatform";
+import { AddDomainVerifiedNameIndex1809186820000 } from "./1809186820000-AddDomainVerifiedNameIndex";
 
 export default [
   InitialMigration,
@@ -2235,5 +2239,9 @@ export default [
   AddHostLogSessions1809186600000,
   AddProjectDetectVoicemailOnCalls1809186610000,
   BackfillSsoProviderDomains1809186620000,
-  AddDomainVerifiedNameIndex1809186720000,
+  AddMonitorNetworkDeviceTieSource1809186700000,
+  AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
+  AddScheduledMaintenanceTemplateTimezone1809186800000,
+  AddManagedDevicePlatform1809186810000,
+  AddDomainVerifiedNameIndex1809186820000,
 ];

@@ -413,6 +413,12 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       WATCHING_MONITORS_PATH: READ,
     },
   },
+  "packages/Common/Server/API/NetworkDeviceUntiedMonitorsAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {
+      UNTIED_MONITORS_PATH: READ,
+    },
+  },
   "packages/Common/Server/API/PacketCaptureAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {

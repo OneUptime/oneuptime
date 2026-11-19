@@ -35,6 +35,7 @@ import {
 } from "Common/Types/Cloud/CloudKeyMetricGroup";
 import {
   CloudAddedMetric,
+  getCloudAddedMetricSplitAttribute,
   getCloudAddedMetricStoredName,
   getCloudAddedMetricsOfResource,
   readCloudAddedMetrics,
@@ -404,6 +405,30 @@ export function getCloudResourceAddedStoredNames(
       return getCloudAddedMetricStoredName(metric);
     },
   );
+}
+
+/*
+ * The additions split by a dimension (#9808): the name each is stored
+ * under, in lower case, and the attribute its series carry their value in
+ * (getCloudAddedMetricSplitAttribute).
+ */
+export function getCloudResourceAddedSplitAttributes(
+  source: CloudMonitoredResourceAddedSource | null | undefined,
+): Map<string, string> {
+  const attributes: Map<string, string> = new Map<string, string>();
+
+  for (const metric of getCloudResourceAddedMetrics(source)) {
+    const attribute: string = getCloudAddedMetricSplitAttribute(metric);
+
+    if (attribute) {
+      attributes.set(
+        getCloudAddedMetricStoredName(metric).trim().toLowerCase(),
+        attribute,
+      );
+    }
+  }
+
+  return attributes;
 }
 
 export interface CloudMonitoredResourceGapSource
