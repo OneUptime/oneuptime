@@ -807,7 +807,9 @@ describe("the troubleshooting page", () => {
     expect(section).toContain(
       "Setting a number places that resource and moves no other, so a configuration that numbers a whole list",
     );
-    expect(section).toContain("`order = index(local.severities, each.key) + 1`");
+    expect(section).toContain(
+      "`order = index(local.severities, each.key) + 1`",
+    );
 
     // Where a resource created without a number goes.
     expect(STATE_LISTS[StateListType.IncidentState].insertAboveFlag).toBe(
@@ -852,12 +854,18 @@ describe("the troubleshooting page", () => {
 
     // The built-in states keep their order, and a refusal says why.
     expect(
-      getStateListOrderViolationMessage(STATE_LISTS[StateListType.IncidentState], {
-        earlier: { id: "b", name: "Acknowledged", order: 2, flags: [] },
-        earlierBuiltIn: { flag: "isAcknowledgedState", role: "acknowledged state" },
-        later: { id: "c", name: "Resolved", order: 2, flags: [] },
-        laterBuiltIn: { flag: "isResolvedState", role: "resolved state" },
-      }),
+      getStateListOrderViolationMessage(
+        STATE_LISTS[StateListType.IncidentState],
+        {
+          earlier: { id: "b", name: "Acknowledged", order: 2, flags: [] },
+          earlierBuiltIn: {
+            flag: "isAcknowledgedState",
+            role: "acknowledged state",
+          },
+          later: { id: "c", name: "Resolved", order: 2, flags: [] },
+          laterBuiltIn: { flag: "isResolvedState", role: "resolved state" },
+        },
+      ),
     ).toContain("has to stay below");
     expect(section).toContain(
       "a change that would put two of them at one number, or out of order, is refused, with why",

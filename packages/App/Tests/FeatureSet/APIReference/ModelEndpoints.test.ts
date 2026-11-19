@@ -423,7 +423,9 @@ describe("the move of an ordered list's record", () => {
   it("is the route every ordered list's API registers", () => {
     const baseAPI: string = readCommon("Server/API/BaseAPI.ts");
 
-    expect(baseAPI).toContain("if (MoveInListUtil.getListColumn(new this.entityType())) {");
+    expect(baseAPI).toContain(
+      "if (MoveInListUtil.getListColumn(new this.entityType())) {",
+    );
     expect(baseAPI).toContain(
       "`${new this.entityType().getCrudApiPath()?.toString()}${MOVE_IN_LIST_ROUTE}`",
     );

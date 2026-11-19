@@ -54,10 +54,7 @@ const listModels: Array<string> = (AllModelTypes as unknown as Array<ModelType>)
   .sort();
 
 function serviceSource(model: string): string {
-  return fs.readFileSync(
-    path.join(SERVICES_DIR, `${model}Service.ts`),
-    "utf8",
-  );
+  return fs.readFileSync(path.join(SERVICES_DIR, `${model}Service.ts`), "utf8");
 }
 
 describe("the hooks of a move in a drag-ordered list", () => {

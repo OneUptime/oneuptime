@@ -1821,7 +1821,9 @@ describe("what the decisions stand on", () => {
    * for the same reason.
    */
   test("packages/Common/Server/API/BaseAPI.ts: a move refuses a record of a product that is off before anything else", () => {
-    const source: ts.SourceFile = parse("packages/Common/Server/API/BaseAPI.ts");
+    const source: ts.SourceFile = parse(
+      "packages/Common/Server/API/BaseAPI.ts",
+    );
     const firstStatements: Record<string, string> = {};
 
     const visit: (node: ts.Node) => void = (node: ts.Node): void => {

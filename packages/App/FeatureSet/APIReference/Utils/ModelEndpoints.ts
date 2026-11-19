@@ -216,7 +216,10 @@ function getMoveEndpoints(): Record<string, Array<ModelEndpoint>> {
 }
 
 // A JSON value with the example record's ID in place of its stand-in.
-function withExampleRecordId(value: JSONValue, exampleObjectID: string): JSONValue {
+function withExampleRecordId(
+  value: JSONValue,
+  exampleObjectID: string,
+): JSONValue {
   if (value === EXAMPLE_RECORD_ID) {
     return exampleObjectID;
   }

@@ -85,7 +85,7 @@ type ServiceOf<TBaseModel extends BaseModel> = DatabaseService<TBaseModel>;
  * because their caller named none (placeOnCreate). Held weakly: a row is
  * forgotten with the create that made it.
  */
-const placedByServer: WeakSet<object> = new WeakSet<object>();
+const placedByServer: WeakSet<BaseModel> = new WeakSet<BaseModel>();
 
 export default class ListOrderMaintainer {
   /*
@@ -107,7 +107,7 @@ export default class ListOrderMaintainer {
   }
 
   // Whether the server picked the place of a row about to be created.
-  public static isPlacedByServer(row: object): boolean {
+  public static isPlacedByServer(row: BaseModel): boolean {
     return placedByServer.has(row);
   }
 

@@ -424,13 +424,11 @@ export default class ContiguousOrder {
       };
     });
 
-    const changes: MoveInListChanges = (data.getChanges || getDefaultChanges)(
-      {
-        places: places,
-        rowId: data.rowId.toString(),
-        placeOfId: data.placeOfId.toString(),
-      },
-    );
+    const changes: MoveInListChanges = (data.getChanges || getDefaultChanges)({
+      places: places,
+      rowId: data.rowId.toString(),
+      placeOfId: data.placeOfId.toString(),
+    });
 
     if (changes.kind === "rowNotInList") {
       throw new NotFoundException(

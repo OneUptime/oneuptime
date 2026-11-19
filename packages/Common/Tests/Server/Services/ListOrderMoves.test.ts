@@ -1,6 +1,5 @@
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import HostCollectorConfigService from "../../../Server/Services/HostCollectorConfigService";
 import IncidentReminderRuleService from "../../../Server/Services/IncidentReminderRuleService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
 import NetworkDeviceDiscoveryScanService from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
@@ -282,10 +281,7 @@ describe.each(LIST_ORDER_CASES)("$label", (listCase: ListOrderCase) => {
       placeOfId: before[1]!,
     });
 
-    const numbers: Record<string, number | null> = numbersById(
-      table,
-      listCase,
-    );
+    const numbers: Record<string, number | null> = numbersById(table, listCase);
 
     expect(result.changedRows).toHaveLength(2);
 
@@ -501,9 +497,9 @@ describe("what a move sets off, as a write of the numbers does", () => {
     });
 
     expect(forget).toHaveBeenCalledTimes(1);
-    expect(
-      (forget.mock.calls[0]![0] as Array<unknown>).map(String),
-    ).toEqual([PROJECT_ID.toString()]);
+    expect((forget.mock.calls[0]![0] as Array<unknown>).map(String)).toEqual([
+      PROJECT_ID.toString(),
+    ]);
   });
 
   test("a reminder rule moved: the project's open incidents' reminders are worked out again", async () => {
@@ -651,9 +647,10 @@ describe("a list of one kind", () => {
       service: PublicNoteApprovalStepService,
       table: table,
     });
-    getJestSpyOn(PublicNoteApproverChanges, "afterStepsChanged").mockImplementation(
-      () => {},
-    );
+    getJestSpyOn(
+      PublicNoteApproverChanges,
+      "afterStepsChanged",
+    ).mockImplementation(() => {});
   });
 
   test("moves within its kind, and leaves the project's steps of the other kind alone", async () => {
