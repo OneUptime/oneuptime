@@ -31,6 +31,15 @@
  *                                        open otherwise, as a browser that left it
  *                                        open finds it, so single sign-on and the
  *                                        passkey are drawn
+ *   enrolment=1                          a sign-in that sets up a second step
+ *                                        (#9764, SecurityKeyEnrolment.spec.ts): the
+ *                                        password sign-in and its second steps go
+ *                                        over the real network - with apihost=self
+ *                                        (server.js) to this fixture's own address,
+ *                                        where the spec answers them - and the
+ *                                        browser's own WebAuthn runs, for the spec's
+ *                                        virtual authenticator. The rest is answered
+ *                                        here, as for every page
  *
  * window.__setLanguage(code) switches the page's language in place, and
  * resolves once the page has drawn it.
@@ -53,6 +62,8 @@ import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "Common/Types/Accounts/MoreWaysToS
 
 const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "login";
+// A sign-in that sets up a second step, over the real network (see above).
+const isEnrolment = params.get("enrolment") === "1";
 
 // "More ways to sign in", as this browser left it: open unless folded=1.
 if (params.get("folded") === "1") {
@@ -65,13 +76,18 @@ const never = () => {
   return new Promise(() => {});
 };
 
-// Nobody is signed in, and a password sign-in never answers.
+/*
+ * Nobody is signed in, and a password sign-in never answers - but in an
+ * enrolment, where the spec answers it.
+ */
 UserUtil.isLoggedIn = () => {
   return false;
 };
-ModelAPI.createOrUpdate = async () => {
-  return never();
-};
+if (!isEnrolment) {
+  ModelAPI.createOrUpdate = async () => {
+    return never();
+  };
+}
 
 // The server's instance-wide providers, as GET /identity/sign-in-methods lists them.
 const PROVIDERS = [
@@ -173,8 +189,14 @@ API.get = async (options) => {
   return new HTTPResponse(200, [], {});
 };
 
+// An enrolment's second steps go over the real network, to the spec.
+const realPost = API.post;
+
 API.post = async (options) => {
   const url = options.url.toString();
+  if (isEnrolment) {
+    return realPost.call(API, options);
+  }
   // Whether this self-hosted server waits for its first account: the sign-up page asks.
   if (url.endsWith("/first-account")) {
     return new HTTPResponse(
@@ -200,13 +222,16 @@ API.post = async (options) => {
   return never();
 };
 
-// The browser's passkey prompt.
+/*
+ * The browser's passkey prompt: answered here, but in an enrolment, whose
+ * spec drives the browser's own with a virtual authenticator.
+ */
 if (params.get("webauthn") === "0") {
   Object.defineProperty(window, "PublicKeyCredential", {
     configurable: true,
     value: undefined,
   });
-} else {
+} else if (!isEnrolment) {
   Object.defineProperty(navigator, "credentials", {
     configurable: true,
     value: {
