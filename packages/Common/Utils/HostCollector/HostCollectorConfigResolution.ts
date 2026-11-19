@@ -1,4 +1,6 @@
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { HostCollectorOsType } from "../../Types/HostCollector/HostCollector";
+import { compareListOrderValues } from "../ListOrder";
 
 /*
  * Which config a host runs. The one rule, used by the server when it answers
@@ -18,8 +20,12 @@ export interface HostCollectorConfigCandidate {
   osType: HostCollectorOsType;
   // The labels it is for. Empty: every host of its system.
   labelIds: Array<string>;
-  // Its place in the list: lower first.
-  order: number;
+  /*
+   * Its place in the list: lower first. Null when it has none: it comes
+   * after every config that has one (Utils/ListOrder), never at a place made
+   * up for it.
+   */
+  order: number | null;
 }
 
 export interface HostCollectorConfigTarget {
@@ -66,7 +72,12 @@ export function doesHostCollectorConfigApply(
   });
 }
 
-// The candidates in list order; equal places keep the order they came in.
+/*
+ * The candidates in list order: by place, those without one last (the one
+ * rule every reader of a drag-ordered list follows, compareListOrderValues);
+ * equal places keep the order they came in, which the server and the
+ * Dashboard read in the list's own order, the older first.
+ */
 export function sortHostCollectorConfigCandidates(
   candidates: ReadonlyArray<HostCollectorConfigCandidate>,
 ): Array<HostCollectorConfigCandidate> {
@@ -79,7 +90,11 @@ export function sortHostCollectorConfigCandidates(
         a: { candidate: HostCollectorConfigCandidate; index: number },
         b: { candidate: HostCollectorConfigCandidate; index: number },
       ): number => {
-        const byOrder: number = a.candidate.order - b.candidate.order;
+        const byOrder: number = compareListOrderValues(
+          a.candidate.order,
+          b.candidate.order,
+          SortOrder.Ascending,
+        );
         return byOrder !== 0 ? byOrder : a.index - b.index;
       },
     )

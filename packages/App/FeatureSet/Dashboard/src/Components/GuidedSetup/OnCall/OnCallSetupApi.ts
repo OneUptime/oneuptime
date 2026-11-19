@@ -7,6 +7,7 @@ import {
   ReachOrders,
   ResponderReach,
   getReachOrders,
+  toPolicyLevels,
 } from "./OnCallSetup";
 import OnCallTestPageApi from "../../OnCallTestPage/OnCallTestPageApi";
 import {
@@ -620,25 +621,7 @@ export default class OnCallSetupApi {
       }),
     ]);
 
-    const levels: Array<PolicyLevel> = rules.data
-      .filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
-        return Boolean(rule.id);
-      })
-      .map(
-        (rule: OnCallDutyPolicyEscalationRule, index: number): PolicyLevel => {
-          return {
-            id: rule.id!.toString(),
-            order: rule.order || index + 1,
-            escalateAfterInMinutes:
-              typeof rule.escalateAfterInMinutes === "number"
-                ? rule.escalateAfterInMinutes
-                : DEFAULT_ESCALATE_AFTER_IN_MINUTES,
-            userIds: [],
-            names: [],
-            responderCount: 0,
-          };
-        },
-      );
+    const levels: Array<PolicyLevel> = toPolicyLevels(rules.data);
 
     const levelOf: (ruleId: unknown) => PolicyLevel | undefined = (
       ruleId: unknown,

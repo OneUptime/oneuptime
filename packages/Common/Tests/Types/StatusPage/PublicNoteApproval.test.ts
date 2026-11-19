@@ -273,6 +273,48 @@ describe("getPosition: the step a note waits for", () => {
     expect(PublicNoteApproval.sortSteps([a, b])).toEqual([a, b]);
   });
 
+  /*
+   * The steps are a drag-ordered list, so they go in the order the list
+   * shows (Utils/ListOrder, issue #9655): two steps at one place the older
+   * first, and a step without a place after every step that has one - not
+   * first, as when a step without a place was read as 0.
+   */
+  test("two steps at one place go the older first, as the steps' list shows them", () => {
+    const newer: PublicNoteApprovalStepRule = step("a", 1, {
+      createdAt: "2026-03-01T00:00:00.000Z",
+    });
+    const older: PublicNoteApprovalStepRule = step("b", 1, {
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    expect(PublicNoteApproval.sortSteps([newer, older])).toEqual([
+      older,
+      newer,
+    ]);
+  });
+
+  test("a step without a place goes after every step that has one, among steps with gaps", () => {
+    const unplaced: PublicNoteApprovalStepRule = step("0", 1, {
+      order: null,
+    });
+    const tenth: PublicNoteApprovalStepRule = step("ten", 10);
+    const twentieth: PublicNoteApprovalStepRule = step("twenty", 20);
+    const below: PublicNoteApprovalStepRule = step("minus", -5);
+
+    expect(
+      PublicNoteApproval.sortSteps([unplaced, twentieth, tenth, below]),
+    ).toEqual([below, tenth, twentieth, unplaced]);
+
+    const position: PublicNoteApprovalPosition = PublicNoteApproval.getPosition(
+      roundSentBy(ALICE),
+      [unplaced, twentieth, tenth],
+    );
+
+    expect(position.step).toBe(tenth);
+    expect(position.number).toBe(1);
+    expect(position.count).toBe(3);
+  });
+
   test("sorting never changes the list it is handed", () => {
     const steps: Array<PublicNoteApprovalStepRule> = [LEGAL, SUPPORT];
     PublicNoteApproval.sortSteps(steps);

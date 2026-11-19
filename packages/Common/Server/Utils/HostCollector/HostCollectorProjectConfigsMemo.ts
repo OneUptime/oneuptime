@@ -14,7 +14,8 @@ export interface HostCollectorProjectConfig {
   id: string;
   osType: HostCollectorOsType;
   labelIds: Array<string>;
-  order: number;
+  // Its place in the list, or null when it has none (it then comes last).
+  order: number | null;
   configYaml: string;
   configHash: string;
 }
