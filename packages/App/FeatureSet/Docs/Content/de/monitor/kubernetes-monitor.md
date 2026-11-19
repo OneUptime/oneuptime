@@ -5,7 +5,7 @@ Ein Kubernetes-Monitor warnt anhand der Metriken, die der OneUptime-Kubernetes-A
 :::cards
 - [Den Agent installieren](/docs/monitor/kubernetes-agent): Ein Helm-Befehl bringt den Cluster in OneUptime.
 - [Den Monitor erstellen](#einen-kubernetes-monitor-erstellen): Den Cluster wählen, dann eine Vorlage, eine Metrik oder eine Abfrage.
-- [Warnungsvorlagen](#fertige-warnungsvorlagen): Vierundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
+- [Warnungsvorlagen](#fertige-warnungsvorlagen): Fünfundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
 - [Kriterien](#überwachungskriterien): Statische Schwellenwerte und Anomalieerkennung.
 :::
 

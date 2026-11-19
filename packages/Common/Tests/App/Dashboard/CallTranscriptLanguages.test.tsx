@@ -381,9 +381,9 @@ describe("removing a transcript, in every language the Dashboard ships", () => {
   ];
 
   test("the dialog no longer says only the incident: it names the feed and the channels", () => {
-    expect(REMOVE_TRANSCRIPT_DESCRIPTION).toContain("from its feed");
+    // The channels by kind, within a dialog description's two short lines (ShortDescriptionsGuard).
     expect(REMOVE_TRANSCRIPT_DESCRIPTION).toContain(
-      "Slack, Microsoft Teams and Mattermost channels",
+      "from the feed and chat channels too",
     );
     expect(
       EN[

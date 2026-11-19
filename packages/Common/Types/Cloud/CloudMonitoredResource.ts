@@ -478,7 +478,8 @@ function resolveAwsCloudWatchJsonResource(
 
 /*
  * The first rule of the namespace whose identity dimensions are all on the
- * datapoint and whose excluded ones are not - or null.
+ * datapoint, whose required values it holds and whose excluded dimensions
+ * it does not carry - or null.
  */
 export function findAwsCloudWatchRule(
   namespace: string,
@@ -490,12 +491,19 @@ export function findAwsCloudWatchRule(
         return isUsable(dimensions[name] || "");
       },
     );
+    const hasRequiredValues: boolean = Object.entries(
+      rule.requiredDimensionValues || {},
+    ).every(([name, value]: [string, string]): boolean => {
+      return (
+        (dimensions[name] || "").trim().toLowerCase() === value.toLowerCase()
+      );
+    });
     const isExcluded: boolean = (rule.excludedDimensions || []).some(
       (name: string): boolean => {
         return Boolean(dimensions[name]);
       },
     );
-    if (hasIdentity && !isExcluded) {
+    if (hasIdentity && hasRequiredValues && !isExcluded) {
       return rule;
     }
   }
@@ -559,6 +567,16 @@ function resolveAwsDatapoint(
   for (const name of rule.identityDimensions) {
     telemetryAttributes[datapoint.dimensionKeys[name]!] =
       datapoint.dimensions[name]!;
+  }
+  /*
+   * A required value is the resource's too: its charts read the series
+   * that hold it alone (a web ACL's Rule ALL), never each rule's beside it.
+   */
+  for (const name of Object.keys(rule.requiredDimensionValues || {})) {
+    if (datapoint.dimensionKeys[name]) {
+      telemetryAttributes[datapoint.dimensionKeys[name]!] =
+        datapoint.dimensions[name]!;
+    }
   }
   if (datapoint.accountId) {
     telemetryAttributes[CLOUD_ACCOUNT_ID_ATTRIBUTE] = datapoint.accountId;

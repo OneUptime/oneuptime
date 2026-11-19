@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "Somente os repositórios de dados que atendem às condições",
   "All tables": "Todas as tabelas",
   "Only tables that match conditions": "Somente tabelas que atendem às condições",
+  "All pipelines": "Todos os pipelines",
+  "Only pipelines that match conditions": "Somente pipelines que atendem às condições",
   "All cloud environments": "Todos os ambientes de nuvem",
   "Only cloud environments that match conditions": "Somente os ambientes de nuvem que atendem às condições",
   "Only what matches conditions": "Somente o que atende às condições",

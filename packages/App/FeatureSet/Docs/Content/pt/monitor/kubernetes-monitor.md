@@ -5,7 +5,7 @@ Um monitor de Kubernetes alerta com base nas métricas que o agente de Kubernete
 :::cards
 - [Instalar o agente](/docs/monitor/kubernetes-agent): Um único comando do Helm coloca o cluster no OneUptime.
 - [Criar o monitor](#criar-um-monitor-de-kubernetes): Escolher o cluster e depois um modelo, uma métrica ou uma consulta.
-- [Modelos de alerta](#modelos-de-alerta-prontos): Vinte e quatro alertas prontos, de um cluster silencioso a etcd.
+- [Modelos de alerta](#modelos-de-alerta-prontos): Vinte e cinco alertas prontos, de um cluster silencioso a etcd.
 - [Critérios](#critérios-de-monitoramento): Limites estáticos e detecção de anomalias.
 :::
 

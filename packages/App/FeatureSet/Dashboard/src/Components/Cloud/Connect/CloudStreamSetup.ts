@@ -9,6 +9,7 @@ import {
   CloudStreamProblem,
   CloudStreamTemplateOptions,
   getCloudStreamOptionsProblem,
+  getCloudStreamTemplateSizeProblem,
   parseCloudStreamLogGroups,
   splitCloudStreamList,
 } from "Common/Types/CloudConnection/CloudStreamTemplate";
@@ -146,21 +147,29 @@ export function getCloudStreamSetup(data: {
         )
       : [];
 
+  const options: CloudStreamTemplateOptions = {
+    connectionId: data.connectionId,
+    metricsUrl: endpoints.metricsUrl,
+    logsUrl: endpoints.logsUrl,
+    metrics,
+    logs,
+    logGroups,
+  };
+
+  /*
+   * The choices' own problems first, then the template's size: long names
+   * of many log groups can make it larger than CloudFormation takes from a
+   * command.
+   */
   const problem: CloudStreamProblem | null = canFirehoseDeliverTo(
     endpoints.metricsUrl,
   )
-    ? getCloudStreamOptionsProblem({ metrics, logs, logGroups, regions })
+    ? getCloudStreamOptionsProblem({ metrics, logs, logGroups, regions }) ||
+      getCloudStreamTemplateSizeProblem(options)
     : { text: NOT_HTTPS_PROBLEM, values: {} };
 
   return {
-    options: {
-      connectionId: data.connectionId,
-      metricsUrl: endpoints.metricsUrl,
-      logsUrl: endpoints.logsUrl,
-      metrics,
-      logs,
-      logGroups,
-    },
+    options,
     regions,
     logGroups,
     metricsUrl: endpoints.metricsUrl,

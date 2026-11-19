@@ -1,11 +1,14 @@
 import {
-  AWS_KEY_METRICS,
   AwsKeyMetric,
-  AwsNamespaceKeyMetrics,
-  getAwsStoredMetricName,
+  getAwsKeyMetricOfStoredName,
   isAzureStreamedKeyMetricStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { getStreamedMetricKey } from "../../../Types/CloudConnection/CloudStream";
+import {
+  AwsStreamCoverage,
+  NO_AWS_STREAM_COVERAGE,
+  isAwsKeyMetricLeftToStream,
+} from "../../../Types/CloudConnection/CloudStreamStack";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 
 /*
@@ -13,19 +16,20 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
  *
  * A read of an AWS connection reads each resource's key metrics from
  * CloudWatch (CloudKeyMetrics) and writes them as gauges. A metric stream
- * of the same account delivers the same metrics a minute at a time
- * (CloudStream), so for every account, Region and namespace a stream
- * delivered lately (getStreamedMetricKeys) the read's datapoints are left
- * out of what it writes: each series is then written once, by the stream.
+ * of the same account delivers them a minute at a time (CloudStream), so
+ * each key metric a stream writes in the read's place - its stack carries
+ * it, and it delivered the metric's account, Region and namespace lately
+ * (CloudStreamStack, AwsStreamCoverage) - is left out of what the read
+ * writes: each series is then written once, by the stream.
  *
- * The read still reads them, and still judges each resource's health from
- * them (CloudResourceReadings reads the read's own payloads), so a
- * resource's health reads the same whether its account streams or not. A
- * metric CloudWatch publishes once a day (S3's storage) never comes through
- * a stream, and a key metric added since streams began does not come
- * through a stack made before it (AwsKeyMetric.isStreamed), so the read
- * keeps writing those. When a stream goes quiet the read writes everything
- * again.
+ * The read does not even read most of them (AwsCloudConnector): only those
+ * a resource's health or headline is judged from, which it still judges
+ * from its own payloads (CloudResourceReadings), so a resource's health
+ * reads the same whether its account streams or not. A metric no stream
+ * carries (S3's daily storage, ACM's days to expiry), and a key metric
+ * added since the stack's template (AwsKeyMetric.streamedSince), are
+ * written by the read as if the account did not stream. When a stream goes
+ * quiet the read writes everything again.
  *
  * An Azure connection's read is the same, by subscription, region and
  * resource type (an Azure stream's "namespaces"): for each type its event
@@ -54,30 +58,6 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 const AZURE_SUBSCRIPTION_ATTRIBUTE: string = "azuremonitor.subscription_id";
 export const AZURE_STREAMED_TIME_GRAIN: string = "PT1M";
 
-/*
- * The key metrics the read writes whether or not a stream delivers their
- * namespace (AwsKeyMetric.isStreamed false): S3's daily storage, which no
- * stream carries, and every key metric added since streams began, which a
- * stack made before it does not carry - and which a stream of every metric
- * leaves to the read (CloudWatchMetricStream).
- */
-const READ_KEY_METRICS: ReadonlySet<string> = new Set<string>(
-  (AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>).flatMap(
-    (namespace: AwsNamespaceKeyMetrics): Array<string> => {
-      return namespace.metrics
-        .filter((metric: AwsKeyMetric): boolean => {
-          return !metric.isStreamed;
-        })
-        .map((metric: AwsKeyMetric): string => {
-          return getAwsStoredMetricName(
-            namespace.namespace,
-            metric.metricName,
-          ).toLowerCase();
-        });
-    },
-  ),
-);
-
 function readObject(value: unknown): JSONObject {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JSONObject)
@@ -102,20 +82,45 @@ function readStringAttribute(attributes: JSONArray, key: string): string {
 }
 
 /*
- * One read payload ({ resourceMetrics: [...] }) without the datapoints of
- * the streamed namespaces, and how many it left out. Null when nothing is
- * left to write. The payload given is not changed.
+ * One read payload ({ resourceMetrics: [...] }) without the datapoints a
+ * stream writes in its place, and how many it left out. Null when nothing
+ * is left to write. The payload given is not changed.
+ *
+ *   - streamedKeys: Azure's subscriptions, regions and resource types its
+ *     event hubs delivered lately (getStreamedMetricKeys);
+ *   - awsCoverage: AWS's accounts and Regions a stream delivered from
+ *     lately, with what each one's stack carries (getAwsStreamCoverage).
  */
 export function withoutStreamedMetrics(data: {
   payload: JSONObject;
   streamedKeys: ReadonlySet<string>;
+  awsCoverage?: AwsStreamCoverage | undefined;
 }): { payload: JSONObject | null; leftOut: number } {
-  if (data.streamedKeys.size === 0) {
+  const awsCoverage: AwsStreamCoverage =
+    data.awsCoverage || NO_AWS_STREAM_COVERAGE;
+
+  if (data.streamedKeys.size === 0 && awsCoverage.size === 0) {
     return { payload: data.payload, leftOut: 0 };
   }
 
   let leftOut: number = 0;
   const keptResources: Array<JSONObject> = [];
+  // Each stored name's key metric, looked up once.
+  const keyMetrics: Map<
+    string,
+    { namespace: string; metric: AwsKeyMetric } | null
+  > = new Map();
+  const keyMetricOf: (
+    metricName: string,
+  ) => { namespace: string; metric: AwsKeyMetric } | null = (
+    metricName: string,
+  ): { namespace: string; metric: AwsKeyMetric } | null => {
+    if (!keyMetrics.has(metricName)) {
+      keyMetrics.set(metricName, getAwsKeyMetricOfStoredName(metricName));
+    }
+
+    return keyMetrics.get(metricName) || null;
+  };
 
   for (const rawResource of readArray(data.payload["resourceMetrics"])) {
     const resourceMetrics: JSONObject = readObject(rawResource);
@@ -161,16 +166,21 @@ export function withoutStreamedMetrics(data: {
         );
       }
 
-      const namespace: string = readStringAttribute(
-        pointAttributes,
-        "Namespace",
-      );
+      const keyMetric: { namespace: string; metric: AwsKeyMetric } | null =
+        keyMetricOf(metricName);
 
+      // What the read writes is a key metric; anything else stays the read's.
       return (
-        Boolean(namespace) &&
-        data.streamedKeys.has(
-          getStreamedMetricKey({ accountId, region, namespace }),
-        )
+        keyMetric !== null &&
+        isAwsKeyMetricLeftToStream({
+          coverage: awsCoverage,
+          accountId,
+          region,
+          namespace:
+            readStringAttribute(pointAttributes, "Namespace") ||
+            keyMetric.namespace,
+          metric: keyMetric.metric,
+        })
       );
     };
 
@@ -190,7 +200,7 @@ export function withoutStreamedMetrics(data: {
             ? "sum"
             : null;
 
-        if (!shape || READ_KEY_METRICS.has(name.toLowerCase())) {
+        if (!shape) {
           keptMetrics.push(metric);
           continue;
         }

@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "Only data stores that match conditions",
   "All tables": "All tables",
   "Only tables that match conditions": "Only tables that match conditions",
+  "All pipelines": "All pipelines",
+  "Only pipelines that match conditions": "Only pipelines that match conditions",
   "All cloud environments": "All cloud environments",
   "Only cloud environments that match conditions": "Only cloud environments that match conditions",
   "Only what matches conditions": "Only what matches conditions",

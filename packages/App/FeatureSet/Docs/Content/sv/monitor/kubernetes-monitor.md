@@ -5,7 +5,7 @@ En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent 
 :::cards
 - [Installera agenten](/docs/monitor/kubernetes-agent): Ett Helm-kommando tar in klustret i OneUptime.
 - [Skapa monitorn](#skapa-en-kubernetes-monitor): Välj klustret, sedan en mall, ett mätvärde eller en fråga.
-- [Larmmallar](#färdiga-larmmallar): Tjugofyra färdiga larm, från ett tyst kluster till etcd.
+- [Larmmallar](#färdiga-larmmallar): Tjugofem färdiga larm, från ett tyst kluster till etcd.
 - [Kriterier](#övervakningskriterier): Statiska trösklar och avvikelseidentifiering.
 :::
 
