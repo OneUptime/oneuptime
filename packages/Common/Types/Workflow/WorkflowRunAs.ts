@@ -364,6 +364,112 @@ export const WORKFLOW_RUN_AS_ROLE_DELETED_MESSAGE: string =
 export const WORKFLOW_RUN_AS_UNREADABLE_MESSAGE: string =
   "This workflow didn't run: what it runs as can't be read. Open the workflow's Settings and choose what it runs as.";
 
+/*
+ * DELETING A CUSTOM ROLE THAT WORKFLOWS RUN AS (#9767). Deleted, the role
+ * would leave them running nothing until someone chose again, so a delete
+ * says what they run as instead - Default, or another custom role the
+ * deleter could give a team - and they are switched as the role goes. The
+ * API's names for that choice, in a delete's miscDataProps:
+ */
+export const WORKFLOWS_RUN_AS_INSTEAD_KEY: string = "workflowsRunAs";
+export const WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY: string =
+  "workflowsRunAsCustomRoleId";
+
+// The workflows a sentence names, in quotes, at most five, then how many more.
+const nameWorkflows: (data: {
+  workflowNames: ReadonlyArray<string>;
+  workflowCount: number;
+}) => string = (data: {
+  workflowNames: ReadonlyArray<string>;
+  workflowCount: number;
+}): string => {
+  const shown: Array<string> = data.workflowNames
+    .filter((name: string): boolean => {
+      return Boolean(name && name.trim());
+    })
+    .slice(0, 5)
+    .map((name: string): string => {
+      return `"${name.trim()}"`;
+    });
+  const more: number = Math.max(0, data.workflowCount - shown.length);
+
+  if (shown.length === 0) {
+    return data.workflowCount === 1
+      ? "A workflow"
+      : `${data.workflowCount} workflows`;
+  }
+
+  const listed: Array<string> =
+    more > 0 ? [...shown, `${more} more`] : [...shown];
+  const list: string =
+    listed.length === 1
+      ? listed[0]!
+      : `${listed.slice(0, -1).join(", ")} and ${listed[listed.length - 1]}`;
+
+  return data.workflowCount === 1
+    ? `The workflow ${list}`
+    : `The workflows ${list}`;
+};
+
+/*
+ * A custom role that workflows run as, deleted without saying what they run
+ * as instead: which workflows - those the deleter may read by name, the
+ * rest counted - why, and the two ways to say it.
+ */
+export const getCustomRoleDeleteWorkflowsMessage: (data: {
+  // The roles being deleted, by name.
+  roleNames: ReadonlyArray<string>;
+  // The names of the workflows the deleter may read.
+  workflowNames: ReadonlyArray<string>;
+  // How many workflows run as the roles, read or not.
+  workflowCount: number;
+}) => string = (data: {
+  roleNames: ReadonlyArray<string>;
+  workflowNames: ReadonlyArray<string>;
+  workflowCount: number;
+}): string => {
+  const isOne: boolean = data.workflowCount === 1;
+  const roleName: string =
+    data.roleNames.length === 1 ? (data.roleNames[0] || "").trim() : "";
+  const role: string =
+    data.roleNames.length > 1
+      ? "the custom roles being deleted"
+      : roleName
+        ? `the custom role "${roleName}"`
+        : "this custom role";
+  const deleting: string =
+    data.roleNames.length > 1 ? "Deleting them" : "Deleting the role";
+
+  return `${nameWorkflows(data)} ${isOne ? "runs" : "run"} as ${role}. ${deleting} would stop ${isOne ? "it" : "them"} until someone changes what ${isOne ? "it runs" : "they run"} as, so say what ${isOne ? "it runs" : "they run"} as instead: choose it as you delete the role in the Dashboard, or send miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_KEY} as "${WorkflowRunAs.Default}", or as "${WorkflowRunAs.CustomRole}" with miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY} naming another custom role you could give a team.`;
+};
+
+// What the workflows run as instead, when it is none of the choices.
+export const WORKFLOWS_RUN_AS_INSTEAD_UNKNOWN_MESSAGE: string = `miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_KEY} says what the workflows that run as a deleted custom role run as instead: "${WorkflowRunAs.Default}", or "${WorkflowRunAs.CustomRole}" with miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY}.`;
+
+// Another custom role, named by nothing.
+export const WORKFLOWS_RUN_AS_INSTEAD_ROLE_MISSING_MESSAGE: string = `Name the custom role the workflows run as instead in miscDataProps.${WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY}.`;
+
+// Another custom role that is one being deleted.
+export const WORKFLOWS_RUN_AS_INSTEAD_ROLE_DELETED_MESSAGE: string =
+  "The workflows can't run as a custom role that is being deleted. Choose Default or another custom role.";
+
+/*
+ * A deleter who may not change one of the workflows: what they run as is
+ * the workflows' to change, held to who may edit them.
+ */
+export const getCustomRoleDeleteWorkflowEditRefusedMessage: (data: {
+  // The workflow's name, when the deleter may read it.
+  workflowName?: string | null | undefined;
+}) => string = (data: { workflowName?: string | null | undefined }): string => {
+  const name: string = (data.workflowName || "").trim();
+
+  if (name) {
+    return `You can't change what the workflow "${name}" runs as, so this custom role can't be deleted yet: deleting it changes what every workflow that runs as it runs as. Ask someone who can edit that workflow to choose what it runs as in its Settings, or to delete the role.`;
+  }
+
+  return `You can't change what one of the workflows that run as this custom role runs as, so the role can't be deleted yet: deleting it changes what every workflow that runs as it runs as. Ask someone who can edit those workflows to choose what they run as in their Settings, or to delete the role.`;
+};
+
 // Another workflow's Run Workflow step, starting a raised workflow it may not.
 export const getWorkflowRunAsChildRefusedMessage: (data: {
   childName?: string | undefined;
