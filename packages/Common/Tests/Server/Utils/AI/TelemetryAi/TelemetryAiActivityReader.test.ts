@@ -11,6 +11,7 @@ import AIInsightService from "../../../../../Server/Services/AIInsightService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
+import AIRunOutputReadFilter from "../../../../../Server/Utils/AI/AIRunOutputReadFilter";
 import CodeTaskGate from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import CodeTaskListRows, {
   CodeTaskRepliesRead,
@@ -662,6 +663,43 @@ describe("TelemetryAiActivityReader.readLogs", () => {
         "query"
       ],
     ).toBe(query);
+  });
+
+  /*
+   * A task stands as its newest turn, which may be a reply: a task a reply
+   * carried a private incident or alert into, which the reader does not
+   * see, is left out of the page and its count, as Code's lists leave it
+   * out (#9165).
+   */
+  test("reads the page and its count through the run rule, for the reader", async () => {
+    const asked: Array<DatabaseCommonInteractionProps> = [];
+
+    jest.spyOn(AIRunOutputReadFilter, "applyToRunRow").mockImplementation(((
+      query: Record<string, unknown>,
+      props: DatabaseCommonInteractionProps,
+    ) => {
+      asked.push(props);
+      return { ...query, ruleFor: props.userId?.toString() };
+    }) as never);
+
+    await read();
+
+    expect(asked).toEqual([READER]);
+
+    for (const call of [
+      readRuns.mock.calls[0]![0],
+      countRuns.mock.calls[0]![0],
+    ]) {
+      const query: Record<string, unknown> = (
+        call as unknown as Record<string, unknown>
+      )["query"] as Record<string, unknown>;
+
+      expect(query["ruleFor"]).toBe(PERSON_ID);
+      // What the page asks stays beside the rule.
+      expect(JSON.stringify(query["triggeredByAiInsightId"])).toContain(
+        INSIGHT_A,
+      );
+    }
   });
 
   test("says nothing, and reads nothing more, for a reader who may read none of the problems", async () => {

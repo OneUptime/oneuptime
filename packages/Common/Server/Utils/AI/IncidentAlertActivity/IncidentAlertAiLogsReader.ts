@@ -4,6 +4,7 @@ import AutoRemediationSuggestionService from "../../../Services/AutoRemediationS
 import IncidentService from "../../../Services/IncidentService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
 import FixProductionReportUtil from "../CodeFix/FixProductionReportUtil";
 import CodeTaskListRows, {
   CodeTaskRepliesRead,
@@ -64,7 +65,9 @@ import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
  *   - A fix pull request is its Code task: one entry, its first turn, that
  *     stands as Code says the task does - by its newest turn, a fix asked
  *     again from Code (Try again) or a reply, with the pull request any of
- *     its turns opened (#9812).
+ *     its turns opened (#9812). A task a reply carried a private incident
+ *     or alert into, which the caller does not see, is left out, as Code's
+ *     own lists leave it out (AIRunOutputReadFilter, #9165).
  *   - Fixes and commands are read under the caller's props: the suggestion
  *     and Runner job tables have read access of their own, and a caller
  *     without it gets that kind in hiddenKinds instead of rows. Which
@@ -488,19 +491,29 @@ export default class IncidentAlertAiLogsReader {
     const isInvestigation: boolean =
       data.kind === IncidentAlertAiLogKind.Investigation;
 
+    const query: Record<string, unknown> = {
+      ...this.getRunSubjectQuery(options.subjectKind),
+      ...this.getCreatedAtQuery(data.before),
+      projectId: options.projectId,
+      runType: isInvestigation ? AIRunType.Investigation : AIRunType.CodeFix,
+      /*
+       * A fix pull request is its Code task, listed once by its first
+       * turn: a fix asked again from Code (Try again) is a later turn of
+       * the same task, with the same record, and says how it stands.
+       */
+      ...(isInvestigation ? {} : { codeTaskId: QueryHelper.isNull() }),
+    };
+
     const runs: Array<AIRun> = await AIRunService.findBy({
-      query: {
-        ...this.getRunSubjectQuery(options.subjectKind),
-        ...this.getCreatedAtQuery(data.before),
-        projectId: options.projectId,
-        runType: isInvestigation ? AIRunType.Investigation : AIRunType.CodeFix,
-        /*
-         * A fix pull request is its Code task, listed once by its first
-         * turn: a fix asked again from Code (Try again) is a later turn of
-         * the same task, with the same record, and says how it stands.
-         */
-        ...(isInvestigation ? {} : { codeTaskId: QueryHelper.isNull() }),
-      } as never,
+      /*
+       * A fix task says how it stands - its newest turn, which may be a
+       * reply - so it is read as Code's own lists read it for the caller:
+       * none a reply carried a private incident or alert into that they do
+       * not see (AIRunOutputReadFilter, #9165).
+       */
+      query: (isInvestigation
+        ? query
+        : AIRunOutputReadFilter.applyToRunRow(query, options.props)) as never,
       select: {
         _id: true,
         createdAt: true,

@@ -29,6 +29,7 @@ import {
   FakeRow,
   FakeStore,
   FakeTables,
+  READ_FOR_KEY,
   emptyTables,
   installFakeStore,
   matchesFilter,
@@ -1059,6 +1060,42 @@ describe("fix pull requests, as their tasks stand", () => {
     const insights: IncidentAlertAiInsights = await readInsights("incident");
 
     expect(insights.totals.fixTasks).toBe(0);
+  });
+
+  test("a task the caller may not read in Code counts for none of theirs, read through the rule for them", async () => {
+    tables.runs.push(askedAgain({ status: AIRunStatus.Completed }));
+    tables.runs.push(
+      run(onIncident(one), {
+        runType: AIRunType.CodeFix,
+        status: AIRunStatus.Completed,
+        createdAt: daysAgo(4),
+        analysisTldr: undefined,
+        // A reply carried a private incident the caller does not see into it.
+        isHiddenFromCaller: true,
+      }),
+    );
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.fixTasks).toBe(1);
+    expect(insights.fixTaskOutcomes).toMatchObject({
+      total: 1,
+      pullRequestsOpened: 1,
+    });
+
+    const reads: Array<FakeCall> = store.callsTo("runs");
+
+    expect(
+      reads.find((call: FakeCall): boolean => {
+        return call.query["runType"] === AIRunType.CodeFix;
+      })!.query[READ_FOR_KEY],
+    ).toBe(CALLER);
+    // An investigation's read is not a task's: no task rule to ask.
+    expect(
+      reads.find((call: FakeCall): boolean => {
+        return call.query["runType"] === AIRunType.Investigation;
+      })!.query[READ_FOR_KEY],
+    ).toBeUndefined();
   });
 
   test("a task about an incident the caller may not read is left out, however it stands", async () => {

@@ -36,6 +36,7 @@ import {
   FakeRow,
   FakeStore,
   FakeTables,
+  READ_FOR_KEY,
   emptyTables,
   installFakeStore,
   matchesFilter,
@@ -872,6 +873,42 @@ describe("fix pull requests", () => {
     });
   });
 
+  /*
+   * A fix task says how it stands by its newest turn, which may be a reply:
+   * a task a reply carried a private incident or alert into, which the
+   * caller does not see, is left out, as Code's own lists leave it out
+   * (#9165).
+   */
+  test("a task the caller may not read in Code is left out, read through the rule for them", async () => {
+    tables.incidents.push(incident(1));
+    tables.runs.push(
+      run(1, 10, {
+        runType: AIRunType.CodeFix,
+        triggeredByIncidentId: idOf(tables.incidents[0]!),
+        codeFixTaskType: CodeFixTaskType.FixFromIncident,
+        taskNumber: 12,
+        analysisTldr: undefined,
+      }),
+      run(2, 20, {
+        runType: AIRunType.CodeFix,
+        triggeredByIncidentId: idOf(tables.incidents[0]!),
+        codeFixTaskType: CodeFixTaskType.FixFromIncident,
+        taskNumber: 11,
+        analysisTldr: undefined,
+        isHiddenFromCaller: true,
+      }),
+    );
+
+    const logs: IncidentAlertAiLogs = await readLogs("incident", {
+      kinds: [IncidentAlertAiLogKind.FixTask],
+    });
+
+    expect(entryIds(logs)).toEqual([
+      `${IncidentAlertAiLogKind.FixTask}:${uuid(30, 1)}`,
+    ]);
+    expect(store.callsTo("runs")[0]!.query[READ_FOR_KEY]).toBe(CALLER);
+  });
+
   test("an investigation is never read as a task's turn", async () => {
     tables.incidents.push(incident(1));
     tables.runs.push(
@@ -884,6 +921,8 @@ describe("fix pull requests", () => {
 
     expect(logs.entries).toHaveLength(1);
     expect(store.callsTo("runs")[0]!.query["codeTaskId"]).toBeUndefined();
+    // About the incident the caller read: no task's rule to ask.
+    expect(store.callsTo("runs")[0]!.query[READ_FOR_KEY]).toBeUndefined();
   });
 });
 

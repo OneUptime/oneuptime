@@ -6,6 +6,7 @@ import MonitorService from "../../../Services/MonitorService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import ServiceService from "../../../Services/ServiceService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
 import AiActivityFailedCommands, {
   AiActivityFailedCommandsRead,
 } from "../ActivityInsights/AiActivityFailedCommands";
@@ -94,7 +95,9 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  * A fix pull request is its Code task, counted once, by the first turn
  * asked in the window, and stands as Code says it does: by its newest turn
  * - a fix asked again from Code (Try again), which carries the same
- * incident or alert, or a reply (#9812).
+ * incident or alert, or a reply (#9812). A task a reply carried a private
+ * incident or alert into, which the caller does not see, counts for none
+ * of theirs, as in Code (AIRunOutputReadFilter, #9165).
  *
  * Bounded: the window's newest INCIDENT_ALERT_AI_INSIGHTS_MAX_* rows of each
  * kind, and its newest INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT
@@ -208,15 +211,25 @@ export default class IncidentAlertAiInsightsReader {
       runType: AIRunType,
       limit: number,
     ): Promise<Array<AIRun>> => {
+      const query: Record<string, unknown> = {
+        ...IncidentAlertAiLogsReader.getRunSubjectQuery(subjectKind),
+        ...inWindow,
+        runType,
+      };
+
       return AIRunService.findBy({
-        query: {
-          ...IncidentAlertAiLogsReader.getRunSubjectQuery(subjectKind),
-          ...inWindow,
-          runType,
-          ...(runType === AIRunType.CodeFix
-            ? { codeTaskId: QueryHelper.isNull() }
-            : {}),
-        } as never,
+        /*
+         * A fix pull request stands as its task's newest turn, which may
+         * be a reply: read as Code's own lists read it for the caller -
+         * none a reply carried a private incident or alert into that they
+         * do not see counts for theirs (AIRunOutputReadFilter, #9165).
+         */
+        query: (runType === AIRunType.CodeFix
+          ? AIRunOutputReadFilter.applyToRunRow(
+              { ...query, codeTaskId: QueryHelper.isNull() },
+              options.props,
+            )
+          : query) as never,
         select: {
           _id: true,
           status: true,

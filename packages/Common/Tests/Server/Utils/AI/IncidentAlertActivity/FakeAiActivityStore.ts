@@ -7,6 +7,7 @@ import IncidentService from "../../../../../Server/Services/IncidentService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import RunnerJobService from "../../../../../Server/Services/RunnerJobService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
+import AIRunOutputReadFilter from "../../../../../Server/Utils/AI/AIRunOutputReadFilter";
 import CodeTaskListRows, {
   CodeTaskRepliesRead,
 } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
@@ -188,8 +189,25 @@ export function matchesFilter(value: unknown, filter: unknown): boolean {
   throw new Error(`The fake store does not know the operator ${sql}.`);
 }
 
+/*
+ * The run read rule (AIRunOutputReadFilter.applyToRunRow), here: the props
+ * it was asked for, kept on the query. A run marked isHiddenFromCaller - a
+ * task a reply carried a private incident or alert into that the caller
+ * does not see - is read only as root.
+ */
+export const READ_FOR_KEY: string = "__readFor";
+
 function matches(row: FakeRow, query: Record<string, unknown>): boolean {
   return Object.keys(query).every((key: string): boolean => {
+    if (key === READ_FOR_KEY) {
+      return (
+        row["isHiddenFromCaller"] !== true ||
+        Boolean(
+          (query[key] as DatabaseCommonInteractionProps | undefined)?.isRoot,
+        )
+      );
+    }
+
     return matchesFilter(row[key], query[key]);
   });
 }
@@ -433,6 +451,12 @@ export function installFakeStore(
   jest
     .spyOn(AlertFeedService, "findBy")
     .mockImplementation(find("alertFeeds") as never);
+  jest.spyOn(AIRunOutputReadFilter, "applyToRunRow").mockImplementation(((
+    query: Record<string, unknown>,
+    props: DatabaseCommonInteractionProps,
+  ) => {
+    return { ...query, [READ_FOR_KEY]: props };
+  }) as never);
   jest.spyOn(CodeTaskListRows, "readReplies").mockImplementation((async (data: {
     taskIds: Array<ObjectID>;
   }) => {

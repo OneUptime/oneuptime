@@ -7,6 +7,7 @@ import SourceLocator, {
   LocatableRepository,
 } from "../../CodeRepository/SourceLocator";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskListRows, {
   CodeTaskRepliesRead,
@@ -73,9 +74,12 @@ import ObjectID from "../../../../Types/ObjectID";
  * someone who may read only some services' insights hears only about
  * those. The runs for them are read as OneUptime, by those problems' ids -
  * an insight's triage is a system run no reader owns - and only their
- * kind, state and date leave. A pull request's repository and its link
- * leave only for a repository the reader may read in Code; the task's own
- * page checks again.
+ * kind, state and date leave. A Code task a reply carried a private
+ * incident or alert into, which the reader does not see, is left out, as
+ * Code's own lists leave it out (AIRunOutputReadFilter, #9165): its state
+ * is its newest turn's now, and that turn is the reply's. A pull request's
+ * repository and its link leave only for a repository the reader may read
+ * in Code; the task's own page checks again.
  */
 export default class TelemetryAiActivityReader {
   @CaptureSpan()
@@ -184,17 +188,27 @@ export default class TelemetryAiActivityReader {
       return { entries: [], totalCount: 0 };
     }
 
-    const query: Record<string, unknown> = {
-      projectId: data.projectId,
-      triggeredByAiInsightId: QueryHelper.any(Array.from(problemsById.keys())),
-      runType: QueryHelper.any([AIRunType.Investigation, AIRunType.CodeFix]),
-      /*
-       * A Code task is one row, its first turn: its later turns - a fix
-       * asked again, a reply - say how it stands (below), never rows of
-       * their own.
-       */
-      codeTaskId: QueryHelper.isNull(),
-    };
+    /*
+     * Read as OneUptime, held to the reader's rule (#9165): no Code task
+     * about, or carrying, a private incident or alert they do not see - the
+     * page and its count alike.
+     */
+    const query: Record<string, unknown> = AIRunOutputReadFilter.applyToRunRow(
+      {
+        projectId: data.projectId,
+        triggeredByAiInsightId: QueryHelper.any(
+          Array.from(problemsById.keys()),
+        ),
+        runType: QueryHelper.any([AIRunType.Investigation, AIRunType.CodeFix]),
+        /*
+         * A Code task is one row, its first turn: its later turns - a fix
+         * asked again, a reply - say how it stands (below), never rows of
+         * their own.
+         */
+        codeTaskId: QueryHelper.isNull(),
+      } as Record<string, unknown>,
+      data.props,
+    );
 
     const [runs, totalCount]: [Array<AIRun>, number] = await Promise.all([
       AIRunService.findBy({
