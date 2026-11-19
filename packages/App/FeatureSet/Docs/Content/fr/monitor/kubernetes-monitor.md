@@ -5,7 +5,7 @@ Un moniteur Kubernetes alerte sur les métriques que l'agent Kubernetes de OneUp
 :::cards
 - [Installer l'agent](/docs/monitor/kubernetes-agent): Une seule commande Helm fait entrer le cluster dans OneUptime.
 - [Créer le moniteur](#créer-un-moniteur-kubernetes): Choisir le cluster, puis un modèle, une métrique ou une requête.
-- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Vingt-cinq alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
+- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Vingt-six alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
 - [Critères](#critères-de-surveillance): Seuils statiques et détection d'anomalies.
 :::
 
@@ -88,7 +88,7 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 | --- | --- |
 | Pod | Consommation CPU du pod, Utilisation mémoire du pod, Phase du pod (code), Utilisation du système de fichiers du pod, Capacité du volume, Espace libre du volume, Utilisation de la limite mémoire du pod, Utilisation de la limite CPU du pod, E/S réseau du pod (cumulées, deux sens) |
 | Nœud | Consommation CPU du nœud, CPU allouable du nœud, Utilisation de la mémoire du nœud, Working set mémoire du nœud, Utilisation du système de fichiers du nœud, Mémoire allouable du nœud, Condition Ready du nœud, Condition MemoryPressure du nœud, Condition DiskPressure du nœud, Condition PIDPressure du nœud, Système de fichiers disponible du nœud, Capacité du système de fichiers du nœud |
-| Conteneur | Redémarrages du conteneur, Redémarrages du conteneur (hausse), Limite CPU du conteneur, Demande CPU du conteneur, Limite mémoire du conteneur, Demande mémoire du conteneur, Conteneur prêt |
+| Conteneur | Redémarrages du conteneur, Redémarrages du conteneur (hausse), Limite CPU du conteneur, Demande CPU du conteneur, Limite mémoire du conteneur, Demande mémoire du conteneur, Conteneur prêt, Système de fichiers disponible du conteneur, Capacité du système de fichiers du conteneur |
 | Charge de travail | Réplicas disponibles du Deployment, Réplicas souhaités du Deployment, Nœuds souhaités du DaemonSet, Nœuds mal planifiés du DaemonSet, Nœuds prêts du DaemonSet, Réplicas souhaités du StatefulSet, Réplicas prêts du StatefulSet, Pods en échec du Job, Pods en échec du Job (hausse), Pods réussis du Job |
 | HPA | Réplicas actuels du HPA, Réplicas souhaités du HPA, Réplicas maximum du HPA, Réplicas minimum du HPA |
 | Plan de contrôle | etcd a un leader, Requêtes en cours du serveur d'API, Pods en attente du planificateur |
@@ -150,6 +150,7 @@ La liste de **Sur quoi alerter** présente ces modèles, regroupés par catégor
 | API Server Request Saturation | Plan de contrôle | Le serveur d'API maintient 200 requêtes en cours ou plus pendant toute la fenêtre | Critique |
 | Scheduler Backlog | Planification | La file des pods en attente du scheduler n'est pas vide pendant 5 minutes | Avertissement |
 | High Node Disk Usage | Stockage | Le système de fichiers d'un nœud est plein à plus de 90 % | Avertissement |
+| Node Image Disk Almost Full | Stockage | Le disque où un nœud conserve ses images de conteneurs est plein à plus de 90 % | Avertissement |
 | PVC Almost Full | Stockage | Une revendication de volume persistant est pleine à plus de 90 % | Avertissement |
 | DaemonSet Pods Not Ready | Charge de travail | Un DaemonSet a des nœuds sans aucun de ses pods prêt pendant 15 minutes | Avertissement |
 | DaemonSet Misscheduled Nodes | Charge de travail | Un DaemonSet exécute des pods sur des nœuds qui ne correspondent plus à son sélecteur de nœuds, à son affinité ou à ses tolérances | Avertissement |
@@ -167,6 +168,8 @@ Les modèles fondés sur des métriques par objet évaluent chaque nœud, pod, d
 Les modèles de coûts lisent les métriques que OneUptime écrit à partir des lignes de coûts horaires de l'agent, un point par heure : ils additionnent donc la dernière journée, et leurs budgets sont exprimés dans la devise du cluster, USD par défaut.
 
 **High Node CPU Request Commitment** et **High Node Memory Request Commitment** ne comptent que les requêtes (requests) des pods qui ne sont pas terminés, comme le fait le planificateur. Le cluster continue de signaler les requêtes d'un pod Succeeded ou Failed, comme celui d'un Job terminé, jusqu'à la suppression du pod : elles ne sont pas comptées.
+
+**Node Image Disk Almost Full** lit le disque sur lequel, selon le kubelet, chaque conteneur en cours d'exécution écrit ses propres fichiers, car l'agent ne remonte pas lui-même le disque d'images d'un nœud. Dans les configurations habituelles, c'est le disque d'images, mais pas sur tous les nœuds : là où un nœud conserve ses images sur son système de fichiers racine, comme la plupart, c'est le système de fichiers racine, si bien que le modèle se déclenche en même temps que **High Node Disk Usage** ; avec le système de fichiers d'images scindé du kubelet (`KubeletSeparateDiskGC`), c'est le disque où écrivent les conteneurs et non celui des images ; et un nœud sans conteneur en cours d'exécution ne remonte rien. Créez-le pour un cluster dont la liste des nœuds affiche la colonne **Disque d'images**, où un nœud conserve ses images sur un disque à part. Par défaut, le kubelet supprime les images inutilisées dès que ce disque est plein à 85 % et évince des pods quand il en reste moins de 15 % de libre.
 
 **Cluster Stopped Reporting** se déclenche quand rien n'arrive de l'agent du cluster pendant dix minutes : l'agent a été désinstallé ou plante en boucle, sa clé d'API a été révoquée, il a perdu sa connexion à OneUptime, ou le serveur d'API du cluster ne lui répond plus. Il se résout dès que les données reviennent. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 

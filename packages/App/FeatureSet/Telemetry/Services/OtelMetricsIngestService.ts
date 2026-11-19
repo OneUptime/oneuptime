@@ -1462,8 +1462,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * A generic ephemeral volume's usage names its claim, as the
            * receiver names any other claim's volume, before its rows are
            * built (KubernetesEphemeralVolumeClaims): a pod's `ephemeral:`
-           * volume is the claim `<pod>-<volume>` it owns. Only a volume the
-           * receiver left unlabelled is looked at.
+           * volume is the claim `<pod>-<volume>` it owns. A claim the series
+           * names is taken as it came, and a volume typed `ephemeral` needs
+           * no lookup; only a volume the receiver left unlabelled reads the
+           * cluster's claims.
            */
           if (kubernetesClusterId) {
             try {

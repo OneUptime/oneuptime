@@ -679,8 +679,9 @@ describe("the troubleshooting page", () => {
     expect(providerSource).toContain(
       'return nil, fmt.Errorf("failed to execute request: %w", err)',
     );
+    expect(providerSource).toContain("message := apiErrorMessage(body)");
     expect(providerSource).toContain(
-      'return fmt.Errorf("the OneUptime API returned status %d: %s", resp.StatusCode, apiErrorMessage(body))',
+      'return fmt.Errorf("the OneUptime API returned status %d: %s", resp.StatusCode, message)',
     );
     expect(generator).toContain(
       'AddError("Parse Error", fmt.Sprintf("Unable to parse ${resource.name} response, got error: %s", err))',
@@ -735,6 +736,44 @@ describe("the troubleshooting page", () => {
     );
     expect(readRepoFile(PROVIDER_GENERATOR)).toContain(
       'return fmt.Errorf("failed to unmarshal response: %w", err)',
+    );
+  });
+
+  /*
+   * #9855: a create or rename refused because another resource of the same
+   * apply still has the name is asked again, for as long as the page says,
+   * and gives up with the words it quotes.
+   */
+  it("says how long the provider asks again for a name another resource gives up, and how it gives up", () => {
+    const providerSource: string = readRepoFile(PROVIDER_GENERATOR);
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### Names another record has",
+    );
+
+    expect(providerSource).toContain("window:    30 * time.Second,");
+    expect(section).toContain(
+      "The provider then asks again for up to 30 seconds",
+    );
+    expect(section).toContain("after 30 seconds the apply fails with");
+
+    // The words ParseResponse adds, with the window as describeWait says it.
+    expect(providerSource).toContain(
+      'return fmt.Sprintf("The name was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)',
+    );
+    expect(providerSource).toContain(
+      'return fmt.Sprintf("%d seconds", seconds)',
+    );
+    expect(section).toContain(
+      "`The name was still taken after asking again for 30 seconds.`",
+    );
+
+    // Only creates and changes are asked again, and only for the server's code.
+    expect(providerSource).toContain(
+      'return method == "POST" || method == "PUT" || method == "PATCH"',
+    );
+    expect(providerSource).toContain(
+      "code, _ := parsed[refusalCodeField].(string)",
     );
   });
 

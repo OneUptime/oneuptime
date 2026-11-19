@@ -50,6 +50,33 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import NetworkDeviceTieSource from "../../../../Types/NetworkDevice/NetworkDeviceTieSource";
+
+// What a Raw condition says of a column, its parameter named "rid".
+function sqlOf(condition: unknown): string {
+  const raw: {
+    getSql?: (alias: string) => string;
+    objectLiteralParameters?: Record<string, unknown>;
+  } = condition as {
+    getSql?: (alias: string) => string;
+    objectLiteralParameters?: Record<string, unknown>;
+  };
+  let sql: string = raw?.getSql ? raw.getSql("column") : "";
+
+  for (const key of Object.keys(raw?.objectLiteralParameters || {})) {
+    sql = sql.split(key).join("rid");
+  }
+
+  return sql;
+}
+
+// The values a Raw condition is handed.
+function valuesOf(condition: unknown): Array<unknown> {
+  return Object.values(
+    (condition as { objectLiteralParameters?: Record<string, unknown> })
+      ?.objectLiteralParameters || {},
+  ).flat();
+}
 
 /*
  * TYING THE MONITORS PEOPLE MADE BEFORE ISSUE #9545 TO THEIR DEVICES, ONCE.
@@ -512,6 +539,20 @@ describe("the backfill", () => {
       // Asked again in the write: tied or made for a device meanwhile, left alone.
       expect(write.query["networkDeviceId"]).toBeDefined();
       expect(write.query["autoProvisionedNetworkDeviceId"]).toBeDefined();
+      // And untied by a person meanwhile (issue #9904).
+      expect(sqlOf(write.query["networkDeviceTieSource"])).toBe(
+        "(column NOT IN (:...rid) or column IS NULL)",
+      );
+      expect(valuesOf(write.query["networkDeviceTieSource"])).toEqual([
+        NetworkDeviceTieSource.Person,
+      ]);
+      /*
+       * OneUptime's tie, by the address rule: it follows the monitor's
+       * probes from now on (issue #9904).
+       */
+      expect(write.data["networkDeviceTieSource"]).toBe(
+        NetworkDeviceTieSource.Automatic,
+      );
     }
   });
 
@@ -556,6 +597,10 @@ describe("the backfill", () => {
     expect(read.query["monitorType"]).toBeDefined();
     expect(read.query["networkDeviceId"]).toBeDefined();
     expect(read.query["autoProvisionedNetworkDeviceId"]).toBeDefined();
+    // Never one a person took a tie off (issue #9904).
+    expect(valuesOf(read.query["networkDeviceTieSource"])).toEqual([
+      NetworkDeviceTieSource.Person,
+    ]);
     expect(read.select).toEqual({
       _id: true,
       monitorType: true,

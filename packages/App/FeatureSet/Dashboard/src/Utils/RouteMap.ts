@@ -166,6 +166,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
   [PageMap.KUBERNETES_COSTS]: `costs`,
+  [PageMap.KUBERNETES_COMPLIANCE]: `compliance`,
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
@@ -3486,6 +3487,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_COSTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_COSTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_COMPLIANCE]
     }`,
   ),
 

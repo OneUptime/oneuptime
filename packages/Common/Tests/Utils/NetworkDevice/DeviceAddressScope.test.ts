@@ -1,18 +1,22 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  AmbiguousAddressReason,
   DeviceAtAddressLike,
   DeviceSeenFrom,
   NO_SITE_KEY,
+  NoDeviceReason,
   ProbeReach,
   ProbeReachFacts,
   ProbeReachIndex,
+  SeenDeviceReason,
   SiteForReach,
   WhenReachUnknown,
   buildProbeReachIndex,
   getProbeIdKeys,
   getSiteKey,
   getSiteKeysOf,
+  isAmongDevicesSeen,
   isDecidedByPolledDevice,
   pickDeviceSeenFrom,
   readProbeReachFacts,
@@ -117,18 +121,20 @@ function reachOf(data: {
   );
 }
 
-/*
- * Which device of `candidates` the probes see, worked out from every device
- * and site of the project, as the backfill does and the server's reads
- * mirror.
- */
-function seen(data: {
+interface SeenFromData {
   probeIds: Array<string>;
   candidates: Array<TestDevice>;
   projectDevices?: Array<TestDevice> | undefined;
   sites?: Array<SiteForReach> | undefined;
   whenReachUnknown?: WhenReachUnknown | undefined;
-}): string {
+}
+
+/*
+ * What the probes see at the address of `candidates`, worked out from every
+ * device and site of the project, as the backfill does and the server's
+ * reads mirror: the whole answer, with its reason.
+ */
+function seenFrom(data: SeenFromData): DeviceSeenFrom<TestDevice> {
   const projectDevices: Array<TestDevice> =
     data.projectDevices || data.candidates;
   const reach: ProbeReach = reachOf({
@@ -138,14 +144,41 @@ function seen(data: {
     siteKeys: getSiteKeysOf(data.candidates),
   });
 
-  const picked: DeviceSeenFrom<TestDevice> = pickDeviceSeenFrom({
+  return pickDeviceSeenFrom({
     candidates: data.candidates,
     reach: reach,
     whenReachUnknown:
       data.whenReachUnknown || WhenReachUnknown.OnlyDeviceAnywhere,
   });
+}
+
+// Which device of `candidates` the probes see, by name, or why none.
+function seen(data: SeenFromData): string {
+  const picked: DeviceSeenFrom<TestDevice> = seenFrom(data);
 
   return picked.kind === "device" ? picked.device.name : picked.kind;
+}
+
+// The answer as a person is told it: the device or devices, and the reason.
+function explained(data: SeenFromData): {
+  kind: string;
+  devices: Array<string>;
+  reason: string;
+} {
+  const picked: DeviceSeenFrom<TestDevice> = seenFrom(data);
+
+  return {
+    kind: picked.kind,
+    devices:
+      picked.kind === "device"
+        ? [picked.device.name]
+        : picked.kind === "ambiguous"
+          ? picked.devices.map((each: TestDevice): string => {
+              return each.name;
+            })
+          : [],
+    reason: picked.reason,
+  };
 }
 
 describe("two sites with a device each at the same private address", () => {
@@ -445,6 +478,263 @@ describe("probes whose site cannot be known", () => {
   });
 });
 
+/*
+ * Each answer says why (issues #9903, #9904, #9905): Review Results says
+ * which device a host at a shared address is and why, and a device's page
+ * why a monitor on its address could not be tied for a person.
+ */
+describe("why the probes see what they see at a shared address", () => {
+  const projectDevices: Array<TestDevice> = [
+    BRANCH_A_ROUTER,
+    BRANCH_B_ROUTER,
+    BRANCH_A_SWITCH,
+    BRANCH_B_SWITCH,
+  ];
+
+  it("site A's probe sees site A's device because it polls it", () => {
+    expect(
+      explained({
+        probeIds: [PROBE_A],
+        candidates: [BRANCH_B_ROUTER, BRANCH_A_ROUTER],
+        projectDevices: projectDevices,
+      }),
+    ).toEqual({
+      kind: "device",
+      devices: ["branch-a-router"],
+      reason: SeenDeviceReason.PolledByTheProbes,
+    });
+  });
+
+  it("a probe that polls another device in site A sees site A's as the only one in its sites", () => {
+    const spareSwitch: TestDevice = device({
+      name: "branch-a-spare-switch",
+      id: "d0000000-0000-4000-8000-0000000000a3",
+      siteId: SITE_A,
+      probeId: PROBE_A_SPARE,
+    });
+
+    expect(
+      explained({
+        probeIds: [PROBE_A_SPARE],
+        candidates: [BRANCH_A_ROUTER, BRANCH_B_ROUTER],
+        projectDevices: [...projectDevices, spareSwitch],
+      }),
+    ).toEqual({
+      kind: "device",
+      devices: ["branch-a-router"],
+      reason: SeenDeviceReason.OnlyOneInTheirSites,
+    });
+  });
+
+  it("a site's default probe that polls nothing sees its site's device the same way", () => {
+    expect(
+      explained({
+        probeIds: [PROBE_FRESH],
+        candidates: [BRANCH_A_ROUTER, BRANCH_B_ROUTER],
+        projectDevices: projectDevices,
+        sites: [
+          { id: SITE_A, probeId: PROBE_FRESH },
+          { id: SITE_B, probeId: PROBE_B },
+        ],
+      }),
+    ).toEqual({
+      kind: "device",
+      devices: ["branch-a-router"],
+      reason: SeenDeviceReason.OnlyOneInTheirSites,
+    });
+  });
+
+  it("site C's probe sees neither: the host there is its own network's", () => {
+    const branchCSwitch: TestDevice = device({
+      name: "branch-c-switch",
+      id: "d0000000-0000-4000-8000-0000000000c2",
+      siteId: SITE_C,
+      probeId: PROBE_C,
+    });
+
+    expect(
+      explained({
+        probeIds: [PROBE_C],
+        candidates: [BRANCH_A_ROUTER, BRANCH_B_ROUTER],
+        projectDevices: [...projectDevices, branchCSwitch],
+      }),
+    ).toEqual({
+      kind: "none",
+      devices: [],
+      reason: NoDeviceReason.NoneInTheirSites,
+    });
+  });
+
+  it("probes in both sites poll both devices: the two cannot be told apart", () => {
+    expect(
+      explained({
+        probeIds: [PROBE_A, PROBE_B],
+        candidates: [BRANCH_A_ROUTER, BRANCH_B_ROUTER],
+        projectDevices: projectDevices,
+      }),
+    ).toEqual({
+      kind: "ambiguous",
+      devices: ["branch-a-router", "branch-b-router"],
+      reason: AmbiguousAddressReason.PollSeveral,
+    });
+  });
+
+  it("a probe that is both sites' default, and polls neither device, looks into both", () => {
+    expect(
+      explained({
+        probeIds: [PROBE_FRESH],
+        candidates: [BRANCH_A_ROUTER, BRANCH_B_ROUTER],
+        projectDevices: projectDevices,
+        sites: [
+          { id: SITE_A, probeId: PROBE_FRESH },
+          { id: SITE_B, probeId: PROBE_FRESH },
+        ],
+      }),
+    ).toEqual({
+      kind: "ambiguous",
+      devices: ["branch-a-router", "branch-b-router"],
+      reason: AmbiguousAddressReason.SeveralInTheirSites,
+    });
+  });
+
+  it("a probe nobody's site names, polling nothing, cannot tell the two apart", () => {
+    expect(
+      explained({
+        probeIds: [PROBE_FRESH],
+        candidates: [BRANCH_A_ROUTER, BRANCH_B_ROUTER],
+        projectDevices: projectDevices,
+      }),
+    ).toEqual({
+      kind: "ambiguous",
+      devices: ["branch-a-router", "branch-b-router"],
+      reason: AmbiguousAddressReason.ReachUnknown,
+    });
+  });
+
+  it("nor can a monitor with no probes", () => {
+    expect(
+      explained({
+        probeIds: [],
+        candidates: [BRANCH_A_ROUTER, BRANCH_B_ROUTER],
+        projectDevices: projectDevices,
+        whenReachUnknown: WhenReachUnknown.OnlyDeviceInNoSite,
+      }),
+    ).toEqual({
+      kind: "ambiguous",
+      devices: ["branch-a-router", "branch-b-router"],
+      reason: AmbiguousAddressReason.ReachUnknown,
+    });
+  });
+
+  it("where the probes look is unknown, one site's device is a scan's host but no monitor's", () => {
+    expect(
+      explained({
+        probeIds: [PROBE_FRESH],
+        candidates: [BRANCH_A_ROUTER],
+        projectDevices: projectDevices,
+        whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
+      }),
+    ).toEqual({
+      kind: "device",
+      devices: ["branch-a-router"],
+      reason: SeenDeviceReason.OnlyOneAtTheAddress,
+    });
+    expect(
+      explained({
+        probeIds: [PROBE_FRESH],
+        candidates: [BRANCH_A_ROUTER],
+        projectDevices: projectDevices,
+        whenReachUnknown: WhenReachUnknown.OnlyDeviceInNoSite,
+      }),
+    ).toEqual({
+      kind: "none",
+      devices: [],
+      reason: NoDeviceReason.ReachUnknownDeviceInASite,
+    });
+  });
+
+  it("an address no device has is none at the address, whatever the probes", () => {
+    expect(
+      explained({
+        probeIds: [PROBE_A],
+        candidates: [],
+        projectDevices: projectDevices,
+      }),
+    ).toEqual({
+      kind: "none",
+      devices: [],
+      reason: NoDeviceReason.NoneAtTheAddress,
+    });
+  });
+});
+
+describe("isAmongDevicesSeen", () => {
+  const twoRouters: Array<TestDevice> = [BRANCH_A_ROUTER, BRANCH_B_ROUTER];
+
+  it("names the device the probes pick", () => {
+    const picked: DeviceSeenFrom<TestDevice> = seenFrom({
+      probeIds: [PROBE_A],
+      candidates: twoRouters,
+    });
+
+    expect(
+      isAmongDevicesSeen({ seen: picked, deviceId: BRANCH_A_ROUTER.id }),
+    ).toBe(true);
+    expect(
+      isAmongDevicesSeen({ seen: picked, deviceId: BRANCH_B_ROUTER.id }),
+    ).toBe(false);
+  });
+
+  it("names each device the probes cannot tell apart, whatever its case", () => {
+    const picked: DeviceSeenFrom<TestDevice> = seenFrom({
+      probeIds: [PROBE_A, PROBE_B],
+      candidates: twoRouters,
+    });
+
+    expect(
+      isAmongDevicesSeen({
+        seen: picked,
+        deviceId: BRANCH_A_ROUTER.id.toUpperCase(),
+      }),
+    ).toBe(true);
+    expect(
+      isAmongDevicesSeen({
+        seen: picked,
+        deviceId: new ObjectID(BRANCH_B_ROUTER.id),
+      }),
+    ).toBe(true);
+    expect(
+      isAmongDevicesSeen({
+        seen: picked,
+        deviceId: BRANCH_A_SWITCH.id,
+      }),
+    ).toBe(false);
+  });
+
+  it("names none when the probes see no device there, or no device is asked about", () => {
+    const picked: DeviceSeenFrom<TestDevice> = seenFrom({
+      probeIds: [PROBE_C],
+      candidates: twoRouters,
+    });
+
+    expect(
+      isAmongDevicesSeen({ seen: picked, deviceId: BRANCH_A_ROUTER.id }),
+    ).toBe(false);
+    expect(
+      isAmongDevicesSeen({
+        seen: seenFrom({ probeIds: [PROBE_A], candidates: twoRouters }),
+        deviceId: "",
+      }),
+    ).toBe(false);
+    expect(
+      isAmongDevicesSeen({
+        seen: seenFrom({ probeIds: [PROBE_A], candidates: twoRouters }),
+        deviceId: null,
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("pickDeviceSeenFrom", () => {
   const knownReach: ProbeReach = {
     probeIds: new Set<string>([PROBE_A]),
@@ -459,7 +749,7 @@ describe("pickDeviceSeenFrom", () => {
         reach: knownReach,
         whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
       }),
-    ).toEqual({ kind: "none" });
+    ).toEqual({ kind: "none", reason: NoDeviceReason.NoneAtTheAddress });
   });
 
   it("puts the device the probes poll before one in a site they look into", () => {
@@ -469,46 +759,64 @@ describe("pickDeviceSeenFrom", () => {
       whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
     });
 
-    expect(picked).toEqual({ kind: "device", device: BRANCH_A_ROUTER });
+    expect(picked).toEqual({
+      kind: "device",
+      device: BRANCH_A_ROUTER,
+      reason: SeenDeviceReason.PolledByTheProbes,
+    });
   });
 
   it("is ambiguous when the probes poll two devices at one address", () => {
+    const copy: TestDevice = device({
+      name: "copy",
+      id: "d0000000-0000-4000-8000-0000000000ff",
+      siteId: SITE_A,
+      probeId: PROBE_A,
+    });
+
     expect(
       pickDeviceSeenFrom({
-        candidates: [
-          BRANCH_A_ROUTER,
-          device({
-            name: "copy",
-            id: "d0000000-0000-4000-8000-0000000000ff",
-            siteId: SITE_A,
-            probeId: PROBE_A,
-          }),
-        ],
+        candidates: [BRANCH_A_ROUTER, copy, BRANCH_B_ROUTER],
         reach: knownReach,
         whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
       }),
-    ).toEqual({ kind: "ambiguous" });
+    ).toEqual({
+      kind: "ambiguous",
+      // The two it polls, not every device at the address.
+      devices: [BRANCH_A_ROUTER, copy],
+      reason: AmbiguousAddressReason.PollSeveral,
+    });
   });
 
   it("is ambiguous when two sites they look into each have a device there", () => {
+    const inSiteA: TestDevice = device({
+      name: "a",
+      id: "d0000000-0000-4000-8000-0000000000f1",
+      siteId: SITE_A,
+    });
+    const inSiteB: TestDevice = device({
+      name: "b",
+      id: "d0000000-0000-4000-8000-0000000000f2",
+      siteId: SITE_B,
+    });
+    const inSiteC: TestDevice = device({
+      name: "c",
+      id: "d0000000-0000-4000-8000-0000000000f3",
+      siteId: SITE_C,
+    });
+
     expect(
       pickDeviceSeenFrom({
-        candidates: [
-          device({
-            name: "a",
-            id: "d0000000-0000-4000-8000-0000000000f1",
-            siteId: SITE_A,
-          }),
-          device({
-            name: "b",
-            id: "d0000000-0000-4000-8000-0000000000f2",
-            siteId: SITE_B,
-          }),
-        ],
+        candidates: [inSiteA, inSiteC, inSiteB],
         reach: { ...knownReach, probeIds: new Set<string>([PROBE_FRESH]) },
         whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
       }),
-    ).toEqual({ kind: "ambiguous" });
+    ).toEqual({
+      kind: "ambiguous",
+      // Site C is not one they look into: its device is not among them.
+      devices: [inSiteA, inSiteB],
+      reason: AmbiguousAddressReason.SeveralInTheirSites,
+    });
   });
 
   it("reads one device read twice as one", () => {
@@ -522,7 +830,11 @@ describe("pickDeviceSeenFrom", () => {
         },
         whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
       }),
-    ).toEqual({ kind: "device", device: BRANCH_A_ROUTER });
+    ).toEqual({
+      kind: "device",
+      device: BRANCH_A_ROUTER,
+      reason: SeenDeviceReason.OnlyOneAtTheAddress,
+    });
   });
 
   it("compares ids whatever their case, and reads a NetworkDevice as it is", () => {
@@ -541,7 +853,11 @@ describe("pickDeviceSeenFrom", () => {
       whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
     });
 
-    expect(picked).toEqual({ kind: "device", device: stored });
+    expect(picked).toEqual({
+      kind: "device",
+      device: stored,
+      reason: SeenDeviceReason.PolledByTheProbes,
+    });
   });
 });
 

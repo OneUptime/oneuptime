@@ -1,5 +1,3 @@
-import { JSONObject } from "../JSON";
-
 /*
  * WHAT A MOBILE APP'S OPENTELEMETRY SDK SENDS, BY NAME.
  *
@@ -103,8 +101,16 @@ export const STORED_APP_INSTALLATION_ID_ATTRIBUTE: string = `resource.${APP_INST
  * installs reads the same key. Verbatim, as the span's own copy is
  * counted, so a crash's install is the very value its spans carry.
  */
+/*
+ * A row's stored attributes. Written here as a plain record, not as
+ * Types/JSON's JSONObject: the browser recorder may inline any module of
+ * Common/{Utils,Types}/Rum, so they import nothing else from Common
+ * (BrowserRecorder's SourceHygiene). A JSONObject is one.
+ */
+type StoredAttributes = { readonly [key: string]: unknown };
+
 export function readStoredAppInstallationId(
-  attributes: JSONObject | undefined | null,
+  attributes: StoredAttributes | undefined | null,
 ): string {
   const value: unknown = attributes?.[STORED_APP_INSTALLATION_ID_ATTRIBUTE];
 
@@ -117,10 +123,12 @@ export function readStoredAppInstallationId(
  * none of its span's or log's resource attributes otherwise. The given
  * attributes are never changed.
  */
-export function withAppInstallationId(input: {
-  attributes: JSONObject;
-  from: JSONObject | undefined | null;
-}): JSONObject {
+export function withAppInstallationId<
+  Attributes extends StoredAttributes,
+>(input: {
+  attributes: Attributes;
+  from: StoredAttributes | undefined | null;
+}): Attributes {
   const installationId: string = readStoredAppInstallationId(input.from);
 
   if (!installationId || readStoredAppInstallationId(input.attributes)) {

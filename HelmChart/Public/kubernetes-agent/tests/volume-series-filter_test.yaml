@@ -12,12 +12,17 @@
 # Volume Claims pages and the PVC Almost Full template), an emptyDir or a
 # hostPath (they fill a node's disk), and a volume the receiver leaves
 # unlabelled - a generic ephemeral volume's claim, which OneUptime's ingest
-# names `<pod>-<volume>`. The receiver labels no projected volume, so a token
-# is told by its name.
+# names `<pod>-<volume>`.
 #
-# The same OTTL ran unchanged through collector 0.161.0 and 0.96.0 (which
-# --reuse-values keeps): both validate the rendered config and keep and drop
-# the same synthetic volumes.
+# The receiver labels no projected and no generic ephemeral volume yet
+# (collector 0.165.0; opentelemetry-collector-contrib#52198 asks for both,
+# issue #9842). So a volume typed `projected` is dropped by its type, whatever
+# it is called, on the collector that names it; until then a token is told by
+# its name; and a volume typed `ephemeral` is a claim's, and is kept.
+#
+# The same OTTL runs unchanged on the collector the chart pins and on 0.96.0
+# (which --reuse-values keeps): Tests/Ops/agent-volume-series-behaviour.sh runs
+# it on both, over synthetic volumes typed and named every way.
 #
 # The patterns read the rendered collector config with the ConfigMap's own
 # indent stripped: `processors:` at 0, a processor at 2, its keys at 4. They are
@@ -36,14 +41,48 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '\n  filter/volume-series:\n    error_mode: ignore\n    metrics:\n      metric:\n        - ''resource\.attributes\["k8s\.volume\.name"\] != nil and resource\.attributes\["k8s\.persistentvolumeclaim\.name"\] == nil and \('
-      # The types the receiver gives them, from the pod's spec.
+      # The types the receiver gives them, from the pod's spec, and the one it
+      # is to give a projected volume.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '\n        - ''[^\n]*\(resource\.attributes\["k8s\.volume\.type"\] == "configMap" or resource\.attributes\["k8s\.volume\.type"\] == "secret" or resource\.attributes\["k8s\.volume\.type"\] == "downwardAPI" or \(resource\.attributes\["k8s\.volume\.type"\] == nil and IsMatch\('
+          pattern: '\n        - ''[^\n]*\(resource\.attributes\["k8s\.volume\.type"\] == "configMap" or resource\.attributes\["k8s\.volume\.type"\] == "secret" or resource\.attributes\["k8s\.volume\.type"\] == "downwardAPI" or resource\.attributes\["k8s\.volume\.type"\] == "projected" or \(resource\.attributes\["k8s\.volume\.type"\] == nil and IsMatch\('
       # A projected token has no type: its name says what it is, whole.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: 'IsMatch\(resource\.attributes\["k8s\.volume\.name"\], "\^\(kube-api-access-\[a-z0-9\]\+\|aws-iam-token\|eks-pod-identity-token\|azure-identity-token\|istio-token\|linkerd-identity-token\)\$"\)\)\)''\n'
+
+  - it: drops every volume typed projected, whatever it is called, on the collector that names one
+    set:
+      clusterName: prod-us
+    asserts:
+      # A type of its own in the list, not a name: a projected volume that
+      # bundles a configMap and a secret is as small, and as unread, as a
+      # token (issue #9842).
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: ' or resource\.attributes\["k8s\.volume\.type"\] == "projected" or \(resource\.attributes\["k8s\.volume\.type"\] == nil and '
+      # Not inside the name match, which is for a volume with no type.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'IsMatch\([^\n]*"projected"'
+      # Said once: no other branch reads the type.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '"projected"[^\n]*"projected"'
+
+  - it: still tells a token by its name on a collector that types no projected volume
+    set:
+      clusterName: prod-us
+    asserts:
+      # Only a volume with no type reaches the name match.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: ' or \(resource\.attributes\["k8s\.volume\.type"\] == nil and IsMatch\(resource\.attributes\["k8s\.volume\.name"\], "\^\(kube-api-access-'
+      # One condition: the types and the names are a single rule, so a
+      # volume either matches it or is kept.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  filter/volume-series:\n    error_mode: ignore\n    metrics:\n      metric:\n        - ''[^\n]*''\n\n'
 
   - it: runs first in the metrics pipeline, so a dropped series costs nothing further down
     set:
@@ -57,7 +96,7 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: '- filter/volume-series\n(?:        [^\n]*\n)*?        - k8sattributes\n'
 
-  - it: never drops a claim's volume, an emptyDir or a hostPath
+  - it: never drops a claim's volume, a generic ephemeral volume, an emptyDir or a hostPath
     set:
       clusterName: prod-us
     asserts:
@@ -65,9 +104,11 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: 'resource\.attributes\["k8s\.persistentvolumeclaim\.name"\] == nil and \('
+      # A volume typed `ephemeral` is the claim Kubernetes made for its pod,
+      # whether or not the collector names that claim too.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '\n  filter/volume-series:\n(?:    [^\n]*\n)*?        - ''[^\n]*"(persistentVolumeClaim|emptyDir|hostPath)"'
+          pattern: '\n  filter/volume-series:\n(?:    [^\n]*\n)*?        - ''[^\n]*"(persistentVolumeClaim|ephemeral|emptyDir|hostPath)"'
       # A volume with no type is dropped only by a token's name, never as such.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
@@ -94,6 +135,11 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '\n  filter/volume-series:\n    error_mode: ignore\n    metrics:\n      metric:\n        - ''resource\.attributes\["k8s\.volume\.name"\] != nil and '
+      # The projected type and the token names alike: 0.96.0 types no
+      # projected volume either, and the condition is the same text.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: ' or resource\.attributes\["k8s\.volume\.type"\] == "projected" or \(resource\.attributes\["k8s\.volume\.type"\] == nil and IsMatch\('
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '\n        - memory_limiter\n(?:        #[^\n]*\n)*        - filter/volume-series\n'

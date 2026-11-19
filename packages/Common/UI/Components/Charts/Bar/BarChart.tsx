@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
-import YAxis from "../Types/YAxis/YAxis";
+import YAxis, { SecondYAxis } from "../Types/YAxis/YAxis";
 import ChartDataPoint, {
   CHART_DATA_POINT_X_AXIS_KEY,
 } from "../ChartLibrary/Types/ChartDataPoint";
@@ -24,7 +24,8 @@ import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import XAxisType from "../Types/XAxis/XAxisType";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
-import { getYAxisWidthInPx } from "../Utils/YAxisWidth";
+import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
+import Dictionary from "../../../../Types/Dictionary";
 import {
   ChartTimeRangeZoomContextValue,
   ChartTimeRangeZoomHandlers,
@@ -91,6 +92,18 @@ export interface ComponentProps {
    * bar at its place.
    */
   stacked?: boolean | undefined;
+  /*
+   * A second value axis, on the right, for the series it names (issue
+   * #10042): bytes overlaid on a chart in percent. Each axis is as wide as
+   * its own ticks, and the tooltip writes a series' values as its axis does.
+   */
+  secondYAxis?: SecondYAxis | undefined;
+  /*
+   * How the tooltip writes a series' values, by its name, for a series whose
+   * unit is neither axis's. Left out, a series' values are written as the
+   * axis it is drawn against writes its ticks.
+   */
+  seriesValueFormatters?: Dictionary<(value: number) => string> | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -162,16 +175,17 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
   /*
    * The value axis is as wide as the widest tick it draws, and never under
    * the 64 pixels it always had: a tick too wide for it broke over two
-   * lines and was cut at the card's edge (YAxisWidth, #8049).
+   * lines and was cut at the card's edge (YAxisWidth, #8049). A second axis
+   * is measured over its own series, and the first over the rest.
    */
-  const yAxisWidthInPx: number = useMemo(() => {
-    return getYAxisWidthInPx({
+  const valueAxes: ChartValueAxes = useMemo(() => {
+    return getChartValueAxes({
       data: props.data,
-      formatter: props.yAxis.options.formatter,
-      min: props.yAxis.options.min,
-      max: props.yAxis.options.max,
+      yAxis: props.yAxis,
+      secondYAxis: props.secondYAxis,
     });
-  }, [props.data, props.yAxis]);
+  }, [props.data, props.yAxis, props.secondYAxis]);
+  const yAxisWidthInPx: number = valueAxes.firstYAxisWidthInPx;
 
   const hasNoData: boolean =
     !props.data ||
@@ -222,6 +236,21 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         }
         onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
         onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
+        /*
+         * Bars stand on zero on both axes, as the first axis's always have:
+         * the axis's own lower and upper ends are not read here.
+         */
+        secondYAxis={
+          valueAxes.secondYAxis
+            ? {
+                ...valueAxes.secondYAxis,
+                autoMinValue: false,
+                minValue: undefined,
+                maxValue: undefined,
+              }
+            : undefined
+        }
+        categoryValueFormatters={props.seriesValueFormatters}
       />
       {hasNoData && <NoDataMessage />}
     </div>

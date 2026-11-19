@@ -84,6 +84,11 @@ import {
   LogsTableColumnOption,
 } from "Common/UI/Components/LogsViewer/types";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayChartAxes,
+  OverlayUnitFit,
+} from "Common/Utils/Metrics/MetricQueryOverlay";
 import { DEFAULT_SAVED_VIEW_TIME_RANGE } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import { INTERACTIVE_READ_TIME_LIMIT } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
@@ -1766,6 +1771,72 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
       ),
     ).toEqual(["Line", "Area", "Bar"]);
     expect(page).toContain("**Chart type** (Line, Area or Bar)");
+  });
+
+  /*
+   * Issue #10045: the page says how an overlaid query's unit is read, as
+   * MetricQueryOverlay reads it and the chart draws it (#9961, #10042).
+   */
+  it("says how an overlaid query's unit is read: converted, on a second axis, or on neither", () => {
+    const charts: string = readDashboardSource(
+      "Components/Metrics/MetricCharts.tsx",
+    );
+    const axes: OverlayChartAxes = MetricQueryOverlay.readChartAxes([
+      { unit: "%" },
+      { unit: "By" },
+      { unit: "ms" },
+    ]);
+
+    // The overlay line comes first, then the units, in a paragraph of its own.
+    const overlayLine: number = page.indexOf(
+      "Each query draws its own chart. To draw a query on the same chart as the one before it, turn on **Overlay with previous query**",
+    );
+    const unitsLine: number = page.indexOf(
+      "An overlaid chart reads its left value axis in its first query's unit",
+    );
+
+    expect(overlayLine).toBeGreaterThan(-1);
+    expect(unitsLine).toBeGreaterThan(overlayLine);
+
+    // The same kind: converted into the left axis's unit.
+    expect(
+      MetricQueryOverlay.readChartAxes([{ unit: "GB" }, { unit: "MB" }])
+        .readings[1],
+    ).toMatchObject({
+      axis: OverlayAxis.First,
+      fit: OverlayUnitFit.Converted,
+    });
+    expect(page).toContain(
+      "converts a query in another unit of the same kind into it, such as megabytes on a chart in gigabytes",
+    );
+
+    // Another kind: a second axis on the right, in its own unit.
+    expect(axes.readings[1]).toMatchObject({
+      axis: OverlayAxis.Second,
+      fit: OverlayUnitFit.Same,
+    });
+    expect(axes.secondAxisLeadIndex).toBe(1);
+    expect(page).toContain(
+      "A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit",
+    );
+
+    // The legend names each series' axis, as the chart's chips do.
+    expect(charts).toContain('translator.translateText("Right axis")');
+    expect(charts).toContain('translator.translateText("Left axis")');
+    expect(page).toContain(
+      "the legend under the chart says which axis each series is drawn against",
+    );
+
+    // A third kind: on neither, drawn against the left axis, and said.
+    expect(axes.readings[2]).toMatchObject({
+      axis: OverlayAxis.First,
+      fit: OverlayUnitFit.Different,
+    });
+    expect(charts).toContain("OVERLAY_UNIT_MISMATCH_TEST_ID");
+    expect(queryConfig).toContain("METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID");
+    expect(page).toContain(
+      "Only a third kind of unit fits neither axis: it is drawn against the left axis, and the chart and the switch both say so.",
+    );
   });
 
   it("adds queries and formulas, and reads a formula the way the page writes one", () => {
