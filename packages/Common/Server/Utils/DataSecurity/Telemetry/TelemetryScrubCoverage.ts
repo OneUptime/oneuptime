@@ -962,19 +962,19 @@ export const SESSION_DETAILS_NOT_SCRUBBABLE: string =
   "Session details come from the RUM recorder, which scrub rules do not reach. Turn off user identity capture or leave this out of identify() and the session's attributes instead.";
 
 /*
- * "Scrub it" on a metric attribute: the Redact Attribute rule that hides
- * its key's values in its service's new metrics - those of the data
- * type's shape, or all of them where no pattern finds the type.
+ * The Redact Attribute rule "Scrub it" makes for a metric attribute: it
+ * hides the key's values in its service's new metrics - those of the data
+ * type's shape, or all of them where no pattern finds the type. Refuses a
+ * key longer than a rule can name, and a service that is gone.
  */
-async function createMetricScrubRule(data: {
+export function buildMetricScrubRule(data: {
   projectId: ObjectID;
-  userId?: ObjectID | undefined;
   serviceId?: ObjectID | string | null | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
   location: string;
   target: ScrubTarget;
-}): Promise<CreatedScrubRule> {
+}): MetricPipelineRule {
   const key: string = data.target.key || "";
   const serviceId: string = data.serviceId ? data.serviceId.toString() : "";
 
@@ -1017,6 +1017,20 @@ async function createMetricScrubRule(data: {
   rule.filters = filters;
   rule.isEnabled = true;
 
+  return rule;
+}
+
+// "Scrub it" on a metric attribute: its rule, made as the person who asked.
+async function createMetricScrubRule(data: {
+  projectId: ObjectID;
+  userId?: ObjectID | undefined;
+  serviceId?: ObjectID | string | null | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+  target: ScrubTarget;
+}): Promise<CreatedScrubRule> {
+  const rule: MetricPipelineRule = buildMetricScrubRule(data);
   const created: MetricPipelineRule = await MetricPipelineRuleService.create({
     data: rule,
     props: await propsFor(data),
@@ -1025,7 +1039,7 @@ async function createMetricScrubRule(data: {
   return {
     signal: "metric",
     scrubRuleId: idOf(created),
-    scrubRuleName: created.name || name,
+    scrubRuleName: created.name || rule.name || "",
   };
 }
 
