@@ -14,6 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
+import { isErrorSentence } from "Common/Types/Exception/ErrorMessageRule";
 import {
   afterEach,
   beforeEach,
@@ -657,6 +658,9 @@ describe("the call's token and Twilio's signature lock it", () => {
     );
 
     expect(sendError).toHaveBeenCalledTimes(1);
+    // Said as a sentence, as Docs/ux/README.md#errors asks (ErrorMessagesGuard).
+    const refusal: Error = sendError.mock.calls[0]?.[2] as Error;
+    expect(isErrorSentence(refusal.message)).toBe(true);
     expect(answer.next).not.toHaveBeenCalled();
     expect(findCallLog).not.toHaveBeenCalled();
     expectNothingWritten();

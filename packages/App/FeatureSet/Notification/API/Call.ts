@@ -469,7 +469,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid answering machine callback URL"),
+          new BadDataException(
+            "This answering machine callback URL names no call. Send it to the URL OneUptime gave Twilio as it placed the call.",
+          ),
         );
       }
 
