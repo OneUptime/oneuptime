@@ -64,8 +64,9 @@ NODE_IMAGE="${NODE_IMAGE:-node:26-alpine}"
 CURL_IMAGE="${CURL_IMAGE:-curlimages/curl:8.11.1}"
 # How long the collector is given to scrape every job at least once.
 COLLECT_SECONDS="${COLLECT_SECONDS:-150}"
-# How long Kubecost 3's aggregator is given to collect the cluster: it says
-# nothing of it, its prices included, until then (about twenty minutes).
+# How long Kubecost 3's aggregator is given to collect the cluster and answer
+# for its allocations: it says nothing of it, its prices included, until then
+# (about twenty minutes).
 KUBECOST3_COLLECT_SECONDS="${KUBECOST3_COLLECT_SECONDS:-2400}"
 # How long the five-minute OpenCost agent is given to ship a window.
 SHIP_SECONDS="${SHIP_SECONDS:-600}"
@@ -270,9 +271,12 @@ EOF
 }
 
 # Kubecost 3 says nothing of a cluster, its prices included, until its
-# aggregator has collected it: wait for that before any agent reads it.
+# aggregator has collected it, and its Allocation API answers with nothing
+# for a few minutes more (on a fresh kind cluster, /model/allocation was
+# still empty when /model/clusters/status first listed it): wait for both
+# before any agent reads it.
 wait_for_kubecost3_collection() {
-    local deadline=$((SECONDS + KUBECOST3_COLLECT_SECONDS)) clusters=""
+    local deadline=$((SECONDS + KUBECOST3_COLLECT_SECONDS)) clusters="" rows=""
     log "Waiting for Kubecost 3's aggregator to collect the cluster..."
     until [ "$SECONDS" -ge "$deadline" ]; do
         clusters="$(kubectl -n "$PROBE_NS" exec curl -- curl -s -m 15 \
@@ -281,6 +285,12 @@ wait_for_kubecost3_collection() {
         sleep 20
     done
     assert_present "Kubecost 3's aggregator has collected the cluster (/model/clusters/status)" "$clusters" '"provider":"custom"'
+    # measure_allocation_grouping says what it answered in the end.
+    until [ "$SECONDS" -ge "$deadline" ]; do
+        rows="$(allocation_rows "${KC3}:9090/model/allocation?window=2d&accumulate=true")"
+        [ "${rows% *}" -gt 0 ] 2>/dev/null && break
+        sleep 20
+    done
 }
 
 # "<status> <content type>" of a URL, and whether it carries a price series.
