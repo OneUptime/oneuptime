@@ -153,6 +153,9 @@ const NetworkDeviceView: FunctionComponent<
     ModelAction.Create,
   ).isAllowed;
 
+  // Bumped when a monitor is added to the device, to read its monitors again.
+  const [monitorsReadCount, setMonitorsReadCount] = useState<number>(0);
+
   useEffect(() => {
     const fetchMonitors: PromiseVoidFunction = async (): Promise<void> => {
       try {
@@ -171,7 +174,7 @@ const NetworkDeviceView: FunctionComponent<
       setMonitorsError(API.getFriendlyMessage(err));
       setIsMonitorsLoading(false);
     });
-  }, []);
+  }, [monitorsReadCount]);
 
   return (
     <Fragment>
@@ -438,6 +441,11 @@ const NetworkDeviceView: FunctionComponent<
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
         canCreateMonitor={canCreateMonitor}
+        onMonitorAdded={() => {
+          setMonitorsReadCount((count: number): number => {
+            return count + 1;
+          });
+        }}
       />
       {/*
        * What Security Events found about it this week - firewall and

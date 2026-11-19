@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddTableHealthSkippedTables1809184889541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184889541-AddTableHealthSkippedTables";
+import { AddTableHealthSkippedTables1809184919541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184919541-AddTableHealthSkippedTables";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -23,12 +23,13 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809184889541";
+const MIGRATION_TIMESTAMP: string = "1809184919541";
 const MIGRATION_BASE_NAME: string = "AddTableHealthSkippedTables";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddDataPipelineCircuitBreaker1809184870000";
-const PREVIOUS_TIMESTAMP: number = 1809184870000;
+const PREVIOUS_MIGRATION: string =
+  "AddMonitorNetworkDeviceIdIndexAndKey1809184900100";
+const PREVIOUS_TIMESTAMP: number = 1809184900100;
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -43,7 +44,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddTableHealthSkippedTables1809184889541();
+    new AddTableHealthSkippedTables1809184919541();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -54,7 +55,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddTableHealthSkippedTables1809184889541", () => {
+describe("AddTableHealthSkippedTables1809184919541", () => {
   test("adds the tables a store's database keeps refusing to DataStore, as nullable JSON", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "DataStore" ADD "tableHealthSkippedTables" jsonb`,
@@ -104,7 +105,7 @@ describe("AddTableHealthSkippedTables1809184889541", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddTableHealthSkippedTables1809184889541().name).toBe(
+    expect(new AddTableHealthSkippedTables1809184919541().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

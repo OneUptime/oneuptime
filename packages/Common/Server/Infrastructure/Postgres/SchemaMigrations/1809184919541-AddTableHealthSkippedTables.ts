@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * release before ignores it, and a store with none reads as one whose
  * tables are all asked.
  */
-export class AddTableHealthSkippedTables1809184889541
+export class AddTableHealthSkippedTables1809184919541
   implements MigrationInterface
 {
-  public name: string = "AddTableHealthSkippedTables1809184889541";
+  public name: string = "AddTableHealthSkippedTables1809184919541";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

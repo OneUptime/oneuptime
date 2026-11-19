@@ -1078,7 +1078,9 @@ import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-
 import { AddKubernetesVolumeClaimUsage1809184859539 } from "./1809184859539-AddKubernetesVolumeClaimUsage";
 import { AddDataPipelineOwnerRules1809184860000 } from "./1809184860000-AddDataPipelineOwnerRules";
 import { AddDataPipelineCircuitBreaker1809184870000 } from "./1809184870000-AddDataPipelineCircuitBreaker";
-import { AddTableHealthSkippedTables1809184889541 } from "./1809184889541-AddTableHealthSkippedTables";
+import { AddMonitorNetworkDeviceId1809184900000 } from "./1809184900000-AddMonitorNetworkDeviceId";
+import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./1809184900100-AddMonitorNetworkDeviceIdIndexAndKey";
+import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
 
 export default [
   InitialMigration,
@@ -2161,5 +2163,7 @@ export default [
   AddKubernetesVolumeClaimUsage1809184859539,
   AddDataPipelineOwnerRules1809184860000,
   AddDataPipelineCircuitBreaker1809184870000,
-  AddTableHealthSkippedTables1809184889541,
+  AddMonitorNetworkDeviceId1809184900000,
+  AddMonitorNetworkDeviceIdIndexAndKey1809184900100,
+  AddTableHealthSkippedTables1809184919541,
 ];

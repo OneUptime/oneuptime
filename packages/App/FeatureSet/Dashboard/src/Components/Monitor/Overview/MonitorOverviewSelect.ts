@@ -49,6 +49,11 @@ export const MONITOR_OVERVIEW_BASE_SELECT: Select<Monitor> = {
   incomingEmailMonitorRequest: true,
   incomingEmailMonitorLastEmailReceivedAt: true,
   incomingEmailMonitorHeartbeatCheckedAt: true,
+  /*
+   * Whether an import made it for a network device: such a monitor is that
+   * device's already, so its details card offers no tie (issue #9545).
+   */
+  autoProvisionedNetworkDeviceId: true,
 };
 
 /*

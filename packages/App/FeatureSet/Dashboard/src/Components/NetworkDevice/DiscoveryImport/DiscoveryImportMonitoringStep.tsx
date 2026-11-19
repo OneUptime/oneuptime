@@ -43,7 +43,10 @@ import {
   DiscoveryImportAlertReach,
   DiscoveryImportOutcome,
   DiscoveryImportTemplateChoice,
+  EXISTING_DEVICES_NEED_A_TEMPLATE,
   checksDeviceAddress,
+  checksDeviceUrl,
+  checksFromProbe,
   getDiscoveryImportOutcome,
   getTemplateChoiceValue,
 } from "./DiscoveryImportOutcome";
@@ -58,7 +61,8 @@ import {
   NO_DEVICE_MONITOR_TEMPLATE_REASON,
   POLL_TEMPLATES_GROUP_TITLE,
   UNNAMED_TEMPLATE_NAME,
-  describeAddressTemplate,
+  WEB_TEMPLATES_GROUP_TITLE,
+  describeDeviceTemplate,
 } from "./DiscoveryImportTemplateCopy";
 
 /*
@@ -73,11 +77,15 @@ import {
  *   - Who hears about a problem: nobody but the device's own status, or a
  *     monitor per device from a template - the recommended alert pack, or
  *     any of the project's templates a device's monitor can be made from: a
- *     Network Device one, whose monitor reads each device's polls, or a
- *     Ping, IP, Port or NTP one, whose monitor checks each device's address
- *     from the scan's probe (#5145: a customer's own Ping template never
- *     showed). One line under the list says which kinds are listed, beside
- *     a link to the templates. The picked one is previewed check by check:
+ *     Network Device one, whose monitor reads each device's polls, a Ping,
+ *     IP, Port or NTP one, whose monitor checks each device's address from
+ *     the scan's probe (#5145: a customer's own Ping template never showed),
+ *     or a Website, API or SSL Certificate one, whose monitor checks the
+ *     template's URL with each device's address as the host (#9546). A
+ *     device already added with no monitor, picked to get one (#9544), is
+ *     counted apart. One line under the list says which kinds are listed,
+ *     beside a link to the templates. The picked one is previewed check by
+ *     check:
  *     what each device gets, when it is checked, what each check raises and
  *     at what severity, and, for a Network Device template, which checks
  *     need an SNMP walk a device that only answers ping does not get.
@@ -95,7 +103,13 @@ import {
  */
 
 export interface DiscoveryImportMonitoringStepProps {
+  // The hosts the import brings in as new devices.
   hosts: Array<DiscoveredNetworkDevice>;
+  /*
+   * Hosts that are devices already, with no monitor, picked to get one
+   * (issue #9544): given the template's monitor, never imported again.
+   */
+  existingHosts?: Array<DiscoveredNetworkDevice> | undefined;
   probeName?: string | undefined;
   // Where the hosts come from: a scan (left out), or the Discovered Devices list.
   source?: DiscoveryImportSource | undefined;
@@ -212,6 +226,33 @@ export function getTemplateLead(
     return translator.translateTemplate(
       "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.",
       { probe: probe },
+    );
+  }
+
+  /*
+   * A web template's monitor (issue #9546): the template's URL, as written,
+   * with each device's own address as the host.
+   */
+  const url: string = choice.templateUrl || "";
+
+  if (choice.monitorType === MonitorType.Website && url) {
+    return translator.translateTemplate(
+      "Each device gets a Website monitor of {{url}} from {{probe}}, with its own address as the host.",
+      { url: url, probe: probe },
+    );
+  }
+
+  if (choice.monitorType === MonitorType.API && url) {
+    return translator.translateTemplate(
+      "Each device gets an API monitor that calls {{url}} from {{probe}}, with its own address as the host.",
+      { url: url, probe: probe },
+    );
+  }
+
+  if (choice.monitorType === MonitorType.SSLCertificate && url) {
+    return translator.translateTemplate(
+      "Each device gets an SSL Certificate monitor of {{url}} from {{probe}}, with its own address as the host. The certificate must name that address.",
+      { url: url, probe: probe },
     );
   }
 
@@ -341,7 +382,8 @@ const TemplatePreview: FunctionComponent<{
   const translator: Translator = useTranslator();
   const [showWalkChecks, setShowWalkChecks] = useState<boolean>(false);
   const template: DiscoveryImportTemplateChoice = props.template;
-  const isAddressTemplate: boolean = checksDeviceAddress(template);
+  // Checked from a probe on its own schedule: its address, or a URL on it.
+  const isAddressTemplate: boolean = checksFromProbe(template);
 
   const enabledChecks: Array<MonitorCriteriaAlertSummary> =
     template.summary.criteria.filter(
@@ -560,11 +602,20 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
 
   const outcome: DiscoveryImportOutcome = getDiscoveryImportOutcome({
     hosts: props.hosts,
+    existingHosts: props.existingHosts,
     settings: settings,
     template: props.template,
     policies: facts?.policies || [],
     monitorRoom: facts?.monitorRoom ?? null,
   });
+
+  /*
+   * Only devices already added, picked to get a monitor (issue #9544): the
+   * import creates no device, so how often devices are checked is not its
+   * to ask - each keeps the schedule it has.
+   */
+  const isOnlyExistingDevices: boolean =
+    outcome.hostCount === 0 && outcome.existingDeviceCount > 0;
 
   const isAtMonitorLimit: boolean = Boolean(
     facts?.monitorLimitStatus &&
@@ -595,7 +646,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
             ? translator.translateText(NO_DEVICE_MONITOR_TEMPLATE_REASON)
             : facts.templatesUnavailableReason) ||
           (translator.translateText(
-            "This project has no Network Device, Ping, IP, Port or NTP monitor template to monitor the devices with.",
+            "This project has no Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate monitor template to monitor the devices with.",
           ) as string)
         : undefined;
 
@@ -617,6 +668,11 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
   ) => DropdownOption = (
     choice: DiscoveryImportTemplateChoice,
   ): DropdownOption => {
+    const description: string | undefined = describeDeviceTemplate(
+      translator,
+      choice,
+    );
+
     return {
       value: getTemplateChoiceValue(choice),
       label: choice.isCreatedOnImport
@@ -626,8 +682,12 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
         : getTemplateChoiceName(translator, choice),
       // Drawn as named: a template called "Labels" is not translated.
       isUserContent: true,
-      ...(checksDeviceAddress(choice)
-        ? { description: describeAddressTemplate(translator, choice) }
+      ...(description
+        ? {
+            description: description,
+            // Worded above, in the reader's language, a URL as written.
+            isDescriptionUserContent: true,
+          }
         : {}),
     };
   };
@@ -636,39 +696,46 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
     facts?.templates || [];
   const pollTemplateOptions: Array<DropdownOption> = templates
     .filter((choice: DiscoveryImportTemplateChoice): boolean => {
-      return !checksDeviceAddress(choice);
+      return !checksFromProbe(choice);
     })
     .map(toTemplateOption);
   const addressTemplateOptions: Array<DropdownOption> = templates
     .filter(checksDeviceAddress)
     .map(toTemplateOption);
+  const webTemplateOptions: Array<DropdownOption> = templates
+    .filter(checksDeviceUrl)
+    .map(toTemplateOption);
   const templateOptions: Array<DropdownOption> = [
     ...pollTemplateOptions,
     ...addressTemplateOptions,
+    ...webTemplateOptions,
   ];
 
   /*
-   * Both kinds in one list are told apart under a heading each: the ones
-   * that read each device's polls, then the ones that check its address.
-   * One kind alone needs no heading.
+   * Two kinds or more in one list are told apart under a heading each: the
+   * ones that read each device's polls, the ones that check its address,
+   * then the ones that check a URL on it (issue #9546). One kind alone
+   * needs no heading.
    */
+  const templateGroups: Array<DropdownOptionGroup> = [
+    {
+      label: translator.translateText(POLL_TEMPLATES_GROUP_TITLE) as string,
+      options: pollTemplateOptions,
+    },
+    {
+      label: translator.translateText(ADDRESS_TEMPLATES_GROUP_TITLE) as string,
+      options: addressTemplateOptions,
+    },
+    {
+      label: translator.translateText(WEB_TEMPLATES_GROUP_TITLE) as string,
+      options: webTemplateOptions,
+    },
+  ].filter((group: DropdownOptionGroup): boolean => {
+    return group.options.length > 0;
+  });
+
   const groupedTemplateOptions: Array<DropdownOption | DropdownOptionGroup> =
-    pollTemplateOptions.length > 0 && addressTemplateOptions.length > 0
-      ? [
-          {
-            label: translator.translateText(
-              POLL_TEMPLATES_GROUP_TITLE,
-            ) as string,
-            options: pollTemplateOptions,
-          },
-          {
-            label: translator.translateText(
-              ADDRESS_TEMPLATES_GROUP_TITLE,
-            ) as string,
-            options: addressTemplateOptions,
-          },
-        ]
-      : templateOptions;
+    templateGroups.length > 1 ? templateGroups : templateOptions;
 
   const selectedTemplateOption: DropdownOption | undefined = props.template
     ? templateOptions.find((option: DropdownOption): boolean => {
@@ -736,16 +803,29 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
           }}
         />
       </div>
-      {props.template && (
-        <TemplatePreview
-          key={getTemplateChoiceValue(props.template)}
-          template={props.template}
-          facts={facts}
-          outcome={outcome}
-          pollingIntervalInMinutes={settings.pollingIntervalInMinutes}
-          probeName={props.probeName}
-          source={props.source}
+      {/*
+       * A template no device's monitor can be made from - a web template
+       * whose URL has no host an address can take - says what to change
+       * in place of what it would raise; Import waits until it is changed.
+       */}
+      {props.template?.unusableReason ? (
+        <Alert
+          type={AlertType.DANGER}
+          title={props.template.unusableReason}
+          dataTestId="discovery-import-template-unusable"
         />
+      ) : (
+        props.template && (
+          <TemplatePreview
+            key={getTemplateChoiceValue(props.template)}
+            template={props.template}
+            facts={facts}
+            outcome={outcome}
+            pollingIntervalInMinutes={settings.pollingIntervalInMinutes}
+            probeName={props.probeName}
+            source={props.source}
+          />
+        )
       )}
     </div>
   );
@@ -757,7 +837,10 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
     >
       <div className="space-y-6">
         {props.leadSection}
-        <section className="space-y-4">
+        <section
+          className={`space-y-4 ${isOnlyExistingDevices ? "hidden" : ""}`}
+          data-testid="discovery-import-polling"
+        >
           <div>
             <h4 className="text-sm font-semibold text-gray-900">
               {translator.translateText("How often they are checked")}
@@ -941,6 +1024,55 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
   );
 };
 
+/*
+ * What the summary says about the devices already added that were picked to
+ * get a monitor (issue #9544): that each gets the template's monitor - or,
+ * with no monitor asked for, that there is nothing to give them.
+ */
+export function getExistingDeviceOutcomeLine(
+  translator: Translator,
+  outcome: DiscoveryImportOutcome,
+): { key: string; text: string; tone?: "warning" } | null {
+  if (outcome.existingDeviceCount === 0) {
+    return null;
+  }
+
+  if (outcome.template) {
+    return {
+      key: "existing",
+      text: translator.translatePlural(
+        {
+          one: "{{count}} device already added gets a monitor from “{{template}}”. Nothing else about it changes.",
+          other:
+            "{{count}} devices already added each get a monitor from “{{template}}”. Nothing else about them changes.",
+        },
+        outcome.existingDeviceCount,
+        {
+          count: translator.formatNumber(outcome.existingDeviceCount),
+          template: getTemplateChoiceName(translator, outcome.template),
+        },
+      ),
+    };
+  }
+
+  return {
+    key: "existing",
+    tone: "warning",
+    text:
+      outcome.hostCount === 0
+        ? (translator.translateText(EXISTING_DEVICES_NEED_A_TEMPLATE) as string)
+        : translator.translatePlural(
+            {
+              one: "{{count}} device you picked is already added, and gets nothing without a monitor template.",
+              other:
+                "{{count}} devices you picked are already added, and get nothing without a monitor template.",
+            },
+            outcome.existingDeviceCount,
+            { count: translator.formatNumber(outcome.existingDeviceCount) },
+          ),
+  };
+}
+
 const PolicyNote: FunctionComponent<{
   coveringPolicyNames: Array<string>;
   scopedPolicyCount: number;
@@ -1108,6 +1240,14 @@ export const OutcomeSummary: FunctionComponent<{
     });
   }
 
+  // The devices already added that were picked to get a monitor (#9544).
+  const existingLine: { key: string; text: string; tone?: "warning" } | null =
+    getExistingDeviceOutcomeLine(translator, outcome);
+
+  if (existingLine) {
+    lines.push(existingLine);
+  }
+
   if (outcome.template && outcome.monitorCount > 0) {
     const raises: string =
       outcome.raisesIncidents && outcome.raisesAlerts
@@ -1202,7 +1342,11 @@ export const OutcomeSummary: FunctionComponent<{
         },
       ),
     });
-  } else {
+  } else if (outcome.hostCount > 0) {
+    /*
+     * Said of the new devices: devices already added that get nothing have
+     * their own line above.
+     */
     lines.push({
       key: "nobody",
       tone: "warning",
@@ -1230,11 +1374,33 @@ export const OutcomeSummary: FunctionComponent<{
         className="mt-1 text-2xl font-semibold text-gray-900"
         data-testid="discovery-import-outcome-count"
       >
-        {translator.translatePlural(
-          { one: "{{count}} device", other: "{{count}} devices" },
-          outcome.hostCount,
-          { count: translator.formatNumber(outcome.hostCount) },
-        )}
+        {/*
+         * New devices, and - when devices already added were picked to get
+         * a monitor (#9544) - told apart from them: "3 new devices", or
+         * "2 devices already added" when there are no new ones.
+         */}
+        {outcome.existingDeviceCount === 0
+          ? translator.translatePlural(
+              { one: "{{count}} device", other: "{{count}} devices" },
+              outcome.hostCount,
+              { count: translator.formatNumber(outcome.hostCount) },
+            )
+          : outcome.hostCount > 0
+            ? translator.translatePlural(
+                { one: "{{count}} new device", other: "{{count}} new devices" },
+                outcome.hostCount,
+                { count: translator.formatNumber(outcome.hostCount) },
+              )
+            : translator.translatePlural(
+                {
+                  one: "{{count}} device already added",
+                  other: "{{count}} devices already added",
+                },
+                outcome.existingDeviceCount,
+                {
+                  count: translator.formatNumber(outcome.existingDeviceCount),
+                },
+              )}
       </p>
       <ul className="mt-3 space-y-2.5">
         {lines.map((line: { key: string; text: string; tone?: "warning" }) => {
