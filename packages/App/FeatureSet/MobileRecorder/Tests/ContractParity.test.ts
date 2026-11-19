@@ -115,8 +115,18 @@ import {
   MAX_CUSTOM_EVENT_PROPERTY_KEYS,
   MAX_TRAIT_KEY_LENGTH,
   MAX_TRAIT_VALUE_LENGTH,
+  READABLE_VALUE_PATTERN,
+  maskStringMapValues,
+  maskTextValue,
   sanitizeRoute,
 } from "../src/Sanitize";
+import {
+  SESSION_REPLAY_READABLE_VALUE_PATTERN as COMMON_READABLE_VALUE_PATTERN,
+  isSessionReplayReadableValue,
+  maskSessionReplayProperties,
+  normalizeSessionReplayReadablePropertyKeys,
+} from "../../../../Common/Types/Rum/SessionReplayReadableProperties";
+import CommonMasking from "../../../../Common/Utils/Rum/Masking";
 import {
   CUSTOM_EVENT_TAG,
   CUSTOM_SIGNAL_CUSTOM_EVENT_TAG,
@@ -876,6 +886,90 @@ describe("published SDK wire contract", () => {
       expect(readProductAnalyticsRecorderConfig(null)).toEqual(
         commonReadRecorderConfig(null),
       );
+    });
+  });
+
+  /*
+   * Readable event properties (issue #7501): the keys arrive on the config
+   * response in Common's shape, are read as Common reads them, and a value
+   * under a listed key is kept exactly when Common keeps it - so a funnel
+   * split by a listed property reads the same from a phone as from a
+   * browser, and no free text leaves either.
+   */
+  describe("readable event properties", () => {
+    test("carries Common's field, type for type, and Common's token shape", () => {
+      const responseFieldIsIdentical: IdenticalTypes<
+        SessionReplayConfigResponse["readableEventPropertyKeys"],
+        CommonConfigResponse["readableEventPropertyKeys"]
+      > = true;
+      expect(responseFieldIsIdentical).toBe(true);
+      expect(READABLE_VALUE_PATTERN.source).toBe(
+        COMMON_READABLE_VALUE_PATTERN.source,
+      );
+      expect(READABLE_VALUE_PATTERN.flags).toBe(
+        COMMON_READABLE_VALUE_PATTERN.flags,
+      );
+    });
+
+    test("reads the keys as Common does", () => {
+      for (const value of [
+        undefined,
+        null,
+        "step",
+        [" step ", "step", "Step", "", 7, "plan"],
+        ["k".repeat(60)],
+        ["__proto__", "ok"],
+      ]) {
+        expect(normalizeProductAnalyticsUserPropertyKeys(value)).toEqual(
+          normalizeSessionReplayReadablePropertyKeys(value),
+        );
+      }
+    });
+
+    test("keeps exactly the values Common keeps, and masks the rest as Common's mask does", () => {
+      const random: SeededRandom = seededRandom(7501);
+      const alphabet: string = "ab_.:/-Z9 @é";
+      const keys: Array<string> = ["step", "plan", "setup", "note"];
+
+      for (let iteration: number = 0; iteration < 2000; iteration++) {
+        const map: Record<string, string> = {};
+
+        for (const key of keys) {
+          let value: string = "";
+          const length: number = random(40);
+
+          for (let index: number = 0; index < length; index++) {
+            value += alphabet.charAt(random(alphabet.length));
+          }
+
+          map[key] = value;
+        }
+
+        const listed: Array<string> = keys.filter((): boolean => {
+          return random(2) === 0;
+        });
+
+        expect({ ...maskStringMapValues(map, listed) }).toEqual(
+          maskSessionReplayProperties(map, listed, (value: string): string => {
+            return CommonMasking.maskText(value);
+          }),
+        );
+
+        for (const key of keys) {
+          expect(READABLE_VALUE_PATTERN.test(map[key] as string)).toBe(
+            isSessionReplayReadableValue(map[key] as string),
+          );
+          expect(maskTextValue(map[key] as string)).toBe(
+            CommonMasking.maskText(map[key] as string),
+          );
+        }
+      }
+    });
+
+    test("with no key listed, every value is masked: the default", () => {
+      expect({
+        ...maskStringMapValues({ step: "billing", note: "Jane Doe" }),
+      }).toEqual({ step: "••••", note: "••••" });
     });
   });
 
