@@ -261,7 +261,9 @@ export function createCaseWorkFixture(options) {
   }
 
   /*
-   * What is added is the reader's; a task starts open; and a link added
+   * What is added is the reader's; a task starts open, unless it is added
+   * done - a step of the case's Response Plan ticked off - when the reader
+   * did it, now, as SecurityCaseTaskService stamps it; and a link added
    * without a name of its own is named after its address, as
    * SecurityCaseEvidenceService names it.
    */
@@ -274,6 +276,11 @@ export function createCaseWorkFixture(options) {
 
     if (modelName === new SecurityCaseTask().tableName) {
       record.isDone = record.isDone === true;
+
+      if (record.isDone) {
+        record.doneAt = now;
+        record.doneByUserId = new ObjectID(people.maya._id);
+      }
     }
 
     if (

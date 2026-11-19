@@ -53,6 +53,8 @@ Uma classificação lê:
 
 Ela também pode ler o resto do OneUptime como a investigação de um incidente faz: logs, traces, métricas, hosts e as ferramentas somente leitura dos servidores MCP do projeto.
 
+Todos que podem ver o caso leem a classificação dele, então uma classificação só lê o que todos eles podem ler, como a investigação de um incidente faz. Um tipo de registro que nenhuma equipe, função personalizada ou chave de API lê apenas pelo proprietário ou pelo rótulo é lido por inteiro; onde alguma lê assim, um host, cluster, serviço ou outro registro que um proprietário ou um rótulo separa fica de fora e nunca é nomeado nem contado. O caso é sempre lido, e o incidente que ele declarou também, a menos que esse incidente seja privado. Incidentes e alertas privados nunca são lidos.
+
 ### O que ela conclui
 
 | Leitura | Significa | Sugere fechar como |

@@ -516,7 +516,6 @@ jobs:
               test-vmware-host-page-ui
               test-dashboard-value-widget-ui
               test-sign-in-options-ui
-              test-side-by-side-pages-ui
               test-server-setup-ui
           - group: 13
             suites: >-
@@ -526,6 +525,7 @@ jobs:
               test-server-products-ui
               test-product-analytics-saved-views-ui
               test-feedback-questions-ui
+              test-side-by-side-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

@@ -10,7 +10,9 @@ import {
   CallSummaryStatus,
   RootCauseSuggestionStatus,
 } from "../../../../Types/VideoCall/CallSummary";
+import { CallSummaryPost } from "../../../../Types/VideoCall/CallSummaryPosts";
 import { getVideoCallLabel } from "../../../../Types/VideoCall/VideoCallProvider";
+import { VideoCallTranscriptSource } from "../../../../Types/VideoCall/VideoCallTranscript";
 import TranscriptText, {
   TranscriptLine,
 } from "../../../../Utils/VideoCall/TranscriptText";
@@ -27,6 +29,7 @@ import logger, { LogAttributes } from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import IncidentVideoCallTranscriptWrite from "../../VideoCall/Transcripts/IncidentVideoCallTranscriptWrite";
+import IncidentCallTranscriptRemoval from "../../VideoCall/Transcripts/IncidentCallTranscriptRemoval";
 import AIIncidentPostmortemRunner from "../SRE/IncidentPostmortemRunner";
 import IncidentCallSummaryFeed from "./IncidentCallSummaryFeed";
 import { CallSummaryIncident } from "./CallSummaryPrompt";
@@ -41,7 +44,9 @@ import CallSummaryReader, {
  * When a call's transcript is added - read from Zoom or Google Meet, or
  * added by a person - OneUptime AI reads it, stores what it found on the
  * call (CallSummary) and posts it to the incident's feed and channels
- * (IncidentCallSummaryFeed). The suggested root cause waits on the call for
+ * (IncidentCallSummaryFeed), keeping where it went, so removing the
+ * transcript takes it back (CallSummaryPosts). The suggested root cause
+ * waits on the call for
  * a person; nothing is written to the incident's root cause until someone
  * uses it (IncidentVideoCallAPI). A reading that ends lets a postmortem
  * draft that waited for it go on (AIIncidentPostmortemRunner).
@@ -52,8 +57,12 @@ import CallSummaryReader, {
  * long call is several requests to the model, longer than a person should
  * wait on a button. Each reading has its own id (the Pending summary holds
  * it), and only the reading whose id is still the call's writes what it
- * found: a reading replaced by a newer one - the transcript was replaced,
- * or someone asked for it to be read again - is dropped when it ends.
+ * found, in the same UPDATE that checks it (writeReadingIfCurrent): a
+ * reading replaced by a newer one - the transcript was replaced or
+ * removed, or someone asked for it to be read again - is dropped when it
+ * ends. Its post is kept only while the transcript it read is still the
+ * call's (keepCallSummaryPost); one made while the transcript was being
+ * removed is deleted again at once.
  *
  * A reading that never ends (the server restarted mid-way) stays Pending,
  * and the dashboard offers to read it again once it is stale
@@ -162,6 +171,9 @@ export default class IncidentCallSummary {
           title: true,
           transcript: true,
           transcriptInfo: true,
+          transcriptSource: true,
+          transcriptAddedAt: true,
+          transcriptSignInAccountId: true,
           callSummary: true,
           videoCallConnection: { name: true },
         },
@@ -215,10 +227,6 @@ export default class IncidentCallSummary {
         complete,
       });
 
-      if (!(await IncidentCallSummary.isStillCurrent(data))) {
-        return;
-      }
-
       const summary: CallSummary = {
         version: CALL_SUMMARY_VERSION,
         runId: data.runId,
@@ -226,25 +234,32 @@ export default class IncidentCallSummary {
         ...content,
       };
 
-      await IncidentVideoCallTranscriptWrite.write(data.callId, {
-        callSummary: summary as unknown as JSONObject,
-        callSummaryStatus: CallSummaryStatus.Ready,
-        callSummaryStatusMessage: null,
-        callSummaryUpdatedAt: new Date(),
-        rootCauseSuggestionStatus:
-          content.rootCause.outcome === CallSummaryRootCauseOutcome.Suggested
-            ? RootCauseSuggestionStatus.Suggested
-            : null,
-        rootCauseSuggestionReviewedAt: null,
-        rootCauseSuggestionReviewedByUserId: null,
-      });
+      const written: boolean =
+        await IncidentVideoCallService.writeReadingIfCurrent({
+          callId: data.callId,
+          runId: data.runId,
+          columns: {
+            callSummary: summary as unknown as JSONObject,
+            callSummaryStatus: CallSummaryStatus.Ready,
+            callSummaryStatusMessage: null,
+            callSummaryUpdatedAt: new Date(),
+            rootCauseSuggestionStatus:
+              content.rootCause.outcome ===
+              CallSummaryRootCauseOutcome.Suggested
+                ? RootCauseSuggestionStatus.Suggested
+                : null,
+            rootCauseSuggestionReviewedAt: null,
+            rootCauseSuggestionReviewedByUserId: null,
+          },
+        });
 
-      // What was read, where the incident's updates go.
-      await IncidentCallSummaryFeed.post({
-        call,
-        callLabel: IncidentCallSummary.getCallLabel(call),
-        summary,
-      });
+      // A newer reading, or no transcript any more: nothing to say.
+      if (!written) {
+        return;
+      }
+
+      // What was read, where the incident's updates go, and where it went.
+      await IncidentCallSummary.postAndKeep({ call, summary });
 
       await IncidentCallSummary.letPostmortemDraftGoOn(incidentId);
     } catch (error) {
@@ -256,21 +271,80 @@ export default class IncidentCallSummary {
         } as LogAttributes,
       );
 
-      if (!(await IncidentCallSummary.isStillCurrent(data))) {
+      const written: boolean =
+        await IncidentVideoCallService.writeReadingIfCurrent({
+          callId: data.callId,
+          runId: data.runId,
+          columns: {
+            callSummary: IncidentCallSummary.runMarker(data.runId),
+            callSummaryStatus: CallSummaryStatus.Failed,
+            callSummaryStatusMessage:
+              IncidentCallSummary.getErrorMessage(error),
+            callSummaryUpdatedAt: new Date(),
+            ...IncidentVideoCallTranscriptWrite.noSuggestion(),
+          },
+        });
+
+      if (!written) {
         return;
       }
-
-      await IncidentVideoCallTranscriptWrite.write(data.callId, {
-        callSummary: IncidentCallSummary.runMarker(data.runId),
-        callSummaryStatus: CallSummaryStatus.Failed,
-        callSummaryStatusMessage: IncidentCallSummary.getErrorMessage(error),
-        callSummaryUpdatedAt: new Date(),
-        ...IncidentVideoCallTranscriptWrite.noSuggestion(),
-      });
 
       // The draft reads the transcript itself instead.
       await IncidentCallSummary.letPostmortemDraftGoOn(incidentId);
     }
+  }
+
+  /*
+   * Posts what was read to the incident's feed and channels, and keeps where
+   * it went on the call - while the transcript it read is still the call's.
+   * One the transcript left meanwhile - removed, replaced, or its call
+   * deleted - is deleted again at once, so nothing read in a transcript
+   * outlives it. Never throws.
+   */
+  public static async postAndKeep(data: {
+    call: IncidentVideoCall;
+    summary: CallSummary;
+  }): Promise<void> {
+    const call: IncidentVideoCall = data.call;
+
+    const post: CallSummaryPost = await IncidentCallSummaryFeed.post({
+      call,
+      callLabel: IncidentCallSummary.getCallLabel(call),
+      summary: data.summary,
+      // What was read in a transcript read through someone's sign-in goes with it.
+      signInAccountId:
+        call.transcriptSource === VideoCallTranscriptSource.Provider
+          ? call.transcriptSignInAccountId || undefined
+          : undefined,
+    });
+
+    try {
+      const kept: boolean = call.transcriptAddedAt
+        ? await IncidentVideoCallService.keepCallSummaryPost({
+            callId: call.id!,
+            transcriptAddedAt: call.transcriptAddedAt,
+            post,
+          })
+        : false;
+
+      if (kept) {
+        return;
+      }
+    } catch (error) {
+      logger.error(
+        `Could not keep where what OneUptime AI read in a call was posted; deleting the post: ${error}`,
+        {
+          projectId: call.projectId?.toString(),
+          incidentId: call.incidentId?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    await IncidentCallTranscriptRemoval.deletePosts({
+      projectId: call.projectId!,
+      incidentId: call.incidentId!,
+      posts: [post],
+    });
   }
 
   /*
@@ -330,20 +404,6 @@ export default class IncidentCallSummary {
     runId: string,
   ): boolean {
     return Boolean(callSummary) && callSummary!["runId"] === runId;
-  }
-
-  private static async isStillCurrent(data: {
-    callId: ObjectID;
-    runId: string;
-  }): Promise<boolean> {
-    const latest: IncidentVideoCall | null =
-      await IncidentVideoCallService.findOneById({
-        id: data.callId,
-        select: { _id: true, callSummary: true },
-        props: { isRoot: true },
-      });
-
-    return IncidentCallSummary.isCurrentRun(latest?.callSummary, data.runId);
   }
 
   private static async getIncident(

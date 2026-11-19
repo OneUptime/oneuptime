@@ -172,6 +172,22 @@ const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
     groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.pod.name"],
     why: "the throttled pod is the one to page on, and a pod name alone is not an identity",
   },
+  // The cost templates (#9548).
+  {
+    id: "k8s-cluster-daily-cost",
+    groupByKeys: ["resource.k8s.cluster.name"],
+    why: "one series, the cluster's, which the alert then names",
+  },
+  {
+    id: "k8s-namespace-daily-cost",
+    groupByKeys: ["resource.k8s.namespace.name"],
+    why: "one namespace over its budget must not hide the next",
+  },
+  {
+    id: "k8s-high-idle-cost",
+    groupByKeys: ["resource.k8s.cluster.name"],
+    why: "idle and total cost both carry the cluster's name, so the share's halves meet on it",
+  },
 ];
 
 function buildArgs(): KubernetesAlertTemplateArgs {
@@ -323,7 +339,7 @@ describe("KubernetesAlertTemplates - per-series group-by keys", () => {
      * single-query template silently reverts to whole-cluster alerting
      * and this count falls back toward four.
      */
-    expect(grouped).toBe(16);
+    expect(grouped).toBe(19);
     // The four cluster-scalar templates, and the whole-cluster heartbeat.
     expect(EXPECTED_GROUP_BY.length - grouped).toBe(5);
   });

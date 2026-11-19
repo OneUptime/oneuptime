@@ -32,7 +32,7 @@ flowchart TB
 | eBPF インストルメンテーション (OBI) | DaemonSet | すべての Pod からの HTTP、gRPC、SQL、Redis のトレースとリクエストメトリクス、およびサービスマップ。 | デフォルトで有効 (GKE Autopilot と EKS Fargate を除く) |
 | Kubernetes AI エージェント | Deployment | OneUptime AI がインシデントやアラートを調査する際の読み取り専用の `kubectl`。 | デフォルトで有効 |
 | ログテーラー | Deployment | ノード Collector が読めない場合に、Kubernetes API 経由で Pod のログを取得。 | `gke-autopilot`、`eks-fargate`、`openshift-restricted` のプリセット |
-| コストエンジンとポーラー | Deployments | namespace、ワークロード、Pod ごとの支出。 | `cost.enabled=true` の場合 |
+| コストエンジンとポーラー | Deployments | namespace、ワークロード、Pod ごとの支出。 | デフォルトで有効 (GKE Autopilot と EKS Fargate を除く) |
 
 エージェントのイメージはすべて Linux 専用なので、すべてのワークロードは Linux ノードに固定されています。
 
@@ -199,7 +199,8 @@ EKS コンソールの **Optional configuration settings** で設定するか、
 - `oneuptime.labels`: このクラスターが送信するすべてのデータに付けるプロジェクトラベル (`{"team": "payments"}` など)。
 - `preset`: Fargate だけで実行されるクラスターでは `eks-fargate`、それ以外では既定値の `standard`。
 - `logs.enabled`、`ebpf.enabled`、`aiAgent.enabled`: Pod のログ、eBPF のトレース、[Kubernetes AI エージェント](#kubernetes-ai-エージェント)。いずれもデフォルトで有効です。
-- `kubeStateMetrics.enabled` と `cost.enabled`: kube-state-metrics と [コストオブザーバビリティ](/docs/telemetry/kubernetes-cost)。いずれもデフォルトで無効です。
+- `kubeStateMetrics.enabled`: kube-state-metrics。デフォルトで無効です。
+- `cost.enabled`: [コストオブザーバビリティ](/docs/telemetry/kubernetes-cost)。デフォルトは `auto` で、`eks-fargate` のプリセットを除いて有効です。
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ SCC の作成には cluster-admin 権限が必要です。プリセットなし�
 | サービスグラフ (eBPF) | 呼び出し元から呼び出し先へのリクエストレート、レイテンシ、エラーのエッジ。これがサービスマップを描きます |
 | ネットワークフローのメトリクス (eBPF) | Pod 間の TCP と UDP のバイト数とパケット数のカウンター (Kubernetes のメタデータ付き) |
 | TCP の統計 (eBPF) | ノード単位のラウンドトリップタイム、接続失敗、再送のカウンター |
-| ワークロードのコスト (オプトイン、`cost.enabled=true`) | namespace、ワークロード、Pod ごとの支出 (アイドルと効率を含む)、およびノードとボリュームの時間あたりのコスト: [Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照 |
+| ワークロードのコスト (デフォルトで有効、GKE Autopilot と EKS Fargate を除く) | namespace、ワークロード、Pod ごとの支出 (アイドルと効率を含み、アラートに使えるメトリクスとしても提供)、およびノードとボリュームの時間あたりのコスト: [Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照 |
 
 ## Kubernetes イベント
 
@@ -594,7 +595,7 @@ Istio では各 `istio-proxy` サイドカー (ポート `15090`) の Envoy の�
 
 ### コストオブザーバビリティを有効にする
 
-クラスターの **コスト** ページで、namespace、ワークロード、Pod ごとのコストを、アイドル容量や各 request の使用率とともに確認できます:
+コストオブザーバビリティはデフォルトで有効です。クラスターの概要と **コスト** ページに、namespace、ワークロード、Pod ごとのコストが、アイドル容量や各 request の使用率とともに表示され、コストメトリクスはグラフにしたりアラートを設定したりできます。すべての Pod をその request に応じて課金する `gke-autopilot` と `eks-fargate` のプリセットと、デフォルトで有効になる前にインストールしたエージェントでは無効です。その場合は次のように有効にします:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-これだけで完全なインストールになります。チャートにはオープンソースの [OpenCost](https://opencost.io) エンジン (必要な小さな Prometheus を含む) が同梱されており、クラウドプロバイダーの公開定価を使って、認証情報なしでノードとボリュームの価格を算出します。追加される Pod は小さなものが 2 つで、最初のコストは最初の 1 時間が確定したあとに表示されます。すでに Kubecost や OpenCost を使っている場合は、代わりに `--set cost.engine.url=<its service URL>` を追加すれば、何も同梱されません。オンプレミスのクラスターでは `cost.opencost.customPricing` で料金表を設定できます。オンプレミスの価格設定とトラブルシューティングを含む完全なガイドは、[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) です。
+これだけで完全なインストールになります。チャートにはオープンソースの [OpenCost](https://opencost.io) エンジン (必要な小さな Prometheus を含む) が同梱されており、クラウドプロバイダーの公開定価を使って、認証情報なしでノードとボリュームの価格を算出します。追加される Pod は小さなものが 3 つで、最初のコストは最初の 1 時間が確定したあとに表示されます。無効にするには、同じ方法で `--set cost.enabled=false` を設定します。すでに Kubecost や OpenCost を使っている場合は、代わりに `--set cost.engine.url=<its service URL>` を追加すれば、何も同梱されません。オンプレミスのクラスターでは `cost.opencost.customPricing` で料金表を設定できます。オンプレミスの価格設定とトラブルシューティングを含む完全なガイドは、[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) です。
 
 ### プロジェクトラベルで自動的にタグ付けする
 
@@ -990,7 +991,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled` | CrashLoop、ImagePull、スケジューリングの理由のメトリクス (kube-state-metrics の Deployment とスクレイプが追加される) |
 | `ebpf.features.networkInterZoneMetrics` | ネットワークフローの系列が倍増する |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Prometheus のスクレイプジョブが増える |
-| `cost.enabled` | ワークロードのコスト (OpenCost と小さな Prometheus を同梱。時間ごとのコスト行と、厳しく許可リストで絞ったメトリクスのスクレイプ。取り込みは控えめで、Pod が二つ増える) |
+
+一方、コストオブザーバビリティ (`cost.enabled`) は既定でオンです。小さな Pod が 3 つ、コンテナごとに 1 時間あたり 1 つのコスト行、そしてノード、ボリューム、ロードバランサーごとに 1 つの価格系列のスクレイプが加わります。使わない場合は `--set cost.enabled=false` でオフにしてください。
 
 ### トレースは破棄せずにサンプリングする
 

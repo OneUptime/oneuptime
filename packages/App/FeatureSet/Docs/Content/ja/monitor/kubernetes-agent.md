@@ -35,6 +35,7 @@ flowchart LR
 | ノードコレクター | DaemonSet | `/var/log/pods` からの Pod ログ、kubelet と cAdvisor のメトリクス、ノードの OS メトリクス。 | はい |
 | eBPF インストルメンテーション (OBI) | DaemonSet | すべての Pod からの HTTP、gRPC、SQL、Redis のトレースとリクエストメトリクス、およびサービスマップ。 | はい |
 | Kubernetes AI エージェント | Deployment | OneUptime AI がこのクラスターのインシデントやアラートを調査するときに、読み取り専用の `kubectl` を実行できるようにします。 | はい |
+| コストエンジンとポーラー | Deployments | 各名前空間とワークロードのコスト: OpenCost、それが必要とする小さな Prometheus、そしてそれらが算出した結果を送信するコストエージェント。 | はい (`gke-autopilot` と `eks-fargate` のプリセットを除く) |
 | ログテイラー | Deployment | ノードコレクターが読めない場合に、Kubernetes API 経由で Pod ログを取得します。 | `gke-autopilot`、`eks-fargate`、`openshift-restricted` のプリセットで有効 |
 | eBPF プロファイラー | DaemonSet | すべてのプロセスの継続的な CPU フレームグラフ。 | いいえ |
 | kube-state-metrics | Deployment | Pod のフェーズ、コンテナーの待機理由、リソースクォータ。 | いいえ |
@@ -364,7 +365,7 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | `csi.enabled` | オフ | `app=csi-driver` または `app.kubernetes.io/component=csi-driver` のラベルが付いた Pod からの CSI ストレージドライバーのメトリクス: ボリュームのアタッチとデタッチの時間、プロビジョニングの失敗、IOPS。 |
 | `coreDns.enabled` | オフ | `:9153/metrics` 上の CoreDNS のメトリクス: クエリレート、レイテンシ、キャッシュヒット、エラー。 |
 | `controlPlane.enabled` | オフ | クラスター内のアドレスにある API サーバーと、指定したエンドポイントにある etcd、スケジューラー、コントローラーマネージャー ([コントロールプレーンの監視を有効にする](/docs/telemetry/kubernetes-agent#コントロールプレーンの監視を有効にする))。セルフマネージドのクラスターのみ: マネージドのクラスターはこれらを公開しません。 |
-| `cost.enabled` | オフ | 各ワークロードのコスト。[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照してください。 |
+| `cost.enabled` | `auto` | 各名前空間とワークロードのコスト。アイドル容量と効率を含み、アラートを設定できるメトリクスとしても送られます。`gke-autopilot` と `eks-fargate` のプリセットを除いて有効で、`false` にすると無効になります。[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照してください。 |
 
 ## よく使うオプション
 

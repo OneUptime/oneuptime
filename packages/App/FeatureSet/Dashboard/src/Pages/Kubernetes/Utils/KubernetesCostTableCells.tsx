@@ -121,9 +121,10 @@ function getInlineCodeElement(text: string): ReactElement {
 }
 
 /*
- * Shown in place of an empty table. Cost is opt-in, so "no rows" almost
- * always means the agent was never told to ship it — say how to turn it
- * on rather than leaving an empty grid.
+ * Shown in place of an empty table. Cost is on by default in the agent, so
+ * "no rows" for a range means the range is before the agent sent any, or
+ * the agent is older, has cost turned off, or runs a preset where it is off
+ * by default - say how to turn it on rather than leaving an empty grid.
  */
 const NoCostDataMessage: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -137,8 +138,10 @@ const NoCostDataMessage: FunctionComponent = (): ReactElement => {
       </div>
       <div>
         <TranslatedSentence
-          template="Cost data is shipped by the OneUptime Kubernetes agent — enable it with {{enableFlag}} in the kubernetes-agent Helm chart. That alone is a complete install; if you already run OpenCost or Kubecost, set {{engineUrl}} to it instead."
+          template="The Kubernetes agent sends cost data by default, except on the {{autopilot}} and {{fargate}} presets. On an older agent, or one with cost turned off, upgrade it with {{enableFlag}}. If you already run OpenCost or Kubecost, set {{engineUrl}} to it instead."
           slots={{
+            autopilot: getInlineCodeElement("gke-autopilot"),
+            fargate: getInlineCodeElement("eks-fargate"),
             enableFlag: getInlineCodeElement("cost.enabled=true"),
             engineUrl: getInlineCodeElement("cost.engine.url"),
           }}

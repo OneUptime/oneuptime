@@ -32,7 +32,7 @@ flowchart TB
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-traces og request-metrikker fra hver pod samt servicekortet. | Som standard, undtagen på GKE Autopilot og EKS Fargate |
 | Kubernetes-AI-agent | Deployment | Skrivebeskyttet `kubectl` til OneUptime AI, mens den undersøger en hændelse eller advarsel. | Som standard |
 | Log-tailer | Deployment | Pod-logs gennem Kubernetes-API'et, hvor node-collectoren ikke kan læse dem. | Med presets `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
-| Omkostningsmotor og poller | Deployments | Forbrug pr. namespace, workload og pod. | Med `cost.enabled=true` |
+| Omkostningsmotor og poller | Deployments | Forbrug pr. namespace, workload og pod. | Som standard, undtagen på GKE Autopilot og EKS Fargate |
 
 Alle agentens images er kun til Linux, så alle workloads er fastlåst til Linux-noder.
 
@@ -199,7 +199,8 @@ Sæt dem under **Optional configuration settings** i EKS-konsollen, eller med `-
 - `oneuptime.labels`: projektetiketter for alt, hvad denne klynge sender, såsom `{"team": "payments"}`.
 - `preset`: `eks-fargate` for en klynge, der kun kører på Fargate, ellers `standard`, som er standarden.
 - `logs.enabled`, `ebpf.enabled` og `aiAgent.enabled`: pod-logs, eBPF-traces og [Kubernetes-AI-agenten](#kubernetes-ai-agent), alle tre slået til som standard.
-- `kubeStateMetrics.enabled` og `cost.enabled`: kube-state-metrics og [omkostningsobservability](/docs/telemetry/kubernetes-cost), begge slået fra som standard.
+- `kubeStateMetrics.enabled`: kube-state-metrics, slået fra som standard.
+- `cost.enabled`: [omkostningsobservability](/docs/telemetry/kubernetes-cost), `auto` som standard: slået til, undtagen med presettet `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ For at få dem tilbage skal du skifte til `openshift` med `--set preset=openshif
 | Servicegraf (eBPF) | Request-rate, latens og fejlkanter fra kalder til kaldt, som tegner servicekortet |
 | Netværksflowmetrikker (eBPF) | TCP- og UDP-tællere for bytes og pakker fra pod til pod, med Kubernetes-metadata |
 | TCP-statistik (eBPF) | Tællere for round-trip-tid, mislykkede forbindelser og retransmissioner pr. node |
-| Workload-omkostninger (frivilligt, `cost.enabled=true`) | Forbrug pr. namespace, workload og pod, med tomgang og effektivitet, samt timeomkostninger for noder og volumener: se [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost) |
+| Workload-omkostninger (slået til som standard, undtagen på GKE Autopilot og EKS Fargate) | Forbrug pr. namespace, workload og pod, med tomgang og effektivitet, også som metrikker at advare på, samt timeomkostninger for noder og volumener: se [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes-hændelser
 
@@ -594,7 +595,7 @@ Nogle grafer viser metrikker, som agenten ikke har et scrape til: **kube-proxy**
 
 ### Slå omkostningsobservability til
 
-Se på klyngens side **Omkostninger**, hvad hvert namespace, hver workload og hver pod koster, med tomgangskapacitet og hvor meget af hver request der bruges:
+Omkostningsobservability er slået til som standard: klyngens oversigt og dens side **Omkostninger** viser, hvad hvert namespace, hver workload og hver pod koster, med tomgangskapacitet og hvor meget af hver request der bruges, og omkostningsmetrikkerne kan vises i grafer og bruges til advarsler. Den er slået fra som standard med presets `gke-autopilot` og `eks-fargate`, som fakturerer hver pod efter dens requests, og på en agent, der blev installeret, før den var slået til som standard. Slå den til der:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Det alene er en komplet installation: chartet medbringer open source-motoren [OpenCost](https://opencost.io) (med den lille Prometheus, den har brug for) og prissætter dine noder og volumener ud fra din cloududbyders offentlige listepriser uden legitimationsoplysninger. Det tilføjer to små pods, og de første omkostninger vises efter den første afsluttede time. Kører du allerede Kubecost eller OpenCost? Tilføj i stedet `--set cost.engine.url=<its service URL>`, så medbringes intet. On-prem-klynger kan sætte en pristabel med `cost.opencost.customPricing`. Den fulde vejledning, med on-prem-priser og fejlfinding, er [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost).
+Det alene er en komplet installation: chartet medbringer open source-motoren [OpenCost](https://opencost.io) (med den lille Prometheus, den har brug for) og prissætter dine noder og volumener ud fra din cloududbyders offentlige listepriser uden legitimationsoplysninger. Det tilføjer tre små pods, og de første omkostninger vises efter den første afsluttede time. For at slå omkostningsobservability fra skal du sætte `--set cost.enabled=false` på samme måde. Kører du allerede Kubecost eller OpenCost? Tilføj i stedet `--set cost.engine.url=<its service URL>`, så medbringes intet. On-prem-klynger kan sætte en pristabel med `cost.opencost.customPricing`. Den fulde vejledning, med on-prem-priser og fejlfinding, er [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost).
 
 ### Automatisk tagging med projektetiketter
 
@@ -990,7 +991,8 @@ Disse er slået fra som standard, fordi de tilføjer belastning. Slå en til, ku
 | `kubeStateMetrics.enabled` | Metrikker for CrashLoop, ImagePull og planlægningsårsager (tilføjer et kube-state-metrics-Deployment og et scrape) |
 | `ebpf.features.networkInterZoneMetrics` | Fordobler netværksflowserierne |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Flere Prometheus-scrape-jobs |
-| `cost.enabled` | Workload-omkostninger (medbringer OpenCost og en lille Prometheus; timevise omkostningsrækker og et stramt afgrænset metrik-scrape; beskeden indtagelse, to pods mere) |
+
+Omkostningsobservability (`cost.enabled`) er derimod slået til som standard: tre små pods, en omkostningsrække i timen pr. container og et scrape af én prisserie pr. node, volumen og load balancer. Slå den fra med `--set cost.enabled=false`, hvis du ikke bruger den.
 
 ### Sample traces i stedet for at droppe dem
 

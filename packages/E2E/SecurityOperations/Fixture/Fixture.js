@@ -4596,7 +4596,9 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/security-case/resource-security")) {
     return memberSecurity(options.data);
   }
-  const context = path.match(/\/security-case-context\/(story|impact)$/);
+  const context = path.match(
+    /\/security-case-context\/(story|impact|matches)$/,
+  );
   if (method === "POST" && context) {
     const answer = caseContext[context[1]](options.data);
     return answer.status === 200

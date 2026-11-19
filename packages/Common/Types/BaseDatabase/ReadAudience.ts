@@ -1,13 +1,16 @@
 import Dictionary from "../Dictionary";
 
 /*
- * WHO READS WHAT A RUN OF ONEUPTIME'S OWN WRITES (#9576).
+ * WHO READS WHAT A RUN OF ONEUPTIME'S OWN WRITES (#9576, #9612).
  *
  * An AI investigation reads as OneUptime and writes its report into its
  * incident's or alert's feed, and sometimes into the Slack and Microsoft
  * Teams channels the subject is posted to: everyone who may see the subject
- * reads it at once. So the run reads as root, and only what every one of
- * them may read (Server/Utils/ReadAudience/ReadAudienceScope):
+ * reads it at once. So do the fixes OneUptime AI works out for the incident
+ * or alert (their plans and outcomes go to the same places), a security
+ * case's triage (its page and timeline) and an AI insight's triage (the
+ * insight). So the run reads as root, and only what every one of them may
+ * read (Server/Types/Database/Permissions/ReadAudiencePermission):
  *
  *   - a record of a kind no role, team or API key of the project reads only
  *     by owner or label: every one of them. Everyone who may read the
@@ -43,8 +46,10 @@ export default interface ReadAudience {
    * What the subject names itself, by model name ("Monitor", "Host"): its
    * own record and those its Affected Resources list - the monitors, hosts,
    * clusters, services and SLOs its feed, emails and channels already name
-   * to every reader of it. Ids are lower case. Read whoever owns them and
-   * whatever labels they carry.
+   * to every reader of it; a security case's declared incident, an AI
+   * insight's service; and what a run about it acts on - a fix's cluster or
+   * resource, the Runners and runbooks its AI rule names. Ids are lower
+   * case. Read whoever owns them and whatever labels they carry.
    */
   named: Dictionary<Array<string>>;
   /*

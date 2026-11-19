@@ -6,7 +6,7 @@ Aktualisieren Sie ein selbst gehostetes OneUptime – mit Docker Compose oder mi
 - [So führen Sie ein Upgrade durch](#so-führen-sie-ein-upgrade-durch): Der Ablauf, für Docker Compose und Kubernetes.
 - [Hinweise zu jeder Version](#hinweise-für-ihre-version-finden): Was jede Hauptversion von Ihnen verlangt, auf einen Blick.
 - [Images der Community und Enterprise Edition](#images-der-community-und-enterprise-edition): Welches Image Sie ab 14 betreiben.
-- [Upgrade von OneUptime 15 → 16](#upgrade-von-oneuptime-15-16): Die neueste Hauptversion.
+- [Upgrade von OneUptime 16 → 17](#upgrade-von-oneuptime-16-17): Die neueste Hauptversion.
 :::
 
 ## So führen Sie ein Upgrade durch
@@ -80,6 +80,7 @@ Prüfen Sie dann Ihre Version erneut, wie im ersten Schritt. Haben Sie Ihre Ziel
 
 | Upgrade | Was Sie tun müssen |
 | --- | --- |
+| [16 → 17](#upgrade-von-oneuptime-16-17) | Verschieben Sie in API-Skripten eine Zeile mit ihrer Verschiebe-Anfrage, statt ihre `order` zu schreiben, und fügen Sie eine Zeile mitten in eine Liste ein, indem Sie sie anlegen und dann verschieben. Terraform und OpenTofu brauchen keine Änderung. |
 | [15 → 16](#upgrade-von-oneuptime-15-16) | Aktualisieren Sie den Terraform-Provider zusammen mit dem Server, und nehmen Sie die SCIM-Bearer-Tokens, Webhook-Adressen und SNMP-Zugangsdaten, die 16 nicht mehr herausgibt, aus Leseanfragen an die API. Aktualisieren Sie Ihre Runner. Ersetzen Sie bald jeden Server der Version 15, und führen Sie ein Rollback nur innerhalb eines Tages durch. |
 | [14 → 15](#upgrade-von-oneuptime-14-15) | Kopieren Sie zuerst den Master-API-Schlüssel, wenn Sie ihn im Admin-Dashboard ablesen. Aktualisieren Sie den Terraform-Provider zusammen mit dem Server, und nehmen Sie die Zugangsdaten, die 15 nicht mehr herausgibt, aus Leseanfragen an die API. Steht der Server hinter einem Proxy, lassen Sie diesen Ihren Identity Provider, Ihre Kalender, MCP-Server und Ihren Backup-Speicher erreichen. Prüfen Sie Monitore für eingehende Anfragen, die reinen Text empfangen. Ersetzen Sie bald jeden Server der Version 14. |
 | [13 → 14](#upgrade-von-oneuptime-13-14) | Eine Edition wählen. Docker-Compose-Installationen, die `IS_ENTERPRISE_EDITION=true` setzen, wechseln zu `APP_TAG=enterprise-release`. In der Enterprise Edition eine Lizenz aktivieren. IPv6-Monitore für Ping, Port und SSL erneut speichern. KI-Codekorrekturen wechseln auf den globalen Runner: Lassen Sie ihn eingeschaltet, und verschieben Sie bei Helm `runner.keda` nach `globalRunner.keda`. |
@@ -124,6 +125,25 @@ Für Sie ändert sich nichts. OneUptime Cloud betreibt die Enterprise Edition, u
 - Selbst gehostete Installationen stellen die Lizenzserver-Endpunkte unter `/api/enterprise-license/` nicht mehr bereit. Nur oneuptime.com verwendet sie.
 - Die SCIM-Endpunkte behalten in der Enterprise Edition ihre genauen Pfade, die Konfiguration des Identity Providers ändert sich also nicht. In der Community Edition antworten sie mit `404`. In der Enterprise Edition weisen sie Anfragen ab, solange die Lizenz abgelaufen ist (nach der Testphase oder der Kulanzfrist), und antworten wieder, sobald eine Lizenz aktiviert ist.
 - Die SSO- und OIDC-Endpunkte (die SAML-Anmelde- und ACS-URLs, die OIDC-Redirect-URIs und die globalen SSO-Endpunkte) behalten ihre genauen Pfade und werden von beiden Editionen in jedem Lizenzzustand bereitgestellt.
+
+## Upgrade von OneUptime 16 → 17
+
+Mit OneUptime 17 nummerieren Terraform und OpenTofu eine Liste in einem einzigen Apply. Fünf Listen sind nach `order` nummeriert: die Gruppen und die Ressourcen einer Statusseite, die Eskalationsregeln einer Bereitschaftsrichtlinie, die Ebenen eines Bereitschaftsplans und die Personen in einer Ebene. Bisher verschob das Schreiben der `order` einer Zeile diese Zeile, und die Zeilen, an denen sie vorbeizog, rückten zur Seite. Terraform und OpenTofu nummerieren eine Liste mit einem Schreibvorgang pro Zeile, in keiner festen Reihenfolge, sodass ein Apply nie zur Ruhe kam: Der nächste Plan zeigte neue Unterschiede, darunter zwei Zeilen mit derselben Nummer. Jetzt setzt das Schreiben von `order` nur die eigene Zeile, und das Verschieben einer Zeile ist eine eigene Anfrage. Aktualisieren Sie von 16 aus – wenn Sie noch auf 15 sind, führen Sie zuerst 15 → 16 durch.
+
+Terraform und OpenTofu brauchen keine Änderung: Der Provider sendet nur die Attribute, die sich geändert haben, sodass auch die bereits veröffentlichten Versionen des Providers zur Ruhe kommen, sobald der Server aktualisiert ist. Das nächste Apply setzt jede Zeile auf die konfigurierte Nummer, und der Plan danach ist leer. Das Verschieben einer Zeile im Dashboard funktioniert wie bisher.
+
+### Was Sie für 17 tun müssen
+
+1. **Wenn ein API-Skript eine Zeile verschiebt, indem es ihre `order` schreibt, lassen Sie es stattdessen die Verschiebe-Anfrage senden.** Ein `PUT` der `order` einer Zeile setzt jetzt nur diese Zeile: Die Zeilen, an denen sie vorbeizieht, rücken nicht mehr zur Seite. Um eine Zeile zu verschieben, senden Sie `POST /api/<resource>/<id>/move` mit `{ "placeOfId": "<id>" }`. Die Zeile nimmt den Platz der genannten Zeile ein, die Zeilen dazwischen rücken um einen Platz zu der Stelle hin, an der die verschobene Zeile stand, und die Liste wird in ihrer neuen Reihenfolge mit 1..n nummeriert.
+2. **Wenn ein API-Skript eine Zeile mitten in einer Liste hinzufügt, lassen Sie es die Zeile anlegen und dann verschieben.** Eine Zeile, die mit einer Nummer angelegt wird, die schon eine andere Zeile hat, teilt sich diese Nummer jetzt mit ihr, statt die Zeilen ab dort nach unten zu schieben. Legen Sie die Zeile ohne `order` an, sodass sie hinter der letzten Zeile landet, und verschieben Sie sie dann auf den Platz der Zeile, vor der sie stehen soll.
+
+### Weitere Änderungen in 17
+
+Diese Änderungen betreffen, wie sich OneUptime nach dem Upgrade verhält. Lesen Sie sie, wenn Sie diese Listen über die API, mit Terraform oder mit OpenTofu nummerieren.
+
+:::details Die weiteren Änderungen in 17 lesen
+- **Zeilen mit derselben Nummer werden in der Reihenfolge ihrer IDs gelesen, und eine Lücke in den Nummern ändert nichts.** Zwei Zeilen einer Liste können sich eine Nummer teilen, solange ein Apply läuft, oder dauerhaft, wenn eine Konfiguration ihnen dieselbe gibt, und eine gelöschte Zeile hinterlässt jetzt ihre Lücke, statt dass die Zeilen danach aufrücken. Gruppen und Ressourcen mit derselben Nummer werden in der Reihenfolge ihrer IDs angezeigt, Ebenen werden so eingereiht, und die Personen einer Ebene kommen so an die Reihe. Eine Bereitschaftsrichtlinie alarmiert zwei Stufen mit derselben Nummer nacheinander, in der Reihenfolge ihrer IDs: Vor 17 wurde die zweite nie alarmiert. Die nächste Stufe einer Richtlinie ist die erste nach der aktuellen, nie die mit der um eins höheren Nummer.
+:::
 
 ## Upgrade von OneUptime 15 → 16
 

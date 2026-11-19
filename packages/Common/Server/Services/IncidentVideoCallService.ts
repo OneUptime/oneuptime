@@ -24,8 +24,58 @@ import IncidentCallTranscriptFetch from "../Utils/VideoCall/Transcripts/Incident
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { CallTranscriptFetchStatus } from "../../Types/VideoCall/CallTranscriptAutoFetch";
-import { UpdateResult } from "typeorm";
+import { CallSummaryStatus } from "../../Types/VideoCall/CallSummary";
+import CallSummaryPosts, {
+  CallSummaryPost,
+} from "../../Types/VideoCall/CallSummaryPosts";
+import VideoCallProvider from "../../Types/VideoCall/VideoCallProvider";
+import { VideoCallTranscriptSource } from "../../Types/VideoCall/VideoCallTranscript";
+import QueryHelper from "../Types/Database/QueryHelper";
+import IncidentVideoCallTranscriptWrite, {
+  IncidentVideoCallTranscriptColumns,
+} from "../Utils/VideoCall/Transcripts/IncidentVideoCallTranscriptWrite";
+import IncidentCallTranscriptRemoval from "../Utils/VideoCall/Transcripts/IncidentCallTranscriptRemoval";
+import {
+  EntityManager,
+  FindOptionsWhere,
+  Repository,
+  UpdateResult,
+} from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+
+/*
+ * What taking a call's transcript off for removal took
+ * (takeTranscriptForRemoval): the call as it was, whether its transcript
+ * went, and the posts of what OneUptime AI read in it, to delete next.
+ */
+export interface TakenTranscript {
+  call: Model;
+  removedTranscript: boolean;
+  posts: Array<CallSummaryPost>;
+  /*
+   * The removed transcript had a reading posted before OneUptime kept where
+   * readings go (CallSummaryPosts): its feed item and messages are found by
+   * what it said (IncidentCallTranscriptRemoval).
+   */
+  untrackedReading: boolean;
+}
+
+// The columns a removal reads of the call it takes the transcript off.
+const TAKEN_CALL_COLUMNS: Array<string> = [
+  "_id",
+  "projectId",
+  "incidentId",
+  "provider",
+  "title",
+  "videoCallConnectionId",
+  "transcriptSource",
+  "transcriptInfo",
+  "transcriptAddedAt",
+  "callSummary",
+  "callSummaryStatus",
+  "callSummaryPosts",
+  "transcriptSignInAccountId",
+];
 
 /*
  * Incident video calls. A create fills the call in before it is saved -
@@ -74,6 +124,11 @@ export class Service extends ProjectReferencesService<Model> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * A call that goes takes its transcript with it, and what OneUptime AI
+   * read in it: its posts in the incident's feed and channels are deleted
+   * once the call is (onDeleteSuccess), as Remove transcript deletes them.
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -82,7 +137,64 @@ export class Service extends ProjectReferencesService<Model> {
       deleteBy.query,
       deleteBy.props,
     );
-    return { deleteBy, carryForward: null };
+
+    const calls: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+        incidentId: true,
+        provider: true,
+        title: true,
+        videoCallConnectionId: true,
+        transcriptAddedAt: true,
+        transcriptInfo: true,
+        callSummary: true,
+        callSummaryStatus: true,
+        callSummaryPosts: true,
+      },
+    );
+
+    return {
+      deleteBy,
+      carryForward: {
+        callsWithTranscripts: calls.filter((call: Model): boolean => {
+          return (
+            Boolean(call.transcriptAddedAt) || Boolean(call.callSummaryPosts)
+          );
+        }),
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const result: OnDelete<Model> = await super.onDeleteSuccess(
+      onDelete,
+      itemIdsBeforeDelete,
+    );
+
+    const calls: Array<Model> =
+      (
+        onDelete.carryForward as {
+          callsWithTranscripts?: Array<Model>;
+        } | null
+      )?.callsWithTranscripts || [];
+
+    for (const call of calls) {
+      await IncidentCallTranscriptRemoval.takeBackDeletedCall({
+        call,
+        userId:
+          onDelete.deleteBy.deletedByUser?.id ||
+          onDelete.deleteBy.props.userId ||
+          undefined,
+      });
+    }
+
+    return result;
   }
 
   @CaptureSpan()
@@ -285,6 +397,225 @@ export class Service extends ProjectReferencesService<Model> {
       .execute();
 
     return result.affected || 0;
+  }
+
+  /*
+   * Writes what a reading of the call's transcript came to, only while it
+   * is still the call's reading (its run id is the call summary's): one
+   * UPDATE, so a transcript removed or replaced - or read again - while the
+   * reading ran is never followed by what that reading found. Whether it
+   * was written.
+   */
+  @CaptureSpan()
+  public async writeReadingIfCurrent(data: {
+    callId: ObjectID;
+    runId: string;
+    columns: IncidentVideoCallTranscriptColumns;
+  }): Promise<boolean> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set(data.columns as unknown as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.callId.toString() })
+      .andWhere(`"callSummary" ->> 'runId' = :runId`, { runId: data.runId })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return (result.affected || 0) > 0;
+  }
+
+  /*
+   * Keeps where a reading was posted (CallSummaryPosts), only while the
+   * transcript it read is still the call's (its transcriptAddedAt): one
+   * UPDATE, so a post made while the transcript was being removed is never
+   * kept on a call that no longer has it - the caller deletes it instead.
+   * Whether it was kept.
+   */
+  @CaptureSpan()
+  public async keepCallSummaryPost(data: {
+    callId: ObjectID;
+    transcriptAddedAt: Date;
+    post: CallSummaryPost;
+  }): Promise<boolean> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        callSummaryPosts: (): string => {
+          return `jsonb_build_object('posts', COALESCE("callSummaryPosts" -> 'posts', CAST('[]' AS jsonb)) || CAST(:post AS jsonb))`;
+        },
+      } as unknown as QueryDeepPartialEntity<Model>)
+      .setParameter(
+        "post",
+        JSON.stringify([CallSummaryPosts.toPostJSON(data.post)]),
+      )
+      .where('"_id" = :id', { id: data.callId.toString() })
+      .andWhere('"transcriptAddedAt" = :addedAt', {
+        addedAt: data.transcriptAddedAt,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return (result.affected || 0) > 0;
+  }
+
+  /*
+   * Takes a call's transcript off, with the posts of what OneUptime AI read
+   * in it, for IncidentCallTranscriptRemoval to delete: in one transaction
+   * with the call's row locked, so a reading that keeps its post at the
+   * same moment either lands first, and is taken, or finds the transcript
+   * gone, and deletes its post itself (keepCallSummaryPost).
+   *
+   * A person removing it takes everything. The account whose sign-in read
+   * it removing OneUptime takes what was read through that sign-in: the
+   * transcript when it was read from the provider through it, and the posts
+   * of what was read in such transcripts. A transcript a person added stays,
+   * and so do its posts. Null when there is no such call.
+   *
+   * The posts are taken here and deleted right after, outside the
+   * transaction, since deleting a channel message is a request to its
+   * workspace that no row lock should wait on: the feed items first, then
+   * the messages.
+   */
+  @CaptureSpan()
+  public async takeTranscriptForRemoval(data: {
+    callId: ObjectID;
+    // Only what this account's sign-in read. Left out, everything.
+    signInAccountId?: string | undefined;
+  }): Promise<TakenTranscript | null> {
+    return await this.executeTransaction(
+      async (manager: EntityManager): Promise<TakenTranscript | null> => {
+        const repository: Repository<Model> =
+          manager.getRepository<Model>(Model);
+
+        const call: Model | null = await repository
+          .createQueryBuilder("call")
+          .select(
+            TAKEN_CALL_COLUMNS.map((column: string): string => {
+              return `call.${column}`;
+            }),
+          )
+          .where("call._id = :id", { id: data.callId.toString() })
+          .andWhere("call.deletedAt IS NULL")
+          .setLock("pessimistic_write")
+          .getOne();
+
+        if (!call || !call._id) {
+          return null;
+        }
+
+        const posts: Array<CallSummaryPost> = CallSummaryPosts.read(
+          call.callSummaryPosts,
+        );
+        const hasTranscript: boolean = Boolean(call.transcriptAddedAt);
+        const isEverything: boolean = data.signInAccountId === undefined;
+        const signInAccountId: string = data.signInAccountId || "";
+
+        const removedTranscript: boolean = isEverything
+          ? hasTranscript
+          : hasTranscript &&
+            call.transcriptSource === VideoCallTranscriptSource.Provider &&
+            call.transcriptSignInAccountId === signInAccountId;
+
+        const split: {
+          readThroughSignIn: Array<CallSummaryPost>;
+          rest: Array<CallSummaryPost>;
+        } = isEverything
+          ? { readThroughSignIn: posts, rest: [] }
+          : CallSummaryPosts.splitBySignIn(posts, signInAccountId);
+
+        /*
+         * Nothing else read through the account's sign-in is left: a
+         * call's transcript is read only through the account that hosts it.
+         */
+        const signInCleared: boolean =
+          isEverything ||
+          !call.transcriptSignInAccountId ||
+          call.transcriptSignInAccountId === signInAccountId;
+
+        const columns: IncidentVideoCallTranscriptColumns = {
+          ...(removedTranscript
+            ? IncidentVideoCallTranscriptWrite.noTranscript()
+            : {}),
+          callSummaryPosts: CallSummaryPosts.toValue(split.rest),
+          ...(signInCleared
+            ? IncidentVideoCallTranscriptWrite.noSignIn()
+            : { transcriptSignInRemovedAt: null }),
+        };
+
+        await repository.update(
+          { _id: call._id } as FindOptionsWhere<Model>,
+          columns as unknown as QueryDeepPartialEntity<Model>,
+        );
+
+        return {
+          call,
+          removedTranscript,
+          posts: split.readThroughSignIn,
+          untrackedReading:
+            removedTranscript &&
+            call.callSummaryStatus === CallSummaryStatus.Ready &&
+            !CallSummaryPosts.isKept(call.callSummaryPosts),
+        };
+      },
+    );
+  }
+
+  /*
+   * Marks every call whose transcript was read through the account's
+   * sign-in for what was read through it to be deleted, now that the
+   * account removed OneUptime at the provider (Zoom's app_deauthorized):
+   * one UPDATE, quick enough to answer the provider's event within the
+   * seconds it waits. The Workers job deletes them
+   * (DeleteTranscriptsOfRemovedSignIns). A call marked already keeps when
+   * it was first marked, so an event sent twice changes nothing. How many.
+   */
+  @CaptureSpan()
+  public async markTranscriptsOfRemovedSignIn(data: {
+    provider: VideoCallProvider;
+    accountId: string;
+  }): Promise<number> {
+    if (!data.accountId) {
+      return 0;
+    }
+
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        transcriptSignInRemovedAt: (): string => {
+          return 'COALESCE("transcriptSignInRemovedAt", now())';
+        },
+      } as unknown as QueryDeepPartialEntity<Model>)
+      .where('"provider" = :provider', { provider: data.provider })
+      .andWhere('"transcriptSignInAccountId" = :accountId', {
+        accountId: data.accountId,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * The calls waiting for what was read through a removed sign-in to be
+   * deleted (markTranscriptsOfRemovedSignIn), the longest waiting first.
+   * Read as root.
+   */
+  @CaptureSpan()
+  public async getCallsOfRemovedSignIns(limit: number): Promise<Array<Model>> {
+    return await this.findBy({
+      query: { transcriptSignInRemovedAt: QueryHelper.notNull() },
+      select: {
+        _id: true,
+        transcriptSignInAccountId: true,
+        transcriptSignInRemovedAt: true,
+      },
+      sort: { transcriptSignInRemovedAt: SortOrder.Ascending },
+      skip: 0,
+      limit: limit,
+      props: { isRoot: true },
+    });
   }
 
   // Every call of an incident, oldest first. Read as root.

@@ -121,9 +121,21 @@ export async function getCallTranscriptFromProvider(data: {
   };
 }
 
+/*
+ * What removing a transcript left behind: where a message OneUptime posted
+ * about it stays, because OneUptime could not delete it there ("#inc-42
+ * (Slack)"), and whether one posted before OneUptime kept track of its
+ * messages may stay too.
+ */
+export interface CallTranscriptRemoved {
+  messagesLeftIn: Array<string>;
+  mayHaveMessagesLeft: boolean;
+}
+
+// Removes the call's transcript, and what OneUptime AI read in it, everywhere.
 export async function removeCallTranscript(data: {
   callId: ObjectID | string;
-}): Promise<void> {
+}): Promise<CallTranscriptRemoved> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.delete<JSONObject>({
       url: URL.fromURL(APP_API_URL).addRoute(
@@ -136,6 +148,21 @@ export async function removeCallTranscript(data: {
   if (response instanceof HTTPErrorResponse) {
     throw response;
   }
+
+  const json: JSONObject = (response.data as JSONObject) || {};
+  const listed: JSONValue | undefined = json["messagesLeftIn"];
+  const messagesLeftIn: Array<string> = [];
+
+  for (const place of Array.isArray(listed) ? listed : []) {
+    if (typeof place === "string" && place.length > 0) {
+      messagesLeftIn.push(place);
+    }
+  }
+
+  return {
+    messagesLeftIn,
+    mayHaveMessagesLeft: json["mayHaveMessagesLeft"] === true,
+  };
 }
 
 // Has OneUptime AI read the call's transcript again.

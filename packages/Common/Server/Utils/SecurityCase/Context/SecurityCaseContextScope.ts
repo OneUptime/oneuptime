@@ -47,6 +47,7 @@ export async function readSecurityCaseContextScope(data: {
         containedAt: true,
         closedAt: true,
         incidentId: true,
+        detectionCount: true,
       },
       props: data.props,
     },

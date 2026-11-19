@@ -911,6 +911,9 @@ class EksAddonConfigurationSchemaTest(unittest.TestCase):
             {"oneuptime": {"existingSecretName": ""}},
             {"oneuptime": {"labels": {"team": ["a", "b"]}}},
             {"ebpf": {"enabled": "false"}},
+            # Cost is true, false or auto: the chart refuses anything else.
+            {"cost": {"enabled": "yes"}},
+            {"cost": {"enabled": 1}},
         ):
             self.assertNotEqual(schema_errors(schema, value), [], value)
 
@@ -919,8 +922,19 @@ class EksAddonConfigurationSchemaTest(unittest.TestCase):
             {"oneuptime": {"url": "http://oneuptime.internal:3000/"}},
             {"oneuptime": {"labels": {"env": "prod", "tier": 1, "pci": True}}},
             {"preset": "eks-fargate", "ebpf": {"enabled": False}},
+            # Cost is on by default (auto) with EC2 nodes, off on Fargate.
+            {"cost": {"enabled": "auto"}},
+            {"cost": {"enabled": False}},
+            {"preset": "eks-fargate", "cost": {"enabled": True}},
         ):
             self.assertEqual(schema_errors(schema, value), [], value)
+
+    def test_leaves_cost_to_the_chart_by_default(self) -> None:
+        cost: Dict[str, Any] = self.schema()["properties"]["cost"]["properties"]["enabled"]
+
+        # auto: the chart turns cost on with EC2 nodes and off on Fargate.
+        self.assertEqual(cost["default"], "auto")
+        self.assertIn("eks-fargate", cost["description"])
 
 
 class EksAddonBuildTest(unittest.TestCase):

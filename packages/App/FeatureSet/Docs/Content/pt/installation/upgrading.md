@@ -6,7 +6,7 @@ Atualize uma instalação auto-hospedada do OneUptime – com Docker Compose, ou
 - [Como atualizar](#como-atualizar): O procedimento, para Docker Compose e Kubernetes.
 - [Notas de cada versão](#encontrar-as-notas-da-sua-versão): O que cada versão principal pede de você, num relance.
 - [Imagens da Community Edition e da Enterprise Edition](#imagens-da-community-edition-e-da-enterprise-edition): Qual imagem executar a partir da 14.
-- [Atualização do OneUptime 15 → 16](#atualização-do-oneuptime-15-16): A versão principal mais recente.
+- [Atualização do OneUptime 16 → 17](#atualização-do-oneuptime-16-17): A versão principal mais recente.
 :::
 
 ## Como atualizar
@@ -80,6 +80,7 @@ Depois verifique a sua versão de novo, como no primeiro passo. Se ainda não ch
 
 | Atualização | O que você precisa fazer |
 | --- | --- |
+| [16 → 17](#atualização-do-oneuptime-16-17) | Nos scripts de API, mover uma linha com a sua requisição de movimentação em vez de escrever o seu `order`, e adicionar uma linha no meio de uma lista criando-a e depois movendo-a. O Terraform e o OpenTofu não precisam de nenhuma mudança. |
 | [15 → 16](#atualização-do-oneuptime-15-16) | Atualizar o provider do Terraform junto com o servidor, e tirar das leituras da API os tokens bearer do SCIM, os endereços de webhook e as credenciais SNMP que a 16 não devolve mais. Atualizar seus Runners. Substituir logo cada servidor da 15, e voltar à versão anterior só no prazo de um dia. |
 | [14 → 15](#atualização-do-oneuptime-14-15) | Copiar primeiro a chave de API mestra se você a lê no painel do administrador. Atualizar o provider do Terraform junto com o servidor, e tirar das leituras da API as credenciais que a 15 não devolve mais. Atrás de um proxy, deixá-lo alcançar o seu provedor de identidade, calendários, servidores MCP e armazenamento de backups. Verificar os monitores de requisições recebidas aos quais se envia texto simples. Substituir logo cada servidor da 14. |
 | [13 → 14](#atualização-do-oneuptime-13-14) | Escolher uma edição. As instalações Docker Compose que definem `IS_ENTERPRISE_EDITION=true` passam para `APP_TAG=enterprise-release`. Ativar uma licença na Enterprise Edition. Salvar de novo os monitores IPv6 Ping, Port e SSL. As correções de código por IA passam para o Runner global: mantê-lo ligado e, no Helm, mover `runner.keda` para `globalRunner.keda`. |
@@ -124,6 +125,25 @@ Para você nada muda. O OneUptime Cloud executa a Enterprise Edition, e o seu pl
 - As instalações auto-hospedadas já não servem os endpoints do servidor de licenças em `/api/enterprise-license/`. Só o oneuptime.com os usa.
 - Os endpoints de SCIM mantêm exatamente os mesmos caminhos na Enterprise Edition, então a configuração do provedor de identidade não muda. Na Community Edition eles devolvem `404`. Na Enterprise Edition eles recusam as solicitações enquanto a licença estiver vencida (depois do teste ou do período de carência), e voltam a responder assim que uma licença é ativada.
 - Os endpoints de SSO e OIDC (as URLs de login e ACS do SAML, as URIs de redirecionamento do OIDC e os endpoints do SSO global) mantêm exatamente os mesmos caminhos e são servidos pelas duas edições em qualquer estado da licença.
+
+## Atualização do OneUptime 16 → 17
+
+O OneUptime 17 permite que o Terraform e o OpenTofu numerem uma lista em um único apply. Cinco listas são numeradas por `order`: os grupos e os recursos de uma página de status, as regras de escalonamento de uma política de plantão, as camadas de um agendamento de plantão e as pessoas de uma camada. Escrever o `order` de uma linha a movia, e as linhas pelas quais ela passava se deslocavam. O Terraform e o OpenTofu numeram uma lista com uma escrita por linha, sem ordem definida, então um apply nunca se estabilizava: o plano seguinte mostrava novas diferenças, entre elas duas linhas com o mesmo número. Agora escrever `order` posiciona apenas a própria linha, e mover uma linha é uma requisição à parte. Atualize a partir da 16 – se ainda estiver na 15, faça primeiro 15 → 16.
+
+O Terraform e o OpenTofu não precisam de nenhuma mudança: o provider envia apenas os atributos que mudaram, então as versões do provider já lançadas se estabilizam assim que o servidor é atualizado. O apply seguinte coloca cada linha no número configurado, e o plano depois dele fica vazio. Mover uma linha no painel funciona como antes.
+
+### O que você precisa fazer para a 17
+
+1. **Se um script de API move uma linha escrevendo o seu `order`, faça-o enviar a requisição de movimentação em vez disso.** Um `PUT` do `order` de uma linha agora posiciona apenas essa linha: as linhas pelas quais ela passa não se deslocam mais. Para mover uma linha, envie `POST /api/<resource>/<id>/move` com `{ "placeOfId": "<id>" }`. A linha toma o lugar da linha indicada, as linhas entre elas se deslocam um lugar em direção a onde a linha movida estava, e a lista é numerada 1..n na nova ordem.
+2. **Se um script de API adiciona uma linha no meio de uma lista, faça-o criar a linha e depois movê-la.** Uma linha criada com um número que outra linha já tem agora compartilha esse número com ela, em vez de empurrar para baixo as linhas a partir dali. Crie a linha sem `order`, o que a coloca depois da última linha, e depois mova-a para o lugar da linha que ela deve preceder.
+
+### Outras mudanças na 17
+
+Estas mudanças alteram o comportamento do OneUptime depois da atualização. Leia-as se você numera estas listas pela API, pelo Terraform ou pelo OpenTofu.
+
+:::details Leia as demais mudanças da 17
+- **Linhas que compartilham um número são lidas na ordem dos seus IDs, e uma lacuna nos números não muda nada.** Duas linhas de uma lista podem compartilhar um número enquanto um apply está em andamento, ou para sempre se uma configuração lhes der o mesmo, e uma linha excluída agora deixa a sua lacuna em vez de as linhas seguintes subirem. Os grupos e os recursos que compartilham um número são exibidos na ordem dos seus IDs, as camadas são classificadas da mesma forma, e as pessoas de uma camada se revezam da mesma forma. Uma política de plantão aciona dois níveis que compartilham um número um depois do outro, na ordem dos seus IDs: antes da 17, o segundo nunca era acionado. O próximo nível de uma política é o primeiro depois do atual, nunca o de número seguinte.
+:::
 
 ## Atualização do OneUptime 15 → 16
 

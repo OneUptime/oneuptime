@@ -32,7 +32,7 @@ Hver visning af afstamning - fanen **Afstamning** for en tabel, for en pipeline 
 - **Tjenester**, der skriver til og læser tabeller, ud fra databasespans i dine spor: et span, der navngiver sin tabel (`db.collection.name`, eller det ældre `db.sql.table`) og sin sætning (`db.operation.name`), fx en `INSERT` eller en `SELECT`.
 - **Tabeller**, der er bygget af andre tabeller, fra alle kilderne ovenfor.
 - **Pipelines**, der indlæser en tabel fra data, OneUptime ikke overvåger, fx en Fivetran-synkronisering. En pipeline, der flytter data mellem to overvågede tabeller, er navngivet på pilen mellem dem.
-- **Dashboards** og reverse ETL-synkroniseringer i dine BI-værktøjer, der læser de tabeller, de er bygget på.
+- **Dashboards** og reverse ETL-synkroniseringer i dine BI-værktøjer, der læser de tabeller, de er bygget på, også når intet andet rører de tabeller. En Power BI-rapport, der ikke er bygget på nogen tabel, OneUptime overvåger, tegnes med de datasæt, den viser, og de datakilder, de indlæser fra; når ingen af et BI-værktøjs dashboards er bygget på en overvåget tabel, siger kortet hvorfor ([Afstamning i Power BI](#afstamning-i-power-bi)).
 
 Hver pil er noget, OneUptime har registreret, aldrig et gæt. Kortene står fra venstre mod højre, som data løber, og viser, hvordan de har det, som på en tabels diagram: rødt for en forsinket tabel, en åben advarsel eller en mislykket kørsel. En pil er blågrøn, hvor en tjenestes spor har set den.
 
@@ -99,7 +99,7 @@ Den reelle følge af dårlige data er det dashboard, nogen åbner. Under **BI-da
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en service principal, der må bruge Power BI's skrivebeskyttede administrator-API'er. Både rapporter og dashboards læses, med deres visninger og opdateringer (nedenfor) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en service principal, der må bruge Power BI's skrivebeskyttede administrator-API'er, med de to lejerindstillinger for metadata fra [Afstamning i Power BI](#afstamning-i-power-bi) slået til for tabellerne bag hver rapport. Både rapporter og dashboards læses, med deres visninger og opdateringer (nedenfor) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (eller `eu`) |
 
@@ -154,6 +154,30 @@ Når en tabel bliver forældet, bliver hver tabel, der er bygget af den, også f
 Under **Data**-kortet tegner en advarsels side dens **Afstamning**: omkring dens tabel, som tabellens fane **Afstamning** tegner den, eller omkring dens pipeline. Vejen op til den advarsel, der forårsagede den, og ned til hver advarsel, den forårsagede, er fremhævet - årsagens tabel eller pipeline markeret med **Årsag**, hver forårsaget advarsels med **Følge** - og resten tones ned, så den, der åbner den, kan se, hvor i kæden problemet begyndte. Ligger årsagen på en pipeline, der er tegnet på en pil, står der **Årsag** under pipelinens navn på pilen. Handler årsagen om en hel database, eller ligger den længere oppe, end diagrammet når, siger kortet det med ord. En advarsel fra en kontrol af én kolonne, som en kontrol af typen Andel NULL på `customer_id`, åbner med den kolonne fulgt ved siden af disse veje, som på tabellens fane **Afstamning**: hvor den kommer fra, og hvor den går hen, navngivet på hver tabel. Vælg en anden af tabellens kolonner dér, eller ryd den for kun at se vejene. **Udforsk afstamning** åbner tabellens fane **Afstamning** eller pipelinens side. En forårsaget alarm på en pipeline, der er tegnet på en pil, siger **Følge** der på samme måde, og kolonnevælgeren tilbyder først kontrollens kolonne og derefter tabellens øvrige kolonner i dens egen rækkefølge.
 
 Den, der ikke må se den advarsel, der forårsagede den, får hverken **Data**-kortet eller afstamningen, og en forårsaget advarsel, som vedkommende ikke må se, bliver hverken fremhævet eller talt med.
+
+## Afstamning i Power BI
+
+**Matchede tabeller** på hvert BI-værktøj siger, hvor mange overvågede tabeller dets dashboards er bygget på, og under det det første, der forhindrer resten i at blive matchet. **See Why** viser, hvad den seneste læsning fandt, og hvad du skal gøre: databaser, som dine dashboards læser, og som ikke er forbundet til OneUptime, hver kun en **Connect Database** væk med sin type og adresse udfyldt; tabeller, som en forbundet database ikke overvåger, og som kan være udeladt af dens scanning eller ikke indsamlet endnu; og kilder, der ikke er en database, såsom filer og websider. For Power BI nævner den også en lejerindstilling, der er slået fra, datasæt, der læser fra dataflows, og datasæt, som Power BI ikke kan beskrive. **Bygger på** på hvert dashboard siger, hvilke datasæt det viser, og hvor deres data kommer fra, som Power BI angiver det.
+
+OneUptime læser hvert Power BI-datasæt fra Power BI's metadatascanning med den Power Query, der ligger bag hver af dets tabeller:
+
+- **Den database, en connector nævner**: SQL Server og Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena og Microsoft Dataverse samt det skema og den tabel, dens navigation vælger.
+- **SQL, som en forespørgsel kører**: en connectors indstilling **SQL statement**, `Value.NativeQuery` og `Odbc.Query`, og tabellerne efter hver `FROM` og `JOIN`.
+- **Parametre og delte forespørgsler**: en parameter gælder overalt, hvor den nævnes, og en tabel, der læser en staging-forespørgsel, læser det, den forespørgsel læser.
+- **Sammensatte modeller** viser tabellerne i de datasæt, de er bygget på.
+
+En rapport viser sit datasæts tabeller, og et dashboard tabellerne i datasættene bag dets felter. Hvor dataene kommer fra - en databases server og navn, en fils sti, en webadresse - kommer fra scanningens datakilder, som ikke kræver mere end administrator-API-adgangen ovenfor.
+
+Power BI returnerer først et datasæts tabeller, når en Fabric-administrator slår to lejerindstillinger til i administrationsportalen under **Tenant settings > Admin API settings** for den sikkerhedsgruppe, som service principal'en er med i:
+
+- **Enhance admin APIs responses with detailed metadata**: hvert datasæts tabeller.
+- **Enhance admin APIs responses with DAX and mashup expressions**: de forespørgsler, der indlæser dem, og som siger, hvilke databasetabeller de læser.
+
+Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet. Et datasæt, der læser fra et dataflow, læses op til dataflowet: OneUptime læser endnu ikke, hvilke tabeller et dataflow indlæser.
+
+Hver tabel matches med en overvåget tabel ud fra sit navn, sit skema og sin database, og en server ud fra sit korte eller fulde navn. En tabel fra en anden databasemotor matches aldrig, og det gør en tabel i en anden database heller ikke: en rapport på `Sales.dbo.Orders` knyttes ikke til `Archive.dbo.Orders`, fordi kun `Archive` overvåges.
+
+[Opdateringer](#visninger-og-opdateringer-i-power-bi) læses adskilt fra tabellerne: en besked om, at nogle datasæts opdateringer ikke kunne læses, siger intet om deres tabeller.
 
 ## Før en ændring flettes
 

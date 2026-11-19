@@ -53,6 +53,8 @@ En vurdering læser:
 
 Den kan også læse resten af OneUptime, som undersøgelsen af en hændelse gør: logs, traces, metrikker, værter og de skrivebeskyttede værktøjer på projektets MCP-servere.
 
+Alle, der må se sagen, læser dens vurdering, så en vurdering læser kun det, de alle må læse, som undersøgelsen af en hændelse gør. En slags post, som intet team, ingen brugerdefineret rolle og ingen API-nøgle kun læser ud fra ejer eller etiket, læses helt; hvor nogle gør, udelades en vært, klynge, tjeneste eller anden post, som en ejer eller en etiket sætter til side, og den bliver aldrig nævnt eller talt med. Sagen læses altid, og det gør den hændelse, den har erklæret, også, medmindre den hændelse er privat. Private hændelser og advarsler læses aldrig.
+
 ### Hvad den konkluderer
 
 | Vurdering | Betyder | Foreslår at lukke som |

@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "Ja, det var tydligt",
   "No, it was not clear": "Nej, det var inte tydligt",
   "Thanks for telling us.": "Tack för att du berättade.",
+  "Thanks for your answer.": "Tack för ditt svar.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" överskrider gränsen på {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "De här filerna överskrider gränsen på {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" är inte en filtyp som det här fältet tar emot.",

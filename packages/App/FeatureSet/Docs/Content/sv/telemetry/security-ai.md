@@ -53,6 +53,8 @@ En AI-bedömning läser:
 
 Den kan också läsa resten av OneUptime som utredningen av en incident gör: loggar, traces, mätvärden, värdar och de skrivskyddade verktygen på projektets MCP-servrar.
 
+Alla som får se ärendet läser dess AI-bedömning, så en AI-bedömning läser bara det som alla får läsa, som utredningen av en incident gör. En typ av post som inget team, ingen anpassad roll och ingen API-nyckel bara läser utifrån ägare eller etikett läses i sin helhet; där några gör det utelämnas en värd, ett kluster, en tjänst eller en annan post som en ägare eller en etikett skiljer av, och den namnges eller räknas aldrig. Ärendet läses alltid, och det gör också incidenten som ärendet har deklarerat, om den incidenten inte är privat. Privata incidenter och larm läses aldrig.
+
 ### Vad den drar för slutsats
 
 | AI-bedömning | Betyder | Föreslår att stänga som |

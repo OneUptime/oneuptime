@@ -35,6 +35,7 @@ flowchart LR
 | Node-collector | DaemonSet | Pod-logs fra `/var/log/pods`, kubelet- og cAdvisor-metrikker og nodens styresystemmetrikker. | Ja |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-spor og anmodningsmetrikker fra hver pod, og servicekortet. | Ja |
 | Kubernetes AI-agent | Deployment | Lader OneUptime AI køre skrivebeskyttet `kubectl`, mens den undersøger en hændelse eller advarsel på dette cluster. | Ja |
+| Omkostningsmotor og poller | Deployments | Hvad hvert namespace og hver workload koster: OpenCost, den lille Prometheus, den skal bruge, og omkostningsagenten, der sender det, de beregner. | Ja, undtagen med presets `gke-autopilot` og `eks-fargate` |
 | Log-tailer | Deployment | Pod-logs gennem Kubernetes-API'et, hvor node-collectoren ikke kan læse dem. | Med presets `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
 | eBPF-profiler | DaemonSet | Løbende CPU-flamegrafer for hver proces. | Nej |
 | kube-state-metrics | Deployment | Pod-faser, containeres venteårsager og ressourcekvoter. | Nej |
@@ -364,7 +365,7 @@ Profilering kræver **Linux 5.10** eller nyere og en privilegeret pod med nodens
 | `csi.enabled` | fra | Metrikker fra CSI-lagerdrivere, fra pods med labelen `app=csi-driver` eller `app.kubernetes.io/component=csi-driver`: tider for at tilknytte og frakoble volumes, provisioneringsfejl, IOPS. |
 | `coreDns.enabled` | fra | CoreDNS' metrikker på `:9153/metrics`: forespørgselsrate, latens, cache-hits og fejl. |
 | `controlPlane.enabled` | fra | API-serveren på dens adresse inde i klyngen, og etcd, scheduleren og controller manageren på de endpoints, du angiver ([Slå overvågning af kontrolplanet til](/docs/telemetry/kubernetes-agent#slå-overvågning-af-kontrolplanet-til)). Kun selvadministrerede clustere: administrerede eksponerer dem ikke. |
-| `cost.enabled` | fra | Hvad hver workload koster. Se [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Hvad hvert namespace og hver workload koster, med tomgangskapacitet og effektivitet, også som metrikker at advare på: slået til, undtagen med presets `gke-autopilot` og `eks-fargate`; `false` slår det fra. Se [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost). |
 
 ## Almindelige indstillinger
 

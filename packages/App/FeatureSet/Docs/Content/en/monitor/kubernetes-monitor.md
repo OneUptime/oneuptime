@@ -5,7 +5,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 :::cards
 - [Install the agent](/docs/monitor/kubernetes-agent): One Helm command puts the cluster into OneUptime.
 - [Create the monitor](#create-a-kubernetes-monitor): Pick the cluster, then a template, a metric or a query.
-- [Alert templates](#pre-built-alert-templates): Twenty-one ready-made alerts, from a silent cluster to etcd.
+- [Alert templates](#pre-built-alert-templates): Twenty-four ready-made alerts, from a silent cluster to etcd.
 - [Criteria](#criteria): Static thresholds and anomaly detection.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - The OneUptime Kubernetes agent running in the cluster. See [Install the Kubernetes Agent](/docs/monitor/kubernetes-agent); the cluster appears under **Kubernetes** a few minutes after the install.
 - For the control-plane templates (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): the agent's control-plane scrape, `controlPlane.enabled`, which reads the API server out of the box; etcd and the scheduler also need their endpoints listed (see [Enable control plane monitoring](/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring)). Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so those monitors never receive data there.
+- For the cost templates (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): the agent's cost monitoring, on by default except with the `gke-autopilot` and `eks-fargate` presets (see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost)).
 
 ## Create a Kubernetes monitor
 
@@ -91,6 +92,7 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 | Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Control Plane | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Cost | Cluster Cost, Idle Cost, Workload Cost, Workload Cost Efficiency |
 
 > [!NOTE]
 > **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. **Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown, which is what a node that went down reports: alert on less than 1. **Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it. It carries what **Container Restarts** carries, the workload names of the container's pod included, but not the container's ID, which changes with every restart. **Job Failed Pods** is a Job's running count of failed pods; **Job Failed Pods (Increase)** is what the agent sends with every sample, the Job's pods that failed since its previous sample of the Job, so its sum over a window is the failures in it. It carries what **Job Failed Pods** carries: the Job's name and namespace. Control-plane metrics only arrive when the agent's control-plane scrape is on.
@@ -155,8 +157,13 @@ The **What to alert on** list holds these templates, grouped by category. Each o
 | HPA Saturated at Max Replicas | Workload | An HPA scaled above its `minReplicas` runs at 90% or more of its `maxReplicas` | Critical |
 | Pod Memory Saturating Container Limit | Workload | A pod uses more than 90% of its container memory limit | Critical |
 | Pod CPU Saturating Container Limit | Workload | A pod uses more than 90% of its container CPU limit | Warning |
+| Cluster Daily Cost Over Budget | Cost | The cluster's cost over the past day passes 100, a budget to set to your own | Warning |
+| Namespace Daily Cost Over Budget | Cost | A namespace's cost over the past day passes 20, a budget to set to your own | Warning |
+| High Idle Spend | Cost | More than 40% of the cluster's cost over the past day paid for idle capacity | Warning |
 
 Templates on per-object metrics evaluate each node, pod, deployment, job, DaemonSet or HPA on its own, so a cluster with several unhealthy pods gets an incident per pod rather than one for the whole cluster.
+
+The cost templates read the metrics OneUptime writes from the agent's hourly cost rows, one point an hour, so they add up the past day; their budgets are in the cluster's currency, USD by default.
 
 **High Node CPU Request Commitment** and **High Node Memory Request Commitment** count only the requests of pods that have not finished, as the scheduler does. The cluster keeps reporting the requests of a pod that has Succeeded or Failed, such as a finished Job's, until the pod is deleted: those are left out.
 

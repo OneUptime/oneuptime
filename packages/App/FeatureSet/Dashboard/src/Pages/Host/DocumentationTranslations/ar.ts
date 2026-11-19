@@ -225,8 +225,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** يقدّم مقاييسه عبر HTTP عادي على `--listen-metrics-urls` الخاص بـ kubeadm (المنفذ 2381، المربوط بـ `127.0.0.1` حتى تضيف عنوان العقدة)، كما سبق. أو اجمع من منفذ عميل HTTPS الخاص به، 2379، بشهادة العميل التي يطلبها: ضع `ca.crt` و`tls.crt` و`tls.key` في Secret ضمن `oneuptime-agent` وسمِّه في `controlPlane.etcd.clientCertSecret`.",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "للعناقيد ذاتية الإدارة فقط: لا تكشف الخدمات المُدارة (EKS، GKE، AKS) مقاييس مستوى التحكم لديها.",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "هذا وحده تثبيت كامل: يتضمن الـ chart محرك OpenCost مفتوح المصدر (إضافةً إلى Prometheus الصغير الذي يحتاجه) ويسعّر عُقدك ووحدات التخزين لديك وفق قوائم الأسعار العامة لمزوّد السحابة، دون أي بيانات اعتماد. يضيف Podين صغيرين؛ وتظهر أولى البيانات بعد مرور أول ساعة كاملة.",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "مراقبة التكاليف مفعّلة افتراضيًا: يتضمن الوكيل محرك OpenCost مفتوح المصدر (إضافةً إلى Prometheus الصغير الذي يحتاجه)، ويسعّر عُقدك ووحدات التخزين لديك وفق قوائم الأسعار العامة لمزوّد السحابة، دون أي بيانات اعتماد، ويرسل تكلفة كل مساحة أسماء وكل حمل عمل. تظهر أولى البيانات في صفحتَي «نظرة عامة» و«التكاليف» للعنقود بعد مرور أول ساعة كاملة.",
+  "On an agent installed before it was on by default, upgrade it:":
+    "إذا كان الوكيل مثبّتًا قبل أن تصبح مراقبة التكاليف مفعّلة افتراضيًا، فنفّذ ترقيته:",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **لإيقافها:** أضف `--set cost.enabled=false` إلى الترقية نفسها.",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
     "- **هل تشغّل Kubecost أو OpenCost بالفعل؟** وجّه الوكيل إليه بدلًا من ذلك، ولن يُضمَّن شيء: أضف `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (أو خدمة Kubecost لديك).",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
@@ -284,8 +288,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **مقاييس الطلبات ومخطط الخدمات** *(eBPF)* | معدل الطلبات والأخطاء وزمن الاستجابة لكل خدمة، وحواف المستدعي ← المستدعى لخريطة الخدمات |",
   "| **Network flows** *(eBPF)* | Pod-to-pod TCP/UDP byte and packet counters |":
     "| **تدفقات الشبكة** *(eBPF)* | عدّادات البايتات والحزم في TCP/UDP بين وحدات Pod |",
-  "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
-    "| **تكاليف أحمال العمل** *(اختياري، `cost.enabled=true`)* | الإنفاق لكل مساحة أسماء وحمل عمل وPod، مع السعة الخاملة والكفاءة |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **تكاليف أحمال العمل** *(مفعّلة افتراضيًا)* | الإنفاق لكل مساحة أسماء وحمل عمل وPod، مع السعة الخاملة والكفاءة، وكذلك كمقاييس يمكن التنبيه عليها |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "يحظر عنقودك وحدات تخزين `hostPath` أو وحدات Pod ذات الامتيازات. هذا طبيعي على **GKE Autopilot** و **EKS Fargate**: اختر تلك المنصة في أعلى هذا الدليل واتبع خطواتها. أما على **OpenShift** فينجح التثبيت، لكن وحدات Pod الخاصة بعُقد الوكيل لا تبدأ أبدًا: اختر **Red Hat OpenShift**.",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

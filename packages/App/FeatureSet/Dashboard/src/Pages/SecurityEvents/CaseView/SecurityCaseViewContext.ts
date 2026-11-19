@@ -36,6 +36,12 @@ export default interface SecurityCaseViewContext {
   runPlaybook: (playbookId?: ObjectID | undefined) => void;
   // Ask whether to delete the case, as the header's ⋯ does.
   requestDelete: () => void;
+  /*
+   * Open Declare Incident, and Close Case (its verdict and closing note), as
+   * the header's buttons do: the response plan's steps press the same ones.
+   */
+  requestDeclareIncident: () => void;
+  requestClose: () => void;
 }
 
 export function useSecurityCaseView(): SecurityCaseViewContext {

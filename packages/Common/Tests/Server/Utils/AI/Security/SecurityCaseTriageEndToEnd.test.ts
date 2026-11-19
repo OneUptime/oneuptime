@@ -39,6 +39,8 @@ import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesSt
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../../../Utils/AI/InvestigationReport";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ReadAudienceReader from "../../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../../Helpers/ReadAudienceFixtures";
 
 /*
  * A security case's triage end to end, against recorded model responses:
@@ -162,6 +164,18 @@ function triageData(): SecurityCaseTriageData {
     notes: [],
   };
 }
+
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: projectId }));
+});
 
 describe("a security case's triage, end to end on recorded model answers", () => {
   let modelCalls: Array<AILogRequest>;

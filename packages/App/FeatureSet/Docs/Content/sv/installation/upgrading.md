@@ -6,7 +6,7 @@ Uppgradera en självhostad OneUptime-installation – med Docker Compose, eller 
 - [Så uppgraderar du](#så-uppgraderar-du): Arbetsgången för Docker Compose och Kubernetes.
 - [Anteckningarna för varje version](#hitta-anteckningarna-för-din-version): Vad varje huvudversion kräver av dig, i korthet.
 - [Avbildningar för Community Edition och Enterprise Edition](#avbildningar-för-community-edition-och-enterprise-edition): Vilken avbildning du kör från och med 14.
-- [Uppgradering från OneUptime 15 → 16](#uppgradering-från-oneuptime-15-16): Den senaste huvudversionen.
+- [Uppgradering från OneUptime 16 → 17](#uppgradering-från-oneuptime-16-17): Den senaste huvudversionen.
 :::
 
 ## Så uppgraderar du
@@ -80,6 +80,7 @@ Kontrollera sedan din version igen, som i första steget. Om du ännu inte har n
 
 | Uppgradering | Vad du behöver göra |
 | --- | --- |
+| [16 → 17](#uppgradering-från-oneuptime-16-17) | Flytta i API-skript en rad med dess flyttförfrågan i stället för att skriva dess `order`, och lägg till en rad mitt i en lista genom att skapa den och sedan flytta den. Terraform och OpenTofu behöver ingen ändring. |
 | [15 → 16](#uppgradering-från-oneuptime-15-16) | Uppgradera Terraform-providern tillsammans med servern, och ta bort de SCIM-bearer-token, webhookadresser och SNMP-autentiseringsuppgifter som 16 inte längre lämnar ut från läsförfrågningar till API:t. Uppdatera dina Runners. Ersätt varje server från 15 snart, och rulla bara tillbaka inom en dag. |
 | [14 → 15](#uppgradering-från-oneuptime-14-15) | Kopiera master-API-nyckeln först om du läser den i administratörspanelen. Uppgradera Terraform-providern tillsammans med servern, och ta bort de inloggningsuppgifter som 15 inte längre lämnar ut från läsförfrågningar till API:t. Står servern bakom en proxy ska du låta proxyn nå din identitetsleverantör, dina kalendrar, MCP-servrar och lagringen för säkerhetskopior. Kontrollera monitorer för inkommande förfrågningar som tar emot ren text. Ersätt varje server från 14 snart. |
 | [13 → 14](#uppgradering-från-oneuptime-13-14) | Välj en utgåva. Docker Compose-installationer som sätter `IS_ENTERPRISE_EDITION=true` byter till `APP_TAG=enterprise-release`. Aktivera en licens på Enterprise Edition. Spara IPv6-övervakningar av typen Ping, Port och SSL igen. AI-kodkorrigeringar flyttar till den globala Runnern: Låt den vara på, och flytta på Helm `runner.keda` till `globalRunner.keda`. |
@@ -124,6 +125,25 @@ För dig ändras ingenting. OneUptime Cloud kör Enterprise Edition, och din pla
 - Självhostade installationer levererar inte längre licensserverns slutpunkter under `/api/enterprise-license/`. Bara oneuptime.com använder dem.
 - SCIM-slutpunkterna behåller exakt samma sökvägar på Enterprise Edition, så identitetsleverantörens konfiguration ändras inte. På Community Edition returnerar de `404`. På Enterprise Edition avvisar de förfrågningar medan licensen har löpt ut (efter provperioden eller fristen), och de svarar igen så snart en licens aktiveras.
 - SSO- och OIDC-slutpunkterna (SAML-inloggnings- och ACS-URL:erna, OIDC-omdirigerings-URI:erna och slutpunkterna för global SSO) behåller exakt samma sökvägar och levereras av båda utgåvorna i varje licensstatus.
+
+## Uppgradering från OneUptime 16 → 17
+
+Med OneUptime 17 numrerar Terraform och OpenTofu en lista i en enda apply. Fem listor numreras efter `order`: en statussidas grupper och dess resurser, en jourpolicys eskaleringsregler, ett jourschemas lager och personerna i ett lager. Att skriva en rads `order` flyttade tidigare raden, och de rader den passerade flyttade sig åt sidan. Terraform och OpenTofu numrerar en lista med en skrivning per rad, i godtycklig ordning, så en apply blev aldrig stabil: nästa plan visade nya skillnader, bland dem två rader med samma nummer. Nu placerar en skrivning av `order` bara sin egen rad, och att flytta en rad är en egen förfrågan. Uppgradera från 16 – om du fortfarande är på 15 gör du 15 → 16 först.
+
+Terraform och OpenTofu behöver ingen ändring: providern skickar bara de attribut som har ändrats, så även de redan utgivna versionerna av providern blir stabila så snart servern är uppgraderad. Nästa apply sätter varje rad på det konfigurerade numret, och planen efter den är tom. Att flytta en rad i instrumentpanelen fungerar som förut.
+
+### Vad du behöver göra för 17
+
+1. **Om ett API-skript flyttar en rad genom att skriva dess `order` ska du låta det skicka flyttförfrågan i stället.** En `PUT` av en rads `order` placerar nu bara den raden: de rader den passerar flyttar sig inte längre åt sidan. För att flytta en rad skickar du `POST /api/<resource>/<id>/move` med `{ "placeOfId": "<id>" }`. Raden tar platsen för den namngivna raden, raderna emellan flyttar sig en plats mot där den flyttade raden stod, och listan numreras 1..n i sin nya ordning.
+2. **Om ett API-skript lägger till en rad mitt i en lista ska du låta det skapa raden och sedan flytta den.** En rad som skapas med ett nummer som en annan rad har delar nu det numret med den, i stället för att skjuta raderna därifrån nedåt. Skapa raden utan `order`, så hamnar den efter den sista raden, och flytta den sedan till platsen för den rad den ska stå före.
+
+### Andra ändringar i 17
+
+De här ändringarna ändrar hur OneUptime beter sig efter uppgraderingen. Läs dem om du numrerar de här listorna via API:t, Terraform eller OpenTofu.
+
+:::details Läs de övriga ändringarna i 17
+- **Rader som delar ett nummer läses i ordningen för deras ID:n, och en lucka i numren ändrar ingenting.** Två rader i en lista kan dela ett nummer medan en apply pågår, eller för gott om en konfiguration ger dem samma, och en borttagen rad lämnar nu sin lucka i stället för att raderna efter den flyttar upp. Grupper och resurser som delar ett nummer visas i ordningen för deras ID:n, lager rangordnas på samma sätt, och personerna i ett lager turas om på samma sätt. En jourpolicy larmar två nivåer som delar ett nummer efter varandra, i ordningen för deras ID:n: före 17 larmades den andra aldrig. Nästa nivå i en policy är den första efter den aktuella, aldrig den med numret ett högre.
+:::
 
 ## Uppgradering från OneUptime 15 → 16
 

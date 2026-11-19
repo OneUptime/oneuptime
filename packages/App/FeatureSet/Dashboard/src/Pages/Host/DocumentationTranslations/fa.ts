@@ -225,8 +225,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** همان‌طور که بالا آمد، متریک‌هایش را با HTTP ساده روی `--listen-metrics-urls` در kubeadm ارائه می‌دهد (درگاه 2381 که تا افزودن نشانی گره به `127.0.0.1` متصل است). یا درگاه کلاینت HTTPS آن، 2379، را با گواهی کلاینتی که درخواست می‌کند بخوانید: `ca.crt`، `tls.crt` و `tls.key` را در یک Secret در `oneuptime-agent` بگذارید و نامش را در `controlPlane.etcd.clientCertSecret` بیاورید.",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "فقط برای خوشه‌های خودمدیریت: سرویس‌های مدیریت‌شده (EKS، GKE، AKS) متریک‌های صفحه کنترل خود را در دسترس نمی‌گذارند.",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "همین به‌تنهایی یک نصب کامل است: chart موتور متن‌باز OpenCost (به‌علاوه Prometheus کوچکی که لازم دارد) را همراه خود دارد و گره‌ها و حجم‌های شما را بر اساس فهرست قیمت عمومی ارائه‌دهنده ابری‌تان قیمت‌گذاری می‌کند، بدون نیاز به اعتبارنامه. دو پاد کوچک اضافه می‌کند؛ نخستین داده‌ها پس از نخستین ساعت کامل نمایان می‌شوند.",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "پایش هزینه به‌طور پیش‌فرض روشن است: عامل موتور متن‌باز OpenCost (به‌علاوه Prometheus کوچکی که لازم دارد) را همراه خود دارد، گره‌ها و حجم‌های شما را بر اساس فهرست قیمت عمومی ارائه‌دهنده ابری‌تان قیمت‌گذاری می‌کند، بدون نیاز به اعتبارنامه، و می‌فرستد که هر فضای نام و بار کاری چقدر هزینه دارد. نخستین داده‌ها پس از نخستین ساعت کامل در نمای کلی خوشه و صفحه «هزینه‌ها» نمایان می‌شوند.",
+  "On an agent installed before it was on by default, upgrade it:":
+    "عاملی را که پیش از پیش‌فرض شدن این قابلیت نصب شده است، به‌روز کنید:",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **خاموش کردن:** `--set cost.enabled=false` را به همان به‌روزرسانی اضافه کنید.",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
     "- **از قبل Kubecost یا OpenCost دارید؟** به‌جایش عامل را به آن ارجاع دهید تا چیزی همراه نصب نشود: `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (یا سرویس Kubecost خودتان) را اضافه کنید.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
@@ -284,8 +288,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **متریک‌های درخواست و گراف سرویس** *(eBPF)* | نرخ درخواست، خطاها و تأخیر برای هر سرویس، و یال‌های فراخواننده ← فراخوانده برای نقشه سرویس |",
   "| **Network flows** *(eBPF)* | Pod-to-pod TCP/UDP byte and packet counters |":
     "| **جریان‌های شبکه** *(eBPF)* | شمارنده‌های بایت و بسته TCP/UDP بین پادها |",
-  "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
-    "| **هزینه بارهای کاری** *(اختیاری، `cost.enabled=true`)* | هزینه به تفکیک فضای نام، بار کاری و پاد، همراه با ظرفیت بلااستفاده و بهره‌وری |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **هزینه بارهای کاری** *(به‌طور پیش‌فرض روشن)* | هزینه به تفکیک فضای نام، بار کاری و پاد، همراه با ظرفیت بلااستفاده و بهره‌وری، و همچنین به‌صورت متریک‌هایی برای هشدار |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "خوشه شما حجم‌های `hostPath` یا پادهای ممتاز را مسدود می‌کند. این روی **GKE Autopilot** و **EKS Fargate** عادی است: آن سکو را در بالای این راهنما انتخاب کنید و مراحلش را دنبال کنید. اما روی **OpenShift** نصب موفق می‌شود، ولی پادهای گره عامل هرگز شروع نمی‌شوند: **Red Hat OpenShift** را انتخاب کنید.",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

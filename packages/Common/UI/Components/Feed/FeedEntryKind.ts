@@ -142,6 +142,7 @@ export const SHARED_FEED_ENTRY_KINDS: {
   VideoCallStarted: FeedEntryKind;
   VideoCallFailed: FeedEntryKind;
   VideoCallTranscriptAdded: FeedEntryKind;
+  VideoCallTranscriptRemoved: FeedEntryKind;
   VideoCallSummary: FeedEntryKind;
   ChannelMemberAdded: FeedEntryKind;
   StateChanged: FeedEntryKind;
@@ -231,6 +232,11 @@ export const SHARED_FEED_ENTRY_KINDS: {
   VideoCallTranscriptAdded: {
     icon: IconProp.DocumentText,
     tone: FeedTone.Info,
+  },
+  // A call's transcript removed, with what OneUptime AI read in it.
+  VideoCallTranscriptRemoved: {
+    icon: IconProp.Trash,
+    tone: FeedTone.Neutral,
   },
   // What OneUptime AI read in a call's transcript.
   VideoCallSummary: {

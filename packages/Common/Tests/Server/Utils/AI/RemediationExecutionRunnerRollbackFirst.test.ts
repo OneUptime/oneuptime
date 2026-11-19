@@ -31,6 +31,9 @@ import {
   KubernetesClusterAiAccessStatus,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 import {
   AiRemediationCommand,
   AiRemediationCommandPlan,
@@ -200,6 +203,20 @@ describe("the investigation", () => {
 describe("the round's context", () => {
   let read: SpyInstance<typeof RecentChangesContext.read>;
 
+  /*
+   * Who reads what the round posts (#9612): the recent changes are read for
+   * them, so a change of a resource set apart from one of them is neither
+   * listed nor counted (RecentChangesContext reads with them).
+   */
+  const READERS: ReadAudience = readAudienceOf({
+    projectId: PROJECT_ID,
+    labelledPermissions: [Permission.ProjectMember],
+    named: {
+      Incident: [INCIDENT_ID.toString()],
+      KubernetesCluster: [CLUSTER_ID],
+    },
+  });
+
   const suggestion: AutoRemediationSuggestion = {
     id: ObjectID.generate(),
     incidentId: INCIDENT_ID,
@@ -229,6 +246,7 @@ describe("the round's context", () => {
       mode: "Suggest",
       allowlistPatterns: [],
       rollbackScope,
+      readAudience: READERS,
     });
   }
 
@@ -261,6 +279,7 @@ describe("the round's context", () => {
       subjectKind: "incident",
       subjectId: INCIDENT_ID,
       linked: null,
+      readAudience: READERS,
     });
     expect(context).toContain("# Recent changes");
     expect(context).toContain(`[changeId: ${SUSPECT.id}]`);
@@ -271,6 +290,13 @@ describe("the round's context", () => {
     expect(context).toContain(
       `Rollouts ${ROLL_BACK_CHANGE_TOOL_NAME} can undo in this round:\n- SUSPECT: Deployment "web/api" at 2026-10-19T09:48:00.000Z [changeId: ${SUSPECT.id}]`,
     );
+  });
+
+  test("the recent changes are read for everyone who may see the incident, never as OneUptime", async () => {
+    await buildContext({ projectId: PROJECT_ID, clusters: [cluster] });
+
+    expect(read.mock.calls).toHaveLength(1);
+    expect(read.mock.calls[0]![0].readAudience).toBe(READERS);
   });
 
   test("a round that may change no cluster reads no changes", async () => {

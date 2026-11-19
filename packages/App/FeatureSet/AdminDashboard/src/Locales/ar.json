@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "نعم، كان واضحًا",
   "No, it was not clear": "لا، لم يكن واضحًا",
   "Thanks for telling us.": "شكرًا لإخبارنا.",
+  "Thanks for your answer.": "شكرًا على إجابتك.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "يتجاوز «{{fileName}}» الحد البالغ {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "تتجاوز هذه الملفات الحد البالغ {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" ليس من أنواع الملفات التي يقبلها هذا الحقل.",

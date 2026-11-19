@@ -32,6 +32,9 @@ import AlertService from "../../../Services/AlertService";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
 import IncidentService from "../../../Services/IncidentService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
@@ -59,7 +62,10 @@ import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
  * whose verification found it fixed or not. A change that did not run says
  * nothing about itself. A private incident or alert is never named, nor
  * counted: its number and title would reach every reader of this one, and
- * the model's context.
+ * the model's context. Given the readers of this one (`readAudience`,
+ * #9612), neither is one set apart from any of them by an owner or a label,
+ * where some role reads incidents or alerts only by owner or label: the
+ * incidents and alerts are read for them (ReadAudiencePermission).
  *
  * Everything here is best effort: a record that cannot be read is none,
  * never a failed round or proposal.
@@ -381,6 +387,8 @@ export default class RemediationTrackRecordReader {
       | { incidentId?: ObjectID | undefined; alertId?: ObjectID | undefined }
       | undefined;
     now?: Date | undefined;
+    // Who reads what names them: only incidents and alerts all of them may read.
+    readAudience?: ReadAudience | undefined;
   }): Promise<Array<EarlierFix>> {
     try {
       const now: Date = data.now || OneUptimeDate.getCurrentDate();
@@ -462,6 +470,7 @@ export default class RemediationTrackRecordReader {
       const subjects: Map<string, SubjectFacts> =
         await RemediationTrackRecordReader.readSubjects({
           projectId: data.projectId,
+          readAudience: data.readAudience,
           incidentIds: kept
             .map((row: AutoRemediationSuggestion) => {
               return row.incidentId;
@@ -557,9 +566,10 @@ export default class RemediationTrackRecordReader {
    * its own, or approved - for incidents and alerts of the project that are
    * not private, in the lookback window, as verification judged it. Leaves
    * out `excludeSuggestionId` and the fixes of `excludeSubject` (the
-   * round's own signal), as a change's record does. A runbook that never
-   * ran as one has none; anything that cannot be read is none. Never
-   * throws.
+   * round's own signal), as a change's record does. Given the readers of
+   * the round's signal (`readAudience`), only the incidents and alerts all
+   * of them may read are named or counted. A runbook that never ran as one
+   * has none; anything that cannot be read is none. Never throws.
    */
   @CaptureSpan()
   public static async readRunbookTrackRecords(data: {
@@ -570,6 +580,8 @@ export default class RemediationTrackRecordReader {
       | { incidentId?: ObjectID | undefined; alertId?: ObjectID | undefined }
       | undefined;
     now?: Date | undefined;
+    // Who reads what names them: only incidents and alerts all of them may read.
+    readAudience?: ReadAudience | undefined;
   }): Promise<Map<string, RemediationTrackRecord>> {
     const records: Map<string, RemediationTrackRecord> = new Map<
       string,
@@ -663,6 +675,7 @@ export default class RemediationTrackRecordReader {
       const subjects: Map<string, SubjectFacts> =
         await RemediationTrackRecordReader.readSubjects({
           projectId: data.projectId,
+          readAudience: data.readAudience,
           incidentIds: kept
             .map((row: AutoRemediationSuggestion) => {
               return row.incidentId;
@@ -744,9 +757,10 @@ export default class RemediationTrackRecordReader {
 
   /*
    * The plan with each change's track record, from the earlier fixes on its
-   * cluster or resource (each target read once). A change that never ran
-   * there before carries none; the plan is otherwise as it was. Never
-   * throws.
+   * cluster or resource (each target read once), naming and counting only
+   * the incidents and alerts everyone who reads the plan may read
+   * (`readAudience`). A change that never ran there before carries none;
+   * the plan is otherwise as it was. Never throws.
    */
   @CaptureSpan()
   public static async withTrackRecords(data: {
@@ -756,6 +770,7 @@ export default class RemediationTrackRecordReader {
     excludeSubject?:
       | { incidentId?: ObjectID | undefined; alertId?: ObjectID | undefined }
       | undefined;
+    readAudience?: ReadAudience | undefined;
   }): Promise<AiRemediationCommandPlan> {
     try {
       const byTarget: Map<string, Array<EarlierFix>> = new Map<
@@ -784,6 +799,7 @@ export default class RemediationTrackRecordReader {
               target,
               excludeSuggestionId: data.excludeSuggestionId,
               excludeSubject: data.excludeSubject,
+              readAudience: data.readAudience,
             }),
           );
         }
@@ -842,13 +858,22 @@ export default class RemediationTrackRecordReader {
     return null;
   }
 
-  // The incidents and alerts of the project, by id, that are not private.
+  /*
+   * The incidents and alerts of the project, by id, that are not private -
+   * and, given who reads what names them (`readAudience`), that all of them
+   * may read: the permission layer leaves out the private ones and those an
+   * owner or a label sets apart from any of them (ReadAudiencePermission).
+   */
   private static async readSubjects(data: {
     projectId: ObjectID;
     incidentIds: Array<ObjectID>;
     alertIds: Array<ObjectID>;
+    readAudience?: ReadAudience | undefined;
   }): Promise<Map<string, SubjectFacts>> {
     const subjects: Map<string, SubjectFacts> = new Map<string, SubjectFacts>();
+    const props: DatabaseCommonInteractionProps = data.readAudience
+      ? ReadAudiencePermission.getReadProps(data.readAudience)
+      : { isRoot: true };
 
     if (data.incidentIds.length > 0) {
       const incidents: Array<Incident> = await IncidentService.findBy({
@@ -865,7 +890,7 @@ export default class RemediationTrackRecordReader {
         },
         limit: data.incidentIds.length,
         skip: 0,
-        props: { isRoot: true },
+        props,
       });
 
       for (const incident of incidents) {
@@ -900,7 +925,7 @@ export default class RemediationTrackRecordReader {
         },
         limit: data.alertIds.length,
         skip: 0,
-        props: { isRoot: true },
+        props,
       });
 
       for (const alert of alerts) {
