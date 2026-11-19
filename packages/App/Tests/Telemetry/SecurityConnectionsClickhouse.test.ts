@@ -38,6 +38,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ------------------------------------------------------------------
@@ -822,7 +823,7 @@ integration(
     });
 
     test("the card's own statement reads the granules its skip indexes leave, not the day", async () => {
-      const spy: jest.SpiedFunction<typeof SecurityEventService.executeQuery> =
+      const spy: SpyInstance<typeof SecurityEventService.executeQuery> =
         jest.spyOn(SecurityEventService, "executeQuery");
 
       await SecurityEventService.countEventsNaming({
