@@ -310,6 +310,12 @@ const FriendlyLabelNames: Record<string, string> = {
   "http.route": "Route",
   "browser.name": "Browser",
   "os.name": "OS",
+  /*
+   * An Android device's API level, which the OneUptime Android agent sends
+   * and the Android host templates group by: the device's Android version in
+   * the alert, and the sign that its first commands are adb's (#9802).
+   */
+  "android.os.api_level": "Android API Level",
   region: "Region",
   "cloud.region": "Region",
   "cloud.availability_zone": "Zone",
@@ -496,6 +502,8 @@ const LabelPriority: Record<string, number> = {
   "iot.fleet.name": 80,
   "k8s.pod.uid": 95,
   "container.id": 95,
+  // After the device's name: a version, never what names the device.
+  "android.os.api_level": 90,
 };
 
 const DefaultLabelPriority: number = 70;
