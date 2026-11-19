@@ -1,4 +1,8 @@
 import { JSONObject } from "../../../Types/JSON";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "../../../Utils/Monitor/ProbeFailureCauses";
 import RetryAfter from "../../../Utils/RetryAfter";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
@@ -782,6 +786,23 @@ export function asSentence(text: string): string {
   return !trimmed || SENTENCE_END.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
+/*
+ * A failure and how many times it was asked, once it was asked more than
+ * once: "... Tried 3 times.", written from the table of why a check failed
+ * (ProbeFailureCauses), which words it in every language the Dashboard
+ * reads, as a probe's check writes it.
+ */
+function withAttempts(sentence: string, attempts: number): string {
+  if (attempts <= 1) {
+    return sentence;
+  }
+
+  return writeProbeFailureCause(ProbeFailureCause.TriedTimes, {
+    cause: sentence,
+    count: attempts,
+  });
+}
+
 // The words of a body that is no JSON: an HTML page's title (a gateway's 502), else its first line.
 function readBodyText(text: string): string {
   const trimmed: string = (text || "").trim();
@@ -1024,7 +1045,10 @@ export default class DataverseApi {
       );
 
       throw new Error(
-        `Microsoft Entra ID ${isOutage ? "could not sign the app in" : "refused the app"} (${response.statusCode}): ${asSentence(message)}${attempts > 1 ? ` Tried ${attempts} times.` : ""}`,
+        withAttempts(
+          `Microsoft Entra ID ${isOutage ? "could not sign the app in" : "refused the app"} (${response.statusCode}): ${asSentence(message)}`,
+          attempts,
+        ),
       );
     }
 
@@ -1165,16 +1189,16 @@ export default class DataverseApi {
         ? "."
         : ", with no error message.";
     const reason: string = `${answer}${said}`;
-    const parts: Array<string> = [`${answer} while ${operation}${said}`];
+    const read: string = `${answer} while ${operation}${said}`;
+    const parts: Array<string> = [];
 
     if (isRefusal) {
       parts.push(
+        read,
         "Add it to the environment as an application user, with a security role that may read the tables.",
       );
     } else {
-      if (attempts > 1) {
-        parts.push(`Tried ${attempts} times.`);
-      }
+      parts.push(withAttempts(read, attempts));
 
       if (requestId) {
         parts.push(`Request ID: ${requestId}.`);

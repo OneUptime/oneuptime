@@ -839,10 +839,14 @@ describe("what a failed request means", () => {
 const CAUSES_FILE: string =
   "packages/Common/Utils/Monitor/ProbeFailureCauses.ts";
 
-// The checks, and the utilities, that write a cause with values.
+/*
+ * The checks, and the utilities, that write a cause with values - and
+ * Dataverse's client, which says how many times it asked as a check does.
+ */
 const CAUSE_WRITERS: ReadonlyArray<string> = [
   "packages/Common/Utils/ProbeNetworkFailureUtil.ts",
   "packages/Common/Types/Monitor/NtpMonitor/NtpMonitorUtil.ts",
+  "packages/Common/Server/Utils/DataObservability/DataverseApi.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/NetworkPathMonitor.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/NtpMonitor.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/WebsiteMonitor.ts",
