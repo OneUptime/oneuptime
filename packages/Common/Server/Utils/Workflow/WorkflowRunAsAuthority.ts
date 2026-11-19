@@ -591,6 +591,13 @@ export default class WorkflowRunAsAuthority {
    * decides what the child is started with, and holds only the parent's
    * permissions. A child that runs as Default is started by any workflow,
    * as before.
+   *
+   * A parent that runs as Default starts no other child. Anyone who may
+   * edit workflows decides what a Default workflow does - a Project Member
+   * included - so the Project Admin its steps act as vouches for nobody.
+   * Weighed by the grant ceiling alone, it would start a child whose custom
+   * role holds only Project Admin, and whoever edits the parent would steer
+   * a workflow that may give a team Project Admin.
    */
   public static async assertMayStart(data: {
     projectId: ObjectID;
@@ -616,21 +623,23 @@ export default class WorkflowRunAsAuthority {
           })
         : null;
 
-    const parentProps: DatabaseCommonInteractionProps =
-      WorkflowPrincipal.getPropsWithoutPlan({
-        projectId: data.projectId,
-        workflowId: ObjectID.generate(),
-        runAs: data.parent,
-      });
+    const isParentRaised: boolean = WorkflowPrincipal.isRaised(
+      data.parent?.runAs,
+    );
 
-    const missing: Permission | null =
-      WorkflowRunAsAuthority.findMissingPermission({
-        runAs: runAs,
-        role: role,
-        holderProps: parentProps,
-      });
+    const missing: Permission | null = isParentRaised
+      ? WorkflowRunAsAuthority.findMissingPermission({
+          runAs: runAs,
+          role: role,
+          holderProps: WorkflowPrincipal.getPropsWithoutPlan({
+            projectId: data.projectId,
+            workflowId: ObjectID.generate(),
+            runAs: data.parent,
+          }),
+        })
+      : null;
 
-    if (missing) {
+    if (!isParentRaised || missing) {
       throw new BadDataException(
         getWorkflowRunAsChildRefusedMessage({
           childName: data.childName,

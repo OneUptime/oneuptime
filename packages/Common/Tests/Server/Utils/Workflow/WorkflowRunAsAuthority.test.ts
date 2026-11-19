@@ -1021,6 +1021,42 @@ describe("another workflow starting one that runs as more than Default", () => {
     ).toBeNull();
   });
 
+  /*
+   * The default permissions hold a Project Admin row, which the grant
+   * ceiling would weigh as covering a role of Project Admin alone. But
+   * anyone who may edit workflows steers a Default parent - a Project
+   * Member included - so it starts nothing that runs as more than Default.
+   */
+  test("a custom role of Project Admin alone, not by one that runs as Default", async () => {
+    givenRole([rolePermission(Permission.ProjectAdmin)]);
+
+    const child: { runAs: WorkflowRunAs; customRoleId: ObjectID } = {
+      runAs: WorkflowRunAs.CustomRole,
+      customRoleId: ROLE_ID,
+    };
+
+    for (const parent of [undefined, { runAs: WorkflowRunAs.Default }] as Array<
+      WorkflowRunAsGrant | undefined
+    >) {
+      expect(await mayStart(parent, child)).toBe(
+        `"Onboard teams" runs as the custom role "Team Provisioner", which this workflow's own permissions don't include, so this workflow can't start it. Start it from a workflow that runs with the same permissions or more.`,
+      );
+    }
+
+    expect(
+      await mayStart(
+        {
+          runAs: WorkflowRunAs.CustomRole,
+          rolePermissions: [row(Permission.ProjectAdmin)],
+        },
+        child,
+      ),
+    ).toBeNull();
+    expect(
+      await mayStart({ runAs: WorkflowRunAs.ProjectOwner }, child),
+    ).toBeNull();
+  });
+
   test("one whose Run As cannot be read is started only by a Project Owner workflow", async () => {
     expect(await mayStart(undefined, { runAs: "Root" })).not.toBeNull();
     expect(
