@@ -261,30 +261,29 @@ async function runRules(
 
   jest
     .spyOn(c.ownerUserService, "create")
-    .mockImplementation(
-      async (createBy: { data: BaseModel }): Promise<BaseModel> => {
-        userWrites.push(String(createBy.data.getColumnValue("userId")));
-        return createBy.data;
-      },
-    );
+    .mockImplementation(async (...args: Array<unknown>): Promise<BaseModel> => {
+      const createBy: { data: BaseModel } = args[0] as { data: BaseModel };
+
+      userWrites.push(String(createBy.data.getColumnValue("userId")));
+      return createBy.data;
+    });
 
   // The owner service refuses another project's team, as its reference check does.
   jest
     .spyOn(c.ownerTeamService, "create")
-    .mockImplementation(
-      async (createBy: { data: BaseModel }): Promise<BaseModel> => {
-        const teamId: string = String(createBy.data.getColumnValue("teamId"));
+    .mockImplementation(async (...args: Array<unknown>): Promise<BaseModel> => {
+      const createBy: { data: BaseModel } = args[0] as { data: BaseModel };
+      const teamId: string = String(createBy.data.getColumnValue("teamId"));
 
-        if (teamId === FOREIGN_TEAM_ID.toString()) {
-          throw new ProjectScopedReferenceException(
-            `This owner team references records that are not in this project: Team "${teamId}". Please pick values from this project and try again.`,
-          );
-        }
+      if (teamId === FOREIGN_TEAM_ID.toString()) {
+        throw new ProjectScopedReferenceException(
+          `This owner team references records that are not in this project: Team "${teamId}". Please pick values from this project and try again.`,
+        );
+      }
 
-        teamWrites.push(teamId);
-        return createBy.data;
-      },
-    );
+      teamWrites.push(teamId);
+      return createBy.data;
+    });
 
   let feed: jest.SpyInstance | null = null;
 
