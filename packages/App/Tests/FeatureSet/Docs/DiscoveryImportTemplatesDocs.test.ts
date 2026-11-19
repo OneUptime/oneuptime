@@ -4,6 +4,7 @@ import MonitorType, {
 import {
   DEVICE_ADDRESS_MONITOR_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPES,
+  DEVICE_URL_MONITOR_TYPES,
 } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import { MANAGE_TEMPLATES_LINK_TITLE } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportTemplateCopy";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
@@ -82,6 +83,26 @@ describe("the English guides", () => {
     );
   });
 
+  test("the Monitoring step says a web template's monitor checks its URL with each device's address as the host (#9546)", () => {
+    expect(monitoringStep("en")).toContain(
+      `a ${DEVICE_URL_MONITOR_TYPES.slice(0, -1)
+        .map(titleOf)
+        .join(", ")} or ${titleOf(
+        DEVICE_URL_MONITOR_TYPES[DEVICE_URL_MONITOR_TYPES.length - 1]!,
+      )} template's monitor checks the template's URL the same way, with each device's address as its host and its scheme, port, path and query as written`,
+    );
+  });
+
+  test("the templates guide says a sync keeps each device's address as a web monitor's host (#9546)", () => {
+    expect(read("en", TEMPLATES_GUIDE)).toContain(
+      `Its ${DEVICE_URL_MONITOR_TYPES.slice(0, -1)
+        .map(titleOf)
+        .join(", ")} and ${titleOf(
+        DEVICE_URL_MONITOR_TYPES[DEVICE_URL_MONITOR_TYPES.length - 1]!,
+      )} monitors keep each device's address as their URL's host and take the template's scheme, port and path.`,
+    );
+  });
+
   test("the Monitoring step says a template made meanwhile is listed on coming back", () => {
     expect(monitoringStep("en")).toContain(
       `**${MANAGE_TEMPLATES_LINK_TITLE}** opens your templates in a new tab, and a template you add there is listed when you come back.`,
@@ -121,11 +142,13 @@ describe.each(LANGUAGES)("the %s network device guide", (language: string) => {
     expect(boldSpans(step).length).toBe(boldSpans(monitoringStep("en")).length);
   });
 
-  test("names the Ping, IP and NTP kinds, which every language draws as written", () => {
+  test("names the Ping, IP, NTP and API kinds, which every language draws as written", () => {
     for (const monitorType of [
       MonitorType.Ping,
       MonitorType.IP,
       MonitorType.NTP,
+      // A web template's kind (#9546).
+      MonitorType.API,
     ]) {
       expect(step).toContain(titleOf(monitorType));
     }
