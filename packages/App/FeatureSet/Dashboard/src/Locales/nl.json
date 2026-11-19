@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "{{count}} nieuw apparaat: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} geselecteerde apparaten hebben al een monitor, dus ze worden overgeslagen.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} geselecteerd apparaat heeft al een monitor, dus het wordt overgeslagen.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} wordt niet langer bij dit apparaat getoond, en wat hij vanaf nu veroorzaakt, wordt niet aan het apparaat gekoppeld. Imports en regels voor automatisch importeren tellen hem niet meer mee, dus ze kunnen het apparaat een monitor van dezelfde soort geven. De monitor zelf blijft ongewijzigd controleren."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} wordt niet langer bij dit apparaat getoond, en wat hij vanaf nu veroorzaakt, wordt niet aan het apparaat gekoppeld. Imports en regels voor automatisch importeren tellen hem niet meer mee, dus ze kunnen het apparaat een monitor van dezelfde soort geven. De monitor zelf blijft ongewijzigd controleren.",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "Gegeven aan {{reach}}, en {{workflows}}. Een wijziging hier verandert meteen wat zij kunnen doen.",
+  "No workflow runs as this role yet": "Nog geen workflow draait als deze rol",
+  "No workflow runs as this role yet.": "Nog geen workflow draait als deze rol.",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "Open een workflow via de pagina {{workflows}} en kies deze rol in de Instellingen ervan, onder Run As.",
+  "The steps of these workflows can do exactly what this role allows.": "De stappen van deze workflows kunnen precies wat deze rol toestaat.",
+  "Workflows that Run as this Role": "Workflows die als deze rol draaien",
+  "{{count}} workflows run as it": "{{count}} workflows draaien als deze rol",
+  "{{count}} workflows run as it_one": "{{count}} workflow draait als deze rol",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "{{count}} workflows draaien als deze rol. Een wijziging hier verandert meteen wat zij kunnen doen.",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "{{count}} workflow draait als deze rol. Een wijziging hier verandert meteen wat hij kan doen."
 }

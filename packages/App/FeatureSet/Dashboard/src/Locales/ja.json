@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "新しいデバイス {{count}} 台：{{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
   "{{count}} selected devices already have a monitor, so they are left out._one": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} はこのデバイスに表示されなくなり、今後発生するものはこのデバイスに関連付けられません。インポートと自動インポートルールはこのモニターを数えなくなるため、このデバイスに同様のモニターを付けることがあります。モニター自体は変わらずチェックを続けます。"
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} はこのデバイスに表示されなくなり、今後発生するものはこのデバイスに関連付けられません。インポートと自動インポートルールはこのモニターを数えなくなるため、このデバイスに同様のモニターを付けることがあります。モニター自体は変わらずチェックを続けます。",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "{{reach}} に付与されており、{{workflows}}。ここでの変更は、それらができることをすぐに変えます。",
+  "No workflow runs as this role yet": "このロールとして実行されるワークフローはまだありません",
+  "No workflow runs as this role yet.": "このロールとして実行されるワークフローはまだありません。",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "{{workflows}} ページからワークフローを開き、その設定の Run As でこのロールを選んでください。",
+  "The steps of these workflows can do exactly what this role allows.": "これらのワークフローのステップは、このロールで許可されることをそのまま行えます。",
+  "Workflows that Run as this Role": "このロールとして実行されるワークフロー",
+  "{{count}} workflows run as it": "{{count}} 件のワークフローがこのロールとして実行されます",
+  "{{count}} workflows run as it_one": "{{count}} 件のワークフローがこのロールとして実行されます",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "{{count}} 件のワークフローがこのロールとして実行されます。ここでの変更は、それらができることをすぐに変えます。",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "{{count}} 件のワークフローがこのロールとして実行されます。ここでの変更は、それらができることをすぐに変えます。"
 }

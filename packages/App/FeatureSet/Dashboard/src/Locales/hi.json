@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "{{count}} नया डिवाइस: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "चुने गए {{count}} डिवाइसों के पास पहले से मॉनिटर है, इसलिए उन्हें छोड़ दिया गया है।",
   "{{count}} selected devices already have a monitor, so they are left out._one": "चुने गए {{count}} डिवाइस के पास पहले से मॉनिटर है, इसलिए उसे छोड़ दिया गया है।",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} अब इस डिवाइस पर सूचीबद्ध नहीं होगा, और वह अब से जो भी उठाएगा वह इस डिवाइस से नहीं जुड़ेगा। आयात और ऑटो आयात नियम इसे गिनना बंद कर देते हैं, इसलिए वे डिवाइस को वैसा ही मॉनिटर दे सकते हैं। मॉनिटर खुद बिना बदले जाँच करता रहता है।"
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} अब इस डिवाइस पर सूचीबद्ध नहीं होगा, और वह अब से जो भी उठाएगा वह इस डिवाइस से नहीं जुड़ेगा। आयात और ऑटो आयात नियम इसे गिनना बंद कर देते हैं, इसलिए वे डिवाइस को वैसा ही मॉनिटर दे सकते हैं। मॉनिटर खुद बिना बदले जाँच करता रहता है।",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "{{reach}} को दी गई है, और {{workflows}}। यहाँ किया गया बदलाव तुरंत बदल देता है कि वे क्या कर सकते हैं।",
+  "No workflow runs as this role yet": "अभी कोई वर्कफ़्लो इस भूमिका के रूप में नहीं चलता",
+  "No workflow runs as this role yet.": "अभी कोई वर्कफ़्लो इस भूमिका के रूप में नहीं चलता।",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "{{workflows}} पेज से कोई वर्कफ़्लो खोलें और उसकी सेटिंग्स में Run As के अंतर्गत यह भूमिका चुनें।",
+  "The steps of these workflows can do exactly what this role allows.": "इन वर्कफ़्लो के चरण ठीक वही कर सकते हैं जिसकी यह भूमिका अनुमति देती है।",
+  "Workflows that Run as this Role": "इस भूमिका के रूप में चलने वाले वर्कफ़्लो",
+  "{{count}} workflows run as it": "{{count}} वर्कफ़्लो इस भूमिका के रूप में चलते हैं",
+  "{{count}} workflows run as it_one": "{{count}} वर्कफ़्लो इस भूमिका के रूप में चलता है",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "{{count}} वर्कफ़्लो इस भूमिका के रूप में चलते हैं। यहाँ किया गया बदलाव तुरंत बदल देता है कि वे क्या कर सकते हैं।",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "{{count}} वर्कफ़्लो इस भूमिका के रूप में चलता है। यहाँ किया गया बदलाव तुरंत बदल देता है कि वह क्या कर सकता है।"
 }

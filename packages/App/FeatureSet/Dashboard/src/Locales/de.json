@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "{{count}} neues Gerät: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} ausgewählte Geräte haben bereits einen Monitor und werden daher ausgelassen.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} ausgewähltes Gerät hat bereits einen Monitor und wird daher ausgelassen.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} wird nicht mehr auf diesem Gerät aufgeführt, und was er ab jetzt auslöst, wird nicht mit dem Gerät verknüpft. Importe und Regeln für automatischen Import zählen ihn nicht mehr, sodass sie dem Gerät einen gleichartigen Monitor geben können. Der Monitor selbst prüft unverändert weiter."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} wird nicht mehr auf diesem Gerät aufgeführt, und was er ab jetzt auslöst, wird nicht mit dem Gerät verknüpft. Importe und Regeln für automatischen Import zählen ihn nicht mehr, sodass sie dem Gerät einen gleichartigen Monitor geben können. Der Monitor selbst prüft unverändert weiter.",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "Vergeben an {{reach}}, und {{workflows}}. Eine Änderung hier ändert sofort, was sie tun können.",
+  "No workflow runs as this role yet": "Noch kein Arbeitsablauf läuft als diese Rolle",
+  "No workflow runs as this role yet.": "Noch kein Arbeitsablauf läuft als diese Rolle.",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "Öffnen Sie einen Arbeitsablauf auf der Seite {{workflows}} und wählen Sie diese Rolle in seinen Einstellungen unter Run As.",
+  "The steps of these workflows can do exactly what this role allows.": "Die Schritte dieser Arbeitsabläufe können genau das, was diese Rolle erlaubt.",
+  "Workflows that Run as this Role": "Arbeitsabläufe, die als diese Rolle laufen",
+  "{{count}} workflows run as it": "{{count}} Arbeitsabläufe laufen als diese Rolle",
+  "{{count}} workflows run as it_one": "{{count}} Arbeitsablauf läuft als diese Rolle",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "{{count}} Arbeitsabläufe laufen als diese Rolle. Eine Änderung hier ändert sofort, was sie tun können.",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "{{count}} Arbeitsablauf läuft als diese Rolle. Eine Änderung hier ändert sofort, was er tun kann."
 }

@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "새 장치 {{count}}개: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "선택한 장치 중 {{count}}개는 이미 모니터가 있어 제외됩니다.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "선택한 장치 중 {{count}}개는 이미 모니터가 있어 제외됩니다.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}}은(는) 더 이상 이 디바이스에 표시되지 않으며, 이제부터 발생시키는 항목은 이 디바이스에 연결되지 않습니다. 가져오기와 자동 가져오기 규칙이 이 모니터를 더 이상 세지 않으므로 이 디바이스에 같은 종류의 모니터를 추가할 수 있습니다. 모니터 자체는 변경 없이 계속 확인합니다."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}}은(는) 더 이상 이 디바이스에 표시되지 않으며, 이제부터 발생시키는 항목은 이 디바이스에 연결되지 않습니다. 가져오기와 자동 가져오기 규칙이 이 모니터를 더 이상 세지 않으므로 이 디바이스에 같은 종류의 모니터를 추가할 수 있습니다. 모니터 자체는 변경 없이 계속 확인합니다.",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "{{reach}}에 부여되어 있고, {{workflows}}. 여기서 바꾸면 그들이 할 수 있는 일이 즉시 바뀝니다.",
+  "No workflow runs as this role yet": "아직 이 역할로 실행되는 워크플로가 없습니다",
+  "No workflow runs as this role yet.": "아직 이 역할로 실행되는 워크플로가 없습니다.",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "{{workflows}} 페이지에서 워크플로를 열고 설정의 Run As에서 이 역할을 선택하세요.",
+  "The steps of these workflows can do exactly what this role allows.": "이 워크플로들의 단계는 이 역할이 허용하는 것을 정확히 할 수 있습니다.",
+  "Workflows that Run as this Role": "이 역할로 실행되는 워크플로",
+  "{{count}} workflows run as it": "워크플로 {{count}}개가 이 역할로 실행됩니다",
+  "{{count}} workflows run as it_one": "워크플로 {{count}}개가 이 역할로 실행됩니다",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "워크플로 {{count}}개가 이 역할로 실행됩니다. 여기서 바꾸면 그들이 할 수 있는 일이 즉시 바뀝니다.",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "워크플로 {{count}}개가 이 역할로 실행됩니다. 여기서 바꾸면 그들이 할 수 있는 일이 즉시 바뀝니다."
 }

@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "{{count}} ny enhet: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} valgte enheter har allerede en monitor, så de utelates.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} valgt enhet har allerede en monitor, så den utelates.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} vises ikke lenger på denne enheten, og det den utløser fra nå av, knyttes ikke til enheten. Importer og regler for automatisk import slutter å telle den med, så de kan gi enheten en monitor av samme slag. Selve monitoren fortsetter å sjekke, uendret."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} vises ikke lenger på denne enheten, og det den utløser fra nå av, knyttes ikke til enheten. Importer og regler for automatisk import slutter å telle den med, så de kan gi enheten en monitor av samme slag. Selve monitoren fortsetter å sjekke, uendret.",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "Gitt til {{reach}}, og {{workflows}}. En endring her endrer straks hva de kan gjøre.",
+  "No workflow runs as this role yet": "Ingen arbeidsflyt kjører som denne rollen ennå",
+  "No workflow runs as this role yet.": "Ingen arbeidsflyt kjører som denne rollen ennå.",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "Åpne en arbeidsflyt fra siden {{workflows}}, og velg denne rollen i Innstillinger for den, under Run As.",
+  "The steps of these workflows can do exactly what this role allows.": "Trinnene i disse arbeidsflytene kan gjøre nøyaktig det denne rollen tillater.",
+  "Workflows that Run as this Role": "Arbeidsflyter som kjører som denne rollen",
+  "{{count}} workflows run as it": "{{count}} arbeidsflyter kjører som denne rollen",
+  "{{count}} workflows run as it_one": "{{count}} arbeidsflyt kjører som denne rollen",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "{{count}} arbeidsflyter kjører som denne rollen. En endring her endrer straks hva de kan gjøre.",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "{{count}} arbeidsflyt kjører som denne rollen. En endring her endrer straks hva den kan gjøre."
 }

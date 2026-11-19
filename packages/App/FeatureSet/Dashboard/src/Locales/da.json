@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "{{count}} ny enhed: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} valgte enheder har allerede en monitor, så de udelades.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} valgt enhed har allerede en monitor, så den udelades.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} vises ikke længere på denne enhed, og det, den udløser fra nu af, knyttes ikke til enheden. Importer og regler for automatisk import holder op med at tælle den med, så de kan give enheden en monitor af samme slags. Selve monitoren bliver ved med at tjekke, uændret."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} vises ikke længere på denne enhed, og det, den udløser fra nu af, knyttes ikke til enheden. Importer og regler for automatisk import holder op med at tælle den med, så de kan give enheden en monitor af samme slags. Selve monitoren bliver ved med at tjekke, uændret.",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "Givet til {{reach}}, og {{workflows}}. En ændring her ændrer straks, hvad de kan gøre.",
+  "No workflow runs as this role yet": "Ingen arbejdsgang kører som denne rolle endnu",
+  "No workflow runs as this role yet.": "Ingen arbejdsgang kører som denne rolle endnu.",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "Åbn en arbejdsgang fra siden {{workflows}}, og vælg denne rolle i dens Indstillinger under Run As.",
+  "The steps of these workflows can do exactly what this role allows.": "Trinnene i disse arbejdsgange kan præcis det, som denne rolle tillader.",
+  "Workflows that Run as this Role": "Arbejdsgange, der kører som denne rolle",
+  "{{count}} workflows run as it": "{{count}} arbejdsgange kører som denne rolle",
+  "{{count}} workflows run as it_one": "{{count}} arbejdsgang kører som denne rolle",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "{{count}} arbejdsgange kører som denne rolle. En ændring her ændrer straks, hvad de kan gøre.",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "{{count}} arbejdsgang kører som denne rolle. En ændring her ændrer straks, hvad den kan gøre."
 }

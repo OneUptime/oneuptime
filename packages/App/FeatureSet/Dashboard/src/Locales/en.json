@@ -58702,5 +58702,15 @@
   "{{count}} new devices: {{names}}_one": "{{count}} new device: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} selected devices already have a monitor, so they are left out.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} selected device already has a monitor, so it is left out.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.",
+  "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.": "Given to {{reach}}, and {{workflows}}. A change here changes what they can do at once.",
+  "No workflow runs as this role yet": "No workflow runs as this role yet",
+  "No workflow runs as this role yet.": "No workflow runs as this role yet.",
+  "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.": "Open a workflow from the {{workflows}} page and choose this role in its Settings, under Run As.",
+  "The steps of these workflows can do exactly what this role allows.": "The steps of these workflows can do exactly what this role allows.",
+  "Workflows that Run as this Role": "Workflows that Run as this Role",
+  "{{count}} workflows run as it": "{{count}} workflows run as it",
+  "{{count}} workflows run as it_one": "{{count}} workflow runs as it",
+  "{{count}} workflows run as this role. A change here changes what they can do at once.": "{{count}} workflows run as this role. A change here changes what they can do at once.",
+  "{{count}} workflows run as this role. A change here changes what they can do at once._one": "{{count}} workflow runs as this role. A change here changes what it can do at once."
 }
