@@ -225,3 +225,111 @@ describe("the Dashboard's drag-ordered lists", () => {
     },
   );
 });
+
+/*
+ * A write of a drag-ordered row's number places that row and moves no other
+ * (issue #9609), so a Terraform apply numbering a whole list converges. A
+ * control that reordered by writing the number would put the row beside its
+ * neighbour - two rows at one number - not past it. The Dashboard's drag is
+ * a move (POST <list>/:id/move, through ModelAPI.moveInList, by the shared
+ * ModelTable and ModelList); nothing writes the number through an update.
+ */
+describe("nothing in the Dashboard", () => {
+  // The source with its comments removed and its white space squashed.
+  const readCode: (file: string) => string = (file: string): string => {
+    return fs
+      .readFileSync(file, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ")
+      .replace(/\s+/g, " ");
+  };
+
+  test("writes a drag-ordered row's number through an update", () => {
+    const offenders: Array<string> = [];
+    let updatesOfListModels: number = 0;
+
+    for (const file of listSourceFiles(DASHBOARD_SRC)) {
+      const code: string = readCode(file);
+
+      for (const call of code.split("updateById").slice(1)) {
+        // The call's own arguments: up to the first "})" closing them.
+        const args: string = call.split("})")[0] || "";
+
+        for (const model of listModels) {
+          const namesModel: boolean =
+            args.includes(`modelType: ${model.name},`) ||
+            args.trimStart().startsWith(`<${model.name}>`);
+
+          if (!namesModel) {
+            continue;
+          }
+
+          updatesOfListModels++;
+
+          if (new RegExp(`\\b${model.settings.column}\\s*:`).test(args)) {
+            offenders.push(
+              `${path.relative(DASHBOARD_SRC, file)} (${model.name}.${model.settings.column})`,
+            );
+          }
+        }
+      }
+    }
+
+    // The search reads the calls it should: some update these models.
+    expect(updatesOfListModels).toBeGreaterThan(0);
+    expect(offenders).toEqual([]);
+  });
+
+  /*
+   * Rule 3 above, for the forms that build a row in code rather than
+   * through a ModelTable: a row made with `new Model()` and handed to
+   * ModelAPI.create is left without a number, so the server puts it at the
+   * end of its list. (A row made only to be shown - a status page's
+   * statuses, say - may carry its number.)
+   * A number set on it is only kept - it no longer pushes the other rows
+   * down (issue #9609) - so `processor.sortOrder = 1` made each new
+   * pipeline processor share the first one's number instead of going last.
+   */
+  test("sets a drag-ordered row's number on a row it makes to create", () => {
+    const offenders: Array<string> = [];
+    let rowsMade: number = 0;
+
+    for (const file of listSourceFiles(DASHBOARD_SRC)) {
+      const code: string = readCode(file);
+
+      for (const model of listModels) {
+        const made: RegExp = new RegExp(
+          `(?:const|let) (\\w+)\\s*:\\s*${model.name}\\s*=\\s*new ${model.name}\\(\\)`,
+          "g",
+        );
+
+        for (const match of code.matchAll(made)) {
+          const variable: string = match[1] as string;
+          const isCreated: RegExp = new RegExp(
+            `ModelAPI\\.create(?:<\\w+>)?\\(\\{ model: ${variable}\\b`,
+          );
+
+          if (!isCreated.test(code)) {
+            continue;
+          }
+
+          rowsMade++;
+
+          const numbered: RegExp = new RegExp(
+            `\\b${variable}\\.${model.settings.column}\\s*=(?!=)`,
+          );
+
+          if (numbered.test(code)) {
+            offenders.push(
+              `${path.relative(DASHBOARD_SRC, file)} (${variable}.${model.settings.column})`,
+            );
+          }
+        }
+      }
+    }
+
+    // The search reads the forms it should: some create rows of these models.
+    expect(rowsMade).toBeGreaterThan(0);
+    expect(offenders).toEqual([]);
+  });
+});
