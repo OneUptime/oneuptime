@@ -285,8 +285,12 @@ describe("fetchMobileFaults", () => {
 
     expect(histograms).toHaveLength(2);
     expect(histograms[0]?.data["escaped"]).toBe(true);
-    expect(histograms[0]?.data["excludedExceptionTypes"]).toEqual(["ANR"]);
-    expect(histograms[1]?.data["exceptionTypes"]).toEqual(["ANR"]);
+    // An iOS hang counts as the ANR it is, never as a crash (#9712).
+    expect(histograms[0]?.data["excludedExceptionTypes"]).toEqual([
+      "ANR",
+      "Hang",
+    ]);
+    expect(histograms[1]?.data["exceptionTypes"]).toEqual(["ANR", "Hang"]);
     expect(callsTo("/telemetry/exceptions/session-count")).toHaveLength(2);
 
     expect(result.crashes).toMatchObject({

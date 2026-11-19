@@ -17,7 +17,7 @@ import {
   EVENT_NAME_ATTRIBUTE,
   FROZEN_FRAME_THRESHOLD,
 } from "Common/Types/Rum/MobileAppTelemetry";
-import { ANR_EXCEPTION_TYPE } from "Common/Utils/Telemetry/MobileAppFaults";
+import { APP_NOT_RESPONDING_EXCEPTION_TYPES } from "Common/Utils/Telemetry/MobileAppFaults";
 import { toLogsExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalScope";
 import {
   composedValue,
@@ -572,7 +572,8 @@ export function buildMobileTracesRoute(input: {
 
 /*
  * The Exceptions explorer scoped to the application on the tile's range,
- * and to the type ANR for the ANRs tile.
+ * and for the ANRs tile to the types a freeze is filed under: ANR, and an
+ * iOS app's Hang.
  */
 export function buildMobileExceptionsRoute(input: {
   exceptionsRoute: Route;
@@ -585,7 +586,9 @@ export function buildMobileExceptionsRoute(input: {
   ];
 
   if (input.anrsOnly) {
-    filters.push(["exceptionType", ANR_EXCEPTION_TYPE]);
+    for (const exceptionType of APP_NOT_RESPONDING_EXCEPTION_TYPES) {
+      filters.push(["exceptionType", exceptionType]);
+    }
   }
 
   return withQueryParams(input.exceptionsRoute, {

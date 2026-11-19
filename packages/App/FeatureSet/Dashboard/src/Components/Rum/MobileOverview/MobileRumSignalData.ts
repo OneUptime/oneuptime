@@ -13,7 +13,7 @@ import {
   FROZEN_FRAME_THRESHOLD,
   SLOW_FRAME_THRESHOLD,
 } from "Common/Types/Rum/MobileAppTelemetry";
-import { ANR_EXCEPTION_TYPE } from "Common/Utils/Telemetry/MobileAppFaults";
+import { APP_NOT_RESPONDING_EXCEPTION_TYPES } from "Common/Utils/Telemetry/MobileAppFaults";
 import { parseBucketTimeMs } from "../../TelemetryResource/telemetryFormat";
 
 /*
@@ -29,8 +29,9 @@ import { parseBucketTimeMs } from "../../TelemetryResource/telemetryFormat";
  *   - Sessions: the distinct session ids of the app's spans, beside the
  *     spans read (POST /telemetry/traces/session-count).
  *   - Crashes and ANRs: the exception histogram twice - unhandled with the
- *     type ANR left out (a crash, as MobileAppFaults files one), and the
- *     type ANR alone - and the sessions each happened in.
+ *     types ANR and Hang left out (a crash, as MobileAppFaults files one),
+ *     and those two types alone (an Android ANR, an iOS hang) - and the
+ *     sessions each happened in.
  *   - Slow and frozen frames: app.jank.frame_count added up per threshold
  *     and interval (one event stands for several frames), and per screen.
  *
@@ -102,22 +103,23 @@ export function buildSessionCountBody(scope: MobileSignalScope): JSONObject {
 }
 
 /*
- * A crash: an unhandled exception that is not an ANR. Since #9533 a crash
+ * A crash: an unhandled exception that is not a freeze. Since #9533 a crash
  * event becomes an unhandled exception (MobileAppFaults), and so does an
- * ANR, under the type ANR.
+ * ANR, under the type ANR, and an iOS hang, under the type Hang.
  */
 export function buildCrashFilterBody(scope: MobileSignalScope): JSONObject {
   return {
     ...windowOf(scope),
     escaped: true,
-    excludedExceptionTypes: [ANR_EXCEPTION_TYPE],
+    excludedExceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
   };
 }
 
+// A freeze: an Android ANR or an iOS hang.
 export function buildAnrFilterBody(scope: MobileSignalScope): JSONObject {
   return {
     ...windowOf(scope),
-    exceptionTypes: [ANR_EXCEPTION_TYPE],
+    exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
   };
 }
 

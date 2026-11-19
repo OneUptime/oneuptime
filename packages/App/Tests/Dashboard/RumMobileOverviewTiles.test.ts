@@ -583,7 +583,7 @@ describe("where the tiles link", () => {
     );
   });
 
-  test("Crashes open the app's exceptions, ANRs only the type ANR", () => {
+  test("Crashes open the app's exceptions, ANRs only the types ANR and Hang", () => {
     expect(
       JSON.parse(
         paramsOf(
@@ -605,9 +605,11 @@ describe("where the tiles link", () => {
       }),
     );
 
+    // An iOS app's hang is its ANR (#9712): both chips, one any-of filter.
     expect(JSON.parse(anrs.get("filters") || "[]")).toEqual([
       ["rumApplicationId", APP_ID],
       ["exceptionType", "ANR"],
+      ["exceptionType", "Hang"],
     ]);
     expect(anrs.get("range")).toBe("Past 1 Hour");
   });

@@ -5,6 +5,7 @@ Instrument an Android, iOS or React Native app with OpenTelemetry so it reports 
 :::cards
 - [What OneUptime needs](#what-oneuptime-needs): Two resource attributes, sent with a Server key.
 - [Set up your platform](#set-up-your-platform): Android, iOS, React Native and the rest.
+- [iOS crashes and hangs](#ios-crashes-and-hangs): MetricKit's diagnostics in Exceptions and on the Overview.
 - [Check that it arrives](#check-that-it-arrives): Test the key, then find the app.
 - [Session Replay on mobile](#session-replay-on-mobile): Recordings for React Native apps.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 The SDK adds `/v1/traces`, `/v1/metrics` and `/v1/logs` to the endpoint itself.
 :::
+
+## iOS crashes and hangs
+
+opentelemetry-swift 2.3 and later report an iOS app's crashes and hangs through its MetricKit instrumentation, which hands each of Apple's diagnostics to OpenTelemetry as a log record. OneUptime files them as it files OpenTelemetry Android's crashes and ANRs, so they show in **Exceptions** and on the application's **Overview**:
+
+| Apple's diagnostic | Event name | In Exceptions |
+| --- | --- | --- |
+| A crash | `metrickit.diagnostic.crash` | An unhandled exception, typed by what ended the app: the Objective-C exception on iOS 17 and later, else the Mach exception (`EXC_BAD_ACCESS`), else the signal (`SIGSEGV`) |
+| A hang | `metrickit.diagnostic.hang` | An unhandled exception of type **Hang**, the iOS counterpart of an ANR, which keeps how long the hang lasted |
+
+The Overview's **Crashes** tile counts the crashes, and its **ANRs** tile counts the hangs with Android's ANRs. Each stack trace is drawn as the threads of a crash report, the thread that crashed or hung first. The frames are not symbolicated: each names its binary and how far into it the code was, and **Binary Images** lists each binary's UUID, which says which build's dSYM symbolicates it.
+
+:::steps
+### Export logs as well as spans
+
+MetricKit reports diagnostics as log records, so register a logger provider beside the tracer provider, with the same resource, endpoint and header:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Register the MetricKit instrumentation
+
+Add the `MetricKitInstrumentation` product of opentelemetry-swift, and register it with MetricKit once the logger provider is registered:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Record sessions
+
+The **Sessions** and **Crash-free sessions** tiles count the `session.id` on your spans. opentelemetry-swift's `Sessions` product sets it: add `SessionSpanProcessor` to the tracer provider, and wrap the log processor in `SessionLogRecordProcessor`, so diagnostics carry a session too.
+:::
+
+> [!NOTE]
+> Apple hands MetricKit's diagnostics to the app on a later launch, at once on iOS 15 and later and once a day before, so a crash or a hang can arrive minutes or a day after it happened. "0 crashes in the past hour" on an iOS app's Overview is not yet good news. A diagnostic carries the session that reported it, not the one it ended.
+
+opentelemetry-swift records no span when the app starts, so the **App starts** and **Cold start (p95)** tiles stay empty until your app records one: a span named `AppStart`, with `start.type` set to `cold`, `warm` or `hot`, from the process starting to the first screen being ready.
 
 ## Check that it arrives
 

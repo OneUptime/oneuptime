@@ -11,7 +11,10 @@ import {
   FROZEN_FRAME_THRESHOLD,
   SLOW_FRAME_THRESHOLD,
 } from "Common/Types/Rum/MobileAppTelemetry";
-import { ANR_EXCEPTION_TYPE } from "Common/Utils/Telemetry/MobileAppFaults";
+import {
+  ANR_EXCEPTION_TYPE,
+  HANG_EXCEPTION_TYPE,
+} from "Common/Utils/Telemetry/MobileAppFaults";
 import {
   FRAMES_BY_SCREEN_LIMIT,
   FRAMES_BY_SCREEN_READ_LIMIT,
@@ -110,18 +113,19 @@ describe("the requests", () => {
     expect(buildSessionCountBody(SCOPE)).toEqual(WINDOW);
   });
 
-  test("a crash is an unhandled exception that is no ANR", () => {
+  test("a crash is an unhandled exception that is no freeze: no ANR, no iOS hang", () => {
     expect(buildCrashFilterBody(SCOPE)).toEqual({
       ...WINDOW,
       escaped: true,
-      excludedExceptionTypes: [ANR_EXCEPTION_TYPE],
+      excludedExceptionTypes: [ANR_EXCEPTION_TYPE, HANG_EXCEPTION_TYPE],
     });
   });
 
-  test("an ANR is the type ANR", () => {
+  // #9712: an iOS hang is the counterpart of an Android ANR.
+  test("an ANR is the type ANR, or an iOS app's Hang", () => {
     expect(buildAnrFilterBody(SCOPE)).toEqual({
       ...WINDOW,
-      exceptionTypes: ["ANR"],
+      exceptionTypes: ["ANR", "Hang"],
     });
   });
 

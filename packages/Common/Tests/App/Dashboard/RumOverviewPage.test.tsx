@@ -2488,7 +2488,7 @@ describe("RUM overview: a mobile app's charts and cards", () => {
 });
 
 describe("RUM overview: a mobile app's tiles link where the number is read", () => {
-  test("crashes open the app's exceptions, ANRs only the type ANR", async () => {
+  test("crashes open the app's exceptions, ANRs only the types ANR and Hang", async () => {
     arrangeMobile();
     await renderMobilePage();
 
@@ -2500,7 +2500,7 @@ describe("RUM overview: a mobile app's tiles link where the number is read", () 
     );
     expect(tileHref("Crash-free sessions")).toBe(tileHref("Crashes"));
     expect(tileHref("ANRs")).toContain(
-      `[["rumApplicationId","${MODEL_ID}"],["exceptionType","ANR"]]`,
+      `[["rumApplicationId","${MODEL_ID}"],["exceptionType","ANR"],["exceptionType","Hang"]]`,
     );
   });
 

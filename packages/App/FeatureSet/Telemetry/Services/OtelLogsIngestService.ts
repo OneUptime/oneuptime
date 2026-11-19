@@ -28,7 +28,13 @@ import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import LogEventName, {
   LogEventNameAttributeKey,
 } from "Common/Types/Log/LogEventName";
-import { getMobileAppFaultKind } from "Common/Utils/Telemetry/MobileAppFaults";
+import {
+  METRICKIT_HANG_DURATION_ATTRIBUTE,
+  MobileAppFaultKind,
+  getMobileAppFaultEventName,
+  getMobileAppFaultKind,
+  stampMetricKitDiagnosticEventName,
+} from "Common/Utils/Telemetry/MobileAppFaults";
 import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
 import LogSeverity, {
   logSeverityFromNumber,
@@ -852,6 +858,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    * read of GenAI events).
                    */
                   LogEventName.stampOnAttributes(attributesObject, log);
+
+                  /*
+                   * opentelemetry-swift 2.3.0 named a MetricKit diagnostic
+                   * (an iOS crash or hang) only in its `name` attribute;
+                   * later versions set the event name field too. Stamped
+                   * the same way, so both are found by `event.name`.
+                   */
+                  stampMetricKitDiagnosticEventName(attributesObject);
 
                   /*
                    * A GenAI inference event's messages, held as their JSON
@@ -1858,13 +1872,29 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     };
 
     /*
-     * A mobile app's crash or ANR keeps the event it was reported as
-     * (`app.crash`, `device.anr`), so an occurrence says which it was -
-     * a crash's own exception type does not.
+     * A mobile app's crash, ANR or hang keeps the event it was reported as
+     * (`app.crash`, `device.anr`, `metrickit.diagnostic.hang`), so an
+     * occurrence says which it was - a crash's own exception type does not.
+     * An iOS hang keeps how long it lasted too, which its message, the
+     * same for every hang so that they group, leaves out.
      */
-    if (getMobileAppFaultKind(finalAttributes)) {
+    const faultKind: MobileAppFaultKind | null =
+      getMobileAppFaultKind(finalAttributes);
+
+    if (faultKind) {
       exceptionAttributes[LogEventNameAttributeKey] =
-        finalAttributes[LogEventNameAttributeKey] || "";
+        getMobileAppFaultEventName(finalAttributes) || "";
+
+      const hangDuration: unknown =
+        finalAttributes[METRICKIT_HANG_DURATION_ATTRIBUTE];
+
+      if (
+        faultKind === MobileAppFaultKind.Hang &&
+        (typeof hangDuration === "number" || typeof hangDuration === "string")
+      ) {
+        exceptionAttributes[METRICKIT_HANG_DURATION_ATTRIBUTE] =
+          String(hangDuration);
+      }
     }
 
     data.dbExceptions.push({
