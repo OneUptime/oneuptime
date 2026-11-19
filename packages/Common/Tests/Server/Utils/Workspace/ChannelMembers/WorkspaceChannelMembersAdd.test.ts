@@ -8,6 +8,9 @@ import {
 } from "@jest/globals";
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceChannelMembers from "../../../../../Server/Utils/Workspace/WorkspaceChannelMembers";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../../../Types/Exception/NotFoundException";
@@ -301,6 +304,54 @@ describe("adding other people", () => {
     ]);
     expect(world.invites()).toEqual([]);
     expect(world.slackRequestsOf("users.lookupByEmail")).toEqual([]);
+  });
+
+  /*
+   * Someone invited to the project who has not accepted is not a member
+   * yet: the answer names them as the project knows them - the name typed
+   * for them, else their address - never their account's own name (#9823).
+   */
+  test("somebody only invited is not added, and is named by the name typed for them", async () => {
+    const withheldIn: jest.SpyInstance = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [OSCAR.toString().toLowerCase(), { inviteeName: "Oscar (invited)" }],
+        ]),
+      );
+
+    const answer: WorkspaceChannelAddAnswer = await add({
+      userIds: [OSCAR, CAROL],
+    });
+
+    expect(answer.results).toEqual([
+      {
+        userId: OSCAR.toString(),
+        name: "Oscar (invited)",
+        outcome: WorkspaceChannelAddOutcome.NotProjectMember,
+      },
+      {
+        userId: CAROL.toString(),
+        name: "Carol Lee",
+        outcome: WorkspaceChannelAddOutcome.Added,
+      },
+    ]);
+    expect(JSON.stringify(answer)).not.toContain("Oscar Out");
+
+    // One read for everybody asked to be added, in the project.
+    expect(withheldIn).toHaveBeenCalledTimes(1);
+
+    withheldIn.mockResolvedValue(
+      new Map<string, WithheldProfile>([
+        [OSCAR.toString().toLowerCase(), { inviteeName: null }],
+      ]),
+    );
+
+    const unnamed: WorkspaceChannelAddAnswer = await add({
+      userIds: [OSCAR],
+    });
+
+    expect(unnamed.results[0]!.name).toBe("oscar@acme.test");
   });
 
   test("a Slack guest Slack will not let into the channel", async () => {
