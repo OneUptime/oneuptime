@@ -106,9 +106,11 @@ En datakälla hittar exakt en post, eller så stoppar den planen. `Not Found` s�
 
 ### Namn som en annan post redan har
 
-Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett projekt, oavsett stora och små bokstäver och mellanslag. En begäran som skapar eller byter namn på en post till ett namn som en annan post av samma slag redan har får svaret `400`, till exempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkiverad jourpolicy behåller sitt namn: avarkivera den, eller välj ett annat namn. Poster som redan delade ett namn behåller det, och instrumentpanelens listor över team, jourpolicyer och jourscheman märker dem.
+Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett projekt, oavsett stora och små bokstäver och mellanslag. En begäran som skapar eller byter namn på en post till ett namn som en annan post av samma slag redan har får svaret `400`, till exempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkiverad jourpolicy behåller sitt namn: avarkivera den, eller välj ett annat namn. Poster som redan delade ett namn behåller det, och instrumentpanelens listor över team, etiketter, jourpolicyer och jourscheman märker dem.
 
-Terraform gör ändringarna i en apply sida vid sida, så ett namnbyte till ett namn som en annan resurs lämnar i samma apply kan nekas medan den andra fortfarande har det: tillämpa igen, eller lägg till ett `depends_on` från resursen som tar namnet till den som lämnar det. Ett byte, A till B och B till A, eller en kedja av namnbyten som slutar där den började, kan inte göras i en apply: byt namn på en av dem till ett namn som ingen har, tillämpa och gör sedan resten av ändringen.
+Terraform gör ändringarna i en apply sida vid sida, så ett namnbyte till ett namn som en annan resurs lämnar i samma apply kan nekas medan den andra fortfarande har det. Providern frågar då igen i upp till 30 sekunder, så en kedja av namnbyten, till exempel A till B medan B blir C, går igenom i en apply. Ett byte, A till B och B till A, eller en kedja av namnbyten som slutar där den började, går aldrig igenom: efter 30 sekunder misslyckas applyn med `The name was still taken after asking again for 30 seconds.` Byt namn på en av dem till ett namn som ingen har, tillämpa och gör sedan resten av ändringen.
+
+Med en äldre provider eller en äldre OneUptime får redan det första avslaget applyn att misslyckas: tillämpa igen, eller lägg till ett `depends_on` från resursen som tar namnet till den som lämnar det.
 
 ## Planer som inte stabiliseras
 

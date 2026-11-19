@@ -45,9 +45,10 @@ import React, {
 /*
  * A LIST OF RECORDS THAT MAY SHARE A NAME, MARKED (#9746).
  *
- * Teams (#9674), on-call policies and on-call schedules (#9742) have a name
- * of their own in a project, but records named alike before that keep their
- * names, and every picker draws them alike. Their list now:
+ * Teams (#9674), labels (#9723), on-call policies and on-call schedules
+ * (#9742) have a name of their own in a project, but records named alike
+ * before that keep their names, and every picker draws them alike. Their
+ * list now:
  *
  *   - marks each such record with a pill beside its name, whose tip says
  *     how to tell it from its twin;
@@ -96,22 +97,27 @@ const nameOf: (item: BaseModel) => string = (item: BaseModel): string => {
 };
 
 /*
- * The name cell: the name as it is written, and the pill beside it when
- * another record shares it. A name reads its own way, and the pill its own,
- * so the cell draws its own lines (drawsItsOwnLines).
+ * The name cell: the name as it is written - or as the list draws it, a
+ * label as its coloured chip - and the pill beside it when another record
+ * shares it. A name reads its own way, and the pill its own, so the cell
+ * draws its own lines (drawsItsOwnLines).
  */
 export const SharedNameCell: (props: {
   name: string;
+  nameElement?: ReactElement | undefined;
   isShared: boolean;
   words: SharedNameWords;
 }) => ReactElement = (props: {
   name: string;
+  nameElement?: ReactElement | undefined;
   isShared: boolean;
   words: SharedNameWords;
 }): ReactElement => {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-      <IsolatedLine text={props.name} className="min-w-0 truncate" />
+      {props.nameElement || (
+        <IsolatedLine text={props.name} className="min-w-0 truncate" />
+      )}
       {props.isShared ? (
         <Pill
           text={props.words.pill}
@@ -134,10 +140,17 @@ const useSharedNames: <TBaseModel extends BaseModel>(data: {
    * project: marked, with no Rename. Its twin is the one to rename.
    */
   canRename?: ((item: TBaseModel) => boolean) | undefined;
+  /*
+   * The name as the list draws it, where that is more than its words: a
+   * label is its coloured chip on every list (#9856). Left out, the name
+   * as it is written.
+   */
+  getNameElement?: ((item: TBaseModel) => ReactElement) | undefined;
 }) => SharedNamesOfList<TBaseModel> = <TBaseModel extends BaseModel>(data: {
   kind: SharedNameKind;
   modelType: { new (): TBaseModel };
   canRename?: ((item: TBaseModel) => boolean) | undefined;
+  getNameElement?: ((item: TBaseModel) => ReactElement) | undefined;
 }): SharedNamesOfList<TBaseModel> => {
   const translator: Translator = useTranslator();
   const words: SharedNameWords = SHARED_NAME_WORDS[data.kind];
@@ -205,6 +218,9 @@ const useSharedNames: <TBaseModel extends BaseModel>(data: {
       return (
         <SharedNameCell
           name={nameOf(item)}
+          nameElement={
+            data.getNameElement ? data.getNameElement(item) : undefined
+          }
           isShared={isShared(item)}
           words={words}
         />

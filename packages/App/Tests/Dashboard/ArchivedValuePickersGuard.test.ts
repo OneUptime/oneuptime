@@ -280,6 +280,28 @@ const handsTableTheHookActions: (code: string) => boolean = (
   return Boolean(items && items.includes("...archive.actionButtons"));
 };
 
+/*
+ * The tables read again after an archive or an unarchive: the hook's
+ * toggle, alone or in a toggle of the page's own that also changes with
+ * another of its reads (Settings > Labels' shared names, #9856).
+ */
+const handsTableTheHookToggle: (code: string) => boolean = (
+  code: string,
+): boolean => {
+  const given: string | null = propExpression(code, "refreshToggle");
+
+  if (given === "archive.refreshToggle") {
+    return true;
+  }
+
+  return Boolean(
+    given &&
+      given.startsWith("`") &&
+      given.endsWith("`") &&
+      given.includes("${archive.refreshToggle}"),
+  );
+};
+
 describe("the Dashboard's own lists of values", () => {
   const reading: Array<{ file: string; text: string }> = SOURCES.filter(
     (source: { file: string; text: string }): boolean => {
@@ -361,6 +383,12 @@ describe("every value is archived where it is managed", () => {
         actionButtons: handsTableTheHookActions(code),
       }).toEqual({ file, actionButtons: true });
 
+      // Read again after an archive: the hook's toggle, alone or in the page's own.
+      expect({
+        file,
+        refreshToggle: handsTableTheHookToggle(code),
+      }).toEqual({ file, refreshToggle: true });
+
       for (const prop of [
         "getDeleteConfirmation={archive.getDeleteConfirmation}",
         /*
@@ -369,7 +397,6 @@ describe("every value is archived where it is managed", () => {
          * Delete does (block 28: it used to delete them unannounced).
          */
         "bulkActions={archive.bulkActions}",
-        "refreshToggle={archive.refreshToggle}",
         "{archive.element}",
       ]) {
         expect({ file, prop, wired: code.includes(prop) }).toEqual({
@@ -380,6 +407,30 @@ describe("every value is archived where it is managed", () => {
       }
     },
   );
+
+  test("the toggle check takes the hook's toggle alone or in the page's own, and nothing else", () => {
+    expect(
+      handsTableTheHookToggle(dense("refreshToggle={archive.refreshToggle}")),
+    ).toBe(true);
+    expect(
+      handsTableTheHookToggle(
+        dense(
+          "refreshToggle={`${archive.refreshToggle}-${sharedNames.refreshToken}`}",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      handsTableTheHookToggle(
+        dense("refreshToggle={sharedNames.refreshToken}"),
+      ),
+    ).toBe(false);
+    expect(
+      handsTableTheHookToggle(
+        dense("refreshToggle={`${other}-${sharedNames.refreshToken}`}"),
+      ),
+    ).toBe(false);
+    expect(handsTableTheHookToggle(dense("query={archive.query}"))).toBe(false);
+  });
 
   test("the pages are the registry's, one each", () => {
     expect(Object.keys(SETTINGS_PAGES).sort()).toEqual(
