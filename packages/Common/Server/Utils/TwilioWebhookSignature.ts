@@ -42,8 +42,9 @@ import { validateRequest } from "twilio";
  * nor the scheme still passes on a request Twilio signed. Its path, query
  * and body, and the header, have to reach the server as Twilio sent them.
  *
- * The signature proves the request is Twilio's; a callback's URL token, or
- * a keypad call's signed token, still says which message it is about.
+ * The signature proves the request is Twilio's. A callback's URL token
+ * still says which SMS or call it is about, and a keypad call's signed
+ * tokens what each key answers.
  *
  * Why a request was refused is said in words for the server's log, with no
  * auth token, no whole account SID and no URL token in them.
