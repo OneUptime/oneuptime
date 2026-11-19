@@ -122,7 +122,9 @@ import {
  *    row per metric per minute, never a point;
  *  - each scan reads a service's busiest metrics, the likeliest to have
  *    many series, and half its share of the others in turn, by the hour,
- *    so every metric is read within hours (planMetricsToRead);
+ *    so every metric is read within hours - and the reads a service with
+ *    few metrics leaves unused go to the services with more to rotate
+ *    through (planMetricsToRead);
  *  - the metrics are read in one statement, by their ranges of the primary
  *    key - but a metric whose newest minute alone holds more points than a
  *    few granules (a label of a user's email, a million series) is read by
@@ -190,8 +192,12 @@ export const TELEMETRY_SCAN_MAX_EVENT_NAME_LENGTH: number = 128;
 // Different locations one store's sample may name.
 export const TELEMETRY_SCAN_MAX_LOCATIONS_PER_STORE: number = 500;
 
-// The metrics of one service read in one scan: its busiest, and others in turn.
-export const TELEMETRY_SCAN_MAX_METRICS_PER_OWNER: number = 10;
+/*
+ * Each service's share of a scan's metric reads: its busiest, and others in
+ * turn. Fewer when the project has more services than the scan's reads go
+ * round at that many; more when other services leave reads unused (#9947).
+ */
+export const TELEMETRY_SCAN_METRIC_SHARE_PER_OWNER: number = 10;
 
 /*
  * The metrics read in one scan: shared between the services, so a project
@@ -1236,18 +1242,93 @@ export interface MetricScanPlan {
   cursors: Map<string, number>;
   // By service: how many of the metrics it started writing lately are read.
   newMetricsRead: Map<string, number>;
+  /*
+   * By service: how many of its reads are ones other services left unused,
+   * beyond its own share (#9947). None for a service that got none.
+   */
+  extraReads: Map<string, number>;
 }
 
 /*
- * Which of each service's metrics a scan reads: at most `perOwner` of each
- * and `total` in all, the services sharing them (issue #9755):
+ * How many of its metrics each service reads in a scan (#9947), by service
+ * (its id in lower case), from how many each has:
  *
- *  - its busiest half, the likeliest to have many series: most points in
- *    the window, ties by name;
- *  - then, of the other half, the metrics it started writing lately (first
- *    written since `newSince`, from the rollup's day): new code, where a
- *    new leak usually comes from, read the hour it ships. They take at
- *    most half of those reads (getNewMetricSlots), the rest staying with
+ *  1. Its share: `share` metrics, or every one of its metrics when it has
+ *     fewer. No service reads fewer than that, however many metrics the
+ *     others have, so none starves.
+ *  2. Then the reads that leaves unused of the scan's `total` - a service
+ *     with three metrics leaves seven of its ten, and a total that does not
+ *     divide by the services leaves the rest - go round the services that
+ *     still have metrics waiting their turn, one read each a round, until
+ *     none is left or no service is waiting. Every service waiting gets as
+ *     many as the others, unless it runs out of metrics first, and then the
+ *     others share what it could not take.
+ *  3. The rounds start at a service that moves on each hour (`turn`), in
+ *     the order of their ids, so the odd reads a round leaves over go to
+ *     each service in turn rather than to the same one every hour.
+ *
+ * So a scan never reads more than `total` - or one metric of each service,
+ * when there are more services than that, as before - and a read goes
+ * unused only when every service's metrics are all read.
+ */
+export function getMetricReadsByOwner(data: {
+  metricsByOwner: ReadonlyMap<string, number>;
+  share: number;
+  total: number;
+  turn: number;
+}): Map<string, number> {
+  const owners: Array<string> = Array.from(data.metricsByOwner.keys()).sort();
+  const reads: Map<string, number> = new Map();
+  const share: number = whole(data.share, 1);
+  let spare: number = whole(data.total, 1);
+
+  for (const owner of owners) {
+    const own: number = Math.min(
+      whole(data.metricsByOwner.get(owner) || 0, 0),
+      share,
+    );
+
+    reads.set(owner, own);
+    spare -= own;
+  }
+
+  if (spare <= 0 || owners.length === 0) {
+    return reads;
+  }
+
+  const start: number = Math.max(0, Math.trunc(data.turn) || 0) % owners.length;
+  let isAnyWaiting: boolean = true;
+
+  while (spare > 0 && isAnyWaiting) {
+    isAnyWaiting = false;
+
+    for (let step: number = 0; step < owners.length && spare > 0; step++) {
+      const owner: string = owners[(start + step) % owners.length]!;
+      const read: number = reads.get(owner) || 0;
+
+      if (read < whole(data.metricsByOwner.get(owner) || 0, 0)) {
+        reads.set(owner, read + 1);
+        spare--;
+        isAnyWaiting = true;
+      }
+    }
+  }
+
+  return reads;
+}
+
+/*
+ * Which of each service's metrics a scan reads: how many each reads is
+ * getMetricReadsByOwner's - its share, `perOwner` (fewer when `total`
+ * cannot give every service that many), then the reads others leave
+ * unused - and which ones (issue #9755):
+ *
+ *  - its busiest half of its share, the likeliest to have many series:
+ *    most points in the window, ties by name;
+ *  - then, of the rest of its reads, the metrics it started writing lately
+ *    (first written since `newSince`, from the rollup's day): new code,
+ *    where a new leak usually comes from, read the hour it ships. They take
+ *    at most half of those reads (getNewMetricSlots), the rest staying with
  *    the rotation however many new ones keep coming; when there are more
  *    than that, the next ones each hour;
  *  - then the rest, in turn: every metric of the service has a place on a
@@ -1255,11 +1336,18 @@ export interface MetricScanPlan {
  *    reads the next ones after where the last one stopped (`cursors`),
  *    passing over those already read this scan.
  *
- * So the rotation goes round the ring, each metric once, at least
- * `perOwner - floor(perOwner / 2)` a scan when nothing is new and at least
- * half of that when new metrics take their share: a service of M metrics
- * has each read at least once every ceil(M / inTurn) hours - every
- * 2 * ceil(M / inTurn) hours while it starts new ones every hour. The
+ * The reads a service gets beyond its share are all in-turn reads (#9947):
+ * its busiest stay its share's half, and the extra reads go to its new
+ * metrics and its rotation, which they move on faster - its cursor goes as
+ * far as the reads it got.
+ *
+ * So the rotation goes round the ring, each metric once, at least `inTurn`
+ * a scan when nothing is new - `perOwner - floor(perOwner / 2)`, plus the
+ * reads it got that others left unused - and at least half of that when
+ * new metrics take their share: a service of M metrics has each read at
+ * least once every ceil(M / inTurn) hours - every 2 * ceil(M / inTurn)
+ * hours while it starts new ones every hour. With no reads to spare, that
+ * is its share's bound; reads others leave unused only shorten it. The
  * order no longer moves when what a metric wrote does, which it did when
  * the rest went by points: a metric could miss its turn for good.
  */
@@ -1278,6 +1366,7 @@ export function planMetricsToRead(data: {
     metrics: [],
     cursors: new Map(),
     newMetricsRead: new Map(),
+    extraReads: new Map(),
   };
 
   for (const metric of data.metrics) {
@@ -1297,16 +1386,34 @@ export function planMetricsToRead(data: {
     Math.min(whole(data.perOwner, 1), Math.floor(data.total / byOwner.size)),
   );
   const turn: number = Math.max(0, Math.trunc(data.turn) || 0);
+  const metricsByOwner: Map<string, number> = new Map();
+
+  for (const [owner, metrics] of byOwner) {
+    metricsByOwner.set(owner, metrics.length);
+  }
+
+  const readsByOwner: Map<string, number> = getMetricReadsByOwner({
+    metricsByOwner,
+    share: perOwner,
+    total: data.total,
+    turn,
+  });
 
   for (const [owner, metrics] of byOwner) {
     const previous: number | undefined = data.cursors?.get(owner);
+    const reads: number = readsByOwner.get(owner) || 0;
+    const extra: number = reads - Math.min(metrics.length, perOwner);
 
     if (typeof previous === "number" && Number.isFinite(previous)) {
       // Nothing read in turn this time: the rotation stays where it was.
       plan.cursors.set(owner, previous);
     }
 
-    if (metrics.length <= perOwner) {
+    if (extra > 0) {
+      plan.extraReads.set(owner, extra);
+    }
+
+    if (metrics.length <= reads) {
       plan.metrics.push(...[...metrics].sort(byName));
       continue;
     }
@@ -1322,7 +1429,12 @@ export function planMetricsToRead(data: {
       read.add(metric);
     }
 
-    const inTurn: number = perOwner - busiest.length;
+    /*
+     * Its share's in-turn reads, which set where the next new metrics
+     * start each hour, and all of them with the ones others left unused.
+     */
+    const shareInTurn: number = perOwner - busiest.length;
+    const inTurn: number = reads - busiest.length;
     const ring: Array<{ metric: MetricToRead; position: number }> = metrics
       .map(
         (metric: MetricToRead): { metric: MetricToRead; position: number } => {
@@ -1341,7 +1453,11 @@ export function planMetricsToRead(data: {
         },
       );
 
-    // The ones it started writing lately, in their ring's order, the next of them each hour.
+    /*
+     * The ones it started writing lately, in their ring's order, the next of
+     * them each hour: the start moves on by the share's slots, which reads
+     * left unused only add to, so none is passed over.
+     */
     if (data.newSince) {
       const newOnes: Array<MetricToRead> = ring
         .map((entry: { metric: MetricToRead; position: number }) => {
@@ -1356,7 +1472,7 @@ export function planMetricsToRead(data: {
       );
       const start: number =
         newOnes.length > 0
-          ? Math.floor((turn * inTurn) / 2) % newOnes.length
+          ? Math.floor((turn * shareInTurn) / 2) % newOnes.length
           : 0;
 
       for (let index: number = 0; index < slots; index++) {
@@ -1367,7 +1483,7 @@ export function planMetricsToRead(data: {
     }
 
     // The rest in turn: the next ones on the ring after where it stopped.
-    const inTurnLeft: number = perOwner - read.size;
+    const inTurnLeft: number = reads - read.size;
     const after: number =
       typeof previous === "number" && Number.isFinite(previous) ? previous : -1;
     let from: number = ring.findIndex(
@@ -1405,11 +1521,6 @@ export function planMetricsToRead(data: {
       }),
     );
   }
-
-  plan.metrics = plan.metrics.slice(
-    0,
-    Math.max(whole(data.total, 1), byOwner.size),
-  );
 
   return plan;
 }
@@ -1725,11 +1836,12 @@ class StoreSample {
   public outOfBudget: boolean = false;
   /*
    * A metrics store: where its service's rotation stopped (MetricScanPlan),
-   * kept for the next scan, and how many metrics it started writing lately
-   * this one read.
+   * kept for the next scan, how many metrics it started writing lately
+   * this one read, and how many of its reads other services left unused.
    */
   public metricCursor: number | undefined = undefined;
   public newMetricsRead: number = 0;
+  public extraMetricReads: number = 0;
 
   private readonly maxValuesPerLocation: number;
   /*
@@ -2647,11 +2759,12 @@ async function sampleMetrics(
   /*
    * The metrics this scan reads: each service's busiest, the ones it
    * started writing lately, and others in turn from where the last scan
-   * stopped - which each service's store keeps for the next one.
+   * stopped - which each service's store keeps for the next one - with the
+   * reads services of few metrics leave unused given to the others.
    */
   const plan: MetricScanPlan = planMetricsToRead({
     metrics: readMetricsToRead(metricRows, new Set(owners.keys())),
-    perOwner: TELEMETRY_SCAN_MAX_METRICS_PER_OWNER,
+    perOwner: TELEMETRY_SCAN_METRIC_SHARE_PER_OWNER,
     total: TELEMETRY_SCAN_MAX_METRICS_PER_READ,
     turn: getMetricTurn(context.window.until),
     newSince: getNewMetricSince(context.window.until),
@@ -2668,6 +2781,7 @@ async function sampleMetrics(
     }
 
     sample.newMetricsRead = plan.newMetricsRead.get(ownerKey) || 0;
+    sample.extraMetricReads = plan.extraReads.get(ownerKey) || 0;
   }
   const caps: TelemetrySampleCaps = capsOf(source, context.options);
   const perMetric: number = Math.max(
@@ -2986,8 +3100,13 @@ function toResult(data: {
           sample.newMetricsRead > 0
             ? `${sample.newMetricsRead} it started writing in the last ${TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS} hours, `
             : "";
+        // Reads other services left unused (#9947): why it read more than its share.
+        const extra: string =
+          sample.extraMetricReads > 0
+            ? `, ${sample.extraMetricReads} of them with reads other services left unused`
+            : "";
 
-        return `${owner}: read ${read.recordsRead} ${read.label}, a point of each series, of the newest minute of ${read.metricsRead} of its metrics - its busiest, ${newOnes}and others in turn - of the ${read.recordsInWindow} written ${window}.`;
+        return `${owner}: read ${read.recordsRead} ${read.label}, a point of each series, of the newest minute of ${read.metricsRead} of its metrics - its busiest, ${newOnes}and others in turn${extra} - of the ${read.recordsInWindow} written ${window}.`;
       }
 
       return `${owner}: read the ${read.recordsRead} newest ${read.label} of the ${read.recordsInWindow} written ${window}.`;

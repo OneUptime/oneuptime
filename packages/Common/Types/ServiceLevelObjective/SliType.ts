@@ -8,8 +8,9 @@
  *     did not fail, counted from their traces (Utils/Slo/SloRequestSli).
  *   - Request Latency: the share of those requests served within the SLO's
  *     latency threshold, counted from their traces the same way.
- *   - Metric: reserved for an SLI read from a metric query. Nothing measures
- *     it yet, so an SLO of this type reads Misconfigured.
+ *   - Metric: the share of the events of a metric its services send that
+ *     were good, counted from the metric's points (Utils/Slo/SloMetricSli,
+ *     #8445) the way a request SLO counts its traces.
  */
 enum SliType {
   MonitorUptime = "Monitor Uptime",

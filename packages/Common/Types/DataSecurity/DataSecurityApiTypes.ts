@@ -255,7 +255,8 @@ export interface DataSecurityScrubResult {
  * the new data points of every metric of the service whose name has the data
  * type's shape - a metric pipeline Drop rule. That loses them for good, so it
  * is an action of its own, asked for deliberately, after the page has said
- * what it drops and which monitors and dashboards that leaves without data.
+ * what it drops and which monitors, dashboards, SLOs and recording rules
+ * that leaves without data (#9946).
  */
 
 // Why the metrics named with a finding's data cannot be dropped by a rule.
@@ -271,10 +272,26 @@ export enum DataSecurityDropMetricUnavailableReason {
   NoService = "NoService",
 }
 
-// A monitor or a dashboard that reads a metric the drop would empty.
+// A dashboard's widget that reads a metric the drop would empty.
+export interface DataSecurityMetricUserWidget {
+  id: string;
+  // Its title, or "" when it has none.
+  title: string;
+  // Its componentType ("chart"), which names it when it has no title.
+  type: string;
+}
+
+/*
+ * A monitor, a dashboard, an SLO or a metric recording rule that reads a
+ * metric the drop would empty.
+ */
 export interface DataSecurityMetricUser {
   id: string;
   name: string;
+  // A dashboard's: the widgets on it that read those metrics.
+  widgets?: Array<DataSecurityMetricUserWidget> | undefined;
+  // A recording rule's: the metric it writes, which finds it in its list.
+  outputMetricName?: string | undefined;
 }
 
 export interface DataSecurityDropMetricImpact {
@@ -294,14 +311,25 @@ export interface DataSecurityDropMetricImpact {
   isMetricsMatchedCapped: boolean;
   metricsCounted: boolean;
   /*
-   * The monitors and dashboards that read a metric whose name the rule
-   * drops (of that service, or of every service): they get no new data.
-   * Only those the reader may read; Checked false when they may read none.
+   * What reads a metric whose name the rule drops, of that service (or of
+   * every service), and so gets no new data from it (#9946): monitors,
+   * dashboards (with the widgets on them that read it), Metric SLOs of that
+   * service, and metric recording rules. Named only where the reader may
+   * read them; the rest are counted in ...Hidden, never named. Checked is
+   * false when they could not be read just now: nothing is known of them.
    */
   monitors: Array<DataSecurityMetricUser>;
   dashboards: Array<DataSecurityMetricUser>;
+  slos: Array<DataSecurityMetricUser>;
+  recordingRules: Array<DataSecurityMetricUser>;
   monitorsChecked: boolean;
   dashboardsChecked: boolean;
+  slosChecked: boolean;
+  recordingRulesChecked: boolean;
+  monitorsHidden: number;
+  dashboardsHidden: number;
+  slosHidden: number;
+  recordingRulesHidden: number;
 }
 
 export interface DataSecurityDropMetricResult {
