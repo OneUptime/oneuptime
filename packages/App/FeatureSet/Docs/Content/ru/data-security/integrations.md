@@ -127,7 +127,7 @@ flowchart TB
 | Хранилища данных, их хронологии, их находки, кто имеет к ним доступ и каждый субъект, который его имеет | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Проблемы, их хронологии и потоки данных | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Сканирования | `/data-security-scan` |
-| Пользовательские типы данных, настройки проверок и правила размещения данных | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Пользовательские типы данных, настройки проверок, настройки соответствия и правила размещения данных | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Настройки проекта | `/data-security-setting` |
 | Владельцы, правила владельца и правила меток | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,6 +137,8 @@ flowchart TB
 | --- | --- |
 | `/data-security/overview` | Показатели страницы «Обзор»: хранилища по чувствительности и категории, открытые проблемы по серьёзности, самые рискованные проблемы и проблемы за последние 30 дней |
 | `/data-security/compliance` | Оценка и требования каждого стандарта соответствия |
+| `/data-security/resource-scope` | Хранилища данных одного ресурса — кластера Kubernetes, хоста Docker или Podman, базы данных, сервиса или облачного ресурса — и то, чьим переключателям соответствия они подчиняются |
+| `/data-security/resource-compliance` | Стандарты соответствия одного ресурса: их оценки по его хранилищам и то, что для него выключено |
 | `/data-security/record-of-processing` | Реестр обработки GDPR, по строке на каждое хранилище с персональными данными |
 | `/data-store/<id>/scan-now` | **Сканировать сейчас**: сразу делает выборку содержимого хранилища |
 | `/data-store/<id>/check-now` | **Проверить сейчас**: заново читает конфигурацию хранилища и выполняет его проверки |
@@ -146,9 +148,9 @@ flowchart TB
 | `/data-store/<id>/response-actions` | Какие действия реагирования хранилище может выполнить сейчас, а если не может, то почему |
 | `/data-store/<id>/respond` | Одно действие реагирования для хранилища, например **Заблокировать публичный доступ** или **Включить управление версиями**, с указанием проблемы, из которой запущено действие |
 
-У [провайдера Terraform](/docs/terraform/index) есть ресурс для каждого вида записей, которые вы создаёте (хранилища данных, которые вы добавляете сами, пользовательские типы данных, настройки проверок, правила размещения данных, правила владельца и правила меток), названный по записи, например `oneuptime_residency_rule`.
+У [провайдера Terraform](/docs/terraform/index) есть ресурс для каждого вида записей, которые вы создаёте (хранилища данных, которые вы добавляете сами, пользовательские типы данных, настройки проверок, настройки соответствия, правила размещения данных, правила владельца и правила меток), названный по записи, например `oneuptime_residency_rule`.
 
-У [MCP-сервера](/docs/ai/mcp-server) есть инструменты создания, получения, вывода списка, обновления, удаления и подсчёта для этих записей: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule и Data Security Setting. Тогда ИИ-ассистент может спросить с вашими разрешениями, в каких хранилищах есть номера карт или что открыто в бакете.
+У [MCP-сервера](/docs/ai/mcp-server) есть инструменты создания, получения, вывода списка, обновления, удаления и подсчёта для этих записей: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule и Data Security Setting. Тогда ИИ-ассистент может спросить с вашими разрешениями, в каких хранилищах есть номера карт или что открыто в бакете.
 
 ## Дальнейшие шаги
 

@@ -127,7 +127,7 @@ flowchart TB
 | डेटा स्टोर, उनकी टाइमलाइन, उनके निष्कर्ष, उन तक कौन पहुंच सकता है और ऐसी हर पहचान | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | समस्याएं, उनकी टाइमलाइन और डेटा प्रवाह | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | स्कैन | `/data-security-scan` |
-| कस्टम डेटा प्रकार, जांच सेटिंग्स और डेटा रेजिडेंसी नियम | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| कस्टम डेटा प्रकार, जांच सेटिंग्स, अनुपालन सेटिंग्स और डेटा रेजिडेंसी नियम | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | प्रोजेक्ट की सेटिंग्स | `/data-security-setting` |
 | मालिक, स्वामी नियम और लेबल नियम | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,6 +137,8 @@ flowchart TB
 | --- | --- |
 | `/data-security/overview` | अवलोकन के आंकड़े: संवेदनशीलता और श्रेणी के हिसाब से स्टोर, गंभीरता के हिसाब से खुली समस्याएं, सबसे जोखिम वाली समस्याएं और उनके पिछले 30 दिन |
 | `/data-security/compliance` | हर फ्रेमवर्क का स्कोर और आवश्यकताएं |
+| `/data-security/resource-scope` | किसी एक संसाधन के डेटा स्टोर - Kubernetes क्लस्टर, Docker या Podman होस्ट, डेटाबेस, सेवा या क्लाउड संसाधन - और यह कि वे किसके अनुपालन स्विच का पालन करते हैं |
+| `/data-security/resource-compliance` | किसी एक संसाधन के फ्रेमवर्क: उसके स्टोर के लिए उनके स्कोर, और उसके लिए क्या बंद है |
 | `/data-security/record-of-processing` | GDPR का प्रोसेसिंग रिकॉर्ड, व्यक्तिगत डेटा रखने वाले हर स्टोर के लिए एक पंक्ति |
 | `/data-store/<id>/scan-now` | **अभी स्कैन करें**: स्टोर की सामग्री के अभी नमूने लेता है |
 | `/data-store/<id>/check-now` | **अभी जांचें**: स्टोर का कॉन्फ़िगरेशन फिर से पढ़ता है और उसकी जांचें चलाता है |
@@ -146,9 +148,9 @@ flowchart TB
 | `/data-store/<id>/response-actions` | स्टोर पर अभी कौन-सी प्रतिक्रिया कार्रवाइयाँ की जा सकती हैं, और कौन-सी क्यों नहीं |
 | `/data-store/<id>/respond` | स्टोर पर एक प्रतिक्रिया कार्रवाई, जैसे **सार्वजनिक एक्सेस ब्लॉक करें** या **वर्शनिंग चालू करें**, उस समस्या के साथ जिससे इसे चलाया गया |
 
-[Terraform प्रोवाइडर](/docs/terraform/index) में आपके बनाए हर तरह के रिकॉर्ड के लिए एक रिसोर्स है - आपके खुद जोड़े गए डेटा स्टोर, कस्टम डेटा प्रकार, जांच सेटिंग्स, डेटा रेजिडेंसी नियम, स्वामी और लेबल नियम - जिसका नाम रिकॉर्ड पर रखा गया है, जैसे `oneuptime_residency_rule`।
+[Terraform प्रोवाइडर](/docs/terraform/index) में आपके बनाए हर तरह के रिकॉर्ड के लिए एक रिसोर्स है - आपके खुद जोड़े गए डेटा स्टोर, कस्टम डेटा प्रकार, जांच सेटिंग्स, अनुपालन सेटिंग्स, डेटा रेजिडेंसी नियम, स्वामी और लेबल नियम - जिसका नाम रिकॉर्ड पर रखा गया है, जैसे `oneuptime_residency_rule`।
 
-[MCP सर्वर](/docs/ai/mcp-server) में इन रिकॉर्ड के लिए बनाने, पाने, सूचीबद्ध करने, अपडेट करने, हटाने और गिनने के टूल हैं: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule और Data Security Setting। तब कोई AI असिस्टेंट आपकी अनुमतियों से पूछ सकता है कि किन स्टोर में कार्ड नंबर हैं, या किसी बकेट पर क्या खुला है।
+[MCP सर्वर](/docs/ai/mcp-server) में इन रिकॉर्ड के लिए बनाने, पाने, सूचीबद्ध करने, अपडेट करने, हटाने और गिनने के टूल हैं: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule और Data Security Setting। तब कोई AI असिस्टेंट आपकी अनुमतियों से पूछ सकता है कि किन स्टोर में कार्ड नंबर हैं, या किसी बकेट पर क्या खुला है।
 
 ## अगले कदम
 

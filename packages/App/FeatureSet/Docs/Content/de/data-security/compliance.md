@@ -1,10 +1,11 @@
 # Compliance der Datensicherheit
 
-Datensicherheit bewertet neun Rahmenwerke anhand dessen, was ihre Scans gefunden haben. Jedes Rahmenwerk deckt die Datenspeicher ab, um die es in seinen Regeln geht - GDPR die Datenspeicher mit personenbezogenen Daten, PCI DSS die Datenspeicher, in denen Kartendaten gefunden wurden, SOC 2 jeden Datenspeicher -, und jede seiner Anforderungen wird durch die Prüfungen, die als Beleg für sie dienen, erfüllt oder nicht erfüllt. **Datensicherheit → Compliance** zeigt die Bewertung jedes Rahmenwerks, wie viele Datenspeicher es abdeckt, und jede Anforderung mit der Zahl der offenen Probleme, an denen sie scheitert. Eine Bewertung ist ein Beleg für ein Audit, kein Zertifikat: Sie sagt, was OneUptime von den Datenspeichern sehen kann, die es liest.
+Datensicherheit bewertet neun Rahmenwerke anhand dessen, was ihre Scans gefunden haben. Jedes Rahmenwerk deckt die Datenspeicher ab, um die es in seinen Regeln geht - GDPR die Datenspeicher mit personenbezogenen Daten, PCI DSS die Datenspeicher, in denen Kartendaten gefunden wurden, SOC 2 jeden Datenspeicher -, und jede seiner Anforderungen wird durch die Prüfungen, die als Beleg für sie dienen, erfüllt oder nicht erfüllt. **Datensicherheit → Compliance** zeigt die Bewertung jedes Rahmenwerks, wie viele Datenspeicher es abdeckt, und jede Anforderung mit der Zahl der offenen Probleme, an denen sie scheitert. Jede Ressource, die Datenspeicher enthält - ein Kubernetes-Cluster, ein Docker- oder Podman-Host, eine Datenbank, ein Dienst oder eine Cloud-Ressource -, hat eine eigene Seite dieser Art, auf der sich ausschalten lässt, was für sie nicht gilt. Eine Bewertung ist ein Beleg für ein Audit, kein Zertifikat: Sie sagt, was OneUptime von den Datenspeichern sehen kann, die es liest.
 
 :::cards
 - [Die Rahmenwerke](#die-rahmenwerke): Die neun, und welche Datenspeicher jedes abdeckt.
 - [Wie ein Rahmenwerk bewertet wird](#wie-ein-rahmenwerk-bewertet-wird): Erfüllte, nicht erfüllte und nicht bewertete Anforderungen.
+- [Auf der Seite einer Ressource](#auf-der-seite-einer-ressource): Die Compliance eines Clusters, eines Hosts, einer Datenbank, eines Dienstes oder einer Cloud-Ressource und was dort ausgeschaltet ist.
 - [Anforderungen und ihre Prüfungen](#anforderungen-und-ihre-prüfungen): Jede Anforderung und die Prüfungen, die als Beleg für sie dienen.
 - [Verzeichnis von Verarbeitungstätigkeiten](#verzeichnis-von-verarbeitungstätigkeiten): GDPR Artikel 30, geschrieben aus Ihren Datenspeichern.
 :::
@@ -47,9 +48,31 @@ flowchart TB
 - **Eine Anforderung ist erfüllt**, wenn kein offenes Problem der ihr zugeordneten Prüfungen an einem Datenspeicher im Geltungsbereich des Rahmenwerks liegt, und **nicht erfüllt**, wenn eines dort liegt.
 - **Sie ist nicht bewertet**, solange bei keinem Datenspeicher im Geltungsbereich die Konfiguration gelesen oder der Inhalt gescannt wurde.
 - **Zwei Anforderungen erfüllt Datensicherheit selbst**: GDPR Artikel 30, Verzeichnis von Verarbeitungstätigkeiten, und ISO 27001 A.5.12, Klassifizierung von Informationen. Sie sind erfüllt, sobald jeder Datenspeicher im Geltungsbereich gelesen oder gescannt wurde, und nicht erfüllt, solange einer es nicht wurde.
-- **Die Bewertung** ist der Anteil der bewerteten Anforderungen eines Rahmenwerks, die erfüllt sind, als ganzer Prozentwert. Ein Rahmenwerk, bei dem nichts bewertet wurde, hat keine Bewertung.
+- **Sie ist ausgeschaltet**, wenn jeder Datenspeicher im Geltungsbereich zu einer Ressource gehört, die die Anforderung ausgeschaltet hat (siehe [Auf der Seite einer Ressource](#auf-der-seite-einer-ressource)).
+- **Die Bewertung** ist der Anteil der bewerteten Anforderungen eines Rahmenwerks, die erfüllt sind, als ganzer Prozentwert: Eine ausgeschaltete Anforderung zählt weder dafür noch dagegen. Ein Rahmenwerk, bei dem nichts bewertet wurde, hat keine Bewertung.
 
 Nur offene Probleme zählen. Ein Problem, dessen Risiko akzeptiert wurde oder das kein Problem ist, lässt seine Anforderungen nicht scheitern, sodass ein akzeptiertes Risiko eine Entscheidung ist, die Ihr Audit am Problem sehen kann: wer es akzeptiert hat, warum und bis wann.
+
+## Auf der Seite einer Ressource
+
+Das Menü einer Ressource erhält einen Abschnitt **Sicherheit**, der eingeklappt bleibt, bis Sie ihn öffnen, sobald die Ressource einen Datenspeicher enthält, den Datensicherheit kennt - in einem Projekt, das Datensicherheit nutzt, und für jemanden, der Datenspeicher lesen darf:
+
+| Ressource | Ihre Datenspeicher |
+| --- | --- |
+| Kubernetes-Cluster | Die Datenbanken, die darauf laufen |
+| Docker- oder Podman-Host | Die Datenbanken, die darauf laufen |
+| Datenbank | Die Datenbank selbst |
+| Dienst | Seine Telemetrie: die Logs, Traces und Ausnahmen, die er sendet |
+| Cloud-Ressource | Die Ressource selbst: ein Bucket, eine Datenbank oder ein Warehouse |
+
+- **Datensicherheit** listet diese Datenspeicher auf, die riskantesten zuerst, und die offenen Probleme daran. Jeder Eintrag öffnet sich in der Datensicherheit, wo er bearbeitet wird.
+- **Compliance** bewertet die Rahmenwerke nur für diese Datenspeicher. Die Rahmenwerke, die ihre Daten in den Geltungsbereich bringen, stehen oben; die ausgeschalteten und die, für die keiner der Datenspeicher Daten enthält, sind darunter eingeklappt.
+
+Jedes Rahmenwerk hat einen Schalter, **Applies Here**, und jede seiner Anforderungen ebenso. Schalten Sie einen davon aus, fallen die Datenspeicher der Ressource aus diesem Rahmenwerk oder aus dieser Anforderung heraus, auf der Seite der Ressource wie auf **Datensicherheit → Compliance**, wo steht, wie viele Datenspeicher auf ihren Ressourcen ausgeschaltet wurden. Schalten Sie ihn wieder ein, zählen sie wieder mit. Jeder Schalter wird sofort gespeichert, und jede Änderung wird in den [Audit-Protokollen](/docs/configuration/audit-logs) des Projekts festgehalten.
+
+Ein Datenspeicher folgt den Schaltern genau einer Ressource. Eine Datenbank, die auf einem Kubernetes-Cluster oder auf einem Docker- oder Podman-Host läuft, folgt denen dieses Clusters oder Hosts: Schalten Sie ein Rahmenwerk für den Cluster aus, ist es für jede Datenbank darauf ausgeschaltet. Die eigene Compliance-Seite der Datenbank sagt das und verlinkt dorthin; ihre Schalter sind gesperrt.
+
+Sicherheits-Mitglieder, Sicherheits-Administratoren, Projektadministratoren und Projektinhaber können Rahmenwerke und Anforderungen ein- und ausschalten, so wie sie eine Prüfung anpassen können. Sicherheits-Betrachter sehen, was ausgeschaltet ist.
 
 ## Anforderungen und ihre Prüfungen
 
@@ -162,7 +185,7 @@ GDPR Artikel 30 verlangt, dass Sie ein Verzeichnis Ihrer Verarbeitungstätigkeit
 | Aufbewahrung | Was Sie unter **Aufbewahrung** des Datenspeichers eintragen: wie lange Daten darin aufbewahrt werden |
 | Rahmenwerke | Die Rahmenwerke, die seine Datentypen in den Geltungsbereich bringen |
 
-Füllen Sie **Zweck** und **Aufbewahrung** in den **Einstellungen** jedes Datenspeichers aus: Das sind die beiden Dinge, die kein Scan wissen kann. Das Verzeichnis und die Bewertungen liefert auch die API der Datensicherheit, unter `/data-security/record-of-processing` und `/data-security/compliance`, für jeden, der Datenspeicher lesen darf (siehe [Integrationen der Datensicherheit](/docs/data-security/integrations#api-terraform-und-mcp)).
+Füllen Sie **Zweck** und **Aufbewahrung** in den **Einstellungen** jedes Datenspeichers aus: Das sind die beiden Dinge, die kein Scan wissen kann. Das Verzeichnis und die Bewertungen liefert auch die API der Datensicherheit, unter `/data-security/record-of-processing`, `/data-security/compliance` und, für eine einzelne Ressource, `/data-security/resource-compliance`, für jeden, der Datenspeicher lesen darf (siehe [Integrationen der Datensicherheit](/docs/data-security/integrations#api-terraform-und-mcp)).
 
 ## Nächste Schritte
 
