@@ -225,4 +225,53 @@ describe("KubernetesCostPricingNote", () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  /*
+   * #9851: a Kubecost (3, and 2) that reads the cloud's bill reconciles its
+   * prices with what was paid about a day and a half after each hour, after
+   * the cost agent shipped it. The line says both.
+   */
+  test("says a Kubecost reading the cloud's bill priced the hours at list prices, before reconciling them", () => {
+    render(
+      <KubernetesCostPricingNote
+        engine={engine({
+          engine: "Kubecost",
+          service: "kubecost/kubecost-frontend",
+          pricingSource: KubernetesCostPricingSource.BillingIntegration,
+          pricingProvider: "GCP",
+        })}
+      />,
+    );
+
+    expect(textOf(line())).toContain(
+      "Prices: Google Cloud list prices, before Kubecost reconciles them with your bill",
+    );
+    // Not a warning: these are the cloud's real prices.
+    expect(line().className).toContain("text-gray-600");
+    expect(
+      screen.getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-about`),
+    ).toBeInTheDocument();
+    expect(
+      textOf(screen.getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-engine`)),
+    ).toBe("Priced by your Kubecost (kubecost/kubecost-frontend)");
+  });
+
+  test("explains what reconciling with the bill means for the hours OneUptime keeps", () => {
+    expect(KUBERNETES_COST_PRICING_DESCRIPTIONS.billingIntegration).toBe(
+      "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.",
+    );
+  });
+
+  test("a bill-reading Kubecost with no cloud named says nothing rather than a blank", () => {
+    const { container } = render(
+      <KubernetesCostPricingNote
+        engine={engine({
+          pricingSource: KubernetesCostPricingSource.BillingIntegration,
+          pricingProvider: "",
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

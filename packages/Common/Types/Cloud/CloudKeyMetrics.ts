@@ -1220,6 +1220,17 @@ export function countAwsKeyMetricsAddedSince(templateVersion: number): number {
 export const AZURE_FIVE_MINUTE_GRAIN: string = "PT5M";
 export const AZURE_FIVE_MINUTE_READ_MINUTES: number = 15;
 
+/*
+ * The grain a key metric is marked with when Azure Monitor keeps it at an
+ * hour at its finest (#9982): a Storage account's used capacity, a Cosmos
+ * DB account's availability, a DNS zone's queries, a registry's storage.
+ * It is read as it always was, in its hour's call once an hour (no call is
+ * added), and its reading is kept between those reads
+ * (AZURE_HOURLY_READING_HOLD_MS, CloudResourceHealth), where every other
+ * read would leave it out.
+ */
+export const AZURE_HOURLY_GRAIN: string = "PT1H";
+
 export interface AzureKeyMetric {
   // Azure Monitor's name for it, "Name in REST API" in Microsoft's tables.
   name: string;
@@ -1232,8 +1243,11 @@ export interface AzureKeyMetric {
    * type's minute metrics: read in a five-minute call every
    * AZURE_FIVE_MINUTE_READ_MINUTES, with the type's other five-minute
    * metrics. Where its definition offers a minute, it is read with the
-   * minute metrics, at no cost. Unset for every other metric, which is read
-   * at its type's one grain finer than an hour.
+   * minute metrics, at no cost. AZURE_HOURLY_GRAIN: Azure Monitor keeps it
+   * at an hour at its finest, and it is read once an hour, as every hourly
+   * metric is; the mark says so to the readings, which keep it between its
+   * reads. Unset for every other metric, which is read at its type's one
+   * grain finer than an hour.
    */
   grain?: string | undefined;
   /*
@@ -1317,6 +1331,11 @@ function azure(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
 // A metric Azure Monitor keeps at five minutes at its finest, read every 15 minutes.
 function azure5(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
   return { name, group, grain: AZURE_FIVE_MINUTE_GRAIN };
+}
+
+// A metric Azure Monitor keeps at an hour at its finest, read once an hour.
+function azure60(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
+  return { name, group, grain: AZURE_HOURLY_GRAIN };
 }
 
 /*
@@ -1567,7 +1586,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("ThrottledRequestPercentage", G.Errors),
       // An account replicated to more than one region's own.
       when(C.Setup, azure("ReplicationLatency", G.Replication)),
-      azure("ServiceAvailability", G.Availability),
+      azure60("ServiceAvailability", G.Availability),
       /*
        * What the account stores, kept at five minutes at its finest: its
        * data, its indexes and its documents, every container's together.
@@ -1644,7 +1663,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Transactions", G.Traffic),
       azure("Availability", G.Availability),
       azure("SuccessE2ELatency", G.Latency),
-      azure("UsedCapacity", G.Storage),
+      azure60("UsedCapacity", G.Storage),
       azure("SuccessServerLatency", G.Latency),
       azure("Ingress", G.Network),
       azure("Egress", G.Network),
@@ -1932,8 +1951,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
     type: "Microsoft.Network/dnszones",
     metrics: [
-      azure("QueryVolume", G.Traffic),
-      azure("RecordSetCapacityUtilization", G.Storage),
+      azure60("QueryVolume", G.Traffic),
+      azure60("RecordSetCapacityUtilization", G.Storage),
     ],
     notExportedByDiagnosticSettings: [
       "QueryVolume",
@@ -1993,7 +2012,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     metrics: [
       azure("TotalPullCount", G.Traffic),
       azure("TotalPushCount", G.Traffic),
-      azure("StorageUsed", G.Storage),
+      azure60("StorageUsed", G.Storage),
       azure("SuccessfulPullCount", G.Traffic),
       azure("SuccessfulPushCount", G.Traffic),
     ],

@@ -26,7 +26,9 @@ import StatusPageOwnerTeamService from "../../../Server/Services/StatusPageOwner
 import StatusPageOwnerUserService from "../../../Server/Services/StatusPageOwnerUserService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
-import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../../../Server/Utils/Rules/OwnerRuleAssignment";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -75,7 +77,7 @@ type AnyService = any;
 
 interface PositionalCase {
   name: string;
-  addOwners: (notifyOwners: boolean) => Promise<void>;
+  addOwners: (notifyOwners: boolean) => Promise<OwnersAdded>;
   ownerUserService: AnyService;
   ownerTeamService: AnyService;
   resourceIdColumn: string;
@@ -91,7 +93,7 @@ function positional(
       teamIds: Array<ObjectID>,
       notifyOwners: boolean,
       props: DatabaseCommonInteractionProps,
-    ) => Promise<void>;
+    ) => Promise<OwnersAdded>;
   },
   ownerUserService: AnyService,
   ownerTeamService: AnyService,
@@ -99,7 +101,7 @@ function positional(
 ): PositionalCase {
   return {
     name,
-    addOwners: (notifyOwners: boolean): Promise<void> => {
+    addOwners: (notifyOwners: boolean): Promise<OwnersAdded> => {
       return service.addOwners(
         PROJECT_ID,
         RESOURCE_ID,
@@ -172,7 +174,7 @@ beforeEach(() => {
   stubProjectDirectory({});
   delegate = jest
     .spyOn(OwnerRuleAssignment, "addOwners")
-    .mockResolvedValue({ userIds: [], teamIds: [] });
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
   jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
@@ -261,7 +263,7 @@ describe.each([
         userIds: Array<ObjectID>,
         teamIds: Array<ObjectID>,
         props: DatabaseCommonInteractionProps,
-      ) => Promise<void>;
+      ) => Promise<OwnersAdded>;
     };
     ownerUserService: AnyService;
     ownerTeamService: AnyService;
@@ -479,6 +481,11 @@ describe("IncidentService.addOwners end to end (the monitor criteria path)", () 
   test("a team added concurrently does not stop the other owners being added", async () => {
     const tables: OwnerTables = stubOwnerTables({ racedTeamIds: [TEAM_A] });
 
+    /*
+     * Answered with the owners it wrote (#9933): the team another writer
+     * added a moment ago is the incident's already - neither added by this
+     * call, nor skipped.
+     */
     await expect(
       IncidentService.addOwners(
         PROJECT_ID,
@@ -488,7 +495,11 @@ describe("IncidentService.addOwners end to end (the monitor criteria path)", () 
         true,
         { isRoot: true },
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({
+      userIds: [USER_A, USER_B],
+      teamIds: [TEAM_B],
+      notAdded: [],
+    });
 
     expect(
       tables.teamCreates.map((row: IncidentOwnerTeam) => {

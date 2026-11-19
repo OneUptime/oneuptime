@@ -128,7 +128,11 @@ import ResourcePartOpenEventsCard, {
   RESOURCE_PART_OPEN_EVENTS_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartOpenEventsCard";
 import ResourcePartAlertsCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertsCard";
-import ResourcePartRow from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartRow";
+import ResourcePartRow, {
+  ResourcePartRowControls,
+  ResourcePartRowName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartRow";
+import { findNestedControls } from "../../Helpers/NestedControls";
 import ResourcePartTabs from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartTabs";
 import { RecommendationStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationViewModel";
 import { OpenIssueRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyIssues";
@@ -577,6 +581,78 @@ describe("a row that opens a page", () => {
     expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByTestId("row").querySelector("svg")).toBeNull();
     expect(screen.getByTestId("row")).toHaveTextContent("pve1");
+  });
+
+  /*
+   * A row with controls of its own is never one link around them (#9728):
+   * its name is the link, stretched over the row; its controls sit beside
+   * the name, above the stretch.
+   */
+  test("a row with controls of its own: its name is the link, its controls beside it, none inside another", () => {
+    const pressed: Array<string> = [];
+    render(
+      <ResourcePartRow
+        to={new Route("/regions/RegionTwo")}
+        hasControls={true}
+        dataTestId="row"
+      >
+        <ResourcePartRowName dataTestId="row-name" describedBy="row-facts">
+          RegionTwo
+        </ResourcePartRowName>
+        <ResourcePartRowControls>
+          <button
+            type="button"
+            onClick={() => {
+              pressed.push("pill");
+            }}
+          >
+            Degraded
+          </button>
+        </ResourcePartRowControls>
+        <span id="row-facts">2 of 2 APIs up</span>
+      </ResourcePartRow>,
+    );
+
+    const row: HTMLElement = screen.getByTestId("row");
+    // The row is a box, not a link: one link inside it, its name.
+    expect(row.tagName).toBe("DIV");
+    expect(row).toHaveClass("relative");
+    expect(row).toHaveClass("hover:bg-gray-50");
+    const link: HTMLElement = screen.getByRole("link");
+    expect(link).toBe(screen.getByTestId("row-name"));
+    expect(link).toHaveAccessibleName("RegionTwo");
+    expect(link).toHaveAttribute("href", "/regions/RegionTwo");
+    expect(link).toHaveAttribute("aria-describedby", "row-facts");
+    expect(link).toHaveAccessibleDescription("2 of 2 APIs up");
+    // Stretched over the row, with the row's focus ring.
+    expect(link).toHaveClass("after:absolute");
+    expect(link).toHaveClass("after:inset-0");
+    expect(link).toHaveClass("focus-visible:after:ring-2");
+    // The control is not in the link, and its press is its own.
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Degraded",
+    });
+    expect(button.closest("a")).toBeNull();
+    fireEvent.click(button);
+    expect(pressed).toEqual(["pill"]);
+    // The chevron still ends the row, a picture.
+    expect(row.lastElementChild?.querySelector("svg")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(findNestedControls(row)).toEqual([]);
+  });
+
+  test("a row's name outside a row that opens a page is its words alone", () => {
+    render(
+      <ResourcePartRow dataTestId="row">
+        <ResourcePartRowName dataTestId="row-name">pve1</ResourcePartRowName>
+      </ResourcePartRow>,
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByTestId("row-name").tagName).toBe("SPAN");
+    expect(screen.getByTestId("row-name")).toHaveTextContent("pve1");
   });
 });
 

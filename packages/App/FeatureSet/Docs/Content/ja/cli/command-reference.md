@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 確認せずに、レコードをすぐに削除します。
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | 引数またはオプション | 必須 | 内容 |
 | --- | --- | --- |
 | `<id>` | はい | レコードの ID |
 | `--force` | いいえ | 受け付けますが何も変わりません: `delete` は確認を求めません |
+| `--workflows-run-as <value>` | いいえ | カスタムロールのみ: ロールを削除したあと、そのロールとして実行されていたワークフローを何として実行するか。`Default` または `CustomRole`。ワークフローが実行に使っているロールは、これを付けたときだけ削除されます |
+| `--workflows-run-as-custom-role-id <id>` | いいえ | カスタムロールのみ: `--workflows-run-as CustomRole` と一緒に指定する、ワークフローを実行する別のカスタムロール |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ CLI は OneUptime と一緒にリリースされるため、`oneuptime resources
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | なし |
+| `delete` | `DELETE /api/<path>/<id>/` | なし、または `--workflows-run-as` を付けたときは `miscDataProps` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 アクションは、プロジェクトの状態とレコードを読み取ってから、ダッシュボードのボタンと同じようにレコードの状態タイムラインに行を作成します。インシデントに対する `acknowledge` は `incident-state-timeline` を作成します。`add-note` は `incident-internal-note` を作成し、`--public` を付けると `incident-public-note` を作成します。メールのフラグは、まずそのアドレスを持つプロジェクトのチームメンバーを一覧表示します。キーが読み取れないフィールドを OneUptime が拒否した場合、一覧や読み取りはそのフィールドを除いて要求し直します。

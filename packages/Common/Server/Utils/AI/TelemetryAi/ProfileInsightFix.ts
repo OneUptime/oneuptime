@@ -10,6 +10,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../CodeFix/OpenPullRequestCap";
+import CodeFixOnItsWay from "../CodeFix/CodeFixOnItsWay";
 import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
@@ -291,6 +292,15 @@ export default class ProfileInsightFix {
       ...(data.work.llmProviderId
         ? { llmProviderId: new ObjectID(data.work.llmProviderId) }
         : {}),
+      // Never beside a person's fix of the function started the same moment.
+      holdsTo: [
+        CodeFixOnItsWay.ofProfileFunction({
+          projectId,
+          serviceId: new ObjectID(profile.serviceId),
+          functionName: profile.functionName,
+          fileName: profile.fileName,
+        }),
+      ],
     });
 
     return { taskId: run.id! };

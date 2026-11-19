@@ -471,7 +471,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             field: {
               deviceModel: true,
             },
-            title: "Model",
+            title: "Model (hardware model)",
             fieldType: FieldType.Element,
             ...factField(fact("model"), "device-inventory-model"),
           },

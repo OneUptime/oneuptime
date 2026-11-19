@@ -207,6 +207,20 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 > [!CAUTION]
 > `delete` 會立即刪除記錄。CLI 不會請你確認，也無法復原。它接受 `--force`，以相容帶有該旗標的指令碼，但 `--force` 不會改變任何行為。
 
+### 工作流程以其身分執行的自訂角色
+
+只有當刪除說明了工作流程改以什麼身分執行時，OneUptime 才會刪除工作流程以其身分執行的自訂角色；沒有說明的刪除會被拒絕，並列出這些工作流程的名稱。用 `--workflows-run-as` 說明：`Default` 即預設權限，`CustomRole` 即你可以授予團隊的另一個自訂角色，並在 `--workflows-run-as-custom-role-id` 中提供它的 ID。絕不會是 Project Owner：刪除角色絕不會擴大工作流程能做的事。
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+被拒絕的刪除會印出 OneUptime 的拒絕訊息（其中列出了這些工作流程），然後印出重新執行時要加的旗標。沒有任何工作流程以其身分執行的角色，兩個旗標都不需要。
+
 ## 統計記錄
 
 ```bash

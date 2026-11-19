@@ -40,7 +40,7 @@ Allt annat finns under **Fler fält**, hopfällt tills du öppnar det:
 | Fält | Vad det gör |
 | --- | --- |
 | **Varje pass varar** | **1 dag**, **1 vecka**, **2 veckor** eller **1 månad**, och **1 vecka** om du inte ändrar det. Det frågas efter så snart någon turas om. Varje person har jour så länge, sedan tar nästa över, vid den tid på dygnet då schemat skapades. |
-| **Tidszon** | Den tidszon som överlämningstider och jourtider hålls i. Den börjar på din. |
+| **Tidszon** | Den tidszon som överlämningstider och jourtider hålls i. Den börjar på din. Varje tidszon följer de gällande reglerna i sin region: America/Vancouver (British Columbia) ligger kvar på UTC-7 hela året från 2026. |
 | **Beskrivning** | Anteckningar om schemat. |
 | **Etiketter** | Etiketter för att hitta och gruppera schemat. |
 

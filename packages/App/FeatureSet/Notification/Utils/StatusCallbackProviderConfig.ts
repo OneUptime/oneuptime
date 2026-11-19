@@ -15,7 +15,8 @@ import { NotificationProviderConfig } from "Common/Server/Utils/Telemetry/Notifi
  *
  * The value only ever names one of two attributes' values - anything else
  * is read as the installation's - and the callback is authenticated by the
- * token in its path, as before.
+ * token in its path and Twilio's signature, which covers the query too
+ * (TwilioWebhookSignature).
  */
 
 export const PROVIDER_CONFIG_QUERY_PARAMETER: string = "providerConfig";

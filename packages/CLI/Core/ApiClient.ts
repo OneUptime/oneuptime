@@ -31,7 +31,9 @@ export interface ApiRequestOptions {
   /*
    * What a create sends beside its data: a team member named by an
    * address nobody in the project has is invited by it (`email`), as the
-   * dashboard's Invite does.
+   * dashboard's Invite does. And what a delete says besides the record:
+   * what the workflows that run as a deleted custom role run as instead
+   * (Utils/DeleteChoiceFlags, #9949).
    */
   miscDataProps?: JSONObject | undefined;
 }
@@ -103,7 +105,15 @@ function buildRequestData(options: ApiRequestOptions): JSONObject | undefined {
       return {
         select: options.select || {},
       } as JSONObject;
+    /*
+     * A delete sends a body only when it says something besides the
+     * record; one that says nothing is the delete it always was.
+     */
     case "delete":
+      return options.miscDataProps &&
+        Object.keys(options.miscDataProps).length > 0
+        ? ({ miscDataProps: options.miscDataProps } as JSONObject)
+        : undefined;
     default:
       return undefined;
   }

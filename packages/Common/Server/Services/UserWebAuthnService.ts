@@ -371,6 +371,12 @@ export class Service extends DatabaseService<Model> {
   public async verifyRegistration(data: {
     credential: any;
     name: string;
+    /*
+     * The name to file it under when its challenge was a passkey's: a
+     * setup that may register either (sign-in's, #9817) names it by what
+     * the server asked for, never by what a client says it is.
+     */
+    passkeyName?: string | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     if (!data.props.userId) {
@@ -425,7 +431,10 @@ export class Service extends DatabaseService<Model> {
     // Save the credential
     const userWebAuthn: Model = Model.fromJSON(
       {
-        name: data.name,
+        name:
+          storedChallenge.isPasskey === true && data.passkeyName
+            ? data.passkeyName
+            : data.name,
         credentialId: registrationInfo.credential.id,
         publicKey: Buffer.from(registrationInfo.credential.publicKey).toString(
           "base64",

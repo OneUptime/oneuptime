@@ -2144,7 +2144,11 @@ router.post(
         await readTelemetryImprovementRequest(req, props);
 
       const suggestion: TelemetryImprovementSuggestion =
-        await TelemetryImprovementTaskTrigger.getSuggestion(request);
+        await TelemetryImprovementTaskTrigger.getSuggestion({
+          ...request,
+          // The improvement on its way, as its task's page reads it for them.
+          reader: props,
+        });
 
       Response.sendJsonObjectResponse(
         req,

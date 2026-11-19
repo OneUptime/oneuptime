@@ -505,10 +505,15 @@ Notes on the migration Job:
   the same (the expand/contract pattern): the **old** pods serve on the **new**
   schema until they are replaced.
 - **Fresh installs with `migrate.hook: false`:** the pods likewise wait for the
-  Job to create the schema, instead of crash-looping on an empty database. They
-  can still restart a few times while the database itself is starting, since
-  they connect before they wait. The Job's own init container waits for the
-  database first, so a slow first-time cluster bootstrap may need a longer
+  Job to create the schema, instead of crash-looping on an empty database.
+  While the database itself is still starting, each app, worker,
+  telemetry-writer and nginx pod waits for it in an init container
+  (`wait-for-postgres`) instead of restarting: their processes give up on a
+  database that does not answer within about 15 seconds. That wait steps aside
+  after five minutes, and at once in a service mesh whose sidecar starts after
+  the init containers, where the process connects through the sidecar once it
+  runs. The Job's own init container waits for the database first, for as long
+  as it takes, so a slow first-time cluster bootstrap may need a longer
   `helm upgrade --install --timeout`.
 - Finished async Jobs auto-clean after `migrate.ttlSecondsAfterFinished` (default
   1 day).

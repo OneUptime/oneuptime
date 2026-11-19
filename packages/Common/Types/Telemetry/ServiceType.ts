@@ -74,6 +74,14 @@ enum ServiceType {
    */
   DataBiConnection = "DataBiConnection",
   /*
+   * The oneuptime.managed_device.* readings each read of a device management
+   * connection (an Esper tenant) writes for its devices: how long since each
+   * last checked in (ManagedDeviceCheckIn, #9835). The connection whose
+   * devices they describe. Like table health, never billed as ingested
+   * telemetry: the devices sent none of it.
+   */
+  DeviceManagementConnection = "DeviceManagementConnection",
+  /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a
    * placeholder "Unknown Service" Postgres row (which collected every

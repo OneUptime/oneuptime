@@ -13,8 +13,10 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -228,7 +230,13 @@ class StatusPageOwnerRuleEngineServiceClass
       }),
     );
 
-    let ownersAdded: number = 0;
+    /*
+     * What addOwners actually did: the owners it wrote, and the ones it
+     * skipped and why - a user who has left the project, a team that is not
+     * one of its teams (#9933). The count a run reports is the owners
+     * written, never the ids the rules asked for.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -250,32 +258,37 @@ class StatusPageOwnerRuleEngineServiceClass
         continue;
       }
 
-      await StatusPageService.addOwners(
-        statusPage.projectId,
-        statusPage.id,
-        userIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        teamIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        notify,
-        RuleRunWriteProps.get(data.props),
+      OwnerRuleAssignment.addUp(
+        outcome,
+        await StatusPageService.addOwners(
+          statusPage.projectId,
+          statusPage.id,
+          userIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          teamIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          notify,
+          RuleRunWriteProps.get(data.props),
+        ),
       );
-
-      ownersAdded += userIds.length + teamIds.length;
     }
 
-    if (ownersAdded === 0) {
+    if (OwnerRuleFeed.isEmpty(outcome)) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    logger.debug(
-      `StatusPageOwnerRuleEngine added owners to status page ${statusPage.id}`,
-      { projectId: statusPage.projectId.toString() } as LogAttributes,
-    );
+    OwnerRuleFeed.log({
+      engine: "StatusPageOwnerRuleEngine",
+      record: `status page ${statusPage.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: statusPage.projectId.toString(),
+      } as LogAttributes,
+    });
 
-    return RuleApplicationResultUtil.updated(ownersAdded);
+    return OwnerRuleFeed.getResult(outcome);
   }
 
   private doesStatusPageMatchRule(

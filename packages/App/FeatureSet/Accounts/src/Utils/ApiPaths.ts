@@ -3,10 +3,12 @@ import URL from "Common/Types/API/URL";
 import { IDENTITY_URL, APP_API_URL } from "Common/UI/Config";
 import { SIGN_UP_INVITATION_ROUTE } from "Common/Types/Accounts/SignUpInvitation";
 import {
+  MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
 import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
+import { getProjectSignInMethodsRoute } from "Common/Types/SSO/SignInMethods";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/signup"),
@@ -71,6 +73,14 @@ export const VERIFY_SECURITY_KEY_ENROLMENT_API_URL: URL = URL.fromURL(
 ).addRoute(new Route(VERIFY_SECURITY_KEY_ENROLMENT_ROUTE));
 
 /*
+ * The options for a passkey the mobile app sets up in the phone's browser
+ * (#9817), read once by the page it opened with the id the app was given.
+ */
+export const MOBILE_PASSKEY_ENROLMENT_OPTIONS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE));
+
+/*
  * Signs a user in with one of their single-use recovery codes, for the day the
  * authenticator app or security key is not available. Reached only from the
  * two factor challenge screen, and only when /login reported that the account
@@ -126,6 +136,20 @@ export const SERVICE_PROVIDER_LOGIN_OIDC_URL: URL = URL.fromURL(
 export const SIGN_IN_METHODS_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/sign-in-methods"),
 );
+
+/*
+ * The providers that sign people in to one project - its own and the
+ * instance-wide ones that reach it - for the page a project's SSO sign-in
+ * link opens (Pages/LoginWithProjectSso, #9918). Asked by the project's id
+ * alone: no address, so the answer says nothing about accounts.
+ */
+export const getProjectSignInMethodsApiUrl: (projectId: string) => URL = (
+  projectId: string,
+): URL => {
+  return URL.fromURL(IDENTITY_URL).addRoute(
+    new Route(getProjectSignInMethodsRoute(projectId)),
+  );
+};
 
 export const GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,

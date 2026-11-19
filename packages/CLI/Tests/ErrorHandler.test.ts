@@ -277,6 +277,64 @@ describe("ErrorHandler", () => {
     });
   });
 
+  /*
+   * A command that knows what to do next says it: a delete OneUptime
+   * refused for the choices it needs names the flags that give them
+   * (Utils/DeleteChoiceFlags, #9949). The error is still OneUptime's own
+   * words and exits as any refusal does.
+   */
+  describe("a command's own hint", () => {
+    const refusal: string =
+      'API error (400): The workflow "Close stale incidents" runs as the custom role "Incident Responder". Deleting the role would stop it until someone changes what it runs as, so say what it runs as instead: choose it as you delete the role in the Dashboard, or send miscDataProps.workflowsRunAs as "Default", or as "CustomRole" with miscDataProps.workflowsRunAsCustomRoleId naming another custom role you could give a team.';
+    const hint: string =
+      "Run it again with --workflows-run-as Default, or with --workflows-run-as CustomRole --workflows-run-as-custom-role-id <custom-role-id>.";
+
+    it("takes the place of the hint the refusal would have", () => {
+      const described: DescribedError = describeError(new Error(refusal), {
+        resource: "custom-role",
+        operation: "delete",
+        hint,
+      });
+
+      expect(described).toEqual({
+        exitCode: ExitCode.GeneralError,
+        line: refusal,
+        message: refusal,
+        status: 400,
+        hint,
+      });
+    });
+
+    it("leaves the refusal's own hint when it has none", () => {
+      for (const none of [null, undefined, ""]) {
+        expect(
+          describeError(new Error("API error (400): Invalid data."), {
+            resource: "monitor",
+            operation: "create",
+            hint: none,
+          }).hint,
+        ).toBe(
+          "`oneuptime monitor fields` lists every field, and the flag that sets it.",
+        );
+      }
+    });
+
+    it("never stands in for what to do about the key, or a record that is not found", () => {
+      expect(
+        describeError(new Error("API error (400): Invalid API Key"), {
+          hint,
+        }).hint,
+      ).toContain("Project Settings → Advanced → API Keys");
+      expect(
+        describeError(new Error("API error (404): Custom Role not found."), {
+          resource: "custom-role",
+          operation: "delete",
+          hint,
+        }).hint,
+      ).toBe("`oneuptime custom-role list` shows the ones this key may read.");
+    });
+  });
+
   describe("ExitCode enum", () => {
     it("should have correct values", () => {
       expect(ExitCode.Success).toBe(0);

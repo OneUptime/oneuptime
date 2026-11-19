@@ -755,6 +755,13 @@ describe("with the real base create of the schedule", () => {
     jest
       .spyOn(OnCallDutyPolicyScheduleService, "getRepository")
       .mockReturnValue({
+        /*
+         * A create first reads whether another schedule of the project has
+         * its name (UniqueNameInProject, #9742): none has.
+         */
+        find: async (): Promise<Array<OnCallDutyPolicySchedule>> => {
+          return [];
+        },
         save: async (
           data: OnCallDutyPolicySchedule,
         ): Promise<OnCallDutyPolicySchedule> => {

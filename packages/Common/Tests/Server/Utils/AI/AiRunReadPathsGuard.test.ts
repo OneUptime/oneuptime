@@ -122,6 +122,10 @@ const RAW_SQL_READERS: Record<string, Classification> = {
     kind: "oneUptimesOwn",
     why: "Which queued run a Runner claims next, and how many it may: read for the Runner's key, never answered to a person.",
   },
+  "packages/Common/Server/Utils/AI/CodeFix/CodeFixOnItsWay.ts": {
+    kind: "actsOnIt",
+    why: "Whether a fix of the same exception, incident, alert, insight, trace, service or function is on its way, so OneUptime refuses or skips a second one (#9882): the task it finds is shown to a person only by a page that asks the rule of it first (CodeTaskThread.findTasksHiddenFrom).",
+  },
   "packages/Common/Server/Utils/AI/CodeFix/CodeFixAutoRetry.ts": {
     kind: "oneUptimesOwn",
     why: "Whether a task opened a pull request, for retrying its turn by itself: a yes or no OneUptime acts on.",
