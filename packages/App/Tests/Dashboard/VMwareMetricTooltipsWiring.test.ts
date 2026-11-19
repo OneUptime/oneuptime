@@ -360,6 +360,11 @@ describe("the VMware pages and the description record agree", () => {
     expect(Object.fromEntries(reused)).toEqual({
       clusterCpuInUse: ["clusterOverview", "clusters"],
       clusterMemoryInUse: ["clusterOverview", "clusters"],
+      /*
+       * A datastore's Free tile and the Datastores list's Free column are
+       * the same measure, its capacity minus what is used (#9539).
+       */
+      datastoreFree: ["datastoreOverview", "datastores"],
     });
   });
 });
@@ -986,9 +991,11 @@ describe("VMware list pages: column headers", () => {
   test("Datastores", () => {
     const code: string = readCode(PAGES["datastores"]!);
 
-    expect(columnPairs(code)).toEqual([
-      ["Used / Capacity", "datastoreListUsedCapacity"],
-    ]);
+    // Its size, beside the shared Used and Free columns (#9539).
+    expect(columnPairs(code)).toEqual([["Capacity", null]]);
+    expect(code).toContain(
+      "storageUsageColumns={{ usedDescription: VMWARE_METRIC_DESCRIPTIONS.datastoreListUsedCapacity, freeDescription: VMWARE_METRIC_DESCRIPTIONS.datastoreFree, }}",
+    );
     expect(code).toContain("showStatus={false}");
     expect(code).toContain("showResourceMetrics={false}");
     expect(builtInDescriptions(code)).toEqual({});
