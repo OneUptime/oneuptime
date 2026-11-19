@@ -1,6 +1,14 @@
 import { KubernetesCostIngestJobData } from "./Queue/TelemetryQueueService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesCostAllocationService from "Common/Server/Services/KubernetesCostAllocationService";
+import {
+  KUBERNETES_COST_CORRECTED_COLUMNS,
+  KUBERNETES_COST_CORRECTION_EPSILON,
+  KubernetesCostStoredSlice,
+} from "Common/Types/Kubernetes/KubernetesCostCorrection";
+import Semaphore, {
+  SemaphoreMutex,
+} from "Common/Server/Infrastructure/Semaphore";
 import OpenTelemetryIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
@@ -66,10 +74,42 @@ export class KubernetesCostStorageFlushError extends Error {
   }
 }
 
-interface BuiltCostRow {
+export interface BuiltCostRow {
   row: JSONObject;
   metricSource: KubernetesCostMetricSourceRow;
 }
+
+/*
+ * What a later reading of a window changes (#9969): the rows to write, and
+ * what they change in the cost metrics; or why it changes nothing at all.
+ */
+export interface KubernetesCostCorrection {
+  refused: string | null;
+  rows: Array<JSONObject>;
+  metricSources: Array<KubernetesCostMetricSourceRow>;
+}
+
+/*
+ * What a correction row holds besides its costs: no usage, request, limit,
+ * efficiency or peak, so no count, average or maximum sees it, and every
+ * sum of them is the first reading's.
+ */
+export const KUBERNETES_COST_ADJUSTMENT_USAGE: Readonly<JSONObject> = {
+  cpuCoreHours: 0,
+  cpuCoreRequestAverage: 0,
+  cpuCoreUsageAverage: 0,
+  cpuCoreLimitAverage: 0,
+  gpuHours: 0,
+  ramByteHours: 0,
+  ramBytesRequestAverage: 0,
+  ramBytesUsageAverage: 0,
+  ramBytesLimitAverage: 0,
+  ramBytesUsageMax: 0,
+  pvByteHours: 0,
+  cpuEfficiency: 0,
+  ramEfficiency: 0,
+  totalEfficiency: 0,
+};
 
 export default class KubernetesCostIngestService {
   /*
@@ -235,6 +275,29 @@ export default class KubernetesCostIngestService {
     const shipmentId: string = this.sanitizeString(payload.shipmentId);
     const shipmentChunk: number = this.sanitizeNumber(payload.shipmentChunk);
 
+    /*
+     * A later reading of windows this server holds (#9969): brought in as
+     * the difference from what is stored, never skipped as another delivery
+     * of a window it has.
+     */
+    if (payload.correction === true) {
+      await this.processCorrection({
+        allocations: payload.allocations,
+        projectId,
+        kubernetesClusterId: cluster.id,
+        clusterName: clusterIdentifier,
+        k8sClusterEntityKey,
+        currency,
+        costEngine,
+        shipmentId,
+        shipmentChunk,
+        retentionDays,
+        ingestionTimestamp,
+        serviceMetadata,
+      });
+      return;
+    }
+
     const alreadyIngestedWindows: Set<string> = new Set<string>();
     const distinctWindowStarts: Map<string, Date> = new Map<string, Date>();
 
@@ -349,6 +412,281 @@ export default class KubernetesCostIngestService {
   }
 
   /*
+   * A LATER READING OF WINDOWS THE SERVER HOLDS (#9969).
+   *
+   * A Kubecost that reads the cloud's bill reconciles each hour's prices
+   * with what was paid about two days after the hour, and the cost agent
+   * reads the hour again then (its EngineCorrections). The table only ever
+   * appends, and every page sums it: so for each workload, pod and container
+   * of the reading, ingest reads what the window holds for it (the first
+   * reading and any corrections since) and writes the difference, in costs
+   * only, as a row of its own (isCostAdjustment), with usage 0 so no count
+   * or average sees it. A plain sum of the window's rows is then the
+   * engine's latest figure; a reading sent twice finds nothing to change
+   * the second time, and one that went in twice is taken back by the next.
+   * The cost metrics get the same differences, as Delta Sums do.
+   *
+   * One window at a time, under a lock, and written before the lock goes:
+   * two jobs of one reading (a retried POST) must not both find the window
+   * as it was. A container the reading has and the window does not is
+   * written whole. One the window has and the reading does not is left as
+   * it is: a reading short of a container says nothing of what it cost.
+   * And a window priced by another engine than the reading's is left alone:
+   * one engine's figures never go in place of another's.
+   */
+  private static async processCorrection(data: {
+    allocations: Array<KubernetesCostAllocationIngestRow>;
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    clusterName: string;
+    k8sClusterEntityKey: string;
+    currency: string;
+    costEngine: KubernetesCostEngineInfo | null;
+    shipmentId: string;
+    shipmentChunk: number;
+    retentionDays: number;
+    ingestionTimestamp: string;
+    serviceMetadata: TelemetryServiceMetadata;
+  }): Promise<void> {
+    const windows: Map<
+      string,
+      { windowStart: Date; windowEnd: Date; reading: Array<BuiltCostRow> }
+    > = new Map();
+
+    for (const allocation of data.allocations) {
+      const built: BuiltCostRow | null = this.buildRow({
+        allocation,
+        projectId: data.projectId,
+        kubernetesClusterId: data.kubernetesClusterId,
+        clusterName: data.clusterName,
+        k8sClusterEntityKey: data.k8sClusterEntityKey,
+        currency: data.currency,
+        costEngine: data.costEngine,
+        shipmentId: data.shipmentId,
+        shipmentChunk: data.shipmentChunk,
+        retentionDays: data.retentionDays,
+        ingestionTimestamp: data.ingestionTimestamp,
+        alreadyIngestedWindows: new Set<string>(),
+      });
+
+      if (!built) {
+        continue;
+      }
+
+      const key: string = `${built.row["windowStart"]}|${built.row["windowEnd"]}`;
+      const window:
+        | { windowStart: Date; windowEnd: Date; reading: Array<BuiltCostRow> }
+        | undefined = windows.get(key);
+
+      if (window) {
+        window.reading.push(built);
+      } else {
+        windows.set(key, {
+          windowStart: built.metricSource.windowStart,
+          windowEnd: built.metricSource.windowEnd,
+          reading: [built],
+        });
+      }
+    }
+
+    const metricSourceRows: Array<KubernetesCostMetricSourceRow> = [];
+
+    for (const window of windows.values()) {
+      const mutex: SemaphoreMutex = await Semaphore.lock({
+        key: `${data.projectId.toString()}-${data.kubernetesClusterId.toString()}-${window.windowStart.getTime()}`,
+        namespace: "kubernetes-cost-correction",
+        lockTimeout: 60000,
+        acquireTimeout: 120000,
+      });
+
+      try {
+        const stored: Array<KubernetesCostStoredSlice> =
+          await KubernetesCostAllocationService.findWindowSlices({
+            projectId: data.projectId,
+            kubernetesClusterId: data.kubernetesClusterId,
+            windowStart: window.windowStart,
+            windowEnd: window.windowEnd,
+          });
+
+        const correction: KubernetesCostCorrection = this.buildCorrection({
+          reading: window.reading,
+          stored,
+          costEngine: data.costEngine,
+        });
+
+        if (correction.refused) {
+          logger.warn(
+            `KubernetesCostIngestService: a later reading of window ${window.windowStart.toISOString()} for cluster "${data.clusterName}" was not brought in: ${correction.refused}`,
+          );
+          continue;
+        }
+
+        if (correction.rows.length === 0) {
+          continue;
+        }
+
+        /*
+         * Acknowledged once flushed, not once buffered: the next reading of
+         * the window, under the same lock, must find these rows in what it
+         * reads, or it would write the difference again.
+         */
+        await KubernetesCostAllocationService.insertJsonRows(correction.rows, {
+          clickhouseSettings: { wait_for_async_insert: 1 },
+        });
+
+        metricSourceRows.push(...correction.metricSources);
+      } finally {
+        await Semaphore.release(mutex);
+      }
+    }
+
+    await this.writeCostMetrics({
+      projectId: data.projectId,
+      kubernetesClusterId: data.kubernetesClusterId,
+      clusterName: data.clusterName,
+      k8sClusterEntityKey: data.k8sClusterEntityKey,
+      currency: data.currency,
+      serviceMetadata: data.serviceMetadata,
+      ingestionTimestamp: data.ingestionTimestamp,
+      sourceRows: metricSourceRows,
+      correction: true,
+    });
+  }
+
+  // What makes a row one workload's, pod's and container's in its window.
+  private static sliceKey(slice: {
+    namespace: unknown;
+    controllerKind: unknown;
+    controllerName: unknown;
+    podName: unknown;
+    containerName: unknown;
+  }): string {
+    return [
+      slice.namespace,
+      slice.controllerKind,
+      slice.controllerName,
+      slice.podName,
+      slice.containerName,
+    ]
+      .map((part: unknown): string => {
+        return typeof part === "string" ? part : "";
+      })
+      .join("\u0000");
+  }
+
+  /*
+   * The rows that bring one window in line with a later reading of it
+   * (processCorrection says why each is written as it is), and what they
+   * change in the cost metrics. Pure: the reading as ingest builds rows, and
+   * what the window holds.
+   */
+  public static buildCorrection(data: {
+    reading: Array<BuiltCostRow>;
+    stored: Array<KubernetesCostStoredSlice>;
+    costEngine: KubernetesCostEngineInfo | null;
+  }): KubernetesCostCorrection {
+    if (!data.costEngine || !data.costEngine.engine) {
+      return {
+        refused: "the reading does not say which engine priced it",
+        rows: [],
+        metricSources: [],
+      };
+    }
+
+    for (const slice of data.stored) {
+      if (
+        slice.costEngine &&
+        (slice.costEngine !== data.costEngine.engine ||
+          slice.costEngineService !== data.costEngine.service)
+      ) {
+        return {
+          refused: `the window was priced by ${slice.costEngine}${slice.costEngineService ? ` (${slice.costEngineService})` : ""}, the reading by ${data.costEngine.engine}${data.costEngine.service ? ` (${data.costEngine.service})` : ""}`,
+          rows: [],
+          metricSources: [],
+        };
+      }
+    }
+
+    const stored: Map<string, KubernetesCostStoredSlice> = new Map<
+      string,
+      KubernetesCostStoredSlice
+    >();
+
+    for (const slice of data.stored) {
+      stored.set(this.sliceKey(slice), slice);
+    }
+
+    // One per container: a reading is collapsed so by the agent already.
+    const reading: Map<string, BuiltCostRow> = new Map<string, BuiltCostRow>();
+
+    for (const built of data.reading) {
+      const key: string = this.sliceKey({
+        namespace: built.row["namespace"],
+        controllerKind: built.row["controllerKind"],
+        controllerName: built.row["controllerName"],
+        podName: built.row["podName"],
+        containerName: built.row["containerName"],
+      });
+
+      if (!reading.has(key)) {
+        reading.set(key, built);
+      }
+    }
+
+    const rows: Array<JSONObject> = [];
+    const metricSources: Array<KubernetesCostMetricSourceRow> = [];
+
+    for (const [key, built] of reading) {
+      const slice: KubernetesCostStoredSlice | undefined = stored.get(key);
+
+      if (!slice) {
+        // A container the window does not have: written whole.
+        rows.push(built.row);
+        metricSources.push(built.metricSource);
+        continue;
+      }
+
+      const changes: Record<string, number> = {};
+      let changed: boolean = false;
+
+      for (const column of KUBERNETES_COST_CORRECTED_COLUMNS) {
+        const change: number =
+          this.sanitizeNumber(built.row[column]) - slice[column];
+
+        changes[column] =
+          Math.abs(change) < KUBERNETES_COST_CORRECTION_EPSILON ? 0 : change;
+        changed = changed || changes[column] !== 0;
+      }
+
+      if (!changed) {
+        continue;
+      }
+
+      const adjustment: JSONObject = {
+        ...built.row,
+        nodeName: slice.nodeName,
+        providerId: slice.providerId,
+        labels: slice.labels,
+        labelKeys: Object.keys(slice.labels),
+        ...KUBERNETES_COST_ADJUSTMENT_USAGE,
+        ...changes,
+        isCostAdjustment: true,
+      };
+
+      rows.push(adjustment);
+      metricSources.push({
+        ...built.metricSource,
+        totalCost: changes["totalCost"] || 0,
+        cpuCost: changes["cpuCost"] || 0,
+        ramCost: changes["ramCost"] || 0,
+        totalEfficiency: 0,
+      });
+    }
+
+    return { refused: null, rows, metricSources };
+  }
+
+  /*
    * One metric row per point: a Delta Sum for a cost, a Gauge for
    * efficiency, stamped at its window's start (its window's end is when the
    * cost stopped accruing), under the cluster, with the cluster's entity key
@@ -416,12 +754,25 @@ export default class KubernetesCostIngestService {
     serviceMetadata: TelemetryServiceMetadata;
     ingestionTimestamp: string;
     sourceRows: Array<KubernetesCostMetricSourceRow>;
+    /*
+     * The rows are a correction's differences (#9969): only the costs, which
+     * are Delta Sums and add up, and only what changed. Efficiency is a Gauge
+     * a second point would be averaged with, and reconciling prices does not
+     * change how much of a reservation was used: it keeps its first reading.
+     */
+    correction?: boolean | undefined;
   }): Promise<void> {
     try {
       const points: Array<KubernetesCostMetricPoint> =
         buildKubernetesCostMetricPoints({
           clusterName: data.clusterName,
           rows: data.sourceRows,
+        }).filter((point: KubernetesCostMetricPoint): boolean => {
+          return (
+            !data.correction ||
+            (isKubernetesCostMoneyMetric(point.metric) &&
+              Math.abs(point.value) >= KUBERNETES_COST_CORRECTION_EPSILON)
+          );
         });
 
       if (points.length === 0) {
