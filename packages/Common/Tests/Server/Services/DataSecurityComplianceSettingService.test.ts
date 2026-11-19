@@ -318,9 +318,10 @@ describe("who turned it off, and when", () => {
   });
 
   test("a setting made with no switch is off, as its column's default is", async () => {
+    // A request that leaves the switch out: settingOf's false is cleared.
     const setting: DataSecurityComplianceSetting = await createPermitted({
       isEnabled: undefined,
-    });
+    } as unknown as Partial<DataSecurityComplianceSetting>);
 
     expect(setting.turnedOffAt).toBeInstanceOf(Date);
   });

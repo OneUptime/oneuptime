@@ -356,10 +356,12 @@ function stubSources(sources: {
   traces?: Partial<SecurityTelemetrySource> | null;
 }): void {
   modelListMock.mockImplementation(
-    async (args: unknown): Promise<ListResult<unknown>> => {
+    async (
+      args: unknown,
+    ): Promise<ListResult<SecurityLogSource | SecurityTelemetrySource>> => {
       const isTraces: boolean =
         (args as { modelType: unknown }).modelType === SecurityTelemetrySource;
-      const row: unknown = isTraces
+      const row: SecurityLogSource | SecurityTelemetrySource | null = isTraces
         ? sources.traces
           ? Object.assign(new SecurityTelemetrySource(), sources.traces)
           : null
