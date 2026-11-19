@@ -9,6 +9,7 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -22,7 +23,19 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesNamespaceObject } from "../Utils/KubernetesObjectParser";
@@ -61,6 +74,8 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          // The hero's link back to the cluster.
+          name: true,
         },
       });
       setCluster(item);
@@ -119,6 +134,19 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     description: "Kubernetes events in this namespace in the last 24 hours.",
     resourceKind: "Namespace",
   });
+
+  /*
+   * The namespace as the cluster's rules read it, with what in it needs
+   * attention: its hero (Terminating says what holds it) and its counts of
+   * workloads and pods that need attention, each opening which and why, and
+   * the Overview's Needs attention (#9595).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: "Namespace",
+    name: namespaceName,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -202,49 +230,67 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from namespace object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Namespace Name", value: namespaceName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  /*
+   * What Kubernetes reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
+  const summaryFields: Array<SummaryField> = [
+    { title: "Namespace Name", value: namespaceName, copyText: namespaceName },
+  ];
 
   if (namespaceObject) {
-    summaryFields.push(
-      {
-        title: "Status",
+    // What must finish before a namespace being deleted is gone.
+    const finalizers: Array<string> = namespaceObject.spec?.finalizers || [];
+    summaryFields.push({
+      title: "Created",
+      value: KubernetesResourceUtils.formatAge(
+        namespaceObject.metadata.creationTimestamp,
+      ),
+    });
+    if (finalizers.length > 0) {
+      summaryFields.push({
+        title: "Finalizers",
         value: (
-          <StatusBadge
-            text={namespaceObject.status.phase || "Unknown"}
-            type={
-              namespaceObject.status.phase === "Active"
-                ? StatusBadgeType.Success
-                : namespaceObject.status.phase === "Terminating"
-                  ? StatusBadgeType.Danger
-                  : StatusBadgeType.Warning
-            }
-          />
+          <span className="flex flex-wrap gap-1.5">
+            {finalizers.map((finalizer: string): ReactElement => {
+              return (
+                <StatusBadge
+                  key={finalizer}
+                  text={finalizer}
+                  type={StatusBadgeType.Neutral}
+                  isUserContent={true}
+                />
+              );
+            })}
+          </span>
         ),
-      },
-      {
-        title: "Created",
-        value: KubernetesResourceUtils.formatAge(
-          namespaceObject.metadata.creationTimestamp,
-        ),
-      },
-    );
+      });
+    }
   }
 
   const tabs: Array<Tab> = [
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={namespaceObject?.metadata.labels || {}}
-          annotations={namespaceObject?.metadata.annotations || {}}
-          isLoading={isLoadingObject}
-        />
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind="Namespace"
+            read={partState.read}
+            error={partState.error}
+            onRetry={partState.refresh}
+            routes={routes}
+          />
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={namespaceObject?.metadata.labels || {}}
+            annotations={namespaceObject?.metadata.annotations || {}}
+            conditions={namespaceObject?.status.conditions}
+            isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("Namespace")}
+          />
+        </>
       ),
     },
     eventsTab,
@@ -274,7 +320,23 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs label="Namespace" tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * What it is, how it is doing and what in it needs attention, above
+       * its tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind="Namespace"
+        name={namespaceName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        clusterIdentifier={clusterIdentifier}
+        routes={routes}
+      />
+      <Tabs label="Namespace" tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterNamespaceDetail;

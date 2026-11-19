@@ -27,6 +27,7 @@ import {
   KubernetesPartRead,
   KubernetesPartRow,
   assessKubernetesPart,
+  getKubernetesNamespaceAttention,
   getKubernetesPartAttentionItems,
   getKubernetesPodFacts,
   KubernetesPodFacts,
@@ -34,6 +35,16 @@ import {
 } from "../../../Pages/Kubernetes/Utils/KubernetesPartFacts";
 import { KubernetesPartRoutes } from "../../../Pages/Kubernetes/Utils/KubernetesPartRoutes";
 import KubernetesResourceUtils from "../../../Pages/Kubernetes/Utils/KubernetesResourceUtils";
+import {
+  KubernetesNamespaceCountChip,
+  getKubernetesCronJobFailedRunsChip,
+  getKubernetesJobFailedPodsAttention,
+  getKubernetesNamespaceCountChips,
+} from "../../../Pages/Kubernetes/Utils/KubernetesPartCounts";
+import {
+  KubernetesProblemRowsLoader,
+  getKubernetesProblemRowsLoader,
+} from "../../../Pages/Kubernetes/Utils/KubernetesProblemLoader";
 
 /*
  * The top of a Kubernetes object's page, above its tabs: what it is, how it
@@ -57,6 +68,12 @@ export interface ComponentProps {
   read: KubernetesPartRead | null;
   clusterName: string;
   routes: KubernetesPartRoutes;
+  /*
+   * The agent's name for the cluster, which its Events are stamped with: a
+   * count's dialog reads its pods' latest warnings when it opens. Left
+   * out, it lists them as the read has them.
+   */
+  clusterIdentifier?: string | undefined;
 }
 
 type Json = Record<string, unknown>;
@@ -152,7 +169,47 @@ const KubernetesPartHero: FunctionComponent<ComponentProps> = (
 
   let location: ReactElement | undefined = undefined;
 
-  if (props.kind === "Node") {
+  // A count's pods, with their latest warnings, read when its dialog opens.
+  const loadRows: KubernetesProblemRowsLoader | undefined =
+    props.clusterIdentifier
+      ? getKubernetesProblemRowsLoader({
+          clusterIdentifier: props.clusterIdentifier,
+          routeFor: props.routes.getPartRoute,
+        })
+      : undefined;
+
+  if (props.kind === "Namespace") {
+    location = (
+      <TranslatedSentence
+        template="Namespace of cluster {{cluster}}"
+        slots={{ cluster: clusterLink }}
+      />
+    );
+    /*
+     * What in it needs attention, in two counts that open exactly what
+     * they count (#9595): its workloads, each once, and its pods.
+     */
+    if (props.read) {
+      const countChips: Array<KubernetesNamespaceCountChip> =
+        getKubernetesNamespaceCountChips({
+          attention: getKubernetesNamespaceAttention({
+            read: props.read,
+            routeFor: props.routes.getPartRoute,
+          }),
+          translator: translator,
+          routeFor: props.routes.getPartRoute,
+          loadRows: loadRows,
+        });
+      for (const chip of countChips) {
+        chips.push({
+          key: chip.key,
+          icon: chip.key === "pods" ? IconProp.Circle : IconProp.Layers,
+          label: chip.label,
+          attention: chip.attention,
+        });
+      }
+    }
+  } else if (props.kind === "Node") {
     location = (
       <TranslatedSentence
         template="Node of cluster {{cluster}}"
@@ -354,6 +411,23 @@ const KubernetesPartHero: FunctionComponent<ComponentProps> = (
         { one: "{{count}} run kept", other: "{{count}} runs kept" },
         props.read ? props.read.jobs.length : null,
       );
+      // Its runs that failed, each with why Kubernetes stopped it.
+      const failedRuns: ReturnType<typeof getKubernetesCronJobFailedRunsChip> =
+        props.read
+          ? getKubernetesCronJobFailedRunsChip({
+              read: props.read,
+              translator: translator,
+              routeFor: props.routes.getPartRoute,
+            })
+          : null;
+      if (failedRuns) {
+        chips.push({
+          key: "failedRuns",
+          icon: IconProp.Close,
+          label: failedRuns.label,
+          attention: failedRuns.attention,
+        });
+      }
     } else if (props.kind === "Job") {
       pushCount(
         "succeeded",
@@ -361,12 +435,29 @@ const KubernetesPartHero: FunctionComponent<ComponentProps> = (
         { one: "{{count}} pod succeeded", other: "{{count}} pods succeeded" },
         readNumber(status, "succeeded"),
       );
-      pushCount(
-        "failed",
-        IconProp.Close,
-        { one: "{{count}} pod failed", other: "{{count}} pods failed" },
-        readNumber(status, "failed"),
-      );
+      /*
+       * Its failed pods open which and why - each one's container, exit
+       * code and since when - where the chip only said how many (#9595).
+       */
+      const failed: number | null = readNumber(status, "failed");
+      if (failed !== null && failed > 0) {
+        chips.push({
+          key: "failed",
+          icon: IconProp.Close,
+          label: translator.translatePlural(
+            { one: "{{count}} pod failed", other: "{{count}} pods failed" },
+            failed,
+          ),
+          attention: props.read
+            ? getKubernetesJobFailedPodsAttention({
+                read: props.read,
+                translator: translator,
+                routeFor: props.routes.getPartRoute,
+                loadRows: loadRows,
+              })
+            : undefined,
+        });
+      }
     } else {
       pushCount(
         "replicas",
