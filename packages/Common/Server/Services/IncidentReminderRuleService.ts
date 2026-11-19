@@ -9,6 +9,7 @@ import IncidentService from "./IncidentService";
 import IncidentStateService from "./IncidentStateService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -73,6 +74,22 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /*
+   * A rule moved in its list: the first rule that matches an incident may
+   * be another one now, so the open incidents' reminders are worked out
+   * again, as after any change of a rule.
+   */
+  @CaptureSpan()
+  protected override async onMoveInListSuccess(data: {
+    row: Model;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.row.projectId) {
+      await this.refreshSchedulesForOpenIncidents(data.row.projectId);
+    }
   }
 
   @CaptureSpan()

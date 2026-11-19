@@ -154,6 +154,8 @@ const PICKER_CASES: Array<PickerCase> = [
       "Control Plane",
       "Storage",
       "Scheduling",
+      // The daily budgets and idle spend (#9548).
+      "Cost",
     ],
   },
   {

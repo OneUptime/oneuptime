@@ -357,8 +357,10 @@ describe("MicrosoftTeamsUtil.saveChatToProjectAuthTokens", () => {
           workspaceType: WorkspaceType.MicrosoftTeams,
           workspaceProjectId: "tenant-abc",
         },
+        // The project: a chat it newly lists has its cut places put back (#9330).
         select: {
           _id: true,
+          projectId: true,
           miscData: true,
         },
         limit: LIMIT_MAX,

@@ -22,6 +22,10 @@ import {
   PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX,
   isProductAnalyticsDerivedMetricName,
 } from "../../Types/Rum/ProductAnalyticsEvents";
+import {
+  KUBERNETES_COST_METRIC_NAME_PREFIX,
+  isKubernetesCostMetricName,
+} from "../../Types/Kubernetes/KubernetesCostMetrics";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -59,6 +63,13 @@ export class Service extends DatabaseService<Model> {
     ) {
       throw new BadDataException(
         `Metric names that start with "${TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX}" are reserved for OneUptime's telemetry ingestion budget metrics. Choose another output metric name.`,
+      );
+    }
+
+    // And the Kubernetes cost metrics the cost ingest writes (#9548).
+    if (typeof name === "string" && isKubernetesCostMetricName(name)) {
+      throw new BadDataException(
+        `Metric names that start with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics. Choose another output metric name.`,
       );
     }
   }

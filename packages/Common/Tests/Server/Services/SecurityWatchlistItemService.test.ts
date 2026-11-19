@@ -633,6 +633,85 @@ describe("importing values", () => {
     expect(updateList).toHaveBeenCalled();
   });
 
+  /*
+   * Each batch is committed on its own: one that fails leaves the values of
+   * the batches before it on the list, and they are in the audit log - which
+   * used to be written only once every batch was (#9616).
+   */
+  test("a batch that fails leaves the values the batches before it wrote in the audit log, each once", async () => {
+    const lines: Array<string> = [];
+
+    for (let index: number = 0; index < 1200; index++) {
+      lines.push(`user-${index}`);
+    }
+
+    // The first batch is written; the second is refused.
+    insert.mockImplementationOnce((rows: unknown): Promise<unknown> => {
+      return Promise.resolve({
+        identifiers: (rows as Array<unknown>).map(
+          (_row: unknown, index: number): JSONObject => {
+            return {
+              _id: `bbbbbbbb-bbbb-4bbb-8bbb-${String(index).padStart(12, "0")}`,
+            };
+          },
+        ),
+      });
+    });
+    insert.mockImplementationOnce((): Promise<unknown> => {
+      return Promise.reject(new Error("insert failed"));
+    });
+
+    await expect(importText(lines.join("\n"))).rejects.toThrow("insert failed");
+
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect(audit).toHaveBeenCalledTimes(500);
+
+    const recorded: Array<{
+      createdItem: SecurityWatchlistItem;
+      props: unknown;
+    }> = audit.mock.calls.map(
+      (
+        call: Array<unknown>,
+      ): { createdItem: SecurityWatchlistItem; props: unknown } => {
+        return call[0] as {
+          createdItem: SecurityWatchlistItem;
+          props: unknown;
+        };
+      },
+    );
+
+    // The first batch's values, as written, by the caller.
+    expect(recorded[0]!.createdItem.value).toBe("user-0");
+    expect(recorded[499]!.createdItem.value).toBe("user-499");
+    expect(recorded[0]!.createdItem._id).toBe(
+      "bbbbbbbb-bbbb-4bbb-8bbb-000000000000",
+    );
+    expect(recorded[0]!.props).toEqual(CALLER);
+    expect(updateList).toHaveBeenCalled();
+  });
+
+  test("each batch is in the audit log before the next one is written", async () => {
+    const lines: Array<string> = [];
+
+    for (let index: number = 0; index < 600; index++) {
+      lines.push(`user-${index}`);
+    }
+
+    const auditedWhenWritten: Array<number> = [];
+    const write: (rows: unknown) => Promise<unknown> =
+      insert.getMockImplementation()!;
+
+    insert.mockImplementation((rows: unknown): Promise<unknown> => {
+      auditedWhenWritten.push(audit.mock.calls.length);
+      return write(rows);
+    });
+
+    await importText(lines.join("\n"));
+
+    expect(auditedWhenWritten).toEqual([0, 500]);
+    expect(audit).toHaveBeenCalledTimes(600);
+  });
+
   test("a file's moments to leave go on its new values", async () => {
     await importText(
       "value,note,expires\nalice,CFO,2099-12-31\nbob,,\ncarol,,2020-01-01",

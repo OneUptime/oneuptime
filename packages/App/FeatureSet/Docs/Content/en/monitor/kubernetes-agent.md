@@ -35,6 +35,7 @@ flowchart LR
 | Node collector | DaemonSet | Pod logs from `/var/log/pods`, kubelet and cAdvisor metrics, and the node's OS metrics. | Yes |
 | eBPF instrumentation (OBI) | DaemonSet | HTTP, gRPC, SQL and Redis traces and request metrics from every pod, and the service map. | Yes |
 | Kubernetes AI agent | Deployment | Lets OneUptime AI run read-only `kubectl` while it investigates an incident or alert on this cluster. | Yes |
+| Cost engine and poller | Deployments | What each namespace and workload costs: OpenCost, the small Prometheus it needs, and the cost agent that sends what they work out. | Yes, except with the `gke-autopilot` and `eks-fargate` presets |
 | Log tailer | Deployment | Pod logs through the Kubernetes API, where the node collector cannot read them. | With the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets |
 | eBPF profiler | DaemonSet | Continuous CPU flame graphs of every process. | No |
 | kube-state-metrics | Deployment | Pod phases, container waiting reasons and resource quotas. | No |
@@ -357,14 +358,14 @@ Profiling needs **Linux 5.10** or later, and a privileged pod with the node's pr
 | --- | --- | --- |
 | `hostMetrics.enabled` | on | Each node's OS metrics from `/proc` and `/sys`: disk I/O queues, filesystem inodes, network interface errors, paging and load average. Runs in the node collector, with no extra pods. |
 | `kubeletstats.utilizationMetrics.enabled` | on | Container and pod CPU and memory as a percentage of their request and limit, which the Pod CPU and Pod Memory Saturating Container Limit templates read. A container with no limit (or request) gets none of these series, and a pod only when every container in it has one. |
-| `kubeletstats.volumeMetrics.enabled` | on | Each PVC's free and total space (`k8s.volume.available`, `k8s.volume.capacity`), for charts and metric monitors of your own: no built-in template reads them. One series per PVC per pod. |
+| `kubeletstats.volumeMetrics.enabled` | on | Each PVC's free and total space (`k8s.volume.available`, `k8s.volume.capacity`), named by its claim: the used, free and capacity on the Persistent Volume Claims pages, and what the PVC Almost Full template reads. A few series per volume per pod. |
 | `cadvisor.enabled` | on | CPU throttling and OOM kills from each kubelet's `/metrics/cadvisor`: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` and `container_oom_events_total`, and nothing else. |
 | `kubeStateMetrics.enabled` | off | Pod phases (Pending, Terminating), pods that cannot be scheduled, container waiting reasons (CrashLoopBackOff, ImagePullBackOff) and resource quota use, from kube-state-metrics. `kubeStateMetrics.mode: bundled` (the default) runs a small kube-state-metrics for you; `external` reads one you already run, at `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | off | The Kubernetes audit log, `/var/log/kubernetes/audit.log`: every request to the API, by whom, on what. Self-managed clusters only: managed ones (EKS, GKE, AKS, DOKS) send it to the cloud provider. |
 | `csi.enabled` | off | The metrics of CSI storage drivers, from pods labelled `app=csi-driver` or `app.kubernetes.io/component=csi-driver`: volume attach and detach times, provisioning failures, IOPS. |
 | `coreDns.enabled` | off | CoreDNS's metrics on `:9153/metrics`: query rate, latency, cache hits and errors. |
 | `controlPlane.enabled` | off | The API server, at its in-cluster address, and etcd, the scheduler and the controller manager at the endpoints you list ([Enable control plane monitoring](/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring)). Self-managed clusters only: managed ones do not expose them. |
-| `cost.enabled` | off | What each workload costs. See [Kubernetes Cost](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | What each namespace and workload costs, with idle capacity and efficiency, also as metrics to alert on: on, except with the `gke-autopilot` and `eks-fargate` presets; `false` turns it off. See [Kubernetes Cost](/docs/telemetry/kubernetes-cost). |
 
 ## Common options
 

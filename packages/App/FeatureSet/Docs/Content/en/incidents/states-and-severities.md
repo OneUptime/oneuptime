@@ -130,7 +130,7 @@ One move goes back up the list: a grouping rule's reopen. A rule set to reopen r
 
 To put right a state set by mistake, delete its row on the record's state timeline page (see [The state timeline](#the-state-timeline)). The record goes back to the state of its latest remaining row; an episode whose resolving row you delete is open again, and its resolved time is cleared.
 
-Through the API and Terraform the order is the `order` column: lower numbers come first. A state created without one goes just above the resolved state; one created or updated with a number takes that place, and the states in the way step down. Numbers nobody else holds are kept as written, so a Terraform-managed state reads back the number it was given.
+Through the API and Terraform the order is the `order` column: lower numbers come first. A state created without one goes just above the resolved state. A number you write is kept as written and moves no other state, so a Terraform-managed state reads back the number it was given; of two states at one number, the older is shown first. The built-in states still keep their order: a write that would put two of them at one number, or out of order, is refused.
 
 ## The seeded severities
 

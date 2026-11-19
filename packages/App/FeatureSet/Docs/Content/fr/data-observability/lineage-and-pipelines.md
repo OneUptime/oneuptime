@@ -32,7 +32,7 @@ Chaque vue du lignage - l'onglet **Lignage** d'une table, celui d'un pipeline, c
 - Les **Services** qui écrivent et lisent des tables, d'après les spans de base de données de vos traces : un span qui nomme sa table (`db.collection.name`, ou l'ancien `db.sql.table`) et son instruction (`db.operation.name`), comme un `INSERT` ou un `SELECT`.
 - Les **Tables** construites à partir d'autres tables, issues de toutes les sources ci-dessus.
 - Les **Pipelines** qui chargent une table à partir de données que OneUptime ne surveille pas, comme une synchronisation Fivetran. Un pipeline qui déplace des données entre deux tables surveillées est nommé sur la flèche qui les relie.
-- Les **Tableaux de bord** et les synchronisations de reverse ETL de vos outils de BI, qui lisent les tables sur lesquelles ils sont construits.
+- Les **Tableaux de bord** et les synchronisations de reverse ETL de vos outils de BI, qui lisent les tables sur lesquelles ils sont construits, même quand rien d'autre ne touche ces tables. Un rapport Power BI qui ne repose sur aucune table surveillée par OneUptime est dessiné avec les jeux de données qu'il représente et les sources de données d'où ils se chargent ; quand aucun des tableaux de bord d'un outil BI ne repose sur une table surveillée, la carte dit pourquoi ([Lignage de Power BI](#lignage-de-power-bi)).
 
 Chaque flèche est quelque chose que OneUptime a enregistré, jamais une supposition. Les cartes se placent de gauche à droite selon le sens des données et indiquent leur état comme sur le diagramme d'une table : rouge pour une table en retard, une alerte ouverte ou une exécution échouée. Une flèche est turquoise lorsque les traces d'un service l'ont vue.
 
@@ -99,7 +99,7 @@ Le véritable impact de données erronées, c'est le tableau de bord que quelqu'
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un principal de service autorisé à utiliser les API d'administration en lecture seule de Power BI. Les rapports et les tableaux de bord sont lus tous les deux, avec leurs vues et leurs actualisations (ci-dessous) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un principal de service autorisé à utiliser les API d'administration en lecture seule de Power BI, avec les deux paramètres de locataire sur les métadonnées de [Lignage de Power BI](#lignage-de-power-bi) activés pour les tables derrière chaque rapport. Les rapports et les tableaux de bord sont lus tous les deux, avec leurs vues et leurs actualisations (ci-dessous) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (ou `eu`) |
 
@@ -140,7 +140,72 @@ Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses
 
 L'onglet **Propriétaires** d'un pipeline nomme les personnes et les équipes qui s'en occupent, et ses alertes leur sont envoyées. La **Vue d'ensemble** et **Problèmes** nomment les propriétaires d'un pipeline en échec ou en retard, ou affichent **Aucun propriétaire**, avec un moyen d'en ajouter un.
 
+Les **Règles de propriétaire** peuvent nommer pour vous les propriétaires d'un pipeline. Dans leur onglet **Règles de pipeline**, une règle fait correspondre un pipeline par une expression régulière sur son nom, comme `orders_daily.load_orders`, ou sur son espace de noms, là où il s'exécute, comme `airflow://prod`, et ajoute ses personnes et ses équipes comme propriétaires du pipeline quand OneUptime voit le pipeline pour la première fois. Pour les ajouter aux pipelines que vous avez déjà, ouvrez la règle et sélectionnez **Exécuter maintenant**.
+
 La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : à gauche les tables qu'il lit, à droite les tables qu'il écrit, le pipeline entre les deux, et chaque carte indique son état actuel. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles, et ouvrez n'importe quelle table pour voir son propre onglet **Lignage**. Un nombre de tables non dessinées, sur la carte du pipeline ou sur celle d'une table, en dessine d'autres sur place ici aussi. Choisissez l'une des colonnes qu'il écrit pour la suivre à travers le pipeline : en amont jusqu'à la colonne de chaque table lue à partir de laquelle elle a été construite, et en aval jusqu'à chaque table où il l'écrit.
+
+## Disjoncteurs
+
+Un contrôle en échec ou une table en retard prévient ses propriétaires, mais les pipelines qui lisent la table s'exécuteraient quand même et recopieraient les mauvaises données en aval. Un disjoncteur les arrête avant : la première étape du pipeline demande à OneUptime si les tables qu'il lit sont saines, et le reste ne s'exécute que si la réponse est go.
+
+- Un contrôle en échec d'une table que le pipeline lit l'arrête toujours : un contrôle dont l'alerte est ouverte, ou un test dbt qui a échoué.
+- Une table en retard l'arrête aussi dès que **Arrêter quand une table qu'il lit est en retard** est activé, sur la page **Disjoncteur** du pipeline. C'est désactivé pour chaque pipeline, car une table en retard peut simplement signifier une journée calme.
+- Un contrôle qui n'a pas pu s'exécuter ou ne s'est pas encore exécuté, et une table sans contrôle, n'arrêtent rien.
+
+L'étape interroge avec une clé API de projet qui peut lire l'Observabilité des données, et nomme le pipeline sous la forme `namespace/name`, par son seul nom ou par son ID. Le disjoncteur lit les tables que lit le pipeline dans son lignage. Une requête peut aussi nommer des `tables`, ou seulement celles-ci, chacune sous la forme `schema.table`, par son seul nom ou par son ID ; un nom qui ne correspond à aucune table revient dans `notFound`, et ne compte jamais comme une table qui a réussi. Seules les tables que la clé API peut lire sont jugées.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Le `verdict` de la réponse est `go` ou `stop`. `reasons` liste chaque contrôle en échec avec sa table, et chaque table en retard avec son retard ; `tables` liste chaque table jugée ; et `answer` dit la même chose en quelques phrases, pour le journal de l'étape. Avec `failWithStatusCode`, un arrêt répond HTTP 412, donc `curl -f` fait échouer l'étape. Envoyez `stopsOnLateTables` à `true` ou `false` pour décider pour une seule requête, et `dryRun` à `true` pour demander sans que la réponse soit conservée.
+
+Dans Airflow, placez un `ShortCircuitOperator` avant les tâches qui lisent les tables : quand sa fonction renvoie false, toutes les tâches qui le suivent sont ignorées.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Les hooks `on-run-start` de dbt exécutent du SQL dans votre entrepôt, pas des requêtes web : interrogez donc dans l'étape qui lance dbt, une tâche de CI, une ligne cron ou la tâche qui l'exécute. Le pipeline d'un projet dbt se nomme `dbt/` suivi du nom du projet.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Une requête qui nomme un pipeline est conservée sur celui-ci, sauf s'il s'agit d'un essai. Tant que le disjoncteur a arrêté un pipeline, sa page **Disjoncteur** dit depuis quand et pourquoi, sa **Vue d'ensemble** s'ouvre sur l'arrêt, et **À traiter** et **Problèmes** le listent comme arrêté, à la place de son exécution en échec ou en retard. L'arrêt prend fin quand le disjoncteur répond go la fois suivante, ou quand une exécution démarre après lui. La même page propose **Tester maintenant**, qui interroge le disjoncteur sans que la réponse soit conservée, et l'étape pour curl, Airflow et dbt avec le nom du pipeline déjà rempli.
+
+Tant que l'Observabilité des données est désactivée sur le serveur, le disjoncteur répond go et ne conserve rien : désactiver un produit n'arrête jamais un pipeline.
 
 ## Un seul signalement par cause
 
@@ -154,6 +219,30 @@ La carte **Données** de la cause liste son **Impact en aval** : chaque alerte q
 Sous la carte **Données**, la page d'une alerte dessine son **Lignage** : autour de sa table, tel que l'onglet **Lignage** de la table le dessine, ou autour de son pipeline. Le chemin qui remonte jusqu'à l'alerte qui l'a causée et qui descend jusqu'à chaque alerte qu'elle a causée est mis en évidence - la table ou le pipeline de la cause marqué **Cause**, ceux de chaque alerte causée marqués **Conséquence** - et le reste s'estompe, si bien que quiconque l'ouvre voit où, dans la chaîne, le problème a commencé. Quand la cause porte sur un pipeline dessiné sur une flèche, la flèche indique **Cause** sous le nom du pipeline. Quand la cause porte sur une base de données entière, ou se trouve plus haut que ne remonte le diagramme, la carte le dit en toutes lettres. Une alerte issue d'un contrôle sur une seule colonne, comme un contrôle Pourcentage de NULL sur `customer_id`, s'ouvre avec cette colonne suivie à côté de ces chemins, comme dans l'onglet **Lignage** de la table : d'où elle vient et où elle va, nommée sur chaque table. Choisissez-y une autre colonne de la table, ou effacez-la pour ne voir que les chemins. **Explorer le lignage** ouvre l'onglet **Lignage** de la table, ou la page du pipeline. Une alerte qu'elle a causée sur un pipeline dessiné sur une flèche y indique **Conséquence** de la même façon, et le sélecteur de colonnes propose d'abord la colonne du contrôle, puis les autres colonnes de la table dans son propre ordre.
 
 Une personne qui ne peut pas voir l'alerte qui l'a causée n'a ni la carte **Données** ni le lignage, et une alerte causée qu'elle ne peut pas voir n'est ni mise en évidence ni comptée.
+
+## Lignage de Power BI
+
+**Tables associées**, sur chaque outil BI, indique sur combien de tables surveillées ses tableaux de bord sont construits, et en dessous la première chose qui empêche les autres d'être associées. **See Why** liste ce que la dernière lecture a trouvé et ce qu'il faut faire : les bases de données que lisent vos tableaux de bord et qui ne sont pas connectées à OneUptime, chacune à un **Connect Database** près, avec son type et son adresse déjà remplis ; les tables qu'une base de données connectée ne surveille pas, qui peuvent être exclues de son analyse ou pas encore collectées ; et les sources qui ne sont pas une base de données, comme des fichiers et des pages web. Pour Power BI, il nomme aussi un paramètre de locataire désactivé, les jeux de données qui lisent des dataflows et les jeux de données que Power BI ne peut pas décrire. **Basé sur**, pour chaque tableau de bord, indique les jeux de données qu'il représente et d'où viennent leurs données, comme Power BI le dit.
+
+OneUptime lit chaque jeu de données Power BI depuis l'analyse des métadonnées de Power BI, avec la requête Power Query derrière chacune de ses tables :
+
+- **La base de données que nomme un connecteur** : SQL Server et Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena et Microsoft Dataverse, ainsi que le schéma et la table que choisit sa navigation.
+- **Le SQL qu'exécute une requête** : l'option **SQL statement** d'un connecteur, `Value.NativeQuery` et `Odbc.Query`, et les tables après chaque `FROM` et `JOIN`.
+- **Les paramètres et les requêtes partagées** : un paramètre vaut partout où il est nommé, et une table qui lit une requête intermédiaire lit ce que cette requête lit.
+- **Les modèles composites** représentent les tables des jeux de données sur lesquels ils sont construits.
+
+Un rapport représente les tables de son jeu de données, et un tableau de bord celles des jeux de données de ses vignettes. D'où viennent les données - le serveur et le nom d'une base de données, le chemin d'un fichier, une adresse web - vient des sources de données de l'analyse, qui ne demandent rien de plus que l'accès aux API d'administration ci-dessus.
+
+Power BI ne renvoie les tables d'un jeu de données qu'une fois qu'un administrateur Fabric a activé deux paramètres de locataire dans le portail d'administration, sous **Tenant settings > Admin API settings**, pour le groupe de sécurité qui contient le principal de service :
+
+- **Enhance admin APIs responses with detailed metadata** : les tables de chaque jeu de données.
+- **Enhance admin APIs responses with DAX and mashup expressions** : les requêtes qui les chargent, qui disent quelles tables de base de données elles lisent.
+
+Power BI décrit ensuite un jeu de données une fois qu'il a été actualisé ou republié ; celui qui n'utilise que DirectQuery, une fois que quelqu'un a ouvert un rapport dessus. Il ne décrit jamais les jeux de données en temps réel, les jeux de données en connexion active à Analysis Services, les classeurs Excel, ni les jeux de données de plus de 1 Go sur une capacité partagée. Un jeu de données qui lit un dataflow est lu jusqu'au dataflow : OneUptime ne lit pas encore quelles tables un dataflow charge.
+
+Chaque table est associée à une table surveillée par son nom, son schéma et sa base de données, et un serveur par son nom court ou son nom complet. Une table d'un autre moteur n'est jamais associée, pas plus qu'une table d'une autre base de données : un rapport sur `Sales.dbo.Orders` n'est pas lié à `Archive.dbo.Orders` parce que seule `Archive` est surveillée.
+
+Les [actualisations](#vues-et-actualisations-dans-power-bi) sont lues à part des tables : un avertissement indiquant que les actualisations de certains jeux de données n'ont pas pu être lues ne dit rien de leurs tables.
 
 ## Avant qu'un changement ne soit fusionné
 

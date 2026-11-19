@@ -32,7 +32,7 @@ Cada visão da linhagem - a guia **Linhagem** de uma tabela, a de um pipeline, a
 - **Serviços** que escrevem e leem tabelas, a partir dos spans de banco de dados nos seus traces: um span que nomeia a sua tabela (`db.collection.name`, ou o mais antigo `db.sql.table`) e a sua instrução (`db.operation.name`), como um `INSERT` ou um `SELECT`.
 - **Tabelas** construídas a partir de outras tabelas, de todas as fontes acima.
 - **Pipelines** que carregam uma tabela a partir de dados que o OneUptime não monitora, como uma sincronização do Fivetran. Um pipeline que move dados entre duas tabelas monitoradas é nomeado na seta entre elas.
-- **Painéis** e sincronizações de reverse ETL nas suas ferramentas de BI, que leem as tabelas sobre as quais são construídos.
+- **Painéis** e sincronizações de reverse ETL nas suas ferramentas de BI, que leem as tabelas sobre as quais são construídos, mesmo quando nada mais toca essas tabelas. Um relatório do Power BI que não é construído sobre nenhuma tabela que o OneUptime monitora é desenhado com os conjuntos de dados que ele representa e as fontes de dados de onde eles carregam; quando nenhum dos painéis de uma ferramenta de BI está sobre uma tabela monitorada, o mapa diz por quê ([Linhagem do Power BI](#linhagem-do-power-bi)).
 
 Cada seta é algo que o OneUptime registrou, nunca um palpite. Os cartões ficam da esquerda para a direita conforme os dados fluem e mostram o seu estado como no diagrama de uma tabela: vermelho para uma tabela atrasada, um alerta aberto ou uma execução com falha. Uma seta fica verde-azulada onde os traces de um serviço a viram.
 
@@ -99,7 +99,7 @@ O impacto real de dados ruins é o painel que alguém abre. Em **Painéis de BI*
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, uma entidade de serviço autorizada a usar as APIs de administração somente leitura do Power BI. Relatórios e painéis são lidos, com suas visualizações e atualizações (abaixo) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, uma entidade de serviço autorizada a usar as APIs de administração somente leitura do Power BI, com as duas configurações de locatário sobre metadados de [Linhagem do Power BI](#linhagem-do-power-bi) ativadas para as tabelas por trás de cada relatório. Relatórios e painéis são lidos, com suas visualizações e atualizações (abaixo) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (ou `eu`) |
 
@@ -140,7 +140,72 @@ Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas ex
 
 A aba **Proprietários** de um pipeline nomeia as pessoas e equipes que cuidam dele, e os alertas dele vão para elas. A **Visão geral** e **Problemas** nomeiam os proprietários de um pipeline que falhou ou está atrasado, ou mostram **Sem proprietário**, com uma forma de adicionar um.
 
+As **Regras de proprietário** podem nomear por você os proprietários de um pipeline. Na guia **Regras de pipeline**, uma regra compara um pipeline por uma expressão regular com o nome dele, como `orders_daily.load_orders`, ou com o namespace dele, onde ele é executado, como `airflow://prod`, e adiciona as pessoas e equipes dela como proprietárias do pipeline quando o OneUptime vê o pipeline pela primeira vez. Para adicioná-las aos pipelines que você já tem, abra a regra e selecione **Executar agora**.
+
 A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela. Um número de tabelas não desenhadas, no cartão do pipeline ou no de uma tabela, desenha mais delas no lugar aqui também. Escolha uma das colunas que ele grava para segui-la através do pipeline: para cima até a coluna de cada tabela lida a partir da qual ela foi construída, e para baixo até cada tabela em que ele a grava.
+
+## Disjuntores
+
+Uma verificação com falha ou uma tabela atrasada avisa seus proprietários, mas os pipelines que leem a tabela continuariam sendo executados e copiariam os dados ruins adiante. Um disjuntor os para antes: a primeira etapa do pipeline pergunta ao OneUptime se as tabelas que ele lê estão saudáveis, e o resto só é executado quando a resposta é go.
+
+- Uma verificação com falha de uma tabela que o pipeline lê sempre o para: uma verificação com o alerta aberto, ou um teste do dbt que falhou.
+- Uma tabela atrasada também o para assim que **Parar quando uma tabela que ele lê estiver atrasada** é ativado, na página **Disjuntor** do pipeline. Fica desativado em todo pipeline, porque uma tabela atrasada pode significar apenas um dia tranquilo.
+- Uma verificação que não pôde ser executada ou ainda não foi executada, e uma tabela sem verificações, não param nada.
+
+A etapa pergunta com uma chave de API do projeto que possa ler Observabilidade de dados, e nomeia o pipeline como `namespace/name`, só pelo nome ou pelo ID. O disjuntor lê da linhagem do pipeline as tabelas que ele lê. Uma requisição também pode nomear `tables`, ou somente elas, cada uma como `schema.table`, só pelo nome ou pelo ID; um nome que não corresponde a nenhuma tabela volta em `notFound`, e nunca conta como uma tabela que passou. Só são julgadas as tabelas que a chave de API pode ler.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+O `verdict` da resposta é `go` ou `stop`. `reasons` lista cada verificação com falha com sua tabela, e cada tabela atrasada com o atraso dela; `tables` lista cada tabela julgada; e `answer` diz o mesmo em poucas frases, para o log da etapa. Com `failWithStatusCode`, uma parada responde HTTP 412, então o `curl -f` faz a etapa falhar. Envie `stopsOnLateTables` como `true` ou `false` para decidir em uma única requisição, e `dryRun` como `true` para perguntar sem que a resposta seja guardada.
+
+No Airflow, coloque um `ShortCircuitOperator` antes das tarefas que leem as tabelas: quando a função dele retorna false, todas as tarefas depois dele são puladas.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Os hooks `on-run-start` do dbt executam SQL no seu warehouse, não requisições web, então pergunte na etapa que inicia o dbt: um job de CI, uma linha de cron ou a tarefa que o executa. O pipeline de um projeto do dbt se chama `dbt/` seguido do nome do projeto.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Uma requisição que nomeia um pipeline é guardada nele, a menos que seja um teste. Enquanto o disjuntor mantiver um pipeline parado, a página **Disjuntor** dele diz desde quando e por quê, a **Visão geral** dele abre com a parada, e **Requer atenção** e **Problemas** o listam como parado, no lugar da execução com falha ou atrasada. A parada termina quando o disjuntor responde go novamente, ou quando uma execução começa depois dela. A mesma página tem **Testar agora**, que pergunta ao disjuntor sem que a resposta seja guardada, e a etapa para curl, Airflow e dbt com o nome do pipeline já preenchido.
+
+Enquanto a Observabilidade de dados estiver desativada no servidor, o disjuntor responde go e não guarda nada: desativar um produto nunca para um pipeline.
 
 ## Um alerta por causa
 
@@ -154,6 +219,30 @@ O cartão **Dados** da causa lista o **Impacto a jusante** dela: cada alerta que
 Abaixo do cartão **Dados**, a página de um alerta desenha a **Linhagem** dele: em torno da tabela dele, como a aba **Linhagem** da tabela a desenha, ou em torno do pipeline dele. O caminho para cima até o alerta que o causou e para baixo até cada alerta que ele causou fica destacado - a tabela ou o pipeline da causa marcado como **Causa**, os de cada alerta causado como **Consequência** - e o resto esmaece, para que quem o abre veja em que ponto da cadeia o problema começou. Quando a causa está em um pipeline desenhado sobre uma seta, a seta mostra **Causa** abaixo do nome do pipeline. Quando a causa é sobre um banco de dados inteiro, ou está mais acima do que o diagrama alcança, o cartão diz isso em palavras. Um alerta de uma verificação sobre uma única coluna, como uma verificação Porcentagem de nulos em `customer_id`, abre com essa coluna seguida ao lado desses caminhos, como na aba **Linhagem** da tabela: de onde ela vem e para onde vai, nomeada em cada tabela. Escolha ali outra coluna da tabela, ou limpe a seleção para ver só os caminhos. **Explorar linhagem** abre a aba **Linhagem** da tabela, ou a página do pipeline. Um alerta causado por ele em um pipeline desenhado em uma seta diz **Consequência** ali da mesma forma, e o seletor de colunas oferece primeiro a coluna da verificação e depois as outras colunas da tabela na ordem dela.
 
 Quem não pode ver o alerta que o causou não recebe nem o cartão **Dados** nem a linhagem, e um alerta causado que essa pessoa não pode ver não é destacado nem contado.
+
+## Linhagem do Power BI
+
+**Tabelas correspondentes**, em cada ferramenta de BI, diz sobre quantas tabelas monitoradas os painéis dela são construídos e, abaixo, a primeira coisa que impede as demais de corresponderem. **See Why** lista o que a última leitura encontrou e o que fazer: bancos de dados que os seus painéis leem e que não estão conectados ao OneUptime, cada um a um **Connect Database** de distância, com o tipo e o endereço já preenchidos; tabelas que um banco de dados conectado não monitora, que podem ter ficado de fora da verificação dele ou ainda não ter sido coletadas; e fontes que não são um banco de dados, como arquivos e páginas da web. No Power BI, também nomeia uma configuração de locatário desativada, conjuntos de dados que leem de fluxos de dados e conjuntos de dados que o Power BI não consegue descrever. **Baseado em**, em cada painel, diz os conjuntos de dados que ele representa e de onde vêm os dados deles, como o Power BI diz.
+
+O OneUptime lê cada conjunto de dados do Power BI a partir da verificação de metadados do Power BI, com o Power Query por trás de cada uma das tabelas dele:
+
+- **O banco de dados que um conector nomeia**: SQL Server e Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena e Microsoft Dataverse, e o esquema e a tabela que a navegação dele escolhe.
+- **O SQL que uma consulta executa**: a opção **SQL statement** de um conector, `Value.NativeQuery` e `Odbc.Query`, e as tabelas depois de cada `FROM` e `JOIN`.
+- **Parâmetros e consultas compartilhadas**: um parâmetro vale onde quer que seja nomeado, e uma tabela que lê uma consulta de preparo lê o que essa consulta lê.
+- **Modelos compostos** representam as tabelas dos conjuntos de dados sobre os quais são construídos.
+
+Um relatório representa as tabelas do seu conjunto de dados, e um painel as dos conjuntos de dados dos seus blocos. De onde vêm os dados - o servidor e o nome de um banco de dados, o caminho de um arquivo, um endereço da web - vem das fontes de dados da verificação, que não precisam de nada além do acesso às APIs de administração acima.
+
+O Power BI só retorna as tabelas de um conjunto de dados depois que um administrador do Fabric ativa duas configurações de locatário no portal de administração, em **Tenant settings > Admin API settings**, para o grupo de segurança que contém a entidade de serviço:
+
+- **Enhance admin APIs responses with detailed metadata**: as tabelas de cada conjunto de dados.
+- **Enhance admin APIs responses with DAX and mashup expressions**: as consultas que as carregam, que dizem quais tabelas de banco de dados elas leem.
+
+O Power BI então descreve um conjunto de dados depois que ele é atualizado ou republicado; um que só usa DirectQuery, depois que alguém abre um relatório sobre ele. Ele nunca descreve conjuntos de dados em tempo real, conjuntos de dados com conexão dinâmica ao Analysis Services, pastas de trabalho do Excel nem conjuntos de dados com mais de 1 GB em capacidade compartilhada. Um conjunto de dados que lê de um fluxo de dados é lido até o fluxo de dados: o OneUptime ainda não lê quais tabelas um fluxo de dados carrega.
+
+Cada tabela é associada a uma tabela monitorada pelo nome, pelo esquema e pelo banco de dados, e um servidor pelo nome curto ou pelo nome completo. Uma tabela de outro mecanismo nunca é associada, nem uma de outro banco de dados: um relatório sobre `Sales.dbo.Orders` não é ligado a `Archive.dbo.Orders` porque só `Archive` é monitorado.
+
+As [atualizações](#visualizações-e-atualizações-no-power-bi) são lidas à parte das tabelas: um aviso de que as atualizações de alguns conjuntos de dados não puderam ser lidas não diz nada sobre as tabelas deles.
 
 ## Antes de uma alteração ser mesclada
 

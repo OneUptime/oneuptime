@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Questo endpoint termina una sostituzione in corso, secondo l'orologio del server: la sua fine diventa adesso, e da quel momento gli avvisi tornano alla persona assente. Richiede lo stesso permesso di un aggiornamento e restituisce il nuovo endsAt della sostituzione.",
       "userOverrideEndNowRequestTitle": "Richiesta Termina ora",
       "userOverrideIdDescription": "ID della sostituzione utente",
-      "userOverrideEndNowRefused": "400 Bad Request: la sostituzione non è ancora iniziata (eliminala invece), è già terminata o termina comunque entro il minuto."
+      "userOverrideEndNowRefused": "400 Bad Request: la sostituzione non è ancora iniziata (eliminala invece), è già terminata o termina comunque entro il minuto.",
+      "moveInListHeading": "Sposta",
+      "moveInListIntro": "Questo endpoint sposta il record al posto del record indicato da placeOfId, nell'elenco che condividono: spostato in su, finisce appena sopra quel record; spostato in giù, appena sotto; i record in mezzo avanzano di un posto verso dove si trovava. L'elenco viene poi numerato dall'alto, 1, 2, 3 e così via (dal suo numero più alto in giù, per un elenco che conta all'indietro), in un'unica transazione, così spostamenti contemporanei non lasciano mai due record allo stesso numero. Risponde con changedRows: ogni record che ha ricevuto un altro numero, con il suo _id e il nuovo numero sotto la colonna del numero dell'elenco. Una creazione o un aggiornamento che scrive quel numero colloca il record da solo e non ne sposta nessun altro, che è ciò che serve a Terraform; per spostare un record oltre altri, invia questa richiesta. Richiede lo stesso permesso di un aggiornamento del numero del record.",
+      "moveInListRequestTitle": "Richiesta di spostamento",
+      "moveInListIdDescription": "ID del record da spostare",
+      "placeOfIdDescription": "L'ID del record dello stesso elenco di cui questo record prende il posto.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId manca o non è un ID, oppure indica un record che non è nello stesso elenco del record spostato: quello di un altro padre, di un altro progetto o di un altro tipo.",
+      "moveInListRecordNotFound": "404 Not Found: il record non c'è da spostare: è stato eliminato, o chi chiama non può leggerlo.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: chi chiama può leggere il record ma non cambiarne il numero, come verrebbe rifiutato un aggiornamento.",
+      "moveInListBuiltInOrder": "400 Bad Request: lo spostamento metterebbe fuori ordine gli stati predefiniti del progetto, come lo stato risolto all'altezza dello stato riconosciuto o sopra. La risposta li nomina."
     },
     "dataType": {
       "enumBadge": "Enum",

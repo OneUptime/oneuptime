@@ -36,13 +36,11 @@ resource "random_id" "suffix" {
 
 # Create monitor statuses for criteria.
 #
-# Statuses are kept in one drag-ordered list per project: a priority no other
-# status holds is kept as written, while one another status already holds is
-# taken over and the statuses in the way step down one place (what a drag in
-# the dashboard does). Dense low priorities therefore collide with the
-# project's default statuses and race under Terraform's parallel creates.
-# High, gapped priorities created in ascending order (chained with
-# depends_on) never move anything and are deterministic.
+# Statuses are kept in one drag-ordered list per project: a priority written
+# is kept as written and moves no other status, even one that holds it already
+# (two statuses at one priority are read the older first). High priorities
+# keep these statuses after the project's default ones, which the worst status
+# of a monitor group is read against.
 resource "oneuptime_monitor_status" "operational" {
   name                 = "TF Operational ${random_id.suffix.hex}"
   description          = "Monitor is operational"

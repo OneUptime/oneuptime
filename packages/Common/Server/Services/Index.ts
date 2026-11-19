@@ -450,6 +450,7 @@ import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
 import DataSecurityScanService from "./DataSecurityScanService";
 import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeService";
 import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
+import DataSecurityComplianceSettingService from "./DataSecurityComplianceSettingService";
 import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
 import DataSecuritySettingService from "./DataSecuritySettingService";
 import DataAssetService from "./DataAssetService";
@@ -466,6 +467,7 @@ import DataAssetOwnerTeamService from "./DataAssetOwnerTeamService";
 import DataAssetOwnerRuleService from "./DataAssetOwnerRuleService";
 import DataPipelineOwnerUserService from "./DataPipelineOwnerUserService";
 import DataPipelineOwnerTeamService from "./DataPipelineOwnerTeamService";
+import DataPipelineOwnerRuleService from "./DataPipelineOwnerRuleService";
 import DataAssetLabelRuleService from "./DataAssetLabelRuleService";
 import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
@@ -1051,6 +1053,7 @@ const services: Array<BaseService> = [
   DataSecurityScanService,
   DataSecurityCustomDataTypeService,
   DataSecurityCheckSettingService,
+  DataSecurityComplianceSettingService,
   DataSecurityResidencyRuleService,
   DataSecuritySettingService,
   DataAssetService,
@@ -1067,6 +1070,7 @@ const services: Array<BaseService> = [
   DataAssetOwnerRuleService,
   DataPipelineOwnerUserService,
   DataPipelineOwnerTeamService,
+  DataPipelineOwnerRuleService,
   DataAssetLabelRuleService,
   DataObservabilitySettingService,
   DataAssetLineageService,

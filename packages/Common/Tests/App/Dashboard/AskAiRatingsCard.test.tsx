@@ -200,7 +200,7 @@ describe("Ask AI Answers", () => {
       403,
       {
         message:
-          "Only the project's owners and admins see how Ask AI's answers were rated. Ask one of them, or ask for the Project Admin role.",
+          "Only Project Owners and Project Admins see how Ask AI's answers were rated. Ask one of them, or ask for the Project Admin role.",
       },
       {},
     );
@@ -209,7 +209,7 @@ describe("Ask AI Answers", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId(ASK_AI_RATINGS_CARD_TEST_ID)).toHaveTextContent(
-        "Only the project's owners and admins see how Ask AI's answers were rated.",
+        "Only Project Owners and Project Admins see how Ask AI's answers were rated.",
       );
     });
     expect(screen.queryByTestId("ask-ai-ratings-headline")).toBeNull();

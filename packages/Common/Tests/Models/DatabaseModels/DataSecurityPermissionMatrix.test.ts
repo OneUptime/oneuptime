@@ -1,5 +1,6 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../Models/DatabaseModels/DataSecurityCheckSetting";
+import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import DataSecurityCustomDataType from "../../../Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityFlow from "../../../Models/DatabaseModels/DataSecurityFlow";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
@@ -224,6 +225,20 @@ const MATRIX: ReadonlyArray<[string, ModelClass, Grants]> = [
       delete: [...ADMINS, Permission.DeleteDataSecurityCheckSetting],
     },
   ],
+  /*
+   * What a resource turned off of a compliance framework (#9555): it tunes
+   * scoring as a check setting tunes the checks, so the same permissions.
+   */
+  [
+    "DataSecurityComplianceSetting",
+    DataSecurityComplianceSetting,
+    {
+      create: [...EDITORS, Permission.CreateDataSecurityCheckSetting],
+      read: [...READERS, Permission.ReadDataSecurityCheckSetting],
+      update: [...EDITORS, Permission.EditDataSecurityCheckSetting],
+      delete: [...ADMINS, Permission.DeleteDataSecurityCheckSetting],
+    },
+  ],
   [
     "DataSecurityResidencyRule",
     DataSecurityResidencyRule,
@@ -314,7 +329,7 @@ describe("Data Security's permission matrix", () => {
   );
 
   test("the matrix covers every Data Security model, each once", () => {
-    expect(new Set(MODELS).size).toBe(17);
+    expect(new Set(MODELS).size).toBe(18);
     expect(
       MATRIX.map((row: [string, ModelClass, Grants]): string => {
         return new row[1]().tableName!;

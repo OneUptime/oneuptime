@@ -70,6 +70,31 @@ jest.mock("Common/Server/Services/OpenTelemetryIngestService", () => {
 });
 
 /*
+ * The cost metrics (#9548) go to the metric store and the metric catalog,
+ * both stood in for: the contract is which rows reach them, and when.
+ */
+jest.mock("Common/Server/Services/MetricService", () => {
+  return {
+    __esModule: true,
+    default: {
+      insertJsonRows: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Telemetry/Telemetry", () => {
+  return {
+    __esModule: true,
+    default: {
+      indexMetricNameServiceNameMap: jest.fn(),
+      getAttributeKeys: (attributes: Record<string, unknown>) => {
+        return Object.keys(attributes);
+      },
+    },
+  };
+});
+
+/*
  * The fan-in writer talks to ClickHouse; the contract under test is
  * "which rows were submitted for which service". pushObservedAck keeps
  * its real semantics (pre-observed, wrap-on-failure) so the
@@ -100,7 +125,17 @@ jest.mock("Common/Server/Utils/Telemetry/TelemetryFanInWriter", () => {
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesCostAllocationService from "Common/Server/Services/KubernetesCostAllocationService";
 import OpenTelemetryIngestService from "Common/Server/Services/OpenTelemetryIngestService";
+import MetricService from "Common/Server/Services/MetricService";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
+import {
+  AggregationTemporality,
+  MetricPointType,
+} from "Common/Models/AnalyticsModels/Metric";
+import Dictionary from "Common/Types/Dictionary";
+import logger from "Common/Server/Utils/Logger";
+import { KubernetesCostMetric } from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import KubernetesCostIngestService, {
   KubernetesCostStorageFlushError,
 } from "../../FeatureSet/Telemetry/Services/KubernetesCostIngestService";
@@ -117,6 +152,11 @@ const existsByMock: MockedFn =
 const buildMetadataMock: MockedFn =
   OpenTelemetryIngestService.buildResourceMetadataForNonService as unknown as MockedFn;
 const submitMock: MockedFn = TelemetryFanInWriter.submit as unknown as MockedFn;
+const insertMetricsMock: MockedFn =
+  MetricService.insertJsonRows as unknown as MockedFn;
+const indexCatalogMock: MockedFn =
+  TelemetryUtil.indexMetricNameServiceNameMap as unknown as MockedFn;
+const loggerErrorMock: MockedFn = logger.error as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const CLUSTER_ID: ObjectID = ObjectID.generate();
@@ -227,6 +267,9 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
       dataRententionInDays: RETENTION_DAYS,
     } as never);
     submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    insertMetricsMock.mockResolvedValue(undefined as never);
+    indexCatalogMock.mockResolvedValue(undefined as never);
+    KubernetesCostIngestService.resetCatalogRegistrationsForTests();
   });
 
   test("drops a payload without clusterName before any cluster work", async () => {
@@ -718,5 +761,393 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
     expect(Object.keys(stored)).toHaveLength(100);
     expect(readOwnValue(stored, "__proto__")).toBe("first");
     expect(row["labelKeys"]).toEqual(Object.keys(stored));
+  });
+});
+
+/*
+ * The cost metrics the ingest writes from the rows it stores (#9548): cost
+ * per cluster, idle, per workload and efficiency, so cost can be charted on
+ * the Metrics page and alerted on in a monitor.
+ */
+describe("KubernetesCostIngestService cost metrics", () => {
+  function metricRows(callIndex: number = 0): Array<JSONObject> {
+    return insertMetricsMock.mock.calls[callIndex]![0] as Array<JSONObject>;
+  }
+
+  function metricRowsNamed(name: string): Array<JSONObject> {
+    return metricRows().filter((row: JSONObject): boolean => {
+      return row["name"] === name;
+    });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    findOrCreateMock.mockResolvedValue({
+      id: CLUSTER_ID,
+      clusterIdentifier: "prod-cluster",
+    } as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    stored = [];
+    existsByMock.mockImplementation(((existsBy: {
+      query: JSONObject;
+    }): Promise<boolean> => {
+      return Promise.resolve(
+        stored.some((row: StoredRow): boolean => {
+          return matchesStoredRow(row, existsBy.query);
+        }),
+      );
+    }) as never);
+    buildMetadataMock.mockResolvedValue({
+      dataRententionInDays: RETENTION_DAYS,
+      serviceRetentionConfig: null,
+      serviceRetentionInDays: null,
+      projectRetentionConfig: null,
+      projectRetentionInDays: 30,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    insertMetricsMock.mockResolvedValue(undefined as never);
+    indexCatalogMock.mockResolvedValue(undefined as never);
+    KubernetesCostIngestService.resetCatalogRegistrationsForTests();
+  });
+
+  test("writes the cluster's total and idle cost, and each workload's cost and efficiency", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [
+          makeAllocation({ podName: "api-a", totalCost: 2 }),
+          makeAllocation({ podName: "api-b", totalCost: 1 }),
+          makeAllocation({
+            namespace: "",
+            controllerKind: "",
+            controllerName: "",
+            podName: "",
+            containerName: "",
+            totalCost: 4,
+          }),
+          makeAllocation({
+            namespace: "__idle__",
+            controllerKind: "",
+            controllerName: "",
+            podName: "",
+            totalCost: 5,
+          }),
+        ],
+      }),
+    );
+
+    expect(insertMetricsMock).toHaveBeenCalledTimes(1);
+
+    const total: Array<JSONObject> = metricRowsNamed(
+      KubernetesCostMetric.Total,
+    );
+    expect(total).toHaveLength(1);
+    expect(total[0]!["value"]).toBe(12);
+
+    const idle: Array<JSONObject> = metricRowsNamed(KubernetesCostMetric.Idle);
+    expect(idle).toHaveLength(1);
+    expect(idle[0]!["value"]).toBe(5);
+
+    const workload: Array<JSONObject> = metricRowsNamed(
+      KubernetesCostMetric.Workload,
+    );
+    expect(workload).toHaveLength(1);
+    expect(workload[0]!["value"]).toBe(3);
+    expect(workload[0]!["attributes"]).toEqual({
+      "resource.k8s.cluster.name": "prod-cluster",
+      "resource.k8s.namespace.name": "prod",
+      "resource.k8s.deployment.name": "api",
+    });
+
+    expect(metricRowsNamed(KubernetesCostMetric.Efficiency)).toHaveLength(1);
+  });
+
+  test("writes a cost as a Delta Sum and efficiency as a Gauge, at the window's start, under the cluster", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    const windowStart: Date = OneUptimeDate.fromString(WINDOW);
+    const time: string = OneUptimeDate.toClickhouseDateTime(windowStart);
+    const entityKey: string = keyForKubernetesCluster(
+      PROJECT_ID.toString(),
+      "prod-cluster",
+    );
+
+    const workload: JSONObject = metricRowsNamed(
+      KubernetesCostMetric.Workload,
+    )[0]!;
+
+    expect(workload).toEqual(
+      expect.objectContaining({
+        projectId: PROJECT_ID.toString(),
+        primaryEntityId: CLUSTER_ID.toString(),
+        primaryEntityType: ServiceType.KubernetesCluster,
+        entityKeys: [entityKey],
+        k8sClusterEntityKey: entityKey,
+        metricPointType: MetricPointType.Sum,
+        aggregationTemporality: AggregationTemporality.Delta,
+        isMonotonic: false,
+        time: time,
+        startTime: time,
+        timeUnixNano: OneUptimeDate.toUnixNano(windowStart).toString(),
+        attributeKeys: [
+          "resource.k8s.cluster.name",
+          "resource.k8s.namespace.name",
+          "resource.k8s.deployment.name",
+        ],
+        value: 0.07,
+      }),
+    );
+
+    const efficiency: JSONObject = metricRowsNamed(
+      KubernetesCostMetric.Efficiency,
+    )[0]!;
+
+    expect(efficiency["metricPointType"]).toBe(MetricPointType.Gauge);
+    expect(efficiency["aggregationTemporality"]).toBeNull();
+    // In percent, as the Costs pages show it.
+    expect(efficiency["value"]).toBe(50);
+    expect(efficiency["time"]).toBe(time);
+  });
+
+  test("keeps the metrics as long as the cluster's other metrics", async () => {
+    buildMetadataMock.mockResolvedValue({
+      dataRententionInDays: RETENTION_DAYS,
+      serviceRetentionConfig: null,
+      serviceRetentionInDays: 45,
+      projectRetentionConfig: null,
+      projectRetentionInDays: 30,
+    } as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    const windowStart: Date = OneUptimeDate.fromString(WINDOW);
+
+    expect(metricRows()[0]!["retentionDate"]).toBe(
+      OneUptimeDate.toClickhouseDateTime(
+        OneUptimeDate.addRemoveDurationInDays(windowStart, 45),
+      ),
+    );
+  });
+
+  test("writes the metrics only once the allocation rows have landed", async () => {
+    const order: Array<string> = [];
+
+    submitMock.mockImplementation((() => {
+      order.push("rows submitted");
+      return Promise.resolve({
+        flushed: Promise.resolve().then(() => {
+          order.push("rows landed");
+        }),
+      });
+    }) as never);
+    insertMetricsMock.mockImplementation((() => {
+      order.push("metrics written");
+      return Promise.resolve();
+    }) as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(order).toEqual(["rows submitted", "rows landed", "metrics written"]);
+  });
+
+  test("writes no metric when the rows failed to land, and fails the job as before", async () => {
+    submitMock.mockResolvedValue({
+      flushed: Promise.reject(new Error("clickhouse down")),
+    } as never);
+
+    await expect(
+      KubernetesCostIngestService.processFromQueue(
+        makeJobData({
+          clusterName: "prod-cluster",
+          allocations: [makeAllocation()],
+        }),
+      ),
+    ).rejects.toThrow(KubernetesCostStorageFlushError);
+
+    expect(insertMetricsMock).not.toHaveBeenCalled();
+  });
+
+  test("a failed metric write never fails the job: a retry would skip the stored rows anyway", async () => {
+    insertMetricsMock.mockRejectedValue(
+      new Error("metric store down") as never,
+    );
+
+    await expect(
+      KubernetesCostIngestService.processFromQueue(
+        makeJobData({
+          clusterName: "prod-cluster",
+          allocations: [makeAllocation()],
+        }),
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(loggerErrorMock).toHaveBeenCalledWith(
+      expect.stringContaining("could not write the cost metrics"),
+    );
+    // Nothing registered for metrics that were never written.
+    expect(indexCatalogMock).not.toHaveBeenCalled();
+  });
+
+  test("writes no metric for a window another shipment already delivered", async () => {
+    stored = [{ windowStart: WINDOW, shipmentId: "earlier", shipmentChunk: 0 }];
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        shipmentId: "now",
+        shipmentChunk: 0,
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(insertMetricsMock).not.toHaveBeenCalled();
+  });
+
+  test("writes metrics for the windows it stores and none for the one it skips", async () => {
+    stored = [{ windowStart: WINDOW, shipmentId: "earlier", shipmentChunk: 0 }];
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        shipmentId: "now",
+        shipmentChunk: 0,
+        allocations: [
+          makeAllocation({ totalCost: 9 }),
+          makeAllocation({
+            windowStart: "2026-07-24T11:00:00Z",
+            windowEnd: "2026-07-24T12:00:00Z",
+            totalCost: 3,
+          }),
+        ],
+      }),
+    );
+
+    const total: Array<JSONObject> = metricRowsNamed(
+      KubernetesCostMetric.Total,
+    );
+
+    expect(total).toHaveLength(1);
+    expect(total[0]!["value"]).toBe(3);
+    expect(total[0]!["time"]).toBe(
+      OneUptimeDate.toClickhouseDateTime(
+        OneUptimeDate.fromString("2026-07-24T11:00:00Z"),
+      ),
+    );
+  });
+
+  test("puts the four names in the project's metric catalog, in the payload's currency", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        currency: "EUR",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(indexCatalogMock).toHaveBeenCalledTimes(1);
+
+    const call: {
+      projectId: ObjectID;
+      metricNameServiceNameMap: Dictionary<MetricType>;
+    } = indexCatalogMock.mock.calls[0]![0] as {
+      projectId: ObjectID;
+      metricNameServiceNameMap: Dictionary<MetricType>;
+    };
+
+    expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(Object.keys(call.metricNameServiceNameMap).sort()).toEqual(
+      Object.values(KubernetesCostMetric).sort(),
+    );
+
+    const total: MetricType =
+      call.metricNameServiceNameMap[KubernetesCostMetric.Total]!;
+    expect(total.unit).toBe("EUR");
+    expect(total.description).toContain("idle capacity included");
+    expect(total.aggregationTemporality).toBe(AggregationTemporality.Delta);
+
+    expect(
+      call.metricNameServiceNameMap[KubernetesCostMetric.Efficiency]!.unit,
+    ).toBe("%");
+  });
+
+  test("registers the catalog once a process for each project and currency", async () => {
+    for (let i: number = 0; i < 3; i++) {
+      await KubernetesCostIngestService.processFromQueue(
+        makeJobData({
+          clusterName: "prod-cluster",
+          allocations: [makeAllocation()],
+        }),
+      );
+    }
+
+    expect(insertMetricsMock).toHaveBeenCalledTimes(3);
+    expect(indexCatalogMock).toHaveBeenCalledTimes(1);
+
+    const unit: string | undefined = (
+      indexCatalogMock.mock.calls[0]![0] as {
+        metricNameServiceNameMap: Dictionary<MetricType>;
+      }
+    ).metricNameServiceNameMap[KubernetesCostMetric.Total]!.unit;
+
+    // No currency in the payload: the agent prices in USD.
+    expect(unit).toBe("USD");
+  });
+
+  test("tries the catalog again on the next window when it could not register", async () => {
+    indexCatalogMock.mockRejectedValueOnce(new Error("postgres down") as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(indexCatalogMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("stamps the metrics with the cluster's stored identifier, as its other metrics carry it", async () => {
+    findOrCreateMock.mockResolvedValue({
+      id: CLUSTER_ID,
+      clusterIdentifier: "prod-cluster-canonical",
+    } as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    for (const row of metricRows()) {
+      expect(
+        (row["attributes"] as Record<string, string>)[
+          "resource.k8s.cluster.name"
+        ],
+      ).toBe("prod-cluster-canonical");
+    }
   });
 });

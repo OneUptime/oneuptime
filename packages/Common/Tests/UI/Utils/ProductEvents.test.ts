@@ -36,7 +36,10 @@ import { GuidedSetupEvents } from "../../../UI/Utils/GuidedSetupEvents";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import Project from "../../../Models/DatabaseModels/Project";
-import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
+import {
+  ProductEventName,
+  SEARCH_QUERY_MAX_LENGTH,
+} from "../../../Types/Analytics/ProductEvent";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -127,7 +130,13 @@ describe("ProductEvents", () => {
         query: words,
       });
 
-      expect(lastEvent().data["query"]).toBe(words.slice(0, 40));
+      // Cut at a word, never in the middle of one (#7207).
+      expect(lastEvent().data["query"]).toBe(
+        "how do I page the person on call by",
+      );
+      expect((lastEvent().data["query"] as string).length).toBeLessThanOrEqual(
+        SEARCH_QUERY_MAX_LENGTH,
+      );
       expect(lastEvent().data["query_length"]).toBe(words.length);
 
       isCloud = false;

@@ -1072,8 +1072,14 @@ import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "./18091846
 import { AddDataStoreFindingSampleRecords1809184700000 } from "./1809184700000-AddDataStoreFindingSampleRecords";
 import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIdentityProviderSignOut";
 import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000-AddSecurityCaseTaskResponseStepKey";
-import { AddMonitorNetworkDeviceId1809184736000 } from "./1809184736000-AddMonitorNetworkDeviceId";
-import { AddMonitorNetworkDeviceIdIndexAndKey1809184736100 } from "./1809184736100-AddMonitorNetworkDeviceIdIndexAndKey";
+import { AddIncidentCallTranscriptPostsAndSignIn1809184830000 } from "./1809184830000-AddIncidentCallTranscriptPostsAndSignIn";
+import { AddIncidentCallTranscriptSignInIndexes1809184840000 } from "./1809184840000-AddIncidentCallTranscriptSignInIndexes";
+import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-AddDataSecurityComplianceSettings";
+import { AddKubernetesVolumeClaimUsage1809184859539 } from "./1809184859539-AddKubernetesVolumeClaimUsage";
+import { AddDataPipelineOwnerRules1809184860000 } from "./1809184860000-AddDataPipelineOwnerRules";
+import { AddDataPipelineCircuitBreaker1809184870000 } from "./1809184870000-AddDataPipelineCircuitBreaker";
+import { AddMonitorNetworkDeviceId1809184900000 } from "./1809184900000-AddMonitorNetworkDeviceId";
+import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./1809184900100-AddMonitorNetworkDeviceIdIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2150,6 +2156,12 @@ export default [
   AddDataStoreFindingSampleRecords1809184700000,
   AddIdentityProviderSignOut1809184710000,
   AddSecurityCaseTaskResponseStepKey1809184720000,
-  AddMonitorNetworkDeviceId1809184736000,
-  AddMonitorNetworkDeviceIdIndexAndKey1809184736100,
+  AddIncidentCallTranscriptPostsAndSignIn1809184830000,
+  AddIncidentCallTranscriptSignInIndexes1809184840000,
+  AddDataSecurityComplianceSettings1809184850000,
+  AddKubernetesVolumeClaimUsage1809184859539,
+  AddDataPipelineOwnerRules1809184860000,
+  AddDataPipelineCircuitBreaker1809184870000,
+  AddMonitorNetworkDeviceId1809184900000,
+  AddMonitorNetworkDeviceIdIndexAndKey1809184900100,
 ];

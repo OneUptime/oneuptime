@@ -1004,7 +1004,7 @@ export const ASK_AI_RATINGS_PERMISSIONS: Array<Permission> = [
 ];
 
 export const ASK_AI_RATINGS_REFUSED_MESSAGE: string =
-  "Only the project's owners and admins see how Ask AI's answers were rated. Ask one of them, or ask for the Project Admin role.";
+  "Only Project Owners and Project Admins see how Ask AI's answers were rated. Ask one of them, or ask for the Project Admin role.";
 
 router.get(
   ASK_AI_RATINGS_ROUTE,

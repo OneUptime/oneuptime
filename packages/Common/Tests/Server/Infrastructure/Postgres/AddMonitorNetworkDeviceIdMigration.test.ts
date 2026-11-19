@@ -6,8 +6,8 @@ import OnlineDdl, {
   OnlineIndex,
 } from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddMonitorNetworkDeviceId1809184736000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184736000-AddMonitorNetworkDeviceId";
-import { AddMonitorNetworkDeviceIdIndexAndKey1809184736100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184736100-AddMonitorNetworkDeviceIdIndexAndKey";
+import { AddMonitorNetworkDeviceId1809184900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184900000-AddMonitorNetworkDeviceId";
+import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184900100-AddMonitorNetworkDeviceIdIndexAndKey";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -76,10 +76,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddMonitorNetworkDeviceId1809184736000: the column", () => {
+describe("AddMonitorNetworkDeviceId1809184900000: the column", () => {
   test("adds networkDeviceId to Monitor, a nullable uuid, and nothing else", async () => {
-    const migration: AddMonitorNetworkDeviceId1809184736000 =
-      new AddMonitorNetworkDeviceId1809184736000();
+    const migration: AddMonitorNetworkDeviceId1809184900000 =
+      new AddMonitorNetworkDeviceId1809184900000();
 
     expect(
       await statementsOf((runner: QueryRunner) => {
@@ -90,7 +90,7 @@ describe("AddMonitorNetworkDeviceId1809184736000: the column", () => {
 
   test("builds no index, adds no key or default, and backfills nothing in the schema migration", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddMonitorNetworkDeviceId1809184736000().up(runner);
+      return new AddMonitorNetworkDeviceId1809184900000().up(runner);
     })) {
       expect(statement).not.toMatch(
         /CREATE (UNIQUE )?INDEX|FOREIGN KEY|DEFAULT|NOT NULL|UPDATE /i,
@@ -101,13 +101,13 @@ describe("AddMonitorNetworkDeviceId1809184736000: the column", () => {
   test("down drops the column up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddMonitorNetworkDeviceId1809184736000().down(runner);
+        return new AddMonitorNetworkDeviceId1809184900000().down(runner);
       }),
     ).toEqual([`ALTER TABLE "${TABLE}" DROP COLUMN "networkDeviceId"`]);
   });
 });
 
-describe("AddMonitorNetworkDeviceIdIndexAndKey1809184736100: the index and the key", () => {
+describe("AddMonitorNetworkDeviceIdIndexAndKey1809184900100: the index and the key", () => {
   test("the model declares the partial index under its name, and the key's SET NULL to NetworkDevice", () => {
     const indexes: Array<IndexMetadataArgs> =
       getMetadataArgsStorage().indices.filter(
@@ -136,8 +136,8 @@ describe("AddMonitorNetworkDeviceIdIndexAndKey1809184736100: the index and the k
   });
 
   test("builds the index, then adds the key - both online, outside a transaction", async () => {
-    const migration: AddMonitorNetworkDeviceIdIndexAndKey1809184736100 =
-      new AddMonitorNetworkDeviceIdIndexAndKey1809184736100();
+    const migration: AddMonitorNetworkDeviceIdIndexAndKey1809184900100 =
+      new AddMonitorNetworkDeviceIdIndexAndKey1809184900100();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -171,7 +171,7 @@ describe("AddMonitorNetworkDeviceIdIndexAndKey1809184736100: the index and the k
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new AddMonitorNetworkDeviceIdIndexAndKey1809184736100().down(
+          return new AddMonitorNetworkDeviceIdIndexAndKey1809184900100().down(
             runner,
           );
         },
@@ -189,8 +189,8 @@ describe("both are registered", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
 
     for (const migration of [
-      AddMonitorNetworkDeviceId1809184736000,
-      AddMonitorNetworkDeviceIdIndexAndKey1809184736100,
+      AddMonitorNetworkDeviceId1809184900000,
+      AddMonitorNetworkDeviceIdIndexAndKey1809184900100,
     ]) {
       expect(
         registered.filter((candidate: unknown): boolean => {
@@ -207,15 +207,15 @@ describe("both are registered", () => {
     }
 
     expect(
-      registered.indexOf(AddMonitorNetworkDeviceId1809184736000),
+      registered.indexOf(AddMonitorNetworkDeviceId1809184900000),
     ).toBeLessThan(
-      registered.indexOf(AddMonitorNetworkDeviceIdIndexAndKey1809184736100),
+      registered.indexOf(AddMonitorNetworkDeviceIdIndexAndKey1809184900100),
     );
-    expect(new AddMonitorNetworkDeviceId1809184736000().name).toBe(
-      "AddMonitorNetworkDeviceId1809184736000",
+    expect(new AddMonitorNetworkDeviceId1809184900000().name).toBe(
+      "AddMonitorNetworkDeviceId1809184900000",
     );
-    expect(new AddMonitorNetworkDeviceIdIndexAndKey1809184736100().name).toBe(
-      "AddMonitorNetworkDeviceIdIndexAndKey1809184736100",
+    expect(new AddMonitorNetworkDeviceIdIndexAndKey1809184900100().name).toBe(
+      "AddMonitorNetworkDeviceIdIndexAndKey1809184900100",
     );
   });
 });

@@ -5,6 +5,8 @@ import {
 } from "./DataSecurityPills";
 import AppLink from "../AppLink/AppLink";
 import IssueMoment from "./IssueMoment";
+import { getDataStoreRoute } from "./StoreNameCell";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -12,6 +14,10 @@ import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
+import {
+  DATA_SECURITY_CHECKS,
+  DataSecurityCheckInfo,
+} from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -27,7 +33,8 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
  * One store's issues, the riskiest first. A store's Issues page shows two of
  * these: what is open now, which is what needs someone, and what was
  * accepted or resolved, kept for its history. Each issue opens on its own
- * page, where it is worked.
+ * page, where it is worked. A resource's Data Security page lists its
+ * stores' open issues in one, each row naming its store (#9547).
  */
 
 const SEVERITY_OPTIONS: Array<DropdownOption> = [
@@ -36,6 +43,17 @@ const SEVERITY_OPTIONS: Array<DropdownOption> = [
   { label: "Medium", value: SecuritySeverity.Medium },
   { label: "Low", value: SecuritySeverity.Low },
 ];
+
+/*
+ * The checks, by their titles: a resource's Compliance page opens its Data
+ * Security page on one requirement's issues through this filter, set and
+ * clearable in the list's own Filters.
+ */
+const CHECK_OPTIONS: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
+  (check: DataSecurityCheckInfo): DropdownOption => {
+    return { value: check.id, label: check.title };
+  },
+);
 
 // The statuses in the order the filter offers them.
 const STATUSES: ReadonlyArray<DataSecurityIssueStatus> = [
@@ -53,7 +71,13 @@ export function getDataSecurityIssueRoute(issueId: ObjectID | string): Route {
 }
 
 export interface ComponentProps {
-  dataStoreId: ObjectID;
+  /*
+   * One store's issues, or several stores' at once: a Kubernetes cluster's
+   * or a service's, on its Data Security page (#9547).
+   */
+  dataStoreId: ObjectID | Array<ObjectID>;
+  // Whether each row names its store: when the issues are several stores'.
+  showStore?: boolean | undefined;
   statuses: Array<DataSecurityIssueStatus>;
   id: string;
   title: string;
@@ -76,7 +100,9 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
       userPreferencesKey={props.id}
       name={props.title}
       query={{
-        dataStoreId: props.dataStoreId,
+        dataStoreId: Array.isArray(props.dataStoreId)
+          ? new Includes(props.dataStoreId)
+          : props.dataStoreId,
         status:
           props.statuses.length === 1
             ? props.statuses[0]
@@ -95,7 +121,7 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
       }}
       noItemsMessage={props.noItemsMessage}
       searchableFields={["title"]}
-      selectMoreFields={{ checkGroup: true }}
+      selectMoreFields={{ checkGroup: true, dataStoreId: true }}
       onViewPage={(item: DataSecurityIssue): Promise<Route> => {
         return Promise.resolve(getDataSecurityIssueRoute(item._id!));
       }}
@@ -126,6 +152,13 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
           field: { lastDetectedAt: true },
           title: "Last Detected",
           type: FieldType.Date,
+        },
+        {
+          field: { checkId: true },
+          title: "Check",
+          type: FieldType.Dropdown,
+          filterDropdownOptions: CHECK_OPTIONS,
+          isAdvancedFilter: true,
         },
       ]}
       // Severity first, then the issue, as the product's Issues list has them.
@@ -182,6 +215,31 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
                 type: FieldType.Element,
                 getElement: (item: DataSecurityIssue): ReactElement => {
                   return <IssueStatusPill status={item.status} />;
+                },
+              },
+            ]
+          : []),
+        ...(props.showStore
+          ? [
+              {
+                field: { dataStore: { name: true } },
+                title: "Data Store",
+                type: FieldType.Element,
+                hideOnMobile: true,
+                getLineText: drawsItsOwnLines,
+                getElement: (item: DataSecurityIssue): ReactElement => {
+                  if (!item.dataStoreId) {
+                    return <TableEmptyValue />;
+                  }
+
+                  return (
+                    <AppLink
+                      to={getDataStoreRoute(item.dataStoreId)}
+                      className="text-sm text-gray-700 hover:underline"
+                    >
+                      <IsolatedText text={item.dataStore?.name || ""} />
+                    </AppLink>
+                  );
                 },
               },
             ]

@@ -32,7 +32,7 @@ flowchart TB
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- och Redis-spår och förfrågningsmätvärden från varje podd, och tjänstekartan. | Som standard, utom på GKE Autopilot och EKS Fargate |
 | Kubernetes-AI-agent | Deployment | Skrivskyddad `kubectl` för OneUptime AI medan den undersöker en incident eller ett larm. | Som standard |
 | Loggläsare | Deployment | Poddloggar via Kubernetes-API:t, där nod-collectorn inte kan läsa dem. | Med presetarna `gke-autopilot`, `eks-fargate` och `openshift-restricted` |
-| Kostnadsmotor och poller | Deployments | Utgifter per namespace, arbetsbelastning och podd. | Med `cost.enabled=true` |
+| Kostnadsmotor och poller | Deployments | Utgifter per namespace, arbetsbelastning och podd. | Som standard, utom på GKE Autopilot och EKS Fargate |
 
 Alla agentimages finns bara för Linux, så varje arbetsbelastning är fäst vid Linux-noder.
 
@@ -199,7 +199,8 @@ Sätt dem under **Optional configuration settings** i EKS-konsolen, eller med `-
 - `oneuptime.labels`: projektetiketter för allt som det här klustret skickar, till exempel `{"team": "payments"}`.
 - `preset`: `eks-fargate` för ett kluster som bara körs på Fargate, annars `standard`, som är standardvärdet.
 - `logs.enabled`, `ebpf.enabled` och `aiAgent.enabled`: poddloggar, eBPF-spår och [Kubernetes-AI-agenten](#kubernetes-ai-agent), alla tre på som standard.
-- `kubeStateMetrics.enabled` och `cost.enabled`: kube-state-metrics och [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), båda avstängda som standard.
+- `kubeStateMetrics.enabled`: kube-state-metrics, avstängt som standard.
+- `cost.enabled`: [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), `auto` som standard: på, utom med presetet `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ För att få tillbaka dem byter du till `openshift` med `--set preset=openshift`
 | Tjänstegraf (eBPF) | Förfrågningsfrekvens, latens och fel från anropare till anropad, som ritar tjänstekartan |
 | Nätverksflödesmätvärden (eBPF) | Byte- och paketräknare för TCP och UDP från podd till podd, med Kubernetes-metadata |
 | TCP-statistik (eBPF) | Tur och retur-tid, misslyckade anslutningar och omsändningsräknare på nodnivå |
-| Kostnader för arbetsbelastningar (tillval, `cost.enabled=true`) | Utgifter per namespace, arbetsbelastning och podd, med ledig kapacitet och effektivitet, och timkostnader för noder och volymer: se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost) |
+| Kostnader för arbetsbelastningar (på som standard, utom på GKE Autopilot och EKS Fargate) | Utgifter per namespace, arbetsbelastning och podd, med ledig kapacitet och effektivitet, även som mätvärden att larma på, och timkostnader för noder och volymer: se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes-händelser
 
@@ -409,7 +410,7 @@ Händelser över flera rader sätts ihop igen före filtreringen i båda lägena
 Släpp några få bullriga mätvärden (en blockeringslista, oftast det du vill ha):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Skicka bara en fast uppsättning (en tillåtelselista: allt annat släpps):
@@ -594,7 +595,7 @@ Vissa diagram visar mätvärden som agenten inte skrapar: **kube-proxy** på sid
 
 ### Aktivera kostnadsobserverbarhet
 
-Se vad varje namespace, arbetsbelastning och podd kostar, med ledig kapacitet och hur mycket av varje request som används, på klustrets sida **Kostnader**:
+Kostnadsobserverbarhet är på som standard: klustrets översikt och dess sida **Kostnader** visar vad varje namespace, arbetsbelastning och podd kostar, med ledig kapacitet och hur mycket av varje request som används, och kostnadsmätvärdena kan visas i diagram och larmas på. Den är avstängd som standard med presetarna `gke-autopilot` och `eks-fargate`, som debiterar varje podd efter vad den begär, och på en agent som installerades innan den var på som standard. Slå på den där:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Det i sig är en fullständig installation: chartet levereras med motorn [OpenCost](https://opencost.io) med öppen källkod (med den lilla Prometheus den behöver) och prissätter dina noder och volymer utifrån molnleverantörens offentliga listpriser, utan inloggningsuppgifter. Den lägger till två små poddar, och de första kostnaderna visas efter den första avslutade timmen. Kör du redan Kubecost eller OpenCost? Lägg till `--set cost.engine.url=<its service URL>` i stället, så medföljer ingenting. Lokala kluster kan sätta en prislista med `cost.opencost.customPricing`. Den fullständiga guiden, med lokal prissättning och felsökning, är [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost).
+Det i sig är en fullständig installation: chartet levereras med motorn [OpenCost](https://opencost.io) med öppen källkod (med den lilla Prometheus den behöver) och prissätter dina noder och volymer utifrån molnleverantörens offentliga listpriser, utan inloggningsuppgifter. Den lägger till tre små poddar, och de första kostnaderna visas efter den första avslutade timmen. För att stänga av den sätter du `--set cost.enabled=false` på samma sätt. Kör du redan Kubecost eller OpenCost? Lägg till `--set cost.engine.url=<its service URL>` i stället, så medföljer ingenting. Lokala kluster kan sätta en prislista med `cost.opencost.customPricing`. Den fullständiga guiden, med lokal prissättning och felsökning, är [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost).
 
 ### Automatisk märkning med projektetiketter
 
@@ -959,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinalitet, antalet distinkta serier, betyder lika mycket som frekvens, eftersom varje serie lagras och faktureras för sig.
 
 - cAdvisor är tillåtelselistad med avsikt. cAdvisor-receivern (på som standard) kan skicka hundratals mätvärden; chartet vidarebefordrar bara räknarna för CPU-strypning och OOM-kills i `cadvisor.metricsAllowlist`, för dina egna diagram och mätvärdesmonitorer: ingen inbyggd mall läser dem. Håll listan kort: varje post behålls per container, så ett mätvärde till multipliceras med klustrets antal containrar. kube-state-metrics är avstängd som standard; om du slår på den (`kubeStateMetrics.enabled=true`) fungerar dess `kubeStateMetrics.metricsAllowlist` på samma sätt, och varje post måste matcha ett mätvärdes hela namn.
-- Volymmätvärden per PVC (`kubeletstats.volumeMetrics.enabled`, på som standard) skickar en serie per PVC och podd: helt okej för de flesta kluster, mycket på tillståndsbärande arbetsbelastningar (Kafka, databaser) med tusentals PVC:er. Stäng av dem där om du inte bevakar PVC-diskutrymme, med `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volymmätvärden (`kubeletstats.volumeMetrics.enabled`, på som standard) skickar några serier per volym och podd och fyller använt, ledigt och kapacitet på sidorna för Persistent Volume Claims och mallen PVC Almost Full: helt okej för de flesta kluster, mycket på tillståndsbärande arbetsbelastningar (Kafka, databaser) med tusentals PVC:er. Stäng av dem där om du inte bevakar PVC-diskutrymme, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Mättnadsmätvärden (`kubeletstats.utilizationMetrics.enabled`, på som standard) lägger till 8 härledda familjer av typen ”% av request eller limit”. De kostar ingen extra skrapning, men om du inte använder monitorerna för CPU och minne mot limit släpper du dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Släpp mätvärden efter namn med `filters.metrics.exclude`, som omfattar alla receivers, för allt som receivrarnas tillåtelselistor inte kan uttrycka (se [Inkludera eller utesluta mätvärden efter namn](#inkludera-eller-utesluta-mätvärden-efter-namn)):
 
@@ -990,7 +991,8 @@ Dessa är avstängda som standard eftersom de ökar belastningen. Slå bara på 
 | `kubeStateMetrics.enabled` | Mätvärden för CrashLoop, ImagePull och schemaläggningsorsaker (lägger till en kube-state-metrics-Deployment och en skrapning) |
 | `ebpf.features.networkInterZoneMetrics` | Fördubblar nätverksflödesserierna |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Fler Prometheus-skrapjobb |
-| `cost.enabled` | Kostnader för arbetsbelastningar (levereras med OpenCost och en liten Prometheus; kostnadsrader per timme och en skrapning av mätvärden med en snäv tillåtelselista; mätvärdesligt intag, två poddar till) |
+
+Kostnadsobserverbarhet (`cost.enabled`) är i stället på som standard: tre små poddar, en kostnadsrad per container och timme, och en skrapning av en prisserie per nod, volym och lastbalanserare. Stäng av den med `--set cost.enabled=false` om du inte använder den.
 
 ### Sampla spår i stället för att släppa dem
 
@@ -1058,7 +1060,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Strama åt ytterligare efter behov: höj `minSeverity` till `ERROR`, lägg till `metrics` i områdena för en namespace-regel, eller sätt `ebpf.enabled=false` om du redan skickar spår från OpenTelemetry SDK:er.
 
 > [!CAUTION]
-> Var försiktig med vad du skär bort. Vissa monitorer beror på särskilda signaler: att stänga av `kubeletstats.utilizationMetrics` tystar de två mallar som mäter poddar mot deras containergränser, att stänga av loggar tar bort loggbaserade larm, och att stänga av `cadvisor` eller `kubeletstats.volumeMetrics` tar bort de serier för strypning, OOM-kills och PVC:er som dina egna diagram och mätvärdesmonitorer kan läsa. `sampling.traces.percentage` tar inte bort någon monitor men skalar ned de spanbaserade (**Spår** på `Span Count`, **Undantag** på `Exception Count`), så justera deras trösklar. Trimma de signaler du inte agerar på, inte dem som en monitor bevakar.
+> Var försiktig med vad du skär bort. Vissa monitorer beror på särskilda signaler: att stänga av `kubeletstats.utilizationMetrics` tystar de två mallar som mäter poddar mot deras containergränser, att stänga av loggar tar bort loggbaserade larm, att stänga av `kubeletstats.volumeMetrics` tystar mallen PVC Almost Full och lämnar sidorna för claims utan sin användning, och att stänga av `cadvisor` tar bort de serier för strypning och OOM-kills som dina egna diagram och mätvärdesmonitorer kan läsa. `sampling.traces.percentage` tar inte bort någon monitor men skalar ned de spanbaserade (**Spår** på `Span Count`, **Undantag** på `Exception Count`), så justera deras trösklar. Trimma de signaler du inte agerar på, inte dem som en monitor bevakar.
 
 ### Mät effekten
 

@@ -202,7 +202,7 @@ Um backfill ou uma migração não deveria acionar ninguém. Indique o banco de 
 
 ## Proprietários e rótulos
 
-A aba **Proprietários** de uma tabela indica as pessoas e as equipes a quem ela pertence, e os alertas da tabela vão para elas; sem nenhuma, para os proprietários do seu banco de dados. As **Regras de proprietário** e as **Regras de Rótulos** se aplicam a cada tabela assim que ela aparece pela primeira vez, pelos seus rótulos ou por uma expressão regular sobre o seu nome, o seu esquema ou o seu banco de dados. Uma permissão limitada a \`Owned\` alcança só as tabelas que o seu titular ou as equipes dele possuem, com as suas verificações, a sua atividade e os problemas relatados. Ser proprietário de um banco de dados não torna alguém proprietário das suas tabelas: use uma regra de proprietário para dar um banco de dados inteiro a uma equipe.
+A aba **Proprietários** de uma tabela indica as pessoas e as equipes a quem ela pertence, e os alertas da tabela vão para elas; sem nenhuma, para os proprietários do seu banco de dados. As **Regras de proprietário** e as **Regras de Rótulos** se aplicam a cada tabela assim que ela aparece pela primeira vez, pelos seus rótulos ou por uma expressão regular sobre o seu nome, o seu esquema ou o seu banco de dados. Uma permissão limitada a \`Owned\` alcança só as tabelas que o seu titular ou as equipes dele possuem, com as suas verificações, a sua atividade e os problemas relatados. Ser proprietário de um banco de dados não torna alguém proprietário das suas tabelas: use uma regra de proprietário para dar um banco de dados inteiro a uma equipe. Na guia **Regras de pipeline**, as regras de proprietário também nomeiam os proprietários de um pipeline, por uma expressão regular no nome ou no namespace dele, quando o OneUptime vê o pipeline pela primeira vez.
 
 ## Quando um alerta abre
 
@@ -322,6 +322,8 @@ Eles leem estas métricas, cada uma marcada com \`oneuptime.data.pipeline.id\` e
 - \`oneuptime.data.pipeline.overdue_seconds\`: quanto a próxima execução passou do seu agendamento, a cada cinco minutos; 0 enquanto está em dia.
 
 A página de um pipeline desenha a sua **Linhagem**, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda as tabelas que ele lê, à direita as tabelas que ele escreve, e como cada uma está agora. Escolha mais etapas para ver a partir de que essas tabelas são construídas e o que é construído a partir delas; uma contagem de tabelas não desenhadas, no cartão do pipeline ou de uma tabela, desenha mais delas no lugar. A mesma linhagem está em \`POST /api/data-observability/pipelines/lineage\`, para as suas próprias ferramentas. Escolha uma das colunas que ele grava para segui-la através do pipeline: para cima até a coluna de cada tabela lida a partir da qual ela foi construída, e para baixo até cada tabela em que ele a grava. Para suas próprias ferramentas, envie \`"withColumns": true\` para as colunas que as execuções dele moveram.
+
+A página **Disjuntor** de um pipeline prepara uma etapa que pergunta, antes de o pipeline ser executado, se as tabelas que ele lê estão saudáveis: uma verificação com falha para a execução, e uma tabela atrasada também enquanto **Parar quando uma tabela que ele lê estiver atrasada** estiver ativado. Um pipeline parado aparece em **Requer atenção** até que o disjuntor responda go de novo ou uma execução comece.
 
 
 

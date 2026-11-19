@@ -4,6 +4,7 @@ import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
 import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
 import DataSensitivity from "./DataSensitivity";
+import { DataStoreResourceKind } from "./DataStoreResource";
 
 /*
  * WHAT DATA SECURITY'S OWN API ROUTES ANSWER.
@@ -19,6 +20,8 @@ import DataSensitivity from "./DataSensitivity";
 export const DATA_SECURITY_API_ROUTES: {
   overview: string;
   compliance: string;
+  resourceScope: string;
+  resourceCompliance: string;
   recordOfProcessing: string;
   scanNow: (dataStoreId: string) => string;
   checkNow: (dataStoreId: string) => string;
@@ -31,6 +34,10 @@ export const DATA_SECURITY_API_ROUTES: {
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
+  // The stores a resource's pages show: { kind, id } (DataStoreResource.ts).
+  resourceScope: "/data-security/resource-scope",
+  // How a resource's own stores stand against each framework: { kind, id }.
+  resourceCompliance: "/data-security/resource-compliance",
   recordOfProcessing: "/data-security/record-of-processing",
   scanNow: (dataStoreId: string): string => {
     return `/data-store/${dataStoreId}/scan-now`;
@@ -109,6 +116,61 @@ export interface DataSecurityComplianceFramework
 
 export interface DataSecurityComplianceResponse {
   frameworks: Array<DataSecurityComplianceFramework>;
+}
+
+// A resource, as the resource routes are asked about one.
+export interface DataSecurityResourceRef {
+  kind: DataStoreResourceKind;
+  id: string;
+  name: string;
+}
+
+/*
+ * What a resource's Data Security and Compliance pages read under
+ * (DataStoreResource.ts): every store its pages show - its own, or the
+ * databases' running on it - and the ones whose compliance is set on it.
+ * A database running on a cluster or a container host shows its store,
+ * whose compliance is set on that cluster or host (complianceOwner).
+ */
+export interface DataSecurityResourceScope {
+  kind: DataStoreResourceKind;
+  id: string;
+  name: string;
+  dataStoreIds: Array<string>;
+  ownedDataStoreIds: Array<string>;
+  // Where the compliance of its stores is set, when that is another resource.
+  complianceOwner: DataSecurityResourceRef | null;
+  // More stores than a scope lists (MAX_RESOURCE_SCOPE_STORES): the first are listed.
+  isTruncated: boolean;
+}
+
+// The most stores one resource's scope lists.
+export const MAX_RESOURCE_SCOPE_STORES: number = 500;
+
+/*
+ * One framework on a resource's Compliance page: scored over the resource's
+ * stores, with what is turned off of it where the resource's compliance is
+ * set (the resource, or the cluster or container host a database runs on).
+ */
+export interface DataSecurityResourceComplianceFramework
+  extends DataSecurityComplianceFramework {
+  isTurnedOff: boolean;
+  turnedOffRequirements: Array<string>;
+}
+
+export interface DataSecurityResourceComplianceResponse {
+  kind: DataStoreResourceKind;
+  id: string;
+  name: string;
+  // The stores the resource's pages show, which its frameworks are scored over.
+  storeCount: number;
+  /*
+   * Where its frameworks are turned on and off, when that is another
+   * resource: the cluster or container host a database runs on. Null when
+   * the resource sets them itself.
+   */
+  complianceOwner: DataSecurityResourceRef | null;
+  frameworks: Array<DataSecurityResourceComplianceFramework>;
 }
 
 export interface DataSecurityRecordOfProcessingRow {

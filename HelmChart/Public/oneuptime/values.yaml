@@ -3034,9 +3034,12 @@ microsoftTeamsApp:
 # See https://oneuptime.com/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server
 
 # A Zoom General app (user-managed) with the meeting:write:meeting and
-# user:read:user scopes. webhookSecretToken is the app's Secret Token: it
-# verifies the event Zoom sends to /api/video-call-oauth/zoom/events when
-# someone removes the app from their Zoom account.
+# user:read:user scopes, and, for call transcripts (Get from Zoom and Record
+# and transcribe incident calls), cloud_recording:read:list_recording_files
+# and cloud_recording:read:meeting_transcript. webhookSecretToken is the app's
+# Secret Token: it verifies the event Zoom sends to
+# /api/video-call-oauth/zoom/events when someone removes the app from their
+# Zoom account.
 zoomApp:
   clientId:
   clientSecret:
@@ -3059,7 +3062,9 @@ googleMeetApp:
   #   clientSecretKey: clientSecret
 
 # A Microsoft Entra app registration with the delegated
-# OnlineMeetings.ReadWrite permission. Not the Teams bot (microsoftTeamsApp):
+# OnlineMeetings.ReadWrite permission (and Calendars.ReadWrite and
+# OnlineMeetingTranscript.Read.All, which a project that records and
+# transcribes its incident calls asks for). Not the Teams bot (microsoftTeamsApp):
 # it signs people in for meetings, which the bot's registration does not.
 # A multi-tenant app needs no tenantId. For an app registered for your own
 # organization only (single tenant), set tenantId to its Directory (tenant)

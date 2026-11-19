@@ -310,6 +310,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataIssueReport",
     "DataObservabilitySetting",
     "DataPipeline",
+    "DataPipelineOwnerRule",
     "DataPipelineOwnerTeam",
     "DataPipelineOwnerUser",
     "DataPipelineRun",
@@ -357,6 +358,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   ],
   [ProductKey.DataSecurity]: [
     "DataSecurityCheckSetting",
+    "DataSecurityComplianceSetting",
     "DataSecurityCustomDataType",
     "DataSecurityFlow",
     "DataSecurityIdentity",

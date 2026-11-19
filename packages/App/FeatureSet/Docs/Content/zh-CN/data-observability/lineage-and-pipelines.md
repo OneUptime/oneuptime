@@ -32,7 +32,7 @@
 - 写入和读取表的 **服务**，来自追踪中的数据库跨度：这些跨度指明了它的表（`db.collection.name`，或较旧的 `db.sql.table`）和它的语句（`db.operation.name`），例如 `INSERT` 或 `SELECT`。
 - 由其他表构建而成的 **表**，来自上述所有来源。
 - 从 OneUptime 未监控的数据中加载表的 **管道**，例如 Fivetran 同步。在两个受监控的表之间移动数据的管道，其名称会显示在两者之间的箭头上。
-- BI 工具中的 **仪表板** 和反向 ETL 同步，它们读取所基于的表。
+- BI 工具中的 **仪表板** 和反向 ETL 同步，它们读取所基于的表，即使没有其他任何东西接触这些表。不基于任何受 OneUptime 监控的表的 Power BI 报表，会连同它所展示的数据集以及这些数据集加载数据的数据源一起绘制；当某个 BI 工具的仪表板都不在受监控的表上时，地图会说明原因（[Power BI 血缘](#power-bi-血缘)）。
 
 每个箭头都是 OneUptime 记录下来的，绝非猜测。卡片按数据流动的方向从左到右排列，并像表的图一样显示它们的状态：延迟的表、未关闭的警报或失败的运行显示为红色。服务的追踪发现过的箭头显示为青色。
 
@@ -99,7 +99,7 @@ oneuptime dbt upload
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, 允许使用 Power BI 只读管理 API 的服务主体。报表和仪表板都会读取，连同它们的查看和刷新（见下文） |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, 允许使用 Power BI 只读管理 API 的服务主体，并为每个报表背后的表开启 [Power BI 血缘](#power-bi-血缘) 中的两项元数据租户设置。报表和仪表板都会读取，连同它们的查看和刷新（见下文） |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }`（或 `eu`） |
 
@@ -140,7 +140,72 @@ Hightouch 和 Census 是反向 ETL 工具：把表复制到 CRM 的同步，与�
 
 管道的 **所有者** 标签页列出负责它的人员和团队，它的警报会发给他们。**概览** 和 **问题** 会列出失败或延迟的管道的所有者，或显示 **无所有者**，并提供添加所有者的方式。
 
+**所有者规则** 可以替你指定管道的所有者。在其 **管道规则** 选项卡中，规则用正则表达式按管道的名称（例如 `orders_daily.load_orders`）或命名空间（即它运行的位置，例如 `airflow://prod`）匹配管道，并在 OneUptime 首次看到该管道时，把规则中的人员和团队添加为管道的所有者。要把他们添加到已有的管道，请打开该规则并选择 **立即运行**。
+
 管道的页面有一张 **血缘** 卡片，是运行失败或延迟时首先要看的地方：左边是它读取的表，右边是它写入的表，管道位于两者之间，每张卡片都会显示当前状态。选择更多步数，可以看到这些表由什么构建，以及由它们构建了什么；打开任意一张表，即可查看它自己的 **血缘** 标签页。管道卡片或表卡片上未绘制表的数量，在这里同样可以在原处画出更多。 选择它写入的某一列，即可跨管道追踪该列：向上追踪到它读取的每个表中构建该列的列，向下追踪到它写入该列的每个表。
+
+## 熔断器
+
+检查失败或表延迟会通知其所有者，但读取该表的管道仍会照常运行，把错误的数据复制到下游。熔断器会抢先拦住它们：管道的第一步询问 OneUptime 它读取的表是否健康，只有答案为 go 时其余步骤才会运行。
+
+- 管道读取的表有检查失败时，总会停止该管道：警报处于打开状态的检查，或失败的 dbt 测试。
+- 在管道的 **熔断器** 页面打开 **它读取的表延迟时停止** 后，延迟的表也会停止它。每个管道默认都关闭此项，因为表延迟可能只说明今天比较清闲。
+- 无法运行或尚未运行的检查，以及没有任何检查的表，都不会停止任何东西。
+
+该步骤使用可读取数据可观测性的项目 API 密钥发起询问，并以 `namespace/name`、仅名称或 ID 指定管道。熔断器从管道的血缘中读取它所读取的表。请求也可以指定 `tables`，或只指定这些表，每张表以 `schema.table`、仅名称或 ID 表示；没有匹配任何表的名称会在 `notFound` 中返回，绝不会被算作通过的表。只评判 API 密钥可以读取的表。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+应答中的 `verdict` 为 `go` 或 `stop`。`reasons` 列出每个失败的检查及其表，以及每张延迟的表及其延迟时长；`tables` 列出评判过的每张表；`answer` 用几句话说明同样的内容，供步骤的日志使用。使用 `failWithStatusCode` 时，停止会以 HTTP 412 应答，因此 `curl -f` 会让该步骤失败。将 `stopsOnLateTables` 设为 `true` 或 `false` 可只为一次请求做决定，将 `dryRun` 设为 `true` 可在不保留应答的情况下询问。
+
+在 Airflow 中，把 `ShortCircuitOperator` 放在读取这些表的任务之前：当它的函数返回 false 时，其后的所有任务都会被跳过。
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt 的 `on-run-start` 钩子在你的数据仓库中运行 SQL，而不是发出网络请求，所以请在启动 dbt 的步骤中询问：CI 作业、cron 行或运行它的任务。dbt 项目的管道名称是 `dbt/` 后接项目名称。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+指定了管道的请求会保留在该管道上，除非它是试运行。在熔断器停止某个管道期间，该管道的 **熔断器** 页面会说明从何时起以及为何停止，其 **概览** 会以停止开头，**需要处理** 和 **问题** 会将它列为已停止，取代其失败或延迟的运行。当熔断器下一次回答 go，或在停止之后有运行开始时，停止就会结束。同一页面还有 **立即测试**，它会询问熔断器但不保留应答，以及已填好管道名称的 curl、Airflow 和 dbt 步骤。
+
+当服务器上关闭了数据可观测性时，熔断器会回答 go 并且不保留任何内容：关闭产品绝不会停止管道。
 
 ## 一个原因，一个警报
 
@@ -154,6 +219,30 @@ Hightouch 和 Census 是反向 ETL 工具：把表复制到 CRM 的同步，与�
 警报的页面在 **数据** 卡片下方有一张 **血缘** 卡片：围绕其表的血缘（与该表的 **血缘** 标签页画法相同），或围绕其管道的血缘。向上通往导致它的警报、向下通往它导致的每个警报的路径会被突出显示——原因所在的表或管道标为 **原因**，它导致的每个警报所在的表标为 **后果**——其余部分则会变淡，这样打开它的人就能看出问题从链条的哪里开始。如果原因在画在箭头上的管道上，该箭头会在管道名称下方标出 **原因**。如果原因针对的是整个数据库，或者位于图所能到达的范围之外的更上游，卡片会用文字说明。来自针对单个列的检查（例如针对 `customer_id` 的 NULL 占比检查）的警报，打开时会在这些路径旁边追踪该列，与该表的 **血缘** 标签页相同：它的来源和去向，以及它在每个表上的名称。可以在那里选择该表的另一列，或清除选择以只查看路径。**探索血缘** 会打开该表的 **血缘** 标签页或该管道的页面。 它引起的、位于箭头上所绘管道的警报，同样会在那里显示 **后果**；列选择器会先列出检查的列，再按表自身的顺序列出表的其他列。
 
 无权查看导致它的那个警报的人，既看不到 **数据** 卡片，也看不到血缘；它导致的警报中此人无权查看的那些，既不会突出显示，也不会计入数量。
+
+## Power BI 血缘
+
+每个 BI 工具上的 **匹配的表** 显示其仪表板基于多少张受监控的表，下方显示阻止其余表匹配的第一个原因。**See Why** 列出上次读取发现了什么以及该怎么做：你的仪表板读取但未连接到 OneUptime 的数据库，每个都只需点一下 **Connect Database**，类型和地址已经填好；已连接的数据库未监控的表，它们可能被排除在扫描之外，或尚未收集；以及不是数据库的来源，例如文件和网页。对于 Power BI，它还会指出已关闭的租户设置、从数据流读取的数据集，以及 Power BI 无法描述的数据集。每个仪表板的 **基于** 按 Power BI 的说法列出它展示的数据集及其数据的来源。
+
+OneUptime 从 Power BI 的元数据扫描中读取每个 Power BI 数据集，以及其每张表背后的 Power Query：
+
+- **连接器指定的数据库**：SQL Server 和 Azure SQL（`Sql.Database`）、PostgreSQL、MySQL、Oracle、Amazon Redshift、Snowflake、Google BigQuery、Databricks、Amazon Athena 和 Microsoft Dataverse，以及其导航选择的架构和表。
+- **查询运行的 SQL**：连接器的 **SQL statement** 选项、`Value.NativeQuery` 和 `Odbc.Query`，以及每个 `FROM` 和 `JOIN` 之后的表。
+- **参数和共享查询**：参数在其被引用的任何位置都会代入，读取暂存查询的表会读取该查询所读取的内容。
+- **复合模型** 展示其所基于的数据集中的表。
+
+报表展示其数据集中的表，仪表板展示其磁贴所用数据集中的表。数据来自哪里（数据库的服务器和名称、文件的路径、网址）取自扫描的数据源，除上述管理 API 访问权限外不需要任何其他内容。
+
+只有在 Fabric 管理员于管理门户的 **Tenant settings > Admin API settings** 下，为包含该服务主体的安全组开启两项租户设置之后，Power BI 才会返回数据集的表：
+
+- **Enhance admin APIs responses with detailed metadata**：每个数据集的表。
+- **Enhance admin APIs responses with DAX and mashup expressions**：加载这些表的查询，它们说明读取了哪些数据库表。
+
+之后，数据集经过刷新或重新发布后，Power BI 才会描述它；仅使用 DirectQuery 的数据集，要等有人打开基于它的报表之后。它从不描述实时数据集、实时连接到 Analysis Services 的数据集、Excel 工作簿，或共享容量上超过 1 GB 的数据集。从数据流读取的数据集只读取到数据流为止：OneUptime 尚未读取数据流加载了哪些表。
+
+每张表按名称、架构和数据库与受监控的表匹配，服务器则按短名称或完整名称匹配。其他引擎的表从不匹配，其他数据库中的表也不匹配：如果只监控 `Archive`，基于 `Sales.dbo.Orders` 的报表不会与 `Archive.dbo.Orders` 关联。
+
+[刷新](#power-bi-中的查看与刷新) 与表分开读取：提示某些数据集的刷新无法读取的警告，并不说明它们的表的任何情况。
 
 ## 更改合并之前
 

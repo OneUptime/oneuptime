@@ -32,7 +32,7 @@ Jede Ansicht der Datenherkunft - der Tab **Datenherkunft** einer Tabelle, der ei
 - **Dienste**, die Tabellen schreiben und lesen, aus den Datenbank-Spans in Ihren Traces: ein Span, der seine Tabelle (`db.collection.name` oder das ältere `db.sql.table`) und seine Anweisung (`db.operation.name`) nennt, etwa ein `INSERT` oder ein `SELECT`.
 - **Tabellen**, die aus anderen Tabellen erstellt werden, aus allen oben genannten Quellen.
 - **Pipelines**, die eine Tabelle aus Daten laden, die OneUptime nicht überwacht, etwa eine Fivetran-Synchronisierung. Eine Pipeline, die Daten zwischen zwei überwachten Tabellen bewegt, wird am Pfeil zwischen ihnen genannt.
-- **Dashboards** und Reverse-ETL-Synchronisierungen in Ihren BI-Tools, die die Tabellen lesen, auf denen sie aufbauen.
+- **Dashboards** und Reverse-ETL-Synchronisierungen in Ihren BI-Tools, die die Tabellen lesen, auf denen sie aufbauen, auch wenn sonst nichts diese Tabellen berührt. Ein Power-BI-Bericht, der auf keiner von OneUptime überwachten Tabelle aufbaut, wird mit den Datasets gezeichnet, die er darstellt, und den Datenquellen, aus denen sie laden; baut keines der Dashboards eines BI-Tools auf einer überwachten Tabelle auf, sagt die Karte, warum ([Lineage in Power BI](#lineage-in-power-bi)).
 
 Jeder Pfeil ist etwas, das OneUptime aufgezeichnet hat, nie eine Vermutung. Die Karten stehen von links nach rechts in Flussrichtung der Daten und zeigen ihren Zustand wie im Diagramm einer Tabelle: rot bei einer verspäteten Tabelle, einer offenen Warnung oder einer fehlgeschlagenen Ausführung. Ein Pfeil ist türkis, wenn die Traces eines Dienstes ihn gesehen haben.
 
@@ -99,7 +99,7 @@ Die eigentliche Folge schlechter Daten ist das Dashboard, das jemand öffnet. F�
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ein Service Principal, der die schreibgeschützten Admin-APIs von Power BI verwenden darf. Berichte und Dashboards werden beide gelesen, mit ihren Aufrufen und Aktualisierungen (siehe unten) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ein Service Principal, der die schreibgeschützten Admin-APIs von Power BI verwenden darf, mit den beiden Metadaten-Mandanteneinstellungen aus [Lineage in Power BI](#lineage-in-power-bi), eingeschaltet für die Tabellen hinter jedem Bericht. Berichte und Dashboards werden beide gelesen, mit ihren Aufrufen und Aktualisierungen (siehe unten) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (oder `eu`) |
 
@@ -140,7 +140,72 @@ Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit s
 
 Der Tab **Eigentümer** einer Pipeline nennt die Personen und Teams, die sich um sie kümmern, und ihre Warnungen gehen an sie. Die **Übersicht** und **Probleme** nennen die Eigentümer einer fehlgeschlagenen oder verspäteten Pipeline, oder zeigen **Kein Eigentümer** und einen Weg, einen hinzuzufügen.
 
+**Eigentümerregeln** können die Eigentümer einer Pipeline für Sie benennen. Auf ihrem Tab **Pipeline-Regeln** gleicht eine Regel eine Pipeline per regulärem Ausdruck mit ihrem Namen ab, etwa `orders_daily.load_orders`, oder mit ihrem Namespace, also wo sie läuft, etwa `airflow://prod`, und fügt ihre Personen und Teams als Eigentümer der Pipeline hinzu, wenn OneUptime die Pipeline zum ersten Mal sieht. Um sie den Pipelines hinzuzufügen, die Sie schon haben, öffnen Sie die Regel und wählen Sie **Jetzt ausführen**.
+
 Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen. Eine Zahl nicht gezeichneter Tabellen, auf der Karte der Pipeline oder einer Tabelle, zeichnet auch hier weitere davon an Ort und Stelle. Wählen Sie eine der Spalten, die sie schreibt, um ihr über die Pipeline hinweg zu folgen: hinauf zur Spalte jeder gelesenen Tabelle, aus der sie erstellt wurde, und hinunter zu jeder Tabelle, in die sie sie schreibt.
+
+## Schutzschalter
+
+Eine fehlschlagende Prüfung oder eine verspätete Tabelle benachrichtigt ihre Eigentümer, doch die Pipelines, die die Tabelle lesen, würden trotzdem laufen und die fehlerhaften Daten weiter nach unten kopieren. Ein Schutzschalter hält sie vorher an: Der erste Schritt der Pipeline fragt OneUptime, ob die Tabellen, die sie liest, in Ordnung sind, und der Rest läuft nur, wenn die Antwort go lautet.
+
+- Eine fehlschlagende Prüfung einer Tabelle, die die Pipeline liest, stoppt sie immer: eine Prüfung, deren Warnung offen ist, oder ein fehlgeschlagener dbt-Test.
+- Eine verspätete Tabelle stoppt sie ebenfalls, sobald **Stoppen, wenn eine gelesene Tabelle verspätet ist** auf der Seite **Schutzschalter** der Pipeline eingeschaltet ist. Für jede Pipeline ist es ausgeschaltet, denn eine verspätete Tabelle kann auch nur einen ruhigen Tag bedeuten.
+- Eine Prüfung, die nicht laufen konnte oder noch nicht gelaufen ist, und eine Tabelle ohne Prüfungen stoppen nichts.
+
+Der Schritt fragt mit einem Projekt-API-Schlüssel, der Data Observability lesen darf, und nennt die Pipeline als `namespace/name`, nur mit ihrem Namen oder mit ihrer ID. Der Schutzschalter liest die Tabellen, die die Pipeline liest, aus ihrer Datenherkunft. Eine Anfrage kann zusätzlich `tables` nennen, oder nur diese, jeweils als `schema.table`, nur mit ihrem Namen oder mit ihrer ID; ein Name, der zu keiner Tabelle passt, kommt in `notFound` zurück und zählt nie als Tabelle, die bestanden hat. Beurteilt werden nur die Tabellen, die der API-Schlüssel lesen darf.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Das `verdict` der Antwort ist `go` oder `stop`. `reasons` listet jede fehlschlagende Prüfung mit ihrer Tabelle und jede verspätete Tabelle mit ihrer Verspätung; `tables` listet jede beurteilte Tabelle; und `answer` sagt dasselbe in wenigen Sätzen, für das Log des Schritts. Mit `failWithStatusCode` antwortet ein Stopp mit HTTP 412, sodass `curl -f` den Schritt fehlschlagen lässt. Senden Sie `stopsOnLateTables` als `true` oder `false`, um für eine einzelne Anfrage zu entscheiden, und `dryRun` als `true`, um zu fragen, ohne dass die Antwort gespeichert wird.
+
+Setzen Sie in Airflow einen `ShortCircuitOperator` vor die Aufgaben, die die Tabellen lesen: Gibt seine Funktion false zurück, wird jede Aufgabe nach ihm übersprungen.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Die `on-run-start`-Hooks von dbt führen SQL in Ihrem Warehouse aus, keine Webanfragen. Fragen Sie daher in dem Schritt, der dbt startet: ein CI-Job, eine Cron-Zeile oder die Aufgabe, die es ausführt. Die Pipeline eines dbt-Projekts heißt `dbt/`, gefolgt vom Namen des Projekts.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Eine Anfrage, die eine Pipeline nennt, wird an ihr gespeichert, außer bei einem Probelauf. Solange der Schutzschalter eine Pipeline gestoppt hat, sagt ihre Seite **Schutzschalter**, seit wann und warum, ihre **Übersicht** öffnet mit dem Stopp, und **Handlungsbedarf** und **Probleme** führen sie als gestoppt statt mit ihrem fehlgeschlagenen oder verspäteten Lauf. Der Stopp endet, wenn der Schutzschalter das nächste Mal go antwortet oder ein Lauf nach ihm beginnt. Dieselbe Seite hat **Jetzt testen**, das den Schutzschalter fragt, ohne dass die Antwort gespeichert wird, und den Schritt für curl, Airflow und dbt mit dem Namen der Pipeline schon eingetragen.
+
+Solange Data Observability auf dem Server ausgeschaltet ist, antwortet der Schutzschalter go und speichert nichts: Ein ausgeschaltetes Produkt stoppt nie eine Pipeline.
 
 ## Eine Meldung pro Ursache
 
@@ -154,6 +219,30 @@ Die Karte **Daten** der Ursache listet ihren **Auswirkung auf nachgelagerte Date
 Unter der Karte **Daten** zeichnet die Seite einer Warnung ihre **Datenherkunft**: rund um ihre Tabelle, wie der Tab **Datenherkunft** der Tabelle sie zeichnet, oder rund um ihre Pipeline. Der Weg hinauf zu der Warnung, die sie verursacht hat, und hinunter zu jeder Warnung, die sie verursacht hat, ist hervorgehoben - die Tabelle oder Pipeline der Ursache ist als **Ursache** markiert, die jeder verursachten Warnung als **Folge** -, und der Rest tritt zurück, sodass jeder, der sie öffnet, sieht, wo in der Kette das Problem begann. Liegt die Ursache bei einer Pipeline, die auf einem Pfeil gezeichnet ist, steht auf dem Pfeil **Ursache** unter dem Namen der Pipeline. Betrifft die Ursache eine ganze Datenbank oder liegt sie weiter oben, als das Diagramm reicht, sagt die Karte das in Worten. Bei einer Warnung aus einer Prüfung auf eine einzelne Spalte, etwa Anteil NULL-Werte auf `customer_id`, ist diese Spalte beim Öffnen neben diesen Wegen schon verfolgt, wie im Tab **Datenherkunft** der Tabelle: woher sie stammt und wohin sie fließt, auf jeder Tabelle benannt. Wählen Sie dort eine andere Spalte der Tabelle, oder heben Sie die Auswahl auf, um nur die Wege zu sehen. **Datenherkunft erkunden** öffnet den Tab **Datenherkunft** der Tabelle oder die Seite der Pipeline. Eine verursachte Warnung bei einer Pipeline, die auf einem Pfeil gezeichnet ist, sagt dort ebenso **Folge**, und die Spaltenauswahl bietet zuerst die Spalte der Prüfung an, dann die übrigen Spalten der Tabelle in deren eigener Reihenfolge.
 
 Wer die Warnung, die sie verursacht hat, nicht sehen darf, bekommt weder die Karte **Daten** noch die Datenherkunft, und eine von ihr verursachte Warnung, die diese Person nicht sehen darf, wird weder hervorgehoben noch mitgezählt.
+
+## Lineage in Power BI
+
+**Zugeordnete Tabellen** sagt bei jedem BI-Tool, auf wie vielen überwachten Tabellen seine Dashboards aufbauen, und darunter das Erste, was die übrigen an einer Zuordnung hindert. **See Why** listet auf, was das letzte Lesen gefunden hat und was zu tun ist: Datenbanken, die Ihre Dashboards lesen und die nicht mit OneUptime verbunden sind, jede nur ein **Connect Database** entfernt, mit ihrer Art und Adresse schon ausgefüllt; Tabellen, die eine verbundene Datenbank nicht überwacht und die womöglich von ihrem Scan ausgelassen oder noch nicht erfasst wurden; und Quellen, die keine Datenbank sind, etwa Dateien und Webseiten. Für Power BI nennt es außerdem eine ausgeschaltete Mandanteneinstellung, Datasets, die aus Dataflows lesen, und Datasets, die Power BI nicht beschreiben kann. **Basiert auf** sagt bei jedem Dashboard, welche Datasets es darstellt und woher deren Daten kommen, so wie Power BI es angibt.
+
+OneUptime liest jedes Power-BI-Dataset aus dem Metadatenscan von Power BI, mit der Power Query hinter jeder seiner Tabellen:
+
+- **Die Datenbank, die ein Connector nennt**: SQL Server und Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena und Microsoft Dataverse, dazu das Schema und die Tabelle, die seine Navigation auswählt.
+- **SQL, das eine Abfrage ausführt**: die Option **SQL statement** eines Connectors, `Value.NativeQuery` und `Odbc.Query`, und die Tabellen nach jedem `FROM` und `JOIN`.
+- **Parameter und gemeinsam genutzte Abfragen**: Ein Parameter steht überall dort, wo er genannt wird, und eine Tabelle, die eine Staging-Abfrage liest, liest, was diese Abfrage liest.
+- **Zusammengesetzte Modelle** stellen die Tabellen der Datasets dar, auf denen sie aufbauen.
+
+Ein Bericht stellt die Tabellen seines Datasets dar, ein Dashboard die der Datasets seiner Kacheln. Woher die Daten kommen - der Server und Name einer Datenbank, der Pfad einer Datei, eine Webadresse -, stammt aus den Datenquellen des Scans, die nichts über den Admin-API-Zugriff oben hinaus brauchen.
+
+Power BI gibt die Tabellen eines Datasets erst zurück, wenn ein Fabric-Administrator im Verwaltungsportal unter **Tenant settings > Admin API settings** zwei Mandanteneinstellungen für die Sicherheitsgruppe einschaltet, zu der der Service Principal gehört:
+
+- **Enhance admin APIs responses with detailed metadata**: die Tabellen jedes Datasets.
+- **Enhance admin APIs responses with DAX and mashup expressions**: die Abfragen, die sie laden und die sagen, welche Datenbanktabellen sie lesen.
+
+Power BI beschreibt ein Dataset dann, sobald es aktualisiert oder erneut veröffentlicht wurde; eines, das nur DirectQuery verwendet, sobald jemand einen Bericht darauf geöffnet hat. Nie beschreibt es Echtzeit-Datasets, Datasets mit einer Liveverbindung zu Analysis Services, Excel-Arbeitsmappen oder Datasets über 1 GB auf gemeinsam genutzter Kapazität. Ein Dataset, das aus einem Dataflow liest, wird bis zum Dataflow gelesen: Welche Tabellen ein Dataflow lädt, liest OneUptime noch nicht.
+
+Jede Tabelle wird einer überwachten Tabelle über ihren Namen, ihr Schema und ihre Datenbank zugeordnet, ein Server über seinen Kurznamen oder seinen vollständigen Namen. Eine Tabelle eines anderen Datenbanksystems wird nie zugeordnet, ebenso wenig eine in einer anderen Datenbank: Ein Bericht auf `Sales.dbo.Orders` wird nicht mit `Archive.dbo.Orders` verknüpft, weil nur `Archive` überwacht wird.
+
+[Aktualisierungen](#aufrufe-und-aktualisierungen-in-power-bi) werden getrennt von den Tabellen gelesen: Ein Hinweis, dass die Aktualisierungen einiger Datasets nicht gelesen werden konnten, sagt nichts über ihre Tabellen.
 
 ## Bevor eine Änderung gemergt wird
 

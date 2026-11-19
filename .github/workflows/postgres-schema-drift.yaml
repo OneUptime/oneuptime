@@ -2172,7 +2172,9 @@ jobs:
       # needs attention (through the partial index, namespaces and kinds bound
       # as arrays), and a part's page read of what it runs - a Deployment's
       # pods by its ReplicaSets' names, a node's by the name in their spec, a
-      # CronJob's Jobs and their pods.
+      # CronJob's Jobs and their pods. And the write of each persistent volume
+      # claim's latest usage (bulkUpdateLatestVolumeStats): bigint bytes past
+      # 2 GiB, a missing reading kept, an older point never over a newer one.
       - name: Test the Kubernetes inventory's health SQL on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -2183,7 +2185,8 @@ jobs:
           KUBERNETES_HEALTH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Services/KubernetesResourceHealthPostgres.test.ts --forceExit
+          Tests/Server/Services/KubernetesResourceHealthPostgres.test.ts
+          Tests/Server/Services/KubernetesVolumeClaimUsagePostgres.test.ts --forceExit
 
       # What a host last reported (1808830000000-AddHostReadings) and the Hosts
       # list's Needs attention read on it. Clones the migrated Host table into
@@ -3625,6 +3628,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProbeCollectionClaimSetAsidePostgres.test.ts --forceExit
 
+      # Clones the migrated IncidentVideoCall and VideoCallConnection tables
+      # into an isolated schema and runs what takes back a call's transcript
+      # and what OneUptime AI read in it (issues #9289 and #9290): a reading's
+      # write only while its run is the call's, its post appended only while
+      # its transcript is the call's - and, while a removal holds the row, only
+      # after it, finding the transcript gone - the removal's locked
+      # transaction for a person and for an account that removed OneUptime,
+      # the deauthorization's marks, and the data migration that names the
+      # transcripts an earlier release read through a sign-in.
+      - name: Test taking back a call's transcript on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_INCIDENT_CALL_TRANSCRIPT_TESTS: "true"
+          INCIDENT_CALL_TRANSCRIPT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          INCIDENT_CALL_TRANSCRIPT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          INCIDENT_CALL_TRANSCRIPT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IncidentCallTranscriptRemovalPostgres.test.ts --forceExit
+
       # Clones the migrated Project, MonitorStatus, Monitor and NetworkDevice
       # tables into an isolated schema and runs AddMonitorNetworkDevice and
       # BackfillMonitorNetworkDevice there: the table a device's poll and its
@@ -4276,7 +4300,9 @@ jobs:
       # and RestoreCutMicrosoftTeamsChatIds puts each project's chats back
       # whole, touching no Slack row, no other project's row and no name; a
       # second run changes nothing, two at once come to the same, and down()
-      # narrows back without cutting an id. Clones the migrated
+      # narrows back without cutting an id. A chat a connection lists only
+      # after the upgrade (#9330) gets its project's kept messages back when
+      # the bot saves it, and only then. Clones the migrated
       # WorkspaceProjectAuthToken, WorkspaceLiveMessage and
       # WorkspaceNotificationLog tables into an isolated schema.
       - name: Test Microsoft Teams chat ids' upgrade to whole on migrated Postgres

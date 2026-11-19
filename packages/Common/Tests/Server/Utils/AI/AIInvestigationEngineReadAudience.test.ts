@@ -36,7 +36,8 @@ import type { SpyInstance } from "jest-mock";
  * (InvestigationRequest.readAudience), so the props read as OneUptime, held
  * to the project, and narrowed by them in the permission layer: every
  * tool's read leaves out what one of them may not read. A run that carries
- * none - remediation, triage - reads the project as OneUptime, as before.
+ * none reads the project as OneUptime, as before - and every runner hands
+ * the engine its readers (EngineRunsReadForTheirReaders, #9612).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(

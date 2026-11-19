@@ -884,6 +884,10 @@ export const RECORD_SECURITY_EVENTS_PAGES: Partial<
 > = {
   [SecurityConnectionKind.NetworkDevice]:
     PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS,
+  // A host's and a cluster's own page, beside their Logs (#9547).
+  [SecurityConnectionKind.Host]: PageMap.HOST_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.KubernetesCluster]:
+    PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
 };
 
 /*

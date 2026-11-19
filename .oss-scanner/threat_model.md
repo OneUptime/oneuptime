@@ -425,8 +425,11 @@ Suites that need Postgres, Valkey or ClickHouse have file names ending in
 `Postgres` or `Clickhouse` and are switched on by a `RUN_POSTGRES_*` variable
 or `TEST_CLICKHOUSE_URL` (already in `config.env`), as
 `.github/workflows/test.common.yaml`, `test.app.yaml` and
-`postgres-schema-drift.yaml` run them. Start the datastores first; they
-listen where CI's do, and Postgres accepts any local password:
+`postgres-schema-drift.yaml` run them. A suite ending in `KeeperClickhouse`
+needs a ClickHouse cluster coordinated by Keeper, which this image does not
+run, and reads `TEST_CLICKHOUSE_KEEPER_CLUSTER_URL` instead. Start the
+datastores first; they listen where CI's do, and Postgres accepts any local
+password:
 
 ```sh
 bash /src/.oss-scanner/start-services.sh

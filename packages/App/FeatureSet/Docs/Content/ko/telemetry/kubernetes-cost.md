@@ -1,9 +1,10 @@
 # Kubernetes 비용 옵저버빌리티
 
-모든 Kubernetes 워크로드의 비용(네임스페이스, 워크로드, Pod별 지출, 유휴 용량, 각 request 중 실제로 사용되는 양)을 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)가 이미 수집하는 메트릭, 로그, 트레이스 옆에서 확인하세요. Helm 값 하나로 켜지며 클라우드 자격 증명이 필요 없고, 켜면 클러스터의 **비용** 페이지가 줄여야 할 request를 알려 줍니다.
+모든 Kubernetes 워크로드의 비용(네임스페이스, 워크로드, Pod별 지출, 유휴 용량, 각 request 중 실제로 사용되는 양)을 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)가 이미 수집하는 메트릭, 로그, 트레이스 옆에서 확인하세요. 기본적으로 켜져 있으며 클라우드 자격 증명이 필요 없습니다. 클러스터의 개요는 클러스터에 드는 비용을 알려 주고, **비용** 페이지는 줄여야 할 request를 알려 주며, 비용 메트릭은 다른 메트릭처럼 차트로 그리고 경고를 설정할 수 있습니다.
 
 :::cards
-- [켜기](#비용-옵저버빌리티-켜기): `helm upgrade` 한 번.
+- [켜기](#비용-옵저버빌리티-켜기): 기본적으로 켜져 있으며, 그렇지 않은 곳에서는 `helm upgrade` 한 번.
+- [비용에 대한 경고](#비용에-대한-경고): 클러스터, 네임스페이스, 워크로드별 비용을 메트릭으로.
 - [자체 엔진 사용](#이미-kubecost나-opencost를-실행하고-있나요): 에이전트가 Kubecost나 OpenCost를 가리키게 합니다.
 - [적정 크기 조정](#적정-크기-조정): request 권장값과 그 산출 방식.
 - [문제 해결](#문제-해결): 빈 페이지, 권장값 누락.
@@ -11,7 +12,7 @@
 
 ## 작동 방식
 
-`cost.enabled=true`이면 차트는 에이전트 옆에서 네 가지를 실행합니다:
+비용 모니터링이 기본값대로 켜져 있으면(`cost.enabled: auto`) 차트는 에이전트 옆에서 네 가지를 실행합니다:
 
 ```mermaid title="비용 수치의 출처"
 flowchart TB
@@ -25,16 +26,20 @@ flowchart TB
 ```
 
 1. **OpenCost**: 오픈 소스 비용 엔진입니다(Apache-2.0, CNCF. Kubecost의 기반이기도 한 [cost-model](https://github.com/kubecost/cost-model)). 클러스터를 감시하고, 노드, 볼륨, 로드 밸런서의 가격을 매기며, 각 워크로드의 비용을 계산합니다.
-2. **작은 Prometheus**: OpenCost가 사용량과 가격 기록에 필요로 하는 것입니다. 레플리카 하나로 실행되고, 7일간의 기록을 보관하며, 정확히 두 대상만 스크레이프합니다. API 서버의 노드 프록시를 통한 cAdvisor와 OpenCost 자체입니다(OpenCost가 자체 리소스 request 메트릭을 내보내므로 kube-state-metrics는 관여하지 않습니다). 클러스터 밖으로 노출되지 않으며 데이터도 클러스터를 떠나지 않습니다.
-3. **비용 폴러**(`cost.agent`). 1시간이 마감될 때마다 OpenCost의 Allocation API를 읽고 워크로드마다 비용 행 하나를 OneUptime에 보냅니다. CPU, 메모리, GPU, 볼륨, 네트워크, 로드 밸런서, 유휴, 그리고 효율입니다. 각 시간은 한 번만 전송되며, 서버는 이미 가진 시간을 건너뛰므로 재시작으로 지출이 두 번 집계되지 않습니다.
-4. **비용 메트릭 스크레이프**(`cost.metrics`). 에이전트의 Collector가 OpenCost의 비용 메트릭을 스크레이프해 클러스터의 나머지 메트릭과 함께 보냅니다.
+2. **작은 Prometheus**: OpenCost가 사용량과 가격 기록에 필요로 하는 것입니다. 레플리카 하나로 실행되고, 7일간의 기록을 보관하며, 정확히 두 대상만 스크레이프합니다. OpenCost가 읽는 시계열만 남기는, API 서버의 노드 프록시를 통한 cAdvisor와 OpenCost 자체입니다(OpenCost가 자체 리소스 request 메트릭을 내보내므로 kube-state-metrics는 관여하지 않습니다). 클러스터 밖으로 노출되지 않으며 데이터도 클러스터를 떠나지 않습니다.
+3. **비용 폴러**(`cost.agent`). 1시간이 마감될 때마다 OpenCost의 Allocation API를 읽고 워크로드마다 비용 행 하나를 OneUptime에 보냅니다. CPU, 메모리, GPU, 볼륨, 네트워크, 로드 밸런서, 유휴, 그리고 효율입니다. 각 시간은 한 번만 전송되며, 서버는 이미 가진 시간을 건너뛰므로 재시작으로 지출이 두 번 집계되지 않습니다. OneUptime은 이 행들로부터 [비용 메트릭](#비용에-대한-경고)도 기록합니다.
+4. **비용 메트릭 스크레이프**(`cost.metrics`). 에이전트의 Collector가 OpenCost의 가격 메트릭, 즉 각 노드, 볼륨, 로드 밸런서의 시간당 비용을 스크레이프해 클러스터의 나머지 메트릭과 함께 보냅니다.
 
-OpenCost는 자격 증명 없이 클라우드 제공업체의 공개 정가(AWS, Google Cloud, Azure)로 노드의 가격을 매깁니다. 클라우드 정가가 없는 클러스터는 대신 [요금표](#온프레미스-및-베어메탈-가격-책정)를 설정합니다.
+OpenCost는 자격 증명 없이 클라우드 제공업체의 공개 정가(AWS, Google Cloud, Azure)로 노드의 가격을 매깁니다. 그 밖의 환경에서는 OpenCost의 기본 요율을 사용하며, 직접 설정한 [요금표](#온프레미스-및-베어메탈-가격-책정)가 이를 대체합니다.
+
+세 Pod가 요청하는 리소스는 모두 합쳐 CPU 약 150m, 메모리 약 450Mi입니다. `gke-autopilot`과 `eks-fargate` 프리셋에서는 비용 모니터링이 기본적으로 꺼져 있습니다. 이 플랫폼들은 모든 Pod에 그 request만큼 요금을 매기므로 비용 Pod가 자신이 측정하는 청구액을 늘리게 되고, OpenCost는 노드의 가격을 매기는데 두 플랫폼 모두 그런 방식으로 요금을 매기지 않기 때문입니다.
 
 ## 비용 옵저버빌리티 켜기
 
+새로 설치할 때는 아무것도 할 필요가 없습니다. 비용 모니터링은 기본적으로 켜져 있습니다. 기본으로 켜지기 전에 설치한 에이전트를 업그레이드하거나, `gke-autopilot` 또는 `eks-fargate` 프리셋에서 켜려면 다음과 같이 하세요:
+
 :::steps
-### cost.enabled로 에이전트 업그레이드
+### 에이전트 업그레이드
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -43,7 +48,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-이것으로 완전한 설치입니다. 작은 Pod 두 개, 즉 OpenCost와 그 Prometheus가 추가됩니다. 에이전트를 다른 릴리스 이름이나 네임스페이스로 설치했다면 그것을 사용하세요(`helm list -A | grep kubernetes-agent`로 확인할 수 있습니다).
+이것으로 완전한 설치입니다. 작은 Pod 세 개, 즉 OpenCost, 그 Prometheus, 비용 에이전트가 추가됩니다. 에이전트를 다른 릴리스 이름이나 네임스페이스로 설치했다면 그것을 사용하세요(`helm list -A | grep kubernetes-agent`로 확인할 수 있습니다). 비용 모니터링을 끄려면 같은 방법으로 `--set cost.enabled=false`를 설정하세요.
 
 ### 첫 1시간이 마감되기를 기다리기
 
@@ -52,6 +57,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### 비용 페이지 열기
 
 - **제품 → 인프라 → Kubernetes → 비용**은 프로젝트의 모든 클러스터의 지출을 보여 줍니다.
+- 클러스터에서 개요는 지난 24시간의 지출, 월간 예상 지출(런레이트), 유휴 지출, 효율, 그리고 비용이 가장 많이 드는 네임스페이스와 워크로드를 보여 줍니다.
 - 클러스터에서 **비용**은 지출 추세, CPU·메모리·스토리지로 나눈 **Spend by Namespace**, **Spend by Workload**, 유휴 지출, 효율, **Right-Sizing** 카드를 보여 줍니다.
 :::
 
@@ -98,6 +104,7 @@ cost:
 
 ```yaml title="values.yaml"
 cost:
+  enabled: auto           # on, except with the gke-autopilot and eks-fargate presets
   agent:
     windowSeconds: 3600   # allocation window length (hourly = native)
     includeIdle: true     # ship the engine's __idle__ allocation
@@ -148,7 +155,18 @@ Prometheus가 중단되어도 지출 수집은 멈추지 않습니다. 최대치
 
 ## 비용에 대한 경고
 
-비용 메트릭은 일반 메트릭이므로 [메트릭 모니터](/docs/monitor/metrics-monitor)가 다른 것과 마찬가지로 이에 대해 경고를 보낼 수 있습니다. 예를 들어 평균 `node_total_hourly_cost`가 예산을 넘을 때, 또는 클러스터에 있어서는 안 되는 볼륨 클래스의 `pv_hourly_cost`가 나타날 때입니다.
+OneUptime은 매시간의 비용 행에서 메트릭 네 개를 기록합니다. 금액이 매겨지고 무엇을 나타내는지 알 수 있는 이름이 붙어 있으므로, 비용을 차트로 그리고, 대시보드에 올리고, [Kubernetes 모니터](/docs/monitor/kubernetes-monitor)나 [메트릭 모니터](/docs/monitor/metrics-monitor)에서 경고를 설정할 수 있습니다:
+
+| 메트릭 | 내용 | 속성 |
+| --- | --- | --- |
+| `oneuptime.kubernetes.cost.total` | 매시간 클러스터에 든 비용(유휴 용량 포함) | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.idle` | 그중 어떤 워크로드도 사용하지 않은 부분: 유휴 용량과 할당되지 않은 용량 | `k8s.cluster.name` |
+| `oneuptime.kubernetes.cost.workload` | 매시간 각 워크로드에 든 비용. 네임스페이스별로 합하면 그 네임스페이스에 든 비용 | `k8s.cluster.name`, `k8s.namespace.name`, 그리고 종류에 따른 워크로드 이름(예: `k8s.deployment.name`) |
+| `oneuptime.kubernetes.cost.efficiency` | 각 워크로드가 요청한 CPU와 메모리 중 실제로 사용한 비율(퍼센트, 비용 가중) | 워크로드의 속성(위와 같음) |
+
+각 포인트는 한 시간의 비용으로, 에이전트의 통화(기본값 USD)로 표시되며, 그 시간이 시작된 시각이 타임스탬프가 되고, 그 시간이 끝난 뒤 약 한 시간 후에 기록됩니다. 여러 시간에 걸친 기간의 포인트를 합하면 되며, 하루치를 합하면 그날의 비용이 됩니다. 클러스터가 이미 보낸 데이터에서 만들어지므로 수집된 메트릭으로 과금되지 않으며, 클러스터의 다른 메트릭과 같은 기간 동안 보관됩니다.
+
+Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습니다. Cluster Daily Cost Over Budget, Namespace Daily Cost Over Budget, High Idle Spend이며, 각각 예산을 직접 정한 값으로 설정해 사용합니다. OpenCost의 가격 메트릭도 일반 메트릭입니다. 메트릭 모니터는 평균 `node_total_hourly_cost`가 예산을 넘을 때, 또는 클러스터에 있어서는 안 되는 볼륨 클래스의 `pv_hourly_cost`가 나타날 때 경고를 보낼 수 있습니다.
 
 ## 데이터 모델과 보존
 
@@ -157,7 +175,7 @@ Prometheus가 중단되어도 지출 수집은 멈추지 않습니다. 최대치
 ## 문제 해결
 
 :::details Costs 페이지가 비어 있음
-비용 폴러의 로그를 확인하세요: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. (릴리스 이름에 `kubernetes-agent`가 없으면 Deployment 이름은 `<release>-kubernetes-agent-cost`입니다. `kubectl get deploy -n oneuptime-agent`로 나열할 수 있습니다.) `HTTP 401`은 OneUptime이 수집 키를 거부했다는 뜻입니다. `did not answer any known allocation path`는 엔진이 아직 준비되지 않았거나(번들 OpenCost는 첫 몇 시간의 가격을 매기는 데 몇 분이 걸립니다) `cost.engine.url`이 잘못되었다는 뜻입니다.
+`gke-autopilot`과 `eks-fargate` 프리셋에서는 비용 모니터링이 기본적으로 꺼져 있습니다. `--set cost.enabled=true`로 켜세요. 그 밖의 경우에는 비용 폴러의 로그를 확인하세요: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. (릴리스 이름에 `kubernetes-agent`가 없으면 Deployment 이름은 `<release>-kubernetes-agent-cost`입니다. `kubectl get deploy -n oneuptime-agent`로 나열할 수 있습니다.) `HTTP 401`은 OneUptime이 수집 키를 거부했다는 뜻입니다. `did not answer any known allocation path`는 엔진이 아직 준비되지 않았거나(번들 OpenCost는 첫 몇 시간의 가격을 매기는 데 몇 분이 걸립니다) `cost.engine.url`이 잘못되었다는 뜻입니다.
 :::
 
 :::details 번들 OpenCost가 준비되지 않음

@@ -381,7 +381,7 @@ Hver `to` skal være en af feltets muligheder, når det er gemt, og hver `from` 
 
 Indstillingerne ligger på ressourcen `oneuptime_incident_custom_field` som `sort_order`, `show_on_create`, `is_required_on_create` og `include_in_subscriber_notifications`. `variable_key` er skrivebeskyttet: den nøgle, OneUptime dannede, da feltet blev oprettet.
 
-Udelad `sort_order`, og et nyt felt kommer sidst i listen. Giv det det tal, et andet felt allerede har, og det tager den plads, mens felterne i vejen rykker én plads. Et tal, som intet andet felt har, beholdes, som du skrev det.
+Udelad `sort_order`, og et nyt felt kommer sidst i listen. Et tal, du giver, beholdes, som du skrev det, og intet andet felt flytter sig for det, heller ikke når et andet felt allerede har det: af de to vises det ældste først.
 
 ## Målinger
 

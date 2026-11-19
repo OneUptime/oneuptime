@@ -562,6 +562,12 @@ export interface KubernetesPVCObject {
     accessModes: Array<string>;
     storageClassName: string;
     volumeName: string;
+    /*
+     * "Filesystem" or "Block": a raw block device has no filesystem, so the
+     * kubelet reports no usage for it. Optional: claims stored before it
+     * was read have none, and Kubernetes leaves it out for Filesystem.
+     */
+    volumeMode?: string | undefined;
     resources: {
       requests: {
         storage: string;
@@ -1800,11 +1806,13 @@ export function parsePVCObject(
     const accessModes: Array<string> = [];
     let storageClassName: string = "";
     let volumeName: string = "";
+    let volumeMode: string = "";
     let requestsStorage: string = "";
 
     if (specKv && typeof specKv !== "string") {
       storageClassName = getKvStringValue(specKv, "storageClassName");
       volumeName = getKvStringValue(specKv, "volumeName");
+      volumeMode = getKvStringValue(specKv, "volumeMode");
 
       const accessModesArray: string | JSONObject | null = getKvValue(
         specKv,
@@ -1844,6 +1852,7 @@ export function parsePVCObject(
         accessModes,
         storageClassName,
         volumeName,
+        ...(volumeMode ? { volumeMode } : {}),
         resources: {
           requests: {
             storage: requestsStorage,

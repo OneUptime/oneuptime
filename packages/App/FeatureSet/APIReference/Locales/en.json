@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "This endpoint ends an override that is under way, at the server's clock: its end becomes now, and the pages are the away person's again from then on. It takes the same permission as an update, and answers the override's new endsAt.",
       "userOverrideEndNowRequestTitle": "End Now Request",
       "userOverrideIdDescription": "ID of the user override",
-      "userOverrideEndNowRefused": "400 Bad Request: the override has not started yet (delete it instead), has already ended, or ends within the minute anyway."
+      "userOverrideEndNowRefused": "400 Bad Request: the override has not started yet (delete it instead), has already ended, or ends within the minute anyway.",
+      "moveInListHeading": "Move",
+      "moveInListIntro": "This endpoint moves the record to the place of the record named in placeOfId, in the list they share: moved up, it lands just above that record; moved down, just below it; the records between step one place towards where it was. The list is then numbered from the top, 1, 2, 3 and on (from its highest number down, for a list that counts down), in one transaction, so moves at the same time never leave two records at one number. It answers changedRows: each record given another number, by its _id, with its new number under the list's own number column. A create or an update that writes that number places the record alone and moves no other, which is what Terraform needs; to move a record past others, send this request. It takes the same permission as an update of the record's number.",
+      "moveInListRequestTitle": "Move Request",
+      "moveInListIdDescription": "ID of the record to move",
+      "placeOfIdDescription": "The ID of the record of the same list whose place this record takes.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId is missing or is no ID, or names a record that is not in the same list as the record moved: another parent's, another project's or another kind's.",
+      "moveInListRecordNotFound": "404 Not Found: the record is not there to move: it was deleted, or the caller may not read it.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: the caller may read the record but not change its number, as an update of it would be refused.",
+      "moveInListBuiltInOrder": "400 Bad Request: the move would put the project's built-in states out of order, such as the resolved state at or above the acknowledged one. The answer names them."
     },
     "dataType": {
       "enumBadge": "Enum",

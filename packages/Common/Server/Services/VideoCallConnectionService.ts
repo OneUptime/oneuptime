@@ -1,4 +1,5 @@
 import ProjectReferencesService from "./ProjectReferencesService";
+import IncidentVideoCallService from "./IncidentVideoCallService";
 import Model from "../../Models/DatabaseModels/VideoCallConnection";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -290,6 +291,8 @@ export class Service extends ProjectReferencesService<Model> {
         provider: true,
         authMethod: true,
         connectedAccount: true,
+        // Whose sign-in reads a call's transcript (VideoCallTranscriptReader).
+        connectedAccountId: true,
         config: true,
         secrets: true,
       },
@@ -583,9 +586,15 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * What someone removing OneUptime from their account at the provider
-   * leaves behind (Zoom's app_deauthorized): nothing of theirs. Every
-   * connection signed in as the account loses its sign-in and who it was,
-   * and says how to connect again. Returns how many.
+   * leaves behind (Zoom's app_deauthorized, after which Zoom asks apps to
+   * delete the account's data): nothing of theirs. Every connection signed
+   * in as the account loses its sign-in and who it was, and says how to
+   * connect again. Every call whose transcript OneUptime read through the
+   * sign-in is marked for that transcript, and what OneUptime AI read in it,
+   * to be deleted - within minutes, by the Workers job
+   * (IncidentCallTranscriptRemoval) - since deleting a call's channel
+   * messages takes longer than the provider waits for an answer. Safe to
+   * run twice. Returns how many connections lost their sign-in.
    */
   @CaptureSpan()
   public async removeSignIn(data: {
@@ -595,6 +604,18 @@ export class Service extends ProjectReferencesService<Model> {
   }): Promise<number> {
     if (!data.accountId) {
       return 0;
+    }
+
+    const markedCalls: number =
+      await IncidentVideoCallService.markTranscriptsOfRemovedSignIn({
+        provider: data.provider,
+        accountId: data.accountId,
+      });
+
+    if (markedCalls > 0) {
+      logger.info(
+        `A ${data.provider} account removed OneUptime; ${markedCalls} incident call transcript(s) read through its sign-in will be deleted.`,
+      );
     }
 
     return await this.updateBy({

@@ -24,6 +24,11 @@ import {
   LIMIT_PER_PROJECT,
 } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import MoveInListUtil, {
+  MOVE_IN_LIST_ROUTE,
+  MoveInListRequest,
+  MoveInListResult,
+} from "../../Types/Database/MoveInList";
 import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
 import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
 import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
@@ -175,6 +180,35 @@ export default class BaseAPI<
         }
       },
     );
+
+    /*
+     * Move, for a table whose rows make up ordered lists (issues #9573,
+     * #9609): POST /<path>/:id/move { "placeOfId": "<id>" } moves the row
+     * to the place of the row named, the rows between stepping aside
+     * (Types/Database/MoveInList). A write of the list's number through the
+     * routes above places the row alone - what Terraform needs, numbering a
+     * whole list one write per row - so a move, what someone dragging a row
+     * means, is its own request. A request with no session is answered 401,
+     * so an idle tab refreshes it.
+     */
+    if (MoveInListUtil.getListColumn(new this.entityType())) {
+      router.post(
+        `${new this.entityType().getCrudApiPath()?.toString()}${MOVE_IN_LIST_ROUTE}`,
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          try {
+            await this.moveItem(req, res);
+          } catch (err) {
+            next(err);
+          }
+        },
+      );
+    }
 
     this.router = router;
     this.service = service;
@@ -501,6 +535,49 @@ export default class BaseAPI<
     }
 
     return Response.sendEmptySuccessResponse(req, res);
+  }
+
+  /*
+   * POST /<path>/:id/move: moves the row to the place of the row named in
+   * placeOfId (the service's moveInList) and answers the rows given another
+   * number, each under the list's own number column. The project is the
+   * request's tenant; a project API key is asked like a member, its
+   * permissions deciding: the move is refused to whoever may not change the
+   * row's number.
+   */
+  @CaptureSpan()
+  public async moveItem(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    await this.assertProductIsOn();
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    CommonAPI.assertTenantScoped(props);
+
+    const idParam: string = String(req.params["id"] || "");
+    ObjectID.validateUUID(idParam);
+
+    const request: MoveInListRequest = MoveInListUtil.parseRequest(req.body);
+
+    const result: MoveInListResult = await this.service.moveInList({
+      id: new ObjectID(idParam),
+      placeOfId: request.placeOfId,
+      props: props,
+    });
+
+    Response.setNoCacheHeaders(res);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      MoveInListUtil.resultToJSON(
+        result,
+        MoveInListUtil.getListColumn(new this.entityType()) || undefined,
+      ),
+    );
   }
 
   @CaptureSpan()

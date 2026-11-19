@@ -32,7 +32,7 @@ Hver visning af afstamning - fanen **Afstamning** for en tabel, for en pipeline 
 - **Tjenester**, der skriver til og læser tabeller, ud fra databasespans i dine spor: et span, der navngiver sin tabel (`db.collection.name`, eller det ældre `db.sql.table`) og sin sætning (`db.operation.name`), fx en `INSERT` eller en `SELECT`.
 - **Tabeller**, der er bygget af andre tabeller, fra alle kilderne ovenfor.
 - **Pipelines**, der indlæser en tabel fra data, OneUptime ikke overvåger, fx en Fivetran-synkronisering. En pipeline, der flytter data mellem to overvågede tabeller, er navngivet på pilen mellem dem.
-- **Dashboards** og reverse ETL-synkroniseringer i dine BI-værktøjer, der læser de tabeller, de er bygget på.
+- **Dashboards** og reverse ETL-synkroniseringer i dine BI-værktøjer, der læser de tabeller, de er bygget på, også når intet andet rører de tabeller. En Power BI-rapport, der ikke er bygget på nogen tabel, OneUptime overvåger, tegnes med de datasæt, den viser, og de datakilder, de indlæser fra; når ingen af et BI-værktøjs dashboards er bygget på en overvåget tabel, siger kortet hvorfor ([Afstamning i Power BI](#afstamning-i-power-bi)).
 
 Hver pil er noget, OneUptime har registreret, aldrig et gæt. Kortene står fra venstre mod højre, som data løber, og viser, hvordan de har det, som på en tabels diagram: rødt for en forsinket tabel, en åben advarsel eller en mislykket kørsel. En pil er blågrøn, hvor en tjenestes spor har set den.
 
@@ -99,7 +99,7 @@ Den reelle følge af dårlige data er det dashboard, nogen åbner. Under **BI-da
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en service principal, der må bruge Power BI's skrivebeskyttede administrator-API'er. Både rapporter og dashboards læses, med deres visninger og opdateringer (nedenfor) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en service principal, der må bruge Power BI's skrivebeskyttede administrator-API'er, med de to lejerindstillinger for metadata fra [Afstamning i Power BI](#afstamning-i-power-bi) slået til for tabellerne bag hver rapport. Både rapporter og dashboards læses, med deres visninger og opdateringer (nedenfor) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (eller `eu`) |
 
@@ -140,7 +140,72 @@ Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sin
 
 En pipelines fane **Ejere** nævner de personer og teams, der passer den, og dens advarsler går til dem. **Oversigt** og **Problemer** nævner ejerne af en pipeline, der fejlede eller er forsinket, eller viser **Ingen ejer** med en måde at tilføje en på.
 
+**Ejerregler** kan navngive en pipelines ejere for dig. På deres fane **Pipelineregler** matcher en regel en pipeline med et regulært udtryk på dens navn, som `orders_daily.load_orders`, eller på dens navnerum, hvor den kører, som `airflow://prod`, og tilføjer sine personer og teams som pipelinens ejere, når OneUptime første gang ser pipelinen. For at tilføje dem til de pipelines, du allerede har, skal du åbne reglen og vælge **Kør nu**.
+
 En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**. Et tal for tabeller, der ikke er tegnet, på pipelinens kort eller på en tabels, tegner også her flere af dem på stedet. Vælg en af de kolonner, den skriver, for at følge den hen over pipelinen: op til kolonnen i hver læst tabel, den er bygget fra, og ned til hver tabel, den skriver den til.
+
+## Circuit breakers
+
+En kontrol, der fejler, eller en forsinket tabel giver dens ejere besked, men de pipelines, der læser tabellen, ville stadig køre og kopiere de dårlige data videre. En circuit breaker stopper dem først: pipelinens første trin spørger OneUptime, om de tabeller, den læser, er sunde, og resten kører kun, når svaret er go.
+
+- En kontrol, der fejler, på en tabel, som pipelinen læser, stopper den altid: en kontrol, hvis alarm er åben, eller en dbt-test, der fejlede.
+- En forsinket tabel stopper den også, så snart **Stop, når en tabel, den læser, er forsinket** er slået til på pipelinens side **Circuit breaker**. Det er slået fra for alle pipelines, da en forsinket tabel også bare kan betyde en stille dag.
+- En kontrol, der ikke kunne køre eller ikke har kørt endnu, og en tabel uden kontroller, stopper intet.
+
+Trinnet spørger med en projekt-API-nøgle, der må læse Dataobservabilitet, og navngiver pipelinen som `namespace/name`, kun med dens navn eller med dens ID. Circuit breakeren læser de tabeller, pipelinen læser, ud fra dens afstamning. En forespørgsel kan også navngive `tables`, eller kun dem, hver som `schema.table`, kun med dens navn eller med dens ID; et navn, der ikke matcher nogen tabel, kommer tilbage i `notFound` og tælles aldrig som en tabel, der bestod. Kun de tabeller, som API-nøglen må læse, bliver vurderet.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Svarets `verdict` er `go` eller `stop`. `reasons` viser hver kontrol, der fejler, med dens tabel, og hver forsinket tabel med hvor forsinket den er; `tables` viser hver vurderet tabel; og `answer` siger det samme i et par sætninger til trinnets log. Med `failWithStatusCode` svarer et stop med HTTP 412, så `curl -f` får trinnet til at fejle. Send `stopsOnLateTables` som `true` eller `false` for at bestemme for én forespørgsel, og `dryRun` som `true` for at spørge, uden at svaret gemmes.
+
+Sæt i Airflow en `ShortCircuitOperator` før de opgaver, der læser tabellerne: når dens funktion returnerer false, springes alle opgaver efter den over.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbts `on-run-start`-hooks kører SQL i dit warehouse, ikke webforespørgsler, så spørg i det trin, der starter dbt: et CI-job, en cron-linje eller den opgave, der kører det. Et dbt-projekts pipeline hedder `dbt/` efterfulgt af projektets navn.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+En forespørgsel, der navngiver en pipeline, gemmes på den, medmindre det er en prøvekørsel. Så længe circuit breakeren har stoppet en pipeline, siger dens side **Circuit breaker**, siden hvornår og hvorfor, dens **Oversigt** åbner med stoppet, og **Kræver handling** og **Problemer** viser den som stoppet i stedet for dens fejlede eller forsinkede kørsel. Stoppet slutter, når circuit breakeren næste gang svarer go, eller når en kørsel starter efter det. Samme side har **Test nu**, som spørger circuit breakeren, uden at svaret gemmes, og trinnet til curl, Airflow og dbt med pipelinens navn udfyldt.
+
+Så længe Dataobservabilitet er slået fra på serveren, svarer circuit breakeren go og gemmer intet: at slå et produkt fra stopper aldrig en pipeline.
 
 ## Én advarsel pr. årsag
 
@@ -154,6 +219,30 @@ Når en tabel bliver forældet, bliver hver tabel, der er bygget af den, også f
 Under **Data**-kortet tegner en advarsels side dens **Afstamning**: omkring dens tabel, som tabellens fane **Afstamning** tegner den, eller omkring dens pipeline. Vejen op til den advarsel, der forårsagede den, og ned til hver advarsel, den forårsagede, er fremhævet - årsagens tabel eller pipeline markeret med **Årsag**, hver forårsaget advarsels med **Følge** - og resten tones ned, så den, der åbner den, kan se, hvor i kæden problemet begyndte. Ligger årsagen på en pipeline, der er tegnet på en pil, står der **Årsag** under pipelinens navn på pilen. Handler årsagen om en hel database, eller ligger den længere oppe, end diagrammet når, siger kortet det med ord. En advarsel fra en kontrol af én kolonne, som en kontrol af typen Andel NULL på `customer_id`, åbner med den kolonne fulgt ved siden af disse veje, som på tabellens fane **Afstamning**: hvor den kommer fra, og hvor den går hen, navngivet på hver tabel. Vælg en anden af tabellens kolonner dér, eller ryd den for kun at se vejene. **Udforsk afstamning** åbner tabellens fane **Afstamning** eller pipelinens side. En forårsaget alarm på en pipeline, der er tegnet på en pil, siger **Følge** der på samme måde, og kolonnevælgeren tilbyder først kontrollens kolonne og derefter tabellens øvrige kolonner i dens egen rækkefølge.
 
 Den, der ikke må se den advarsel, der forårsagede den, får hverken **Data**-kortet eller afstamningen, og en forårsaget advarsel, som vedkommende ikke må se, bliver hverken fremhævet eller talt med.
+
+## Afstamning i Power BI
+
+**Matchede tabeller** på hvert BI-værktøj siger, hvor mange overvågede tabeller dets dashboards er bygget på, og under det det første, der forhindrer resten i at blive matchet. **See Why** viser, hvad den seneste læsning fandt, og hvad du skal gøre: databaser, som dine dashboards læser, og som ikke er forbundet til OneUptime, hver kun en **Connect Database** væk med sin type og adresse udfyldt; tabeller, som en forbundet database ikke overvåger, og som kan være udeladt af dens scanning eller ikke indsamlet endnu; og kilder, der ikke er en database, såsom filer og websider. For Power BI nævner den også en lejerindstilling, der er slået fra, datasæt, der læser fra dataflows, og datasæt, som Power BI ikke kan beskrive. **Bygger på** på hvert dashboard siger, hvilke datasæt det viser, og hvor deres data kommer fra, som Power BI angiver det.
+
+OneUptime læser hvert Power BI-datasæt fra Power BI's metadatascanning med den Power Query, der ligger bag hver af dets tabeller:
+
+- **Den database, en connector nævner**: SQL Server og Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena og Microsoft Dataverse samt det skema og den tabel, dens navigation vælger.
+- **SQL, som en forespørgsel kører**: en connectors indstilling **SQL statement**, `Value.NativeQuery` og `Odbc.Query`, og tabellerne efter hver `FROM` og `JOIN`.
+- **Parametre og delte forespørgsler**: en parameter gælder overalt, hvor den nævnes, og en tabel, der læser en staging-forespørgsel, læser det, den forespørgsel læser.
+- **Sammensatte modeller** viser tabellerne i de datasæt, de er bygget på.
+
+En rapport viser sit datasæts tabeller, og et dashboard tabellerne i datasættene bag dets felter. Hvor dataene kommer fra - en databases server og navn, en fils sti, en webadresse - kommer fra scanningens datakilder, som ikke kræver mere end administrator-API-adgangen ovenfor.
+
+Power BI returnerer først et datasæts tabeller, når en Fabric-administrator slår to lejerindstillinger til i administrationsportalen under **Tenant settings > Admin API settings** for den sikkerhedsgruppe, som service principal'en er med i:
+
+- **Enhance admin APIs responses with detailed metadata**: hvert datasæts tabeller.
+- **Enhance admin APIs responses with DAX and mashup expressions**: de forespørgsler, der indlæser dem, og som siger, hvilke databasetabeller de læser.
+
+Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet. Et datasæt, der læser fra et dataflow, læses op til dataflowet: OneUptime læser endnu ikke, hvilke tabeller et dataflow indlæser.
+
+Hver tabel matches med en overvåget tabel ud fra sit navn, sit skema og sin database, og en server ud fra sit korte eller fulde navn. En tabel fra en anden databasemotor matches aldrig, og det gør en tabel i en anden database heller ikke: en rapport på `Sales.dbo.Orders` knyttes ikke til `Archive.dbo.Orders`, fordi kun `Archive` overvåges.
+
+[Opdateringer](#visninger-og-opdateringer-i-power-bi) læses adskilt fra tabellerne: en besked om, at nogle datasæts opdateringer ikke kunne læses, siger intet om deres tabeller.
 
 ## Før en ændring flettes
 

@@ -1,4 +1,5 @@
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
+import IncidentVideoCallService from "../../../Server/Services/IncidentVideoCallService";
 import { Service as VideoCallConnectionServiceType } from "../../../Server/Services/VideoCallConnectionService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
@@ -465,6 +466,16 @@ describe("VideoCallConnectionService.connectWithSignIn", () => {
 });
 
 describe("removing an account's sign-in", () => {
+  let markTranscripts: jest.SpiedFunction<
+    typeof IncidentVideoCallService.markTranscriptsOfRemovedSignIn
+  >;
+
+  beforeEach(() => {
+    markTranscripts = jest
+      .spyOn(IncidentVideoCallService, "markTranscriptsOfRemovedSignIn")
+      .mockResolvedValue(0);
+  });
+
   test("deletes the sign-in and who it was from every connection signed in as the account", async () => {
     const { service } = build();
     const updateBy: jest.SpiedFunction<typeof service.updateBy> = jest
@@ -493,6 +504,76 @@ describe("removing an account's sign-in", () => {
     expect(data["lastError"]).toBe("removed");
   });
 
+  /*
+   * Zoom asks apps to delete a removed user's data (#9289): the calls whose
+   * transcript OneUptime read through the account's sign-in are marked for
+   * that transcript, and what OneUptime AI read in it, to be deleted.
+   */
+  test("marks every call whose transcript was read through the account's sign-in, before the sign-in goes", async () => {
+    const { service } = build();
+    const order: Array<string> = [];
+
+    markTranscripts.mockImplementation(async (): Promise<number> => {
+      order.push("mark");
+      return 3;
+    });
+    jest
+      .spyOn(service, "updateBy")
+      .mockImplementation(async (): Promise<number> => {
+        order.push("sign out");
+        return 1;
+      });
+
+    await expect(
+      service.removeSignIn({
+        provider: VideoCallProvider.Zoom,
+        accountId: ACCOUNT_ID,
+        reason: "removed",
+      }),
+    ).resolves.toBe(1);
+
+    expect(markTranscripts).toHaveBeenCalledWith({
+      provider: VideoCallProvider.Zoom,
+      accountId: ACCOUNT_ID,
+    });
+    // A failed sign-out leaves the marks, and Zoom's retry finds nothing new.
+    expect(order).toEqual(["mark", "sign out"]);
+  });
+
+  test("an account that left nothing still loses its sign-in", async () => {
+    const { service } = build();
+    const updateBy: jest.SpiedFunction<typeof service.updateBy> = jest
+      .spyOn(service, "updateBy")
+      .mockResolvedValue(1);
+
+    await service.removeSignIn({
+      provider: VideoCallProvider.Zoom,
+      accountId: ACCOUNT_ID,
+      reason: "removed",
+    });
+
+    expect(markTranscripts).toHaveBeenCalledTimes(1);
+    expect(updateBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a failure to mark is not swallowed: the event is answered with an error, and Zoom sends it again", async () => {
+    const { service } = build();
+    const updateBy: jest.SpiedFunction<typeof service.updateBy> = jest.spyOn(
+      service,
+      "updateBy",
+    );
+    markTranscripts.mockRejectedValue(new Error("database unavailable"));
+
+    await expect(
+      service.removeSignIn({
+        provider: VideoCallProvider.Zoom,
+        accountId: ACCOUNT_ID,
+        reason: "removed",
+      }),
+    ).rejects.toThrow("database unavailable");
+    expect(updateBy).not.toHaveBeenCalled();
+  });
+
   test("does nothing for an account it cannot name", async () => {
     const { service } = build();
     const updateBy: jest.SpiedFunction<typeof service.updateBy> = jest.spyOn(
@@ -508,6 +589,7 @@ describe("removing an account's sign-in", () => {
       }),
     ).resolves.toBe(0);
     expect(updateBy).not.toHaveBeenCalled();
+    expect(markTranscripts).not.toHaveBeenCalled();
   });
 });
 

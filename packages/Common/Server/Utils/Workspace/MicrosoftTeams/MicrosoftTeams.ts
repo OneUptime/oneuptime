@@ -83,6 +83,7 @@ import {
 import { ExpressRequest, ExpressResponse } from "../../Express";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
+import MicrosoftTeamsCutChatIds from "./MicrosoftTeamsCutChatIds";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsAccountNotLinkedException,
@@ -2766,6 +2767,94 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * Edits a card the bot posted, in place (Bot Framework updateActivity): the
    * post keeps its place in the channel or chat, and an edit notifies nobody.
+   * Where the post is, as the Bot Framework addresses it:
+   * getMessageConversationReference.
+   */
+  @CaptureSpan()
+  public static override async updateMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    const conversationReference: ConversationReference =
+      await this.getMessageConversationReference({
+        projectId: data.projectId,
+        location: data.location,
+        messageId: data.messageId,
+        action: "update",
+      });
+
+    const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
+      messageBlocks: data.messageBlocks,
+    });
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    await adapter.continueConversationAsync(
+      MicrosoftTeamsAppClientId!,
+      conversationReference,
+      async (context: TurnContext) => {
+        const update: Partial<Activity> = MessageFactory.attachment({
+          contentType: "application/vnd.microsoft.card.adaptive",
+          content: adaptiveCard,
+        });
+
+        update.id = data.messageId;
+
+        if (data.text) {
+          update.summary = data.text;
+        }
+
+        await context.updateActivity(update);
+      },
+    );
+  }
+
+  /*
+   * Deletes a card the bot posted (Bot Framework deleteActivity), where the
+   * post is as an edit finds it (getMessageConversationReference). A post
+   * that is gone already (isMessageGoneError) was deleted.
+   */
+  @CaptureSpan()
+  public static override async deleteMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+  }): Promise<void> {
+    const conversationReference: ConversationReference =
+      await this.getMessageConversationReference({
+        projectId: data.projectId,
+        location: data.location,
+        messageId: data.messageId,
+        action: "delete",
+      });
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    try {
+      await adapter.continueConversationAsync(
+        MicrosoftTeamsAppClientId!,
+        conversationReference,
+        async (context: TurnContext) => {
+          await context.deleteActivity(data.messageId);
+        },
+      );
+    } catch (error) {
+      if (this.isMessageGoneError(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Where a post the bot made is, as the Bot Framework addresses it to edit
+   * or delete it.
    *
    * A post the bot started in a channel is the root of its own thread, and is
    * addressed as that thread - "<channel id>;messageid=<post id>" - the same
@@ -2777,15 +2866,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * one the chat was opened at, as the location names it. Either is held to
    * Microsoft's hosts (MicrosoftTeamsServiceUrl).
    */
-  @CaptureSpan()
-  public static override async updateMessage(data: {
-    authToken: string;
+  private static async getMessageConversationReference(data: {
     projectId: ObjectID;
     location: WorkspaceMessageLocation;
     messageId: string;
-    messageBlocks: Array<WorkspaceMessageBlock>;
-    text?: string | undefined;
-  }): Promise<void> {
+    // What is done to the post, for the refusal that says why it cannot be.
+    action: "update" | "delete";
+  }): Promise<ConversationReference> {
     if (!MicrosoftTeamsAppClientId) {
       throw new BadDataException(
         "Microsoft Teams App Client ID not configured",
@@ -2794,7 +2881,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     if (!data.location.channelId || !data.messageId) {
       throw new BadDataException(
-        "A channel or chat and a message id are required to update a Microsoft Teams message",
+        `A channel or chat and a message id are required to ${data.action} a Microsoft Teams message`,
       );
     }
 
@@ -2868,11 +2955,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       serviceUrl = MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl);
     }
 
-    const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
-      messageBlocks: data.messageBlocks,
-    });
-
-    const conversationReference: ConversationReference = {
+    return {
       bot: {
         id: MicrosoftTeamsAppClientId,
         name: "OneUptime Bot",
@@ -2881,27 +2964,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       channelId: "msteams",
       serviceUrl: serviceUrl,
     };
-
-    const adapter: CloudAdapter = this.getBotAdapter();
-
-    await adapter.continueConversationAsync(
-      MicrosoftTeamsAppClientId,
-      conversationReference,
-      async (context: TurnContext) => {
-        const update: Partial<Activity> = MessageFactory.attachment({
-          contentType: "application/vnd.microsoft.card.adaptive",
-          content: adaptiveCard,
-        });
-
-        update.id = data.messageId;
-
-        if (data.text) {
-          update.summary = data.text;
-        }
-
-        await context.updateActivity(update);
-      },
-    );
   }
 
   /*
@@ -7041,6 +7103,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         },
         select: {
           _id: true,
+          projectId: true,
           miscData: true,
         },
         limit: LIMIT_MAX,
@@ -7054,6 +7117,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const miscData: MicrosoftTeamsMiscData = {
         ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
       } as MicrosoftTeamsMiscData;
+
+      const isNewlyListed: boolean = !miscData.availableChats?.[data.chat.id];
 
       miscData.availableChats = {
         ...(miscData.availableChats || {}),
@@ -7069,6 +7134,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           isRoot: true,
         },
       });
+
+      /*
+       * A chat the connection did not list until now - the app removed from
+       * the chat and added again, or a connection made after the upgrade -
+       * may have pages asked for in it before #9284, kept with its id cut to
+       * 100 characters, that the upgrade could not put back: it puts back
+       * only the chats listed then. They reach the chat again from the next
+       * change of their run (#9330). A chat already listed (a re-capture,
+       * a staleness refresh) had its places put back at the upgrade, so
+       * nothing is done for it: this is the bot's activity path.
+       */
+      if (isNewlyListed && projectAuth.projectId) {
+        await MicrosoftTeamsCutChatIds.restoreKeptMessages({
+          projectId: projectAuth.projectId,
+          chatId: data.chat.id,
+          availableChats: miscData.availableChats,
+        });
+      }
     }
   }
 

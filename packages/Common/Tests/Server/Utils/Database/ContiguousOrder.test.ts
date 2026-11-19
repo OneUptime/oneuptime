@@ -4,11 +4,18 @@ import ModelPermission from "../../../../Server/Types/Database/Permissions/Index
 import ContiguousOrder, {
   ListColumnValue,
 } from "../../../../Server/Utils/Database/ContiguousOrder";
+import RuleSetCache from "../../../../Server/Utils/Rules/RuleSetCache";
+import StatusPageOverviewCache from "../../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import StatusPageGroup from "../../../../Models/DatabaseModels/StatusPageGroup";
+import {
+  ListPlace,
+  MoveInListChanges,
+} from "../../../../Types/Database/MoveInList";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
+import { getJestSpyOn } from "../../../Spy";
 import {
   afterEach,
   beforeEach,
@@ -27,7 +34,11 @@ import { EntityManager } from "typeorm";
  *   - move: a row moved to another row's place, in one transaction that
  *     locks the list's rows, once the caller is found allowed to change the
  *     row's order - the rows given another number written in one
- *     statement, and recorded in the audit log by the caller.
+ *     statement, and recorded in the audit log by the caller. The
+ *     drag-ordered lists (@ListOrderColumn, issue #9609) are moved here
+ *     too: by their own number column, a list named by a kind as well as
+ *     by ids, their rows put in order their own way, and a move their
+ *     rules may refuse before it is written.
  *
  * No write of a row through a service moves another row any more; that is
  * pinned with the services themselves (ContiguousOrderWrites,
@@ -256,7 +267,7 @@ describe("ContiguousOrder", () => {
       const select: Statement = service.manager.statements[0]!;
 
       expect(select.sql).toBe(
-        'SELECT "_id", "order" FROM "StatusPageGroup" WHERE "statusPageId" = $1::uuid AND "projectId" = $2::uuid AND "deletedAt" IS NULL ORDER BY "_id" ASC FOR UPDATE',
+        'SELECT "_id", "order" AS "order", "createdAt" FROM "StatusPageGroup" WHERE "statusPageId" = $1::uuid AND "projectId" = $2::uuid AND "deletedAt" IS NULL ORDER BY "_id" ASC FOR UPDATE',
       );
       expect(select.parameters).toEqual([
         STATUS_PAGE_ID.toString(),
@@ -399,6 +410,229 @@ describe("ContiguousOrder", () => {
         }),
       ).rejects.toThrow(BadDataException);
       expect(service.manager.statements).toEqual([]);
+    });
+
+    test("a number column that is no plain name is refused before anything is read", async () => {
+      await expect(
+        ContiguousOrder.moveWithinTransaction({
+          manager: service.manager.asManager(),
+          tableName: "StatusPageGroup",
+          list: list,
+          rowId: idOf(1),
+          placeOfId: idOf(2),
+          name: "status page group",
+          orderColumn: 'order" = 0, "name',
+        }),
+      ).rejects.toThrow(BadDataException);
+      expect(service.manager.statements).toEqual([]);
+    });
+  });
+
+  /*
+   * A drag-ordered list (@ListOrderColumn, issue #9609) is moved in the
+   * same transaction: numbered by a column of its own, named by a kind as
+   * well as by ids, its rows put in order its own way, and its move
+   * checked before anything is written.
+   */
+  describe("moveWithinTransaction, for a drag-ordered list", () => {
+    const list: Array<ListColumnValue> = [
+      { column: "projectId", value: PROJECT_ID.toString() },
+      { column: "eventType", value: "Incident", isText: true },
+    ];
+
+    beforeEach(() => {
+      service.manager.rows = [
+        { _id: idOf(1).toString(), order: 10 },
+        { _id: idOf(2).toString(), order: 20 },
+        { _id: idOf(3).toString(), order: 30 },
+      ];
+    });
+
+    test("locks and reads the list by its own number column, its kind compared as text", async () => {
+      await ContiguousOrder.moveWithinTransaction({
+        manager: service.manager.asManager(),
+        tableName: "MonitorStatus",
+        list: list,
+        rowId: idOf(3),
+        placeOfId: idOf(1),
+        name: "monitor status",
+        orderColumn: "priority",
+      });
+
+      const select: Statement = service.manager.statements[0]!;
+
+      expect(select.sql).toBe(
+        'SELECT "_id", "priority" AS "order", "createdAt" FROM "MonitorStatus" WHERE "projectId" = $1::uuid AND "eventType" = $2 AND "deletedAt" IS NULL ORDER BY "_id" ASC FOR UPDATE',
+      );
+      expect(select.parameters).toEqual([PROJECT_ID.toString(), "Incident"]);
+    });
+
+    test("writes the new numbers into its own number column, held to the list", async () => {
+      await ContiguousOrder.moveWithinTransaction({
+        manager: service.manager.asManager(),
+        tableName: "MonitorStatus",
+        list: list,
+        rowId: idOf(3),
+        placeOfId: idOf(1),
+        name: "monitor status",
+        orderColumn: "priority",
+      });
+
+      const update: Statement = service.manager.statements[1]!;
+
+      expect(update.sql).toBe(
+        'UPDATE "MonitorStatus" AS "row" SET "priority" = "moved"."order", "updatedAt" = now(), "version" = "row"."version" + 1 FROM (VALUES ($3::uuid, $4::integer), ($5::uuid, $6::integer), ($7::uuid, $8::integer)) AS "moved"("_id", "order") WHERE "row"."_id" = "moved"."_id" AND "row"."projectId" = $1::uuid AND "row"."eventType" = $2',
+      );
+      expect(update.parameters.slice(0, 2)).toEqual([
+        PROJECT_ID.toString(),
+        "Incident",
+      ]);
+    });
+
+    test("puts the rows in order and moves them the way it is handed", async () => {
+      const seen: Array<{
+        places: Array<ListPlace>;
+        rowId: string;
+        placeOfId: string;
+      }> = [];
+
+      const written: { changedRows: Array<{ id: string; order: number }> } =
+        await ContiguousOrder.moveWithinTransaction({
+          manager: service.manager.asManager(),
+          tableName: "MonitorStatus",
+          list: list,
+          rowId: idOf(1),
+          placeOfId: idOf(2),
+          name: "monitor status",
+          orderColumn: "priority",
+          getChanges: (data: {
+            places: Array<ListPlace>;
+            rowId: string;
+            placeOfId: string;
+          }): MoveInListChanges => {
+            seen.push(data);
+            return {
+              kind: "moved",
+              changedRows: [{ id: idOf(1).toString(), order: 99 }],
+            };
+          },
+        });
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0]!.rowId).toBe(idOf(1).toString());
+      expect(seen[0]!.placeOfId).toBe(idOf(2).toString());
+      expect(
+        seen[0]!.places.map((place: ListPlace): number | null | undefined => {
+          return place.order;
+        }),
+      ).toEqual([10, 20, 30]);
+      expect(written.changedRows).toEqual([
+        { id: idOf(1).toString(), order: 99 },
+      ]);
+    });
+
+    test("hands each row's creation time to the order, as the lock reads it", async () => {
+      const createdAt: Date = new Date("2026-01-01T00:00:00.000Z");
+      service.manager.rows = [
+        {
+          _id: idOf(1).toString(),
+          order: 1,
+          createdAt: createdAt,
+        } as unknown as { _id: string; order: number | null },
+      ];
+
+      let places: Array<ListPlace> = [];
+
+      await ContiguousOrder.moveWithinTransaction({
+        manager: service.manager.asManager(),
+        tableName: "MonitorStatus",
+        list: list,
+        rowId: idOf(1),
+        placeOfId: idOf(1),
+        name: "monitor status",
+        orderColumn: "priority",
+        getChanges: (data: {
+          places: Array<ListPlace>;
+          rowId: string;
+          placeOfId: string;
+        }): MoveInListChanges => {
+          places = data.places;
+          return { kind: "moved", changedRows: [] };
+        },
+      });
+
+      expect(places).toEqual([
+        { id: idOf(1).toString(), order: 1, createdAt: createdAt },
+      ]);
+    });
+
+    test("asks the list's own rules about the rows it would renumber before it writes them", async () => {
+      const asked: Array<Array<{ id: string; order: number }>> = [];
+
+      await ContiguousOrder.moveWithinTransaction({
+        manager: service.manager.asManager(),
+        tableName: "MonitorStatus",
+        list: list,
+        rowId: idOf(3),
+        placeOfId: idOf(1),
+        name: "monitor status",
+        orderColumn: "priority",
+        beforeWrite: async (
+          changedRows: Array<{ id: string; order: number }>,
+        ): Promise<void> => {
+          asked.push(changedRows);
+          // Asked once the list is read, before it is written.
+          expect(service.manager.statements).toHaveLength(1);
+        },
+      });
+
+      expect(asked).toEqual([
+        [
+          { id: idOf(3).toString(), order: 1 },
+          { id: idOf(1).toString(), order: 2 },
+          { id: idOf(2).toString(), order: 3 },
+        ],
+      ]);
+      expect(service.manager.statements).toHaveLength(2);
+    });
+
+    test("writes nothing when the list's own rules refuse the move, and says why", async () => {
+      await expect(
+        ContiguousOrder.moveWithinTransaction({
+          manager: service.manager.asManager(),
+          tableName: "MonitorStatus",
+          list: list,
+          rowId: idOf(3),
+          placeOfId: idOf(1),
+          name: "monitor status",
+          orderColumn: "priority",
+          beforeWrite: async (): Promise<void> => {
+            throw new BadDataException("The resolved state stays below.");
+          },
+        }),
+      ).rejects.toThrow("The resolved state stays below.");
+
+      expect(service.manager.statements).toHaveLength(1);
+    });
+
+    test("does not ask the list's rules about a move that changes nothing", async () => {
+      let asked: number = 0;
+
+      await ContiguousOrder.moveWithinTransaction({
+        manager: service.manager.asManager(),
+        tableName: "MonitorStatus",
+        list: list,
+        rowId: idOf(2),
+        placeOfId: idOf(2),
+        name: "monitor status",
+        orderColumn: "priority",
+        beforeWrite: async (): Promise<void> => {
+          asked++;
+        },
+      });
+
+      expect(asked).toBe(0);
+      expect(service.manager.statements).toHaveLength(1);
     });
   });
 
@@ -569,6 +803,101 @@ describe("ContiguousOrder", () => {
         expect(entry.props).toEqual(memberProps());
         expect(entry.before.name).toBeDefined();
       }
+    });
+
+    test("asks for, reads and audits a drag-ordered list's own number column", async () => {
+      const recorded: Array<{ updatedFields: Record<string, unknown> }> = [];
+
+      jest
+        .spyOn(AuditLogService, "recordUpdate")
+        .mockImplementation(async (entry: unknown) => {
+          recorded.push(entry as { updatedFields: Record<string, unknown> });
+        });
+      // The rows as they are once moved, every column.
+      service.auditRows = [groupRow(3, 1), groupRow(1, 2), groupRow(2, 3)];
+
+      await ContiguousOrder.move({
+        service: service.asService(),
+        rowId: idOf(3),
+        placeOfId: idOf(1),
+        listColumns: ["statusPageId", "projectId"],
+        orderColumn: "sortOrder",
+        props: memberProps(),
+      });
+
+      expect(ModelPermission.checkUpdateQueryPermissions).toHaveBeenCalledWith(
+        StatusPageGroup,
+        { _id: idOf(3), projectId: PROJECT_ID },
+        { sortOrder: 1 },
+        memberProps(),
+      );
+      expect(service.reads[0]!["select"]).toEqual({
+        _id: true,
+        sortOrder: true,
+        statusPageId: true,
+        projectId: true,
+      });
+      expect(service.manager.statements[0]!.sql).toContain(
+        'SELECT "_id", "sortOrder" AS "order"',
+      );
+      expect(service.manager.statements[1]!.sql).toContain(
+        'SET "sortOrder" = "moved"."order"',
+      );
+      expect(
+        recorded.map((entry: { updatedFields: Record<string, unknown> }) => {
+          return entry.updatedFields;
+        }),
+      ).toEqual([{ sortOrder: 1 }, { sortOrder: 2 }, { sortOrder: 3 }]);
+    });
+
+    test("has the project's rules and status pages read again once a move renumbers rows", async () => {
+      const rules: jest.SpyInstance = getJestSpyOn(
+        RuleSetCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
+      const pages: jest.SpyInstance = getJestSpyOn(
+        StatusPageOverviewCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
+
+      await ContiguousOrder.move({
+        service: service.asService(),
+        rowId: idOf(3),
+        placeOfId: idOf(1),
+        listColumns: ["statusPageId", "projectId"],
+        props: memberProps(),
+      });
+
+      const expected: Record<string, unknown> = {
+        tableName: "StatusPageGroup",
+        rows: [{ projectId: PROJECT_ID.toString() }],
+        written: { order: 1 },
+      };
+
+      expect(rules).toHaveBeenCalledWith(expected);
+      expect(pages).toHaveBeenCalledWith(expected);
+    });
+
+    test("has nothing read again for a move that changes nothing", async () => {
+      const rules: jest.SpyInstance = getJestSpyOn(
+        RuleSetCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
+      const pages: jest.SpyInstance = getJestSpyOn(
+        StatusPageOverviewCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
+
+      await ContiguousOrder.move({
+        service: service.asService(),
+        rowId: idOf(2),
+        placeOfId: idOf(2),
+        listColumns: ["statusPageId", "projectId"],
+        props: memberProps(),
+      });
+
+      expect(rules).not.toHaveBeenCalled();
+      expect(pages).not.toHaveBeenCalled();
     });
 
     test("records nothing, and reads nothing for the audit log, for a move that changes nothing", async () => {

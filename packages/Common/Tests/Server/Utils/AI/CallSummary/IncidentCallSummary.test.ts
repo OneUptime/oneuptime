@@ -16,6 +16,10 @@ import IncidentCallSummary, {
   MAX_CALL_SUMMARY_STATUS_MESSAGE_LENGTH,
 } from "../../../../../Server/Utils/AI/CallSummary/IncidentCallSummary";
 import IncidentCallSummaryFeed from "../../../../../Server/Utils/AI/CallSummary/IncidentCallSummaryFeed";
+import IncidentCallTranscriptRemoval from "../../../../../Server/Utils/VideoCall/Transcripts/IncidentCallTranscriptRemoval";
+import { CallSummaryPost } from "../../../../../Types/VideoCall/CallSummaryPosts";
+import { VideoCallTranscriptSource } from "../../../../../Types/VideoCall/VideoCallTranscript";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import AIIncidentPostmortemRunner from "../../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
 import logger from "../../../../../Server/Utils/Logger";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -79,12 +83,40 @@ const SUGGESTED_ANSWER: JSONObject = {
   ],
 };
 
+// When the transcript was added: what a reading's post is kept against.
+const TRANSCRIPT_ADDED_AT: Date = new Date("2026-10-17T15:00:00.000Z");
+
 // The call as stored: what the reading's own writes leave in it.
 let stored: {
   transcript: string | null;
   callSummary: JSONObject | null;
+  transcriptAddedAt: Date | null;
+  transcriptSource: VideoCallTranscriptSource | null;
+  transcriptSignInAccountId: string | null;
 };
 let writes: Array<JSONObject>;
+// Where each reading's post was kept, as keepCallSummaryPost was asked.
+let kept: Array<{
+  callId: ObjectID;
+  transcriptAddedAt: Date;
+  post: CallSummaryPost;
+}>;
+
+// What a reading's post came to: its feed item and one Slack message.
+function aPost(): CallSummaryPost {
+  return {
+    feedId: "66666666-6666-4666-8666-666666666666",
+    postedAt: "2026-10-17T15:05:00.000Z",
+    messages: [
+      {
+        workspaceType: WorkspaceType.Slack,
+        channelId: "C0INC42",
+        channelName: "inc-42",
+        messageId: "1760713500.000100",
+      },
+    ],
+  };
+}
 
 function storedCall(): IncidentVideoCall {
   const call: IncidentVideoCall = new IncidentVideoCall();
@@ -101,6 +133,18 @@ function storedCall(): IncidentVideoCall {
     call.callSummary = stored.callSummary;
   }
 
+  if (stored.transcriptAddedAt !== null) {
+    call.transcriptAddedAt = stored.transcriptAddedAt;
+  }
+
+  if (stored.transcriptSource !== null) {
+    call.transcriptSource = stored.transcriptSource;
+  }
+
+  if (stored.transcriptSignInAccountId !== null) {
+    call.transcriptSignInAccountId = stored.transcriptSignInAccountId;
+  }
+
   return call;
 }
 
@@ -112,6 +156,8 @@ function lastWrite(): JSONObject {
 let executeWithLogging: ReturnType<typeof jest.spyOn>;
 let feedPost: ReturnType<typeof jest.spyOn>;
 let draftWaiting: ReturnType<typeof jest.spyOn>;
+let keepPost: ReturnType<typeof jest.spyOn>;
+let deletePosts: ReturnType<typeof jest.spyOn>;
 
 function answerWith(content: string | Error): void {
   executeWithLogging.mockImplementation(async (): Promise<AILogResponse> => {
@@ -124,8 +170,15 @@ function answerWith(content: string | Error): void {
 }
 
 beforeEach(() => {
-  stored = { transcript: TRANSCRIPT, callSummary: null };
+  stored = {
+    transcript: TRANSCRIPT,
+    callSummary: null,
+    transcriptAddedAt: TRANSCRIPT_ADDED_AT,
+    transcriptSource: VideoCallTranscriptSource.Provider,
+    transcriptSignInAccountId: null,
+  };
   writes = [];
+  kept = [];
 
   jest
     .spyOn(IncidentVideoCallService, "findOneById")
@@ -151,6 +204,49 @@ beforeEach(() => {
       return 1;
     });
 
+  // One UPDATE that writes only while the reading is still the call's.
+  jest
+    .spyOn(IncidentVideoCallService, "writeReadingIfCurrent")
+    .mockImplementation(
+      async (data: {
+        callId: ObjectID;
+        runId: string;
+        columns: unknown;
+      }): Promise<boolean> => {
+        if (stored.callSummary?.["runId"] !== data.runId) {
+          return false;
+        }
+
+        const written: JSONObject = data.columns as JSONObject;
+        writes.push(written);
+        stored.callSummary =
+          (written["callSummary"] as JSONObject | null) || null;
+        return true;
+      },
+    );
+
+  // Kept only while the transcript the reading read is still the call's.
+  keepPost = jest
+    .spyOn(IncidentVideoCallService, "keepCallSummaryPost")
+    .mockImplementation(
+      async (data: {
+        callId: ObjectID;
+        transcriptAddedAt: Date;
+        post: CallSummaryPost;
+      }): Promise<boolean> => {
+        kept.push(data);
+        return (
+          stored.transcriptAddedAt !== null &&
+          stored.transcriptAddedAt.getTime() ===
+            data.transcriptAddedAt.getTime()
+        );
+      },
+    );
+
+  deletePosts = jest
+    .spyOn(IncidentCallTranscriptRemoval, "deletePosts")
+    .mockResolvedValue({ deleted: [], notDeleted: [] });
+
   jest.spyOn(IncidentService, "findOneById").mockImplementation(async () => {
     const incident: Incident = new Incident();
     incident.id = INCIDENT;
@@ -174,7 +270,11 @@ beforeEach(() => {
   executeWithLogging = jest.spyOn(AIService, "executeWithLogging");
   answerWith(JSON.stringify(SUGGESTED_ANSWER));
 
-  feedPost = jest.spyOn(IncidentCallSummaryFeed, "post").mockResolvedValue();
+  feedPost = jest
+    .spyOn(IncidentCallSummaryFeed, "post")
+    .mockImplementation(async (): Promise<CallSummaryPost> => {
+      return aPost();
+    });
   draftWaiting = jest
     .spyOn(AIIncidentPostmortemRunner, "draftWaitingPostmortem")
     .mockResolvedValue();
@@ -421,8 +521,9 @@ describe("IncidentCallSummary.run", () => {
     test("a reading that ends Ready posts what it read to the incident's feed, once it is stored", async () => {
       let writesWhenPosted: number = -1;
 
-      feedPost.mockImplementation(async (): Promise<void> => {
+      feedPost.mockImplementation(async (): Promise<CallSummaryPost> => {
         writesWhenPosted = writes.length;
+        return aPost();
       });
 
       await IncidentCallSummary.run({ callId: CALL, runId: RUN, userId: USER });
@@ -465,8 +566,9 @@ describe("IncidentCallSummary.run", () => {
     test("a finished reading lets a postmortem draft that waited for it go on, after posting", async () => {
       const order: Array<string> = [];
 
-      feedPost.mockImplementation(async (): Promise<void> => {
+      feedPost.mockImplementation(async (): Promise<CallSummaryPost> => {
         order.push("feed");
+        return aPost();
       });
       draftWaiting.mockImplementation(async (): Promise<void> => {
         order.push("postmortem");
@@ -502,6 +604,98 @@ describe("IncidentCallSummary.run", () => {
       await IncidentCallSummary.run({ callId: CALL, runId: RUN });
 
       expect(feedPost).not.toHaveBeenCalled();
+      expect(draftWaiting).not.toHaveBeenCalled();
+    });
+
+    test("keeps where it posted on the call, while the transcript it read is still the call's", async () => {
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(kept).toEqual([
+        {
+          callId: CALL,
+          transcriptAddedAt: TRANSCRIPT_ADDED_AT,
+          post: aPost(),
+        },
+      ]);
+      expect(deletePosts).not.toHaveBeenCalled();
+    });
+
+    test("a post made while the transcript was removed is deleted again at once (#9290)", async () => {
+      feedPost.mockImplementation(async (): Promise<CallSummaryPost> => {
+        // Someone removed the transcript while the post went out.
+        stored.transcriptAddedAt = null;
+        stored.transcript = null;
+        return aPost();
+      });
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(keepPost).toHaveBeenCalledTimes(1);
+      expect(deletePosts).toHaveBeenCalledWith({
+        projectId: PROJECT,
+        incidentId: INCIDENT,
+        posts: [aPost()],
+      });
+    });
+
+    test("a post made while the transcript was replaced is deleted too: it read a transcript the call no longer has", async () => {
+      feedPost.mockImplementation(async (): Promise<CallSummaryPost> => {
+        stored.transcriptAddedAt = new Date("2026-10-17T15:06:00.000Z");
+        return aPost();
+      });
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(deletePosts).toHaveBeenCalledTimes(1);
+    });
+
+    test("a post that cannot be kept, because keeping it failed, is deleted rather than left behind", async () => {
+      keepPost.mockRejectedValue(new Error("connection reset"));
+      jest.spyOn(logger, "error").mockImplementation((): void => {
+        return undefined;
+      });
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(deletePosts).toHaveBeenCalledWith({
+        projectId: PROJECT,
+        incidentId: INCIDENT,
+        posts: [aPost()],
+      });
+    });
+
+    test("a transcript read through someone's sign-in names the account on its post (#9289)", async () => {
+      stored.transcriptSignInAccountId = "KdYKjnimT4KPd8FFgQt9FQ";
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(
+        (feedPost.mock.calls[0]![0] as { signInAccountId?: string })
+          .signInAccountId,
+      ).toBe("KdYKjnimT4KPd8FFgQt9FQ");
+    });
+
+    test("a transcript a person added names no account, even on a call an earlier one was read through", async () => {
+      stored.transcriptSource = VideoCallTranscriptSource.Upload;
+      stored.transcriptSignInAccountId = "KdYKjnimT4KPd8FFgQt9FQ";
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(
+        (feedPost.mock.calls[0]![0] as { signInAccountId?: string })
+          .signInAccountId,
+      ).toBeUndefined();
+    });
+
+    test("a reading replaced between its last look and its write posts nothing: the write itself checks", async () => {
+      jest
+        .spyOn(IncidentVideoCallService, "writeReadingIfCurrent")
+        .mockResolvedValue(false);
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(feedPost).not.toHaveBeenCalled();
+      expect(keepPost).not.toHaveBeenCalled();
       expect(draftWaiting).not.toHaveBeenCalled();
     });
 

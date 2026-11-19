@@ -62,8 +62,16 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** 는 위와 같이 kubeadm의 `--listen-metrics-urls`(포트 2381, 노드의 주소를 추가하기 전까지 `127.0.0.1`에 바인딩)에서 일반 HTTP로 메트릭을 제공합니다. 또는 요구하는 클라이언트 인증서로 HTTPS 클라이언트 포트 2379를 수집하세요. `ca.crt`, `tls.crt`, `tls.key`를 `oneuptime-agent`의 Secret에 넣고 `controlPlane.etcd.clientCertSecret`에 그 이름을 지정합니다.",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "자체 관리형 클러스터만 해당: 관리형 서비스(EKS, GKE, AKS)는 컨트롤 플레인 메트릭을 노출하지 않습니다.",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "이것만으로 완전한 설치입니다. chart에는 오픈 소스 OpenCost 엔진(과 그에 필요한 작은 Prometheus)이 포함되어 있으며, 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 자격 증명은 필요 없습니다. 작은 Pod 두 개가 추가되며, 첫 한 시간이 지나면 첫 데이터가 나타납니다.",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "비용 모니터링은 기본적으로 켜져 있습니다. 에이전트에는 오픈 소스 OpenCost 엔진(과 그에 필요한 작은 Prometheus)이 포함되어 있으며, 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매기고(자격 증명은 필요 없습니다) 각 네임스페이스와 워크로드의 비용을 보냅니다. 첫 한 시간이 지나면 클러스터의 개요와 비용 페이지에 첫 데이터가 나타납니다.",
+  "On an agent installed before it was on by default, upgrade it:":
+    "기본으로 켜지기 전에 설치한 에이전트라면 업그레이드하세요:",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **끄기:** 같은 업그레이드에 `--set cost.enabled=false`를 추가하세요.",
+  "Cost monitoring is off by default on this platform: it bills every pod by what it requests, so the three cost pods would add to your bill, and OpenCost prices nodes rather than pods. To turn it on anyway:":
+    "이 플랫폼에서는 비용 모니터링이 기본적으로 꺼져 있습니다. 이 플랫폼은 모든 Pod에 요청한 리소스만큼 요금을 매기므로 비용 Pod 세 개가 청구액을 늘리게 되고, OpenCost는 Pod가 아니라 노드의 가격을 매깁니다. 그래도 켜려면:",
+  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
+    "이것만으로 완전한 설치입니다. chart에는 오픈 소스 OpenCost 엔진(과 그에 필요한 작은 Prometheus)이 포함되어 있으며, 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 자격 증명은 필요 없습니다. 작은 Pod 세 개가 추가되며, 첫 한 시간이 지나면 첫 데이터가 나타납니다.",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
     "- **이미 Kubecost나 OpenCost를 쓰고 있나요?** 대신 에이전트가 그것을 가리키게 하면 아무것도 함께 설치되지 않습니다. `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003`(또는 사용 중인 Kubecost 서비스)을 추가하세요.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
@@ -123,6 +131,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **네트워크 플로우** *(eBPF)* | Pod 간 TCP/UDP 바이트와 패킷 카운터 |",
   "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
     "| **워크로드 비용** *(옵트인, `cost.enabled=true`)* | 네임스페이스, 워크로드, Pod별 지출과 유휴 용량 및 효율 |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **워크로드 비용** *(기본적으로 켜짐)* | 네임스페이스, 워크로드, Pod별 지출과 유휴 용량 및 효율. 경고를 설정할 수 있는 메트릭으로도 제공 |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "클러스터가 `hostPath` 볼륨이나 특권 Pod를 막고 있습니다. **GKE Autopilot** 과 **EKS Fargate** 에서는 정상입니다. 이 가이드 상단에서 해당 플랫폼을 고르고 그 단계를 따르세요. 반면 **OpenShift** 에서는 설치가 성공하지만 에이전트의 노드 Pod가 시작되지 않습니다. **Red Hat OpenShift** 를 고르세요.",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

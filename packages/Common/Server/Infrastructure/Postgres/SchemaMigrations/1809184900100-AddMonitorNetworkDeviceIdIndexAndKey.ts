@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddMonitorNetworkDeviceId1809184736000, and moved into a migration of its
+ * AddMonitorNetworkDeviceId1809184900000, and moved into a migration of its
  * own: "Monitor" is written by every probe result, heartbeat and status
  * change, so both statements run online, without blocking its readers or
  * writers (Docs/migrations/README.md).
@@ -22,10 +22,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * FK_monitor_network_device), so the drift check finds nothing to change.
  * Safe to run again after a stop part way.
  */
-export class AddMonitorNetworkDeviceIdIndexAndKey1809184736100
+export class AddMonitorNetworkDeviceIdIndexAndKey1809184900100
   implements MigrationInterface
 {
-  public name: string = "AddMonitorNetworkDeviceIdIndexAndKey1809184736100";
+  public name: string = "AddMonitorNetworkDeviceIdIndexAndKey1809184900100";
 
   // CREATE INDEX CONCURRENTLY and VALIDATE CONSTRAINT run outside a transaction.
   public transaction: boolean = false;

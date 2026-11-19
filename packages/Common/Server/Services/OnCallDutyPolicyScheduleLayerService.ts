@@ -414,7 +414,7 @@ export class Service extends ProjectReferencesService<Model> {
    * its changes (save-layers); a write of `order` places the layer alone.
    */
   @CaptureSpan()
-  public async moveInList(data: {
+  public override async moveInList(data: {
     id: ObjectID;
     placeOfId: ObjectID;
     props: DatabaseCommonInteractionProps;

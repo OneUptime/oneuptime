@@ -54,6 +54,24 @@ export interface ResourceLatestMetric {
   controllerCronJobName?: string | null;
 }
 
+/*
+ * A persistent volume claim's latest usage, as the kubelet measured the
+ * claim's volume (the kubeletstats receiver's k8s.volume.* series, which the
+ * kubernetes-agent names by k8s.persistentvolumeclaim.name). A null reading
+ * keeps the one stored: one batch may carry a claim's capacity, the next its
+ * inodes.
+ */
+export interface ResourceLatestVolumeStats {
+  namespaceKey: string;
+  // The claim's name.
+  name: string;
+  capacityBytes: number | null;
+  availableBytes: number | null;
+  inodes: number | null;
+  inodesFree: number | null;
+  observedAt: Date;
+}
+
 export interface InventorySummary {
   countsByKind: Record<string, number>;
   /*
@@ -439,6 +457,87 @@ export class Service extends DatabaseService<Model> {
           k."projectId" = $1
           AND k."kubernetesClusterId" = $2
           AND k."kind" = v."kind"
+          AND k."namespaceKey" = v."ns"
+          AND k."name" = v."name"
+          AND (k."metricsUpdatedAt" IS NULL OR v."observedAt" >= k."metricsUpdatedAt")
+      `;
+
+      await this.getRepository().manager.query(sql, params);
+    }
+  }
+
+  /**
+   * Mirror each persistent volume claim's latest usage onto its row:
+   * capacity, available bytes and inodes as the kubelet last measured the
+   * claim's volume. The claim mirror of bulkUpdateLatestMetrics, with the
+   * same rules: a plain UPDATE, so a claim whose row the next k8sobjects
+   * snapshot has yet to write is skipped and caught up on the next flush; a
+   * null reading keeps the stored one; and metricsUpdatedAt guards it, so an
+   * older point never overwrites a newer one.
+   */
+  @CaptureSpan()
+  public async bulkUpdateLatestVolumeStats(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    volumes: Array<ResourceLatestVolumeStats>;
+  }): Promise<void> {
+    if (data.volumes.length === 0) {
+      return;
+    }
+
+    const toBigint: (value: number | null) => string | null = (
+      value: number | null,
+    ): string | null => {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return null;
+      }
+      return Math.max(0, Math.trunc(value)).toString();
+    };
+
+    for (let i: number = 0; i < data.volumes.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ResourceLatestVolumeStats> = data.volumes.slice(
+        i,
+        i + UPSERT_BATCH_SIZE,
+      );
+
+      const valueFragments: Array<string> = [];
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+      ];
+      let paramIndex: number = 3;
+
+      for (const v of chunk) {
+        valueFragments.push(
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::timestamptz)`,
+        );
+        // The identity clamps MUST match bulkUpsert's, or the claim is missed.
+        params.push(
+          truncateShortText(v.namespaceKey),
+          truncateLongText(v.name),
+          toBigint(v.capacityBytes),
+          toBigint(v.availableBytes),
+          toBigint(v.inodes),
+          toBigint(v.inodesFree),
+          v.observedAt,
+        );
+      }
+
+      const sql: string = `
+        UPDATE "KubernetesResource" AS k
+        SET
+          "latestVolumeCapacityBytes" = COALESCE(v."capacity", k."latestVolumeCapacityBytes"),
+          "latestVolumeAvailableBytes" = COALESCE(v."available", k."latestVolumeAvailableBytes"),
+          "latestVolumeInodes" = COALESCE(v."inodes", k."latestVolumeInodes"),
+          "latestVolumeInodesFree" = COALESCE(v."inodesFree", k."latestVolumeInodesFree"),
+          "metricsUpdatedAt" = v."observedAt",
+          "updatedAt" = now()
+        FROM (VALUES ${valueFragments.join(", ")})
+          AS v("ns", "name", "capacity", "available", "inodes", "inodesFree", "observedAt")
+        WHERE
+          k."projectId" = $1
+          AND k."kubernetesClusterId" = $2
+          AND k."kind" = 'PersistentVolumeClaim'
           AND k."namespaceKey" = v."ns"
           AND k."name" = v."name"
           AND (k."metricsUpdatedAt" IS NULL OR v."observedAt" >= k."metricsUpdatedAt")

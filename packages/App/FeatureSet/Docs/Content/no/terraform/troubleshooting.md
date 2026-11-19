@@ -131,9 +131,13 @@ Det skjer når nøkkelen som styrer en ressurs, ikke lenger kan lese den: leseti
 
 ### En prioritet eller rekkefølge som flytter seg
 
-Monitorstatuser, tilstander og alvorlighetsgrader for hendelser og varsler, og de andre listene du setter i rekkefølge i dashbordet, har hvert nummer én gang. Et nummer ingen andre har, beholdes slik det er skrevet. Et nummer en annen allerede har, overtas, og de som står i veien, flytter seg én plass ned, slik en dra-handling i dashbordet gjør. Så to av dem som er konfigurert med det samme nummeret, bytter plass ved hver apply.
+Hver liste du setter i rekkefølge i dashbordet, beholder nummeret hver ressurs får: monitorstatuser (`priority`), tilstander og alvorlighetsgrader for hendelser og varsler, egendefinerte felt, loggpipelines og dropfiltre (`sort_order`), grupper og ressurser på statussider, eskaleringsregler, lag i vaktplaner og resten. Et nummer som settes, plasserer den ressursen og flytter ingen annen, så en konfigurasjon som nummererer en hel liste, som `order = index(local.severities, each.key) + 1` over en `for_each` av `local.severities`, brukes nøyaktig slik den er skrevet, uansett i hvilken rekkefølge providerens skrivinger kommer fram, og neste plan er tom.
 
-Gi hver av dem sitt eget nummer med mellomrom mellom dem, som `101`, `102` og `103`, og endre rekkefølgen på dem Terraform styrer, i Terraform, ikke ved å dra dem i dashbordet.
+- Gi hver ressurs sitt eget nummer: to med samme nummer beholder det begge, side om side, i en rekkefølge du ikke velger.
+- En ressurs som opprettes uten nummer, havner nederst i listen sin. En ny tilstand for hendelser eller varsler havner i stedet rett over den løste tilstanden, og en ny monitorstatus rett over offline-statusen.
+- Å slette en ressurs etterlater et hull i numrene, noe som ikke endrer noe: en liste går etter numrene sine, ikke etter telling.
+- Å dra en ressurs i OneUptime-dashbordet nummererer hele listen dens på nytt fra toppen, og neste plan viser det som endringer. Sett ressursene Terraform styrer, i rekkefølge i Terraform.
+- De innebygde tilstandene beholder rekkefølgen sin: en endring som ville gi to av dem samme nummer eller bringe dem ut av rekkefølge, avvises med en begrunnelse. Når en apply flytter innebygde tilstander forbi hverandres gamle numre, kan en av skrivingene komme fram først og møte den avvisningen; kjør apply på nytt, så blir den ferdig.
 
 ### Skrivebeskyttede attributter
 

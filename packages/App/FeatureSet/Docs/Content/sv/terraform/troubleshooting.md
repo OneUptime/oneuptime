@@ -131,9 +131,13 @@ Det händer när nyckeln som hanterar en resurs inte längre kan läsa den: dess
 
 ### En prioritet eller ordning som flyttar sig
 
-Monitorstatusar, tillstånd och allvarlighetsgrader för incidenter och larm, och de andra listor som du sorterar i instrumentpanelen, har varje nummer en gång. Ett nummer som ingen annan har behålls som det är skrivet. Ett nummer som en annan redan har tas över, och de som står i vägen flyttar ner en plats, som när du drar i instrumentpanelen. Så två av dem som är konfigurerade med samma nummer byter plats vid varje apply.
+Varje lista som du sorterar i instrumentpanelen behåller det nummer som varje resurs får: monitorstatusar (`priority`), tillstånd och allvarlighetsgrader för incidenter och larm, anpassade fält, loggpipelines och släppfilter (`sort_order`), grupper och resurser på statussidor, eskaleringsregler, lager i scheman och resten. Ett nummer som anges placerar den resursen och flyttar ingen annan, så en konfiguration som numrerar en hel lista, som `order = index(local.severities, each.key) + 1` över en `for_each` av `local.severities`, tillämpas precis som den är skriven, i vilken ordning providerns skrivningar än kommer fram, och nästa plan är tom.
 
-Ge var och en sitt eget nummer med luckor emellan, som `101`, `102` och `103`, och ändra ordningen på dem som Terraform hanterar i Terraform, inte genom att dra dem i instrumentpanelen.
+- Ge varje resurs ett eget nummer: två med samma nummer behåller det båda, sida vid sida, i en ordning som du inte väljer.
+- En resurs som skapas utan nummer hamnar sist i sin lista. Ett nytt tillstånd för incidenter eller larm hamnar i stället precis ovanför det lösta tillståndet, och en ny monitorstatus precis ovanför offline-statusen.
+- Att ta bort en resurs lämnar en lucka i numren, vilket inte ändrar något: en lista går efter sina nummer, inte efter räkning.
+- Att dra en resurs i OneUptimes instrumentpanel numrerar om hela dess lista från toppen, och nästa plan visar det som ändringar. Ordna de resurser som Terraform hanterar i Terraform.
+- De inbyggda tillstånden behåller sin ordning: en ändring som skulle ge två av dem samma nummer eller rubba deras ordning nekas, med skälet. När en apply flyttar inbyggda tillstånd förbi varandras gamla nummer kan en av dess skrivningar komma fram först och möta det nekandet; kör apply igen så blir den klar.
 
 ### Skrivskyddade attribut
 

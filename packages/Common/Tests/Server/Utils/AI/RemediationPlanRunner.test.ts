@@ -43,6 +43,8 @@ import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { EXPLAIN_NO_FIX_TOOL_NAME } from "../../../../Types/AutoRemediation/RemediationRound";
 import { EXPLAIN_NO_RUNBOOK_RULE } from "../../../../Server/Utils/AI/Remediation/RemediationRoundRun";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * Contract under test — the RemediationPlan runner:
@@ -167,6 +169,18 @@ function captureContext(): { get: () => string } {
     },
   };
 }
+
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+});
 
 describe("RemediationPlanRunner.parseSelectedRunbook", () => {
   it("parses a valid trailing selection", () => {

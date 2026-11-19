@@ -202,7 +202,7 @@ Un backfill o una migración no debería avisar a nadie. Indica la base de datos
 
 ## Propietarios y etiquetas
 
-La pestaña **Propietarios** de una tabla nombra a las personas y los equipos a los que pertenece, y las alertas de la tabla van a ellos; si no tiene, a los propietarios de su base de datos. Las **Reglas del propietario** y las **Reglas de etiquetas** se aplican a cada tabla en cuanto aparece por primera vez, según sus etiquetas o una expresión regular sobre su nombre, su esquema o su base de datos. Un permiso limitado a \`Owned\` solo alcanza las tablas que posee su titular o sus equipos, con sus comprobaciones, su actividad y los problemas notificados. Ser propietario de una base de datos no te hace propietario de sus tablas: usa una regla del propietario para dar a un equipo una base de datos entera.
+La pestaña **Propietarios** de una tabla nombra a las personas y los equipos a los que pertenece, y las alertas de la tabla van a ellos; si no tiene, a los propietarios de su base de datos. Las **Reglas del propietario** y las **Reglas de etiquetas** se aplican a cada tabla en cuanto aparece por primera vez, según sus etiquetas o una expresión regular sobre su nombre, su esquema o su base de datos. Un permiso limitado a \`Owned\` solo alcanza las tablas que posee su titular o sus equipos, con sus comprobaciones, su actividad y los problemas notificados. Ser propietario de una base de datos no te hace propietario de sus tablas: usa una regla del propietario para dar a un equipo una base de datos entera. En su pestaña **Reglas de canalización**, las reglas de propietarios también nombran a los propietarios de una canalización, mediante una expresión regular con su nombre o su espacio de nombres, cuando OneUptime ve la canalización por primera vez.
 
 ## Cuando se abre una alerta
 
@@ -322,6 +322,8 @@ Leen estas métricas, cada una etiquetada con \`oneuptime.data.pipeline.id\` y \
 - \`oneuptime.data.pipeline.overdue_seconds\`: cuánto lleva la siguiente ejecución pasada de su programación, cada cinco minutos; 0 mientras va a tiempo.
 
 La página de una canalización dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o va con retraso: a la izquierda las tablas que lee, a la derecha las tablas que escribe, y cómo está cada una ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas; un recuento de tablas no dibujadas, en la tarjeta de la canalización o de una tabla, dibuja más en su sitio. El mismo linaje está en \`POST /api/data-observability/pipelines/lineage\`, para tus propias herramientas. Elige una de las columnas que escribe para seguirla a través de la canalización: hacia arriba hasta la columna de cada tabla leída a partir de la que se construyó, y hacia abajo hasta cada tabla en la que la escribe. Para tus propias herramientas, envía \`"withColumns": true\` para las columnas que movieron sus ejecuciones.
+
+La página **Disyuntor** de una canalización prepara un paso que pregunta, antes de que se ejecute la canalización, si las tablas que lee están sanas: una comprobación fallando detiene la ejecución, y una tabla con retraso también mientras **Detener cuando una tabla que lee tenga retraso** esté activado. Una canalización detenida aparece en **Pendiente** hasta que el disyuntor vuelva a responder go o empiece una ejecución.
 
 
 

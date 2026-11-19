@@ -16,7 +16,14 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  ValueTransformer,
+} from "typeorm";
 
 /*
  * ------------------------------------------------------------------
@@ -39,6 +46,26 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * ------------------------------------------------------------------
  */
+
+/*
+ * A bigint column read as a number: Postgres hands a bigint back as a
+ * string, so a value past 2 GiB never overflows on the way in.
+ */
+const BIG_NUMBER_COLUMN_TRANSFORMER: ValueTransformer = {
+  to: (value: number | null | undefined): string | null => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return Math.trunc(value).toString();
+  },
+  from: (value: string | null | undefined): number | null => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const parsed: number = parseInt(value, 10);
+    return isNaN(parsed) ? null : parsed;
+  },
+};
 
 const READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -625,6 +652,93 @@ export default class KubernetesResource extends BaseModel {
   })
   public latestMemoryPercent?: number = undefined;
 
+  /*
+   * A persistent volume claim's usage, as the kubelet measured its volume
+   * the last time a running pod mounted it (the kubeletstats receiver's
+   * k8s.volume.* series, which the kubernetes-agent names by claim). Used is
+   * capacity minus available. Mirrored by OtelMetricsIngestService, like
+   * latestCpuPercent; null on every other kind and until the first point.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    title: "Latest Volume Capacity Bytes",
+    description:
+      "For PersistentVolumeClaim kinds: the size of the claim's filesystem, in bytes, as the kubelet last measured it (k8s.volume.capacity). Null until a running pod has mounted the claim and the kubernetes-agent reported it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.BigPositiveNumber,
+    transformer: BIG_NUMBER_COLUMN_TRANSFORMER,
+  })
+  public latestVolumeCapacityBytes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    title: "Latest Volume Available Bytes",
+    description:
+      "For PersistentVolumeClaim kinds: the bytes still free to write on the claim's filesystem, as the kubelet last measured them (k8s.volume.available). Used is capacity minus this.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.BigPositiveNumber,
+    transformer: BIG_NUMBER_COLUMN_TRANSFORMER,
+  })
+  public latestVolumeAvailableBytes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    title: "Latest Volume Inodes",
+    description:
+      "For PersistentVolumeClaim kinds: the inodes (files and directories) the claim's filesystem can hold, as the kubelet last measured it (k8s.volume.inodes). Null for a volume that reports none.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.BigPositiveNumber,
+    transformer: BIG_NUMBER_COLUMN_TRANSFORMER,
+  })
+  public latestVolumeInodes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    title: "Latest Volume Free Inodes",
+    description:
+      "For PersistentVolumeClaim kinds: the inodes still free on the claim's filesystem (k8s.volume.inodes.free). A filesystem with free bytes but no free inodes can no longer create a file.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.BigPositiveNumber,
+    transformer: BIG_NUMBER_COLUMN_TRANSFORMER,
+  })
+  public latestVolumeInodesFree?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: READ_PERMISSIONS,
@@ -636,7 +750,7 @@ export default class KubernetesResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Metrics Updated At",
     description:
-      "Observed timestamp of the latest CPU/memory point. Acts as the monotonic guard for metric updates and the cutoff for staleness rendering.",
+      "Observed timestamp of the latest metric point mirrored onto this row: CPU and memory for Pods and Nodes, volume usage for PersistentVolumeClaims. Acts as the monotonic guard for metric updates and the cutoff for staleness rendering.",
   })
   @Column({
     nullable: true,

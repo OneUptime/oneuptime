@@ -1027,6 +1027,96 @@ describe("who may change whose ladder", () => {
     ]);
   });
 
+  /*
+   * Each rule is written on its own, and the ones written stay when a write
+   * after them fails: they are in the audit log, which used to be written
+   * only once every row was, and Ana is told (#9616).
+   */
+  test("a write that fails half way leaves the rows written before it audited, each once, and Ana told once", async () => {
+    // The third rule to change is refused: six created and two changed stay.
+    let updates: number = 0;
+
+    updateSpy.mockImplementation((async () => {
+      updates++;
+
+      if (updates === 3) {
+        throw new BadDataException("The rule could not be saved.");
+      }
+    }) as never);
+
+    await expect(
+      save({
+        steps: PUSH_SMS_CALL,
+        target: ANA,
+        props: bobProps([Permission.ProjectAdmin]),
+      }),
+    ).rejects.toThrow("The rule could not be saved.");
+
+    // Nothing is deleted once a write failed.
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    const calls: Array<{
+      action: AuditLogAction;
+      actorUserId: ObjectID;
+      ownerUserId: ObjectID;
+      ruleId: ObjectID | undefined;
+      notifyOwner: boolean;
+    }> = auditSpy.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as never;
+    });
+
+    expect(
+      calls.map((call: { action: AuditLogAction }): AuditLogAction => {
+        return call.action;
+      }),
+    ).toEqual([
+      ...Array(6).fill(AuditLogAction.Create),
+      ...Array(2).fill(AuditLogAction.Update),
+    ]);
+
+    // The rows changed are the two written, never the one refused.
+    const changedIds: Array<string> = updateSpy.mock.calls
+      .slice(0, 2)
+      .map((call: Array<unknown>): string => {
+        return readPagingId((call[0] as { id: ObjectID }).id);
+      });
+
+    expect(
+      calls.slice(6).map((call: { ruleId: ObjectID | undefined }): string => {
+        return readPagingId(call.ruleId);
+      }),
+    ).toEqual(changedIds);
+
+    expect(
+      calls.filter((call: { notifyOwner: boolean }): boolean => {
+        return call.notifyOwner;
+      }),
+    ).toHaveLength(1);
+
+    for (const call of calls) {
+      expect(call.actorUserId.toString()).toBe(BOB.toString());
+      expect(call.ownerUserId.toString()).toBe(ANA.toString());
+    }
+  });
+
+  test("a first write that fails writes nothing, so audits nothing and tells nobody", async () => {
+    createSpy.mockRejectedValue(
+      new BadDataException("The rule could not be saved.") as never,
+    );
+
+    await expect(
+      save({
+        steps: PUSH_SMS_CALL,
+        target: ANA,
+        props: bobProps([Permission.ProjectAdmin]),
+      }),
+    ).rejects.toThrow("The rule could not be saved.");
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(auditSpy).not.toHaveBeenCalled();
+  });
+
   test("a master admin may", async () => {
     await save({
       steps: PUSH_SMS_CALL,

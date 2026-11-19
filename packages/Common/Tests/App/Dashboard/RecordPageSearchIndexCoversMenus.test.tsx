@@ -42,11 +42,24 @@ import {
   RecordPageSearchPage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/RecordPageSearchIndex";
 import { getRecordPageSearchModels } from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/RecordPageSearchModels";
+import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import { PRODUCTS_IN_RESOURCES } from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectProducts/ProductsInResources";
+import ProjectProducts from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectProducts/ProjectProductsStore";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
+import DataStore from "../../../Models/DatabaseModels/DataStore";
+import { DataSecurityResourceScope } from "../../../Types/DataSecurity/DataSecurityApiTypes";
+import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { ProductUsage } from "../../../Types/Product/ProductUsage";
+import { getEmptyProjectProductsAnswer } from "../../../Types/Product/ProjectProductsAnswer";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 
 /*
  * Search (Cmd/Ctrl+K) finds a record's own pages (#9204): a status page's
@@ -329,7 +342,68 @@ async function readRecordPageLinks(): Promise<Array<RecordPageLink>> {
 let recordLinks: Array<RecordPageLink> = [];
 let pageKeysByPath: Map<string, Array<string>> = new Map();
 
+/*
+ * A resource's menu draws another product's pages - its Security Events,
+ * its Data Security and Compliance (#9547) - only in a project that uses
+ * that product, for a reader who may read it, and Data Security's only for
+ * a resource that holds a data store (ProductsInResources). The menus are
+ * drawn, and Search opened, for such a project, reader and resource, so
+ * those pages are held to the index as every other page is.
+ */
+function givenEveryProductInResources(): void {
+  const usage: Partial<Record<ProductKey, ProductUsage>> = {};
+
+  for (const product of PRODUCTS_IN_RESOURCES) {
+    usage[product] = ProductUsage.InUse;
+  }
+
+  ProjectProducts.setFetcher(async () => {
+    return { ...getEmptyProjectProductsAnswer(), usage };
+  });
+  ProjectProducts.setAnswer(PROJECT_ID, {
+    ...getEmptyProjectProductsAnswer(),
+    usage,
+  });
+
+  const check: typeof PermissionGate.check =
+    PermissionGate.check.bind(PermissionGate);
+
+  jest
+    .spyOn(PermissionGate, "check")
+    .mockImplementation(
+      (
+        ...args: Parameters<typeof PermissionGate.check>
+      ): PermissionGateResult => {
+        if (args[0] instanceof SecurityEvent || args[0] instanceof DataStore) {
+          return { isAllowed: true };
+        }
+
+        return check(...args);
+      },
+    );
+
+  jest
+    .spyOn(DataSecurityApi, "getResourceScope")
+    .mockImplementation(
+      async (resource: {
+        kind: DataStoreResourceKind;
+        id: ObjectID;
+      }): Promise<DataSecurityResourceScope> => {
+        return {
+          kind: resource.kind,
+          id: resource.id.toString(),
+          name: "Acme Record",
+          dataStoreIds: [RECORD_ID],
+          ownedDataStoreIds: [RECORD_ID],
+          complianceOwner: null,
+          isTruncated: false,
+        };
+      },
+    );
+}
+
 beforeAll(async () => {
+  givenEveryProductInResources();
   goTo(`/dashboard/${PROJECT_ID}`);
   recordLinks = await readRecordPageLinks();
   pageKeysByPath = getPageKeysByPath();
@@ -337,6 +411,9 @@ beforeAll(async () => {
 
 afterAll(() => {
   cleanup();
+  jest.restoreAllMocks();
+  ProjectProducts.setFetcher(null);
+  ProjectProducts.reset();
 });
 
 function getPageKeys(link: RecordPageLink): Array<string> {

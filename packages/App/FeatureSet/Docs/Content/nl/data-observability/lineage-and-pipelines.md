@@ -32,7 +32,7 @@ Elke weergave van de herkomst - het tabblad **Herkomst** van een tabel, dat van 
 - **Services** die tabellen schrijven en lezen, uit de databasespans in uw traces: een span die zijn tabel (`db.collection.name`, of het oudere `db.sql.table`) en zijn instructie (`db.operation.name`) noemt, zoals een `INSERT` of een `SELECT`.
 - **Tabellen** die uit andere tabellen zijn opgebouwd, uit alle bronnen hierboven.
 - **Pipelines** die een tabel laden uit data die OneUptime niet bewaakt, zoals een Fivetran-synchronisatie. Een pipeline die data tussen twee bewaakte tabellen verplaatst, wordt genoemd op de pijl ertussen.
-- **Dashboards** en reverse-ETL-synchronisaties in uw BI-tools, die de tabellen lezen waarop ze zijn gebouwd.
+- **Dashboards** en reverse-ETL-synchronisaties in uw BI-tools, die de tabellen lezen waarop ze zijn gebouwd, ook als niets anders die tabellen raakt. Een Power BI-rapport dat op geen enkele door OneUptime bewaakte tabel is gebouwd, wordt getekend met de datasets die het weergeeft en de gegevensbronnen waaruit ze laden; als geen van de dashboards van een BI-tool op een bewaakte tabel staat, zegt de kaart waarom ([Herkomst in Power BI](#herkomst-in-power-bi)).
 
 Elke pijl is iets wat OneUptime heeft vastgelegd, nooit een gok. Kaarten staan van links naar rechts in de richting waarin data stromen en tonen hun toestand zoals op het diagram van een tabel: rood voor een late tabel, een openstaande melding of een mislukte uitvoering. Een pijl is turkoois waar de traces van een service hem hebben gezien.
 
@@ -99,7 +99,7 @@ De echte impact van slechte gegevens is het dashboard dat iemand opent. Voeg ond
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de alleen-lezen beheer-API's van Power BI mag gebruiken. Zowel rapporten als dashboards worden gelezen, met hun weergaven en vernieuwingen (hieronder) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de alleen-lezen beheer-API's van Power BI mag gebruiken, met de twee tenantinstellingen voor metadata uit [Herkomst in Power BI](#herkomst-in-power-bi) aangezet voor de tabellen achter elk rapport. Zowel rapporten als dashboards worden gelezen, met hun weergaven en vernieuwingen (hieronder) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (of `eu`) |
 
@@ -140,7 +140,72 @@ Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**,
 
 Het tabblad **Eigenaren** van een pipeline noemt de mensen en teams die ervoor zorgen, en de waarschuwingen ervan gaan naar hen. Het **Overzicht** en **Problemen** noemen de eigenaren van een mislukte of late pipeline, of tonen **Geen eigenaar**, met een manier om er een toe te voegen.
 
+**Eigenaarsregels** kunnen de eigenaren van een pipeline voor je benoemen. Op hun tabblad **Pipelineregels** koppelt een regel een pipeline via een reguliere expressie aan zijn naam, zoals `orders_daily.load_orders`, of aan zijn naamruimte, waar hij draait, zoals `airflow://prod`, en voegt zijn mensen en teams toe als eigenaren van de pipeline wanneer OneUptime de pipeline voor het eerst ziet. Om ze toe te voegen aan de pipelines die je al hebt, open je de regel en kies je **Nu uitvoeren**.
+
 De pagina van een pipeline tekent zijn **Herkomst**, de eerste plek om te kijken als een uitvoering mislukt of te laat is: links de tabellen die hij leest, rechts de tabellen die hij schrijft, de pipeline ertussen, en elke kaart zegt hoe het er nu voor staat. Kies meer stappen om te zien waaruit die tabellen zijn opgebouwd en wat eruit is opgebouwd, en open een willekeurige tabel om haar eigen tabblad **Herkomst** te zien. Een aantal niet-getekende tabellen, op de kaart van de pipeline of van een tabel, tekent er ook hier ter plekke meer bij. Kies een van de kolommen die ze schrijft om die over de pipeline heen te volgen: omhoog naar de kolom van elke gelezen tabel waaruit die is gebouwd, en omlaag naar elke tabel waarin ze die schrijft.
+
+## Circuit breakers
+
+Een mislukte controle of een te late tabel waarschuwt de eigenaren, maar de pipelines die de tabel lezen zouden toch draaien en de foute data stroomafwaarts kopiëren. Een circuit breaker houdt ze eerst tegen: de eerste stap van de pipeline vraagt OneUptime of de tabellen die hij leest in orde zijn, en de rest draait alleen wanneer het antwoord go is.
+
+- Een mislukte controle van een tabel die de pipeline leest, stopt hem altijd: een controle waarvan de waarschuwing openstaat, of een mislukte dbt-test.
+- Een te late tabel stopt hem ook zodra **Stoppen wanneer een tabel die hij leest te laat is** aanstaat, op de pagina **Circuit breaker** van de pipeline. Het staat voor elke pipeline uit, want een te late tabel kan ook gewoon een rustige dag betekenen.
+- Een controle die niet kon draaien of nog niet heeft gedraaid, en een tabel zonder controles, stoppen niets.
+
+De stap vraagt met een project-API-sleutel die Data Observability mag lezen, en noemt de pipeline als `namespace/name`, met alleen zijn naam of met zijn ID. De circuit breaker leest de tabellen die de pipeline leest uit zijn herkomst. Een verzoek kan ook `tables` noemen, of alleen die, elk als `schema.table`, met alleen zijn naam of met zijn ID; een naam die bij geen tabel past, komt terug in `notFound` en telt nooit als een tabel die slaagde. Alleen de tabellen die de API-sleutel mag lezen, worden beoordeeld.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Het `verdict` van het antwoord is `go` of `stop`. `reasons` noemt elke mislukte controle met haar tabel, en elke te late tabel met hoe laat hij is; `tables` noemt elke beoordeelde tabel; en `answer` zegt hetzelfde in een paar zinnen, voor het log van de stap. Met `failWithStatusCode` antwoordt een stop met HTTP 412, zodat `curl -f` de stap laat mislukken. Stuur `stopsOnLateTables` als `true` of `false` om voor één verzoek te beslissen, en `dryRun` als `true` om te vragen zonder dat het antwoord wordt bewaard.
+
+Zet in Airflow een `ShortCircuitOperator` vóór de taken die de tabellen lezen: wanneer zijn functie false teruggeeft, wordt elke taak erna overgeslagen.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+De `on-run-start`-hooks van dbt voeren SQL uit in je warehouse, geen webverzoeken, dus vraag het in de stap die dbt start: een CI-job, een cronregel of de taak die het uitvoert. De pipeline van een dbt-project heet `dbt/` gevolgd door de naam van het project.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Een verzoek dat een pipeline noemt, wordt bij die pipeline bewaard, tenzij het een proefrun is. Zolang de circuit breaker een pipeline heeft gestopt, zegt zijn pagina **Circuit breaker** sinds wanneer en waarom, opent zijn **Overzicht** met de stop, en noemen **Aandacht nodig** en **Problemen** hem gestopt, in plaats van zijn mislukte of te late run. De stop eindigt wanneer de circuit breaker de volgende keer go antwoordt, of wanneer er een run na de stop begint. Dezelfde pagina heeft **Nu testen**, dat de circuit breaker vraagt zonder dat het antwoord wordt bewaard, en de stap voor curl, Airflow en dbt met de naam van de pipeline al ingevuld.
+
+Zolang Data Observability op de server uitgeschakeld is, antwoordt de circuit breaker go en bewaart hij niets: een product uitschakelen stopt nooit een pipeline.
 
 ## Eén waarschuwing per oorzaak
 
@@ -154,6 +219,30 @@ De kaart **Gegevens** van de oorzaak toont haar **Impact stroomafwaarts**: elke 
 Onder de kaart **Gegevens** tekent de pagina van een waarschuwing haar **Herkomst**: rond haar tabel, zoals het tabblad **Herkomst** van de tabel die tekent, of rond haar pipeline. De weg omhoog naar de waarschuwing die haar veroorzaakte en omlaag naar elke waarschuwing die ze veroorzaakte, is gemarkeerd - de tabel of pipeline van de oorzaak met **Oorzaak**, die van elke veroorzaakte waarschuwing met **Gevolg** - en de rest vervaagt, zodat wie haar opent ziet waar in de keten het probleem begon. Ligt de oorzaak bij een pipeline die op een pijl is getekend, dan staat op die pijl **Oorzaak** onder de naam van de pipeline. Gaat de oorzaak over een hele database, of ligt ze verder omhoog dan het diagram reikt, dan zegt de kaart dat in woorden. Een waarschuwing uit een controle op één kolom, zoals een controle Percentage NULL op `customer_id`, opent met die kolom gevolgd naast deze wegen, zoals op het tabblad **Herkomst** van de tabel: waar ze vandaan komt en waar ze naartoe gaat, genoemd op elke tabel. Kies daar een andere kolom van de tabel, of wis haar om alleen de wegen te zien. **Herkomst verkennen** opent het tabblad **Herkomst** van de tabel, of de pagina van de pipeline. Een veroorzaakte waarschuwing bij een pipeline die op een pijl is getekend, zegt daar op dezelfde manier **Gevolg**, en de kolomkiezer biedt eerst de kolom van de controle aan, daarna de andere kolommen van de tabel in haar eigen volgorde.
 
 Wie de waarschuwing die haar veroorzaakte niet mag zien, krijgt geen kaart **Gegevens** en geen herkomst, en een veroorzaakte waarschuwing die diegene niet mag zien, wordt niet gemarkeerd en niet meegeteld.
+
+## Herkomst in Power BI
+
+**Gekoppelde tabellen** zegt bij elke BI-tool op hoeveel bewaakte tabellen de dashboards ervan zijn gebouwd, en daaronder het eerste wat de rest tegenhoudt om gekoppeld te worden. **See Why** somt op wat de laatste lezing vond en wat u kunt doen: databases die uw dashboards lezen en die niet met OneUptime zijn verbonden, elk maar één **Connect Database** verwijderd, met het soort en het adres al ingevuld; tabellen die een verbonden database niet bewaakt, die mogelijk buiten de scan ervan vallen of nog niet zijn verzameld; en bronnen die geen database zijn, zoals bestanden en webpagina's. Voor Power BI noemt het ook een tenantinstelling die uit staat, datasets die uit gegevensstromen lezen en datasets die Power BI niet kan beschrijven. **Gebaseerd op** zegt bij elk dashboard welke datasets het weergeeft en waar hun gegevens vandaan komen, zoals Power BI het zegt.
+
+OneUptime leest elke Power BI-dataset uit de metadatascan van Power BI, met de Power Query achter elk van de tabellen ervan:
+
+- **De database die een connector noemt**: SQL Server en Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena en Microsoft Dataverse, en het schema en de tabel die de navigatie ervan kiest.
+- **SQL die een query uitvoert**: de optie **SQL statement** van een connector, `Value.NativeQuery` en `Odbc.Query`, en de tabellen na elke `FROM` en `JOIN`.
+- **Parameters en gedeelde query's**: een parameter geldt overal waar hij wordt genoemd, en een tabel die een stagingquery leest, leest wat die query leest.
+- **Samengestelde modellen** geven de tabellen weer van de datasets waarop ze zijn gebouwd.
+
+Een rapport geeft de tabellen van zijn dataset weer, en een dashboard die van de datasets van zijn tegels. Waar de gegevens vandaan komen - de server en naam van een database, het pad van een bestand, een webadres - komt uit de gegevensbronnen van de scan, die niets nodig hebben buiten de beheer-API-toegang hierboven.
+
+Power BI geeft de tabellen van een dataset pas terug zodra een Fabric-beheerder twee tenantinstellingen aanzet in de beheerportal, onder **Tenant settings > Admin API settings**, voor de beveiligingsgroep waarin de service principal zit:
+
+- **Enhance admin APIs responses with detailed metadata**: de tabellen van elke dataset.
+- **Enhance admin APIs responses with DAX and mashup expressions**: de query's die ze laden, die zeggen welke databasetabellen ze lezen.
+
+Power BI beschrijft een dataset daarna zodra die is vernieuwd of opnieuw is gepubliceerd; een die alleen DirectQuery gebruikt, zodra iemand er een rapport op heeft geopend. Het beschrijft nooit realtime datasets, datasets met een liveverbinding met Analysis Services, Excel-werkmappen of datasets van meer dan 1 GB op gedeelde capaciteit. Een dataset die uit een gegevensstroom leest, wordt gelezen tot aan de gegevensstroom: OneUptime leest nog niet welke tabellen een gegevensstroom laadt.
+
+Elke tabel wordt aan een bewaakte tabel gekoppeld op naam, schema en database, en een server op zijn korte of volledige naam. Een tabel van een andere engine wordt nooit gekoppeld, en een in een andere database evenmin: een rapport op `Sales.dbo.Orders` wordt niet verbonden met `Archive.dbo.Orders`, omdat alleen `Archive` wordt bewaakt.
+
+[Vernieuwingen](#weergaven-en-vernieuwingen-in-power-bi) worden los van de tabellen gelezen: een melding dat de vernieuwingen van sommige datasets niet gelezen konden worden, zegt niets over hun tabellen.
 
 ## Voordat een wijziging wordt gemerged
 

@@ -225,8 +225,12 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** 如上所述，在 kubeadm 的 `--listen-metrics-urls`（連接埠 2381，在你加入節點位址之前繫結到 `127.0.0.1`）以純 HTTP 提供指標。也可以用它要求的用戶端憑證抓取它的 HTTPS 用戶端連接埠 2379：把 `ca.crt`、`tls.crt` 和 `tls.key` 放進 `oneuptime-agent` 中的一個 Secret，並在 `controlPlane.etcd.clientCertSecret` 中指定它。",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "僅適用於自行管理的叢集：受控服務（EKS、GKE、AKS）不會公開其控制平面指標。",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "光是這樣就是完整的安裝：chart 內建開放原始碼的 OpenCost 引擎（以及它需要的小型 Prometheus），並依雲端供應商公開的牌價為你的節點與磁碟區定價，不需要憑證。它會加入兩個小型 Pod；第一個完整小時過後會出現第一批資料。",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "成本監控預設為開啟：代理程式內建開放原始碼的 OpenCost 引擎（以及它需要的小型 Prometheus），依雲端供應商公開的牌價為你的節點與磁碟區定價，不需要憑證，並傳送每個命名空間與工作負載的成本。第一個完整小時過後，叢集的概覽與「成本」頁面會出現第一批資料。",
+  "On an agent installed before it was on by default, upgrade it:":
+    "對於在預設開啟之前安裝的代理程式，請升級它：",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **關閉它：** 在同一次升級中加入 `--set cost.enabled=false`。",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
     "- **已經在執行 Kubecost 或 OpenCost？** 改為讓代理程式指向它，這樣就不會內建任何元件：加入 `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003`（或你的 Kubecost 服務）。",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
@@ -284,8 +288,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **要求指標與服務圖** *(eBPF)* | 每個服務的要求速率、錯誤與延遲，以及服務地圖所用的呼叫端 → 被呼叫端的邊 |",
   "| **Network flows** *(eBPF)* | Pod-to-pod TCP/UDP byte and packet counters |":
     "| **網路流量** *(eBPF)* | Pod 之間的 TCP/UDP 位元組與封包計數器 |",
-  "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
-    "| **工作負載成本** *(選用，`cost.enabled=true`)* | 每個命名空間、工作負載與 Pod 的支出，以及閒置容量與效率 |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **工作負載成本** *(預設開啟)* | 每個命名空間、工作負載與 Pod 的支出，以及閒置容量與效率，也以可設定警示的指標形式提供 |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "你的叢集封鎖了 `hostPath` 磁碟區或特權 Pod。這在 **GKE Autopilot** 和 **EKS Fargate** 上很正常：請在本指南頂端選擇該平台，並依照它的步驟操作。而在 **OpenShift** 上，安裝會成功，但代理程式的節點 Pod 永遠不會啟動：請選擇 **Red Hat OpenShift**。",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

@@ -46,6 +46,8 @@ import {
   SECURITY_CASE_TRIAGE_QUESTION,
   SECURITY_CASE_TRIAGE_REPORT_HEADING,
 } from "./SecurityCaseTriagePrompt";
+import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 
 /*
  * ONEUPTIME AI TRIAGES A SECURITY CASE.
@@ -67,6 +69,14 @@ import {
  * Read-only from start to finish: the engine runs the toolbox in its
  * read-only mode, and nothing here changes the case's status, priority,
  * assignee or verdict.
+ *
+ * Everyone who may see the case reads the triage, so it reads only what
+ * all of them may read (#9612): the runner works out the case's readers
+ * (ReadAudienceReader, subject: the case), and its starting context and
+ * every tool read for them. The case names itself and the incident it
+ * declared; a host, cluster, service or other record its entities connect
+ * to that an owner or a label sets apart from one of them is neither named
+ * nor counted, and private incidents and alerts are never read.
  *
  * Every text the model reads - the context and every tool result - goes
  * through an InstructionLikeTextScan. When the case's data held text written
@@ -117,12 +127,25 @@ export default class SecurityCaseTriageRunner {
 
     let context: SecurityCaseTriageContext;
     let isSetupTest: boolean = false;
+    /*
+     * Who reads the triage: everyone who may see the case, on its page and
+     * in its timeline (#9612). The starting context and every tool read
+     * only what all of them may read, beside what the case names itself.
+     * A triage that cannot tell who reads it is retried.
+     */
+    let readAudience: ReadAudience;
 
     try {
+      readAudience = await ReadAudienceReader.forSubject({
+        projectId,
+        securityCaseId,
+      });
+
       const triage: SecurityCaseTriageData =
         await SecurityCaseAIContextBuilder.read({
           projectId,
           securityCaseId,
+          readAudience,
         });
 
       context = SecurityCaseAIContextBuilder.buildContext({ triage, scan });
@@ -181,6 +204,8 @@ export default class SecurityCaseTriageRunner {
           questionOverride: SECURITY_CASE_TRIAGE_QUESTION,
           reportHeading: SECURITY_CASE_TRIAGE_REPORT_HEADING,
           extraTools: extraTools.length > 0 ? extraTools : undefined,
+          // Everyone who may see the case reads its triage (#9612).
+          readAudience,
           // Everything the model reads is looked over for text written to steer it.
           onToolResult: (result: { toolName: string; textForLlm: string }) => {
             scan.record(result.textForLlm);

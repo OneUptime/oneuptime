@@ -3,6 +3,10 @@ import {
   PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX,
   isProductAnalyticsDerivedMetricName,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
+import {
+  KUBERNETES_COST_METRIC_NAME_PREFIX,
+  isKubernetesCostMetricName,
+} from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import {
   OtelAggregationTemporality,
@@ -66,6 +70,7 @@ import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
 import KubernetesResourceService, {
   ResourceLatestMetric,
+  ResourceLatestVolumeStats,
 } from "Common/Server/Services/KubernetesResourceService";
 import KubernetesContainerService, {
   ContainerLatestMetric,
@@ -274,6 +279,21 @@ const K8S_NODE_ALLOCATABLE_CPU_METRIC: string = "k8s.node.allocatable_cpu";
 const K8S_NODE_ALLOCATABLE_MEMORY_METRIC: string =
   "k8s.node.allocatable_memory";
 
+/*
+ * A volume's usage, as the kubeletstats receiver's `volume` group reports
+ * it for each volume a running pod mounts. The kubernetes-agent names a
+ * persistent volume claim's volume by `k8s.persistentvolumeclaim.name`
+ * (its kubeletstats extra_metadata_labels), and the latest point of each is
+ * mirrored onto the claim's row: its used, free and capacity on the
+ * Persistent Volume Claims pages (#9539). Every other volume - a pod's
+ * configMap, secret or service account token - names no claim and is
+ * stored, never mirrored.
+ */
+const K8S_VOLUME_CAPACITY_METRIC: string = "k8s.volume.capacity";
+const K8S_VOLUME_AVAILABLE_METRIC: string = "k8s.volume.available";
+const K8S_VOLUME_INODES_METRIC: string = "k8s.volume.inodes";
+const K8S_VOLUME_INODES_FREE_METRIC: string = "k8s.volume.inodes.free";
+
 const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "k8s.pod.cpu.utilization",
   "k8s.pod.memory.usage",
@@ -283,6 +303,10 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.memory.usage",
   K8S_NODE_ALLOCATABLE_CPU_METRIC,
   K8S_NODE_ALLOCATABLE_MEMORY_METRIC,
+  K8S_VOLUME_CAPACITY_METRIC,
+  K8S_VOLUME_AVAILABLE_METRIC,
+  K8S_VOLUME_INODES_METRIC,
+  K8S_VOLUME_INODES_FREE_METRIC,
 ]);
 
 /*
@@ -446,6 +470,25 @@ interface ContainerMetricBufferEntry {
   name: string;
   cpuPercent: number | null;
   memoryBytes: number | null;
+  observedAt: Date;
+}
+
+// A persistent volume claim's usage, as the batch last reported it.
+interface VolumeClaimMetricBufferEntry {
+  namespaceKey: string;
+  claimName: string;
+  capacityBytes: number | null;
+  availableBytes: number | null;
+  inodes: number | null;
+  inodesFree: number | null;
+  /*
+   * When each reading was taken: every pod that mounts the claim reports
+   * it, and the latest point of each wins.
+   */
+  capacityAt: Date | null;
+  availableAt: Date | null;
+  inodesAt: Date | null;
+  inodesFreeAt: Date | null;
   observedAt: Date;
 }
 
@@ -1098,6 +1141,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const k8sContainerMetricsBuffer: Map<
         string,
         Map<string, ContainerMetricBufferEntry>
+      > = new Map();
+      const k8sVolumeClaimMetricsBuffer: Map<
+        string,
+        Map<string, VolumeClaimMetricBufferEntry>
       > = new Map();
       const dockerContainerMetricsBuffer: Map<
         string,
@@ -1791,6 +1838,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   }
 
                   /*
+                   * And the Kubernetes cost metrics the cost ingest writes
+                   * from a cluster's allocations (#9548): they are left out
+                   * of billing by name, so no sender may write one.
+                   */
+                  if (isKubernetesCostMetricName(metricName)) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics.`,
+                    );
+                    continue;
+                  }
+
+                  /*
                    * Likewise the ingestion budget sweep's readings: they
                    * open budget incidents and are left out of usage and
                    * billing by name, so no sender may write one.
@@ -1976,6 +2035,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             metricAttributes,
                             resourceBuffer: k8sResourceMetricsBuffer,
                             containerBuffer: k8sContainerMetricsBuffer,
+                            volumeClaimBuffer: k8sVolumeClaimMetricsBuffer,
                           });
                         }
 
@@ -2266,6 +2326,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         if (
                           finalMetricName !== metricName &&
                           typeof finalMetricName === "string" &&
+                          isKubernetesCostMetricName(finalMetricName)
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics.`,
+                          );
+                          continue;
+                        }
+
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
                           TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(
                             finalMetricName,
                           )
@@ -2423,6 +2494,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: k8sResourceMetricsBuffer,
         containerBuffer: k8sContainerMetricsBuffer,
+        volumeClaimBuffer: k8sVolumeClaimMetricsBuffer,
       });
 
       await this.flushDockerSnapshotBuffer({
@@ -2816,6 +2888,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
     resourceBuffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
     containerBuffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+    volumeClaimBuffer?:
+      | Map<string, Map<string, VolumeClaimMetricBufferEntry>>
+      | undefined;
   }): void {
     const valueFromInt: number | null = this.toNumberOrNull(
       data.datapoint["asInt"],
@@ -2868,6 +2943,30 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         rawValue,
         nowMs,
       );
+      return;
+    }
+
+    /*
+     * A volume's usage belongs to the claim its pod mounts it from, when it
+     * is mounted from one: a claim's row, never the pod's or the node's.
+     */
+    if (data.metricName.startsWith("k8s.volume.")) {
+      const claimName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.persistentvolumeclaim.name",
+      );
+      if (!claimName || !ns || !data.volumeClaimBuffer) {
+        return;
+      }
+      this.foldVolumeClaimSnapshot({
+        buffer: data.volumeClaimBuffer,
+        clusterIdStr: data.clusterIdStr,
+        ns,
+        claimName,
+        metricName: data.metricName,
+        value: rawValue,
+        observedAt: ts.date,
+      });
       return;
     }
 
@@ -3114,10 +3213,93 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
   }
 
+  /*
+   * Fold one volume reading of a persistent volume claim into the batch's
+   * buffer. Every pod that mounts the claim reports the same filesystem, so
+   * the claim keeps each reading's latest point, whichever pod sent it.
+   */
+  private static foldVolumeClaimSnapshot(data: {
+    buffer: Map<string, Map<string, VolumeClaimMetricBufferEntry>>;
+    clusterIdStr: string;
+    ns: string;
+    claimName: string;
+    metricName: string;
+    value: number;
+    observedAt: Date;
+  }): void {
+    if (!Number.isFinite(data.value) || data.value < 0) {
+      return;
+    }
+
+    let perCluster: Map<string, VolumeClaimMetricBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+
+    const key: string = `${data.ns}|${data.claimName}`;
+    let entry: VolumeClaimMetricBufferEntry | undefined = perCluster.get(key);
+    if (!entry) {
+      entry = {
+        namespaceKey: data.ns,
+        claimName: data.claimName,
+        capacityBytes: null,
+        availableBytes: null,
+        inodes: null,
+        inodesFree: null,
+        capacityAt: null,
+        availableAt: null,
+        inodesAt: null,
+        inodesFreeAt: null,
+        observedAt: data.observedAt,
+      };
+      perCluster.set(key, entry);
+    }
+
+    const value: number = Math.trunc(data.value);
+    const isNewer: (at: Date | null) => boolean = (
+      at: Date | null,
+    ): boolean => {
+      return at === null || data.observedAt >= at;
+    };
+
+    if (data.metricName === K8S_VOLUME_CAPACITY_METRIC) {
+      if (isNewer(entry.capacityAt)) {
+        entry.capacityBytes = value;
+        entry.capacityAt = data.observedAt;
+      }
+    } else if (data.metricName === K8S_VOLUME_AVAILABLE_METRIC) {
+      if (isNewer(entry.availableAt)) {
+        entry.availableBytes = value;
+        entry.availableAt = data.observedAt;
+      }
+    } else if (data.metricName === K8S_VOLUME_INODES_METRIC) {
+      if (isNewer(entry.inodesAt)) {
+        entry.inodes = value;
+        entry.inodesAt = data.observedAt;
+      }
+    } else if (data.metricName === K8S_VOLUME_INODES_FREE_METRIC) {
+      if (isNewer(entry.inodesFreeAt)) {
+        entry.inodesFree = value;
+        entry.inodesFreeAt = data.observedAt;
+      }
+    } else {
+      return;
+    }
+
+    if (data.observedAt > entry.observedAt) {
+      entry.observedAt = data.observedAt;
+    }
+  }
+
   private static async flushKubernetesSnapshotBuffers(data: {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
     containerBuffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+    volumeClaimBuffer?:
+      | Map<string, Map<string, VolumeClaimMetricBufferEntry>>
+      | undefined;
   }): Promise<void> {
     if (data.resourceBuffer.size > 0) {
       for (const [clusterIdStr, byKey] of data.resourceBuffer.entries()) {
@@ -3177,6 +3359,37 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         } catch (err) {
           logger.warn(
             `K8s snapshot writeback (container) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+
+    if (data.volumeClaimBuffer && data.volumeClaimBuffer.size > 0) {
+      for (const [clusterIdStr, byKey] of data.volumeClaimBuffer.entries()) {
+        if (byKey.size === 0) {
+          continue;
+        }
+        try {
+          const volumes: Array<ResourceLatestVolumeStats> = [];
+          for (const e of byKey.values()) {
+            volumes.push({
+              namespaceKey: e.namespaceKey,
+              name: e.claimName,
+              capacityBytes: e.capacityBytes,
+              availableBytes: e.availableBytes,
+              inodes: e.inodes,
+              inodesFree: e.inodesFree,
+              observedAt: e.observedAt,
+            });
+          }
+          await KubernetesResourceService.bulkUpdateLatestVolumeStats({
+            projectId: data.projectId,
+            kubernetesClusterId: new ObjectID(clusterIdStr),
+            volumes,
+          });
+        } catch (err) {
+          logger.warn(
+            `K8s snapshot writeback (volume claim) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }

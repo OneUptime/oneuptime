@@ -4,7 +4,7 @@ import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
   PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
 } from "../../../Server/Utils/ServerProducts/ProductsOfRequest";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
@@ -52,7 +52,10 @@ const ROUTE_ROOTS: ReadonlyArray<string> = [
   "packages/Home",
   "packages/TestServer",
   "ee/Server",
-];
+].filter((root: string): boolean => {
+  // ee/ only where it is checked out: Common Test deletes it before it runs.
+  return fs.existsSync(path.join(REPOSITORY, root));
+});
 
 const SKIPPED_FOLDERS: ReadonlySet<string> = new Set([
   "node_modules",
@@ -829,21 +832,6 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       '"/status-page-idp-login/:statusPageId/:statusPageSsoId"': PUBLIC_PAGE,
     },
   },
-  "ee/Server/Identity/API/StatusPageSCIM.ts": {
-    products: [ProductKey.StatusPages],
-    leftAlone: Object.fromEntries(
-      [
-        '"/status-page-scim/v2/:statusPageScimId/Bulk"',
-        '"/status-page-scim/v2/:statusPageScimId/Users"',
-        '"/status-page-scim/v2/:statusPageScimId/Users/:userId"',
-      ].map((route: string): [string, string] => {
-        return [
-          route,
-          "An identity provider keeps a published page's people in step: it stays up while Status Pages is off, and what already runs keeps running.",
-        ];
-      }),
-    ),
-  },
   "packages/Common/Server/API/WorkflowVariableAPI.ts": {
     products: [ProductKey.Workflows],
     leftAlone: {},
@@ -996,7 +984,7 @@ const decided: (
   );
 };
 
-const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
+const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
   Object.fromEntries([
     ...decided(
       "Signing in, and keeping a session, which every product needs: what a person proves to get in is of no one product.",
@@ -1008,7 +996,6 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Identity/API/Reseller.ts": 1,
         "packages/App/FeatureSet/Identity/API/SSO.ts": 1,
         "packages/App/FeatureSet/MCP/OAuth/OAuthRoutes.ts": 7,
-        "ee/Server/Identity/API/SCIMOAuthToken.ts": 1,
         "packages/Common/Server/API/UserTotpAuthAPI.ts": 1,
         "packages/Common/Server/API/UserTwoFactorBackupCodeAPI.ts": 1,
         "packages/Common/Server/API/UserWebAuthnAPI.ts": 3,
@@ -1039,7 +1026,6 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       "A custom notification channel: a master admin's setup and a person's test, of no one product - and a page's own action from the company's app, which the person paged answers, as what already runs keeps running.",
       {
         "packages/Common/Server/API/CustomNotificationChannelAPI.ts": 4,
-        "ee/Server/CustomNotificationChannels/API/CustomChannelSendAPI.ts": 1,
       },
     ),
     ...decided(
@@ -1053,10 +1039,6 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/TeamMemberAPI.ts": 10,
         "packages/Common/Server/API/UserAPI.ts": 7,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
-        "ee/Server/Identity/API/SCIM.ts": 9,
-        "ee/Server/Identity/API/SCIMOAuthClientSecret.ts": 2,
-        "ee/Server/AuditLogExport/API/AuditLogExportAPI.ts": 4,
-        "ee/Server/SessionLength/API/SessionLengthAPI.ts": 1,
       },
     ),
     ...decided(
@@ -1080,8 +1062,6 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/AIBillingAPI.ts": 1,
         "packages/Common/Server/API/NotificationAPI.ts": 1,
         "packages/Common/Server/API/ResellerPlanAPI.ts": 1,
-        "ee/Server/CloudMarketplace/API/MarketplaceAPI.ts": 8,
-        "ee/Server/CloudMarketplace/API/VercelMarketplaceProviderAPI.ts": 1,
       },
     ),
     ...decided(
@@ -1092,12 +1072,6 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/RunnerAPI.ts": 1,
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,
         "packages/App/API/AdminHealth.ts": 3,
-        "ee/Server/AdminHealth/QueryConsole.ts": 1,
-        "ee/Server/Backup/API/BackupAPI.ts": 7,
-        "ee/Server/License/API/LicenseClientAPI.ts": 2,
-        "ee/Server/LicenseServer/EnterpriseLicenseAPI.ts": 2,
-        "ee/Server/LicenseServer/EnterpriseLicenseOfflineTokenAPI.ts": 1,
-        "ee/Server/WhiteLabel/API/WhiteLabelAPI.ts": 1,
         "packages/App/FeatureSet/Notification/API/BroadcastEmail.ts": 2,
         "packages/App/FeatureSet/Notification/API/ServerTestSend.ts": 4,
         "packages/App/FeatureSet/Notification/API/CallAndSmsGateway.ts": 1,
@@ -1220,16 +1194,10 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Every table's CRUD API: a write refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 8,
+        "packages/Common/Server/API/BaseAPI.ts": 9,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
-      },
-    ),
-    ...decided(
-      "A numbered list's move (issue #9573), the CRUD API of the tables it serves beside it: the move refuses a record of a product that is off before anything else (assertProductIsOn, see below), as the CRUD API's writes do.",
-      {
-        "packages/Common/Server/API/MoveInListAPI.ts": 1,
       },
     ),
     ...decided(
@@ -1268,6 +1236,38 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
   ]);
+
+/*
+ * ee/ decides its own route files (ee/Tests/Server/ProductRouteDecisions.ts),
+ * read only where ee/ is checked out - the Enterprise Edition Test job runs
+ * this guard so. Core runs without ee/, and names none of its files.
+ */
+const ENTERPRISE_DECISIONS_FILE: string = path.join(
+  REPOSITORY,
+  "ee/Tests/Server/ProductRouteDecisions.ts",
+);
+
+interface EnterpriseDecisions {
+  ENTERPRISE_PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile>;
+  ENTERPRISE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision>;
+  ENTERPRISE_ROUTE_FILE_THE_WALK_FINDS: string;
+}
+
+const ENTERPRISE_DECISIONS: EnterpriseDecisions | null = fs.existsSync(
+  ENTERPRISE_DECISIONS_FILE,
+)
+  ? (jest.requireActual(ENTERPRISE_DECISIONS_FILE) as EnterpriseDecisions)
+  : null;
+
+Object.assign(
+  PRODUCT_ROUTE_FILES,
+  ENTERPRISE_DECISIONS?.ENTERPRISE_PRODUCT_ROUTE_FILES || {},
+);
+
+const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> = {
+  ...CORE_FILES_DECIDED_WHOLE,
+  ...(ENTERPRISE_DECISIONS?.ENTERPRISE_FILES_DECIDED_WHOLE || {}),
+};
 
 interface Registration {
   method: string;
@@ -1490,7 +1490,10 @@ describe("every route file of the server is held to a decision", () => {
         "packages/Common/Server/API/StatusPageAPI.ts",
         "packages/App/FeatureSet/Workflow/API/Manual.ts",
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Monitor.ts",
-        "ee/Server/Identity/API/SCIM.ts",
+        // And one of ee/'s, where ee/ is checked out.
+        ...(ENTERPRISE_DECISIONS
+          ? [ENTERPRISE_DECISIONS.ENTERPRISE_ROUTE_FILE_THE_WALK_FINDS]
+          : []),
       ]),
     );
     // A code sample in a guide's text, and a comment, are no route.
@@ -1696,6 +1699,14 @@ describe("what the decisions stand on", () => {
    * the columns its runs moved (#6854), each answering only about what its
    * caller may read (#9526) - reads all the same, left working.
    */
+  /*
+   * And a pipeline's circuit breaker (#6548): a pipeline step outside
+   * OneUptime asks it before it runs - what already runs keeps running -
+   * and it decides from what is known, so it is a read. While the product
+   * is off it answers go and keeps nothing (DataCircuitBreaker), so
+   * switching Data Observability off never stops a pipeline. How a
+   * pipeline's breaker stands, for its page, only reads.
+   */
   test.each([
     ["attentionCount"],
     ["issues"],
@@ -1704,6 +1715,8 @@ describe("what the decisions stand on", () => {
     ["tableLineage"],
     ["lineageExpand"],
     ["tableLineageAnswer"],
+    ["circuitBreaker"],
+    ['pipelineCircuitBreaker(":id")'],
   ])(
     "packages/Common/Server/API/DataObservabilityAPI.ts: %s is a read, left working while the product is off",
     (route: string) => {
@@ -1823,12 +1836,13 @@ describe("what the decisions stand on", () => {
   );
 
   /*
-   * MoveInListAPI is decided as a whole for the same reason: its one write,
-   * a move in a numbered list, refuses first thing in moveItem.
+   * The move of an ordered list's row (issues #9573, #9609), the one write
+   * BaseAPI answers beside the CRUD routes, refuses first thing in moveItem
+   * for the same reason.
    */
-  test("packages/Common/Server/API/MoveInListAPI.ts: a move refuses a record of a product that is off before anything else", () => {
+  test("packages/Common/Server/API/BaseAPI.ts: a move refuses a record of a product that is off before anything else", () => {
     const source: ts.SourceFile = parse(
-      "packages/Common/Server/API/MoveInListAPI.ts",
+      "packages/Common/Server/API/BaseAPI.ts",
     );
     const firstStatements: Record<string, string> = {};
 

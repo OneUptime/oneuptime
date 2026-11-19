@@ -86,7 +86,7 @@ Verbindungen, die mit demselben Konto angemeldet sind, teilen sich eine Anmeldun
 
 Das Löschen einer Verbindung entzieht OneUptime den Zugriff bei Zoom und Google, sobald keine andere Verbindung die Anmeldung nutzt. Bei Microsoft entfernen Sie OneUptime unter **My Apps** (myapps.microsoft.com) des Kontos. Das Entfernen von OneUptime aus Ihrem Zoom-Konto im Zoom App Marketplace löscht seine Anmeldung aus jeder Verbindung, die mit diesem Konto angemeldet ist, und sie zeigen **Funktioniert nicht**, bis sie neu verbunden werden.
 
-Transkripte, die OneUptime bereits gelesen hat, bleiben bei ihren Vorfällen: Das Löschen einer Verbindung behält die Anrufe, die sie gestartet hat, mit ihren Transkripten, und ebenso das Entfernen von OneUptime aus dem Konto bei Zoom, Google oder Microsoft. **Transkript entfernen** bei einem Anruf löscht sein Transkript und was OneUptime AI darin gelesen hat, aber nicht, was OneUptime AI im Feed des Vorfalls und in seinen Kanälen gepostet hat. Das Löschen eines Vorfalls löscht seine Anrufe und ihre Transkripte.
+Das Entfernen von OneUptime aus Ihrem Zoom-Konto löscht außerdem innerhalb von Minuten die Anruf-Transkripte, die OneUptime über seine Anmeldung gelesen hat, und was OneUptime AI darin gelesen hat: aus ihren Anrufen, aus den Feeds der Vorfälle und aus den Nachrichten, die OneUptime in den Slack-, Microsoft Teams- und Mattermost-Kanälen der Vorfälle gepostet hat. Der Feed jedes Vorfalls sagt das, und ein Transkript, das jemand hinzugefügt hat, bleibt. Das Löschen einer Verbindung behält die Anrufe, die sie gestartet hat, mit ihren Transkripten, und ebenso das Entfernen von OneUptime aus einem Google- oder Microsoft-Konto. **Transkript entfernen** bei einem Anruf löscht sein Transkript und was OneUptime AI darin gelesen hat an denselben Stellen. Kann OneUptime eine Nachricht dort nicht mehr löschen, weil ihr Workspace getrennt oder die App aus dem Kanal entfernt wurde, sagt es, wo die Nachricht bleibt. Eine Grundursache oder ein Postmortem, das jemand aus dem Anruf geschrieben hat, bleibt. Das Löschen eines Vorfalls löscht seine Anrufe und ihre Transkripte.
 
 ### Wenn Microsoft nach einem Administrator fragt
 
@@ -100,7 +100,7 @@ Um mit einer Dienstidentität statt der Anmeldung einer Person zu verbinden — 
 
 Die Karte **Videoanruf** auf der Seite eines Vorfalls oder einer Warnung hat **Anruf starten** (oder **Weiteren starten**, sobald es einen gibt). Wählen Sie eine der Verbindungen des Projekts, den Huddle des Slack-Kanals des Vorfalls, oder fügen Sie einen eigenen Meeting-Link ein. Der Anruf wird in die Kanäle und den Feed des Vorfalls gepostet wie einer, den eine Regel startet.
 
-**Entfernen** auf der Karte nimmt einen Anruf von der Seite des Vorfalls. Das Meeting selbst wird nicht gelöscht, und alle mit dem Link können ihm weiterhin beitreten.
+**Entfernen** auf der Karte nimmt einen Anruf von der Seite des Vorfalls, mit seinem Transkript und dem, was OneUptime AI darin gelesen hat. Das Meeting selbst wird nicht gelöscht, und alle mit dem Link können ihm weiterhin beitreten.
 
 Anrufe zu starten und zu entfernen braucht die Berechtigung, an Vorfällen (oder Warnungen) zu arbeiten: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Vorfall-Administrator** oder **Vorfall-Mitglied**, oder **Create Incident Video Call** und **Delete Incident Video Call** in einer benutzerdefinierten Rolle. Alle, die den Vorfall lesen können, sehen seine Anrufe.
 
@@ -152,7 +152,7 @@ Ein Transkript holen, hinzufügen, ersetzen und entfernen, es erneut lesen lasse
 
 ### Was OneUptime AI liest
 
-Ein Transkript zu lesen ist KI-Arbeit wie eine Untersuchung: Sie läuft nur, solange KI für das Projekt eingeschaltet ist, und zählt zur KI-Nutzung und zu den Tageslimits des Projekts (siehe [Kostenkontrolle](/docs/ai/ai-sre#kostenkontrollen)). Ein langes Transkript wird in Teilen gelesen. Ist KI ausgeschaltet, bleibt das Transkript erhalten, und die Karte sagt, dass es nicht gelesen wurde. Ein Transkript zu entfernen entfernt, was OneUptime AI darin gelesen hat, und behält die Grundursache des Vorfalls. Auch ein KI-Entwurf des Postmortems liest, was in den Anrufen des Vorfalls gesagt wurde (siehe [Postmortems](/docs/incidents/postmortems)).
+Ein Transkript zu lesen ist KI-Arbeit wie eine Untersuchung: Sie läuft nur, solange KI für das Projekt eingeschaltet ist, und zählt zur KI-Nutzung und zu den Tageslimits des Projekts (siehe [Kostenkontrolle](/docs/ai/ai-sre#kostenkontrollen)). Ein langes Transkript wird in Teilen gelesen. Ist KI ausgeschaltet, bleibt das Transkript erhalten, und die Karte sagt, dass es nicht gelesen wurde. Ein Transkript zu entfernen entfernt, was OneUptime AI darin gelesen hat, aus dem Anruf, dem Feed des Vorfalls und seinen Kanälen, und behält die Grundursache des Vorfalls. Auch ein KI-Entwurf des Postmortems liest, was in den Anrufen des Vorfalls gesagt wurde (siehe [Postmortems](/docs/incidents/postmortems)).
 
 ## Anbieter
 

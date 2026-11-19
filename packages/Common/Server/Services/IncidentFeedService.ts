@@ -3,6 +3,7 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import WorkspacePostedMessage from "../../Types/Workspace/WorkspacePostedMessage";
 import SavedChatMessage, {
   SavedChatMessageUtil,
 } from "../../Types/Workspace/SavedChatMessage";
@@ -33,6 +34,16 @@ import {
   FeedApiKeyActor,
   UNNAMED_API_KEY_NAME,
 } from "../Utils/Feed/FeedApiKeyActor";
+
+/*
+ * What creating a feed item posted (postIncidentFeedItem): the item, and
+ * each message it went out as in the incident's Slack, Microsoft Teams and
+ * Mattermost channels - none when it was not posted there.
+ */
+export interface IncidentFeedItemPosted {
+  feedId: ObjectID;
+  messages: Array<WorkspacePostedMessage>;
+}
 
 export class Service extends ProjectReferencesService<IncidentFeed> {
   public constructor() {
@@ -129,6 +140,32 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
      */
     workspaceNotification?: FeedWorkspaceNotification | undefined;
   }): Promise<void> {
+    await this.createAndPostIncidentFeedItem({ data, keepPosts: false });
+  }
+
+  /*
+   * createIncidentFeedItem, saying what it posted: the item it created, and
+   * each message it went out as in the incident's channels - for an item
+   * OneUptime may take back later, such as what OneUptime AI read in a
+   * call's transcript, deleted with the transcript (CallSummaryPosts).
+   * Never throws, as createIncidentFeedItem does not: null when the item
+   * could not be created.
+   */
+  @CaptureSpan()
+  public async postIncidentFeedItem(
+    data: Parameters<Service["createIncidentFeedItem"]>[0],
+  ): Promise<IncidentFeedItemPosted | null> {
+    return await this.createAndPostIncidentFeedItem({ data, keepPosts: true });
+  }
+
+  private async createAndPostIncidentFeedItem(input: {
+    data: Parameters<Service["createIncidentFeedItem"]>[0];
+    // Whether to tell where its message was posted (postIncidentFeedItem).
+    keepPosts: boolean;
+  }): Promise<IncidentFeedItemPosted | null> {
+    const data: Parameters<Service["createIncidentFeedItem"]>[0] = input.data;
+    let posted: IncidentFeedItemPosted | null = null;
+
     try {
       logger.debug("IncidentFeedService.createIncidentFeedItem", {
         projectId: data.projectId?.toString(),
@@ -199,6 +236,10 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
         },
       });
 
+      if (createdIncidentFeed.id) {
+        posted = { feedId: createdIncidentFeed.id, messages: [] };
+      }
+
       logger.debug("Incident Feed created", {
         projectId: data.projectId?.toString(),
         incidentId: data.incidentId?.toString(),
@@ -218,7 +259,18 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
             projectId: data.projectId,
             incidentId: data.incidentId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
-            workspaceNotification: data.workspaceNotification,
+            workspaceNotification: input.keepPosts
+              ? {
+                  ...data.workspaceNotification,
+                  onPosted: (messages: Array<WorkspacePostedMessage>): void => {
+                    if (posted) {
+                      posted.messages = messages;
+                    }
+
+                    data.workspaceNotification?.onPosted?.(messages);
+                  },
+                }
+              : data.workspaceNotification,
             // Which updates it is: posted where a rule wants one of them.
             updateKinds: FeedUpdateKinds.resolve({
               named: data.workspaceNotification.updateKinds,
@@ -256,6 +308,8 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
 
       // we dont throw this error as it is not a critical error
     }
+
+    return posted;
   }
 
   /*

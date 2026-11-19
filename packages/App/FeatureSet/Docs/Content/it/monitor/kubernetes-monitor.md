@@ -5,7 +5,7 @@ Un monitor Kubernetes avvisa sulle metriche che l'agente Kubernetes di OneUptime
 :::cards
 - [Installare l'agente](/docs/monitor/kubernetes-agent): Un solo comando Helm porta il cluster in OneUptime.
 - [Creare il monitor](#creare-un-monitor-kubernetes): Scegliere il cluster, poi un modello, una metrica o una query.
-- [Modelli di avviso](#modelli-di-avviso-pronti): Ventuno avvisi pronti, da un cluster silenzioso a etcd.
+- [Modelli di avviso](#modelli-di-avviso-pronti): Ventiquattro avvisi pronti, da un cluster silenzioso a etcd.
 - [Criteri](#criteri-di-monitoraggio): Soglie statiche e rilevamento delle anomalie.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - L'agente Kubernetes di OneUptime in esecuzione nel cluster. Vedete [Agente Kubernetes (installazione Helm)](/docs/monitor/kubernetes-agent); il cluster compare in **Kubernetes** pochi minuti dopo l'installazione.
 - Per i modelli del piano di controllo (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): la raccolta del piano di controllo da parte dell'agente, `controlPlane.enabled`, che legge l'API server fin da subito; etcd e lo scheduler hanno anche bisogno dei loro endpoint (si veda [Attivare il monitoraggio del piano di controllo](/docs/telemetry/kubernetes-agent#attivare-il-monitoraggio-del-piano-di-controllo)). I cluster gestiti (EKS, GKE, AKS) non espongono questi endpoint, quindi lì quei monitor non ricevono mai dati.
+- Per i modelli dei costi (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): il monitoraggio dei costi dell'agente, attivo per impostazione predefinita tranne con i preset `gke-autopilot` ed `eks-fargate` (si veda [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost)).
 
 ## Creare un monitor Kubernetes
 
@@ -85,12 +86,13 @@ La scheda **Custom Metric** offre queste metriche, raggruppate per tipo di risor
 
 | Categoria | Metriche |
 | --- | --- |
-| Pod | Consumo CPU del Pod, Utilizzo memoria del Pod, Fase del Pod (codice), Utilizzo del file system del Pod, Utilizzo del limite di memoria del Pod, Utilizzo del limite CPU del Pod, I/O di rete del Pod (cumulativo, entrambe le direzioni) |
+| Pod | Consumo CPU del Pod, Utilizzo memoria del Pod, Fase del Pod (codice), Utilizzo del file system del Pod, Capacità del volume, Spazio libero del volume, Utilizzo del limite di memoria del Pod, Utilizzo del limite CPU del Pod, I/O di rete del Pod (cumulativo, entrambe le direzioni) |
 | Nodo | Consumo CPU del nodo, CPU allocabile del nodo, Utilizzo della memoria del nodo, Working set della memoria del nodo, Utilizzo del filesystem del nodo, Memoria allocabile del nodo, Condizione Ready del nodo, Condizione MemoryPressure del nodo, Condizione DiskPressure del nodo, Condizione PIDPressure del nodo, File system disponibile del nodo |
 | Container | Riavvii del container, Riavvii del container (aumento), Limite CPU del container, Richiesta CPU del container, Limite di memoria del container, Richiesta di memoria del container, Container pronto |
 | Carico di lavoro | Repliche disponibili del Deployment, Repliche desiderate del Deployment, Nodi desiderati del DaemonSet, Nodi pianificati in modo errato del DaemonSet, Nodi pronti del DaemonSet, Repliche desiderate dello StatefulSet, Repliche pronte dello StatefulSet, Pod non riusciti del Job, Pod non riusciti del Job (aumento), Pod riusciti del Job |
 | HPA | Repliche attuali dell'HPA, Repliche desiderate dell'HPA, Repliche massime dell'HPA, Repliche minime dell'HPA |
 | Piano di controllo | etcd ha un leader, Richieste in corso del server API, Pod in attesa dello scheduler |
+| Costo | Costo del cluster, Costo inutilizzato, Costo del carico di lavoro, Efficienza dei costi del carico di lavoro |
 
 > [!NOTE]
 > **Consumo CPU del Pod** e **Consumo CPU del nodo** sono espresse in core, non in percentuale: `0.18` equivale a 0,18 di un core. **Fase del Pod (codice)** è un codice (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): aggregatelo con Massimo o Minimo, mai con Somma. Le metriche del piano di controllo arrivano solo quando la raccolta del piano di controllo da parte dell'agente è attiva. **Condizione Ready del nodo** vale 1 con Ready, 0 con NotReady e -1 con Unknown, ciò che segnala un nodo caduto: avvisa sotto 1. **Riavvii del container** è il contatore progressivo dei riavvii del container; **Riavvii del container (aumento)** è ciò che l'agente invia con ogni campione: i riavvii dal suo campione precedente del container, quindi la sua somma su una finestra dà i riavvii avvenuti in essa. Porta ciò che porta **Riavvii del container**, compresi i nomi dei carichi di lavoro del pod del container, ma non l'ID del container, che cambia a ogni riavvio. **Pod non riusciti del Job** è il contatore progressivo dei pod falliti di un Job; **Pod non riusciti del Job (aumento)** è ciò che l'agente invia con ogni campione: i pod del Job falliti dal suo campione precedente del Job, quindi la sua somma su una finestra dà i fallimenti avvenuti in essa. Porta ciò che porta **Pod non riusciti del Job**: il nome e il namespace del Job.
@@ -148,6 +150,7 @@ L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per catego
 | API Server Request Saturation | Piano di controllo | Il server API mantiene 200 o più richieste in corso per tutta la finestra | Critico |
 | Scheduler Backlog | Pianificazione | La coda dei pod in attesa dello scheduler non è vuota per 5 minuti | Avviso |
 | High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 90% | Avviso |
+| PVC Almost Full | Archiviazione | Una richiesta di volume persistente è piena oltre il 90% | Avviso |
 | DaemonSet Pods Not Ready | Carico di lavoro | Un DaemonSet ha nodi senza un suo pod pronto per 15 minuti | Avviso |
 | DaemonSet Misscheduled Nodes | Carico di lavoro | Un DaemonSet esegue pod su nodi che non corrispondono più al suo selettore di nodi, alla sua affinità o alle sue tolleranze | Avviso |
 | High Node CPU Request Commitment | Nodo | La somma delle richieste di CPU dei container di un nodo supera il 90% della sua CPU allocabile | Avviso |
@@ -155,8 +158,13 @@ L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per catego
 | HPA Saturated at Max Replicas | Carico di lavoro | Un HPA scalato sopra il suo `minReplicas` lavora al 90% o più del suo `maxReplicas` | Critico |
 | Pod Memory Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di memoria dei suoi container | Critico |
 | Pod CPU Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di CPU dei suoi container | Avviso |
+| Cluster Daily Cost Over Budget | Costo | Il costo del cluster nell'ultimo giorno supera 100, un budget da adattare al vostro | Avviso |
+| Namespace Daily Cost Over Budget | Costo | Il costo di un namespace nell'ultimo giorno supera 20, un budget da adattare al vostro | Avviso |
+| High Idle Spend | Costo | Oltre il 40% del costo del cluster nell'ultimo giorno è servito a pagare capacità inutilizzata | Avviso |
 
 I modelli basati su metriche per oggetto valutano ogni nodo, pod, deployment, job, DaemonSet o HPA separatamente, quindi un cluster con diversi pod non sani riceve un incidente per pod invece di uno per l'intero cluster.
+
+I modelli dei costi leggono le metriche che OneUptime scrive a partire dalle righe di costo orarie dell'agente, un punto all'ora, quindi sommano l'ultimo giorno; i loro budget sono nella valuta del cluster, USD per impostazione predefinita.
 
 **High Node CPU Request Commitment** e **High Node Memory Request Commitment** contano solo le request dei pod che non sono terminati, come fa lo scheduler. Il cluster continua a riportare le request di un pod Succeeded o Failed, come quello di un Job terminato, finché il pod non viene eliminato: queste non vengono contate.
 
