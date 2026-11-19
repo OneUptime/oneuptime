@@ -1078,6 +1078,7 @@ import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-
 import { AddKubernetesVolumeClaimUsage1809184859539 } from "./1809184859539-AddKubernetesVolumeClaimUsage";
 import { AddDataPipelineOwnerRules1809184860000 } from "./1809184860000-AddDataPipelineOwnerRules";
 import { AddDataPipelineCircuitBreaker1809184870000 } from "./1809184870000-AddDataPipelineCircuitBreaker";
+import { MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000 } from "./1809184890000-MarkDataOwnersAddedBeforeNotificationsAsTold";
 
 export default [
   InitialMigration,
@@ -2160,4 +2161,5 @@ export default [
   AddKubernetesVolumeClaimUsage1809184859539,
   AddDataPipelineOwnerRules1809184860000,
   AddDataPipelineCircuitBreaker1809184870000,
+  MarkDataOwnersAddedBeforeNotificationsAsTold1809184890000,
 ];
