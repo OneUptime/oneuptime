@@ -26,7 +26,13 @@ import {
   OnCallTestPageStepStatus,
 } from "../../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
+
+// OnCallTestPageService.getResult, spied on.
+type GetResultSpy = jest.SpyInstance<
+  ReturnType<typeof OnCallTestPageService.getResult>,
+  Parameters<typeof OnCallTestPageService.getResult>
+>;
 
 /*
  * A TEST PAGE SENT FROM AN ANSWER, AS THE NEXT TURN'S MODEL READS IT (#7249).
@@ -213,9 +219,7 @@ describe("what the model is told of a test page sent from an answer", () => {
 
 describe("the notes of a conversation's answers", () => {
   test("are read as the person asking, for answers a test page was sent from", async () => {
-    const getResult: jest.SpiedFunction<
-      typeof OnCallTestPageService.getResult
-    > = jest
+    const getResult: GetResultSpy = jest
       .spyOn(OnCallTestPageService, "getResult")
       .mockResolvedValue(
         testPageResult({ status: OnCallTestPageStatus.Ended }),
@@ -263,9 +267,7 @@ describe("the notes of a conversation's answers", () => {
   });
 
   test("only the newest answers' test pages are read again", async () => {
-    const getResult: jest.SpiedFunction<
-      typeof OnCallTestPageService.getResult
-    > = jest
+    const getResult: GetResultSpy = jest
       .spyOn(OnCallTestPageService, "getResult")
       .mockResolvedValue(testPageResult({}));
     const answers: Array<AIConversationMessage> = [];

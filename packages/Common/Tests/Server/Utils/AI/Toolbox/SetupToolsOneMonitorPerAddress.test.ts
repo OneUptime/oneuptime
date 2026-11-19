@@ -589,10 +589,10 @@ describe("the plan's room counts no monitor for an address a monitor checks alre
     ]);
     const room: Spy = jest
       .spyOn(ActiveMonitorLimit, "getRefusal")
-      .mockImplementation((data: { adding: number }) => {
+      .mockImplementation((data: { adding?: number | undefined }) => {
         return Promise.resolve(
-          data.adding > 1 ? "Your plan allows 5 active monitors." : null,
-        ) as never;
+          (data.adding || 0) > 1 ? "Your plan allows 5 active monitors." : null,
+        );
       });
 
     expect(
