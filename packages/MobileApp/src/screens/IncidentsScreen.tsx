@@ -37,7 +37,18 @@ import {
   type PaneScrollRestoration,
 } from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
-import SearchField from "../components/SearchField";
+import SearchFilterRow from "../components/filters/SearchFilterRow";
+import ActiveFilterBar from "../components/filters/ActiveFilterBar";
+import FilterSheet from "../components/filters/FilterSheet";
+import {
+  useRecordFilterControls,
+  type RecordFilterControls,
+} from "../hooks/useRecordFilterControls";
+import type {
+  FilterFacet,
+  FilterableList,
+  RecordFilters,
+} from "../filters/recordFilters";
 import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
 import { getResolvedStateIds } from "../utils/resolvedState";
@@ -150,6 +161,21 @@ export default function IncidentsScreen({
     PAGE_SIZE,
   );
   /*
+   * Owner, state, severity, labels and monitors, as the Dashboard filters
+   * incidents: asked of the server, so they reach every incident of the project.
+   * One set for the screen, so "Owner: You" stays on from incidents to episodes.
+   */
+  const filterList: FilterableList =
+    segment === "incidents" ? "incidents" : "incidentEpisodes";
+  const recordFilters: RecordFilterControls = useRecordFilterControls(
+    filterList,
+    "incidents.recordFilters",
+    (): void => {
+      setVisibleCount(PAGE_SIZE);
+      setVisibleEpisodeCount(PAGE_SIZE);
+    },
+  );
+  /*
    * The params this list last applied. Drawn afresh after a fold, the list
    * sees the same params again; they were applied already, and applying them
    * twice would wipe the search typed since.
@@ -192,6 +218,8 @@ export default function IncidentsScreen({
     setAppliedParams(route.params);
     if (route.params?.initialSegment || route.params?.initialFilter) {
       setSearch("");
+      // A count on Home opens every record it counted, not a filtered few.
+      recordFilters.clear();
     }
     if (
       route.params?.initialSegment === "incidents" ||
@@ -213,7 +241,7 @@ export default function IncidentsScreen({
     isLoading,
     isError,
     refetch,
-  } = useAllProjectIncidents();
+  } = useAllProjectIncidents(recordFilters.filters);
   const {
     statesMap,
     isLoading: statesLoading,
@@ -224,7 +252,7 @@ export default function IncidentsScreen({
     isLoading: episodesLoading,
     isError: episodesError,
     refetch: refetchEpisodes,
-  } = useAllProjectIncidentEpisodes();
+  } = useAllProjectIncidentEpisodes(recordFilters.filters);
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
@@ -462,10 +490,14 @@ export default function IncidentsScreen({
     (statesError && !hasStateMetadata) ||
     (segment === "incidents" ? isError : episodesError);
 
-  const hasFilters: boolean = search.trim().length > 0 || stateFilter !== "all";
+  const hasFilters: boolean =
+    search.trim().length > 0 ||
+    stateFilter !== "all" ||
+    recordFilters.hasActive;
   const resetFilters: () => void = () => {
     setSearch("");
     setStateFilter("all");
+    recordFilters.clear();
     setVisibleCount(PAGE_SIZE);
     setVisibleEpisodeCount(PAGE_SIZE);
   };
@@ -499,15 +531,20 @@ export default function IncidentsScreen({
         {viewDescription}
       </Text>
       <View style={{ marginTop: spacing.md }}>
-        <SearchField
-          value={search}
-          onChangeText={(value: string) => {
+        <SearchFilterRow
+          search={search}
+          onSearch={(value: string) => {
             setSearch(value);
             setVisibleCount(PAGE_SIZE);
             setVisibleEpisodeCount(PAGE_SIZE);
           }}
           placeholder="Search title or ID"
-          accessibilityLabel="Search incidents and episodes"
+          searchAccessibilityLabel="Search incidents and episodes"
+          noun={segment === "incidents" ? "incidents" : "episodes"}
+          filterCount={recordFilters.activeCount}
+          onOpenFilters={(): void => {
+            recordFilters.open();
+          }}
         />
         {(segment === "incidents" ? allIncidents.length : allEpisodes.length) >=
         100 ? (
@@ -533,8 +570,9 @@ export default function IncidentsScreen({
                 color: theme.colors.textSecondary,
               }}
             >
-              Search covers the 100 most recent{" "}
-              {segment === "incidents" ? "incidents" : "episodes"}.
+              {recordFilters.hasActive
+                ? `Showing the 100 newest ${segment === "incidents" ? "incidents" : "episodes"} that match your filters.`
+                : `Search covers the 100 most recent ${segment === "incidents" ? "incidents" : "episodes"}.`}
             </Text>
           </View>
         ) : null}
@@ -575,8 +613,41 @@ export default function IncidentsScreen({
               }, 0)
         }
         onReset={hasFilters ? resetFilters : undefined}
-      />
+      >
+        <ActiveFilterBar
+          items={recordFilters.items}
+          onOpen={(facet: FilterFacet): void => {
+            recordFilters.open(facet);
+          }}
+          onRemove={(facet: FilterFacet): void => {
+            recordFilters.remove(facet);
+          }}
+        />
+      </ListFilters>
     </View>
+  );
+
+  const filterSheet: React.JSX.Element = (
+    <FilterSheet
+      visible={recordFilters.sheetVisible}
+      list={filterList}
+      noun={segment === "incidents" ? "incidents" : "episodes"}
+      value={recordFilters.filters}
+      options={recordFilters.options}
+      canFilterByMe
+      focusFacet={recordFilters.focusFacet}
+      onApply={(next: RecordFilters): void => {
+        /*
+         * Picking states in the sheet is the more exact question: the
+         * Active / Resolved chip goes back to All, so the two never
+         * contradict each other into an empty list.
+         */
+        if (recordFilters.apply(next).picksStates) {
+          setStateFilter("all");
+        }
+      }}
+      onClose={recordFilters.close}
+    />
   );
 
   const refreshControl: React.JSX.Element = (
@@ -617,6 +688,7 @@ export default function IncidentsScreen({
             <SkeletonCard />
           </View>
         </ListStatusScroll>
+        {filterSheet}
       </View>
     );
   }
@@ -648,6 +720,7 @@ export default function IncidentsScreen({
             onAction={onRefresh}
           />
         </ListStatusScroll>
+        {filterSheet}
       </View>
     );
   }
@@ -835,6 +908,7 @@ export default function IncidentsScreen({
           onEndReachedThreshold={0.5}
         />
       )}
+      {filterSheet}
     </View>
   );
 }
