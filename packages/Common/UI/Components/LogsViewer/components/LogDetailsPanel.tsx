@@ -187,6 +187,10 @@ function parseContextRow(row: JSONObject): ContextLog {
 // Whole-trace context is one bounded fetch, not a paginated view.
 const TRACE_CONTEXT_LIMIT: number = 100;
 
+// An attribute's key, in the list: two fifths of a phone's line, 14rem from sm up.
+export const LOG_ATTRIBUTE_KEY_CLASS_NAME: string =
+  "w-2/5 flex-none truncate font-mono text-[12px] text-gray-500 sm:w-56";
+
 function toContextLog(log: Log): ContextLog {
   return {
     id: log.getColumnValue("_id")?.toString() || "",
@@ -981,8 +985,14 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           key={entry.key}
                           className="group flex items-start gap-3 px-3 py-2 hover:bg-white"
                         >
+                          {/*
+                           * The key takes 14rem where there is room for it,
+                           * and two fifths of a phone's line: at 14rem on a
+                           * 390px phone, a value had a letter's width and
+                           * ran down the row a letter a line.
+                           */}
                           <span
-                            className="w-56 flex-none truncate font-mono text-[12px] text-gray-500"
+                            className={LOG_ATTRIBUTE_KEY_CLASS_NAME}
                             title={entry.key}
                           >
                             {entry.key}

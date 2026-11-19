@@ -74,7 +74,9 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   };
 });
 
-import LogDetailsPanel from "../../../UI/Components/LogsViewer/components/LogDetailsPanel";
+import LogDetailsPanel, {
+  LOG_ATTRIBUTE_KEY_CLASS_NAME,
+} from "../../../UI/Components/LogsViewer/components/LogDetailsPanel";
 
 const SERVICE_ID: ObjectID = new ObjectID(
   "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
@@ -233,6 +235,26 @@ describe("LogDetailsPanel attributes as JSON", () => {
     fireEvent.click(screen.getByTitle("Filter by retry.attempt: 3"));
     expect(onFilterByAttribute).toHaveBeenCalledWith("retry.attempt", "3");
     expect(screen.getByTitle("Copy retry.attempt")).toBeInTheDocument();
+  });
+
+  /*
+   * Regression: a key was 14rem wide at every width, so on a 390px phone
+   * its value had a letter's width and ran down the row a letter a line
+   * ("G", "E", "T"). Seen while adding Copy Link to the panel (#9794).
+   */
+  test("on a phone a key takes two fifths of the line, so its value has the rest", () => {
+    render(<LogDetailsPanel log={makeLog(LOG_ATTRIBUTES)} serviceMap={{}} />);
+
+    const key: HTMLElement = screen.getByTitle("retry.attempt");
+
+    expect(LOG_ATTRIBUTE_KEY_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["w-2/5", "sm:w-56", "flex-none", "truncate"]),
+    );
+    expect(LOG_ATTRIBUTE_KEY_CLASS_NAME.split(" ")).not.toContain("w-56");
+
+    for (const className of LOG_ATTRIBUTE_KEY_CLASS_NAME.split(" ")) {
+      expect(key).toHaveClass(className);
+    }
   });
 
   test("a log without attributes has no attributes section", () => {
