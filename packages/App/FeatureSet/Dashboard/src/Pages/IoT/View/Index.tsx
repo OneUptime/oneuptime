@@ -114,6 +114,25 @@ export const IOT_NO_DEVICE_OFFLINE: string = translationKey(
 );
 
 /*
+ * What the Online Devices tile says while the fleet itself is disconnected
+ * (#9730): the fleet, not its devices, is what stopped reporting.
+ */
+export const IOT_FLEET_DISCONNECTED: string =
+  translationKey("fleet disconnected");
+
+/*
+ * Whether the fleet itself reports: its collector, or whatever sends its
+ * devices' data, is connected. While it is not, its devices' last states
+ * are from before it stopped, and say nothing of them now.
+ */
+export function isIoTFleetConnected(
+  status: string | null | undefined,
+): boolean {
+  const word: string = (status || "").toLowerCase();
+  return word === "connected" || word === "active";
+}
+
+/*
  * The pill that opens the devices offline, or none while every device the
  * inventory holds is online. A count of offline devices is red: an offline
  * device is critical.
@@ -561,15 +580,31 @@ const IoTFleetOverview: FunctionComponent<
   };
 
   /*
+   * While the fleet itself is disconnected (#9730), its offline-device
+   * counts say so and blame no device. Its collector stopped, or never
+   * started: every device's last state is from before, and when the
+   * collector is what went away every device can read offline then. So
+   * the devices chip says how many devices the fleet has, the Online
+   * Devices tile says the fleet is disconnected, and no device is listed
+   * as offline or needing attention - as every other product's counts of
+   * what is wrong wait for its agent. The hero's connection pill and the
+   * card under it say why, and what to check.
+   */
+  const isFleetConnected: boolean = isIoTFleetConnected(
+    fleet.otelCollectorStatus as string | undefined,
+  );
+
+  /*
    * The devices the online count leaves out, by the same rule as the
    * attention card: each offline device, when it last reported and why.
    */
-  const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading
-    ? []
-    : getIoTOfflineDeviceItems({
-        devices: atRiskDevices,
-        routeFor: getDeviceRoute,
-      });
+  const offlineDeviceItems: Array<ResourceAttentionItem> =
+    isInventoryLoading || !isFleetConnected
+      ? []
+      : getIoTOfflineDeviceItems({
+          devices: atRiskDevices,
+          routeFor: getDeviceRoute,
+        });
   const offlineDevicesPill: ResourceAttentionPillProps | undefined =
     getIoTOfflineDevicesPill({
       testId: "iot-hero-devices-offline",
@@ -610,8 +645,7 @@ const IoTFleetOverview: FunctionComponent<
         })
       : translator.translateText("Never seen") || "Never seen";
 
-    const isConnected: boolean =
-      status.toLowerCase() === "connected" || status.toLowerCase() === "active";
+    const isConnected: boolean = isFleetConnected;
 
     const displayName: string =
       (fleet.name as string | undefined) || "Untitled IoT fleet";
@@ -635,15 +669,24 @@ const IoTFleetOverview: FunctionComponent<
     if (totalDevices > 0) {
       specChips.push({
         icon: IconProp.Cube,
-        label: translator.translatePlural(
-          {
-            one: "{{online}}/{{count}} device online",
-            other: "{{online}}/{{count}} devices online",
-          },
-          totalDevices,
-          // In the reader's digits, as the count beside it is.
-          { online: translator.formatNumber(onlineDevices) },
-        ),
+        label: isConnected
+          ? translator.translatePlural(
+              {
+                one: "{{online}}/{{count}} device online",
+                other: "{{online}}/{{count}} devices online",
+              },
+              totalDevices,
+              // In the reader's digits, as the count beside it is.
+              { online: translator.formatNumber(onlineDevices) },
+            )
+          : /*
+             * Disconnected: how many devices it has, and no more - which of
+             * them are online now is not known.
+             */
+            translator.translatePlural(
+              { one: "{{count}} device", other: "{{count}} devices" },
+              totalDevices,
+            ),
       });
     }
     /*
@@ -736,13 +779,22 @@ const IoTFleetOverview: FunctionComponent<
                   variant="chip"
                 />
                 {/*
-                 * One (i) for the devices-online chip; a row holding only
-                 * the agent version chip is metadata and gets none.
+                 * One (i) for the devices chip, about what it counts: the
+                 * devices online, or - while the fleet is disconnected -
+                 * the devices it has, as the Total Devices tile counts
+                 * them. A row holding only the agent version chip is
+                 * metadata and gets none.
                  */}
-                {hasCountChips && (
+                {hasCountChips && isConnected && (
                   <InfoTooltip
                     label="Devices online"
                     text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline}
+                  />
+                )}
+                {hasCountChips && !isConnected && (
+                  <InfoTooltip
+                    label="Total Devices"
+                    text={IOT_METRIC_DESCRIPTIONS.totalDevices}
                   />
                 )}
               </div>
@@ -807,11 +859,19 @@ const IoTFleetOverview: FunctionComponent<
           description={IOT_METRIC_DESCRIPTIONS.onlineDevices}
           icon={IconProp.Heartbeat}
           iconColor="emerald"
+          /*
+           * While the fleet is disconnected its devices' last states are no
+           * count of who is online now: the tile says what stopped (#9730).
+           */
           value={
-            onlinePct === null ? undefined : `${onlineDevices}/${totalDevices}`
+            !isFleetConnected || onlinePct === null
+              ? undefined
+              : `${onlineDevices}/${totalDevices}`
           }
-          sublabel="devices reporting up"
-          percent={onlinePct}
+          sublabel={
+            isFleetConnected ? "devices reporting up" : IOT_FLEET_DISCONNECTED
+          }
+          percent={isFleetConnected ? onlinePct : null}
           thresholds={{ warn: 99, danger: 75 }}
           higherIsBetter={true}
           attention={getIoTOfflineDevicesPill({
@@ -855,7 +915,11 @@ const IoTFleetOverview: FunctionComponent<
   };
 
   const renderAtRiskDevices: () => ReactElement = (): ReactElement => {
-    if (isInventoryLoading || atRiskDevices.length === 0) {
+    /*
+     * Folded away while the fleet is disconnected (#9730): its devices'
+     * last states blame them for what the collector did.
+     */
+    if (isInventoryLoading || !isFleetConnected || atRiskDevices.length === 0) {
       return <Fragment />;
     }
 

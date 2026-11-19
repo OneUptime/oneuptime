@@ -307,6 +307,19 @@
     "cancel": "Cancelar e voltar ao aplicativo",
     "setup": "Crie uma chave de acesso no painel web, em Perfil do usuário → Segurança → Chaves de acesso."
   },
+  "mobilePasskeyEnrolment": {
+    "title": "Configurar uma chave de acesso",
+    "description": "Use o rosto, a impressão digital ou o bloqueio de tela deste telefone, ou uma chave de segurança. Na próxima vez, você entrará no OneUptime On-Call com ela.",
+    "create": "Criar chave de acesso",
+    "tryAgain": "Tentar novamente",
+    "notCompleted": "A chave de acesso não foi criada: a solicitação foi cancelada ou expirou. Tente novamente quando estiver pronto.",
+    "expired": "Esta configuração expirou ou já foi usada. Volte ao aplicativo e comece de novo.",
+    "failed": "Não foi possível criar a chave de acesso. Tente novamente, ou volte ao aplicativo e configure um aplicativo autenticador em vez disso.",
+    "complete": "Sua chave de acesso está pronta. Volte ao aplicativo para concluir o acesso.",
+    "invalid": "Inicie a configuração de uma chave de acesso pelo aplicativo móvel do OneUptime. Esta solicitação está ausente ou é inválida.",
+    "insecure": "As chaves de acesso exigem HTTPS. Volte ao aplicativo para configurar um aplicativo autenticador em vez disso.",
+    "unsupported": "Este navegador não consegue criar uma chave de acesso. Volte ao aplicativo para configurar um aplicativo autenticador em vez disso."
+  },
   "mcpAuthorize": {
     "title": "Conectar um cliente MCP",
     "wantsAccess": "{{clientName}} quer acessar o OneUptime em seu nome.",

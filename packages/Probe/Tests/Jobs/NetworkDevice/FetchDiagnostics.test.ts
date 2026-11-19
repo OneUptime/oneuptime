@@ -577,6 +577,11 @@ describe("a Ping diagnostic", () => {
    * The exact wire shape the server's ingest handler reads. Pinned as a
    * key set so a renamed or dropped field fails here, not in production
    * where it would silently stop a column from being written.
+   *
+   * probeVersion rides beside probeCapabilities, as on every request: the
+   * probe-auth middleware keeps it with the liveness stamp, and reads a
+   * report that declares capabilities without it as an older probe
+   * (issue #9759).
    */
   test("carries exactly: auth, networkDeviceDiagnosticId, status, pingResult", async () => {
     await reportDiagnosticResult(await runDiagnostic(makePingJob()));
@@ -587,6 +592,7 @@ describe("a Ping diagnostic", () => {
       "probeCapabilities",
       "probeId",
       "probeKey",
+      "probeVersion",
       "status",
     ]);
   });

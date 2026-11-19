@@ -375,6 +375,25 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
+/*
+ * Whether this server can hand a passkey's setup to a phone's browser
+ * (#9817): only over HTTPS. Stood in so both answers are pinned.
+ */
+const isMobilePasskeyEnrolmentAvailable: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/MobilePasskeyEnrolmentService", () => {
+  return {
+    __esModule: true,
+    default: {
+      isAvailable: (...args: Array<unknown>): unknown => {
+        return isMobilePasskeyEnrolmentAvailable(...args);
+      },
+      storeOptions: jest.fn(),
+      takeOptions: jest.fn(),
+    },
+  };
+});
+
 // Importing the router registers every handler on the mock router above.
 import "../../../FeatureSet/Identity/API/Authentication";
 
@@ -706,6 +725,34 @@ describe("POST /login when an admin requires 2FA and nothing is set up", () => {
     await postLogin();
 
     expect(responseMiscData()["twoFactorEnrolmentRequired"]).toBe(true);
+  });
+
+  /*
+   * The mobile app offers a passkey beside the authenticator app only when
+   * the server says it can (#9817): an older server never says so, and one
+   * reached over plain HTTP cannot run the phone's prompt.
+   */
+  it("tells the mobile app it may offer a passkey, on a server reached over HTTPS", async () => {
+    isMobilePasskeyEnrolmentAvailable.mockReturnValue(true);
+    const user: User = await storedUser();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+
+    await postLogin();
+
+    expect(responseMiscData()["mobilePasskeyEnrolment"]).toBe(true);
+  });
+
+  it("says nothing of a passkey on a server reached over plain HTTP", async () => {
+    isMobilePasskeyEnrolmentAvailable.mockReturnValue(false);
+    const user: User = await storedUser();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+
+    await postLogin();
+
+    expect(responseMiscData()["twoFactorEnrolmentRequired"]).toBe(true);
+    expect(responseMiscData()).not.toHaveProperty("mobilePasskeyEnrolment");
   });
 
   /*

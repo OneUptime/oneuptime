@@ -684,19 +684,33 @@ function withStorage(
   };
 }
 
-function lastRestartReason(container: ContainerStatus): KubernetesHealthText {
-  const reason: string = container.lastTerminationReason;
+/*
+ * How a container's previous run ended, as a list says it under its state:
+ * "Last restart: Error, exit code 2". An OOM kill's code and a clean exit's
+ * add nothing to the word.
+ */
+export function getKubernetesLastRestartReason(termination: {
+  reason: string;
+  exitCode: number | null;
+}): KubernetesHealthText {
   if (
-    container.lastTerminationExitCode !== null &&
-    reason !== "OOMKilled" &&
-    container.lastTerminationExitCode !== 0
+    termination.exitCode !== null &&
+    termination.reason !== "OOMKilled" &&
+    termination.exitCode !== 0
   ) {
     return text(REASON_LAST_RESTART_WITH_CODE, {
-      reason: reason,
-      code: String(container.lastTerminationExitCode),
+      reason: termination.reason,
+      code: String(termination.exitCode),
     });
   }
-  return text(REASON_LAST_RESTART, { reason: reason });
+  return text(REASON_LAST_RESTART, { reason: termination.reason });
+}
+
+function lastRestartReason(container: ContainerStatus): KubernetesHealthText {
+  return getKubernetesLastRestartReason({
+    reason: container.lastTerminationReason,
+    exitCode: container.lastTerminationExitCode,
+  });
 }
 
 /*

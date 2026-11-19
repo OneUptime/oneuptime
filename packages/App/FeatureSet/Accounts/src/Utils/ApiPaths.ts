@@ -3,6 +3,7 @@ import URL from "Common/Types/API/URL";
 import { IDENTITY_URL, APP_API_URL } from "Common/UI/Config";
 import { SIGN_UP_INVITATION_ROUTE } from "Common/Types/Accounts/SignUpInvitation";
 import {
+  MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
@@ -70,6 +71,14 @@ export const SECURITY_KEY_ENROLMENT_OPTIONS_API_URL: URL = URL.fromURL(
 export const VERIFY_SECURITY_KEY_ENROLMENT_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route(VERIFY_SECURITY_KEY_ENROLMENT_ROUTE));
+
+/*
+ * The options for a passkey the mobile app sets up in the phone's browser
+ * (#9817), read once by the page it opened with the id the app was given.
+ */
+export const MOBILE_PASSKEY_ENROLMENT_OPTIONS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE));
 
 /*
  * Signs a user in with one of their single-use recovery codes, for the day the

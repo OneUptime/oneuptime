@@ -128,6 +128,12 @@ Un dispositivo que no ha contactado con Esper en 30 minutos está **Sin conexió
 
 Un dispositivo eliminado de Esper se marca como **Eliminado**, y su elemento se archiva: sale de la lista y espera en **Avanzado → Archivado**. Un dispositivo que vuelve a Esper vuelve a la lista. 30 días después de su salida, el dispositivo se elimina, y también su elemento, salvo que se le haya añadido algo, por telemetría o a mano.
 
+### Recibir una alerta cuando un dispositivo deja de comunicarse
+
+En **Dispositivos gestionados**, haz clic en **Configurar alertas** en la fila de la conexión y crea **Esper Device Stopped Checking In**. Abre una alerta por cada dispositivo que lleva más de una hora sin contactar con Esper, con el nombre del dispositivo, y la resuelve en cuanto el dispositivo vuelve a contactar.
+
+Cada lectura de la conexión registra hace cuántos minutos contactó cada dispositivo por última vez, como la métrica `oneuptime.managed_device.check_in.age`, y el monitor comprueba la lectura más reciente de cada dispositivo cada 5 minutos. Un dispositivo que también ejecuta el Agente de Android queda a cargo de **Host Stopped Reporting**, así que nunca alerta dos veces, y un dispositivo eliminado de Esper resuelve su alerta. Una lectura que falla no registra nada, así que ninguna alerta se abre ni se resuelve hasta la siguiente. Para una flota que se apaga por la noche, sube el umbral del monitor.
+
 ## Añadir algo a mano
 
 Añade un elemento para algo que OneUptime nunca verá por sí mismo, de modo que una dependencia termine en algo real y esa cosa pueda llevar tus campos personalizados.

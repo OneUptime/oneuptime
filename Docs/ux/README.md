@@ -185,11 +185,16 @@ next, and how to change it last.
   ("3 pods failed") is a pill of its own (#9594, #9595). A count in a tile or a bar opens its
   parts without making the tile or the bar a control around another: a pill under the tile's
   figure (`GoldenMetricTile`'s `attention`), the bar's legend entry (`StackedProgressBar`'s
-  `onClick`). A list says it the same way: Ceph's ERR and WARN on its Clusters list and a bare
+  `onClick`), as a Ceph cluster's Degraded placement groups open the pools that hold them
+  (#9727). A list says it the same way: Ceph's ERR and WARN on its Clusters list and a bare
   metal class's "Failed: 3" open which ones and why, and App Platforms' "2 environments
   disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
   as systemd said it: its result, its exit code or the signal that killed it, since when and what
-  it printed last, from its journal (#9748). Enforced by
+  it printed last, from its journal (#9748). A count opens its parts only while the resource's
+  agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
+  what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
+  "fleet disconnected" where it counted its devices online, rather than calling every device
+  offline (#9730). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
 - **An error rate opens the requests that failed.** On a service's, a function's, a cloud
   environment's and app's, a RUM application's, a queue's and a database's Overview, the Error rate
@@ -345,8 +350,14 @@ work out, starts from a default for everything else, and folds what most people 
   [LabelsFormFieldGuard](../../packages/Common/Tests/UI/Components/Forms/LabelsFormFieldGuard.test.ts).
 - **Order is set by dragging,** not typed as numbers. A new item goes to the end. Enforced by
   [DragOrderedListsGuard](../../packages/App/Tests/Dashboard/DragOrderedListsGuard.test.ts).
-- **No control inside another control,** such as a button inside a link. Enforced by
-  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **No control inside another control,** such as a button inside a link. A list row that opens
+  a page and holds a control of its own - a region's health pill that opens why, an (i) - is
+  never one link around it: the row's name is its link, stretched over the row so a press
+  anywhere still opens the page, and the control sits beside the name, above the stretch
+  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). Enforced by
+  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts)
+  and
+  [ResourcePartRowControlsGuard](../../packages/App/Tests/Dashboard/ResourcePartRowControlsGuard.test.ts).
 - **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
   `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
   focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:

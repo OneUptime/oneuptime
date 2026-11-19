@@ -229,7 +229,7 @@ API 块和其他 HTTP 块从 OneUptime 发出请求，IRC 块从 OneUptime 连�
 
 每次运行都会记录它以什么身份、用谁的权限运行，并显示在运行窗口和下载的日志中。[审计日志](/docs/configuration/audit-logs) 会记录是谁更改了工作流的 **Run As**，并写明人或 API 密钥的名称；工作流的步骤所做的每项更改，也会写明该步骤以什么身份、用谁的权限运行。审计日志的 **工作流运行身份** 和 **工作流权限授予者** 筛选器可以找到这些更改。
 
-删除工作流以其身份运行的自定义角色会使这些工作流停止，因此删除时会列出它们，并询问它们今后以什么身份运行：**默认权限**，或你可以授予团队的另一个自定义角色。不能编辑工作流的人，在它们的 Run As 更改之前不能删除该角色。通过 API 删除这样的角色时，除非请求说明它们改以什么身份运行，否则会被拒绝：在 `miscDataProps` 中将 `workflowsRunAs` 设为 `Default`，或设为 `CustomRole` 并在 `workflowsRunAsCustomRoleId` 中给出角色的 id。在 Terraform 中，在 `oneuptime_custom_role` 上设置 `workflows_run_as_on_delete`，改为另一个角色时再设置 `workflows_run_as_custom_role_id_on_delete`，并在销毁该角色之前先应用。角色页面会在 **以此角色运行的工作流** 下列出以该角色身份运行的工作流。
+删除工作流以其身份运行的自定义角色会使这些工作流停止，因此删除时会列出它们，并询问它们今后以什么身份运行：**默认权限**，或你可以授予团队的另一个自定义角色。不能编辑工作流的人，在它们的 Run As 更改之前不能删除该角色。通过 API 删除这样的角色时，除非请求说明它们改以什么身份运行，否则会被拒绝：在 `miscDataProps` 中将 `workflowsRunAs` 设为 `Default`，或设为 `CustomRole` 并在 `workflowsRunAsCustomRoleId` 中给出角色的 id。在 Terraform 中，在 `oneuptime_custom_role` 上设置 `workflows_run_as_on_delete`，改为另一个角色时再设置 `workflows_run_as_custom_role_id_on_delete`，并在销毁该角色之前先应用。使用 CLI 时，在 `oneuptime custom-role delete` 后加上 `--workflows-run-as Default`，或加上 `--workflows-run-as CustomRole` 和 `--workflows-run-as-custom-role-id`。角色页面会在 **以此角色运行的工作流** 下列出以该角色身份运行的工作流。
 
 ## 套餐限制
 

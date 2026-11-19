@@ -137,14 +137,14 @@ Hebt u nog geen back-upcodes, dan toont OneUptime ze daarna één keer, en bent 
 
 ### Als uw organisatie uw aanmelding beheert
 
-Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist, tenzij een serverbeheerder het wist. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
+Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist, tenzij een serverbeheerder het wist, en dan krijgt u een e-mail. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
 
 Hetzelfde gebeurt als elk project waartoe u behoort single sign-on vereist en **Aanmelden beheren met SSO** heeft ingeschakeld. Uw wachtwoord meldt u nog steeds aan bij OneUptime, maar elk project vraagt om SSO, dus stelt OneUptime voor u geen nieuw wachtwoord, nieuwe passkey of nieuwe tweede stap in:
 
 - **Een project dat dat niet doet**: zodra u lid bent van, of uitgenodigd bent voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, komt uw sectie **Beveiliging** terug. Het **Overzicht** noemt die projecten dan onder **Single Sign-On**, als de reden dat uw instellingen van uzelf zijn. Verlaat u dat project, dan raakt u ze weer kwijt.
 - **Projecten met verschillende providers**: als al uw projecten het aanmelden beheren, elk met een eigen identiteitsprovider, noemt het **Overzicht** elke provider.
 - **Hoofdbeheerders** houden altijd hun eigen instellingen onder **Beveiliging**.
-- **Wat u eerder hebt ingesteld**, blijft bewaard, en een serverbeheerder kan het wissen.
+- **Wat u eerder hebt ingesteld**, blijft bewaard. Een serverbeheerder kan het wissen, en ook een eigenaar van alle projecten waartoe u behoort; u krijgt een e-mail als dat gebeurt.
 
 ## Uw projecten
 

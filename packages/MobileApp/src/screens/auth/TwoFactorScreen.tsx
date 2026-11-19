@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, View, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { spacing, useTheme } from "../../theme";
@@ -24,6 +24,7 @@ import {
   TwoFactorFollowUp,
 } from "../../auth/twoFactorFollowUp";
 import { wasBackupCodeOfferSkippedRecently } from "../../storage/backupCodeOffer";
+import { PasskeyProgress } from "../../passkeys/signIn";
 
 /*
  * THE SCREEN THIS APP DID NOT HAVE.
@@ -62,6 +63,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
     verifyBackupCode,
     cancelTwoFactor,
     completePendingLogin,
+    loginWithPasskey,
   } = useAuth();
   const navigation: TwoFactorNavigationProp =
     useNavigation<TwoFactorNavigationProp>();
@@ -70,6 +72,37 @@ export default function TwoFactorScreen(): React.JSX.Element {
     pendingTwoFactor?.totpAuthList || [];
   const webAuthnList: Array<TwoFactorMethod> =
     pendingTwoFactor?.webAuthnList || [];
+
+  /*
+   * A passkey among them (#9817) is one this app CAN use: not as a code
+   * after the password, but as the sign-in it is on its own, in the phone's
+   * browser (Sign in with a passkey). Only a security key stays out of
+   * reach, and says so.
+   */
+  const passkeyList: Array<TwoFactorMethod> = webAuthnList.filter(
+    (method: TwoFactorMethod): boolean => {
+      return method.isPasskey === true;
+    },
+  );
+  const securityKeyList: Array<TwoFactorMethod> = webAuthnList.filter(
+    (method: TwoFactorMethod): boolean => {
+      return method.isPasskey !== true;
+    },
+  );
+
+  const [passkeyProgress, setPasskeyProgress] =
+    useState<PasskeyProgress | null>(null);
+  const [passkeyNotice, setPasskeyNotice] = useState<string | null>(null);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const passkeyAttempt: React.MutableRefObject<AbortController | null> =
+    useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return (): void => {
+      passkeyAttempt.current?.abort();
+      passkeyAttempt.current = null;
+    };
+  }, []);
 
   /*
    * No auto-selection, even for the one-method account where skipping the
@@ -208,8 +241,68 @@ export default function TwoFactorScreen(): React.JSX.Element {
   };
 
   const signInAsSomebodyElse: () => void = (): void => {
+    passkeyAttempt.current?.abort();
+    passkeyAttempt.current = null;
     cancelTwoFactor();
     navigation.navigate("Login");
+  };
+
+  /*
+   * Signs in with a passkey listed above, in the phone's browser, as the
+   * sign-in screen's Sign in with a passkey does. The password's challenge
+   * stays until the passkey has signed the person in, so a canceled passkey
+   * leaves them right here, with every other way still open.
+   */
+  const signInWithPasskey: () => Promise<void> = async (): Promise<void> => {
+    if (passkeyAttempt.current || isLoading) {
+      return;
+    }
+
+    const attempt: AbortController = new AbortController();
+    passkeyAttempt.current = attempt;
+    setPasskeyError(null);
+    setPasskeyNotice(null);
+    setError(null);
+    setPasskeyProgress("preparing");
+
+    try {
+      const response: LoginResponse | null = await loginWithPasskey({
+        signal: attempt.signal,
+        keepsPendingSignIn: true,
+        onProgress: (progress: PasskeyProgress): void => {
+          if (passkeyAttempt.current === attempt && !attempt.signal.aborted) {
+            setPasskeyProgress(progress);
+          }
+        },
+      });
+
+      if (passkeyAttempt.current === attempt && !response) {
+        setPasskeyNotice(
+          "Passkey sign-in canceled. You can try again or use another way.",
+        );
+      }
+    } catch (err: unknown) {
+      if (passkeyAttempt.current === attempt && !attempt.signal.aborted) {
+        setPasskeyError(getFriendlyErrorMessage(err));
+      }
+    } finally {
+      if (passkeyAttempt.current === attempt) {
+        passkeyAttempt.current = null;
+        setPasskeyProgress(null);
+      }
+    }
+  };
+
+  const cancelPasskey: () => void = (): void => {
+    if (passkeyProgress === "verifying") {
+      return;
+    }
+    passkeyAttempt.current?.abort();
+    passkeyAttempt.current = null;
+    setPasskeyProgress(null);
+    setPasskeyNotice(
+      "Passkey sign-in canceled. You can try again or use another way.",
+    );
   };
 
   /*
@@ -228,7 +321,9 @@ export default function TwoFactorScreen(): React.JSX.Element {
    */
   const lostAccessLabel: string =
     totpAuthList.length === 0 && webAuthnList.length > 0
-      ? "Lost access to your security key?"
+      ? securityKeyList.length === 0
+        ? "Lost access to your passkey?"
+        : "Lost access to your security key?"
       : "Lost access to your authenticator?";
 
   const renderLostAccessLink: () => React.JSX.Element | null =
@@ -297,7 +392,52 @@ export default function TwoFactorScreen(): React.JSX.Element {
               );
             })}
 
-            {webAuthnList.map((method: TwoFactorMethod) => {
+            {passkeyList.map((method: TwoFactorMethod) => {
+              return (
+                <Pressable
+                  key={method._id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${method.name}`}
+                  accessibilityHint="Sign in with this passkey in your browser."
+                  accessibilityState={{
+                    disabled: passkeyProgress !== null || isLoading,
+                  }}
+                  disabled={passkeyProgress !== null || isLoading}
+                  testID={`passkey-method-${method._id}`}
+                  onPress={() => {
+                    void signInWithPasskey();
+                  }}
+                  style={({ pressed }: { pressed: boolean }): ViewStyle => {
+                    return {
+                      minHeight: 68,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                      backgroundColor: pressed
+                        ? theme.colors.backgroundTertiary
+                        : "transparent",
+                    };
+                  }}
+                >
+                  <IconBadge name="finger-print-outline" />
+                  <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+                    <AppText variant="headline">{method.name}</AppText>
+                    <AppText variant="footnote" tone="secondary">
+                      Passkey: signs you in on its own, in your browser
+                    </AppText>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={theme.colors.textTertiary}
+                  />
+                </Pressable>
+              );
+            })}
+
+            {securityKeyList.map((method: TwoFactorMethod) => {
               return (
                 <View
                   key={method._id}
@@ -331,7 +471,54 @@ export default function TwoFactorScreen(): React.JSX.Element {
           </ListGroup>
         ) : null}
 
-        {totpAuthList.length === 0 && webAuthnList.length > 0 ? (
+        {passkeyProgress === "browser" ? (
+          <AuthNotice
+            testID="passkey-sign-in-in-browser"
+            tone="info"
+            live
+            icon="finger-print-outline"
+            message="Choose your passkey in the browser, then return to OneUptime."
+          />
+        ) : null}
+        {passkeyProgress !== null ? (
+          <AuthNotice
+            testID="passkey-sign-in-progress"
+            tone="info"
+            live
+            message={
+              passkeyProgress === "verifying"
+                ? "Passkey confirmed. Completing your sign-in…"
+                : "Preparing a secure sign-in…"
+            }
+          />
+        ) : null}
+        {passkeyProgress !== null && passkeyProgress !== "verifying" ? (
+          <AuthLink
+            label="Cancel"
+            accessibilityLabel="Cancel passkey sign-in"
+            testID="cancel-passkey-sign-in"
+            onPress={cancelPasskey}
+          />
+        ) : null}
+        {passkeyError ? (
+          <AuthNotice
+            testID="passkey-sign-in-error"
+            tone="danger"
+            message={passkeyError}
+          />
+        ) : null}
+        {passkeyNotice ? (
+          <AuthNotice
+            testID="passkey-sign-in-notice"
+            tone="neutral"
+            live
+            message={passkeyNotice}
+          />
+        ) : null}
+
+        {totpAuthList.length === 0 &&
+        passkeyList.length === 0 &&
+        securityKeyList.length > 0 ? (
           <AuthNotice
             testID="security-key-only-notice"
             tone="warning"

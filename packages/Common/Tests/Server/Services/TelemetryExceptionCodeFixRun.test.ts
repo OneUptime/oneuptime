@@ -16,7 +16,10 @@ import CodeRepositoryRunnerChoice from "../../../Server/Utils/AI/CodeFix/CodeRep
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
-import FindOneBy from "../../../Server/Types/Database/FindOneBy";
+import CodeFixOnItsWay, {
+  CodeFixProblem,
+  CodeFixProblemKind,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import TelemetryService from "../../../Models/DatabaseModels/Service";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
@@ -125,10 +128,18 @@ function mockReadinessOk(): void {
   });
 
   /*
-   * Cross-group duplicate guard collaborators: no non-terminal runs and no
-   * open AI pull requests unless a test overrides these. findBy on the
-   * exception service itself is only reached when candidates exist.
+   * No fix of the exception on its way (CodeFixOnItsWay, which has its own
+   * suites) unless a test says so.
    */
+  jest.spyOn(CodeFixOnItsWay, "findTurn").mockResolvedValue(null);
+
+  /*
+   * Cross-group duplicate guard collaborators: no exception with a fix on
+   * its way and no open AI pull requests unless a test overrides these.
+   * findBy on the exception service itself is only reached when candidates
+   * exist.
+   */
+  jest.spyOn(CodeFixOnItsWay, "findExceptionIds").mockResolvedValue([]);
   jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
   jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 }
@@ -273,11 +284,11 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  test("duplicate guard: an active (non-terminal) run for the exception blocks creation", async () => {
+  test("duplicate guard: a task of the exception on its way blocks creation, saying what it is and where to follow it", async () => {
     mockReadinessOk();
 
     const findActiveRun: jest.SpyInstance = jest
-      .spyOn(AIRunService, "findOneBy")
+      .spyOn(CodeFixOnItsWay, "findTurn")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
@@ -286,37 +297,36 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
         telemetryExceptionId: exceptionId,
         props: { isRoot: true },
       }),
-    ).rejects.toThrow(/already in progress/);
+    ).rejects.toThrow(
+      "OneUptime AI is already fixing this exception. Follow it in Code.",
+    );
 
     expect(create).not.toHaveBeenCalled();
-    // The guard queries by run type + triggering exception, not a link table.
-    expect(findActiveRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          runType: AIRunType.CodeFix,
-          triggeredByTelemetryExceptionId: exceptionId,
-        }),
-      }),
-    );
+    /*
+     * The guard asks the one rule (CodeFixOnItsWay) of the exception and the
+     * recipe - a reply working in Code on its task included - in the
+     * exception's project.
+     */
+    expect(findActiveRun).toHaveBeenCalledWith({
+      projectId,
+      kind: CodeFixProblemKind.Exception,
+      recordId: exceptionId.toString(),
+      taskTypes: [CodeFixTaskType.FixException],
+    });
   });
 
   test("duplicate guard is per task type: an active FixException run blocks another FixException but not a WriteRegressionTest", async () => {
     mockReadinessOk();
 
     /*
-     * The guard queries codeFixTaskType per recipe: WriteRegressionTest as
-     * the plain enum value, FixException as a null-inclusive operator
-     * (legacy rows predate the column). Simulate a live FixException run
-     * and nothing else.
+     * The guard asks per recipe (a null recipe is FixException, which the
+     * rule matches). Simulate a live FixException task and nothing else.
      */
     jest
-      .spyOn(AIRunService, "findOneBy")
+      .spyOn(CodeFixOnItsWay, "findTurn")
       .mockImplementation(
-        async (findOneBy: FindOneBy<AIRun>): Promise<AIRun | null> => {
-          if (
-            findOneBy.query.codeFixTaskType ===
-            CodeFixTaskType.WriteRegressionTest
-          ) {
+        async (problem: CodeFixProblem): Promise<AIRun | null> => {
+          if (problem.taskTypes.includes(CodeFixTaskType.WriteRegressionTest)) {
             return null;
           }
 
@@ -335,7 +345,7 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
         props: { isRoot: true },
         taskType: CodeFixTaskType.FixException,
       }),
-    ).rejects.toThrow(/already in progress/);
+    ).rejects.toThrow(/already fixing this exception/);
     expect(create).not.toHaveBeenCalled();
 
     // ...but a different recipe for the same exception is not.
@@ -675,14 +685,12 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
 
     /*
      * ...but another exception group — same root cause, different
-     * interpolated value — has a non-terminal FixException run.
+     * interpolated value — has a FixException task on its way.
      */
     const similarExceptionId: ObjectID = ObjectID.generate();
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
-      {
-        triggeredByTelemetryExceptionId: similarExceptionId,
-      } as unknown as AIRun,
-    ]);
+    const exceptionsOnTheirWay: jest.SpyInstance = jest
+      .spyOn(CodeFixOnItsWay, "findExceptionIds")
+      .mockResolvedValue([similarExceptionId]);
     jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([
       {
         _id: similarExceptionId.toString(),
@@ -702,6 +710,13 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
     ).rejects.toThrow(/similar exception/);
 
     expect(create).not.toHaveBeenCalled();
+    // Of the same recipe, in the project, read by the one rule.
+    expect(exceptionsOnTheirWay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId,
+        taskTypes: [CodeFixTaskType.FixException],
+      }),
+    );
   });
 
   test("cross-group duplicate guard: a DIFFERENT normalized message does not block", async () => {
@@ -710,11 +725,9 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
 
     const otherExceptionId: ObjectID = ObjectID.generate();
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
-      {
-        triggeredByTelemetryExceptionId: otherExceptionId,
-      } as unknown as AIRun,
-    ]);
+    jest
+      .spyOn(CodeFixOnItsWay, "findExceptionIds")
+      .mockResolvedValue([otherExceptionId]);
     jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([
       {
         _id: otherExceptionId.toString(),

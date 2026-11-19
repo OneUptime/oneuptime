@@ -7,38 +7,54 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Text from "../../Types/Text";
 import Model from "../../Models/DatabaseModels/Domain";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+
+/*
+ * What a create or a rename is told when its domain holds no name: a
+ * number, a list, an object of another kind. A name that is not a domain
+ * is told so by Domain itself ("Domain x is not in valid format.").
+ */
+export const DOMAIN_NAME_REFUSAL_MESSAGE: string =
+  'Domain must be a domain name such as example.com, sent as text or as {"_type": "Domain", "value": "example.com"}.';
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
 
-  // A domain's name as it is saved and compared: trimmed and lower-cased.
+  /*
+   * A domain's name as it is saved and compared: trimmed and lower-cased,
+   * read from the value however it arrives (Domain.getNameFrom). Empty for
+   * no value, and for a value that holds no name.
+   */
   public static normalizeName(value: unknown): string {
-    if (value === undefined || value === null) {
-      return "";
+    return (Domain.getNameFrom(value) || "").trim().toLowerCase();
+  }
+
+  /*
+   * The domain a create or a rename stores, under its normalized name.
+   * Text, a Domain of either class and the JSON of one all hold the same
+   * name: the Dashboard and the API reference send the JSON, which the
+   * server reads back as the shared class, never as its own subclass, so
+   * asking which class a value is refused every domain Add Custom Domain
+   * added (#9997). A value that holds no name is refused, in words that say
+   * what to send - never stored as its text ("[object Object]").
+   */
+  public static toStoredDomain(value: unknown): Domain {
+    const name: string = Service.normalizeName(value);
+
+    if (!name) {
+      throw new BadDataException(DOMAIN_NAME_REFUSAL_MESSAGE);
     }
 
-    return String(value).trim().toLowerCase();
+    return new Domain(name);
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (createBy.data.domain) {
-      let domain: string | undefined = undefined;
-
-      if (createBy.data.domain instanceof Domain) {
-        domain = createBy.data.domain.toString();
-      } else if (typeof createBy.data.domain === "string") {
-        domain = createBy.data.domain;
-      } else {
-        throw new BadDataException(
-          "Domain must be a string or an instance of Domain.",
-        );
-      }
-
-      createBy.data.domain = new Domain(domain.trim().toLowerCase());
+    if (createBy.data.domain !== undefined && createBy.data.domain !== null) {
+      createBy.data.domain = Service.toStoredDomain(createBy.data.domain);
     }
 
     /*
@@ -75,11 +91,9 @@ export class Service extends DatabaseService<Model> {
      * same name back changes nothing.
      */
     if (updateBy.data.domain !== undefined && !updateBy.props.isRoot) {
-      const name: string = Service.normalizeName(updateBy.data.domain);
+      updateBy.data.domain = Service.toStoredDomain(updateBy.data.domain);
 
-      if (name) {
-        updateBy.data.domain = new Domain(name);
-      }
+      const name: string = Service.normalizeName(updateBy.data.domain);
 
       const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
         updateBy,

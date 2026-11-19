@@ -342,9 +342,21 @@ Die Regel wird jedes Mal geprüft, daher gilt:
 - **Jemand in einem Projekt, das die Anmeldung nicht verwaltet**: Sobald die Person Mitglied eines Projekts ist oder zu einem Projekt eingeladen wird, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, erhält sie ihre Einstellungen zurück, und ihr **Benutzerprofil** nennt dieses Projekt als Grund. Verlässt sie es, wird ihre Anmeldung wieder verwaltet. Ein Konto kann zu vielen Organisationen gehören, daher entscheidet eine Organisation nie über die Projekte einer anderen.
 - **Projekte mit unterschiedlichen Anbietern**: Wer in zwei Projekten ist, die beide die Anmeldung verwalten, jedes mit seinem eigenen Identitätsanbieter, wird verwaltet, und sein Profil nennt beide Anbieter.
 - **Master-Admins** behalten immer ihre eigenen Einstellungen.
-- **Was Personen vorher eingerichtet haben**, bleibt gespeichert und wird von Ihrem Projekt nicht genutzt. Ein Server-Admin kann es auf der Seite **Authentifizierung** der Person im Admin Dashboard mit **Anmeldeeinstellungen löschen** löschen.
+- **Was Personen vorher eingerichtet haben**, bleibt gespeichert und wird von Ihrem Projekt nicht genutzt, bis es gelöscht wird: von den Projektinhabern Ihres Projekts (siehe unten) oder von einem Server-Admin auf der Seite **Authentifizierung** der Person im Admin Dashboard mit **Anmeldeeinstellungen löschen**.
 
 **Anmeldung mit SSO verwalten** speichert, sobald Sie den Schalter umlegen, löscht nichts, und das Ausschalten gibt allen ihre Einstellungen sofort zurück. Wer **SSO für die Anmeldung erzwingen** ändern kann, kann auch diesen Schalter ändern, in denselben Plänen. Ist **SSO für die Anmeldung erzwingen** ausgeschaltet, ist er ausgeblendet und ändert nichts.
+
+### Löschen, was Ihre Mitglieder vorher gespeichert haben
+
+Solange **Anmeldung mit SSO verwalten** eingeschaltet ist, sehen die Projektinhaber Ihres Projekts darunter, wie viele seiner Mitglieder noch ein Passwort oder eine Zwei-Faktor-Authentifizierung in OneUptime gespeichert haben. **Anmeldeeinstellungen löschen** löscht nach einer Rückfrage ihre Passwörter samt allen Links zum Zurücksetzen oder Anmelden, ihre Passkeys, Sicherheitsschlüssel, Authenticator-Apps und Backup-Codes, schaltet die Zwei-Faktor-Authentifizierung aus und beendet die Sitzungen, in denen sie sich ohne SSO angemeldet haben. Das lässt sich nicht rückgängig machen.
+
+Ein Konto kann zu vielen Organisationen gehören, daher können Sie nur die Einstellungen der Personen löschen, für die Ihre Organisation zuständig ist. Ihre Organisation sind die Projekte, die Ihnen gehören: Die Einstellungen einer Person werden nur gelöscht, wenn jedes Projekt, zu dem sie gehört, einschließlich jedes Projekts, zu dem sie eingeladen ist, eines ist, dessen **Projektinhaber** Sie sind, und **Anmeldung mit SSO verwalten** eingeschaltet hat. Alle anderen behalten ihre Einstellungen:
+
+- wer Mitglied eines Projekts ist oder zu einem Projekt eingeladen ist, das Ihnen nicht gehört oder das die Anmeldung nicht mit SSO verwaltet;
+- wer zu Ihrem Projekt nur eingeladen ist und ihm noch nicht beigetreten ist;
+- Master-Admins und Sie selbst: Ihre eigenen ändern Sie in Ihrem **Benutzerprofil**.
+
+Jede Person, deren Einstellungen gelöscht wurden, erhält eine E-Mail darüber, was entfernt wurde und dass sie sich jetzt mit SSO anmeldet, und die Audit-Protokolle Ihrer Projekte verzeichnen das Löschen unter Ihrem Namen. Löschen kann nur ein **Projektinhaber**, der im Dashboard angemeldet ist, nie mit einem API-Schlüssel.
 
 ## Einen Anbieter ausschalten oder löschen
 

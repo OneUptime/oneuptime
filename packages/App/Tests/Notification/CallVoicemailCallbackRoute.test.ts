@@ -37,7 +37,8 @@ import type { Mock } from "jest-mock";
  *     of the account the call went out on - the project's own Twilio config
  *     or the OneUptime server's. Signatures here are Twilio's own algorithm
  *     (getExpectedTwilioSignature) over the public URL Twilio was given,
- *     checked by the real TwilioCallProvider behind the ingress's rewrite;
+ *     checked by the real TwilioWebhookSignature behind the ingress's
+ *     rewrite, and a refusal is logged with why, nothing secret in it;
  *   - a person, or Twilio could not tell: nothing is written;
  *   - a voicemail at the end of its greeting: the live call is turned to the
  *     message kept for it, through the same account, and it ends - "a
@@ -51,7 +52,8 @@ import type { Mock } from "jest-mock";
  *   - in either order with the call's status callback, whose real route is
  *     driven here too.
  *
- * The database, the metrics SDK and Twilio's REST client are stood in for.
+ * The database - the server's own Twilio settings among it - the metrics
+ * SDK and Twilio's REST client are stood in for.
  */
 
 interface RecordedCall {
@@ -177,15 +179,11 @@ jest.mock("../../FeatureSet/Notification/Services/CallService", () => {
   };
 });
 
-jest.mock("../../FeatureSet/Notification/Config", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../FeatureSet/Notification/Config",
-  ) as Record<string, unknown>;
-
+// The server's own Twilio account, as its settings hold it (TwilioWebhookSignature).
+jest.mock("Common/Server/Services/GlobalConfigService", () => {
   return {
     __esModule: true,
-    ...actual,
-    getTwilioConfig: jest.fn(),
+    default: { findOneBy: jest.fn() },
   };
 });
 
@@ -214,9 +212,10 @@ jest.mock("twilio", () => {
 });
 
 import CallLogService from "Common/Server/Services/CallLogService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
-import { getTwilioConfig } from "../../FeatureSet/Notification/Config";
+import { serverTwilioRow } from "Common/Tests/Server/TestingUtils/TwilioSignedRequests";
 import Twilio, { getExpectedTwilioSignature } from "twilio";
 import "../../FeatureSet/Notification/API/Call";
 
@@ -316,6 +315,12 @@ const findCallLog: jest.Mock = CallLogService.findOneById as jest.Mock;
 const writeCallLog: jest.Mock =
   CallLogService.compareAndSetColumnsByIdWithoutHooks as jest.Mock;
 const findConfigs: jest.Mock = ProjectCallSMSConfigService.findBy as jest.Mock;
+const findGlobalConfig: jest.Mock = GlobalConfigService.findOneBy as jest.Mock;
+const warn: jest.Mock = (
+  jest.requireMock("Common/Server/Utils/Logger") as {
+    default: { warn: jest.Mock };
+  }
+).default.warn;
 const toTwilioConfig: jest.Mock =
   ProjectCallSMSConfigService.toTwilioConfig as jest.Mock;
 const sendEmptySuccess: jest.Mock =
@@ -575,9 +580,7 @@ beforeEach(() => {
   });
   timeline.standIn(UserOnCallLogTimelineService);
 
-  (getTwilioConfig as unknown as jest.Mock).mockResolvedValue(
-    SERVER_ACCOUNT as never,
-  );
+  findGlobalConfig.mockResolvedValue(serverTwilioRow(SERVER_ACCOUNT) as never);
 
   projectConfigs = [];
   findConfigs.mockImplementation((() => {
@@ -691,7 +694,8 @@ describe("the call's token and Twilio's signature lock it", () => {
 
     expectRefused(answer);
     expectNothingWritten();
-    expect(getTwilioConfig).not.toHaveBeenCalled();
+    expect(findConfigs).not.toHaveBeenCalled();
+    expect(findGlobalConfig).not.toHaveBeenCalled();
   });
 
   test("the right token without Twilio's signature is refused", async () => {
@@ -767,6 +771,34 @@ describe("the call's token and Twilio's signature lock it", () => {
     expectNothingWritten();
   });
 
+  test("a refusal is logged with why - the account and the URL it was checked at - and never the token, the auth token or the whole account SID", async () => {
+    const answer: Answer = await call(
+      VOICEMAIL_ROUTE,
+      twilioRequest({
+        route: "amd-callback",
+        signedWith: "an-auth-token-nobody-here-holds",
+        body: {
+          AccountSid: SERVER_ACCOUNT.accountSid,
+          CallSid: CALL_SID,
+          AnsweredBy: "machine_end_beep",
+        },
+      }),
+    );
+
+    expectRefused(answer);
+
+    const logged: string = JSON.stringify(warn.mock.calls);
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `Twilio callback refused: the call answering machine callback for log ${CALL_LOG_ID.toString()}. Its X-Twilio-Signature does not match the one Twilio account AC…1111 makes for https://oneuptime.example.com/notification/call/amd-callback/${CALL_LOG_ID.toString()}/…`,
+      ),
+    );
+    expect(logged).not.toContain(TOKEN);
+    expect(logged).not.toContain(SERVER_ACCOUNT.authToken);
+    expect(logged).not.toContain(SERVER_ACCOUNT.accountSid);
+  });
+
   test("a project's config is looked for among the call's own project's only", async () => {
     await answeredBy("machine_end_beep");
 
@@ -806,7 +838,7 @@ describe("the call's token and Twilio's signature lock it", () => {
 
   test("a server whose own settings cannot be read still takes a callback on the project's own config", async () => {
     addProjectConfig(PROJECT_ACCOUNT);
-    (getTwilioConfig as unknown as jest.Mock).mockRejectedValue(
+    findGlobalConfig.mockRejectedValue(
       new Error("Global Config not found") as never,
     );
 

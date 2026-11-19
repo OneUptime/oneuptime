@@ -156,6 +156,9 @@ beforeAll(async () => {
       PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.MessageQueue]:
       PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS,
+    // Opened from the connection's row on Inventory > Managed Devices (#9835).
+    [MonitorRecommendationResourceType.DeviceManagementConnection]:
+      PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS,
   };
 
   recommendationTabPageKey = {

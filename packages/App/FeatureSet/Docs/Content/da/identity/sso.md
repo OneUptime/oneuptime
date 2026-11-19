@@ -342,9 +342,21 @@ Reglen kontrolleres hver gang, så:
 - **En person i et projekt, der ikke styrer login**: Så snart vedkommende er medlem af eller inviteret til et projekt, der ikke kræver SSO eller ikke har **Styr login med SSO** slået til, får vedkommende sine indstillinger tilbage, og vedkommendes **Brugerprofil** nævner det projekt som grunden. Forlader vedkommende det, styres login igen. En konto kan høre til mange organisationer, så én organisation bestemmer aldrig over en andens projekter.
 - **Projekter med forskellige udbydere**: En person i to projekter, der begge styrer login, hver med sin egen identitetsudbyder, styres, og profilen nævner begge udbydere.
 - **Master-admins** beholder altid deres egne indstillinger.
-- **Det, folk har opsat før**, bevares, ubrugt af dit projekt. En serveradministrator kan rydde det på personens side **Godkendelse** i Admin Dashboard med **Ryd loginindstillinger**.
+- **Det, folk har opsat før**, bevares, ubrugt af dit projekt, indtil det ryddes: af Projektejere i dit projekt (se nedenfor) eller af en serveradministrator på personens side **Godkendelse** i Admin Dashboard med **Ryd loginindstillinger**.
 
 **Styr login med SSO** gemmes, så snart du slår kontakten om, sletter intet, og slår du den fra, får alle straks deres indstillinger tilbage. Den, der kan ændre **Kræv SSO for at logge ind**, kan ændre den, på de samme planer. Når **Kræv SSO for at logge ind** er slået fra, er den skjult og ændrer intet.
+
+### Ryd det, dine brugere har gemt før
+
+Mens **Styr login med SSO** er slået til, ser Projektejere i dit projekt under den, hvor mange af dets brugere der stadig har en adgangskode eller tofaktorgodkendelse gemt i OneUptime. **Ryd loginindstillinger** sletter, efter at have spurgt, deres adgangskoder med eventuelle links til nulstilling eller login, adgangsnøgler, sikkerhedsnøgler, godkendelsesapps og backupkoder, slår tofaktorgodkendelse fra og afslutter de sessioner, de loggede ind i uden SSO. Det kan ikke fortrydes.
+
+En konto kan høre til mange organisationer, så du kan kun rydde indstillingerne for de personer, din organisation er ansvarlig for. Din organisation er de projekter, du ejer: En persons indstillinger ryddes kun, når alle de projekter, vedkommende hører til, inklusive ethvert projekt, vedkommende er inviteret til, er projekter, du er **Projektejer** af, og har **Styr login med SSO** slået til. Alle andre beholder deres indstillinger:
+
+- en person, der er medlem af eller inviteret til et projekt, du ikke ejer, eller et projekt, der ikke styrer login med SSO;
+- en person, der kun er inviteret til dit projekt og endnu ikke er blevet medlem;
+- master-admins og dig selv: Skift dine egne i din **Brugerprofil**.
+
+Hver person, hvis indstillinger ryddes, får en e-mail om, hvad der blev fjernet, og at vedkommende nu logger ind med SSO, og dine projekters auditlogs registrerer rydningen som din. Kun en **Projektejer** kan rydde, logget ind i dashboardet: aldrig med en API-nøgle.
 
 ## Slå en udbyder fra eller slet den
 

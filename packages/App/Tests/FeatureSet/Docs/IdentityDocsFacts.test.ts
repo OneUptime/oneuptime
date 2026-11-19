@@ -1372,8 +1372,11 @@ describe("the Global SSO guide", () => {
       "if (isMasterAdmin && !data.isMasterAdminConfirmed) {",
     );
 
+    // Each person cleared is emailed (#9818), in the background.
+    expect(clearing).toContain("void SignInSettingsClearedEmail.notify(");
+
     expect(page).toContain(
-      "- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, and each person's projects record it in their audit logs.",
+      "- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, each person's projects record it in their audit logs, and each person is emailed what was removed and how they sign in now.",
     );
     expect(page).toContain(
       "- On a person's **Authentication** page in **Users**, **Clear Sign-In Settings** does the same for that one person, and **Set Password** and **Send Password Reset Link** say that a password will not sign them in. You cannot clear your own there, and clearing another master admin's asks you to confirm they are one.",
@@ -1427,6 +1430,62 @@ describe("the Global SSO guide", () => {
     // No sign-in changes: the projects' rule refuses settings, not sign-ins.
     expect(page).toContain(
       "Nothing about signing in changes: their password still signs them in to OneUptime, and your project asks for SSO as before.",
+    );
+  });
+
+  it("states who a project's owners may clear, what counts as their organization, and who never is cleared, as the server decides it (#9820)", () => {
+    const page: string = english(SSO);
+    const repo: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(REPO_DIR, relative), "utf8");
+    };
+    const rule: string = repo(
+      "packages/Common/Server/Utils/ProjectSignInClearing.ts",
+    );
+    const routes: string = repo("packages/Common/Server/API/ProjectAPI.ts");
+    const cardCopy: string = repo(
+      `${DASHBOARD}/Components/Project/ProjectSavedSignInSettingsCopy.ts`,
+    );
+
+    expect(page).toContain("### Clearing what your people saved before");
+
+    // The card's button, by its words, as the Admin Dashboard's is named.
+    expect(cardCopy).toContain(
+      'clearButton: translationKey("Clear Sign-In Settings")',
+    );
+    expect(page).toContain(
+      "While **Manage Sign-In with SSO** is on, the Project Owners see under it how many of the project's people still have a password or two-factor authentication saved in OneUptime. **Clear Sign-In Settings** deletes",
+    );
+
+    // The organization is the projects the owner owns: every project of the person.
+    expect(rule).toContain("[Permission.ProjectOwner]");
+    expect(rule).toContain(
+      "person.projectIds.every((projectId: ObjectID): boolean => {",
+    );
+    expect(rule).toContain("return managing.has(key) && owned.has(key);");
+    expect(page).toContain(
+      "Your organization is the projects you own: someone is cleared only when every project they belong to, including any project they are invited to, is one you are a **Project Owner** of and has **Manage Sign-In with SSO** on.",
+    );
+
+    // Members of this project only: an invitation has not joined.
+    expect(rule).toContain("hasAcceptedInvitation: true,");
+    expect(page).toContain(
+      "- someone only invited to your project, who has not joined it yet;",
+    );
+
+    // Never a master admin, never the owner.
+    expect(rule).toContain("isMasterAdminIncluded: false,");
+    expect(page).toContain(
+      "- master admins, and you: change your own in your **User Profile**.",
+    );
+
+    // Emailed, audit-logged as the owner's, session-only and owners only.
+    expect(rule).toContain("void SignInSettingsClearedEmail.notify(");
+    expect(rule).toContain("clearedByUserId: data.ownerUserId,");
+    expect(routes).toContain(
+      "CommonAPI.assertAuthenticatedProjectMember(props)",
+    );
+    expect(page).toContain(
+      "Each person cleared is emailed what was removed and that they sign in with SSO now, and your projects' audit logs record the clear as yours. Only a **Project Owner** can clear, signed in to the Dashboard: never with an API key.",
     );
   });
 

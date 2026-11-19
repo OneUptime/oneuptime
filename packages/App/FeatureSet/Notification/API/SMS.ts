@@ -2,6 +2,12 @@ import { getProviderDeliveryStatusMessage } from "Common/Types/OnCallDutyPolicy/
 import SmsService from "../Services/SmsService";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
+import {
+  findTwilioAccountThatSigned,
+  getTwilioCallbackRefusedMessage,
+  TwilioSignatureCheck,
+} from "Common/Server/Utils/TwilioWebhookSignature";
+import { WebhookRequest } from "Common/Types/Call/CallProvider";
 import { recordProviderReport } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import Select from "Common/Server/Types/Database/Select";
 import NotificationDeliveryMetrics, {
@@ -94,9 +100,14 @@ router.post(
   },
 );
 
-// What the delivery-status callback reads of an SMS log.
+/*
+ * What the delivery-status callback reads of an SMS log: its project too,
+ * whose Twilio configs - with the server's own account - are the accounts
+ * that may have signed the callback.
+ */
 export const SMS_LOG_STATUS_CALLBACK_SELECT: Select<SmsLog> = {
   _id: true,
+  projectId: true,
   status: true,
   statusCallbackToken: true,
   userOnCallLogTimelineId: true,
@@ -134,8 +145,14 @@ export function isStaleSmsStatus(data: {
 /*
  * Twilio delivery-status callback. Configured as the `statusCallback` URL on each
  * outbound message in SmsService. This is a public webhook (Twilio is unauthenticated),
- * so it is secured by an unguessable per-message token embedded in the URL — never by
- * user/cluster auth. It only advances the delivery status of the single referenced SMS log.
+ * so it is held to two locks - never to user/cluster auth: the unguessable per-message
+ * token embedded in the URL, which says which SMS it is about, and Twilio's signature
+ * (X-Twilio-Signature), made with the auth token of the account the SMS went out on -
+ * the project's own Twilio config, or the OneUptime server's (TwilioWebhookSignature).
+ * The token travels in a URL - Twilio's request logs, a proxy's access log, a
+ * screenshot of the Twilio console - so alone it no longer writes a delivery report: a
+ * request that fails either lock is refused (403), leaves the log as it was, and is
+ * logged with why. It only advances the delivery status of the single referenced SMS log.
  *
  * A failure to read or write - the database's - is answered with a 5xx (next(err)),
  * which the URL asks Twilio to send again on (StatusCallbackRetry): every write here
@@ -173,13 +190,31 @@ router.post(
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      // Authenticate the callback against the per-message token.
+      // The per-message token in the URL: which SMS it is about.
       if (
         !smsLog.statusCallbackToken ||
         !isStatusCallbackTokenValid(token, smsLog.statusCallbackToken)
       ) {
         logger.warn(
           `SMS status callback with invalid token for log: ${smsLogId}`,
+        );
+        res.status(403).send("Forbidden");
+        return;
+      }
+
+      // Twilio's signature, by the account the SMS went out on.
+      const signed: TwilioSignatureCheck = await findTwilioAccountThatSigned({
+        request: req as unknown as WebhookRequest,
+        projectId: smsLog.projectId,
+        urlSecrets: [token],
+      });
+
+      if (!signed.account) {
+        logger.warn(
+          getTwilioCallbackRefusedMessage({
+            callback: `the SMS status callback for log ${smsLogId}`,
+            reason: signed.refusalReason,
+          }),
         );
         res.status(403).send("Forbidden");
         return;
