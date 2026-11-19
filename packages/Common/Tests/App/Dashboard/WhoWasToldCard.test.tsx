@@ -77,6 +77,12 @@ import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/St
 import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import ProjectUtil from "../../../UI/Utils/Project";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import EmailLog from "../../../Models/DatabaseModels/EmailLog";
+import SmsLog from "../../../Models/DatabaseModels/SmsLog";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import Email from "../../../Types/Email";
+import Phone from "../../../Types/Phone";
 import {
   createTranslator,
   getGlobalTranslator,
@@ -651,6 +657,102 @@ describe("WhoWasToldCard", () => {
     expect(subscribers).toHaveTextContent("Notified");
     expect(subscribers).toHaveTextContent("notifications sent");
     expect(subscribers).toHaveTextContent("3 failed");
+  });
+
+  /*
+   * A partial failure was a bare count (#9597): "3 failed" now opens those
+   * sends - to whom, from which status page, the provider's own words for
+   * why, when - each a step from the incident's Notification Logs.
+   */
+  test("'3 failed' opens the sends to subscribers that failed, and why", async () => {
+    get.mockResolvedValue(
+      answer({
+        subscribers: {
+          status: StatusPageSubscriberNotificationStatus.Success,
+          sentCount: 1204,
+          failedCount: 2,
+          areCountsReadable: true,
+        },
+      }),
+    );
+
+    const failedEmail: EmailLog = new EmailLog();
+    failedEmail._id = "11111111-1111-4111-8111-00000000e001";
+    failedEmail.toEmail = new Email("ana@example.com");
+    failedEmail.status = MailStatus.Error;
+    failedEmail.statusMessage = "550 5.1.1 Mailbox does not exist";
+    failedEmail.createdAt = AT(2);
+    const statusPage: StatusPage = new StatusPage();
+    statusPage.name = "Acme Status";
+    failedEmail.statusPage = statusPage;
+
+    const failedText: SmsLog = new SmsLog();
+    failedText._id = "11111111-1111-4111-8111-00000000f001";
+    failedText.toNumber = new Phone("+15551230100");
+    failedText.status = SmsStatus.Undelivered;
+    failedText.createdAt = AT(3);
+
+    const getList: SpyInstance<typeof ModelAPI.getList> = jest
+      .spyOn(ModelAPI, "getList")
+      .mockImplementation((async (args: {
+        modelType: unknown;
+      }): Promise<unknown> => {
+        return args.modelType === EmailLog
+          ? { data: [failedEmail], count: 1 }
+          : { data: [failedText], count: 1 };
+      }) as never);
+
+    renderCard();
+
+    const pill: HTMLElement = await screen.findByTestId(
+      "who-was-told-subscribers-failed",
+    );
+
+    expect(pill.tagName).toBe("BUTTON");
+    expect(pill).toHaveTextContent("2 failed");
+    // Read only when pressed.
+    expect(getList).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(pill);
+    });
+
+    const dialog: HTMLElement = await screen.findByTestId(
+      "who-was-told-subscribers-failed-dialog-list",
+    );
+    const rows: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "who-was-told-subscribers-failed-dialog-item",
+    );
+
+    // The newest first: the text, then the email.
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual([
+      "sms-11111111-1111-4111-8111-00000000f001",
+      "email-11111111-1111-4111-8111-00000000e001",
+    ]);
+    expect(rows[1]).toHaveTextContent("ana@example.com");
+    expect(rows[1]).toHaveTextContent("550 5.1.1 Mailbox does not exist");
+    expect(rows[1]).toHaveTextContent("Acme Status");
+    // A text with no words of the provider's says its status.
+    expect(rows[0]).toHaveTextContent("Undelivered");
+    expect(
+      within(rows[1] as HTMLElement).getByTestId(
+        "who-was-told-subscribers-failed-dialog-view",
+      ),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID.toString()}/notification-logs`,
+    );
+
+    // The rows the count counts: this incident's failed sends to a status page.
+    const emailRead: { query: Record<string, unknown> } = getList.mock
+      .calls[0]![0] as unknown as { query: Record<string, unknown> };
+
+    expect(emailRead.query["incidentId"]).toEqual(INCIDENT_ID);
+    expect(emailRead.query["status"]).toBe(MailStatus.Error);
   });
 
   test("an alert has no subscribers' row, and opens its own Notification Logs", async () => {

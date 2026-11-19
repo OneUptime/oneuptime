@@ -63,6 +63,15 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useLiveRefresh from "Common/UI/Utils/UseLiveRefresh";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ResourceAttentionPill from "../ResourcePart/ResourceAttentionPill";
+import { ResourceAttentionDialogRead } from "../ResourcePart/ResourceAttentionDialog";
+import {
+  FAILED_SUBSCRIBER_SENDS_DESCRIPTION,
+  FAILED_SUBSCRIBER_SENDS_EMPTY,
+  FAILED_SUBSCRIBER_SENDS_HINT,
+  FAILED_SUBSCRIBER_SENDS_LOAD_FAILED,
+  loadFailedSubscriberSends,
+} from "./FailedSubscriberSends";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -613,10 +622,17 @@ const ChannelRow: FunctionComponent<{
   );
 };
 
-// The incident's status page subscribers: counted, never listed.
+/*
+ * The incident's status page subscribers: counted, and the sends that
+ * failed opened from their count when the card can read them (#9597).
+ */
 const SubscribersRow: FunctionComponent<{
   subscribers: WhoWasToldSubscribers;
-}> = (props: { subscribers: WhoWasToldSubscribers }): ReactElement => {
+  loadFailedSends?: (() => Promise<ResourceAttentionDialogRead>) | undefined;
+}> = (props: {
+  subscribers: WhoWasToldSubscribers;
+  loadFailedSends?: (() => Promise<ResourceAttentionDialogRead>) | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const subscribers: WhoWasToldSubscribers = props.subscribers;
   const status: StatusPageSubscriberNotificationStatus =
@@ -632,13 +648,17 @@ const SubscribersRow: FunctionComponent<{
     );
   }
 
-  if (subscribers.areCountsReadable && subscribers.failedCount > 0) {
-    facts.push(
-      translator.translatePlural(
-        WHO_WAS_TOLD_PLURALS.failedCount,
-        subscribers.failedCount,
-      ),
-    );
+  const failedText: string | null =
+    subscribers.areCountsReadable && subscribers.failedCount > 0
+      ? translator.translatePlural(
+          WHO_WAS_TOLD_PLURALS.failedCount,
+          subscribers.failedCount,
+        )
+      : null;
+
+  // "3 failed" opens them, when the card can read them; else it is a count.
+  if (failedText && !props.loadFailedSends) {
+    facts.push(failedText);
   }
 
   // Why they were not told, or what failed: the incident's own line.
@@ -670,10 +690,37 @@ const SubscribersRow: FunctionComponent<{
             }
           />
         </div>
-        {facts.length > 0 ? (
-          <p className="text-xs text-gray-500">
-            {formatInline(facts, translator)}
-          </p>
+        {facts.length > 0 || (failedText && props.loadFailedSends) ? (
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+            {facts.length > 0 ? (
+              <span>{formatInline(facts, translator)}</span>
+            ) : (
+              <></>
+            )}
+            {failedText && props.loadFailedSends ? (
+              <ResourceAttentionPill
+                label={failedText}
+                tone="danger"
+                testId="who-was-told-subscribers-failed"
+                hint={FAILED_SUBSCRIBER_SENDS_HINT}
+                dialog={{
+                  title: translator.translatePlural(
+                    {
+                      one: "{{count}} send to subscribers failed",
+                      other: "{{count}} sends to subscribers failed",
+                    },
+                    subscribers.failedCount,
+                  ),
+                  description: FAILED_SUBSCRIBER_SENDS_DESCRIPTION,
+                  load: props.loadFailedSends,
+                  emptyMessage: FAILED_SUBSCRIBER_SENDS_EMPTY,
+                  whatFailed: FAILED_SUBSCRIBER_SENDS_LOAD_FAILED,
+                }}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
         ) : (
           <></>
         )}
@@ -716,7 +763,16 @@ const Section: FunctionComponent<{
 // The answer, drawn: its first words, then each section, folded where busy.
 export const WhoWasToldView: FunctionComponent<{
   result: WhoWasToldResult;
-}> = (props: { result: WhoWasToldResult }): ReactElement => {
+  // Reads the subscriber sends that failed, when "3 failed" is pressed.
+  loadFailedSubscriberSends?:
+    | (() => Promise<ResourceAttentionDialogRead>)
+    | undefined;
+}> = (props: {
+  result: WhoWasToldResult;
+  loadFailedSubscriberSends?:
+    | (() => Promise<ResourceAttentionDialogRead>)
+    | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const [isAllPeopleShown, setIsAllPeopleShown] = useState<boolean>(false);
   const result: WhoWasToldResult = props.result;
@@ -808,7 +864,10 @@ export const WhoWasToldView: FunctionComponent<{
 
       {result.subscribers ? (
         <ul className="mt-3 border-t border-gray-100">
-          <SubscribersRow subscribers={result.subscribers} />
+          <SubscribersRow
+            subscribers={result.subscribers}
+            loadFailedSends={props.loadFailedSubscriberSends}
+          />
         </ul>
       ) : (
         <></>
@@ -989,7 +1048,17 @@ const WhoWasToldCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div>
-        <WhoWasToldView result={state.result} />
+        <WhoWasToldView
+          result={state.result}
+          loadFailedSubscriberSends={(): Promise<ResourceAttentionDialogRead> => {
+            return loadFailedSubscriberSends({
+              recordKind: props.recordKind,
+              recordId: new ObjectID(recordIdText),
+              translator: translator,
+              logsRoute: logsRoute,
+            });
+          }}
+        />
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
           <span>
             <TranslatedSentence
