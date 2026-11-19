@@ -69,6 +69,16 @@ enum NotificationSettingEventType {
   SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION = "Send SLO status change notification when I am the owner of the SLO",
   SEND_SLO_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the SLO",
 
+  /*
+   * Data Observability's tables and pipelines, and the data stores it shares
+   * with Data Security (#9681): an owner rule, or a person on an Owners
+   * page, makes the person an owner (Workers DataAssetOwners,
+   * DataPipelineOwners, DataStoreOwners).
+   */
+  SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a table",
+  SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a pipeline",
+  SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a data store",
+
   // Incoming Call Policies
   SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION = "Send missed call notification when I am the owner of the incoming call policy",
 

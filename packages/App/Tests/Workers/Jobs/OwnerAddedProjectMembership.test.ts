@@ -182,6 +182,24 @@ jest.mock("Common/Server/Services/StatusPageOwnerTeamService", () => {
 jest.mock("Common/Server/Services/StatusPageOwnerUserService", () => {
   return mockOwnerRowService();
 });
+jest.mock("Common/Server/Services/DataAssetOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DataAssetOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DataPipelineOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DataPipelineOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DataStoreOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/DataStoreOwnerUserService", () => {
+  return mockOwnerRowService();
+});
 
 // The resources the notifications are about.
 jest.mock("Common/Server/Services/AIAgentService", () => {
@@ -327,6 +345,47 @@ jest.mock("Common/Server/Services/StatusPageService", () => {
   };
 });
 
+// Data Observability's tables and pipelines, and the data stores (#9681).
+jest.mock("Common/Server/Services/DataAssetService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getDataAssetLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/DataPipelineService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getDataPipelineLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/DataStoreService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getDataStoreLinkInDashboard: jest.fn(),
+      getDataObservabilityDatabaseLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AIAgentOwnerTeamService from "Common/Server/Services/AIAgentOwnerTeamService";
 import AIAgentOwnerUserService from "Common/Server/Services/AIAgentOwnerUserService";
@@ -363,6 +422,15 @@ import StatusPageOwnerUserService from "Common/Server/Services/StatusPageOwnerUs
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import DataAssetOwnerTeamService from "Common/Server/Services/DataAssetOwnerTeamService";
+import DataAssetOwnerUserService from "Common/Server/Services/DataAssetOwnerUserService";
+import DataAssetService from "Common/Server/Services/DataAssetService";
+import DataPipelineOwnerTeamService from "Common/Server/Services/DataPipelineOwnerTeamService";
+import DataPipelineOwnerUserService from "Common/Server/Services/DataPipelineOwnerUserService";
+import DataPipelineService from "Common/Server/Services/DataPipelineService";
+import DataStoreOwnerTeamService from "Common/Server/Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "Common/Server/Services/DataStoreOwnerUserService";
+import DataStoreService from "Common/Server/Services/DataStoreService";
 
 // Imported for their side effect: RunCron (mocked above) records each handler.
 import "../../../FeatureSet/Workers/Jobs/AIAgent/SendOwnerAddedNotification";
@@ -376,6 +444,9 @@ import "../../../FeatureSet/Workers/Jobs/Probe/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/SloOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/StatusPageOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DataAssetOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DataPipelineOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/DataStoreOwners/SendOwnerAddedNotification";
 
 interface RowServiceMock {
   findBy: jest.Mock;
@@ -532,6 +603,28 @@ const OWNER_ADDED_CASES: Array<OwnerAddedCase> = [
     resourceIdColumn: "aiAgentId",
     resourceService: AIAgentService as unknown as ResourceServiceMock,
   },
+  // Data Observability's tables and pipelines, and the data stores (#9681).
+  {
+    job: "DataAssetOwner:SendOwnerAddedNotification",
+    teamService: DataAssetOwnerTeamService as unknown as RowServiceMock,
+    userService: DataAssetOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "dataAssetId",
+    resourceService: DataAssetService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "DataPipelineOwner:SendOwnerAddedNotification",
+    teamService: DataPipelineOwnerTeamService as unknown as RowServiceMock,
+    userService: DataPipelineOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "dataPipelineId",
+    resourceService: DataPipelineService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "DataStoreOwner:SendOwnerAddedNotification",
+    teamService: DataStoreOwnerTeamService as unknown as RowServiceMock,
+    userService: DataStoreOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "dataStoreId",
+    resourceService: DataStoreService as unknown as ResourceServiceMock,
+  },
 ];
 
 // One owner team row and one owner user row per user, all on the resource.
@@ -603,6 +696,10 @@ beforeEach(() => {
     ServiceLevelObjectiveService.getSloLinkInDashboard,
     ProbeService.getLinkInDashboard,
     AIAgentService.getLinkInDashboard,
+    DataAssetService.getDataAssetLinkInDashboard,
+    DataPipelineService.getDataPipelineLinkInDashboard,
+    DataStoreService.getDataStoreLinkInDashboard,
+    DataStoreService.getDataObservabilityDatabaseLinkInDashboard,
   ]) {
     (link as jest.Mock).mockResolvedValue(RESOURCE_LINK);
   }

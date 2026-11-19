@@ -6,8 +6,9 @@ import UrlScrubber from "../../Utils/Rum/UrlScrubber";
  * Four signals are built in - rage clicks, dead clicks, error clicks and
  * refresh rage - and each has a rule whose numbers the application can
  * change, or a switch that turns it off. On top of them an application can
- * name its own signals: a click on an element, a visit to a page, an event
- * from its own code (track()) or an error whose text it knows. A signal of
+ * name its own signals: a click on an element, a tap on a view of a React
+ * Native app, a visit to a page, an event from its own code (track()) or an
+ * error whose text it knows. A signal of
  * its own either counts as frustration, exactly like the built-in four (the
  * Frustration filter, the frustration sort and totals, the amber markers,
  * and the "On error or frustration" upload trigger), or is a marker that is
@@ -32,15 +33,21 @@ import UrlScrubber from "../../Utils/Rum/UrlScrubber";
  * ContractParity test.
  */
 
-/* What a signal of the application's own reacts to. */
+/*
+ * What a signal of the application's own reacts to. "tap" (issue #6517) is
+ * the React Native recorder's click: a recorder that does not know a
+ * trigger leaves the signal out, so an older recorder that reads a tap
+ * signal simply does not detect it.
+ */
 export type SessionReplayCustomSignalTrigger =
   | "click"
+  | "tap"
   | "page"
   | "event"
   | "error";
 
 export const SESSION_REPLAY_CUSTOM_SIGNAL_TRIGGERS: ReadonlyArray<SessionReplayCustomSignalTrigger> =
-  ["click", "page", "event", "error"];
+  ["click", "tap", "page", "event", "error"];
 
 /*
  * Rage click: clickCount or more clicks, each within windowMs of the one
@@ -85,6 +92,9 @@ export interface SessionReplayRefreshRageRule {
  *
  * match depends on the trigger:
  *  - click: a CSS selector; a click on a matching element, or inside one.
+ *  - tap:   a React Native view's testID, or the start of one followed by
+ *           a star (product-card-*); a tap on the view, or inside it. Case
+ *           is ignored; see matchesSessionReplayTapTarget.
  *  - page:  a path pattern such as /checkout/error or /orders/x/failed,
  *           where x is a star; see matchesSessionReplayPagePattern.
  *  - event: the name the page passes to track(); case is ignored.
@@ -325,6 +335,17 @@ export function isSessionReplayPagePatternAnchored(pattern: string): boolean {
   return pattern.charAt(0) === "/" || pattern.charAt(0) === "*";
 }
 
+/*
+ * A tap pattern names a testID: some of it, then at most one star, at its
+ * end. A star anywhere else could never be told from a testID that holds
+ * one, and a star alone would be every tap on every view with a testID.
+ */
+export function isSessionReplayTapPatternUsable(pattern: string): boolean {
+  const star: number = pattern.indexOf("*");
+
+  return star === -1 || (star > 0 && star === pattern.length - 1);
+}
+
 function readCustomSignal(value: unknown): SessionReplayCustomSignal | null {
   const record: Record<string, unknown> = asRecord(value);
 
@@ -340,7 +361,8 @@ function readCustomSignal(value: unknown): SessionReplayCustomSignal | null {
     !isSessionReplayCustomSignalTrigger(trigger) ||
     match.length === 0 ||
     match.length > getSessionReplayCustomSignalMatchMaxLength(trigger) ||
-    (trigger === "page" && !isSessionReplayPagePatternAnchored(match))
+    (trigger === "page" && !isSessionReplayPagePatternAnchored(match)) ||
+    (trigger === "tap" && !isSessionReplayTapPatternUsable(match))
   ) {
     return null;
   }
@@ -588,4 +610,28 @@ export function matchesSessionReplayEventName(
   name: string,
 ): boolean {
   return match.trim().toLowerCase() === name.trim().toLowerCase();
+}
+
+/*
+ * Is this testID the one a tap signal names (issue #6517)? Exactly, or - a
+ * pattern ending in a star - one that starts with what comes before it:
+ * product-card-* matches product-card-42. Case is ignored, as for a page
+ * or an event. The React Native recorder asks it of the touched view's
+ * testID and of each view around it, so a tap on a label inside a button
+ * is a tap on the button.
+ */
+export function matchesSessionReplayTapTarget(
+  match: string,
+  testId: string,
+): boolean {
+  const pattern: string = match.trim().toLowerCase();
+  const target: string = testId.toLowerCase();
+
+  if (!pattern || !target || !isSessionReplayTapPatternUsable(pattern)) {
+    return false;
+  }
+
+  return pattern.charAt(pattern.length - 1) === "*"
+    ? target.indexOf(pattern.slice(0, -1)) === 0
+    : target === pattern;
 }

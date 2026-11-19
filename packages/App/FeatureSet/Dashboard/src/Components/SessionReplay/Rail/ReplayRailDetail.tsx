@@ -1012,7 +1012,9 @@ const PerformanceDetail: FunctionComponent<{
   return (
     <dl>
       {/* Never the raw enum: "long-task" is a wire value, not a word. */}
-      <Fact label="Measure">{formatPerformanceMeasure(detail)}</Fact>
+      <Fact label="Measure">
+        {formatPerformanceMeasure(detail, translator)}
+      </Fact>
       {isFiniteNumber(detail.value) && (
         <Fact label="Value">
           {detail.metric === "CLS"
@@ -1034,7 +1036,9 @@ const PerformanceDetail: FunctionComponent<{
         </Fact>
       )}
       {detail.rating && (
-        <Fact label="Rating">{formatVitalRating(detail.rating)}</Fact>
+        <Fact label="Rating">
+          {formatVitalRating(detail.rating, translator)}
+        </Fact>
       )}
       {/*
        * Whole labels: "Earlier" alone reads as a plural in Spanish

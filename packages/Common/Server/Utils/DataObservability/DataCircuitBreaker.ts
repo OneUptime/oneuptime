@@ -26,6 +26,7 @@ import {
   DataCheckHealthAnswer,
 } from "../../../Types/DataObservability/DataObservabilityAttention";
 import { DataPipelineCircuitBreakerState } from "../../../Types/DataObservability/DataObservabilityApiTypes";
+import { DataPipelineMetricName } from "../../../Types/DataObservability/DataPipelineMetric";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import ProductKey from "../../../Types/Product/ProductKey";
@@ -34,6 +35,8 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataCheckService from "../../Services/DataCheckService";
 import DataPipelineService from "../../Services/DataPipelineService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import logger from "../Logger";
+import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import DataObservabilityAttentionReader from "./DataObservabilityAttentionReader";
 import DataObservabilityReadScope, {
   DataObservabilityScope,
@@ -43,6 +46,7 @@ import DataTableLineageReader, {
   DataPipelineLineageReader,
   DataPipelineTables,
 } from "./DataTableLineage";
+import OpenLineageIngest, { buildPipelineMetricRow } from "./OpenLineageIngest";
 
 /*
  * THE CIRCUIT BREAKER, ANSWERED (#6548).
@@ -69,7 +73,10 @@ import DataTableLineageReader, {
  * A request that names a pipeline, and is not a dry run, keeps its answer
  * on the pipeline: when it was asked, and - while it says stop - since when
  * and why, for the pipeline's page and Needs Attention. A go clears the
- * stop; so does a run that starts after it (OpenLineageIngest).
+ * stop; so does a run that starts after it (OpenLineageIngest). It writes
+ * its answer as a metric too, oneuptime.data.pipeline.circuit_breaker_stopped
+ * (#9683), for the recommended monitor whose alert tells the pipeline's
+ * owners it was stopped.
  */
 
 // The most tables of a pipeline's lineage the breaker judges.
@@ -167,6 +174,7 @@ export default class DataCircuitBreaker {
 
     if (pipeline?.id && isRecorded) {
       await this.record({
+        projectId,
         pipeline,
         verdict: decision.verdict,
         reasons: decision.reasons,
@@ -488,6 +496,7 @@ export default class DataCircuitBreaker {
    * long it has been held - and the latest reasons. A go clears the stop.
    */
   public static async record(data: {
+    projectId: ObjectID;
     pipeline: DataPipeline;
     verdict: DataCircuitBreakerVerdict;
     reasons: Array<DataCircuitBreakerReason>;
@@ -507,6 +516,48 @@ export default class DataCircuitBreaker {
           : null,
       } as never,
     });
+
+    await this.writeStoppedMetric({
+      projectId: data.projectId,
+      pipeline: data.pipeline,
+      isStopped: isStop,
+      now: data.now,
+    });
+  }
+
+  /*
+   * oneuptime.data.pipeline.circuit_breaker_stopped (#9683): 1 as the
+   * circuit breaker stops the pipeline, 0 as it says go, for the
+   * recommended monitor "Pipeline Stopped by Circuit Breaker", whose alert
+   * goes to the pipeline's owners. The five-minute schedule check writes
+   * the kept answer again (DataPipelineScheduleCheck). Never fails the
+   * answer: whether the run goes ahead is the answer's, whatever becomes of
+   * its metric.
+   */
+  public static async writeStoppedMetric(data: {
+    projectId: ObjectID;
+    pipeline: DataPipeline;
+    isStopped: boolean;
+    now: Date;
+  }): Promise<void> {
+    try {
+      await OpenLineageIngest.writeMetricRows(data.projectId, [
+        buildPipelineMetricRow({
+          projectId: data.projectId,
+          pipeline: data.pipeline,
+          metricName: DataPipelineMetricName.CircuitBreakerStopped,
+          value: data.isStopped ? 1 : 0,
+          at: data.now,
+          retentionDays: await MonitorMetricUtil.getRetentionDays(),
+        }),
+      ]);
+    } catch (error) {
+      logger.error(
+        `Data Observability: could not write the circuit breaker's answer for pipeline ${data.pipeline.id?.toString()} as a metric.`,
+        { projectId: data.projectId.toString() },
+      );
+      logger.error(error);
+    }
   }
 
   /*

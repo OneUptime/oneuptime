@@ -257,6 +257,7 @@ describe("the rail names the application's own signals", () => {
   it("says what set off each kind of signal", () => {
     const triggers: Array<SessionReplayCustomSignalTrigger> = [
       "click",
+      "tap",
       "page",
       "event",
       "error",
@@ -279,6 +280,7 @@ describe("the rail names the application's own signals", () => {
 
     expect(Object.values(CUSTOM_SIGNAL_TRIGGER_SUBTITLES)).toEqual([
       "Your signal: a click",
+      "Your signal: a tap",
       "Your signal: a page",
       "Your signal: an event",
       "Your signal: an error",

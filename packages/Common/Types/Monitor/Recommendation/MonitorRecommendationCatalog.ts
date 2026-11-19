@@ -711,6 +711,7 @@ function getRumRecommendations(
     sessionReplayEnabled: context?.sessionReplayEnabled,
     sessionReplayHasRecorded: context?.sessionReplayHasRecorded,
     sessionReplayMonthlyBudgetInGB: context?.sessionReplayMonthlyBudgetInGB,
+    customSignals: context?.customSignals,
   }).map((template: RumAlertTemplate) => {
     return normalizeRumTemplate(template);
   });

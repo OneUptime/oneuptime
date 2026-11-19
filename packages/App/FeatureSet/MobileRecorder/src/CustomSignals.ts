@@ -10,15 +10,17 @@ import {
 
 /*
  * The application's own frustration signals (issue #6443), as this recorder
- * detects them: a route the app moves to, an event it passes to track(), an
- * error whose text it knows. A click on an element is a CSS selector on a
- * web page, so click signals are left to the browser recorder.
+ * detects them: a tap on a view it names by testID (issue #6517), a route
+ * the app moves to, an event it passes to track(), an error whose text it
+ * knows. A click on an element is a CSS selector on a web page, so click
+ * signals are left to the browser recorder.
  *
  * The reading and the matching are copies of Common's
  * Types/Rum/SessionReplayFrustrationSignals (readCustomSignal and the
  * matchesSessionReplay* functions); ContractParity holds them to Common on
  * the same inputs. Nothing a signal matched against is ever recorded: a hit
- * carries the signal's name.
+ * carries the signal's name - and, for a tap whose touch was recorded,
+ * where on the screen it was, as the touch itself already says.
  */
 
 /* The triggers this recorder can detect. */
@@ -29,16 +31,23 @@ export type MobileCustomSignalTrigger = Exclude<
 
 const TRIGGERS: ReadonlyArray<SessionReplayCustomSignalTrigger> = [
   "click",
+  "tap",
   "page",
   "event",
   "error",
 ];
+
+/* How many testIDs, from the touched view up, a tap is matched against. */
+export const MAX_TAP_TARGET_TEST_IDS: number = 32;
 
 export interface MobileCustomSignalHit {
   name: string;
   trigger: MobileCustomSignalTrigger;
   isFrustration: boolean;
   atUnixMs: number;
+  /* A tap signal's position, only when its touch was recorded. */
+  x?: number;
+  y?: number;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -58,6 +67,16 @@ interface ReadCustomSignal extends SessionReplayCustomSignalConfig {
   isEnabled: boolean;
 }
 
+/*
+ * Common's isSessionReplayTapPatternUsable: some of a testID, then at most
+ * one star, at its end.
+ */
+export function isTapPatternUsable(pattern: string): boolean {
+  const star: number = pattern.indexOf("*");
+
+  return star === -1 || (star > 0 && star === pattern.length - 1);
+}
+
 function readCustomSignal(value: unknown): ReadCustomSignal | null {
   const record: Record<string, unknown> = asRecord(value);
   const name: string =
@@ -75,7 +94,10 @@ function readCustomSignal(value: unknown): ReadCustomSignal | null {
       (trigger === "event"
         ? SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENT_NAME_LENGTH
         : SESSION_REPLAY_MAX_CUSTOM_SIGNAL_MATCH_LENGTH) ||
-    (trigger === "page" && match.charAt(0) !== "/" && match.charAt(0) !== "*")
+    (trigger === "page" &&
+      match.charAt(0) !== "/" &&
+      match.charAt(0) !== "*") ||
+    (trigger === "tap" && !isTapPatternUsable(match))
   ) {
     return null;
   }
@@ -279,6 +301,53 @@ export function matchesEventName(match: string, name: string): boolean {
 }
 
 /*
+ * Common's matchesSessionReplayTapTarget: the testID exactly, or - a
+ * pattern ending in a star - one that starts with what comes before it.
+ * Case is ignored.
+ */
+export function matchesTapTarget(match: string, testId: string): boolean {
+  const pattern: string = match.trim().toLowerCase();
+  const target: string = testId.toLowerCase();
+
+  if (!pattern || !target || !isTapPatternUsable(pattern)) {
+    return false;
+  }
+
+  return pattern.charAt(pattern.length - 1) === "*"
+    ? target.indexOf(pattern.slice(0, -1)) === 0
+    : target === pattern;
+}
+
+/*
+ * The testIDs a tap can be matched against, as the native module hands
+ * them over: strings only, none empty or longer than a match can be, at
+ * most MAX_TAP_TARGET_TEST_IDS of them. Anything else is no testID.
+ */
+export function readTapTargetTestIds(value: unknown): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const testIds: Array<string> = [];
+
+  for (const entry of value) {
+    if (
+      typeof entry === "string" &&
+      entry.length > 0 &&
+      entry.length <= SESSION_REPLAY_MAX_CUSTOM_SIGNAL_MATCH_LENGTH
+    ) {
+      testIds.push(entry);
+    }
+
+    if (testIds.length >= MAX_TAP_TARGET_TEST_IDS) {
+      break;
+    }
+  }
+
+  return testIds;
+}
+
+/*
  * The path a route stands for, as written: an absolute URL's path, without
  * its query or fragment, starting with a slash. Unlike the recorded route
  * nothing in it is redacted - a pattern names the app's own screens, and
@@ -316,6 +385,32 @@ export function routeMatchPath(route: unknown): string {
  */
 export class CustomSignalMatcher {
   private readonly lastFiredAt: Map<string, number> = new Map<string, number>();
+
+  /*
+   * A tap on a view whose testID a tap signal names - or on anything inside
+   * it: testIds holds the touched view's testID and those of the views
+   * around it, out to the replay root, the touched one first.
+   */
+  public matchTap(
+    signals: ReadonlyArray<SessionReplayCustomSignalConfig>,
+    testIds: ReadonlyArray<string>,
+    atUnixMs: number,
+  ): Array<MobileCustomSignalHit> {
+    if (testIds.length === 0) {
+      return [];
+    }
+
+    return this.collect(
+      signals,
+      "tap",
+      atUnixMs,
+      (signal: SessionReplayCustomSignalConfig): boolean => {
+        return testIds.some((testId: string): boolean => {
+          return matchesTapTarget(signal.match, testId);
+        });
+      },
+    );
+  }
 
   public matchPage(
     signals: ReadonlyArray<SessionReplayCustomSignalConfig>,

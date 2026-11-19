@@ -392,6 +392,13 @@ import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/DataSecurity/DataSecurityJobs";
 import "./Jobs/DataObservability/DataObservabilityJobs";
+/*
+ * The new owners of Data Observability's tables and pipelines, and of the
+ * data stores it shares with Data Security, told (#9681).
+ */
+import "./Jobs/DataAssetOwners/SendOwnerAddedNotification";
+import "./Jobs/DataPipelineOwners/SendOwnerAddedNotification";
+import "./Jobs/DataStoreOwners/SendOwnerAddedNotification";
 // Network controller connections (Meraki): traffic read on a schedule.
 import "./Jobs/Network/ReadNetworkControllerConnections";
 // ...and their devices added as network devices, when someone asks.

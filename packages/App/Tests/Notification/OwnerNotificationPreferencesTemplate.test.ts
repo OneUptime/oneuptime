@@ -49,6 +49,9 @@ function render(name: string, vars: Record<string, string> = {}): string {
 const ownerTemplates: Array<EmailTemplateType> = [
   EmailTemplateType.AIAgentOwnerAdded,
   EmailTemplateType.ProbeOwnerAdded,
+  EmailTemplateType.DataAssetOwnerAdded,
+  EmailTemplateType.DataPipelineOwnerAdded,
+  EmailTemplateType.DataStoreOwnerAdded,
   EmailTemplateType.MonitorOwnerAdded,
   EmailTemplateType.IncidentOwnerAdded,
   EmailTemplateType.IncidentMemberAdded,
