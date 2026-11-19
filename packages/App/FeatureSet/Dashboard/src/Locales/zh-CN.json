@@ -59040,5 +59040,7 @@
   "Publish a status page that shows my monitors.": "发布一个显示我的监视器的状态页。",
   "Publish a status page called {{name}} that shows my monitors.": "发布一个名为 {{name}} 并显示我的监视器的状态页。",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查询的单位为 {{unit}}，上一个查询的图表单位为 {{chartUnit}}，因此无法在该图表的坐标轴上正确读出此查询的数值。"
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查询的单位为 {{unit}}，上一个查询的图表单位为 {{chartUnit}}，因此无法在该图表的坐标轴上正确读出此查询的数值。",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "已跳过创建新警报，因为此条件和此序列（{{series}}）已有活动警报。",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "已跳过创建新事件，因为此条件和此序列（{{series}}）已有活动事件。"
 }

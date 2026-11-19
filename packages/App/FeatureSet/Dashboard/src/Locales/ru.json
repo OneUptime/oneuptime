@@ -59040,5 +59040,7 @@
   "Publish a status page that shows my monitors.": "Опубликуй страницу статуса, на которой видны мои мониторы.",
   "Publish a status page called {{name}} that shows my monitors.": "Опубликуй страницу статуса с названием {{name}}, на которой видны мои мониторы.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Помоги отправить логи, метрики и трассировки моего сервиса в OneUptime и оповещай меня, когда в нём появляются ошибки.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому его значения нельзя правильно прочитать по оси этой диаграммы."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому его значения нельзя правильно прочитать по оси этой диаграммы.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Создание нового оповещения пропущено, так как для этого критерия и этого ряда ({{series}}) уже есть активное оповещение.",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Создание нового инцидента пропущено, так как для этого критерия и этого ряда ({{series}}) уже есть активный инцидент."
 }

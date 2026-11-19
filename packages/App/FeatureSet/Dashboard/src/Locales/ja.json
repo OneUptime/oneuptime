@@ -59040,5 +59040,7 @@
   "Publish a status page that shows my monitors.": "私のモニターを表示するステータスページを公開してください。",
   "Publish a status page called {{name}} that shows my monitors.": "私のモニターを表示する {{name}} という名前のステータスページを公開してください。",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "サービスのログ、メトリクス、トレースを OneUptime に送れるよう手伝い、エラーが起きたら私に通知してください。",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。"
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリの値はそのチャートの軸では正しく読み取れません。",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "この条件とこの系列（{{series}}）にはアクティブなアラートがすでにあるため、新しいアラートの作成をスキップしました。",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "この条件とこの系列（{{series}}）にはアクティブなインシデントがすでにあるため、新しいインシデントの作成をスキップしました。"
 }

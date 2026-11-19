@@ -59040,5 +59040,7 @@
   "Publish a status page that shows my monitors.": "یک صفحهٔ وضعیت منتشر کن که مانیتورهایم را نشان دهد.",
   "Publish a status page called {{name}} that shows my monitors.": "یک صفحهٔ وضعیت به نام {{name}} منتشر کن که مانیتورهایم را نشان دهد.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس مقدارهای آن روی محور آن نمودار درست خوانده نمی‌شوند."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس مقدارهای آن روی محور آن نمودار درست خوانده نمی‌شوند.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "از ساخت هشدار جدید صرف‌نظر شد، زیرا برای این معیار و این سری ({{series}}) یک هشدار فعال وجود دارد.",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "از ساخت حادثه جدید صرف‌نظر شد، زیرا برای این معیار و این سری ({{series}}) یک حادثه فعال وجود دارد."
 }

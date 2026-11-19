@@ -59040,5 +59040,7 @@
   "Publish a status page that shows my monitors.": "Udgiv en statusside, der viser mine monitorer.",
   "Publish a status page called {{name}} that shows my monitors.": "Udgiv en statusside med navnet {{name}}, der viser mine monitorer.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjælp mig med at sende min tjenestes logs, metrikker og traces til OneUptime, og advar mig, når den har fejl.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Der blev ikke oprettet en ny advarsel, fordi der allerede findes en aktiv advarsel for dette kriterium og denne serie ({{series}}).",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Der blev ikke oprettet en ny hændelse, fordi der allerede findes en aktiv hændelse for dette kriterium og denne serie ({{series}})."
 }

@@ -59040,5 +59040,7 @@
   "Publish a status page that shows my monitors.": "Pubblica una pagina di stato che mostri i miei monitor.",
   "Publish a status page called {{name}} that shows my monitors.": "Pubblica una pagina di stato chiamata {{name}} che mostri i miei monitor.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Questa query è in {{unit}} e il grafico della query precedente in {{chartUnit}}, quindi i suoi valori non si leggeranno correttamente sull'asse di quel grafico."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Questa query è in {{unit}} e il grafico della query precedente in {{chartUnit}}, quindi i suoi valori non si leggeranno correttamente sull'asse di quel grafico.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Creazione di un nuovo avviso saltata perché esiste già un avviso attivo per questo criterio e questa serie ({{series}}).",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Creazione di un nuovo incidente saltata perché esiste già un incidente attivo per questo criterio e questa serie ({{series}})."
 }

@@ -59040,5 +59040,7 @@
   "Publish a status page that shows my monitors.": "Publish a status page that shows my monitors.",
   "Publish a status page called {{name}} that shows my monitors.": "Publish a status page called {{name}} that shows my monitors.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.",
+  "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).": "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+  "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}}).": "Skipped creating a new incident because an active incident exists for this criteria and series ({{series}})."
 }
