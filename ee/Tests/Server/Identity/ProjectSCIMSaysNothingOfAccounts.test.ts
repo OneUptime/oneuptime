@@ -406,6 +406,8 @@ function seedWorld(history: AddressHistory): void {
 interface HttpResult {
   status: number;
   body: JSONObject;
+  // The Location header: a create's URI (RFC 7644, section 3.3).
+  location: string | null;
 }
 
 async function send(
@@ -426,6 +428,7 @@ async function send(
   return {
     status: response.status,
     body: (text ? JSON.parse(text) : {}) as JSONObject,
+    location: response.headers.get("location"),
   };
 }
 
@@ -630,6 +633,14 @@ describe.each(deployments)("on $label", ({ hosted }: { hosted: boolean }) => {
         const { fresh, existing } = await expectAlike(create);
 
         expect(fresh.results[0]!.status).toBe(201);
+
+        // RFC 7644, section 3.3: the new user's URI, in the header and in meta.location.
+        expect(fresh.results[0]!.location).toBe(
+          (fresh.results[0]!.body["meta"] as JSONObject)["location"],
+        );
+        expect(fresh.results[0]!.location).toMatch(
+          new RegExp(`/Users/${fresh.results[0]!.body["id"]}$`),
+        );
 
         for (const run of [fresh, ...existing]) {
           expectNothingOfTheOwner(run);

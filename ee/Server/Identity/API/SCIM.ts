@@ -4674,6 +4674,12 @@ router.post(
         },
       });
 
+      // RFC 7644, section 3.3: the new user's URI, in the Location header as in meta.location.
+      res.setHeader(
+        "Location",
+        (responseBody["meta"] as JSONObject)["location"] as string,
+      );
+
       return sendScimResponse(req, res, responseBody, 201);
     } catch (err) {
       return failProjectScimRequest({
