@@ -121,6 +121,7 @@ import {
   getSystemdFailureReason,
   getSystemdUnitFailureItem,
   getSystemdUnitFailureSince,
+  getSystemdUnitLineEvents,
   getSystemdUnitLogsRoute,
   getSystemdUnitOwnLines,
   readSystemdUnitFailure,
@@ -572,7 +573,7 @@ const HostSystemdUnitView: FunctionComponent<
     }
 
     let isCancelled: boolean = false;
-    const window: SystemdUnitJournalWindow = getSystemdUnitJournalWindow(
+    const journalWindow: SystemdUnitJournalWindow = getSystemdUnitJournalWindow(
       OneUptimeDate.getCurrentDate(),
     );
 
@@ -591,14 +592,14 @@ const HostSystemdUnitView: FunctionComponent<
     readSystemdUnitJournal({
       hostIdentifier: hostIdentifier,
       unitName: unitName,
-      window: window,
+      window: journalWindow,
     })
       .then((lines: Array<SystemdUnitJournalLine>) => {
         if (!isCancelled) {
           setJournal({
             state: "loaded",
             lines: lines,
-            window: window,
+            window: journalWindow,
             error: "",
           });
         }
@@ -608,7 +609,7 @@ const HostSystemdUnitView: FunctionComponent<
           setJournal({
             state: "failed",
             lines: [],
-            window: window,
+            window: journalWindow,
             error: API.getFriendlyMessage(err),
           });
         }
@@ -631,14 +632,13 @@ const HostSystemdUnitView: FunctionComponent<
    */
   const loadFailure: () => Promise<ResourceAttentionDialogRead> =
     async (): Promise<ResourceAttentionDialogRead> => {
-      const window: SystemdUnitJournalWindow = getSystemdUnitJournalWindow(
-        OneUptimeDate.getCurrentDate(),
-      );
+      const journalWindow: SystemdUnitJournalWindow =
+        getSystemdUnitJournalWindow(OneUptimeDate.getCurrentDate());
       const lines: Array<SystemdUnitJournalLine> = await readSystemdUnitJournal(
         {
           hostIdentifier: hostIdentifier,
           unitName: unitName,
-          window: window,
+          window: journalWindow,
         },
       );
       const read: SystemdUnitFailure | null = readSystemdUnitFailure(lines);
@@ -666,17 +666,10 @@ const HostSystemdUnitView: FunctionComponent<
         explanation: translator.translateTemplate(NO_REASON_IN_JOURNAL, {
           days: translator.formatNumber(SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS),
         }),
-        events: getSystemdUnitOwnLines({ lines: lines }).map(
-          (line: SystemdUnitJournalLine, index: number) => {
-            return {
-              key: `${line.time.getTime()}-${index}`,
-              reason: unitName,
-              message: line.body,
-              count: 1,
-              lastSeenAt: line.time,
-            };
-          },
-        ),
+        events: getSystemdUnitLineEvents({
+          unitName: unitName,
+          lines: getSystemdUnitOwnLines({ lines: lines }),
+        }),
       };
 
       return { items: [item] };
@@ -1072,10 +1065,7 @@ const HostSystemdUnitView: FunctionComponent<
             >
               <>
                 {translator.translateText(OPEN_IN_LOGS)}
-                <Icon
-                  icon={IconProp.ChevronRight}
-                  className="h-3.5 w-3.5"
-                />
+                <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
               </>
             </Link>
           }

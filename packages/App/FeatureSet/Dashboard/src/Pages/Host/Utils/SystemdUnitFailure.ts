@@ -334,18 +334,32 @@ export function getSystemdUnitFailureItem(data: {
     // What it printed last, as it wrote it: else systemd's own words.
     message: lastSaid?.body || failure.exit?.message || failure.message,
     since: getSystemdUnitFailureSince(failure),
-    events: before.map(
-      (line: SystemdUnitJournalLine, index: number): ResourceAttentionEvent => {
-        return {
-          key: `${line.time.getTime()}-${index}`,
-          reason: attribute(line, SYSLOG_IDENTIFIER_ATTRIBUTE) || data.unitName,
-          message: line.body,
-          count: 1,
-          lastSeenAt: line.time,
-        };
-      },
-    ),
+    events: getSystemdUnitLineEvents({
+      unitName: data.unitName,
+      lines: before,
+    }),
   };
+}
+
+/*
+ * The unit's lines as the dialog's row lists them, in the order given: who
+ * wrote each (its syslog identifier, else the unit), what, and when.
+ */
+export function getSystemdUnitLineEvents(data: {
+  unitName: string;
+  lines: ReadonlyArray<SystemdUnitJournalLine>;
+}): Array<ResourceAttentionEvent> {
+  return data.lines.map(
+    (line: SystemdUnitJournalLine, index: number): ResourceAttentionEvent => {
+      return {
+        key: `${line.time.getTime()}-${index}`,
+        reason: attribute(line, SYSLOG_IDENTIFIER_ATTRIBUTE) || data.unitName,
+        message: line.body,
+        count: 1,
+        lastSeenAt: line.time,
+      };
+    },
+  );
 }
 
 /*

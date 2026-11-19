@@ -465,6 +465,33 @@ describe("a failed unit says why", () => {
     );
   });
 
+  test("a failure its journal does not explain still lists what the unit printed, and who wrote each line", async () => {
+    // A collector that files the unit's own lines, but not systemd's.
+    journal = [
+      ownLine("10:00:02", BIND_FAILED),
+      ownLine("10:00:01", "nginx: [warn] the configuration file is deprecated"),
+    ];
+    await renderUnit();
+
+    fireEvent.click(failedPill());
+    await flush();
+
+    const row: HTMLElement = screen.getByTestId(
+      "systemd-unit-failed-dialog-item",
+    );
+    expect(
+      within(row).getByTestId("systemd-unit-failed-dialog-explanation"),
+    ).toHaveTextContent("does not say why");
+    const events: HTMLElement = within(row).getByTestId(
+      "systemd-unit-failed-dialog-events",
+    );
+    expect(events).toHaveTextContent(BIND_FAILED);
+    // Who wrote it, as the row with a reason names it: nginx, not the unit.
+    expect(
+      within(events).getAllByTestId("systemd-unit-failed-dialog-event")[0],
+    ).toHaveTextContent("nginx");
+  });
+
   test("a journal that cannot be read says so where its lines go, and Try again reads it again", async () => {
     // An error nobody explained: what failed is said first.
     journalError = new Error(UNEXPLAINED_ERROR_MESSAGES.server);
