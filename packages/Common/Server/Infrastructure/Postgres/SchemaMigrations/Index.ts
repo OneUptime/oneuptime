@@ -1094,6 +1094,7 @@ import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200
 import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
 import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
 import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
+import { AddTeamScimGroupLinkedAt1809185400000 } from "./1809185400000-AddTeamScimGroupLinkedAt";
 
 export default [
   InitialMigration,
@@ -2192,4 +2193,5 @@ export default [
   DropIncidentTemplateOwnerNotifiedFlag1809185210000,
   AddComplianceSettingTurnedOffBy1809185300000,
   AddComplianceSettingTurnedOffByKey1809185300100,
+  AddTeamScimGroupLinkedAt1809185400000,
 ];
