@@ -1691,10 +1691,14 @@ describe("Pool detail", () => {
     for (const title of ["Pool", "Pool ID", "Last report"]) {
       expectNoInfo(title);
     }
-    expect(screen.getByTestId("ceph-pool-hero-status")).toHaveAttribute(
-      "title",
-      CEPH_METRIC_DESCRIPTIONS.poolStatus,
-    );
+    /*
+     * Amber, its status opens why (#9594): what the word means is read
+     * after it, and a pointer is told what a press shows.
+     */
+    const status: HTMLElement = screen.getByTestId("ceph-pool-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveTextContent(CEPH_METRIC_DESCRIPTIONS.poolStatus);
+    expect(status).toHaveAttribute("title", "Show why");
   });
 
   test("Time to Full projects the 24-hour stored trend to Stored plus Max Available", async () => {

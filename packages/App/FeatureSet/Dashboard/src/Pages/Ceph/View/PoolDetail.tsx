@@ -45,6 +45,8 @@ import {
   assessCephPool,
 } from "../Utils/CephHealth";
 import { CephPgStateReadings, loadCephPgStates } from "../Utils/CephReadings";
+import { getCephPartAttention } from "../Utils/CephPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -229,6 +231,16 @@ const CephClusterPoolDetail: FunctionComponent<
         pgStates: pgStates,
       })
     : null;
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getCephPartAttention({
+    kind: "Pool",
+    externalId: poolId,
+    row: part.row,
+    newestSeenAt: part.newestSeenAt,
+    pgStates: pgStates,
+    routeFor: routes.getPartRoute,
+    now: part.readAt,
+  });
 
   const buildPoolQuery: (args: {
     variable: string;
@@ -326,7 +338,7 @@ const CephClusterPoolDetail: FunctionComponent<
           clusterName={clusterName}
           externalId={poolId}
           row={part.row}
-          newestSeenAt={part.newestSeenAt}
+          attention={attention}
           pgStates={pgStates}
           growth={growth}
           routes={routes}
@@ -426,6 +438,7 @@ const CephClusterPoolDetail: FunctionComponent<
         clusterName={clusterName}
         clusterRoute={routes.clusterRoute}
         now={part.readAt}
+        attention={attention}
       />
       <Tabs label="Pool" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
