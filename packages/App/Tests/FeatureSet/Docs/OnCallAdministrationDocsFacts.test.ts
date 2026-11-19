@@ -713,7 +713,7 @@ describe("creating a policy", () => {
     }
 
     expect(english(ON_CALL_POLICIES)).toContain(
-      "The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
+      "The **On-Call Policies** list shows each policy's **Name**, **Paged First**, **Description**, **Labels** and **Owners**. **Paged First** is who the policy's first escalation rule pages: its schedules, each with who is on call in it now, its teams and its people, or **No escalation rules** or **No responders** where it pages nobody. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
     );
   });
 
