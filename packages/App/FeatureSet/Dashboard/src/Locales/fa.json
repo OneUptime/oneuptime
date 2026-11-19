@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "مشترکان مطلع نمی‌شوند.",
   "Subscribers are notified when it starts showing.": "مشترکان هنگام شروع نمایش آن مطلع می‌شوند.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "مشترکان این صفحات وضعیت هنگام شروع نمایش اطلاعیه‌ای که از این قالب ساخته شده مطلع می‌شوند.",
-  "Subscribers of these status pages are told when the announcement starts showing.": "مشترکان این صفحات وضعیت هنگام شروع نمایش اطلاعیه مطلع می‌شوند.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "اطلاعیه چه زمانی روی صفحات وضعیتش نمایش داده می‌شود و آیا مشترکان آن‌ها از آن باخبر می‌شوند.",
   "Schedule & Notifications": "زمان‌بندی و اعلان‌ها",
   "Who to call": "تماس با چه کسی",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} زمان‌بندی آنکال با زمان‌بندی دیگری هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. لایه‌هایشان را مقایسه کنید، سپس نام یکی را تغییر دهید.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} تیم با تیمی دیگر هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. اعضایشان را مقایسه کنید، سپس نام یکی را تغییر دهید.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} تیم با تیمی دیگر هم‌نام‌اند و در انتخابگرها نمی‌توان آن‌ها را از هم تشخیص داد. اعضایشان را مقایسه کنید، سپس نام یکی را تغییر دهید.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} تیم با تیمی دیگر هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. اعضایشان را مقایسه کنید، سپس نام یکی را تغییر دهید."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} تیم با تیمی دیگر هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. اعضایشان را مقایسه کنید، سپس نام یکی را تغییر دهید.",
+  "None of the status pages picked shows announcements.": "هیچ‌یک از صفحه‌های وضعیت انتخاب‌شده اطلاعیه نمایش نمی‌دهد.",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "هنگام شروع نمایش اطلاعیه، مشترکان این صفحات وضعیت را مطلع می‌کند.",
+  "The status pages picked do not send notifications to their subscribers.": "صفحه‌های وضعیت انتخاب‌شده برای مشترکانشان اعلان نمی‌فرستند."
 }

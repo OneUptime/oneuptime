@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "不會通知訂閱者。",
   "Subscribers are notified when it starts showing.": "開始顯示時會通知訂閱者。",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "由此範本建立的公告開始顯示時，會通知這些狀態頁面的訂閱者。",
-  "Subscribers of these status pages are told when the announcement starts showing.": "公告開始顯示時，會通知這些狀態頁面的訂閱者。",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "公告何時顯示在其狀態頁面上，以及是否讓這些狀態頁面的訂閱者得知。",
   "Schedule & Notifications": "排程與通知",
   "Who to call": "呼叫對象",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "有 {{count}} 個待命排程與另一個排程同名，在選擇器中無法區分。請比較它們的層，然後重新命名其中一個。",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。"
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。",
+  "None of the status pages picked shows announcements.": "所選的狀態頁面都不顯示公告。",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "公告開始顯示時，通知這些狀態頁面的訂閱者。",
+  "The status pages picked do not send notifications to their subscribers.": "所選的狀態頁面不會傳送通知給其訂閱者。"
 }

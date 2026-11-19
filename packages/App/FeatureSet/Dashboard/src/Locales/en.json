@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "Subscribers are not notified.",
   "Subscribers are notified when it starts showing.": "Subscribers are notified when it starts showing.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Subscribers of these status pages are told when an announcement made from this template starts showing.",
-  "Subscribers of these status pages are told when the announcement starts showing.": "Subscribers of these status pages are told when the announcement starts showing.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "When the announcement shows on its status pages, and whether their subscribers hear about it.",
   "Schedule & Notifications": "Schedule & Notifications",
   "Who to call": "Who to call",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} on-call schedule has the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.",
+  "None of the status pages picked shows announcements.": "None of the status pages picked shows announcements.",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "Tell the subscribers of these status pages when the announcement starts showing.",
+  "The status pages picked do not send notifications to their subscribers.": "The status pages picked do not send notifications to their subscribers."
 }

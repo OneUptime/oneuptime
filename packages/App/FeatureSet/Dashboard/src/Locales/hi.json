@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "सब्सक्राइबर्स को सूचित नहीं किया जाता।",
   "Subscribers are notified when it starts showing.": "दिखना शुरू होने पर सब्सक्राइबर्स को सूचित किया जाता है।",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "इस टेम्पलेट से बनी घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित किया जाता है।",
-  "Subscribers of these status pages are told when the announcement starts showing.": "घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित किया जाता है।",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "घोषणा अपने स्थिति पृष्ठों पर कब दिखती है, और क्या उनके सब्सक्राइबर्स को इसके बारे में पता चलता है।",
   "Schedule & Notifications": "अनुसूची और सूचनाएँ",
   "Who to call": "किसे कॉल करें",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} ऑन-कॉल अनुसूची का नाम किसी दूसरी अनुसूची जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनकी परतों की तुलना करें, फिर किसी एक का नाम बदलें।",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} टीम का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} टीमों का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में उन्हें अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} टीम का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।"
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} टीम का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।",
+  "None of the status pages picked shows announcements.": "चुने गए स्थिति पृष्ठों में से कोई भी घोषणाएं नहीं दिखाता।",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित करें।",
+  "The status pages picked do not send notifications to their subscribers.": "चुने गए स्थिति पृष्ठ अपने सब्सक्राइबरों को सूचनाएं नहीं भेजते।"
 }

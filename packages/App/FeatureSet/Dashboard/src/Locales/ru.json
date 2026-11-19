@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "Подписчики не получат уведомление.",
   "Subscribers are notified when it starts showing.": "Подписчики получат уведомление, когда начнётся показ.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Подписчики этих страниц статуса получат уведомление, когда начнётся показ объявления, созданного по этому шаблону.",
-  "Subscribers of these status pages are told when the announcement starts showing.": "Подписчики этих страниц статуса получат уведомление, когда начнётся показ объявления.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Когда объявление показывается на своих страницах статуса и узнают ли об этом их подписчики.",
   "Schedule & Notifications": "Расписание и уведомления",
   "Who to call": "Кому звонить",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} расписание дежурства называется так же, как другое расписание, и в полях выбора их не различить. Сравните их слои, затем переименуйте одно из них.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} команда называется так же, как другая команда, и в полях выбора их не различить. Сравните их участников, затем переименуйте одну из них.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "Команд, названных так же, как другая команда: {{count}}. В полях выбора их не различить. Сравните их участников, затем переименуйте одну из них.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} команда называется так же, как другая команда, и в полях выбора их не различить. Сравните их участников, затем переименуйте одну из них."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} команда называется так же, как другая команда, и в полях выбора их не различить. Сравните их участников, затем переименуйте одну из них.",
+  "None of the status pages picked shows announcements.": "Ни одна из выбранных страниц статуса не показывает объявления.",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "Уведомляет подписчиков этих страниц статуса, когда начинается показ объявления.",
+  "The status pages picked do not send notifications to their subscribers.": "Выбранные страницы статуса не отправляют уведомления своим подписчикам."
 }

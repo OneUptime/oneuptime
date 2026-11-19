@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "購読者には通知されません。",
   "Subscribers are notified when it starts showing.": "表示が始まると購読者に通知されます。",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "このテンプレートから作成したお知らせの表示が始まると、これらのステータスページの購読者に通知されます。",
-  "Subscribers of these status pages are told when the announcement starts showing.": "お知らせの表示が始まると、これらのステータスページの購読者に通知されます。",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "お知らせがステータスページに表示されるタイミングと、その購読者に知らせるかどうかです。",
   "Schedule & Notifications": "スケジュールと通知",
   "Who to call": "呼び出す相手",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} 件のオンコールスケジュールが他のスケジュールと同じ名前のため、選択欄では区別できません。レイヤーを比較してから、どちらかの名前を変更してください。",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。"
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。",
+  "None of the status pages picked shows announcements.": "選択したステータスページはいずれもお知らせを表示しません。",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "お知らせの表示が始まったら、これらのステータスページの購読者に通知します。",
+  "The status pages picked do not send notifications to their subscribers.": "選択したステータスページは、購読者に通知を送信しません。"
 }

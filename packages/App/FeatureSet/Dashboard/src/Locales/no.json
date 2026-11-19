@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "Abonnenter varsles ikke.",
   "Subscribers are notified when it starts showing.": "Abonnenter varsles når den begynner å vises.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenter på disse statussidene varsles når en kunngjøring laget fra denne malen begynner å vises.",
-  "Subscribers of these status pages are told when the announcement starts showing.": "Abonnenter på disse statussidene varsles når kunngjøringen begynner å vises.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Når kunngjøringen vises på statussidene sine, og om abonnentene deres får vite om den.",
   "Schedule & Notifications": "Tidsplan og varslinger",
   "Who to call": "Hvem som skal ringes",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} vakttidsplan har samme navn som en annen tidsplan, og de to kan ikke skilles fra hverandre i velgere. Sammenlign lagene deres, og gi så den ene nytt navn.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} team har samme navn som et annet team, og de to kan ikke skilles fra hverandre i velgere. Sammenlign medlemmene deres, og gi så det ene nytt navn.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} team har samme navn som et annet team og kan ikke skilles fra hverandre i velgere. Sammenlign medlemmene deres, og gi så ett av dem nytt navn.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team har samme navn som et annet team, og de to kan ikke skilles fra hverandre i velgere. Sammenlign medlemmene deres, og gi så det ene nytt navn."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team har samme navn som et annet team, og de to kan ikke skilles fra hverandre i velgere. Sammenlign medlemmene deres, og gi så det ene nytt navn.",
+  "None of the status pages picked shows announcements.": "Ingen av de valgte statussidene viser kunngjøringer.",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "Varsler abonnenter på disse statussidene når kunngjøringen begynner å vises.",
+  "The status pages picked do not send notifications to their subscribers.": "De valgte statussidene sender ikke varslinger til abonnentene sine."
 }

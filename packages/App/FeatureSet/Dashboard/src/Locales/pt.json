@@ -23803,7 +23803,6 @@
   "Subscribers are not notified.": "Os assinantes não são notificados.",
   "Subscribers are notified when it starts showing.": "Os assinantes são notificados quando ele começa a ser exibido.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Os assinantes destas páginas de status são avisados quando um anúncio criado a partir deste modelo começa a ser exibido.",
-  "Subscribers of these status pages are told when the announcement starts showing.": "Os assinantes destas páginas de status são avisados quando o anúncio começa a ser exibido.",
   "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Quando o anúncio é exibido nas suas páginas de status e se os assinantes delas ficam sabendo.",
   "Schedule & Notifications": "Agendamento e notificações",
   "Who to call": "Para quem ligar",
@@ -58668,5 +58667,8 @@
   "{{count}} on-call schedules have the same name as another schedule, and pickers can't tell them apart. Compare their layers, then rename one._one": "{{count}} agendamento de plantão tem o mesmo nome que outro agendamento, e os seletores não conseguem distingui-los. Compare as camadas deles e depois renomeie um.",
   "{{count}} team has the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} equipe tem o mesmo nome que outra equipe, e os seletores não conseguem distingui-las. Compare os membros delas e depois renomeie uma.",
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one.": "{{count}} equipes têm o mesmo nome que outra equipe, e os seletores não conseguem distingui-las. Compare os membros delas e depois renomeie uma.",
-  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} equipe tem o mesmo nome que outra equipe, e os seletores não conseguem distingui-las. Compare os membros delas e depois renomeie uma."
+  "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} equipe tem o mesmo nome que outra equipe, e os seletores não conseguem distingui-las. Compare os membros delas e depois renomeie uma.",
+  "None of the status pages picked shows announcements.": "Nenhuma das páginas de status selecionadas mostra anúncios.",
+  "Tell the subscribers of these status pages when the announcement starts showing.": "Avisa os assinantes destas páginas de status quando o anúncio começa a ser exibido.",
+  "The status pages picked do not send notifications to their subscribers.": "As páginas de status selecionadas não enviam notificações aos seus assinantes."
 }

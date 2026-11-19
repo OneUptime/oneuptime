@@ -130,10 +130,22 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import {
   ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
   ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
+  ANNOUNCEMENT_NOT_SHOWN,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
+  ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
   ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
   ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import {
+  ANNOUNCEMENT_NOTIFIES,
+  AnnouncementReachAnswer,
+  AnnouncementReachAsk,
+  ANNOUNCEMENT_REACH_ROUTE,
+  announcementNothingSent,
+  answerAnnouncementReach,
+} from "./AnnouncementReachAnswers";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -155,7 +167,21 @@ const OTHER_STATUS_PAGE_ID: string = "33333333-3333-4333-8333-333333333333";
 const TEMPLATE_ID: string = "11111111-1111-4111-8111-111111111111";
 const MONITOR_ID: string = "44444444-4444-4444-8444-444444444444";
 
+// With a page picked that shows announcements and tells its subscribers.
 const DEFAULT_LINE: string = `${ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded} ${ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY}`;
+
+// With no page picked yet: when it shows, and no promise that anyone is told.
+const NO_PAGE_LINE: string = ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded;
+
+/*
+ * What the server says of the status pages picked (#9775): by default a
+ * page picked shows announcements and tells its subscribers.
+ */
+let reachAnswer:
+  | AnnouncementReachAnswer
+  | ((ask: AnnouncementReachAsk) => AnnouncementReachAnswer) =
+  ANNOUNCEMENT_NOTIFIES;
+let reachAsks: Array<AnnouncementReachAsk> = [];
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/dashboard/project/status-pages/announcements/create"),
@@ -428,6 +454,25 @@ function sectionLine(): string {
   ).trim();
 }
 
+// Picks a status page in the picker, as a person does.
+async function pickStatusPage(name: RegExp): Promise<void> {
+  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+  await user.click(
+    screen.getByRole("combobox", {
+      name: /Show announcement on these status pages/,
+    }),
+  );
+  await user.click(await screen.findByRole("option", { name: name }));
+}
+
+// The line, once the server's answer about the pages picked is drawn.
+async function lineBecomes(line: string): Promise<void> {
+  await waitFor(() => {
+    expect(sectionLine()).toBe(line);
+  });
+}
+
 /*
  * The line is drawn while the section is folded: fold it, read the line,
  * and open it again to go on answering.
@@ -512,6 +557,11 @@ beforeEach(() => {
 
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
   OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+  reachAnswer = ANNOUNCEMENT_NOTIFIES;
+  reachAsks = answerAnnouncementReach((ask: AnnouncementReachAsk) => {
+    return typeof reachAnswer === "function" ? reachAnswer(ask) : reachAnswer;
+  });
 
   jest
     .spyOn(Navigation, "getQueryStringByName")
@@ -644,8 +694,16 @@ describe("Create Announcement, from the project's Announcements list", () => {
     const schedule: HTMLElement = sectionHeader("Schedule & Notifications");
 
     expect(schedule).toHaveAttribute("aria-expanded", "false");
+    // No page picked yet: when it shows, and no promise that anyone is told.
+    expect(schedule).toHaveAccessibleDescription(NO_PAGE_LINE);
+    expect(sectionLine()).toBe(NO_PAGE_LINE);
+    expect(reachAsks).toEqual([]);
+
+    // A page picked that shows announcements and tells its subscribers.
+    await pickStatusPage(/Acme Public Status/);
+    await lineBecomes(DEFAULT_LINE);
     expect(schedule).toHaveAccessibleDescription(DEFAULT_LINE);
-    expect(sectionLine()).toBe(DEFAULT_LINE);
+
     expect(fieldLabelsIn(sectionBody(schedule))).toEqual([
       "Start Showing Announcement At",
       "End Showing Announcement At",
@@ -679,6 +737,8 @@ describe("Create Announcement, from the project's Announcements list", () => {
     await renderPage();
     await writeAnnouncement();
     await goToNextStep("Status Pages");
+    await pickStatusPage(/Acme Public Status/);
+    await lineBecomes(DEFAULT_LINE);
 
     const schedule: HTMLElement = sectionHeader("Schedule & Notifications");
 
@@ -1207,6 +1267,225 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
   });
 });
 
+/*
+ * WHAT THE STATUS PAGES PICKED DO (#9775).
+ *
+ * The line said "Subscribers are notified when it starts showing." whatever
+ * pages were picked. It now says what the server says of them: a page
+ * picked shows announcements and tells its subscribers; the ones that show
+ * them send nothing; or none shows announcements. Under the ticked notify
+ * box, why nobody would be told. While it is not known, or not answered,
+ * nothing is promised - and the announcement is created all the same.
+ */
+describe("Create Announcement, on the status pages picked", () => {
+  beforeEach(() => {
+    queryInUrl = { statusPageId: STATUS_PAGE_ID };
+  });
+
+  async function openStatusPages(): Promise<void> {
+    await renderPage();
+    await writeAnnouncement();
+    await goToNextStep("Status Pages");
+  }
+
+  function notifyBox(): HTMLElement {
+    return screen.getByRole("checkbox", {
+      name: "Notify Status Page Subscribers",
+    });
+  }
+
+  function queryBoxReason(): HTMLElement | null {
+    return screen.queryByTestId("announcement-notify-subscribers-reason");
+  }
+
+  function reviewedLine(): string {
+    return (
+      within(form()).getByTestId("form-summary-section-summary").textContent ||
+      ""
+    ).trim();
+  }
+
+  test("pages that show announcements and notify: told when it starts showing - asked once, about the pages picked", async () => {
+    await openStatusPages();
+    await lineBecomes(DEFAULT_LINE);
+
+    fireEvent.click(sectionHeader("Schedule & Notifications"));
+
+    expect(notifyBox()).toBeChecked();
+    expect(queryBoxReason()).toBeNull();
+
+    // The line and the box under it ask once between them.
+    expect(reachAsks).toHaveLength(1);
+    expect(reachAsks[0]).toMatchObject({
+      route: ANNOUNCEMENT_REACH_ROUTE,
+      statusPageIds: [STATUS_PAGE_ID],
+      announcementId: null,
+    });
+  });
+
+  test("pages that hide announcements: the line says it shows nowhere and nobody is told, the ticked box says why, and the review says it too", async () => {
+    reachAnswer = announcementNothingSent(
+      PublicNoteNothingSentReason.NoStatusPages,
+    );
+
+    await openStatusPages();
+
+    const line: string = `${ANNOUNCEMENT_NOT_SHOWN} ${ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY}`;
+
+    expect(line).toBe(
+      "None of the status pages picked shows announcements. Subscribers are not notified.",
+    );
+    await lineBecomes(line);
+
+    // Opened, the ticked box says why nobody would be told.
+    fireEvent.click(sectionHeader("Schedule & Notifications"));
+
+    expect(notifyBox()).toBeChecked();
+    expect(queryBoxReason()).toHaveTextContent(ANNOUNCEMENT_NOT_SHOWN);
+    expect(queryBoxReason()).toHaveAttribute("role", "note");
+
+    // Unticked, there is nothing to explain.
+    fireEvent.click(notifyBox());
+    await act(async () => {});
+    expect(queryBoxReason()).toBeNull();
+
+    fireEvent.click(notifyBox());
+    await act(async () => {});
+    expect(queryBoxReason()).toHaveTextContent(ANNOUNCEMENT_NOT_SHOWN);
+
+    await goToNextStep("Summary");
+    expect(reviewedLine()).toBe(line);
+
+    // The answer is advisory: the announcement is created all the same.
+    fireEvent.click(createButton());
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+    expect(createdModel().shouldStatusPageSubscribersBeNotified).toBe(true);
+  });
+
+  test("pages that never notify: when it shows, then why nobody is told - and the ticked box says why", async () => {
+    reachAnswer = announcementNothingSent(
+      PublicNoteNothingSentReason.NotificationsOff,
+    );
+
+    await openStatusPages();
+
+    const line: string = `${ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded} ${ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY}`;
+
+    expect(line).toBe(
+      "Shows now and stays until you end it. The status pages picked do not send notifications to their subscribers.",
+    );
+    await lineBecomes(line);
+
+    const schedule: HTMLElement = sectionHeader("Schedule & Notifications");
+
+    fireEvent.click(schedule);
+
+    expect(queryBoxReason()).toHaveTextContent(
+      ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+    );
+
+    // Switched off, that nobody is told is all there is to say.
+    fireEvent.click(notifyBox());
+    await act(async () => {});
+
+    expect(queryBoxReason()).toBeNull();
+    expect(lineOfOpenSection(schedule)).toBe(
+      `${ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded} ${ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY}`,
+    );
+  });
+
+  test("no page picked: the line promises nothing about who is told, and nothing is asked", async () => {
+    queryInUrl = {};
+
+    await openStatusPages();
+
+    expect(sectionLine()).toBe(NO_PAGE_LINE);
+
+    fireEvent.click(sectionHeader("Schedule & Notifications"));
+
+    expect(notifyBox()).toBeChecked();
+    expect(queryBoxReason()).toBeNull();
+    expect(reachAsks).toEqual([]);
+  });
+
+  test("not known yet: nothing is promised while the server is asked", async () => {
+    reachAnswer = "never";
+
+    await openStatusPages();
+
+    await waitFor(() => {
+      expect(reachAsks.length).toBeGreaterThan(0);
+    });
+    expect(sectionLine()).toBe(NO_PAGE_LINE);
+
+    fireEvent.click(sectionHeader("Schedule & Notifications"));
+
+    expect(queryBoxReason()).toBeNull();
+  });
+
+  test("not answered: a refusal promises nothing, and the announcement is created all the same", async () => {
+    reachAnswer = new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "You do not have permissions to create Status Page Announcement.",
+      },
+      {},
+    );
+
+    await openStatusPages();
+
+    await waitFor(() => {
+      expect(reachAsks.length).toBeGreaterThan(0);
+    });
+    await act(async () => {});
+    expect(sectionLine()).toBe(NO_PAGE_LINE);
+
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("the line follows the pages picked: each change of pages is asked about", async () => {
+    // Only Internal Status hides announcements.
+    reachAnswer = (ask: AnnouncementReachAsk): AnnouncementReachAnswer => {
+      return ask.statusPageIds.includes(STATUS_PAGE_ID)
+        ? ANNOUNCEMENT_NOTIFIES
+        : announcementNothingSent(PublicNoteNothingSentReason.NoStatusPages);
+    };
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await openStatusPages();
+    await lineBecomes(DEFAULT_LINE);
+
+    await pickStatusPage(/Internal Status/);
+    await lineBecomes(DEFAULT_LINE);
+
+    await user.click(
+      screen.getByRole("button", { name: /Remove Acme Public Status/ }),
+    );
+    await lineBecomes(
+      `${ANNOUNCEMENT_NOT_SHOWN} ${ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY}`,
+    );
+
+    expect(
+      reachAsks.map((ask: AnnouncementReachAsk): Array<string> => {
+        return ask.statusPageIds;
+      }),
+    ).toEqual([
+      [STATUS_PAGE_ID],
+      [STATUS_PAGE_ID, OTHER_STATUS_PAGE_ID],
+      [OTHER_STATUS_PAGE_ID],
+    ]);
+  });
+});
+
 describe("Create Announcement, in the reader's language", () => {
   test("reads in German", async () => {
     queryInUrl = { statusPageId: STATUS_PAGE_ID };
@@ -1237,7 +1516,7 @@ describe("Create Announcement, in the reader's language", () => {
       .join(" ");
 
     expect(line).not.toContain("Subscribers");
-    expect(sectionLine()).toBe(line);
+    await lineBecomes(line);
     expect(
       screen.getByRole("button", {
         name: germanText("Schedule & Notifications"),
