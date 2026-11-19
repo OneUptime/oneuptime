@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * Kubernetes node worker-3 ran out of disk: a backup agent on the node
@@ -888,27 +889,20 @@ const scenario: BenchmarkScenario = {
         "Pull requests: #912 'AVIF output' (merged 2026-07-07T15:20:00.000Z).",
       ].join("\n"),
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: IMAGE_DELIVERY_SLO_ID,
-          name: "Image delivery availability",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99.5,
-          window: "Rolling 30d",
-          monitors: "Image Resizer API",
-          sloStatus: "Healthy",
-          currentSliPercentage: 99.77,
-          errorBudgetRemainingPercentage: 54,
-          currentBurnRate: 12.7,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-07-08T14:08:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: IMAGE_DELIVERY_SLO_ID,
+        name: "Image delivery availability",
+        monitors: ["Image Resizer API"],
+        targetPercentage: 99.5,
+        windowDays: 30,
+        sloStatus: "Healthy",
+        currentSliPercentage: 99.77,
+        errorBudgetRemainingPercentage: 54,
+        currentBurnRate: 12.7,
+        lastEvaluatedAt: "2026-07-08T14:08:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:

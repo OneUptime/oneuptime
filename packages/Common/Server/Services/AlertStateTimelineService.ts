@@ -42,6 +42,9 @@ import StateChangeLock from "../Utils/StateChangeLock";
 import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
 import Exception from "../../Types/Exception/Exception";
 import StateChangeNote from "../Utils/StateChangeNote";
+import StateChangeRootCause from "../Utils/StateChangeRootCause";
+import InvestigationGrader from "../Utils/AI/SRE/InvestigationGrader";
+import Alert from "../../Models/DatabaseModels/Alert";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
@@ -178,6 +181,28 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
             StateChangeNote.privateNoteKey,
           ],
         });
+
+      /*
+       * The root cause that comes with the change, if any - the Resolve
+       * dialog's "Add the root cause", under writtenRootCause (#7765). It
+       * becomes the alert's root cause once the change is saved, written as
+       * the person changing the state, and whether they may write it is
+       * asked now, with the alert's own update check: a change whose root
+       * cause they may not write is refused whole (StateChangeRootCause).
+       */
+      const writtenRootCause: string | undefined =
+        StateChangeRootCause.getRootCause(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
+
+      if (writtenRootCause) {
+        await StateChangeRootCause.assertCallerMayWrite({
+          modelType: Alert,
+          recordId: createBy.data.alertId,
+          rootCause: writtenRootCause,
+          props: createBy.props,
+        });
+      }
 
       // The alert's lock: given back in onCreateSuccess or onCreateError.
       mutex = await StateChangeLock.take({
@@ -331,6 +356,7 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
           privateNotesToPost: privateNotesToPost,
+          writtenRootCause: writtenRootCause,
           mutex: mutex,
         },
       };
@@ -584,6 +610,56 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
       savedStateChange: createdItem,
       props: onCreate.createBy.props,
     });
+
+    /*
+     * The root cause that came with the change (#7765): the alert's own now,
+     * written as the person who changed the state, so the alert's feed says
+     * who changed its root cause, as for any edit of it. Never fails the
+     * change, which is saved (StateChangeRootCause.save).
+     */
+    const writtenRootCause: string | undefined =
+      onCreate.carryForward.writtenRootCause;
+    const isRootCauseWritten: boolean = writtenRootCause
+      ? await StateChangeRootCause.save({
+          write: (): Promise<unknown> => {
+            return AlertService.updateOneById({
+              id: alertId,
+              data: {
+                rootCause: writtenRootCause,
+              },
+              props: onCreate.createBy.props,
+            });
+          },
+          logAttributes: {
+            projectId: projectId.toString(),
+            alertId: alertId.toString(),
+          } as LogAttributes,
+        })
+      : false;
+
+    /*
+     * This change resolves the alert: it moves the alert's current state -
+     * not a row dated before it - from a state that is not resolved into
+     * one that is. OneUptime AI's investigation of it is graded against the
+     * root cause people wrote (InvestigationGrader), as an incident's is:
+     * fire-and-forget, never blocking or failing the resolve.
+     */
+    if (!createdItem.endsAt && isResolvedState && !wasResolved) {
+      InvestigationGrader.gradeInvestigationOnResolve({
+        alertId: alertId,
+        projectId: projectId,
+        writtenRootCause: isRootCauseWritten ? writtenRootCause : undefined,
+      }).catch((error: Error) => {
+        logger.error(`AI investigation grading failed on resolve:`, {
+          projectId: projectId.toString(),
+          alertId: alertId.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          projectId: projectId.toString(),
+          alertId: alertId.toString(),
+        } as LogAttributes);
+      });
+    }
 
     /*
      * An on-call policy that pages again when an acknowledged alert is not

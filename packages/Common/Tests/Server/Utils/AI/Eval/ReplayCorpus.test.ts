@@ -3,6 +3,7 @@ import ReplayCorpus, {
   ReplayCase,
 } from "../../../../../Server/Utils/AI/Eval/ReplayCorpus";
 import PostedRootCause from "../../../../../Server/Utils/AI/SRE/PostedRootCause";
+import { MONITOR_ROOT_CAUSE_OPENING } from "../../../../../Server/Utils/AI/SRE/InvestigationGrader";
 import AIRunRecordingService from "../../../../../Server/Services/AIRunRecordingService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
@@ -43,8 +44,9 @@ import type { SpyInstance } from "jest-mock";
  * (newest first, the limit, one project or all), that only completed
  * Investigation runs become cases (a recording of a run that is not, or of
  * a run with no incident or alert, is left out), what a case carries, the
- * root cause read from the incident or the alert, and how a case's
- * recording and original analysis are read.
+ * root cause read from the incident or the alert - never one OneUptime
+ * wrote as it opened it (#7765) - and how a case's recording and original
+ * analysis are read.
  */
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -337,6 +339,50 @@ describe("ReplayCorpus.listCases", () => {
 
       expect((await ReplayCorpus.listCases({}))[0]!.rootCause).toBe(rootCause);
     }
+  });
+
+  /*
+   * The root cause a monitor writes as it opens an incident or an alert is
+   * what it saw, not why (#7765): graded against it, a right analysis reads
+   * as a miss, so the case has no root cause yet and the replay skips it.
+   * Written over - as it was resolved, or on its page - it is people's.
+   */
+  test("a root cause OneUptime wrote as it opened the record reads as null; one written over it is kept", async () => {
+    const monitorWords: string = `${MONITOR_ROOT_CAUSE_OPENING}:\n\n**Criteria Name**: Website is down\n\n**Filter Conditions Met**: Response Status Code was 503.`;
+
+    findRecordings.mockResolvedValue([
+      recordingRow(RUN_A),
+      recordingRow(RUN_B),
+    ]);
+    findRuns.mockResolvedValue([
+      run(RUN_A, { incidentId: INCIDENT_ID }),
+      run(RUN_B, { alertId: ALERT_ID }),
+    ]);
+
+    findIncident.mockResolvedValueOnce(incident(monitorWords));
+    findAlert.mockResolvedValueOnce(alert(`  ${monitorWords}`));
+
+    expect(
+      (await ReplayCorpus.listCases({})).map((replayCase: ReplayCase) => {
+        return replayCase.rootCause;
+      }),
+    ).toEqual([null, null]);
+
+    findIncident.mockResolvedValueOnce(
+      incident("A bad deploy of shop-api cut the pool."),
+    );
+    findAlert.mockResolvedValueOnce(
+      alert("The nightly reindex starved the database of IOPS."),
+    );
+
+    expect(
+      (await ReplayCorpus.listCases({})).map((replayCase: ReplayCase) => {
+        return replayCase.rootCause;
+      }),
+    ).toEqual([
+      "A bad deploy of shop-api cut the pool.",
+      "The nightly reindex starved the database of IOPS.",
+    ]);
   });
 
   test("a run that names an incident is an incident's, even when it names an alert too", async () => {

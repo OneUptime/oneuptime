@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * The TLS certificate served for api.example.com expired at 00:00 UTC and
@@ -730,27 +731,20 @@ const scenario: BenchmarkScenario = {
         "Drained 14 pods (mobile-api x2, recommendations x3, and 9 others), rescheduled on worker-2 and worker-5 by 23:47:10; worker-7 Ready again at 23:49:41.",
       ].join("\n"),
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: MOBILE_API_SLO_ID,
-          name: "Mobile API availability",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99.9,
-          window: "Rolling 30d",
-          monitors: "Mobile API traffic",
-          sloStatus: "Healthy",
-          currentSliPercentage: 99.964,
-          errorBudgetRemainingPercentage: 64,
-          currentBurnRate: 31.5,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-06-01T00:10:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: MOBILE_API_SLO_ID,
+        name: "Mobile API availability",
+        monitors: ["Mobile API traffic"],
+        targetPercentage: 99.9,
+        windowDays: 30,
+        sloStatus: "Healthy",
+        currentSliPercentage: 99.964,
+        errorBudgetRemainingPercentage: 64,
+        currentBurnRate: 31.5,
+        lastEvaluatedAt: "2026-06-01T00:10:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:
