@@ -47,8 +47,11 @@ export default class ScenarioTools {
     const serialized: SerializedResult = response
       ? this.serialize(response)
       : Serializer.serializeRows([]);
-    // The notes go before the rows, as the tool writes them: not redacted.
-    const text: string = `${(response?.notes || []).join("")}${serialized.text}`;
+    // The notes go around the rows, as the tool writes them: not redacted.
+    const after: Array<string> = response?.notesAfterRows || [];
+    const text: string = `${(response?.notes || []).join("")}${serialized.text}${
+      after.length > 0 ? `\n${after.join(" ")}` : ""
+    }`;
 
     return {
       success: true,

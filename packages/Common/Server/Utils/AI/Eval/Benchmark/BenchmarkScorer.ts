@@ -33,10 +33,12 @@ import ScenarioTools from "./ScenarioTools";
  * A scenario whose evidence names no cause (BenchmarkExpectationKind.
  * Inconclusive, #7766) is passed by an answer that says so and cites what
  * it checked: its root cause holds the words an answer that could not tell
- * uses (INCONCLUSIVE_WORDS) and names none of the planted wrong causes - a
- * hedged guess at one is still the guess the persona says not to make - or,
- * with a judge, production's confidence classifier reads it as
- * INCONCLUSIVE. A confident answer fails, whatever it names.
+ * uses (INCONCLUSIVE_WORDS) or, with a judge, production's confidence
+ * classifier reads it as INCONCLUSIVE. A confident answer fails, whatever it
+ * names. A planted wrong cause the root cause names is reported, as for any
+ * scenario, but does not fail the answer: an honest one often rules the
+ * distractors out right there ("the only deploy touched another service"),
+ * and words cannot tell that from a hedged guess - a judge reads which it is.
  */
 
 /*
@@ -157,7 +159,6 @@ export default class BenchmarkScorer {
     const foundCause: boolean = this.findsWhatWasPlanted({
       kind,
       namesCause,
-      namedDistractors,
       ...judgeReading,
     });
 
@@ -178,13 +179,11 @@ export default class BenchmarkScorer {
    * Whether the answer found what was planted. A judge's reading, when one
    * read it, outranks the words: its MATCH for a planted cause; its
    * INCONCLUSIVE where the evidence names none. With no judge: every group
-   * of the words, and - where the evidence names no cause - no planted
-   * wrong cause named.
+   * of the words.
    */
   public static findsWhatWasPlanted(data: {
     kind: BenchmarkExpectationKind;
     namesCause: boolean;
-    namedDistractors: Array<string>;
     judgeGrade?: AIRunAutoGrade | null | undefined;
     judgeClassification?: ConfidenceClassificationToken | null | undefined;
   }): boolean {
@@ -193,7 +192,7 @@ export default class BenchmarkScorer {
         return data.judgeClassification === "INCONCLUSIVE";
       }
 
-      return data.namesCause && data.namedDistractors.length === 0;
+      return data.namesCause;
     }
 
     if (data.judgeGrade !== undefined) {

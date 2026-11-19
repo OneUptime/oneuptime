@@ -52,9 +52,8 @@ export enum BenchmarkExpectationKind {
   /*
    * The evidence names no cause, and the right answer says so (#7766): its
    * root cause says it could not tell (or the product's own confidence
-   * classifier, run by a judge, reads it as INCONCLUSIVE), names none of
-   * the planted wrong causes, and cites what it checked. A confident answer
-   * - right words or wrong - fails.
+   * classifier, run by a judge, reads it as INCONCLUSIVE), and it cites
+   * what it checked. A confident answer - right words or wrong - fails.
    */
   Inconclusive = "inconclusive",
 }
@@ -80,6 +79,12 @@ export interface BenchmarkToolResponse {
    * before the rows, unredacted, as the tool hands them over.
    */
   notes?: Array<string> | undefined;
+  /*
+   * What the real tool writes after its rows, on a line of its own, its
+   * sentences joined by a space: query_containers says which host and
+   * window it read, and how many containers reported.
+   */
+  notesAfterRows?: Array<string> | undefined;
   // Rows, written as the toolbox writes rows ("- key=value | key=value")...
   rows?: Array<JSONObject> | undefined;
   // ...or free text, as a trace tree or a change's details are.
@@ -116,9 +121,7 @@ export interface BenchmarkExpectation {
   /*
    * The plausible wrong causes the scenario plants, by name, with the words
    * that name each - reported when the root cause names one, so a reader
-   * sees which distractor fooled the model. In a scenario whose evidence
-   * names no cause, naming one in the root cause fails the answer: it is
-   * the guess the persona says not to make.
+   * sees which distractor fooled the model.
    */
   distractors: Array<{ name: string; terms: Array<string> }>;
 }

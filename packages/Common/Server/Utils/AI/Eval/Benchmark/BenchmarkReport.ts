@@ -195,8 +195,8 @@ export default class BenchmarkReport {
       "",
       "A scenario passes when its root cause finds the planted fault (the judge says MATCH,",
       "or, with no judge, it names the fault) and cites at least one piece of key evidence.",
-      "Where the evidence names no cause, it passes when it says it could not tell, names",
-      "none of the planted wrong causes, and cites what it checked.",
+      "Where the evidence names no cause, it passes when it says it could not tell (or the",
+      "judge reads it as INCONCLUSIVE) and cites what it checked.",
       "",
     );
 

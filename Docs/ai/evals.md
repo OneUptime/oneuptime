@@ -52,9 +52,10 @@ today's persona, tools and limits, and scores the answer:
 
 Some scenarios plant no cause the evidence can name. There the right answer is the one the persona asks for: say
 plainly that the cause could not be determined, and list what was checked. Such an answer passes when its root cause
-says it could not tell (in words such as "inconclusive" or "could not determine"), names none of the planted wrong
-causes, and cites what it checked. With a judge, the judge reads it as production's confidence classifier reads an
-investigation, and INCONCLUSIVE passes it. A confident answer fails, whatever it names.
+says it could not tell (in words such as "inconclusive" or "could not determine") and cites what it checked. With a
+judge, the judge reads it as production's confidence classifier reads an investigation, and INCONCLUSIVE passes it. A
+confident answer fails, whatever it names. A planted wrong cause the root cause names is reported but does not fail
+the answer, since an honest one often rules the distractors out right there; a judge tells that from a hedged guess.
 
 A model's answers vary from run to run, so one run of a scenario can pass or fail with no change at all.
 `--repeat=<k>` (up to 10) runs each scenario `k` times: the report gives each scenario's pass rate, and a scenario

@@ -7,6 +7,8 @@ import NodeDiskPressureEvictions from "./Scenarios/NodeDiskPressureEvictions";
 import SearchConfigPointsToStaging from "./Scenarios/SearchConfigPointsToStaging";
 import LoginCredentialStuffingTraffic from "./Scenarios/LoginCredentialStuffingTraffic";
 import InvoiceWorkerPoisonMessage from "./Scenarios/InvoiceWorkerPoisonMessage";
+import OrdersApiNoisyNeighborContainer from "./Scenarios/OrdersApiNoisyNeighborContainer";
+import CheckoutLatencyBlipNoCause from "./Scenarios/CheckoutLatencyBlipNoCause";
 
 /*
  * Every scenario of the investigation benchmark, in the order a run takes
@@ -22,6 +24,10 @@ const BENCHMARK_SCENARIOS: ReadonlyArray<BenchmarkScenario> = [
   SearchConfigPointsToStaging,
   LoginCredentialStuffingTraffic,
   InvoiceWorkerPoisonMessage,
+  // An alert, and the fault on the Docker host under it (#7766).
+  OrdersApiNoisyNeighborContainer,
+  // Nothing the telemetry shows explains it: the right answer says so (#7766).
+  CheckoutLatencyBlipNoCause,
 ];
 
 export default BENCHMARK_SCENARIOS;

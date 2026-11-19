@@ -446,7 +446,7 @@ describe("foundCause says whether the answer found what was planted", () => {
 /*
  * A SCENARIO WHOSE EVIDENCE NAMES NO CAUSE (#7766): the right answer says it
  * could not tell, and cites what it checked. A confident answer fails,
- * whatever it names; so does a hedged guess at a planted wrong cause.
+ * whatever it names.
  */
 const NO_CAUSE_SCENARIO: BenchmarkScenario = {
   ...SCENARIO,
@@ -507,17 +507,22 @@ describe("where the evidence names no cause, saying so is the right answer", () 
     }
   });
 
-  test("a hedged guess at a planted wrong cause fails, though it says it could not tell", () => {
+  /*
+   * An honest answer often rules the planted wrong causes out in its root
+   * cause; words cannot tell that from a hedged guess, so naming one is
+   * reported and does not fail it. A judge reads which it is.
+   */
+  test("a planted wrong cause it rules out in its root cause is reported, and does not fail it", () => {
     const result: BenchmarkScore = scoreNoCause(
       report(
-        "Inconclusive, but the storefront-web deploy v5.9.0 is the likely cause. [C1]",
+        "Inconclusive: the only change, the storefront-web deploy v5.9.0, touched no service the orders call. [C1]",
       ),
     );
 
     expect(result.namesCause).toBe(true);
     expect(result.namedDistractors).toEqual(["storefront deploy"]);
-    expect(result.foundCause).toBe(false);
-    expect(result.passed).toBe(false);
+    expect(result.foundCause).toBe(true);
+    expect(result.passed).toBe(true);
   });
 
   test("saying so without citing what it checked fails", () => {
