@@ -558,4 +558,45 @@ export default class Team extends BaseModel {
     nullable: true,
   })
   public customFields?: JSONObject = undefined;
+
+  /*
+   * WHEN A SCIM IDENTITY PROVIDER TOOK THIS TEAM AS ONE OF ITS GROUPS
+   * (#9743): it pushed the group that made or adopted the team, or it has
+   * since read or changed the team by its id - which only a provider that
+   * holds it as a group does. A pushed group whose name reads like this
+   * team's but is spelled another way is then another group of the
+   * provider, and gets a team of its own: two groups of the provider are
+   * never made one team. Empty for a team no provider has taken.
+   *
+   * Set by SCIM, as OneUptime; nobody writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ProjectUser,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    title: "Identity Provider Group Since",
+    description:
+      "When a SCIM identity provider first took this team as one of its groups. Empty for a team no identity provider has taken.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public scimGroupLinkedAt?: Date = undefined;
 }

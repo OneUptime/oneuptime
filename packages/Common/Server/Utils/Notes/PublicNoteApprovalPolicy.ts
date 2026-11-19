@@ -10,6 +10,7 @@ import {
   PublicNoteApprovalEventType,
   PublicNoteApprovalStepRule,
 } from "../../../Types/StatusPage/PublicNoteApproval";
+import { toListOrderNumber } from "../../../Utils/ListOrder";
 import ProjectService from "../../Services/ProjectService";
 import PublicNoteApprovalStepService from "../../Services/PublicNoteApprovalStepService";
 import TeamMemberService from "../../Services/TeamMemberService";
@@ -98,6 +99,7 @@ export default class PublicNoteApprovalPolicy {
           _id: true,
           name: true,
           order: true,
+          createdAt: true,
           approverUsers: {
             _id: true,
           },
@@ -119,7 +121,13 @@ export default class PublicNoteApprovalPolicy {
       .map((step: PublicNoteApprovalStep): PublicNoteApprovalStepRule => {
         const rule: PublicNoteApprovalStepRule = {
           id: step.id!.toString(),
-          order: typeof step.order === "number" ? step.order : 0,
+          /*
+           * A step without a place keeps none, and so comes after every
+           * step that has one (PublicNoteApproval.sortSteps) - not at 0,
+           * first.
+           */
+          order: toListOrderNumber(step.order),
+          createdAt: step.createdAt || null,
           userIds: this.idsOf(step.approverUsers),
           teamIds: this.idsOf(step.approverTeams),
         };

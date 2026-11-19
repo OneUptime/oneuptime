@@ -83,6 +83,20 @@ export interface HeldPermissionsOptions {
 // The four operations a list of permissions can stand for.
 export type PermissionOperation = "create" | "read" | "update" | "delete";
 
+// One team that gives a permission (HeldPermissionsUtil.getTeamGrants).
+export interface TeamGrant {
+  // The team's id, in lower case.
+  teamId: string;
+  // Whether one of the team's rows of it reaches the whole project.
+  isProjectWide: boolean;
+}
+
+// Every team that gives a permission, and whether a row no team grants holds it too.
+export interface TeamGrants {
+  teams: Array<TeamGrant>;
+  isGrantedByNoTeam: boolean;
+}
+
 /*
  * The columns every select may name, whatever the caller holds: the server
  * never checks them (ColumnPermissions.getExcludedColumnNames).
@@ -156,6 +170,87 @@ export default class HeldPermissionsUtil {
     }
 
     return teamIds;
+  }
+
+  /*
+   * THE TEAMS THAT GIVE A PERMISSION: for a permission that reaches the
+   * people of the team it is given to, never anyone else (Manage On-Call
+   * Policy User Overrides for Own Team, Types/OnCallDutyPolicy
+   * /UserOverrideTeamAccess). Read from `rows` - a caller's rows in one
+   * project, as the server's request or the dashboard's snapshot carries
+   * them - the allow rows of `permission`, by the team each is granted on
+   * (UserPermission.teamId): each team once, in the order the rows name
+   * them, with whether one of its rows reaches the whole project
+   * (isProjectWideRow) rather than only some labels or owned records.
+   * Blocks are the rule's other functions' to weigh (holdsAnyOf); none
+   * grants. An allow row no team grants - an API key's, a workflow's - is
+   * counted apart (isGrantedByNoTeam): it reaches no team's people.
+   */
+  public static getTeamGrants(
+    rows: ReadonlyArray<UserPermission> | null | undefined,
+    permission: Permission,
+  ): TeamGrants {
+    const grants: TeamGrants = { teams: [], isGrantedByNoTeam: false };
+    const byTeam: Map<string, TeamGrant> = new Map<string, TeamGrant>();
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      if (
+        !row ||
+        row.permission !== permission ||
+        HeldPermissionsUtil.isBlockRow(row)
+      ) {
+        continue;
+      }
+
+      const teamId: string | null = HeldPermissionsUtil.readTeamId(row.teamId);
+
+      if (!teamId) {
+        grants.isGrantedByNoTeam = true;
+        continue;
+      }
+
+      const isProjectWide: boolean = HeldPermissionsUtil.isProjectWideRow(row);
+      const known: TeamGrant | undefined = byTeam.get(teamId);
+
+      if (known) {
+        known.isProjectWide = known.isProjectWide || isProjectWide;
+        continue;
+      }
+
+      const grant: TeamGrant = { teamId: teamId, isProjectWide: isProjectWide };
+      byTeam.set(teamId, grant);
+      grants.teams.push(grant);
+    }
+
+    return grants;
+  }
+
+  /*
+   * A row's team as the server's request or the dashboard's snapshot holds
+   * it - an ObjectID, its text, or the object it was stored as - in lower
+   * case, as ids are compared; null for none.
+   */
+  public static readTeamId(value: unknown): string | null {
+    if (!value) {
+      return null;
+    }
+
+    let text: string = "";
+
+    if (typeof value === "string") {
+      text = value;
+    } else if (
+      typeof value === "object" &&
+      typeof (value as { value?: unknown }).value === "string"
+    ) {
+      text = (value as { value: string }).value;
+    } else {
+      text = String(value);
+    }
+
+    text = text.trim().toLowerCase();
+
+    return text && text !== "[object object]" ? text : null;
   }
 
   /*

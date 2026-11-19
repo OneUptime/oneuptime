@@ -14,12 +14,17 @@ import {
 } from "./ToolAnnotations";
 import ModelType from "../Types/ModelType";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
+import { requireString, requireUuid } from "./ToolArguments";
+import {
+  MOVE_IN_LIST_TOOL_NAME,
+  getMoveInListToolDefinition,
+  moveInList,
+} from "./MoveInList";
 import McpCredentialUtil, {
   McpCredential,
   McpCredentialInput,
   McpCredentialType,
 } from "../Types/McpCredential";
-import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DATA_OBSERVABILITY_API_ROUTES } from "Common/Types/DataObservability/DataObservabilityApiTypes";
@@ -232,11 +237,29 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
   },
 ];
 
+/*
+ * Every workflow tool: the ones above, and the move of a row of an ordered
+ * list (MoveInList), whose resources are read off the models - so built the
+ * first time it is asked for, once the models are there to read.
+ */
+let workflowToolDefinitions: Array<WorkflowToolDefinition> | null = null;
+
+function getWorkflowToolDefinitions(): Array<WorkflowToolDefinition> {
+  if (!workflowToolDefinitions) {
+    workflowToolDefinitions = [
+      ...WORKFLOW_TOOL_DEFINITIONS,
+      getMoveInListToolDefinition(),
+    ];
+  }
+
+  return workflowToolDefinitions;
+}
+
 /**
  * Generate workflow tools
  */
 export function generateWorkflowTools(): McpToolInfo[] {
-  return WORKFLOW_TOOL_DEFINITIONS.map(
+  return getWorkflowToolDefinitions().map(
     (definition: WorkflowToolDefinition): McpToolInfo => {
       return {
         name: definition.name,
@@ -264,7 +287,7 @@ export function generateWorkflowTools(): McpToolInfo[] {
  * Check if a tool is a workflow tool (requires an API key or a sign-in)
  */
 export function isWorkflowTool(toolName: string): boolean {
-  return WORKFLOW_TOOL_DEFINITIONS.some(
+  return getWorkflowToolDefinitions().some(
     (definition: WorkflowToolDefinition) => {
       return definition.name === toolName;
     },
@@ -276,7 +299,7 @@ export function isWorkflowTool(toolName: string): boolean {
  * client that signed in read-only may not do.
  */
 export function isReadOnlyWorkflowTool(toolName: string): boolean {
-  return WORKFLOW_TOOL_DEFINITIONS.some(
+  return getWorkflowToolDefinitions().some(
     (definition: WorkflowToolDefinition) => {
       return definition.name === toolName && definition.readOnly;
     },
@@ -332,30 +355,11 @@ export async function handleWorkflowTool(
       return getDataTableLineage(args, credential);
     case "oneuptime_whoami":
       return whoami(credential);
+    case MOVE_IN_LIST_TOOL_NAME:
+      return moveInList(args, credential);
     default:
       throw new Error(`Unknown workflow tool: ${toolName}`);
   }
-}
-
-function requireUuid(args: Record<string, unknown>, key: string): string {
-  const value: unknown = args[key];
-  if (typeof value !== "string" || !value) {
-    throw new Error(`'${key}' is required.`);
-  }
-  if (!ObjectID.isValidUUID(value)) {
-    throw new Error(
-      `'${key}' must be a UUID like "550e8400-e29b-41d4-a716-446655440000". Use the corresponding list tool to find valid IDs.`,
-    );
-  }
-  return value;
-}
-
-function requireString(args: Record<string, unknown>, key: string): string {
-  const value: unknown = args[key];
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(`'${key}' is required.`);
-  }
-  return value;
 }
 
 /**

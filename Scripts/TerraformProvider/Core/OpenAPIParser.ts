@@ -19,6 +19,7 @@ import {
   PersonColumnKind,
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import { CLIENT_RESOURCE_NAMES } from "Common/Utils/DeveloperDocs/ClientResourceNames";
+import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
 
 /*
  * The data sources written by hand (StaticFiles/), each in place of the one
@@ -163,6 +164,11 @@ export class OpenAPIParser {
         resource.movedFrom = legacyName;
       } else if (legacyName) {
         resource.legacyName = legacyName;
+      }
+      const listOrder: ListOrderFacts | undefined =
+        this.getListOrderFacts().get(resourceName);
+      if (listOrder) {
+        resource.listOrder = listOrder;
       }
       const resourceDescription: string | undefined =
         this.getTagDescriptions().get(resourceName);
@@ -415,6 +421,22 @@ export class OpenAPIParser {
     for (const tag of this.spec?.tags || []) {
       if (tag.name && tag.description) {
         map.set(this.getNameOfTag(tag), tag.description);
+      }
+    }
+    return map;
+  }
+
+  /*
+   * The drag-ordered lists' facts, by resource name, from their tags
+   * (x-oneuptime-list-order): what a write of the number does, which the
+   * resource's page says in its Order section.
+   */
+  private getListOrderFacts(): Map<string, ListOrderFacts> {
+    const map: Map<string, ListOrderFacts> = new Map<string, ListOrderFacts>();
+    for (const tag of this.spec?.tags || []) {
+      const facts: ListOrderFacts | undefined = tag["x-oneuptime-list-order"];
+      if (tag.name && facts && facts.column) {
+        map.set(this.getNameOfTag(tag), facts);
       }
     }
     return map;

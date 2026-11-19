@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Either name is checked the same way. The rules about the record you name hold whichever name you send it under: a status page group's parent group must be on the same status page, a status page takes at most three header links, and a group's name must be unique on its status page.
 
+#### Names another record has
+
+Teams, labels, on-call policies and on-call schedules each have a name of their own in a project, whatever its case or spacing: `Primary`, ` primary` and `PRIMARY` are one name. A create, or an update that renames one, onto a name another of its kind has is refused with a `400` that says so:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart. For teams, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike.
+
 ### Switches
 
 A field that is on or off - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` and every other `true` or `false` field - takes `true` or `false`. Text and numbers that the database reads as one of them are taken as that value, the same way for the API, Terraform and workflows: `"true"`, `"yes"`, `"on"`, `"1"` and `1` are `true`, and `"false"`, `"no"`, `"off"`, `"0"` and `0` are `false`, in any case. Everything OneUptime does with the record treats it as that value too: a maintenance event sent with `"isVisibleOnStatusPage": "true"` shows its images on the status page, and `"isEnabled": "false"` switches a resource off below its plan like `false` does. Any other value, such as `"maybe"`, `""` or `2`, is refused with a `400` that names the field:

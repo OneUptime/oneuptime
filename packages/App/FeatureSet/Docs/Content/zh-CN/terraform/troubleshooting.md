@@ -22,6 +22,7 @@
 | `This project has been blocked` | 请主管理员解除对项目的封禁：参阅[被封禁的项目](#被封禁的项目) |
 | `references records that are not in this project` | 使用你自己项目中记录的 ID：参阅[来自其他项目的 ID](#来自其他项目的-id) |
 | 数据源返回的 `Not Found` 或 `Ambiguous Match` | 修正查找的参数：参阅[找不到或找到多个结果的查找](#找不到或找到多个结果的查找) |
+| `There is already a team called`（标签、值班策略、值班计划） | 改用同类其他记录都没有的名称，或先重命名另一个：参阅[其他记录已在使用的名称](#其他记录已在使用的名称) |
 | `Cannot import non-existent remote object` | 检查 ID 和密钥的权限：参阅[导入资源](/docs/terraform/importing-resources#故障排除) |
 | `Provider produced inconsistent result after apply` | 升级提供程序：参阅[apply 之后结果不一致](#apply-之后结果不一致) |
 | 计划创建了一个你没有添加的资源 | 密钥已无法读取它，OneUptime 回答了 `404`：先恢复密钥的读取权限，再用 `terraform import` 导入该资源：参阅[资源离开 state，下一次 apply 又创建了它](#资源离开-state下一次-apply-又创建了它) |
@@ -102,6 +103,12 @@ This network device references records that are not in this project: Network Sit
 ### 找不到或找到多个结果的查找
 
 数据源要么恰好找到一条记录，要么让计划停止。`Not Found` 表示没有记录具有该 `id`，或者没有记录与你设置的参数匹配；`Ambiguous Match` 表示有多条记录匹配。请修正参数，设置更多参数把查找范围缩小到一条，或按 `id` 查找记录。[读取已有的内容](/docs/terraform/complete-guide#读取已有的内容)中列出了规则。
+
+### 其他记录已在使用的名称
+
+团队、标签、值班策略和值班计划在项目中各自拥有独一无二的名称，不区分大小写和空格。创建或重命名时使用同类其他记录已有的名称，会得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已归档的值班策略会保留其名称：请取消归档，或另选一个名称。此前就同名的记录会保留名称，仪表板中团队、值班策略和值班计划的列表会标记它们。
+
+Terraform 会并行执行同一次 apply 中的更改，因此如果重命名为另一个资源在同一次 apply 中让出的名称，在那个资源仍占用该名称时可能会被拒绝：请再次应用，或在接收名称的资源上添加一个指向让出名称的资源的 `depends_on`。互换（A 改为 B、B 改为 A），或任何最终回到起点的重命名链，都无法在一次 apply 中完成：先把其中一个重命名为没有人使用的名称，应用，然后再完成其余更改。
 
 ## 无法稳定的计划
 

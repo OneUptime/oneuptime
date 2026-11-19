@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Begge navnene kontrolleres på samme måte. Reglene for posten du nevner, gjelder uansett hvilket navn du sender den under: den overordnede gruppen til en statussidegruppe må ligge på samme statusside, en statusside tar høyst tre headerlenker, og navnet på en gruppe må være unikt på statussiden.
 
+#### Navn som en annen post allerede har
+
+Team, etiketter, vaktpolicyer og vaktplaner har hvert sitt eget navn i et prosjekt, uavhengig av store og små bokstaver og mellomrom: `Primary`, ` primary` og `PRIMARY` er ett navn. En oppretting, eller en oppdatering som gir en av dem nytt navn, til et navn som en annen av samme slag har, avvises med en `400` som sier det:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+En oppdatering som sender en posts eget navn på nytt, med store eller små bokstaver, er ikke et navnebytte, så poster som delte et navn før, kan fortsatt endres og få hvert sitt navn. For team, vaktpolicyer og vaktplaner svarer `GET /api/shared-names/team` (eller `on-call-policy`, `on-call-schedule`) på hvilke som deler et navn: `{"groups": [["<id>", "<id>"]]}`, der hver gruppe er ID-ene nøkkelen din kan lese, for postene med navn som leses likt.
+
 ### Brytere
 
 Et felt som er på eller av - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` og alle andre `true`- eller `false`-felt - tar `true` eller `false`. Tekst og tall som databasen leser som en av dem, tas som den verdien, på samme måte for API-et, Terraform og arbeidsflyter: `"true"`, `"yes"`, `"on"`, `"1"` og `1` er `true`, og `"false"`, `"no"`, `"off"`, `"0"` og `0` er `false`, uansett store og små bokstaver. Alt OneUptime gjør med posten, behandler den også som den verdien: en vedlikeholdshendelse som sendes med `"isVisibleOnStatusPage": "true"`, viser bildene sine på statussiden, og `"isEnabled": "false"` slår av en ressurs under abonnementet slik `false` gjør. Enhver annen verdi, som `"maybe"`, `""` eller `2`, avvises med en `400` som nevner feltet:

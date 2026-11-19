@@ -30,6 +30,7 @@ import {
 import type SelectFormFields from "Common/UI/Types/SelectEntityField";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 /*
  * CREATE ON-CALL SCHEDULE: A NEW SCHEDULE PUTS SOMEONE ON CALL FROM THE START.
@@ -316,6 +317,11 @@ export const getOnCallScheduleCreateFormFields: (
       validation: {
         minLength: 2,
       },
+      /*
+       * Another schedule's name, said under the field (#9742): every picker
+       * shows a schedule by its name alone.
+       */
+      ownsServerError: isNameTakenRefusal,
     },
     {
       field: {

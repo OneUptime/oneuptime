@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Ambos nombres se comprueban de la misma forma. Las reglas sobre el registro que nombras se aplican con cualquiera de los dos nombres con los que lo envíes: el grupo padre de un grupo de página de estado debe estar en la misma página de estado, una página de estado admite como mucho tres enlaces de cabecera, y el nombre de un grupo debe ser único en su página de estado.
 
+#### Nombres que ya tiene otro registro
+
+Los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia tienen cada uno un nombre propio en un proyecto, sin importar mayúsculas, minúsculas ni espacios: `Primary`, ` primary` y `PRIMARY` son un mismo nombre. Una creación, o una actualización que cambia el nombre de uno, a un nombre que ya tiene otro de su tipo se rechaza con un `400` que lo dice:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos. Para los equipos, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual.
+
 ### Interruptores
 
 Un campo que está activado o desactivado - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` y cualquier otro campo `true` o `false` - acepta `true` o `false`. El texto y los números que la base de datos lee como uno de ellos se toman como ese valor, igual para la API, Terraform y los workflows: `"true"`, `"yes"`, `"on"`, `"1"` y `1` son `true`, y `"false"`, `"no"`, `"off"`, `"0"` y `0` son `false`, en mayúsculas o minúsculas. Todo lo que OneUptime hace con el registro lo trata también como ese valor: un evento de mantenimiento enviado con `"isVisibleOnStatusPage": "true"` muestra sus imágenes en la página de estado, y `"isEnabled": "false"` desactiva un recurso por debajo de su plan igual que `false`. Cualquier otro valor, como `"maybe"`, `""` o `2`, se rechaza con un `400` que nombra el campo:
