@@ -124,6 +124,73 @@ describe("buildPrivacySummary", () => {
   });
 
   /*
+   * The pages a recording may hold (#7502) and the readable event
+   * properties (#7501), said where a reviewer reads what a recording
+   * contains. A readable property is the one thing Mask all text then
+   * keeps as written, so it turns the wireframe sentence amber; in a mode
+   * that records page text it changes nothing, and is not mentioned.
+   */
+  it("page rules and readable event properties: named, and a readable property under Mask all text is flagged", () => {
+    const wireframe: PrivacySummarySentence = sentence(
+      buildPrivacySummary({
+        maskingMode: "MaskAllText",
+        recordOnlyPages: ["/checkout*"],
+        neverRecordPages: ["/checkout/card*", "/admin*", " "],
+        readableEventProperties: ["step"],
+      }),
+      "page-text",
+    );
+
+    expect(wireframe.text).toContain("the replay is a wireframe");
+    expect(wireframe.text).toContain(
+      "only the pages the policy names recorded",
+    );
+    expect(wireframe.text).toContain("2 page paths never recorded");
+    expect(wireframe.text).toContain(
+      "1 event property readable as a short code",
+    );
+    expect(wireframe.isSensitive).toBe(true);
+
+    // Page rules alone keep the wireframe calm: they only record less.
+    const pagesOnly: PrivacySummarySentence = sentence(
+      buildPrivacySummary({
+        maskingMode: "MaskAllText",
+        neverRecordPages: ["/admin*"],
+      }),
+      "page-text",
+    );
+
+    expect(pagesOnly.text).toContain("1 page path never recorded");
+    expect(pagesOnly.text).not.toContain("only the pages the policy names");
+    expect(pagesOnly.isSensitive).toBe(false);
+
+    // A mode that records text already: a readable property changes nothing.
+    const sensitiveOnly: PrivacySummarySentence = sentence(
+      buildPrivacySummary({
+        maskingMode: "MaskSensitiveInputsOnly",
+        readableEventProperties: ["step", "plan"],
+      }),
+      "page-text",
+    );
+
+    expect(sensitiveOnly.text).not.toContain("event propert");
+
+    // Nothing set: nothing said.
+    const none: PrivacySummarySentence = sentence(
+      buildPrivacySummary({
+        maskingMode: "MaskAllText",
+        recordOnlyPages: [],
+        neverRecordPages: [],
+        readableEventProperties: [],
+      }),
+      "page-text",
+    );
+
+    expect(none.text).not.toContain("Also:");
+    expect(none.isSensitive).toBe(false);
+  });
+
+  /*
    * Same-origin trace propagation puts the session id on the page's own
    * requests. The sentence says where it goes (the backend and every
    * service it calls) and what that means (backend telemetry naming the

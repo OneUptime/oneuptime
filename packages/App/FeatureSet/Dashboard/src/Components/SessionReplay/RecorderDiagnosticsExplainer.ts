@@ -380,6 +380,18 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
       "If this page should be recorded, find where it calls OneUptimeReplay.pause().",
     ),
   },
+  /*
+   * The replay policy's page rules (#7502): Record only these pages and
+   * Never record these pages. Not an outcome either: the policy meant it.
+   */
+  "recording-paused-page-rule": {
+    explanation: translationKey(
+      "This application's replay policy does not record this page, so recording paused. It goes on in the same session on the next page the policy records.",
+    ),
+    action: translationKey(
+      "If this page should be recorded, check Record only these pages and Never record these pages on the application's Replay Policy page.",
+    ),
+  },
   "recording-resumed-page": {
     explanation: translationKey(
       "The page resumed recording with OneUptimeReplay.resume(). Recording goes on in the same session from a fresh snapshot, or in a new session if that one ended while recording was paused.",
