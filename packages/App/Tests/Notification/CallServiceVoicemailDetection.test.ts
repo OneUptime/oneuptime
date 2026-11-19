@@ -257,7 +257,10 @@ describe("an on-call call of a project that detects voicemail", () => {
   ])(
     "%s: asks Twilio, in the background, who answered it",
     async (_name: string, value: boolean | null | undefined) => {
-      project.detectVoicemailOnCalls = value as boolean | undefined;
+      // As the row is read: the column's value, or none at all.
+      (project as unknown as Record<string, unknown>)[
+        "detectVoicemailOnCalls"
+      ] = value;
 
       await CallService.makeCall(pageCall(), {
         projectId: PROJECT_ID,
@@ -443,9 +446,7 @@ describe("shouldDetectVoicemail", () => {
         CallService.shouldDetectVoicemail({
           userOnCallLogTimelineId: isOnCall ? NOTIFICATION_ID : undefined,
           project: {
-            detectVoicemailOnCalls: detectVoicemailOnCalls as
-              | boolean
-              | undefined,
+            detectVoicemailOnCalls: detectVoicemailOnCalls,
           },
         }),
       ).toBe(asks);

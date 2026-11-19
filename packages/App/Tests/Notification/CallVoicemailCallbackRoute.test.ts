@@ -306,7 +306,8 @@ let callUpdates: Array<{
   callSid: string;
   twiml: string;
 }>;
-let updateCall: jest.Mock;
+// What jest.fn() from @jest/globals makes: jest-mock's Mock.
+let updateCall: Mock;
 // Something written between this route's read of the log and its write.
 let onNextLogRead: ((log: StoredLog) => void) | null;
 

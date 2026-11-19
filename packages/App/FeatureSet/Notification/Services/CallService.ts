@@ -871,7 +871,11 @@ export default class CallService {
    */
   public static shouldDetectVoicemail(data: {
     userOnCallLogTimelineId?: ObjectID | undefined;
-    project: Pick<Project, "detectVoicemailOnCalls"> | null | undefined;
+    // The project's row as read: its switch, or none - a row from before it.
+    project:
+      | { detectVoicemailOnCalls?: boolean | null | undefined }
+      | null
+      | undefined;
   }): boolean {
     return Boolean(
       data.userOnCallLogTimelineId &&
