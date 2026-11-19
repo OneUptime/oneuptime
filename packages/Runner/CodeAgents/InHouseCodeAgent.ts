@@ -120,6 +120,25 @@ const WORKSPACE_TOOL_NAMES: ReadonlyArray<string> = [
 const MAX_PROMPT_SERVICES: number = 25;
 
 /*
+ * What the agent asks of the OneUptime server: its model calls, the run's
+ * production telemetry, and that the run is still working. The server
+ * itself (BackendAPI) in production; the benchmark (Benchmark/, issue #6531)
+ * hands the agent one that calls a model of its choosing directly.
+ */
+export type CodeAgentServer = Pick<
+  BackendAPI,
+  | "llmCompletion"
+  | "updateTaskStatus"
+  | "getTelemetryTools"
+  | "runTelemetryTool"
+>;
+
+export interface InHouseCodeAgentOptions {
+  // The server to work through; the OneUptime server (BackendAPI) when left out.
+  server?: CodeAgentServer | undefined;
+}
+
+/*
  * The production telemetry tools the server offered this task
  * (CodeAgentTask.productionTelemetry): their definitions, the repository and
  * services they read, and the calls the run has made. Every call runs on
@@ -225,7 +244,14 @@ export default class InHouseCodeAgent implements CodeAgent {
   private config: CodeAgentLLMConfig | null = null;
   private taskLogger: TaskLogger | null = null;
   private progressCallback: CodeAgentProgressCallback | null = null;
-  private backendAPI: BackendAPI | null = null;
+  private backendAPI: CodeAgentServer | null = null;
+
+  // The server handed in (InHouseCodeAgentOptions), or null for BackendAPI.
+  private readonly server: CodeAgentServer | null;
+
+  public constructor(options: InHouseCodeAgentOptions = {}) {
+    this.server = options.server ?? null;
+  }
 
   /*
    * Whether this task may end by asking the person who made the request a
@@ -363,7 +389,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     this.config = config;
-    this.backendAPI = new BackendAPI();
+    this.backendAPI = this.server ?? new BackendAPI();
 
     if (taskLogger) {
       this.taskLogger = taskLogger;
