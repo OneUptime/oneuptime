@@ -21,7 +21,16 @@ import MonitorSecretAccess, {
   MonitorSecretAccessUtil,
   MonitorSecretGrantee,
 } from "../../Types/Monitor/MonitorSecretAccess";
+import MonitorSecretType, {
+  MonitorSecretTypeUtil,
+} from "../../Types/Monitor/MonitorSecretType";
 import ObjectID from "../../Types/ObjectID";
+import {
+  TotpSecretReading,
+  readTotpSecret,
+  writeStoredTotpSecret,
+  writeTotpSecretProblem,
+} from "../../Utils/Totp/TotpSecret";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorSecret from "../../Models/DatabaseModels/MonitorSecret";
@@ -51,6 +60,28 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
     createBy: CreateBy<MonitorSecret>,
   ): Promise<OnCreate<MonitorSecret>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * A new secret always gets a type: the one asked for, or Text, which is
+     * what the column defaults to and what a client that predates the
+     * column means. A one-time code secret's value must be a setup key or
+     * an otpauth://totp link the probe can make codes from, and is stored
+     * in one canonical form (issue #9703).
+     */
+    const requestedType: unknown = createBy.data.secretType;
+
+    const secretType: MonitorSecretType =
+      requestedType === undefined || requestedType === null
+        ? MonitorSecretTypeUtil.DEFAULT_TYPE
+        : this.readSecretType(requestedType);
+
+    createBy.data.secretType = secretType;
+
+    if (secretType === MonitorSecretType.TOTP) {
+      createBy.data.secretValue = this.readTotpSecretValue(
+        createBy.data.secretValue,
+      );
+    }
 
     const requested: unknown = createBy.data.monitorAccess;
 
@@ -91,6 +122,48 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
     await super.onBeforeUpdate(updateBy);
 
     const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    /*
+     * A secret keeps the type it was created with: the column takes no
+     * update from a teammate, and OneUptime's own writes are held to the
+     * same.
+     */
+    if (data["secretType"] !== undefined) {
+      throw new BadDataException(
+        "A secret's type is set when the secret is created and cannot be changed. Create a new secret of the type you need instead.",
+      );
+    }
+
+    /*
+     * A new value for a one-time code secret is read as a setup key or an
+     * otpauth://totp link, as one is on create - the Update Secret Value
+     * button sends nothing but the value, so the type is the stored one.
+     */
+    if (data["secretValue"] !== undefined) {
+      const rows: Array<MonitorSecret> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
+          _id: true,
+          secretType: true,
+        },
+      );
+
+      const totpRows: Array<MonitorSecret> = rows.filter(
+        (row: MonitorSecret): boolean => {
+          return MonitorSecretTypeUtil.isTotp(row.secretType);
+        },
+      );
+
+      if (totpRows.length > 0) {
+        if (totpRows.length !== rows.length) {
+          throw new BadDataException(
+            "This update gives one value to one-time code (TOTP) secrets and other secrets together. Update the one-time code secrets on their own.",
+          );
+        }
+
+        data["secretValue"] = this.readTotpSecretValue(data["secretValue"]);
+      }
+    }
 
     if (data["monitorAccess"] !== undefined) {
       const access: MonitorSecretAccess = this.readMonitorAccess(
@@ -345,6 +418,7 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
       _id: true,
       name: true,
       secretValue: true,
+      secretType: true,
       projectId: true,
       monitorAccess: true,
     };
@@ -367,6 +441,31 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
         isRoot: true,
       },
     });
+  }
+
+  private readSecretType(value: unknown): MonitorSecretType {
+    if (MonitorSecretTypeUtil.isValid(value)) {
+      return value;
+    }
+
+    throw new BadDataException(
+      `Secret type must be one of: ${MonitorSecretTypeUtil.ALL_TYPES.join(", ")}.`,
+    );
+  }
+
+  /*
+   * A one-time code secret's value as it is stored: the setup key or link
+   * read, and written back in the one form the probe reads
+   * (writeStoredTotpSecret) - or the reason it cannot be, in a sentence.
+   */
+  private readTotpSecretValue(value: unknown): string {
+    const reading: TotpSecretReading = readTotpSecret(value);
+
+    if (reading.problem) {
+      throw new BadDataException(writeTotpSecretProblem(reading.problem));
+    }
+
+    return writeStoredTotpSecret(reading.parameters);
   }
 
   private readMonitorAccess(value: unknown): MonitorSecretAccess {

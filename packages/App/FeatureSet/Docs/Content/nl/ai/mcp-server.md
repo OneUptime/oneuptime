@@ -41,7 +41,7 @@ De server is stateless: hij geeft geen sessie-id's uit en elk verzoek staat op z
 - **Gepland onderhoud**: onderhoudsgebeurtenissen aanmaken en beheren.
 - **Telemetrie**: logs, metrieken, traces, uitzonderingen, monitorlogs, beveiligingsgebeurtenissen en meer opvragen, alleen lezen.
 
-Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 54 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Een soort record zonder veld dat je na het aanmaken kunt wijzigen, zoals de koppeling van een incident aan een waarschuwing, heeft geen tool om bij te werken. Alleen-lezen-tools hebben `readOnlyHint` en elke tool die iets wijzigt heeft `destructiveHint`, zodat een client alleen-lezen-aanroepen zelf kan uitvoeren en je vóór elke wijziging iets kan vragen. `openWorldHint` markeert de tools die verder reiken dan je project: de tools voor openbare statuspagina's, en de wijzigingen die op een statuspagina worden getoond en naar de abonnees ervan worden gestuurd, zoals een nieuw incident, een wijziging van de toestand ervan of een openbare notitie. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
+Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 55 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Een soort record zonder veld dat je na het aanmaken kunt wijzigen, zoals de koppeling van een incident aan een waarschuwing, heeft geen tool om bij te werken. Alleen-lezen-tools hebben `readOnlyHint` en elke tool die iets wijzigt heeft `destructiveHint`, zodat een client alleen-lezen-aanroepen zelf kan uitvoeren en je vóór elke wijziging iets kan vragen. `openWorldHint` markeert de tools die verder reiken dan je project: de tools voor openbare statuspagina's, en de wijzigingen die op een statuspagina worden getoond en naar de abonnees ervan worden gestuurd, zoals een nieuw incident, een wijziging van de toestand ervan of een openbare notitie. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
 
 ## Voordat je begint
 
@@ -489,7 +489,7 @@ De MCP-server is stateless: hij geeft geen sessie-id's uit en houdt ze niet bij,
 | Teams en bereikbaarheid | Team, On-Call Policy |
 | Labels | Label |
 | Beveiliging | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Gegevensbeveiliging | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Gegevensbeveiliging | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Gegevensobserveerbaarheid | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Cloud | Cloud Budget |
 

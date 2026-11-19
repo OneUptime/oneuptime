@@ -43,7 +43,7 @@ Klik på **Inviter bruger**. Dialogen **Inviter ny bruger** åbner.
 
 ### Skriv e-mailadressen
 
-Skriv adressen i **E-mail**. Hvis ingen OneUptime-konto bruger den endnu, beder dialogen også om et **Navn**, som den nye konto starter med.
+Skriv adressen i **E-mail**. Mens du skriver, foreslår **E-mail** projektets personer ud fra navn eller adresse og viser, hvem der er **Inviteret**, og hvem der er **Allerede i dette team**: klik på en af dem for at udfylde adressen. På en selvhostet server får en masteradministrator også serverens andre konti foreslået, markeret med **Ikke i dette projekt endnu**, og det gør alle, der må invitere personer, når en masteradministrator tillader det i Admin Dashboard. For en adresse, du selv skriver, beder dialogen også om et **Navn**, som er valgfrit: har personen endnu ingen OneUptime-konto, oprettes den med det navn.
 
 ### Vælg teamet
 

@@ -7,6 +7,7 @@ import Config, {
   LATEST_RECORDER_VERSION,
   LoaderConfig,
   RecorderInitOptions,
+  getArtifactUrl,
   getChunkUrl,
   getRecorderCapabilities,
 } from "../src/Config";
@@ -659,7 +660,7 @@ describe("Config", (): void => {
       expect(getChunkUrl(options)).toBe(
         "https://oneuptime.com/telemetry/session-replay/v1/chunk",
       );
-      expect(Config.getArtifactUrl(options, LATEST_RECORDER_VERSION)).toBe(
+      expect(getArtifactUrl(options, LATEST_RECORDER_VERSION)).toBe(
         "https://oneuptime.com/telemetry/session-replay/latest/recorder.js",
       );
     });
@@ -672,7 +673,7 @@ describe("Config", (): void => {
       for (const url of [
         Config.getConfigUrl(options),
         getChunkUrl(options),
-        Config.getArtifactUrl(options, LATEST_RECORDER_VERSION),
+        getArtifactUrl(options, LATEST_RECORDER_VERSION),
       ]) {
         expect(url).toContain("/telemetry/session-replay");
       }
@@ -683,11 +684,9 @@ describe("Config", (): void => {
      * URL from a label other than exact lowercase `latest`.
      */
     it("refuses to build an artifact url from a traversing version", (): void => {
-      expect(Config.getArtifactUrl(options, "../../../admin")).toBeNull();
-      expect(Config.getArtifactUrl(options, "")).toBeNull();
-      expect(
-        Config.getArtifactUrl(options, "1.0.0/../../../etc/passwd"),
-      ).toBeNull();
+      expect(getArtifactUrl(options, "../../../admin")).toBeNull();
+      expect(getArtifactUrl(options, "")).toBeNull();
+      expect(getArtifactUrl(options, "1.0.0/../../../etc/passwd")).toBeNull();
     });
 
     /*

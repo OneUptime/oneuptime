@@ -5,7 +5,7 @@ See what every Kubernetes workload costs — spend per namespace, workload and p
 :::cards
 - [Turn it on](#turn-on-cost-observability): On by default; one `helm upgrade` where it is not.
 - [Alerting on cost](#alerting-on-cost): Cost per cluster, namespace and workload, as metrics.
-- [Bring your own engine](#already-running-kubecost-or-opencost): Point the agent at Kubecost or OpenCost.
+- [Your own engine](#already-running-kubecost-or-opencost): Kubecost or OpenCost you already run is found and read.
 - [Right-sizing](#right-sizing): Request recommendations, and how they are made.
 - [Troubleshooting](#troubleshooting): Empty pages, missing recommendations.
 :::
@@ -63,28 +63,33 @@ The first costs appear after the first full hour closes, and OpenCost needs a fe
 
 The cost metrics (`node_total_hourly_cost`, `pv_hourly_cost` and the rest) are ordinary metrics: they are in the metric explorer, on custom dashboards and in metric monitors. For a ready-made dashboard, go to **Products → Dashboards**, select **Create Dashboard** and pick **Kubernetes Cost Dashboard**: node hourly cost trends, CPU and memory unit costs, and volume and load balancer spend.
 
+Under the figures, the overview and the **Costs** page say where their prices come from: a cloud's list prices, your rate card, or OpenCost's default rates. Efficiency is one figure everywhere, the efficiency metric included: how much of the requested CPU and memory was used, each container's hour weighted by what its CPU and memory cost, so a cheap job that uses nothing cannot pull a well-used cluster down, and idle capacity is not counted.
+
 ## Already running Kubecost or OpenCost?
 
-Point the agent at your engine instead, and nothing is bundled:
+The cost agent finds it and reads it instead of the bundled OpenCost, so the cluster is priced as you set it up: your rate card, or your cloud bill behind Kubecost. It looks when it starts, then hourly, through the Kubernetes API, for the Services the engines' own charts create in any namespace (Kubecost's `cost-analyzer` or `frontend`, OpenCost's chart, and the `opencost` Service its manifest creates), Kubecost first. It passes over an engine that does not answer, needs a sign-in or answers for several clusters, and then reads the bundled one.
+
+The cluster's overview then names your engine and says the bundled OpenCost is not needed. Stop running it:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
-  --set cost.enabled=true \
-  --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+  --set cost.engine.url=auto
 ```
+
+With `cost.engine.url=auto` nothing is bundled, and the agent reads your engine wherever it runs; with no engine installed, nothing is priced. The chart cannot look for an engine itself: Helm's `lookup` sees nothing under `helm template`, Argo CD or a dry run. To keep the bundled OpenCost beside your own engine, set `cost.engine.preferExisting=false`; to name the engine to read, set `cost.engine.url` to its Service:
 
 | Engine | Usual service URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
 | Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-The Allocation API path is found by itself (`/model/allocation` for Kubecost, `/allocation/compute` or `/allocation` for OpenCost). Set `cost.engine.allocationPath` only for an unusual install. For memory recommendations, also set `cost.engine.prometheusUrl` (see [The data behind it](#the-data-behind-it)).
+The Allocation API path is found by itself (`/model/allocation` for Kubecost, `/allocation/compute` or `/allocation` for OpenCost). Set `cost.engine.allocationPath` only for an unusual install. With `auto` or a URL nothing is bundled, so for memory recommendations also set `cost.engine.prometheusUrl` (see [The data behind it](#the-data-behind-it)).
 
 ## On-prem and bare-metal pricing
 
-Clusters whose nodes have no public cloud list price can set a rate card. OpenCost then prices every resource from these figures, all in USD per resource-hour:
+Clusters whose nodes have no public cloud list price can set a rate card. Without one, OpenCost prices them at its default rates (on-premises, bare metal, kind, k3s), which can be far from what your hardware costs, and the cluster's overview and **Costs** page say so; on a cloud it recognises, a node keeps its list price, and a rate card prices only what the list lacks. With one, OpenCost then prices every resource from these figures, all in USD per resource-hour:
 
 ```yaml title="values.yaml"
 cost:
@@ -97,6 +102,8 @@ cost:
       storagePerGBHour: "0.00005479452" # ~$0.04 per GB-month
       gpuPerHour: "0.95"
 ```
+
+These are OpenCost's own default rates: put your own figures in, or the **Costs** page still says the cluster is priced at OpenCost's default rates.
 
 ## Settings worth knowing
 
@@ -148,7 +155,7 @@ Beside spend, the poller collects what a recommendation needs: each container's 
 Memory needs one more source. The Allocation API reports only an average over each window, and an hourly average hides the burst that OOM-kills a container, so sizing memory from it would be dangerous. The poller reads each container's memory peak from Prometheus instead, joined on `(namespace, pod, container)`:
 
 - With the bundled engine (the default), it uses the chart's own Prometheus. Nothing to set.
-- With your own engine (`cost.engine.url`), point `cost.engine.prometheusUrl` at a Prometheus that scrapes cAdvisor, and set `cost.engine.prometheusCadvisorJob` if its scrape job is not named `kubernetes-nodes-cadvisor`.
+- With `cost.engine.url` set (`auto` or your engine's URL), point `cost.engine.prometheusUrl` at a Prometheus that scrapes cAdvisor, and set `cost.engine.prometheusCadvisorJob` if its scrape job is not named `kubernetes-nodes-cadvisor`.
 - With no Prometheus, CPU recommendations still work, from the stored hourly averages, and memory recommendations are left out rather than guessed.
 
 A Prometheus outage never stops spend collection: peaks are an extra, and an hour is sent without them. CPU deliberately does not use Prometheus: too large a CPU request only throttles where too small a memory request kills, so the hourly averages are safe for CPU, and querying every container's CPU rate across a cluster is heavy enough to topple a small Prometheus.
@@ -180,6 +187,14 @@ On the `gke-autopilot` and `eks-fargate` presets cost monitoring is off by defau
 
 :::details The bundled OpenCost is not ready
 Read its logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`. It says which cloud provider it detected and whether its pricing data loaded.
+:::
+
+:::details The overview says the bundled OpenCost is not needed
+The cluster runs its own Kubecost or OpenCost, and the cost agent reads that, so the OpenCost and Prometheus the chart bundled price nothing. Upgrade with `--set cost.engine.url=auto` to stop running them, or set `cost.engine.preferExisting=false` to read the bundled engine instead.
+:::
+
+:::details The cost agent does not read your engine
+Its log says which engine it reads, and why it passed over the others: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. It passes over an engine that does not answer (a NetworkPolicy between the namespaces, say), needs a sign-in, or answers for several clusters, as a Kubecost that federates others does. Name the engine to read with `cost.engine.url`.
 :::
 
 :::details The OpenCost log says mkdir /var/configs: permission denied

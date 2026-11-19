@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 如何建立密鑰並選擇哪些監測器可以使用它，請參閱 [監控密鑰](/docs/monitor/monitor-secrets)。
 
+一次性驗證碼密鑰保存的是網站的雙重驗證設定金鑰，而不是一個值。它的 `{{monitorSecrets.NAME}}` 是指令碼開始時的驗證碼，而 `await oneuptime.getTotpCode("NAME")` 會在指令碼要求時產生新的驗證碼，適合幾頁之後才到達驗證碼輸入步驟的登入。請參閱[使用一次性驗證碼登入](/docs/monitor/monitor-secrets#使用一次性驗證碼登入)。
+
 ## 自訂指標
 
 你可以在指令碼中用 `oneuptime.captureMetric()` 函式記錄自訂指標。這些指標儲存在 OneUptime 中，可以透過 Metric Explorer 在儀表板上繪製成圖表。
@@ -258,6 +260,7 @@ return {
 | `crypto` | 在瀏覽器 Worker 中實作的 SHA-256 雜湊、HMAC-SHA-256、`randomBytes`、`randomInt` 和 `randomUUID`。 |
 | `console` | `console.log`、`info`、`warn` 和 `error`。訊息會與每次執行一起保留。 |
 | `oneuptime.captureMetric` | 記錄自訂指標。請參閱[自訂指標](#自訂指標)。 |
+| `oneuptime.getTotpCode` | 產生一次性驗證碼密鑰的目前驗證碼：`await oneuptime.getTotpCode("NAME")`。請參閱[使用監控密鑰](#使用監控密鑰)。 |
 | `http` | 一個具緩衝、僅限用戶端的相容外觀層，支援 `request`、`get` 和 `Agent`。 |
 | `https` | 僅限用戶端的 `http` 外觀層的 HTTPS 版本。 |
 | `Buffer`、`setTimeout`、`setInterval` | 以及它們對應的 `clear` 函式。 |

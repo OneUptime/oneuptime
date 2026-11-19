@@ -1738,6 +1738,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Timeline,
             keywords: ["rota", "who is on call", "calendar"],
           },
+          // Under Schedules since #9701; under Advanced before.
+          {
+            page: PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES,
+            title: "User Overrides",
+            icon: IconProp.User,
+            keywords: ["vacation", "time off", "cover", "swap shift"],
+          },
           {
             page: PageMap.ON_CALL_DUTY_CALENDAR_FEEDS,
             title: "Calendar Feeds",
@@ -1749,12 +1756,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Advanced",
         pages: [
-          {
-            page: PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES,
-            title: "User Overrides",
-            icon: IconProp.User,
-            keywords: ["vacation", "time off", "cover", "swap shift"],
-          },
           {
             page: PageMap.ON_CALL_DUTY_EXECUTION_LOGS,
             title: "Execution Logs",

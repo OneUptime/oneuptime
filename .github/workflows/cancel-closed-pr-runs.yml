@@ -47,6 +47,7 @@ jobs:
       matrix:
         # The name of every workflow that runs on pull_request.
         workflow:
+          - Android Agent Test
           - App Test
           - Browser Recorder Test
           - Build

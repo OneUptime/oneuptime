@@ -41,7 +41,7 @@ O servidor não guarda estado: ele não emite ids de sessão e cada requisição
 - **Manutenção programada**: criar e gerenciar eventos de manutenção.
 - **Telemetria**: consultar logs, métricas, traces, exceções, logs de monitores, eventos de segurança e mais, somente leitura.
 
-Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 54 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. Um tipo de registro sem nenhum campo que você possa alterar depois de criado, como o vínculo de um incidente com um alerta, não tem ferramenta de atualizar. As ferramentas somente leitura levam `readOnlyHint` e toda ferramenta que altera algo leva `destructiveHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. `openWorldHint` marca as ferramentas que vão além do seu projeto: as ferramentas de páginas de status públicas e as alterações exibidas em uma página de status e enviadas aos seus assinantes, como um novo incidente, uma mudança do seu estado ou uma nota pública. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
+Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 55 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. Um tipo de registro sem nenhum campo que você possa alterar depois de criado, como o vínculo de um incidente com um alerta, não tem ferramenta de atualizar. As ferramentas somente leitura levam `readOnlyHint` e toda ferramenta que altera algo leva `destructiveHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. `openWorldHint` marca as ferramentas que vão além do seu projeto: as ferramentas de páginas de status públicas e as alterações exibidas em uma página de status e enviadas aos seus assinantes, como um novo incidente, uma mudança do seu estado ou uma nota pública. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
 
 ## Antes de começar
 
@@ -489,7 +489,7 @@ O servidor MCP não guarda estado: ele nem emite nem rastreia ids de sessão, en
 | Equipes e plantão | Team, On-Call Policy |
 | Rótulos | Label |
 | Segurança | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Segurança de dados | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Segurança de dados | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Observabilidade de dados | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Nuvem | Cloud Budget |
 

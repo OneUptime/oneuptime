@@ -1,6 +1,7 @@
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
+import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
@@ -18,13 +19,13 @@ import { buildTraceViewRoute } from "../../Utils/LogsCrossSignalPivot";
 import { buildExceptionsGroupRoute } from "../../Utils/TraceCorrelatedSignals";
 
 /*
- * Where a security event leads in the rest of OneUptime: the trace of the
- * request it happened in, the exception that request threw, the log lines
- * it wrote. Each is a route the existing explorers already read - the
- * trace view focused on the span that answered, the exceptions list
- * filtered to one fingerprint, the logs explorer filtered to one trace (or,
- * for a line written outside any request, to its service in the second
- * around it).
+ * Where a security event leads in the rest of OneUptime: the log line it
+ * was read from, the trace of the request it happened in, the exception
+ * that request threw, the log lines that request wrote. Each is a route the
+ * existing explorers already read - the logs explorer open on the line, by
+ * its id, with its service's lines in the second around it (#9620); the
+ * trace view focused on the span that answered; the exceptions list
+ * filtered to one fingerprint; the logs explorer filtered to one trace.
  *
  * The routes are built here, without React, so a test pins each one. The
  * explorers apply the reader's own permissions when the link is followed.
@@ -33,7 +34,7 @@ import { buildExceptionsGroupRoute } from "../../Utils/TraceCorrelatedSignals";
 // How far either side of the event a request's logs are looked for.
 export const REQUEST_LOGS_WINDOW_IN_MINUTES: number = 15;
 
-// How far either side of a line outside any request its neighbours are.
+// How far either side of a line its service's lines are shown under it.
 export const NEIGHBOUR_LOGS_WINDOW_IN_SECONDS: number = 1;
 
 function eventTime(event: SecurityEvent): Date | null {
@@ -113,53 +114,78 @@ export function getSecurityEventExceptionRoute(
   });
 }
 
+/*
+ * The logs explorer, open on the very line the event was read from (#9620):
+ * the line above the list, read by its id with the reader's own
+ * permissions, and under it its service's lines in the second around it.
+ * The address is stable - the line's id and when it was written - so it
+ * can be shared. Null when the event came from no log line, or says not
+ * when it was written.
+ */
+export function getSecurityEventLogLineRoute(
+  event: SecurityEvent,
+): Route | null {
+  const time: Date | null = eventTime(event);
+  const logId: string = getSecurityEventLogId(event);
+
+  // A line is opened by its id: one that is not an id opens nothing.
+  if (!ObjectID.isValidUUID(logId) || !time) {
+    return null;
+  }
+
+  const serviceId: string = getSecurityEventLogServiceId(event);
+  const query: CrossSignalQueryParams = toLogsExplorerQueryParams({
+    serviceIds: serviceId ? [serviceId] : undefined,
+    startTime: new Date(
+      time.getTime() - NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000,
+    ),
+    endTime: new Date(time.getTime() + NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000),
+    logId,
+    logTime: time,
+  });
+
+  return withQuery(
+    RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS]!),
+    query.params,
+  );
+}
+
 export interface SecurityEventLogsLink {
   route: Route;
-  // Every line the request wrote, or the service's lines around this one.
-  scope: "request" | "neighbours";
+  // Every line the request wrote.
+  scope: "request";
 }
 
 /*
- * The logs explorer, filtered to the lines the event's request wrote - or,
- * for a line written outside any request, to its service's lines in the
- * second around it. null when the event came from no log line.
+ * The logs explorer, filtered to the lines the event's request wrote. Null
+ * for an event that names no request: a line written outside any request
+ * opens with its service's lines around it (getSecurityEventLogLineRoute).
  */
 export function getSecurityEventLogsLink(
   event: SecurityEvent,
 ): SecurityEventLogsLink | null {
   const time: Date | null = eventTime(event);
   const traceId: string = (event.traceId || "").trim();
-  const logsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.LOGS]!,
-  );
 
-  if (traceId && time) {
-    const query: CrossSignalQueryParams = toLogsExplorerQueryParams({
-      traceIds: [traceId],
-      startTime: new Date(
-        time.getTime() - REQUEST_LOGS_WINDOW_IN_MINUTES * 60 * 1000,
-      ),
-      endTime: new Date(
-        time.getTime() + REQUEST_LOGS_WINDOW_IN_MINUTES * 60 * 1000,
-      ),
-    });
-
-    return { route: withQuery(logsRoute, query.params), scope: "request" };
-  }
-
-  const serviceId: string = getSecurityEventLogServiceId(event);
-
-  if (!getSecurityEventLogId(event) || !serviceId || !time) {
+  if (!traceId || !time) {
     return null;
   }
 
   const query: CrossSignalQueryParams = toLogsExplorerQueryParams({
-    serviceIds: [serviceId],
+    traceIds: [traceId],
     startTime: new Date(
-      time.getTime() - NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000,
+      time.getTime() - REQUEST_LOGS_WINDOW_IN_MINUTES * 60 * 1000,
     ),
-    endTime: new Date(time.getTime() + NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000),
+    endTime: new Date(
+      time.getTime() + REQUEST_LOGS_WINDOW_IN_MINUTES * 60 * 1000,
+    ),
   });
 
-  return { route: withQuery(logsRoute, query.params), scope: "neighbours" };
+  return {
+    route: withQuery(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS]!),
+      query.params,
+    ),
+    scope: "request",
+  };
 }

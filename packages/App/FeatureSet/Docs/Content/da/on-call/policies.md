@@ -26,7 +26,7 @@ Formularen spørger også **Udløs den ved hver ny hændelse og hver ny advarsel
 
 Vil du hellere guides trin for trin, fra din telefon til et testtilkald, så klik på **Guidet opsætning**: på den tomme liste **Vagtpolitikker** eller under **Sådan fungerer det**. Se [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
 
-Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Importér JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
+Listen **Vagtpolitikker** viser hver politiks **Navn**, **Tilkaldes først**, **Beskrivelse**, **Etiketter** og **Ejere**. **Tilkaldes først** viser, hvem politikkens første eskaleringsregel tilkalder: dens vagtplaner, hver med den, der har vagt i den lige nu, dens teams og de personer, den nævner, eller **Ingen eskaleringsregler** eller **Ingen modtagere**, når den ikke tilkalder nogen. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Importér JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
 
 ## Hvad der kører en politik
 

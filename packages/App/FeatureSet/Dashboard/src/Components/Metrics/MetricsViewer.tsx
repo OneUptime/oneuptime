@@ -62,13 +62,19 @@ import {
   FetchMetricRowValueOverrides,
   GetMetricRowAggregation,
   GetMetricRowGroup,
+  GetMetricRowGroupGaps,
   MetricRowAggregation,
+  MetricRowGroup,
+  MetricRowGroupGap,
   MetricRowValueOverride,
   MetricRowValueOverrideMap,
+  getMetricPageNamesWithGapSections,
   getMetricRowGroupHeading,
   getMetricServiceIdsByName,
+  isMetricRowGroupGapName,
   orderMetricNamesByGroup,
   resolveMetricRowValueOverride,
+  withMetricRowGroupGaps,
 } from "./Utils/MetricRowScope";
 import MetricRowGroupHeading from "./MetricRowGroupHeading";
 import {
@@ -551,6 +557,18 @@ interface Props {
    * stable: the list reorders when it changes.
    */
   getRowGroup?: GetMetricRowGroup | undefined;
+  /*
+   * The metrics each section should hold and the list found no data of in
+   * its range (Utils/MetricRowScope, 5.): a cloud resource's key metrics it
+   * did not report. Each section's heading says how many, folded away, and
+   * opens to what renderRowGroupGap draws of them; a section none of whose
+   * metrics reported is drawn as its heading alone. Worked out only for a
+   * list in sections whose names are known before it is read, and that no
+   * search or filter narrows: narrowed, every other metric would read as
+   * missing. Must be referentially stable.
+   */
+  getRowGroupGaps?: GetMetricRowGroupGaps | undefined;
+  renderRowGroupGap?: ((gap: MetricRowGroupGap) => ReactElement) | undefined;
   /*
    * The unit a row's value is in, for a host that knows a metric's declared
    * unit is wrong in its scope (MariaDB reports `mysql.buffer_pool.limit`,
@@ -1543,6 +1561,102 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
   }, [metricQuery, page, pageSize, groupPagedNames, props.getRowGroup]);
 
+  /*
+   * What each section should hold and found no data of in the range
+   * (Props.getRowGroupGaps): from the names the list's attributes match,
+   * and only while no search or filter narrows them - narrowed, every
+   * other metric would read as missing.
+   */
+  const rowGroupGaps: Array<MetricRowGroupGap> = useMemo(() => {
+    if (
+      !props.getRowGroupGaps ||
+      !groupPagedNames ||
+      attributeMatchedNames === null ||
+      attributeMatchedNames.length === 0 ||
+      submittedSearch.trim() ||
+      activeFilters.length > 0
+    ) {
+      return [];
+    }
+
+    return props
+      .getRowGroupGaps(attributeMatchedNames)
+      .filter((gap: MetricRowGroupGap): boolean => {
+        return gap.keys.length > 0;
+      });
+  }, [
+    props.getRowGroupGaps,
+    groupPagedNames,
+    attributeMatchedNames,
+    submittedSearch,
+    activeFilters,
+  ]);
+
+  const gapsByGroup: Map<string, MetricRowGroupGap> = useMemo(() => {
+    return new Map(
+      rowGroupGaps.map(
+        (gap: MetricRowGroupGap): [string, MetricRowGroupGap] => {
+          return [gap.group.key, gap];
+        },
+      ),
+    );
+  }, [rowGroupGaps]);
+
+  // The sections whose gaps are open, by key.
+  const [openGaps, setOpenGaps] = useState<Set<string>>(new Set<string>());
+
+  // getRowGroup, knowing a section's stand-in too.
+  const getDisplayRowGroup: GetMetricRowGroup | undefined = useMemo(() => {
+    return props.getRowGroup
+      ? withMetricRowGroupGaps(props.getRowGroup, rowGroupGaps)
+      : undefined;
+  }, [props.getRowGroup, rowGroupGaps]);
+
+  /*
+   * The page's rows, and a stand-in for each section none of whose metrics
+   * reported that falls on it: its heading, no row. Never counted.
+   */
+  const displayMetrics: Array<MetricType> = useMemo(() => {
+    if (rowGroupGaps.length === 0 || !groupPagedNames || !props.getRowGroup) {
+      return metrics;
+    }
+
+    const byName: Map<string, MetricType> = new Map();
+
+    for (const metric of metrics) {
+      byName.set(metric.name || "", metric);
+    }
+
+    const rows: Array<MetricType> = [];
+
+    for (const name of getMetricPageNamesWithGapSections({
+      orderedNames: groupPagedNames,
+      pageStart: (page - 1) * pageSize,
+      pageEnd: page * pageSize,
+      gaps: rowGroupGaps,
+      getRowGroup: props.getRowGroup,
+    })) {
+      const row: MetricType | undefined = byName.get(name);
+
+      if (row) {
+        rows.push(row);
+      } else if (isMetricRowGroupGapName(name)) {
+        const standIn: MetricType = new MetricType();
+        standIn.name = name;
+        rows.push(standIn);
+      }
+    }
+
+    return rows;
+  }, [
+    metrics,
+    rowGroupGaps,
+    groupPagedNames,
+    props.getRowGroup,
+    page,
+    pageSize,
+  ]);
+
   useEffect(() => {
     /*
      * When attribute filters or the entityKeys / entityScope scopes are
@@ -2205,7 +2319,7 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   return (
     <TelemetryViewer<MetricType>
-      items={metrics}
+      items={displayMetrics}
       isLoading={isLoading || attributeFilterLoading}
       error={error || undefined}
       onRefresh={() => {
@@ -2264,22 +2378,67 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
       itemLabel="metrics"
       renderGroupHeading={
-        props.getRowGroup
-          ? (_metric: MetricType, index: number): ReactElement | null => {
+        getDisplayRowGroup
+          ? (metric: MetricType, index: number): ReactElement | null => {
               const title: string | null = getMetricRowGroupHeading({
-                names: metrics.map((metric: MetricType): string => {
-                  return metric.name || "";
+                names: displayMetrics.map((item: MetricType): string => {
+                  return item.name || "";
                 }),
                 index,
-                getRowGroup: props.getRowGroup!,
+                getRowGroup: getDisplayRowGroup,
               });
 
-              return title ? <MetricRowGroupHeading title={title} /> : null;
+              if (!title) {
+                return null;
+              }
+
+              const group: MetricRowGroup | undefined = getDisplayRowGroup(
+                metric.name || "",
+              );
+              const gap: MetricRowGroupGap | undefined = group
+                ? gapsByGroup.get(group.key)
+                : undefined;
+
+              return (
+                <MetricRowGroupHeading
+                  title={title}
+                  gapCount={gap?.keys.length}
+                  isGapOpen={Boolean(gap && openGaps.has(gap.group.key))}
+                  onToggleGap={
+                    gap && props.renderRowGroupGap
+                      ? () => {
+                          setOpenGaps((open: Set<string>): Set<string> => {
+                            const next: Set<string> = new Set<string>(open);
+
+                            if (next.has(gap.group.key)) {
+                              next.delete(gap.group.key);
+                            } else {
+                              next.add(gap.group.key);
+                            }
+
+                            return next;
+                          });
+                        }
+                      : undefined
+                  }
+                  gapContent={
+                    gap && props.renderRowGroupGap
+                      ? props.renderRowGroupGap(gap)
+                      : undefined
+                  }
+                />
+              );
             }
           : undefined
       }
-      renderRow={(metric: MetricType): ReactElement => {
+      renderRow={(metric: MetricType): ReactElement | null => {
         const name: string = metric.name || "";
+
+        // A section's stand-in: its heading says it all.
+        if (isMetricRowGroupGapName(name)) {
+          return null;
+        }
+
         return (
           <MetricRow
             metric={metric}

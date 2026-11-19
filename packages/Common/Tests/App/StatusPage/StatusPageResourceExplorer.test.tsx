@@ -173,6 +173,7 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
       count: jest.fn(),
       deleteItem: jest.fn(),
       updateById: jest.fn(),
+      moveInList: jest.fn(),
     },
   };
 });
@@ -203,6 +204,8 @@ const mockUpdateById: jest.MockedFunction<any> =
   ModelAPI.updateById as unknown as jest.MockedFunction<any>;
 const mockDeleteItem: jest.MockedFunction<any> =
   ModelAPI.deleteItem as unknown as jest.MockedFunction<any>;
+const mockMoveInList: jest.MockedFunction<any> =
+  ModelAPI.moveInList as unknown as jest.MockedFunction<any>;
 
 interface GetListCall {
   modelType: unknown;
@@ -418,6 +421,10 @@ const setUpApi: SetUpApiFunction = (data: {
 
   mockDeleteItem.mockImplementation(async (): Promise<any> => {
     return {};
+  });
+
+  mockMoveInList.mockImplementation(async (): Promise<any> => {
+    return { changedRows: [] };
   });
 
   return calls;
@@ -1382,7 +1389,13 @@ describe("Status Page > Resources", () => {
   });
 
   describe("changing a group", () => {
-    test("moving a resource up writes the order of the one it displaced", async () => {
+    /*
+     * A move is its own request since #9611: the resource takes the place of
+     * the one it displaced, named by id (ModelAPI.moveInList), and the server
+     * steps the rest of the group aside. A write of its `order` would place
+     * it alone.
+     */
+    test("moving a resource up moves it to the place of the one it displaced", async () => {
       setUpApi({
         groups: buildHierarchy(),
         resources: [
@@ -1412,13 +1425,15 @@ describe("Status Page > Resources", () => {
       fireEvent.click(screen.getByText("Move up"));
 
       await waitFor(() => {
-        expect(mockUpdateById).toHaveBeenCalled();
+        expect(mockMoveInList).toHaveBeenCalled();
       });
 
-      const updateCall: any = mockUpdateById.mock.calls[0]![0];
+      const move: any = mockMoveInList.mock.calls[0]![0];
 
-      expect(updateCall.id.toString()).toBe("b");
-      expect(updateCall.data).toEqual({ order: 1 });
+      expect(move.modelType).toBe(StatusPageResource);
+      expect(move.id.toString()).toBe("b");
+      expect(move.placeOfId.toString()).toBe("a");
+      expect(mockUpdateById).not.toHaveBeenCalled();
     });
 
     test("removing a resource asks first, then deletes and reloads the group", async () => {
@@ -1787,7 +1802,12 @@ describe("Status Page > Resources", () => {
      * renumbers everything between the two rows, so the write is "take the
      * place of the sibling above you" rather than an index.
      */
-    test("moving a group writes the neighbouring sibling's order", async () => {
+    /*
+     * The group takes the neighbouring sibling's place, named by id
+     * (ModelAPI.moveInList, #9611), however far apart their numbers are; the
+     * server steps the groups between aside.
+     */
+    test("moving a group moves it to the neighbouring sibling's place", async () => {
       setUpApi({
         groups: [
           makeGroup({ id: CORPORATE_ID, name: "Corporate", order: 1 }),
@@ -1804,13 +1824,15 @@ describe("Status Page > Resources", () => {
       fireEvent.click(screen.getByText("Move up"));
 
       await waitFor(() => {
-        expect(mockUpdateById).toHaveBeenCalled();
+        expect(mockMoveInList).toHaveBeenCalled();
       });
 
-      const update: any = mockUpdateById.mock.calls[0]![0];
+      const move: any = mockMoveInList.mock.calls[0]![0];
 
-      expect(update.id.toString()).toBe(GRID_ID);
-      expect(update.data).toEqual({ order: 1 });
+      expect(move.modelType).toBe(StatusPageGroup);
+      expect(move.id.toString()).toBe(GRID_ID);
+      expect(move.placeOfId.toString()).toBe(CORPORATE_ID);
+      expect(mockUpdateById).not.toHaveBeenCalled();
     });
 
     /*

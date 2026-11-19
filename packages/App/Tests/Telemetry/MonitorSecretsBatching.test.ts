@@ -1,6 +1,7 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
@@ -353,9 +354,14 @@ describe("MonitorUtil secret loading", () => {
       expect(steps[0]!.data!.requestBody).toBe('{"token": "key-123"}');
       expect(steps[1]!.data!.requestBody).toBe('{"token": "key-123"}');
 
-      const destination: JSONObject = steps[0]!.data!
-        .monitorDestination as unknown as JSONObject;
-      expect(destination["value"]).toBe("https://internal.example.com/health");
+      /*
+       * Filled in, the destination is the URL it was, so the step can be
+       * written for the probe (it used to be the bare JSON the filling
+       * parsed, which made writing the monitor throw).
+       */
+      const destination: unknown = steps[0]!.data!.monitorDestination;
+      expect(destination).toBeInstanceOf(URL);
+      expect(String(destination)).toBe("https://internal.example.com/health");
     });
 
     test("an NTP server kept in a secret is filled in before the step goes to a probe", async () => {
@@ -396,9 +402,11 @@ describe("MonitorUtil secret loading", () => {
         1,
       );
 
-      const destination: JSONObject = firstStep(populated).data!
-        .monitorDestination as unknown as JSONObject;
-      expect(destination["value"]).toBe("time.internal.example.com");
+      // The Hostname it was, so the step can be written for the probe.
+      const destination: unknown =
+        firstStep(populated).data!.monitorDestination;
+      expect(destination).toBeInstanceOf(Hostname);
+      expect(String(destination)).toBe("time.internal.example.com");
     });
 
     test("a step with a secret in its headers still gets the one in its body (it used to go out unfilled)", async () => {

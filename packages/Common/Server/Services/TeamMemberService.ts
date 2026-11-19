@@ -567,9 +567,15 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
       if (invitedEmail) {
         /*
-         * Optional name supplied on the invite form. Used only to set the name on
-         * a brand-new user, or to backfill an existing user who has no name yet —
-         * we never overwrite a name the user has already set.
+         * The optional name the invite forms offer for every address
+         * (#9745, Common/UI/Utils/InviteeName). It names an account only
+         * while nobody has signed up to it: the one this invitation creates,
+         * or one an earlier invitation created that its person has not
+         * claimed yet (no password) and that has no name yet. Whoever has
+         * signed up keeps the name they gave, or did not give: no inviter,
+         * of any project, writes their profile. The answer is the same
+         * either way, so the form tells its inviter nothing about the
+         * address.
          */
         const nameValue: string | undefined = createBy.miscDataProps?.["name"]
           ? (createBy.miscDataProps["name"] as string).trim()
@@ -589,10 +595,10 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
               isRoot: true,
             },
           });
-        } else if (nameValue) {
+        } else if (nameValue && !user.password) {
           /*
-           * User already exists. Backfill their name only if they don't have one
-           * yet; if they already have a name, leave it untouched.
+           * An invitation nobody has claimed yet: named only if it has no
+           * name yet, so a name another inviter gave it stands.
            */
           const existingUser: User | null = await UserService.findOneById({
             id: user.id!,

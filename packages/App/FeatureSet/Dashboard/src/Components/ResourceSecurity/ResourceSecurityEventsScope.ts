@@ -82,6 +82,45 @@ export const RESOURCE_SECURITY_EVENTS_NAMING_DESCRIPTION: string =
     "Events from any source that name one of these. A private address is left out: another network can use it too.",
   );
 
+/*
+ * A kind whose own logs are not lines it wrote itself says what they are
+ * (#9628): a Docker or Podman host's are its containers' logs, which are
+ * filed under each container's service and reach the host by the host name
+ * they were written on; a service's are its logs and its traces.
+ */
+const CONTAINER_HOST_SUMMARY_BOTH: string = translationKey(
+  "The security events about it: read from its containers' logs, or naming it.",
+);
+
+const CONTAINER_HOST_OWN_LOGS_DESCRIPTION: string = translationKey(
+  "Every security event read from its containers' logs, whatever it names.",
+);
+
+export const RESOURCE_SECURITY_EVENTS_SUMMARIES_BOTH: Readonly<
+  Partial<Record<SecurityConnectionKind, string>>
+> = {
+  [SecurityConnectionKind.DockerHost]: CONTAINER_HOST_SUMMARY_BOTH,
+  [SecurityConnectionKind.PodmanHost]: CONTAINER_HOST_SUMMARY_BOTH,
+};
+
+export const RESOURCE_SECURITY_EVENTS_SUMMARIES_OWN_LOGS: Readonly<
+  Partial<Record<SecurityConnectionKind, string>>
+> = {
+  [SecurityConnectionKind.Service]: translationKey(
+    "The security events read from its own logs and traces.",
+  ),
+};
+
+export const RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTIONS: Readonly<
+  Partial<Record<SecurityConnectionKind, string>>
+> = {
+  [SecurityConnectionKind.DockerHost]: CONTAINER_HOST_OWN_LOGS_DESCRIPTION,
+  [SecurityConnectionKind.PodmanHost]: CONTAINER_HOST_OWN_LOGS_DESCRIPTION,
+  [SecurityConnectionKind.Service]: translationKey(
+    "Every security event read from its own logs and traces, whatever it names.",
+  ),
+};
+
 export const RESOURCE_SECURITY_EVENTS_NO_SEARCH_REASON: string = translationKey(
   "The Events search cannot spell this as one search: it reads the record's own logs, or what names it.",
 );
@@ -111,11 +150,15 @@ export function getResourceSecurityEventsSummary(
   scope: ResourceSecurityScopeJson,
 ): string {
   if (hasOwnLogs(scope) && hasNames(scope)) {
-    return RESOURCE_SECURITY_EVENTS_SUMMARY_BOTH;
+    return (
+      RESOURCE_SECURITY_EVENTS_SUMMARIES_BOTH[scope.kind] ||
+      RESOURCE_SECURITY_EVENTS_SUMMARY_BOTH
+    );
   }
 
   return hasOwnLogs(scope)
-    ? RESOURCE_SECURITY_EVENTS_SUMMARY_OWN_LOGS
+    ? RESOURCE_SECURITY_EVENTS_SUMMARIES_OWN_LOGS[scope.kind] ||
+        RESOURCE_SECURITY_EVENTS_SUMMARY_OWN_LOGS
     : RESOURCE_SECURITY_EVENTS_SUMMARY_NAMING;
 }
 
@@ -140,6 +183,7 @@ export function getResourceSecurityEventsChip(
       label: RESOURCE_SECURITY_EVENTS_OWN_LOGS_LABEL,
       description:
         words.ownLogsDescription ||
+        RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTIONS[scope.kind] ||
         RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTION,
       values: [name],
     });

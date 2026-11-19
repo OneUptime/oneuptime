@@ -66,6 +66,22 @@ import {
 } from "../MonitoringSwitchCopy";
 import useTurnMonitoringOn, { TurnMonitoringOn } from "../useTurnMonitoringOn";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
+import {
+  recordNameInSentence,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
+import ResourceAttentionPill from "../../ResourcePart/ResourceAttentionPill";
+import { RESOURCE_HEALTH_HINT } from "../../ResourcePart/ResourceHealthPill";
+import {
+  MONITOR_STATUS_REASON_DESCRIPTION,
+  MONITOR_STATUS_REASON_DESCRIPTION_NO_PROBES,
+  MONITOR_STATUS_REASON_EMPTY,
+  MONITOR_STATUS_REASON_TITLE,
+  MonitorOverviewStatusReason,
+} from "./MonitorStatusReasonView";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -93,6 +109,12 @@ export interface ComponentProps {
    * refused one), so the page reads the owners - and its feed - again.
    */
   onOwnersChanged?: ((change: OwnersChange) => void) | undefined;
+  /*
+   * Why the monitor is in a status that is not operational (#9592): the
+   * line under the headline, and what its badge opens - what set the
+   * status, and each probe that sees it so (MonitorStatusReasonView).
+   */
+  statusReason?: MonitorOverviewStatusReason | undefined;
 }
 
 /*
@@ -147,6 +169,8 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const presentation: MonitorOverviewPresentation = props.presentation;
+  const statusReason: MonitorOverviewStatusReason | undefined =
+    props.statusReason;
 
   // Only pressed on a monitor someone turned off (its call to action).
   const turnMonitoringOn: TurnMonitoringOn = useTurnMonitoringOn({
@@ -277,10 +301,45 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <span data-testid="monitor-overview-badge">
-          <StatusBadge
-            text={presentation.badge.text}
-            type={TONE_BADGE[presentation.badge.tone]}
-          />
+          {statusReason && statusReason.items.length > 0 ? (
+            /*
+             * A status that says something is wrong opens what made it so
+             * (#9592): the criteria that set it and the probes that see
+             * it so, each a step from its page.
+             */
+            <ResourceAttentionPill
+              label={translateRecordName(
+                translator,
+                StateListType.MonitorStatus,
+                statusReason.statusName,
+              )}
+              tone={statusReason.tone}
+              testId="monitor-overview-status-why"
+              hint={RESOURCE_HEALTH_HINT}
+              dialog={{
+                title: translator.translateTemplate(
+                  MONITOR_STATUS_REASON_TITLE,
+                  {
+                    status: recordNameInSentence(
+                      StateListType.MonitorStatus,
+                      statusReason.statusName,
+                      { inSentence: true },
+                    ),
+                  },
+                ),
+                description: statusReason.hasProbes
+                  ? MONITOR_STATUS_REASON_DESCRIPTION
+                  : MONITOR_STATUS_REASON_DESCRIPTION_NO_PROBES,
+                items: statusReason.items,
+                emptyMessage: MONITOR_STATUS_REASON_EMPTY,
+              }}
+            />
+          ) : (
+            <StatusBadge
+              text={presentation.badge.text}
+              type={TONE_BADGE[presentation.badge.tone]}
+            />
+          )}
         </span>
         {presentation.secondaryBadges.map(
           (badge: MonitorOverviewSecondaryBadge, index: number) => {
@@ -296,6 +355,66 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
         )}
       </div>
     );
+  };
+
+  type GetStatusReasonLineFunction = () => ReactElement;
+
+  /*
+   * Why, under the headline: the criteria that set the status, bold, then
+   * what it found - or the note when a person, an incident or maintenance
+   * set it. Its room is kept while the cause is read, so nothing moves when
+   * it arrives.
+   */
+  const getStatusReasonLine: GetStatusReasonLineFunction = (): ReactElement => {
+    if (!statusReason) {
+      return <></>;
+    }
+
+    if (statusReason.line) {
+      const line: MonitorOverviewStatusReason["line"] = statusReason.line;
+
+      return (
+        <p
+          data-testid="monitor-overview-status-reason"
+          className="mt-1.5 max-w-3xl text-sm leading-6 text-gray-700 [overflow-wrap:anywhere]"
+        >
+          {line?.criteriaName ? (
+            <span
+              data-testid="monitor-overview-status-reason-criteria"
+              className="font-medium text-gray-900"
+            >
+              <TranslatedSentence
+                template={LABEL_WITH_COLON}
+                slots={{ label: line.criteriaName }}
+              />
+            </span>
+          ) : (
+            <></>
+          )}
+          {line?.criteriaName && line.text ? " " : ""}
+          {line?.text ? (
+            <span data-testid="monitor-overview-status-reason-text">
+              {readAsWritten(line.text, translator.language)}
+            </span>
+          ) : (
+            <></>
+          )}
+        </p>
+      );
+    }
+
+    if (statusReason.isLoading) {
+      return (
+        <div
+          data-testid="monitor-overview-status-reason-loading"
+          className="mt-1.5"
+        >
+          <InlineValueSkeleton widthClassName="w-72 max-w-full" />
+        </div>
+      );
+    }
+
+    return <></>;
   };
 
   type GetTargetFunction = () => ReactElement;
@@ -685,6 +804,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
+              {getStatusReasonLine()}
               {presentation.lastKnownStatus ? (
                 <p
                   data-testid="monitor-overview-last-known"

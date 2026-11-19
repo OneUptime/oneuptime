@@ -1,5 +1,6 @@
 import { BASE_URL } from "../../Config";
 import { getRowMenuAction } from "../Helpers/RowActions";
+import { totpCode } from "../Helpers/Totp";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import {
   APIResponse,
@@ -296,7 +297,7 @@ test.describe("Security settings card layout", () => {
     }
   }
 
-  test("persists self-service two-factor changes across reloads and leaves cancelled changes untouched", async () => {
+  test("turns two-factor authentication on only once an authenticator app is set up, persists changes across reloads and leaves cancelled changes untouched", async () => {
     const page: Page = shared.page;
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(`${origin}/dashboard/user-profile/two-factor-auth`);
@@ -318,7 +319,7 @@ test.describe("Security settings card layout", () => {
       await expect(dialog).toBeVisible();
       await expect(dialog).toContainText(
         enabled
-          ? "you set it up at your next sign-in"
+          ? "will then ask for your second step"
           : "Your authenticator apps and security keys stay saved",
       );
       await expect(page.getByText(adminOnlyText)).toHaveCount(0);
@@ -327,10 +328,65 @@ test.describe("Security settings card layout", () => {
       await expect(status).toHaveText(enabled ? "Enabled" : "Not enabled");
     };
 
-    // These updates use the real User CRUD endpoint and the onboarded account.
+    // These updates use the real User and authenticator app endpoints.
     await expect(status).toHaveText("Not enabled");
-    await setTwoFactorEnabled(true);
+
+    /*
+     * #9666: with nothing set up, Enable walks through a second step first,
+     * and turns two-factor authentication on only once its code was entered.
+     */
+    await page
+      .getByRole("button", {
+        name: "Enable two-factor authentication",
+        exact: true,
+      })
+      .click();
+    const chooser: Locator = page.getByRole("dialog", {
+      name: "Set up two-factor authentication",
+      exact: true,
+    });
+    await expect(chooser).toBeVisible();
+    await expect(
+      chooser.getByText("Authenticator app", { exact: true }),
+    ).toBeVisible();
+    await chooser
+      .getByRole("button", { name: "Continue", exact: true })
+      .click();
+
+    const verify: Locator = page.getByRole("button", {
+      name: "Verify and finish",
+      exact: true,
+    });
+    await expect(verify).toBeVisible();
+    await expect(status).toHaveText("Not enabled");
+    await page.getByTestId("authenticator-setup-key-toggle").click();
+    const setupKey: string = (
+      (await page.getByTestId("authenticator-setup-key").textContent()) || ""
+    ).replace(/\s+/g, "");
+    expect(setupKey).toMatch(/^[A-Z2-7]{16,}$/);
+    await page
+      .locator("#authenticator-verification-code")
+      .fill(totpCode(setupKey));
+    await verify.click();
+
+    // The first second step comes with the backup codes; then it is on.
+    await expect(page.getByTestId("backup-code")).toHaveCount(10);
+    await page.getByTestId("backup-codes-saved-checkbox").check();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(status).toHaveText("Enabled");
     await expect(page.getByText(adminOnlyText)).toHaveCount(0);
+
+    // While it is on, its only second step cannot be removed.
+    const app: Locator = page
+      .getByRole("row")
+      .filter({ hasText: "Authenticator app" });
+    await expect(app).toBeVisible();
+    const removeApp: Locator = await getRowMenuAction({
+      row: app,
+      name: "Delete",
+    });
+    await expect(removeApp).toBeDisabled();
+    await page.keyboard.press("Escape");
 
     await page
       .getByRole("button", {

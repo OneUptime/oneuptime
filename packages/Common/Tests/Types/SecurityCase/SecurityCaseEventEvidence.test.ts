@@ -19,6 +19,7 @@ import SecurityCaseEvidenceKind, {
 } from "../../../Types/SecurityCase/SecurityCaseEvidenceKind";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import ObjectID from "../../../Types/ObjectID";
+import { eventsAddedMarkdown } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -404,6 +405,90 @@ describe("the answer to a request", () => {
     );
     expect(SECURITY_CASE_EVENTS_ADD_REASONS.alreadyOnCase.message).toBe(
       "Already kept on this case.",
+    );
+  });
+});
+
+/*
+ * An event kept from what one of the case's detections matched names the
+ * detection (#9622), as it was named then; one kept any other way names
+ * none, and reads as it always did.
+ */
+describe("the detection a kept event was matched by", () => {
+  const DETECTION: { id: string; name: string } = {
+    id: "40000000-0000-4000-8000-000000000001",
+    name: "Encoded PowerShell command",
+  };
+
+  test("is kept with the event, and reads back as built", () => {
+    const built: SecurityCaseEventSnapshot = buildSecurityCaseEventSnapshot({
+      event: EVENT_ROW,
+      detection: DETECTION,
+    });
+
+    expect(built.detection).toEqual(DETECTION);
+    expect(
+      readSecurityCaseEventSnapshot(JSON.parse(JSON.stringify(built))),
+    ).toEqual(built);
+  });
+
+  test("an event kept any other way names none, as a snapshot of before reads", () => {
+    const built: SecurityCaseEventSnapshot = buildSecurityCaseEventSnapshot({
+      event: EVENT_ROW,
+      hunt: { id: "h1", name: "Encoded PowerShell" },
+    });
+
+    expect("detection" in built).toBe(false);
+    expect(
+      readSecurityCaseEventSnapshot(JSON.parse(JSON.stringify(built)))!
+        .detection,
+    ).toBeUndefined();
+  });
+
+  test("a detection without an id or a name is none, and a long name is kept to its bound", () => {
+    expect(
+      buildSecurityCaseEventSnapshot({
+        event: EVENT_ROW,
+        detection: { id: "", name: "No id" },
+      }).detection,
+    ).toBeUndefined();
+    expect(
+      readSecurityCaseEventSnapshot({
+        ...JSON.parse(
+          JSON.stringify(buildSecurityCaseEventSnapshot({ event: EVENT_ROW })),
+        ),
+        detection: { id: DETECTION.id, name: { text: "not text" } },
+      })!.detection,
+    ).toBeUndefined();
+    expect(
+      buildSecurityCaseEventSnapshot({
+        event: EVENT_ROW,
+        detection: { id: DETECTION.id, name: "x".repeat(900) },
+      }).detection!.name,
+    ).toHaveLength(500);
+  });
+
+  test("the case's timeline says which detection matched the events kept", () => {
+    expect(
+      eventsAddedMarkdown({
+        count: 1,
+        detectionName: "Encoded PowerShell command",
+      }).toString(),
+    ).toBe(
+      "🔖 Kept 1 security event matched by **Encoded PowerShell command** as evidence.",
+    );
+    // A hunt that found them is said first, as it was.
+    expect(
+      eventsAddedMarkdown({
+        count: 2,
+        huntName: "Encoded PowerShell",
+        detectionName: "Encoded PowerShell command",
+      }).toString(),
+    ).toBe(
+      "🔖 Kept 2 security events found by the hunt **Encoded PowerShell** as evidence.",
+    );
+    expect(eventsAddedMarkdown({ count: 3 }).toString()).toBe(
+      "🔖 Kept 3 security events as evidence.",
     );
   });
 });

@@ -1708,12 +1708,48 @@ false
 {{- end -}}
 
 {{/*
+Whether cost.engine.url is `auto` (#9633): bundle nothing, and let the cost
+agent find the OpenCost or Kubecost the cluster already runs, wherever it is,
+at run time. The chart cannot look for it itself: Helm's `lookup` comes back
+empty under `helm template`, Argo CD and dry runs, so the same values would
+render differently depending on the tool. Any spelling of auto counts.
+Usage: {{- if eq (include "kubernetes-agent.costEngineAuto" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costEngineAuto" -}}
+{{- if eq (toString .Values.cost.engine.url | trim | lower) "auto" -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the cost agent reads the cluster's own engine instead of the bundled
+one when it finds one (#9633): with the bundled engine, unless
+cost.engine.preferExisting is false or the bundled engine has a rate card
+(cost.opencost.customPricing.enabled), whose rates someone chose. The agent
+looks when it starts and hourly, and falls back to the bundled engine.
+Usage: {{- if eq (include "kubernetes-agent.costEnginePreferExisting" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costEnginePreferExisting" -}}
+{{- if and (eq (include "kubernetes-agent.costEngineBundled" .) "true") (ne (toString .Values.cost.engine.preferExisting) "false") (not .Values.cost.opencost.customPricing.enabled) -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
 Resolved base URL of the cost engine the poller and the metrics scrape
 talk to: the operator-provided external engine when `cost.engine.url` is
-set, else the bundled OpenCost Service.
+set, else the bundled OpenCost Service. `auto` when cost.engine.url is auto:
+the agent then finds the engine, and the scrape finds it the same way
+(configmap-deployment.yaml), so neither ever reads the word as a URL.
 */}}
 {{- define "kubernetes-agent.costEngineUrl" -}}
-{{- if .Values.cost.engine.url -}}
+{{- if eq (include "kubernetes-agent.costEngineAuto" .) "true" -}}
+auto
+{{- else if .Values.cost.engine.url -}}
 {{- .Values.cost.engine.url -}}
 {{- else -}}
 http://{{ include "kubernetes-agent.fullname" . }}-opencost.{{ .Release.Namespace }}.svc.cluster.local:9003

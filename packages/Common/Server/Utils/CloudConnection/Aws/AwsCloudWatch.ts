@@ -16,11 +16,13 @@ import { AwsCredentials, sendAwsRequest } from "./AwsApi";
  * GraniteServiceVersion20100801), signed for the service "monitoring":
  *
  *   ListMetrics    { Namespace, MetricName, RecentlyActive: "PT3H",
- *                    NextToken } -> { Metrics: [{ Namespace, MetricName,
- *                    Dimensions: [{ Name, Value }] }], NextToken }
- *                    Free within the account's million free API calls a
- *                    month. Without RecentlyActive it lists every series
- *                    that reported in the last two weeks.
+ *                    Dimensions, NextToken } -> { Metrics: [{ Namespace,
+ *                    MetricName, Dimensions: [{ Name, Value }] }],
+ *                    NextToken }, 500 a page. Free within the account's
+ *                    million free API calls a month. Without RecentlyActive
+ *                    it lists every series that reported in the last two
+ *                    weeks; with Dimensions, each series that carries them,
+ *                    whatever other dimensions it has.
  *   GetMetricData  { MetricDataQueries: [{ Id, MetricStat: { Metric,
  *                    Period, Stat }, ReturnData }], StartTime, EndTime,
  *                    ScanBy, NextToken } -> { MetricDataResults: [{ Id,
@@ -127,6 +129,12 @@ export async function listMetrics(
     metricName?: string | undefined;
     firstPageOnly?: boolean | undefined;
     includeQuiet?: boolean | undefined;
+    /*
+     * Only series that carry each of these dimensions with its value - and
+     * maybe others: CloudWatch lists a series of more dimensions too. One
+     * resource's metrics, by its identifying dimensions (CloudResourceMetrics).
+     */
+    dimensions?: Array<AwsMetricDimension> | undefined;
   },
 ): Promise<Array<AwsListedMetric>> {
   const metrics: Array<AwsListedMetric> = [];
@@ -143,6 +151,14 @@ export async function listMetrics(
 
     if (data.metricName) {
       payload["MetricName"] = data.metricName;
+    }
+
+    if (data.dimensions && data.dimensions.length > 0) {
+      payload["Dimensions"] = data.dimensions.map(
+        (dimension: AwsMetricDimension): JSONObject => {
+          return { Name: dimension.name, Value: dimension.value };
+        },
+      );
     }
 
     if (nextToken) {

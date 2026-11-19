@@ -75,6 +75,17 @@ const getRowId: (row: unknown) => string = (row: unknown): string => {
 
 export default class ArchivableValueGuard {
   /*
+   * Why a new value, or a value renamed, may not take a name an archived
+   * value of its kind has: where to unarchive that one instead.
+   */
+  public static getArchivedNamesakeRefusal(data: {
+    definition: ArchivableValueDefinition;
+    name: string;
+  }): string {
+    return `An archived ${data.definition.singular} is already called "${data.name.trim()}". Unarchive it in ${data.definition.settingsPath}, or choose another name.`;
+  }
+
+  /*
    * Before a create: a value created archived is held to the same rules as
    * one archived later, and a name an archived value already has is
    * answered with where to unarchive it.
@@ -117,7 +128,10 @@ export default class ArchivableValueGuard {
 
       if (archivedNamesake) {
         throw new BadDataException(
-          `An archived ${data.definition.singular} is already called "${name.trim()}". Unarchive it in ${data.definition.settingsPath}, or choose another name.`,
+          ArchivableValueGuard.getArchivedNamesakeRefusal({
+            definition: data.definition,
+            name: name,
+          }),
         );
       }
     }

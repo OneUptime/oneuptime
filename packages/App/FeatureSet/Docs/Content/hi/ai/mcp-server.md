@@ -41,7 +41,7 @@ flowchart TB
 - **अनुसूचित रखरखाव**: रखरखाव इवेंट बनाएं और प्रबंधित करें।
 - **टेलीमेट्री**: लॉग, मेट्रिक्स, ट्रेस, अपवाद, मॉनिटर लॉग, सुरक्षा इवेंट और भी बहुत कुछ क्वेरी करें, सिर्फ़ पढ़ने के लिए।
 
-54 तरह के रिकॉर्ड के लिए बनाने, पाने, सूचीबद्ध करने, अपडेट करने, हटाने और गिनने के टूल हैं, 9 तरह की टेलीमेट्री के लिए सूचीबद्ध करने और गिनने के टूल हैं, और घटना प्रतिक्रिया के लिए बने टूल हैं। ऐसे रिकॉर्ड का कोई अपडेट टूल नहीं होता जिसका बनने के बाद कोई भी फ़ील्ड बदला नहीं जा सकता, जैसे किसी घटना का किसी अलर्ट से जुड़ाव। सिर्फ़ पढ़ने वाले टूल पर `readOnlyHint` होता है और कुछ भी बदलने वाले हर टूल पर `destructiveHint` होता है, ताकि क्लाइंट सिर्फ़ पढ़ने वाली कॉल खुद चला सके और कोई भी बदलाव करने से पहले आपसे पूछे। `openWorldHint` उन टूल पर होता है जो आपके प्रोजेक्ट से आगे पहुंचते हैं: सार्वजनिक स्थिति पृष्ठ के टूल, और वे बदलाव जो स्थिति पृष्ठ पर दिखते हैं और उसके सब्सक्राइबर को भेजे जाते हैं, जैसे नई घटना, उसकी स्थिति में बदलाव या सार्वजनिक नोट। विफल टूल कॉल MCP प्रोटोकॉल त्रुटि के रूप में नहीं, बल्कि टूल नतीजे (`isError: true`) के रूप में `statusCode`, विवरण और एक सुझाव के साथ लौटती है, ताकि एजेंट विफलता पढ़कर खुद को सुधार सके।
+55 तरह के रिकॉर्ड के लिए बनाने, पाने, सूचीबद्ध करने, अपडेट करने, हटाने और गिनने के टूल हैं, 9 तरह की टेलीमेट्री के लिए सूचीबद्ध करने और गिनने के टूल हैं, और घटना प्रतिक्रिया के लिए बने टूल हैं। ऐसे रिकॉर्ड का कोई अपडेट टूल नहीं होता जिसका बनने के बाद कोई भी फ़ील्ड बदला नहीं जा सकता, जैसे किसी घटना का किसी अलर्ट से जुड़ाव। सिर्फ़ पढ़ने वाले टूल पर `readOnlyHint` होता है और कुछ भी बदलने वाले हर टूल पर `destructiveHint` होता है, ताकि क्लाइंट सिर्फ़ पढ़ने वाली कॉल खुद चला सके और कोई भी बदलाव करने से पहले आपसे पूछे। `openWorldHint` उन टूल पर होता है जो आपके प्रोजेक्ट से आगे पहुंचते हैं: सार्वजनिक स्थिति पृष्ठ के टूल, और वे बदलाव जो स्थिति पृष्ठ पर दिखते हैं और उसके सब्सक्राइबर को भेजे जाते हैं, जैसे नई घटना, उसकी स्थिति में बदलाव या सार्वजनिक नोट। विफल टूल कॉल MCP प्रोटोकॉल त्रुटि के रूप में नहीं, बल्कि टूल नतीजे (`isError: true`) के रूप में `statusCode`, विवरण और एक सुझाव के साथ लौटती है, ताकि एजेंट विफलता पढ़कर खुद को सुधार सके।
 
 ## शुरू करने से पहले
 
@@ -489,7 +489,7 @@ MCP सर्वर स्टेटलेस है: वह न सेशन id 
 | टीमें और ऑन-कॉल | Team, On-Call Policy |
 | लेबल | Label |
 | सुरक्षा | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| डेटा सुरक्षा | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| डेटा सुरक्षा | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | डेटा अवलोकनीयता | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | क्लाउड | Cloud Budget |
 

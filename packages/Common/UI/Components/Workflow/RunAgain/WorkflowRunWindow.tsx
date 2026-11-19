@@ -73,6 +73,7 @@ const WorkflowRunWindow: FunctionComponent<ComponentProps> = (
         completedAt: watched?.completedAt,
         isTestRun: watched?.isTestRun,
         startedBy: watched?.startedBy,
+        ranAs: watched?.ranAs,
         canRunAgain: watched?.canRunAgain,
         logs: runWatch.logs,
         stepTrace: runWatch.stepTrace,

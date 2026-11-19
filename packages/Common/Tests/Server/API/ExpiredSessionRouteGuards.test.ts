@@ -250,11 +250,6 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
   // Team membership.
   {
     method: "POST",
-    uri: "/team-member/is-user-registered",
-    registeredBy: "TeamMemberAPI",
-  },
-  {
-    method: "POST",
     uri: "/team-member/remove-user-from-project",
     registeredBy: "TeamMemberAPI",
   },
@@ -350,6 +345,26 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     method: "POST",
     uri: "/alert-episode/owner-rule-preview",
     registeredBy: "AlertEpisodeAPI",
+  },
+
+  /*
+   * Whether a public note posted now is on a status page and notifies
+   * anyone: what the note composer says (#9735).
+   */
+  {
+    method: "POST",
+    uri: "/incident/public-note-reach",
+    registeredBy: "IncidentAPI",
+  },
+  {
+    method: "POST",
+    uri: "/incident-episode/public-note-reach",
+    registeredBy: "IncidentEpisodeAPI",
+  },
+  {
+    method: "POST",
+    uri: "/scheduled-maintenance/public-note-reach",
+    registeredBy: "ScheduledMaintenanceAPI",
   },
 ];
 

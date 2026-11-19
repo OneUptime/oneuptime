@@ -17,9 +17,17 @@ import {
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
+  CustomElementProps,
   FieldFooterProps,
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
+import DetectionRuleResponseStepsField from "../../Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsField";
+import {
+  RESPONSE_STEPS_DESCRIPTION,
+  RESPONSE_STEPS_TITLE,
+} from "../../Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsCopy";
+import { getResponseStepsFoldedCount } from "../../Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsModel";
+import { DetectionRuleResponseStep } from "Common/Types/SecurityEvent/DetectionRuleResponseSteps";
 import DetectionRuleAiDraft from "../../Components/SecurityEvents/DetectionRuleAiDraft";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
@@ -135,8 +143,8 @@ export const DETECTION_RULE_YAML_TOOLS_TEST_ID: string =
   "detection-rule-yaml-tools";
 
 /*
- * The description, the detection finding and how matches are counted:
- * folded under More fields on their steps.
+ * The description, the detection finding, how matches are counted and the
+ * rule's own response steps: folded under More fields on their steps.
  */
 const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
   getAdvancedFormSection<DetectionRule>();
@@ -654,6 +662,50 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               maxValue: ENTITY_RISK_POINTS_MAX,
             },
             collapsibleSection: advancedSection,
+          },
+          {
+            /*
+             * What to do when the rule opens a case (#9621): steps the
+             * case's Response Plan shows ahead of its general ones, each
+             * under the part the author picks. A rule from the library
+             * shows the steps it comes with until one is changed.
+             */
+            field: {
+              responseSteps: true,
+            },
+            title: RESPONSE_STEPS_TITLE,
+            stepId: "on-match",
+            description: RESPONSE_STEPS_DESCRIPTION,
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            collapsibleSection: advancedSection,
+            // Folded, how many steps the rule carries of its own.
+            getFoldedValue: (
+              values: FormValues<DetectionRule>,
+            ): string | null => {
+              const count: number | null = getResponseStepsFoldedCount(
+                values.responseSteps,
+              );
+
+              return count === null ? null : translator.formatNumber(count);
+            },
+            getCustomElement: (
+              values: FormValues<DetectionRule>,
+              elementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <DetectionRuleResponseStepsField
+                  value={values.responseSteps}
+                  sigmaRuleYaml={values.sigmaRuleYaml}
+                  error={elementProps.error}
+                  ariaLabelledby={elementProps.ariaLabelledby}
+                  ariaDescribedby={elementProps.ariaDescribedby}
+                  onChange={(steps: Array<DetectionRuleResponseStep>) => {
+                    elementProps.onChange?.(steps);
+                  }}
+                />
+              );
+            },
           },
         ]}
         showRefreshButton={true}

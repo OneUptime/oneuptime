@@ -187,6 +187,13 @@ next, and how to change it last.
   figure (`GoldenMetricTile`'s `attention`), the bar's legend entry (`StackedProgressBar`'s
   `onClick`). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
+- **An error rate opens the requests that failed.** On a service's, a function's, a cloud
+  environment's and app's, a RUM application's, a queue's and a database's Overview, the Error rate
+  was the one tile with no link, beside a Requests tile that opened the traces: it said something
+  failed, never what (#9593). It opens the resource's traces on exactly the spans it counted that
+  failed (`FailedSpansRoute`): the failed status as a chip the reader can take off, the kind of span
+  it counted (every span, entry spans, a database's client calls) and its window. Enforced by
+  [ErrorRateTilesOpenFailuresGuard](../../packages/App/Tests/Dashboard/ErrorRateTilesOpenFailuresGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by
   [RecordIdLineGuard](../../packages/App/Tests/RecordIdLineGuard.test.ts).
@@ -1389,7 +1396,10 @@ then `npm run i18n:validate` from the root.
 ### What never to write
 
 - **Never say something happened when it did not.** "Copied!" only after the copy worked, and "Sent"
-  only when it was sent. Enforced by
+  only when it was sent. Nor that it will happen when it will not: a public note's composer said
+  "Visible on your status page" and "Subscribers will be notified" of an incident no status page
+  showed (#9735). It now asks the server what is true for the event, says why not when nothing
+  will be, and promises nothing while it does not know (`PublicNoteReachCopy`). Enforced by
   [ClipboardWritesGuard](../../packages/Common/Tests/UI/ClipboardWritesGuard.test.ts) for copy buttons;
   for everything else, not enforced: use judgement.
 - **Never ask for a click that does nothing where it is drawn.** A dashboard widget is drawn on the

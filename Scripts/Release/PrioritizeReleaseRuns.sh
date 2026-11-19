@@ -12,8 +12,9 @@
 # here (its pull request's checks), or its pull request's own refs
 # (refs/pull/<number>/head and /merge: CodeQL's runs on the pull request name
 # their branch so). Everything else - pushes to main, other pull requests,
-# scheduled runs - is cancelled, and can be re-run once the release is out.
-# RELEASING.md says when to start and stop this.
+# scheduled runs - is cancelled, and can be re-run once the release is out,
+# except the scheduled scans of what OneUptime has already shipped
+# (KEPT_SCHEDULED_SCANS below). RELEASING.md says when to start and stop this.
 #
 # It runs until it is stopped (Ctrl-C, or kill), checking once a minute; with
 # --once it checks once and exits. Each cancel is printed with the run's id,
@@ -62,6 +63,33 @@ is_release_run() {
   return 1
 }
 
+# The workflows whose scheduled (or hand-started) runs are never cancelled:
+# the scans for vulnerabilities in what OneUptime has already shipped. Each is
+# one short job, and with a release most days, cancelling them is how a
+# vulnerability published that week goes unseen: the daily Iron Bank
+# Preflight was cancelled on 8 of the 9 days before 2026-11-19, the day a
+# customer, not a check, found nginx's. Their pull request runs are cancelled
+# like any other. Tests/Ops/ImageVulnerabilities.test.js holds the
+# Vulnerability Re-scan's name here to its workflow's.
+KEPT_SCHEDULED_SCANS=(
+  "Vulnerability Re-scan"
+  "Dependency Audit"
+)
+
+is_kept_scheduled_scan() {
+  local event=$1 name=$2 kept
+  case "$event" in
+    schedule | workflow_dispatch) ;;
+    *) return 1 ;;
+  esac
+  for kept in "${KEPT_SCHEDULED_SCANS[@]}"; do
+    if [ "$name" = "$kept" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 list_unfinished_runs() {
   local status
   for status in requested waiting pending queued in_progress; do
@@ -76,6 +104,9 @@ while true; do
   list_unfinished_runs | while IFS=$'\t' read -r id branch event name; do
     [ -n "$id" ] || continue
     if is_release_run "$branch"; then
+      continue
+    fi
+    if is_kept_scheduled_scan "$event" "$name"; then
       continue
     fi
     if [ -n "${DRY_RUN:-}" ]; then

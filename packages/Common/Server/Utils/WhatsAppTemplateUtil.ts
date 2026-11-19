@@ -7,6 +7,7 @@ import WhatsAppTemplateMessages, {
 import WhatsAppMessage, {
   WhatsAppMessagePayload,
 } from "../../Types/WhatsApp/WhatsAppMessage";
+import { getWhatsAppTemplateIdOfEvent } from "../../Types/WhatsApp/WhatsAppEventTemplates";
 import {
   TemplatePlaceholder,
   replaceTemplatePlaceholders,
@@ -72,117 +73,16 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.VerificationCode]: "dashboard_link",
 };
 
-/*
- * Partial: not every notification event type has a WhatsApp template (e.g.
- * SLO status changes). getWhatsAppTemplateIdForEventType throws for event
- * types without a registered template.
- */
-const templateIdByEventType: Partial<
-  Record<NotificationSettingEventType, WhatsAppTemplateId>
-> = {
-  [NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentNotePostedOwnerNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentStateChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentMemberAddedNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentReminderOwnerNotification,
-  /*
-   * WhatsApp sends only templates Meta has approved, for OneUptime Cloud and
-   * for every installation's own WhatsApp Business account, and a new one
-   * sends nothing until it is. An SLA breach says what the approved "still
-   * open" reminder says - the incident, its state, how long it has been
-   * open - which is true of a missed response or resolution deadline, where
-   * the "has been created" template it had borrowed was not.
-   */
-  [NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentReminderOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertReminderOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertNotePostedOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertStateChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertEpisodeCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertEpisodeNotePostedOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertEpisodeOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AlertAddedToEpisodeOwnerNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentEpisodeCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentEpisodeNotePostedOwnerNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentEpisodeStateChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentEpisodeOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.IncidentAddedToEpisodeOwnerNotification,
-  [NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.MonitorOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.MonitorCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
-    WhatsAppTemplateIds.MonitorProbeStatusChangedNotification,
-  [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR]:
-    WhatsAppTemplateIds.MonitorNoProbesMonitoringNotification,
-  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.ScheduledMaintenanceCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification,
-  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.ScheduledMaintenanceReminderOwnerNotification,
-  [NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.StatusPageCreatedOwnerNotification,
-  [NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.StatusPageOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.ProbeOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION]:
-    WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification,
-  [NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION]:
-    WhatsAppTemplateIds.AIAgentOwnerAddedNotification,
-  [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]:
-    WhatsAppTemplateIds.OnCallUserIsOnRosterNotification,
-  [NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER]:
-    WhatsAppTemplateIds.OnCallUserIsNextNotification,
-  [NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY]:
-    WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification,
-  [NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY]:
-    WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification,
-  [NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER]:
-    WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification,
-};
-
 export function getWhatsAppTemplateIdForEventType(
   eventType: NotificationSettingEventType,
 ): WhatsAppTemplateId {
-  const templateId: WhatsAppTemplateId | undefined =
-    templateIdByEventType[eventType];
+  /*
+   * Only an event with an approved template is sent on WhatsApp
+   * (Types/WhatsApp/WhatsAppEventTemplates, which Notification Settings reads
+   * too): one without is never handed to WhatsApp, as nothing would arrive.
+   */
+  const templateId: WhatsAppTemplateId | null =
+    getWhatsAppTemplateIdOfEvent(eventType);
 
   if (!templateId) {
     throw new Error(

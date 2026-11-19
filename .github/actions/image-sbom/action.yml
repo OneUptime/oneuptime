@@ -1,0 +1,54 @@
+name: SBOM of an image for the vulnerability gate
+description: >-
+  Writes a CycloneDX SBOM of an image this job built, with syft, and keeps it
+  as an artifact for the Build workflow's vulnerability-gate job. Needs the
+  image in the runner's Docker daemon.
+
+# The Build workflow's Vulnerability gate (vulnerability-gate in
+# .github/workflows/build.yml) scans what a release would ship before it
+# ships: on a pull request into `release`, each job that builds an image the
+# release ships runs this right after the build, and the gate scans every
+# SBOM with Grype (Scripts/GHA/scan_sbom_vulnerabilities.sh) and fails on what
+# Scripts/Security/ImageVulnerabilities.js counts. The release does the same
+# with its published images (generate-sboms and scan-sbom-vulnerabilities in
+# release.yml), with the same syft and Grype.
+#
+# `name` is the image's name in the release (Scripts/GHA/generate_sboms.sh's
+# IMAGES, app-enterprise for the App's Enterprise Edition), so a finding in the
+# gate and in the nightly re-scan of the release is the same finding.
+
+inputs:
+  image:
+    description: The image as this job's `docker build -t` named it, such as oneuptime-runner:ci.
+    required: true
+  name:
+    description: The image's name in the release, such as runner.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install syft
+      id: syft
+      uses: anchore/sbom-action/download-syft@v0
+
+    - name: Write the SBOM
+      shell: bash
+      env:
+        SYFT: ${{ steps.syft.outputs.cmd }}
+        IMAGE: ${{ inputs.image }}
+        NAME: ${{ inputs.name }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${RUNNER_TEMP}/vulnerability-gate-sbom"
+        "${SYFT:-syft}" "docker:${IMAGE}" --quiet \
+          --output "cyclonedx-json=${RUNNER_TEMP}/vulnerability-gate-sbom/${NAME}.cdx.json"
+
+    - name: Keep it for the vulnerability gate
+      uses: actions/upload-artifact@v4
+      with:
+        name: vulnerability-gate-sbom-${{ inputs.name }}
+        path: ${{ runner.temp }}/vulnerability-gate-sbom/${{ inputs.name }}.cdx.json
+        if-no-files-found: error
+        retention-days: 7
+        overwrite: true

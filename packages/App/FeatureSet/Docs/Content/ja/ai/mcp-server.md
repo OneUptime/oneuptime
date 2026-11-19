@@ -41,7 +41,7 @@ flowchart TB
 - **定期メンテナンス**: メンテナンスイベントを作成・管理します。
 - **テレメトリ**: ログ、メトリクス、トレース、例外、モニターログ、セキュリティイベントなどを照会します(読み取り専用)。
 
-54 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。インシデントとアラートの関連付けのように、作成後に変更できるフィールドがない種類のレコードには、更新ツールはありません。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。`openWorldHint` は、プロジェクトの外に届くツールに付きます。公開ステータスページのツールと、ステータスページに表示されてその購読者に送られる変更、たとえば新しいインシデント、その状態の変更、公開メモです。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
+55 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。インシデントとアラートの関連付けのように、作成後に変更できるフィールドがない種類のレコードには、更新ツールはありません。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。`openWorldHint` は、プロジェクトの外に届くツールに付きます。公開ステータスページのツールと、ステータスページに表示されてその購読者に送られる変更、たとえば新しいインシデント、その状態の変更、公開メモです。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
 
 ## 始める前に
 
@@ -489,7 +489,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | チームとオンコール | Team, On-Call Policy |
 | ラベル | Label |
 | セキュリティ | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| データセキュリティ | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| データセキュリティ | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | データオブザーバビリティ | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | クラウド | Cloud Budget |
 

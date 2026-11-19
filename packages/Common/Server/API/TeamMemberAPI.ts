@@ -11,8 +11,14 @@ import TeamMemberService, {
   TeamMemberService as TeamMemberServiceType,
   TeamsOutOfRemovalReach,
 } from "../Services/TeamMemberService";
-import UserService from "../Services/UserService";
 import ProjectMemberSearch from "../Utils/Team/ProjectMemberSearch";
+import InviteSuggestions from "../Utils/Team/InviteSuggestions";
+import {
+  InviteSuggestion,
+  InviteSuggestionsRequest,
+  readInviteSuggestionsRequest,
+  toInviteSuggestionsAnswerJSON,
+} from "../../Types/Team/InviteSuggestions";
 import ReadableTeamNames from "../Utils/Team/ReadableTeamNames";
 import InvitationEmailsNotSent from "../Utils/TeamMember/InvitationEmailsNotSent";
 import EditionEnforcement from "../Utils/EditionEnforcement";
@@ -33,7 +39,6 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import ObjectID from "../../Types/ObjectID";
 import UserType from "../../Types/UserType";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
-import User from "../../Models/DatabaseModels/User";
 import {
   ProjectMemberSearchMatch,
   readProjectMemberSearchText,
@@ -68,56 +73,16 @@ export default class TeamMemberAPI extends BaseAPI<
     super(TeamMember, TeamMemberService);
 
     /*
-     * Used by the invite-user forms to decide whether to ask for the
-     * invitee's name (only needed when the email has no OneUptime account
-     * yet). Returns just a boolean — no user details — and requires an
-     * authenticated user.
+     * No route here says whether an email address has a OneUptime account
+     * (#9745). POST /team-member/is-user-registered did, to any signed-in
+     * account about any address, read across the whole server: on Cloud a
+     * list of addresses could be checked one by one. The invite forms asked
+     * it only to decide whether to ask for the invitee's name; they now
+     * offer the name for any address (Common/UI/Utils/InviteeName), and
+     * the invitation uses it only for an account nobody has signed up to yet
+     * (TeamMemberService.onBeforeCreate), so neither tells the inviter
+     * anything.
      */
-    this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/is-user-registered`,
-      UserMiddleware.getUserMiddleware,
-      UserMiddleware.requireUserAuthentication,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
-          const userId: ObjectID | undefined =
-            oneUptimeRequest.userAuthorization?.userId;
-          if (!userId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthorizedException("Not authenticated"),
-            );
-          }
-
-          const emailString: string = (
-            (req.body?.["email"] as string) || ""
-          ).trim();
-
-          if (!emailString || !Email.isValid(emailString)) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("A valid email is required"),
-            );
-          }
-
-          const user: User | null = await UserService.findByEmail(
-            new Email(emailString),
-            {
-              isRoot: true,
-            },
-          );
-
-          return Response.sendJsonObjectResponse(req, res, {
-            isRegistered: Boolean(user),
-          });
-        } catch (err) {
-          return next(err);
-        }
-      },
-    );
 
     /*
      * POST /team-member/search-members - Search's people (#7036,
@@ -155,6 +120,53 @@ export default class TeamMemberAPI extends BaseAPI<
             req,
             res,
             toProjectMemberSearchAnswerJSON(members),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/invite-suggestions - the people an invitation's
+     * email box suggests as it is typed in (#9701,
+     * Types/Team/InviteSuggestions): the project's people whose name or
+     * email holds what was typed, found as Search finds them, with the
+     * caller's own permissions, each with where they stand for the team the
+     * invitation is for; and, on a server somebody runs, its other accounts
+     * for its master admin, or for anyone who may invite while its master
+     * admin lets them (#9744, Utils/Team/InviteSuggestions). Never anyone of
+     * another project on Cloud. For a signed-in member of the project or a
+     * project API key; fewer than two letters are refused rather than
+     * answered with everyone. Nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/invite-suggestions`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const request: InviteSuggestionsRequest =
+            readInviteSuggestionsRequest(req.body);
+
+          const suggestions: Array<InviteSuggestion> =
+            await InviteSuggestions.suggest({
+              projectId: projectId,
+              request: request,
+              props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toInviteSuggestionsAnswerJSON(suggestions),
           );
         } catch (err) {
           return next(err);

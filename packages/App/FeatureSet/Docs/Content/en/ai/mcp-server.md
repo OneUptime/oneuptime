@@ -41,7 +41,7 @@ The server is stateless: it issues no session ids, and every request stands on i
 - **Scheduled maintenance**: create and manage maintenance events.
 - **Telemetry**: query logs, metrics, traces, exceptions, monitor logs, security events and more, read-only.
 
-There are create, get, list, update, delete and count tools for 54 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. A kind of record with no field you can change once it is made, such as an incident's link to an alert, has no update tool. Read-only tools carry `readOnlyHint` and every tool that changes something carries `destructiveHint`, so a client can run read-only calls on its own and ask you before any change. `openWorldHint` marks the tools that reach past your project: the public status page tools, and the changes that are shown on a status page and sent to its subscribers, such as a new incident, a change of its state or a public note. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
+There are create, get, list, update, delete and count tools for 55 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. A kind of record with no field you can change once it is made, such as an incident's link to an alert, has no update tool. Read-only tools carry `readOnlyHint` and every tool that changes something carries `destructiveHint`, so a client can run read-only calls on its own and ask you before any change. `openWorldHint` marks the tools that reach past your project: the public status page tools, and the changes that are shown on a status page and sent to its subscribers, such as a new incident, a change of its state or a public note. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
 
 ## Before you begin
 
@@ -489,7 +489,7 @@ The MCP server is stateless: it neither issues nor tracks session ids, so every 
 | Teams and on-call | Team, On-Call Policy |
 | Labels | Label |
 | Security | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Data security | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Data security | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Data observability | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Cloud | Cloud Budget |
 

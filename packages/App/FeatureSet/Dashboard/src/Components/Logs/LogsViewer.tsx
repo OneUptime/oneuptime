@@ -194,6 +194,8 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
 import SecurityEventsInSignal from "../SecurityEvents/SecurityEventsInSignal";
 import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
+import { LogsViewerOpenedLog } from "Common/UI/Components/LogsViewer/components/OpenedLogLine";
+import useOpenedLogLine from "./useOpenedLogLine";
 
 export interface ComponentProps {
   id: string;
@@ -1118,6 +1120,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       attributes: true,
     };
   }, []);
+
+  /*
+   * The one line the Logs page's address opens by its id, above the list
+   * (#9620): read with the list's columns, as the reader.
+   */
+  const openedLog: LogsViewerOpenedLog | undefined = useOpenedLogLine({
+    isEnabled: Boolean(props.syncUrlState),
+    select,
+  });
 
   /*
    * The host's ids for the API calls, by value. Pages hand over new arrays on
@@ -3168,6 +3179,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           getSpanRoute={getSpanRoute}
           resolveSpanRoute={resolveSpanRoute}
           getSessionRoute={getSessionRoute}
+          openedLog={openedLog}
           /*
            * A line that is part of an attack says so where it is read: the
            * security events of the request it was written in, or of the line
