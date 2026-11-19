@@ -173,7 +173,7 @@ Power BI는 Fabric 관리자가 관리 포털의 **Tenant settings > Admin API s
 - **Enhance admin APIs responses with detailed metadata**: 각 데이터 세트의 테이블.
 - **Enhance admin APIs responses with DAX and mashup expressions**: 테이블을 불러오는 쿼리로, 어떤 데이터베이스 테이블을 읽는지 알려 줍니다.
 
-그 뒤 Power BI는 데이터 세트가 새로 고침되거나 다시 게시되면 그 데이터 세트를 설명합니다. DirectQuery만 사용하는 데이터 세트는 누군가 그 데이터 세트의 보고서를 연 뒤에 설명합니다. 실시간 데이터 세트, Analysis Services에 라이브 연결된 데이터 세트, Excel 통합 문서, 공유 용량에 있는 1 GB를 넘는 데이터 세트는 절대 설명하지 않습니다. 데이터 흐름에서 읽는 데이터 세트는 데이터 흐름까지만 읽습니다. OneUptime은 데이터 흐름이 어떤 테이블을 불러오는지는 아직 읽지 않습니다.
+그 뒤 Power BI는 데이터 세트가 새로 고침되거나 다시 게시되면 그 데이터 세트를 설명합니다. DirectQuery만 사용하는 데이터 세트는 누군가 그 데이터 세트의 보고서를 연 뒤에 설명합니다. 실시간 데이터 세트, Analysis Services에 라이브 연결된 데이터 세트, Excel 통합 문서, 공유 용량에 있는 1 GB를 넘는 데이터 세트는 절대 설명하지 않습니다.
 
 각 테이블은 이름, 스키마, 데이터베이스로 모니터링 대상 테이블과 일치시키고, 서버는 짧은 이름이나 전체 이름으로 일치시킵니다. 다른 엔진의 테이블은 절대 일치시키지 않으며, 다른 데이터베이스의 테이블도 마찬가지입니다. `Archive`만 모니터링한다면 `Sales.dbo.Orders`의 보고서는 `Archive.dbo.Orders`에 연결되지 않습니다.
 

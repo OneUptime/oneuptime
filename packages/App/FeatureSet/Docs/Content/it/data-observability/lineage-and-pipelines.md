@@ -173,7 +173,7 @@ Power BI restituisce le tabelle di un set di dati solo dopo che un amministrator
 - **Enhance admin APIs responses with detailed metadata**: le tabelle di ogni set di dati.
 - **Enhance admin APIs responses with DAX and mashup expressions**: le query che le caricano, che dicono quali tabelle di database leggono.
 
-Power BI descrive poi un set di dati quando è stato aggiornato o ripubblicato; uno che usa solo DirectQuery, quando qualcuno ha aperto un report su di esso. Non descrive mai i set di dati in tempo reale, i set di dati con una connessione dinamica ad Analysis Services, le cartelle di lavoro Excel né i set di dati oltre 1 GB su capacità condivisa. Un set di dati che legge da un flusso di dati viene letto fino al flusso di dati: OneUptime non legge ancora quali tabelle carica un flusso di dati.
+Power BI descrive poi un set di dati quando è stato aggiornato o ripubblicato; uno che usa solo DirectQuery, quando qualcuno ha aperto un report su di esso. Non descrive mai i set di dati in tempo reale, i set di dati con una connessione dinamica ad Analysis Services, le cartelle di lavoro Excel né i set di dati oltre 1 GB su capacità condivisa.
 
 Ogni tabella viene abbinata a una tabella monitorata per nome, schema e database, e un server per il suo nome breve o per quello completo. Una tabella di un altro motore non viene mai abbinata, e nemmeno una in un altro database: un report su `Sales.dbo.Orders` non viene collegato ad `Archive.dbo.Orders` perché è monitorato solo `Archive`.
 

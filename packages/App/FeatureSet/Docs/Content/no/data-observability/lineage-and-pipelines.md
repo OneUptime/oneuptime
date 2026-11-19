@@ -173,7 +173,7 @@ Power BI returnerer tabellene til et datasett først når en Fabric-administrato
 - **Enhance admin APIs responses with detailed metadata**: tabellene i hvert datasett.
 - **Enhance admin APIs responses with DAX and mashup expressions**: spørringene som laster dem, og som sier hvilke databasetabeller de leser.
 
-Power BI beskriver så et datasett når det er oppdatert eller publisert på nytt; et som bare bruker DirectQuery, når noen har åpnet en rapport på det. Det beskriver aldri sanntidsdatasett, datasett med direkte tilkobling til Analysis Services, Excel-arbeidsbøker eller datasett over 1 GB på delt kapasitet. Et datasett som leser fra en dataflyt, leses frem til dataflyten: OneUptime leser ennå ikke hvilke tabeller en dataflyt laster.
+Power BI beskriver så et datasett når det er oppdatert eller publisert på nytt; et som bare bruker DirectQuery, når noen har åpnet en rapport på det. Det beskriver aldri sanntidsdatasett, datasett med direkte tilkobling til Analysis Services, Excel-arbeidsbøker eller datasett over 1 GB på delt kapasitet.
 
 Hver tabell samsvares med en overvåket tabell etter navn, skjema og database, og en server etter det korte eller det fulle navnet. En tabell fra en annen databasemotor samsvares aldri, og heller ikke en i en annen database: en rapport på `Sales.dbo.Orders` knyttes ikke til `Archive.dbo.Orders`, fordi bare `Archive` overvåkes.
 
