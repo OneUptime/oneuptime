@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import TimeRangePickerDropdown, {
@@ -10,6 +16,7 @@ import {
   getDropdownWidthToFit,
 } from "../../../UI/Utils/DropdownAlignment";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 
 /*
  * A time range picker at the right of a table's header - the Session
@@ -22,6 +29,10 @@ import TimeRange from "../../../Types/Time/TimeRange";
  * Dashboard's Tailwind runtime had not yet written the rule for its w-72:
  * it measured 131px, which fitted. It is now taken to be at least as wide
  * as it is styled to.
+ *
+ * It is drawn over the page from its button (LayeredPopover, #9859), and
+ * Popper places it from the edge picked here: its start ("bottom-start" on
+ * a page read left to right) or its end ("bottom-end").
  */
 
 const PREFIX: string = "header-range";
@@ -97,6 +108,20 @@ function openedDropdown(button: HTMLElement): HTMLElement {
   return screen.getByTestId(`${PREFIX}-dropdown`);
 }
 
+// Where Popper placed the dropdown, once its first placement has run.
+async function placementOf(dropdown: HTMLElement): Promise<string | null> {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  return (
+    dropdown
+      .closest<HTMLElement>(`.${LAYERED_POPOVER_CLASS_NAME}`)
+      ?.getAttribute("data-popper-placement") || null
+  );
+}
+
 beforeEach(() => {
   measureDropdownsAs(UNSTYLED_WIDTH_IN_PX);
 });
@@ -149,7 +174,7 @@ describe("getDropdownWidthToFit", () => {
 });
 
 describe("a time range picker at the right of a table's header", () => {
-  test("opens its dropdown from its right edge the first time, at a laptop's width", () => {
+  test("opens its dropdown from its right edge the first time, at a laptop's width", async () => {
     setViewportWidth(1280);
 
     // Where the Session Replay list's picker stands at 1280.
@@ -161,8 +186,7 @@ describe("a time range picker at the right of a table's header", () => {
       "data-align",
       DropdownHorizontalAlignment.Right,
     );
-    expect(dropdown).toHaveClass("right-0");
-    expect(dropdown).not.toHaveClass("left-0");
+    expect(await placementOf(dropdown)).toBe("bottom-end");
   });
 
   test("and on a phone, where it follows the search on a line of its own", () => {
@@ -178,7 +202,7 @@ describe("a time range picker at the right of a table's header", () => {
     );
   });
 
-  test("a picker with room to its right still opens from its left edge", () => {
+  test("a picker with room to its right still opens from its left edge", async () => {
     setViewportWidth(1280);
 
     // An explorer's toolbar, where the picker is the first control.
@@ -190,6 +214,6 @@ describe("a time range picker at the right of a table's header", () => {
       "data-align",
       DropdownHorizontalAlignment.Left,
     );
-    expect(dropdown).toHaveClass("left-0");
+    expect(await placementOf(dropdown)).toBe("bottom-start");
   });
 });
