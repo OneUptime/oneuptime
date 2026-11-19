@@ -5,7 +5,7 @@
 :::cards
 - [开启它](#开启成本可观测性): 默认开启；未开启的地方只需一条 `helm upgrade`。
 - [针对成本发出警报](#针对成本发出警报): 按集群、命名空间和工作负载统计的成本，以指标形式提供。
-- [使用你自己的引擎](#已经在运行-kubecost-或-opencost): 让代理指向 Kubecost 或 OpenCost。
+- [你自己的引擎](#已经在运行-kubecost-或-opencost): 找到并读取你已经在运行的 Kubecost 或 OpenCost。
 - [资源规格调整](#资源规格调整): request 建议，以及它们是如何得出的。
 - [故障排查](#故障排查): 页面为空、缺少建议。
 :::
@@ -63,28 +63,33 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 成本指标（`node_total_hourly_cost`、`pv_hourly_cost` 等）都是普通指标：它们出现在指标浏览器中、自定义仪表板上和指标监视器中。要使用现成的仪表板，请转到 **产品 → 仪表板**，选择 **创建仪表板**，然后挑选 **Kubernetes Cost Dashboard**：其中包含节点每小时成本趋势、CPU 和内存单价，以及卷和负载均衡器的支出。
 
+在这些数字下方，概览和 **成本** 页面会说明价格从何而来：云厂商的公开价格、你的费率卡，或 OpenCost 的默认费率。效率在各处都是同一个数字，效率指标也不例外：它表示所请求的 CPU 和内存中有多少被实际使用，每个容器的每个小时都按其 CPU 和内存的成本加权，因此一个什么都不用的廉价任务无法拉低一个利用充分的集群，而且空闲容量不计算在内。
+
 ## 已经在运行 Kubecost 或 OpenCost？
 
-改为让代理指向你的引擎，就不会内置任何东西：
+成本代理会找到它，并读取它而不是内置的 OpenCost，因此集群会按你的设置来定价：你的费率卡，或 Kubecost 所接入的云账单。它在启动时以及之后每小时，通过 Kubernetes API 在所有命名空间中查找这些引擎自己的 chart 所创建的 Service（Kubecost 的 `cost-analyzer` 或 `frontend`、OpenCost 的 chart 所创建的 Service，以及 OpenCost 的清单文件所创建的 `opencost` Service），并优先选择 Kubecost。它会跳过没有响应、需要登录或返回多个集群数据的引擎，转而读取内置的引擎。
+
+随后，集群的概览会显示你的引擎名称，并说明不需要内置的 OpenCost。停止运行它：
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
-  --set cost.enabled=true \
-  --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+  --set cost.engine.url=auto
 ```
+
+使用 `cost.engine.url=auto` 时不会内置任何东西，无论你的引擎运行在哪里，代理都会读取它；如果没有安装任何引擎，就不会为任何东西定价。该 chart 本身无法查找引擎：在 `helm template`、Argo CD 或试运行下，Helm 的 `lookup` 什么也看不到。要在你自己的引擎旁边保留内置的 OpenCost，请设置 `cost.engine.preferExisting=false`；要指定读取哪个引擎，请将 `cost.engine.url` 设置为它的 Service URL：
 
 | 引擎 | 常用的服务 URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
 | Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-Allocation API 路径会被自动找到（Kubecost 为 `/model/allocation`，OpenCost 为 `/allocation/compute` 或 `/allocation`）。只有在安装方式不寻常时才需要设置 `cost.engine.allocationPath`。要获得内存建议，还需设置 `cost.engine.prometheusUrl`（见 [建议背后的数据](#建议背后的数据)）。
+Allocation API 路径会被自动找到（Kubecost 为 `/model/allocation`，OpenCost 为 `/allocation/compute` 或 `/allocation`）。只有在安装方式不寻常时才需要设置 `cost.engine.allocationPath`。使用 `auto` 或 URL 时不会内置任何东西，因此要获得内存建议，还需设置 `cost.engine.prometheusUrl`（见 [建议背后的数据](#建议背后的数据)）。
 
 ## 本地部署和裸金属定价
 
-节点没有公有云公开价格的集群可以设置费率卡。随后 OpenCost 会根据这些数字为每种资源定价，单位均为美元每资源小时：
+节点没有公有云公开价格的集群可以设置费率卡。没有费率卡时，OpenCost 会按其默认费率为这些节点（本地部署、裸金属、kind、k3s）定价，这可能与你的硬件实际成本相去甚远，集群的概览和 **成本** 页面会指出这一点；在它能识别的云上，节点保留其公开价格，费率卡只为公开价格中缺少的部分定价。设置费率卡后，OpenCost 会根据这些数字为每种资源定价，单位均为美元每资源小时：
 
 ```yaml title="values.yaml"
 cost:
@@ -97,6 +102,8 @@ cost:
       storagePerGBHour: "0.00005479452" # ~$0.04 per GB-month
       gpuPerHour: "0.95"
 ```
+
+这些是 OpenCost 自己的默认费率：请填入你自己的数字，否则 **成本** 页面仍会显示该集群按 OpenCost 的默认费率定价。
 
 ## 值得了解的设置
 
@@ -148,7 +155,7 @@ cost:
 内存还需要另一个数据源。Allocation API 只报告每个窗口的平均值，而每小时平均值会掩盖导致容器被 OOM kill 的突发，因此据此确定内存规格是危险的。所以轮询器改为从 Prometheus 读取每个容器的内存峰值，并按 `(namespace, pod, container)` 进行关联：
 
 - 使用内置引擎（默认）时，它使用 chart 自带的 Prometheus。无需任何设置。
-- 使用你自己的引擎（`cost.engine.url`）时，把 `cost.engine.prometheusUrl` 指向一个抓取 cAdvisor 的 Prometheus，如果其抓取任务的名称不是 `kubernetes-nodes-cadvisor`，还要设置 `cost.engine.prometheusCadvisorJob`。
+- 设置了 `cost.engine.url`（`auto` 或你的引擎的 URL）时，把 `cost.engine.prometheusUrl` 指向一个抓取 cAdvisor 的 Prometheus，如果其抓取任务的名称不是 `kubernetes-nodes-cadvisor`，还要设置 `cost.engine.prometheusCadvisorJob`。
 - 没有 Prometheus 时，CPU 建议仍可根据已存储的每小时平均值正常工作，而内存建议会被省略，而不是靠猜测得出。
 
 Prometheus 中断永远不会停止支出的采集：峰值只是附加信息，该小时会在没有峰值的情况下发送。CPU 有意不使用 Prometheus：CPU request 过大只会导致限流，而内存 request 过小则会让容器被终止，因此每小时平均值用于 CPU 是安全的；而且在整个集群中查询每个容器的 CPU 速率负载很重，足以压垮一个小型 Prometheus。
@@ -180,6 +187,14 @@ Kubernetes 监视器为它们提供了三个模板：Cluster Daily Cost Over Bud
 
 :::details 内置的 OpenCost 未就绪
 查看它的日志：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`。日志会说明它检测到了哪个云厂商，以及它的价格数据是否已加载。
+:::
+
+:::details 概览显示不需要内置的 OpenCost
+集群运行着自己的 Kubecost 或 OpenCost，而成本代理读取的是它，因此 chart 内置的 OpenCost 和 Prometheus 不为任何东西定价。使用 `--set cost.engine.url=auto` 升级即可停止运行它们，或者设置 `cost.engine.preferExisting=false`，改为读取内置的引擎。
+:::
+
+:::details 成本代理没有读取你的引擎
+它的日志会说明它读取的是哪个引擎，以及为什么跳过了其他引擎：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。它会跳过没有响应的引擎（例如命名空间之间有 NetworkPolicy）、需要登录的引擎，或返回多个集群数据的引擎，比如联邦了其他集群的 Kubecost。请用 `cost.engine.url` 指定要读取的引擎。
 :::
 
 :::details OpenCost 日志显示 mkdir /var/configs: permission denied

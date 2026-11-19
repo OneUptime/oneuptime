@@ -72,8 +72,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "مراقبة التكاليف معطّلة افتراضيًا على هذه المنصة: فهي تحاسب كل Pod على ما يطلبه من موارد، لذا ستزيد وحدات Pod الثلاث الخاصة بالتكاليف من فاتورتك، كما أن OpenCost يسعّر العُقد لا وحدات Pod. لتفعيلها رغم ذلك:",
   "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
     "هذا وحده تثبيت كامل: يتضمن الـ chart محرك OpenCost مفتوح المصدر (إضافةً إلى Prometheus الصغير الذي يحتاجه) ويسعّر عُقدك ووحدات التخزين لديك وفق قوائم الأسعار العامة لمزوّد السحابة، دون أي بيانات اعتماد. يضيف ثلاث وحدات Pod صغيرة؛ وتظهر أولى البيانات بعد مرور أول ساعة كاملة.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **هل تشغّل Kubecost أو OpenCost بالفعل؟** وجّه الوكيل إليه بدلًا من ذلك، ولن يُضمَّن شيء: أضف `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (أو خدمة Kubecost لديك).",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **هل تشغّل Kubecost أو OpenCost بالفعل؟** يعثر عليه الوكيل ويقرأ منه بدلًا من المحرك الذي يتضمنه الـ chart، وتذكر صفحة «نظرة عامة» للعنقود ذلك: أضف `--set cost.engine.url=auto` لإيقاف تضمين محرك ثانٍ.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **محلي أو bare metal؟** اضبط جدول أسعار باستخدام `--set cost.opencost.customPricing.enabled=true` (بالدولار لكل ساعة مورد؛ راجع `values.yaml` في الـ chart).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

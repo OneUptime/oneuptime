@@ -630,7 +630,7 @@ Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose t
     "bash",
     getKubernetesAgentUpgradeCommand(["--set cost.enabled=true"]),
   );
-  const costElsewhere: string = `- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add \`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003\` (or your Kubecost service).
+  const costElsewhere: string = `- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add \`--set cost.engine.url=auto\` to stop bundling a second one.
 - **On-prem or bare metal?** Set a rate card with \`--set cost.opencost.customPricing.enabled=true\` (USD per resource-hour — see the chart's \`values.yaml\`).
 
 Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).`;
