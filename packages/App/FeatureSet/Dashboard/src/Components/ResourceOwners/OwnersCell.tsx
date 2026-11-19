@@ -84,10 +84,16 @@ const OwnerCircle: FunctionComponent<OwnerCircleProps> = (
    * not read at all. The name is an attribute, not words in the cell, so
    * the cell's own text - what a cut-short cell shows in full under the
    * pointer - stays its initials.
+   *
+   * On a touch screen a tap on it says who the owner is: the first tap is
+   * the tooltip's own, not the card's, which would open the record - on a
+   * tablet a list draws its rows as cards with their owners, and never
+   * said who owned one (#9866). A second tap, or a tap elsewhere on the
+   * card, opens the record as before.
    */
   return (
     <div className="relative -ml-1.5 first:ml-0 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
-      <Tooltip richContent={tooltipContent}>
+      <Tooltip richContent={tooltipContent} isShownOnFirstTap={true}>
         <div className="cursor-default" role="img" aria-label={item.name}>
           <PeopleAvatar item={item} size="chip" />
         </div>
@@ -168,9 +174,9 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
         <div className="relative -ml-1.5 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
           {/*
            * Read as the owners it stands for, after the ones drawn before
-           * it, rather than as "+2".
+           * it, rather than as "+2". A tap shows them, as an owner's does.
            */}
-          <Tooltip richContent={overflowTooltip}>
+          <Tooltip richContent={overflowTooltip} isShownOnFirstTap={true}>
             <div
               className="h-6 w-6 rounded-full bg-gray-100 ring-2 ring-white shadow-sm flex items-center justify-center text-xs font-semibold text-gray-700 select-none cursor-default"
               role="img"
