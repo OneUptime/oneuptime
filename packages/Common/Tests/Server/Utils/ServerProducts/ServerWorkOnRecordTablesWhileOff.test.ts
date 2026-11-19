@@ -53,7 +53,7 @@ describe("the owner rows the data owner jobs tell of", () => {
     }
 
     for (const table of ["DataStoreOwnerUser", "DataStoreOwnerTeam"]) {
-      expect(getProductsOfRecordTable(table).sort()).toEqual(
+      expect([...getProductsOfRecordTable(table)].sort()).toEqual(
         [ProductKey.DataObservability, ProductKey.DataSecurity].sort(),
       );
     }

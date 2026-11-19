@@ -85,11 +85,11 @@ describe("getCircuitBreakerValue", () => {
   });
 
   test("a go, or a run that started since, writes 0", () => {
+    // Asked lately, and no stop kept: the go, or the run, cleared it.
     expect(
       getCircuitBreakerValue({
         pipeline: pipelineWith({
           circuitBreakerCheckedAt: ago(10 * MINUTE),
-          circuitBreakerStoppedAt: undefined,
         }),
         now: NOW,
       }),
