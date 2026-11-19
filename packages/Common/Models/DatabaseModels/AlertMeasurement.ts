@@ -880,7 +880,7 @@ export default class AlertMeasurement extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this measurement appears in the list of measurements, lowest number first. A new measurement is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this measurement appears in the list of measurements, lowest number first. A new measurement is added to the end of the list. Measurements that share a number appear in the order of their IDs. Setting a number places this measurement and moves no other, so numbering every measurement at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
     isDefaultValueColumn: true,
   })
   @Column({

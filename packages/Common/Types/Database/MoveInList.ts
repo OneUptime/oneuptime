@@ -58,6 +58,20 @@ import ObjectID from "../ObjectID";
 // The route, under the list's own API path, for the row `:id`.
 export const MOVE_IN_LIST_ROUTE: string = "/:id/move";
 
+/*
+ * The five lists numbered by `order` whose services keep them by hand
+ * (Server/Utils/Database/ContiguousOrder), by their tables: their APIs add
+ * the move (MoveInListAPI). Every other list with a move is marked
+ * @ListOrderColumn.
+ */
+export const CONTIGUOUS_ORDER_TABLES: ReadonlyArray<string> = [
+  "StatusPageGroup",
+  "StatusPageResource",
+  "OnCallDutyPolicyEscalationRule",
+  "OnCallDutyPolicyScheduleLayer",
+  "OnCallDutyPolicyScheduleLayerUser",
+];
+
 // The route for one row, as the Dashboard calls it.
 export const getMoveInListRoute: (rowId: string) => string = (
   rowId: string,
@@ -111,6 +125,25 @@ const toNumber: (order: unknown) => number | null = (
 };
 
 export default class MoveInListUtil {
+  /*
+   * Whether a model's rows are moved by POST <its path>/:id/move: every
+   * drag-ordered list (@ListOrderColumn), and the five numbered lists
+   * (CONTIGUOUS_ORDER_TABLES). The API Reference draws the move on their
+   * pages.
+   */
+  public static hasMoveRequest(model: {
+    tableName?: string | null | undefined;
+    getListOrder?: (() => unknown) | undefined;
+  }): boolean {
+    if (typeof model.getListOrder === "function" && model.getListOrder()) {
+      return true;
+    }
+
+    return Boolean(
+      model.tableName && CONTIGUOUS_ORDER_TABLES.includes(model.tableName),
+    );
+  }
+
   /*
    * The order a list is read in: by number from the top - lowest first, or
    * highest first for a list whose top is its highest number - rows without

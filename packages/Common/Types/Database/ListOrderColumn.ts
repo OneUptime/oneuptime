@@ -8,20 +8,23 @@ import GenericFunction from "../GenericFunction";
  *   @ListOrderColumn({ column: "order", scopeColumns: ["statusPageId"] })
  *
  * With it, DatabaseService keeps that column for every caller - the dashboard,
- * the API, workflows and seed data alike:
+ * the API, workflows, Terraform and seed data alike (issue #9609):
  *
  *   - a row created without a number goes to the end of its list;
- *   - a row created or updated WITH a number keeps it, and if another row of
- *     its list held that number, that row steps one place aside to make room
- *     (and the next one, along a run of neighbours) - so a drop in a
- *     reorderable table, which sends the number of the row it was dropped
- *     onto, takes that row's place;
- *   - numbers nobody collides with are never rewritten, so an API or
- *     Terraform caller reads back exactly what it wrote.
+ *   - a row created or updated WITH a number keeps it, and no other row
+ *     moves - two rows may share a number, and are read in the order of
+ *     their ids - so Terraform, which writes every row's number on its own,
+ *     all at once, ends with every row at the number it wrote;
+ *   - a row is moved past others by a request of its own, POST
+ *     <the model's path>/:id/move { placeOfId } (BaseAPI,
+ *     DatabaseService.moveInList), which is what a drop in a reorderable
+ *     table sends: the row takes the place of the row it was dropped onto,
+ *     and the list is numbered from scratch.
  *
- * The arithmetic lives in Common/Utils/ListOrder.ts, shared with the table, so
- * the two cannot disagree. Nothing in a form should ask for this number: the
- * order IS the list, and the list is reordered by dragging.
+ * The arithmetic lives in Common/Utils/ListOrder.ts and
+ * Common/Types/Database/MoveInList.ts, shared with the table, so the two
+ * cannot disagree. Nothing in a form should ask for this number: the order
+ * IS the list, and the list is reordered by dragging.
  */
 export interface ListOrderColumnOptions {
   // The number column that holds each row's place in its list.

@@ -498,7 +498,7 @@ export default class NetworkDeviceRole extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Order",
     description:
-      "Where this role appears in the role picker and the topology map legend, lowest number first. A new role is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this role appears in the role picker and the topology map legend, lowest number first. A new role is added to the end of the list. Roles that share a number appear in the order of their IDs. Setting a number places this role and moves no other, so numbering every role at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
     example: "1",
   })
   @Column({

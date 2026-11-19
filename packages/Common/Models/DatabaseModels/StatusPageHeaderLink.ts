@@ -480,7 +480,7 @@ export default class StatusPageHeaderLink extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this link appears among the status page's header links, lowest number first. A new link is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this link appears among the status page's header links, lowest number first. A new link is added to the end of the list. Links that share a number appear in the order of their IDs. Setting a number places this link and moves no other, so numbering every link at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

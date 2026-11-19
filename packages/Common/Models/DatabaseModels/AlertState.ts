@@ -565,7 +565,7 @@ export default class AlertState extends BaseModel {
     title: "Order",
     required: false,
     description:
-      "Where this state sits in the project's list of alert states: 1 is the top. Alerts only ever move down the list, and an alert in a state at or below the acknowledged (or resolved) state counts as acknowledged (or resolved), so the created, acknowledged and resolved states have to stay in that order. A new state without a number goes just above the resolved state. Setting a number moves the state to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
+      "Where this state sits in the project's list of alert states: 1 is the top. Alerts only ever move down the list, and an alert in a state at or below the acknowledged (or resolved) state counts as acknowledged (or resolved), so the created, acknowledged and resolved states have to stay in that order. A new state without a number goes just above the resolved state. States that share a number are listed in the order of their IDs. Setting a number places this state and moves no other, so numbering every state at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.SmallNumber,

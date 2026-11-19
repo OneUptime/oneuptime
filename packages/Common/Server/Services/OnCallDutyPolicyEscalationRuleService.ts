@@ -2740,9 +2740,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
   /*
    * The level a new rule with this order takes: one past every rule of the
-   * policy ordered before it. Rules at or after its order make room for it
-   * once it is saved (onCreateSuccess), so they do not count. Counted rather
-   * than read off the order, which an API caller may leave with gaps.
+   * policy ordered before it; rules at or after its order do not count (a
+   * write of a rule's order moves no other rule). Counted rather than read
+   * off the order, which an API caller may leave with gaps.
    */
   private async getLevelOfNewRule(data: {
     onCallDutyPolicyId: ObjectID;

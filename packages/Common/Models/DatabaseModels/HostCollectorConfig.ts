@@ -323,7 +323,7 @@ export default class HostCollectorConfig extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this config sits in the list. A host runs the first config in the list that applies to it. A new config is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along. In the dashboard, drag the rows to reorder them.",
+      "Where this config sits in the list. A host runs the first config in the list that applies to it. A new config is added to the end of the list. Configs that share a number are tried in the order of their IDs. Setting a number places this config and moves no other, so numbering every config at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

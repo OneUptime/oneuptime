@@ -317,7 +317,7 @@ export default class LogPipeline extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     description:
-      "Where this pipeline runs among the project's log pipelines, lowest number first. A new pipeline is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this pipeline runs among the project's log pipelines, lowest number first. A new pipeline is added to the end of the list. Pipelines that share a number run in the order of their IDs. Setting a number places this pipeline and moves no other, so numbering every pipeline at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

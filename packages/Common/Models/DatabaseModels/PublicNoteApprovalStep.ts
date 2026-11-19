@@ -188,7 +188,7 @@ export default class PublicNoteApprovalStep extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this step sits among the approval steps, lowest number first: a public note goes through them in this order. A new step is added to the end. Setting a number another step already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this step sits among the approval steps, lowest number first: a public note goes through them in this order. A new step is added to the end. Steps that share a number are gone through in the order of their IDs. Setting a number places this step and moves no other, so numbering every step at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
     canReadOnRelationQuery: true,
     example: 1,
   })

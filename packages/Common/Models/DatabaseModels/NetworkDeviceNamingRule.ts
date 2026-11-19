@@ -240,7 +240,7 @@ export default class NetworkDeviceNamingRule extends RuleBaseModel {
     type: TableColumnType.Number,
     title: "Priority",
     description:
-      "Where this rule sits in the list: the first enabled rule from the top that matches a device, and has every value its name pattern needs, names it. The rule at the top has the highest number. A new rule is added to the end of the list, with the lowest number. Setting a number another rule already has puts this rule in that place, and the rules in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this rule sits in the list: the first enabled rule from the top that matches a device, and has every value its name pattern needs, names it. The rule at the top has the highest number. A new rule is added to the end of the list, with the lowest number. Rules that share a number are tried in the order of their IDs. Setting a number places this rule and moves no other, so numbering every rule at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
     example: "0",
   })
   @Column({

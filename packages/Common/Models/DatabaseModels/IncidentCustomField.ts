@@ -437,7 +437,7 @@ export default class IncidentCustomField extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this field appears among the incident's custom fields, lowest number first. A new field is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this field appears among the incident's custom fields, lowest number first. A new field is added to the end of the list. Fields that share a number appear in the order of their IDs. Setting a number places this field and moves no other, so numbering every field at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
     example: 1,
   })
   @Column({

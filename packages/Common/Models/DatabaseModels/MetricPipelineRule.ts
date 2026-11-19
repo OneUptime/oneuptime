@@ -710,7 +710,7 @@ export default class MetricPipelineRule extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     description:
-      "Where this rule is evaluated among the project's metric pipeline rules, lowest number first. A new rule is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this rule is evaluated among the project's metric pipeline rules, lowest number first. A new rule is added to the end of the list. Rules that share a number are evaluated in the order of their IDs. Setting a number places this rule and moves no other, so numbering every rule at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

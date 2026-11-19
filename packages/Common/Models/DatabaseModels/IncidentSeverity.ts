@@ -534,7 +534,7 @@ export default class IncidentSeverity extends BaseModel {
     title: "Order",
     required: false,
     description:
-      "Where this severity ranks among the project's incident severities: 1 is the most severe. A new severity without a number goes to the end of the list. Setting a number moves the severity to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
+      "Where this severity ranks among the project's incident severities: 1 is the most severe. A new severity without a number goes to the end of the list. Severities that share a number are ranked in the order of their IDs. Setting a number places this severity and moves no other, so numbering every severity at once, as Terraform does, ends up exactly as written. In the dashboard, drag the rows to reorder them.",
     /*
      * Readable on relation queries like its name/color siblings —
      * severity ranking (lower = more severe) is needed wherever a related
