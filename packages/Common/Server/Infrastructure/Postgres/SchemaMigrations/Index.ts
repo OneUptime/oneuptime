@@ -1119,6 +1119,7 @@ import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-A
 import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
 import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
 import { AddManagedDevicePlatform1809186810000 } from "./1809186810000-AddManagedDevicePlatform";
+import { AddCloudResourceProviderResourceIdIndex1809186900000 } from "./1809186900000-AddCloudResourceProviderResourceIdIndex";
 
 export default [
   InitialMigration,
@@ -2242,4 +2243,5 @@ export default [
   AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
   AddScheduledMaintenanceTemplateTimezone1809186800000,
   AddManagedDevicePlatform1809186810000,
+  AddCloudResourceProviderResourceIdIndex1809186900000,
 ];
