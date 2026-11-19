@@ -1075,6 +1075,7 @@ import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000
 import { AddIncidentCallTranscriptPostsAndSignIn1809184830000 } from "./1809184830000-AddIncidentCallTranscriptPostsAndSignIn";
 import { AddIncidentCallTranscriptSignInIndexes1809184840000 } from "./1809184840000-AddIncidentCallTranscriptSignInIndexes";
 import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-AddDataSecurityComplianceSettings";
+import { AddDataBiConnectionReadState1809184860000 } from "./1809184860000-AddDataBiConnectionReadState";
 
 export default [
   InitialMigration,
@@ -2154,4 +2155,5 @@ export default [
   AddIncidentCallTranscriptPostsAndSignIn1809184830000,
   AddIncidentCallTranscriptSignInIndexes1809184840000,
   AddDataSecurityComplianceSettings1809184850000,
+  AddDataBiConnectionReadState1809184860000,
 ];
