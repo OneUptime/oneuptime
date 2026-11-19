@@ -58697,7 +58697,6 @@
   "{{count}} new devices: {{names}}_one": "{{count}} جهاز جديد: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} من الأجهزة المحددة لديها مراقبة بالفعل، لذا تُستبعد.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} جهاز محدد لديه مراقبة بالفعل، لذا يُستبعد.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "يتوقف إدراج {{monitorName}} على هذا الجهاز، ولا يُربط ما تثيره من الآن فصاعدًا بالجهاز. وتتوقف عمليات الاستيراد وقواعد الاستيراد التلقائي عن احتسابها، لذا قد تمنح الجهاز مراقبة مثلها. وتواصل المراقبة نفسها الفحص دون تغيير.",
   "Alert autoresolved because autoresolve is set to true in monitor criteria.": "حُلّ التنبيه تلقائيًا لأن الحل التلقائي مفعّل في معايير المراقبة.",
   "Broke the service protocol": "خالف بروتوكول الخدمة",
   "Could not be set up to run": "تعذّر تجهيزه للتشغيل",
@@ -58838,6 +58837,7 @@
   "Move step {{number}} up": "نقل الخطوة {{number}} لأعلى",
   "Step {{from}} is now step {{to}}.": "أصبحت الخطوة {{from}} الآن الخطوة {{to}}.",
   "step {{number}}": "الخطوة {{number}}",
+  "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "يُزال {{monitorName}} من هذا الجهاز: لم يعد ما تثيره مرتبطًا به، وقد تضيف عمليات الاستيراد مراقبة مثلها. وتواصل المراقبة الفحص.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "أعاد {{user}} المراقبة إلى العمل. يحتسب وقت التشغيل وصفحات الحالة وأهداف SLO وقت المراقبة مجددًا من هنا.",
   "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "أوقف {{user}} المراقبة. لا شيء يفحص المراقبة حتى تُعاد إلى العمل، لذا تبقى حالتها على آخر حالة مسجلة، ولا يحتسب وقت التشغيل وصفحات الحالة وأهداف SLO هذه المدة."
 }

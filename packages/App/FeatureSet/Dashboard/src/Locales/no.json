@@ -58697,7 +58697,6 @@
   "{{count}} new devices: {{names}}_one": "{{count}} ny enhet: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} valgte enheter har allerede en monitor, så de utelates.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} valgt enhet har allerede en monitor, så den utelates.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} vises ikke lenger på denne enheten, og det den utløser fra nå av, knyttes ikke til enheten. Importer og regler for automatisk import slutter å telle den med, så de kan gi enheten en monitor av samme slag. Selve monitoren fortsetter å sjekke, uendret.",
   "Alert autoresolved because autoresolve is set to true in monitor criteria.": "Alert autoresolved because autoresolve is set to true in monitor criteria.",
   "Broke the service protocol": "Brøt tjenesteprotokollen",
   "Could not be set up to run": "Kunne ikke klargjøres for kjøring",
@@ -58838,6 +58837,7 @@
   "Move step {{number}} up": "Flytt trinn {{number}} opp",
   "Step {{from}} is now step {{to}}.": "Trinn {{from}} er nå trinn {{to}}.",
   "step {{number}}": "trinn {{number}}",
+  "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} fjernes fra denne enheten: det den utløser, knyttes ikke lenger til den, og importer kan legge til en monitor av samme slag. Monitoren fortsetter å sjekke.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.": "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
   "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out."
 }

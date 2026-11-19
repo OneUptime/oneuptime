@@ -177,6 +177,11 @@ spec:
               value: {{ $.Values.nginx.listenAddress | quote }}
             - name: NGINX_LISTEN_OPTIONS
               value: {{ $.Values.nginx.listenOptions | quote }}
+            # HTTP/2 for host on the HTTPS port (nginx.http2), as the
+            # gateway's script reads it: "on" or "off". Only false turns it
+            # off, so values without the key keep it on, as it always was.
+            - name: NGINX_HTTP2
+              value: {{ ternary "off" "on" (eq (toString $.Values.nginx.http2) "false") | quote }}
             # Ingest access logging. `default "on"` is deliberately fail-safe:
             # an empty override -- or a YAML-boolean `off` written unquoted,
             # which Helm sees as empty -- keeps the ingest logs rather than
