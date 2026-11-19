@@ -1,8 +1,11 @@
 import { IsBillingEnabled } from "../../EnvironmentConfig";
+import GlobalConfigService from "../../Services/GlobalConfigService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import TeamService from "../../Services/TeamService";
 import UserService from "../../Services/UserService";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import { escapeLikePattern } from "../../Types/Database/JSONColumnQuery";
+import TablePermission from "../../Types/Database/Permissions/TablePermission";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Sort from "../../Types/Database/Sort";
@@ -17,6 +20,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
 import {
   INVITE_SUGGESTIONS_LIMIT,
   INVITE_SUGGESTIONS_SERVER_LIMIT,
@@ -44,6 +48,14 @@ import { ProjectMemberSearchMatch } from "../../../Types/Team/ProjectMemberSearc
  *     every account in the Admin Dashboard already, and adds any of them to
  *     a project there, so this shows them nothing new. Never on OneUptime
  *     Cloud, whatever the reader: its accounts are its customers'.
+ *   - Once a master admin of such a server turns on Suggest Every Account
+ *     When Inviting (GlobalConfig.suggestServerAccountsWhenInviting, #9744),
+ *     for anyone signed in who may invite people to the project too: a
+ *     Project Owner, a Project Admin, or a role with Invite New Members, as
+ *     the invitation itself asks. Off by default: on a server that hosts
+ *     several organizations it shows one organization's people to another,
+ *     and only its master admin can say that it does not. Never on
+ *     OneUptime Cloud, whatever the switch says.
  *
  * Where each stands is read from their memberships of the project, with
  * the reader's own props, as the team's Members page reads them: in the
@@ -82,7 +94,10 @@ export default class InviteSuggestions {
     });
 
     const serverPeople: Array<ProjectMemberSearchMatch> =
-      InviteSuggestions.mayFindServerAccounts(data.props)
+      (await InviteSuggestions.mayFindServerAccounts({
+        projectId: data.projectId,
+        props: data.props,
+      }))
         ? await InviteSuggestions.findServerAccounts({
             text: data.request.text,
             except: projectPeople,
@@ -150,13 +165,83 @@ export default class InviteSuggestions {
   }
 
   /*
-   * Whether the server's other accounts may be suggested to `props`: to a
-   * master admin of a server somebody runs, and to nobody on Cloud.
+   * Whether the server's other accounts may be suggested to `props`, in the
+   * request's project. Never on OneUptime Cloud, whoever asks. On a server
+   * somebody runs: to its master admin; and, while Suggest Every Account
+   * When Inviting is on (#9744), to a person signed in who may invite
+   * people to the project (mayInviteToProject). Never to a project API key
+   * or a workflow: the suggestions help a person typing an address. The
+   * switch is read last, and only for someone it would let in.
    */
-  public static mayFindServerAccounts(
-    props: DatabaseCommonInteractionProps,
-  ): boolean {
-    return !IsBillingEnabled && Boolean(props.isMasterAdmin);
+  public static async mayFindServerAccounts(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    if (IsBillingEnabled) {
+      return false;
+    }
+
+    if (data.props.isMasterAdmin) {
+      return true;
+    }
+
+    if (!data.props.userId || data.props.userType !== UserType.User) {
+      return false;
+    }
+
+    if (!InviteSuggestions.mayInviteToProject(data)) {
+      return false;
+    }
+
+    return GlobalConfigService.getSuggestServerAccountsWhenInviting();
+  }
+
+  /*
+   * Whether `props` may invite people to the project: create a membership
+   * of it, as Invite New User and Invite New Team Member do - a Project
+   * Owner, a Project Admin or a role with Invite New Members, none of them
+   * blocked - read as the create's own table-level checks read it. Which
+   * teams they may invite to is the invitation's to check, not this.
+   */
+  public static mayInviteToProject(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): boolean {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return true;
+    }
+
+    // Only in the project the request is for.
+    if (
+      !data.props.tenantId ||
+      data.props.tenantId.toString() !== data.projectId.toString()
+    ) {
+      return false;
+    }
+
+    try {
+      TablePermission.checkTableLevelPermissions(
+        TeamMember,
+        data.props,
+        DatabaseRequestType.Create,
+      );
+      TablePermission.checkTableLevelBlockPermissions(
+        TeamMember,
+        data.props,
+        DatabaseRequestType.Create,
+      );
+    } catch (error) {
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof BadDataException
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+
+    return true;
   }
 
   /*

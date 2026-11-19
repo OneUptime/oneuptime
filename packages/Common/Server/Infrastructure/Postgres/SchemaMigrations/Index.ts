@@ -1097,6 +1097,7 @@ import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100
 import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
 import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
 import { AddProbeReportedVersion1809185330000 } from "./1809185330000-AddProbeReportedVersion";
+import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
 
 export default [
   InitialMigration,
@@ -2198,4 +2199,5 @@ export default [
   AddCloudConnectionAddedMetrics1809185310000,
   AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
   AddProbeReportedVersion1809185330000,
+  AddSuggestServerAccountsWhenInviting1809185347450,
 ];

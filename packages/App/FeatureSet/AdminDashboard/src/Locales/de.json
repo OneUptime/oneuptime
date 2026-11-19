@@ -538,7 +538,12 @@
         "projectCreationCardDescription": "Steuern Sie, wer neue Projekte auf diesem OneUptime-Server erstellen kann.",
         "projectCreationSwitchTitle": "Benutzern das Erstellen von Projekten erlauben",
         "projectCreationSwitchOnDescription": "Jeder, der auf diesem Server angemeldet ist, kann ein Projekt erstellen.",
-        "projectCreationSwitchOffDescription": "Nur Master-Administratoren können Projekte erstellen."
+        "projectCreationSwitchOffDescription": "Nur Master-Administratoren können Projekte erstellen.",
+        "inviteSuggestionsCardTitle": "Einladungsvorschläge",
+        "inviteSuggestionsCardDescription": "Ob Personen, die zu einem Projekt einladen, jeden mit einem Konto auf diesem Server finden können. Lassen Sie es aus, wenn der Server mehr als eine Organisation hostet.",
+        "inviteSuggestionsSwitchTitle": "Jedes Konto auf diesem Server vorschlagen",
+        "inviteSuggestionsSwitchOnDescription": "Wer Personen zu einem Projekt einladen darf, sieht beim Tippen Name und E-Mail-Adresse jedes Kontos, markiert mit „Noch nicht in diesem Projekt“.",
+        "inviteSuggestionsSwitchOffDescription": "Die Einladungsformulare schlagen die eigenen Personen des Projekts vor. Master-Administratoren werden auch die anderen Konten des Servers angeboten."
       },
       "email": {
         "adminNotificationCardTitle": "Admin-Benachrichtigungs-E-Mail",
@@ -4284,5 +4289,9 @@
   "Sign Out of the Identity Provider Too": "Auch beim Identitätsanbieter abmelden",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Wer sich von OneUptime abmeldet, wird auch bei diesem Anbieter abgemeldet und bei jeder anderen App, die ihn nutzt. Für gemeinsam genutzte Computer einschalten.",
   "Sign-out Redirect URI:": "Weiterleitungs-URI nach der Abmeldung:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrieren Sie die Weiterleitungs-URI bei Ihrem OIDC-Identitätsanbieter und, wenn „Auch beim Identitätsanbieter abmelden“ eingeschaltet ist, auch die Weiterleitungs-URI nach der Abmeldung."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrieren Sie die Weiterleitungs-URI bei Ihrem OIDC-Identitätsanbieter und, wenn „Auch beim Identitätsanbieter abmelden“ eingeschaltet ist, auch die Weiterleitungs-URI nach der Abmeldung.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Hat die Person noch kein OneUptime-Konto, wird es mit diesem Namen eingerichtet.",
+  "Suggest every account on this server?": "Jedes Konto auf diesem Server vorschlagen?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Wer Personen einladen darf, sieht beim Tippen Name und E-Mail-Adresse jedes Kontos. Schalten Sie dies nur ein, wenn jedes Konto hier zu einer Organisation gehört.",
+  "Suggest Every Account": "Jedes Konto vorschlagen"
 }

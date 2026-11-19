@@ -164,11 +164,14 @@ jest.mock(
 
 import AuthenticationSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/Index";
 import {
+  INVITE_SUGGESTIONS_SWITCH_TEST_ID,
   MAGIC_LINK_SSO_REQUIRED_TEST_ID,
   MAGIC_LINK_SWITCH_TEST_ID,
   PROJECT_CREATION_SWITCH_TEST_ID,
   SIGN_UP_SSO_REQUIRED_TEST_ID,
   SIGN_UP_SWITCH_TEST_ID,
+  TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION,
+  getInviteSuggestionsSwitchConfirmation,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/AuthenticationSwitchesCopy";
 import SsoSettings, {
   getRequireSsoConfirmation,
@@ -398,6 +401,7 @@ afterEach(() => {
 });
 
 describe("Settings > Authentication", () => {
+  // On OneUptime Cloud (the default here); a fourth off it, below (#9744).
   test("is three switches, in order: sign up, sign-in links, project creation", async () => {
     await renderPage(<AuthenticationSettings />);
 
@@ -690,6 +694,207 @@ describe("Settings > Authentication", () => {
     expect(
       screen.getByText("This setting cannot be changed right now."),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * #9744: "Suggest every account on this server". On a server somebody runs
+ * (billing off), a fourth switch, last, off until a master admin turns it
+ * on, asking first; on OneUptime Cloud the server never applies it, so the
+ * page does not draw it.
+ */
+describe("Settings > Authentication: Invite Suggestions", () => {
+  beforeEach(() => {
+    billingEnabledForTest = false;
+  });
+
+  test("on a server somebody runs, is the fourth switch, last, with its own words", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    const switches: Array<string> = screen
+      .getAllByRole("switch")
+      .map((control: HTMLElement): string => {
+        return control.getAttribute("data-testid") || "";
+      });
+
+    expect(switches).toEqual([
+      SIGN_UP_SWITCH_TEST_ID,
+      MAGIC_LINK_SWITCH_TEST_ID,
+      PROJECT_CREATION_SWITCH_TEST_ID,
+      INVITE_SUGGESTIONS_SWITCH_TEST_ID,
+    ]);
+
+    expect(
+      screen.getByRole("switch", {
+        name: en("pages.settings.authentication.inviteSuggestionsSwitchTitle"),
+      }),
+    ).toBe(switchFor(INVITE_SUGGESTIONS_SWITCH_TEST_ID));
+
+    for (const text of [
+      en("pages.settings.authentication.inviteSuggestionsCardTitle"),
+      en("pages.settings.authentication.inviteSuggestionsCardDescription"),
+    ]) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+  });
+
+  test("the card says who it shows what to, and whom it does not suit", () => {
+    expect(
+      en("pages.settings.authentication.inviteSuggestionsCardDescription"),
+    ).toContain("more than one organization");
+    expect(
+      en("pages.settings.authentication.inviteSuggestionsSwitchOnDescription"),
+    ).toContain("every account's name and email");
+    expect(
+      en("pages.settings.authentication.inviteSuggestionsSwitchOffDescription"),
+    ).toContain("Master admins");
+  });
+
+  test("reads suggestServerAccountsWhenInviting from the one GlobalConfig row, through the admin API", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    const reads: Array<string> = itemCalls().map((call: ItemCall): string => {
+      expect(call.modelType).toBe(GlobalConfig);
+      expect(call.id.toString()).toBe(ZERO_ID);
+
+      return Object.keys(call.select).sort().join(",");
+    });
+
+    expect(reads).toContain("suggestServerAccountsWhenInviting");
+    expect(reads).toHaveLength(4);
+  });
+
+  test("a server that never set it suggests only the project's people: the switch is off", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    expect(switchFor(INVITE_SUGGESTIONS_SWITCH_TEST_ID)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(
+      screen.getByText(
+        en(
+          "pages.settings.authentication.inviteSuggestionsSwitchOffDescription",
+        ),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("turning it on asks first, saying who sees what, and saves only once confirmed", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    const control: HTMLElement = switchFor(INVITE_SUGGESTIONS_SWITCH_TEST_ID);
+
+    await press(control);
+
+    expect(updateCalls()).toEqual([]);
+    expect(dialog()).toHaveAccessibleName(
+      TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION.title,
+    );
+    expect(
+      within(dialog()).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION.description);
+
+    await confirmWith(TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION.submitButtonText);
+
+    expect(updateCalls()).toHaveLength(1);
+    expect(updateCalls()[0]!.modelType).toBe(GlobalConfig);
+    expect(updateCalls()[0]!.id.toString()).toBe(ZERO_ID);
+    expect(updateCalls()[0]!.data).toEqual({
+      suggestServerAccountsWhenInviting: true,
+    });
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByText(
+        en(
+          "pages.settings.authentication.inviteSuggestionsSwitchOnDescription",
+        ),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("cancelling leaves it off, and saves nothing", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    const control: HTMLElement = switchFor(INVITE_SUGGESTIONS_SWITCH_TEST_ID);
+
+    await press(control);
+    await confirmWith("Cancel");
+
+    expect(updateCalls()).toEqual([]);
+    expect(control).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("turning it off saves at once: it shows nobody anything new", async () => {
+    stored[storedKey("GlobalConfig", ZERO_ID)] = {
+      suggestServerAccountsWhenInviting: true,
+    };
+
+    await renderPage(<AuthenticationSettings />);
+
+    const control: HTMLElement = switchFor(INVITE_SUGGESTIONS_SWITCH_TEST_ID);
+
+    expect(control).toHaveAttribute("aria-checked", "true");
+
+    await press(control);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(updateCalls()[0]!.data).toEqual({
+      suggestServerAccountsWhenInviting: false,
+    });
+  });
+
+  test("the confirmation is only for turning it on", () => {
+    expect(getInviteSuggestionsSwitchConfirmation(false)).toBeUndefined();
+    expect(getInviteSuggestionsSwitchConfirmation(true)).toBe(
+      TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION,
+    );
+    expect(
+      TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION.submitButtonType,
+    ).toBeUndefined();
+  });
+
+  test("in German: the card, the switch and its dialog", async () => {
+    await renderPage(<AuthenticationSettings />, { locale: "de" });
+
+    const germanTitle: string = nested(
+      GERMAN,
+      "pages.settings.authentication.inviteSuggestionsSwitchTitle",
+    );
+
+    expect(germanTitle).not.toBe(
+      en("pages.settings.authentication.inviteSuggestionsSwitchTitle"),
+    );
+    expect(screen.getByRole("switch", { name: germanTitle })).toBe(
+      switchFor(INVITE_SUGGESTIONS_SWITCH_TEST_ID),
+    );
+
+    await press(switchFor(INVITE_SUGGESTIONS_SWITCH_TEST_ID));
+
+    const germanDescription: string = GERMAN[
+      TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION.description
+    ] as string;
+
+    expect(germanDescription).toBeTruthy();
+    expect(dialog()).toHaveTextContent(germanDescription);
+  });
+
+  test("on OneUptime Cloud, is not drawn: the server never applies it there", async () => {
+    billingEnabledForTest = true;
+
+    await renderPage(<AuthenticationSettings />);
+
+    expect(screen.queryByTestId(INVITE_SUGGESTIONS_SWITCH_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByText(
+        en("pages.settings.authentication.inviteSuggestionsCardTitle"),
+      ),
+    ).toBeNull();
+    expect(
+      itemCalls().some((call: ItemCall): boolean => {
+        return Boolean(call.select["suggestServerAccountsWhenInviting"]);
+      }),
+    ).toBe(false);
   });
 });
 

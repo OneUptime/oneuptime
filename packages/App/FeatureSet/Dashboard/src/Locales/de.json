@@ -58141,5 +58141,7 @@
   "Never record these pages": "Diese Seiten nie aufzeichnen",
   "Readable event properties": "Lesbare Ereigniseigenschaften",
   "Record only these pages": "Nur diese Seiten aufzeichnen",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "Hat die Person noch kein OneUptime-Konto, wird es mit diesem Namen eingerichtet.",
+  "Suggest Every Account When Inviting": "Beim Einladen jedes Konto vorschlagen"
 }

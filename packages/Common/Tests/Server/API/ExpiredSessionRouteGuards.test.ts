@@ -250,11 +250,6 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
   // Team membership.
   {
     method: "POST",
-    uri: "/team-member/is-user-registered",
-    registeredBy: "TeamMemberAPI",
-  },
-  {
-    method: "POST",
     uri: "/team-member/remove-user-from-project",
     registeredBy: "TeamMemberAPI",
   },

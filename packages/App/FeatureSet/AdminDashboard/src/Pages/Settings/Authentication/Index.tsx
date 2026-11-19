@@ -6,6 +6,7 @@ import {
   SIGN_UP_SSO_REQUIRED_TEST_ID,
   SIGN_UP_SWITCH_TEST_ID,
 } from "./AuthenticationSwitchesCopy";
+import InviteSuggestionsCard from "./InviteSuggestionsCard";
 import { SIGN_UP_WHILE_SSO_REQUIRED } from "../SSO/SsoSettingsCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -21,7 +22,7 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
- * Settings > Authentication: three instance-wide switches, each saving the
+ * Settings > Authentication: four instance-wide switches, each saving the
  * moment it is flipped (the shared ModelSwitchCard, through AdminModelAPI).
  * Each used to be a card whose Edit dialog held the one switch.
  *
@@ -38,6 +39,13 @@ import { useTranslation } from "react-i18next";
  *   - Project Creation: "Let users create projects", on while
  *     GlobalConfig.disableUserProjectCreation is false. Master admins can
  *     always create projects.
+ *   - Invite Suggestions: "Suggest every account on this server", on while
+ *     GlobalConfig.suggestServerAccountsWhenInviting is true (#9744): the
+ *     invite forms' email box then suggests every account on the server to
+ *     anyone who may invite people to a project, not to master admins
+ *     alone. Off until turned on, and turning it on asks first, saying who
+ *     it shows what to. A card of its own (InviteSuggestionsCard), drawn
+ *     only off OneUptime Cloud, where the server never applies it.
  *
  * Require SSO to Sign In, which was the card between them, is on Settings >
  * Single Sign-On now, under the providers it depends on (../SSO).
@@ -170,6 +178,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         dataTestId={PROJECT_CREATION_SWITCH_TEST_ID}
       />
+
+      <InviteSuggestionsCard />
     </Page>
   );
 };

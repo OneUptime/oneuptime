@@ -146,6 +146,7 @@ function answer(people: Array<InviteSuggestion>): HTTPResponse<JSONObject> {
 interface Rendered {
   onChange: MockFunction;
   onEnterPress: MockFunction;
+  onPick: MockFunction;
   input: HTMLInputElement;
 }
 
@@ -154,6 +155,7 @@ function renderField(
 ): Rendered {
   const onChange: MockFunction = getJestMockFunction();
   const onEnterPress: MockFunction = getJestMockFunction();
+  const onPick: MockFunction = getJestMockFunction();
 
   render(
     <div>
@@ -165,6 +167,9 @@ function renderField(
         }}
         onEnterPress={() => {
           onEnterPress();
+        }}
+        onPick={(suggestion: InviteSuggestion) => {
+          onPick(suggestion);
         }}
         teamId={props.teamId === undefined ? TEAM_ID : props.teamId}
         error={props.error}
@@ -179,6 +184,7 @@ function renderField(
   return {
     onChange: onChange,
     onEnterPress: onEnterPress,
+    onPick: onPick,
     input: screen.getByTestId("invitee-email") as HTMLInputElement,
   };
 }
@@ -394,14 +400,44 @@ describe("picking", () => {
   });
 
   test("a click on someone the team has already does nothing", async () => {
-    const { input, onChange } = renderField();
+    const { input, onChange, onPick } = renderField();
 
     await type(input, "ad");
     fireEvent.click(options()[1]!);
 
     expect(onChange).toHaveBeenLastCalledWith("ad");
+    expect(onPick).not.toHaveBeenCalled();
     expect(input.value).toBe("ad");
     expect(screen.getByTestId("invitee-suggestions")).toBeInTheDocument();
+  });
+
+  /*
+   * #9745: a pick tells the form who it is, after the address is in, so
+   * the form asks no name for someone with an account (InviteeName).
+   */
+  test("a pick tells the form who was picked, after the address is filled in", async () => {
+    const { input, onChange, onPick } = renderField();
+
+    await type(input, "ad");
+
+    expect(onPick).not.toHaveBeenCalled();
+
+    fireEvent.click(options()[3]!);
+
+    expect(onPick).toHaveBeenCalledTimes(1);
+    expect(onPick).toHaveBeenCalledWith(ADRIAN);
+    expect(onChange).toHaveBeenLastCalledWith(ADRIAN.email);
+    expect(
+      onChange.mock.invocationCallOrder[onChange.mock.calls.length - 1]!,
+    ).toBeLessThan(onPick.mock.invocationCallOrder[0]!);
+  });
+
+  test("typing an address tells the form of no pick, even one a suggestion has", async () => {
+    const { input, onPick } = renderField();
+
+    await type(input, ADA.email);
+
+    expect(onPick).not.toHaveBeenCalled();
   });
 
   test("the arrow keys skip those not offered, and Enter picks, never submitting the form", async () => {

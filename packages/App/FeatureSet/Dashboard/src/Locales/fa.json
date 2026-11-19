@@ -58141,5 +58141,7 @@
   "Never record these pages": "این صفحه‌ها هرگز ضبط نشوند",
   "Readable event properties": "ویژگی‌های رویداد خوانا",
   "Record only these pages": "فقط این صفحه‌ها ضبط شوند",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "اگر این فرد هنوز حساب OneUptime ندارد، حساب با همین نام ساخته می‌شود.",
+  "Suggest Every Account When Inviting": "پیشنهاد همه حساب‌ها هنگام دعوت"
 }
