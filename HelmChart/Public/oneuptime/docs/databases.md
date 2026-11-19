@@ -275,7 +275,8 @@ clickhouse:
   image:
     repository: clickhouse/clickhouse-server
     # Keep this aligned with docker-compose.base.yml and the operator image.
-    tag: "26.7"
+    # A patch, not the 26.7 line: the server carries its own time zone data.
+    tag: "26.7.38.18"
     pullPolicy: IfNotPresent
   service:
     type: LoadBalancer
@@ -313,7 +314,7 @@ clickhouseOperator:
   altinity:
     enabled: true
     image:
-      tag: "26.7"        # keep aligned with the built-in ClickHouse image
+      tag: "26.7.38.18"  # keep aligned with the built-in ClickHouse image
     cluster:
       shardsCount: 1
       replicasCount: 2   # 2 = HA (uses the bundled Keeper, enabled by default)
