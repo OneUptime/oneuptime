@@ -667,12 +667,17 @@ function classify(findings, exceptions, today) {
 // ─── Groups: one per thing to upgrade ──────────────────────────────────────
 
 /*
- * What a finding is fixed by upgrading: the binary that holds a Go module (all
- * of /otelcol-contrib's modules are fixed by one newer collector), the source
+ * What a finding is fixed by upgrading: the infrastructure agent's go.mod
+ * (its binary is /oneuptime-infrastructure-agent, and .exe on Windows: one
+ * upgrade either way), the binary that holds a Go module (all of
+ * /otelcol-contrib's modules are fixed by one newer collector), the source
  * package of an OS package (libssl3 and libcrypto3 by one openssl), or the
  * package itself.
  */
 function groupKey(finding) {
+  if (finding.image === INFRASTRUCTURE_AGENT) {
+    return `agent:${INFRASTRUCTURE_AGENT}`;
+  }
   if (
     (finding.type === "go-module" || finding.type === "binary") &&
     finding.location
@@ -826,13 +831,16 @@ function severityPhrase(severityCounts) {
 }
 
 function groupTitle(group) {
-  const where = group.images.map((image) => {
-    return image === INFRASTRUCTURE_AGENT ? "the infrastructure agent" : image;
-  });
-  return `Security: upgrade ${group.name} in ${listOf(where)}`;
+  if (group.kind === "agent") {
+    return "Security: upgrade the infrastructure agent's Go dependencies";
+  }
+  return `Security: upgrade ${group.name} in ${listOf(group.images)}`;
 }
 
 function groupHeading(group) {
+  if (group.kind === "agent") {
+    return `the infrastructure agent's Go dependencies (${code(SOURCES[INFRASTRUCTURE_AGENT])})`;
+  }
   const what =
     group.kind === "binary"
       ? `${code(group.name)} (${code(group.location)})`
@@ -1049,8 +1057,9 @@ function checkCommands(image) {
   if (image === INFRASTRUCTURE_AGENT) {
     return [
       "cd agents/InfrastructureAgent",
+      "go get <module>@<fixed version> && go mod tidy   # or the go line, for stdlib",
       "go build ./... && go test ./...",
-      "grype dir:. --only-fixed --fail-on high",
+      "go run golang.org/x/vuln/cmd/govulncheck@latest ./...",
     ];
   }
   const dockerfile = `./${PRODUCT_IMAGES[image].replace(/\.tpl$/, "")}`;
