@@ -59151,5 +59151,13 @@
   "It can show on its status pages at once.": "قد يظهر على صفحات الحالة الخاصة به فورًا.",
   "It can show on its status pages from {{time}}.": "قد يظهر على صفحات الحالة الخاصة به ابتداءً من {{time}}.",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "صفحات الحالة هذه وحدها يمكنها عرض الأحداث المنشأة من هذا القالب أو إخطار مشتركيها. إن لم تُختر أي صفحة، فلن تظهر على أي صفحة حالة.",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "صفحات الحالة هذه وحدها يمكنها عرض هذا الحدث أو إخطار مشتركيها. على خلاف الحادثة، لا يظهر الحدث الذي لم تُختر له أي صفحة على أي صفحة حالة."
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "صفحات الحالة هذه وحدها يمكنها عرض هذا الحدث أو إخطار مشتركيها. على خلاف الحادثة، لا يظهر الحدث الذي لم تُختر له أي صفحة على أي صفحة حالة.",
+  "Is Cost Adjustment": "تعديل تكلفة",
+  "Memory Peaks From": "مصدر قيم ذروة الذاكرة",
+  "Prices: reconciled with your {{provider}} bill": "الأسعار: مطابقة مع فاتورة {{provider}} لديك",
+  "Prices: reconciled with your {{provider}} bill up to {{time}}, list prices after": "الأسعار: مطابقة مع فاتورة {{provider}} لديك حتى {{time}}، ثم الأسعار المعلنة",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:": "يشغّل هذا العنقود {{engine}} خاصًا به ({{service}})، ووكيل التكاليف يقرأ منه. ولا يزال ضبط حجم الذاكرة المناسب يقرأ قيم الذروة من Prometheus المضمَّن، لأن الوكيل لم يجد Prometheus يقرأ منه {{engine}} لديك. لإيقاف الاثنين، حدّد في الترقية نفسها Prometheus يجمع بيانات cAdvisor:",
+  "Without another Prometheus, keep the bundled engine: memory recommendations need it.": "من دون Prometheus آخر، أبقِ المحرك المضمَّن: فتوصيات الذاكرة تحتاج إليه.",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.": "يقرأ Kubecost لديك فاتورة السحابة ويطابق أسعاره مع ما دفعته، بعد نحو يومين من كل ساعة، ويضيف OneUptime كل ساعة مطابقة. وحتى ذلك الحين تكون الساعات اللاحقة بأسعار السحابة المعلنة للعموم.",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "يقرأ Kubecost لديك فاتورة السحابة ويطابق أسعاره مع ما دفعته، بعد نحو يومين من كل ساعة. لم تصل إلى OneUptime بعد أي ساعة مطابقة: هذه أسعار السحابة المعلنة للعموم."
 }

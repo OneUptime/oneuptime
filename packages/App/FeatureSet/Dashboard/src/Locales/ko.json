@@ -59151,5 +59151,13 @@
   "It can show on its status pages at once.": "즉시 상태 페이지에 표시될 수 있습니다.",
   "It can show on its status pages from {{time}}.": "{{time}}부터 상태 페이지에 표시될 수 있습니다.",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "이 상태 페이지만 이 템플릿으로 만든 이벤트를 표시하거나 구독자에게 알릴 수 있습니다. 아무것도 선택하지 않으면 어떤 상태 페이지에도 표시되지 않습니다.",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "이 상태 페이지만 이 이벤트를 표시하거나 구독자에게 알릴 수 있습니다. 인시던트와 달리, 아무것도 선택하지 않은 이벤트는 어떤 상태 페이지에도 표시되지 않습니다."
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "이 상태 페이지만 이 이벤트를 표시하거나 구독자에게 알릴 수 있습니다. 인시던트와 달리, 아무것도 선택하지 않은 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Is Cost Adjustment": "비용 조정 여부",
+  "Memory Peaks From": "메모리 최대값 출처",
+  "Prices: reconciled with your {{provider}} bill": "가격: {{provider}} 청구서와 대조됨",
+  "Prices: reconciled with your {{provider}} bill up to {{time}}, list prices after": "가격: {{time}}까지 {{provider}} 청구서와 대조됨, 이후는 정가",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:": "이 클러스터는 자체 {{engine}}({{service}})을(를) 실행하고 있으며, 비용 에이전트가 이를 읽습니다. 에이전트가 {{engine}}이(가) 읽는 Prometheus를 찾지 못해 메모리 적정 크기 조정은 여전히 번들로 설치된 Prometheus에서 최대값을 읽습니다. 둘 다 중지하려면 같은 업그레이드에서 cAdvisor를 수집하는 Prometheus를 지정하세요:",
+  "Without another Prometheus, keep the bundled engine: memory recommendations need it.": "다른 Prometheus가 없으면 번들로 설치된 엔진을 유지하세요. 메모리 권장 사항에 필요합니다.",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.": "Kubecost는 클라우드 청구서를 읽고 각 시간이 지나고 약 2일 뒤에 가격을 실제로 결제한 금액과 대조하며, OneUptime은 대조된 시간을 하나씩 가져옵니다. 그전까지 이후 시간은 클라우드의 공개 정가입니다.",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Kubecost는 클라우드 청구서를 읽고, 각 시간이 지나고 약 2일 뒤에 가격을 실제로 결제한 금액과 대조합니다. 대조된 시간은 아직 OneUptime에 도착하지 않았습니다. 이 가격은 클라우드의 공개 정가입니다."
 }

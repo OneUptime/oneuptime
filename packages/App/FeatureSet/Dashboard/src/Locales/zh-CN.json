@@ -59151,5 +59151,13 @@
   "It can show on its status pages at once.": "可能会立即显示在其状态页面上。",
   "It can show on its status pages from {{time}}.": "可能从 {{time}} 起显示在其状态页面上。",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "只有这些状态页面可以显示通过此模板创建的维护事件或通知其订阅者。未选择任何页面时，不会显示在任何状态页面上。",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有这些状态页面可以显示此维护事件或通知其订阅者。与事件不同，未选择任何页面的维护事件不会显示在任何状态页面上。"
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有这些状态页面可以显示此维护事件或通知其订阅者。与事件不同，未选择任何页面的维护事件不会显示在任何状态页面上。",
+  "Is Cost Adjustment": "是否为成本调整",
+  "Memory Peaks From": "内存峰值来源",
+  "Prices: reconciled with your {{provider}} bill": "价格：已按您的 {{provider}} 账单核对",
+  "Prices: reconciled with your {{provider}} bill up to {{time}}, list prices after": "价格：截至 {{time}} 已按您的 {{provider}} 账单核对，之后为标价",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:": "此集群运行着自己的 {{engine}}（{{service}}），成本代理读取的就是它。由于代理没有找到您的 {{engine}} 读取的 Prometheus，内存规格调整仍从捆绑的 Prometheus 读取峰值。若要停止运行两者，请在同一次升级中指定一个采集 cAdvisor 的 Prometheus：",
+  "Without another Prometheus, keep the bundled engine: memory recommendations need it.": "没有其他 Prometheus 时，请保留捆绑的引擎：内存建议需要它。",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.": "您的 Kubecost 会读取您的云账单，并在每个小时结束约两天后，按您实际支付的金额核对其价格，OneUptime 会逐一纳入已核对的小时。在此之前，之后的小时按云的公开标价计算。",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "您的 Kubecost 会读取您的云账单，并在每个小时结束约两天后，按您实际支付的金额核对其价格。尚无已核对的小时到达 OneUptime：这些是云的公开标价。"
 }
