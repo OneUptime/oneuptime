@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "Вы добавлены как владелец рабочего процесса.",
   "You are added as an owner of an incoming call policy.": "Вы добавлены как владелец политики входящих звонков.",
   "You are added as an owner of an on-call policy.": "Вы добавлены как владелец политики дежурства.",
-  "You are added as an owner of an on-call schedule.": "Вы добавлены как владелец расписания дежурства."
+  "You are added as an owner of an on-call schedule.": "Вы добавлены как владелец расписания дежурства.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Меняйте его вместе с новым значением ниже; мониторы, использующие секрет, применят его при следующей проверке.",
+  "How to update a custom probe": "Как обновить пользовательский зонд",
+  "Older than {{version}}": "Старше {{version}}",
+  "Reported Version": "Сообщённая версия",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Эти зонды слишком старые, чтобы создавать одноразовые коды, поэтому проверка этого монитора на них завершается неудачей:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Этой проверке нужен одноразовый код, а этот зонд слишком старый, чтобы его создать, поэтому проверка не выполнялась. Обновите зонд до OneUptime {{version}} или новее.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Чтобы обновить зонд, перезапустите его с последним образом зонда (OneUptime {{version}} или новее).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Слишком старый, чтобы создавать одноразовые коды. Мониторы, использующие секрет с одноразовым кодом, не проходят проверку на этом зонде, пока он не будет обновлён.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "Что хранит секрет. Кнопка «Обновить значение секрета» позволяет изменить его позже вместе с новым значением."
 }

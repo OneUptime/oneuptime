@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "تُضاف كأحد مالكي سير عمل.",
   "You are added as an owner of an incoming call policy.": "تُضاف كأحد مالكي سياسة مكالمات واردة.",
   "You are added as an owner of an on-call policy.": "تُضاف كأحد مالكي سياسة مناوبة.",
-  "You are added as an owner of an on-call schedule.": "تُضاف كأحد مالكي جدول مناوبة."
+  "You are added as an owner of an on-call schedule.": "تُضاف كأحد مالكي جدول مناوبة.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "غيّره مع قيمة جديدة أدناه؛ وتعتمده المراقبات التي تستخدم السر في فحصها التالي.",
+  "How to update a custom probe": "كيفية تحديث مسبار مخصص",
+  "Older than {{version}}": "أقدم من {{version}}",
+  "Reported Version": "الإصدار المُبلَّغ عنه",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "هذه المسابير أقدم من أن تولّد رموزًا لمرة واحدة، لذا يفشل فحص هذه المراقبة عليها:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "يحتاج هذا الفحص إلى رمز لمرة واحدة، وهذا المسبار أقدم من أن يولّده، لذا لم يُشغَّل الفحص. حدّث المسبار إلى OneUptime {{version}} أو أحدث.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "لتحديث مسبار، أعد تشغيله بأحدث صورة للمسبار (OneUptime {{version}} أو أحدث).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "أقدم من أن يولّد رموزًا لمرة واحدة. تفشل المراقبات التي تستخدم سر رمز لمرة واحدة في فحصها على هذا المسبار حتى يُحدَّث.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "ما يحويه السر. يمكن تغييره لاحقًا من «تحديث قيمة السر» مع قيمة جديدة."
 }

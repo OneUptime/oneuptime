@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "ワークフローの所有者として追加されました。",
   "You are added as an owner of an incoming call policy.": "着信ポリシーの所有者として追加されました。",
   "You are added as an owner of an on-call policy.": "オンコールポリシーの所有者として追加されました。",
-  "You are added as an owner of an on-call schedule.": "オンコールスケジュールの所有者として追加されました。"
+  "You are added as an owner of an on-call schedule.": "オンコールスケジュールの所有者として追加されました。",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "下の新しい値と一緒に変更してください。このシークレットを使うモニターは、次回のチェックから反映します。",
+  "How to update a custom probe": "カスタムプローブを更新する方法",
+  "Older than {{version}}": "{{version}} より古い",
+  "Reported Version": "報告されたバージョン",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "次のプローブは古すぎてワンタイムコードを生成できないため、このモニターのチェックはこれらのプローブで失敗します：",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "このチェックにはワンタイムコードが必要ですが、このプローブは古すぎてコードを生成できないため、チェックは実行されませんでした。プローブを OneUptime {{version}} 以降に更新してください。",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "プローブを更新するには、最新のプローブイメージ（OneUptime {{version}} 以降）で起動し直してください。",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "古すぎてワンタイムコードを生成できません。ワンタイムコードのシークレットを使うモニターは、このプローブが更新されるまで、このプローブでのチェックに失敗します。",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "シークレットが保持する内容です。後で「シークレット値を更新」から、新しい値と一緒に変更できます。"
 }

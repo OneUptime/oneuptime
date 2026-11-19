@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "您已被添加为某个工作流的所有者。",
   "You are added as an owner of an incoming call policy.": "您已被添加为某个来电策略的所有者。",
   "You are added as an owner of an on-call policy.": "您已被添加为某个值班策略的所有者。",
-  "You are added as an owner of an on-call schedule.": "您已被添加为某个值班排班的所有者。"
+  "You are added as an owner of an on-call schedule.": "您已被添加为某个值班排班的所有者。",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "请与下方的新值一起更改；使用该密钥的监视器会在下次检查时采用新类型。",
+  "How to update a custom probe": "如何更新自定义探测器",
+  "Older than {{version}}": "早于 {{version}}",
+  "Reported Version": "上报的版本",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "以下探测器版本过旧，无法生成一次性验证码，因此此监视器在这些探测器上的检查会失败：",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "此检查需要一次性验证码，而此探测器版本过旧，无法生成验证码，因此未运行检查。请将探测器更新到 OneUptime {{version}} 或更高版本。",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "要更新探测器，请使用最新的探测器镜像（OneUptime {{version}} 或更高版本）重新启动它。",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "版本过旧，无法生成一次性验证码。使用一次性验证码密钥的监视器在此探测器上的检查会失败，直到它完成更新。",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "密钥中保存的内容。之后可在“更新密钥值”中连同新值一起更改。"
 }

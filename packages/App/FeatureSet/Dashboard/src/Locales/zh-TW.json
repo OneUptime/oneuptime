@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "您已被新增為工作流程的擁有者。",
   "You are added as an owner of an incoming call policy.": "您已被新增為來電策略的擁有者。",
   "You are added as an owner of an on-call policy.": "您已被新增為待命策略的擁有者。",
-  "You are added as an owner of an on-call schedule.": "您已被新增為待命排程的擁有者。"
+  "You are added as an owner of an on-call schedule.": "您已被新增為待命排程的擁有者。",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "請與下方的新值一起變更；使用此密鑰的監測器會在下次檢查時採用新類型。",
+  "How to update a custom probe": "如何更新自訂探測器",
+  "Older than {{version}}": "早於 {{version}}",
+  "Reported Version": "回報的版本",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "以下探測器版本過舊，無法產生一次性驗證碼，因此此監測器在這些探測器上的檢查會失敗：",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "此檢查需要一次性驗證碼，而此探測器版本過舊，無法產生驗證碼，因此未執行檢查。請將探測器更新至 OneUptime {{version}} 或更新版本。",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "若要更新探測器，請使用最新的探測器映像檔（OneUptime {{version}} 或更新版本）重新啟動它。",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "版本過舊，無法產生一次性驗證碼。使用一次性驗證碼密鑰的監測器在此探測器上的檢查會失敗，直到它完成更新。",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "密鑰中儲存的內容。之後可在「更新密鑰值」中連同新值一起變更。"
 }

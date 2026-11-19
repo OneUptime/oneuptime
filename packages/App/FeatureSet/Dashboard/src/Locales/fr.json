@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "Vous êtes ajouté comme propriétaire d'un flux de travail.",
   "You are added as an owner of an incoming call policy.": "Vous êtes ajouté comme propriétaire d'une politique d'appels entrants.",
   "You are added as an owner of an on-call policy.": "Vous êtes ajouté comme propriétaire d'une politique d'astreinte.",
-  "You are added as an owner of an on-call schedule.": "Vous êtes ajouté comme propriétaire d'un planning d'astreinte."
+  "You are added as an owner of an on-call schedule.": "Vous êtes ajouté comme propriétaire d'un planning d'astreinte.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Modifiez-le avec une nouvelle valeur ci-dessous ; les moniteurs qui utilisent le secret l'adoptent à leur prochaine vérification.",
+  "How to update a custom probe": "Comment mettre à jour une sonde personnalisée",
+  "Older than {{version}}": "Antérieure à {{version}}",
+  "Reported Version": "Version signalée",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Ces sondes sont trop anciennes pour générer des codes à usage unique, donc la vérification de ce moniteur échoue sur elles :",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Cette vérification nécessite un code à usage unique, et cette sonde est trop ancienne pour en générer un, donc la vérification n'a pas été exécutée. Mettez à jour la sonde vers OneUptime {{version}} ou une version ultérieure.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Pour mettre à jour une sonde, redémarrez-la avec la dernière image de sonde (OneUptime {{version}} ou une version ultérieure).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Trop ancienne pour générer des codes à usage unique. Les moniteurs qui utilisent un secret de code à usage unique échouent à leur vérification sur cette sonde tant qu'elle n'est pas mise à jour.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "Ce que contient le secret. « Mettre à jour la valeur secrète » permet de le modifier plus tard, avec une nouvelle valeur."
 }

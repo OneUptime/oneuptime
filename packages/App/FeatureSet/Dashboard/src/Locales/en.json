@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "You are added as an owner of a workflow.",
   "You are added as an owner of an incoming call policy.": "You are added as an owner of an incoming call policy.",
   "You are added as an owner of an on-call policy.": "You are added as an owner of an on-call policy.",
-  "You are added as an owner of an on-call schedule.": "You are added as an owner of an on-call schedule."
+  "You are added as an owner of an on-call schedule.": "You are added as an owner of an on-call schedule.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Change it together with a new value below; monitors that use the secret take it at their next check.",
+  "How to update a custom probe": "How to update a custom probe",
+  "Older than {{version}}": "Older than {{version}}",
+  "Reported Version": "Reported Version",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "These probes are too old to make one-time codes, so this monitor's check fails on them:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "What the secret holds. Update Secret Value can change it later, together with a new value."
 }

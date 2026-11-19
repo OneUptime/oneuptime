@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "आपको एक वर्कफ़्लो के स्वामी के रूप में जोड़ा गया है।",
   "You are added as an owner of an incoming call policy.": "आपको एक इनकमिंग कॉल नीति के स्वामी के रूप में जोड़ा गया है।",
   "You are added as an owner of an on-call policy.": "आपको एक ऑन-कॉल नीति के स्वामी के रूप में जोड़ा गया है।",
-  "You are added as an owner of an on-call schedule.": "आपको एक ऑन-कॉल अनुसूची के स्वामी के रूप में जोड़ा गया है।"
+  "You are added as an owner of an on-call schedule.": "आपको एक ऑन-कॉल अनुसूची के स्वामी के रूप में जोड़ा गया है।",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "इसे नीचे दिए नए मान के साथ बदलें; सीक्रेट का उपयोग करने वाले मॉनिटर अपनी अगली जाँच में इसे अपना लेते हैं।",
+  "How to update a custom probe": "कस्टम प्रोब को अपडेट कैसे करें",
+  "Older than {{version}}": "{{version}} से पुराना",
+  "Reported Version": "रिपोर्ट किया गया संस्करण",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "ये प्रोब वन-टाइम कोड बनाने के लिए बहुत पुराने हैं, इसलिए इस मॉनिटर की जाँच इन पर विफल होती है:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "इस जाँच को वन-टाइम कोड चाहिए, और यह प्रोब कोड बनाने के लिए बहुत पुराना है, इसलिए जाँच नहीं चली। प्रोब को OneUptime {{version}} या बाद के संस्करण में अपडेट करें।",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "किसी प्रोब को अपडेट करने के लिए, उसे नवीनतम प्रोब इमेज (OneUptime {{version}} या बाद का संस्करण) के साथ फिर से शुरू करें।",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "वन-टाइम कोड बनाने के लिए बहुत पुराना। वन-टाइम कोड सीक्रेट का उपयोग करने वाले मॉनिटर इस प्रोब पर अपनी जाँच में तब तक विफल रहते हैं जब तक इसे अपडेट नहीं किया जाता।",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "सीक्रेट में क्या रखा जाता है। बाद में \"सीक्रेट मान अपडेट करें\" से इसे नए मान के साथ बदला जा सकता है।"
 }

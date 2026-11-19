@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "Sie wurden als Eigentümer eines Arbeitsablaufs hinzugefügt.",
   "You are added as an owner of an incoming call policy.": "Sie wurden als Eigentümer einer Richtlinie für eingehende Anrufe hinzugefügt.",
   "You are added as an owner of an on-call policy.": "Sie wurden als Eigentümer einer Bereitschaftsrichtlinie hinzugefügt.",
-  "You are added as an owner of an on-call schedule.": "Sie wurden als Eigentümer eines Bereitschaftszeitplans hinzugefügt."
+  "You are added as an owner of an on-call schedule.": "Sie wurden als Eigentümer eines Bereitschaftszeitplans hinzugefügt.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Ändern Sie ihn zusammen mit einem neuen Wert unten; Monitore, die das Geheimnis nutzen, übernehmen ihn bei ihrer nächsten Prüfung.",
+  "How to update a custom probe": "So aktualisieren Sie eine benutzerdefinierte Sonde",
+  "Older than {{version}}": "Älter als {{version}}",
+  "Reported Version": "Gemeldete Version",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Diese Sonden sind zu alt, um Einmalcodes zu erzeugen, daher schlägt die Prüfung dieses Monitors auf ihnen fehl:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Diese Prüfung braucht einen Einmalcode, und diese Sonde ist zu alt, um einen zu erzeugen, daher wurde die Prüfung nicht ausgeführt. Aktualisieren Sie die Sonde auf OneUptime {{version}} oder neuer.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Um eine Sonde zu aktualisieren, starten Sie sie mit dem neuesten Sonden-Image neu (OneUptime {{version}} oder neuer).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Zu alt, um Einmalcodes zu erzeugen. Monitore, die ein Einmalcode-Geheimnis nutzen, schlagen bei ihrer Prüfung auf dieser Sonde fehl, bis sie aktualisiert ist.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "Was das Geheimnis enthält. Mit „Geheimwert aktualisieren“ lässt es sich später ändern, zusammen mit einem neuen Wert."
 }

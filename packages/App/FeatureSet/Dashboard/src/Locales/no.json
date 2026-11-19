@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "Du er lagt til som eier av en arbeidsflyt.",
   "You are added as an owner of an incoming call policy.": "Du er lagt til som eier av en policy for innkommende anrop.",
   "You are added as an owner of an on-call policy.": "Du er lagt til som eier av en vaktpolicy.",
-  "You are added as an owner of an on-call schedule.": "Du er lagt til som eier av en vakttidsplan."
+  "You are added as an owner of an on-call schedule.": "Du er lagt til som eier av en vakttidsplan.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Endre den sammen med en ny verdi nedenfor; monitorer som bruker hemmeligheten, tar den i bruk ved neste kontroll.",
+  "How to update a custom probe": "Slik oppdaterer du en egendefinert sonde",
+  "Older than {{version}}": "Eldre enn {{version}}",
+  "Reported Version": "Rapportert versjon",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Disse sondene er for gamle til å lage engangskoder, så kontrollen av denne monitoren feiler på dem:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Denne kontrollen trenger en engangskode, og denne sonden er for gammel til å lage en, så kontrollen ble ikke kjørt. Oppdater sonden til OneUptime {{version}} eller nyere.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Oppdater en sonde ved å starte den på nytt med det nyeste sondeimaget (OneUptime {{version}} eller nyere).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "For gammel til å lage engangskoder. Monitorer som bruker en engangskodehemmelighet, feiler kontrollen sin på denne sonden til den er oppdatert.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "Hva hemmeligheten inneholder. «Oppdater hemmelig verdi» kan endre den senere, sammen med en ny verdi."
 }

@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "귀하가 워크플로의 소유자로 추가되었습니다.",
   "You are added as an owner of an incoming call policy.": "귀하가 수신 통화 정책의 소유자로 추가되었습니다.",
   "You are added as an owner of an on-call policy.": "귀하가 온콜 정책의 소유자로 추가되었습니다.",
-  "You are added as an owner of an on-call schedule.": "귀하가 온콜 일정의 소유자로 추가되었습니다."
+  "You are added as an owner of an on-call schedule.": "귀하가 온콜 일정의 소유자로 추가되었습니다.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "아래의 새 값과 함께 바꾸세요. 시크릿을 사용하는 모니터는 다음 검사부터 새 유형을 사용합니다.",
+  "How to update a custom probe": "사용자 지정 프로브를 업데이트하는 방법",
+  "Older than {{version}}": "{{version}}보다 오래됨",
+  "Reported Version": "보고된 버전",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "다음 프로브는 너무 오래되어 일회용 코드를 만들 수 없으므로 이 모니터의 검사가 이 프로브에서 실패합니다:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "이 검사에는 일회용 코드가 필요하지만 이 프로브는 너무 오래되어 코드를 만들 수 없으므로 검사가 실행되지 않았습니다. 프로브를 OneUptime {{version}} 이상으로 업데이트하세요.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "프로브를 업데이트하려면 최신 프로브 이미지(OneUptime {{version}} 이상)로 다시 시작하세요.",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "너무 오래되어 일회용 코드를 만들 수 없습니다. 일회용 코드 시크릿을 사용하는 모니터는 이 프로브가 업데이트될 때까지 이 프로브에서 검사에 실패합니다.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "시크릿에 담기는 내용입니다. 나중에 '시크릿 값 업데이트'에서 새 값과 함께 바꿀 수 있습니다."
 }

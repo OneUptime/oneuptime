@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "U bent toegevoegd als eigenaar van een workflow.",
   "You are added as an owner of an incoming call policy.": "U bent toegevoegd als eigenaar van een beleid voor inkomende gesprekken.",
   "You are added as an owner of an on-call policy.": "U bent toegevoegd als eigenaar van een bereikbaarheidsbeleid.",
-  "You are added as an owner of an on-call schedule.": "U bent toegevoegd als eigenaar van een bereikbaarheidsschema."
+  "You are added as an owner of an on-call schedule.": "U bent toegevoegd als eigenaar van een bereikbaarheidsschema.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Wijzig het samen met een nieuwe waarde hieronder; monitoren die het geheim gebruiken, nemen het over bij hun volgende controle.",
+  "How to update a custom probe": "Een aangepaste sonde bijwerken",
+  "Older than {{version}}": "Ouder dan {{version}}",
+  "Reported Version": "Gemelde versie",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Deze sondes zijn te oud om eenmalige codes te maken, dus de controle van deze monitor mislukt op deze sondes:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Deze controle heeft een eenmalige code nodig en deze sonde is te oud om er een te maken, dus de controle is niet uitgevoerd. Werk de sonde bij naar OneUptime {{version}} of nieuwer.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Werk een sonde bij door hem opnieuw te starten met de nieuwste sonde-image (OneUptime {{version}} of nieuwer).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Te oud om eenmalige codes te maken. Monitoren die een geheim met een eenmalige code gebruiken, mislukken hun controle op deze sonde totdat die is bijgewerkt.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "Wat het geheim bevat. Met ‘Geheime waarde bijwerken’ kun je het later wijzigen, samen met een nieuwe waarde."
 }

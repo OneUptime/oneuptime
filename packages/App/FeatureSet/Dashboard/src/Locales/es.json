@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "Se le ha añadido como propietario de un flujo de trabajo.",
   "You are added as an owner of an incoming call policy.": "Se le ha añadido como propietario de una política de llamadas entrantes.",
   "You are added as an owner of an on-call policy.": "Se le ha añadido como propietario de una política de guardia.",
-  "You are added as an owner of an on-call schedule.": "Se le ha añadido como propietario de una programación de guardia."
+  "You are added as an owner of an on-call schedule.": "Se le ha añadido como propietario de una programación de guardia.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Cámbielo junto con un valor nuevo a continuación; los monitores que usan el secreto lo aplican en su próxima comprobación.",
+  "How to update a custom probe": "Cómo actualizar una sonda personalizada",
+  "Older than {{version}}": "Anterior a {{version}}",
+  "Reported Version": "Versión informada",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Estas sondas son demasiado antiguas para generar códigos de un solo uso, así que la comprobación de este monitor falla en ellas:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Esta comprobación necesita un código de un solo uso, y esta sonda es demasiado antigua para generarlo, así que la comprobación no se ejecutó. Actualice la sonda a OneUptime {{version}} o posterior.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Para actualizar una sonda, iníciela de nuevo con la imagen más reciente de la sonda (OneUptime {{version}} o posterior).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Demasiado antigua para generar códigos de un solo uso. Los monitores que usan un secreto de código de un solo uso fallan su comprobación en esta sonda hasta que se actualice.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "Lo que contiene el secreto. «Actualizar valor del secreto» puede cambiarlo más adelante, junto con un valor nuevo."
 }

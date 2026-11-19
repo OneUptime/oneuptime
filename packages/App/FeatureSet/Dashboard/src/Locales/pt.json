@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "Você foi adicionado como proprietário de um fluxo de trabalho.",
   "You are added as an owner of an incoming call policy.": "Você foi adicionado como proprietário de uma política de chamadas recebidas.",
   "You are added as an owner of an on-call policy.": "Você foi adicionado como proprietário de uma política de plantão.",
-  "You are added as an owner of an on-call schedule.": "Você foi adicionado como proprietário de um agendamento de plantão."
+  "You are added as an owner of an on-call schedule.": "Você foi adicionado como proprietário de um agendamento de plantão.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Altere-o junto com um novo valor abaixo; os monitores que usam o segredo o adotam na próxima verificação.",
+  "How to update a custom probe": "Como atualizar uma sonda personalizada",
+  "Older than {{version}}": "Anterior à {{version}}",
+  "Reported Version": "Versão informada",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Estas sondas são antigas demais para gerar códigos de uso único, então a verificação deste monitor falha nelas:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Esta verificação precisa de um código de uso único, e esta sonda é antiga demais para gerá-lo, então a verificação não foi executada. Atualize a sonda para o OneUptime {{version}} ou posterior.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Para atualizar uma sonda, inicie-a novamente com a imagem mais recente da sonda (OneUptime {{version}} ou posterior).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Antiga demais para gerar códigos de uso único. Monitores que usam um segredo de código de uso único falham na verificação nesta sonda até que ela seja atualizada.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "O que o segredo guarda. “Atualizar Valor do Segredo” pode alterá-lo depois, junto com um novo valor."
 }

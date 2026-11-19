@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "Sei stato aggiunto come proprietario di un flusso di lavoro.",
   "You are added as an owner of an incoming call policy.": "Sei stato aggiunto come proprietario di una policy chiamate in entrata.",
   "You are added as an owner of an on-call policy.": "Sei stato aggiunto come proprietario di una policy di reperibilità.",
-  "You are added as an owner of an on-call schedule.": "Sei stato aggiunto come proprietario di una pianificazione di reperibilità."
+  "You are added as an owner of an on-call schedule.": "Sei stato aggiunto come proprietario di una pianificazione di reperibilità.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "Cambialo insieme a un nuovo valore qui sotto; i monitor che usano il segreto lo adottano al loro prossimo controllo.",
+  "How to update a custom probe": "Come aggiornare una sonda personalizzata",
+  "Older than {{version}}": "Precedente alla {{version}}",
+  "Reported Version": "Versione segnalata",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "Queste sonde sono troppo vecchie per generare codici monouso, quindi il controllo di questo monitor fallisce su di esse:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Questo controllo richiede un codice monouso e questa sonda è troppo vecchia per generarne uno, quindi il controllo non è stato eseguito. Aggiorna la sonda a OneUptime {{version}} o successiva.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Per aggiornare una sonda, riavviala con l'immagine più recente della sonda (OneUptime {{version}} o successiva).",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Troppo vecchia per generare codici monouso. I monitor che usano un segreto di tipo codice monouso falliscono il controllo su questa sonda finché non viene aggiornata.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "Cosa contiene il segreto. «Aggiorna valore segreto» può cambiarlo in seguito, insieme a un nuovo valore."
 }

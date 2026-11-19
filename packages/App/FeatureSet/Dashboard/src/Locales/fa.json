@@ -57895,5 +57895,14 @@
   "You are added as an owner of a workflow.": "شما به‌عنوان مالک یک گردش کاری افزوده می‌شوید.",
   "You are added as an owner of an incoming call policy.": "شما به‌عنوان مالک یک سیاست تماس ورودی افزوده می‌شوید.",
   "You are added as an owner of an on-call policy.": "شما به‌عنوان مالک یک سیاست آنکال افزوده می‌شوید.",
-  "You are added as an owner of an on-call schedule.": "شما به‌عنوان مالک یک زمان‌بندی آنکال افزوده می‌شوید."
+  "You are added as an owner of an on-call schedule.": "شما به‌عنوان مالک یک زمان‌بندی آنکال افزوده می‌شوید.",
+  "Change it together with a new value below; monitors that use the secret take it at their next check.": "آن را همراه با یک مقدار تازه در پایین تغییر دهید؛ مانیتورهایی که از این راز استفاده می‌کنند، در بررسی بعدی‌شان آن را به کار می‌گیرند.",
+  "How to update a custom probe": "نحوه به‌روزرسانی یک پراب سفارشی",
+  "Older than {{version}}": "قدیمی‌تر از {{version}}",
+  "Reported Version": "نسخه گزارش‌شده",
+  "These probes are too old to make one-time codes, so this monitor's check fails on them:": "این پراب‌ها قدیمی‌تر از آن‌اند که کد یک‌بارمصرف بسازند، پس بررسی این مانیتور روی آن‌ها شکست می‌خورد:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.": "این بررسی به یک کد یک‌بارمصرف نیاز دارد و این پراب قدیمی‌تر از آن است که آن را بسازد، پس بررسی اجرا نشد. پراب را به OneUptime {{version}} یا بالاتر به‌روزرسانی کنید.",
+  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "برای به‌روزرسانی یک پراب، آن را با جدیدترین ایمیج پراب (OneUptime {{version}} یا بالاتر) دوباره راه‌اندازی کنید.",
+  "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "قدیمی‌تر از آن است که کد یک‌بارمصرف بسازد. مانیتورهایی که از راز کد یک‌بارمصرف استفاده می‌کنند، تا وقتی این پراب به‌روزرسانی نشود، در بررسی روی آن شکست می‌خورند.",
+  "What the secret holds. Update Secret Value can change it later, together with a new value.": "آنچه راز در خود نگه می‌دارد. بعداً می‌توان آن را با «به‌روزرسانی مقدار راز» همراه با یک مقدار تازه تغییر داد."
 }
