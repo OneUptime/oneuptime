@@ -19,6 +19,7 @@ import ServerEmailLogService from "./ServerEmailLogService";
 import ProductFeedbackService from "./ProductFeedbackService";
 import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
 import InstanceTokenSigningKeyService from "./InstanceTokenSigningKeyService";
+import InstanceSamlSigningKeyService from "./InstanceSamlSigningKeyService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -89,6 +90,9 @@ import NetworkTopologySuppressionService from "./NetworkTopologySuppressionServi
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import NetworkDeviceNamingRuleService from "./NetworkDeviceNamingRuleService";
 import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
+import DeviceManagementConnectionService from "./DeviceManagementConnectionService";
+import ManagedDeviceService from "./ManagedDeviceService";
+import ManagedDeviceAppService from "./ManagedDeviceAppService";
 import NetworkAddressNameService from "./NetworkAddressNameService";
 import PodmanHostService from "./PodmanHostService";
 import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
@@ -204,6 +208,7 @@ import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import ServiceFeedService from "./ServiceFeedService";
+import ServiceAINoteService from "./ServiceAINoteService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import NotificationService from "./NotificationService";
@@ -658,6 +663,7 @@ const services: Array<BaseService> = [
   ProductFeedbackService,
   InstanceReceivingPeriodService,
   InstanceTokenSigningKeyService,
+  InstanceSamlSigningKeyService,
   DomainService,
 
   EmailLogService,
@@ -731,6 +737,9 @@ const services: Array<BaseService> = [
   NetworkSiteAssignmentRuleService,
   NetworkDeviceNamingRuleService,
   NetworkControllerConnectionService,
+  DeviceManagementConnectionService,
+  ManagedDeviceService,
+  ManagedDeviceAppService,
   NetworkAddressNameService,
   PodmanHostService,
   PodmanHostOwnerRuleService,
@@ -829,6 +838,7 @@ const services: Array<BaseService> = [
   HostFeedService,
   CloudResourceFeedService,
   ServiceFeedService,
+  ServiceAINoteService,
 
   NotificationService,
 

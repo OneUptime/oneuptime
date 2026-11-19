@@ -127,22 +127,65 @@ export function getComplianceScoreClassName(score: number | null): string {
   return "text-red-600";
 }
 
+/*
+ * What a tile shows of a framework: its name, its full name and its score.
+ * A data framework's lines are worked out here, from its stores; a
+ * Kubernetes cluster's own frameworks (#9627) are scored over workloads,
+ * and hand the tile their lines in the reader's words (summary).
+ */
+export interface ComplianceTileFramework {
+  framework: string;
+  fullName: string;
+  score: number | null;
+}
+
+export interface ComplianceTileSummary {
+  // What it is scored over: "12 workloads evaluated".
+  scope: string;
+  // What fails, or that nothing does.
+  note: string;
+  isFailing: boolean;
+}
+
 export interface ComponentProps {
-  framework: DataSecurityComplianceFramework;
+  framework: DataSecurityComplianceFramework | ComplianceTileFramework;
   isSelected: boolean;
   onSelect: () => void;
+  // In the reader's words: the lines a framework not scored over stores shows.
+  summary?: ComplianceTileSummary | undefined;
+}
+
+// The tile's two lines under the score, for a data framework.
+function getDataFrameworkSummary(
+  framework: DataSecurityComplianceFramework,
+  translator: Translator,
+): ComplianceTileSummary {
+  const failing: number = getFailingRequirementCount(framework);
+  const note: { text: string; isFailing: boolean } = getComplianceTileNote(
+    framework,
+    failing,
+  );
+
+  return {
+    scope: translator.translatePlural(STORES_IN_SCOPE, framework.storesInScope),
+    note: note.isFailing
+      ? translator.translatePlural(FAILING_REQUIREMENTS, failing)
+      : translator.translateText(note.text) || note.text,
+    isFailing: note.isFailing,
+  };
 }
 
 const ComplianceFrameworkTile: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const framework: DataSecurityComplianceFramework = props.framework;
-  const failing: number = getFailingRequirementCount(framework);
-  const note: { text: string; isFailing: boolean } = getComplianceTileNote(
-    framework,
-    failing,
-  );
+  const framework: ComplianceTileFramework = props.framework;
+  const summary: ComplianceTileSummary =
+    props.summary ||
+    getDataFrameworkSummary(
+      props.framework as DataSecurityComplianceFramework,
+      translator,
+    );
   const fullName: string =
     translator.translateText(framework.fullName) || framework.fullName;
 
@@ -179,17 +222,13 @@ const ComplianceFrameworkTile: FunctionComponent<ComponentProps> = (
           ? translator.translateText(NOT_EVALUATED)
           : formatComplianceScore(framework.score, translator)}
       </span>
-      <span className="text-xs text-gray-600">
-        {translator.translatePlural(STORES_IN_SCOPE, framework.storesInScope)}
-      </span>
+      <span className="text-xs text-gray-600">{summary.scope}</span>
       <span
         className={`text-xs font-medium ${
-          note.isFailing ? "text-red-600" : "text-gray-500"
+          summary.isFailing ? "text-red-600" : "text-gray-500"
         }`}
       >
-        {note.isFailing
-          ? translator.translatePlural(FAILING_REQUIREMENTS, failing)
-          : translator.translateText(note.text)}
+        {summary.note}
       </span>
     </button>
   );

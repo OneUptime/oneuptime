@@ -22,6 +22,7 @@ Terraform이 출력한 메시지나 겪은 일을 아래 표에서 찾으세요.
 | `This project has been blocked` | 마스터 관리자에게 프로젝트 차단 해제를 요청하세요: [차단된 프로젝트](#차단된-프로젝트) 참고 |
 | `references records that are not in this project` | 자신의 프로젝트에 있는 레코드의 ID를 사용하세요: [다른 프로젝트의 ID](#다른-프로젝트의-id) 참고 |
 | 데이터 소스의 `Not Found` 또는 `Ambiguous Match` | 조회 인수를 고치세요: [아무것도 찾지 못하거나 여러 개를 찾는 조회](#아무것도-찾지-못하거나-여러-개를-찾는-조회) 참고 |
+| `There is already a team called` (레이블, 온콜 정책, 온콜 일정) | 같은 종류의 다른 레코드가 갖지 않은 이름을 붙이거나, 먼저 다른 쪽의 이름을 바꾸세요: [다른 레코드가 이미 가진 이름](#다른-레코드가-이미-가진-이름) 참고 |
 | `Cannot import non-existent remote object` | ID와 키의 권한을 확인하세요: [리소스 가져오기](/docs/terraform/importing-resources#문제-해결) 참고 |
 | `Provider produced inconsistent result after apply` | 프로바이더를 업그레이드하세요: [apply 후 일관되지 않은 결과](#apply-후-일관되지-않은-결과) 참고 |
 | 추가하지 않은 리소스를 플랜이 만듦 | 키가 더 이상 그 리소스를 읽을 수 없고, OneUptime이 `404`로 응답했습니다. 키에 읽기 권한을 돌려준 다음 `terraform import`로 리소스를 가져오세요: [리소스가 state에서 사라지고 다음 apply가 다시 만듦](#리소스가-state에서-사라지고-다음-apply가-다시-만듦) 참고 |
@@ -102,6 +103,12 @@ This network device references records that are not in this project: Network Sit
 ### 아무것도 찾지 못하거나 여러 개를 찾는 조회
 
 데이터 소스는 레코드를 정확히 하나 찾거나 플랜을 멈춥니다. `Not Found`는 그 `id`를 가진 레코드가 없거나 설정한 인수와 일치하는 레코드가 없다는 뜻이고, `Ambiguous Match`는 여러 레코드가 일치한다는 뜻입니다. 인수를 고치거나, 인수를 더 설정해 조회를 하나로 좁히거나, `id`로 레코드를 조회하세요. 규칙은 [이미 있는 것 읽기](/docs/terraform/complete-guide#이미-있는-것-읽기)에 있습니다.
+
+### 다른 레코드가 이미 가진 이름
+
+팀, 레이블, 온콜 정책, 온콜 일정은 프로젝트 안에서 각각 고유한 이름을 가지며, 대소문자나 공백은 구분하지 않습니다. 같은 종류의 다른 레코드가 이미 가진 이름으로 만들거나 이름을 바꾸면 `400`이 반환됩니다. 예: `There is already an on-call policy called Primary in this project. Pick another name.` 보관된 온콜 정책은 이름을 유지하므로, 보관을 취소하거나 다른 이름을 고르세요. 전부터 이름을 공유하던 레코드는 그 이름을 유지하며, 대시보드의 팀, 온콜 정책, 온콜 일정 목록에 표시됩니다.
+
+Terraform은 한 번의 apply에서 변경을 나란히 수행하므로, 같은 apply에서 다른 리소스가 내려놓는 이름으로 이름을 바꾸면 그 리소스가 아직 그 이름을 가진 동안에는 거부될 수 있습니다. 다시 적용하거나, 이름을 가져가는 리소스에서 이름을 내려놓는 리소스로 `depends_on`을 추가하세요. A를 B로, B를 A로 바꾸는 맞바꾸기나 처음 이름으로 돌아오는 이름 바꾸기 연쇄는 한 번의 apply로 할 수 없습니다. 그중 하나의 이름을 아무도 쓰지 않는 이름으로 바꾸고 적용한 다음, 나머지 변경을 하세요.
 
 ## 안정되지 않는 플랜
 

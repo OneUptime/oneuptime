@@ -1188,9 +1188,14 @@ describe("the cluster's AI Insights page", () => {
         "Investigations81 failed or timed out",
       );
       expect(stat("fixes")).toHaveTextContent("Fixes41 verified");
-      expect(stat("commands")).toHaveTextContent(
-        "Commands372 failed, 1 never ran",
-      );
+      expect(stat("commands")).toHaveTextContent(/^Commands37/);
+      // How many failed opens which (#9749); the ones never run say so.
+      expect(
+        within(stat("commands")).getByTestId("ai-insights-failed-commands"),
+      ).toHaveTextContent("2 failed");
+      expect(
+        within(stat("commands")).getByTestId("ai-insights-commands-never-ran"),
+      ).toHaveTextContent("1 never ran");
       // A cluster has no coverage of its own.
       expect(
         within(summary).queryByTestId("ai-insights-stat-coverage"),

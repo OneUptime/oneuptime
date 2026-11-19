@@ -1,4 +1,6 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
+import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import SamlSingleLogoutEndpoint from "../Utils/SamlSingleLogoutEndpoint";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import SamlAssertionOneTimeUse, {
   SamlProviderKind,
@@ -42,6 +44,7 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import InstanceSamlSigningKeyService from "Common/Server/Services/InstanceSamlSigningKeyService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserService from "Common/Server/Services/UserService";
@@ -334,6 +337,73 @@ router.post(
 );
 
 /*
+ * The provider's Single Logout URL (#9603), on the HTTP-Redirect (GET) and
+ * HTTP-POST bindings: where the identity provider answers the sign-out
+ * OneUptime sent a person with, and sends its own. Pasted into identity
+ * providers like the Reply URL, so its path may never change either
+ * (Utils/SamlSingleLogoutEndpoint).
+ */
+const takeProjectSingleLogout: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    await SamlSingleLogoutEndpoint.handle({
+      req,
+      res,
+      providerType: SsoProviderType.ProjectSSO,
+      providerId: req.params["projectSsoId"],
+      projectId: req.params["projectId"],
+    });
+  } catch (err) {
+    logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+    return next(err);
+  }
+};
+
+router.get("/idp-logout/:projectId/:projectSsoId", takeProjectSingleLogout);
+
+router.post("/idp-logout/:projectId/:projectSsoId", takeProjectSingleLogout);
+
+/*
+ * The certificate OneUptime signs its SAML sign-out messages with, for an
+ * admin to give their identity provider (Okta's Signature Certificate, the
+ * signature certificate of a relying party trust). One for every project's
+ * provider and the instance's alike, made the first time it is needed
+ * (InstanceSamlSigningKeyService). Public, as a service provider's
+ * certificate is.
+ */
+router.get(
+  "/saml-signing-certificate",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const certificate: string =
+        await InstanceSamlSigningKeyService.getCertificate();
+
+      res.setHeader("Content-Type", "application/x-pem-file");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="oneuptime-saml-signing.crt"',
+      );
+
+      return Response.sendTextResponse(req, res, certificate);
+    } catch (err) {
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+      return next(new ServerException());
+    }
+  },
+);
+
+/*
  * The answer to a sign-in through a project's SAML provider that names the
  * account's address but another person (ProjectSsoIdentityBinding): the page
  * that says so, or the mobile app's deep link. Logged for the project's
@@ -438,6 +508,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
+        // Whether the session keeps what signing out of the provider too takes.
+        signOutOfIdentityProvider: true,
         teams: {
           _id: true,
         },
@@ -867,6 +939,19 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
           ssoProviderName: projectSSO.name,
           ssoProjectId: projectId,
         },
+        /*
+         * With the provider's "Sign out of the identity provider too" on, a
+         * browser sign-in keeps what the assertion named the person and
+         * their session by, encrypted, for its sign-out at the provider
+         * (Utils/IdentityProviderSignOut, #9603).
+         */
+        identityProviderSignOut: IdentityProviderSignOut.forSamlSignIn({
+          signOutOfIdentityProvider: projectSSO.signOutOfIdentityProvider,
+          isMobileRequest: isMobileRequest,
+          providerType: SsoProviderType.ProjectSSO,
+          providerId: projectSSO.id!,
+          assertion: verifiedSaml,
+        }),
       });
 
     if (isMobileRequest) {

@@ -1341,7 +1341,8 @@ function mcpToolsTopic(
     summary: translateTemplate("{{get}}, {{list}}, {{update}} and more", {
       get: tools.get,
       list: tools.list,
-      update: tools.update,
+      // A resource with no field to change has no update tool, but a create.
+      update: tools.update ?? tools.create,
     }),
     markdown: [
       `| Tool | What it does |`,
@@ -1350,7 +1351,11 @@ function mcpToolsTopic(
       `| \`${tools.list}\` | Lists and searches ${plural} |`,
       `| \`${tools.count}\` | Counts ${plural} |`,
       `| \`${tools.create}\` | Creates ${withIndefiniteArticle(singular)} |`,
-      `| \`${tools.update}\` | Changes ${withIndefiniteArticle(singular)} |`,
+      ...(tools.update
+        ? [
+            `| \`${tools.update}\` | Changes ${withIndefiniteArticle(singular)} |`,
+          ]
+        : []),
       `| \`${tools.delete}\` | Deletes ${withIndefiniteArticle(singular)} (your assistant asks first) |`,
       "",
       "A client you authorize as read only can use the first three.",

@@ -19,6 +19,7 @@ import {
   getCurrentHostCollectorConfigChoice,
   getHostCollectorConfigChoiceUpdate,
   getPickableHostCollectorConfigs,
+  toHostCollectorConfigChoiceOption,
 } from "../../FeatureSet/Dashboard/src/Components/HostCollector/HostCollectorConfigChoice";
 import {
   canPutHostCollectorConfigVersionBack,
@@ -60,6 +61,8 @@ import {
   getHostCollectorServiceCommands,
 } from "Common/Utils/HostCollector/HostCollectorInstallCommand";
 import { fastestRun } from "Common/Tests/Helpers/FastestRun";
+import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
+import Label from "Common/Models/DatabaseModels/Label";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -420,6 +423,60 @@ describe("Change config", () => {
         return config.id;
       }),
     ).toEqual(["every-host"]);
+  });
+
+  /*
+   * Issue #9655: the picker read a config without a place as 0, so it was
+   * the first config that applied - above every numbered one - while the
+   * server put it after them. Both now follow the one rule (Utils/ListOrder).
+   */
+  test("reads a config without a place as having none, after every config that has one, as the server does", () => {
+    const unplaced: HostCollectorConfig = new HostCollectorConfig();
+    unplaced._id = "unplaced";
+    unplaced.name = "Unplaced";
+    unplaced.osType = HostCollectorOsType.Linux;
+    const tenth: HostCollectorConfig = new HostCollectorConfig();
+    tenth._id = "tenth";
+    tenth.name = "Tenth";
+    tenth.osType = HostCollectorOsType.Linux;
+    tenth.order = 10;
+    const label: Label = new Label();
+    label._id = "production";
+    tenth.labels = [label];
+
+    expect(toHostCollectorConfigChoiceOption(unplaced)).toEqual({
+      id: "unplaced",
+      name: "Unplaced",
+      osType: HostCollectorOsType.Linux,
+      labelIds: [],
+      order: null,
+    });
+    expect(toHostCollectorConfigChoiceOption(tenth).order).toBe(10);
+    expect(toHostCollectorConfigChoiceOption(tenth).labelIds).toEqual([
+      "production",
+    ]);
+
+    // Read in the list's order, the one without a place comes last.
+    expect(
+      getAutomaticHostCollectorConfigId({
+        configs: [tenth, unplaced].map(toHostCollectorConfigChoiceOption),
+        host: { ...linuxHost, collectorConfigId: null },
+      }),
+    ).toBe("tenth");
+    // Even read first, as a list read in another order would put it.
+    expect(
+      getAutomaticHostCollectorConfigId({
+        configs: [unplaced, tenth].map(toHostCollectorConfigChoiceOption),
+        host: { ...linuxHost, collectorConfigId: null },
+      }),
+    ).toBe("tenth");
+    // And it is still the one a host gets when nothing else applies.
+    expect(
+      getAutomaticHostCollectorConfigId({
+        configs: [tenth, unplaced].map(toHostCollectorConfigChoiceOption),
+        host: { ...linuxHost, labelIds: [], collectorConfigId: null },
+      }),
+    ).toBe("unplaced");
   });
 
   test("starts on the picked config, or Automatic", () => {

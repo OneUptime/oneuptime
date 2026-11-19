@@ -22,6 +22,7 @@ import {
   AI_ACTIVITY_INSIGHTS_TIME_OF_DAY_MIN_DAY_PERCENT,
   AI_ACTIVITY_INSIGHTS_TIME_OF_DAY_MIN_OCCURRENCES,
   AI_ACTIVITY_INSIGHTS_TIME_OF_DAY_MIN_OCCURRENCE_PERCENT,
+  AiActivityFailedCommand,
   AiActivityFinding,
   AiActivityFixApprovalSources,
   AiActivityFixOutcomes,
@@ -150,8 +151,11 @@ export interface AiActivityFixInput {
 
 export interface AiActivityCommandStats {
   total: number;
+  // The failed ones the reader may read (AiActivityFailedCommands).
   failed: number;
   timedOut: number;
+  // The newest of those failed ones: what "N failed" opens.
+  failedCommands?: Array<AiActivityFailedCommand> | undefined;
 }
 
 export interface AiActivityInsightsInput {
@@ -1053,8 +1057,18 @@ export default class AiActivityInsightsBuilder {
       fixOutcomes,
       trend: this.buildTrend({ windowStart, input, runs, fixes }),
       preventiveInsights,
+      // What "N failed" opens: the reader's own, newest first (#9749).
+      ...(totals.failedCommands > 0 &&
+      (input.commands.failedCommands || []).length > 0
+        ? { failedCommandList: [...input.commands.failedCommands!] }
+        : {}),
       isPartial: input.isPartial,
     };
+  }
+
+  // An incident or alert as the page names it: never what raised it.
+  public static toSubject(input: AiActivitySubjectInput): AiActivitySubject {
+    return toSubject(input);
   }
 
   // The runs of the window: a reader may hand over one from just before it.

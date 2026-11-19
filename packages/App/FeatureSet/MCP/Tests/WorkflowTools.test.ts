@@ -145,6 +145,8 @@ const WORKFLOW_TOOL_NAMES: string[] = [
   "get_data_table_freshness",
   "get_data_table_lineage",
   "oneuptime_whoami",
+  // Every ordered list's move, as the dashboard's drag (Tests/MoveInList).
+  "oneuptime_move_in_list",
 ];
 
 describe("WorkflowTools", () => {
@@ -196,27 +198,50 @@ describe("WorkflowTools", () => {
 
     it("marks whoami read-only and every tool that changes something destructive", () => {
       const tools: McpToolInfo[] = generateWorkflowTools();
-      const whoami: McpToolInfo | undefined = tools.find(
-        (tool: McpToolInfo) => {
-          return tool.name === "oneuptime_whoami";
-        },
-      );
-      const acknowledge: McpToolInfo | undefined = tools.find(
-        (tool: McpToolInfo) => {
-          return tool.name === "acknowledge_incident";
-        },
-      );
+      const annotationsOf: (name: string) => McpToolInfo["annotations"] = (
+        name: string,
+      ): McpToolInfo["annotations"] => {
+        return tools.find((tool: McpToolInfo) => {
+          return tool.name === name;
+        })?.annotations;
+      };
 
-      expect(whoami?.annotations).toEqual({
+      expect(annotationsOf("oneuptime_whoami")).toEqual({
         readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: false,
       });
-      expect(acknowledge?.annotations).toEqual({
-        readOnlyHint: false,
-        destructiveHint: true,
-        openWorldHint: false,
-      });
+
+      /*
+       * An incident's new state, and a public note, are shown on the status
+       * page and sent to its subscribers: past the caller's project.
+       */
+      for (const name of [
+        "acknowledge_incident",
+        "resolve_incident",
+        "add_incident_note",
+      ]) {
+        expect([name, annotationsOf(name)]).toEqual([
+          name,
+          { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+        ]);
+      }
+
+      /*
+       * An alert is not published, and neither is the order of a project's
+       * severities, states and statuses.
+       */
+      for (const name of [
+        "acknowledge_alert",
+        "resolve_alert",
+        "add_alert_note",
+        "oneuptime_move_in_list",
+      ]) {
+        expect([name, annotationsOf(name)]).toEqual([
+          name,
+          { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        ]);
+      }
     });
   });
 

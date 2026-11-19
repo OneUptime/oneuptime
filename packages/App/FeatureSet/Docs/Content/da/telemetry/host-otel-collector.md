@@ -46,7 +46,7 @@ En vært registreres, når en batch, der bærer `host.name`, også bærer `hostm
 - En indtagelsesnøgle. Opret en under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og kopiér dens værdi. Collectoren sender den som headeren `x-oneuptime-token`.
 - Administratorrettigheder på maskinen: `sudo` på Linux og macOS, en PowerShell-prompt med forhøjede rettigheder på Windows.
 - Udgående HTTPS fra maskinen til din OneUptime-URL.
-- Contrib-distributionen af collectoren, `otelcol-contrib`. Core-buildet `otelcol` mangler de receivers og processors, som disse konfigurationer bruger. Receiveren `systemd` (Linux) virker fra v0.143.0 og receiveren `windows_service` (Windows) fra v0.155.0; kommandoerne nedenfor installerer v0.161.0, den udgivelse, OneUptime fastlåser.
+- Contrib-distributionen af collectoren, `otelcol-contrib`. Core-buildet `otelcol` mangler de receivers og processors, som disse konfigurationer bruger. Receiveren `systemd` (Linux) virker fra v0.143.0 og receiveren `windows_service` (Windows) fra v0.155.0; kommandoerne nedenfor installerer v0.165.0, den udgivelse, OneUptime fastlåser.
 
 ## Installer collectoren
 
@@ -140,7 +140,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -238,7 +238,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -346,7 +346,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -381,7 +381,7 @@ Hver konfiguration er den, dashboardet skriver under **Produkter → Infrastrukt
 På Debian eller Ubuntu:
 
 ```bash
-VERSION=0.161.0                      # the release OneUptime pins
+VERSION=0.165.0                      # the release OneUptime pins
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \
@@ -392,7 +392,7 @@ sudo dpkg -i /tmp/otelcol-contrib.deb
 På RHEL, CentOS, Fedora eller Amazon Linux:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \
@@ -413,7 +413,7 @@ sudo systemctl status otelcol-contrib
 Den pakkede enhed kører collectoren som den uprivilegerede bruger `otelcol-contrib`. Gruppen `systemd-journal` lader den læse journalen; for at følge filer i `/var/log` (læsbare for gruppen `adm` på Debian og Ubuntu) skal du også tilføje den gruppe. For at scraperen `process` kan se andre brugeres processer, skal du give den capability'en `CAP_SYS_PTRACE`.
 @tab macOS
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
 
 curl -fL -o /tmp/otelcol-contrib.tar.gz \
@@ -458,7 +458,7 @@ Brug denne tarball, ikke Homebrew: Homebrew-formlen er core-buildet, som nægter
 Kør denne blok som en helhed fra en PowerShell-prompt med forhøjede rettigheder, i den mappe, der indeholder `config.yaml`: hver linje afhænger af variablerne over den.
 
 ```powershell
-$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
+$VERSION = "0.165.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -852,7 +852,7 @@ docker run -d \
   -e HOST_VAR=/hostfs/var \
   -e HOST_RUN=/hostfs/run \
   -e HOST_DEV=/hostfs/dev \
-  otel/opentelemetry-collector-contrib:0.161.0 \
+  otel/opentelemetry-collector-contrib:0.165.0 \
   --config /etc/otelcol-contrib/config.yaml
 ```
 
@@ -863,7 +863,7 @@ docker run -d \
 Hvor pakker ikke er en mulighed, skal du udpakke den statiske binærfil og give den sin egen systemd-enhed:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \
@@ -1157,7 +1157,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 

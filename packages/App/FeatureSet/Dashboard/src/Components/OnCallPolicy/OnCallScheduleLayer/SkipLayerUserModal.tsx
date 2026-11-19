@@ -1,8 +1,18 @@
 import {
+  UserOverrideFormTeamLimit,
   getUserOverrideFormFields,
   prepareUserOverrideForCreate,
   readUserOverridePeople,
 } from "../UserOverrides/UserOverrideForm";
+import {
+  UserOverrideTeamLimit,
+  getUserOverrideTeamHint,
+  getUserOverrideTeamLimit,
+} from "../UserOverrides/UserOverrideTeamLimit";
+import useUserOverrideTeamPeople, {
+  UserOverrideTeamPeople,
+} from "../UserOverrides/UseUserOverrideTeamPeople";
+import { ModelAction } from "Common/UI/Utils/PermissionGate";
 import {
   UserOverrideEditTarget,
   toUserOverrideEditTarget,
@@ -216,6 +226,42 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
     useRef<ComponentProps["onEditOverride"]>(props.onEditOverride);
   onEditOverrideRef.current = props.onEditOverride;
 
+  /*
+   * For a reader who manages the user overrides of their own team's people
+   * only (issue #9733): the pickers offer those people, saying why, and
+   * somebody outside them - the person whose row it was opened from - is
+   * said under "Who is away?" before anything is sent (UserOverrideTeamLimit).
+   */
+  const teamLimit: UserOverrideTeamLimit | null = getUserOverrideTeamLimit({
+    action: ModelAction.Create,
+    isGlobal: policies.length === 0,
+  });
+
+  const teamPeople: UserOverrideTeamPeople = useUserOverrideTeamPeople({
+    teamIds: teamLimit ? teamLimit.teamIds : null,
+    withMembers: true,
+  });
+
+  const formTeamLimit: UserOverrideFormTeamLimit | undefined = teamLimit
+    ? {
+        teamIds: teamLimit.teamIds,
+        hint: teamPeople.teamNames
+          ? getUserOverrideTeamHint({
+              translator: translator,
+              teamNames: teamPeople.teamNames,
+            })
+          : null,
+        memberIds: teamPeople.memberIds,
+      }
+    : undefined;
+
+  // What the fields are rebuilt for when the team limit is known.
+  const teamLimitSignature: string = formTeamLimit
+    ? `${formTeamLimit.teamIds.join(",")}|${formTeamLimit.hint || ""}|${
+        formTeamLimit.memberIds ? formTeamLimit.memberIds.size : "-"
+      }`
+    : "";
+
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
       // The overrides the values would add: one, global, or one per policy.
@@ -237,6 +283,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
         getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
           currentUserId: currentUserId,
           awayUserId: props.userId,
+          teamLimit: formTeamLimit,
           /*
            * Under Ends, as Add User Override says it: what the times picked
            * overlap, as soon as they are picked - a conflict holds the form
@@ -314,7 +361,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
       });
 
       return fields;
-    }, [currentUserId, props.userId, props.policies]);
+    }, [currentUserId, props.userId, props.policies, teamLimitSignature]);
 
   const skippedName: string | null = getSkippedPersonName({
     awayUserId,

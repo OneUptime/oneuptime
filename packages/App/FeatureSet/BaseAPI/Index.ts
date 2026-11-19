@@ -657,6 +657,15 @@ import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityCon
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
+import DeviceManagementConnectionAPI from "Common/Server/API/DeviceManagementConnectionAPI";
+import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
+import ManagedDeviceService, {
+  Service as ManagedDeviceServiceType,
+} from "Common/Server/Services/ManagedDeviceService";
+import ManagedDeviceApp from "Common/Models/DatabaseModels/ManagedDeviceApp";
+import ManagedDeviceAppService, {
+  Service as ManagedDeviceAppServiceType,
+} from "Common/Server/Services/ManagedDeviceAppService";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import AuditLogExportService, {
@@ -2090,6 +2099,11 @@ import ServiceFeed from "Common/Models/DatabaseModels/ServiceFeed";
 import ServiceFeedService, {
   Service as ServiceFeedServiceType,
 } from "Common/Server/Services/ServiceFeedService";
+import ServiceAINote from "Common/Models/DatabaseModels/ServiceAINote";
+import ServiceAINoteService, {
+  Service as ServiceAINoteServiceType,
+} from "Common/Server/Services/ServiceAINoteService";
+import ServiceKnowledgeAPI from "Common/Server/API/ServiceKnowledgeAPI";
 
 // MetricType.
 import MetricTypeService, {
@@ -2099,6 +2113,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
@@ -2838,6 +2853,21 @@ const BaseAPIFeatureSet: FeatureSet = {
         ServiceFeedService,
       ).getRouter(),
     );
+
+    // What a service's team tells OneUptime AI about it (#7672).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceAINote, ServiceAINoteServiceType>(
+        ServiceAINote,
+        ServiceAINoteService,
+      ).getRouter(),
+    );
+
+    /*
+     * What OneUptime AI learned about a service (ServiceKnowledgeAPI,
+     * #7672): its recurring failures, read with the viewer's permissions.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ServiceKnowledgeAPI);
 
     // MetricType
     app.use(
@@ -3831,6 +3861,32 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkControllerConnectionAPI().getRouter(),
+    );
+
+    /*
+     * Device management connections: Esper tenants whose Android devices
+     * are imported into Inventory on a schedule, and the devices and apps
+     * they import (read-only: written by the reads).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DeviceManagementConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ManagedDevice, ManagedDeviceServiceType>(
+        ManagedDevice,
+        ManagedDeviceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ManagedDeviceApp, ManagedDeviceAppServiceType>(
+        ManagedDeviceApp,
+        ManagedDeviceAppService,
+      ).getRouter(),
     );
 
     // External MCP servers OneUptime AI may use, and their connection test.
@@ -6633,6 +6689,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Which teams, on-call policies and on-call schedules of a project share
+     * a name (SharedNamesAPI, #9746), for their lists to mark. A bare router
+     * for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
 
     /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member

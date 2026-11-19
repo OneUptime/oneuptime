@@ -202,7 +202,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 ### Voir ce qu'il a fait
 
 - **Exceptions → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves, dont les frames de votre code dans sa stack trace. **View Exception Group** ouvre l'exception, et pour les stack traces manquantes d'un service, **Ouvrir dans Exceptions** ouvre ses exceptions non résolues du dernier jour.
-- **Exceptions → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
+- **Exceptions → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé. Une pull request dit où en est sa tâche dans Code : un correctif redemandé avec Réessayer après un échec n'apparaît plus comme en échec, avec la pull request qu'il a ouverte.
 - La pull request explique pourquoi elle a été ouverte, avec un lien vers son constat. Celle d'une exception nouvelle ou en hausse renvoie aussi vers l'exception et apparaît sur sa page **Corriger avec l'IA**. Dans Code, sa tâche nomme l'exception qu'elle corrige, ou le constat d'où elle vient.
 
 ## Analyses des exceptions

@@ -41,7 +41,7 @@ The server is stateless: it issues no session ids, and every request stands on i
 - **Scheduled maintenance**: create and manage maintenance events.
 - **Telemetry**: query logs, metrics, traces, exceptions, monitor logs, security events and more, read-only.
 
-There are create, get, list, update, delete and count tools for 55 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. Read-only tools carry `readOnlyHint`, every tool that changes something carries `destructiveHint`, and only the public status page tools carry `openWorldHint`, so a client can run read-only calls on its own and ask you before any change. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
+There are create, get, list, update, delete and count tools for 55 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. A kind of record with no field you can change once it is made, such as an incident's link to an alert, has no update tool. Read-only tools carry `readOnlyHint` and every tool that changes something carries `destructiveHint`, so a client can run read-only calls on its own and ask you before any change. `openWorldHint` marks the tools that reach past your project: the public status page tools, and the changes that are shown on a status page and sent to its subscribers, such as a new incident, a change of its state or a public note. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
 
 ## Before you begin
 
@@ -340,6 +340,8 @@ The **`oneuptime_whoami`** tool returns the project your credentials belong to (
 The **`get_data_table_freshness`** tool tells an agent whether a table Data Observability watches is fresh, before it uses the data: fresh or late by the table's own rhythm, when it last changed, its open alerts, and how the latest run of each pipeline that writes it went. Pass `table` as `schema.table`, the table's name alone, or its ID. It changes nothing.
 
 The **`get_data_table_lineage`** tool tells an agent what a watched table is built from and what is built from it, before it changes the table or trusts its data: the tables upstream and downstream that are late, dropped, have open alerts or whose pipeline failed its last run, nearest first, with how many steps away each is, then the rest, the pipelines that load its sources from outside and the BI dashboards built on it. It goes three steps each way, or up to five with `depth`. Pass `table` as for `get_data_table_freshness`. It changes nothing.
+
+The **`oneuptime_move_in_list`** tool moves a row of an ordered list, such as an incident severity, an incident state or a monitor status, to another row's place, as dragging it in the dashboard does: the rows in between step one place, and it answers with each row whose number changed. Pass `resource` (such as `Incident Severity`), the row's `id` and `placeOfId`, the ID of the row whose place it takes. Writing a row's number with its `update_` tool places only that row, beside any row that already has that number.
 
 ## Querying Telemetry
 

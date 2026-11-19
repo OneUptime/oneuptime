@@ -1,0 +1,163 @@
+# What the CIS Kubernetes Benchmark's policy controls read, for the cluster's
+# Compliance page (#9627): RBAC (Roles, ClusterRoles and their bindings),
+# ServiceAccounts and NetworkPolicies.
+#
+# The cluster collector pulls them with the other resource specs, from a
+# k8sobjects receiver of their own with error_mode: ignore, so a cluster that
+# refuses one of them skips it instead of stopping the events and every other
+# spec, and the ClusterRole lets it read them, and only read them - never a
+# Secret. resourceSpecs.compliance: false leaves both out, and so does a
+# release with resource specs off or a collector before 0.125.0, which has no
+# error_mode. A release upgraded with --reuse-values, whose values have no
+# such key, gets them as a fresh install does.
+suite: the cluster collector reads RBAC, service accounts and network policies for the cluster's Compliance page
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+  - templates/rbac.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: pulls each of them, read-only and never watched, as often as the other resource specs
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sobjects/compliance:\n    error_mode: ignore\n    objects:\n      - name: roles\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: rolebindings\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: clusterroles\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: clusterrolebindings\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: serviceaccounts\n        mode: pull\n        interval: 300s\n      - name: networkpolicies\n        mode: pull\n        interval: 300s\n        group: networking\.k8s\.io$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)k8sobjects/compliance:.*?mode: watch.*?\n  [a-z]'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'name: secrets'
+
+  - it: sends them down the logs pipeline, after the events' own receiver
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/compliance\n      processors:$'
+
+  - it: pulls them at the resource specs' interval
+    template: templates/configmap-deployment.yaml
+    set:
+      resourceSpecs.interval: 120s
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      - name: clusterrolebindings\n        mode: pull\n        interval: 120s\n        group: rbac\.authorization\.k8s\.io$'
+
+  - it: lets the agent read them, and only read them
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["rbac.authorization.k8s.io"]
+            resources:
+              - roles
+              - rolebindings
+              - clusterroles
+              - clusterrolebindings
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - serviceaccounts
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["networking.k8s.io"]
+            resources:
+              - networkpolicies
+            verbs: ["get", "list", "watch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - secrets
+            verbs: ["get", "list", "watch"]
+
+  - it: pulls none of them, and grants nothing for them, with resourceSpecs.compliance false
+    set:
+      resourceSpecs.compliance: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'k8sobjects/compliance'
+        template: templates/configmap-deployment.yaml
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["rbac.authorization.k8s.io"]
+            resources:
+              - roles
+              - rolebindings
+              - clusterroles
+              - clusterrolebindings
+            verbs: ["get", "list", "watch"]
+        template: templates/rbac.yaml
+        documentSelector:
+          path: kind
+          value: ClusterRole
+
+  - it: pulls none of them when resource specs are off, and still watches the events
+    template: templates/configmap-deployment.yaml
+    set:
+      resourceSpecs.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'k8sobjects/compliance'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n      processors:$'
+
+  - it: pulls none of them on a collector without the receiver's error_mode, before 0.125.0
+    template: templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.124.0"
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'k8sobjects/compliance'
+
+  - it: pulls them from collector 0.125.0 on
+    template: templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.125.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sobjects/compliance:$'
+
+  - it: pulls them beside OpenShift's own objects on the openshift preset, each receiver its own
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/openshift\n        - k8sobjects/compliance\n      processors:$'
+
+  - it: pulls them for a release upgraded with --reuse-values, whose values have no such key
+    template: templates/configmap-deployment.yaml
+    values:
+      - values/reuse-values-14.0.10.yaml
+    set:
+      image.tag: "0.161.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sobjects/compliance:$'

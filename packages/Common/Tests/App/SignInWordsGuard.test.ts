@@ -70,6 +70,17 @@ const ALLOWED: Array<Allowed> = [
     reason:
       "Another product's own label, quoted in the docs as it reads there: Microsoft Entra's Login URL, macOS's Open at Login, Windows signing in to the device.",
   },
+  {
+    phrase: /\bSingle Logout\b/g,
+    reason:
+      "SAML's own name for signing out of every app at once (#9603): the Single Logout URL a SAML identity provider is given, under the name Okta, Microsoft Entra ID and Keycloak give the field it goes in.",
+  },
+  {
+    phrase:
+      /^(?:Logout URL|Logout Url \(Optional\)|Logout Service Redirect Binding URL|Front channel logout|Front-channel logout URL|Allowed Logout URLs|RP-Initiated Logout End Session Endpoint Discovery|Valid post logout redirect URIs)$/g,
+    reason:
+      "An identity provider's own sign-out setting, quoted in the docs as it reads there (#9626): Microsoft Entra's Logout URL, Keycloak's Logout Service Redirect Binding URL, Auth0's Allowed Logout URLs.",
+  },
 ];
 
 // What is left of a string once its allowed phrases are taken out.
@@ -219,6 +230,8 @@ describe("the guard itself", () => {
     "Nothing was logged in the selected time range.",
     "Require SSO to Sign In",
     "OneLogin",
+    // SAML's name for the URL a sign-out comes back to (#9603).
+    "Single Logout URL:",
   ])("lets %j through", (text: string) => {
     expect(saysLogIn(text)).toBe(false);
   });

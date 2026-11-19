@@ -1,4 +1,5 @@
 import {
+  AiActivityFailedCommand,
   AiActivityInsight,
   AiActivityInsightKind,
   AiActivityInsightTone,
@@ -99,6 +100,45 @@ export const STOPPED_SUBJECT: AiActivitySubject = {
   title: STOPPED_PROBLEM_TITLE,
   number: 31,
 };
+
+/*
+ * The window's two failed commands, as the reader read them (#9749): the
+ * crash loop's investigation asked for a deployment that was not there,
+ * and a fix for the disk alert the agent could not run.
+ */
+export const FAILED_COMMAND_ID: string = "77777777-0000-4000-8000-000000000001";
+export const SECOND_FAILED_COMMAND_ID: string =
+  "77777777-0000-4000-8000-000000000002";
+export const FAILED_COMMAND: string =
+  "kubectl get deployment web -n checkout -o yaml";
+export const FAILED_COMMAND_ERROR: string =
+  'Error from server (NotFound): deployments.apps "web" not found';
+export const SECOND_FAILED_COMMAND: string =
+  "kubectl delete pod web-7d9f-2xk -n checkout";
+export const SECOND_FAILED_COMMAND_ERROR: string =
+  "The agent may not delete pods in the checkout namespace.";
+
+export function makeFailedCommands(): Array<AiActivityFailedCommand> {
+  return [
+    {
+      id: FAILED_COMMAND_ID,
+      at: "2026-09-30T02:08:00.000Z",
+      command: FAILED_COMMAND,
+      exitCode: 1,
+      errorMessage: FAILED_COMMAND_ERROR,
+      origin: "AiInvestigation",
+      subject: RECURRING_SUBJECT,
+    },
+    {
+      id: SECOND_FAILED_COMMAND_ID,
+      at: "2026-09-29T09:30:00.000Z",
+      command: SECOND_FAILED_COMMAND,
+      errorMessage: SECOND_FAILED_COMMAND_ERROR,
+      origin: "AiRemediation",
+      subject: DISK_SUBJECT,
+    },
+  ];
+}
 
 /*
  * Investigations per day: 5 in the last 7 days (2 on the last day, one of
@@ -437,6 +477,7 @@ export function makeInsights(
         occurrenceCount: 1,
       },
     ],
+    failedCommandList: makeFailedCommands(),
     isPartial: false,
     ...overrides,
   };
@@ -482,6 +523,8 @@ export function makeQuietInsights(): AiActivityInsights {
       verifying: 0,
     },
     preventiveInsights: [],
+    // No command failed: nothing to open.
+    failedCommandList: undefined,
   });
 }
 
@@ -522,6 +565,7 @@ export function makeEmptyInsights(): AiActivityInsights {
       return { ...day, investigations: 0, failedInvestigations: 0, fixes: 0 };
     }),
     preventiveInsights: [],
+    failedCommandList: undefined,
   });
 }
 

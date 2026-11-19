@@ -21,8 +21,9 @@ import VersionUtil from "Common/Utils/VersionUtil";
  *     plus OneUptime's config, and reports the version of its files: the
  *     collector release they pin, with the last number raised each time
  *     OneUptime changes the files and not the collector (0.161.1 is the
- *     second set of files on collector 0.161.0). The newest is the version
- *     this release's files report. A change to an agent's files is a new
+ *     second set of files on collector 0.161.0), and starting again at the
+ *     collector's release when the pin moves (0.165.0, #9828). The newest is
+ *     the version this release's files report. A change to an agent's files is a new
  *     version of the agent, or an agent running the old files would never
  *     be called outdated: the Docker Swarm agent's CPU fix (#5076) changed
  *     only its config, and no Swarm showed a sign (its follow-up).
@@ -134,7 +135,7 @@ export const ONEUPTIME_AGENT_PLACEHOLDER_VERSION: string = "1.0.0";
  * The collector the Docker Swarm agent runs: the image
  * agents/DockerSwarmAgent/docker-compose.yml pins.
  */
-export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 
 /*
  * The version the Docker Swarm agent reports: the default of APP_VERSION in
@@ -146,11 +147,12 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * inventory snapshot read again (each used to start with the same bytes, so
  * the collector read a calm swarm's only once), each manager's
  * reachability, each service's rolling update and recent task failures, and
- * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch).
+ * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch);
+ * and 0.161.4, each local volume's size and the disk it lives on (#9648).
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
-export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.3";
+export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The version the Database agent reports: the oneuptime.agent.version every
@@ -163,10 +165,10 @@ export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.3";
  * is told to upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when
  * the agent's files move on without this.
  */
-export const DATABASE_AGENT_VERSION: string = "0.161.2";
+export const DATABASE_AGENT_VERSION: string = "0.165.0";
 
 // The collector the Database agent runs: the image its docker-compose.yml pins.
-export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 
 /*
  * The collector versions the Proxmox, Ceph, VMware and Storage Array agents
@@ -177,7 +179,7 @@ export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * config). AgentKind.test.ts fails when an agent's files move on without
  * its constant.
  */
-export const PROXMOX_AGENT_VERSION: string = "0.161.2";
+export const PROXMOX_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The collector the Proxmox agent runs: the image its docker-compose.yml
@@ -188,7 +190,7 @@ export const PROXMOX_AGENT_VERSION: string = "0.161.2";
  * (#6844) - so an agent still running older files reports what it reported
  * and is told to upgrade.
  */
-export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 /*
  * The version the OpenStack agent reports. Its files changed on the same collector -
  * 0.161.1, real per-instance usage read from libvirt or Ceilometer when asked; 0.161.2,
@@ -197,12 +199,12 @@ export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * ovn-controller are running, each RabbitMQ queue, and Geneve's interfaces and no others -
  * so an agent still running the old files reports what it reported and is told to upgrade.
  */
-export const OPENSTACK_AGENT_VERSION: string = "0.161.4";
+export const OPENSTACK_AGENT_VERSION: string = "0.165.0";
 // The collector the OpenStack agent runs: the image its docker-compose.yml pins.
-export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.161.0";
-export const CEPH_AGENT_VERSION: string = "0.161.0";
-export const VMWARE_AGENT_VERSION: string = "0.161.0";
-export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
+export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.165.0";
+export const CEPH_AGENT_VERSION: string = "0.165.0";
+export const VMWARE_AGENT_VERSION: string = "0.165.0";
+export const STORAGE_ARRAY_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The otelcol-contrib release the host guide installs (every install method:
@@ -211,7 +213,7 @@ export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
  * guide reads it from here, so the two cannot drift
  * (Pages/Host/Utils/DocumentationMarkdown.ts).
  */
-export const HOST_COLLECTOR_VERSION: string = "0.161.0";
+export const HOST_COLLECTOR_VERSION: string = "0.165.0";
 
 export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   [AgentKind.KubernetesAgent]: {

@@ -364,7 +364,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ### Se hva den gjorde
 
 - **Produkter → Profiler → KI → Innsikt** viser den trege koden som er funnet, hvert funn med bevisene og **Åpne i Profiler**.
-- **Produkter → Profiler → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant.
+- **Produkter → Profiler → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant. En pull-forespørsel sier hvordan oppgaven i Code står nå: en retting som ble bedt om på nytt med Prøv igjen etter at den mislyktes, står ikke lenger som mislykket og viser hvilken pull-forespørsel den åpnet.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Dataoppbevaring

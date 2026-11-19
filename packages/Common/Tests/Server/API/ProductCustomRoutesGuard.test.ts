@@ -364,6 +364,10 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  "packages/Common/Server/API/DeviceManagementConnectionAPI.ts": {
+    products: [ProductKey.Inventory],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/NetworkDeviceDiscoveryImportAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},
@@ -703,6 +707,8 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "INCIDENT_ALERT_AI_LOGS_PATHS[subjectKind]": READ,
       "INCIDENT_ALERT_AI_INSIGHTS_PATHS[subjectKind]": READ,
       AI_OUTCOMES_PATH: READ,
+      // The records one of AI Results' numbers counts (#7768).
+      AI_OUTCOMES_RECORDS_PATH: READ,
     },
   },
   "packages/Common/Server/API/TelemetryAiAPI.ts": {
@@ -997,10 +1003,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          */
         "packages/App/FeatureSet/Identity/API/Authentication.ts": 21,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
-        "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 1,
+        // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
+        "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
         "packages/App/FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts": 1,
         "packages/App/FeatureSet/Identity/API/Reseller.ts": 1,
-        "packages/App/FeatureSet/Identity/API/SSO.ts": 1,
+        "packages/App/FeatureSet/Identity/API/SSO.ts": 2,
         "packages/App/FeatureSet/MCP/OAuth/OAuthRoutes.ts": 7,
         "packages/Common/Server/API/UserTotpAuthAPI.ts": 1,
         "packages/Common/Server/API/UserTwoFactorBackupCodeAPI.ts": 1,

@@ -339,7 +339,7 @@ Ce que renvoie `/ServiceProviderConfig` :
 | ETag | Non |
 | Authentification | Jeton HTTP Bearer, ou un jeton d'accès OAuth 2.0 |
 
-Un groupe créé par votre fournisseur d'identité devient une équipe du même nom dans le projet ; une équipe qui porte déjà ce nom est utilisée au lieu d'en créer une nouvelle.
+Un groupe créé par votre fournisseur d'identité devient une équipe du même nom dans le projet. Une équipe dont le nom se lit de la même façon, quels que soient sa casse ou ses espaces, est utilisée au lieu d'en créer une nouvelle, et prend l'orthographe du groupe, sauf si un fournisseur d'identité tient déjà cette équipe comme un autre de ses groupes : deux groupes dont les noms ne diffèrent que par la casse ou les espaces, ce que Microsoft Entra ID autorise, reçoivent chacun leur propre équipe, et ne sont jamais fusionnés. Les équipes Owners et Admin, qui ne peuvent pas être renommées, ne sont reprises que sous leur nom exact. Un groupe renommé dans votre fournisseur d'identité renomme sa propre équipe, même vers un nom que porte une autre équipe.
 
 :::details Schéma utilisateur SCIM
 ```json

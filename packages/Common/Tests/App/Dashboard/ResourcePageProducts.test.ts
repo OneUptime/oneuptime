@@ -69,7 +69,7 @@ describe("the resource pages that show another product", () => {
       [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.SERVICE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
       [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
-      [PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+      // A cluster's Compliance is not: it scores the cluster itself (#9627).
       [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
       [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
       [PageMap.SERVICE_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
@@ -165,8 +165,8 @@ describe("the resource pages that show another product", () => {
 
   test("each stays its resource's page, and needs the product it shows too", () => {
     const host: string = addressOf(PageMap.HOST_VIEW_SECURITY_EVENTS);
-    const compliance: string = addressOf(
-      PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
+    const dataSecurity: string = addressOf(
+      PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
     );
 
     expect(getProductOfPath(host)).toBe(ProductKey.Hosts);
@@ -174,11 +174,34 @@ describe("the resource pages that show another product", () => {
       ProductKey.Hosts,
       ProductKey.SecurityEvents,
     ]);
-    expect(getProductOfPath(compliance)).toBe(ProductKey.Kubernetes);
-    expect(getProductsOfPath(compliance)).toEqual([
+    expect(getProductOfPath(dataSecurity)).toBe(ProductKey.Kubernetes);
+    expect(getProductsOfPath(dataSecurity)).toEqual([
       ProductKey.Kubernetes,
       ProductKey.DataSecurity,
     ]);
+  });
+
+  /*
+   * A cluster's Compliance scores the cluster itself against the Pod
+   * Security Standards and the CIS Kubernetes Benchmark (#9627), which are
+   * Kubernetes': it needs no other product, and shows its databases' data
+   * frameworks only while Data Security is shown for the cluster.
+   */
+  test("a cluster's Compliance is the cluster's own page, which Data Security switched off does not close", () => {
+    const compliance: string = addressOf(
+      PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
+    );
+
+    expect(getResourcePageOfPath(compliance)).toBeNull();
+    expect(getProductsOfPath(compliance)).toEqual([ProductKey.Kubernetes]);
+    expect(
+      getOffProductOfPath({
+        pathname: compliance,
+        offOnServer: {
+          [ProductKey.DataSecurity]: ServerProductOffReason.SwitchedOff,
+        },
+      }),
+    ).toBeNull();
   });
 
   test("with the product it shows switched off, the page says so, naming the resource's own product", () => {
@@ -307,6 +330,11 @@ describe("what Search offers of a record's pages", () => {
         title: "Security Events",
       },
       {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
+        title: "Data Security",
+      },
+      // The cluster's own (#9627): offered whatever the products.
+      {
         page: PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
         title: "Compliance",
       },
@@ -338,15 +366,15 @@ describe("what Search offers of a record's pages", () => {
           },
         }),
       ),
-    ).toEqual(["Events", "Security Events", "Compliance"]);
+    ).toEqual(["Events", "Security Events", "Data Security", "Compliance"]);
     expect(
       titlesFor(
         answerOf({
           usage: { [ProductKey.SecurityEvents]: ProductUsage.InUse },
         }),
       ),
-    ).toEqual(["Events", "Security Events"]);
-    expect(titlesFor(answerOf({}))).toEqual(["Events"]);
+    ).toEqual(["Events", "Security Events", "Compliance"]);
+    expect(titlesFor(answerOf({}))).toEqual(["Events", "Compliance"]);
   });
 
   test("nothing of a product the reader may not read", () => {
@@ -360,7 +388,7 @@ describe("what Search offers of a record's pages", () => {
         }),
         false,
       ),
-    ).toEqual(["Events"]);
+    ).toEqual(["Events", "Compliance"]);
   });
 
   test("the kind is otherwise left as it was", () => {
@@ -371,6 +399,6 @@ describe("what Search offers of a record's pages", () => {
     expect(withResourcePagesShown(kind, answerOf({})).id).toBe(
       "kubernetes-clusters",
     );
-    expect(kind.pages).toHaveLength(3);
+    expect(kind.pages).toHaveLength(4);
   });
 });

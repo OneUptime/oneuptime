@@ -1484,7 +1484,7 @@ describe("Databases > Help > Documentation", () => {
       const drawn: string = drawnTexts().join("\n");
       expect(drawn).toContain("`pg_monitor`");
       expect(drawn).toContain("`DATABASE_SERVER_ADDRESS`");
-      expect(drawn).toContain("`otel/opentelemetry-collector-contrib:0.161.0`");
+      expect(drawn).toContain("`otel/opentelemetry-collector-contrib:0.165.0`");
       expect(drawn).toContain("GRANT pg_monitor TO oneuptime_monitor;");
       // The Database Health monitor link opens the monitor form in this project.
       expect(drawn).toContain(

@@ -14,7 +14,6 @@ import ResourcePartRow from "../ResourcePart/ResourcePartRow";
 import { ResourcePartStatus } from "../ResourcePart/ResourcePartTypes";
 import {
   ProxmoxGuestSummary,
-  getProxmoxDiskPercent,
   getProxmoxMemoryPercent,
   getProxmoxNodeName,
   getProxmoxPartStatus,
@@ -28,6 +27,10 @@ import {
   formatUptime,
 } from "../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import { STORAGE_USAGE_BAR_COLOR_CLASS_NAMES } from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { getProxmoxDiskUsage } from "../../Pages/Proxmox/Utils/ProxmoxHealth";
 
 /*
  * The cluster's nodes at a glance on its Overview - what Proxmox VE's own
@@ -109,10 +112,13 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
     key: string;
     label: string;
     percent: number | null;
+    // Its colour by the product's own lines, where it has them (a disk's).
+    barClassName?: string | undefined;
   }) => ReactElement = (data: {
     key: string;
     label: string;
     percent: number | null;
+    barClassName?: string | undefined;
   }): ReactElement => {
     const percent: number | null =
       data.percent === null ? null : Math.min(100, Math.max(0, data.percent));
@@ -127,7 +133,12 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
             {percent === null ? (
               <EmptyValue isSmall={true} />
             ) : (
-              `${Math.round(percent)}%`
+              // In the reader's digits and percent sign ("۸۷٪", "87 %").
+              formatReaderFigure(Math.round(percent), {
+                decimals: 0,
+                isPercent: true,
+                language: translator.language,
+              })
             )}
           </span>
         </div>
@@ -136,7 +147,9 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
             <></>
           ) : (
             <div
-              className={`h-1.5 rounded-full ${barClassName(percent)}`}
+              className={`h-1.5 rounded-full ${
+                data.barClassName || barClassName(percent)
+              }`}
               style={{ width: `${Math.max(percent, 2)}%` }}
             />
           )}
@@ -176,6 +189,9 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
                 updatedAt &&
                 props.now.getTime() - updatedAt.getTime() <= METRIC_STALE_MS,
             );
+            const diskUsage: StorageUsage | null = isFresh
+              ? getProxmoxDiskUsage(node)
+              : null;
             const guests: ProxmoxGuestSummary = summarizeProxmoxGuests(
               getProxmoxRowsOnNode(props.rows, getProxmoxNodeName(node)).guests,
             );
@@ -281,7 +297,14 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
                     {renderBar({
                       key: "disk",
                       label: "Disk",
-                      percent: isFresh ? getProxmoxDiskPercent(node) : null,
+                      percent: diskUsage ? diskUsage.usedPercent : null,
+                      /*
+                       * At Proxmox's own lines, as the Nodes list's Disk bar
+                       * and Needs attention read the root disk (#9646).
+                       */
+                      barClassName: diskUsage
+                        ? STORAGE_USAGE_BAR_COLOR_CLASS_NAMES[diskUsage.level]
+                        : undefined,
                     })}
                   </div>
                 </ResourcePartRow>

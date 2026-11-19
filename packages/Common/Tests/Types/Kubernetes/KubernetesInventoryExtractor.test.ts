@@ -78,7 +78,28 @@ describe("kindFromResourceType", () => {
       expect(kindFromResourceType(resourceType)).not.toBeNull();
     }
     expect(INVENTORIED_RESOURCE_TYPES).toContain("pods");
-    expect(INVENTORIED_RESOURCE_TYPES.length).toBe(17);
+    expect(INVENTORIED_RESOURCE_TYPES.length).toBe(23);
+  });
+
+  test("maps RBAC, ServiceAccounts and NetworkPolicies, for the cluster's Compliance page", () => {
+    expect(kindFromResourceType("roles")).toBe("Role");
+    expect(kindFromResourceType("clusterroles")).toBe("ClusterRole");
+    expect(kindFromResourceType("rolebindings")).toBe("RoleBinding");
+    expect(kindFromResourceType("clusterrolebindings")).toBe(
+      "ClusterRoleBinding",
+    );
+    expect(kindFromResourceType("serviceaccounts")).toBe("ServiceAccount");
+    expect(kindFromResourceType("networkpolicies")).toBe("NetworkPolicy");
+    for (const resourceType of [
+      "roles",
+      "clusterroles",
+      "rolebindings",
+      "clusterrolebindings",
+      "serviceaccounts",
+      "networkpolicies",
+    ]) {
+      expect(INVENTORIED_RESOURCE_TYPES).toContain(resourceType);
+    }
   });
 
   test("INVENTORIED_RESOURCE_TYPES includes OpenShift's four, last", () => {

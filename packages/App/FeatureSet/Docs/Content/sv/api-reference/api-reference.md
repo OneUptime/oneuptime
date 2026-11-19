@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Båda namnen kontrolleras på samma sätt. Reglerna om posten som du namnger gäller vilket namn du än skickar den under: en statussidegrupps överordnade grupp måste ligga på samma statussida, en statussida tar högst tre länkar i sidhuvudet, och en grupps namn måste vara unikt på dess statussida.
 
+#### Namn som en annan post redan har
+
+Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett projekt, oavsett stora och små bokstäver och mellanslag: `Primary`, ` primary` och `PRIMARY` är ett och samma namn. Ett skapande, eller en uppdatering som byter namn på en av dem, till ett namn som en annan av samma slag har avvisas med en `400` som säger det:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn. För team, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant.
+
 ### Brytare
 
 Ett fält som är på eller av - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` och varje annat `true`- eller `false`-fält - tar `true` eller `false`. Text och tal som databasen läser som ett av dem tas som det värdet, på samma sätt för API:t, Terraform och arbetsflöden: `"true"`, `"yes"`, `"on"`, `"1"` och `1` är `true`, och `"false"`, `"no"`, `"off"`, `"0"` och `0` är `false`, oavsett skiftläge. Allt som OneUptime gör med posten behandlar den också som det värdet: en underhållshändelse som skickas med `"isVisibleOnStatusPage": "true"` visar sina bilder på statussidan, och `"isEnabled": "false"` slår av en resurs under dess plan som `false` gör. Varje annat värde, som `"maybe"`, `""` eller `2`, avvisas med en `400` som namnger fältet:

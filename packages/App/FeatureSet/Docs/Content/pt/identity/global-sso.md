@@ -93,9 +93,16 @@ Com **Todos os projetos**, fazer login com o provedor atende à exigência de SS
 
 ## Sair também do provedor de identidade
 
-Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, a próxima pessoa que entra com esse provedor entra como quem saiu. Em um provedor OpenID Connect, clique em **Editar configuração** e ative **Sair também do provedor de identidade** em **Mais campos**: sair do OneUptime passa a encerrar também a sessão no provedor, e o provedor devolve o navegador à página de entrada do OneUptime. Vem desativado, pois em um notebook pessoal também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
+Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, a próxima pessoa que entra com esse provedor entra como quem saiu. Em um provedor SAML ou OpenID Connect, clique em **Editar configuração** e ative **Sair também do provedor de identidade** em **Mais campos**: sair do OneUptime passa então a encerrar também a sessão no provedor, e o provedor devolve o navegador ao OneUptime. Vem desativado, pois em um notebook pessoal também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
 
-Registre no seu provedor a URI de redirecionamento após sair que o cartão **URL do provedor de identidade** mostra, como post-logout redirect URI permitida. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la.
+:::tabs
+@tab SAML
+Informe a URL de saída do seu provedor de identidade como **URL de saída**, em **Mais campos**: sem ela, a opção não pode ser ativada. Depois, informe ao seu provedor de identidade a **Single Logout URL** que o cartão **URLs do provedor de identidade** mostra e o certificado com que o OneUptime assina suas solicitações de saída, em **Baixar certificado de assinatura** no mesmo cartão. Quando a pessoa sai no provedor de identidade, ou de outro app que o usa, um provedor de identidade que envia solicitações de saída aos seus apps também a tira do OneUptime.
+@tab OpenID Connect
+Registre no seu provedor o URI de redirecionamento após sair que o cartão **URL do provedor de identidade** mostra, como post-logout redirect URI permitido. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la.
+:::
+
+Onde o Okta, o Microsoft Entra ID, o Auth0 e o Keycloak guardam essas configurações está na página [SSO](/docs/identity/sso).
 
 ## Impor o SSO
 

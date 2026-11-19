@@ -43,6 +43,12 @@ import {
   KubernetesHealthSeverity,
   getKubernetesHealthSeverity,
 } from "./KubernetesHealth";
+import {
+  AnyKubernetesPolicyObject,
+  POLICY_KIND_BY_RESOURCE_TYPE,
+  POLICY_RESOURCE_TYPES,
+  parsePolicyObjectByResourceType,
+} from "./KubernetesPolicyObjects";
 
 /*
  * ------------------------------------------------------------------
@@ -76,6 +82,7 @@ type AnyKubernetesObject =
   | KubernetesHPAObject
   | KubernetesVPAObject
   | KubernetesServiceObject
+  | AnyKubernetesPolicyObject
   | AnyOpenShiftObject;
 
 /**
@@ -155,6 +162,11 @@ export function kindFromResourceType(resourceType: string): string | null {
     verticalpodautoscalers: "VerticalPodAutoscaler",
     // From the chart's openshift preset, for the Routes that point at them.
     services: "Service",
+    /*
+     * RBAC, ServiceAccounts and NetworkPolicies, for the CIS Kubernetes
+     * Benchmark on the cluster's Compliance page (KubernetesPolicyObjects).
+     */
+    ...POLICY_KIND_BY_RESOURCE_TYPE,
     // OpenShift's own, from the chart's openshift preset (OpenShiftObjectParser).
     ...OPENSHIFT_KIND_BY_RESOURCE_TYPE,
   };
@@ -179,6 +191,7 @@ export const INVENTORIED_RESOURCE_TYPES: ReadonlyArray<string> = [
   "horizontalpodautoscalers",
   "verticalpodautoscalers",
   "services",
+  ...POLICY_RESOURCE_TYPES,
   OpenShiftResourceType.Routes,
   OpenShiftResourceType.DeploymentConfigs,
   OpenShiftResourceType.ClusterOperators,
@@ -412,7 +425,10 @@ function parseByResourceType(
     case "services":
       return parseServiceObject(kvList);
     default:
-      return parseOpenShiftObject(resourceType, kvList);
+      return (
+        parsePolicyObjectByResourceType(resourceType, kvList) ||
+        parseOpenShiftObject(resourceType, kvList)
+      );
   }
 }
 

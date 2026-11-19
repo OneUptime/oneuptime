@@ -40,7 +40,7 @@ import {
 import {
   externalIdFromRouteParam,
   fetchProxmoxInventoryRow,
-  formatBytes,
+  formatBytesForChart,
   displayNameForResource,
 } from "../Utils/ProxmoxResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
@@ -298,7 +298,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const sizeQuery: MetricQueryConfigData = {
@@ -323,7 +323,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const routes: ProxmoxPartRoutes = getProxmoxPartRoutes(modelId);

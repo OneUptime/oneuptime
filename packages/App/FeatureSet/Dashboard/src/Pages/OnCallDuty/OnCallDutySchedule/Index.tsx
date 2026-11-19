@@ -15,6 +15,7 @@ import ScheduleUserGroupsCard from "../../../Components/OnCallPolicy/UserGroups/
 import { SCHEDULE_EDIT_BUTTON_TEXT } from "../../../Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy";
 import UsedByCard from "../../../Components/UsedBy/UsedByCard";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 /*
  * A schedule's Overview: its details, then who is on call now and next, with
@@ -75,6 +76,8 @@ const OnCallDutyScheduleView: FunctionComponent<
             validation: {
               minLength: 2,
             },
+            // Another schedule's name, said under the field (#9742).
+            ownsServerError: isNameTakenRefusal,
           },
           {
             field: {

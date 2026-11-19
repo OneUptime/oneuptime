@@ -2271,7 +2271,10 @@ describe("MCP Server", () => {
      */
     expect(records()).toHaveLength(55);
     expect(namesIn(0)).toEqual(records());
-    // Every database model with MCP on gets all six tools.
+    /*
+     * Every database model with MCP on gets these tools, the update tool
+     * when it has a field to change (Tools/ToolGenerator).
+     */
     for (const tool of [
       "createCreateTool(",
       "createReadTool(",
@@ -2356,6 +2359,42 @@ describe("MCP Server", () => {
         });
       }
     }
+  });
+
+  /*
+   * The move of a row of an ordered list (#9651): one tool for every list,
+   * named by the server's constant, taking the arguments the page names, and
+   * doing what the page says - the API's move, as the dashboard's drag.
+   */
+  it("names the tool that moves a row of an ordered list by the server's own name, with the arguments it takes", () => {
+    const move: string = readRepoFile("App/FeatureSet/MCP/Tools/MoveInList.ts");
+    const paragraph: string =
+      englishSection(MCP_SERVER, "## Tools for incident response")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("**`oneuptime_move_in_list`**");
+        }) || "";
+
+    expect(move).toContain(
+      'MOVE_IN_LIST_TOOL_NAME: string = "oneuptime_move_in_list"',
+    );
+    expect(move).toContain('required: ["resource", "id", "placeOfId"]');
+    // The API's move request, as the dashboard's drag sends it.
+    expect(move).toContain("${getMoveInListRoute(id)}");
+    expect(move).toContain("body: { placeOfId: placeOfId }");
+
+    for (const argument of ["`resource`", "`id`", "`placeOfId`"]) {
+      expect({ argument, named: paragraph.includes(argument) }).toEqual({
+        argument,
+        named: true,
+      });
+    }
+
+    expect(paragraph).toContain("as dragging it in the dashboard does");
+    expect(paragraph).toContain("such as `Incident Severity`");
+    expect(paragraph).toContain(
+      "Writing a row's number with its `update_` tool places only that row",
+    );
   });
 
   it("pages lists with the server's default and largest limit", () => {

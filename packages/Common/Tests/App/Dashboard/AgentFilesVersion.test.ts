@@ -67,43 +67,43 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "otel-collector-config.yaml",
       "inventory-snapshot.sh",
     ],
-    version: "0.161.3",
-    digest: "7c334ae1bc9fc102a107b573694d5cec8f641dabe062bfd77e36a71060109289",
+    version: "0.165.0",
+    digest: "687ae5ea0080b5f8191d56ae47ba5c81a2c4474a6ba2864e7cddd47acc540d46",
   },
   {
     kind: AgentKind.DatabaseAgent,
     directory: "DatabaseAgent",
     files: ["docker-compose.yml", "configs"],
-    version: "0.161.2",
-    digest: "7092bff211afc6146a7b3456dcead9b879d06cc29ac841246a1d209b047aae26",
+    version: "0.165.0",
+    digest: "2b34849011d50138ead93b50e1b784c3779eba8f0453980222fca0c3e7c22587",
   },
   {
     kind: AgentKind.ProxmoxAgent,
     directory: "ProxmoxAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
-    version: "0.161.2",
-    digest: "ae5f75a57b031c0fabf3aa71d1aae6ca115fb64f61b3d32fa68ba686c2426a3f",
+    version: "0.165.0",
+    digest: "d74cf6d1bd7008db727eed8e24db2414fc55d8ae2e9b7488cec4d17a60cb027f",
   },
   {
     kind: AgentKind.OpenStackAgent,
     directory: "OpenStackAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
-    version: "0.161.4",
-    digest: "39fba01a441d2c097aaac6e4ca9f0b09fc806d6347a38f2136612c53a1e74d63",
+    version: "0.165.0",
+    digest: "2579e7a76c7406939f002757f33d0222738cfa547f79614726996c64ec1bbb31",
   },
   {
     kind: AgentKind.CephAgent,
     directory: "CephAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
-    version: "0.161.0",
-    digest: "020316dd186b9b7f3f7263e7d863808875d4f60113fc4bc78d1927ea0aca525e",
+    version: "0.165.0",
+    digest: "266612e94e52a236925092813d6de67f86d2e0ca539207de1154fecb659c04e3",
   },
   {
     kind: AgentKind.VMwareAgent,
     directory: "VMwareAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
-    version: "0.161.0",
-    digest: "5083cf4a60e17103b0abbacdc26000ab6c501d2583da467679801b80dbd3d0ee",
+    version: "0.165.0",
+    digest: "b46cd85d6dd36b0f33a2387094b9f2b065978db1b56e83c4ac8778e0c0ae11db",
   },
   {
     kind: AgentKind.StorageArrayAgent,
@@ -114,8 +114,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
     ],
-    version: "0.161.0",
-    digest: "2855f53f08c537dae86615db898248693a41c70b19f654077ed4f2ba506850e3",
+    version: "0.165.0",
+    digest: "6f85610e3234a120f556258a67fff2b5c083508ed98346923737088e17f90d18",
   },
 ];
 
@@ -257,16 +257,25 @@ describe("a pinned-collector agent's files report the version they shipped as", 
  * and recent task failures, and the swarm's state as metrics (0.161.3): a
  * Swarm on 0.161.2 sends no node or replica series, so its Node Not Ready
  * and Service Replicas Mismatch alerts never fire, and it must show a sign.
+ * Then each local volume's size and the disk it lives on (0.161.4, #9648):
+ * a Swarm on 0.161.3 says Not reported for every volume, and must show a
+ * sign.
+ */
+/*
+ * Then collector 0.165.0 (#9828: 0.161.0's brotli is on CISA's list of
+ * exploited vulnerabilities), and every pinned-collector agent's version
+ * started again at the collector's. Any set of files of the 0.161 line runs
+ * that collector, so it must show a sign.
  */
 describe("the Docker Swarm agent after #5076's config change, the task labels and the swarm's state", () => {
-  test("its files report 0.161.3 and still run collector 0.161.0", () => {
+  test("its files report 0.165.0 and run collector 0.165.0", () => {
     const compose: string = fs.readFileSync(
       path.join(REPO_ROOT, "agents", "DockerSwarmAgent", "docker-compose.yml"),
       "utf8",
     );
 
-    expect(DOCKER_SWARM_AGENT_VERSION).toBe("0.161.3");
-    expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
+    expect(DOCKER_SWARM_AGENT_VERSION).toBe("0.165.0");
+    expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.165.0");
     expect(compose).toContain(
       `image: otel/opentelemetry-collector-contrib:${DOCKER_SWARM_AGENT_COLLECTOR_VERSION}`,
     );
@@ -275,8 +284,14 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
     );
   });
 
-  test("a Swarm on any older set of files - 0.161.0, 0.161.1 or 0.161.2 - is told to upgrade", () => {
-    for (const agentVersion of ["0.161.0", "0.161.1", "0.161.2"]) {
+  test("a Swarm on any set of files of the 0.161 line - 0.161.0 to 0.161.4 - is told to upgrade", () => {
+    for (const agentVersion of [
+      "0.161.0",
+      "0.161.1",
+      "0.161.2",
+      "0.161.3",
+      "0.161.4",
+    ]) {
       expect(
         getAgentVersionState({
           kind: AgentKind.DockerSwarmAgent,
@@ -285,7 +300,7 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
         }),
       ).toEqual({
         status: AgentVersionStatus.Outdated,
-        latestVersion: "0.161.3",
+        latestVersion: "0.165.0",
       });
     }
   });
@@ -295,20 +310,39 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
       expect(
         getAgentVersionState({
           kind: AgentKind.DockerSwarmAgent,
-          agentVersion: "0.161.3",
+          agentVersion: "0.165.0",
           serverVersion: serverVersion,
         }).status,
       ).toBe(AgentVersionStatus.UpToDate);
     }
   });
 
-  test("the other pinned-collector agents' files did not change: they report their collector's version", () => {
+  test("the other pinned-collector agents' files changed with the collector alone: they report its version", () => {
     for (const version of [
       CEPH_AGENT_VERSION,
       VMWARE_AGENT_VERSION,
       STORAGE_ARRAY_AGENT_VERSION,
     ]) {
-      expect(version).toBe("0.161.0");
+      expect(version).toBe("0.165.0");
+    }
+  });
+
+  test("a Ceph, VMware or Storage Array agent on collector 0.161.0's files is told to upgrade", () => {
+    for (const kind of [
+      AgentKind.CephAgent,
+      AgentKind.VMwareAgent,
+      AgentKind.StorageArrayAgent,
+    ]) {
+      expect(
+        getAgentVersionState({
+          kind,
+          agentVersion: "0.161.0",
+          serverVersion: "15.0.0",
+        }),
+      ).toEqual({
+        status: AgentVersionStatus.Outdated,
+        latestVersion: "0.165.0",
+      });
     }
   });
 });
@@ -322,7 +356,7 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
  * files goes blind when PVE_HOST's node does, so it must show a sign.
  */
 describe("the Proxmox agent after #6844 reads the cluster from another node when PVE_HOST's goes down", () => {
-  test("its files report 0.161.2 and still run collector 0.161.0", () => {
+  test("its files report 0.165.0 and run collector 0.165.0", () => {
     const compose: string = fs.readFileSync(
       path.join(REPO_ROOT, "agents", "ProxmoxAgent", "docker-compose.yml"),
       "utf8",
@@ -337,8 +371,8 @@ describe("the Proxmox agent after #6844 reads the cluster from another node when
       "utf8",
     );
 
-    expect(PROXMOX_AGENT_VERSION).toBe("0.161.2");
-    expect(PROXMOX_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
+    expect(PROXMOX_AGENT_VERSION).toBe("0.165.0");
+    expect(PROXMOX_AGENT_COLLECTOR_VERSION).toBe("0.165.0");
     expect(compose).toContain(
       `image: otel/opentelemetry-collector-contrib:${PROXMOX_AGENT_COLLECTOR_VERSION}`,
     );
@@ -348,8 +382,8 @@ describe("the Proxmox agent after #6844 reads the cluster from another node when
     );
   });
 
-  test("a cluster on older files - 0.161.0 or 0.161.1 - is told to upgrade", () => {
-    for (const agentVersion of ["0.161.0", "0.161.1"]) {
+  test("a cluster on any files of the 0.161 line - 0.161.0 to 0.161.2 - is told to upgrade", () => {
+    for (const agentVersion of ["0.161.0", "0.161.1", "0.161.2"]) {
       expect(
         getAgentVersionState({
           kind: AgentKind.ProxmoxAgent,
@@ -358,7 +392,7 @@ describe("the Proxmox agent after #6844 reads the cluster from another node when
         }),
       ).toEqual({
         status: AgentVersionStatus.Outdated,
-        latestVersion: "0.161.2",
+        latestVersion: "0.165.0",
       });
     }
   });
@@ -368,7 +402,7 @@ describe("the Proxmox agent after #6844 reads the cluster from another node when
       expect(
         getAgentVersionState({
           kind: AgentKind.ProxmoxAgent,
-          agentVersion: "0.161.2",
+          agentVersion: "0.165.0",
           serverVersion: serverVersion,
         }).status,
       ).toBe(AgentVersionStatus.UpToDate);
@@ -385,30 +419,32 @@ describe("the Proxmox agent after #6844 reads the cluster from another node when
  * version.
  */
 describe("the Database agent after its readings of Galera", () => {
-  test("its files report 0.161.2 and still run collector 0.161.0", () => {
-    expect(DATABASE_AGENT_VERSION).toBe("0.161.2");
+  test("its files report 0.165.0 and run collector 0.165.0", () => {
+    expect(DATABASE_AGENT_VERSION).toBe("0.165.0");
     expect(AGENT_KINDS[AgentKind.DatabaseAgent].collectorVersion).toBe(
-      "0.161.0",
+      "0.165.0",
     );
     expect(
       fs.readFileSync(
         path.join(REPO_ROOT, "agents", "DatabaseAgent", "docker-compose.yml"),
         "utf8",
       ),
-    ).toContain("image: otel/opentelemetry-collector-contrib:0.161.0");
+    ).toContain("image: otel/opentelemetry-collector-contrib:0.165.0");
   });
 
-  test("an agent on the older files - 0.161.1 - is told to upgrade", () => {
-    expect(
-      getAgentVersionState({
-        kind: AgentKind.DatabaseAgent,
-        agentVersion: "0.161.1",
-        serverVersion: "14.0.105",
-      }),
-    ).toEqual({
-      status: AgentVersionStatus.Outdated,
-      latestVersion: "0.161.2",
-    });
+  test("an agent on any files of the 0.161 line - 0.161.0 to 0.161.2 - is told to upgrade", () => {
+    for (const agentVersion of ["0.161.0", "0.161.1", "0.161.2"]) {
+      expect(
+        getAgentVersionState({
+          kind: AgentKind.DatabaseAgent,
+          agentVersion,
+          serverVersion: "14.0.105",
+        }),
+      ).toEqual({
+        status: AgentVersionStatus.Outdated,
+        latestVersion: "0.165.0",
+      });
+    }
   });
 
   test("an agent on the new files is up to date, whatever version OneUptime runs", () => {
@@ -416,7 +452,7 @@ describe("the Database agent after its readings of Galera", () => {
       expect(
         getAgentVersionState({
           kind: AgentKind.DatabaseAgent,
-          agentVersion: "0.161.2",
+          agentVersion: "0.165.0",
           serverVersion: serverVersion,
         }).status,
       ).toBe(AgentVersionStatus.UpToDate);

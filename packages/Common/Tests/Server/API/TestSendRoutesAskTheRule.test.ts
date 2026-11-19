@@ -238,6 +238,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Signs in to a Meraki organization with a key and counts its networks, as whoever may edit network controller connections (assertCanOperate), through the data source transport; stores nothing and sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/DeviceManagementConnectionAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Signs in to an Esper tenant with a key and counts its Android devices, as whoever may edit device management connections (assertCanOperate), through the data source transport; stores nothing and sends nobody a message.",
+  },
+  {
     file: "packages/Common/Server/API/CloudConnectionAPI.ts",
     path: "/test",
     rule: "check",

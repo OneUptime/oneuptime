@@ -25,7 +25,7 @@ const WEB: string = "label-web";
 function config(
   id: string,
   osType: HostCollectorOsType,
-  order: number,
+  order: number | null,
   labelIds: Array<string> = [],
 ): HostCollectorConfigCandidate {
   return { id, osType, order, labelIds };
@@ -241,6 +241,71 @@ describe("the config a host runs", () => {
     ).toEqual(["first", "second"]);
   });
 
+  /*
+   * Issue #9655: the server read a config without a place as its place in
+   * the read. Beside configs numbered 10, 20 and 30 - gaps are normal once
+   * Terraform writes the numbers - it came fourth and was put at 3, above
+   * them all, so every host it applies to ran it.
+   */
+  test("a config without a place comes after every config that has one, among configs with gaps", () => {
+    const configs: Array<HostCollectorConfigCandidate> = [
+      config("ten", HostCollectorOsType.Linux, 10),
+      config("twenty", HostCollectorOsType.Any, 20),
+      config("thirty", HostCollectorOsType.Linux, 30),
+      config("unplaced", HostCollectorOsType.Linux, null),
+    ];
+
+    expect(
+      sortHostCollectorConfigCandidates([...configs].reverse()).map(
+        (candidate: HostCollectorConfigCandidate): string => {
+          return candidate.id;
+        },
+      ),
+    ).toEqual(["ten", "twenty", "thirty", "unplaced"]);
+    expect(
+      chooseHostCollectorConfig(configs, host(HostCollectorOsType.Linux))
+        .configId,
+    ).toBe("ten");
+    // A config numbered 0 or below still comes before one without a place.
+    expect(
+      chooseHostCollectorConfig(
+        [
+          config("unplaced", HostCollectorOsType.Linux, null),
+          config("zero", HostCollectorOsType.Linux, 0),
+          config("minus", HostCollectorOsType.Linux, -1),
+        ],
+        host(HostCollectorOsType.Linux),
+      ).configId,
+    ).toBe("minus");
+  });
+
+  test("a config without a place is still the one a host runs when no other applies to it", () => {
+    expect(
+      chooseHostCollectorConfig(
+        [
+          config("windows", HostCollectorOsType.Windows, 1),
+          config("unplaced", HostCollectorOsType.Linux, null),
+        ],
+        host(HostCollectorOsType.Linux),
+      ),
+    ).toEqual({
+      configId: "unplaced",
+      reason: HostCollectorConfigChoiceReason.Matched,
+    });
+  });
+
+  test("two configs without a place keep the order they came in", () => {
+    expect(
+      sortHostCollectorConfigCandidates([
+        config("first", HostCollectorOsType.Linux, null),
+        config("placed", HostCollectorOsType.Linux, 7),
+        config("second", HostCollectorOsType.Linux, null),
+      ]).map((candidate: HostCollectorConfigCandidate): string => {
+        return candidate.id;
+      }),
+    ).toEqual(["placed", "first", "second"]);
+  });
+
   test("sorting leaves the list it was given as it was", () => {
     const given: Array<HostCollectorConfigCandidate> = [
       config("b", HostCollectorOsType.Linux, 2),
@@ -296,7 +361,8 @@ describe("the config a host runs", () => {
             a: HostCollectorConfigCandidate,
             b: HostCollectorConfigCandidate,
           ): number => {
-            return a.order - b.order;
+            // Every config here has a place, each its own.
+            return (a.order as number) - (b.order as number);
           },
         )
         .find((candidate: HostCollectorConfigCandidate): boolean => {

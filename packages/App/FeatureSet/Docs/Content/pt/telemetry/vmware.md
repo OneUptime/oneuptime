@@ -115,7 +115,7 @@ Baixe o coletor, a configuração e a unidade, e instale-os em `/opt/oneuptime-v
 
 ```bash
 cd "$(mktemp -d)"
-VERSION=0.161.0   # the collector release the agent pins
+VERSION=0.165.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
@@ -386,7 +386,7 @@ Execute os comandos de instalação de novo: eles baixam a versão que este OneU
 
 ```bash
 cd "$(mktemp -d)"
-VERSION=0.161.0   # the collector release the agent pins
+VERSION=0.165.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz

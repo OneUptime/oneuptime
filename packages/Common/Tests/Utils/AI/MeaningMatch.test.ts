@@ -1,10 +1,12 @@
 import MeaningMatch, {
+  MAX_SEARCH_WORDS,
   MAX_SHARED_TERMS,
   MAX_TEXT_LENGTH,
   MEANING_CONCEPTS,
   MIN_MEANING_SIMILARITY,
   MeaningConcept,
   MeaningScore,
+  MeaningSearchTerms,
   MeaningTerms,
 } from "../../../Utils/AI/MeaningMatch";
 import { describe, expect, test } from "@jest/globals";
@@ -256,5 +258,92 @@ describe("comparing texts", () => {
     expect(
       MeaningMatch.rank({ query: MeaningMatch.read("x"), documents: [] }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * What a search for records like a text looks for (#7673): the concepts it
+ * names and the starts of its other words, which a database query turns
+ * into its candidates (Server/Utils/AI/MeaningSearch).
+ */
+describe("the terms a search looks for", () => {
+  function conceptIds(text: string): Array<string> {
+    return MeaningMatch.getSearchTerms(text).concepts.map(
+      (concept: MeaningConcept): string => {
+        return concept.id;
+      },
+    );
+  }
+
+  test("a phrasing of an outage is searched by its concept, not its words", () => {
+    const search: MeaningSearchTerms = MeaningMatch.getSearchTerms(
+      "too many connections",
+    );
+
+    expect(conceptIds("too many connections")).toEqual([
+      "connection-exhaustion",
+    ]);
+    // "many" and "connections" were the concept's, not words of their own.
+    expect(search.wordStarts).toEqual([]);
+  });
+
+  test("the concepts come in the order MEANING_CONCEPTS lists them, each once", () => {
+    expect(
+      conceptIds("503 503 timed out on postgres; service unavailable again"),
+    ).toEqual(["timeout", "server-errors", "database"]);
+  });
+
+  test("the other words are searched by the start every form of them shares", () => {
+    const search: MeaningSearchTerms = MeaningMatch.getSearchTerms(
+      "billing queries failing",
+    );
+
+    // "queries" is stemmed to "query", which shares "quer" with every form.
+    expect(search.wordStarts).toContain("quer");
+    expect(search.wordStarts).toContain("fail");
+
+    for (const form of ["query", "queries", "queried"]) {
+      expect(form.startsWith("quer")).toBe(true);
+    }
+
+    expect(
+      MeaningMatch.getSearchTerms("connections connected connecting")
+        .wordStarts,
+    ).toEqual(["connect"]);
+  });
+
+  test("the words said most come first, the longest first among equals, at most MAX_SEARCH_WORDS", () => {
+    const search: MeaningSearchTerms = MeaningMatch.getSearchTerms(
+      "invoice invoice invoice payroll export ledger reconciliation quarterly batch scheduler worker account settlement",
+    );
+
+    expect(search.wordStarts[0]).toBe("invoic");
+    expect(search.wordStarts.length).toBe(MAX_SEARCH_WORDS);
+    // Among the words said once, the longer ones tell records apart better.
+    expect(search.wordStarts).toContain("reconciliat");
+    expect(search.wordStarts).not.toContain("batch");
+  });
+
+  test("words in other scripts are searched whole", () => {
+    expect(MeaningMatch.getSearchTerms("数据库连接池耗尽").wordStarts).toEqual([
+      "数据库连接池耗尽",
+    ]);
+  });
+
+  test("a text that says nothing about what happened searches for nothing", () => {
+    for (const text of ["", "the and of", "1234 5678", null, undefined]) {
+      expect(MeaningMatch.getSearchTerms(text)).toEqual({
+        concepts: [],
+        wordStarts: [],
+      });
+    }
+  });
+
+  test("the same text always searches for the same terms", () => {
+    const text: string = "Checkout 503s after the deploy of payments-api";
+
+    expect(MeaningMatch.getSearchTerms(text)).toEqual(
+      MeaningMatch.getSearchTerms(text),
+    );
   });
 });

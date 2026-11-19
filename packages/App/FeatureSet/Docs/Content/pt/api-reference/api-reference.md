@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Os dois nomes são verificados da mesma forma. As regras sobre o registro que você cita valem com qualquer nome que você usar: o grupo pai de um grupo de página de status precisa estar na mesma página de status, uma página de status aceita no máximo três links de cabeçalho, e o nome de um grupo precisa ser único na sua página de status.
 
+#### Nomes que outro registro já tem
+
+Cada equipe, rótulo, política de plantão e agendamento de plantão tem um nome só seu em um projeto, sem diferenciar maiúsculas de minúsculas nem espaços: `Primary`, ` primary` e `PRIMARY` são um só nome. Uma criação, ou uma atualização que renomeia um deles, para um nome que outro do mesmo tipo já tem é recusada com um `400` que diz isso:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+Uma atualização que envia de novo o próprio nome de um registro, em maiúsculas ou minúsculas, não é uma renomeação, então registros que compartilhavam um nome antes ainda podem ser alterados, e renomeados para se diferenciarem. Para equipes, políticas de plantão e agendamentos de plantão, `GET /api/shared-names/team` (ou `on-call-policy`, `on-call-schedule`) responde quais compartilham um nome: `{"groups": [["<id>", "<id>"]]}`, cada grupo com os IDs, que a sua chave pode ler, dos registros cujos nomes se leem igual.
+
 ### Chaves liga/desliga
 
 Um campo que está ligado ou desligado - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` e qualquer outro campo `true` ou `false` - recebe `true` ou `false`. Texto e números que o banco de dados lê como um deles são tomados como esse valor, da mesma forma para a API, o Terraform e os workflows: `"true"`, `"yes"`, `"on"`, `"1"` e `1` são `true`, e `"false"`, `"no"`, `"off"`, `"0"` e `0` são `false`, em maiúsculas ou minúsculas. Tudo o que o OneUptime faz com o registro também o trata como esse valor: um evento de manutenção enviado com `"isVisibleOnStatusPage": "true"` mostra as suas imagens na página de status, e `"isEnabled": "false"` desativa um recurso abaixo do seu plano como `false` faz. Qualquer outro valor, como `"maybe"`, `""` ou `2`, é recusado com um `400` que cita o campo:

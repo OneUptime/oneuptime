@@ -83,9 +83,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | エンジン | 一般的なサービス URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API のパスは自動で見つかります (Kubecost では `/model/allocation`、OpenCost では `/allocation/compute` または `/allocation`)。`cost.engine.allocationPath` を設定するのは、一般的でないインストールの場合だけです。`auto` または URL を指定すると何も同梱されないため、メモリの推奨値には `cost.engine.prometheusUrl` も設定してください ([推奨値の基になるデータ](#推奨値の基になるデータ) を参照)。
+Allocation API のパスは自動で見つかります (Kubecost では `/model/allocation`、OpenCost では `/allocation/compute` または `/allocation`)。`cost.engine.allocationPath` を設定するのは、一般的でないインストールの場合だけです。`auto` または URL を指定すると何も同梱されないため、メモリの推奨値には `cost.engine.prometheusUrl` も設定してください ([推奨値の基になるデータ](#推奨値の基になるデータ) を参照)。価格メトリクスも同じように見つかるため、エンジンのどの Service を指定してもかまいません。エージェントはまずエンジンの `/metrics` を、次に Kubecost 2 のフロントエンドや OpenCost の UI がエンジンへ渡す `/model/metrics` を、さらに Kubecost 3 の FinOps エージェントを試し、Collector は価格系列を返した最初のアドレスをスクレイプします。自分で指定するには `cost.metrics.endpoint` を設定してください。
 
 ## オンプレミスとベアメタルの価格設定
 
@@ -202,7 +203,7 @@ Kubernetes モニターには、これらのメトリクス用のテンプレー
 :::
 
 :::details Kubernetes Cost Dashboard にデータが表示されない
-このテンプレートはスクレイプされたコストメトリクスを読み取ります。`cost.metrics.enabled` が `true` であることを確認してください。
+このテンプレートはスクレイプされたコストメトリクスを読み取ります。`cost.metrics.enabled` が `true` であることを確認してください。`cost.engine.url` を設定している場合は、コストエージェントがエンジンの提供場所を見つけ、そのログに場所か試したアドレスが表示されます: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。自分で指定するには `cost.metrics.endpoint` を設定してください。
 :::
 
 :::details 適正サイズのカードが空

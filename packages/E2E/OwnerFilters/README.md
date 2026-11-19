@@ -54,6 +54,15 @@ more the member may not see counted and never named; without it, that nobody on
 the schedule is paged and where to add it - at 1280 and 390 pixels, light and
 dark, in German and in Persian right to left.
 
+`OwnerTooltip.spec.ts` checks the first row's owner tooltip (#9769): hovering
+Payments Primary's owner shows a tooltip drawn on the page's body, inside the
+window, showing at all four corners and pointing at its avatar - above it on a
+laptop, across the list's top edge while the list scrolls sideways (1150px),
+following its avatar as the list and the page scroll, below it at the window's
+top edge, in dark mode on the dark surface, in Persian right to left, and on a
+card at 820px. On a 390px phone a card leaves the owners out, so there is no
+owner tooltip there to cut off.
+
 `Fixture/Fixture.js` records every list read on `window.__fixture.listRequests`
 and every read of a table it does not model on `window.__fixture.unhandled` (the
 suite fails on any).

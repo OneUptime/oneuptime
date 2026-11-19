@@ -83,9 +83,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | 引擎 | 常用的服務 URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API 路徑會被自動找到（Kubecost 為 `/model/allocation`，OpenCost 為 `/allocation/compute` 或 `/allocation`）。只有在安裝方式不尋常時才需要設定 `cost.engine.allocationPath`。使用 `auto` 或 URL 時不會內建任何東西，因此若要取得記憶體建議，也要設定 `cost.engine.prometheusUrl`（請參閱 [建議背後的資料](#建議背後的資料)）。
+Allocation API 路徑會被自動找到（Kubecost 為 `/model/allocation`，OpenCost 為 `/allocation/compute` 或 `/allocation`）。只有在安裝方式不尋常時才需要設定 `cost.engine.allocationPath`。使用 `auto` 或 URL 時不會內建任何東西，因此若要取得記憶體建議，也要設定 `cost.engine.prometheusUrl`（請參閱 [建議背後的資料](#建議背後的資料)）。價格指標也以同樣的方式找到，因此指定引擎的哪個 Service 都可以：代理程式依序嘗試引擎的 `/metrics`、Kubecost 2 前端或 OpenCost 的 UI 轉給引擎的 `/model/metrics`、Kubecost 3 的 FinOps 代理程式，Collector 會抓取第一個帶有價格序列的位址。若要自行指定，請設定 `cost.metrics.endpoint`。
 
 ## 地端和裸機定價
 
@@ -202,7 +203,7 @@ Kubernetes 監測器為它們提供了三個範本：Cluster Daily Cost Over Bud
 :::
 
 :::details Kubernetes Cost Dashboard 沒有資料
-該範本會讀取被抓取的成本指標：請檢查 `cost.metrics.enabled` 是否為 `true`。
+該範本會讀取被抓取的成本指標：請檢查 `cost.metrics.enabled` 是否為 `true`。設定了 `cost.engine.url` 時，成本代理程式會找到你的引擎提供這些指標的位置，它的日誌會說明位置或它嘗試過的位址：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。若要自行指定，請設定 `cost.metrics.endpoint`。
 :::
 
 :::details Right-Sizing 卡片是空的

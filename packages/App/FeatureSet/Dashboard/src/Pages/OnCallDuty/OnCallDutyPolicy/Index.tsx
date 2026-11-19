@@ -21,6 +21,7 @@ import {
   SetupHealthRecordKind,
 } from "Common/Types/SetupHealth/SetupHealth";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 /*
  * What the policy's own cards say already, so Setup Health's line at the
@@ -72,6 +73,8 @@ const OnCallDutyPolicyView: FunctionComponent<
             validation: {
               minLength: 2,
             },
+            // Another policy's name, said under the field (#9742).
+            ownsServerError: isNameTakenRefusal,
           },
           {
             field: {

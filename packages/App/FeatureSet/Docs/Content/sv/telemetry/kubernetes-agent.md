@@ -410,7 +410,7 @@ Händelser över flera rader sätts ihop igen före filtreringen i båda lägena
 Släpp några få bullriga mätvärden (en blockeringslista, oftast det du vill ha):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Skicka bara en fast uppsättning (en tillåtelselista: allt annat släpps):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinalitet, antalet distinkta serier, betyder lika mycket som frekvens, eftersom varje serie lagras och faktureras för sig.
 
 - cAdvisor är tillåtelselistad med avsikt. cAdvisor-receivern (på som standard) kan skicka hundratals mätvärden; chartet vidarebefordrar bara räknarna för CPU-strypning och OOM-kills i `cadvisor.metricsAllowlist`, för dina egna diagram och mätvärdesmonitorer: ingen inbyggd mall läser dem. Håll listan kort: varje post behålls per container, så ett mätvärde till multipliceras med klustrets antal containrar. kube-state-metrics är avstängd som standard; om du slår på den (`kubeStateMetrics.enabled=true`) fungerar dess `kubeStateMetrics.metricsAllowlist` på samma sätt, och varje post måste matcha ett mätvärdes hela namn.
-- Volymmätvärden (`kubeletstats.volumeMetrics.enabled`, på som standard) skickar några serier per volym och podd och fyller använt, ledigt och kapacitet på sidorna för Persistent Volume Claims och mallen PVC Almost Full: helt okej för de flesta kluster, mycket på tillståndsbärande arbetsbelastningar (Kafka, databaser) med tusentals PVC:er. Stäng av dem där om du inte bevakar PVC-diskutrymme, med `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volymmätvärden (`kubeletstats.volumeMetrics.enabled`, på som standard) skickar fem serier för varje volym med data i varje podd (ett claim, en emptyDir, en hostPath), fyller använt, ledigt och kapacitet på sidorna för Persistent Volume Claims och mallen PVC Almost Full, och visar ett nästan fullt claim under klustrets Kräver uppmärksamhet. En podds configMap-, secret-, downwardAPI- och serviceaccount-token-volymer, som stod för de flesta av dessa serier, släpps på noden. Fortfarande mycket på tillståndsbärande arbetsbelastningar (Kafka, databaser) med tusentals PVC:er: stäng av dem där om du inte bevakar PVC-diskutrymme, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Mättnadsmätvärden (`kubeletstats.utilizationMetrics.enabled`, på som standard) lägger till 8 härledda familjer av typen ”% av request eller limit”. De kostar ingen extra skrapning, men om du inte använder monitorerna för CPU och minne mot limit släpper du dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Släpp mätvärden efter namn med `filters.metrics.exclude`, som omfattar alla receivers, för allt som receivrarnas tillåtelselistor inte kan uttrycka (se [Inkludera eller utesluta mätvärden efter namn](#inkludera-eller-utesluta-mätvärden-efter-namn)):
 

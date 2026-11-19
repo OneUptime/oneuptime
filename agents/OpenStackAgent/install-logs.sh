@@ -48,7 +48,7 @@ KOLLA_LOGS_DIRECTORY="/var/lib/docker/volumes/kolla_logs/_data"
 # The release the journal's service runs: the version docker-compose.logs.yml pins, each
 # archive held to a sha256 kept here rather than one fetched from the same release.
 # Tests/Ops/OpenStackAgentLogs.test.js holds these to install.sh, so bump them together.
-COLLECTOR_VERSION="0.161.0"
+COLLECTOR_VERSION="0.165.0"
 COLLECTOR_SHA256_AMD64="778c689efa681ff6e4722ce9f66b9b7f57c3ba009ab2e2b43dc2e0315862c731"
 COLLECTOR_SHA256_ARM64="cd5de93213a0dbb90e4998b3b9e4e15ed691ec635cf7cf4147f95799fb16b676"
 

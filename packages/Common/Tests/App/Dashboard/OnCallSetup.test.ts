@@ -42,6 +42,7 @@ import {
   parsePhoneNumber,
   parseRepeatTimes,
   parseWaitMinutes,
+  toPolicyLevels,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
 import {
   WEBSITE_DOWN_COPY,
@@ -668,6 +669,85 @@ describe("what if nobody answers", () => {
     expect(parseRepeatTimes("0")).toBeNull();
     expect(parseRepeatTimes("11")).toBeNull();
     expect(parseRepeatTimes("x")).toBeNull();
+  });
+});
+
+/*
+ * Issue #9655: a rule numbered 0 was given its place in the read plus one,
+ * which could be another rule's number, and a rule without a number the
+ * same. A level keeps the rule's number as it is saved, or none, and the
+ * levels keep the order the API reads the rules in (by number, a rule
+ * without one last).
+ */
+describe("a policy's levels, from its rules", () => {
+  test("keep the order the rules were read in, each with its own number or none", () => {
+    expect(
+      toPolicyLevels([
+        { id: "zero", order: 0, escalateAfterInMinutes: 5 },
+        { id: "first", order: 1 },
+        { id: "unnumbered", order: null, escalateAfterInMinutes: null },
+        { id: "missing" },
+      ]),
+    ).toEqual([
+      {
+        id: "zero",
+        order: 0,
+        escalateAfterInMinutes: 5,
+        userIds: [],
+        names: [],
+        responderCount: 0,
+      },
+      {
+        id: "first",
+        order: 1,
+        escalateAfterInMinutes: DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+        userIds: [],
+        names: [],
+        responderCount: 0,
+      },
+      {
+        id: "unnumbered",
+        order: null,
+        escalateAfterInMinutes: DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+        userIds: [],
+        names: [],
+        responderCount: 0,
+      },
+      {
+        id: "missing",
+        order: null,
+        escalateAfterInMinutes: DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+        userIds: [],
+        names: [],
+        responderCount: 0,
+      },
+    ]);
+  });
+
+  test("never give two levels one number that their rules did not share", () => {
+    const levels: Array<{ order: number | null }> = toPolicyLevels([
+      { id: "a", order: 0 },
+      { id: "b", order: 1 },
+      { id: "c", order: 2 },
+    ]);
+
+    expect(
+      levels.map((level: { order: number | null }) => {
+        return level.order;
+      }),
+    ).toEqual([0, 1, 2]);
+  });
+
+  test("leave out a rule that has no id", () => {
+    expect(
+      toPolicyLevels([
+        { id: null, order: 1 },
+        { order: 2 },
+        { id: "kept" },
+      ]).map((level: { id: string }) => {
+        return level.id;
+      }),
+    ).toEqual(["kept"]);
   });
 });
 

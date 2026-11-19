@@ -205,7 +205,7 @@ Relancez la commande pour changer l'une de ces options, ou pour passer à une ve
 | `--key KEY` | `-Key KEY` | Une clé d'ingestion de télémétrie de votre projet. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Étiquette l'hôte. Répétez-la pour d'autres étiquettes ; sous Windows, listez-les séparées par des virgules. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Donne au collecteur une variable d'environnement, pour les configurations qui lisent `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | La version du collecteur à installer, 0.161.0 par défaut. |
+| `--version VERSION` | `-Version VERSION` | La version du collecteur à installer, 0.165.0 par défaut. |
 | `--download-url URL` | `-DownloadUrl URL` | Télécharge les versions depuis un miroir qui reprend l'arborescence de GitHub. |
 | `--proxy URL` | `-Proxy URL` | Fait passer les téléchargements et tout le trafic du collecteur par un proxy HTTP. |
 | `--replace-existing` | `-ReplaceExisting` | Arrête et désactive un collecteur installé manuellement. |

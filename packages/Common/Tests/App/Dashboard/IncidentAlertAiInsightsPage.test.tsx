@@ -983,9 +983,16 @@ describe.each(
           `${product.coverageStat}12 of 20Created in the last 30 days`,
         );
         expect(stat("fixes")).toHaveTextContent("Fixes52 verified");
-        expect(stat("commands")).toHaveTextContent(
-          "Commands302 failed, 1 never ran",
-        );
+        expect(stat("commands")).toHaveTextContent(/^Commands30/);
+        // How many failed opens which (#9749); the ones never run say so.
+        expect(
+          within(stat("commands")).getByTestId("ai-insights-failed-commands"),
+        ).toHaveTextContent("2 failed");
+        expect(
+          within(stat("commands")).getByTestId(
+            "ai-insights-commands-never-ran",
+          ),
+        ).toHaveTextContent("1 never ran");
 
         // A day of the window per bar.
         expect(screen.getAllByTestId("ai-insights-trend-day")).toHaveLength(30);

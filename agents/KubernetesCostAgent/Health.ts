@@ -11,6 +11,7 @@ import { Poller } from "./Poller";
 import { Shipper } from "./Shipper";
 import {
   CostEngineSource,
+  EngineMetricsSource,
   HealthReport,
   KubernetesCostEngineInfo,
   PollerStatus,
@@ -135,7 +136,7 @@ export const assessHealth: (args: {
 };
 
 /*
- * Two routes, deliberately:
+ * Three routes, deliberately:
  *
  *   /healthz (and /) — readiness. Degraded answers 503, so a pod whose cost
  *     pipeline is dead reads 0/1 Ready instead of silently green.
@@ -143,6 +144,12 @@ export const assessHealth: (args: {
  *     restarting the agent cannot fix an engine that is down, and a restart
  *     loop would both hide the diagnostic in /healthz and lose the poller's
  *     in-memory checkpoint every time.
+ *   /scrape-targets — where the engine in use serves its price metrics, in
+ *     the JSON Prometheus' http_sd reads (EngineMetrics): the collector's
+ *     cost-engine job asks here when cost.engine.url is auto or a URL
+ *     (#9776). An empty list until the agent has found them. Always 200,
+ *     whatever the readiness: the price metrics do not wait on the
+ *     allocations.
  *
  * The JSON keys status / lastPollError / lastShipError are parsed by the
  * chart's troubleshoot.sh — keep them.
@@ -151,16 +158,26 @@ export const startHealthServer: (args: {
   poller: Poller;
   shipper: Shipper;
   engine?: CostEngineSource | undefined;
+  metrics?: EngineMetricsSource | undefined;
 }) => http.Server = (args: {
   poller: Poller;
   shipper: Shipper;
   engine?: CostEngineSource | undefined;
+  metrics?: EngineMetricsSource | undefined;
 }): http.Server => {
   const server: http.Server = http.createServer(
     (req: http.IncomingMessage, res: http.ServerResponse): void => {
       if (req.url === "/livez") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ status: "alive" }));
+        return;
+      }
+
+      if (req.url === "/scrape-targets") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(args.metrics ? args.metrics.targetGroups() : []),
+        );
         return;
       }
 
@@ -187,6 +204,14 @@ export const startHealthServer: (args: {
             ? args.engine.engineUrl()
             : undefined;
 
+        // Where its price metrics are scraped, or why they are not.
+        const costEngineMetricsUrl: string | null = args.metrics
+          ? args.metrics.url()
+          : null;
+        const costEngineMetricsError: string = args.metrics
+          ? args.metrics.reason()
+          : "";
+
         res.end(
           /*
            * The engine first: troubleshoot.sh reads only the start of a
@@ -194,8 +219,10 @@ export const startHealthServer: (args: {
            */
           JSON.stringify({
             ...(costEngineUrl ? { costEngineUrl } : {}),
+            ...(costEngineMetricsUrl ? { costEngineMetricsUrl } : {}),
             ...(costEngine ? { costEngine } : {}),
             ...report,
+            ...(costEngineMetricsError ? { costEngineMetricsError } : {}),
           }),
         );
         return;

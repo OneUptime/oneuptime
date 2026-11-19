@@ -93,9 +93,16 @@ Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence
 
 ## Se déconnecter aussi du fournisseur d'identité
 
-Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, la personne suivante qui se connecte avec ce fournisseur entre donc à la place de celle qui est partie. Sur un fournisseur OpenID Connect, cliquez sur **Modifier la configuration** et activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** : une déconnexion de OneUptime met alors aussi fin à la session chez le fournisseur, et le fournisseur renvoie le navigateur vers la page de connexion de OneUptime. C'est désactivé par défaut, car sur un ordinateur portable personnel cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur.
+Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, la personne suivante qui se connecte avec ce fournisseur entre donc à la place de celle qui est partie. Sur un fournisseur SAML ou OpenID Connect, cliquez sur **Modifier la configuration** et activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** : une déconnexion de OneUptime met alors aussi fin à la session chez le fournisseur, et le fournisseur renvoie le navigateur vers OneUptime. C'est désactivé par défaut, car sur un ordinateur portable personnel cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur.
 
+:::tabs
+@tab SAML
+Saisissez l'URL de déconnexion de votre fournisseur d'identité comme **URL de déconnexion**, sous **Plus de champs** : sans elle, l'option ne peut pas être activée. Donnez ensuite à votre fournisseur d'identité la **Single Logout URL** qu'affiche la carte **Adresses du fournisseur d'identité**, ainsi que le certificat avec lequel OneUptime signe ses demandes de déconnexion, via **Télécharger le certificat de signature** sur la même carte. Quand la personne se déconnecte chez le fournisseur d'identité, ou d'une autre application qui l'utilise, un fournisseur d'identité qui envoie des demandes de déconnexion à ses applications la déconnecte aussi de OneUptime.
+@tab OpenID Connect
 Enregistrez l'URI de redirection après déconnexion qu'affiche la carte **URL du fournisseur d'identité** auprès de votre fournisseur, comme post-logout redirect URI autorisée. Un fournisseur dont le document de découverte ne nomme aucun `end_session_endpoint`, comme Google, ne peut pas l'activer.
+:::
+
+L'emplacement de ces réglages chez Okta, Microsoft Entra ID, Auth0 et Keycloak est indiqué sur la page [SSO](/docs/identity/sso).
 
 ## Imposer le SSO
 

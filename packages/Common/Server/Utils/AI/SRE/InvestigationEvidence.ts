@@ -212,6 +212,8 @@ export function deriveCitationTarget(
       });
     case "search_incidents":
       return { type: AIChatCitationTargetType.Incidents };
+    case "search_alerts":
+      return { type: AIChatCitationTargetType.Alerts };
     case "query_alerts":
     case "get_alert_timeline":
       return viewOrList({

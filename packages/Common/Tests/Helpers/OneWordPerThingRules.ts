@@ -426,7 +426,8 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
    * products' (Vertex AI, Vercel AI SDK, Azure AI Inference, Azure's AI
    * Search, Zoom AI Companion, JetBrains AI, Mistral AI) and code's
    * (Microsoft.Extensions.AI); and the permissions', which every language
-   * keeps in English (Edit AI Rule, Read AI Agent Task), as are the labels
+   * keeps in English (Edit AI Rule, Read AI Agent Task, the Service AI Note
+   * ones), as are the labels
    * the Italian Dashboard still draws in English (Generate with AI) and a
    * runbook's AI step, which its editor draws in English (#8768).
    */
@@ -436,7 +437,7 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\bAI\b/,
     word: /\bIA\b/,
     dropped:
-      /(?<!OneUptime |Vertex |Vercel |Azure |JetBrains |Mistral |Acme |Ask |with |\.)\bAI\b(?! (?:SDK|Companion|Inference|Agent|Rule|SRE|Search))(?!\.\w)/,
+      /(?<!OneUptime |Vertex |Vercel |Azure |JetBrains |Mistral |Acme |Ask |with |\.)\bAI\b(?! (?:SDK|Companion|Inference|Agent|Rule|SRE|Search|Note))(?!\.\w)/,
     // A runbook's AI step and the workflow builder's AI section: their headings, their links, their table rows, the list of step types.
     docsExcept: /^#{1,6} AI$|^AI$|^\| AI \||kubectl,? (?:and|or) AI\b/,
   },

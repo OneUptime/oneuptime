@@ -30,6 +30,7 @@ import {
 } from "./HelperTools";
 import { generatePublicStatusPageTools } from "./PublicStatusPageTools";
 import {
+  isPublishedTable,
   readOnlyToolAnnotations,
   writeToolAnnotations,
 } from "./ToolAnnotations";
@@ -136,24 +137,29 @@ function buildRecordSortProperty(): JSONSchemaProperty {
 /**
  * Annotations per operation type. Clients use readOnlyHint to auto-approve
  * safe calls and destructiveHint to require confirmation; every write is
- * destructive (see ToolAnnotations).
+ * destructive, and a write to a published resource is open-world (see
+ * ToolAnnotations).
  */
 function getAnnotationsForOperation(
   operation: OneUptimeOperation,
+  tableName?: string,
 ): ToolAnnotations {
+  const openWorld: boolean =
+    tableName !== undefined && isPublishedTable(tableName);
+
   switch (operation) {
     case OneUptimeOperation.Read:
     case OneUptimeOperation.List:
     case OneUptimeOperation.Count:
       return readOnlyToolAnnotations();
     case OneUptimeOperation.Create:
-      return writeToolAnnotations();
+      return writeToolAnnotations({ openWorld });
     case OneUptimeOperation.Update:
     case OneUptimeOperation.Delete:
-      return writeToolAnnotations({ idempotent: true });
+      return writeToolAnnotations({ idempotent: true, openWorld });
     default:
       // An operation this does not know is taken to write.
-      return writeToolAnnotations();
+      return writeToolAnnotations({ openWorld });
   }
 }
 
@@ -397,6 +403,17 @@ export function generateToolsForDatabaseModel(
 
   const selectInfo: SelectableFieldsInfo = getSelectableFieldsForModel(model);
 
+  /*
+   * An update tool needs a field to change. A resource none of whose fields
+   * a caller may change once it is made, such as an incident's link to an
+   * alert, would get one that takes an id and nothing else: a tool that says
+   * it updates and cannot, which OpenAI's plugin review flags. Such a
+   * resource gets the other five tools.
+   */
+  const updateFields: ZodToJsonSchemaResult = zodToJsonSchema(updateSchema);
+  const takesUpdates: boolean =
+    Object.keys(updateFields.properties || {}).length > 0;
+
   const tools: McpToolInfo[] = [
     createCreateTool(
       modelName,
@@ -407,13 +424,17 @@ export function generateToolsForDatabaseModel(
     ),
     createReadTool(modelName, singularName, pluralName, apiPath, selectInfo),
     createListTool(modelName, singularName, pluralName, apiPath, selectInfo),
-    createUpdateTool(
-      modelName,
-      singularName,
-      pluralName,
-      apiPath,
-      updateSchema,
-    ),
+    ...(takesUpdates
+      ? [
+          createUpdateTool(
+            modelName,
+            singularName,
+            pluralName,
+            apiPath,
+            updateFields,
+          ),
+        ]
+      : []),
     createDeleteTool(modelName, singularName, pluralName, apiPath),
     createCountTool(modelName, singularName, pluralName, apiPath),
   ];
@@ -566,7 +587,10 @@ function createCreateTool(
       required: schemaProperties.required || [],
       additionalProperties: false,
     },
-    annotations: getAnnotationsForOperation(OneUptimeOperation.Create),
+    annotations: getAnnotationsForOperation(
+      OneUptimeOperation.Create,
+      modelName,
+    ),
     modelName,
     operation: OneUptimeOperation.Create,
     modelType: ModelType.Database,
@@ -654,10 +678,8 @@ function createUpdateTool(
   singularName: string,
   pluralName: string,
   apiPath: string,
-  updateSchema: ModelSchemaType,
+  schemaProperties: ZodToJsonSchemaResult,
 ): McpToolInfo {
-  const schemaProperties: ZodToJsonSchemaResult = zodToJsonSchema(updateSchema);
-
   return {
     name: `update_${sanitizeToolName(singularName)}`,
     title: `Update ${singularName}`,
@@ -674,7 +696,10 @@ function createUpdateTool(
       required: ["id"],
       additionalProperties: false,
     },
-    annotations: getAnnotationsForOperation(OneUptimeOperation.Update),
+    annotations: getAnnotationsForOperation(
+      OneUptimeOperation.Update,
+      modelName,
+    ),
     modelName,
     operation: OneUptimeOperation.Update,
     modelType: ModelType.Database,
@@ -706,7 +731,10 @@ function createDeleteTool(
       required: ["id"],
       additionalProperties: false,
     },
-    annotations: getAnnotationsForOperation(OneUptimeOperation.Delete),
+    annotations: getAnnotationsForOperation(
+      OneUptimeOperation.Delete,
+      modelName,
+    ),
     modelName,
     operation: OneUptimeOperation.Delete,
     modelType: ModelType.Database,

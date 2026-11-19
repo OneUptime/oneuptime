@@ -1101,6 +1101,13 @@ import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./18091853474
 import { AddWorkflowRunAsApiKey1809185400000 } from "./1809185400000-AddWorkflowRunAsApiKey";
 import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkflowRunAsApiKeyKey";
 import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddProjectManageSignInWithSso";
+import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelName";
+import { AddDeviceManagementConnection1809185900000 } from "./1809185900000-AddDeviceManagementConnection";
+import { AddServiceAINote1809185918000 } from "./1809185918000-AddServiceAINote";
+import { AddKubernetesDiskReadings1809186000000 } from "./1809186000000-AddKubernetesDiskReadings";
+import { AddComplianceSettingNamespace1809186100000 } from "./1809186100000-AddComplianceSettingNamespace";
+import { AddTeamScimGroupLinkedAt1809186200000 } from "./1809186200000-AddTeamScimGroupLinkedAt";
+import { AddSamlSingleLogout1809186300000 } from "./1809186300000-AddSamlSingleLogout";
 
 export default [
   InitialMigration,
@@ -2206,4 +2213,11 @@ export default [
   AddWorkflowRunAsApiKey1809185400000,
   AddWorkflowRunAsApiKeyKey1809185400100,
   AddProjectManageSignInWithSso1809185500000,
+  AddAIRunModelName1809185800000,
+  AddDeviceManagementConnection1809185900000,
+  AddServiceAINote1809185918000,
+  AddKubernetesDiskReadings1809186000000,
+  AddComplianceSettingNamespace1809186100000,
+  AddTeamScimGroupLinkedAt1809186200000,
+  AddSamlSingleLogout1809186300000,
 ];
