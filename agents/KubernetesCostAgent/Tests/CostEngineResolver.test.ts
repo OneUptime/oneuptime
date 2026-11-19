@@ -613,3 +613,88 @@ test("auto has no price metrics to scrape until it has an engine, nor after losi
 
   assert.strictEqual(resolver.metricsEngine(), null);
 });
+
+// --- whose Prometheus the memory peaks are read from (#9777) ----------------
+
+test("the bundled engine's Prometheus is asked for until another engine is found", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.engine(KUBECOST_URL, { kind: "Kubecost" });
+  world.engine(BUNDLED_URL, {});
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+
+  // Before the first look: the bundled engine, created for nothing.
+  assert.deepStrictEqual(resolver.prometheusEngine(), {
+    url: BUNDLED_URL,
+    origin: "bundled",
+    kind: null,
+    service: {
+      name: "oneuptime-agent-kubernetes-agent-opencost",
+      namespace: "oneuptime",
+    },
+  });
+  assert.deepStrictEqual(world.clientsCreated, []);
+
+  await resolver.fetchAllocations(WINDOW);
+
+  // The cluster's own Kubecost: its Service is where its pods are found.
+  assert.deepStrictEqual(resolver.prometheusEngine(), {
+    url: KUBECOST_URL,
+    origin: "discovered",
+    kind: "Kubecost",
+    service: { name: "kubecost-cost-analyzer", namespace: "kubecost" },
+  });
+});
+
+test("the engine cost.engine.url names is asked for from the start, as the Service it names", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [OPENCOST];
+  world.engine(OPENCOST_URL, { kind: "OpenCost" });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: OPENCOST_URL,
+  });
+
+  assert.deepStrictEqual(resolver.prometheusEngine(), {
+    url: OPENCOST_URL,
+    origin: "configured",
+    kind: null,
+    service: { name: "opencost", namespace: "opencost" },
+  });
+
+  // Once its Service is read, which engine it is.
+  await resolver.fetchAllocations(WINDOW);
+  assert.strictEqual(resolver.prometheusEngine()?.kind, "OpenCost");
+
+  // An address that is no Service names none.
+  assert.deepStrictEqual(
+    world
+      .resolver("configured", { engineUrl: "https://kubecost.example.com" })
+      .prometheusEngine(),
+    {
+      url: "https://kubecost.example.com",
+      origin: "configured",
+      kind: null,
+      service: null,
+    },
+  );
+});
+
+test("auto has no engine's Prometheus to ask for until it has an engine", async (): Promise<void> => {
+  const world: World = new World();
+  const resolver: CostEngineResolver = world.resolver("auto");
+
+  assert.strictEqual(resolver.prometheusEngine(), null);
+
+  world.services = [OPENCOST];
+  world.engine(OPENCOST_URL, {});
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(resolver.prometheusEngine(), {
+    url: OPENCOST_URL,
+    origin: "discovered",
+    kind: "OpenCost",
+    service: { name: "opencost", namespace: "opencost" },
+  });
+});

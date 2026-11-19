@@ -9,10 +9,12 @@ import {
 } from "./Config";
 
 /*
- * Just enough of the Kubernetes API to find the cluster's own cost engine:
- * read-only lists of Services, as the agent's ServiceAccount (the chart's
- * ClusterRole already grants get/list/watch on services, for the
- * collector). No client library: the agent stays a few files of Node.
+ * Just enough of the Kubernetes API to find the cluster's own cost engine,
+ * and the Prometheus it reads (#9777): read-only lists of Services and of
+ * one engine's pods, and single ConfigMaps, as the agent's ServiceAccount
+ * (the chart's ClusterRole already grants get/list/watch on services, pods
+ * and configmaps, for the collector). Never a Secret. No client library:
+ * the agent stays a few files of Node.
  *
  * In a pod it talks to the API server the way every in-cluster client does:
  * https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT, the
@@ -43,6 +45,73 @@ export interface KubernetesService {
 interface KubernetesServiceList {
   items?: Array<KubernetesService>;
 }
+
+// One variable of a container's environment, as its pod spec writes it.
+export interface KubernetesEnvVar {
+  name?: string;
+  value?: string;
+  valueFrom?: {
+    configMapKeyRef?: { name?: string; key?: string; optional?: boolean };
+    secretKeyRef?: { name?: string; key?: string; optional?: boolean };
+  };
+}
+
+// A container's envFrom: every key of a ConfigMap (or Secret) as a variable.
+export interface KubernetesEnvFromSource {
+  prefix?: string;
+  configMapRef?: { name?: string; optional?: boolean };
+  secretRef?: { name?: string; optional?: boolean };
+}
+
+// The subset of a pod the agent reads: its containers' environment.
+export interface KubernetesPod {
+  metadata?: {
+    name?: string;
+    namespace?: string;
+  };
+  spec?: {
+    containers?: Array<{
+      name?: string;
+      env?: Array<KubernetesEnvVar>;
+      envFrom?: Array<KubernetesEnvFromSource>;
+    }>;
+  };
+  status?: {
+    phase?: string;
+  };
+}
+
+interface KubernetesPodList {
+  items?: Array<KubernetesPod>;
+}
+
+export interface PodQuery {
+  namespace: string;
+  labelSelector: string;
+}
+
+export type ListPods = (query: PodQuery) => Promise<Array<KubernetesPod>>;
+
+export interface KubernetesConfigMap {
+  metadata?: {
+    name?: string;
+    namespace?: string;
+  };
+  data?: Record<string, string>;
+}
+
+// A ConfigMap by namespace and name, or null when there is none.
+export type GetConfigMap = (
+  namespace: string,
+  name: string,
+) => Promise<KubernetesConfigMap | null>;
+
+// A namespace's name, as Kubernetes allows it: a DNS label.
+const NAMESPACE_PATTERN: RegExp = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
+
+// A ConfigMap's name, as Kubernetes allows it: a DNS subdomain.
+const OBJECT_NAME_PATTERN: RegExp =
+  /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 
 export interface ServiceQuery {
   labelSelector?: string | undefined;
@@ -87,8 +156,13 @@ const readFileIfPresent: (path: string) => string | null = (
   }
 };
 
-const getJson: (url: URL) => Promise<unknown> = (
+/*
+ * GET a URL of the API as JSON. A 404 resolves to null when `orNull` is set
+ * (an object that is not there), and is an error otherwise.
+ */
+const getJson: (url: URL, orNull?: boolean) => Promise<unknown> = (
   url: URL,
+  orNull?: boolean,
 ): Promise<unknown> => {
   /*
    * Read on every call: a projected ServiceAccount token is rotated on disk
@@ -125,6 +199,11 @@ const getJson: (url: URL) => Promise<unknown> = (
           res.on("end", (): void => {
             const body: string = Buffer.concat(chunks).toString("utf8");
             const status: number = res.statusCode || 0;
+
+            if (status === 404 && orNull) {
+              resolve(null);
+              return;
+            }
 
             if (status < 200 || status >= 300) {
               reject(
@@ -168,9 +247,7 @@ const getJson: (url: URL) => Promise<unknown> = (
  * the API server's watch cache (resourceVersion=0): a cheap, filtered read,
  * not a walk of etcd.
  */
-export const listServices: ListServices = async (
-  query: ServiceQuery,
-): Promise<Array<KubernetesService>> => {
+const apiBaseUrl: () => string = (): string => {
   const base: string | null = getKubernetesApiBaseUrl();
 
   if (!base) {
@@ -179,7 +256,13 @@ export const listServices: ListServices = async (
     );
   }
 
-  const url: URL = new URL(`${base.replace(/\/+$/, "")}/api/v1/services`);
+  return base.replace(/\/+$/, "");
+};
+
+export const listServices: ListServices = async (
+  query: ServiceQuery,
+): Promise<Array<KubernetesService>> => {
+  const url: URL = new URL(`${apiBaseUrl()}/api/v1/services`);
   url.searchParams.set("resourceVersion", "0");
 
   if (query.labelSelector) {
@@ -195,4 +278,52 @@ export const listServices: ListServices = async (
   )) as KubernetesServiceList;
 
   return Array.isArray(list?.items) ? list.items : [];
+};
+
+/*
+ * The pods of one namespace that a selector matches (an engine's Service's
+ * selector), from the API server's watch cache: the engine's pods alone,
+ * never a walk of the cluster's.
+ */
+export const listPods: ListPods = async (
+  query: PodQuery,
+): Promise<Array<KubernetesPod>> => {
+  if (!NAMESPACE_PATTERN.test(query.namespace)) {
+    throw new Error(`"${query.namespace}" is not a namespace's name`);
+  }
+
+  const url: URL = new URL(
+    `${apiBaseUrl()}/api/v1/namespaces/${query.namespace}/pods`,
+  );
+  url.searchParams.set("resourceVersion", "0");
+  url.searchParams.set("labelSelector", query.labelSelector);
+
+  const list: KubernetesPodList = (await getJson(url)) as KubernetesPodList;
+
+  return Array.isArray(list?.items) ? list.items : [];
+};
+
+// One ConfigMap, or null when its namespace has none of that name.
+export const getConfigMap: GetConfigMap = async (
+  namespace: string,
+  name: string,
+): Promise<KubernetesConfigMap | null> => {
+  if (!NAMESPACE_PATTERN.test(namespace)) {
+    throw new Error(`"${namespace}" is not a namespace's name`);
+  }
+
+  if (name.length > 253 || !OBJECT_NAME_PATTERN.test(name)) {
+    throw new Error(`"${name}" is not a ConfigMap's name`);
+  }
+
+  const configMap: unknown = await getJson(
+    new URL(
+      `${apiBaseUrl()}/api/v1/namespaces/${namespace}/configmaps/${name}`,
+    ),
+    true,
+  );
+
+  return configMap && typeof configMap === "object"
+    ? (configMap as KubernetesConfigMap)
+    : null;
 };

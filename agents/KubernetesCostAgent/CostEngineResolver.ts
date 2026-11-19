@@ -17,6 +17,7 @@ import {
   serviceOfUrl,
 } from "./EngineDiscovery";
 import { MetricsEngine } from "./EngineMetrics";
+import { PrometheusEngine } from "./EnginePrometheus";
 import { EnginePricing, readEnginePricing } from "./EnginePricing";
 import { KubernetesService, ListServices, listServices } from "./KubernetesApi";
 import Logger from "./Logger";
@@ -458,6 +459,50 @@ export class CostEngineResolver implements CostEngineSource {
     return this.options.mode === "bundled"
       ? this.metricsEngineAt(this.options.engineUrl, null)
       : null;
+  }
+
+  /*
+   * The engine whose Prometheus the memory peaks are read from (#9777): the
+   * one the allocations are read from, as metricsEngine() picks it, with
+   * where it came from and the Service it is, so its pods can say which
+   * Prometheus it reads. The engine cost.engine.url names from the start,
+   * once its Service has been read to say which engine it is; the bundled
+   * one before the first look; in auto mode none until one is found.
+   */
+  public prometheusEngine(): PrometheusEngine | null {
+    if (this.options.mode === "configured") {
+      const url: string = this.options.engineUrl.trim().replace(/\/+$/, "");
+
+      return url
+        ? {
+            url,
+            origin: "configured",
+            kind:
+              this.configuredKind ||
+              (this.selected ? this.selected.client.engineKind() : null),
+            service: serviceOfUrl(url),
+          }
+        : null;
+    }
+
+    if (!this.selected) {
+      const url: string = this.options.engineUrl.trim().replace(/\/+$/, "");
+
+      return this.options.mode === "bundled" && url
+        ? { url, origin: "bundled", kind: null, service: serviceOfUrl(url) }
+        : null;
+    }
+
+    const candidate: EngineCandidate | null = this.selected.candidate;
+
+    return {
+      url: this.selected.client.baseUrl,
+      origin: this.selected.origin,
+      kind: candidate?.kind || null,
+      service: candidate
+        ? { name: candidate.name, namespace: candidate.namespace }
+        : serviceOfUrl(this.selected.client.baseUrl),
+    };
   }
 
   private metricsEngineAt(

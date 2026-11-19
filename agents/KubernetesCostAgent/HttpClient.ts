@@ -14,14 +14,17 @@ const request: (options: {
   url: URL;
   headers?: Record<string, string>;
   body?: Buffer | undefined;
+  timeoutMs?: number | undefined;
 }) => Promise<HttpResult> = (options: {
   method: "GET" | "POST";
   url: URL;
   headers?: Record<string, string>;
   body?: Buffer | undefined;
+  timeoutMs?: number | undefined;
 }): Promise<HttpResult> => {
   const transport: typeof http | typeof https =
     options.url.protocol === "https:" ? https : http;
+  const timeoutMs: number = options.timeoutMs || REQUEST_TIMEOUT_MS;
 
   return new Promise(
     (
@@ -31,7 +34,8 @@ const request: (options: {
       const req: http.ClientRequest = transport.request(
         {
           method: options.method,
-          hostname: options.url.hostname,
+          // An IPv6 address is written in brackets in a URL, not in a request.
+          hostname: options.url.hostname.replace(/^\[|\]$/g, ""),
           port:
             options.url.port || (options.url.protocol === "https:" ? 443 : 80),
           path: options.url.pathname + options.url.search,
@@ -44,7 +48,7 @@ const request: (options: {
               : {}),
             ...(options.headers || {}),
           },
-          timeout: REQUEST_TIMEOUT_MS,
+          timeout: timeoutMs,
         },
         (res: http.IncomingMessage): void => {
           const chunks: Array<Buffer> = [];
@@ -61,9 +65,7 @@ const request: (options: {
       );
 
       req.on("timeout", (): void => {
-        req.destroy(
-          new Error(`Request timed out after ${REQUEST_TIMEOUT_MS}ms`),
-        );
+        req.destroy(new Error(`Request timed out after ${timeoutMs}ms`));
       });
       req.on("error", (err: Error): void => {
         reject(err);
@@ -80,11 +82,13 @@ const request: (options: {
 export const httpGetJson: (
   url: URL,
   headers?: Record<string, string>,
+  timeoutMs?: number,
 ) => Promise<HttpResult> = (
   url: URL,
   headers?: Record<string, string>,
+  timeoutMs?: number,
 ): Promise<HttpResult> => {
-  return request({ method: "GET", url, headers: headers || {} });
+  return request({ method: "GET", url, headers: headers || {}, timeoutMs });
 };
 
 export const httpPostJson: (
