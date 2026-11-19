@@ -274,12 +274,20 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+const POLICY_NAME: string = "Payments on-call";
+
+/*
+ * A case that creates more than one policy gives each its own name: two
+ * policies of a project may not share one (#9834), so a second "Payments
+ * on-call" is refused before the case reaches what it checks (#10002).
+ */
 async function createPolicy(
   props: DatabaseCommonInteractionProps,
   miscDataProps: JSONObject = FIRST_RESPONDERS,
+  name: string = POLICY_NAME,
 ): Promise<OnCallDutyPolicy> {
   const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-  policy.name = "Payments on-call";
+  policy.name = name;
 
   const createBy: CreateBy<OnCallDutyPolicy> = {
     data: policy,
@@ -314,7 +322,7 @@ describe("a new policy with first responders", () => {
       const policy: StoredRow = onlyRow(policies);
       expect(id(policy["_id"])).toBe(id(created.id));
       expect(id(policy["projectId"])).toBe(id(PROJECT_ID));
-      expect(policy["name"]).toBe("Payments on-call");
+      expect(policy["name"]).toBe(POLICY_NAME);
       expect(id(policy["createdByUserId"])).toBe(id(props.userId));
 
       // With its first level: Level 1, waiting 30 minutes, on the new policy.
@@ -349,38 +357,87 @@ describe("a new policy with first responders", () => {
   );
 
   test("a schedule, a team or a person alone: the first level pages only them", async () => {
-    for (const [miscDataProps, table] of [
+    /*
+     * Three policies in one project, against the same tables: each has its
+     * own name, and the tables are kept between them, so the counts below
+     * add up across the three.
+     */
+    const kinds: Array<[string, JSONObject, () => InMemoryTable]> = [
       [
+        "Payments on-call, paging a schedule",
         { onCallSchedules: [SCHEDULE_ID] },
         () => {
           return ruleSchedules;
         },
       ],
       [
+        "Payments on-call, paging a team",
         { teams: [TEAM_ID] },
         () => {
           return ruleTeams;
         },
       ],
       [
+        "Payments on-call, paging a person",
         { users: [PERSON_ID] },
         () => {
           return ruleUsers;
         },
       ],
-    ] as Array<[JSONObject, () => InMemoryTable]>) {
+    ];
+
+    for (const [name, miscDataProps, table] of kinds) {
       const before: number = rules.inserts.length;
 
-      await createPolicy(caller(Permission.OnCallMember), miscDataProps);
+      const created: OnCallDutyPolicy = await createPolicy(
+        caller(Permission.OnCallMember),
+        miscDataProps,
+        name,
+      );
 
       expect(rules.inserts.length).toBe(before + 1);
       expect(table().inserts.length).toBe(1);
+
+      // The new level pages only who was picked, on this policy.
+      const rule: StoredRow = rules.inserts[rules.inserts.length - 1]!;
+      expect(id(rule["onCallDutyPolicyId"])).toBe(id(created.id));
+      expect(id(table().inserts[0]!["onCallDutyPolicyId"])).toBe(
+        id(created.id),
+      );
     }
 
+    // All three are saved, under their own names.
+    expect(
+      policies.inserts.map((row: StoredRow): unknown => {
+        return row["name"];
+      }),
+    ).toEqual(
+      kinds.map(([name]: [string, JSONObject, () => InMemoryTable]) => {
+        return name;
+      }),
+    );
+    expect(rules.inserts).toHaveLength(3);
     expect(ruleUsers.inserts).toHaveLength(1);
     expect(ruleTeams.inserts).toHaveLength(1);
     expect(ruleSchedules.inserts).toHaveLength(1);
     expect(errors).toEqual([]);
+  });
+
+  test("a second policy of the project with the same name is still refused, and the first is kept", async () => {
+    await createPolicy(caller(Permission.OnCallMember), {
+      onCallSchedules: [SCHEDULE_ID],
+    });
+
+    await expect(
+      createPolicy(caller(Permission.OnCallMember), { teams: [TEAM_ID] }),
+    ).rejects.toThrow(
+      `There is already an on-call policy called ${POLICY_NAME} in this project. Pick another name.`,
+    );
+
+    expect(policies.inserts).toHaveLength(1);
+    expect(rules.inserts).toHaveLength(1);
+    expect(ruleSchedules.inserts).toHaveLength(1);
+    expect(ruleTeams.inserts).toHaveLength(0);
   });
 
   test("a person who is not a member of the project is still refused, before anything is saved", async () => {

@@ -10,9 +10,16 @@ import { JSONObject } from "../../../../Types/JSON";
  * share one approval card. AskAiSetupRequests.test.ts checks the list
  * offline against the toolbox (every call names a tool, every argument is
  * one its schema takes, a plan is proposed whole and runs in its plan's
- * order, a project that pages people already gets no second policy). A
- * runner that asks a live model each request and grades its calls against
- * these is a follow-up; this list is what it replays.
+ * order, a project that pages people already gets no second policy).
+ *
+ * `npm run ask-ai-eval -- --suite=setup --llm-type=<type> --model=<name>`
+ * asks a live model each request through Ask AI's chat turn and grades the
+ * plan it proposes against these (#7246): Server/Utils/AI/Eval/AskAi, run
+ * by App's scripts/ask-ai-eval.ts, documented in Docs/ai/evals.md. Each
+ * request is asked in the project its `project` names
+ * (AskAiEvalProject); AskAiEvalTurn.test.ts holds every one offline. A
+ * request a live model keeps failing becomes a prompt fix (SETUP_SECTION
+ * in Chat/ObservabilityChatPrompt.ts) or a new entry here.
  *
  * `arguments` holds what the calls must say: a model may add an argument the
  * schema takes (a name it was given, isApi: false), never contradict one.
@@ -38,6 +45,8 @@ export interface SetupRequest {
   request: string;
   project: SetupRequestProject;
   expected: Array<ExpectedSetupCall>;
+  // The language the person reads the Dashboard in, when not English.
+  language?: string | undefined;
   // Why, when it is not plain from the calls.
   note?: string | undefined;
 }
@@ -195,6 +204,7 @@ export const ASK_AI_SETUP_REQUESTS: ReadonlyArray<SetupRequest> = [
   {
     request: "Überwache example.com und schick mir eine SMS, wenn es ausfällt.",
     project: SetupRequestProject.PagesNobody,
+    language: "de",
     expected: [
       {
         tool: "set_up_website_monitoring",

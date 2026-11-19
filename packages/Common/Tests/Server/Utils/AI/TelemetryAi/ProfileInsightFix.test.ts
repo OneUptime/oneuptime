@@ -10,6 +10,7 @@ import type { SpyInstance } from "jest-mock";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
+import CodeFixOnItsWay from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import OpenPullRequestCap from "../../../../../Server/Utils/AI/CodeFix/OpenPullRequestCap";
 import CodeTaskContextBuilder from "../../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
@@ -229,6 +230,18 @@ describe("ProfileInsightFix.start", () => {
       "OneUptime found this in the service's profiles on its own.",
     );
     expect(call["message"]).toContain("say why and change nothing");
+    /*
+     * Never beside a person's fix of the function asked the same moment:
+     * its INSERT is held to the function too (CodeFixOnItsWay).
+     */
+    expect(call["holdsTo"]).toEqual([
+      CodeFixOnItsWay.ofProfileFunction({
+        projectId: PROJECT_ID,
+        serviceId: new ObjectID(CHECKOUT),
+        functionName: "OrderParser.parse",
+        fileName: "src/orders/parser.ts",
+      }),
+    ]);
 
     const context: JSONObject = buildItem.mock
       .calls[0]![0] as unknown as JSONObject;

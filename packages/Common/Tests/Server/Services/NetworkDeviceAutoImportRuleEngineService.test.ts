@@ -21,8 +21,9 @@
  *     create that loses a race reads as "already registered", never as a
  *     renamed twin;
  *   - the name-collision retry: same device, fallback name, exactly once;
- *   - the jsonb write-back: only the created rows flip isAlreadyRegistered,
- *     everything else — junk rows included — passes through verbatim;
+ *   - the stored hosts are never written back (issue #9906): which host is
+ *     a device is worked out on every read, so the engine's one write to
+ *     the scan is the marker;
  *   - staleness: results older than MAX_RESULT_AGE_IN_HOURS are retired
  *     without importing (Run Now stays the deliberate path to old results);
  *   - a dry run evaluates everything, writes nothing, and is bounded by the
@@ -594,11 +595,11 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     });
   });
 
-  it("imports the matching host and flips only its row in the write-back", async () => {
+  it("imports the matching host and writes back nothing but the marker", async () => {
     /*
-     * Kept as references: the write-back contract is about identity, not
-     * just shape — untouched rows (junk included) must pass through
-     * verbatim so the stored jsonb stays exactly what the probe sent.
+     * The stored hosts (junk included) stay exactly what the probe sent:
+     * whether a host is a device is worked out on every read (issue #9906),
+     * so the engine never writes a copy of the answer into the jsonb.
      */
     const junkRow: DiscoveredNetworkDevice =
       null as unknown as DiscoveredNetworkDevice;
@@ -657,18 +658,11 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
 
     expect(scanUpdateMock).toHaveBeenCalledTimes(1);
     const updateCall: any = scanUpdateMock.mock.calls[0]![0];
+    expect(Object.keys(updateCall.data)).toEqual(["autoImportProcessedAt"]);
     expect(updateCall.data.autoImportProcessedAt).toBeInstanceOf(Date);
-
-    const restamped: Array<unknown> = updateCall.data.discoveredDevices;
-    expect(restamped).toHaveLength(3);
-    expect(restamped[0]).toBeNull();
-    // The created row flips its flag so the Review dialog stops offering it.
-    expect(restamped[1]).toEqual({
-      ...matchingRow,
-      isAlreadyRegistered: true,
-    });
-    // The unmatched row is the SAME object, not a rewritten copy.
-    expect(restamped[2]).toBe(unmatchedRow);
+    // Nor is a row the engine read changed in memory.
+    expect(matchingRow.isAlreadyRegistered).toBeUndefined();
+    expect(unmatchedRow.isAlreadyRegistered).toBe(true);
   });
 
   /*
@@ -2034,12 +2028,11 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       isTruncated: true,
     });
 
-    // The write-back still retires what WAS created…
-    expect(scanUpdateMock).toHaveBeenCalledTimes(1);
-    const updateCall: any = scanUpdateMock.mock.calls[0]![0];
-    expect(updateCall.data.discoveredDevices).toHaveLength(hosts.length);
-    // …but the marker stays NULL: this scan is not done.
-    expect(Object.keys(updateCall.data)).not.toContain("autoImportProcessedAt");
+    /*
+     * The marker stays NULL - this scan is not done - and with the hosts
+     * never written back (issue #9906) nothing else is written either.
+     */
+    expect(scanUpdateMock).not.toHaveBeenCalled();
   });
 
   it("does not stamp a later scan when an earlier scan exactly exhausted the shared project budget", async () => {
@@ -2507,14 +2500,14 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
       expect(semaphoreReleaseMock).toHaveBeenCalledWith(FAKE_MUTEX);
 
       /*
-       * The write-back retires the imported host for the Review dialog, but
-       * the MARKER is deliberately not stamped: a manual run of one rule
-       * has not done what the full rule set would, so the automatic path
-       * must still get its turn at these results.
+       * Nothing is written to the scan. The MARKER is deliberately not
+       * stamped: a manual run of one rule has not done what the full rule
+       * set would, so the automatic path must still get its turn at these
+       * results. And the imported host is not flipped in the stored hosts
+       * (issue #9906): Review Results reads it as Already added from the
+       * inventory.
        */
-      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
-      const updateCall: any = scanUpdateMock.mock.calls[0]![0];
-      expect(Object.keys(updateCall.data)).toEqual(["discoveredDevices"]);
+      expect(scanUpdateMock).not.toHaveBeenCalled();
     });
 
     /*
@@ -2659,7 +2652,8 @@ describe("re-import after deleting discovered devices or monitors (issue #3560)"
       });
       expect(createMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
       expect(monitorCreateMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
-      expect(scanUpdateMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
+      // A manual run writes nothing to the scan (issue #9906).
+      expect(scanUpdateMock).not.toHaveBeenCalled();
 
       if (!isDryRun) {
         const device: NetworkDevice = createdDevice(0);
@@ -2669,9 +2663,6 @@ describe("re-import after deleting discovered devices or monitors (issue #3560)"
         expect(
           provisionedMonitor(0).autoProvisionedNetworkDeviceId?.toString(),
         ).toBe(device.id?.toString());
-        expect(scanUpdateMock.mock.calls[0]![0].data).toEqual({
-          discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
-        });
       }
     },
   );
@@ -2860,7 +2851,8 @@ describe("re-import after deleting discovered devices or monitors (issue #3560)"
     });
     expect(inventory.size).toBe(hosts.length);
     expect(createMock).toHaveBeenCalledTimes(hosts.length);
-    expect(scanUpdateMock).toHaveBeenCalledTimes(2);
+    // Each run resumed from the inventory alone: nothing was written back.
+    expect(scanUpdateMock).not.toHaveBeenCalled();
   });
 });
 
@@ -2983,10 +2975,12 @@ describe("auto-import from a scan that is still sweeping (issue #3599)", () => {
   });
 
   /*
-   * The write-back still retires the hosts this pass consumed, so the Review
-   * dialog stops offering them — on a running scan just as on a finished one.
+   * The hosts a pass imported are never flipped in the stored jsonb (issue
+   * #9906) - on a running scan just as on a finished one. Review Results
+   * reads them as Already added from the inventory, and the next tick skips
+   * them the same way (below).
    */
-  it("flips isAlreadyRegistered on the rows it imported", async () => {
+  it("leaves the stored hosts of a running scan as the probe reported them", async () => {
     scanFindOneByMock.mockResolvedValue(
       makeInProgressScan({
         discoveredDevices: [makeHost(), makeHost({ ipAddress: "10.0.0.99" })],
@@ -2996,11 +2990,11 @@ describe("auto-import from a scan that is still sweeping (issue #3599)", () => {
 
     await processScan();
 
-    const written: Array<DiscoveredNetworkDevice> = scanUpdateMock.mock
-      .calls[0]![0].data.discoveredDevices as Array<DiscoveredNetworkDevice>;
-
-    expect(written[0]!.isAlreadyRegistered).toBe(true);
-    expect(written[1]!.isAlreadyRegistered).toBeUndefined();
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+    expect(Object.keys(scanUpdateMock.mock.calls[0]![0].data)).toEqual([
+      "autoImportProcessedAt",
+    ]);
   });
 
   /*
@@ -3415,10 +3409,8 @@ describe("a capped run reports the remainder (issue #3642)", () => {
 
     await processScan();
 
-    expect(scanUpdateMock).toHaveBeenCalledTimes(1);
-    const updateCall: { data: JSONObject } = scanUpdateMock.mock
-      .calls[0]![0] as { data: JSONObject };
-    expect(Object.keys(updateCall.data)).not.toContain("autoImportProcessedAt");
+    // No marker, and no hosts written back (issue #9906): no write at all.
+    expect(scanUpdateMock).not.toHaveBeenCalled();
   });
 });
 
@@ -5631,17 +5623,13 @@ describe("who an import's devices and monitors are by (issue #6323)", () => {
       });
     });
 
-    it("the scan's write-back is the engine's own bookkeeping, carrying no one", async () => {
+    it("a person's run writes nothing to the scan, so nothing there carries anyone", async () => {
       twoHostsToImport(false);
 
       await runRuleAs(RUNNER);
 
-      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
-      expect(Object.keys(scanUpdateMock.mock.calls[0]![0]).sort()).toEqual([
-        "data",
-        "expectedData",
-        "id",
-      ]);
+      expect(deviceCreateProps()).toHaveLength(2);
+      expect(scanUpdateMock).not.toHaveBeenCalled();
     });
 
     it("a run that names nobody is OneUptime's own", async () => {

@@ -11,7 +11,11 @@ import {
   getCaseConnectionWindow,
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import SecurityCaseService from "../../../Services/SecurityCaseService";
-import { isRefusedRead } from "../../SecurityEvent/Connections/SecurityConnectedRecords";
+/*
+ * Not from the connections: the services they read reach this context at
+ * load, so it must not load them (ConnectionsLoadOrder).
+ */
+import { isRefusedRead } from "../../SecurityEvent/Connections/RefusedRead";
 import logger from "../../Logger";
 
 /*

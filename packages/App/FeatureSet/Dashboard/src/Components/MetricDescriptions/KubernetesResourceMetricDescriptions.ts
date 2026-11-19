@@ -230,7 +230,7 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
     "How much can still be written to the volume, measured on the claim bound to it.",
   ),
   nodeDiskUsed: translationKey(
-    "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 90%, where the kubelet starts evicting pods by default.",
+    "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full and red from 90%; by default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the container images.",
   ),
   nodeDiskFree: translationKey(
     "How much can still be written to this node's root filesystem, as the kubelet last measured it.",
@@ -249,7 +249,7 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
     "Capacity is the node's total memory; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
   ),
   nodeEphemeralStorageCapacity: translationKey(
-    "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can request after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
+    "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
   ),
   nodePodCapacity: translationKey(
     "The most pods this node is configured to run at once. It caps how many pods fit here even when CPU and memory are still free.",

@@ -55,9 +55,9 @@ Rapporten räknar vad som skapades, bjöds in och inte fördes över, och visar 
 | I PagerDuty | I OneUptime | Hur |
 | --- | --- | --- |
 | Användare | Projektmedlemmar | Matchas på e-postadress. Alla som inte är med i projektet ännu bjuds in till teamet du väljer. |
-| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. |
-| Scheman | Jourscheman | Varje lager blir ett lager med samma personer, samma start, samma passlängd och samma begränsningar, i schemats tidszon, ägt av schemats team. Lagren behåller sin ordning, så ett högre lager går fortfarande före lagren under det. |
-| Eskaleringspolicyer | Jourpolicyer | Varje eskaleringsregel blir en eskaleringsregel som larmar samma scheman och användare och eskalerar efter samma fördröjning. Policyns upprepningar blir jourpolicyns upprepningar. |
+| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. Har två team samma namn, förs det andra objektet över med ett nummer, till exempel `Platform 2`, och rapporten visar namnet det skapades med. |
+| Scheman | Jourscheman | Varje lager blir ett lager med samma personer, samma start, samma passlängd och samma begränsningar, i schemats tidszon, ägt av schemats team. Lagren behåller sin ordning, så ett högre lager går fortfarande före lagren under det. Har två scheman samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
+| Eskaleringspolicyer | Jourpolicyer | Varje eskaleringsregel blir en eskaleringsregel som larmar samma scheman och användare och eskalerar efter samma fördröjning. Policyns upprepningar blir jourpolicyns upprepningar. Har två eskaleringspolicyer samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
 | Tjänster | Tjänster | Skapas i tjänstekatalogen, ägda av sitt team. En tjänst som är avstängd i PagerDuty är inte markerad från början. |
 
 Ett PagerDuty-schema förblir ett OneUptime-schema: dess lager går före varandra på samma sätt som i PagerDuty. Ett lager vars pass inte är ett helt antal timmar förs över med passen avrundade till timmen, och förhandsgranskningen säger det.

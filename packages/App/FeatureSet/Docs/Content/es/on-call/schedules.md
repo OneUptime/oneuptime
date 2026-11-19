@@ -40,7 +40,7 @@ Todo lo demás espera en **Más campos**, plegado hasta que lo abras:
 | Campo | Qué hace |
 | --- | --- |
 | **Cada turno dura** | **1 día**, **1 semana**, **2 semanas** o **1 mes**, y **1 semana** si no lo cambias. Se pregunta en cuanto alguien se turna. Cada persona está de guardia ese tiempo y luego toma el relevo la siguiente, a la hora del día en que se creó la programación. |
-| **Zona horaria** | La zona horaria en la que se guardan las horas de relevo y las horas de guardia. Empieza con la tuya. |
+| **Zona horaria** | La zona horaria en la que se guardan las horas de relevo y las horas de guardia. Empieza con la tuya. Cada zona horaria sigue las reglas actuales de su región: America/Vancouver (Columbia Británica) se queda en UTC-7 todo el año desde 2026. |
 | **Descripción** | Notas sobre la programación. |
 | **Etiquetas** | Etiquetas para encontrar y agrupar la programación. |
 

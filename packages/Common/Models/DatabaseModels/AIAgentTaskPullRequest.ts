@@ -15,6 +15,7 @@ import { getBigIntDatabaseTransformer } from "../../Types/Database/BigIntColumnT
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -586,6 +587,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     canReadOnRelationQuery: true,
     title: "State",
     description: "Current state of the pull request (open, closed, merged).",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: false,

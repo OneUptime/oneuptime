@@ -1,0 +1,30 @@
+<%#
+    The button that acknowledges a page: a form, not a link. Mail scanners
+    and link previews open every link in a message, and the links on the
+    page it opens, and a page acknowledged by one of them would stop paging
+    with nobody on it. So the page asks, and only the person's own press
+    sends it. The page's token (OnCallPageLinkToken), the proof that the
+    press is the person's own, rides in the form, not in the address it
+    posts to. A link sent before links carried a token has none to send,
+    and its press is taken while it may be (OnCallAcknowledgeLink).
+
+    Locals: formUrl, tokenParam, token (empty for none), buttonText,
+    isQuiet (optional: drawn as a link, under another button), testId
+    (optional; acknowledge).
+-%>
+<form method="POST" action="<%= formUrl %>">
+    <% if (typeof token !== 'undefined' && token) { %>
+    <input type="hidden" name="<%= tokenParam %>" value="<%= token %>">
+    <% } %>
+    <% if (typeof isQuiet !== 'undefined' && isQuiet) { %>
+    <button type="submit" data-testid="<%= typeof testId !== 'undefined' && testId ? testId : 'acknowledge' %>"
+        class="text-sm font-medium text-gray-700 dark:text-slate-200 underline underline-offset-2 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-500 rounded">
+        <%= buttonText %>
+    </button>
+    <% } else { %>
+    <button type="submit" data-testid="<%= typeof testId !== 'undefined' && testId ? testId : 'acknowledge' %>"
+        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-yellow-500">
+        <%= buttonText %>
+    </button>
+    <% } %>
+</form>

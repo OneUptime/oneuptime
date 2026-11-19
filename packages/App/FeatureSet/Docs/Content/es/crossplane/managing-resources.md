@@ -32,7 +32,7 @@ Los campos de un tipo son los argumentos del recurso de Terraform, en camelCase,
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` muestra el registro tal como lo tiene OneUptime, con su `id`. Un campo que usted omite y que OneUptime rellena, como un valor predeterminado, se copia en `spec.forProvider` después de crear el registro, para que la siguiente comprobación no encuentre nada que cambiar.
+`status.atProvider` muestra el registro tal como lo tiene OneUptime, con su `id`. Un campo que usted omite y que OneUptime rellena, como un valor predeterminado, se copia en `spec.forProvider` después de crear el registro, para que la siguiente comprobación no encuentre nada que cambiar. Un campo que OneUptime mantiene al día por sí mismo nunca se copia: consulte [Campos que mantiene OneUptime](#campos-que-mantiene-oneuptime).
 
 ## Hacer referencia a otros recursos
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-Para que el panel controle un campo una vez creado el registro, escríbalo en `spec.initProvider` en lugar de en `spec.forProvider`: se usa para crear el registro, y el proveedor nunca lo restablece. Para que el panel controle todo el registro, deje `Update` fuera de sus políticas de gestión: `["Observe", "Create", "Delete", "LateInitialize"]`.
+Para que el panel controle un campo una vez creado el registro, escríbalo en `spec.initProvider` en lugar de en `spec.forProvider`: el registro se crea con él, y el proveedor nunca lo copia en `spec.forProvider` ni lo restablece. Esto vale para cualquier campo opcional; uno que el registro necesita, como el `name` de un monitor, va en `spec.forProvider`. Para que el panel controle todo el registro, deje `Update` fuera de sus políticas de gestión: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Campos que mantiene OneUptime
+
+Mantener al día algunos campos le corresponde a OneUptime, y el proveedor se los deja: nunca los copia en `spec.forProvider` y nunca los restablece.
+
+- Un campo que solo escribe OneUptime, como cuándo se ejecutó por última vez un monitor de telemetría (`telemetryMonitorLastMonitorAt`) o cuántos nodos tiene un clúster de Kubernetes (`nodeCount`), aparece únicamente en `status.atProvider`.
+- Un campo que tiene un valor inicial, como el `currentMonitorStatusId` de un monitor o el `currentIncidentStateId` de un incidente, se puede indicar para crear el registro, en `spec.initProvider` o en `spec.forProvider`. Después, OneUptime lo va cambiando, igual que las comprobaciones de un monitor cambian su estado, y `status.atProvider` muestra su valor actual.
+
+`kubectl explain` lo indica en la descripción de cada campo que tiene un valor inicial. Un recurso cuyo `spec.forProvider` rellenó con estos campos una versión anterior del proveedor deja de luchar contra OneUptime por sí solo, sin nada que editar.
 
 ## Eliminar un recurso
 

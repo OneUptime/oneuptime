@@ -49,6 +49,14 @@ import LIMIT_MAX, {
 } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
+import NameTakenException, {
+  NAME_TAKEN_REFUSAL_CODE,
+  REFUSAL_CODE_FIELD,
+} from "Common/Types/Exception/NameTakenException";
+import {
+  SharedNameKind,
+  getSharedNamesRoute,
+} from "Common/Types/Database/SharedNames";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -752,6 +760,39 @@ describe("OneUptime API Reference: a request and its answer", () => {
     ).toBeLessThan(
       authorization.indexOf("PlanCutoffCredentialAccess.getRefusal("),
     );
+  });
+
+  /*
+   * #9855, #9856: a name another record has is refused with a code beside
+   * its sentence, which a client reads in its place, and the records that
+   * share a name are answered for every kind that has a name of its own.
+   */
+  it("names the code a taken name is refused with, and every kind the shared names are answered for", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Names another record has",
+    );
+
+    expect(new NameTakenException("x").code).toBe(400);
+    expect(new NameTakenException("x").details).toEqual({
+      [REFUSAL_CODE_FIELD]: NAME_TAKEN_REFUSAL_CODE,
+    });
+    expect(section).toContain(
+      `\`"${REFUSAL_CODE_FIELD}": "${NAME_TAKEN_REFUSAL_CODE}"\``,
+    );
+
+    // The route, and each kind it answers for, by the name the route takes.
+    expect(section).toContain(
+      `\`GET /api${getSharedNamesRoute(SharedNameKind.Team)}\``,
+    );
+
+    for (const kind of Object.values(SharedNameKind)) {
+      const named: boolean =
+        section.includes(`\`GET /api${getSharedNamesRoute(kind)}\``) ||
+        section.includes(`\`${kind}\``);
+
+      expect({ kind, named }).toEqual({ kind, named: true });
+    }
   });
 });
 

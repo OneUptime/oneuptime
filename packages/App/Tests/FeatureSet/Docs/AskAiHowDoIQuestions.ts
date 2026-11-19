@@ -8,9 +8,14 @@
  * I", the Dashboard page where it is done, by the name Search gives it.
  *
  * AskAiHowDoIRetrieval.test.ts holds the docs search and the page finder
- * to them offline. The same list is what to run against a model (the
- * whole conversation, with a provider) to check the answers themselves:
- * a citation of `docsPage`, and a button for `dashboardPage`.
+ * to them offline. `npm run ask-ai-eval -- --suite=how-do-i
+ * --llm-type=<type> --model=<name>` asks a live model each question
+ * through Ask AI's chat turn and grades the answer (#7066): a citation of
+ * `docsPage` (or of a page `alsoAnswers` names), a Go to button for
+ * `dashboardPage`, and "The docs do not cover this." for the questions of
+ * ASK_AI_NOT_COVERED_QUESTIONS. It asks these, the German and Persian ones
+ * below (ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED), and those. The runner is
+ * App's scripts/ask-ai-eval.ts, documented in Docs/ai/evals.md.
  */
 
 export interface AskAiHowDoIQuestion {
@@ -1060,3 +1065,14 @@ export const ASK_AI_QUESTIONS_BY_LANGUAGE: ReadonlyArray<AskAiHowDoIQuestionTran
       };
     },
   );
+
+/*
+ * Questions the docs do not answer, about something OneUptime does not do:
+ * the answer must say "The docs do not cover this." and name the pages it
+ * read, never a menu or a setting from memory (#7066).
+ */
+export const ASK_AI_NOT_COVERED_QUESTIONS: ReadonlyArray<string> = [
+  "How do I pay my OneUptime invoice in Bitcoin?",
+  "How do I get OneUptime to send me a fax when a monitor goes down?",
+  "How do I change the OneUptime app's icon on my phone's home screen?",
+];

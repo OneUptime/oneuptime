@@ -343,6 +343,18 @@ Verktøyet **`get_data_table_lineage`** forteller en agent hva en overvåket tab
 
 Verktøyet **`oneuptime_move_in_list`** flytter en rad i en ordnet liste, for eksempel en alvorlighetsgrad, en hendelsestilstand eller en monitorstatus, til en annen rads plass, slik det å dra den i dashbordet gjør: radene imellom flytter seg én plass, og det svarer med hver rad der nummeret endret seg. Oppgi `resource` (for eksempel `Incident Severity`), radens `id` og `placeOfId`, ID-en til raden den tar plassen til. Å skrive en rads nummer med dens `update_`-verktøy plasserer bare den raden, ved siden av en rad som allerede har det nummeret.
 
+## Verktøy for å sette opp ting
+
+Serveren har også oppsettshandlingene til Spør AI, ett kall hver: det du setter opp, i stedet for én post om gangen. Hver oppretter postene som Spør AI og de veiledede oppsettene oppretter for de samme svarene, med de samme kontrollene:
+
+- **`set_up_website_monitoring`**: en monitor for et nettsted eller et API på en adresse, som åpner en hendelse når adressen ikke svarer eller svarer med en feil. Den er din, og en adresse som en monitor allerede sjekker, får ikke en til
+- **`set_up_paging`**: i et prosjekt som ennå ikke tilkaller noen, den første vaktpolicyen, som tilkaller deg og personene og teamene du nevner ved hver ny hendelse og hvert nytt varsel
+- **`publish_status_page`**: en offentlig statusside som viser monitorene du nevner
+- **`add_monitors_to_status_page`**: monitorer satt på en statusside prosjektet har
+- **`who_is_told`**: hvem som får beskjed når en monitor er nede, og hva som ville hindret at noen blir nådd. Den endrer ingenting
+
+De handler som deg, pålogget med OAuth: en API-nøkkel for et prosjekt kan ikke bruke de fire som oppretter noe. Klienten din spør deg før hver av dem, og svaret sier hva som ble opprettet. Det som mangler, for eksempel en tillatelse, en adresse eller plass i abonnementet, sies før noe opprettes.
+
 ## Spørre etter telemetri
 
 Logger, målinger, spor (spans), unntak, monitorlogger og de andre typene telemetri kommer som skrivebeskyttede verktøy `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og `count_`-tvillingene deres). Telemetri kommer inn gjennom OpenTelemetry, så det finnes ingen opprettingsverktøy.

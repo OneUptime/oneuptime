@@ -147,6 +147,12 @@ const WORKFLOW_TOOL_NAMES: string[] = [
   "oneuptime_whoami",
   // Every ordered list's move, as the dashboard's drag (Tests/MoveInList).
   "oneuptime_move_in_list",
+  // Ask AI's setup actions, one call each (Tests/SetupTools, #7241).
+  "set_up_website_monitoring",
+  "set_up_paging",
+  "publish_status_page",
+  "add_monitors_to_status_page",
+  "who_is_told",
 ];
 
 describe("WorkflowTools", () => {
@@ -930,7 +936,7 @@ describe("WorkflowTools", () => {
   });
 
   describe("isReadOnlyWorkflowTool", () => {
-    it("marks whoami and a table's freshness and lineage, and only those, as tools that only read", () => {
+    it("marks whoami, a table's freshness and lineage, and who is told, and only those, as tools that only read", () => {
       expect(
         WORKFLOW_TOOL_NAMES.filter((name: string): boolean => {
           return isReadOnlyWorkflowTool(name);
@@ -939,6 +945,7 @@ describe("WorkflowTools", () => {
         "get_data_table_freshness",
         "get_data_table_lineage",
         "oneuptime_whoami",
+        "who_is_told",
       ]);
     });
 

@@ -1,9 +1,8 @@
 import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CodeFixOnItsWay from "../CodeFix/CodeFixOnItsWay";
 import CodeTaskThread from "../CodeTask/CodeTaskThread";
-import AIRun from "../../../../Models/DatabaseModels/AIRun";
-import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import { getTelemetryAiFixTaskTypes } from "../../../../Types/AI/TelemetryAi";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -76,30 +75,17 @@ export default class TelemetryAiFix {
   /*
    * The Code task about this insight that is still on its way - one
    * OneUptime started, or one a person asked for from the insight - or
-   * null. Its first turn's id is the task's.
+   * null. On its way is the rule every fix holds to (CodeFixOnItsWay): a
+   * turn of it queued or running, its first turn, the fix asked again or a
+   * reply someone sent in Code, which carries no insight of its own. Its
+   * first turn's id is the task's.
    */
   @CaptureSpan()
   public static async findActiveTaskIdForInsight(data: {
     projectId: ObjectID;
     insightId: ObjectID;
   }): Promise<string | null> {
-    const run: AIRun | null = await AIRunService.findOneBy({
-      query: {
-        projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: QueryHelper.any(getTelemetryAiFixTaskTypes()),
-        triggeredByAiInsightId: data.insightId,
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: { _id: true, codeTaskId: true },
-      props: { isRoot: true },
-    });
-
-    if (!run) {
-      return null;
-    }
-
-    return (run.codeTaskId || run.id)?.toString() || null;
+    return await CodeFixOnItsWay.findTaskId(CodeFixOnItsWay.ofInsight(data));
   }
 
   /*

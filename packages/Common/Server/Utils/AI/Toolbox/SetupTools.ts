@@ -130,8 +130,11 @@ import { readRequestedReaderLanguage } from "../../../../Types/ReaderLanguage";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
   SETUP_PLAN_ORDER,
+  SetupTestPageTarget,
   addMemberUsers,
   countMonitorsSetUpInPlan,
+  getMissingMethodAdviceForModel,
+  getTestPageOfferForModel,
   plainName,
   quotedName,
   readMonitorPlanRefusal,
@@ -1335,7 +1338,7 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
         incidentSeverityName
           ? `If it does not answer, or answers with an error, OneUptime opens an incident (${incidentSeverityName}).`
           : "If it does not answer, or answers with an error, its status changes to Offline."
-      }${agreementSentence ? ` ${agreementSentence}` : ""} The person owns it, so they are emailed when its status changes. Who else is told depends on the project's on-call policies and rules: who_is_told answers it. Under your answer the person can send themselves a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
+      }${agreementSentence ? ` ${agreementSentence}` : ""} The person owns it, so they are emailed when its status changes. Who else is told depends on the project's on-call policies and rules: who_is_told answers it. ${getTestPageOfferForModel(ctx, SetupTestPageTarget.Self)}\n${serialized.text}`,
       rowCount: 1,
       // In the reader's language (issue #8311).
       ...citationSentence(AI_TOOL_CITATIONS.setUpMonitor, {
@@ -2577,7 +2580,7 @@ export const SetUpPagingTool: ObservabilityTool = {
     return {
       dataForLlm: `Created the on-call policy "${policyName}". Its first escalation rule pages ${pagedNames.join(", ")}, and two on-call rules run it for every new incident and alert, so every monitor that opens one pages them.${describeLevelsDoneInEnglish(
         { escalation: escalation, done: done },
-      )} How a page reaches each person is their own notification rules and verified methods (Notification Methods). If the approval card said a phone number or the app is missing, tell the person to add and verify it in Notification Methods, and end with that page's citation (find_dashboard_page "Notification Methods"). Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
+      )} How a page reaches each person is their own notification rules and verified methods (Notification Methods). ${getMissingMethodAdviceForModel(ctx)} ${getTestPageOfferForModel(ctx, SetupTestPageTarget.Policy)}\n${serialized.text}`,
       rowCount: 1,
       ...citationSentence(AI_TOOL_CITATIONS.createdOnCallPolicy, {
         name: policyName,
@@ -3389,7 +3392,7 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         failures.length > 0
           ? ` Not added: ${failures.join("; ")}. Say exactly what was not added, and why.`
           : ""
-      } Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.`,
+      } ${getTestPageOfferForModel(ctx, SetupTestPageTarget.Policy)}`,
       rowCount: 1,
       ...citationSentence(AI_TOOL_CITATIONS.addedToOnCallPolicy, {
         name: addition.policyName,

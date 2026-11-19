@@ -21,9 +21,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * is shown, AIToolbox.checkBeforeApproval asks the gates a run asks - the
  * request is this project's, there is a signed-in person to act as, and
  * they hold the action's permissions - then the action's own check. Either
- * refusal is what the model is told instead of a card; nothing runs. Any
- * other tool keeps its card, and its gates are asked when it runs, as
- * before.
+ * refusal is what the model is told instead of a card; nothing runs. Every
+ * other action is asked the same gates before its card since #7248
+ * (ActionGateBeforeTheCard); a read is never asked: it runs at once,
+ * through the same gates.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -50,16 +51,9 @@ const SETUP_TOOL: { execute: ObservabilityTool["execute"] } =
   };
 
 describe("AIToolbox.checkBeforeApproval", () => {
-  test("is no gate for a tool that is not a setup action: its card shows, and it is gated when it runs", async () => {
+  test("is no gate for a read: it runs at once, gated as it runs", async () => {
     const execute: Spy = jest.spyOn(SETUP_TOOL, "execute");
 
-    expect(
-      await AIToolbox.checkBeforeApproval({
-        name: "create_incident",
-        args: { title: "x" },
-        ctx: asMember([]),
-      }),
-    ).toBeNull();
     expect(
       await AIToolbox.checkBeforeApproval({
         name: "query_monitors",
@@ -68,6 +62,34 @@ describe("AIToolbox.checkBeforeApproval", () => {
       }),
     ).toBeNull();
     expect(execute).not.toHaveBeenCalled();
+  });
+
+  /*
+   * REGRESSION (#7248): any other action went on the card, to be approved
+   * and only then refused ("Not done: your role does not allow it").
+   */
+  test("gates an action that is not a setup action too: one the person may not take gets no card", async () => {
+    const refused: ToolCallOutcome | null = await AIToolbox.checkBeforeApproval(
+      {
+        name: "create_incident",
+        args: { title: "x" },
+        ctx: asMember([]),
+      },
+    );
+
+    expect(refused?.success).toBe(false);
+    expect(refused?.refusal).toBe(AIToolRefusal.Permission);
+    expect(refused?.textForLlm).toContain(
+      "does not have permission to use create_incident",
+    );
+
+    expect(
+      await AIToolbox.checkBeforeApproval({
+        name: "create_incident",
+        args: { title: "x" },
+        ctx: asMember([Permission.ProjectMember]),
+      }),
+    ).toBeNull();
   });
 
   test("a person whose role may not make it is told which permission it needs, and nothing runs", async () => {

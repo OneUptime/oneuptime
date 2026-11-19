@@ -13,6 +13,7 @@ import {
   getKubernetesComplianceControls,
 } from "./KubernetesComplianceCatalog";
 import {
+  KubernetesComplianceAcceptedFinding,
   KubernetesComplianceDetail,
   KubernetesComplianceFinding,
   KubernetesComplianceObject,
@@ -22,6 +23,8 @@ import {
 import {
   KubernetesCompliancePod,
   KubernetesComplianceSnapshot,
+  KubernetesComplianceTemplate,
+  getTemplatesToScore,
 } from "./KubernetesComplianceSnapshot";
 import {
   PodSecurityControl,
@@ -42,7 +45,12 @@ import { withMeaningKeyAsItsWord } from "../../MeaningKeys";
  *   - A pod control reads every pod, and says what fails by the workload the
  *     pod belongs to - the Deployment, StatefulSet, DaemonSet, Job, CronJob
  *     or DeploymentConfig whose page a person opens, or the pod itself when
- *     nothing owns it - with how many of its pods fail and why.
+ *     nothing owns it - with how many of its pods fail and why. A workload
+ *     that runs no pod now - scaled to zero, a CronJob between runs, a
+ *     DaemonSet on no node - is read from its pod template instead, and its
+ *     finding says so (#9880). One that runs pods is read from them alone:
+ *     they are what was admitted, mutating webhooks included, and a rollout
+ *     under way still runs some on the old template.
  *   - An RBAC, service account, namespace or network policy control says
  *     what fails by the binding, role, service account or namespace.
  *
@@ -62,6 +70,14 @@ import { withMeaningKeyAsItsWord } from "../../MeaningKeys";
  *   - a framework turned off for a namespace - as Pod Security Admission
  *     exempts a namespace - leaves everything of that namespace out of it;
  *   - a control turned off for a namespace leaves that namespace out of it.
+ *
+ * And a finding can be accepted for its one object (#9874) - a workload, a
+ * binding, a namespace - for one control or the whole framework, with a
+ * reason, as Kyverno's PolicyException and Gatekeeper's exclusions do: the
+ * object is listed under the control as accepted, apart from what fails,
+ * and counts as passing. The next object that fails the control in the same
+ * namespace still fails it. The server hands only acceptances in force: an
+ * expired one fails again.
  *
  * Pure: the server scores with it, and its tests pin it.
  */
@@ -93,15 +109,36 @@ export interface KubernetesComplianceSetting {
   isEnabled: boolean;
 }
 
+/*
+ * A finding accepted for one object (#9874), as the scoring reads one: a
+ * setting in force - neither revoked nor expired - as the server reads it.
+ */
+export interface KubernetesComplianceAcceptance {
+  // The setting that accepts it, which the page revokes it by.
+  id: string;
+  framework: KubernetesComplianceFramework;
+  // A control of the framework; "" for every control of it.
+  requirement: string;
+  object: KubernetesComplianceObject;
+}
+
 export interface KubernetesComplianceRequirementResult {
   requirement: string;
   title: string;
   status: ComplianceRequirementStatus;
   notEvaluatedReason?: KubernetesComplianceNotEvaluatedReason | undefined;
-  // How many objects fail it, with what is turned off left out.
+  // How many objects fail it, with what is turned off or accepted left out.
   failingCount: number;
   // The objects that fail it, at most MAX_FINDINGS_PER_CONTROL.
   findings: Array<KubernetesComplianceFinding>;
+  /*
+   * The objects that fail it but are accepted (#9874), at most
+   * MAX_FINDINGS_PER_CONTROL: they count as passing. Absent from an older
+   * server's answer.
+   */
+  accepted?: Array<KubernetesComplianceAcceptedFinding> | undefined;
+  // How many objects are accepted.
+  acceptedCount?: number | undefined;
   // The namespaces it is turned off for.
   turnedOffNamespaces: Array<string>;
 }
@@ -118,10 +155,17 @@ export interface KubernetesComplianceFrameworkResult {
   turnedOffRequirements: Array<string>;
   // Namespaces the whole framework is turned off for.
   turnedOffNamespaces: Array<string>;
-  // Workloads whose pods were read, outside the namespaces turned off.
+  /*
+   * Workloads whose pods - or, running none, whose pod template (#9880) -
+   * were read, outside the namespaces turned off.
+   */
   workloadsEvaluated: number;
-  // Of those, the ones no pod control fails.
+  // Of those, the ones no pod control fails, what is accepted left out.
   workloadsPassing: number;
+  // Of those, the ones read from their pod template, running no pod (#9880).
+  workloadsFromTemplates?: number | undefined;
+  // Findings accepted, over every control (#9874).
+  acceptedCount?: number | undefined;
   // Pods stored before their security fields were kept, read at the next pull.
   podsNotRead: number;
   // Failing objects by namespace, to say which namespaces hold what fails.
@@ -254,11 +298,11 @@ function isPodControl(
   );
 }
 
-// What a pod fails a pod control by.
-function checkPod(
+// What a pod - or a pod template - of a namespace fails a pod control by.
+function checkPodSecurity(
   framework: KubernetesComplianceFramework,
   requirement: string,
-  pod: KubernetesCompliancePod,
+  namespace: string,
   security: PodSecurity,
   snapshot: KubernetesComplianceSnapshot,
 ): Array<KubernetesComplianceDetail> {
@@ -273,7 +317,7 @@ function checkPod(
   }
 
   return checkCisPodControl(requirement, security, {
-    namespace: pod.namespace,
+    namespace,
     version: snapshot.version,
   });
 }
@@ -284,11 +328,15 @@ interface WorkloadFinding {
   podCount: number;
 }
 
-// The pods' failures of one control, one finding per workload.
+/*
+ * The failures of one control, one finding per workload: its pods', or for a
+ * workload that runs none, its pod template's (#9880), said to be so.
+ */
 function getPodControlFindings(
   framework: KubernetesComplianceFramework,
   requirement: string,
   pods: ReadonlyArray<KubernetesCompliancePod>,
+  templates: ReadonlyArray<KubernetesComplianceTemplate>,
   snapshot: KubernetesComplianceSnapshot,
 ): Array<KubernetesComplianceFinding> {
   const byWorkload: Map<string, WorkloadFinding> = new Map();
@@ -298,10 +346,10 @@ function getPodControlFindings(
       continue;
     }
 
-    const details: Array<KubernetesComplianceDetail> = checkPod(
+    const details: Array<KubernetesComplianceDetail> = checkPodSecurity(
       framework,
       requirement,
-      pod,
+      pod.namespace,
       pod.security,
       snapshot,
     );
@@ -328,15 +376,96 @@ function getPodControlFindings(
     byWorkload.set(key, finding);
   }
 
-  return Array.from(byWorkload.values()).map(
-    (finding: WorkloadFinding): KubernetesComplianceFinding => {
-      return {
-        object: finding.object,
-        details: Array.from(finding.details.values()),
-        podCount: finding.podCount,
-      };
-    },
+  const findings: Array<KubernetesComplianceFinding> = Array.from(
+    byWorkload.values(),
+  ).map((finding: WorkloadFinding): KubernetesComplianceFinding => {
+    return {
+      object: finding.object,
+      details: Array.from(finding.details.values()),
+      podCount: finding.podCount,
+    };
+  });
+
+  for (const template of templates) {
+    if (!template.security) {
+      continue;
+    }
+
+    const details: Map<string, KubernetesComplianceDetail> = new Map();
+
+    for (const detail of checkPodSecurity(
+      framework,
+      requirement,
+      template.workload.namespace,
+      template.security,
+      snapshot,
+    )) {
+      if (details.size < MAX_DETAILS_PER_FINDING) {
+        details.set(getComplianceDetailKey(detail), detail);
+      }
+    }
+
+    if (details.size > 0) {
+      findings.push({
+        object: template.workload,
+        details: Array.from(details.values()),
+        isFromTemplate: true,
+      });
+    }
+  }
+
+  return findings;
+}
+
+/*
+ * The acceptances of one framework (#9874), by the object each is for: the
+ * control's own, and the one for every control of the framework.
+ */
+interface AcceptancesOfObject {
+  byRequirement: Map<string, KubernetesComplianceAcceptance>;
+  wholeFramework?: KubernetesComplianceAcceptance | undefined;
+}
+
+function indexAcceptances(
+  framework: KubernetesComplianceFramework,
+  acceptances: ReadonlyArray<KubernetesComplianceAcceptance>,
+): Map<string, AcceptancesOfObject> {
+  const byObject: Map<string, AcceptancesOfObject> = new Map();
+
+  for (const acceptance of acceptances) {
+    if (acceptance.framework !== framework) {
+      continue;
+    }
+
+    const key: string = getComplianceObjectKey(acceptance.object);
+    const entry: AcceptancesOfObject = byObject.get(key) || {
+      byRequirement: new Map<string, KubernetesComplianceAcceptance>(),
+    };
+    const requirement: string = acceptance.requirement.trim();
+
+    if (requirement) {
+      entry.byRequirement.set(requirement, acceptance);
+    } else {
+      entry.wholeFramework = acceptance;
+    }
+
+    byObject.set(key, entry);
+  }
+
+  return byObject;
+}
+
+// What accepts an object's finding of a control: the control's own first.
+function findAcceptance(
+  index: Map<string, AcceptancesOfObject>,
+  requirement: string,
+  object: KubernetesComplianceObject,
+): KubernetesComplianceAcceptance | undefined {
+  const entry: AcceptancesOfObject | undefined = index.get(
+    getComplianceObjectKey(object),
   );
+
+  return entry?.byRequirement.get(requirement) || entry?.wholeFramework;
 }
 
 function compareFindings(
@@ -393,15 +522,23 @@ function getNotEvaluatedReason(
   return null;
 }
 
-// One framework, over the cluster, with what is turned off of it.
+/*
+ * One framework, over the cluster, with what is turned off of it and the
+ * findings accepted for one object (#9874).
+ */
 export function scoreKubernetesFramework(
   framework: KubernetesComplianceFramework,
   snapshot: KubernetesComplianceSnapshot,
   settings: ReadonlyArray<KubernetesComplianceSetting>,
+  acceptances: ReadonlyArray<KubernetesComplianceAcceptance> = [],
 ): KubernetesComplianceFrameworkResult {
   const exclusions: Exclusions = getKubernetesComplianceExclusions(
     framework,
     settings,
+  );
+  const accepting: Map<string, AcceptancesOfObject> = indexAcceptances(
+    framework,
+    acceptances,
   );
   // The pods the framework covers: those of the namespaces not turned off for it.
   const pods: Array<KubernetesCompliancePod> = snapshot.pods.filter(
@@ -414,6 +551,33 @@ export function scoreKubernetesFramework(
       return Boolean(pod.security);
     },
   );
+  // And the templates of the workloads that run no pod (#9880), the same way.
+  const allTemplates: Array<KubernetesComplianceTemplate> =
+    getTemplatesToScore(snapshot);
+  const templates: Array<KubernetesComplianceTemplate> = allTemplates.filter(
+    (template: KubernetesComplianceTemplate): boolean => {
+      return !exclusions.turnedOffNamespaces.has(template.workload.namespace);
+    },
+  );
+  const readTemplates: Array<KubernetesComplianceTemplate> = templates.filter(
+    (template: KubernetesComplianceTemplate): boolean => {
+      return Boolean(template.security);
+    },
+  );
+  /*
+   * What there is to look at: for a pod control the pods and the templates
+   * scored in their place; for 5.3.2, the namespaces running pods.
+   */
+  const podCounts: PodCounts = {
+    all: snapshot.pods.length,
+    inScope: pods.length,
+    read: readPods.length,
+  };
+  const workloadCounts: PodCounts = {
+    all: podCounts.all + allTemplates.length,
+    inScope: podCounts.inScope + templates.length,
+    read: podCounts.read + readTemplates.length,
+  };
   const failingWorkloads: Set<string> = new Set<string>();
   const failingByNamespace: Map<string, Set<string>> = new Map();
 
@@ -451,11 +615,12 @@ export function scoreKubernetesFramework(
         }
 
         const reason: KubernetesComplianceNotEvaluatedReason | null =
-          getNotEvaluatedReason(framework, requirement, snapshot, {
-            all: snapshot.pods.length,
-            inScope: pods.length,
-            read: readPods.length,
-          });
+          getNotEvaluatedReason(
+            framework,
+            requirement,
+            snapshot,
+            isPodControl(framework, requirement) ? workloadCounts : podCounts,
+          );
 
         if (reason) {
           return {
@@ -467,7 +632,7 @@ export function scoreKubernetesFramework(
           };
         }
 
-        const findings: Array<KubernetesComplianceFinding> = (
+        const found: Array<KubernetesComplianceFinding> = (
           isPodControl(framework, requirement)
             ? getPodControlFindings(
                 framework,
@@ -475,6 +640,15 @@ export function scoreKubernetesFramework(
                 pods.filter((pod: KubernetesCompliancePod): boolean => {
                   return !isLeftOut(exclusions, requirement, pod.namespace);
                 }),
+                templates.filter(
+                  (template: KubernetesComplianceTemplate): boolean => {
+                    return !isLeftOut(
+                      exclusions,
+                      requirement,
+                      template.workload.namespace,
+                    );
+                  },
+                ),
                 snapshot,
               )
             : evaluateCisClusterControl(requirement, snapshot).filter(
@@ -487,6 +661,20 @@ export function scoreKubernetesFramework(
                 },
               )
         ).sort(compareFindings);
+        // What is accepted for its object is listed apart, and passes (#9874).
+        const findings: Array<KubernetesComplianceFinding> = [];
+        const accepted: Array<KubernetesComplianceAcceptedFinding> = [];
+
+        for (const finding of found) {
+          const acceptance: KubernetesComplianceAcceptance | undefined =
+            findAcceptance(accepting, requirement, finding.object);
+
+          if (acceptance) {
+            accepted.push({ ...finding, acceptanceId: acceptance.id });
+          } else {
+            findings.push(finding);
+          }
+        }
 
         for (const finding of findings) {
           const key: string = getComplianceObjectKey(finding.object);
@@ -512,6 +700,8 @@ export function scoreKubernetesFramework(
               : ComplianceRequirementStatus.Passing,
           failingCount: findings.length,
           findings: findings.slice(0, MAX_FINDINGS_PER_CONTROL),
+          acceptedCount: accepted.length,
+          accepted: accepted.slice(0, MAX_FINDINGS_PER_CONTROL),
         };
       },
     );
@@ -530,11 +720,14 @@ export function scoreKubernetesFramework(
       return result.status === ComplianceRequirementStatus.Passing;
     },
   ).length;
-  const workloads: Set<string> = new Set<string>(
-    readPods.map((pod: KubernetesCompliancePod): string => {
+  const workloads: Set<string> = new Set<string>([
+    ...readPods.map((pod: KubernetesCompliancePod): string => {
       return getComplianceObjectKey(pod.workload);
     }),
-  );
+    ...readTemplates.map((template: KubernetesComplianceTemplate): string => {
+      return getComplianceObjectKey(template.workload);
+    }),
+  ]);
   const failingCounts: Record<string, number> = {};
 
   for (const [namespace, keys] of failingByNamespace) {
@@ -554,6 +747,13 @@ export function scoreKubernetesFramework(
     workloadsPassing: Array.from(workloads).filter((key: string): boolean => {
       return !failingWorkloads.has(key);
     }).length,
+    workloadsFromTemplates: readTemplates.length,
+    acceptedCount: requirements.reduce(
+      (sum: number, result: KubernetesComplianceRequirementResult): number => {
+        return sum + (result.acceptedCount || 0);
+      },
+      0,
+    ),
     podsNotRead: pods.length - readPods.length,
     failingByNamespace: failingCounts,
     requirements,
@@ -564,12 +764,18 @@ export function scoreKubernetesFramework(
 export function scoreKubernetesFrameworks(
   snapshot: KubernetesComplianceSnapshot,
   settings: ReadonlyArray<KubernetesComplianceSetting>,
+  acceptances: ReadonlyArray<KubernetesComplianceAcceptance> = [],
 ): Array<KubernetesComplianceFrameworkResult> {
   return ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS.map(
     (
       framework: KubernetesComplianceFramework,
     ): KubernetesComplianceFrameworkResult => {
-      return scoreKubernetesFramework(framework, snapshot, settings);
+      return scoreKubernetesFramework(
+        framework,
+        snapshot,
+        settings,
+        acceptances,
+      );
     },
   );
 }

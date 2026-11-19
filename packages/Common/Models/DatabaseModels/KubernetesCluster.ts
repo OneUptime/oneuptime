@@ -16,6 +16,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -23,6 +24,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import type { KubernetesComplianceSummary } from "../../Types/Kubernetes/Compliance/KubernetesComplianceSummary";
 import { KubernetesAiRemediationMode } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
   Column,
@@ -385,6 +387,7 @@ export default class KubernetesCluster extends BaseModel {
     description:
       "Cloud provider or platform running this cluster (EKS, GKE, AKS, self-managed, unknown)",
     example: "EKS",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -420,6 +423,7 @@ export default class KubernetesCluster extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -455,6 +459,7 @@ export default class KubernetesCluster extends BaseModel {
     description:
       "Version of the OneUptime Kubernetes agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -487,6 +492,7 @@ export default class KubernetesCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -516,6 +522,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Node Count",
     description: "Cached count of nodes in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -546,6 +553,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Pod Count",
     description: "Cached count of pods in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -576,6 +584,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Namespace Count",
     description: "Cached count of namespaces in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1387,4 +1396,69 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
   })
   public aiAccessRunnerBoundAt?: Date = undefined;
+
+  /*
+   * HOW THE CLUSTER STOOD WHEN IT WAS LAST SCORED (#9876): each hardening
+   * framework's score, the controls that fail it and how many objects fail
+   * each (Types/Kubernetes/Compliance/KubernetesComplianceSummary), so
+   * Kubernetes' Compliance page compares every cluster without scoring each
+   * one. Written by OneUptime when the cluster's own Compliance page is read
+   * and as the agent's snapshots land (Kubernetes:RefreshComplianceSummaries),
+   * and read by whoever may read the cluster, as that page is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Compliance Summary",
+    description:
+      "How the cluster stood against the Pod Security Standards and the CIS Kubernetes Benchmark when it was last scored: each framework's score and failing controls. Set by the server.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public complianceSummary?: KubernetesComplianceSummary = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Compliance Summary Refreshed At",
+    description:
+      "When the cluster's compliance summary was last worked out. Set by the server.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public complianceSummaryRefreshedAt?: Date = undefined;
 }

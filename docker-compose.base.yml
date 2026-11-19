@@ -425,7 +425,14 @@ services:
     # AggregatingMergeTree is an aggregate measure; staying on 25.7 here
     # diverged from production and let invalid aggregate schemas slip past the
     # E2E stack.
-    image: clickhouse/clickhouse-server:26.7
+    #
+    # Pinned to the patch, not the 26.7 line: ClickHouse builds its time zone
+    # data into the server, and it cuts charts' days, weeks and months in the
+    # reader's zone with it. 26.7.1 to 26.7.12 carry tzdata 2025a, in which
+    # British Columbia still falls back to UTC-8 on 2026-11-01 (#9999); an
+    # install that pulled "26.7" before 26.7.13 kept them. 26.7.38.18 carries
+    # 2026e. The Time Zone Data workflow says when a newer patch is needed.
+    image: clickhouse/clickhouse-server:26.7.38.18
     restart: always
     environment:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}

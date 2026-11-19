@@ -39,6 +39,8 @@ export enum GuidedSetupEntryPoint {
    * person who set the project up (#9442).
    */
   Home = "home",
+  // An Ask AI setup plan's Open in guided setup (#7245).
+  AskAi = "ask_ai",
 }
 
 export const GUIDED_SETUP_FROM_QUERY: string = "from";

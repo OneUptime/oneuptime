@@ -126,6 +126,8 @@ const READER: DatabaseCommonInteractionProps = {
 interface Spies {
   project: SpyInstance<typeof ProjectService.findOneById>;
   runs: SpyInstance<typeof AIRunService.findOneBy>;
+  // The fix on its way: the rule the create path holds to (CodeFixOnItsWay).
+  onItsWay: SpyInstance<typeof SubjectCodeFixRun.findNonTerminalRunForSubject>;
   hiddenFrom: SpyInstance<typeof CodeTaskThread.findTasksHiddenFrom>;
   latestTurn: SpyInstance<typeof CodeTaskRuns.getLatestTurn>;
   hasRepository: SpyInstance<typeof SubjectCodeFixRun.hasConnectedRepository>;
@@ -154,11 +156,14 @@ function install(setup: Setup = {}): Spies {
             : investigation();
         }
 
-        // The fix's own reads: still working (NOT IN terminal), or finished.
-        return sqlOf(findOneBy.query["status"]).includes("NOT IN")
-          ? setup.activeFix || null
-          : setup.finishedFix || null;
+        // The fix's own read once none is on its way: the newest finished.
+        return sqlOf(findOneBy.query["status"]).includes("IN (")
+          ? setup.finishedFix || null
+          : null;
       }) as never),
+    onItsWay: jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")
+      .mockResolvedValue(setup.activeFix || null),
     hiddenFrom: jest
       .spyOn(CodeTaskThread, "findTasksHiddenFrom")
       .mockResolvedValue(
@@ -301,22 +306,59 @@ describe("a fix pull request that exists", () => {
    * again from Code (#6509) - a later turn of the same task, with the same
    * recipe and record - each with the task it is of.
    */
-  test("the fix's own reads: a turn of a fix task of this record, with its task, inside the project", async () => {
+  test("the fix's own reads: a turn of a fix task of this record - a reply in Code included - inside the project", async () => {
     const spies: Spies = install({ activeFix: fixRun() });
 
     await suggestionFor();
 
-    const fixRead: { query: JSONObject; select: JSONObject } = spies.runs.mock
-      .calls[1]![0] as { query: JSONObject; select: JSONObject };
-    expect(fixRead.query["projectId"]).toBe(PROJECT_ID);
-    expect(fixRead.query["runType"]).toBe(AIRunType.CodeFix);
-    expect(fixRead.query["codeFixTaskType"]).toBe(
-      CodeFixTaskType.FixFromIncident,
-    );
-    expect(fixRead.query["triggeredByIncidentId"]).toBe(INCIDENT_ID);
-    expect(fixRead.query["triggeredByAlertId"]).toBeUndefined();
-    expect(fixRead.query["codeTaskId"]).toBeUndefined();
-    expect(fixRead.select["codeTaskId"]).toBe(true);
+    // On its way, by the rule its create path holds to.
+    expect(spies.onItsWay).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      incidentId: INCIDENT_ID,
+      alertId: undefined,
+    });
+
+    // None finished is read while one is on its way.
+    expect(
+      spies.runs.mock.calls.filter((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { query: JSONObject }).query["runType"] ===
+          AIRunType.CodeFix
+        );
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("an alert's fix is looked for by the alert alone", async () => {
+    const spies: Spies = install({ activeFix: fixRun() });
+
+    await suggestionFor({ alertId: ALERT_ID });
+
+    expect(spies.onItsWay).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      incidentId: undefined,
+      alertId: ALERT_ID,
+    });
+  });
+
+  test("a reply working in Code on a fix whose first turn failed: being written, linked to its task, no second fix offered", async () => {
+    const reply: AIRun = fixRun({
+      id: ObjectID.generate(),
+      codeTaskId: FIX_ID,
+      userId: USER_ID,
+    });
+    install({ activeFix: reply });
+
+    expect(await suggestionFor()).toEqual({
+      offer: SuggestionOffer.InProgress,
+      fixOutcome: null,
+      blocker: null,
+      aiRunId: FIX_ID.toString(),
+      isAutomatic: false,
+      automaticBlocker: null,
+    });
   });
 
   test.each([

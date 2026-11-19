@@ -44,7 +44,7 @@ Se i telefoni dei reperibili non possono usare la tua VPN, pubblica le pagine ch
 | --- | --- | --- |
 | GET | `/l/*` | I link brevi negli SMS e nei messaggi WhatsApp e Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | La pagina con il motivo dell'avviso e il suo pulsante **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | Il pulsante **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | Il pulsante **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Facoltativo: la pagina che passa l'avviso alla persona successiva |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Facoltativo: il suo pulsante |
 | GET | `/oneuptime-assets/*` | I font, gli stili e il logo di quelle pagine |

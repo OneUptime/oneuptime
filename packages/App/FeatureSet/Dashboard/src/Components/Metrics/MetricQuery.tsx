@@ -1,4 +1,5 @@
 import FieldType from "Common/UI/Components/Types/FieldType";
+import RetiredCloudMetricNotice from "./RetiredCloudMetricNotice";
 import JSONFilter from "Common/UI/Components/Filters/JSONFilter";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -336,6 +337,15 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           </HintChip>
         </div>
       ) : null}
+
+      {/*
+       * A metric its cloud deprecates says so while it is picked, and what
+       * replaces it (#9739, #9980).
+       */}
+      <RetiredCloudMetricNotice
+        className="mt-3"
+        queryConfigs={[{ metricQueryData: props.data }]}
+      />
 
       {/* Filters & grouping toggle */}
       <div className="mt-3">

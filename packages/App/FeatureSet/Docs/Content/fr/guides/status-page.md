@@ -30,7 +30,7 @@ Votre serveur a besoin de son propre nom d'hôte, comme `oneuptime.example.com`,
 
 ![Accueil demande « Que voulez-vous faire en premier ? », avec « Informer mes clients avec une page de statut » coché](screen:home-goal-status-page)
 
-Sur la page **Accueil** de votre projet, cliquez sur **Publiez une page de statut** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Informer mes clients avec une page de statut** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `status page` et choisissez **Publiez une page de statut**.
+Sur la page **Accueil** de votre projet, cliquez sur **Publiez une page de statut** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Informer mes clients avec une page de statut** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `status page` et choisissez **Publiez une page de statut**. Ou cliquez sur **Le décrire plutôt** : Demander à l'IA s'ouvre avec la tâche écrite dans sa zone de saisie, prête à envoyer.
 
 **Pages de statut** l'ouvre aussi : cliquez sur **Configuration guidée** dans sa liste vide, ou sous **Fonctionnement** une fois que le projet a une page de statut.
 

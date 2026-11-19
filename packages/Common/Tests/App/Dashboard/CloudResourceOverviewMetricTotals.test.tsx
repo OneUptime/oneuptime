@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { ReactElement } from "react";
 
@@ -98,7 +98,12 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ResourceSecurityCard",
   () => {
-    return recorder();
+    return {
+      __esModule: true,
+      default: (): ReactElement => {
+        return <div data-testid="resource-security-card" />;
+      },
+    };
   },
 );
 jest.mock(
@@ -143,6 +148,8 @@ async function openOverview(
   provider: string,
   type: string,
   name: string,
+  // Columns of the row beside the ones every test sets.
+  extra: Record<string, unknown> = {},
 ): Promise<ReturnType<typeof render>> {
   mockResource = {
     _id: RESOURCE_ID.toString(),
@@ -153,6 +160,7 @@ async function openOverview(
     telemetryAttributes: {
       "azuremonitor.resource_id": `/subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/rg-prod/providers/${type}/${name}`,
     },
+    ...extra,
   };
 
   let view: ReturnType<typeof render> | undefined = undefined;
@@ -312,5 +320,44 @@ describe("the Overview's Metrics card in sections", () => {
         "amazonaws.com/AWS/EC2/StatusCheckFailed",
       )?.title,
     ).toBe("Availability");
+  });
+});
+
+/*
+ * The Overview draws the resource's Security card for a resource an event
+ * can reach (#9779), as its menu draws its Security Events: one known only
+ * by a stand-in its metrics give it, with no logs and no name or address
+ * of its own, would always say nothing named it.
+ */
+describe("the Overview's Security card", () => {
+  test("is drawn for a resource its audit log names by its own ID", async () => {
+    await openOverview(
+      CloudProvider.Azure,
+      "Microsoft.KeyVault/vaults",
+      "payments",
+      {
+        providerResourceId:
+          "/subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/rg-prod/providers/Microsoft.KeyVault/vaults/payments",
+      },
+    );
+
+    expect(screen.getByTestId("resource-security-card")).toBeInTheDocument();
+  });
+
+  test("is drawn for one kept by a stand-in that answers on a name of its own", async () => {
+    await openOverview(CloudProvider.AWS, "AWS::AmazonMQ::Broker", "orders", {
+      providerResourceId: "AWS/AmazonMQ Broker=orders",
+      cloudEndpoints: ["b-1234.mq.us-east-1.amazonaws.com"],
+    });
+
+    expect(screen.getByTestId("resource-security-card")).toBeInTheDocument();
+  });
+
+  test("is left out for one known only by a stand-in, with no logs and no name or address", async () => {
+    await openOverview(CloudProvider.AWS, "AWS::AmazonMQ::Broker", "orders", {
+      providerResourceId: "AWS/AmazonMQ Broker=orders",
+    });
+
+    expect(screen.queryByTestId("resource-security-card")).toBeNull();
   });
 });

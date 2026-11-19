@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * before it has none, which reads as Android - every device then was an
  * Esper Android device - and its connection's next read writes it.
  */
-export class AddManagedDevicePlatform1809186700000
+export class AddManagedDevicePlatform1809186720000
   implements MigrationInterface
 {
-  public name: string = "AddManagedDevicePlatform1809186700000";
+  public name: string = "AddManagedDevicePlatform1809186720000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

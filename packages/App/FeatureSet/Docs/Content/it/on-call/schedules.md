@@ -40,7 +40,7 @@ Tutto il resto si trova in **Altri campi**, chiuso finché non lo apri:
 | Campo | Che cosa fa |
 | --- | --- |
 | **Ogni turno dura** | **1 giorno**, **1 settimana**, **2 settimane** o **1 mese**, e **1 settimana** se non lo cambi. Viene chiesto non appena qualcuno si alterna. Ogni persona è reperibile per quel tempo, poi subentra la successiva, all'ora del giorno in cui è stata creata la pianificazione. |
-| **Fuso orario** | Il fuso orario in cui valgono gli orari di passaggio e gli orari di reperibilità. Parte dal tuo. |
+| **Fuso orario** | Il fuso orario in cui valgono gli orari di passaggio e gli orari di reperibilità. Parte dal tuo. Ogni fuso orario segue le regole attuali della sua regione: America/Vancouver (Columbia Britannica) resta su UTC-7 tutto l'anno dal 2026. |
 | **Descrizione** | Note sulla pianificazione. |
 | **Etichette** | Etichette per trovare e raggruppare la pianificazione. |
 

@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import DeviceMonitorLookupUtil, {
   DeviceMonitorContext,
+  NO_UNTIED_MONITORS,
+  UntiedMonitorsListing,
 } from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -37,6 +39,9 @@ const NetworkDeviceMonitors: FunctionComponent<
   const [removableMonitorIds, setRemovableMonitorIds] = useState<Set<string>>(
     new Set<string>(),
   );
+  // The monitors on its address tied to no device (issue #9903).
+  const [untiedMonitors, setUntiedMonitors] =
+    useState<UntiedMonitorsListing>(NO_UNTIED_MONITORS);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   /*
@@ -68,6 +73,7 @@ const NetworkDeviceMonitors: FunctionComponent<
         setMonitors(context.monitors);
         setIsMonitorBacked(context.isMonitorBacked);
         setRemovableMonitorIds(context.removableMonitorIds);
+        setUntiedMonitors(context.untiedMonitors);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -93,6 +99,7 @@ const NetworkDeviceMonitors: FunctionComponent<
         onMonitorAdded={readMonitorsAgain}
         removableMonitorIds={removableMonitorIds}
         onMonitorRemoved={readMonitorsAgain}
+        untiedMonitors={untiedMonitors}
       />
     </Fragment>
   );
