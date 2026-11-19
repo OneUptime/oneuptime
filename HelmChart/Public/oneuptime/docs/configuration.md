@@ -572,6 +572,12 @@ migrate:
     sidecar.istio.io/inject: "false" # Linkerd: linkerd.io/inject: disabled
 ```
 
+The app, worker, telemetry-writer and nginx pods wait for PostgreSQL in an
+init container too, before their process connects to it. Theirs gives way to a
+mesh by itself: when neither PostgreSQL nor the Kubernetes API answers, as
+behind a sidecar that is not running yet, it starts the process, which connects
+through the sidecar once it runs.
+
 **Argo CD.** Argo CD renders the chart with `helm template`, so the Job is
 named `<release>-migrate-1` on every sync, and Kubernetes does not let the pod
 template of an existing Job change: a sync of a new version fails until the
