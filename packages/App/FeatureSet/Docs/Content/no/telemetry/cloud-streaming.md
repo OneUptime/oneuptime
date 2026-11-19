@@ -24,7 +24,7 @@ flowchart TB
 
 - **Én stakk i hver region.** Kommandoen ruller ut en CloudFormation-stakk i hver region du strømmer fra. Målingsstrømmen og abonnementsfiltrene for logger gir alt videre til to Firehose-strømmer, og Firehose leverer det til OneUptime over HTTPS.
 - **Strømnøkkelen sier hvem det tilhører.** Firehose sender tilkoblingens strømnøkkel med hver levering. Nøkkelen navngir tilkoblingen, og dermed prosjektet: ingenting i en levering avgjør hvor den skrives. OneUptime lagrer bare nøkkelens SHA-256.
-- **Lesingene overlater strømmede målinger til strømmen.** Så lenge en strøm leverer et navnerom i en region, slutter tilkoblingens lesinger å skrive målingene i det navnerommet, så ingen datapunkter telles to ganger. De skriver fortsatt de viktige målingene en strøm overlater til dem, som den daglige størrelsen på en S3-bøtte og de viktige målingene som kom til etter at strømmene startet, og som en eldre stakk ikke inneholder. Lesingene fortsetter å finne ressurser, tilstanden deres og endringene deres, og tar et navnerom tilbake etter 15 minutter uten levering.
+- **Lesingene overlater strømmede målinger til strømmen.** Så lenge en strøm leverer et navnerom i en region, slutter tilkoblingens lesinger å lese og skrive hver viktig måling i det som strømmens stakk inneholder, så CloudWatch ikke lenger tar betalt for å lese det strømmen sender, og ingen datapunkter telles to ganger. De leser fortsatt de få som tilstanden til en ressurs vurderes etter, og skriver fortsatt de viktige målingene en strøm overlater til dem, som den daglige størrelsen på en S3-bøtte og dem en stakk laget før dem ikke inneholder. Lesingene fortsetter å finne ressurser, tilstanden deres og endringene deres, og tar et navnerom tilbake etter 15 minutter uten levering.
 - **Ingenting går tapt mens OneUptime ikke kan ta imot det.** Firehose sender en avvist pakke på nytt i opptil en time og tar så vare på den i 30 dager i stakkens S3-bøtte.
 
 ## Før du begynner
@@ -138,7 +138,7 @@ done
 For en tilkobling som leser en AWS Organization, kjører du dialogens kommando i administrasjonskontoen: Hvis organisasjonen ble strømmet, sletter den også stakkene i hver medlemskonto og StackSet.
 :::
 
-For å endre hva en stakk strømmer, åpner du **Strøm målinger og logger** igjen, velger **Lag en ny nøkkel** og kjører den nye kommandoen. Nøkkelen den erstatter, virker i 24 timer til, så ingen levering avvises mens stakkene oppdateres. Høyst 3 erstattede nøkler virker samtidig.
+For å endre hva en stakk strømmer, åpner du **Strøm målinger og logger** igjen, velger **Lag en ny nøkkel** og kjører den nye kommandoen. Nøkkelen den erstatter, virker i 24 timer til, så ingen levering avvises mens stakkene oppdateres. Høyst 3 erstattede nøkler virker samtidig. Gjør det samme når kontoens rad viser **Oppdater strømmen**: stakkene ble laget før OneUptime strømmet alle viktige målinger, og til de er oppdatert, leser tilkoblingen de viktige målingene de ikke inneholder, fra CloudWatch, så ingen mangler. AWS starter en målingsstrøm på nytt når filtrene endres, og sender bare datapunktene som kommer etterpå.
 
 ## Sett det opp på en annen måte
 
@@ -153,7 +153,7 @@ Gi hver Firehose-strøm et HTTP-endepunktmål med disse verdiene, og målingsstr
 | Buffer | 1 MiB eller 60 sekunder |
 | Varighet for nye forsøk | 3600 sekunder, med en S3-bøtte for det som ikke kunne leveres |
 
-På en selvdriftet OneUptime bytter du ut `https://oneuptime.com` med HTTPS-adressen til OneUptime-en din. Endepunktet for målinger tar også imot en målingsstrøm i JSON-formatet.
+På en selvdriftet OneUptime bytter du ut `https://oneuptime.com` med HTTPS-adressen til OneUptime-en din. Endepunktet for målinger tar også imot en målingsstrøm i JSON-formatet. OneUptime regner med at en målingsstrøm satt opp på denne måten bare inneholder de viktige målingene strømmene startet med, og leser de andre fra CloudWatch.
 
 OneUptime svarer på hver levering slik Firehose forventer:
 

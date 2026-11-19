@@ -24,7 +24,7 @@ flowchart TB
 
 - **Une pile dans chaque région.** La commande déploie une pile CloudFormation dans chaque région depuis laquelle vous diffusez. Son flux de métriques et ses filtres d'abonnement aux journaux transmettent tout à deux flux Firehose, et Firehose le livre à OneUptime en HTTPS.
 - **La clé de flux dit à qui c'est.** Firehose envoie la clé de flux de la connexion avec chaque livraison. La clé désigne la connexion, et donc le projet : rien dans une livraison ne décide où elle est écrite. OneUptime ne conserve que le SHA-256 de la clé.
-- **Les lectures laissent les métriques diffusées au flux.** Tant qu'un flux livre un espace de noms d'une région, les lectures de la connexion cessent d'écrire les métriques de cet espace de noms, si bien qu'aucun point de données n'est compté deux fois. Elles écrivent toujours les métriques clés qu'un flux leur laisse, comme la taille quotidienne d'un compartiment S3 et les métriques clés ajoutées après le début des flux, qu'une pile plus ancienne ne contient pas. Les lectures continuent de trouver les ressources, leur état et leurs modifications, et reprennent un espace de noms après 15 minutes sans livraison.
+- **Les lectures laissent les métriques diffusées au flux.** Tant qu'un flux livre un espace de noms d'une région, les lectures de la connexion cessent de lire et d'écrire chaque métrique clé de celui-ci que la pile du flux contient, si bien que CloudWatch ne facture plus la lecture de ce que le flux envoie et qu'aucun point de données n'est compté deux fois. Elles lisent toujours les quelques-unes sur lesquelles l'état d'une ressource est jugé, et écrivent toujours les métriques clés qu'un flux leur laisse, comme la taille quotidienne d'un compartiment S3 et celles qu'une pile créée avant elles ne contient pas. Les lectures continuent de trouver les ressources, leur état et leurs modifications, et reprennent un espace de noms après 15 minutes sans livraison.
 - **Rien n'est perdu tant que OneUptime ne peut pas l'accepter.** Firehose renvoie un lot refusé pendant une heure au plus, puis le conserve 30 jours dans le compartiment S3 de la pile.
 
 ## Avant de commencer
@@ -138,7 +138,7 @@ done
 Pour une connexion qui lit une AWS Organization, exécutez la commande de la boîte de dialogue dans le compte de gestion : si l'organisation était diffusée, elle supprime aussi les piles de chaque compte membre et le StackSet.
 :::
 
-Pour changer ce qu'une pile diffuse, ouvrez de nouveau **Diffuser les métriques et les journaux**, choisissez **Créer une nouvelle clé** et exécutez la nouvelle commande. La clé qu'elle remplace fonctionne encore 24 heures, si bien qu'aucune livraison n'est refusée pendant la mise à jour des piles. Au plus 3 clés remplacées fonctionnent en même temps.
+Pour changer ce qu'une pile diffuse, ouvrez de nouveau **Diffuser les métriques et les journaux**, choisissez **Créer une nouvelle clé** et exécutez la nouvelle commande. La clé qu'elle remplace fonctionne encore 24 heures, si bien qu'aucune livraison n'est refusée pendant la mise à jour des piles. Au plus 3 clés remplacées fonctionnent en même temps. Faites de même quand la ligne du compte indique **Mettre à jour la diffusion** : ses piles ont été créées avant que OneUptime ne diffuse chaque métrique clé, et tant qu'elles ne sont pas mises à jour, la connexion lit depuis CloudWatch les métriques clés qu'elles ne contiennent pas, si bien qu'aucune ne manque. AWS redémarre un flux de métriques dont les filtres changent, et n'envoie que les points de données qui viennent après.
 
 ## Configurer autrement
 
@@ -153,7 +153,7 @@ Donnez à chaque flux Firehose une destination point de terminaison HTTP avec ce
 | Tampon | 1 Mio ou 60 secondes |
 | Durée des nouvelles tentatives | 3600 secondes, avec un compartiment S3 pour ce qui n'a pas pu être livré |
 
-Pour un OneUptime auto-hébergé, remplacez `https://oneuptime.com` par l'adresse HTTPS de votre OneUptime. Le point de terminaison des métriques accepte aussi un flux de métriques au format JSON.
+Pour un OneUptime auto-hébergé, remplacez `https://oneuptime.com` par l'adresse HTTPS de votre OneUptime. Le point de terminaison des métriques accepte aussi un flux de métriques au format JSON. OneUptime considère qu'un flux de métriques configuré ainsi ne contient que les métriques clés avec lesquelles les flux ont commencé, et lit les autres depuis CloudWatch.
 
 OneUptime répond à chaque livraison comme Firehose l'attend :
 
