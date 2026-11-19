@@ -113,6 +113,9 @@ func ResourceDefaults() ujconfig.ResourceOption {
 		// LateInitialize left it empty, and every reference to the resource
 		// unresolved (#9985).
 		r.UseAsync = false
+		// One an older provider made in the background gets the annotation
+		// from its status (externalname.go).
+		r.InitializerFns = append(r.InitializerFns, NewExternalNameFromStatus)
 		// What late initialization and spec.initProvider leave to OneUptime
 		// (lateinit.go).
 		lateInitialization(r)
