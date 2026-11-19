@@ -1577,7 +1577,7 @@ describe("Sensitive Data in Telemetry", () => {
       'export const METRIC_NAME_LOCATION: string = "name";',
     );
     expect(scrub).toContain(
-      'case DataStoreKind.TelemetryMetrics:\n      // A data point\'s or its resource\'s attribute: redacted by its key.\n      return attributeTarget(\n        location,\n        ATTRIBUTES_PREFIX,\n        "metric",',
+      "case DataStoreKind.TelemetryMetrics:\n      // A data point's or its resource's attribute: redacted by its key.\n      return attributeTarget(\n        location,\n        ATTRIBUTES_PREFIX,\n        \"metric\",",
     );
 
     for (const prefix of [
