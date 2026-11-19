@@ -218,6 +218,7 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 - Chaque enregistrement est lu comme **Vos journaux** le lit depuis un pipeline, si bien que les règles CloudTrail, Google Cloud et Azure de la bibliothèque de règles le reconnaissent.
 - Un événement est horodaté au moment où il est stocké, l'heure propre de l'enregistrement étant dans `oneuptime.cloud.record_time` : un journal d'audit arrive dans OneUptime avec quelques minutes de retard, et une règle lit les événements selon leur heure.
 - La lecture du compte n'apporte rien de plus : les événements de données, les journaux Data Access et les journaux de Microsoft Entra ID passent toujours par **Vos journaux** ou par une [connexion](/docs/integrations/microsoft-entra-id).
+- Chaque événement nomme les ressources cloud dont parle son enregistrement par leurs propres identifiants - un ARN, un ID de ressource Azure, un nom de ressource Google Cloud -, il apparaît donc sur la page **Événements de sécurité** de chacune, et sur celle d'une fonction serverless dès que sa télémétrie définit `cloud.account.id` et `cloud.region`.
 
 ### Connecter un produit de sécurité
 

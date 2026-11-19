@@ -36,6 +36,12 @@ import { AttachedRun, JOURNEY_RUN_ATTACHMENT } from "./JourneyReport";
 
 const PORT: string = process.env["JOURNEYS_FIXTURE_PORT"] || "4831";
 const ORIGIN: string = `http://127.0.0.1:${PORT}`;
+/*
+ * Ask AI's offline fixture (packages/E2E/AskAi/Fixture), started beside
+ * this one for the journey that sets things up through Ask AI (#7251).
+ */
+const ASK_AI_PORT: string = process.env["ASK_AI_JOURNEY_PORT"] || "4832";
+const ASK_AI_ORIGIN: string = `http://127.0.0.1:${ASK_AI_PORT}`;
 const PROJECT: string = "10000000-0000-4000-8000-000000006831";
 const DASHBOARD: string = `/dashboard/${PROJECT}`;
 // What the fixture calls its people and its seeded monitor (Fixture/NewProject.js).
@@ -97,10 +103,73 @@ function idOf(value: unknown): string {
  * pinned, nothing allowed off this machine, and any error the product's
  * code throws failing it.
  */
+/*
+ * The fixture a journey runs in: where its pages are served - a request
+ * anywhere else leaves the machine - and what it kept of the job.
+ */
+interface JourneyFixture {
+  origin: string;
+  readLog: (page: Page) => Promise<FixtureLog>;
+}
+
+const JOURNEYS_FIXTURE: JourneyFixture = {
+  origin: ORIGIN,
+  readLog: async (page: Page): Promise<FixtureLog> => {
+    return await page.evaluate(() => {
+      const fixture: FixtureLog = (
+        window as unknown as { __journeyFixture: FixtureLog }
+      ).__journeyFixture;
+      return { writes: fixture.writes, api: fixture.api };
+    });
+  },
+};
+
+/*
+ * What Ask AI's fixture kept, as this one's API calls: each answer to an
+ * approval card, and each test page sent from a card.
+ */
+const ASK_AI_FIXTURE: JourneyFixture = {
+  origin: ASK_AI_ORIGIN,
+  readLog: async (page: Page): Promise<FixtureLog> => {
+    const state: {
+      approvals: Array<Record<string, unknown>>;
+      testPagesSent: Array<Record<string, unknown>>;
+    } = await page.evaluate(() => {
+      return (
+        window as unknown as {
+          __askAiFixture: {
+            state: {
+              approvals: Array<Record<string, unknown>>;
+              testPagesSent: Array<Record<string, unknown>>;
+            };
+          };
+        }
+      ).__askAiFixture.state;
+    });
+
+    return {
+      writes: [],
+      api: [
+        ...state.approvals.map((body: Record<string, unknown>) => {
+          return { method: "POST", path: "/ai-chat/respond-to-approval", body };
+        }),
+        ...state.testPagesSent.map((body: Record<string, unknown>) => {
+          return {
+            method: "POST",
+            path: "/on-call-test-page/page-policy",
+            body,
+          };
+        }),
+      ],
+    };
+  },
+};
+
 function journey(
   id: string,
   doJob: (person: Journey, page: Page) => Promise<void>,
   isDone: (log: FixtureLog) => void,
+  fixture: JourneyFixture = JOURNEYS_FIXTURE,
 ): void {
   test(`${id}: ${budgets.journeys[id]?.title || "(no budget yet)"}`, async ({
     page,
@@ -114,7 +183,7 @@ function journey(
     });
     await page.route(
       (url: URL) => {
-        return url.origin !== ORIGIN;
+        return url.origin !== fixture.origin;
       },
       async (route: Route) => {
         leftTheMachine.push(route.request().url());
@@ -127,12 +196,7 @@ function journey(
     const person: Journey = new Journey(page, id);
     await doJob(person, page);
     const run: JourneyRun = await person.finish();
-    const log: FixtureLog = await page.evaluate(() => {
-      const fixture: FixtureLog = (
-        window as unknown as { __journeyFixture: FixtureLog }
-      ).__journeyFixture;
-      return { writes: fixture.writes, api: fixture.api };
-    });
+    const log: FixtureLog = await fixture.readLog(page);
 
     // For the table of every journey (JourneyReport.ts), passed or not.
     const attached: AttachedRun = { id, run, writes: log.writes };
@@ -268,6 +332,56 @@ journey(
       }),
     ).toHaveLength(1);
   },
+);
+
+/*
+ * 1 and 2, through Ask AI (#7251): the guided journey's job - a website
+ * monitor, being told when it goes down, and a test page - asked of Ask AI
+ * in one sentence. Ask AI is opened from the header of a page with no
+ * subject (Home), the sentence typed and sent, the plan run from its one
+ * approval card, and the new policy's test page sent from the card it
+ * leaves. Ask AI's own fixture answers (packages/E2E/AskAi/Fixture): the
+ * turn is stubbed, as a model's answer cannot be counted the same way twice.
+ */
+journey(
+  "website-down-ask-ai",
+  async (person: Journey, page: Page) => {
+    await person.begin(
+      `${ASK_AI_ORIGIN}/?page=home`,
+      page.getByTestId("fixture-page").getByRole("heading", { name: "Home" }),
+    );
+    await person.openAskAi();
+    await person.type(
+      "Ask anything…",
+      "Monitor example.com every minute and text me if it is down.",
+    );
+    await person.press("Send (Enter)");
+    await person.press("Run 2 actions");
+    // The new policy's card offers its test page: its first level is me.
+    await person.press("Test this policy");
+    await person.submit("Send test page");
+    await expect(page.getByTestId("ask-ai-test-page-result")).toBeVisible();
+  },
+  (log: FixtureLog) => {
+    const [approval] = log.api.filter((call: FixtureApiCall) => {
+      return call.path === "/ai-chat/respond-to-approval";
+    });
+    // Both parts of the plan, approved on its one card.
+    expect(
+      (approval?.body["decisions"] as Array<{ approved: boolean }>).map(
+        (decision: { approved: boolean }) => {
+          return decision.approved;
+        },
+      ),
+    ).toEqual([true, true]);
+    // The new policy's test page, sent once.
+    expect(
+      log.api.filter((call: FixtureApiCall) => {
+        return call.path === "/on-call-test-page/page-policy";
+      }),
+    ).toHaveLength(1);
+  },
+  ASK_AI_FIXTURE,
 );
 
 /*

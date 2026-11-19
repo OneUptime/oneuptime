@@ -254,7 +254,9 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来。对于团队、值班策略和值班计划，`GET /api/shared-names/team`（或 `on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。
+除消息外，响应中还包含 `"refusalCode": "name_taken"`。请凭这个代码识别此拒绝，而不是凭措辞可能改变的句子。由于没有写入任何内容，一旦另一条记录让出该名称，就可以再次发送同一请求：Terraform 提供程序会在最多 30 秒内再次请求。
+
+以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来。对于团队、标签、值班策略和值班计划，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。已归档的标签和值班策略不计在内。
 
 ### 开关
 

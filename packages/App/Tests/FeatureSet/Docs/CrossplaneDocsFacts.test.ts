@@ -17,6 +17,11 @@ import {
 } from "./TerraformDocsSupport";
 import { beforeAll, describe, expect, it } from "@jest/globals";
 import path from "path";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ServerOwned from "Common/Types/Database/ServerOwned";
 
 /*
  * The Crossplane provider's English pages (issue #6587), held to what they
@@ -44,6 +49,7 @@ import path from "path";
 
 const CROSSPLANE_STATIC: string = "Scripts/CrossplaneProvider/StaticFiles";
 const PROVIDER_CONFIG_GO: string = `${CROSSPLANE_STATIC}/config/provider.go`;
+const LATE_INIT_GO: string = `${CROSSPLANE_STATIC}/config/lateinit.go`;
 const V1BETA1_REGISTER_GO: string = `${CROSSPLANE_STATIC}/apis/v1beta1/register.go`;
 const PROVIDER_CONFIG_TYPES_GO: string = `${CROSSPLANE_STATIC}/apis/v1beta1/types.go`;
 const KINDS_TEST_GO: string = `${CROSSPLANE_STATIC}/internal/kinds/kinds_test.go`;
@@ -812,6 +818,61 @@ describe("what the pages say the provider does", () => {
     expect(clients).toContain("resource.CommonCredentialExtractor(");
     expect(overview).toContain("`source: Environment` or `source: Filesystem`");
     expect(overview).toContain("source: Secret");
+  });
+
+  /*
+   * The fields the page says OneUptime keeps (#9985) are the ones the
+   * models say it does, of the kind the page says: one only OneUptime
+   * writes, and one a record starts with. The provider leaves both alone
+   * (config/lateinit.go): late initialization skips what a record starts
+   * with and what spec.initProvider gives, and once the record exists
+   * spec.initProvider is left out of the configuration it plans with.
+   */
+  it("names fields OneUptime keeps, of the kind the models declare, which the provider leaves alone", () => {
+    const page: string = englishPage(MANAGING_RESOURCES);
+    const lateInit: string = readRepoFile(LATE_INIT_GO);
+    const provider: string = readRepoFile(PROVIDER_CONFIG_GO);
+
+    const onlyOneUptime: string | undefined = page
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- A field only OneUptime writes");
+      });
+    const startsWith: string | undefined = page
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- A field a record starts with");
+      });
+
+    expect(onlyOneUptime).toContain("`telemetryMonitorLastMonitorAt`");
+    expect(onlyOneUptime).toContain("`nodeCount`");
+    expect(onlyOneUptime).toContain("`status.atProvider` alone");
+    expect(startsWith).toContain("`currentMonitorStatusId`");
+    expect(startsWith).toContain("`currentIncidentStateId`");
+
+    for (const [modelType, column, kind] of [
+      [Monitor, "telemetryMonitorLastMonitorAt", ServerOwned.Always],
+      [KubernetesCluster, "nodeCount", ServerOwned.Always],
+      [Monitor, "currentMonitorStatusId", ServerOwned.AfterCreate],
+      [Incident, "currentIncidentStateId", ServerOwned.AfterCreate],
+    ] as Array<[new () => BaseModel, string, ServerOwned]>) {
+      expect([
+        column,
+        new modelType().getTableColumnMetadata(column)?.serverOwned,
+      ]).toEqual([column, kind]);
+    }
+
+    expect(lateInit).toContain("r.LateInitializer.IgnoredFields = append(");
+    expect(lateInit).toContain(
+      "r.LateInitializer.ConditionalIgnoredFields = append(",
+    );
+    expect(provider).toContain("lateInitialization(r)");
+    expect(provider).toContain(
+      "r.TerraformConfigurationInjector = initProviderAtCreateOnly(r)",
+    );
+    expect(page).toContain(
+      "write it in `spec.initProvider` instead of `spec.forProvider`: the record is created with it, and the provider never copies it into `spec.forProvider` or puts it back",
+    );
   });
 
   it("names the statuses the overview observes as a new project has them", () => {

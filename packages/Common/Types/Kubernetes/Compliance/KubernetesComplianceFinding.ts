@@ -46,8 +46,25 @@ export interface KubernetesComplianceFinding {
   details: Array<KubernetesComplianceDetail>;
   // A workload's pods that fail the control, when it is a workload's.
   podCount?: number | undefined;
+  /*
+   * Read from the workload's pod template, as no pod of it runs now (#9880):
+   * a Deployment scaled to zero, a CronJob between runs, a DaemonSet on no
+   * node. Its pods, when it runs some, are read instead.
+   */
+  isFromTemplate?: boolean | undefined;
   // The OneUptime agent's own binding, when it is one.
   oneUptimeAgent?: KubernetesComplianceAgentObject | undefined;
+}
+
+/*
+ * A finding someone accepted for its object (#9874): the object still fails
+ * the control, as the details say, but it counts as passing, and is listed
+ * apart from what fails, under the setting that accepts it.
+ */
+export interface KubernetesComplianceAcceptedFinding
+  extends KubernetesComplianceFinding {
+  // The setting that accepts it (DataSecurityComplianceSetting), revoked by its id.
+  acceptanceId: string;
 }
 
 // A detail's own key, so the same field of the same part is said once.

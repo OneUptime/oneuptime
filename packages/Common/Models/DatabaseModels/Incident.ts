@@ -48,6 +48,7 @@ import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowe
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -1982,6 +1983,7 @@ export default class Incident extends BaseModel {
     title: "Current Incident State ID",
     description: "Current Incident State ID",
     example: "d4e5f6a7-b8c9-0123-defg-456789012345",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.ObjectID,

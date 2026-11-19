@@ -254,7 +254,9 @@ Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et pro
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig. For teams, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens.
+Ud over meddelelsen indeholder svaret `"refusalCode": "name_taken"`. Kend denne afvisning på den kode, ikke på sætningen, som kan blive omformuleret. Intet blev skrevet, så den samme anmodning kan sendes igen, så snart den anden post opgiver navnet: Terraform-provideren spørger igen i op til 30 sekunder.
+
+En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig. For teams, etiketter, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens. Arkiverede etiketter og vagtpolitikker er udeladt.
 
 ### Kontakter
 

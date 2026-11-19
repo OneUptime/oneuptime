@@ -14,6 +14,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -239,6 +240,7 @@ export default class RunbookExecution extends BaseModel {
     title: "Runbook Name Snapshot",
     description:
       "Name of the runbook at the time this execution was created (preserved even if the runbook is later renamed or deleted).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: false,
@@ -320,6 +322,7 @@ export default class RunbookExecution extends BaseModel {
     title: "Step Executions",
     description:
       "Per-step execution state. Each entry mirrors a step from the runbook with status, output, and timestamps.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.JSON,
@@ -750,6 +753,7 @@ export default class RunbookExecution extends BaseModel {
     type: TableColumnType.Date,
     title: "Started At",
     description: "Time at which this runbook execution started.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -780,6 +784,7 @@ export default class RunbookExecution extends BaseModel {
     type: TableColumnType.Date,
     title: "Completed At",
     description: "Time at which this runbook execution completed.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -811,6 +816,7 @@ export default class RunbookExecution extends BaseModel {
     type: TableColumnType.LongText,
     title: "Failure Reason",
     description: "Reason this runbook execution failed (if it did).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

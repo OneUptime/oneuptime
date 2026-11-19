@@ -254,7 +254,9 @@ Team, etiketter, vaktpolicyer og vaktplaner har hvert sitt eget navn i et prosje
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-En oppdatering som sender en posts eget navn på nytt, med store eller små bokstaver, er ikke et navnebytte, så poster som delte et navn før, kan fortsatt endres og få hvert sitt navn. For team, vaktpolicyer og vaktplaner svarer `GET /api/shared-names/team` (eller `on-call-policy`, `on-call-schedule`) på hvilke som deler et navn: `{"groups": [["<id>", "<id>"]]}`, der hver gruppe er ID-ene nøkkelen din kan lese, for postene med navn som leses likt.
+I tillegg til meldingen inneholder svaret `"refusalCode": "name_taken"`. Kjenn igjen dette avslaget på den koden, ikke på setningen, som kan bli omformulert. Ingenting ble skrevet, så den samme forespørselen kan sendes på nytt så snart den andre posten gir fra seg navnet: Terraform-provideren spør på nytt i opptil 30 sekunder.
+
+En oppdatering som sender en posts eget navn på nytt, med store eller små bokstaver, er ikke et navnebytte, så poster som delte et navn før, kan fortsatt endres og få hvert sitt navn. For team, etiketter, vaktpolicyer og vaktplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på hvilke som deler et navn: `{"groups": [["<id>", "<id>"]]}`, der hver gruppe er ID-ene nøkkelen din kan lese, for postene med navn som leses likt. Arkiverte etiketter og vaktpolicyer er utelatt.
 
 ### Brytere
 

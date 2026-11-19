@@ -12,6 +12,11 @@ import {
   TERRAFORM_PREFIX,
 } from "./References";
 import { MODULE_PATH, renderGoMod } from "./GoModule";
+import {
+  collectServerOwned,
+  renderServerOwnedGo,
+  ServerOwnedMap,
+} from "./ServerOwned";
 
 const execAsync: (
   command: string,
@@ -174,7 +179,8 @@ export class CrossplaneProviderGenerator {
     }
   }
 
-  public async getReferences(): Promise<ReferenceMap> {
+  // The Terraform provider's resources, as its generator reads the spec.
+  public async getResources(): Promise<Array<TerraformResource>> {
     const parser: OpenAPIParser = new OpenAPIParser();
     await parser.parseOpenAPISpec(this.options.openApiSpecPath);
     const resources: Array<TerraformResource> = parser.getResources();
@@ -183,7 +189,15 @@ export class CrossplaneProviderGenerator {
         `The spec at ${this.options.openApiSpecPath} has no resources.`,
       );
     }
-    return collectReferences(resources);
+    return resources;
+  }
+
+  public async getReferences(): Promise<ReferenceMap> {
+    return collectReferences(await this.getResources());
+  }
+
+  public async getServerOwned(): Promise<ServerOwnedMap> {
+    return collectServerOwned(await this.getResources());
   }
 
   /*
@@ -212,9 +226,16 @@ export class CrossplaneProviderGenerator {
       }),
     );
 
+    const resources: Array<TerraformResource> = await this.getResources();
+
     fs.writeFileSync(
       path.join(outputDir, "config", "zz_references.go"),
-      renderReferencesGo(await this.getReferences()),
+      renderReferencesGo(collectReferences(resources)),
+    );
+
+    fs.writeFileSync(
+      path.join(outputDir, "config", "zz_server_owned.go"),
+      renderServerOwnedGo(collectServerOwned(resources)),
     );
 
     fs.writeFileSync(

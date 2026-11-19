@@ -55,6 +55,9 @@
  *                    first on-call policy, the SMS the person asked for
  *                    missing a number (issue #6829) - whose approved
  *                    parts leave their cards and the test page offer;
+ *                    sending "Monitor example.com every minute and
+ *                    text me if it is down." from an empty Ask AI leaves
+ *                    the same plan on its card (#7251's journey);
  *                    setup-busy, the same in a busy project, which pages
  *                    people already and has a status page: a website
  *                    monitor, and that monitor put on the page;
@@ -122,6 +125,8 @@ import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
@@ -255,6 +260,8 @@ window.__askAiFixture = {
     // POST /ai-chat/message-test-page, and GET /on-call-test-page/result/:id (#7249).
     testPagesRecorded: [],
     testPageResultReads: [],
+    // POST /on-call-test-page/page-policy: a test page sent from a card.
+    testPagesSent: [],
     unhandled: [],
   },
 };
@@ -916,6 +923,39 @@ function setupTestPageResult() {
     acknowledgedChannel: "SMS",
     acknowledgedAfterSeconds: 14,
     steps: [],
+  };
+}
+
+// Who the new policy's test page reaches: its first level, the person asking.
+function setupTestPagePreview() {
+  return {
+    kind: "Policy",
+    levelCount: 1,
+    people: [
+      {
+        userId: USER_ID,
+        userName: "Ana Lopez",
+        methods: [
+          {
+            channel: "Email",
+            notifyAfterMinutes: 0,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+        ],
+        hasNoRule: false,
+        isOptedOut: false,
+        warnings: [],
+      },
+    ],
+    notPaged: [],
+    cost: {
+      isPaid: false,
+      smsCount: 0,
+      callCount: 0,
+      whatsAppCount: 0,
+      telegramCount: 0,
+    },
   };
 }
 
@@ -1890,8 +1930,25 @@ function finishLiveRun() {
     return;
   }
 
-  const { message, kind } = liveRun;
+  const { message, kind, conversationId } = liveRun;
   liveRun = null;
+
+  /*
+   * The setup request: its plan waits on one card, as ?thread=setup's does,
+   * and this conversation is the one whose approval runs it.
+   */
+  if (kind === "setup") {
+    message.status = AIChatMessageStatus.WaitingForApproval;
+    message.toolActions = setupActions(
+      AIChatToolActionStatus.Pending,
+      AIChatToolActionStatus.Pending,
+    );
+    setupConversation =
+      conversations.find((item) => {
+        return item.id.toString() === conversationId;
+      }) || null;
+    return;
+  }
 
   if (kind === "alert") {
     message.status = AIChatMessageStatus.WaitingForApproval;
@@ -2023,6 +2080,27 @@ ModelAPI.getList = async (options) => {
     return { data: states, count: states.length, skip: 0, limit: 100 };
   }
 
+  /*
+   * The severities a test page is sent at (SendTestPageModal, #7251's
+   * journey): the project's one incident severity and one alert severity.
+   */
+  if (table === "IncidentSeverity" || table === "AlertSeverity") {
+    const isIncident = table === "IncidentSeverity";
+    const id = isIncident
+      ? "50000000-0000-4000-8000-0000000000e1"
+      : "50000000-0000-4000-8000-0000000000e2";
+    const severity = Object.assign(
+      isIncident ? new IncidentSeverity() : new AlertSeverity(),
+      {
+        _id: id,
+        id: new ObjectID(id),
+        name: isIncident ? "Critical Incident" : "High",
+        order: 1,
+      },
+    );
+    return { data: [severity], count: 1, skip: 0, limit: 100 };
+  }
+
   state.unhandled.push(`getList ${table}`);
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
@@ -2109,6 +2187,11 @@ function providersResponse() {
 function kindOfQuestion(content) {
   const text = content.toLowerCase();
 
+  // The setup plan's request, asked from an empty Ask AI (#7251's journey).
+  if (text.startsWith("monitor example.com")) {
+    return "setup";
+  }
+
   if (text.includes("alert")) {
     return "alert";
   }
@@ -2162,7 +2245,13 @@ function sendMessage(data) {
     createdAt: new Date(),
   });
 
-  liveRun = { run, message, step: 0, kind: kindOfQuestion(data.content) };
+  liveRun = {
+    run,
+    message,
+    step: 0,
+    kind: kindOfQuestion(data.content),
+    conversationId,
+  };
 
   return { conversationId };
 }
@@ -2309,6 +2398,24 @@ API.post = async (options) => {
   if (path.endsWith("/ai-chat/message-test-page")) {
     state.testPagesRecorded.push(JSON.parse(JSON.stringify(data)));
     return new HTTPResponse(200, {}, {});
+  }
+
+  /*
+   * The policy's test page, sent from its card (#7249): who its first level
+   * pages - the person asking, by their verified email - then the run,
+   * whose result the card reads (setupTestPageResult).
+   */
+  if (path.endsWith("/on-call-test-page/preview")) {
+    return new HTTPResponse(200, setupTestPagePreview(), {});
+  }
+
+  if (path.endsWith("/on-call-test-page/page-policy")) {
+    state.testPagesSent.push(JSON.parse(JSON.stringify(data)));
+    return new HTTPResponse(
+      200,
+      { executionLogId: SETUP_TEST_PAGE_RUN_ID },
+      {},
+    );
   }
 
   state.unhandled.push(`POST ${path}`);

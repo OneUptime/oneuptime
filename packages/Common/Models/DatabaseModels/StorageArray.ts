@@ -15,6 +15,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -327,6 +328,7 @@ export default class StorageArray extends BaseModel {
     description:
       "The storage platform this array runs, normalized from the storage.system OTel resource attribute (or detected from the metric names): purestorage.flasharray or purestorage.flashblade.",
     example: "purestorage.flasharray",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -361,6 +363,7 @@ export default class StorageArray extends BaseModel {
     description:
       "The name the array reports for itself (array_name on purefa_info / purefb_info). Can differ from the OneUptime name, which comes from the agent configuration.",
     example: "pure-fa-prod-01",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -395,6 +398,7 @@ export default class StorageArray extends BaseModel {
     description:
       "The array's own system identifier (system_id on purefa_info / purefb_info).",
     example: "9b2c3a4d-1e2f-4a5b-8c7d-6e5f4a3b2c1d",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -429,6 +433,7 @@ export default class StorageArray extends BaseModel {
     description:
       "Name of the array's operating system as it reports it (os on purefa_info / purefb_info).",
     example: "Purity//FA",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -463,6 +468,7 @@ export default class StorageArray extends BaseModel {
     description:
       "Version of the array's operating system as it reports it (version on purefa_info / purefb_info).",
     example: "6.7.3",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -497,6 +503,7 @@ export default class StorageArray extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -532,6 +539,7 @@ export default class StorageArray extends BaseModel {
     description:
       "Version of the OneUptime Storage Array Agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -564,6 +572,7 @@ export default class StorageArray extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this storage array",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -596,6 +605,7 @@ export default class StorageArray extends BaseModel {
     title: "Capacity Bytes",
     description:
       'Cached usable capacity of the array in bytes (purefa_array_space_bytes{space="capacity"} / purefb_array_space_bytes{type="array",space="capacity"}). Null until the first array metric batch arrives.',
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -643,6 +653,7 @@ export default class StorageArray extends BaseModel {
     title: "Used Bytes",
     description:
       "Cached physical space used on the array in bytes: capacity minus empty space, or capacity times utilization when the empty series is missing. Null until the first array metric batch arrives.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -688,6 +699,7 @@ export default class StorageArray extends BaseModel {
     title: "Capacity Used Percent",
     description:
       "Cached array space utilization in percent (purefa_array_space_utilization / purefb_array_space_utilization). Stored as decimal so sub-percent precision survives the round trip. Null until the first array metric batch arrives.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -736,6 +748,7 @@ export default class StorageArray extends BaseModel {
     title: "Data Reduction Ratio",
     description:
       "Cached data reduction ratio of the array (purefa_array_space_data_reduction_ratio / purefb_array_space_data_reduction_ratio), for example 4.2 for 4.2:1. Null until the first array metric batch arrives.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -784,6 +797,7 @@ export default class StorageArray extends BaseModel {
     title: "Open Alert Count",
     description:
       "Cached count of alerts open on the array itself (purefa_alerts_open / purefb_alerts_open series, hidden alerts excluded).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -814,6 +828,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "Critical Alert Count",
     description: "Cached count of open array alerts with critical severity.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -844,6 +859,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "Warning Alert Count",
     description: "Cached count of open array alerts with warning severity.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -874,6 +890,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "Volume Count",
     description: "Cached count of volumes on the array (FlashArray).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -904,6 +921,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "Host Count",
     description: "Cached count of hosts defined on the array (FlashArray).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -935,6 +953,7 @@ export default class StorageArray extends BaseModel {
     title: "Pod Count",
     description:
       "Cached count of pods (ActiveCluster / ActiveDR replication containers) on the array (FlashArray).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -965,6 +984,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "File System Count",
     description: "Cached count of file systems on the array (FlashBlade).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -996,6 +1016,7 @@ export default class StorageArray extends BaseModel {
     title: "Bucket Count",
     description:
       "Cached count of object store buckets on the array (FlashBlade).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1027,6 +1048,7 @@ export default class StorageArray extends BaseModel {
     title: "Hardware Component Count",
     description:
       "Cached count of hardware components the array reports (chassis, controllers, drive bays, power supplies, fans, ports, blades...).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1058,6 +1080,7 @@ export default class StorageArray extends BaseModel {
     title: "Unhealthy Hardware Count",
     description:
       "Cached count of hardware components, drives and controllers in a critical, degraded, failed or unknown state.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1089,6 +1112,7 @@ export default class StorageArray extends BaseModel {
     title: "Health Status",
     description:
       "Cached array health derived from the array's open alerts and hardware state: 0 = OK, 1 = Warning (a warning alert, or a degraded or unknown component), 2 = Critical (a critical alert, or a failed or critical component). Rendered as the health pill. Null until the first metric batch arrives.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,

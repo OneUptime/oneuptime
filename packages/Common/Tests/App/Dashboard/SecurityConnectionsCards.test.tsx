@@ -2203,42 +2203,79 @@ describe("a record's Security card", () => {
     ).toBe("observable:shop.acme.example");
   });
 
-  test("a serverless function's card, and a cloud resource searched by its logs, are about its logs", async () => {
-    const FUNCTION_ID: string = "60000000-0000-4000-8000-000000000002";
+  test("a serverless function's and a cloud resource's cards open their own pages, and say what their own logs add (#9779, #9780)", async () => {
+    const RECORD_ID: string = "60000000-0000-4000-8000-000000000002";
+    const FUNCTION_ARN: string =
+      "arn:aws:lambda:us-east-1:111122223333:function:checkout";
 
-    for (const kind of [
-      SecurityConnectionKind.ServerlessFunction,
-      SecurityConnectionKind.CloudResource,
-    ]) {
+    for (const [kind, root, values, news] of [
+      // A function read from its own logs alone: its telemetry does not say its account.
+      [
+        SecurityConnectionKind.ServerlessFunction,
+        "serverless",
+        [],
+        "What Security Events found in its logs in the last 7 days.",
+      ],
+      // A cloud resource named by its ARN, and read from its own logs too.
+      [
+        SecurityConnectionKind.CloudResource,
+        "cloud",
+        [FUNCTION_ARN],
+        "What Security Events found about it in the last 7 days.",
+      ],
+    ] as Array<[SecurityConnectionKind, string, Array<string>, string]>) {
       cleanup();
       getResourceSecurityMock.mockResolvedValue(
         security({
           kind,
-          id: FUNCTION_ID,
-          values: [],
-          isSearchedByLogs: true,
+          id: RECORD_ID,
+          values,
+          isSearchedByLogs: false,
+          isReadFromOwnLogs: true,
           entity: null,
           openCases: null,
           risk: null,
         }) as never,
       );
 
-      await drawCard(kind, FUNCTION_ID);
+      await drawCard(kind, RECORD_ID);
 
       const card: HTMLElement = await screen.findByTestId(IDS.resourceSecurity);
-
-      expect(card).toHaveTextContent(
-        "What Security Events found in its logs in the last 7 days.",
+      const events: globalThis.URL = new globalThis.URL(
+        href(within(card).getByTestId(IDS.resourceSecurityOpen)),
+        "https://oneuptime.example",
       );
-      expect(
-        decodeURIComponent(
-          new globalThis.URL(
-            href(within(card).getByTestId(IDS.resourceSecurityOpen)),
-            "https://oneuptime.example",
-          ).searchParams.get("search") || "",
-        ),
-      ).toBe(`@oneuptime.log.resource.id:${FUNCTION_ID}`);
+
+      expect(card).toHaveTextContent(news);
+      // Its own Security Events page, which carries its scope.
+      expect(events.pathname).toBe(
+        `${BASE}/${root}/${RECORD_ID}/security-events`,
+      );
+      expect(events.searchParams.get("search")).toBeNull();
     }
+  });
+
+  test("a quiet cloud resource whose own logs are read says neither named it", async () => {
+    getResourceSecurityMock.mockResolvedValue(
+      security({
+        kind: SecurityConnectionKind.CloudResource,
+        values: ["arn:aws:rds:us-east-1:111122223333:db:orders"],
+        isReadFromOwnLogs: true,
+        entity: null,
+        eventCount: 0,
+        findingCount: 0,
+        maxSeverityId: 0,
+        lastSeen: null,
+        openCases: null,
+        risk: null,
+      }) as never,
+    );
+
+    await drawCard(SecurityConnectionKind.CloudResource);
+
+    expect(await screen.findByTestId(IDS.resourceSecurity)).toHaveTextContent(
+      "No security event named it or was read from its logs in the last 7 days.",
+    );
   });
 
   test("a cloud resource searched by its names reads as any record does", async () => {

@@ -93,6 +93,10 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Resource",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
+      ["Project", "Cloud", "View Resource", "Security Events"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_FEED, [
       "Project",
       "Cloud",
