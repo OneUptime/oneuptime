@@ -206,7 +206,7 @@ export default class SubjectCodeFixRun {
         codeFixTaskType: CodeFixTaskType.FixPerformance,
         status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },
-      select: { _id: true, taskContext: true },
+      select: { _id: true, taskContext: true, codeTaskId: true },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
@@ -217,6 +217,24 @@ export default class SubjectCodeFixRun {
         return run.taskContext?.traceId === data.traceId;
       }) || null
     );
+  }
+
+  /*
+   * The Code task a fix run is a turn of, by its first turn's id: the
+   * run's own for a task's first turn, the task's (codeTaskId) for a later
+   * one - a fix asked again from Code (Try again, #6509) is a later turn of
+   * the same task, with its recipe and its record, so the lookups here find
+   * it too. A page links to the task, and asks whether its reader may see
+   * the task, by this id - never by a later turn's.
+   */
+  public static taskIdOf(
+    run: Pick<AIRun, "id" | "codeTaskId"> | null | undefined,
+  ): ObjectID | null {
+    if (!run) {
+      return null;
+    }
+
+    return run.codeTaskId || run.id || null;
   }
 
   /*
@@ -248,7 +266,12 @@ export default class SubjectCodeFixRun {
         status: QueryHelper.any([...FINISHED_FIX_STATUSES]),
         taskContext: QueryHelper.jsonContains({ traceId: data.traceId }),
       } as never,
-      select: { _id: true, status: true, needsUserInput: true },
+      select: {
+        _id: true,
+        status: true,
+        needsUserInput: true,
+        codeTaskId: true,
+      },
       sort: { createdAt: SortOrder.Descending },
       props: { isRoot: true },
     });
@@ -275,7 +298,7 @@ export default class SubjectCodeFixRun {
         codeFixTaskType: data.taskType,
         status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },
-      select: { _id: true, taskContext: true },
+      select: { _id: true, taskContext: true, codeTaskId: true },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
