@@ -613,13 +613,27 @@ router.post(
  * address's own is { invitation: null }, so asking tells nobody else
  * anything, not even whether the address has an account.
  *
- * Not rate limited: the token is a server-minted random UUID - 122 bits -
- * so there is nothing to guess, and the answer costs a few reads by
- * indexed columns, as /signup's own claim does. Beside /signup, whose page
- * asks it; nothing is cached.
+ * The token is a server-minted random UUID - 122 bits - so there is
+ * nothing to guess, but the route is anonymous and every ask looks its
+ * token up, and a live one reads the user, their memberships and who
+ * invited them. The limiter in front of it, on a bucket of its own, bounds
+ * that work, as it does for a sign-in link's token (IdentityRateLimit's
+ * SIGN_UP_INVITATION_BUCKET). Its refusal - and its 503 while Redis is
+ * unreachable - is an answer the page takes as no invitation, so the page
+ * is the plain sign-up page. Beside /signup, whose page asks it; nothing is
+ * cached.
  */
+const signUpInvitationRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.SignUpInvitation,
+);
+
 router.post(
   SIGN_UP_INVITATION_ROUTE,
+  signUpInvitationRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
