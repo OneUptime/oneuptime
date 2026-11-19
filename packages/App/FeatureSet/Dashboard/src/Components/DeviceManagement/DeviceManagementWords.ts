@@ -1,5 +1,7 @@
 import { DeviceManagementConnectionStatus } from "Common/Types/DeviceManagement/DeviceManagementConnectionHealth";
 import { DeviceManagementTestResult } from "Common/Types/DeviceManagement/DeviceManagementConnectionTest";
+import DeviceManagementProvider from "Common/Types/DeviceManagement/DeviceManagementProvider";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   MANAGED_DEVICE_STATUS_LABELS,
   ManagedDeviceStatus,
@@ -96,12 +98,68 @@ export interface DeviceManagementTestWords {
 }
 
 /*
- * Why a test or a read failed, and what to do, by the kind of failure:
- * the server's own message, in English, goes under these.
+ * Why an Intune test or read failed, and what to do (#9837): Microsoft
+ * Entra signs OneUptime in, and Microsoft Graph answers.
+ */
+function getIntuneFailureWords(
+  failureKind: LlmConnectionFailureKind | undefined,
+): DeviceManagementTestWords {
+  switch (failureKind) {
+    case LlmConnectionFailureKind.Authentication:
+      return {
+        headline: translationKey("Microsoft Entra refused the client secret."),
+        advice: translationKey(
+          "Copy the secret's value again from Certificates & secrets on the app registration, or make a new one: a secret stops working when it expires.",
+        ),
+      };
+    case LlmConnectionFailureKind.Permission:
+      return {
+        headline: translationKey(
+          "The app registration may not read Intune's devices.",
+        ),
+        advice: translationKey(
+          "Give it the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph, and grant admin consent.",
+        ),
+      };
+    case LlmConnectionFailureKind.Settings:
+      return {
+        headline: translationKey(
+          "Check the tenant ID, the client ID and the cloud.",
+        ),
+        advice: translationKey(
+          "All three are on the app registration's Overview in the Microsoft Entra admin center.",
+        ),
+      };
+    case LlmConnectionFailureKind.RateLimited:
+      return {
+        headline: translationKey(
+          "Microsoft Graph asked OneUptime to slow down.",
+        ),
+        advice: translationKey("Try again in a minute."),
+      };
+    default:
+      return {
+        headline: translationKey("OneUptime could not reach Microsoft Graph."),
+        advice: translationKey(
+          "Check the cloud the tenant is in. If it is right, Microsoft may be having trouble: try again in a few minutes.",
+        ),
+      };
+  }
+}
+
+/*
+ * Why a test or a read failed, and what to do, by the kind of failure and
+ * the connection's service (Esper's when none is said): the server's own
+ * message, in English, goes under these.
  */
 export function getDeviceManagementFailureWords(
   failureKind: LlmConnectionFailureKind | undefined,
+  provider?: DeviceManagementProvider | string | undefined,
 ): DeviceManagementTestWords {
+  if (provider === DeviceManagementProvider.Intune) {
+    return getIntuneFailureWords(failureKind);
+  }
+
   switch (failureKind) {
     case LlmConnectionFailureKind.Authentication:
       return {
@@ -155,7 +213,7 @@ export function getDeviceManagementTestWords(
     return { headline: TEST_PASSED };
   }
 
-  return getDeviceManagementFailureWords(result.failureKind);
+  return getDeviceManagementFailureWords(result.failureKind, result.provider);
 }
 
 export interface ManagedDeviceStatusWords {
@@ -183,10 +241,13 @@ export function getManagedDeviceStatusWords(
 // How a device's host in Inventory was found, as its card says it.
 export function getManagedDeviceMatchWords(
   match: ManagedDeviceHostMatch | undefined,
+  provider?: DeviceManagementProvider | string | undefined,
 ): string | undefined {
   switch (match) {
     case ManagedDeviceHostMatch.Name:
-      return translationKey("Telemetry names it by its Esper name");
+      return provider === DeviceManagementProvider.Intune
+        ? translationKey("Telemetry names it by its Intune name")
+        : translationKey("Telemetry names it by its Esper name");
     case ManagedDeviceHostMatch.SerialNumber:
       return translationKey("Telemetry names it by its serial number");
     case ManagedDeviceHostMatch.Created:
@@ -240,6 +301,45 @@ export function getManagedDeviceOperatingSystemLine(device: {
 
   return version ? `${name}\u00A0${version}` : name;
 }
+
+/*
+ * The device managers a project can connect, as "Connect device manager"
+ * offers them: each by its product name, what it imports and how
+ * OneUptime signs in. Drawn with OneUptime's own icons: neither brand has a
+ * one-colour mark OneUptime may draw (Common/Types/ProviderLogo).
+ */
+/*
+ * The connections list's button ("Connect" and its singularName, "device
+ * manager"), as one phrase: translateCreateAction looks the whole phrase up
+ * before it fills the verb's template, so each language words it whole.
+ */
+export const CONNECT_DEVICE_MANAGER: string = translationKey(
+  "Connect device manager",
+);
+
+export interface DeviceManagementProviderChoice {
+  provider: DeviceManagementProvider;
+  description: string;
+  icon: IconProp;
+}
+
+export const DEVICE_MANAGEMENT_PROVIDER_CHOICES: ReadonlyArray<DeviceManagementProviderChoice> =
+  [
+    {
+      provider: DeviceManagementProvider.Esper,
+      description: translationKey(
+        "Android devices, iPhones, iPads and Apple TVs, read with an API key.",
+      ),
+      icon: IconProp.DevicePhoneMobile,
+    },
+    {
+      provider: DeviceManagementProvider.Intune,
+      description: translationKey(
+        "Windows PCs, Macs, iPhones, iPads and Android devices, read through Microsoft Graph with an app registration.",
+      ),
+      icon: IconProp.ComputerDesktop,
+    },
+  ];
 
 /*
  * The choices of how often a connection is read, under its "Read every"

@@ -339,9 +339,32 @@ const esperAppleDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
       "Triggers when a device's latest reading says it has not checked in with Esper for more than a day, once for each such device.",
   });
 
+/*
+ * A Microsoft Intune connection's devices, every platform (#9837): each
+ * checks in with Intune about every eight hours, and when someone opens the
+ * Company Portal or a policy changes, so a day without a check-in is what
+ * says it is gone - as Inventory's Offline does.
+ */
+const intuneDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
+  buildCheckInTemplate({
+    id: "intune-device-stopped-checking-in",
+    provider: DeviceManagementProvider.Intune,
+    name: "Intune Device Stopped Checking In",
+    summary: "A device has not checked in with Intune for more than a day.",
+    description:
+      "Alert when a device Intune manages has not checked in for more than a day, one alert per device, resolved once it checks in again. A device checks in with Intune about every eight hours, so a day without one is what says it is gone. A laptop left off over a weekend reads the same: raise the threshold for those. A device that is a host in Hosts, because a OneUptime agent reports it, is left to Host Stopped Reporting.",
+    thresholdInMinutes: MANAGED_DEVICE_STOPPED_SYNCING_MINUTES,
+    incidentTitle: "[Intune] Device stopped checking in",
+    incidentDescription:
+      "A device Intune manages has not checked in with Intune for more than a day, so it is off, has lost its network, or was taken out of management on the device. Check its power and its network first; the Microsoft Intune admin center shows its last check-in and its compliance. This resolves on its own once it checks in again.",
+    criteriaDescription:
+      "Triggers when a device's latest reading says it has not checked in with Intune for more than a day, once for each such device.",
+  });
+
 const ALL_TEMPLATES: ReadonlyArray<ManagedDeviceAlertTemplate> = [
   esperAndroidDeviceStoppedCheckingInTemplate,
   esperAppleDeviceStoppedCheckingInTemplate,
+  intuneDeviceStoppedCheckingInTemplate,
 ];
 
 // Every template, of every service.

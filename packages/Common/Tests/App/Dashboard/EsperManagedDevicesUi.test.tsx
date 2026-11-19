@@ -69,6 +69,8 @@ import {
   getManagedDeviceStatusWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/DeviceManagementWords";
 import { ManagedDevicePlatform } from "../../../Types/DeviceManagement/ManagedDevicePlatform";
+import { DEVICE_MANAGER_CARD_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/DeviceManagerPickerModal";
+import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import {
   getTestFailureSentence,
   getTestPassedSentence,
@@ -240,7 +242,8 @@ describe("the Esper connections list", () => {
     expect(props["isEditable"]).toBe(false);
   });
 
-  test("its button reads Connect Esper and opens the page's form", () => {
+  // #9837: Esper or Microsoft Intune, chosen on the page before its form.
+  test("its button reads Connect device manager and opens the page's choice", () => {
     const onConnect: MockFunction = getJestMockFunction();
     const props: Record<string, unknown> = renderConnections(
       { isAllowed: true },
@@ -249,7 +252,8 @@ describe("the Esper connections list", () => {
 
     expect(props["isCreateable"]).toBe(true);
     expect(props["createVerb"]).toBe("Connect");
-    expect(props["singularName"]).toBe("Esper");
+    expect(props["singularName"]).toBe("device manager");
+    expect(props["noItemsMessage"]).toBe("No device managers connected yet.");
     (props["onCreateClick"] as () => void)();
     expect(onConnect).toHaveBeenCalledTimes(1);
   });
@@ -276,7 +280,64 @@ describe("the Esper connections list", () => {
 
     render(cell.getElement(connection()));
     expect(screen.getByText("Store fleet")).toBeInTheDocument();
-    expect(screen.getByText("acme.esper.cloud")).toBeInTheDocument();
+    expect(screen.getByText("Esper · acme.esper.cloud")).toBeInTheDocument();
+    cleanup();
+
+    // An Intune connection: its service, its tenant and its cloud.
+    render(
+      cell.getElement(
+        connection({
+          name: "Contoso",
+          provider: DeviceManagementProvider.Intune,
+          config: {
+            tenant: "contoso.onmicrosoft.us",
+            clientId: "6731de76-14a6-49ae-97bc-6eba6914391e",
+            cloud: "usgov",
+            readIntervalInMinutes: 15,
+          },
+        }),
+      ),
+    );
+    expect(
+      screen.getByText(
+        "Microsoft Intune · contoso.onmicrosoft.us (Microsoft 365 GCC High)",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("an Intune connection's failure is said in Microsoft's words", () => {
+    expect(
+      getDeviceManagementFailureWords(
+        LlmConnectionFailureKind.Permission,
+        DeviceManagementProvider.Intune,
+      ),
+    ).toEqual({
+      headline: "The app registration may not read Intune's devices.",
+      advice:
+        "Give it the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph, and grant admin consent.",
+    });
+    expect(
+      getDeviceManagementFailureWords(
+        LlmConnectionFailureKind.Authentication,
+        DeviceManagementProvider.Intune,
+      ).headline,
+    ).toBe("Microsoft Entra refused the client secret.");
+    // Esper's, when the service is Esper or not said.
+    expect(
+      getDeviceManagementFailureWords(LlmConnectionFailureKind.Authentication)
+        .headline,
+    ).toBe("Esper refused the API key.");
+  });
+
+  test("the choice of device manager: Esper and Microsoft Intune, each by its product name and a neutral icon", () => {
+    expect(
+      DEVICE_MANAGER_CARD_OPTIONS.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.logo];
+      }),
+    ).toEqual([
+      ["esper", "Esper", undefined],
+      ["intune", "Microsoft Intune", undefined],
+    ]);
   });
 
   test("says a failing read in red, and a turned-off connection in grey", () => {

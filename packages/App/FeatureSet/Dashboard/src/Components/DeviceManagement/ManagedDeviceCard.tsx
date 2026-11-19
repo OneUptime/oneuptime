@@ -1,6 +1,13 @@
 import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
 import OneUptimeDate from "Common/Types/Date";
-import { readDeviceManagementConfig } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import {
+  getDeviceManagementConnectionAddress,
+  readDeviceManagementConfig,
+} from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import DeviceManagementProvider, {
+  getDeviceManagementProviderTitle,
+  readDeviceManagementProvider,
+} from "Common/Types/DeviceManagement/DeviceManagementProvider";
 import { isManagedDeviceHostMatch } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import {
   ManagedDevicePlatform,
@@ -33,15 +40,16 @@ import {
 import ManagedDeviceStatusPill from "./ManagedDeviceStatusPill";
 
 /*
- * What Esper knows about a device, on the device's Inventory page: whether
- * it is there (online, or offline and since when), its group, its Android
- * version, build and security patch, its serial number and IMEI, its
- * battery and storage, its Esper agent, and whether its apps or agent send
- * telemetry under its name. Read from the device's own row
- * (ManagedDevice), current to its connection's last read.
+ * What its device manager - Esper, Microsoft Intune (#9837) - knows about a
+ * device, on the device's Inventory page: whether it is there (online, or
+ * offline and since when), its group, its operating system, build and
+ * security patch, its serial number and IMEI, its battery and storage, an
+ * Esper device's Esper agent, and whether its apps or agent send telemetry
+ * under its name. Read from the device's own row (ManagedDevice), current
+ * to its connection's last read.
  *
- * A device that left Esper says so, and when: its item is archived, and
- * goes 30 days after it left.
+ * A device that left its device manager says so, and when: its item is
+ * archived, and goes 30 days after it left.
  */
 
 export interface ComponentProps {
@@ -143,7 +151,7 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
       return (
         <p className="text-sm text-gray-500">
           {translator.translateText(
-            "This device is no longer imported from Esper.",
+            "This device is no longer imported from its device manager.",
           )}
         </p>
       );
@@ -156,10 +164,15 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
     const units: string = text(details["memoryUnits"]);
     const totalStorage: string = text(details["totalStorage"]);
     const totalRam: string = text(details["totalRam"]);
+    const provider: DeviceManagementProvider = readDeviceManagementProvider(
+      device.connection?.provider,
+    );
+    const isEsper: boolean = provider === DeviceManagementProvider.Esper;
     const matchWords: string | undefined = getManagedDeviceMatchWords(
       isManagedDeviceHostMatch(device.inventoryMatch)
         ? device.inventoryMatch
         : undefined,
+      provider,
     );
     const hasAgentVersion: boolean = Boolean(device.agentVersion);
     const isAndroid: boolean =
@@ -177,7 +190,8 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
           : undefined,
       },
       {
-        label: "Esper Name",
+        // Esper names a device itself, beside the alias people give it.
+        label: isEsper ? "Esper Name" : "Device Name",
         value: text(device.deviceName) ? (
           <IsolatedLine text={text(device.deviceName)} />
         ) : undefined,
@@ -248,8 +262,8 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
               ? translator.translateText("Off")
               : undefined,
       },
-      // The Esper agent runs on Android: an Apple device has none.
-      ...(isAndroid
+      // The Esper agent runs on an Esper Android device: an Apple device has none.
+      ...(isEsper && isAndroid
         ? [
             {
               label: "Esper Agent",
@@ -282,9 +296,11 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
     ];
 
     const connectionName: string = text(device.connection?.name);
-    const tenant: string = readDeviceManagementConfig(
-      device.connection?.config,
-    ).tenant;
+    const providerTitle: string = getDeviceManagementProviderTitle(provider);
+    const address: string = getDeviceManagementConnectionAddress({
+      provider,
+      config: readDeviceManagementConfig(device.connection?.config, provider),
+    });
 
     return (
       <div className="space-y-4">
@@ -304,8 +320,9 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
             data-testid="managed-device-removed"
           >
             {translator.translateTemplate(
-              "Removed from Esper {{time}}. Its item is archived, and goes 30 days after the device left.",
+              "Removed from {{provider}} {{time}}. Its item is archived, and goes 30 days after the device left.",
               {
+                provider: providerTitle,
                 time: OneUptimeDate.fromNow(device.removedAt),
               },
             )}
@@ -332,8 +349,8 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
         {connectionName ? (
           <p className="text-xs text-gray-500">
             {translator.translateTemplate(
-              "Imported by the Esper connection {{name}} ({{tenant}}.esper.cloud).",
-              { name: connectionName, tenant: tenant },
+              "Imported by the {{provider}} connection {{name}} ({{address}}).",
+              { provider: providerTitle, name: connectionName, address },
             )}
           </p>
         ) : (
@@ -343,10 +360,26 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // The service's name once the device says which; a product name.
+  const loadedProvider: DeviceManagementProvider | undefined = device
+    ? readDeviceManagementProvider(device.connection?.provider)
+    : undefined;
+
   return (
     <Card
-      title="Esper"
-      description="What Esper, the device management service that enrolls this device, knows about it."
+      title={
+        loadedProvider
+          ? getDeviceManagementProviderTitle(loadedProvider)
+          : "Device Manager"
+      }
+      description={
+        loadedProvider
+          ? translator.translateTemplate(
+              "What {{provider}}, the device management service that enrolls this device, knows about it.",
+              { provider: getDeviceManagementProviderTitle(loadedProvider) },
+            )
+          : "What the device management service that enrolls this device knows about it."
+      }
     >
       {body()}
     </Card>

@@ -6,6 +6,7 @@ L'inventaire est une liste unique de tout ce que OneUptime sait de votre parc : 
 - [Comment les éléments arrivent dans l'inventaire](#comment-les-éléments-arrivent-dans-linventaire): Découverts, répliqués ou ajoutés par vous.
 - [S'y retrouver](#sy-retrouver): Les pages de l'inventaire et les pages propres à chaque élément.
 - [Importer des appareils depuis Esper](#importer-des-appareils-depuis-esper): Chaque appareil Android et Apple qu'enrôle votre tenant Esper, tenu à jour.
+- [Importer des appareils depuis Microsoft Intune](#importer-des-appareils-depuis-microsoft-intune): Chaque PC Windows, Mac, iPhone, iPad et appareil Android géré par Intune, tenu à jour.
 - [Ajouter quelque chose à la main](#ajouter-quelque-chose-à-la-main): Une API tierce, une base de données externe ou une appliance.
 - [Archiver plutôt que supprimer](#archiver-plutôt-que-supprimer): La façon de ranger la liste qui tient dans le temps.
 :::
@@ -26,14 +27,14 @@ flowchart TB
 | Source | Dans l'API | D'où elle vient | Combien de temps elle reste |
 | --- | --- | --- | --- |
 | **Découvert** | `discovered` | Les attributs de ressource OpenTelemetry, lus à l'arrivée de la télémétrie : un service, un hôte, un objet Kubernetes ou une machine virtuelle qui envoie de la télémétrie. | Réenregistré à chaque lot. Retiré une fois resté silencieux plus longtemps que la fenêtre de son type (voir plus bas). |
-| **Répliqué** | `inventory` | Un enregistrement qu'une sonde de OneUptime tient à jour : équipements réseau, ressources cloud, appareils IoT, fonctions serverless, applications RUM, hôtes Docker, hôtes Podman et les appareils Android et Apple qu'importe une connexion Esper. Copié toutes les 15 minutes, et un appareil Esper chaque fois que sa connexion est lue. | Aussi longtemps que son enregistrement. Supprimez l'enregistrement, et l'élément part avec lui. |
+| **Répliqué** | `inventory` | Un enregistrement qu'une sonde de OneUptime tient à jour : équipements réseau, ressources cloud, appareils IoT, fonctions serverless, applications RUM, hôtes Docker, hôtes Podman et les appareils qu'importe une connexion Esper ou Microsoft Intune. Copié toutes les 15 minutes, et un appareil Esper chaque fois que sa connexion est lue. | Aussi longtemps que son enregistrement. Supprimez l'enregistrement, et l'élément part avec lui. |
 | **Ajouté par vous** | `manual` | Ajouté par vous, pour quelque chose que OneUptime ne peut pas voir : une API tierce, une base de données gérée par un fournisseur, une appliance dans une baie. | Jusqu'à ce que vous le supprimiez. Rien ne le fait expirer. |
 
 Un élément découvert ou répliqué ne peut pas être renommé ni changer de type : sa source écraserait la modification à son prochain passage. La page **Paramètres** de l'élément indique où faire plutôt une modification durable. Ce que vous pouvez toujours ajouter à n'importe quel élément, quelle que soit sa source, ce sont des valeurs de champs personnalisés : voir [Champs personnalisés de l'inventaire](/docs/inventory/custom-fields).
 
 ### Combien de temps reste un élément silencieux
 
-Un élément découvert a un battement de cœur. Chaque fois que de la télémétrie arrive pour lui, son heure de dernière observation avance, et la colonne **Statut** de la liste indique à quel point elle est récente. Il en va de même d'un appareil venu d'Esper : chaque fois qu'il contacte Esper. Les autres éléments répliqués et ceux que vous avez ajoutés n'ont pas de battement de cœur, donc leur statut reste vide plutôt que d'alarmer.
+Un élément découvert a un battement de cœur. Chaque fois que de la télémétrie arrive pour lui, son heure de dernière observation avance, et la colonne **Statut** de la liste indique à quel point elle est récente. Il en va de même d'un appareil venu d'Esper ou d'Intune : chaque fois qu'il contacte son gestionnaire d'appareils. Les autres éléments répliqués et ceux que vous avez ajoutés n'ont pas de battement de cœur, donc leur statut reste vide plutôt que d'alarmer.
 
 | Statut | Ce que cela signifie |
 | --- | --- |
@@ -59,7 +60,7 @@ Ouvrez **Produits → Ressources → Inventaire**. Son menu latéral contient ce
 | --- | --- |
 | **Vue d'ensemble** | Combien d'éléments vous avez, ce qu'ils sont, combien sont devenus silencieux, et ce qui a été ajouté le plus récemment. |
 | **Tous les éléments** | Chaque élément. Cherchez par nom, description ou clé d'identité, filtrez la liste par type, source, statut ou champ personnalisé, et ajoutez un élément à la main. |
-| **Appareils gérés** | Vos connexions Esper, et chaque appareil qu'elles importent, avec son statut, son groupe, son modèle et son système d'exploitation. |
+| **Appareils gérés** | Vos connexions Esper et Microsoft Intune, et chaque appareil qu'elles importent, avec son statut, son groupe, son modèle et son système d'exploitation. |
 | **Carte de topologie** | Comment les éléments sont reliés : les services, ce qu'ils appellent, et les hôtes, pods et équipements sur lesquels ils tournent. |
 | **Devenu silencieux** | Les éléments dont on n'a pas eu de nouvelles depuis plus d'une journée : les éléments découverts qui n'ont pas envoyé de télémétrie, et les appareils qui ont cessé de contacter Esper. |
 | **Par source** | Les éléments d'une source : **Découvert**, **Répliqué** ou **Ajouté par vous**. |
@@ -98,7 +99,7 @@ Dans la console Esper, créez une clé sous API Key Management. OneUptime ne fai
 
 ### Connecter le tenant
 
-Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés**, et cliquez sur **Connecter Esper**. Saisissez le **Tenant**, c'est-à-dire le nom qui précède `.esper.cloud` dans l'adresse de votre console Esper (`acme` pour `acme.esper.cloud`), et la **Clé API**. **Plus de champs** contient le nom de la connexion et la fréquence à laquelle elle est lue.
+Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés**, cliquez sur **Connecter un gestionnaire d'appareils**, et choisissez **Esper**. Saisissez le **Tenant**, c'est-à-dire le nom qui précède `.esper.cloud` dans l'adresse de votre console Esper (`acme` pour `acme.esper.cloud`), et la **Clé API**. **Plus de champs** contient le nom de la connexion et la fréquence à laquelle elle est lue.
 
 ### Vérifier la première lecture
 
@@ -133,6 +134,34 @@ Un appareil retiré d'Esper est marqué **Retiré**, et son élément est archiv
 Dans **Appareils gérés**, cliquez sur **Configurer des alertes** sur la ligne de la connexion, et créez **Esper Android Device Stopped Checking In** et **Esper Apple Device Stopped Checking In**. Le premier ouvre une alerte pour chaque appareil Android qui n'a pas contacté Esper depuis plus d'une heure, le second pour chaque appareil Apple après plus d'une journée, chacune au nom de l'appareil et résolue dès qu'il se manifeste à nouveau.
 
 Chaque lecture de la connexion enregistre il y a combien de minutes chaque appareil a contacté Esper pour la dernière fois, sous la forme de la métrique `oneuptime.managed_device.check_in.age`, et le moniteur vérifie la dernière valeur de chaque appareil toutes les 5 minutes. Un appareil qui exécute aussi l'Agent Android est laissé à **Host Stopped Reporting**, si bien qu'il n'alerte jamais deux fois, et un appareil retiré d'Esper résout son alerte. Une lecture qui échoue n'enregistre rien, si bien qu'aucune alerte ne s'ouvre ni ne se résout avant la suivante. Pour une flotte éteinte la nuit, relevez le seuil du moniteur.
+
+## Importer des appareils depuis Microsoft Intune
+
+Connectez un tenant Microsoft Intune, et chaque appareil géré par Intune figure dans l'inventaire : ses PC Windows, Mac, iPhone, iPad, appareils Android et machines Linux. Chaque appareil est un hôte, avec ce qu'Intune sait de lui : sa catégorie, son système d'exploitation et sa version, son numéro de série et son IMEI, sa conformité, son propriétaire et son inscription, son stockage, et les applications qu'Intune y a détectées. Intune n'envoie rien de lui-même, donc OneUptime le lit selon une planification : les appareils toutes les 15 minutes, et les applications de chaque appareil toutes les 6 heures.
+
+:::steps
+### Inscrire une application dans Microsoft Entra
+
+Dans le centre d'administration Microsoft Entra, ouvrez `App registrations` et cliquez sur `New registration`. Donnez-lui un nom, gardez `Accounts in this organizational directory only`, et inscrivez-la. Sa page `Overview` montre les deux ID que demande OneUptime : l'`Application (client) ID` et le `Directory (tenant) ID`.
+
+### Lui permettre de lire les appareils d'Intune
+
+Sous `API permissions`, cliquez sur `Add a permission`, puis `Microsoft Graph`, puis `Application permissions`, et ajoutez `DeviceManagementManagedDevices.Read.All`. Cliquez ensuite sur `Grant admin consent`, ce que seul un administrateur du tenant peut faire. Cette seule autorisation suffit à OneUptime : elle liste les appareils et les applications qu'Intune y a détectées, et ne peut rien modifier.
+
+### Créer un secret client
+
+Sous `Certificates & secrets`, cliquez sur `New client secret`, et copiez sa `Value`, pas son `Secret ID` : Microsoft n'affiche la valeur qu'une fois. Un secret cesse de fonctionner quand il expire : avant cela, créez-en un nouveau et saisissez-le en modifiant la connexion.
+
+### Connecter le tenant Intune
+
+Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés**, cliquez sur **Connecter un gestionnaire d'appareils**, et choisissez **Microsoft Intune**. Saisissez l'**ID du tenant**, l'**ID d'application (client)** et le **Secret client**. Si le tenant est dans un cloud du gouvernement américain, choisissez-le comme **Cloud** sous **Plus de champs**. **Connecter** teste l'inscription d'application avant de rien enregistrer : il indique combien d'appareils une lecture importera, ou ce qui ne va pas et comment le corriger.
+:::
+
+Un appareil contacte Intune environ toutes les huit heures, et son dernier contact est la dernière fois qu'il l'a fait : un appareil qui ne l'a pas fait depuis une journée est **Hors ligne**. Ses applications sont celles qu'Intune y a détectées, que Microsoft Graph ne liste que dans sa version bêta : pour un appareil personnel, les applications gérées par Intune. Les groupes d'Intune sont des groupes Microsoft Entra, que cette autorisation ne lit pas, donc le groupe d'un appareil est sa catégorie d'appareil. Rien n'est lu sur l'utilisateur d'un appareil.
+
+Intune nomme un appareil comme son propriétaire l'a appelé, donc deux appareils peuvent porter le même nom : chaque iPhone que personne n'a renommé s'appelle `iPhone`. Un nom que portent deux appareils d'une connexion n'appartient à aucun des deux dans l'inventaire : chacun est nommé par son numéro de série à la place, et reprend son nom dès qu'aucun autre appareil ne le porte.
+
+Pour recevoir une alerte quand un appareil cesse de contacter Intune, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Intune Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Intune depuis plus d'une journée, au nom de l'appareil. Un ordinateur portable éteint pendant un week-end se lit de la même façon : relevez le seuil du moniteur si une journée est trop courte pour les vôtres.
 
 ## Ajouter quelque chose à la main
 

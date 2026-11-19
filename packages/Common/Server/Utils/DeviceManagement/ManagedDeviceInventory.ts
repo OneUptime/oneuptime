@@ -9,11 +9,15 @@ import {
   MANAGED_DEVICE_HOST_NAME_ATTRIBUTE,
   MANAGED_DEVICE_RESOURCE_TYPE,
   ManagedDeviceHostMatch,
+  ManagedDeviceNaming,
   ManagedDeviceServiceAttributeKeys,
   canonicalizeManagedDeviceIdentity,
   getAllManagedDeviceServiceAttributeKeys,
+  getManagedDeviceFallbackHostName,
   getManagedDeviceHostName,
   getManagedDeviceServiceAttributeKeys,
+  getManagedDeviceUniqueHostName,
+  getSharedManagedDeviceNames,
   getUsableSerialNumber,
   isManagedDeviceHostMatch,
 } from "../../../Types/DeviceManagement/ManagedDeviceIdentity";
@@ -625,6 +629,10 @@ export default class ManagedDeviceInventory {
       releasedHostCount: 0,
     };
 
+    // The names two of the connection's devices share, which neither's host goes by.
+    const sharedNames: Set<string> =
+      await ManagedDeviceInventory.loadSharedNames(data);
+
     let skip: number = 0;
 
     for (;;) {
@@ -645,6 +653,7 @@ export default class ManagedDeviceInventory {
         projectId: data.projectId,
         provider: data.provider,
         devices,
+        sharedNames,
         now: data.now,
         outcome,
       });
@@ -659,10 +668,61 @@ export default class ManagedDeviceInventory {
     return outcome;
   }
 
+  /*
+   * The names more than one of a connection's devices in service has
+   * (getSharedManagedDeviceNames), read over all of them before any page
+   * is recorded, so two that share a name are told apart whichever pages
+   * they are on.
+   */
+  private static async loadSharedNames(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+  }): Promise<Set<string>> {
+    const naming: Array<ManagedDeviceNaming> = [];
+    let skip: number = 0;
+
+    for (;;) {
+      const devices: Array<ManagedDevice> = await ManagedDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          connectionId: data.connectionId,
+          removedAt: QueryHelper.isNull(),
+        },
+        select: {
+          _id: true,
+          deviceName: true,
+          serialNumber: true,
+          providerDeviceId: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        skip: skip,
+        limit: PAGE_SIZE,
+        props: { isRoot: true },
+      });
+
+      for (const device of devices) {
+        naming.push({
+          deviceName: device.deviceName,
+          serialNumber: device.serialNumber,
+          providerDeviceId: device.providerDeviceId,
+        });
+      }
+
+      if (devices.length < PAGE_SIZE) {
+        break;
+      }
+
+      skip += PAGE_SIZE;
+    }
+
+    return getSharedManagedDeviceNames(naming);
+  }
+
   private static async recordPage(data: {
     projectId: ObjectID;
     provider: string | undefined;
     devices: Array<ManagedDevice>;
+    sharedNames: ReadonlySet<string>;
     now: Date;
     outcome: ManagedDeviceInventoryOutcome;
   }): Promise<void> {
@@ -673,28 +733,45 @@ export default class ManagedDeviceInventory {
       },
     );
 
-    // Every host a device here could be, read at once.
+    /*
+     * Every host a device here could be, read at once: the one its name
+     * keys, and the one its fallback name keys, which it goes by when its
+     * name is another device's host already.
+     */
+    const keyOf: (name: string) => string = (name: string): string => {
+      return keyForHost(projectId, canonicalizeManagedDeviceIdentity(name));
+    };
+    const hostNameByDevice: Map<string, string> = new Map<string, string>();
+    const fallbackNameByDevice: Map<string, string> = new Map<string, string>();
     const keyByDevice: Map<string, string> = new Map<string, string>();
 
     for (const device of present) {
-      keyByDevice.set(
-        device._id!.toString(),
-        keyForHost(
-          projectId,
-          canonicalizeManagedDeviceIdentity(
-            getManagedDeviceHostName({
-              deviceName: device.deviceName,
-              serialNumber: device.serialNumber,
-              providerDeviceId: device.providerDeviceId,
-            }),
-          ),
-        ),
+      const hostName: string = getManagedDeviceUniqueHostName(
+        device,
+        data.sharedNames,
       );
+      const fallbackName: string = getManagedDeviceFallbackHostName(device);
+
+      hostNameByDevice.set(device._id!.toString(), hostName);
+      keyByDevice.set(device._id!.toString(), keyOf(hostName));
+
+      if (
+        fallbackName &&
+        canonicalizeManagedDeviceIdentity(fallbackName) !==
+          canonicalizeManagedDeviceIdentity(hostName)
+      ) {
+        fallbackNameByDevice.set(device._id!.toString(), fallbackName);
+      }
     }
 
     const byKey: Map<string, InventoryItem> = new Map<string, InventoryItem>();
     const byId: Map<string, InventoryItem> = new Map<string, InventoryItem>();
-    const keys: Array<string> = Array.from(new Set(keyByDevice.values()));
+    const keys: Array<string> = Array.from(
+      new Set([
+        ...keyByDevice.values(),
+        ...Array.from(fallbackNameByDevice.values()).map(keyOf),
+      ]),
+    );
 
     if (keys.length > 0) {
       const named: Array<InventoryItem> = await InventoryItemService.findBy({
@@ -805,6 +882,22 @@ export default class ManagedDeviceInventory {
 
         const serial: string = getUsableSerialNumber(device.serialNumber) || "";
 
+        /*
+         * A name another device's host goes by already (a device of another
+         * connection named the same) is not this one's to share: it goes by
+         * its fallback name instead.
+         */
+        let key: string = keyByDevice.get(deviceId) || "";
+        let hostName: string = hostNameByDevice.get(deviceId) || "";
+        const named: InventoryItem | undefined = byKey.get(key);
+        const fallbackName: string | undefined =
+          fallbackNameByDevice.get(deviceId);
+
+        if (named && heldByOthers.has(named._id!.toString()) && fallbackName) {
+          hostName = fallbackName;
+          key = keyOf(fallbackName);
+        }
+
         const choice: ManagedDeviceHostChoice = chooseManagedDeviceHost({
           device: toSubject(device),
           current: candidate(
@@ -812,7 +905,7 @@ export default class ManagedDeviceInventory {
               ? byId.get(device.inventoryItemId.toString())
               : undefined,
           ),
-          byName: candidate(byKey.get(keyByDevice.get(deviceId) || "")),
+          byName: candidate(byKey.get(key)),
           bySerial: serialHosts
             .filter((host: SerialNumberHost): boolean => {
               return (
@@ -851,7 +944,8 @@ export default class ManagedDeviceInventory {
           device,
           choice,
           item: choice.itemId ? byId.get(choice.itemId) : undefined,
-          key: keyByDevice.get(deviceId) || "",
+          key,
+          hostName,
           now: data.now,
         });
 
@@ -927,6 +1021,8 @@ export default class ManagedDeviceInventory {
     choice: ManagedDeviceHostChoice;
     item: InventoryItem | undefined;
     key: string;
+    // The host.name a new host is made with: the one `key` keys.
+    hostName: string;
     now: Date;
   }): Promise<string> {
     const device: ManagedDevice = data.device;
@@ -944,11 +1040,7 @@ export default class ManagedDeviceInventory {
     let writtenNow: WrittenHostState = written;
 
     if (!data.item) {
-      const hostName: string = getManagedDeviceHostName({
-        deviceName: device.deviceName,
-        serialNumber: device.serialNumber,
-        providerDeviceId: device.providerDeviceId,
-      });
+      const hostName: string = data.hostName;
 
       if (!hostName || !data.key) {
         return "";

@@ -57,6 +57,17 @@ import {
   FakeDeviceManagementDb,
   installFakeDeviceManagementDb,
 } from "./FakeDeviceManagementDb";
+import {
+  FakeIntuneGraph,
+  INTUNE_CLIENT_ID,
+  INTUNE_CLIENT_SECRET,
+  INTUNE_TENANT,
+  buildIntuneAndroid,
+  buildIntuneDetectedApp,
+  buildIntuneDevice,
+  buildIntuneIpad,
+} from "./FakeIntuneGraph";
+import IntuneConnector from "../../../../Server/Utils/DeviceManagement/Intune/IntuneConnector";
 
 /*
  * One read of one Esper connection, end to end: the fake of Esper's API on
@@ -1218,6 +1229,271 @@ describe("Esper's Apple devices", () => {
       (lastRecord()["lastPullResult"] as unknown as DeviceManagementReadSummary)
         .changedCount,
     ).toBe(0);
+  });
+});
+
+/*
+ * #9837: a Microsoft Intune connection is read by the same runner, under
+ * the same identity contract, from Graph (FakeIntuneGraph).
+ */
+describe("a Microsoft Intune connection", () => {
+  const PHONE: JSONObject = buildIntuneAndroid({
+    lastSyncDateTime: new Date(START.getTime() - 3 * HOUR).toISOString(),
+  });
+  let graph: FakeIntuneGraph;
+
+  function intuneDevices(): Array<JSONObject> {
+    return [
+      buildIntuneDevice({
+        lastSyncDateTime: new Date(START.getTime() - 2 * HOUR).toISOString(),
+      }),
+      buildIntuneIpad({
+        lastSyncDateTime: new Date(START.getTime() - 30 * HOUR).toISOString(),
+      }),
+      PHONE,
+    ];
+  }
+
+  async function runIntune(): Promise<DeviceManagementReadOutcome> {
+    return run({ transport: graph.transport });
+  }
+
+  beforeEach(() => {
+    graph = new FakeIntuneGraph({
+      devices: intuneDevices(),
+      apps: {
+        [String(PHONE["id"])]: [
+          buildIntuneDetectedApp({
+            displayName: "com.contoso.scanner",
+            version: "4.2.0",
+            platform: "androidWorkProfile",
+          }),
+        ],
+      },
+    });
+    connection.name = "Intune contoso";
+    connection.provider = DeviceManagementProvider.Intune;
+    connection.config = {
+      tenant: INTUNE_TENANT,
+      clientId: INTUNE_CLIENT_ID,
+      cloud: "public",
+      readIntervalInMinutes: 15,
+    };
+    connection.secrets = JSON.stringify({ clientSecret: INTUNE_CLIENT_SECRET });
+  });
+
+  test("imports every device Intune manages, with what it runs and its last check-in", async () => {
+    const outcome: DeviceManagementReadOutcome = await runIntune();
+
+    expect(outcome.status).toBe("success");
+    expect(deviceRow(String(PHONE["id"]))).toMatchObject({
+      platform: ManagedDevicePlatform.Android,
+      deviceName: "SM-G991B",
+      serialNumber: "R5CR30ABCDE",
+      securityPatchLevel: "2026-10-01",
+      groupName: "Warehouse",
+    });
+    expect(
+      new Date(String(deviceRow(String(PHONE["id"]))["lastCheckInAt"])),
+    ).toEqual(new Date(START.getTime() - 3 * HOUR));
+    expect(deviceRow("4a5b6c7d-8e9f-4a0b-9c1d-2e3f4a5b6c7d")["platform"]).toBe(
+      ManagedDevicePlatform.IPadOS,
+    );
+
+    // Every request went to Microsoft's sign-in and Graph, and no other.
+    for (const request of graph.requests) {
+      expect(["login.microsoftonline.com", "graph.microsoft.com"]).toContain(
+        request.host,
+      );
+    }
+  });
+
+  test("each device is one host in Inventory, named as Intune names it, with Intune's facts", async () => {
+    await runIntune();
+
+    const pc: JSONObject = itemOf("0f7c8c6b-0c2a-4d6e-9a1b-2c3d4e5f6a7b");
+
+    expect(pc["entityKey"]).toBe(hostKey("DESKTOP-7KQ2M1"));
+    expect(pc["descriptiveAttributes"]).toMatchObject({
+      "os.name": "Windows",
+      "host.serial_number": "0F33AB12345678",
+      "intune.device.id": "0f7c8c6b-0c2a-4d6e-9a1b-2c3d4e5f6a7b",
+      "intune.device.name": "DESKTOP-7KQ2M1",
+      "intune.group": "Front Desk",
+    });
+    expect(
+      Object.keys(pc["descriptiveAttributes"] as JSONObject).filter(
+        (key: string): boolean => {
+          return key.startsWith("esper.");
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test("an iPad quiet for 30 hours is offline; a PC quiet for 2 is online", async () => {
+    await runIntune();
+
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      deviceCount: 3,
+      onlineCount: 2,
+      offlineCount: 1,
+    });
+  });
+
+  test("the Android agent's host is the phone's, by its serial number", async () => {
+    const agentHost: string = telemetryHost({ hostName: "R5CR30ABCDE" });
+
+    await runIntune();
+
+    expect(deviceRow(String(PHONE["id"]))).toMatchObject({
+      inventoryItemId: agentHost,
+      inventoryMatch: ManagedDeviceHostMatch.SerialNumber,
+    });
+  });
+
+  test("two devices that share a name are two hosts, each by its serial number", async () => {
+    graph = new FakeIntuneGraph({
+      devices: [
+        buildIntuneIpad({
+          id: "11111111-aaaa-4000-8000-000000000001",
+          deviceName: "iPhone",
+          operatingSystem: "iOS",
+          model: "iPhone 15",
+          serialNumber: "F2LXK1AAAAAA",
+        }),
+        buildIntuneIpad({
+          id: "11111111-aaaa-4000-8000-000000000002",
+          deviceName: "iPhone",
+          operatingSystem: "iOS",
+          model: "iPhone 14",
+          serialNumber: "F2LXK1BBBBBB",
+        }),
+      ],
+    });
+
+    const outcome: DeviceManagementReadOutcome = await runIntune();
+
+    expect(outcome.status).toBe("success");
+    expect(itemOf("11111111-aaaa-4000-8000-000000000001")["entityKey"]).toBe(
+      hostKey("F2LXK1AAAAAA"),
+    );
+    expect(itemOf("11111111-aaaa-4000-8000-000000000002")["entityKey"]).toBe(
+      hostKey("F2LXK1BBBBBB"),
+    );
+
+    // Read again, each keeps its host.
+    clock.advance(16 * MINUTE);
+    await runIntune();
+    expect(
+      Array.from(db.items.values()).filter((item: JSONObject): boolean => {
+        return item["resourceType"] === MANAGED_DEVICE_RESOURCE_TYPE;
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("a name another device's host goes by already: this one goes by its serial number", async () => {
+    // A device of another connection holds the host named DESKTOP-7KQ2M1.
+    const held: string = telemetryHost({ hostName: "DESKTOP-7KQ2M1" });
+    db.devices.set("99999999-0000-4000-8000-000000000001", {
+      _id: "99999999-0000-4000-8000-000000000001",
+      projectId: PROJECT.toString(),
+      connectionId: "99999999-0000-4000-8000-0000000000aa",
+      providerDeviceId: "esper-device",
+      deviceName: "DESKTOP-7KQ2M1",
+      inventoryItemId: held,
+    });
+
+    await runIntune();
+
+    expect(itemOf("0f7c8c6b-0c2a-4d6e-9a1b-2c3d4e5f6a7b")["entityKey"]).toBe(
+      hostKey("0F33AB12345678"),
+    );
+    expect(
+      db.devices.get("99999999-0000-4000-8000-000000000001"),
+    ).toMatchObject({ inventoryItemId: held });
+  });
+
+  test("its devices' discovered apps are read", async () => {
+    await runIntune();
+
+    const phone: string = String(deviceRow(String(PHONE["id"]))["_id"]);
+
+    expect(
+      Array.from(db.apps.values())
+        .filter((app: JSONObject): boolean => {
+          return String(app["managedDeviceId"]) === phone;
+        })
+        .map((app: JSONObject): string => {
+          return `${app["packageName"]} ${app["versionName"]}`;
+        }),
+    ).toEqual(["com.contoso.scanner 4.2.0"]);
+  });
+
+  test("its check-ins are written once its device list was read whole", async () => {
+    await runIntune();
+
+    expect(checkInRecords).toHaveLength(1);
+    expect(checkInRecords[0]).toMatchObject({
+      provider: DeviceManagementProvider.Intune,
+    });
+  });
+
+  test("a device list cut short: nothing marked removed, no check-ins written", async () => {
+    await runIntune();
+    checkInRecords = [];
+
+    // Graph pages one device at a time, and the second page fails.
+    graph = new FakeIntuneGraph({ devices: intuneDevices(), pageSize: 1 });
+    graph.script("/v1.0/deviceManagement/managedDevices", [
+      {
+        status: 200,
+        body: {
+          value: [intuneDevices()[0]],
+          "@odata.nextLink":
+            "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$skiptoken=1",
+        },
+      },
+    ]);
+    jest
+      .spyOn(
+        DeviceManagementConnectorRegistry.getConnector(
+          DeviceManagementProvider.Intune,
+        ),
+        "openSession",
+      )
+      .mockImplementation(
+        (
+          settings: DeviceManagementSettings,
+          options: DeviceManagementSessionOptions,
+        ): DeviceManagementSession => {
+          // The token and the first page: the read's budget is spent.
+          return new IntuneConnector().openSession(settings, {
+            ...options,
+            maxRequests: 2,
+          });
+        },
+      );
+
+    clock.advance(16 * MINUTE);
+    const outcome: DeviceManagementReadOutcome = await runIntune();
+
+    expect(outcome.status).toBe("partial");
+    expect(deviceRow(String(PHONE["id"]))["removedAt"]).toBeFalsy();
+    expect(checkInRecords).toEqual([]);
+  });
+
+  test("a refused secret: the read fails, says why, and never the secret", async () => {
+    connection.secrets = JSON.stringify({
+      clientSecret: "Wrong8Q~0123456789abcdefghijklmnopqrstu",
+    });
+
+    const outcome: DeviceManagementReadOutcome = await runIntune();
+
+    expect(outcome.status).toBe("failed");
+    expect(String(lastRecord()["lastError"])).toContain(
+      "refused the client secret",
+    );
+    expect(JSON.stringify(db.recorded)).not.toContain("Wrong8Q~");
   });
 });
 

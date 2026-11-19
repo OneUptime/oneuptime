@@ -1,8 +1,13 @@
 import PageComponentProps from "../PageComponentProps";
 import DeviceManagementConnectionsTable from "../../Components/DeviceManagement/DeviceManagementConnectionsTable";
+import DeviceManagerPickerModal from "../../Components/DeviceManagement/DeviceManagerPickerModal";
 import EsperConnectionFormModal from "../../Components/DeviceManagement/EsperConnectionFormModal";
+import IntuneConnectionFormModal from "../../Components/DeviceManagement/IntuneConnectionFormModal";
 import ManagedDevicesTable from "../../Components/DeviceManagement/ManagedDevicesTable";
 import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
+import DeviceManagementProvider, {
+  readDeviceManagementProvider,
+} from "Common/Types/DeviceManagement/DeviceManagementProvider";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -15,21 +20,27 @@ import React, {
 } from "react";
 
 /*
- * Inventory > Managed Devices: the Android fleet a device management service
- * enrolls (Esper, issue #9586). The project's Esper connections come first -
- * how each is doing and what its last read found - and every device they
- * import under them, each one host in Inventory.
+ * Inventory > Managed Devices: the fleets device management services enroll
+ * (Esper, issue #9586; Microsoft Intune, #9837). The project's connections
+ * come first - how each is doing and what its last read found - and every
+ * device they import under them, each one host in Inventory.
  *
- * A project with no connection sees the connections' empty list, whose one
- * button connects Esper; the devices' list says when devices arrive.
+ * "Connect device manager" asks which service first, then that service's
+ * own form. A project with no connection sees the connections' empty list,
+ * whose one button does that; the devices' list says when devices arrive.
  */
+
+// The form open: a service's, for a new connection or one to edit.
+interface OpenForm {
+  provider: DeviceManagementProvider;
+  connection?: DeviceManagementConnection | undefined;
+}
 
 const InventoryManagedDevices: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
-  const [formConnection, setFormConnection] = useState<
-    DeviceManagementConnection | null | undefined
-  >(undefined);
+  const [isPicking, setIsPicking] = useState<boolean>(false);
+  const [form, setForm] = useState<OpenForm | undefined>(undefined);
   const [refreshToggle, setRefreshToggle] = useState<string>(
     Date.now().toString(),
   );
@@ -48,16 +59,28 @@ const InventoryManagedDevices: FunctionComponent<PageComponentProps> = (
     setRefreshToggle(Date.now().toString());
   };
 
+  const closeForm: () => void = (): void => {
+    setForm(undefined);
+  };
+
+  const onSaved: () => void = (): void => {
+    setForm(undefined);
+    refresh();
+  };
+
   return (
     <Fragment>
       <DeviceManagementConnectionsTable
         refreshToggle={refreshToggle}
         updateGate={updateGate}
         onConnect={(): void => {
-          setFormConnection(null);
+          setIsPicking(true);
         }}
         onEdit={(connection: DeviceManagementConnection): void => {
-          setFormConnection(connection);
+          setForm({
+            provider: readDeviceManagementProvider(connection.provider),
+            connection,
+          });
         }}
         onConnectionsLoaded={(totalCount: number): void => {
           setConnectionCount(totalCount);
@@ -74,16 +97,35 @@ const InventoryManagedDevices: FunctionComponent<PageComponentProps> = (
         <></>
       )}
 
-      {formConnection !== undefined ? (
-        <EsperConnectionFormModal
-          connection={formConnection || undefined}
+      {isPicking ? (
+        <DeviceManagerPickerModal
           onClose={(): void => {
-            setFormConnection(undefined);
+            setIsPicking(false);
           }}
-          onSaved={(): void => {
-            setFormConnection(undefined);
-            refresh();
+          onChoose={(provider: DeviceManagementProvider): void => {
+            setIsPicking(false);
+            setForm({ provider });
           }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {form?.provider === DeviceManagementProvider.Intune ? (
+        <IntuneConnectionFormModal
+          connection={form.connection}
+          onClose={closeForm}
+          onSaved={onSaved}
+        />
+      ) : (
+        <></>
+      )}
+
+      {form?.provider === DeviceManagementProvider.Esper ? (
+        <EsperConnectionFormModal
+          connection={form.connection}
+          onClose={closeForm}
+          onSaved={onSaved}
         />
       ) : (
         <></>

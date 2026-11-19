@@ -41,8 +41,11 @@ export const INVENTORY_AND_API_PAGES: ReadonlyArray<InventoryAndApiDocsPageEntry
  * whose tables name their own verbs (createVerb "Add" and "Connect").
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  // The Esper connections table's createVerb is "Connect" (issue #9586).
-  [INVENTORY_OVERVIEW]: ["Add Item", "Connect Esper"],
+  /*
+   * The device management connections table's createVerb is "Connect"
+   * (issue #9586), and its singularName "device manager" (#9837).
+   */
+  [INVENTORY_OVERVIEW]: ["Add Item", "Connect device manager"],
   [INVENTORY_CUSTOM_FIELDS]: ["Create Inventory Item Custom Field"],
   [CMDB_SYNC]: ["Create API Key"],
   [API_REFERENCE]: ["Create API Key"],
@@ -94,15 +97,17 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *     the component catalog writes it. Its Fields to watch setting is worded
  *     in every language now, so each page names it as drawn;
  *   - a recommended monitor's name, which a Recommendations page draws as
- *     its template names it: Esper Android Device Stopped Checking In and
- *     Esper Apple Device Stopped Checking In (#9837), and Host Stopped
- *     Reporting for a device the Android Agent reports (#9835).
+ *     its template names it: Esper Android Device Stopped Checking In,
+ *     Esper Apple Device Stopped Checking In and Intune Device Stopped
+ *     Checking In (#9837), and Host Stopped Reporting for a device the
+ *     Android Agent reports (#9835).
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [INVENTORY_OVERVIEW]: [
       "Esper Android Device Stopped Checking In",
       "Esper Apple Device Stopped Checking In",
+      "Intune Device Stopped Checking In",
       "Host Stopped Reporting",
     ],
     [API_REFERENCE]: ["⋯", "Owned", "On Update"],

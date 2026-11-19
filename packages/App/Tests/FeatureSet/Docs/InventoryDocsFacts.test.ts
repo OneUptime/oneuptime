@@ -142,6 +142,7 @@ import {
 } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import {
   DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
+  INTUNE_CLOUDS,
   MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS,
 } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
 import {
@@ -151,7 +152,11 @@ import {
   ManagedDeviceStatus,
   getManagedDeviceOnlineWindowMinutes,
 } from "Common/Types/DeviceManagement/ManagedDeviceStatus";
-import DeviceManagementProvider from "Common/Types/DeviceManagement/DeviceManagementProvider";
+import DeviceManagementProvider, {
+  DEVICE_MANAGEMENT_PROVIDERS,
+  getDeviceManagementProviderTitle,
+} from "Common/Types/DeviceManagement/DeviceManagementProvider";
+import { INTUNE_READ_PERMISSION } from "Common/Server/Utils/DeviceManagement/Intune/IntuneGraphClient";
 import { ManagedDevicePlatform } from "Common/Types/DeviceManagement/ManagedDevicePlatform";
 import EsperConnector from "Common/Server/Utils/DeviceManagement/Esper/EsperConnector";
 import { ESPER_IMPORTED_PLATFORMS } from "Common/Server/Utils/DeviceManagement/Esper/EsperParsers";
@@ -694,7 +699,7 @@ describe("Inventory Overview: where items come from", () => {
       }),
     ).toBe(false);
     expect(overview).toContain(
-      "So does a device from Esper: each time it checks in with Esper. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
+      "So does a device from Esper or Intune: each time it checks in with its device manager. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
     );
     expect(
       statusRows.map((row: Array<string>): string => {
@@ -1985,9 +1990,17 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
         return section.items.includes("Managed Devices");
       }),
     ).toBe(true);
-    // The table's button: its createVerb and its singularName.
+    // The table's button: its createVerb and its singularName (#9837).
     expect(table).toContain('createVerb="Connect"');
-    expect(table).toContain('singularName="Esper"');
+    expect(table).toContain('singularName="device manager"');
+    // The choice it opens names Esper by its product name.
+    expect(
+      DEVICE_MANAGEMENT_PROVIDERS.map(
+        (provider: DeviceManagementProvider): string => {
+          return getDeviceManagementProviderTitle(provider);
+        },
+      ),
+    ).toEqual(["Esper", "Microsoft Intune"]);
     // The form's two questions, the fold and its button.
     for (const title of ['title: "Tenant"', 'title: "API Key"']) {
       expect(form).toContain(title);
@@ -1995,7 +2008,7 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     expect(form).toContain("getAdvancedFormSection");
     expect(form).toContain('"Connect"');
     expect(esper()).toContain(
-      "Go to **Products → Resources → Inventory**, then **Managed Devices**, and click **Connect Esper**. Enter the **Tenant**",
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **Esper**. Enter the **Tenant**",
     );
   });
 
@@ -2096,6 +2109,89 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     expect(alerts).toContain("latest reading every 5 minutes");
     expect(alerts).toContain(
       `A device that also runs the Android Agent is left to ${bold(getHostAlertTemplateById("host-stopped-reporting")!.name)}, so it never alerts twice`,
+    );
+  });
+});
+
+/*
+ * #9837: a Microsoft Intune tenant, read through Microsoft Graph by an app
+ * registration of its own with one application permission. The page says
+ * what the connector asks for, and the words its form and its template use.
+ */
+describe("Inventory Overview: devices from Microsoft Intune (issue #9837)", () => {
+  const INTUNE_SECTION: string = "## Import devices from Microsoft Intune";
+  const INTUNE_FORM: string = `${DASHBOARD_APP}/Components/DeviceManagement/IntuneConnectionFormModal.tsx`;
+
+  function intune(): string {
+    return englishSection(INVENTORY_OVERVIEW, INTUNE_SECTION);
+  }
+
+  it("names the one permission the connector reads with, and where to grant it", () => {
+    expect(INTUNE_READ_PERMISSION).toBe(
+      "DeviceManagementManagedDevices.Read.All",
+    );
+    expect(intune()).toContain(
+      "Under `API permissions`, click `Add a permission`, then `Microsoft Graph`, then `Application permissions`, and add `DeviceManagementManagedDevices.Read.All`. Then click `Grant admin consent`",
+    );
+    expect(intune()).toContain(
+      "the `Application (client) ID` and the `Directory (tenant) ID`",
+    );
+    expect(intune()).toContain("copy its `Value`, not its `Secret ID`");
+  });
+
+  it("connects from the table's button and the Intune form, with the clouds it reads", () => {
+    const form: string = readRepoFile(INTUNE_FORM);
+
+    for (const title of [
+      'title: "Tenant ID"',
+      'title: "Application (Client) ID"',
+      'title: "Client Secret"',
+      'title: "Cloud"',
+    ]) {
+      expect(form).toContain(title);
+    }
+    expect(intune()).toContain(
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **Microsoft Intune**. Enter the **Tenant ID**, the **Application (Client) ID** and the **Client Secret**.",
+    );
+    // Commercial, GCC, GCC High and DoD: no China.
+    expect([...INTUNE_CLOUDS]).toEqual(["public", "gcc", "usgov", "dod"]);
+    expect(intune()).toContain(
+      "If the tenant is in a US government cloud, pick it as the **Cloud** under **More fields**.",
+    );
+  });
+
+  it("reads on the default schedule, every device's apps on theirs, and nothing of a device's user", () => {
+    expect(intune()).toContain(
+      `the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+    );
+    expect(intune()).toContain("Nothing about a device's user is read.");
+    expect(intune()).toContain(
+      "which Microsoft Graph lists on its beta version only",
+    );
+  });
+
+  it("says a device is offline after a day, as its status and its template read it", () => {
+    const template: { name: string; thresholdInMinutes: number } | undefined =
+      getManagedDeviceAlertTemplateById("intune-device-stopped-checking-in");
+
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Intune,
+        platform: ManagedDevicePlatform.Windows,
+      }),
+    ).toBe(24 * 60);
+    expect(intune()).toContain(
+      `a device that has not for a day is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}.`,
+    );
+    expect(template!.thresholdInMinutes).toBe(24 * 60);
+    expect(intune()).toContain(
+      `click **Set up alerts** on the connection's row and create ${bold(template!.name)}.`,
+    );
+  });
+
+  it("says how two devices that share a name are told apart", () => {
+    expect(intune()).toContain(
+      "each is named by its serial number instead, and takes its name back once no other device has it.",
     );
   });
 });

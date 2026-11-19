@@ -309,7 +309,33 @@ describe("getManagedDeviceCheckInReadings: which devices", () => {
     ]);
   });
 
-  test("two devices that share a name are one reading, the first's", () => {
+  /*
+   * #9837: Intune names every iPhone nobody renamed "iPhone". Each is a
+   * reading of its own, on its own host - named by its serial number, as
+   * Inventory names it - so each is a series a monitor alerts on alone.
+   */
+  test("two devices that share a name are two readings, each told apart by its serial number", () => {
+    const readings: Array<ManagedDeviceCheckInReading> = readingsOf([
+      device({ deviceName: "iPhone", lastCheckInAt: minutesAgo(3) }),
+      device({
+        providerDeviceId: "aaaaaaaa-0000-4000-8000-000000000002",
+        deviceName: "iphone",
+        serialNumber: "F2LXK1BBBBBB",
+        lastCheckInAt: minutesAgo(300),
+      }),
+    ]);
+
+    expect(
+      readings.map((reading: ManagedDeviceCheckInReading) => {
+        return [reading.deviceName, reading.hostName, reading.ageInMinutes];
+      }),
+    ).toEqual([
+      ["iPhone (R9KT30ABC12)", "r9kt30abc12", 3],
+      ["iphone (F2LXK1BBBBBB)", "f2lxk1bbbbbb", 300],
+    ]);
+  });
+
+  test("one device listed twice is one reading, the first's", () => {
     const readings: Array<ManagedDeviceCheckInReading> = readingsOf([
       device({ lastCheckInAt: minutesAgo(3) }),
       device({

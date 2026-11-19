@@ -44,6 +44,11 @@
  * that matches by rule 2, as long as nothing but the import has written to
  * it: the device is then that one host, and the import's own is removed. A
  * host another device already holds is never taken.
+ *
+ * Every service keeps the same contract (#9837): a Microsoft Intune
+ * device's host.name is its device name in Intune, and its serial number is
+ * Intune's. A name two devices of a connection share is no one host's: see
+ * getManagedDeviceUniqueHostName.
  */
 
 // InventoryItem.resourceType of a host a managed device holds.
@@ -89,6 +94,7 @@ export interface ManagedDeviceServiceAttributeKeys {
  */
 const SERVICE_ATTRIBUTE_NAMESPACES: Readonly<Record<string, string>> = {
   esper: "esper",
+  intune: "intune",
 };
 
 export const MANAGED_DEVICE_SERVICE_ATTRIBUTE_NAMESPACES: ReadonlyArray<string> =
@@ -215,4 +221,95 @@ export function getManagedDeviceHostName(device: {
   }
 
   return (device.providerDeviceId || "").trim();
+}
+
+/*
+ * A NAME TWO DEVICES SHARE (#9837)
+ *
+ * Esper names each device itself, once, so no two of a tenant's share a
+ * name. Intune does not: a device is named what its owner called it, and
+ * every iPhone nobody renamed is "iPhone". A name two of a connection's
+ * devices share names neither of them - it would be one host for two
+ * devices - so each is named by its serial number instead (rule 2's
+ * name, which an agent told `device_name: <serial>` also sends), or by
+ * the service's ID of it when it has none. It takes its own name back
+ * once no other device of the connection has it.
+ */
+export interface ManagedDeviceNaming {
+  deviceName?: string | undefined;
+  serialNumber?: string | undefined;
+  providerDeviceId?: string | undefined;
+}
+
+// The names (as canonicalized) more than one of these devices has.
+export function getSharedManagedDeviceNames(
+  devices: ReadonlyArray<ManagedDeviceNaming>,
+): Set<string> {
+  const seen: Set<string> = new Set<string>();
+  const shared: Set<string> = new Set<string>();
+
+  for (const device of devices) {
+    const name: string = canonicalizeManagedDeviceIdentity(
+      getManagedDeviceHostName(device),
+    );
+
+    if (!name) {
+      continue;
+    }
+
+    if (seen.has(name)) {
+      shared.add(name);
+    }
+
+    seen.add(name);
+  }
+
+  return shared;
+}
+
+/*
+ * The name a device's host goes by when its own is not one host's to
+ * have: its serial number, else the service's ID of it.
+ */
+export function getManagedDeviceFallbackHostName(
+  device: ManagedDeviceNaming,
+): string {
+  if (getUsableSerialNumber(device.serialNumber) && device.serialNumber) {
+    return device.serialNumber.trim();
+  }
+
+  return (device.providerDeviceId || "").trim();
+}
+
+/*
+ * A device's host name, given the names its connection's devices share:
+ * its own (getManagedDeviceHostName), or its fallback when another device
+ * of the connection has that name too.
+ */
+export function getManagedDeviceUniqueHostName(
+  device: ManagedDeviceNaming,
+  sharedNames: ReadonlySet<string>,
+): string {
+  const name: string = getManagedDeviceHostName(device);
+
+  if (!sharedNames.has(canonicalizeManagedDeviceIdentity(name))) {
+    return name;
+  }
+
+  return getManagedDeviceFallbackHostName(device) || name;
+}
+
+/*
+ * What a device is called where it must be told apart from the devices
+ * that share its name - a monitor's series, an alert's title: its name,
+ * with what tells it apart after it ("iPhone (F2LXK1ABCD)").
+ */
+export function getManagedDeviceUniqueName(
+  device: ManagedDeviceNaming,
+  sharedNames: ReadonlySet<string>,
+): string {
+  const name: string = getManagedDeviceHostName(device);
+  const hostName: string = getManagedDeviceUniqueHostName(device, sharedNames);
+
+  return hostName === name ? name : `${name} (${hostName})`;
 }

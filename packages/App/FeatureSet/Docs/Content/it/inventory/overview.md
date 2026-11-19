@@ -6,6 +6,7 @@ L'inventario è un unico elenco di tutto ciò che OneUptime sa della tua infrast
 - [Come gli elementi entrano nell'inventario](#come-gli-elementi-entrano-nellinventario): Scoperti, replicati o aggiunti da te.
 - [Orientarsi](#orientarsi): Le pagine dell'inventario e le pagine di ogni elemento.
 - [Importare dispositivi da Esper](#importare-dispositivi-da-esper): Ogni dispositivo Android e Apple registrato dal tuo tenant Esper, sempre aggiornato.
+- [Importare dispositivi da Microsoft Intune](#importare-dispositivi-da-microsoft-intune): Ogni PC Windows, Mac, iPhone, iPad e dispositivo Android gestito da Intune, sempre aggiornato.
 - [Aggiungere qualcosa a mano](#aggiungere-qualcosa-a-mano): Un'API di terze parti, un database esterno o un'appliance.
 - [Archiviare invece di eliminare](#archiviare-invece-di-eliminare): Il modo di riordinare l'elenco che dura nel tempo.
 :::
@@ -26,14 +27,14 @@ flowchart TB
 | Fonte | Nell'API | Da dove viene | Quanto resta |
 | --- | --- | --- | --- |
 | **Rilevato** | `discovered` | Gli attributi di risorsa OpenTelemetry, letti all'arrivo della telemetria: un servizio, un host, un oggetto Kubernetes o una macchina virtuale che invia telemetria. | Registrato di nuovo a ogni batch. Rimosso quando resta in silenzio più a lungo della finestra del suo tipo (vedi sotto). |
-| **Replicato** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker, host Podman e i dispositivi Android e Apple importati da una connessione Esper. Copiato ogni 15 minuti; un dispositivo Esper, ogni volta che viene letta la sua connessione. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
+| **Replicato** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker, host Podman e i dispositivi importati da una connessione Esper o Microsoft Intune. Copiato ogni 15 minuti; un dispositivo Esper, ogni volta che viene letta la sua connessione. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
 | **Aggiunto da te** | `manual` | Aggiunto da te, per qualcosa che OneUptime non può vedere: un'API di terze parti, un database gestito da un fornitore, un'appliance in un rack. | Finché non lo elimini. Niente lo fa scadere. |
 
 Un elemento scoperto o replicato non può essere rinominato né cambiare tipo: la sua fonte sovrascriverebbe la modifica al passaggio successivo. La pagina **Impostazioni** dell'elemento indica invece dove fare una modifica duratura. Quello che puoi sempre aggiungere a qualsiasi elemento, qualunque sia la sua fonte, sono i valori dei campi personalizzati: vedi [Campi personalizzati dell'inventario](/docs/inventory/custom-fields).
 
 ### Quanto resta un elemento silenzioso
 
-Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la sua ora dell'ultima osservazione avanza, e la colonna **Stato** dell'elenco dice quanto è recente. Lo stesso vale per un dispositivo di Esper: ogni volta che contatta Esper. Gli altri elementi replicati e quelli che hai aggiunto non hanno battito, quindi il loro stato resta vuoto invece di allarmare.
+Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la sua ora dell'ultima osservazione avanza, e la colonna **Stato** dell'elenco dice quanto è recente. Lo stesso vale per un dispositivo di Esper o di Intune: ogni volta che contatta il suo gestore dei dispositivi. Gli altri elementi replicati e quelli che hai aggiunto non hanno battito, quindi il loro stato resta vuoto invece di allarmare.
 
 | Stato | Cosa significa |
 | --- | --- |
@@ -59,7 +60,7 @@ Apri **Prodotti → Risorse → Inventario**. Il suo menu laterale ha queste pag
 | --- | --- |
 | **Panoramica** | Quanti elementi hai, cosa sono, quanti sono diventati silenziosi e cosa è stato aggiunto più di recente. |
 | **Tutti gli elementi** | Ogni elemento. Cerca per nome, descrizione o chiave d'identità, filtra l'elenco per tipo, fonte, stato o campo personalizzato e aggiungi un elemento a mano. |
-| **Dispositivi gestiti** | Le tue connessioni Esper e ogni dispositivo che importano, con il suo stato, il gruppo, il modello e il sistema operativo. |
+| **Dispositivi gestiti** | Le tue connessioni Esper e Microsoft Intune, e ogni dispositivo che importano, con il suo stato, il gruppo, il modello e il sistema operativo. |
 | **Mappa della topologia** | Come sono collegati gli elementi: i servizi, cosa chiamano e gli host, i pod e i dispositivi su cui girano. |
 | **In silenzio** | Gli elementi di cui non si hanno notizie da più di un giorno: elementi scoperti che non hanno inviato telemetria e dispositivi che hanno smesso di contattare Esper. |
 | **Per origine** | Gli elementi di una fonte: **Rilevato**, **Replicato** o **Aggiunto da te**. |
@@ -98,7 +99,7 @@ Nella console di Esper, crea una chiave in API Key Management. OneUptime si limi
 
 ### Collegare il tenant
 
-Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, e fai clic su **Collega Esper**. Inserisci il **Tenant**, cioè il nome che precede `.esper.cloud` nell'indirizzo della tua console Esper (`acme` per `acme.esper.cloud`), e la **Chiave API**. **Altri campi** contiene il nome della connessione e ogni quanto viene letta.
+Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, fai clic su **Collega un gestore dei dispositivi** e scegli **Esper**. Inserisci il **Tenant**, cioè il nome che precede `.esper.cloud` nell'indirizzo della tua console Esper (`acme` per `acme.esper.cloud`), e la **Chiave API**. **Altri campi** contiene il nome della connessione e ogni quanto viene letta.
 
 ### Controllare la prima lettura
 
@@ -133,6 +134,34 @@ Un dispositivo rimosso da Esper viene contrassegnato come **Rimosso**, e il suo 
 In **Dispositivi gestiti**, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Esper Android Device Stopped Checking In** e **Esper Apple Device Stopped Checking In**. Il primo apre un avviso per ogni dispositivo Android che non contatta Esper da più di un'ora, il secondo per ogni dispositivo Apple dopo più di un giorno, ciascuno con il nome del dispositivo e risolto appena il dispositivo torna a comunicare.
 
 Ogni lettura della connessione registra quanti minuti fa ogni dispositivo ha contattato Esper l'ultima volta, come metrica `oneuptime.managed_device.check_in.age`, e il monitor controlla l'ultimo valore di ogni dispositivo ogni 5 minuti. Un dispositivo su cui gira anche l'Agent Android è lasciato a **Host Stopped Reporting**, così non genera mai due avvisi, e un dispositivo rimosso da Esper risolve il suo avviso. Una lettura che non riesce non registra nulla, quindi nessun avviso si apre né si risolve fino alla successiva. Per una flotta che viene spenta di notte, alza la soglia del monitor.
+
+## Importare dispositivi da Microsoft Intune
+
+Collega un tenant Microsoft Intune, e ogni dispositivo gestito da Intune è nell'inventario: i suoi PC Windows, Mac, iPhone, iPad, dispositivi Android e macchine Linux. Ogni dispositivo è un host, con ciò che Intune sa di lui: la sua categoria, il sistema operativo e la sua versione, il numero di serie e l'IMEI, la conformità, la proprietà e la registrazione, l'archiviazione e le app che Intune vi ha rilevato. Intune non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo ogni 6 ore.
+
+:::steps
+### Registra un'app in Microsoft Entra
+
+Nell'interfaccia di amministrazione di Microsoft Entra, apri `App registrations` e fai clic su `New registration`. Dalle un nome, lascia `Accounts in this organizational directory only` e registrala. La sua pagina `Overview` mostra i due ID che chiede OneUptime: l'`Application (client) ID` e il `Directory (tenant) ID`.
+
+### Consentile di leggere i dispositivi di Intune
+
+In `API permissions`, fai clic su `Add a permission`, poi su `Microsoft Graph`, poi su `Application permissions`, e aggiungi `DeviceManagementManagedDevices.Read.All`. Poi fai clic su `Grant admin consent`, cosa che può fare solo un amministratore del tenant. Quest'unica autorizzazione è tutto ciò che serve a OneUptime: elenca i dispositivi e le app che Intune vi ha rilevato, e non può cambiare nulla.
+
+### Crea un segreto client
+
+In `Certificates & secrets`, fai clic su `New client secret` e copia il suo `Value`, non il suo `Secret ID`: Microsoft mostra il valore una sola volta. Un segreto smette di funzionare quando scade, quindi prima che succeda creane uno nuovo e inseriscilo modificando la connessione.
+
+### Collega il tenant Intune
+
+Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, fai clic su **Collega un gestore dei dispositivi** e scegli **Microsoft Intune**. Inserisci l'**ID del tenant**, l'**ID applicazione (client)** e il **Client Secret**. Se il tenant è in un cloud del governo statunitense, sceglilo come **Cloud** in **Altri campi**. **Collega** prova la registrazione dell'app prima di salvare qualsiasi cosa: dice quanti dispositivi importerà una lettura, oppure cosa non va e come correggerlo.
+:::
+
+Un dispositivo contatta Intune circa ogni otto ore, e il suo ultimo contatto è l'ultima volta che l'ha fatto: un dispositivo che non lo fa da un giorno è **Offline**. Le sue app sono quelle che Intune vi ha rilevato, che Microsoft Graph elenca solo nella sua versione beta: per un dispositivo personale, le app gestite da Intune. I gruppi di Intune sono gruppi di Microsoft Entra, che questa autorizzazione non legge, quindi il gruppo di un dispositivo è la sua categoria di dispositivo. Non viene letto nulla sull'utente di un dispositivo.
+
+Intune dà a un dispositivo il nome che gli ha dato il suo proprietario, quindi due dispositivi possono avere lo stesso nome: ogni iPhone che nessuno ha rinominato si chiama `iPhone`. Un nome che hanno due dispositivi di una connessione non è di nessuno dei due nell'inventario: ciascuno prende invece il nome dal suo numero di serie, e riprende il suo nome appena nessun altro dispositivo lo ha.
+
+Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Intune Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non contatta Intune da più di un giorno, con il nome del dispositivo. Un portatile spento per un fine settimana appare allo stesso modo, quindi alza la soglia del monitor se un giorno è troppo poco per i tuoi.
 
 ## Aggiungere qualcosa a mano
 

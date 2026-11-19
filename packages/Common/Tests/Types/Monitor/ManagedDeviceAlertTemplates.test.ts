@@ -112,7 +112,7 @@ function filterOf(instance: MonitorCriteriaInstance): CriteriaFilter {
 }
 
 describe("the catalog of a connection's alerts", () => {
-  test("is an Esper connection's Android devices and its Apple devices, each stopped checking in", () => {
+  test("is an Esper connection's Android devices and its Apple devices, and an Intune connection's devices, each stopped checking in", () => {
     expect(
       getAllManagedDeviceAlertTemplates().map(
         (candidate: ManagedDeviceAlertTemplate) => {
@@ -122,6 +122,7 @@ describe("the catalog of a connection's alerts", () => {
     ).toEqual([
       "esper-device-stopped-checking-in",
       "esper-apple-device-stopped-checking-in",
+      "intune-device-stopped-checking-in",
     ]);
     expect(template().name).toBe("Esper Android Device Stopped Checking In");
     expect(appleTemplate().name).toBe("Esper Apple Device Stopped Checking In");
@@ -194,6 +195,49 @@ describe("the catalog of a connection's alerts", () => {
       "deviceManagementConnectionId",
     );
     expect(definition!.monitorTypes).toEqual([MonitorType.Metrics]);
+  });
+
+  /*
+   * #9837: an Intune connection's devices - every platform - check in about
+   * every eight hours, so its template fires after a day, the Offline
+   * window of a device that syncs.
+   */
+  test("an Intune connection is offered its own: every device it manages, after a day", () => {
+    const intune: ManagedDeviceAlertTemplate =
+      getManagedDeviceAlertTemplateById("intune-device-stopped-checking-in")!;
+
+    expect(
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+        { deviceManagementProvider: DeviceManagementProvider.Intune },
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.recommendationId;
+      }),
+    ).toEqual(["DeviceManagementConnection:intune-device-stopped-checking-in"]);
+    expect(intune.name).toBe("Intune Device Stopped Checking In");
+    expect(intune.summary).toBe(
+      "A device has not checked in with Intune for more than a day.",
+    );
+    expect(intune.thresholdInMinutes).toBe(24 * 60);
+    expect(intune.platforms).toBeUndefined();
+    expect(intune.description).toContain("Host Stopped Reporting");
+
+    const step: MonitorStep = intune.getMonitorStep(
+      buildArgs({ monitorName: "Contoso devices" }),
+    );
+    const attributes: Record<string, unknown> =
+      (queryOf(step).metricQueryData.filterData.attributes as Record<
+        string,
+        unknown
+      >) || {};
+
+    // Every device of the connection: no platform is named.
+    expect(Object.keys(attributes).sort()).toEqual(
+      [
+        ManagedDeviceCheckInAttribute.ConnectionId,
+        ManagedDeviceCheckInAttribute.IsHost,
+      ].sort(),
+    );
   });
 });
 

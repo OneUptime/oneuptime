@@ -42,6 +42,7 @@ import {
   DeviceManagementTransport,
   ProviderApp,
   ProviderGroup,
+  getDeviceManagementSecretValues,
   readDeviceManagementPullState,
 } from "./DeviceManagementTypes";
 import ManagedDeviceInventory, {
@@ -680,7 +681,7 @@ export default class DeviceManagementReadRunner {
             : error,
         step: "read",
         providerTitle: providerTitle,
-        secretValues: settings ? [settings.apiKey] : [],
+        secretValues: settings ? getDeviceManagementSecretValues(settings) : [],
       });
 
       const summary: DeviceManagementReadSummary = {

@@ -24,14 +24,33 @@ import {
  */
 
 /*
- * Decrypted, server-only settings of one connection. Never serialize this
- * into a response or a log line: it holds the API key.
+ * A connection's secrets, decrypted: whichever its service takes. Esper
+ * takes an API key; Microsoft Intune an app registration's client secret.
  */
-export interface DeviceManagementSettings {
+export interface DeviceManagementSecrets {
+  apiKey: string;
+  clientSecret?: string | undefined;
+}
+
+/*
+ * Decrypted, server-only settings of one connection. Never serialize this
+ * into a response or a log line: it holds the connection's secrets.
+ */
+export interface DeviceManagementSettings extends DeviceManagementSecrets {
   provider: DeviceManagementProvider;
   projectId: string;
   config: DeviceManagementConfig;
-  apiKey: string;
+}
+
+// Every secret a connection holds, for redacting them out of any text.
+export function getDeviceManagementSecretValues(
+  secrets: DeviceManagementSecrets,
+): Array<string> {
+  return [secrets.apiKey, secrets.clientSecret || ""].filter(
+    (value: string): boolean => {
+      return Boolean(value);
+    },
+  );
 }
 
 /*
@@ -205,8 +224,7 @@ export interface DeviceManagementConnector {
    * "fail".
    */
   testConnection(
-    data: {
-      apiKey: string;
+    data: DeviceManagementSecrets & {
       config: DeviceManagementConfig;
     },
     options: DeviceManagementCallOptions,

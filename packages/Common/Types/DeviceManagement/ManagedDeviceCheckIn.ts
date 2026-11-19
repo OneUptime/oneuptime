@@ -1,7 +1,10 @@
 import Dictionary from "../Dictionary";
 import {
+  ManagedDeviceNaming,
   canonicalizeManagedDeviceIdentity,
-  getManagedDeviceHostName,
+  getManagedDeviceUniqueHostName,
+  getManagedDeviceUniqueName,
+  getSharedManagedDeviceNames,
 } from "./ManagedDeviceIdentity";
 import {
   ManagedDevicePlatform,
@@ -120,7 +123,10 @@ export interface ManagedDeviceCheckInDevice {
 }
 
 export interface ManagedDeviceCheckInReading {
-  // The device's name in the service (its host.name, as written).
+  /*
+   * The device's name in the service (its host.name, as written), with its
+   * host's name after it when another device of the connection shares it.
+   */
   deviceName: string;
   // Its host, as telemetry names it: trimmed and lowercased.
   hostName: string;
@@ -164,10 +170,11 @@ export function getManagedDeviceCheckInAgeInMinutes(
 
 /*
  * The readings of a connection's devices at `asOf`: one per device in
- * service with a known check-in, by its name in the service, the first of
- * two that share one (which a service that names its devices uniquely
- * never sends). `hostNames` are the hosts in Hosts, as telemetry names
- * them. Pure.
+ * service with a known check-in, by its name in the service. Two devices
+ * that share a name (Intune's "iPhone") are each told apart by what names
+ * their hosts (getManagedDeviceUniqueHostName), so each is a series of its
+ * own and its reading lands on its own host. `hostNames` are the hosts in
+ * Hosts, as telemetry names them. Pure.
  */
 export function getManagedDeviceCheckInReadings(data: {
   devices: ReadonlyArray<ManagedDeviceCheckInDevice>;
@@ -178,6 +185,12 @@ export function getManagedDeviceCheckInReadings(data: {
 }): Array<ManagedDeviceCheckInReading> {
   const readings: Array<ManagedDeviceCheckInReading> = [];
   const seen: Set<string> = new Set<string>();
+  // As Inventory names their hosts: from the devices still in the service.
+  const sharedNames: Set<string> = getSharedManagedDeviceNames(
+    data.devices.filter((device: ManagedDeviceCheckInDevice): boolean => {
+      return !device.removedAt;
+    }),
+  );
 
   for (const device of data.devices) {
     const platform: ManagedDevicePlatform = readManagedDevicePlatform(
@@ -203,12 +216,15 @@ export function getManagedDeviceCheckInReadings(data: {
       continue;
     }
 
-    const deviceName: string = getManagedDeviceHostName({
+    const naming: ManagedDeviceNaming = {
       deviceName: device.deviceName,
       serialNumber: device.serialNumber,
       providerDeviceId: device.providerDeviceId,
-    });
-    const hostName: string = canonicalizeManagedDeviceIdentity(deviceName);
+    };
+    const deviceName: string = getManagedDeviceUniqueName(naming, sharedNames);
+    const hostName: string = canonicalizeManagedDeviceIdentity(
+      getManagedDeviceUniqueHostName(naming, sharedNames),
+    );
 
     if (!hostName || seen.has(hostName)) {
       continue;
