@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "既定でオンになる前にインストールしたエージェントでは、次のようにアップグレードします:",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **オフにするには:** 同じアップグレードに `--set cost.enabled=false` を追加します。",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **すでに Kubecost や OpenCost を使っていますか？** 代わりにエージェントをそちらに向ければ、何も同梱されません。`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (またはお使いの Kubecost サービス) を追加します。",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **すでに Kubecost や OpenCost を使っていますか？** エージェントがそれを見つけて同梱のエンジンの代わりに読み取り、クラスターの概要ページにもそう表示されます。2 つ目のエンジンを同梱しないようにするには、`--set cost.engine.url=auto` を追加します。",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **オンプレミスやベアメタルですか？** `--set cost.opencost.customPricing.enabled=true` で料金表を設定します (リソース時間あたりの USD。chart の `values.yaml` を参照)。",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

@@ -604,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-光是這樣就是完整的安裝：chart 內建了開放原始碼的 [OpenCost](https://opencost.io) 引擎（以及它所需的小型 Prometheus），不需任何認證即可根據雲端供應商的公開價格為你的節點和磁碟區定價。它會增加三個小型 Pod，第一批成本會在第一個小時結束後出現。若要關閉它，以同樣的方式設定 `--set cost.enabled=false`。已經在執行 Kubecost 或 OpenCost？改為加入 `--set cost.engine.url=<its service URL>`，就不會內建任何東西。地端叢集可以用 `cost.opencost.customPricing` 設定費率表。包含地端定價和疑難排解的完整指南請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。
+光是這樣就是完整的安裝：chart 內建了開放原始碼的 [OpenCost](https://opencost.io) 引擎（以及它所需的小型 Prometheus），不需任何認證即可根據雲端供應商的公開價格為你的節點和磁碟區定價。它會增加三個小型 Pod，第一批成本會在第一個小時結束後出現。若要關閉它，以同樣的方式設定 `--set cost.enabled=false`。已經在執行 Kubecost 或 OpenCost？成本代理程式會找到它，並讀取它而不是內建的引擎；加入 `--set cost.engine.url=auto` 即可不再內建第二個引擎。地端叢集可以用 `cost.opencost.customPricing` 設定費率表。包含地端定價和疑難排解的完整指南請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。
 
 ### 使用專案標籤自動加上標籤
 
