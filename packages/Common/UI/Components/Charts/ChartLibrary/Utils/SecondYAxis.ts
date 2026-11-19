@@ -12,6 +12,10 @@
  * and where its domain runs. A reference line or an exemplar drawn for a
  * series on the second axis says so (isOnSecondYAxis) and is drawn against
  * it too. A chart with no second axis draws exactly as it always has.
+ *
+ * A series in a unit neither axis can say is drawn to a scale of its own,
+ * with no axis (ChartOwnScale, issue #10080), and so are its lines and
+ * exemplars (ownScaleId).
  */
 
 import {
@@ -36,14 +40,58 @@ export interface ChartSecondYAxis {
 }
 
 /*
+ * A SCALE OF ITS OWN, WITH NO AXIS (issue #10080): for categories in a unit
+ * neither axis can say. Recharts draws it as a hidden value axis of its own,
+ * so its lines keep their shape over the plot's height and the axes keep
+ * theirs; it writes no tick, and takes no room.
+ */
+export interface ChartOwnScale {
+  // Its name, as its host gives it and its lines and exemplars name it.
+  id: string;
+  // The categories drawn to it.
+  categories: Array<string>;
+  // How the tooltip writes a value of its categories.
+  valueFormatter: ValueAxisFormatter;
+  // "auto" for its lower end, else minValue (0 when that is left out).
+  autoMinValue: boolean;
+  minValue?: number | undefined;
+  maxValue?: number | undefined;
+}
+
+// An own scale's recharts id: apart from the first axis's 0 and the second's.
+export function getOwnScaleYAxisId(id: string): string {
+  return `own-scale-${id}`;
+}
+
+// The own scale a category is drawn to, if any.
+export function getCategoryOwnScale(
+  category: string,
+  ownScales: ReadonlyArray<ChartOwnScale> | undefined,
+): ChartOwnScale | undefined {
+  return (ownScales || []).find((scale: ChartOwnScale): boolean => {
+    return scale.categories.includes(category);
+  });
+}
+
+/*
  * The props that put a category's line, area or bar on its axis: nothing for
- * the first axis, recharts' default, and the second axis's id for one drawn
- * against it.
+ * the first axis, recharts' default, the second axis's id for one drawn
+ * against it, and its own scale's for one drawn to a scale of its own.
  */
 export function getCategoryYAxisProps(
   category: string,
   secondYAxis: ChartSecondYAxis | undefined,
+  ownScales?: ReadonlyArray<ChartOwnScale> | undefined,
 ): { yAxisId?: string } {
+  const ownScale: ChartOwnScale | undefined = getCategoryOwnScale(
+    category,
+    ownScales,
+  );
+
+  if (ownScale) {
+    return { yAxisId: getOwnScaleYAxisId(ownScale.id) };
+  }
+
   return secondYAxis && secondYAxis.categories.includes(category)
     ? { yAxisId: SECOND_Y_AXIS_ID }
     : {};
@@ -51,13 +99,24 @@ export function getCategoryYAxisProps(
 
 /*
  * The props that put a reference line or an exemplar on its axis: the second
- * axis's id only while the chart draws one, so a mark meant for it is never
- * pointed at an axis that is not there.
+ * axis's id, or an own scale's, only while the chart draws it, so a mark
+ * meant for it is never pointed at an axis that is not there.
  */
 export function getMarkYAxisProps(
   isOnSecondYAxis: boolean | undefined,
   secondYAxis: ChartSecondYAxis | undefined,
+  ownScaleId?: string | undefined,
+  ownScales?: ReadonlyArray<ChartOwnScale> | undefined,
 ): { yAxisId?: string } {
+  if (
+    ownScaleId !== undefined &&
+    (ownScales || []).some((scale: ChartOwnScale): boolean => {
+      return scale.id === ownScaleId;
+    })
+  ) {
+    return { yAxisId: getOwnScaleYAxisId(ownScaleId) };
+  }
+
   return isOnSecondYAxis && secondYAxis ? { yAxisId: SECOND_Y_AXIS_ID } : {};
 }
 
@@ -77,13 +136,15 @@ function writeWithPrecision(
 
 /*
  * How the tooltip writes a category's value: as the series asks
- * (categoryValueFormatters, for a series whose unit is neither axis's), else
- * as the axis it is drawn against writes its ticks, to the same figures.
+ * (categoryValueFormatters), else as its own scale writes one, for a series
+ * drawn to a scale of its own, else as the axis it is drawn against writes
+ * its ticks, to the same figures.
  */
 export function getCategoryValueFormatter(input: {
   category: string;
   valueFormatter: ValueAxisFormatter;
   secondYAxis?: ChartSecondYAxis | undefined;
+  ownScales?: ReadonlyArray<ChartOwnScale> | undefined;
   categoryValueFormatters?:
     | Record<string, (value: number) => string>
     | undefined;
@@ -96,6 +157,15 @@ export function getCategoryValueFormatter(input: {
 
   if (own) {
     return own;
+  }
+
+  const ownScale: ChartOwnScale | undefined = getCategoryOwnScale(
+    input.category,
+    input.ownScales,
+  );
+
+  if (ownScale) {
+    return writeWithPrecision(ownScale.valueFormatter, undefined);
   }
 
   if (

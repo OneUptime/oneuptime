@@ -57,3 +57,21 @@ export interface SecondYAxis extends YAxis {
   // The series drawn against it, by name; every other one is on the first.
   seriesNames: Array<string>;
 }
+
+/*
+ * A SCALE OF ITS OWN, WITH NO AXIS (issue #10080).
+ *
+ * For series in a unit neither of the chart's axes can say: a metric chart's
+ * overlaid query in a third kind of unit, milliseconds on a chart in percent
+ * and bytes. Drawn against either axis, such a line stretched it (70
+ * processes pulled a 0-1 fraction's axis up to 7,000%). Drawn to a scale of
+ * its own, its line keeps its shape over the plot's height, as an axis would
+ * draw it over its own domain, and the axes keep theirs. No axis is drawn
+ * for it: the tooltip writes its series' values with its formatter, and the
+ * host's legend says which series are drawn so. A reference line or an
+ * exemplar of such a series names the scale (ownScaleId) and is drawn to it.
+ */
+export interface OwnScaleYAxis extends SecondYAxis {
+  // The scale's name, unique on its chart, that its lines and exemplars give.
+  id: string;
+}

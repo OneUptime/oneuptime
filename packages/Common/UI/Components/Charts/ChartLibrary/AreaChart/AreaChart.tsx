@@ -67,11 +67,13 @@ import {
 } from "../Utils/TooltipEntries";
 import ChartCurve from "../../Types/ChartCurve";
 import {
+  ChartOwnScale,
   ChartSecondYAxis,
   SECOND_Y_AXIS_ID,
   getCategoryValueFormatter,
   getCategoryYAxisProps,
   getMarkYAxisProps,
+  getOwnScaleYAxisId,
 } from "../Utils/SecondYAxis";
 import {
   ChartValueAxesPlan,
@@ -721,7 +723,7 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
          * A category's value as the tooltip writes it: in its axis's unit,
          * to the figures its axis's ticks are written with (#10079).
          */
-        formatValue: (category: string, value: number) => string,
+        formatValue?: (category: string, value: number) => string,
       ) => void)
     | undefined;
   /**
@@ -743,6 +745,11 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * area of which is drawn against it (SecondYAxis, issue #10042).
    */
   secondYAxis?: ChartSecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, each for the categories it
+   * names (ChartOwnScale, issue #10080): a unit neither axis can say.
+   */
+  ownScales?: Array<ChartOwnScale> | undefined;
   /*
    * How the tooltip writes a category's value, by category, for a series
    * whose unit is neither axis's. Left out, a category's value is written
@@ -799,6 +806,7 @@ const AreaChart: React.ForwardRefExoticComponent<
       onBucketClick,
       ghostCategories,
       secondYAxis,
+      ownScales,
       categoryValueFormatters,
       ...other
     } = props;
@@ -899,6 +907,7 @@ const AreaChart: React.ForwardRefExoticComponent<
       data: data,
       categories: categories,
       secondYAxis: secondYAxis,
+      ownScales: ownScales,
       referenceLines: referenceLines,
       firstDomain: yAxisDomain,
       secondDomain: secondYAxisDomain,
@@ -923,6 +932,7 @@ const AreaChart: React.ForwardRefExoticComponent<
         category: category,
         valueFormatter: valueFormatter,
         secondYAxis: secondYAxis,
+        ownScales: ownScales,
         categoryValueFormatters: categoryValueFormatters,
         firstAxisPrecision: valueAxes.first.ticks.precision,
         secondAxisPrecision: valueAxes.second?.ticks.precision,
@@ -1253,6 +1263,31 @@ const AreaChart: React.ForwardRefExoticComponent<
                   allowDecimals={allowDecimals}
                 />
               ) : null}
+              {(ownScales || []).map(
+                (ownScale: ChartOwnScale): React.ReactElement => {
+                  /*
+                   * A scale of its own (issue #10080): a value axis recharts
+                   * steps over its categories' values and draws no tick of,
+                   * taking no room.
+                   */
+                  return (
+                    <YAxis
+                      key={`own-scale-${ownScale.id}`}
+                      yAxisId={getOwnScaleYAxisId(ownScale.id)}
+                      hide={true}
+                      type="number"
+                      domain={
+                        getYAxisDomain(
+                          ownScale.autoMinValue,
+                          ownScale.minValue,
+                          ownScale.maxValue,
+                        ) as AxisDomain
+                      }
+                      allowDecimals={allowDecimals}
+                    />
+                  );
+                },
+              )}
               <Tooltip
                 wrapperStyle={{ outline: "none", zIndex: 10 }}
                 isAnimationActive={true}
@@ -1395,7 +1430,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                     name={category}
                     type={props.curve || ChartCurve.MONOTONE}
                     dataKey={category}
-                    {...getCategoryYAxisProps(category, secondYAxis)}
+                    {...getCategoryYAxisProps(category, secondYAxis, ownScales)}
                     stroke={hex}
                     strokeWidth={isGhost ? 1.5 : 2}
                     strokeLinejoin="round"
@@ -1511,6 +1546,8 @@ const AreaChart: React.ForwardRefExoticComponent<
                           {...getMarkYAxisProps(
                             refLine.isOnSecondYAxis,
                             secondYAxis,
+                            refLine.ownScaleId,
+                            ownScales,
                           )}
                           stroke="none"
                         />
@@ -1520,6 +1557,8 @@ const AreaChart: React.ForwardRefExoticComponent<
                         {...getMarkYAxisProps(
                           refLine.isOnSecondYAxis,
                           secondYAxis,
+                          refLine.ownScaleId,
+                          ownScales,
                         )}
                         stroke={refLine.color}
                         strokeDasharray={refLine.strokeDasharray || "4 4"}
@@ -1564,6 +1603,8 @@ const AreaChart: React.ForwardRefExoticComponent<
                       {...getMarkYAxisProps(
                         exemplar.original.isOnSecondYAxis,
                         secondYAxis,
+                        exemplar.original.ownScaleId,
+                        ownScales,
                       )}
                       r={5}
                       fill="#7c3aed"

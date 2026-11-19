@@ -8,7 +8,13 @@ import {
   getValueAxisTicks,
 } from "../../Utils/ValueAxisTicks";
 import { getYAxisWidthForLabelsInPx } from "../../Utils/YAxisWidth";
-import { ChartSecondYAxis } from "./SecondYAxis";
+import {
+  ChartOwnScale,
+  ChartSecondYAxis,
+  SECOND_Y_AXIS_ID,
+  getCategoryOwnScale,
+  getMarkYAxisProps,
+} from "./SecondYAxis";
 
 /*
  * THE LINE, AREA AND BAR CHARTS' VALUE AXES, STEPPED SO NEIGHBOURING TICKS
@@ -68,27 +74,47 @@ export function useValueAxesTicks(input: {
   bandKeys?: [string, string] | undefined;
   // The chart draws no value axis it steps (a vertical or a percent bar chart).
   isFirstAxisLeftToRecharts?: boolean | undefined;
+  /*
+   * The scales of their own (issue #10080): their categories and lines are
+   * drawn to no axis, so neither axis takes them in.
+   */
+  ownScales?: ReadonlyArray<ChartOwnScale> | undefined;
 }): ChartValueAxesPlan {
   const secondCategories: ReadonlyArray<string> =
     input.secondYAxis?.categories || [];
 
   const values: { first: Array<number>; second: Array<number> } =
     React.useMemo((): { first: Array<number>; second: Array<number> } => {
+      const isOnOwnScale: (category: string) => boolean = (
+        category: string,
+      ): boolean => {
+        return Boolean(getCategoryOwnScale(category, input.ownScales));
+      };
       const isOnSecondAxis: (category: string) => boolean = (
         category: string,
       ): boolean => {
         return (
-          Boolean(input.secondYAxis) && secondCategories.includes(category)
+          Boolean(input.secondYAxis) &&
+          secondCategories.includes(category) &&
+          !isOnOwnScale(category)
         );
       };
+      // Where a line is drawn, as getMarkYAxisProps puts it.
       const lineValuesOn: (onSecond: boolean) => Array<number | undefined> = (
         onSecond: boolean,
       ): Array<number | undefined> => {
         return (input.referenceLines || [])
           .filter((line: ChartReferenceLineProps): boolean => {
+            const yAxisId: string | undefined = getMarkYAxisProps(
+              line.isOnSecondYAxis,
+              input.secondYAxis,
+              line.ownScaleId,
+              input.ownScales,
+            ).yAxisId;
+
             return (
               Boolean(line.extendsDomain) &&
-              Boolean(line.isOnSecondYAxis && input.secondYAxis) === onSecond
+              (onSecond ? yAxisId === SECOND_Y_AXIS_ID : yAxisId === undefined)
             );
           })
           .map((line: ChartReferenceLineProps): number | undefined => {
@@ -100,7 +126,7 @@ export function useValueAxesTicks(input: {
         first: getChartAxisValues({
           rows: input.data,
           categories: input.categories.filter((category: string): boolean => {
-            return !isOnSecondAxis(category);
+            return !isOnSecondAxis(category) && !isOnOwnScale(category);
           }),
           isStacked: input.isStacked,
           bandKeys: input.bandKeys,
@@ -119,6 +145,7 @@ export function useValueAxesTicks(input: {
       input.data,
       input.categories,
       input.secondYAxis,
+      input.ownScales,
       input.referenceLines,
       input.isStacked,
       input.bandKeys?.[0],

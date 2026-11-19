@@ -53,11 +53,13 @@ import { Translator } from "../../../../Utils/TranslateTemplate";
 import useTranslator from "../../../../Utils/UseTranslator";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import {
+  ChartOwnScale,
   ChartSecondYAxis,
   SECOND_Y_AXIS_ID,
   getCategoryValueFormatter,
   getCategoryYAxisProps,
   getMarkYAxisProps,
+  getOwnScaleYAxisId,
 } from "../Utils/SecondYAxis";
 import {
   ChartValueAxesPlan,
@@ -789,6 +791,11 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
    */
   secondYAxis?: ChartSecondYAxis | undefined;
   /*
+   * Scales of their own, with no axis drawn, each for the categories it
+   * names (ChartOwnScale, issue #10080): a unit neither axis can say.
+   */
+  ownScales?: Array<ChartOwnScale> | undefined;
+  /*
    * How the tooltip writes a category's value, by category, for a series
    * whose unit is neither axis's. Left out, a category's value is written
    * as the axis it is drawn against writes its ticks.
@@ -843,6 +850,8 @@ const BarChart: React.ForwardRefExoticComponent<
       onTimeRangeSelect,
       onTimeRangeReset,
       categoryValueFormatters,
+      secondYAxis: requestedSecondYAxis,
+      ownScales: requestedOwnScales,
       ...other
     } = props;
     /*
@@ -852,7 +861,12 @@ const BarChart: React.ForwardRefExoticComponent<
      */
     const secondYAxis: ChartSecondYAxis | undefined =
       layout !== "vertical" && type !== "percent"
-        ? props.secondYAxis
+        ? requestedSecondYAxis
+        : undefined;
+    // Nor scales of their own (issue #10080).
+    const ownScales: Array<ChartOwnScale> | undefined =
+      layout !== "vertical" && type !== "percent"
+        ? requestedOwnScales
         : undefined;
     const CustomTooltip: React.ComponentType<any> | undefined = customTooltip;
     const paddingValue: number =
@@ -961,6 +975,7 @@ const BarChart: React.ForwardRefExoticComponent<
       data: data,
       categories: categories,
       secondYAxis: secondYAxis,
+      ownScales: ownScales,
       referenceLines: referenceLines,
       firstDomain: yAxisDomainEnds,
       secondDomain: secondYAxisDomainEnds,
@@ -983,6 +998,7 @@ const BarChart: React.ForwardRefExoticComponent<
         category: category,
         valueFormatter: valueFormatter,
         secondYAxis: secondYAxis,
+        ownScales: ownScales,
         categoryValueFormatters: categoryValueFormatters,
         firstAxisPrecision: valueAxes.first.ticks.precision,
         secondAxisPrecision: valueAxes.second?.ticks.precision,
@@ -1303,6 +1319,31 @@ const BarChart: React.ForwardRefExoticComponent<
                   allowDecimals={allowDecimals}
                 />
               ) : null}
+              {(ownScales || []).map(
+                (ownScale: ChartOwnScale): React.ReactElement => {
+                  /*
+                   * A scale of its own (issue #10080): a value axis recharts
+                   * steps over its categories' values and draws no tick of,
+                   * taking no room.
+                   */
+                  return (
+                    <YAxis
+                      key={`own-scale-${ownScale.id}`}
+                      yAxisId={getOwnScaleYAxisId(ownScale.id)}
+                      hide={true}
+                      type="number"
+                      domain={
+                        getYAxisDomain(
+                          ownScale.autoMinValue,
+                          ownScale.minValue,
+                          ownScale.maxValue,
+                        ) as AxisDomain
+                      }
+                      allowDecimals={allowDecimals}
+                    />
+                  );
+                },
+              )}
               <Tooltip
                 wrapperStyle={{ outline: "none", zIndex: 10 }}
                 isAnimationActive={true}
@@ -1405,6 +1446,7 @@ const BarChart: React.ForwardRefExoticComponent<
                 const axisProps: { yAxisId?: string } = getCategoryYAxisProps(
                   category,
                   secondYAxis,
+                  ownScales,
                 );
                 return (
                   <Bar
@@ -1423,7 +1465,9 @@ const BarChart: React.ForwardRefExoticComponent<
                      */
                     {...(stacked
                       ? {
-                          stackId: axisProps.yAxisId ? "stack-second" : "stack",
+                          stackId: axisProps.yAxisId
+                            ? `stack-${axisProps.yAxisId}`
+                            : "stack",
                         }
                       : {})}
                     isAnimationActive={false}
@@ -1452,6 +1496,8 @@ const BarChart: React.ForwardRefExoticComponent<
                           {...getMarkYAxisProps(
                             refLine.isOnSecondYAxis,
                             secondYAxis,
+                            refLine.ownScaleId,
+                            ownScales,
                           )}
                           stroke="none"
                         />
@@ -1461,6 +1507,8 @@ const BarChart: React.ForwardRefExoticComponent<
                         {...getMarkYAxisProps(
                           refLine.isOnSecondYAxis,
                           secondYAxis,
+                          refLine.ownScaleId,
+                          ownScales,
                         )}
                         stroke={refLine.color}
                         strokeDasharray={refLine.strokeDasharray || "4 4"}
