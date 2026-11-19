@@ -178,6 +178,105 @@ describe("collectCloudResourceReadings", () => {
     });
   });
 
+  /*
+   * #9692: SageMaker publishes an endpoint's invocations per production
+   * variant, never for the endpoint alone, and the read reads every
+   * variant's series. A count's series add up to the endpoint's: its rule
+   * divides the endpoint's errors by its invocations.
+   */
+  test("an AWS count published only per part of its resource reads the sum of its parts", () => {
+    const variant: (
+      metricName: string,
+      name: string,
+      value: number,
+    ) => {
+      namespace: string;
+      metricName: string;
+      dimensions: Array<{ name: string; value: string }>;
+      points: Array<{ timeMs: number; value: number }>;
+    } = (metricName: string, name: string, value: number) => {
+      return {
+        namespace: "AWS/SageMaker",
+        metricName,
+        dimensions: [
+          { name: "EndpointName", value: "recommender" },
+          { name: "VariantName", value: name },
+        ],
+        points: [
+          { timeMs: T1, value: 1 },
+          { timeMs: T2, value },
+        ],
+      };
+    };
+    const group: CloudMetricGroup = awsGroup([
+      variant("Invocations", "blue", 300),
+      variant("Invocations", "green", 100),
+      variant("Invocation5XXErrors", "blue", 20),
+      variant("Invocation5XXErrors", "green", 30),
+    ]);
+
+    const collected: Map<string, CollectedCloudReadings> =
+      collectCloudResourceReadings(buildMetricsPayloads([group]));
+    const readings: CollectedCloudReadings = collected.get(
+      identifierOf(resourceOf(group)),
+    )!;
+
+    expect(readings.resourceType).toBe("AWS::SageMaker::Endpoint");
+    expect(readings.readings["aws/sagemaker/invocations"]).toEqual({
+      value: 400,
+      time: new Date(T2).toISOString(),
+    });
+    expect(readings.readings["aws/sagemaker/invocation5xxerrors"]?.value).toBe(
+      50,
+    );
+  });
+
+  test("an AWS level's series of one time do not add up: each is one part's level", () => {
+    // An Auto Scaling group's own series, twice in one payload: never 6.
+    const series: {
+      namespace: string;
+      metricName: string;
+      dimensions: Array<{ name: string; value: string }>;
+      points: Array<{ timeMs: number; value: number }>;
+    } = {
+      namespace: "AWS/AutoScaling",
+      metricName: "GroupDesiredCapacity",
+      dimensions: [{ name: "AutoScalingGroupName", value: "web" }],
+      points: [{ timeMs: T2, value: 3 }],
+    };
+    const group: CloudMetricGroup = awsGroup([series, series]);
+
+    expect(
+      collectCloudResourceReadings(buildMetricsPayloads([group])).get(
+        identifierOf(resourceOf(group)),
+      )!.readings["aws/autoscaling/groupdesiredcapacity"]?.value,
+    ).toBe(3);
+  });
+
+  test("an AWS count's one series repeated is counted once", () => {
+    const series: {
+      namespace: string;
+      metricName: string;
+      dimensions: Array<{ name: string; value: string }>;
+      points: Array<{ timeMs: number; value: number }>;
+    } = {
+      namespace: "AWS/Cognito",
+      metricName: "SignInThrottles",
+      dimensions: [
+        { name: "UserPool", value: "us-east-1_AbCdEf" },
+        { name: "UserPoolClient", value: "web" },
+      ],
+      points: [{ timeMs: T2, value: 4 }],
+    };
+    const group: CloudMetricGroup = awsGroup([series, series]);
+
+    expect(
+      collectCloudResourceReadings(buildMetricsPayloads([group])).get(
+        identifierOf(resourceOf(group)),
+      )!.readings["aws/cognito/signinthrottles"]?.value,
+    ).toBe(4);
+  });
+
   test("leaves out a metric no rule reads and no page leads with", () => {
     /*
      * A stream's incoming records: read for its charts, while its rules
