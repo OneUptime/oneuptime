@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 包含引号的密钥值会破坏它周围的字符串。监视器无权使用的引用会按原样留在脚本中。如何创建密钥并选择哪些监视器可以使用它，请参阅 [监控密钥](/docs/monitor/monitor-secrets)。
 
+一次性验证码密钥保存的是网站的双因素设置密钥，而不是一个值。它的 `{{monitorSecrets.NAME}}` 是脚本开始时的验证码，而 `await oneuptime.getTotpCode("NAME")` 会在脚本请求时生成新的验证码。请参阅[使用一次性验证码登录](/docs/monitor/monitor-secrets#使用一次性验证码登录)。
+
 ## 自定义指标
 
 你可以在脚本中用 `oneuptime.captureMetric()` 函数记录自定义指标。这些指标存储在 OneUptime 中，可以通过 Metric Explorer 在仪表板上绘制成图表。
@@ -226,6 +228,7 @@ return {
 | `http`、`https` | 只有它们的 `Agent` 类，用于传给 `axios`，例如 `httpsAgent: new https.Agent({ rejectUnauthorized: false })`。没有 `request` 或 `get`。 |
 | `console.log` | 记录用于调试的数据。只有 `console.log`，没有 `console.error` 等其他方法。 |
 | `oneuptime.captureMetric` | 记录自定义指标。请参阅[自定义指标](#自定义指标)。 |
+| `oneuptime.getTotpCode` | 生成一次性验证码密钥的当前验证码：`await oneuptime.getTotpCode("NAME")`。请参阅[使用监控密钥](#使用监控密钥)。 |
 | `setTimeout`、`clearTimeout`、`sleep(ms)` | 在脚本中等待。延迟永远不会超过脚本的超时时间。 |
 
 ## 注意事项
