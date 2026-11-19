@@ -33,8 +33,14 @@ const RESTRICTION_DEFAULT: RegExp = /android:defaultValue="([^"]+)"/;
 const SETTINGS_ROW: RegExp = /^\| `([a-z_]+)` \| [^|]+ \| ([^|]+) \|$/;
 const APPLICATION_ID: RegExp = /applicationId = "([^"]+)"/;
 
+// A managed configuration key and its default, when it has one.
+interface Restriction {
+  key: string;
+  defaultValue: string | undefined;
+}
+
 // The keys app_restrictions.xml declares, in order, with their defaults.
-function restrictions(): Array<{ key: string; defaultValue?: string }> {
+function restrictions(): Array<Restriction> {
   const xml: string = agentFile("app/src/main/res/xml/app_restrictions.xml");
   return Array.from(xml.matchAll(RESTRICTION)).map(
     (match: RegExpMatchArray) => {
@@ -80,7 +86,7 @@ function goldenMetricNames(): Set<string> {
 describe("Android Agent docs: the settings are the agent's", () => {
   it("lists every managed configuration key the agent declares, and no other", () => {
     expect(Array.from(settingsTable().keys())).toEqual(
-      restrictions().map((restriction: { key: string }) => {
+      restrictions().map((restriction: Restriction) => {
         return restriction.key;
       }),
     );
@@ -115,7 +121,7 @@ describe("Android Agent docs: the settings are the agent's", () => {
       },
     );
     const keys: Array<string> = restrictions().map(
-      (restriction: { key: string }) => {
+      (restriction: Restriction) => {
         return restriction.key;
       },
     );
