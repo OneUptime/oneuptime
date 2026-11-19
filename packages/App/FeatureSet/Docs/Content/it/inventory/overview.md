@@ -45,9 +45,9 @@ Ogni tre ore, OneUptime rimuove gli elementi scoperti rimasti in silenzio più a
 
 | Tipo di elemento | Rimosso dopo questo tempo senza telemetria |
 | --- | --- |
-| Pod, deployment, guest Proxmox e macchine virtuali VMware | 1 giorno |
-| Nodi e namespace Kubernetes, nodi Proxmox, host, cluster e datastore VMware, e i database e i servizi remoti chiamati dalle tue tracce | 7 giorni |
-| Servizi, host, cluster Kubernetes, Proxmox e Ceph, array di storage, vCenters e cluster Docker Swarm | 30 giorni |
+| Pod, deployment, guest Proxmox, istanze OpenStack e macchine virtuali VMware | 1 giorno |
+| Nodi e namespace Kubernetes, nodi Proxmox, hypervisor OpenStack, host, cluster e datastore VMware, e i database e i servizi remoti chiamati dalle tue tracce | 7 giorni |
+| Servizi, host, cluster Kubernetes, Proxmox e Ceph, cloud OpenStack, array di storage, vCenters e cluster Docker Swarm | 30 giorni |
 
 Una relazione che OneUptime ha scoperto viene rimossa quando non viene rivista per 30 giorni.
 
@@ -76,6 +76,8 @@ Un host o un dispositivo di rete ha una scheda **Dettagli dell'asset** che li de
 - I dati di un host vengono dagli attributi di risorsa della sua telemetria: i suoi indirizzi IP e MAC, l'architettura e il sistema operativo fin da subito, e il numero di serie, la marca, il modello e il firmware una volta che li apponi.
 - I dati di un dispositivo di rete vengono dal suo polling SNMP, dal suo ruolo e dal suo sito. Ciò che il suo polling non ha letto viene dal rilevamento: l'ultima scansione del suo indirizzo, la tabella ARP di un router o la risoluzione DNS della sua sonda. Un dispositivo senza ENTITY-MIB, come un Meraki MX, ricava comunque marca, modello e sistema operativo dalla sua descrizione di sistema, e il suo indirizzo MAC dalle sue porte. Il suo indirizzo IP non viene mai mostrato come hostname.
 - Un dispositivo Meraki prende anche dalla dashboard di Meraki ciò che il suo polling lascia vuoto, tra cui numero di serie, modello e firmware, quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione.
+
+In **Tutti gli elementi** trovi i dispositivi Android su cui intervenire. Il filtro **Livello patch di sicurezza** elenca come **Da aggiornare** i dispositivi il cui livello patch di sicurezza ha più di 90 giorni, la stessa regola che applica l'avviso Security Patch Out of Date del [monitor host](/docs/monitor/host-monitor). Il filtro **Autorizzazioni dell'agente** elenca i dispositivi su cui all'[Agent Android](/docs/telemetry/android-agent) mancano ancora READ_LOGS, READ_DROPBOX_DATA o l'accesso ai dati di utilizzo. Ciascuno ha una colonna con lo stesso nome, nascosta finché non la attivi, e l'esportazione CSV la include.
 
 La scheda indica da dove viene ogni dato e quando. La fonte condivisa dalla maggior parte dei dati, come il collector di un host, il polling SNMP proprio di un dispositivo di rete o la scansione di rilevamento che lo ha letto, viene nominata una sola volta, sotto i dati. Qualsiasi altra fonte, come la tabella ARP di un router o un valore salvato sul dispositivo, viene nominata sotto il suo dato. Un valore salvato su un dispositivo di rete non viene mai sostituito da ciò che legge il rilevamento, e quando i due differiscono, la scheda li mostra entrambi.
 

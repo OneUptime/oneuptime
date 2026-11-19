@@ -45,9 +45,9 @@ OneUptime 每 3 小时移除一次静默时间超过其类别时间窗口的发�
 
 | 条目类别 | 没有遥测多久后被移除 |
 | --- | --- |
-| Pod、Deployment、Proxmox 客户机和 VMware 虚拟机 | 1 天 |
-| Kubernetes 节点和命名空间、Proxmox 节点、VMware 主机、集群和数据存储，以及你的链路所调用的数据库和远程服务 | 7 天 |
-| 服务、主机、Kubernetes、Proxmox 和 Ceph 集群、存储阵列、vCenter 和 Docker Swarm 集群 | 30 天 |
+| Pod、Deployment、Proxmox 客户机、OpenStack 实例和 VMware 虚拟机 | 1 天 |
+| Kubernetes 节点和命名空间、Proxmox 节点、OpenStack Hypervisor、VMware 主机、集群和数据存储，以及你的链路所调用的数据库和远程服务 | 7 天 |
+| 服务、主机、Kubernetes、Proxmox 和 Ceph 集群、OpenStack 云、存储阵列、vCenter 和 Docker Swarm 集群 | 30 天 |
 
 OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 
@@ -76,6 +76,8 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 - 主机的信息来自其遥测中的资源属性：IP 和 MAC 地址、架构和操作系统开箱即有，序列号、制造商、型号和固件在你标注后才有。
 - 网络设备的信息来自其 SNMP 轮询、角色和站点。其轮询尚未读取的信息来自发现：对其地址的最近一次扫描、路由器的 ARP 表，或其探测器的 DNS 查询。没有 ENTITY-MIB 的设备（例如 Meraki MX）仍会从系统描述中获得制造商、型号和操作系统，并从自身端口获得 MAC 地址。它的 IP 地址永远不会显示为主机名。
 - 当 [Meraki 连接](/docs/monitor/network-traffic#不用-netflow-的-cisco-meraki) 读取其组织时，Meraki 设备还会从 Meraki 控制台获取其轮询留空的信息，其中包括序列号、型号和固件。
+
+**所有项目** 可以找出需要处理的 Android 设备。它的 **安全补丁级别** 筛选条件会列出 **需要更新** 的设备，即安全补丁级别距今超过 90 天的设备，这与 [主机监控](/docs/monitor/host-monitor) 的 Security Patch Out of Date 警报所依据的规则相同。它的 **代理权限** 筛选条件会列出 [Android 代理](/docs/telemetry/android-agent) 仍缺少 READ_LOGS、READ_DROPBOX_DATA 或使用情况访问权限的设备。每个筛选条件都有一个同名的列，在你开启之前处于隐藏状态，CSV 导出中也包含该列。
 
 卡片会说明每项信息的来源和时间。大多数信息共有的来源，例如主机的采集器、网络设备自身的 SNMP 轮询或读取它的发现扫描，只在信息下方提及一次。其他来源，例如路由器的 ARP 表或保存在设备上的值，会在对应信息下方说明。保存在网络设备上的值绝不会被发现读取的内容替换，两者不同时，卡片会同时显示两者。
 
