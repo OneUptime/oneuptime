@@ -265,3 +265,60 @@ describe("KubectlWaitBudget.plan", () => {
     expect(refusals).toBeGreaterThan(0);
   });
 });
+
+/*
+ * Issue #6496: a run can name its deadline twice - the one its toolkit was
+ * built with (an investigation's runner), and the one its loop hands each
+ * call (Ask AI, whose clock starts again after an approval). A command is
+ * planned against the earlier, so neither can let it outlive the run.
+ */
+describe("KubectlWaitBudget.getEarlierDeadline", () => {
+  it("is the earlier of two deadlines, whichever came first", () => {
+    expect(
+      KubectlWaitBudget.getEarlierDeadline(NOW_MS + 60_000, NOW_MS + 30_000),
+    ).toBe(NOW_MS + 30_000);
+    expect(
+      KubectlWaitBudget.getEarlierDeadline(NOW_MS + 30_000, NOW_MS + 60_000),
+    ).toBe(NOW_MS + 30_000);
+  });
+
+  it("is the one deadline there is when the other is missing", () => {
+    expect(KubectlWaitBudget.getEarlierDeadline(undefined, NOW_MS)).toBe(
+      NOW_MS,
+    );
+    expect(KubectlWaitBudget.getEarlierDeadline(NOW_MS, undefined)).toBe(
+      NOW_MS,
+    );
+  });
+
+  it("is no deadline at all when neither is a finite time", () => {
+    expect(KubectlWaitBudget.getEarlierDeadline()).toBeUndefined();
+    expect(
+      KubectlWaitBudget.getEarlierDeadline(undefined, undefined),
+    ).toBeUndefined();
+    expect(
+      KubectlWaitBudget.getEarlierDeadline(Number.NaN, Infinity),
+    ).toBeUndefined();
+    expect(KubectlWaitBudget.getEarlierDeadline(Number.NaN, NOW_MS)).toBe(
+      NOW_MS,
+    );
+  });
+
+  it("plans a command by the earlier one", () => {
+    const plan: KubectlWaitPlan = expectPlan(
+      KubectlWaitBudget.plan({
+        requestedTimeoutInMs: 30_000,
+        maxClaimTimeoutInMs: CLAIM_MS,
+        deadlineAtMs: KubectlWaitBudget.getEarlierDeadline(
+          NOW_MS + 10 * 60_000,
+          NOW_MS + 30_000,
+        ),
+        nowMs: NOW_MS,
+      }),
+    );
+
+    expect(KubectlWaitBudget.getWorstCaseWaitMs(plan)).toBeLessThanOrEqual(
+      30_000,
+    );
+  });
+});

@@ -4,6 +4,7 @@ import AIInvestigationQueue, {
 import AIIncidentInvestigationRunner from "../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import AIAlertInvestigationRunner from "../../../../Server/Utils/AI/SRE/AlertInvestigationRunner";
 import AIRunService from "../../../../Server/Services/AIRunService";
+import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIService from "../../../../Server/Services/AIService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import LlmLogService from "../../../../Server/Services/LlmLogService";
@@ -630,6 +631,10 @@ describe("AIInvestigationQueue", () => {
   });
 
   test("a transient failure on the first attempt requeues the run", async () => {
+    // How the attempt ended goes on the run's activity (issue #6490).
+    jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
     const runId: ObjectID = ObjectID.generate();
     const update: jest.SpyInstance = jest
       .spyOn(AIRunService, "attemptStatusTransition")
@@ -637,6 +642,7 @@ describe("AIInvestigationQueue", () => {
 
     await AIInvestigationQueue.failOrRequeue({
       aiRunId: runId,
+      projectId: ObjectID.generate(),
       attemptCount: 1,
       errorMessage: "LLM provider timed out",
       isPermanent: false,
@@ -654,6 +660,10 @@ describe("AIInvestigationQueue", () => {
   });
 
   test("a transient failure on the final attempt finalizes as Error", async () => {
+    // How the attempt ended goes on the run's activity (issue #6490).
+    jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
     const update: jest.SpyInstance = jest
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
@@ -661,6 +671,7 @@ describe("AIInvestigationQueue", () => {
     // A provider that timed out gets its three attempts (AIRunRetryPolicy).
     await AIInvestigationQueue.failOrRequeue({
       aiRunId: ObjectID.generate(),
+      projectId: ObjectID.generate(),
       attemptCount: AIRunRetryPolicy.PROVIDER_FAILURE_MAX_ATTEMPTS,
       errorMessage: "LLM provider timed out",
       isPermanent: false,
@@ -676,12 +687,17 @@ describe("AIInvestigationQueue", () => {
   });
 
   test("a permanent failure never retries, even with attempts remaining", async () => {
+    // How the attempt ended goes on the run's activity (issue #6490).
+    jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
     const update: jest.SpyInstance = jest
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
     await AIInvestigationQueue.failOrRequeue({
       aiRunId: ObjectID.generate(),
+      projectId: ObjectID.generate(),
       attemptCount: 1,
       errorMessage: "No LLM provider configured for this project.",
       isPermanent: true,

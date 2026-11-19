@@ -15,6 +15,9 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimit,
 } from "Common/Types/AI/ProjectAiDailyLimits";
 import LlmLogStatus from "Common/Types/LlmLogStatus";
+import { getLlmLogStatusLabel } from "../../../FeatureSet/Dashboard/src/Components/AILogs/LlmLogStatusWords";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import fs from "fs";
 import Permission from "Common/Types/Permission";
 import { createTranslator } from "Common/UI/Utils/TranslateTemplate";
 import { getProjectDailyLimitMessage } from "Common/Server/Services/AIService";
@@ -148,11 +151,19 @@ describe("the AI SRE page documents the project's own daily limits", () => {
     );
   });
 
-  it("names the status a refused call has in the AI Logs", () => {
+  /*
+   * As the AI Logs draw it (issue #6495): the stored value stays "Budget
+   * Exceeded", and its pill reads "Daily Limit Reached".
+   */
+  it("names the status a refused call has in the AI Logs, as its pill says it", () => {
     expect(LlmLogStatus.BudgetExceeded).toBe("Budget Exceeded");
-    expect(section()).toContain(
-      `with the status **${LlmLogStatus.BudgetExceeded}**`,
+    expect(getLlmLogStatusLabel(LlmLogStatus.BudgetExceeded)).toBe(
+      "Daily Limit Reached",
     );
+    expect(section()).toContain(
+      `with the status **${getLlmLogStatusLabel(LlmLogStatus.BudgetExceeded)}**`,
+    );
+    expect(section()).not.toContain("Budget Exceeded");
   });
 
   it("quotes the folded sentence exactly as the dashboard says it", () => {
@@ -280,4 +291,93 @@ describe("other AI pages send readers to the section", () => {
     expect(text).toContain("**Daily AI Token Limit**");
     expect(text).toContain(`(${ANCHOR})`);
   });
+});
+
+/*
+ * Issue #6495: issue #6440 took "budget" out of OneUptime AI's runs, and
+ * the daily AI limits a project sets on purpose are limits, by the names
+ * their settings have - the daily token limit, the daily fix-task limit -
+ * not a budget. The AI SRE page called them a budget in two places, and
+ * named the AI Logs' status by its stored "Budget Exceeded". In every
+ * docs language. (An SLO's error budget is a real budget, and keeps it.)
+ */
+describe("the AI daily limits are never a budget, in any docs language", () => {
+  const BUDGET_WORDS: Readonly<Record<string, RegExp>> = {
+    en: /budget/i,
+    de: /budget/i,
+    fr: /budget/i,
+    es: /presupuesto/i,
+    it: /budget/i,
+    pt: /orçamento/i,
+    nl: /budget/i,
+    da: /budget/i,
+    no: /budsjett/i,
+    sv: /budget/i,
+    ru: /бюджет/i,
+    ja: /予算/,
+    ko: /예산/,
+    "zh-CN": /预算/,
+    "zh-TW": /預算/,
+    hi: /बजट/,
+    fa: /بودجه/,
+  };
+
+  function lines(language: string): Array<string> {
+    return fs
+      .readFileSync(
+        path.join(
+          PACKAGES_ROOT,
+          `App/FeatureSet/Docs/Content/${language}/ai/ai-sre.md`,
+        ),
+        "utf8",
+      )
+      .split("\n");
+  }
+
+  /*
+   * The English lines that name the limits, the AI Logs' statuses and what
+   * insight triage counts toward: every language's page says them on the
+   * same lines.
+   */
+  const ENGLISH: Array<string> = lines("en");
+  const LIMIT_LINES: Array<number> = [
+    "daily token limit, daily fix-task limit, and rules",
+    "with the status **Daily Limit Reached**",
+    "with the status **AI Credits Used Up**",
+    "so it never counts toward the incident or alert daily token limit",
+  ].map((claim: string): number => {
+    const index: number = ENGLISH.findIndex((line: string): boolean => {
+      return line.includes(claim);
+    });
+
+    expect({ claim, found: index >= 0 }).toEqual({ claim, found: true });
+
+    return index;
+  });
+
+  it("knows the word for a budget in every docs language", () => {
+    expect(Object.keys(BUDGET_WORDS).sort()).toEqual(
+      [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
+    );
+  });
+
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s says limits where the English says limits",
+    (language: string) => {
+      const page: Array<string> = lines(language);
+      const budget: RegExp = BUDGET_WORDS[language]!;
+
+      for (const index of LIMIT_LINES) {
+        expect({
+          language,
+          line: index + 1,
+          budget: budget.test(page[index]!),
+        }).toEqual({ language, line: index + 1, budget: false });
+      }
+
+      // Nor the AI Logs' stored statuses.
+      expect(page.join("\n")).not.toContain("**Budget Exceeded**");
+      expect(page.join("\n")).not.toContain("**Insufficient Balance**");
+    },
+  );
 });

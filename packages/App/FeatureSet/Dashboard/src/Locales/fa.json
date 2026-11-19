@@ -57522,5 +57522,12 @@
   "Where the pipeline runs": "جایی که خط لوله اجرا می‌شود",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "با failWithStatusCode، توقف با HTTP 412 پاسخ می‌دهد، پس curl -f مرحله را ناموفق می‌کند و مراحل بعدی اجرا نمی‌شوند.",
   "Would Stop": "متوقف خواهد کرد",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "هوک‌های dbt در انبار داده‌تان SQL اجرا می‌کنند، نه درخواست وب، پس از مدارشکن در مرحله‌ای بپرسید که dbt را شروع می‌کند."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "هوک‌های dbt در انبار داده‌تان SQL اجرا می‌کنند، نه درخواست وب، پس از مدارشکن در مرحله‌ای بپرسید که dbt را شروع می‌کند.",
+  "AI Credits Used Up": "اعتبار هوش مصنوعی تمام شده",
+  "Daily Limit Reached": "سقف روزانه پر شده",
+  "Only the latest {{count}} steps of this run are shown.": "فقط {{count}} گام آخر این اجرا نشان داده شده است.",
+  "Only the latest {{count}} steps of this run are shown._one": "فقط {{count}} گام آخر این اجرا نشان داده شده است.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "این پروژه از ارائه‌دهندهٔ LLM سراسری استفاده می‌کند که مدیر سرور OneUptime شما آن را تنظیم می‌کند. از او بخواهید کلید API و مدل آن را بررسی کند، یا در تنظیمات پروژه > هوش مصنوعی > ارائه‌دهندگان LLM یک ارائه‌دهندهٔ LLM برای خودتان اضافه کنید.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "این پروژه از ارائه‌دهندهٔ LLM سراسری استفاده می‌کند که مدیر سرور OneUptime شما آن را تنظیم می‌کند. چند دقیقهٔ دیگر دوباره تلاش کنید. اگر باز هم مهلت پاسخ تمام شد، از او بخواهید مهلت پاسخ آن را افزایش دهد، یا در تنظیمات پروژه > هوش مصنوعی > ارائه‌دهندگان LLM یک ارائه‌دهندهٔ LLM برای خودتان اضافه کنید.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "این پروژه از ارائه‌دهندهٔ LLM سراسری استفاده می‌کند که مدیر سرور OneUptime شما آن را تنظیم می‌کند. چند دقیقهٔ دیگر دوباره تلاش کنید. اگر همچنان در دسترس نبود، از او بخواهید آن را بررسی کند، یا در تنظیمات پروژه > هوش مصنوعی > ارائه‌دهندگان LLM یک ارائه‌دهندهٔ LLM برای خودتان اضافه کنید."
 }

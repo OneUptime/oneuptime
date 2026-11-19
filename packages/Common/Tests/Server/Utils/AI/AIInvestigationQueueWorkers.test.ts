@@ -6,6 +6,7 @@ import AIInvestigationQueue, {
 import AIIncidentInvestigationRunner from "../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import RemediationExecutionRunner from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
 import AIRunService from "../../../../Server/Services/AIRunService";
+import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIService from "../../../../Server/Services/AIService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Queue, {
@@ -613,6 +614,10 @@ describe("AIInvestigationQueue — a handed-back claim is not a failed attempt",
       const transition: jest.SpyInstance = jest
         .spyOn(AIRunService, "attemptStatusTransition")
         .mockResolvedValue(1);
+      // How the attempt ended goes on the run's activity (issue #6490).
+      jest
+        .spyOn(AIRunEventService, "appendEventToRun")
+        .mockResolvedValue(undefined);
       let outcome: string | undefined = undefined;
       jest
         .spyOn(AIIncidentInvestigationRunner, "executeInvestigation")
@@ -623,6 +628,7 @@ describe("AIInvestigationQueue — a handed-back claim is not a failed attempt",
           }): Promise<void> => {
             outcome = await AIInvestigationQueue.failOrRequeue({
               aiRunId: data.aiRunId,
+              projectId: run.projectId,
               attemptCount: data.attemptCount,
               // Not the provider's: such a failure gets two attempts.
               errorMessage: "The tool loop crashed",

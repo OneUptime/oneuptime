@@ -57522,5 +57522,12 @@
   "Where the pipeline runs": "管道运行的位置",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "使用 failWithStatusCode 时，停止会以 HTTP 412 应答，因此 curl -f 会让该步骤失败，后续步骤也不会运行。",
   "Would Stop": "将停止",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt 的钩子在你的数据仓库中运行 SQL，而不是发出网络请求，所以请在启动 dbt 的步骤中询问熔断器。"
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt 的钩子在你的数据仓库中运行 SQL，而不是发出网络请求，所以请在启动 dbt 的步骤中询问熔断器。",
+  "AI Credits Used Up": "AI 积分已用完",
+  "Daily Limit Reached": "已达每日上限",
+  "Only the latest {{count}} steps of this run are shown.": "仅显示此运行最近的 {{count}} 个步骤。",
+  "Only the latest {{count}} steps of this run are shown._one": "仅显示此运行最近的 {{count}} 个步骤。",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此项目使用全局 LLM 提供商，它由你的 OneUptime 服务器管理员设置。请让管理员检查它的 API 密钥和模型，或在“项目设置 > 人工智能 > LLM 提供商”中添加你自己的 LLM 提供商。",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此项目使用全局 LLM 提供商，它由你的 OneUptime 服务器管理员设置。请几分钟后重试。如果仍然超时，请让管理员调高它的响应超时，或在“项目设置 > 人工智能 > LLM 提供商”中添加你自己的 LLM 提供商。",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此项目使用全局 LLM 提供商，它由你的 OneUptime 服务器管理员设置。请几分钟后重试。如果仍然无法访问，请让管理员检查它，或在“项目设置 > 人工智能 > LLM 提供商”中添加你自己的 LLM 提供商。"
 }

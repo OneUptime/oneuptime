@@ -57522,5 +57522,12 @@
   "Where the pipeline runs": "Hvor pipelinen kører",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "Med failWithStatusCode svarer et stop med HTTP 412, så curl -f får trinnet til at fejle, og trinnene efter det kører ikke.",
   "Would Stop": "Ville stoppe",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbts hooks kører SQL i dit warehouse, ikke webforespørgsler, så spørg circuit breakeren i det trin, der starter dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbts hooks kører SQL i dit warehouse, ikke webforespørgsler, så spørg circuit breakeren i det trin, der starter dbt.",
+  "AI Credits Used Up": "AI-kreditter brugt op",
+  "Daily Limit Reached": "Daglig grænse nået",
+  "Only the latest {{count}} steps of this run are shown.": "Kun de seneste {{count}} trin i denne kørsel vises.",
+  "Only the latest {{count}} steps of this run are shown._one": "Kun det seneste {{count}} trin i denne kørsel vises.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Dette projekt bruger den globale LLM-udbyder, som din OneUptime-servers administrator sætter op. Bed administratoren om at kontrollere dens API-nøgle og model, eller tilføj din egen LLM-udbyder under Projektindstillinger > AI > LLM-udbydere.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Dette projekt bruger den globale LLM-udbyder, som din OneUptime-servers administrator sætter op. Prøv igen om et par minutter. Bliver den ved med at give timeout, så bed administratoren om at hæve dens svartimeout, eller tilføj din egen LLM-udbyder under Projektindstillinger > AI > LLM-udbydere.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "Dette projekt bruger den globale LLM-udbyder, som din OneUptime-servers administrator sætter op. Prøv igen om et par minutter. Forbliver den utilgængelig, så bed administratoren om at kontrollere den, eller tilføj din egen LLM-udbyder under Projektindstillinger > AI > LLM-udbydere."
 }

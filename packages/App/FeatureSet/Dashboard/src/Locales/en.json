@@ -57522,5 +57522,12 @@
   "Where the pipeline runs": "Where the pipeline runs",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.",
   "Would Stop": "Would Stop",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.",
+  "AI Credits Used Up": "AI Credits Used Up",
+  "Daily Limit Reached": "Daily Limit Reached",
+  "Only the latest {{count}} steps of this run are shown.": "Only the latest {{count}} steps of this run are shown.",
+  "Only the latest {{count}} steps of this run are shown._one": "Only the latest {{count}} step of this run is shown.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers."
 }

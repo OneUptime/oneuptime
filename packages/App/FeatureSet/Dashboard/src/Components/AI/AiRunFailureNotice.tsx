@@ -117,11 +117,15 @@ export function getAiRunFailureSettingsRoute(
 
 export function getAiRunFailureSettingsLink(
   failureKind: AIRunFailureKind,
+  options?: { providerIsGlobal?: boolean | undefined } | undefined,
 ): AiRunFailureSettingsLink | null {
   switch (failureKind) {
     /*
      * Fixed on the provider: its Response Timeout, its API key and model,
      * its context window, or its address - with Test there to check it.
+     * The global provider is the server admin's to fix (issue #6494): the
+     * page is where a project adds a provider of its own instead, so the
+     * link is for whoever may add one.
      */
     case AIRunFailureKind.ProviderTimeout:
     case AIRunFailureKind.ProviderRejected:
@@ -130,8 +134,13 @@ export function getAiRunFailureSettingsLink(
       return {
         label: translationKey("Open LLM Providers"),
         page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
-        isAllowed: PermissionGate.check(new LlmProvider(), ModelAction.Update)
-          .isAllowed,
+        isAllowed: PermissionGate.check(
+          new LlmProvider(),
+          options?.providerIsGlobal === true &&
+            failureKind !== AIRunFailureKind.ContextWindow
+            ? ModelAction.Create
+            : ModelAction.Update,
+        ).isAllowed,
       };
     // No provider at all: one is added there.
     case AIRunFailureKind.NotConfigured:
@@ -195,7 +204,9 @@ const AiRunFailureNotice: FunctionComponent<ComponentProps> = (
   const words: AiRunFailureWords = describeAiRunFailure(failure, translator);
   const errorMessage: string = (props.errorMessage || "").trim();
   const settingsLink: AiRunFailureSettingsLink | null =
-    getAiRunFailureSettingsLink(failure.failureKind);
+    getAiRunFailureSettingsLink(failure.failureKind, {
+      providerIsGlobal: failure.providerIsGlobal,
+    });
   const isSettingsLinkShown: boolean = Boolean(settingsLink?.isAllowed);
   const hasActions: boolean =
     Boolean(props.onTryAgain) || isSettingsLinkShown || Boolean(errorMessage);

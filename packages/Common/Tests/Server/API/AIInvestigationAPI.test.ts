@@ -326,6 +326,8 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       run: null,
       notInvestigatedReason: reason,
       events: [],
+      // No run, so no steps were left out (issue #6489).
+      hasEarlierEvents: false,
       analysisMarkdown: null,
       analysisTldr: null,
       isAnalysisPending: false,
@@ -953,6 +955,51 @@ describe("AIInvestigationAPI latest-investigation evidence and references", () =
     ]);
   });
 
+  /*
+   * Issue #6489: a run with more events than the panel reads keeps its
+   * newest (issue #6437), and says its first ones were left out - one row
+   * past the cap is read, and dropped - so the panel can say so.
+   */
+  function manyEvents(count: number): Array<AIRunEvent> {
+    return Array.from({ length: count }, (_: unknown, index: number) => {
+      const item: AIRunEvent = new AIRunEvent(ObjectID.generate());
+      item.sequence = index;
+      item.eventType = AIRunEventType.ToolCallStarted;
+      item.toolName = "search_logs";
+      return item;
+    });
+  }
+
+  it("a run with 501 events sends its newest 500, in order, and says earlier ones were left out", async () => {
+    await callIncidentRoute({ run: completedRun(), events: manyEvents(501) });
+
+    expect(AIRunEventService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort: { sequence: SortOrder.Descending },
+        limit: 501,
+      }),
+    );
+    const sent: Array<JSONObject> = sentPayload()[
+      "events"
+    ] as Array<JSONObject>;
+    expect(sent).toHaveLength(500);
+    // The oldest, sequence 0, is the one left out.
+    expect(sent[0]!["sequence"]).toBe(1);
+    expect(sent[499]!["sequence"]).toBe(500);
+    expect(sentPayload()["hasEarlierEvents"]).toBe(true);
+  });
+
+  it("a run with exactly 500 events sends all of them, and none were left out", async () => {
+    await callIncidentRoute({ run: completedRun(), events: manyEvents(500) });
+
+    const sent: Array<JSONObject> = sentPayload()[
+      "events"
+    ] as Array<JSONObject>;
+    expect(sent).toHaveLength(500);
+    expect(sent[0]!["sequence"]).toBe(0);
+    expect(sentPayload()["hasEarlierEvents"]).toBe(false);
+  });
+
   it("selects citation ids and tool arguments to build evidence", async () => {
     await callIncidentRoute({
       run: completedRun(),
@@ -1351,6 +1398,8 @@ describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
         "clusterAccess",
         "events",
         "evidence",
+        // Whether the run's first steps were left out (issue #6489).
+        "hasEarlierEvents",
         "isAnalysisPending",
         "mayTryAgain",
         "notInvestigatedReason",

@@ -1525,6 +1525,7 @@ export default class RemediationExecutionRunner {
     } catch (error) {
       await AIInvestigationQueue.failOrRequeue({
         aiRunId,
+        projectId,
         attemptCount,
         errorMessage: `Failed to prepare the remediation execution run: ${
           error instanceof Error ? error.message : String(error)

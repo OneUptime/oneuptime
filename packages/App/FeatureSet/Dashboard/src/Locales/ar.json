@@ -57522,5 +57522,12 @@
   "Where the pipeline runs": "مكان تشغيل مسار المعالجة",
   "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.": "مع failWithStatusCode، يجيب الإيقاف بـ HTTP 412، فيُفشل curl -f الخطوة ولا تعمل الخطوات التي بعدها.",
   "Would Stop": "سيوقفه",
-  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "تشغّل خطافات dbt استعلامات SQL في مستودع بياناتك، لا طلبات ويب، لذا اسأل قاطع الدائرة في الخطوة التي تبدأ dbt."
+  "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.": "تشغّل خطافات dbt استعلامات SQL في مستودع بياناتك، لا طلبات ويب، لذا اسأل قاطع الدائرة في الخطوة التي تبدأ dbt.",
+  "AI Credits Used Up": "نفدت أرصدة الذكاء الاصطناعي",
+  "Daily Limit Reached": "بلغ الحد اليومي",
+  "Only the latest {{count}} steps of this run are shown.": "لا تُعرض إلا أحدث خطوات هذا التشغيل (العدد: {{count}}).",
+  "Only the latest {{count}} steps of this run are shown._one": "لا تُعرض إلا أحدث {{count}} خطوة من هذا التشغيل.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. اطلب منه التحقّق من مفتاح API والنموذج الخاصين به، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. حاول مرة أخرى بعد بضع دقائق. وإذا استمرت مهلة الاستجابة في الانتهاء، فاطلب منه رفع «مهلة الاستجابة» الخاصة به، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM.",
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "يستخدم هذا المشروع موفّر LLM العامّ الذي يُعدّه مسؤول خادم OneUptime لديك. حاول مرة أخرى بعد بضع دقائق. وإذا ظل الوصول إليه متعذرًا، فاطلب منه التحقّق منه، أو أضف موفّر LLM خاصًا بك في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM."
 }
