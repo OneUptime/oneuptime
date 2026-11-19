@@ -1,3 +1,4 @@
+import { StringUtils } from "../../TerraformProvider/Core/StringUtils";
 import {
   TerraformResource,
   TerraformServerOwned,
@@ -38,7 +39,9 @@ export function collectServerOwned(
       }
       const terraformName: string = `${TERRAFORM_PREFIX}_${resource.name}`;
       serverOwned[terraformName] = serverOwned[terraformName] || {};
-      serverOwned[terraformName]![field] = attribute.serverOwned;
+      // As the provider names it: a cluster's provider is provider_value.
+      serverOwned[terraformName]![StringUtils.toTerraformAttributeName(field)] =
+        attribute.serverOwned;
     }
   }
 

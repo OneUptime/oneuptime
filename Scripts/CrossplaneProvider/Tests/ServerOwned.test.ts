@@ -78,6 +78,24 @@ describe("the fields OneUptime keeps, from the spec", () => {
     });
   });
 
+  test("are named as the provider names them: a field called like a Terraform meta-argument takes _value", () => {
+    expect(
+      collectServerOwned([
+        resource("kubernetes_cluster", {
+          id,
+          provider: {
+            type: "string",
+            optional: true,
+            computed: true,
+            serverOwned: "after-create",
+          },
+        }),
+      ]),
+    ).toEqual({
+      oneuptime_kubernetes_cluster: { provider_value: "after-create" },
+    });
+  });
+
   test("nothing, when no field says so", () => {
     const parser: OpenAPIParser = new OpenAPIParser();
     parser.setSpec(buildFixtureSpec());

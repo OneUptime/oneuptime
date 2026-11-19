@@ -53,8 +53,10 @@ type fakeAPI struct {
 	records map[string]map[string]map[string]any
 	// What OneUptime fills in itself when it creates a record, by API path.
 	onCreate map[string]func(record map[string]any)
-	writes   []fakeWrite
-	nextID   int
+	// The flags a record of each path has, which OneUptime always answers.
+	flags  map[string][]string
+	writes []fakeWrite
+	nextID int
 }
 
 func newFakeAPI(t *testing.T) *fakeAPI {
@@ -63,6 +65,7 @@ func newFakeAPI(t *testing.T) *fakeAPI {
 		t:        t,
 		records:  map[string]map[string]map[string]any{},
 		onCreate: map[string]func(map[string]any){},
+		flags:    map[string][]string{},
 	}
 	api.server = httptest.NewServer(http.HandlerFunc(api.handle))
 	t.Cleanup(api.server.Close)
@@ -143,6 +146,7 @@ func (a *fakeAPI) serve(path, terraformName string, fill func(record map[string]
 			flags = append(flags, apiFieldName(name))
 		}
 	}
+	a.flags[path] = flags
 	a.onCreate[path] = func(record map[string]any) {
 		for _, flag := range flags {
 			if _, ok := record[flag]; !ok {
@@ -170,6 +174,28 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+// seed puts a record in the API as it would be after a while: one an older
+// provider created, which a test reconciles from a manifest that names it.
+func (a *fakeAPI) seed(path string, record map[string]any) string {
+	a.t.Helper()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.nextID++
+	id := fmt.Sprintf("00000000-0000-4000-8000-%012d", a.nextID)
+	copied := map[string]any{"_id": id}
+	for _, flag := range a.flags[path] {
+		copied[flag] = false
+	}
+	for k, v := range record {
+		copied[k] = v
+	}
+	if a.records[path] == nil {
+		a.records[path] = map[string]map[string]any{}
+	}
+	a.records[path][id] = copied
+	return id
 }
 
 // set changes a record the way OneUptime does on its own: a check moves a
