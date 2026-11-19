@@ -58677,5 +58677,10 @@
   "Sign Out URL": "URL de cierre de sesión",
   "Single Logout URL:": "URL de Single Logout:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Para cerrar también la sesión de las personas en el proveedor de identidad, dale también la URL de Single Logout y el certificado de firma de OneUptime.",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "La URL de cierre de sesión único de tu proveedor de identidad. Necesaria para cerrar también allí la sesión de las personas."
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "La URL de cierre de sesión único de tu proveedor de identidad. Necesaria para cerrar también allí la sesión de las personas.",
+  "10 minutes (the default)": "10 minutos (predeterminado)",
+  "AI Command Time Limit (Minutes)": "Límite de tiempo por comando de IA (minutos)",
+  "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.": "Cuánto puede durar un comando que una tarea de código ejecuta en un Runner propio, como máximo 120 minutos. Déjalo vacío para usar el valor predeterminado, 10 minutos.",
+  "Time Limit per Command (Minutes)": "Límite de tiempo por comando (minutos)",
+  "Time Limits": "Límites de tiempo"
 }

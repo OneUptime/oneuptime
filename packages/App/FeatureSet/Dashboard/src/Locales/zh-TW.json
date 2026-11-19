@@ -58677,5 +58677,10 @@
   "Sign Out URL": "登出 URL",
   "Single Logout URL:": "單一登出 URL：",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "若要讓使用者同時登出身分提供者，也請將單一登出 URL 與 OneUptime 的簽署憑證提供給身分提供者。",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "身分提供者的單一登出 URL。要讓使用者同時登出身分提供者時需要它。"
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "身分提供者的單一登出 URL。要讓使用者同時登出身分提供者時需要它。",
+  "10 minutes (the default)": "10 分鐘（預設）",
+  "AI Command Time Limit (Minutes)": "每個 AI 命令的時間上限（分鐘）",
+  "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.": "程式碼任務在您自己的 Runner 上執行的一個命令可以持續多久，最多 120 分鐘。留空則使用預設值 10 分鐘。",
+  "Time Limit per Command (Minutes)": "每個命令的時間上限（分鐘）",
+  "Time Limits": "時間上限"
 }

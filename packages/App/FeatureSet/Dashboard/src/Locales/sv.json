@@ -58677,5 +58677,10 @@
   "Sign Out URL": "Utloggnings-URL",
   "Single Logout URL:": "Single Logout-URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Om personer också ska loggas ut från identitetsleverantören ger du den även Single Logout-URL:en och OneUptimes signeringscertifikat.",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Identitetsleverantörens URL för gemensam utloggning (Single Sign-out). Behövs för att logga ut personer där också."
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Identitetsleverantörens URL för gemensam utloggning (Single Sign-out). Behövs för att logga ut personer där också.",
+  "10 minutes (the default)": "10 minuter (standard)",
+  "AI Command Time Limit (Minutes)": "Tidsgräns per AI-kommando (minuter)",
+  "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.": "Hur länge ett kommando som en koduppgift kör på en egen Runner får pågå, högst 120 minuter. Lämna tomt för standardvärdet, 10 minuter.",
+  "Time Limit per Command (Minutes)": "Tidsgräns per kommando (minuter)",
+  "Time Limits": "Tidsgränser"
 }

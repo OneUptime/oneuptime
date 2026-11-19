@@ -58677,5 +58677,10 @@
   "Sign Out URL": "サインアウト URL",
   "Single Logout URL:": "シングルログアウト URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID プロバイダーからもサインアウトさせるには、シングルログアウト URL と OneUptime の署名証明書もプロバイダーに登録してください。",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID プロバイダーのシングルサインアウト URL です。プロバイダーからもサインアウトさせるのに必要です。"
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID プロバイダーのシングルサインアウト URL です。プロバイダーからもサインアウトさせるのに必要です。",
+  "10 minutes (the default)": "10 分（既定）",
+  "AI Command Time Limit (Minutes)": "AI コマンドあたりの制限時間（分）",
+  "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.": "コードタスクが自社の Runner で実行する 1 つのコマンドにかけられる時間で、最大 120 分です。空欄にすると既定の 10 分になります。",
+  "Time Limit per Command (Minutes)": "コマンドあたりの制限時間（分）",
+  "Time Limits": "制限時間"
 }

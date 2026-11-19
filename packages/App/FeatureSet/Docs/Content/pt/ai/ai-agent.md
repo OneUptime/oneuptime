@@ -190,7 +190,7 @@ Um repositório diz como é compilado e testado em um `AGENTS.md` na raiz, o arq
 
 | Onde a IA trabalha | O que ela faz com o build e os testes do repositório |
 | --- | --- |
-| Um dos seus Runners | Compila e testa a alteração antes de o pull request abrir, corrige o que falha e verifica de novo, e diz no resumo quais verificações executou. Cada comando que executa tem 2 minutos, ou até 10 para uma instalação, um build ou uma suíte de testes lenta, sem as credenciais do próprio Runner no ambiente. |
+| Um dos seus Runners | Compila e testa a alteração antes de o pull request abrir, corrige o que falha e verifica de novo, e diz no resumo quais verificações executou. Cada comando que executa tem 2 minutos, ou até 10 para uma instalação, um build ou uma suíte de testes lenta, sem as credenciais do próprio Runner no ambiente. **Tempo limite por comando (minutos)**, nos **Limites por execução** do projeto, deixa um comando durar até 120 minutos, nunca além do tempo limite da execução. |
 | **Runner global** | Não executa nenhum comando: escreve a mudança e abre o pull request, e a CI do seu repositório a verifica. |
 
 Nada de um pull request que vem de um fork é lido como instruções do repositório: uma revisão recusa esse pull request, e uma avaliação lê o branch base.

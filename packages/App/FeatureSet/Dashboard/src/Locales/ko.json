@@ -58677,5 +58677,10 @@
   "Sign Out URL": "로그아웃 URL",
   "Single Logout URL:": "단일 로그아웃 URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID 공급자에서도 로그아웃시키려면 단일 로그아웃 URL과 OneUptime의 서명 인증서도 공급자에 등록하세요.",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다."
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다.",
+  "10 minutes (the default)": "10분(기본값)",
+  "AI Command Time Limit (Minutes)": "AI 명령당 시간 제한(분)",
+  "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.": "코드 작업이 직접 설치한 Runner에서 실행하는 명령 하나가 걸릴 수 있는 시간이며, 최대 120분입니다. 비워 두면 기본값인 10분입니다.",
+  "Time Limit per Command (Minutes)": "명령당 시간 제한(분)",
+  "Time Limits": "시간 제한"
 }

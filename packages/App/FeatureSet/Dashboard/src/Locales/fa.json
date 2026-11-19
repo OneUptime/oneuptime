@@ -58677,5 +58677,10 @@
   "Sign Out URL": "نشانی خروج",
   "Single Logout URL:": "نشانی خروج یکپارچه (Single Logout):",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "برای اینکه افراد از ارائه‌دهندهٔ هویت هم خارج شوند، نشانی خروج یکپارچه و گواهی امضای OneUptime را هم به آن بدهید.",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "نشانی خروج یکپارچهٔ ارائه‌دهندهٔ هویت شما. برای خارج کردن افراد از آن هم لازم است."
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "نشانی خروج یکپارچهٔ ارائه‌دهندهٔ هویت شما. برای خارج کردن افراد از آن هم لازم است.",
+  "10 minutes (the default)": "۱۰ دقیقه (پیش‌فرض)",
+  "AI Command Time Limit (Minutes)": "سقف زمانی هر فرمان هوش مصنوعی (دقیقه)",
+  "How long one command a code task runs on a Runner of your own may take, at most 120 minutes. Leave empty for the default, 10 minutes.": "یک فرمان که وظیفهٔ کد روی یک Runner از خودتان اجرا می‌کند چه مدت می‌تواند طول بکشد، حداکثر ۱۲۰ دقیقه. برای مقدار پیش‌فرض، ۱۰ دقیقه، خالی بگذارید.",
+  "Time Limit per Command (Minutes)": "سقف زمانی هر فرمان (دقیقه)",
+  "Time Limits": "سقف‌های زمانی"
 }

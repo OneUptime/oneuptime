@@ -2429,7 +2429,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Number,
-    title: "AI Run Command Time Limit (Minutes)",
+    title: "AI Command Time Limit (Minutes)",
     description:
       "How long one command a code task runs on a Runner of the project's own may take, such as a slow install, build or test suite: at most 120 minutes, and never past the run's time limit. Unset means the default, 10 minutes.",
     example: 30,
