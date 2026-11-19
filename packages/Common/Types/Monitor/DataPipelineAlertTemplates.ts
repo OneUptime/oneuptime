@@ -35,6 +35,11 @@ import {
  *    than the pipeline's schedule allows - learned from its own runs, so it
  *    fits a job that runs every five minutes and one that runs nightly
  *    (DataPipelineSchedule).
+ *  - CIRCUIT BREAKER: "Pipeline Stopped by Circuit Breaker" fires when the
+ *    pipeline's circuit breaker answers stop, and stays open while the stop
+ *    is kept - until it answers go, or a run starts (#9683). Its alert goes
+ *    to the pipeline's owners, as every pipeline alert does (DataAlertCause).
+ *    Filed with the runs: a stop is a run held back.
  */
 
 // The attribute every query is scoped by: this pipeline's runs and nothing else.
@@ -237,8 +242,41 @@ const pipelineIsLateTemplate: DataPipelineAlertTemplate = buildTemplate({
     "No run of the pipeline has started for longer than its schedule allows, so the tables it writes are going stale. Check its scheduler: whether the job is paused, queued behind another, or failing to start. The pipeline's page in Data Observability shows its last run and how often it usually runs.",
 });
 
+/*
+ * The circuit breaker writes 1 as it stops the pipeline and 0 as it says go,
+ * and the five-minute schedule check writes the kept answer again
+ * (DataPipelineScheduleCheck), so any 1 in the last fifteen minutes is a
+ * stop that happened or is still kept: it fires at once, and clears fifteen
+ * minutes after the stop ends.
+ */
+const stoppedByCircuitBreakerTemplate: DataPipelineAlertTemplate =
+  buildTemplate({
+    id: "data-pipeline-stopped-by-circuit-breaker",
+    name: "Pipeline Stopped by Circuit Breaker",
+    description:
+      "Alert when the pipeline's circuit breaker answers stop - a table it reads failed a check, or is late when the pipeline stops on late tables - and while the stop is kept. Needs a step that asks the circuit breaker before the pipeline runs.",
+    category: "Runs",
+    severity: "Warning",
+    metricName: DataPipelineMetricName.CircuitBreakerStopped,
+    aggregationType: MetricsAggregationType.Max,
+    rollingTime: RollingTime.Past15Minutes,
+    filterType: FilterType.GreaterThan,
+    threshold: 0,
+    evaluation: EvaluateOverTimeType.AnyValue,
+    criteriaName: "The circuit breaker stopped the pipeline",
+    criteriaDescription:
+      "Triggers when the pipeline's circuit breaker has answered stop in the last fifteen minutes, or still keeps a stop.",
+    incidentDescription:
+      "The pipeline's circuit breaker answered stop, so the run that asked did not go ahead: a table it reads failed a check, or, when the pipeline stops on late tables, is late. The pipeline's Circuit Breaker page in Data Observability says since when and why, table by table, and each failing table's own alert goes to its owners. This clears once the circuit breaker answers go, or a run starts.",
+  });
+
 const DATA_PIPELINE_ALERT_TEMPLATES: ReadonlyArray<DataPipelineAlertTemplate> =
-  [runFailedTemplate, runUnusuallyLongTemplate, pipelineIsLateTemplate];
+  [
+    runFailedTemplate,
+    runUnusuallyLongTemplate,
+    pipelineIsLateTemplate,
+    stoppedByCircuitBreakerTemplate,
+  ];
 
 export function getAllDataPipelineAlertTemplates(): Array<DataPipelineAlertTemplate> {
   return [...DATA_PIPELINE_ALERT_TEMPLATES];

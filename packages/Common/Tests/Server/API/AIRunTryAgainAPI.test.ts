@@ -531,6 +531,7 @@ describe("the AI insight's triage card says whether the reader may try again", (
       .mockResolvedValue({
         run: status ? runThatIs(status) : null,
         events: [] as Array<AIRunEvent>,
+        hasEarlierEvents: false,
       });
   }
 
@@ -571,6 +572,8 @@ describe("the AI insight's triage card says whether the reader may try again", (
     expect(sentPayload()).toEqual({
       run: null,
       events: [],
+      // No run, so no steps were left out (issue #6489).
+      hasEarlierEvents: false,
       mayTryAgain: false,
     });
   });

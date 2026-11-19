@@ -709,6 +709,28 @@ describe("POST /send-test", () => {
     expect(MailService.send).not.toHaveBeenCalled();
   });
 
+  /*
+   * Of now, as the preview says it (#9684): a status page that lists one of
+   * the incident's monitors later can show it. "No status page that lists
+   * these monitors will show this incident" read as never.
+   */
+  test("no status page shows it: refused with why, of now", async () => {
+    build = built({
+      nothingSentReason:
+        SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+      statusPages: [],
+    });
+
+    const call: RouteCall = await post(SEND_TEST_ROUTE, SEND_TEST_BODY);
+
+    expect(call.thrown).toBeInstanceOf(BadDataException);
+    expect((call.thrown as Error).message).toBe(
+      "Nothing would be sent: no status page shows this incident now.",
+    );
+    expect((call.thrown as Error).message).not.toContain("will show");
+    expect(MailService.send).not.toHaveBeenCalled();
+  });
+
   test("a page that would not be sent the email, or that the caller cannot see, is refused", async () => {
     build = built({ statusPages: [] });
 

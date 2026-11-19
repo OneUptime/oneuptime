@@ -16,10 +16,17 @@ import ResourceAiAccessService, {
 } from "../../../../Server/Services/ResourceAiAccessService";
 import KubernetesClusterAiAccessService from "../../../../Server/Services/KubernetesClusterAiAccessService";
 import AiContextReader from "../../../../Server/Utils/AI/AiContext/AiContextReader";
-import AIToolbox from "../../../../Server/Utils/AI/Toolbox/Index";
+import AIToolbox, {
+  ToolCallOutcome,
+} from "../../../../Server/Utils/AI/Toolbox/Index";
 import ResourceCommandJobRunner, {
+  RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
   ResourceCommandRunState,
 } from "../../../../Server/Utils/AI/ResourceAccess/ResourceCommandJobRunner";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import { ExtraToolCall } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import Project from "../../../../Models/DatabaseModels/Project";
+import { KUBECTL_WAIT_OVERHEAD_MS } from "../../../../Utils/AiRemediation/KubectlWaitBudget";
 import {
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
@@ -44,6 +51,7 @@ import { AIResourceType } from "../../../../Types/AI/AIResourceContext";
 import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import {
+  DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
   ResourceAiAccessStatus,
   ResourceAiRemediationMode,
 } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
@@ -742,5 +750,276 @@ describe("a paused Ask AI turn gets its command tools back when it resumes", () 
     expect(toolsOffered(llmRequest(spies, 0))).not.toContain(
       RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
     );
+  });
+});
+
+/*
+ * Issue #6496: an Ask AI turn stops at its time limit (the project's Time
+ * Limit per Run, 120 minutes by default), but its loop checks the clock
+ * only between calls - it cannot interrupt a command once it runs. A
+ * command started just before the limit could run for its own timeout past
+ * it. Now the turn hands each command the deadline its loop stops at, and
+ * the command's wait - the agent picking it up, and the command itself - is
+ * planned to end before it, as an investigation's commands always were.
+ */
+describe("an Ask AI turn's commands wait no longer than the turn has left", () => {
+  const MINUTE_MS: number = 60 * 1000;
+  const START_MS: number = 1_700_000_000_000;
+
+  interface Clock {
+    advance: (milliseconds: number) => void;
+  }
+
+  function useClock(): Clock {
+    let now: number = START_MS;
+
+    jest.spyOn(Date, "now").mockImplementation(() => {
+      return now;
+    });
+
+    return {
+      advance: (milliseconds: number): void => {
+        now += milliseconds;
+      },
+    };
+  }
+
+  // The project's Time Limit per Run, as the turn reads it.
+  function serveTimeLimit(minutes: number | undefined): void {
+    const project: Project = new Project();
+
+    if (minutes !== undefined) {
+      project.aiRunTimeLimitInMinutes = minutes;
+    }
+
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(project as never);
+  }
+
+  // The model asks for `uptime` after its first call took `tookMs`.
+  function askToRunUptimeAfter(
+    spies: Spies,
+    clock: Clock,
+    tookMs: number,
+  ): void {
+    spies.executeWithLogging
+      .mockImplementationOnce((async (): Promise<AILogResponse> => {
+        clock.advance(tookMs);
+
+        return response({
+          stopReason: "tool_use",
+          toolCalls: [
+            {
+              id: "call-uptime",
+              name: RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+              arguments: {
+                resourceId: HOST_ID,
+                command: "uptime",
+                rationale: "The user asked to run uptime on this host.",
+              },
+            },
+          ],
+        });
+      }) as never)
+      .mockResolvedValueOnce(
+        response({ content: "test01 is up [C1]." }) as never,
+      );
+  }
+
+  interface PlannedWait {
+    timeoutInMs: number;
+    claimTimeoutInMs: number;
+  }
+
+  function plannedWait(spies: Spies): PlannedWait {
+    return spies.commandRun.mock.calls[0]![0] as PlannedWait;
+  }
+
+  function pausedRun(pausedAtMs: number): AIRun {
+    const pendingCall: JSONObject = {
+      id: "call-note",
+      name: "create_incident_note",
+      arguments: {
+        incidentId: ObjectID.generate().toString(),
+        note: "Checked test01.",
+      },
+    };
+    const run: AIRun = new AIRun();
+    run.status = AIRunStatus.WaitingForApproval;
+    run.pausedState = {
+      messages: [
+        {
+          role: "system",
+          content: "You are OneUptime's observability copilot.",
+        },
+        { role: "user", content: QUESTION },
+        { role: "assistant", content: "", toolCalls: [pendingCall] },
+      ],
+      pendingToolCalls: [pendingCall],
+      llmCallCount: 1,
+      toolCallCount: 0,
+      totalTokens: 10,
+      totalCostInUSDCents: 1,
+      eventSequence: 3,
+      citations: [],
+      widgets: [],
+      toolActions: [
+        {
+          id: "call-note",
+          toolName: "create_incident_note",
+          title: "Post an internal note",
+          arguments: pendingCall["arguments"] as JSONObject,
+          isMutation: true,
+          requiresApproval: true,
+          status: AIChatToolActionStatus.Pending,
+        },
+      ],
+      egressToolEntries: [],
+      startedAtMs: pausedAtMs,
+    };
+
+    return run;
+  }
+
+  test("with a time limit of 1 minute, a command started with 30 seconds left is planned to end inside them", async () => {
+    const clock: Clock = useClock();
+    serveTimeLimit(1);
+    const spies: Spies = installSpies();
+    askToRunUptimeAfter(spies, clock, 30 * 1000);
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    expect(spies.commandRun).toHaveBeenCalledTimes(1);
+    const wait: PlannedWait = plannedWait(spies);
+
+    // Shorter than the command's own timeout and the agent's claim window...
+    expect(wait.timeoutInMs).toBeLessThan(DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS);
+    expect(wait.claimTimeoutInMs).toBeLessThan(
+      RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+    );
+    // ...so that waiting for both ends before the turn's time limit does.
+    expect(
+      wait.claimTimeoutInMs + wait.timeoutInMs + KUBECTL_WAIT_OVERHEAD_MS,
+    ).toBeLessThanOrEqual(30 * 1000);
+    expect(finalizedMessage(spies)?.["contentInMarkdown"]).toBe(
+      "test01 is up [C1].",
+    );
+  });
+
+  test("a command started with 10 seconds left is refused before anything reaches the agent", async () => {
+    const clock: Clock = useClock();
+    serveTimeLimit(1);
+    const spies: Spies = installSpies();
+    askToRunUptimeAfter(spies, clock, 50 * 1000);
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    expect(spies.commandRun).not.toHaveBeenCalled();
+    const toolResult: string = JSON.stringify(
+      llmRequest(spies, 1).messages.filter(
+        (message: { role: string }): boolean => {
+          return message.role === "tool";
+        },
+      ),
+    );
+    expect(toolResult).toContain("Not enough time is left");
+    expect(toolResult).toContain("Nothing was run.");
+  });
+
+  test("a turn with plenty of time left gives a command its own timeout", async () => {
+    const clock: Clock = useClock();
+    // No time limit of the project's own: the default 120 minutes.
+    serveTimeLimit(undefined);
+    const spies: Spies = installSpies();
+    askToRunUptimeAfter(spies, clock, 30 * 1000);
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    expect(plannedWait(spies)).toEqual(
+      expect.objectContaining({
+        timeoutInMs: DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
+        claimTimeoutInMs: RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
+      }),
+    );
+  });
+
+  test("an incident's shared thread brings its own tools, and each call is handed the turn's deadline too", async () => {
+    useClock();
+    serveTimeLimit(15);
+    const spies: Spies = installSpies();
+    const calls: Array<ExtraToolCall | undefined> = [];
+
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        response({
+          stopReason: "tool_use",
+          toolCalls: [
+            {
+              id: "call-kubectl",
+              name: RUN_KUBECTL_TOOL_NAME,
+              arguments: { command: "kubectl get pods -n web" },
+            },
+          ],
+        }) as never,
+      )
+      .mockResolvedValueOnce(response({ content: "Pods are up." }) as never);
+
+    await ChatAgentRunner.runTurn(
+      buildRequest({
+        offersPageInfrastructure: undefined,
+        extraTools: [
+          {
+            definition: {
+              name: RUN_KUBECTL_TOOL_NAME,
+              description: "Run one read-only kubectl command.",
+              inputSchema: { type: "object", properties: {} },
+            },
+            execute: async (
+              _args: JSONObject,
+              call?: ExtraToolCall | undefined,
+            ): Promise<ToolCallOutcome> => {
+              calls.push(call);
+
+              return {
+                success: true,
+                textForLlm: "web-7d9f-abc Running",
+                result: {
+                  dataForLlm: "web-7d9f-abc Running",
+                  rowCount: 1,
+                  citationLabel: "kubectl get pods -n web",
+                  redactionCount: 0,
+                  isTruncated: false,
+                },
+              };
+            },
+          },
+        ],
+      }),
+    );
+
+    expect(calls).toEqual([{ runDeadlineAtMs: START_MS + 15 * MINUTE_MS }]);
+  });
+
+  test("a turn resumed after an approval plans by its own new start, as its loop does", async () => {
+    const clock: Clock = useClock();
+    serveTimeLimit(1);
+    // Paused ten minutes ago: long past a 1-minute limit counted from then.
+    const spies: Spies = installSpies({
+      keptPageContext: HOST_PAGE,
+      run: pausedRun(START_MS - 10 * MINUTE_MS),
+    });
+    askToRunUptimeAfter(spies, clock, 30 * 1000);
+
+    await ChatAgentRunner.resumeTurn(buildRequest({ pageContext: undefined }), [
+      { toolCallId: "call-note", approved: true },
+    ]);
+
+    // Its minute counts from the resume: the command ran, inside it.
+    expect(spies.commandRun).toHaveBeenCalledTimes(1);
+    const wait: PlannedWait = plannedWait(spies);
+    expect(
+      wait.claimTimeoutInMs + wait.timeoutInMs + KUBECTL_WAIT_OVERHEAD_MS,
+    ).toBeLessThanOrEqual(30 * 1000);
   });
 });

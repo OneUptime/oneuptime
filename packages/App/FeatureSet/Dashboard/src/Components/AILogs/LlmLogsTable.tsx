@@ -4,9 +4,12 @@ import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import Color from "Common/Types/Color";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
-import LlmLogStatus from "Common/Types/LlmLogStatus";
+import {
+  getLlmLogStatusColor,
+  getLlmLogStatusFilterOptions,
+  getLlmLogStatusLabel,
+  hasLlmLogStatusMessage,
+} from "./LlmLogStatusWords";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -192,21 +195,16 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       type: FieldType.Text,
       getElement: (item: LlmLog): ReactElement => {
         if (item["status"]) {
-          let color: Color = Green;
-          if (item["status"] === LlmLogStatus.Error) {
-            color = Red;
-          }
-          if (
-            item["status"] === LlmLogStatus.InsufficientBalance ||
-            item["status"] === LlmLogStatus.BudgetExceeded
-          ) {
-            color = Yellow;
-          }
+          /*
+           * In the product's words, not as stored: a call a daily AI limit
+           * refused reads "Daily Limit Reached", never "Budget Exceeded"
+           * (issue #6495). The Pill looks the key up.
+           */
           return (
             <Pill
               isMinimal={false}
-              color={color}
-              text={item["status"] as string}
+              color={getLlmLogStatusColor(item["status"] as string)}
+              text={getLlmLogStatusLabel(item["status"] as string)}
             />
           );
         }
@@ -217,7 +215,17 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
 
   const defaultFilters: Array<Filter<LlmLog>> = [
     { field: { createdAt: true }, title: "Time", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Text },
+    /*
+     * The statuses in the words their pills draw, each finding the logs
+     * that store it: a text filter matched the stored value, which no
+     * longer reads as its pill (issue #6495).
+     */
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      filterDropdownOptions: getLlmLogStatusFilterOptions(),
+    },
     { field: { llmType: true }, title: "Provider Type", type: FieldType.Text },
     { field: { feature: true }, title: "Feature", type: FieldType.Text },
   ];
@@ -279,11 +287,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Error,
             isVisible: (item: LlmLog): boolean => {
-              return (
-                item["status"] === LlmLogStatus.Error ||
-                item["status"] === LlmLogStatus.InsufficientBalance ||
-                item["status"] === LlmLogStatus.BudgetExceeded
-              );
+              return hasLlmLogStatusMessage(item["status"] as string);
             },
             onClick: async (item: LlmLog, onCompleteAction: VoidFunction) => {
               setModalText(

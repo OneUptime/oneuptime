@@ -67,6 +67,31 @@ export type KubectlWaitBudgetResult =
   | { ok: false; refusal: KubectlWaitRefusal };
 
 export default class KubectlWaitBudget {
+  /*
+   * The deadline one command is planned against when a run says it twice
+   * (issue #6496): the one its toolkit was built with, and the one its loop
+   * hands the call (Ask AI's, whose clock starts again after an approval).
+   * The earlier holds; undefined when neither is a finite time.
+   */
+  public static getEarlierDeadline(
+    ...deadlinesAtMs: Array<number | undefined>
+  ): number | undefined {
+    let earliest: number | undefined = undefined;
+
+    for (const deadlineAtMs of deadlinesAtMs) {
+      if (deadlineAtMs === undefined || !Number.isFinite(deadlineAtMs)) {
+        continue;
+      }
+
+      earliest =
+        earliest === undefined
+          ? deadlineAtMs
+          : Math.min(earliest, deadlineAtMs);
+    }
+
+    return earliest;
+  }
+
   public static getMinimumBudgetMs(): number {
     return (
       MIN_KUBECTL_CLAIM_TIMEOUT_MS +

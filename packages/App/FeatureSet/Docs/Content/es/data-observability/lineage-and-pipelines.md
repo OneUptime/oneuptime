@@ -132,11 +132,12 @@ Las actualizaciones fallidas no usan los monitores de pipelines. Un conjunto de 
 
 ## Pipelines
 
-Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con sus ejecuciones: cuándo empezó y terminó cada una, cuánto duró, qué intento fue donde el programador lo indica (el número de intento de Airflow) y el error de una ejecución fallida. Tras cinco ejecuciones, cada pipeline aprende de sus propias ejecuciones cuánto suele durar una ejecución y cuánto tiempo pasa entre ejecuciones según su programación. La página de un pipeline recomienda tres monitores:
+Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con sus ejecuciones: cuándo empezó y terminó cada una, cuánto duró, qué intento fue donde el programador lo indica (el número de intento de Airflow) y el error de una ejecución fallida. Tras cinco ejecuciones, cada pipeline aprende de sus propias ejecuciones cuánto suele durar una ejecución y cuánto tiempo pasa entre ejecuciones según su programación. La página de un pipeline recomienda cuatro monitores:
 
 - **Pipeline Run Failed**: una ejecución falló o se canceló.
 - **Pipeline Run Unusually Long**: una ejecución ha tardado el doble de lo habitual o más, comprobado cada cinco minutos mientras se ejecuta, de modo que una ejecución que se cuelga se detecta antes de que termine.
 - **Pipeline Is Late**: no ha empezado ninguna ejecución en más tiempo del que permite su programación.
+- **Pipeline Stopped by Circuit Breaker**: el disyuntor respondió stop, y la detención dura hasta que responde go o empieza una ejecución.
 
 La pestaña **Propietarios** de una canalización nombra a las personas y los equipos que se ocupan de ella, y sus alertas les llegan a ellos. La **Vista general** y **Problemas** nombran a los propietarios de una canalización que falló o va con retraso, o muestran **Sin propietario**, con una forma de añadir uno.
 
@@ -205,6 +206,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 
 Una petición que nombra una canalización se guarda en ella, salvo que sea una prueba. Mientras el disyuntor tenga detenida una canalización, su página **Disyuntor** dice desde cuándo y por qué, su **Vista general** se abre con la detención, y **Pendiente** y **Problemas** la muestran como detenida, en lugar de su ejecución fallida o con retraso. La detención termina cuando el disyuntor vuelve a responder go, o cuando empieza una ejecución después de ella. La misma página tiene **Probar ahora**, que pregunta al disyuntor sin que se guarde la respuesta, y el paso para curl, Airflow y dbt con el nombre de la canalización ya escrito.
 
+Para enterarse de una detención, añada **Pipeline Stopped by Circuit Breaker** desde las **Recomendaciones** de la canalización. Su alerta se abre cuando el disyuntor responde stop, llega a los propietarios de la canalización, sigue abierta mientras se guarda la detención y se resuelve cuando la detención termina. Lee la métrica `oneuptime.data.pipeline.circuit_breaker_stopped` de la canalización: 1 mientras el disyuntor la tiene detenida y 0 cuando ya no, escrita cuando el disyuntor responde y después cada cinco minutos.
+
 Mientras Observabilidad de datos esté desactivada en el servidor, el disyuntor responde go y no guarda nada: desactivar un producto nunca detiene una canalización.
 
 ## Una incidencia por causa
@@ -238,7 +241,7 @@ Power BI devuelve las tablas de un conjunto de datos solo cuando un administrado
 - **Enhance admin APIs responses with detailed metadata**: las tablas de cada conjunto de datos.
 - **Enhance admin APIs responses with DAX and mashup expressions**: las consultas que las cargan, que dicen qué tablas de base de datos leen.
 
-Después, Power BI describe un conjunto de datos una vez que se ha actualizado o vuelto a publicar; uno que solo usa DirectQuery, una vez que alguien ha abierto un informe sobre él. Nunca describe conjuntos de datos en tiempo real, conjuntos de datos con conexión dinámica a Analysis Services, libros de Excel ni conjuntos de datos de más de 1 GB en capacidad compartida. Un conjunto de datos que lee de un flujo de datos se lee hasta el flujo de datos: OneUptime todavía no lee qué tablas carga un flujo de datos.
+Después, Power BI describe un conjunto de datos una vez que se ha actualizado o vuelto a publicar; uno que solo usa DirectQuery, una vez que alguien ha abierto un informe sobre él. Nunca describe conjuntos de datos en tiempo real, conjuntos de datos con conexión dinámica a Analysis Services, libros de Excel ni conjuntos de datos de más de 1 GB en capacidad compartida.
 
 Cada tabla se asocia con una tabla vigilada por su nombre, su esquema y su base de datos, y un servidor por su nombre corto o por el completo. Una tabla de otro motor nunca se asocia, ni tampoco una de otra base de datos: un informe sobre `Sales.dbo.Orders` no se vincula con `Archive.dbo.Orders` porque solo `Archive` está vigilada.
 

@@ -400,6 +400,7 @@ export default class InsightTriageRunner {
        */
       await AIInvestigationQueue.failOrRequeue({
         aiRunId,
+        projectId,
         attemptCount,
         errorMessage: `Failed to build insight context: ${
           error instanceof Error ? error.message : String(error)

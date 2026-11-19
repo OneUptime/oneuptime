@@ -1421,6 +1421,119 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
     );
   });
 
+  /*
+   * "Any status page that starts showing this incident shows this note too,
+   * without notifying its subscribers." - what the notification preview
+   * says of a public note on an incident no status page shows (#9684).
+   *
+   * Site D lists no monitor, so it shows no incident and no note. Once it
+   * lists the shared monitor, it shows the incident on that monitor that is
+   * in its scope, with the public note posted while Site D showed nothing:
+   * a page reads an incident's notes by the incident, never by when the
+   * page started to show it. What is limited to other pages, hidden or
+   * private stays off it.
+   */
+  describe("a page that starts listing a monitor", () => {
+    const siteD: PageFixture = pageFixture(SITE_D)!;
+
+    afterEach(() => {
+      siteD.monitorIds = [];
+    });
+
+    // The incidents a page's public notes are of.
+    function noteIncidentIds(payload: JSONObject): Array<string> {
+      return ((payload["incidentPublicNotes"] as JSONArray) || [])
+        .map((note: unknown): string => {
+          return String(
+            ((note as JSONObject)["incidentId"] as JSONObject)?.["value"] ||
+              (note as JSONObject)["incidentId"],
+          ).toLowerCase();
+        })
+        .sort();
+    }
+
+    async function listSiteD(): Promise<JSONObject> {
+      return getJson({
+        route: INCIDENTS_ROUTE,
+        params: { statusPageIdOrDomain: SITE_D },
+      });
+    }
+
+    function listMonitorOnSiteD(): void {
+      siteD.monitorIds = [SHARED_MONITOR];
+      /*
+       * What a page shows is kept for a few seconds, and a change to the
+       * page starts it anew: the next read is the page as it is now.
+       */
+      StatusPageAPI.clearOverviewResponseCache();
+    }
+
+    it("shows the incident on it, with the note posted before it did", async () => {
+      const before: JSONObject = await listSiteD();
+
+      expect(idsOf(before["incidents"])).toEqual([]);
+      expect(noteIncidentIds(before)).toEqual([]);
+
+      listMonitorOnSiteD();
+
+      const after: JSONObject = await listSiteD();
+
+      expect(idsOf(after["incidents"])).toEqual([UNSCOPED]);
+      expect(noteIncidentIds(after)).toEqual([UNSCOPED]);
+      expect(JSON.stringify(after["incidentPublicNotes"])).toContain(
+        `Update on ${titleOf(UNSCOPED)}`,
+      );
+    });
+
+    it("shows it, and the note, on the incident's own page and the overview too", async () => {
+      const detailBefore: JSONObject = await getJson({
+        route: INCIDENT_DETAIL_ROUTE,
+        params: { statusPageIdOrDomain: SITE_D, incidentId: UNSCOPED },
+      });
+
+      expect(idsOf(detailBefore["incidents"])).toEqual([]);
+      expect(detailBefore["incidentPublicNotes"]).toEqual([]);
+
+      listMonitorOnSiteD();
+
+      const detailAfter: JSONObject = await getJson({
+        route: INCIDENT_DETAIL_ROUTE,
+        params: { statusPageIdOrDomain: SITE_D, incidentId: UNSCOPED },
+      });
+
+      expect(idsOf(detailAfter["incidents"])).toEqual([UNSCOPED]);
+      expect(noteIncidentIds(detailAfter)).toEqual([UNSCOPED]);
+
+      const overview: JSONObject = await getJson({
+        route: OVERVIEW_ROUTE,
+        params: { statusPageIdOrDomain: SITE_D },
+      });
+
+      expect(idsOf(overview["activeIncidents"])).toEqual([UNSCOPED]);
+      expect(noteIncidentIds(overview)).toEqual([UNSCOPED]);
+    });
+
+    it("keeps off it what is limited to other pages, hidden or private, and every note of those", async () => {
+      listMonitorOnSiteD();
+
+      const after: JSONObject = await listSiteD();
+      const text: string = JSON.stringify(after);
+
+      for (const incidentId of [
+        SCOPED_TO_A,
+        SCOPED_TO_A_AND_C,
+        SCOPED_TO_DELETED_PAGE,
+        HIDDEN_SCOPED_TO_B,
+        OTHER_PROJECT_INCIDENT,
+        PRIVATE_UNSCOPED,
+      ]) {
+        expect(idsOf(after["incidents"])).not.toContain(incidentId);
+        expect(noteIncidentIds(after)).not.toContain(incidentId);
+        expect(text).not.toContain(titleOf(incidentId));
+      }
+    });
+  });
+
   describe("the episode list and detail", () => {
     it.each(pageCases(ALL_SITES))(
       "lists on %s only the episodes of incidents in its scope",

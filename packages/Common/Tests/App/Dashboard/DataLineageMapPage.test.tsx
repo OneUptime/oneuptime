@@ -915,7 +915,7 @@ describe("a project with more flows than one map draws", () => {
     expect(
       await screen.findByTestId("lineage-map-project-search"),
     ).toHaveTextContent(
-      "Showing the flows of the tables, pipelines, services and dashboards whose names hold contacts, from your whole project.",
+      "Showing the flows of the tables, pipelines, services, dashboards, datasets and data sources whose names hold contacts, from your whole project.",
     );
     // The words searched are the ones on the map now: not offered again.
     expect(screen.queryByTestId("lineage-map-search-project")).toBeNull();
@@ -966,7 +966,7 @@ describe("a project with more flows than one map draws", () => {
     expect(
       await screen.findByTestId("lineage-map-focus-empty"),
     ).toHaveTextContent(
-      "No table, pipeline, service or dashboard whose name holds nothing_here has lineage yet.",
+      "No table, pipeline, service, dashboard, dataset or data source whose name holds nothing_here has lineage yet.",
     );
     // Not the first-run onboarding: the project has lineage.
     expect(screen.queryByText("No lineage yet")).toBeNull();

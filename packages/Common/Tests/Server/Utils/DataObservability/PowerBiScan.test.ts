@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  BiDashboardRead,
   BiToolRead,
   PowerBiConnector,
 } from "../../../../Server/Utils/DataObservability/Bi/BiConnectors";
@@ -290,6 +291,49 @@ describe("a data source, as the scan describes it", () => {
     });
   });
 
+  test("a Dataverse environment by its host alone, however its connector writes it (#9554)", () => {
+    const contoso: DataBiSource = {
+      type: "Microsoft Dataverse",
+      engine: "dataverse",
+      server: "contoso.crm.dynamics.com",
+      database: null,
+      location: null,
+    };
+
+    // Common Data Service (Legacy), whose data source kind is Cds, as an extension or as its own type.
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "Extension",
+        connectionDetails: {
+          kind: "Cds",
+          path: "https://contoso.crm.dynamics.com/",
+        },
+      }),
+    ).toEqual(contoso);
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "Cds",
+        connectionDetails: { url: "https://contoso.crm.dynamics.com/" },
+      }),
+    ).toEqual(contoso);
+    // The Dataverse connector's SQL endpoint, on the port it falls back to.
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "CommonDataService",
+        connectionDetails: { server: "contoso.crm.dynamics.com,5558" },
+      }),
+    ).toEqual(contoso);
+    expect(
+      readPowerBiDatasource({
+        datasourceType: "Extension",
+        connectionDetails: {
+          kind: "CommonDataService",
+          path: "contoso.crm.dynamics.com",
+        },
+      }),
+    ).toEqual(contoso);
+  });
+
   test("files, SharePoint, web pages and feeds by where they are", () => {
     expect(
       sourceNames(
@@ -506,7 +550,12 @@ describe("reading a scan", () => {
       withSchemaError: 1,
       schemaError:
         "Unsupported request. Excel full fidelity datasets are not supported",
-      readingDataflows: 1,
+      // ExportB, and the composite model built on it.
+      readingDataflows: 2,
+      // Power BI names the dataflow, but no query names an entity of it: nothing to read through.
+      withUnreadDataflows: 0,
+      withPendingDataflows: 0,
+      dataflowError: null,
     });
   });
 
@@ -632,7 +681,10 @@ describe("Power BI's reader", () => {
       }
 
       if (url.includes("/scanStatus/")) {
-        return answer(routes.scanStatus || { status: "Succeeded" });
+        // Read each time, so a test can say Running before it says Succeeded.
+        const status: JSONObject | undefined = routes.scanStatus;
+
+        return answer(status || { status: "Succeeded" });
       }
 
       if (url.includes("/scanResult/")) {
@@ -706,8 +758,48 @@ describe("Power BI's reader", () => {
       withSchemaError: 1,
       schemaError:
         "Unsupported request. Excel full fidelity datasets are not supported",
-      readingDataflows: 1,
+      // ExportB, and the composite model built on it.
+      readingDataflows: 2,
+      // Power BI names the dataflow, but no query names an entity of it: nothing to read through.
+      withUnreadDataflows: 0,
+      withPendingDataflows: 0,
+      dataflowError: null,
     });
+  });
+
+  test("a scan that takes minutes is waited for, not failed after one (#9552)", async () => {
+    let now: number = Date.parse("2026-11-18T10:00:00.000Z");
+    let statusAsks: number = 0;
+    const waits: Array<number> = [];
+    const read: BiToolRead = await PowerBiConnector.read({
+      baseUrl: "",
+      credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
+      isScheduled: true,
+      now: new Date(now),
+      clock: (): number => {
+        return now;
+      },
+      wait: async (ms: number): Promise<void> => {
+        waits.push(ms);
+        now += ms;
+      },
+      transport: transport({
+        scanResult: SCAN,
+        get scanStatus(): JSONObject {
+          statusAsks++;
+          // Running for about six minutes, as a big tenant's scan with schemas and expressions can.
+          return { status: statusAsks < 14 ? "Running" : "Succeeded" };
+        },
+      }),
+    });
+
+    expect(read.dashboards).toHaveLength(4);
+    expect(statusAsks).toBe(14);
+    expect(
+      waits.reduce((total: number, ms: number): number => {
+        return total + ms;
+      }, 0),
+    ).toBeGreaterThan(5 * 60 * 1000);
   });
 
   test("a scan Power BI failed says Power BI's reason", async () => {
@@ -730,5 +822,642 @@ describe("Power BI's reader", () => {
     ).rejects.toThrow(
       "Power BI's workspace scan failed: The workspace scan could not complete.",
     );
+  });
+});
+
+/*
+ * A big tenant's hourly read scanned every workspace, every hour (#9552).
+ * Now a read keeps each workspace as scanned, and the next asks Power BI
+ * only for those changed since a half hour before the last read began,
+ * and scans only those - the whole tenant once a day, for the hourly read.
+ */
+describe("Power BI's reader, scanning only what changed", () => {
+  const START: Date = new Date("2026-11-19T08:00:00.000Z");
+  const HOUR: number = 60 * 60 * 1000;
+
+  function workspaceOf(id: string, reports: Array<string>): JSONObject {
+    return {
+      id,
+      name: `Workspace ${id}`,
+      state: "Active",
+      isOnDedicatedCapacity: false,
+      reports: reports.map((name: string, index: number): JSONObject => {
+        return {
+          id: `${id}-r${index}`,
+          name,
+          datasetId: `${id}-ds`,
+        };
+      }),
+      datasets: [
+        {
+          id: `${id}-ds`,
+          name: `Model ${id}`,
+          tables: [
+            {
+              name: "Orders",
+              source: [
+                {
+                  expression: `let Source = Sql.Database("sql01", "${id}"), T = Source{[Schema="dbo",Item="Orders"]}[Data] in T`,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  interface Tenant {
+    workspaces: Map<string, JSONObject>;
+    // What admin/workspaces/modified lists when asked for changes.
+    changed: Array<string>;
+    // Workspaces whose scan Power BI fails.
+    failing: Set<string>;
+    requests: Array<string>;
+    scanned: Array<Array<string>>;
+  }
+
+  function tenant(workspaces: Array<JSONObject>): Tenant {
+    return {
+      workspaces: new Map(
+        workspaces.map((workspace: JSONObject): [string, JSONObject] => {
+          return [workspace["id"] as string, workspace];
+        }),
+      ),
+      changed: [],
+      failing: new Set(),
+      requests: [],
+      scanned: [],
+    };
+  }
+
+  function transportOf(
+    fake: Tenant,
+  ): (request: DataSourceHttpRequest) => Promise<DataSourceHttpResponse> {
+    const scans: Map<string, Array<string>> = new Map();
+
+    return async (
+      request: DataSourceHttpRequest,
+    ): Promise<DataSourceHttpResponse> => {
+      const url: string = request.url;
+      const answer: (body: unknown) => DataSourceHttpResponse = (
+        body: unknown,
+      ): DataSourceHttpResponse => {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(body),
+          bodyJson: body,
+        };
+      };
+
+      fake.requests.push(url);
+
+      if (url.startsWith("https://login.microsoftonline.com/")) {
+        return answer({ access_token: "aad" });
+      }
+
+      if (url.includes("/admin/workspaces/modified")) {
+        return answer(
+          (url.includes("modifiedSince=")
+            ? fake.changed
+            : Array.from(fake.workspaces.keys())
+          ).map((id: string): JSONObject => {
+            return { id };
+          }),
+        );
+      }
+
+      if (url.includes("/admin/workspaces/getInfo")) {
+        const ids: Array<string> = (
+          JSON.parse(request.body as string) as { workspaces: Array<string> }
+        ).workspaces;
+        const scanId: string = `scan-${scans.size + 1}`;
+
+        scans.set(scanId, ids);
+        fake.scanned.push(ids);
+
+        return answer({ id: scanId, status: "NotStarted" });
+      }
+
+      if (url.includes("/scanStatus/")) {
+        const ids: Array<string> = scans.get(url.split("/").pop()!)!;
+
+        return answer(
+          ids.some((id: string): boolean => {
+            return fake.failing.has(id);
+          })
+            ? {
+                status: "Failed",
+                error: { message: "The workspace scan could not complete." },
+              }
+            : { status: "Succeeded" },
+        );
+      }
+
+      if (url.includes("/scanResult/")) {
+        const ids: Array<string> = scans.get(url.split("/").pop()!)!;
+
+        return answer({
+          workspaces: ids
+            .map((id: string): JSONObject | undefined => {
+              return fake.workspaces.get(id);
+            })
+            .filter(Boolean),
+        });
+      }
+
+      return answer({
+        value: [],
+        activityEventEntities: [],
+        lastResultSet: true,
+      });
+    };
+  }
+
+  async function readAt(
+    fake: Tenant,
+    at: Date,
+    readState: JSONObject | null | undefined,
+    isScheduled: boolean = false,
+  ): Promise<BiToolRead> {
+    fake.requests.length = 0;
+    fake.scanned.length = 0;
+
+    return await PowerBiConnector.read({
+      baseUrl: "",
+      credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
+      readState,
+      isScheduled,
+      now: at,
+      wait: async (): Promise<void> => {},
+      transport: transportOf(fake),
+    });
+  }
+
+  function reportNames(read: BiToolRead): Array<string> {
+    return read.dashboards.map((dashboard: BiDashboardRead): string => {
+      return dashboard.name;
+    });
+  }
+
+  function listing(fake: Tenant): string {
+    return fake.requests.find((url: string): boolean => {
+      return url.includes("/admin/workspaces/modified");
+    })!;
+  }
+
+  test("the first read scans the whole tenant, and keeps each workspace", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const read: BiToolRead = await readAt(fake, START, undefined);
+
+    expect(listing(fake)).not.toContain("modifiedSince");
+    expect(fake.scanned).toEqual([["sales", "finance"]]);
+    expect(reportNames(read)).toEqual(["Pipeline", "Budget"]);
+    expect(read.readState).toMatchObject({
+      version: 1,
+      scannedFrom: START.toISOString(),
+      fullScanAt: START.toISOString(),
+      pendingWorkspaceIds: [],
+    });
+  });
+
+  test("the next asks only for what changed since a half hour before the last read began, and keeps the rest", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.set(
+      "finance",
+      workspaceOf("finance", ["Budget", "Forecast"]),
+    );
+    fake.changed = ["finance"];
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+      true,
+    );
+
+    expect(listing(fake)).toContain(
+      `modifiedSince=${encodeURIComponent("2026-11-19T07:30:00.000Z")}`,
+    );
+    // Only the workspace that changed is scanned; the other is kept as it was.
+    expect(fake.scanned).toEqual([["finance"]]);
+    expect(reportNames(next)).toEqual(["Pipeline", "Budget", "Forecast"]);
+    // Its reports still chart their tables.
+    expect(next.dashboards[0]!.tables.map(getBiTableName)).toEqual([
+      "sales.dbo.Orders",
+    ]);
+    expect(next.readState).toMatchObject({
+      scannedFrom: new Date(START.getTime() + HOUR).toISOString(),
+      fullScanAt: START.toISOString(),
+    });
+  });
+
+  test("nothing changed: no scan at all, and every report as it was", async () => {
+    const fake: Tenant = tenant([workspaceOf("sales", ["Pipeline"])]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+      true,
+    );
+
+    expect(fake.scanned).toEqual([]);
+    expect(
+      fake.requests.filter((url: string): boolean => {
+        return url.includes("/admin/workspaces/getInfo");
+      }),
+    ).toEqual([]);
+    expect(reportNames(next)).toEqual(["Pipeline"]);
+  });
+
+  test("the hourly read scans the whole tenant once a day, which drops a workspace that is gone", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.delete("finance");
+
+    const asked: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 25 * HOUR),
+      first.readState,
+      false,
+    );
+
+    // A read someone asked for scans only what changed.
+    expect(listing(fake)).toContain("modifiedSince");
+    expect(reportNames(asked)).toEqual(["Pipeline", "Budget"]);
+
+    const daily: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 25 * HOUR),
+      asked.readState,
+      true,
+    );
+
+    expect(listing(fake)).not.toContain("modifiedSince");
+    expect(reportNames(daily)).toEqual(["Pipeline"]);
+    expect(daily.readState).toMatchObject({
+      fullScanAt: new Date(START.getTime() + 25 * HOUR).toISOString(),
+    });
+  });
+
+  test("a workspace Power BI says is deleted holds nothing", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.set("finance", {
+      ...workspaceOf("finance", ["Budget"]),
+      state: "Deleted",
+    });
+    fake.changed = ["finance"];
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+    );
+
+    expect(reportNames(next)).toEqual(["Pipeline"]);
+  });
+
+  test("a scan that fails keeps what was read before, says so, and is scanned again by the next read", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.set(
+      "finance",
+      workspaceOf("finance", ["Budget", "Forecast"]),
+    );
+    fake.changed = ["finance"];
+    fake.failing.add("finance");
+
+    const failed: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+    );
+
+    expect(reportNames(failed)).toEqual(["Pipeline", "Budget"]);
+    expect(failed.warnings).toContain(
+      "1 workspace was not scanned this time: Power BI's workspace scan failed: The workspace scan could not complete. The next read scans it again, and until then it shows what was read before.",
+    );
+    expect(failed.readState).toMatchObject({
+      pendingWorkspaceIds: ["finance"],
+    });
+
+    // Power BI lists no change since; the next read scans it all the same.
+    fake.changed = [];
+    fake.failing.clear();
+
+    const recovered: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 2 * HOUR),
+      failed.readState,
+    );
+
+    expect(fake.scanned).toEqual([["finance"]]);
+    expect(reportNames(recovered)).toEqual(["Pipeline", "Budget", "Forecast"]);
+    expect(recovered.readState).toMatchObject({ pendingWorkspaceIds: [] });
+  });
+
+  test("a state that cannot be read is no state: the read scans the whole tenant", async () => {
+    const fake: Tenant = tenant([workspaceOf("sales", ["Pipeline"])]);
+
+    await readAt(fake, START, { version: 99, workspaces: [] });
+
+    expect(listing(fake)).not.toContain("modifiedSince");
+    expect(fake.scanned).toEqual([["sales"]]);
+  });
+});
+
+/*
+ * A report on a dataset built on a dataflow (#9551), read end to end: the
+ * scan names the dataflow and the dataset's query names its entity; the
+ * dataflow's definition, exported once, says which tables the entity
+ * reads, and the report charts them. It is exported again only when the
+ * scan says the dataflow changed, and Power BI's refusal is said.
+ */
+describe("Power BI's reader, through a dataset's dataflow", () => {
+  const WORKSPACE: string = "6e2f9a10-0000-4000-8000-00000000aaaa";
+  const DATAFLOW: string = "2c4d6e8f-0000-4000-8000-00000000bbbb";
+
+  function tenantScan(modifiedDateTime: string): JSONObject {
+    return {
+      workspaces: [
+        {
+          id: WORKSPACE,
+          name: "Sales",
+          state: "Active",
+          reports: [
+            {
+              id: "r-orders",
+              name: "Orders by Region",
+              datasetId: "ds-orders",
+            },
+          ],
+          datasets: [
+            {
+              id: "ds-orders",
+              name: "Orders Model",
+              tables: [
+                {
+                  name: "Orders",
+                  source: [
+                    {
+                      expression: `let\n    Source = PowerPlatform.Dataflows(null),\n    Workspaces = Source{[Id="Workspaces"]}[Data],\n    ws = Workspaces{[workspaceId="${WORKSPACE}"]}[Data],\n    df = ws{[dataflowId="${DATAFLOW}"]}[Data],\n    Orders = df{[entity="Orders",version=""]}[Data]\nin\n    Orders`,
+                    },
+                  ],
+                },
+              ],
+              upstreamDataflows: [
+                { targetDataflowId: DATAFLOW, groupId: WORKSPACE },
+              ],
+            },
+          ],
+          dataflows: [
+            {
+              objectId: DATAFLOW,
+              name: "Sales Staging",
+              modifiedDateTime,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  const EXPORTED: JSONObject = {
+    name: "Sales Staging",
+    version: "1.0",
+    "pbi:mashup": {
+      fastCombine: false,
+      allowNativeQueries: false,
+      queriesMetadata: { Orders: { queryName: "Orders", loadEnabled: true } },
+      document:
+        'section Section1;\r\nshared Orders = let\r\n  Source = Sql.Database("sql01.corp.acme.com", "Sales"),\r\n  #"Navigation 1" = Source{[Schema = "dbo", Item = "Orders"]}[Data]\r\nin\r\n  #"Navigation 1";\r\n',
+    },
+    entities: [{ $type: "LocalEntity", name: "Orders" }],
+  };
+
+  function dataflowTransport(data: {
+    scan: JSONObject;
+    exported: JSONObject | { status: number; message: string };
+    requests: Array<string>;
+  }): (request: DataSourceHttpRequest) => Promise<DataSourceHttpResponse> {
+    const answer: (body: unknown) => DataSourceHttpResponse = (
+      body: unknown,
+    ): DataSourceHttpResponse => {
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(body),
+        bodyJson: body,
+      };
+    };
+    // Power BI's sign-in, scanner, refreshes and activity log, as the reader asks them.
+    const base: (
+      request: DataSourceHttpRequest,
+    ) => Promise<DataSourceHttpResponse> = async (
+      request: DataSourceHttpRequest,
+    ): Promise<DataSourceHttpResponse> => {
+      const url: string = request.url;
+
+      data.requests.push(url);
+
+      if (url.startsWith("https://login.microsoftonline.com/")) {
+        return answer({ access_token: "aad" });
+      }
+
+      if (url.includes("/admin/workspaces/modified")) {
+        return answer([{ id: WORKSPACE }]);
+      }
+
+      if (url.includes("/admin/workspaces/getInfo")) {
+        return answer({ id: "scan1", status: "NotStarted" });
+      }
+
+      if (url.includes("/scanStatus/")) {
+        return answer({ status: "Succeeded" });
+      }
+
+      if (url.includes("/scanResult/")) {
+        return answer(data.scan);
+      }
+
+      return answer({
+        value: [],
+        activityEventEntities: [],
+        lastResultSet: true,
+      });
+    };
+
+    return async (
+      request: DataSourceHttpRequest,
+    ): Promise<DataSourceHttpResponse> => {
+      if (request.url.includes("/admin/dataflows/")) {
+        data.requests.push(request.url);
+
+        if ("status" in data.exported) {
+          const body: JSONObject = {
+            error: { code: "Forbidden", message: data.exported.message },
+          };
+
+          return {
+            statusCode: data.exported.status as number,
+            bodyText: JSON.stringify(body),
+            bodyJson: body,
+          };
+        }
+
+        // As a file: with a byte order mark before its JSON.
+        return {
+          statusCode: 200,
+          bodyText: `\uFEFF${JSON.stringify(data.exported)}`,
+          bodyJson: undefined,
+        };
+      }
+
+      return await base(request);
+    };
+  }
+
+  async function readWith(data: {
+    scan: JSONObject;
+    exported: JSONObject | { status: number; message: string };
+    readState?: JSONObject | null | undefined;
+    now?: Date | undefined;
+  }): Promise<{ read: BiToolRead; requests: Array<string> }> {
+    const requests: Array<string> = [];
+    const read: BiToolRead = await PowerBiConnector.read({
+      baseUrl: "",
+      credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
+      wait: async (): Promise<void> => {},
+      now: data.now || new Date("2026-11-19T08:00:00.000Z"),
+      readState: data.readState,
+      transport: dataflowTransport({
+        scan: data.scan,
+        exported: data.exported,
+        requests,
+      }),
+    });
+
+    return { read, requests };
+  }
+
+  function exports(requests: Array<string>): Array<string> {
+    return requests.filter((url: string): boolean => {
+      return url.includes("/admin/dataflows/");
+    });
+  }
+
+  test("the report charts the tables the dataflow's entity reads, and is built on its database", async () => {
+    const { read, requests } = await readWith({
+      scan: tenantScan("2026-11-18T16:00:00.000Z"),
+      exported: EXPORTED,
+    });
+
+    expect(exports(requests)).toEqual([
+      `https://api.powerbi.com/v1.0/myorg/admin/dataflows/${DATAFLOW}/export`,
+    ]);
+    expect(read.dashboards[0]!.tables.map(getBiTableName)).toEqual([
+      "Sales.dbo.Orders",
+    ]);
+    expect(read.dashboards[0]!.tables[0]).toMatchObject({
+      engine: "sqlserver",
+      host: "sql01.corp.acme.com",
+      isDatabaseExact: true,
+    });
+    expect(sourceNames(read.dashboards[0]!.upstream!.sources)).toEqual([
+      "SQL Server | sql01.corp.acme.com | Sales",
+      "Dataflow | Sales Staging",
+    ]);
+    expect(read.datasetFacts).toMatchObject({
+      readingDataflows: 1,
+      withUnreadDataflows: 0,
+      withPendingDataflows: 0,
+      dataflowError: null,
+    });
+    // Where the data comes from: the database, with the table read from it.
+    expect(
+      (read.sources || []).map(
+        (found: NonNullable<BiToolRead["sources"]>[number]) => {
+          return `${found.source.type}: ${found.tables.map(getBiTableName).join(", ")}`;
+        },
+      ),
+    ).toEqual(["SQL Server: Sales.dbo.Orders", "Dataflow: "]);
+  });
+
+  test("the definition is kept: not exported again while the dataflow is unchanged, and again once it changes", async () => {
+    const first: { read: BiToolRead } = await readWith({
+      scan: tenantScan("2026-11-18T16:00:00.000Z"),
+      exported: EXPORTED,
+    });
+    const unchanged: { read: BiToolRead; requests: Array<string> } =
+      await readWith({
+        scan: tenantScan("2026-11-18T16:00:00.000Z"),
+        exported: EXPORTED,
+        readState: first.read.readState,
+        now: new Date("2026-11-19T09:00:00.000Z"),
+      });
+
+    expect(exports(unchanged.requests)).toEqual([]);
+    expect(unchanged.read.dashboards[0]!.tables.map(getBiTableName)).toEqual([
+      "Sales.dbo.Orders",
+    ]);
+
+    const changedScan: JSONObject = tenantScan("2026-11-19T08:30:00.000Z");
+    const changed: { requests: Array<string> } = await readWith({
+      scan: changedScan,
+      exported: EXPORTED,
+      // The scan's workspace changed: a whole read, so the new time is seen.
+      readState: null,
+      now: new Date("2026-11-19T10:00:00.000Z"),
+    });
+
+    expect(exports(changed.requests)).toHaveLength(1);
+  });
+
+  test("Power BI's refusal is said, with its words, and the report keeps no table it cannot be sure of", async () => {
+    const { read } = await readWith({
+      scan: tenantScan("2026-11-18T16:00:00.000Z"),
+      exported: {
+        status: 403,
+        message: "API is not accessible for application",
+      },
+    });
+
+    expect(read.dashboards[0]!.tables).toEqual([]);
+    expect(read.datasetFacts).toMatchObject({
+      readingDataflows: 1,
+      withUnreadDataflows: 1,
+      withPendingDataflows: 0,
+      dataflowError:
+        "Power BI answered 403: API is not accessible for application.",
+    });
+    expect(read.readState).toMatchObject({
+      dataflows: {
+        [DATAFLOW]: {
+          entities: null,
+          error: "Power BI answered 403: API is not accessible for application",
+        },
+      },
+    });
   });
 });

@@ -8,6 +8,8 @@ import {
   getProjectBalanceWhoCanAddSentence,
   ProjectBalanceType,
 } from "Common/Utils/Project/ProjectBalance";
+import { getLlmLogStatusLabel } from "../../../FeatureSet/Dashboard/src/Components/AILogs/LlmLogStatusWords";
+import LlmLogStatus from "Common/Types/LlmLogStatus";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -20,7 +22,7 @@ import path from "path";
  *   first and runs, calls arriving together charge the card once, and
  *   turning Auto Recharge on below its threshold tops up at once;
  * - with it off, AI stops: refusals name who can add credits, the AI Logs
- *   list them as Insufficient Balance, investigations are not started;
+ *   list them as AI Credits Used Up, investigations are not started;
  * - a failed charge stops AI too, the card is tried again an hour later,
  *   and a recharge by hand tries at once;
  * - the owners are emailed once each time the credits run out.
@@ -99,7 +101,12 @@ describe("AI SRE: when AI credits run out", () => {
     expect(credits).toContain(
       `"${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)}"`,
     );
-    expect(credits).toContain("**Insufficient Balance**");
+    // As the AI Logs' pill says it (issue #6495), not the stored value.
+    expect(credits).toContain(
+      `**${getLlmLogStatusLabel(LlmLogStatus.InsufficientBalance)}**`,
+    );
+    expect(credits).toContain("**AI Credits Used Up**");
+    expect(credits).not.toContain("Insufficient Balance");
     expect(credits).toContain(
       "Automatic investigations and postmortem drafts are not started",
     );

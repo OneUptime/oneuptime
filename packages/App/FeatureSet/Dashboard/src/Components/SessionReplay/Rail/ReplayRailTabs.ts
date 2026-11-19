@@ -1,5 +1,10 @@
 import { ReplayTimelineEventKind } from "../ReplayTimelineTypes";
-import { PluralTemplate, Translator } from "Common/Types/Translator";
+import {
+  PluralTemplate,
+  Translator,
+  createTranslator,
+  translationKey,
+} from "Common/Types/Translator";
 import { getArrowOn } from "Common/Types/DirectionArrow";
 import {
   ReplayBackendSignalKind,
@@ -77,7 +82,8 @@ export interface ReplayRailGlyph {
 }
 
 /*
- * A kind's glyph and the noun a screen reader says for it. A null label is
+ * A kind's glyph and the noun a screen reader says for it, a key worded in
+ * the reader's language (#6516). A null label is
  * the arrow that points on, the way the line reads (getArrowOn): a request
  * goes out, and on a page read from the right it points left, as an icon
  * that points along the line turns round there.
@@ -94,26 +100,31 @@ interface ReplayKindGlyph {
  */
 const IDLE_PAUSE_GLYPH: ReplayKindGlyph = {
   label: "‖",
-  noun: "recording pause",
+  noun: translationKey("recording pause"),
 };
 
+// A reader without a language of their own reads the rail in English.
+const ENGLISH: Translator = createTranslator(undefined, undefined, {
+  drawsOnPage: true,
+});
+
 const KIND_GLYPHS: Record<ReplaySignalKind, ReplayKindGlyph> = {
-  console: { label: "·", noun: "console" },
-  network: { label: null, noun: "request" },
-  navigation: { label: "↗", noun: "navigation" },
-  interaction: { label: "○", noun: "click" },
-  frustration: { label: "z", noun: "frustration" },
+  console: { label: "·", noun: translationKey("console") },
+  network: { label: null, noun: translationKey("request") },
+  navigation: { label: "↗", noun: translationKey("navigation") },
+  interaction: { label: "○", noun: translationKey("click") },
+  frustration: { label: "z", noun: translationKey("frustration") },
   /*
    * An hourglass: what a performance row measures is time. It was a circled
    * c (ⓒ), which every font draws as the copyright sign.
    */
-  performance: { label: "⧗", noun: "performance" },
-  "client-error": { label: "!", noun: "client error" },
-  "server-error": { label: "‼", noun: "server exception" },
-  log: { label: "=", noun: "log" },
-  span: { label: "/", noun: "trace" },
-  custom: { label: "*", noun: "custom event" },
-  marker: { label: "#", noun: "marker" },
+  performance: { label: "⧗", noun: translationKey("performance") },
+  "client-error": { label: "!", noun: translationKey("client error") },
+  "server-error": { label: "‼", noun: translationKey("server exception") },
+  log: { label: "=", noun: translationKey("log") },
+  span: { label: "/", noun: translationKey("trace") },
+  custom: { label: "*", noun: translationKey("custom event") },
+  marker: { label: "#", noun: translationKey("marker") },
 };
 
 /*
@@ -137,7 +148,9 @@ export function getRailStatusWords(signal: ReplaySignal): string | null {
   }
 
   if (signal.kind === "performance") {
-    return signal.detail["kind"] === "web-vital" ? null : "over budget";
+    return signal.detail["kind"] === "web-vital"
+      ? null
+      : translationKey("over budget");
   }
 
   if (signal.kind === "client-error" || signal.kind === "server-error") {
@@ -145,16 +158,24 @@ export function getRailStatusWords(signal: ReplaySignal): string | null {
   }
 
   if (signal.kind === "network") {
-    return signal.severity === "error" ? "failed" : "warning";
+    return signal.severity === "error"
+      ? translationKey("failed")
+      : translationKey("warning");
   }
 
-  return signal.severity === "error" ? "error" : "warning";
+  return signal.severity === "error"
+    ? translationKey("error")
+    : translationKey("warning");
 }
 
-// A signal's glyph, for a rail read in `language`.
+/*
+ * A signal's glyph, for a rail read in the translator's language: its
+ * noun and what its colour says, in the reader's words - "Anfrage
+ * fehlgeschlagen" in German (#6516).
+ */
 export function glyphForSignal(
   signal: ReplaySignal,
-  language?: string | undefined,
+  translator: Translator = ENGLISH,
 ): ReplayRailGlyph {
   const glyph: ReplayKindGlyph =
     signal.kind === "marker" && signal.detail["markerKind"] === "idle-pause"
@@ -176,11 +197,17 @@ export function glyphForSignal(
   }
 
   const statusWords: string | null = getRailStatusWords(signal);
+  const noun: string = translator.translateText(glyph.noun) ?? glyph.noun;
 
   return {
-    label: glyph.label ?? getArrowOn(language),
+    label: glyph.label ?? getArrowOn(translator.language),
     className: className,
-    description: statusWords ? `${glyph.noun} ${statusWords}` : glyph.noun,
+    description: statusWords
+      ? translator.translateTemplate("{{kind}} {{status}}", {
+          kind: noun,
+          status: translator.translateText(statusWords) ?? statusWords,
+        })
+      : noun,
   };
 }
 

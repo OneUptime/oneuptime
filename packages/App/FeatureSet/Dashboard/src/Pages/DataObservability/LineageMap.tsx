@@ -150,13 +150,13 @@ const HIDDEN_TABLES_AT_LEAST: PluralTemplate = {
     "At least {{count}} more tables are not on this map: it draws the most recently seen flows first. Pick a database, or search your whole project, to find them.",
 };
 const PROJECT_SEARCH_NOTE: string = translationKey(
-  "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.",
+  "Showing the flows of the tables, pipelines, services, dashboards, datasets and data sources whose names hold {{search}}, from your whole project.",
 );
 const NOTHING_IN_DATABASE: string = translationKey(
   "No flows of this database's tables have been seen yet.",
 );
 const NOTHING_IN_PROJECT_SEARCH: string = translationKey(
-  "No table, pipeline, service or dashboard whose name holds {{search}} has lineage yet.",
+  "No table, pipeline, service, dashboard, dataset or data source whose name holds {{search}} has lineage yet.",
 );
 
 // A phone opens on the list: a map needs room to be read.
@@ -837,7 +837,7 @@ Cards sit left to right as data flows. A card's top edge is red for a table that
 
 ## Large Projects
 
-One map draws up to 400 cards, the most recently seen flows first. When your project has more, the map says how many tables it left out. Pick a database to map the flows of its tables, and the cards they join; or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service and dashboard whose name holds it. **Show Whole Map** goes back. To walk further from one table, open its page's Lineage tab.
+One map draws up to 400 cards, the most recently seen flows first. When your project has more, the map says how many tables it left out. Pick a database to map the flows of its tables, the dashboards built on them, and the cards they join; or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service, dashboard, dataset and data source whose name holds it. **Show Whole Map** goes back. To walk further from one table, open its page's Lineage tab.
 
 You see the tables and pipelines your role lets you read: one you may not read is never drawn, named or counted.`,
             }}

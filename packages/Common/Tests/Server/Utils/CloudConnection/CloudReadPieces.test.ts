@@ -256,6 +256,64 @@ describe("the window a read asks for", () => {
     expect(window!.start).toEqual(new Date("2026-10-21T06:03:00Z"));
   });
 
+  /*
+   * Azure's five-minute metrics are read every 15 minutes, three points a
+   * call (#9566): their window waits until it holds 15 minutes.
+   */
+  test("a period read less often waits until its window holds as long, then reads it whole", () => {
+    const policy: ReturnType<typeof getMetricWindowPolicy> =
+      getMetricWindowPolicy({
+        periodSeconds: 300,
+        delayMs: 4 * 60000,
+        readEveryMs: 15 * 60000,
+      });
+    const at: (time: string) => MetricWindow | null = (
+      time: string,
+    ): MetricWindow | null => {
+      return getMetricWindow({
+        policy,
+        cursor: "2026-10-21T12:00:00.000Z",
+        now: new Date(time),
+      });
+    };
+
+    expect(policy.minimumWindowMs).toBe(15 * 60000);
+    // Five, then ten minutes of it: not yet.
+    expect(at("2026-10-21T12:09:00Z")).toBeNull();
+    expect(at("2026-10-21T12:18:59Z")).toBeNull();
+    // Fifteen: three points, one call.
+    expect(at("2026-10-21T12:19:00Z")).toEqual({
+      periodSeconds: 300,
+      start: new Date("2026-10-21T12:00:00Z"),
+      end: new Date("2026-10-21T12:15:00Z"),
+    });
+    // A read that comes later reads all that is there.
+    expect(at("2026-10-21T12:29:00Z")!.end).toEqual(
+      new Date("2026-10-21T12:25:00Z"),
+    );
+    // A first read goes its hour back at once.
+    expect(getMetricWindow({ policy, now: NOW })).toEqual({
+      periodSeconds: 300,
+      start: new Date("2026-10-21T11:00:00Z"),
+      end: new Date("2026-10-21T12:00:00Z"),
+    });
+  });
+
+  test("a period read as often as it comes has no wait", () => {
+    expect(
+      getMetricWindowPolicy({ periodSeconds: 300, delayMs: 4 * 60000 })
+        .minimumWindowMs,
+    ).toBeUndefined();
+    // Read every period or more often: nothing to wait for.
+    expect(
+      getMetricWindowPolicy({
+        periodSeconds: 300,
+        delayMs: 4 * 60000,
+        readEveryMs: 300000,
+      }).minimumWindowMs,
+    ).toBeUndefined();
+  });
+
   test("a cursor that is not a time is read as no cursor", () => {
     expect(
       getMetricWindow({

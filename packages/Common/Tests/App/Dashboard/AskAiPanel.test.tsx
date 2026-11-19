@@ -2003,6 +2003,43 @@ describe("an answer, quietly", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * Issue #6488: the chat runner closes a model call that failed for good
+   * with LlmCallFailed, as an investigation does. Its steps say which call
+   * failed - "Thinking · failed" - and nothing goes on spinning; the
+   * provider's words are the error notice's, once, not the step's too.
+   */
+  test("a model call that failed reads 'Thinking · failed' in its steps, with nothing still spinning", async () => {
+    server.messages.set(CONVERSATION_ID, workingConversation());
+    server.events = [
+      runEvent(0, AIRunEventType.RunStarted),
+      runEvent(1, AIRunEventType.LlmCallStarted),
+      runEvent(2, AIRunEventType.LlmCallFailed),
+    ];
+    await renderAt();
+
+    await toggle({ conversationId: CONVERSATION_ID });
+
+    // Nothing runs: the line says it is thinking about what comes next.
+    expect(screen.getByTestId("ai-chat-live-step")).toHaveTextContent(
+      "Thinking…",
+    );
+
+    const toggleSteps: HTMLElement = screen.getByTestId(
+      "ai-chat-live-steps-toggle",
+    );
+    // Starting, and the call that failed: a failed call is a step.
+    expect(toggleSteps).toHaveTextContent("2 steps");
+
+    await act(async () => {
+      fireEvent.click(toggleSteps);
+    });
+
+    const steps: HTMLElement = screen.getByTestId("ai-chat-live-steps");
+    expect(steps).toHaveTextContent("Thinking · failed");
+    expect(steps.querySelectorAll(".animate-spin")).toHaveLength(0);
+  });
+
   test("the answer leads; its sources, its time and its actions sit on one row under it", async () => {
     server.messages.set(CONVERSATION_ID, answeredConversation());
     await renderAt();

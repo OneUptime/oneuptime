@@ -182,6 +182,9 @@ const AIInsightViewPage: FunctionComponent<
 
   const [triageRun, setTriageRun] = useState<AIRun | null>(null);
   const [triageEvents, setTriageEvents] = useState<Array<AIRunEvent>>([]);
+  // Whether the triage's first steps were left out (issue #6489).
+  const [hasEarlierTriageEvents, setHasEarlierTriageEvents] =
+    useState<boolean>(false);
   /*
    * Whether this reader may start a triage that did not finish again: the
    * server says (issue #6438).
@@ -273,13 +276,25 @@ const AIInsightViewPage: FunctionComponent<
           return;
         }
 
-        // Skip re-render when nothing changed (run, status + event count).
+        const hasEarlierEvents: boolean = data["hasEarlierEvents"] === true;
+        /*
+         * Skip re-render when nothing changed: the run, its status, and its
+         * latest event - past the read's cap a run's newest events are
+         * always as many, so their count alone no longer says that a new
+         * one came in (issue #6489).
+         */
         const runStatus: string =
           (runJson["status"] as string | undefined) || "none";
-        const signature: string = `${String(runJson["_id"] || "")}:${runStatus}:${eventsJson.length}:${String(data["mayTryAgain"] === true)}`;
+        const lastEventId: string = String(
+          (eventsJson[eventsJson.length - 1] as JSONObject | undefined)?.[
+            "_id"
+          ] || "",
+        );
+        const signature: string = `${String(runJson["_id"] || "")}:${runStatus}:${eventsJson.length}:${lastEventId}:${String(hasEarlierEvents)}:${String(data["mayTryAgain"] === true)}`;
         if (signature !== triageSignatureRef.current) {
           triageSignatureRef.current = signature;
           setMayTryAgainTriage(data["mayTryAgain"] === true);
+          setHasEarlierTriageEvents(hasEarlierEvents);
           setTriageRun(AIRun.fromJSONObject(runJson, AIRun));
           setTriageEvents(
             AIRunEvent.fromJSONArray(
@@ -1232,6 +1247,7 @@ const AIInsightViewPage: FunctionComponent<
                           triageRun ? toActivityFeedRun(triageRun) : undefined
                         }
                         showStepTimes={true}
+                        hasEarlierEvents={hasEarlierTriageEvents}
                       />
                     </div>
                   </section>

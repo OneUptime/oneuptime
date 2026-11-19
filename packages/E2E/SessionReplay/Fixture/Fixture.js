@@ -240,9 +240,19 @@ ModelAPI.getItem = async (options) => {
     id: options.id?.toString(),
     selectKeys: Object.keys(options.select || {}),
   });
+  /*
+   * Only the Frustration Signals page's own read, which selects the
+   * signals and _id alone: the side menu's Recommendations badge reads them
+   * too (each signal is offered an alert, issue #6518), with the
+   * application's name and policy columns, and is not the read to fail.
+   */
+  const selectKeys = Object.keys(options.select || {});
   if (
     options.modelType !== Project &&
-    options.select?.sessionReplayFrustrationSignals &&
+    selectKeys.includes("sessionReplayFrustrationSignals") &&
+    selectKeys.every(
+      (key) => key === "_id" || key === "sessionReplayFrustrationSignals",
+    ) &&
     frustrationReadFailures > 0
   ) {
     frustrationReadFailures--;

@@ -385,7 +385,13 @@ describe("what keeps dashboards off their tables", () => {
   test("unwatched tables, dataflows and files, in that order", () => {
     expect(
       problems({
-        datasets: { ...FACTS, readingDataflows: 1 },
+        datasets: {
+          ...FACTS,
+          readingDataflows: 1,
+          withUnreadDataflows: 1,
+          dataflowError: "Power BI answered 403: Forbidden",
+          withPendingDataflows: 0,
+        },
         unwatchedTableCount: 2,
         sources: [
           source({ dataStoreId: "store-sales" }),
@@ -405,6 +411,36 @@ describe("what keeps dashboards off their tables", () => {
       DataBiLineageProblem.Dataflows,
       DataBiLineageProblem.NotDatabases,
     ]);
+  });
+
+  /*
+   * Datasets built on dataflows are read through the dataflows' own
+   * definitions now (#9551): reading one is no problem in itself, only a
+   * dataflow whose definition Power BI would not give, or one still being
+   * read within its hourly limit.
+   */
+  test("dataflows OneUptime read through are no problem; one it could not read, or is still reading, is", () => {
+    const readThrough: DataBiDatasetFacts = {
+      ...FACTS,
+      readingDataflows: 3,
+      withUnreadDataflows: 0,
+      dataflowError: null,
+      withPendingDataflows: 0,
+    };
+
+    expect(problems({ datasets: readThrough })).toEqual([]);
+    expect(
+      problems({ datasets: { ...readThrough, withPendingDataflows: 2 } }),
+    ).toEqual([DataBiLineageProblem.Dataflows]);
+    expect(
+      problems({
+        datasets: {
+          ...readThrough,
+          withUnreadDataflows: 1,
+          dataflowError: "Power BI answered 404: Dataflow not found",
+        },
+      }),
+    ).toEqual([DataBiLineageProblem.Dataflows]);
   });
 
   test("no dashboard, nothing to say", () => {
