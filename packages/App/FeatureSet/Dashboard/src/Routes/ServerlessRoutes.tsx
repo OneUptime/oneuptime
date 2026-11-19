@@ -12,6 +12,7 @@ import ServerlessFunctionOverview from "../Pages/Serverless/View/Overview";
 import ServerlessFunctionSettings from "../Pages/Serverless/View/Settings";
 import ServerlessFunctionMetrics from "../Pages/Serverless/View/Metrics";
 import ServerlessFunctionLogs from "../Pages/Serverless/View/Logs";
+import ServerlessFunctionSecurityEvents from "../Pages/Serverless/View/SecurityEvents";
 import ServerlessFunctionTraces from "../Pages/Serverless/View/Traces";
 import ServerlessFunctionInstances from "../Pages/Serverless/View/Instances";
 import ServerlessFunctionDocumentation from "../Pages/Serverless/View/Documentation";
@@ -167,6 +168,22 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <ServerlessFunctionSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS
+                ] as Route
               }
             />
           }

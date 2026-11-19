@@ -10,6 +10,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -346,6 +347,7 @@ export default class MetricType extends BaseModel {
     title: "Is Monotonic",
     description:
       "Whether this metric is a monotonic counter (only ever increases), as reported by OpenTelemetry at ingest. Null when the instrument type does not carry monotonicity (e.g. gauges).",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -383,6 +385,7 @@ export default class MetricType extends BaseModel {
     title: "Aggregation Temporality",
     description:
       "OpenTelemetry aggregation temporality of this metric (Delta or Cumulative), as reported at ingest. Null when unknown.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

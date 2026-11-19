@@ -218,6 +218,7 @@ CEF や LEEF の検出結果、Palo Alto Networks、FortiGate、Cisco ASA の脅
 - 各レコードは **ログ** がパイプラインから読み取るのと同じように読み取られるため、ルールライブラリの CloudTrail、Google Cloud、Azure のルールに一致します。
 - イベントには保存した時刻が付き、レコード自身の時刻は `oneuptime.cloud.record_time` に入ります。監査ログは数分遅れて OneUptime に届き、ルールはイベントをその時刻で読み取るためです。
 - アカウント自体の読み取りで得られるのはここまでです。データ イベント、Data Access ログ、Microsoft Entra ID のログには、引き続き **ログ** か [接続](/docs/integrations/microsoft-entra-id) が必要です。
+- 各イベントは、レコードの対象であるクラウドリソースを独自の ID (ARN、Azure リソース ID、Google Cloud リソース名) で示すため、それぞれの **セキュリティイベント** ページに表示されます。テレメトリで `cloud.account.id` と `cloud.region` を設定したサーバーレス関数のページにも表示されます。
 
 ### セキュリティ製品を接続する
 

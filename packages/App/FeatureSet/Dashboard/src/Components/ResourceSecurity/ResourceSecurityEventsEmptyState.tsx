@@ -9,6 +9,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import Route from "Common/Types/API/Route";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import IconProp from "Common/Types/Icon/IconProp";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
@@ -39,6 +40,16 @@ export const RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID: string =
  * for security events, and for a service Traces, each saying where it
  * stands as the Events page's empty state does: a project whose logs are
  * read already is told so, not asked to turn on what is on.
+ *
+ * A cloud resource's (#9779) comes first from its account's audit log, read
+ * with no pipeline once Cloud audit logs is on; then its own logs, for a
+ * kind that has some; and for an AWS resource its data events, from a
+ * CloudTrail trail its account streams. One kept by a readable stand-in no
+ * audit record names comes from its own logs, and from the names and
+ * addresses it answers on, alone. A serverless function's (#9780)
+ * comes from its own logs and traces, and from its cloud's audit log once
+ * its telemetry says the ID the log names it by - or, until it does, what
+ * to set so it does.
  */
 
 const HOST_TITLE: string = translationKey(
@@ -60,6 +71,12 @@ export const RESOURCE_SECURITY_EVENTS_EMPTY_TITLES: Readonly<
   ),
   [SecurityConnectionKind.Service]: translationKey(
     "No security events about this service yet",
+  ),
+  [SecurityConnectionKind.CloudResource]: translationKey(
+    "No security events about this cloud resource yet",
+  ),
+  [SecurityConnectionKind.ServerlessFunction]: translationKey(
+    "No security events about this function yet",
   ),
 };
 
@@ -90,37 +107,153 @@ export const RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE: Readonly<
   [SecurityConnectionKind.Service]: translationKey(
     "They appear here when OneUptime reads them in this service's own logs and traces - an attack in a request it answers, a failed sign-in, a prompt injection.",
   ),
+  [SecurityConnectionKind.CloudResource]: translationKey(
+    "They appear here when its cloud's audit log names it - a change made to it, a call refused on it, its access opened to others - or when OneUptime reads them in its own logs, or another source names it by its ID.",
+  ),
+  // A function's logs are filed under the service of its name; they are read here by its faas.name.
+  [SecurityConnectionKind.ServerlessFunction]: translationKey(
+    "They appear here when OneUptime reads them in this function's own logs and traces - an attack in a request it answered, a failed sign-in - whatever service they are filed under, or when its cloud's audit log names it.",
+  ),
 };
 
 const WHAT_LANDS_HERE_OTHERWISE: string = translationKey(
   "They appear here when events from any source Security Events reads name this record.",
 );
 
+/*
+ * A cloud resource its audit log cannot name - kept by a readable stand-in
+ * its metrics give it - reached by its own logs, or by a name or address
+ * it answers on.
+ */
+export const CLOUD_RESOURCE_WITHOUT_ID_LANDS_HERE: string = translationKey(
+  "They appear here when OneUptime reads them in its own logs, or when a source names it by a name or address it answers on.",
+);
+
 export const OPENSTACK_AUDIT_TRAIL_STEP: string = translationKey(
   "Turn on this cloud's audit trail: Keystone's notifications and the audit filter on its APIs, written to the services' own logs, which the OneUptime OpenStack agent sends.",
 );
 
+// A cloud resource's and a function's account's audit log, read with no pipeline (#9779).
+export const CLOUD_AUDIT_LOGS_ON_STEP: string = translationKey(
+  "Cloud audit logs is on: each read of its cloud account keeps the account's audit log as security events - what changed, and the calls refused. See the Security Events {{connections}} page.",
+);
+
+export const CLOUD_AUDIT_LOGS_OFF_STEP: string = translationKey(
+  "Turn on Cloud audit logs, on the Security Events {{connections}} page. Each read of its cloud account, connected under Cloud, then keeps the account's audit log as security events - what changed, and the calls refused.",
+);
+
+// An AWS resource's data events: what an account's own read of CloudTrail does not return.
+export const CLOUDTRAIL_DATA_EVENTS_STEP: string = translationKey(
+  "For its data events too - an object read, a function invoked - deliver a CloudTrail trail to CloudWatch Logs and add its log group to the account's stream, on the Cloud {{connect}} page.",
+);
+
+export const FUNCTION_TRACES_OFF_STEP: string = translationKey(
+  "Turn on Traces, on the Security Events {{connections}} page, to read the requests this function answers.",
+);
+
+/*
+ * A function its cloud's audit log names by an ID OneUptime does not know
+ * yet: its telemetry reports no account, or no Region (#9780).
+ */
+export const FUNCTION_ACCOUNT_STEP: string = translationKey(
+  "Its cloud's audit log names it by an ID that holds its account and Region. Set cloud.account.id and cloud.region on its telemetry, in OTEL_RESOURCE_ATTRIBUTES, and the changes made to it appear here too.",
+);
+
+// Where one of the project's own sources stands: read from its own row.
+export const readProjectSecurityTelemetrySource: (
+  kind: SecurityTelemetrySourceKind,
+) => Promise<SecurityTelemetrySource | null> = async (
+  kind: SecurityTelemetrySourceKind,
+): Promise<SecurityTelemetrySource | null> => {
+  const result: { data: Array<SecurityTelemetrySource> } =
+    await ModelAPI.getList({
+      modelType: SecurityTelemetrySource,
+      query: {
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        kind,
+      },
+      limit: 1,
+      skip: 0,
+      select: { _id: true, isEnabled: true },
+      sort: {},
+    });
+
+  return result.data[0] || null;
+};
+
 // Where the project's Traces source stands: read from its own row.
 export const readProjectSecurityTracesSource: () => Promise<SecurityTelemetrySource | null> =
   async (): Promise<SecurityTelemetrySource | null> => {
-    const result: { data: Array<SecurityTelemetrySource> } =
-      await ModelAPI.getList({
-        modelType: SecurityTelemetrySource,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          kind: SecurityTelemetrySourceKind.Traces,
-        },
-        limit: 1,
-        skip: 0,
-        select: { _id: true, isEnabled: true },
-        sort: {},
+    return await readProjectSecurityTelemetrySource(
+      SecurityTelemetrySourceKind.Traces,
+    );
+  };
+
+/*
+ * Where one of the project's sources stands, for a step that needs it:
+ * read once the step is drawn at all, and "unknown" - the step still links
+ * to its switch - when it could not be read.
+ */
+function useSourceState(
+  kind: SecurityTelemetrySourceKind,
+  isNeeded: boolean,
+): SecurityEventsLogsState {
+  const [source, setSource] = useState<SecurityTelemetrySource | null>(null);
+  const [isRead, setIsRead] = useState<boolean>(false);
+  const [didReadFail, setDidReadFail] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isNeeded) {
+      return () => {};
+    }
+
+    let isCurrent: boolean = true;
+
+    readProjectSecurityTelemetrySource(kind)
+      .then((found: SecurityTelemetrySource | null) => {
+        if (isCurrent) {
+          setSource(found);
+          setIsRead(true);
+        }
+      })
+      .catch(() => {
+        // Not known: the step still links to the switch.
+        if (isCurrent) {
+          setDidReadFail(true);
+        }
       });
 
-    return result.data[0] || null;
-  };
+    return () => {
+      isCurrent = false;
+    };
+  }, [kind, isNeeded]);
+
+  if (didReadFail) {
+    return "unknown";
+  }
+
+  if (!isRead) {
+    return "reading";
+  }
+
+  return source?.isEnabled === true ? "on" : "off";
+}
 
 export interface ComponentProps {
   kind: SecurityConnectionKind;
+  // A cloud resource's or a function's cloud (CloudProvider): an AWS resource's data events come from a trail.
+  cloudProvider?: string | undefined;
+  // A cloud resource of a kind its connection's stream sends logs of: its own logs are read too.
+  hasOwnLogs?: boolean | undefined;
+  /*
+   * A cloud resource or a function: whether its cloud's audit log can name
+   * it - a resource's row keeps its own ID, not a stand-in; a function's
+   * telemetry says its account and Region. And for a function, whether it
+   * is of a cloud whose functions it could name (AWS, Google Cloud), to
+   * say what to set when not.
+   */
+  isNamedByAuditLog?: boolean | undefined;
+  canBeNamedByAuditLog?: boolean | undefined;
 }
 
 const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
@@ -131,15 +264,31 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
   const [isLogSourceRead, setIsLogSourceRead] = useState<boolean>(false);
   const [didLogSourceReadFail, setDidLogSourceReadFail] =
     useState<boolean>(false);
-  // A service's events come from its traces too: where Traces stands.
   const isService: boolean = props.kind === SecurityConnectionKind.Service;
-  const [tracesSource, setTracesSource] =
-    useState<SecurityTelemetrySource | null>(null);
-  const [isTracesSourceRead, setIsTracesSourceRead] = useState<boolean>(false);
-  const [didTracesSourceReadFail, setDidTracesSourceReadFail] =
-    useState<boolean>(false);
+  const isCloudResource: boolean =
+    props.kind === SecurityConnectionKind.CloudResource;
+  const isFunction: boolean =
+    props.kind === SecurityConnectionKind.ServerlessFunction;
+  // A cloud resource's own logs are read only for a kind that has some.
+  const readsOwnLogs: boolean = !isCloudResource || Boolean(props.hasOwnLogs);
+  // A service's and a function's events come from their traces too.
+  const tracesState: SecurityEventsLogsState = useSourceState(
+    SecurityTelemetrySourceKind.Traces,
+    isService || isFunction,
+  );
+  // A cloud resource's and a function's its audit log can name come from its account's audit log.
+  const isNamedByAuditLog: boolean =
+    (isCloudResource || isFunction) && Boolean(props.isNamedByAuditLog);
+  const cloudAuditState: SecurityEventsLogsState = useSourceState(
+    SecurityTelemetrySourceKind.CloudAudit,
+    isNamedByAuditLog,
+  );
 
   useEffect(() => {
+    if (!readsOwnLogs) {
+      return () => {};
+    }
+
     let isCurrent: boolean = true;
 
     readProjectSecurityLogSource()
@@ -159,46 +308,13 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, []);
-
-  useEffect(() => {
-    if (!isService) {
-      return () => {};
-    }
-
-    let isCurrent: boolean = true;
-
-    readProjectSecurityTracesSource()
-      .then((found: SecurityTelemetrySource | null) => {
-        if (isCurrent) {
-          setTracesSource(found);
-          setIsTracesSourceRead(true);
-        }
-      })
-      .catch(() => {
-        // Not known: the step still links to the switch.
-        if (isCurrent) {
-          setDidTracesSourceReadFail(true);
-        }
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [isService]);
+  }, [readsOwnLogs]);
 
   const logsState: SecurityEventsLogsState = getSecurityEventsLogsState({
     isRead: isLogSourceRead,
     didReadFail: didLogSourceReadFail,
     source: logSource,
   });
-  const tracesState: SecurityEventsLogsState = didTracesSourceReadFail
-    ? "unknown"
-    : !isTracesSourceRead
-      ? "reading"
-      : tracesSource?.isEnabled === true
-        ? "on"
-        : "off";
 
   const connectionsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route,
@@ -237,24 +353,46 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
     });
   }
 
-  steps.push({
-    id: "your-logs",
-    state: logsState,
-    content:
-      logsState === "on" ? (
-        <TranslatedSentence
-          template="Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page."
-          slots={{ connections: connectionsLink }}
-        />
-      ) : (
-        <TranslatedSentence
-          template="Turn on Your logs, on the Security Events {{connections}} page."
-          slots={{ connections: connectionsLink }}
-        />
-      ),
-  });
+  const cloudAuditStep: { id: string; content: ReactElement; state: string } = {
+    id: "cloud-audit-logs",
+    state: cloudAuditState,
+    content: (
+      <TranslatedSentence
+        template={
+          cloudAuditState === "on"
+            ? CLOUD_AUDIT_LOGS_ON_STEP
+            : CLOUD_AUDIT_LOGS_OFF_STEP
+        }
+        slots={{ connections: connectionsLink }}
+      />
+    ),
+  };
 
-  if (isService) {
+  // A cloud resource's account's audit log names it first.
+  if (isCloudResource && isNamedByAuditLog) {
+    steps.push(cloudAuditStep);
+  }
+
+  if (readsOwnLogs) {
+    steps.push({
+      id: "your-logs",
+      state: logsState,
+      content:
+        logsState === "on" ? (
+          <TranslatedSentence
+            template="Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page."
+            slots={{ connections: connectionsLink }}
+          />
+        ) : (
+          <TranslatedSentence
+            template="Turn on Your logs, on the Security Events {{connections}} page."
+            slots={{ connections: connectionsLink }}
+          />
+        ),
+    });
+  }
+
+  if (isService || isFunction) {
     steps.push({
       id: "traces",
       state: tracesState,
@@ -264,12 +402,57 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
             template="Traces is on: OneUptime reads the requests this project's services answer for attacks. See the Security Events {{connections}} page."
             slots={{ connections: connectionsLink }}
           />
+        ) : isFunction ? (
+          <TranslatedSentence
+            template={FUNCTION_TRACES_OFF_STEP}
+            slots={{ connections: connectionsLink }}
+          />
         ) : (
           <TranslatedSentence
             template="Turn on Traces, on the Security Events {{connections}} page, to read the requests this service answers."
             slots={{ connections: connectionsLink }}
           />
         ),
+    });
+  }
+
+  if (isFunction && isNamedByAuditLog) {
+    steps.push(cloudAuditStep);
+  }
+
+  // A function its cloud's audit log could name, once its telemetry says how.
+  if (isFunction && !isNamedByAuditLog && props.canBeNamedByAuditLog) {
+    steps.push({
+      id: "function-account",
+      content: <span>{translator.translateText(FUNCTION_ACCOUNT_STEP)}</span>,
+    });
+  }
+
+  // An AWS resource's data events are no management event: a trail its account streams brings them.
+  if (
+    isCloudResource &&
+    isNamedByAuditLog &&
+    props.cloudProvider === CloudProvider.AWS
+  ) {
+    steps.push({
+      id: "cloudtrail-data-events",
+      content: (
+        <TranslatedSentence
+          template={CLOUDTRAIL_DATA_EVENTS_STEP}
+          slots={{
+            connect: (
+              <AppLink
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.CLOUD_CONNECT] as Route,
+                )}
+                className={linkClassName}
+              >
+                <span>{translator.translateText("Connect")}</span>
+              </AppLink>
+            ),
+          }}
+        />
+      ),
     });
   }
 
@@ -294,34 +477,40 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
         </h3>
         <p className="mt-2 text-sm text-gray-500">
           {translator.translateText(
-            RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE[props.kind] ||
-              WHAT_LANDS_HERE_OTHERWISE,
+            isCloudResource && !isNamedByAuditLog
+              ? CLOUD_RESOURCE_WITHOUT_ID_LANDS_HERE
+              : RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE[props.kind] ||
+                  WHAT_LANDS_HERE_OTHERWISE,
           )}
         </p>
       </div>
 
-      <ol className="mt-6 space-y-3 text-left text-sm text-gray-600">
-        {steps.map(
-          (
-            step: { id: string; content: ReactElement; state?: string },
-            index: number,
-          ): ReactElement => {
-            return (
-              <li
-                key={step.id}
-                className="flex gap-3 rounded-lg border border-gray-200 bg-white p-4"
-                data-testid={`${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-${step.id}`}
-                {...(step.state ? { "data-state": step.state } : {})}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
-                  {translator.formatNumber(index + 1)}
-                </span>
-                {step.content}
-              </li>
-            );
-          },
-        )}
-      </ol>
+      {steps.length === 0 ? (
+        <></>
+      ) : (
+        <ol className="mt-6 space-y-3 text-left text-sm text-gray-600">
+          {steps.map(
+            (
+              step: { id: string; content: ReactElement; state?: string },
+              index: number,
+            ): ReactElement => {
+              return (
+                <li
+                  key={step.id}
+                  className="flex gap-3 rounded-lg border border-gray-200 bg-white p-4"
+                  data-testid={`${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-${step.id}`}
+                  {...(step.state ? { "data-state": step.state } : {})}
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
+                    {translator.formatNumber(index + 1)}
+                  </span>
+                  {step.content}
+                </li>
+              );
+            },
+          )}
+        </ol>
+      )}
     </div>
   );
 };

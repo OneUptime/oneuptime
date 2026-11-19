@@ -25,7 +25,7 @@ import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import JSONFunctions from "Common/Types/JSONFunctions";
+import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import {
   Host,
@@ -37,7 +37,11 @@ import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import OnCallKeypadToken, {
+  ON_CALL_KEYPAD_TOKEN_PARAM,
+} from "Common/Server/Utils/OnCall/OnCallKeypadToken";
+import { ON_CALL_PAGE_LINK_TOKEN_PARAM } from "Common/Server/Utils/OnCall/OnCallPageLinkToken";
+import Dictionary from "Common/Types/Dictionary";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
 import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
@@ -700,7 +704,13 @@ export default class CallService {
           } as any;
         }
 
-        const twiml: string = this.generateTwimlForCall(callRequest);
+        /*
+         * A key the person presses is taken only for the notification this
+         * call is placed for (OnCallKeypadToken).
+         */
+        const twiml: string = this.generateTwimlForCall(callRequest, {
+          userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        });
 
         // Handed to Twilio from here on.
         hasReachedProvider = true;
@@ -928,8 +938,40 @@ export default class CallService {
    * TwiML is built again and measured, and the texts cut shorter while it is
    * still over. A call that fits is made as it always was.
    */
-  public static generateTwimlForCall(callRequest: CallRequestMessage): string {
+  public static generateTwimlForCall(
+    callRequest: CallRequestMessage,
+    options?: {
+      /*
+       * The on-call notification the call is placed for: its keypad token
+       * names it (OnCallKeypadToken), and the keypad route takes a key only
+       * for that notification.
+       */
+      userOnCallLogTimelineId?: ObjectID | string | undefined;
+    },
+  ): string {
     const spoken: Array<string> = [];
+
+    /*
+     * Signed once, for every build below: a token signed again a second
+     * later would make the TwiML measured differ from the TwiML sent.
+     */
+    const keypadTokens: Map<GatherInput, string> = new Map();
+
+    const keypadTokenOf: (gather: GatherInput) => string = (
+      gather: GatherInput,
+    ): string => {
+      if (!keypadTokens.has(gather)) {
+        keypadTokens.set(
+          gather,
+          OnCallKeypadToken.sign({
+            userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
+            answers: gather.onInputCallRequest,
+          }),
+        );
+      }
+
+      return keypadTokens.get(gather)!;
+    };
 
     const twiml: string = this.buildTwimlForCall(
       callRequest,
@@ -937,6 +979,7 @@ export default class CallService {
         spoken.push(text);
         return text;
       },
+      keypadTokenOf,
     );
 
     if (twiml.length <= MAX_CALL_TWIML_LENGTH) {
@@ -945,9 +988,13 @@ export default class CallService {
 
     // What the TwiML takes besides its texts: each text one character.
     const overhead: number =
-      this.buildTwimlForCall(callRequest, (): string => {
-        return "x";
-      }).length - spoken.length;
+      this.buildTwimlForCall(
+        callRequest,
+        (): string => {
+          return "x";
+        },
+        keypadTokenOf,
+      ).length - spoken.length;
 
     let budget: number = MAX_CALL_TWIML_LENGTH - overhead;
     let fittedTwiml: string = twiml;
@@ -966,9 +1013,13 @@ export default class CallService {
 
       let next: number = 0;
 
-      fittedTwiml = this.buildTwimlForCall(callRequest, (): string => {
-        return fitted[next++] ?? "";
-      });
+      fittedTwiml = this.buildTwimlForCall(
+        callRequest,
+        (): string => {
+          return fitted[next++] ?? "";
+        },
+        keypadTokenOf,
+      );
 
       if (fittedTwiml.length <= MAX_CALL_TWIML_LENGTH) {
         return fittedTwiml;
@@ -981,12 +1032,37 @@ export default class CallService {
   }
 
   /*
+   * Where Twilio posts a key the person pressed (#10025): the prompt's
+   * address with the call's keypad token, which says what each key answers
+   * and names the notification the call is for (OnCallKeypadToken) - and
+   * without the page's link token the address may carry
+   * (OnCallPageLinks.getCallResponseUrl), which escalates the page from a
+   * browser too. This address lands in Twilio's request logs and in the
+   * call's TwiML in the Twilio console. The prompt's own address is left as
+   * it was.
+   */
+  public static getKeypadAction(responseUrl: URL, keypadToken: string): string {
+    const action: URL = URL.fromURL(responseUrl);
+    const params: Dictionary<string> = { ...action.params };
+
+    delete params[ON_CALL_PAGE_LINK_TOKEN_PARAM];
+    action.params = params;
+
+    return action
+      .addQueryParam(ON_CALL_KEYPAD_TOKEN_PARAM, keypadToken)
+      .toString();
+  }
+
+  /*
    * The TwiML for a call, each text it speaks as `say` has it: in the order
-   * the call speaks them.
+   * the call speaks them. A key the person presses is posted to the
+   * prompt's keypad action (getKeypadAction), with the call's keypad token
+   * (`keypadTokenOf`).
    */
   private static buildTwimlForCall(
     callRequest: CallRequestMessage,
     say: (text: string) => string,
+    keypadTokenOf: (gather: GatherInput) => string,
   ): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
@@ -1002,17 +1078,10 @@ export default class CallService {
         response.gather({
           numDigits: (item as GatherInput).numDigits,
           timeout: (item as GatherInput).timeoutInSeconds || 5,
-          action: (item as GatherInput).responseUrl
-            .addQueryParam(
-              "token",
-              JSONWebToken.signJsonPayload(
-                JSONFunctions.serialize(
-                  (item as GatherInput).onInputCallRequest as any,
-                ),
-                OneUptimeDate.getDayInSeconds(),
-              ),
-            )
-            .toString(),
+          action: this.getKeypadAction(
+            (item as GatherInput).responseUrl,
+            keypadTokenOf(item as GatherInput),
+          ),
           method: "POST",
         });
 

@@ -44,7 +44,7 @@ Se os celulares da equipe de plantão não puderem usar a sua VPN, publique as p
 | --- | --- | --- |
 | GET | `/l/*` | Os links curtos das mensagens de SMS, WhatsApp e Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | A página que mostra o motivo do acionamento, com o botão **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | O botão **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | O botão **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Opcional: a página que repassa o acionamento para a próxima pessoa |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Opcional: o botão dessa página |
 | GET | `/oneuptime-assets/*` | As fontes, os estilos e o logotipo dessas páginas |

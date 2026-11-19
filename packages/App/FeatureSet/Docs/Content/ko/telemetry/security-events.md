@@ -218,6 +218,7 @@ CEF나 LEEF 탐지 결과, Palo Alto Networks, FortiGate, Cisco ASA의 위협처
 - 각 레코드는 **내 로그**가 파이프라인에서 읽는 것과 똑같이 읽히므로, 규칙 라이브러리의 CloudTrail, Google Cloud, Azure 규칙과 일치합니다.
 - 이벤트에는 저장된 시각이 찍히고, 레코드 자체의 시각은 `oneuptime.cloud.record_time`에 들어갑니다. 감사 로그는 몇 분 늦게 OneUptime에 도착하고, 규칙은 이벤트를 그 시각으로 읽기 때문입니다.
 - 계정 자체를 읽어서 얻는 것은 여기까지입니다. 데이터 이벤트, Data Access 로그, Microsoft Entra ID 로그에는 여전히 **내 로그**나 [연결](/docs/integrations/microsoft-entra-id)이 필요합니다.
+- 각 이벤트는 레코드가 다루는 클라우드 리소스를 자체 ID(ARN, Azure 리소스 ID, Google Cloud 리소스 이름)로 가리키므로 각 리소스의 **보안 이벤트** 페이지에 표시되며, 텔레메트리에 `cloud.account.id`와 `cloud.region`을 설정한 서버리스 함수의 페이지에도 표시됩니다.
 
 ### 보안 제품 연결하기
 
