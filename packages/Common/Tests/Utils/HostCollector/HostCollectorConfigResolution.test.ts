@@ -361,7 +361,8 @@ describe("the config a host runs", () => {
             a: HostCollectorConfigCandidate,
             b: HostCollectorConfigCandidate,
           ): number => {
-            return a.order - b.order;
+            // Every config here has a place, each its own.
+            return (a.order as number) - (b.order as number);
           },
         )
         .find((candidate: HostCollectorConfigCandidate): boolean => {

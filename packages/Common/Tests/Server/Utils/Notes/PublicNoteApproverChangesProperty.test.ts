@@ -112,6 +112,15 @@ function oraclePosition(
   const ordered: Array<PublicNoteApprovalStepRule> = [...steps].sort(
     (a: PublicNoteApprovalStepRule, b: PublicNoteApprovalStepRule): number => {
       if (a.order !== b.order) {
+        // A step without a place goes after every step that has one.
+        if (a.order === null) {
+          return 1;
+        }
+
+        if (b.order === null) {
+          return -1;
+        }
+
         return a.order - b.order;
       }
 

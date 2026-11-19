@@ -320,11 +320,10 @@ function installFakes(): void {
   jest
     .spyOn(HostCollectorConfigService, "findBy")
     .mockImplementation(
-      async (data: {
-        query: Record<string, unknown>;
-        sort?: Record<string, unknown>;
-      }) => {
-        configSorts.push({ ...(data.sort || {}) });
+      async (data: { query: Record<string, unknown>; sort?: unknown }) => {
+        configSorts.push({
+          ...((data.sort as Record<string, unknown> | undefined) || {}),
+        });
         return (
           configs
             .filter((config: FakeConfig): boolean => {

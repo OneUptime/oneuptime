@@ -9,6 +9,7 @@ import MonitorStatusService from "../../../Server/Services/MonitorStatusService"
 import CloudBudgetEvaluator from "../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
 import DataProductSync from "../../../Server/Utils/DataObservability/DataProductSync";
 import OpenStackBudgetEvaluator from "../../../Server/Utils/OpenStack/OpenStackBudgetEvaluator";
+import Query from "../../../Server/Types/Database/Query";
 import ObjectID from "../../../Types/ObjectID";
 import {
   STATE_LISTS,
@@ -103,8 +104,9 @@ async function findByFlag(
   listCase: ListOrderCase,
   flag: string,
 ): Promise<string | undefined> {
+  // A list's service, as a lookup by its built-in flag asks it.
   const found: BaseModel | null = await listCase.service.findOneBy({
-    query: { projectId: PROJECT_ID, [flag]: true },
+    query: { projectId: PROJECT_ID, [flag]: true } as Query<BaseModel>,
     select: { _id: true },
     props: { isRoot: true },
   });
