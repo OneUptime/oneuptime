@@ -14,6 +14,7 @@ import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import Select from "../Types/Database/Select";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OwnerRuleAssignment, {
+  OwnerAddOutcome,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
@@ -357,13 +358,34 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
     props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<OwnerWriteOutcome> {
     try {
-      const added: boolean = await OwnerRuleAssignment.createOwner({
-        ownerService: data.ownerService,
-        owner: data.owner,
-        props: RuleRunWriteProps.get(data.props),
-      });
+      const outcome: OwnerAddOutcome =
+        await OwnerRuleAssignment.createOwnerWithOutcome({
+          ownerService: data.ownerService,
+          owner: data.owner,
+          props: RuleRunWriteProps.get(data.props),
+        });
 
-      return added ? OwnerWriteOutcome.Added : OwnerWriteOutcome.AlreadyOwner;
+      if (outcome === OwnerAddOutcome.Added) {
+        return OwnerWriteOutcome.Added;
+      }
+
+      /*
+       * Skipped by createOwner itself (#9933): a user who has left the
+       * project, a team that is not one of its teams. Counted as refused,
+       * not as an owner the SLO already has.
+       */
+      if (OwnerRuleAssignment.isSkipped(outcome)) {
+        logger.warn(
+          `SLO owner rule did not add an owner to SLO ${data.serviceLevelObjective.id?.toString()}: ${outcome}.`,
+          {
+            projectId: data.serviceLevelObjective.projectId?.toString(),
+          } as LogAttributes,
+        );
+
+        return OwnerWriteOutcome.Rejected;
+      }
+
+      return OwnerWriteOutcome.AlreadyOwner;
     } catch (error) {
       if (!(error instanceof BadDataException)) {
         throw error;

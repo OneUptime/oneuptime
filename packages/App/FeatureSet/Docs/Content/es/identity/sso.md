@@ -79,7 +79,7 @@ Necesitas permiso para añadir proveedores de SSO — **Propietario del proyecto
    - Un proveedor nuevo empieza desactivado. Cuando tu IdP tenga estos dos valores, edita el proveedor y activa **Habilitado**
 
 4. **Probar el proveedor**
-   - Abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor en la página que se abre. Se te redirige a la página de inicio de sesión de tu proveedor de identidad y vuelves a OneUptime con la sesión iniciada
+   - Abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor en la página que se abre. Se te redirige a la página de inicio de sesión de tu proveedor de identidad y vuelves a OneUptime con la sesión iniciada
    - Cuando funcione, puedes [exigir SSO](#exigir-sso-en-tu-proyecto) en el proyecto
 :::
 
@@ -131,7 +131,7 @@ Keycloak es una solución de código abierto muy extendida para la gestión de i
 
 5. **Activar el proveedor y probarlo**
 
-   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Keycloak y volver a OneUptime.
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Keycloak y volver a OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (antes Azure AD / Active Directory) es el servicio de identidad en la nube de Microsoft. Necesitas un tenant que admita aplicaciones empresariales con SSO SAML, y acceso de administrador a Entra ID y a OneUptime. En OneUptime Cloud, si la galería de aplicaciones de Microsoft Entra incluye OneUptime, añádelo desde ahí: ya trae las notificaciones que lee OneUptime y los patrones de sus URL.
@@ -182,7 +182,7 @@ Microsoft Entra ID (antes Azure AD / Active Directory) es el servicio de identid
 
 7. **Activar el proveedor y probarlo**
 
-   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Microsoft y volver a OneUptime.
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Microsoft y volver a OneUptime.
 :::
 @tab Okta
 Okta es una plataforma de identidad muy utilizada con SSO SAML. Necesitas una organización de Okta con acceso de administrador, y acceso de administrador a OneUptime. En OneUptime Cloud, si la Okta Integration Network incluye OneUptime, añádelo desde ahí: inicia la sesión de las personas desde la página **Iniciar sesión con SSO** de OneUptime y desde su panel de Okta, les da una cuenta en su primer inicio de sesión y pide dos ID en lugar de las URL de OneUptime.
@@ -232,7 +232,7 @@ Okta es una plataforma de identidad muy utilizada con SSO SAML. Necesitas una or
 
 6. **Activar el proveedor y probarlo**
 
-   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Okta y volver a OneUptime.
+   En OneUptime, edita el proveedor y activa **Habilitado**; después abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor. Deberías llegar a la página de inicio de sesión de Okta y volver a OneUptime.
 :::
 @tab Otro
 El SSO de OneUptime usa SAML 2.0 y funciona con cualquier proveedor de identidad compatible:
@@ -242,7 +242,7 @@ El SSO de OneUptime usa SAML 2.0 y funciona con cualquier proveedor de identidad
 2. En OneUptime, crea el proveedor con esos valores y copia el **Identificador (Entity ID)** y la **URL de respuesta (URL del Assertion Consumer Service)** del cuadro de diálogo **Configuración de SSO** (o de **Ver configuración SSO**).
 3. En la aplicación SAML de tu proveedor de identidad, establece la **Assertion Consumer Service URL / Reply URL** y el **Entity ID / Audience URI** con los valores de OneUptime, y el **Name ID Format** en la dirección de correo.
 4. El **Método de firma** (`RSA-SHA256`) y el **Método de resumen** (`SHA256`) ya están definidos en **Más campos**; cámbialos solo si tu proveedor de identidad firma de otra forma
-5. Activa **Habilitado** en el proveedor y pruébalo con el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+5. Activa **Habilitado** en el proveedor y pruébalo con el enlace de la tarjeta **Enlace de inicio de sesión con SSO**.
 :::
 :::
 
@@ -256,7 +256,7 @@ Un proyecto también puede iniciar sesión mediante un proveedor OpenID Connect,
 3. Introduce un **Nombre** (lo que las personas ven en la página de inicio de sesión), la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente**. También puedes pegar la URL de descubrimiento del proveedor en **URL del emisor**.
 4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás ya está completado en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de notificación `email` y `name`, y una descripción ("Sign in with" y el nombre). Cámbialos solo si tu proveedor lo requiere. Solo se aceptan equipos a los que tú podrías invitar a alguien: un equipo que da más acceso del que tienes se indica en **Equipos**.
 5. Guarda. Se abre el cuadro de diálogo **Configuración de OIDC** con la **URI de redirección**: añádela a las URI de redirección permitidas de tu aplicación. Un proveedor nuevo empieza desactivado, así que después edítalo y activa **Habilitado**.
-6. Abre el enlace de la tarjeta **Probar el inicio de sesión único (SSO)** y elige el proveedor, para iniciar sesión con él antes de exigir SSO en el proyecto.
+6. Abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor, para iniciar sesión con él antes de exigir SSO en el proyecto.
 :::
 
 ## Cerrar sesión también en el proveedor de identidad
@@ -300,14 +300,20 @@ Los equipos de un proveedor deciden lo que pueden hacer las personas que inician
 1. Añade tu dominio en **Ajustes del proyecto** > **Avanzado** > **Dominios**, haz clic en **Verificar dominio** en su fila y añade al DNS del dominio el registro TXT que muestra. En cuanto se encuentra el registro, el dominio queda verificado.
 2. Edita el proveedor y elige el dominio en **Dominios**, en el paso **Inicio de sesión**. Solo aparecen los dominios verificados del proyecto.
 
-**Iniciar sesión con SSO** ofrece entonces el proveedor a cualquier dirección de ese dominio, la escriba quien la escriba. El dominio debe coincidir exactamente: `acme.com` no cubre `eu.acme.com`, así que añade cada dominio con el que la gente inicia sesión. Un proveedor sin dominios, como uno configurado antes de que existieran los dominios, no se ofrece a nadie ahí, y sigue iniciando la sesión de las personas desde tu proveedor de identidad y desde el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+**Iniciar sesión con SSO** ofrece entonces el proveedor a cualquier dirección de ese dominio, la escriba quien la escriba. El dominio debe coincidir exactamente: `acme.com` no cubre `eu.acme.com`, así que añade cada dominio con el que la gente inicia sesión.
+
+Los proveedores configurados antes de que existieran los dominios recibieron los dominios verificados de su proyecto al actualizar OneUptime: cada dominio que el proyecto había verificado, salvo que otro proyecto también lo hubiera verificado. Elige tú mismo ese dominio si es tuyo. Un dominio que se añadió pero nunca se verificó no se dio a ningún proveedor.
+
+Un proveedor que no tiene ningún dominio verificado no se ofrece a nadie ahí. Su columna **Dominios** dice **Ningún dominio verificado**, y un aviso encima de tus proveedores lo nombra y dice qué hacer. Mientras el proyecto no tenga ningún dominio verificado, **Verificar un dominio** en el aviso abre **Dominios**.
+
+Quien tiene su correo en otro dominio, como un contratista, tampoco encuentra ningún proveedor ahí. Comparte con esa persona el enlace de inicio de sesión con SSO de tu proyecto: cópialo de la tarjeta **Enlace de inicio de sesión con SSO** debajo de tus proveedores. Muestra los proveedores del proyecto y no pide ninguna dirección de correo, así que no dice nada de quién tiene cuenta. El inicio de sesión que empieza en tu proveedor de identidad también funciona, sea cual sea el dominio.
 
 ## Exigir SSO en tu proyecto
 
 Configurar un proveedor no impide que nadie inicie sesión con contraseña. Para que el SSO sea la única forma de entrar en el proyecto, usa el interruptor **Requerir SSO para iniciar sesión** en **Ajustes del proyecto** > **Seguridad** > **SSO**, debajo de tus proveedores:
 
 :::steps
-1. Prueba primero tu proveedor con el enlace de la tarjeta **Probar el inicio de sesión único (SSO)**.
+1. Prueba primero tu proveedor con el enlace de la tarjeta **Enlace de inicio de sesión con SSO**.
 2. Activa **Requerir SSO para iniciar sesión**. OneUptime pregunta antes de guardar nada: a partir de entonces todos los miembros del proyecto, tú incluido, deben iniciar sesión con SSO para abrirlo, y quien haya iniciado sesión con contraseña queda fuera del proyecto hasta que inicie sesión con SSO.
 3. Haz clic en **Requerir SSO** para confirmar. El interruptor se guarda al instante; no hay un botón de guardar aparte.
 :::

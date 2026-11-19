@@ -48,6 +48,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * PR #3122 (alert-dependency suppression) added a skip block to BOTH
@@ -295,8 +296,12 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         return alert;
       });
 
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
     // The resolve pass (test 5's entry points) writes a resolved state timeline.
     jest

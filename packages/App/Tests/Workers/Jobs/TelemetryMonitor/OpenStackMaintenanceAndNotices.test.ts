@@ -126,6 +126,7 @@ import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import { monitorOpenStack } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { FoldedReadArgs, foldRowsAsSqlRead } from "./SqlGroupedFold";
+import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
@@ -577,8 +578,12 @@ describe("maintenance and project notices, replayed from what real clouds' expor
     jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([]);
     jest.spyOn(AlertOwnerUserService, "findBy").mockResolvedValue([]);
     jest.spyOn(AlertOwnerTeamService, "findBy").mockResolvedValue([]);
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
     jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);

@@ -79,7 +79,7 @@ Sie brauchen die Berechtigung, SSO-Anbieter hinzuzufügen – **Projektinhaber**
    - Ein neuer Anbieter ist zunächst ausgeschaltet. Sobald Ihr IdP diese beiden Werte hat, bearbeiten Sie den Anbieter und schalten **Aktiviert** ein
 
 4. **Den Anbieter testen**
-   - Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie auf der Seite, die sich öffnet, den Anbieter. Sie werden zur Anmeldeseite Ihres Identitätsanbieters geleitet und kommen angemeldet zu OneUptime zurück
+   - Öffnen Sie den Link in der Karte **SSO-Anmeldelink** und wählen Sie auf der Seite, die sich öffnet, den Anbieter. Sie werden zur Anmeldeseite Ihres Identitätsanbieters geleitet und kommen angemeldet zu OneUptime zurück
    - Sobald das klappt, können Sie für das Projekt [SSO verlangen](#sso-für-ihr-projekt-verlangen)
 :::
 
@@ -131,7 +131,7 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
 
 5. **Den Anbieter einschalten und testen**
 
-   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Keycloak-Anmeldeseite und zurück zu OneUptime geleitet werden.
+   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter. Sie sollten zur Keycloak-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitätsdienst von Microsoft. Sie brauchen einen Tenant, der Unternehmensanwendungen mit SAML-SSO unterstützt, sowie Administratorzugriff auf Entra ID und OneUptime. Führt der Microsoft-Entra-Anwendungskatalog OneUptime auf, fügen Sie die App auf OneUptime Cloud von dort hinzu: Sie bringt die Claims, die OneUptime liest, und die Muster der URLs von OneUptime schon mit.
@@ -182,7 +182,7 @@ Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitä
 
 7. **Den Anbieter einschalten und testen**
 
-   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Microsoft-Anmeldeseite und zurück zu OneUptime geleitet werden.
+   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter. Sie sollten zur Microsoft-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Okta
 Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen eine Okta-Organisation mit Administratorzugriff sowie Administratorzugriff auf OneUptime. Führt das Okta Integration Network OneUptime auf, fügen Sie die App auf OneUptime Cloud von dort hinzu: Sie meldet Personen über die OneUptime-Seite **Mit SSO anmelden** und über ihr Okta-Dashboard an, gibt ihnen bei der ersten Anmeldung ein Konto und fragt statt nach den URLs von OneUptime nach zwei IDs.
@@ -232,7 +232,7 @@ Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen e
 
 6. **Den Anbieter einschalten und testen**
 
-   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Okta-Anmeldeseite und zurück zu OneUptime geleitet werden.
+   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter. Sie sollten zur Okta-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Andere
 Das SSO von OneUptime nutzt SAML 2.0 und funktioniert mit jedem konformen Identitätsanbieter:
@@ -242,7 +242,7 @@ Das SSO von OneUptime nutzt SAML 2.0 und funktioniert mit jedem konformen Identi
 2. Legen Sie in OneUptime den Anbieter mit diesen Werten an und kopieren Sie die **Kennung (Entity ID)** und die **Antwort-URL (Assertion Consumer Service URL)** aus dem Dialog **SSO-Konfiguration** (oder über **SSO-Konfiguration anzeigen**).
 3. Setzen Sie in der SAML-Anwendung Ihres Identitätsanbieters die **Assertion Consumer Service URL / Reply URL** und die **Entity ID / Audience URI** auf die Werte von OneUptime und das **Name ID Format** auf die E-Mail-Adresse.
 4. **Signaturmethode** (`RSA-SHA256`) und **Digest-Methode** (`SHA256`) sind bereits unter **Weitere Felder** gesetzt; ändern Sie sie nur, wenn Ihr Identitätsanbieter anders signiert
-5. Schalten Sie für den Anbieter **Aktiviert** ein und testen Sie ihn mit dem Link in der Karte **Single Sign-On (SSO) testen**.
+5. Schalten Sie für den Anbieter **Aktiviert** ein und testen Sie ihn mit dem Link in der Karte **SSO-Anmeldelink**.
 :::
 :::
 
@@ -256,7 +256,7 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 3. Geben Sie einen **Name** (das, was Personen auf der Anmeldeseite sehen), die **Aussteller-URL**, die **Client-ID** und das **Client-Secret** ein. Sie können stattdessen auch die Discovery-URL des Anbieters in **Aussteller-URL** einfügen.
 4. Im Schritt **Anmeldung** beginnt **Teams** mit dem Mitglieder-Team Ihres Projekts: Wer sich zum ersten Mal anmeldet, kommt in diese Teams. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller, gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung ("Sign in with" und der Name). Ändern Sie sie nur, wenn Ihr Anbieter es verlangt. Angenommen werden nur Teams, in die Sie selbst jemanden einladen könnten: Ein Team, das mehr Zugriff gibt, als Sie haben, wird unter **Teams** genannt.
 5. Speichern Sie. Der Dialog **OIDC-Konfiguration** öffnet sich mit der **Weiterleitungs-URI**: Fügen Sie sie den erlaubten Weiterleitungs-URIs Ihrer App hinzu. Ein neuer Anbieter ist zunächst ausgeschaltet; bearbeiten Sie ihn deshalb danach und schalten Sie **Aktiviert** ein.
-6. Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
+6. Öffnen Sie den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
 ## Auch beim Identitätsanbieter abmelden
@@ -300,14 +300,20 @@ Die Teams eines Anbieters bestimmen, was Personen tun dürfen, die sich mit ihm 
 1. Fügen Sie Ihre Domain unter **Projekteinstellungen** > **Erweitert** > **Domänen** hinzu, klicken Sie in ihrer Zeile auf **Domain verifizieren** und tragen Sie den angezeigten TXT-Eintrag in das DNS der Domain ein. Sobald der Eintrag gefunden wird, ist die Domain verifiziert.
 2. Bearbeiten Sie den Anbieter und wählen Sie die Domain im Schritt **Anmeldung** unter **Domänen** aus. Nur die verifizierten Domänen des Projekts werden aufgeführt.
 
-**Mit SSO anmelden** bietet den Anbieter dann jeder Adresse in dieser Domain an, egal wer sie eingibt. Die Domain muss genau übereinstimmen: `acme.com` umfasst nicht `eu.acme.com`, fügen Sie also jede Domain hinzu, mit der sich Personen anmelden. Ein Anbieter ohne Domänen, etwa einer, der eingerichtet wurde, bevor es Domänen gab, wird dort niemandem angeboten und meldet Personen weiterhin über Ihren Identitätsanbieter und über den Link in der Karte **Single Sign-On (SSO) testen** an.
+**Mit SSO anmelden** bietet den Anbieter dann jeder Adresse in dieser Domain an, egal wer sie eingibt. Die Domain muss genau übereinstimmen: `acme.com` umfasst nicht `eu.acme.com`, fügen Sie also jede Domain hinzu, mit der sich Personen anmelden.
+
+Anbieter, die eingerichtet wurden, bevor es Domänen gab, haben beim Upgrade von OneUptime die verifizierten Domänen ihres Projekts erhalten: jede Domäne, die das Projekt verifiziert hatte, außer einer, die auch ein anderes Projekt verifiziert hatte. Wählen Sie eine solche Domäne selbst aus, wenn sie Ihre ist. Eine Domäne, die hinzugefügt, aber nie verifiziert wurde, hat kein Anbieter erhalten.
+
+Ein Anbieter, der keine verifizierte Domäne nennt, wird dort niemandem angeboten. Seine Spalte **Domänen** zeigt **Keine verifizierte Domäne**, und ein Hinweis über Ihren Anbietern nennt ihn und sagt, was zu tun ist. Solange das Projekt keine verifizierte Domäne hat, öffnet **Eine Domäne verifizieren** im Hinweis die Seite **Domänen**.
+
+Wer eine E-Mail-Adresse auf einer anderen Domäne hat, etwa ein externer Mitarbeiter, findet dort ebenfalls keinen Anbieter. Teilen Sie den SSO-Anmeldelink Ihres Projekts mit dieser Person: Kopieren Sie ihn aus der Karte **SSO-Anmeldelink** unter Ihren Anbietern. Er listet die Anbieter des Projekts auf und fragt nach keiner E-Mail-Adresse, verrät also nicht, wer ein Konto hat. Eine Anmeldung, die bei Ihrem Identitätsanbieter beginnt, funktioniert ebenfalls, egal auf welcher Domäne.
 
 ## SSO für Ihr Projekt verlangen
 
 Ein eingerichteter Anbieter hält niemanden davon ab, sich mit einem Passwort anzumelden. Um SSO zum einzigen Weg ins Projekt zu machen, verwenden Sie den Schalter **SSO für die Anmeldung erzwingen** unter **Projekteinstellungen** > **Sicherheit** > **SSO**, unterhalb Ihrer Anbieter:
 
 :::steps
-1. Testen Sie zuerst Ihren Anbieter mit dem Link in der Karte **Single Sign-On (SSO) testen**.
+1. Testen Sie zuerst Ihren Anbieter mit dem Link in der Karte **SSO-Anmeldelink**.
 2. Schalten Sie **SSO für die Anmeldung erzwingen** ein. OneUptime fragt nach, bevor etwas gespeichert wird: Von da an muss sich jeder im Projekt, Sie eingeschlossen, mit SSO anmelden, um es zu öffnen, und wer mit einem Passwort angemeldet ist, ist aus dem Projekt ausgesperrt, bis er sich mit SSO anmeldet.
 3. Klicken Sie zur Bestätigung auf **SSO erzwingen**. Der Schalter speichert sofort; eine eigene Schaltfläche zum Speichern gibt es nicht.
 :::

@@ -20,8 +20,10 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -176,7 +178,7 @@ class CloudResourceOwnerRuleEngineServiceClass
       [false, new Set()],
     ]);
 
-    const matchedRuleNames: Array<string> = [];
+    const matchedRules: Array<CloudResourceOwnerRule> = [];
     const allUserIds: Set<string> = new Set();
     const allTeamIds: Set<string> = new Set();
     let anyRuleMatched: boolean = false;
@@ -191,9 +193,7 @@ class CloudResourceOwnerRuleEngineServiceClass
         (rule.ownerUsers || []).length > 0 ||
         (rule.ownerTeams || []).length > 0
       ) {
-        matchedRuleNames.push(
-          rule.name || rule.id?.toString() || "Unnamed rule",
-        );
+        matchedRules.push(rule);
       }
       const notify: boolean =
         rule.notifyOwners !== false && data.allowOwnerNotification;
@@ -244,7 +244,13 @@ class CloudResourceOwnerRuleEngineServiceClass
       }),
     );
 
-    let ownersAdded: number = 0;
+    /*
+     * What the adds did: the owners written, and the ones skipped and why -
+     * a user who has left the project, a team that is not one of its teams
+     * (#9933). The count, the result and the rules credited are made from
+     * these.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -268,15 +274,16 @@ class CloudResourceOwnerRuleEngineServiceClass
         owner.projectId = cloudResource.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        if (
-          await OwnerRuleAssignment.createOwner({
+        OwnerRuleAssignment.recordOutcome({
+          into: outcome,
+          ownerColumn: "userId",
+          id: new ObjectID(userId),
+          outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
             ownerService: CloudResourceOwnerUserService,
             owner: owner,
             props: RuleRunWriteProps.get(data.props),
-          })
-        ) {
-          ownersAdded++;
-        }
+          }),
+        });
       }
 
       for (const teamId of teamIds) {
@@ -285,21 +292,42 @@ class CloudResourceOwnerRuleEngineServiceClass
         owner.projectId = cloudResource.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        if (
-          await OwnerRuleAssignment.createOwner({
+        OwnerRuleAssignment.recordOutcome({
+          into: outcome,
+          ownerColumn: "teamId",
+          id: new ObjectID(teamId),
+          outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
             ownerService: CloudResourceOwnerTeamService,
             owner: owner,
             props: RuleRunWriteProps.get(data.props),
-          })
-        ) {
-          ownersAdded++;
-        }
+          }),
+        });
       }
     }
 
+    const ownersAdded: number = outcome.userIds.length + outcome.teamIds.length;
+
+    OwnerRuleFeed.logSkipped({
+      engine: "CloudResourceOwnerRuleEngine",
+      record: `cloud resource ${cloudResource.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: cloudResource.projectId.toString(),
+      } as LogAttributes,
+    });
+
+    /*
+     * Nothing added. When every owner its rules name was skipped, the run
+     * could not update this resource: never "already applied", which would
+     * say it has owners it does not (OwnerRuleFeed.getResult).
+     */
     if (ownersAdded === 0) {
-      return RuleApplicationResultUtil.alreadyApplied();
+      return OwnerRuleFeed.getResult(outcome);
     }
+
+    // Credited: the rules that brought an owner this run added (#9933).
+    const rulesThatAdded: Array<CloudResourceOwnerRule> =
+      OwnerRuleFeed.getRulesThatAdded(matchedRules, outcome);
 
     /*
      * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
@@ -315,10 +343,14 @@ class CloudResourceOwnerRuleEngineServiceClass
         mdText`👥 Owners were added to ${await CloudResourceService.getCloudResourceMarkdownLink(
           cloudResource.projectId,
           cloudResource.id,
-        )} by ${matchedRuleNames.length} owner ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+        )} by ${rulesThatAdded.length} owner ${rulesThatAdded.length === 1 ? "rule" : "rules"}.`.toString(),
       moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
         ruleKind: "Owner",
-        ruleNames: matchedRuleNames,
+        ruleNames: rulesThatAdded.map(
+          (rule: CloudResourceOwnerRule): string => {
+            return rule.name || rule.id?.toString() || "Unnamed rule";
+          },
+        ),
       }).toString(),
     });
 

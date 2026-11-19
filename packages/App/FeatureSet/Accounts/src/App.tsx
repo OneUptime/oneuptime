@@ -19,7 +19,10 @@ import {
 import Navigation from "Common/UI/Utils/Navigation";
 import AccountsTheme from "./Utils/AccountsTheme";
 import { isFormDomainPage } from "./Utils/FormDomainPage";
-import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
+import {
+  MASTER_ADMIN_SIGN_IN_PATH,
+  PROJECT_SSO_SIGN_IN_PATH,
+} from "Common/Types/SSO/SignInMethods";
 import Footer from "./Components/Footer/Footer";
 
 // Lazy load page components
@@ -58,6 +61,12 @@ const LoginWithSSO: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/LoginWithSSO");
 });
+// A project's SSO sign-in link: its providers, by the project's id alone.
+const LoginWithProjectSso: React.LazyExoticComponent<ComponentType> = lazy(
+  () => {
+    return import("./Pages/LoginWithProjectSso");
+  },
+);
 const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/NotFound");
 });
@@ -164,6 +173,16 @@ function App(): ReactElement {
             />
             <Route path="/accounts/forbidden" element={<ForbiddenPage />} />
             <Route path="/accounts/sso" element={<LoginWithSSO />} />
+            {/*
+             * A project's SSO sign-in link (Common/Types/SSO/SignInMethods,
+             * #9918): the providers that sign people in to one project, for
+             * people whose address "Sign in with SSO" cannot find them by -
+             * an address on another domain, a domain not verified yet.
+             */}
+            <Route
+              path={PROJECT_SSO_SIGN_IN_PATH}
+              element={<LoginWithProjectSso />}
+            />
             <Route
               path="/accounts/forgot-password"
               element={<ForgotPasswordPage />}

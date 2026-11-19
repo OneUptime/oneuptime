@@ -11,11 +11,14 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import * as React from "react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
-import { JSONObject } from "../../../Types/JSON";
-import { SignInMethods } from "../../../Types/SSO/SignInMethods";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
+import {
+  PROJECT_SSO_SIGN_IN_PATH,
+  SignInMethods,
+} from "../../../Types/SSO/SignInMethods";
 import User from "../../../Models/DatabaseModels/User";
 import API from "../../../UI/Utils/API/API";
 import LoginUtil from "../../../UI/Utils/Login";
@@ -144,6 +147,9 @@ import ForbiddenPage from "../../../../App/FeatureSet/Accounts/src/Pages/Forbidd
 import ForgotPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ForgotPassword";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
+import LoginWithProjectSsoPage, {
+  PROJECT_SSO_NO_PROVIDER_TEST_ID,
+} from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithProjectSso";
 import MarketplacePurchasePage from "../../../../App/FeatureSet/Accounts/src/Pages/MarketplacePurchase";
 import McpAuthorizePage from "../../../../App/FeatureSet/Accounts/src/Pages/McpAuthorize";
 import MobilePasskeyPage from "../../../../App/FeatureSet/Accounts/src/Pages/MobilePasskey";
@@ -569,6 +575,77 @@ describe("single sign-on", () => {
     draw(<LoginPage />, "/accounts/login");
 
     expect(await screen.findByText("Okta")).toBeInTheDocument();
+    expect(lightOnlyColours()).toEqual([]);
+  });
+
+  /*
+   * A project's SSO sign-in link (/accounts/sso/<project id>, #9918): its
+   * providers, one filled button for one, and what it says with none or
+   * when they cannot be read.
+   */
+  const drawProjectSsoLink: () => void = (): void => {
+    draw(
+      <Routes>
+        <Route
+          path={PROJECT_SSO_SIGN_IN_PATH}
+          element={<LoginWithProjectSsoPage />}
+        />
+      </Routes>,
+      "/accounts/sso/11111111-1111-4111-8111-111111111111",
+    );
+  };
+
+  test("a project's SSO sign-in link: its providers", async () => {
+    apiGetAnswer = (): HTTPResponse<JSONObject> => {
+      return new HTTPResponse<JSONObject>(
+        200,
+        { ssoProviders: PROVIDERS as unknown as JSONArray },
+        {},
+      );
+    };
+    drawProjectSsoLink();
+
+    expect(await screen.findByText("Okta")).toBeInTheDocument();
+    expect(lightOnlyColours()).toEqual([]);
+  });
+
+  test("a project's SSO sign-in link: one provider, the page's one filled button", async () => {
+    apiGetAnswer = (): HTTPResponse<JSONObject> => {
+      return new HTTPResponse<JSONObject>(
+        200,
+        { ssoProviders: [PROVIDERS[1]!] as unknown as JSONArray },
+        {},
+      );
+    };
+    drawProjectSsoLink();
+
+    expect(
+      await screen.findByText("Sign in with Google Workspace"),
+    ).toBeInTheDocument();
+    expect(lightOnlyColours()).toEqual([]);
+  });
+
+  test("a project's SSO sign-in link with no provider to sign in with", async () => {
+    apiGetAnswer = (): HTTPResponse<JSONObject> => {
+      return new HTTPResponse<JSONObject>(200, { ssoProviders: [] }, {});
+    };
+    drawProjectSsoLink();
+
+    expect(
+      await screen.findByTestId(PROJECT_SSO_NO_PROVIDER_TEST_ID),
+    ).toBeInTheDocument();
+    expect(lightOnlyColours()).toEqual([]);
+  });
+
+  test("a project's SSO sign-in link whose providers cannot be read", async () => {
+    apiGetAnswer = (): HTTPErrorResponse => {
+      return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+    };
+    drawProjectSsoLink();
+
+    expect(
+      await screen.findByRole("button", { name: /try again/i }),
+    ).toBeInTheDocument();
     expect(lightOnlyColours()).toEqual([]);
   });
 });

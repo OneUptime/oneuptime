@@ -42,6 +42,14 @@ import { DataSource, Raw } from "typeorm";
  * stranger to the reader, and someone with no membership in their projects
  * at all - who left one, say - keeps the name history shows them by.
  *
+ * A run of OneUptime's own made for the readers of a subject - an AI
+ * investigation, a fix, a security case's triage (ReadAudience, #9576) -
+ * reads as root, but writes for everyone who may see the subject: its
+ * report goes to the subject's feed and channels, and OneUptime AI repeats
+ * what it read to whoever asks. So it reads people as its project does
+ * (#9934): someone only invited there by the name typed for them, else
+ * none.
+ *
  * Asked where a read can reveal it:
  *
  *   - What a read returns (withholdFromRows), in every read of the CRUD
@@ -113,11 +121,39 @@ interface PendingMembershipRow {
 }
 
 export default class PendingInviteeProfiles {
-  // OneUptime's own reads and a master admin's see every profile.
+  /*
+   * OneUptime's own reads and a master admin's see every profile - but not
+   * a run of OneUptime's own made for the readers of a subject (see the
+   * top of this file), which reads as its project does.
+   */
   public static seesEveryProfile(
     props: DatabaseCommonInteractionProps,
   ): boolean {
+    if (PendingInviteeProfiles.getAudienceProjectId(props)) {
+      return false;
+    }
+
     return Boolean(props.isRoot || props.isMasterAdmin);
+  }
+
+  /*
+   * The project a run of OneUptime's own reads for, lower-cased, when it
+   * reads for the readers of a subject (ReadAudience: only ever on root
+   * props, as ReadAudiencePermission.getAudience reads it); null for any
+   * other read.
+   */
+  public static getAudienceProjectId(
+    props: DatabaseCommonInteractionProps,
+  ): string | null {
+    if (!props.isRoot || !props.readAudience) {
+      return null;
+    }
+
+    const projectId: string = String(
+      props.readAudience.projectId || "",
+    ).toLowerCase();
+
+    return ObjectID.isValidUUID(projectId) ? projectId : null;
   }
 
   // Whether a model is a person's account, by its table.
@@ -138,10 +174,12 @@ export default class PendingInviteeProfiles {
   public static getReaderUserId(
     props: DatabaseCommonInteractionProps,
   ): string | null {
+    // A run for a subject's readers writes for all of them: nobody in particular.
     if (
       props.userType === UserType.API ||
       props.userType === UserType.Workflow ||
-      props.userType === UserType.Public
+      props.userType === UserType.Public ||
+      PendingInviteeProfiles.getAudienceProjectId(props)
     ) {
       return null;
     }
@@ -158,6 +196,13 @@ export default class PendingInviteeProfiles {
   private static getReaderProjectId(
     props: DatabaseCommonInteractionProps,
   ): string | null {
+    const audienceProjectId: string | null =
+      PendingInviteeProfiles.getAudienceProjectId(props);
+
+    if (audienceProjectId) {
+      return audienceProjectId;
+    }
+
     const projectId: string | undefined = props.tenantId?.toString();
 
     return projectId && ObjectID.isValidUUID(projectId)

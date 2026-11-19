@@ -79,7 +79,7 @@ Du behöver behörighet att lägga till SSO-leverantörer — **Projektägare**,
    - En ny leverantör börjar avstängd. När din IdP har dessa två värden redigerar du leverantören och slår på **Aktiverad**
 
 4. **Testa leverantören**
-   - Öppna länken i kortet **Test Single Sign On (SSO)** och välj leverantören på sidan som öppnas. Du skickas till din identitetsleverantörs inloggningssida och sedan tillbaka till OneUptime, inloggad
+   - Öppna länken i kortet **SSO-inloggningslänk** och välj leverantören på sidan som öppnas. Du skickas till din identitetsleverantörs inloggningssida och sedan tillbaka till OneUptime, inloggad
    - När det fungerar kan du [kräva SSO](#kräv-sso-för-ditt-projekt) för projektet
 :::
 
@@ -131,7 +131,7 @@ Keycloak är en populär lösning med öppen källkod för identitets- och åtko
 
 5. **Slå på leverantören och testa den**
 
-   Redigera leverantören i OneUptime och slå på **Aktiverad**, öppna sedan länken i kortet **Test Single Sign On (SSO)** och välj leverantören. Du ska skickas till inloggningssidan i Keycloak och tillbaka till OneUptime.
+   Redigera leverantören i OneUptime och slå på **Aktiverad**, öppna sedan länken i kortet **SSO-inloggningslänk** och välj leverantören. Du ska skickas till inloggningssidan i Keycloak och tillbaka till OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (tidigare Azure AD / Active Directory) är Microsofts molnbaserade identitetstjänst. Du behöver en klientorganisation som stöder företagsprogram med SAML-SSO, och administratörsåtkomst till både Entra ID och OneUptime. På OneUptime Cloud lägger du till OneUptime från Microsoft Entra-programgalleriet om det finns där: programmet har redan de anspråk som OneUptime läser och mönstren för OneUptimes URL:er.
@@ -182,7 +182,7 @@ Microsoft Entra ID (tidigare Azure AD / Active Directory) är Microsofts molnbas
 
 7. **Slå på leverantören och testa den**
 
-   Redigera leverantören i OneUptime och slå på **Aktiverad**, öppna sedan länken i kortet **Test Single Sign On (SSO)** och välj leverantören. Du ska skickas till Microsofts inloggningssida och tillbaka till OneUptime.
+   Redigera leverantören i OneUptime och slå på **Aktiverad**, öppna sedan länken i kortet **SSO-inloggningslänk** och välj leverantören. Du ska skickas till Microsofts inloggningssida och tillbaka till OneUptime.
 :::
 @tab Okta
 Okta är en vanlig identitetsplattform med SAML-SSO. Du behöver en Okta-organisation med administratörsåtkomst, och administratörsåtkomst till OneUptime. På OneUptime Cloud lägger du till OneUptime från Okta Integration Network om det finns där: programmet loggar in personer från OneUptimes sida **Logga in med SSO** och från deras Okta-instrumentpanel, ger dem ett konto vid den första inloggningen och frågar efter två ID:n i stället för OneUptimes URL:er.
@@ -232,7 +232,7 @@ Okta är en vanlig identitetsplattform med SAML-SSO. Du behöver en Okta-organis
 
 6. **Slå på leverantören och testa den**
 
-   Redigera leverantören i OneUptime och slå på **Aktiverad**, öppna sedan länken i kortet **Test Single Sign On (SSO)** och välj leverantören. Du ska skickas till Oktas inloggningssida och tillbaka till OneUptime.
+   Redigera leverantören i OneUptime och slå på **Aktiverad**, öppna sedan länken i kortet **SSO-inloggningslänk** och välj leverantören. Du ska skickas till Oktas inloggningssida och tillbaka till OneUptime.
 :::
 @tab Övriga
 OneUptimes SSO använder SAML 2.0 och fungerar med alla kompatibla identitetsleverantörer:
@@ -242,7 +242,7 @@ OneUptimes SSO använder SAML 2.0 och fungerar med alla kompatibla identitetslev
 2. Skapa leverantören i OneUptime med dessa värden och kopiera **Identifierare (Entity ID)** och **Svars-URL (Assertion Consumer Service-URL)** från dialogen **SSO-konfiguration** (eller via **Visa SSO-konfiguration**).
 3. Ställ i SAML-programmet hos din identitetsleverantör in **Assertion Consumer Service URL / Reply URL** och **Entity ID / Audience URI** på OneUptimes värden, och **Name ID Format** på e-postadress.
 4. **Signaturmetod** (`RSA-SHA256`) och **Digest-metod** (`SHA256`) är redan angivna under **Fler fält**; ändra dem bara om din identitetsleverantör signerar på ett annat sätt
-5. Slå på **Aktiverad** för leverantören och testa den med länken i kortet **Test Single Sign On (SSO)**.
+5. Slå på **Aktiverad** för leverantören och testa den med länken i kortet **SSO-inloggningslänk**.
 :::
 :::
 
@@ -256,7 +256,7 @@ Ett projekt kan också logga in via en OpenID Connect-leverantör, till exempel 
 3. Ange ett **Namn** (det som personer ser på inloggningssidan), **Utfärdar-URL**, **Klient-ID** och **Klienthemlighet**. Du kan också klistra in leverantörens discovery-URL i **Utfärdar-URL** i stället.
 4. I steget **Inloggning** börjar **Team** med projektets medlemsteam: personer som loggar in för första gången går med i dessa team. Resten är redan ifyllt under **Fler fält**: **Discovery-URL** (utfärdaren följd av `/.well-known/openid-configuration`), **Omfattningar** (`openid email profile`), anspråksnamnen `email` och `name` och en beskrivning ("Sign in with" och namnet). Ändra dem bara om din leverantör kräver det. Endast team som du själv kan bjuda in någon till godtas: ett team som ger mer åtkomst än du har nämns under **Team**.
 5. Spara. Dialogen **OIDC-konfiguration** öppnas med **Redirect URI**: lägg till den bland appens tillåtna omdirigerings-URI:er. En ny leverantör börjar avstängd, så redigera den sedan och slå på **Aktiverad**.
-6. Öppna länken i kortet **Test Single Sign On (SSO)** och välj leverantören för att logga in via den innan du kräver SSO för projektet.
+6. Öppna länken i kortet **SSO-inloggningslänk** och välj leverantören för att logga in via den innan du kräver SSO för projektet.
 :::
 
 ## Logga även ut från identitetsleverantören
@@ -300,14 +300,20 @@ En leverantörs team avgör vad de som loggar in med den kan göra, så en lever
 1. Lägg till din domän under **Projektinställningar** > **Avancerad** > **Domäner**, klicka på **Verifiera domän** på dess rad och lägg till TXT-posten som visas i domänens DNS. Så snart posten hittas är domänen verifierad.
 2. Redigera leverantören och välj domänen under **Domäner** i steget **Inloggning**. Endast projektets verifierade domäner visas.
 
-**Logga in med SSO** erbjuder sedan leverantören till varje adress på den domänen, oavsett vem som skriver den. Domänen måste stämma exakt: `acme.com` täcker inte `eu.acme.com`, så lägg till varje domän som folk loggar in med. En leverantör utan domäner, till exempel en som sattes upp innan domäner fanns, erbjuds ingen där och loggar fortfarande in folk från din identitetsleverantör och från länken i kortet **Test Single Sign On (SSO)**.
+**Logga in med SSO** erbjuder sedan leverantören till varje adress på den domänen, oavsett vem som skriver den. Domänen måste stämma exakt: `acme.com` täcker inte `eu.acme.com`, så lägg till varje domän som folk loggar in med.
+
+Leverantörer som sattes upp innan domäner fanns fick sitt projekts verifierade domäner när OneUptime uppgraderades: varje domän som projektet hade verifierat, om inte ett annat projekt också hade verifierat den. Välj en sådan domän själv om den är din. En domän som lades till men aldrig verifierades gavs inte till någon leverantör.
+
+En leverantör som inte anger någon verifierad domän erbjuds ingen där. Dess kolumn **Domäner** visar **Ingen verifierad domän**, och ett meddelande ovanför dina leverantörer nämner den och säger vad du ska göra. Så länge projektet inte har någon verifierad domän öppnar **Verifiera en domän** i meddelandet **Domäner**.
+
+Den som har sin e-post på en annan domän, till exempel en konsult, hittar inte heller någon leverantör där. Dela ditt projekts SSO-inloggningslänk med den personen: kopiera den från kortet **SSO-inloggningslänk** under dina leverantörer. Den listar projektets leverantörer och ber inte om någon e-postadress, så den säger inget om vem som har ett konto. En inloggning som börjar hos din identitetsleverantör fungerar också, oavsett domän.
 
 ## Kräv SSO för ditt projekt
 
 En konfigurerad leverantör hindrar ingen från att logga in med lösenord. För att göra SSO till den enda vägen in i projektet använder du reglaget **Kräv SSO för inloggning** under **Projektinställningar** > **Säkerhet** > **SSO**, under dina leverantörer:
 
 :::steps
-1. Testa din leverantör först, med länken i kortet **Test Single Sign On (SSO)**.
+1. Testa din leverantör först, med länken i kortet **SSO-inloggningslänk**.
 2. Slå på **Kräv SSO för inloggning**. OneUptime frågar innan något sparas: från och med då måste alla i projektet, även du, logga in med SSO för att öppna det, och alla som är inloggade med lösenord stängs ute från projektet tills de loggar in med SSO.
 3. Klicka på **Kräv SSO** för att bekräfta. Reglaget sparas direkt; det finns ingen separat Spara-knapp.
 :::
