@@ -945,6 +945,48 @@ describe("MobileProductAnalytics", (): void => {
       expect(sent[2]!.batch.batchId).toBe(sent[0]!.batch.batchId);
     });
 
+    /*
+     * The server moves a batch's times by receivedAt - sentAt. A batch sent
+     * again under the sentAt of its first try read the back-off as clock
+     * skew, and its events were filed when the retry arrived.
+     */
+    it("says when each try is sent, so a batch sent again files its events when they happened", async (): Promise<void> => {
+      answers.push({ status: 500 }, { status: 503 });
+
+      const channel: MobileProductAnalytics = await startChannel();
+
+      channel.track("Paid");
+
+      for (let step: number = 0; step < 8; step++) {
+        await nextFlush();
+      }
+
+      expect(sent).toHaveLength(3);
+      expect(sent[2]!.batch.batchId).toBe(sent[0]!.batch.batchId);
+      expect(sent[2]!.batch.sentAt).toBeGreaterThan(sent[0]!.batch.sentAt);
+
+      const parsed: ProductAnalyticsBatchParseResult =
+        parseProductAnalyticsBatch(sent[2]!.batch, {
+          receivedAtUnixMs: sent[2]!.batch.sentAt,
+          allowedUserPropertyKeys: [],
+        });
+
+      expect(parsed.isValid).toBe(true);
+
+      if (!parsed.isValid) {
+        return;
+      }
+
+      expect(
+        parsed.batch.events.map((event: { name: string; time: number }) => {
+          return [event.name, event.time];
+        }),
+      ).toEqual([
+        ["", STARTED_AT],
+        ["Paid", STARTED_AT],
+      ]);
+    });
+
     it("waits as long as a 429's Retry-After asks before sending the same batch again", async (): Promise<void> => {
       answers.push({ status: 429, headers: { "Retry-After": "60" } });
 

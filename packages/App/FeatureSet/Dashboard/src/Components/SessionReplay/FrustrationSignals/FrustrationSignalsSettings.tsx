@@ -1,3 +1,4 @@
+import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
@@ -20,6 +21,16 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { getRumCustomSignalTemplateId } from "Common/Types/Monitor/RumAlertTemplates";
+import {
+  buildRecommendationId,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import PageMap from "../../../Utils/PageMap";
+import { RouteUtil } from "../../../Utils/RouteMap";
+import { RECOMMENDATION_SELECTION_QUERY_PARAM } from "../../Recommendations/RecommendationFilterUtil";
+import { RecommendationStatusFilter } from "../../Recommendations/RecommendationViewModel";
+import { buildCustomSignalSessionsQuery } from "../SessionReplayListFilters";
 import BuiltInSignalRow from "./BuiltInSignalRow";
 import CustomSignalModal from "./CustomSignalModal";
 import CustomSignalRow from "./CustomSignalRow";
@@ -65,9 +76,17 @@ import useFrustrationSettings, {
  * to sessions recorded from then on; the page says so once, at the top.
  * Someone who may not edit the application sees the same page with every
  * control locked and why.
+ *
+ * Each signal of the application's own leads to the sessions it fired in
+ * (See sessions, issue #6515): the application's session list, filtered
+ * to its name. One that is switched on leads to an alert on it too (Set up
+ * an alert, issue #6518): the application's Recommendations page, on the
+ * signal's own alert - ticked, searched for by its quoted name, and shown
+ * whether it is still to create or already created.
  */
 
 export interface ViewProps {
+  rumApplicationId: ObjectID;
   state: FrustrationSettingsState;
   // A test seam: the browser's own reading of a selector.
   acceptsSelector?: SelectorCheck | undefined;
@@ -86,6 +105,38 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
   const settings: SessionReplayFrustrationSettings | null = state.settings;
 
   const [dialog, setDialog] = useState<DialogState>({ kind: "closed" });
+
+  const sessionsRouteOf: (signal: SessionReplayCustomSignal) => Route = (
+    signal: SessionReplayCustomSignal,
+  ): Route => {
+    return RouteUtil.getPageRoute(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY, {
+      modelId: props.rumApplicationId,
+      query: buildCustomSignalSessionsQuery(signal.name),
+    });
+  };
+
+  const alertRouteOf: (signal: SessionReplayCustomSignal) => Route | null = (
+    signal: SessionReplayCustomSignal,
+  ): Route | null => {
+    if (!signal.isEnabled || !signal.id) {
+      return null;
+    }
+
+    return RouteUtil.getPageRoute(
+      PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
+      {
+        modelId: props.rumApplicationId,
+        query: {
+          [RECOMMENDATION_SELECTION_QUERY_PARAM]: buildRecommendationId(
+            MonitorRecommendationResourceType.RumApplication,
+            getRumCustomSignalTemplateId(signal.id),
+          ),
+          search: `"${signal.name}"`,
+          status: RecommendationStatusFilter.All,
+        },
+      },
+    );
+  };
 
   if (state.loadError && !settings) {
     return (
@@ -213,6 +264,8 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
                   <CustomSignalRow
                     key={signal.id}
                     signal={signal}
+                    sessionsRoute={sessionsRouteOf(signal)}
+                    alertRoute={alertRouteOf(signal)}
                     canEdit={state.canEdit}
                     isSaving={state.isSaving}
                     onSwitch={(isEnabled: boolean): Promise<string | null> => {
@@ -293,7 +346,12 @@ const FrustrationSignalsSettings: FunctionComponent<ComponentProps> = (
     props.rumApplicationId,
   );
 
-  return <FrustrationSignalsView state={state} />;
+  return (
+    <FrustrationSignalsView
+      rumApplicationId={props.rumApplicationId}
+      state={state}
+    />
+  );
 };
 
 export default FrustrationSignalsSettings;
