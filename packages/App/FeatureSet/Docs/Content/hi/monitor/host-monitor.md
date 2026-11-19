@@ -136,9 +136,10 @@ OneUptime में मशीनों के लिए दो मॉनिट�
 | Device Overheating | चेतावनी | `android.thermal.status`, Max, पिछले 5 मिनट | 3 (तीव्र) या उससे खराब | 3 से कम |
 | Restart Loop | गंभीर | `android.boot.recent_count`, Max, पिछला एक घंटा | कोई मान 3 या उससे ज़्यादा है | हर मान 3 से कम है |
 | Storage Nearly Full | गंभीर | `system.filesystem.utilization`, प्रति `mountpoint` Max, प्रतिशत में, पिछले 5 मिनट | 90% से ऊपर | 90% या उससे कम |
+| Security Patch Out of Date | चेतावनी | `android.os.security_patch.age`, डिवाइस के सुरक्षा पैच स्तर के बाद से बीते दिन, Min, पिछला एक घंटा | पूरी विंडो में 90 दिनों से ज़्यादा पुराना | डिवाइस अपडेट होने के बाद, 90 दिन या उससे कम की रीडिंग |
 | High CPU Utilization | चेतावनी | `idle` स्थिति के लिए `system.cpu.utilization`, व्यस्त समय 1 में से idle घटाकर, प्रतिशत में, पिछले 5 मिनट | 80% से ऊपर | 80% या उससे कम |
 
-डिवाइस के CPU उपयोग रिपोर्ट करने पर High CPU Utilization दिया जाता है, जिसके लिए Android 8 और उसके बाद एजेंट का उसका डिवाइस ओनर होना ज़रूरी है। Android डिवाइस का अलर्ट पहले चलाने वाली adb कमांड से शुरू होता है, जैसे `adb shell dumpsys battery` या `adb shell getprop sys.boot.reason`, न कि सर्वर की शेल कमांड से।
+डिवाइस के CPU उपयोग रिपोर्ट करने पर High CPU Utilization दिया जाता है, जिसके लिए Android 8 और उसके बाद एजेंट का उसका डिवाइस ओनर होना ज़रूरी है। Android डिवाइस का अलर्ट पहले चलाने वाली adb कमांड से शुरू होता है, जैसे `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` या `adb shell getprop ro.build.version.security_patch`, न कि सर्वर की शेल कमांड से।
 
 ## इकट्ठा किए गए मेट्रिक्स
 

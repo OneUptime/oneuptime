@@ -136,9 +136,10 @@ Een host waarvan het OS Android is, zoals een kiosk of een kassaterminal waarop 
 | Device Overheating | Waarschuwing | `android.thermal.status`, Max, laatste 5 minuten | 3 (ernstig) of erger | Onder 3 |
 | Restart Loop | Kritiek | `android.boot.recent_count`, Max, afgelopen uur | Een waarde is 3 of meer | Elke waarde is lager dan 3 |
 | Storage Nearly Full | Kritiek | `system.filesystem.utilization`, Max per `mountpoint`, als percentage, laatste 5 minuten | Boven 90% | Op of onder 90% |
+| Security Patch Out of Date | Waarschuwing | `android.os.security_patch.age`, het aantal dagen sinds het beveiligingspatchniveau van het apparaat, Min, afgelopen uur | Het hele venster ouder dan 90 dagen | Een meting van 90 dagen of minder, zodra het apparaat is bijgewerkt |
 | High CPU Utilization | Waarschuwing | `system.cpu.utilization` voor de toestand `idle`, bezet als 1 min idle, als percentage, laatste 5 minuten | Boven 80% | Op of onder 80% |
 
-High CPU Utilization wordt aangeboden zodra het apparaat CPU-gebruik meldt, wat op Android 8 en later vereist dat de agent zijn apparaateigenaar is. De waarschuwing van een Android-apparaat begint met adb-opdrachten om eerst uit te voeren, zoals `adb shell dumpsys battery` of `adb shell getprop sys.boot.reason`, in plaats van de shellopdrachten van een server.
+High CPU Utilization wordt aangeboden zodra het apparaat CPU-gebruik meldt, wat op Android 8 en later vereist dat de agent zijn apparaateigenaar is. De waarschuwing van een Android-apparaat begint met adb-opdrachten om eerst uit te voeren, zoals `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` of `adb shell getprop ro.build.version.security_patch`, in plaats van de shellopdrachten van een server.
 
 ## Verzamelde metrieken
 

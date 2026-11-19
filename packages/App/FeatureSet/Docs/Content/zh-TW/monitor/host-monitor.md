@@ -136,9 +136,10 @@ OneUptime 有兩種用於機器的監測器。它們可以在同一台主機上�
 | Device Overheating | 警告 | `android.thermal.status`，Max，最近 5 分鐘 | 3（嚴重）或更糟 | 低於 3 |
 | Restart Loop | 嚴重 | `android.boot.recent_count`，Max，最近一小時 | 任一值不低於 3 | 所有值都低於 3 |
 | Storage Nearly Full | 嚴重 | `system.filesystem.utilization`，依 `mountpoint` 取 Max，以百分比顯示，最近 5 分鐘 | 高於 90% | 不高於 90% |
+| Security Patch Out of Date | 警告 | `android.os.security_patch.age`，即裝置安全性修補程式等級距今的天數，Min，最近一小時 | 整個視窗內都超過 90 天 | 裝置更新後，出現不超過 90 天的讀數 |
 | High CPU Utilization | 警告 | `idle` 狀態的 `system.cpu.utilization`，忙碌為 1 減去閒置，以百分比顯示，最近 5 分鐘 | 高於 80% | 不高於 80% |
 
-裝置回報 CPU 使用率後才會提供 High CPU Utilization，而在 Android 8 及更新版本上，這需要代理程式成為裝置擁有者。Android 裝置的警示會以要先執行的 adb 命令開頭，例如 `adb shell dumpsys battery` 或 `adb shell getprop sys.boot.reason`，而不是伺服器的 shell 命令。
+裝置回報 CPU 使用率後才會提供 High CPU Utilization，而在 Android 8 及更新版本上，這需要代理程式成為裝置擁有者。Android 裝置的警示會以要先執行的 adb 命令開頭，例如 `adb shell dumpsys battery`、`adb shell getprop sys.boot.reason` 或 `adb shell getprop ro.build.version.security_patch`，而不是伺服器的 shell 命令。
 
 ## 收集的指標
 

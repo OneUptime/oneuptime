@@ -136,9 +136,10 @@ OneUptime دو مانیتور برای ماشین‌ها دارد. هر دو م�
 | Device Overheating | هشدار | `android.thermal.status`، Max، ۵ دقیقه گذشته | ۳ (شدید) یا بدتر | کمتر از ۳ |
 | Restart Loop | بحرانی | `android.boot.recent_count`، Max، یک ساعت گذشته | مقداری ۳ یا بیشتر است | همه مقادیر کمتر از ۳ هستند |
 | Storage Nearly Full | بحرانی | `system.filesystem.utilization`، Max به ازای هر `mountpoint`، به‌صورت درصد، ۵ دقیقه گذشته | بیش از ۹۰٪ | ۹۰٪ یا کمتر |
+| Security Patch Out of Date | هشدار | `android.os.security_patch.age`، روزهای گذشته از سطح وصله امنیتی دستگاه، Min، یک ساعت گذشته | در تمام پنجره بیش از ۹۰ روز قدمت دارد | خوانشی ۹۰ روز یا کمتر، پس از به‌روزرسانی دستگاه |
 | High CPU Utilization | هشدار | `system.cpu.utilization` برای وضعیت `idle`، زمان مشغول به‌صورت ۱ منهای زمان بیکار، به‌صورت درصد، ۵ دقیقه گذشته | بیش از ۸۰٪ | ۸۰٪ یا کمتر |
 
-High CPU Utilization وقتی پیشنهاد می‌شود که دستگاه مصرف CPU را گزارش دهد، که روی Android 8 و جدیدتر لازمه‌اش این است که عامل مالک دستگاه باشد. هشدار یک دستگاه Android به‌جای فرمان‌های shell یک سرور، با فرمان‌های adb که باید اول اجرا شوند شروع می‌شود، مانند `adb shell dumpsys battery` یا `adb shell getprop sys.boot.reason`.
+High CPU Utilization وقتی پیشنهاد می‌شود که دستگاه مصرف CPU را گزارش دهد، که روی Android 8 و جدیدتر لازمه‌اش این است که عامل مالک دستگاه باشد. هشدار یک دستگاه Android به‌جای فرمان‌های shell یک سرور، با فرمان‌های adb که باید اول اجرا شوند شروع می‌شود، مانند `adb shell dumpsys battery`، `adb shell getprop sys.boot.reason` یا `adb shell getprop ro.build.version.security_patch`.
 
 ## متریک‌های جمع‌آوری‌شده
 

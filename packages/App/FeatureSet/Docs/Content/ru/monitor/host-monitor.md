@@ -136,9 +136,10 @@ flowchart TB
 | Device Overheating | Предупреждение | `android.thermal.status`, Max, последние 5 минут | 3 (серьёзное) или хуже | Ниже 3 |
 | Restart Loop | Критический | `android.boot.recent_count`, Max, последний час | Какое-либо значение 3 или больше | Все значения ниже 3 |
 | Storage Nearly Full | Критический | `system.filesystem.utilization`, Max по `mountpoint`, в процентах, последние 5 минут | Выше 90 % | 90 % или ниже |
+| Security Patch Out of Date | Предупреждение | `android.os.security_patch.age`, число дней с даты уровня патча безопасности устройства, Min, последний час | Старше 90 дней в течение всего окна | Значение 90 дней или меньше, после того как устройство обновлено |
 | High CPU Utilization | Предупреждение | `system.cpu.utilization` для состояния `idle`, занятость как 1 минус idle, в процентах, последние 5 минут | Выше 80 % | 80 % или ниже |
 
-High CPU Utilization предлагается, когда устройство сообщает загрузку CPU, а для этого на Android 8 и новее агент должен быть владельцем устройства. Оповещение устройства Android начинается с команд adb, которые нужно выполнить в первую очередь, например `adb shell dumpsys battery` или `adb shell getprop sys.boot.reason`, а не с команд оболочки сервера.
+High CPU Utilization предлагается, когда устройство сообщает загрузку CPU, а для этого на Android 8 и новее агент должен быть владельцем устройства. Оповещение устройства Android начинается с команд adb, которые нужно выполнить в первую очередь, например `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` или `adb shell getprop ro.build.version.security_patch`, а не с команд оболочки сервера.
 
 ## Собираемые метрики
 

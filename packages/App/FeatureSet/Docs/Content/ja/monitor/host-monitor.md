@@ -136,9 +136,10 @@ OS が Android のホスト、たとえば [Android エージェント](/docs/te
 | Device Overheating | 警告 | `android.thermal.status`、Max、過去 5 分 | 3（深刻）以上 | 3 未満 |
 | Restart Loop | 重大 | `android.boot.recent_count`、Max、過去 1 時間 | いずれかの値が 3 以上 | すべての値が 3 未満 |
 | Storage Nearly Full | 重大 | `system.filesystem.utilization`、`mountpoint` ごとの Max をパーセントで、過去 5 分 | 90% を超える | 90% 以下 |
+| Security Patch Out of Date | 警告 | `android.os.security_patch.age`（デバイスのセキュリティパッチレベルからの日数）、Min、過去 1 時間 | ウィンドウ全体で 90 日より古い | デバイスが更新され、値が 90 日以下になる |
 | High CPU Utilization | 警告 | `idle` の状態の `system.cpu.utilization` から、1 から idle を引いた値をビジーとしてパーセントで、過去 5 分 | 80% を超える | 80% 以下 |
 
-High CPU Utilization は、デバイスが CPU 使用率を報告するようになると提示されます。Android 8 以降では、そのためにエージェントがデバイスオーナーである必要があります。Android デバイスのアラートは、サーバーのシェルコマンドではなく、最初に実行する adb コマンド（`adb shell dumpsys battery` や `adb shell getprop sys.boot.reason` など）から始まります。
+High CPU Utilization は、デバイスが CPU 使用率を報告するようになると提示されます。Android 8 以降では、そのためにエージェントがデバイスオーナーである必要があります。Android デバイスのアラートは、サーバーのシェルコマンドではなく、最初に実行する adb コマンド（`adb shell dumpsys battery`、`adb shell getprop sys.boot.reason`、`adb shell getprop ro.build.version.security_patch` など）から始まります。
 
 ## 収集されるメトリクス
 

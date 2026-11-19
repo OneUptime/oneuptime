@@ -136,9 +136,10 @@ En vært, hvis OS er Android, f.eks. en kiosk eller en kasseterminal, der kører
 | Device Overheating | Advarsel | `android.thermal.status`, Max, seneste 5 minutter | 3 (alvorlig) eller værre | Under 3 |
 | Restart Loop | Kritisk | `android.boot.recent_count`, Max, seneste time | En værdi er 3 eller mere | Alle værdier er under 3 |
 | Storage Nearly Full | Kritisk | `system.filesystem.utilization`, Max pr. `mountpoint`, som procent, seneste 5 minutter | Over 90 % | Ved eller under 90 % |
+| Security Patch Out of Date | Advarsel | `android.os.security_patch.age`, antallet af dage siden enhedens sikkerhedspatchniveau, Min, seneste time | Over 90 dage gammelt i hele vinduet | En aflæsning på 90 dage eller færre, når enheden er opdateret |
 | High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstanden `idle`, optaget som 1 minus idle, som procent, seneste 5 minutter | Over 80 % | Ved eller under 80 % |
 
-High CPU Utilization tilbydes, når enheden rapporterer CPU-forbrug, hvilket på Android 8 og nyere kræver, at agenten er dens enhedsejer. En Android-enheds advarsel starter med adb-kommandoer, der skal køres først, såsom `adb shell dumpsys battery` eller `adb shell getprop sys.boot.reason`, i stedet for en servers shell-kommandoer.
+High CPU Utilization tilbydes, når enheden rapporterer CPU-forbrug, hvilket på Android 8 og nyere kræver, at agenten er dens enhedsejer. En Android-enheds advarsel starter med adb-kommandoer, der skal køres først, såsom `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` eller `adb shell getprop ro.build.version.security_patch`, i stedet for en servers shell-kommandoer.
 
 ## Indsamlede metrikker
 

@@ -136,9 +136,10 @@ En vert der OS-et er Android, for eksempel en kiosk eller en POS-terminal som kj
 | Device Overheating | Advarsel | `android.thermal.status`, Max, siste 5 minutter | 3 (alvorlig) eller verre | Under 3 |
 | Restart Loop | Kritisk | `android.boot.recent_count`, Max, siste time | En verdi er 3 eller mer | Alle verdier er under 3 |
 | Storage Nearly Full | Kritisk | `system.filesystem.utilization`, Max per `mountpoint`, som prosent, siste 5 minutter | Over 90 % | På eller under 90 % |
+| Security Patch Out of Date | Advarsel | `android.os.security_patch.age`, antall dager siden sikkerhetspatchnivået til enheten, Min, siste time | Over 90 dager gammelt i hele vinduet | En avlesning på 90 dager eller færre, når enheten er oppdatert |
 | High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstanden `idle`, opptatt som 1 minus idle, som prosent, siste 5 minutter | Over 80 % | På eller under 80 % |
 
-High CPU Utilization tilbys når enheten rapporterer CPU-bruk, noe som på Android 8 og nyere krever at agenten er enhetseier. Varselet for en Android-enhet begynner med adb-kommandoer som skal kjøres først, for eksempel `adb shell dumpsys battery` eller `adb shell getprop sys.boot.reason`, i stedet for shell-kommandoene til en server.
+High CPU Utilization tilbys når enheten rapporterer CPU-bruk, noe som på Android 8 og nyere krever at agenten er enhetseier. Varselet for en Android-enhet begynner med adb-kommandoer som skal kjøres først, for eksempel `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` eller `adb shell getprop ro.build.version.security_patch`, i stedet for shell-kommandoene til en server.
 
 ## Innsamlede målinger
 

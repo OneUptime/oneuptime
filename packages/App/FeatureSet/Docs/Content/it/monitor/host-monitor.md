@@ -136,9 +136,10 @@ A un host il cui sistema operativo è Android, come un chiosco o un terminale PO
 | Device Overheating | Avviso | `android.thermal.status`, Max, ultimi 5 minuti | 3 (grave) o peggio | Sotto 3 |
 | Restart Loop | Critico | `android.boot.recent_count`, Max, ultima ora | Un valore è 3 o più | Ogni valore è sotto 3 |
 | Storage Nearly Full | Critico | `system.filesystem.utilization`, Max per `mountpoint`, come percentuale, ultimi 5 minuti | Sopra il 90% | Al 90% o meno |
+| Security Patch Out of Date | Avviso | `android.os.security_patch.age`, i giorni trascorsi dal livello patch di sicurezza del dispositivo, Min, ultima ora | Più di 90 giorni per tutta la finestra | Una lettura di 90 giorni o meno, una volta aggiornato il dispositivo |
 | High CPU Utilization | Avviso | `system.cpu.utilization` per lo stato `idle`, occupato come 1 meno inattivo, come percentuale, ultimi 5 minuti | Sopra l'80% | All'80% o meno |
 
-High CPU Utilization viene proposto quando il dispositivo segnala l'uso della CPU, il che su Android 8 e successivi richiede che l'agent sia il proprietario del dispositivo. L'avviso di un dispositivo Android inizia con comandi adb da eseguire per primi, come `adb shell dumpsys battery` o `adb shell getprop sys.boot.reason`, invece che con i comandi shell di un server.
+High CPU Utilization viene proposto quando il dispositivo segnala l'uso della CPU, il che su Android 8 e successivi richiede che l'agent sia il proprietario del dispositivo. L'avviso di un dispositivo Android inizia con comandi adb da eseguire per primi, come `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` o `adb shell getprop ro.build.version.security_patch`, invece che con i comandi shell di un server.
 
 ## Metriche raccolte
 
