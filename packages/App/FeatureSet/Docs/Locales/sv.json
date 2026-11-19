@@ -321,6 +321,7 @@
     "Kubernetes Agent": "Kubernetes-agent",
     "Docker Agent": "Docker-agent",
     "IoT Devices": "IoT-enheter",
+    "Android Agent": "Android-agent",
     "AI SRE": "AI SRE",
     "AI Context": "AI-kontext",
     "Code": "Kod",

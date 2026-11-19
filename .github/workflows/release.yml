@@ -3143,8 +3143,67 @@ jobs:
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
 
-  # Attaches the SBOMs, the infrastructure agent and the two apps to the
-  # draft, then publishes it. Nothing may write the release once it is
+  # The Android device agent's APK (agents/AndroidAgent), with the release's
+  # version, signed with apksigner (v1, v2 and v3: Esper refuses an APK with
+  # no v1 signature) from the ANDROID_AGENT_* secrets. Like the apps, it is
+  # waited for, not required: without the secrets, or with a failed build,
+  # the release goes out without the APK. agents/AndroidAgent/RELEASING.md
+  # says how the key and the secrets are made.
+  android-agent-build:
+    needs: [read-version]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install the Android SDK packages the agent builds with
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: Build the Android agent's release APK
+        working-directory: agents/AndroidAgent
+        run: ./gradlew assembleRelease -PagentVersion=${{ needs.read-version.outputs.major_minor }} --no-daemon --stacktrace
+
+      - name: Sign the Android agent's release APK
+        env:
+          ANDROID_AGENT_KEYSTORE_BASE64: ${{ secrets.ANDROID_AGENT_KEYSTORE_BASE64 }}
+          ANDROID_AGENT_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_AGENT_KEYSTORE_PASSWORD }}
+          ANDROID_AGENT_KEY_ALIAS: ${{ secrets.ANDROID_AGENT_KEY_ALIAS }}
+          ANDROID_AGENT_KEY_PASSWORD: ${{ secrets.ANDROID_AGENT_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_AGENT_KEYSTORE_BASE64" ]; then
+            echo "::error::The ANDROID_AGENT_KEYSTORE_BASE64 secret is not set, so this release has no Android agent APK. agents/AndroidAgent/RELEASING.md says how to make the key and set the secrets."
+            exit 1
+          fi
+          export ANDROID_AGENT_KEYSTORE_FILE="$RUNNER_TEMP/android-agent.jks"
+          printf '%s' "$ANDROID_AGENT_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_AGENT_KEYSTORE_FILE"
+          mkdir -p "$RUNNER_TEMP/release-android-agent"
+          agents/AndroidAgent/scripts/sign-release.sh \
+            agents/AndroidAgent/app/build/outputs/apk/release/app-release-unsigned.apk \
+            "$RUNNER_TEMP/release-android-agent/oneuptime-android-agent.apk"
+          rm -f "$ANDROID_AGENT_KEYSTORE_FILE"
+          (cd "$RUNNER_TEMP/release-android-agent" && sha256sum oneuptime-android-agent.apk > oneuptime-android-agent.apk.sha256)
+
+      - name: Keep the Android agent for the GitHub release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android-agent
+          path: ${{ runner.temp }}/release-android-agent/*
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+
+  # Attaches the SBOMs, the infrastructure agent, the Android agent and the
+  # two apps to the draft, then publishes it. Nothing may write the release once it is
   # published, so every attach is a step here, before the publish: 14.0.46
   # shipped without its Android APK (run 38267959528) when the upload job
   # finished three minutes after the publish, and GitHub answered the upload's
@@ -3168,7 +3227,7 @@ jobs:
   # all of this.
   finalize-github-release:
     name: Publish GitHub release
-    needs: [draft-github-release, helm-chart-deploy, generate-sboms, scan-sbom-vulnerabilities, infrastructure-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
+    needs: [draft-github-release, helm-chart-deploy, generate-sboms, scan-sbom-vulnerabilities, infrastructure-agent-build, android-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
     runs-on: ubuntu-latest
     if: >-
       ${{ !cancelled()
@@ -3239,6 +3298,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/infrastructure-agent/*
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
+
+      - name: Download the Android agent
+        if: needs.android-agent-build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-android-agent
+          path: release-assets/android-agent
+
+      - name: Attach the Android agent to release
+        if: needs.android-agent-build.result == 'success'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/android-agent/*
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true

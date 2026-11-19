@@ -17,11 +17,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * events again as it did; a Rule Library rule added before reads its steps
  * from the library.
  */
-export class AddDetectionMatchedEventsAndRuleResponseSteps1809185220000
+export class AddDetectionMatchedEventsAndRuleResponseSteps1809185320000
   implements MigrationInterface
 {
   public name: string =
-    "AddDetectionMatchedEventsAndRuleResponseSteps1809185220000";
+    "AddDetectionMatchedEventsAndRuleResponseSteps1809185320000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

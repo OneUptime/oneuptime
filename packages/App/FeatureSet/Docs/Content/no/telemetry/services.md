@@ -57,13 +57,14 @@ For å legge til en tjeneste før telemetrien dens kommer, for eksempel for å a
 
 ## Sidene til en tjeneste
 
-Sidemenyen til en tjeneste har fem seksjoner:
+Sidemenyen til en tjeneste har seks seksjoner:
 
 | Seksjon | Sider |
 | --- | --- |
 | **Grunnleggende** | **Oversikt**: forespørsler, feilrate og p95-latens fra spannene, diagrammer og detaljene. **Anbefalinger**: ferdige monitorer for tjenesten, valgt etter språket. **SLOs**: SLO-ene som måler forespørslene dens, der du kan opprette et som allerede måler tjenesten. **Eiere**: personene og teamene som har ansvaret for den. **Feed**: alt som har skjedd med den, fra hvordan den ble opprettet til hver endring siden. |
-| **Telemetri** | **Logger**, **Spor**, **Målinger**, **Profiler**, **Unntak** og **Source maps**, allerede filtrert til denne tjenesten. |
+| **Telemetri** | **Logger**, **Sikkerhetshendelser**, **Spor**, **Målinger**, **Profiler**, **Unntak** og **Source maps**, allerede filtrert til denne tjenesten. |
 | **Aktivitet** | **Hendelser**, **Varsler** og hendelser under **Planlagt vedlikehold** som berører den. |
+| **Sikkerhet** | **Datasikkerhet**: de sensitive dataene i tjenestens logger, spor og unntak, og hva som må rettes ([Sensitive data i telemetri](/docs/data-security/telemetry)). **Samsvar**: hvordan de dataene står mot hvert rammeverk, med en bryter som slår av et rammeverk eller et krav for denne tjenesten ([Samsvar i Datasikkerhet](/docs/data-security/compliance#på-siden-til-en-ressurs)). Seksjonen vises når Datasikkerhet har skannet tjenestens telemetri, og er slått sammen fra start. |
 | **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |
 | **Avansert** | **Innstillinger**, **Revisjonslogger** og **Slett tjeneste**. **Avansert** er lukket i starten: åpne den først. |
 

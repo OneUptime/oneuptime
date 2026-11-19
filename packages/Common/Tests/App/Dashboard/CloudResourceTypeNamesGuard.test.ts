@@ -150,6 +150,11 @@ const SITES: Readonly<Record<string, NameSite>> = {
       },
     ],
   },
+  [`${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics.tsx`]:
+    {
+      asWritten:
+        'The type in the add dialog\'s "Every {{type}} this connection reads ({{count}})", a value its sentence takes as it is.',
+    },
   [`${DASHBOARD}/Components/Monitor/Overview/MonitorCloudLinkSuggestions.tsx`]:
     {
       asWritten:

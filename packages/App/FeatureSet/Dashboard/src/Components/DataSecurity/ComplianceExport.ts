@@ -1,5 +1,7 @@
+import { getTurnedOffEntries } from "../ResourceDataSecurity/ResourceComplianceModel";
 import {
   DataSecurityComplianceFramework,
+  DataSecurityComplianceTurnedOff,
   DataSecurityRecordOfProcessingRow,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import { ComplianceRequirementResult } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
@@ -92,7 +94,36 @@ const FRAMEWORK_REPORT_HEADER: CsvRow = [
   "Status",
   "Checks",
   "Open Issues",
+  "Turned Off On",
 ];
+
+/*
+ * Where a requirement does not apply, and why (#9629): each resource that
+ * turned it off, or its whole framework, with who turned it off, when and
+ * the reason written for it - "prod-eu (KubernetesCluster), whole
+ * framework, turned off by Jane Doe on 2026-11-12: No card data here".
+ */
+export function describeTurnedOff(
+  framework: DataSecurityComplianceFramework,
+  requirement: string,
+): string {
+  return [
+    ...getTurnedOffEntries(framework, requirement),
+    ...getTurnedOffEntries(framework, null),
+  ]
+    .map((entry: DataSecurityComplianceTurnedOff): string => {
+      const resource: string = `${entry.resource.name || entry.resource.id} (${entry.resource.kind})`;
+      const whole: string = entry.requirement ? "" : ", whole framework";
+      const who: string = entry.turnedOffBy ? ` by ${entry.turnedOffBy}` : "";
+      const when: string = entry.turnedOffAt
+        ? ` on ${entry.turnedOffAt.slice(0, 10)}`
+        : "";
+      const why: string = entry.note ? `: ${entry.note}` : "";
+
+      return `${resource}${whole}, turned off${who}${when}${why}`;
+    })
+    .join(LIST_SEPARATOR);
+}
 
 export function getFrameworkReportCsv(
   framework: DataSecurityComplianceFramework,
@@ -108,6 +139,7 @@ export function getFrameworkReportCsv(
           requirement.status,
           requirement.checkIds.join(LIST_SEPARATOR),
           String(requirement.failingIssueCount),
+          describeTurnedOff(framework, requirement.requirement),
         ];
       },
     ),
@@ -146,6 +178,8 @@ export function downloadFrameworkReportJson(
         score: framework.score,
         storesInScope: framework.storesInScope,
         requirements: framework.requirements,
+        // What resources turned off of it, with who, when and why (#9629).
+        turnedOff: framework.turnedOff || [],
       },
       null,
       2,

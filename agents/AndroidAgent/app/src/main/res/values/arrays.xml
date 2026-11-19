@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="logcat_level_entries">
+        <item>@string/logcat_level_verbose</item>
+        <item>@string/logcat_level_debug</item>
+        <item>@string/logcat_level_info</item>
+        <item>@string/logcat_level_warn</item>
+        <item>@string/logcat_level_error</item>
+        <item>@string/logcat_level_fatal</item>
+    </string-array>
+    <string-array name="logcat_level_values" translatable="false">
+        <item>verbose</item>
+        <item>debug</item>
+        <item>info</item>
+        <item>warn</item>
+        <item>error</item>
+        <item>fatal</item>
+    </string-array>
+</resources>
