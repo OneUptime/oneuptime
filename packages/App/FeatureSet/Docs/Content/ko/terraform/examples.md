@@ -547,7 +547,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 
 ### 심각도와 상태
 
-심각도는 인시던트의 영향 정도를 나타내고, 상태는 인시던트가 거치는 단계입니다. `order`는 각각이 표시되는 위치입니다.
+심각도는 인시던트의 영향 정도를 나타내고, 상태는 인시던트가 거치는 단계입니다. `order`는 각각이 표시되는 위치입니다. 새 상태에서 이를 빼면 그 상태는 해결 상태 바로 위에 들어갑니다.
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

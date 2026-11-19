@@ -25,7 +25,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | `Cannot import non-existent remote object` | Prüfen Sie die ID und die Berechtigungen des Schlüssels: siehe [Ressourcen importieren](/docs/terraform/importing-resources#fehlerbehebung) |
 | `Provider produced inconsistent result after apply` | Aktualisieren Sie den Provider: siehe [Inkonsistentes Ergebnis nach dem Apply](#inkonsistentes-ergebnis-nach-dem-apply) |
 | Ein Plan legt eine Ressource an, die Sie nicht hinzugefügt haben | Der Schlüssel kann sie nicht mehr lesen, und OneUptime hat mit `404` geantwortet: Geben Sie dem Schlüssel den Lesezugriff zurück, dann importieren Sie die Ressource mit `terraform import`: siehe [Eine Ressource verlässt den State, und das nächste Apply legt sie erneut an](#eine-ressource-verlässt-den-state-und-das-nächste-apply-legt-sie-erneut-an) |
-| Eine `priority` oder `order` ändert sich nach dem Apply | Geben Sie jeder eine Nummer, die keine andere hat: siehe [Eine Priorität oder Reihenfolge, die wandert](#eine-priorität-oder-reihenfolge-die-wandert) |
+| Eine `priority` oder `order` ändert sich nach dem Apply | Ordnen Sie die Liste in Terraform neu, nicht im Dashboard, und geben Sie einem neuen Status eine Nummer: siehe [Eine Priorität oder Reihenfolge, die wandert](#eine-priorität-oder-reihenfolge-die-wandert) |
 | `Invalid Configuration for Read-Only Attribute` | Entfernen Sie das Attribut aus der Konfiguration: siehe [Schreibgeschützte Attribute](#schreibgeschützte-attribute) |
 | `has been renamed to` | Benennen Sie den Ressourcentyp um, mit einem `moved`-Block: siehe [Ein umbenannter Ressourcentyp](#ein-umbenannter-ressourcentyp) |
 | Ein mit Terraform angelegter Monitor zeigt seine Prüfungen nie | Aktualisieren Sie OneUptime: siehe [Monitore aus der Zeit vor Schritt-IDs](#monitore-aus-der-zeit-vor-schritt-ids) |
@@ -131,9 +131,12 @@ Das passiert, wenn der Schlüssel, der eine Ressource verwaltet, sie nicht mehr 
 
 ### Eine Priorität oder Reihenfolge, die wandert
 
-Monitorstatus, Status und Schweregrade von Vorfällen und Warnungen sowie die anderen Listen, die Sie im Dashboard ordnen, vergeben jede Nummer nur einmal. Eine Nummer, die keine andere hat, bleibt so, wie sie geschrieben ist. Eine Nummer, die eine andere schon hat, wird übernommen, und die, die im Weg stehen, rücken eine Stelle nach unten, wie beim Ziehen im Dashboard. Zwei, die mit derselben Nummer konfiguriert sind, tauschen also bei jedem Apply die Plätze.
+In jeder Liste, die Sie ordnen - Monitorstatus, Status von Vorfällen, Warnungen und Wartungen, Schweregrade, benutzerdefinierte Felder, Gruppen, Ressourcen und Links von Statusseiten, Eskalationsregeln, Planebenen, Pipelines, Filter und Regeln -, platziert die Nummer, die Sie in `order`, `priority` oder `sort_order` schreiben, nur diesen einen Datensatz und verschiebt keinen anderen. Eine Konfiguration, die eine ganze Liste nummeriert, etwa `order = index(local.states, each.key) + 1`, wird daher genau so angewendet, wie sie geschrieben ist, in welcher Reihenfolge die Schreibvorgänge des Providers auch ankommen, und der nächste Plan ist leer. Eine Nummer ändert sich nach einem Apply nur, wenn etwas anderes einen Datensatz verschiebt:
 
-Geben Sie jeder eine eigene Nummer mit Lücken dazwischen, etwa `101`, `102` und `103`, und ordnen Sie die, die Terraform verwaltet, in Terraform neu, nicht durch Ziehen im Dashboard.
+- Das Verschieben eines Datensatzes im Dashboard nummeriert seine Liste neu mit 1..n. Ordnen Sie die Listen, die Terraform verwaltet, in Terraform neu, oder übernehmen Sie die neuen Nummern in die Konfiguration.
+- Ein ohne Nummer angelegter Datensatz kommt hinter den letzten seiner Liste und verschiebt keinen anderen. Ein neuer Status eines Vorfalls, einer Warnung oder einer Wartung, ein neuer Monitorstatus, Postmortem-Status oder Status eines Sicherheitsfalls kommt stattdessen direkt über den behobenen, den Offline-, den abgeschlossenen oder den geschlossenen Status, und seine Liste wird neu mit 1..n nummeriert. Geben Sie ihm in der Konfiguration eine Nummer.
+
+Zwei Datensätze mit derselben Nummer behalten sie und werden in der Reihenfolge ihrer IDs aufgeführt: Geben Sie jedem eine eigene. Das Löschen eines Datensatzes hinterlässt eine Lücke in den Nummern, was nichts ändert. Die eingebauten Status behalten ihre Reihenfolge, daher wird ein Schreibvorgang abgelehnt, der den behobenen Status über den bestätigten setzen würde: Nummerieren Sie sie in dieser Reihenfolge.
 
 ### Schreibgeschützte Attribute
 

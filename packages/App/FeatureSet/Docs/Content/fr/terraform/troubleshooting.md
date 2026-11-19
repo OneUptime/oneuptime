@@ -25,7 +25,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | `Cannot import non-existent remote object` | Vérifiez l'ID et les permissions de la clé : voir [Importer des ressources](/docs/terraform/importing-resources#dépannage) |
 | `Provider produced inconsistent result after apply` | Mettez à jour le fournisseur : voir [Résultat incohérent après l'apply](#résultat-incohérent-après-lapply) |
 | Un plan crée une ressource que vous n'avez pas ajoutée | La clé ne peut plus la lire, et OneUptime a répondu `404` : rendez à la clé son accès en lecture, puis importez la ressource avec `terraform import` : voir [Une ressource quitte l'état, et l'apply suivant la recrée](#une-ressource-quitte-létat-et-lapply-suivant-la-recrée) |
-| Une `priority` ou un `order` change après l'apply | Donnez à chacun un numéro qu'aucun autre ne détient : voir [Une priorité ou un ordre qui bouge](#une-priorité-ou-un-ordre-qui-bouge) |
+| Une `priority` ou un `order` change après l'apply | Réordonnez la liste dans Terraform, pas dans le tableau de bord, et donnez un numéro à un nouvel état : voir [Une priorité ou un ordre qui bouge](#une-priorité-ou-un-ordre-qui-bouge) |
 | `Invalid Configuration for Read-Only Attribute` | Retirez l'attribut de la configuration : voir [Attributs en lecture seule](#attributs-en-lecture-seule) |
 | `has been renamed to` | Renommez le type de ressource, avec un bloc `moved` : voir [Un type de ressource renommé](#un-type-de-ressource-renommé) |
 | Un moniteur créé avec Terraform n'affiche jamais ses vérifications | Mettez à jour OneUptime : voir [Moniteurs créés avant les ID d'étapes](#moniteurs-créés-avant-les-id-détapes) |
@@ -131,9 +131,12 @@ Cela arrive quand la clé qui gère une ressource ne peut plus la lire : sa perm
 
 ### Une priorité ou un ordre qui bouge
 
-Les statuts de moniteur, les états et gravités d'incidents et d'alertes, et les autres listes que vous ordonnez dans le tableau de bord ne détiennent chaque numéro qu'une fois. Un numéro qu'aucun autre ne détient est conservé tel qu'écrit. Un numéro qu'un autre détient déjà est repris, et ceux qui se trouvent sur le chemin descendent d'un rang, comme le fait un glisser-déposer dans le tableau de bord. Ainsi, deux d'entre eux configurés avec le même numéro échangent leurs places à chaque apply.
+Dans chaque liste que vous ordonnez - statuts de moniteur, états d'incidents, d'alertes et de maintenance, gravités, champs personnalisés, groupes, ressources et liens des pages de statut, règles d'escalade, couches de planning, pipelines, filtres et règles -, le numéro que vous écrivez dans `order`, `priority` ou `sort_order` place cet enregistrement seul et n'en déplace aucun autre. Ainsi, une configuration qui numérote une liste entière, comme `order = index(local.states, each.key) + 1`, est appliquée exactement telle qu'elle est écrite, quel que soit l'ordre dans lequel arrivent les écritures du fournisseur, et le plan suivant est vide. Un numéro ne change après un apply que lorsque quelque chose d'autre déplace un enregistrement :
 
-Donnez à chacun son propre numéro avec des écarts entre eux, comme `101`, `102` et `103`, et réordonnez ceux que gère Terraform dans Terraform, pas en les faisant glisser dans le tableau de bord.
+- Déplacer un enregistrement dans le tableau de bord renumérote sa liste en 1..n. Réordonnez dans Terraform les listes que gère Terraform, ou recopiez les nouveaux numéros dans la configuration.
+- Un enregistrement créé sans numéro se place après le dernier de sa liste, et n'en déplace aucun autre. En revanche, un nouvel état d'incident, d'alerte ou de maintenance, un nouveau statut de moniteur, de post-mortem ou de dossier de sécurité se place juste au-dessus de celui qui est résolu, hors ligne, achevé ou clos, et sa liste est renumérotée en 1..n. Donnez-lui un numéro dans la configuration.
+
+Deux enregistrements au même numéro le gardent, et sont listés dans l'ordre de leurs ID : donnez à chacun le sien. Supprimer un enregistrement laisse un trou dans les numéros, ce qui ne change rien. Les états et statuts intégrés gardent leur ordre, donc une écriture qui placerait l'état résolu au-dessus de l'état pris en compte est refusée : numérotez-les dans cet ordre.
 
 ### Attributs en lecture seule
 

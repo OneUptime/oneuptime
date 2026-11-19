@@ -144,7 +144,8 @@ import {
   StateListRow,
   StateListType,
   getStateListDeleteRefusal,
-  getStateListInsertValue,
+  getStateListInsertAnchor,
+  getStateListRowsAfterCreate,
   toStateListRow,
 } from "Common/Utils/StateOrder";
 import { describe, expect, it } from "@jest/globals";
@@ -2356,8 +2357,22 @@ describe("adding a monitor status of your own", () => {
       "title: StateSettingsSharedCopy.colorFieldTitle,",
     );
     expect(definition.insertAboveFlag).toBe("isOfflineState");
-    // The new status takes the offline status's place, and it steps down one.
-    expect(getStateListInsertValue(definition, rows)).toBe(3);
+    // The new status goes above the offline status, which steps down one.
+    expect(getStateListInsertAnchor(definition, rows)?.order).toBe(3);
+    expect(
+      getStateListRowsAfterCreate({
+        definition: definition,
+        rows: rows,
+        newRow: { id: "new", name: "New", order: null, flags: [] },
+      })
+        .filter((row: StateListRow) => {
+          return row.id === "new" || row.order === 4;
+        })
+        .map((row: StateListRow) => {
+          return `${row.id === "new" ? "new" : "offline"}:${row.order}`;
+        })
+        .sort(),
+    ).toEqual(["new:3", "offline:4"]);
     expect(MONITOR_STATUS_SERVICE).toContain(
       "definition: STATE_LISTS[StateListType.MonitorStatus],",
     );

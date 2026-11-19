@@ -85,7 +85,7 @@ import {
   STATE_LISTS,
   StateListRow,
   StateListType,
-  getStateListInsertValue,
+  getStateListInsertAnchor,
   toStateListRow,
 } from "Common/Utils/StateOrder";
 import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
@@ -1878,11 +1878,12 @@ describe("states of your own", () => {
     expect(copy.description).toContain(
       "A new state is added just above the completed state.",
     );
+    // A new state goes above the completed one, which steps down.
     expect(
-      getStateListInsertValue(
+      getStateListInsertAnchor(
         STATE_LISTS[StateListType.ScheduledMaintenanceState],
         rows,
-      ),
+      )?.order,
     ).toBe(4);
     expect(
       readDashboardSource(

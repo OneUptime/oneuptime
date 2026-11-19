@@ -547,7 +547,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 
 ### شدت‌ها و وضعیت‌ها
 
-شدت‌ها اثر یک حادثه را رتبه‌بندی می‌کنند، و وضعیت‌ها گام‌های زندگی آن هستند. `order` جایی است که هر کدام در فهرست می‌آید:
+شدت‌ها اثر یک حادثه را رتبه‌بندی می‌کنند، و وضعیت‌ها گام‌های زندگی آن هستند. `order` جایی است که هر کدام در فهرست می‌آید. اگر آن را برای وضعیتی تازه ننویسید، آن وضعیت درست بالای وضعیت برطرف‌شده می‌رود:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

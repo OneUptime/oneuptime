@@ -445,8 +445,13 @@ describe("incident custom fields docs", () => {
       },
     );
 
+    /*
+     * A number written places that field and moves no other (issue #9609):
+     * a field given another field's number used to take its place and push
+     * the rest down, so Terraform numbering every field never settled.
+     */
     test.each(LANGUAGES)(
-      "%s: says what Terraform's sort_order does when it is left out or collides",
+      "%s: says what Terraform's sort_order does when it is left out or shared",
       (language: string) => {
         // sectionOf drops the right-to-left mark the Persian heading starts with.
         const terraform: string = sectionOf(
@@ -460,6 +465,14 @@ describe("incident custom fields docs", () => {
             ? "Leave `sort_order` out and a new field goes to the end of the list."
             : "اگر `sort_order` را ننویسید، فیلد تازه به انتهای فهرست می‌رود.",
         );
+        expect(terraform).toContain(
+          language === "en"
+            ? "A number you give is kept as you wrote it, and no other field moves: two fields with one number are listed in the order of their IDs."
+            : "شماره‌ای که بدهید همان‌طور که نوشته‌اید می‌ماند و هیچ فیلد دیگری جابه‌جا نمی‌شود: دو فیلد با یک شماره به ترتیب شناسه‌هایشان فهرست می‌شوند.",
+        );
+        // The old wording: a number another field had took its place.
+        expect(terraform).not.toContain("takes that place");
+        expect(terraform).not.toContain("move one place along");
       },
     );
 

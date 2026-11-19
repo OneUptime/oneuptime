@@ -547,7 +547,7 @@ De criteria van een monitor roepen het beleid op via `on_call_policy_ids` bij de
 
 ### Ernstniveaus en statussen
 
-Ernstniveaus rangschikken de impact van een incident, en statussen zijn de stappen in zijn levensloop. `order` is de plek waar elk ervan staat:
+Ernstniveaus rangschikken de impact van een incident, en statussen zijn de stappen in zijn levensloop. `order` is de plek waar elk ervan staat. Laat je het weg bij een nieuwe status, dan komt de status net boven de opgeloste:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

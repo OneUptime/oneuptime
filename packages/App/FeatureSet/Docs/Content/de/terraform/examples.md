@@ -547,7 +547,7 @@ Die Kriterien eines Monitors alarmieren die Richtlinie über `on_call_policy_ids
 
 ### Schweregrade und Status
 
-Schweregrade ordnen die Auswirkung eines Vorfalls ein, und Status sind die Stationen seines Lebens. `order` ist die Stelle, an der jeder aufgeführt wird:
+Schweregrade ordnen die Auswirkung eines Vorfalls ein, und Status sind die Stationen seines Lebens. `order` ist die Stelle, an der jeder aufgeführt wird. Lassen Sie es bei einem neuen Status weg, kommt der Status direkt über den behobenen:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

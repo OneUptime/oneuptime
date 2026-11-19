@@ -547,7 +547,7 @@ A monitor's criteria page the policy through `on_call_policy_ids` on the inciden
 
 ### Severities and states
 
-Severities rank an incident's impact, and states are the steps of its life. `order` is where each one is listed:
+Severities rank an incident's impact, and states are the steps of its life. `order` is where each one is listed. Leave it out of a new state, and the state goes just above the resolved one:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

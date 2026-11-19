@@ -381,7 +381,7 @@ Elke `to` moet na het opslaan een van de opties van het veld zijn, en elke `from
 
 De instellingen staan op de resource `oneuptime_incident_custom_field` als `sort_order`, `show_on_create`, `is_required_on_create` en `include_in_subscriber_notifications`. `variable_key` is alleen-lezen: de sleutel die OneUptime vormde toen het veld werd aangemaakt.
 
-Laat `sort_order` weg en een nieuw veld komt aan het eind van de lijst. Geef het het getal dat een ander veld al heeft en het neemt die plek in, terwijl de velden die in de weg staan een plek opschuiven. Een getal dat geen ander veld heeft, blijft zoals je het schreef.
+Laat `sort_order` weg en een nieuw veld komt aan het eind van de lijst. Een getal dat je opgeeft, blijft zoals je het schreef, en geen ander veld verschuift: twee velden met hetzelfde getal worden in de volgorde van hun ID's getoond.
 
 ## Metingen
 

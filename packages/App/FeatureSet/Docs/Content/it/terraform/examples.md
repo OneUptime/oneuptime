@@ -547,7 +547,7 @@ I criteri di un monitor avvisano la politica tramite `on_call_policy_ids` negli 
 
 ### Gravità e stati
 
-Le gravità classificano l'impatto di un incidente, e gli stati sono le tappe della sua vita. `order` è la posizione in cui compare ciascuno:
+Le gravità classificano l'impatto di un incidente, e gli stati sono le tappe della sua vita. `order` è la posizione in cui compare ciascuno. Se lo ometti in un nuovo stato, lo stato va appena sopra quello risolto:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

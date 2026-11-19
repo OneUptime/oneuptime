@@ -547,7 +547,7 @@ Os critérios de um monitor acionam a política por meio de `on_call_policy_ids`
 
 ### Severidades e estados
 
-As severidades classificam o impacto de um incidente, e os estados são as etapas da vida dele. `order` é a posição em que cada um aparece:
+As severidades classificam o impacto de um incidente, e os estados são as etapas da vida dele. `order` é a posição em que cada um aparece. Se você o omitir em um estado novo, o estado vai para logo acima do resolvido:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

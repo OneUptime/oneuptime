@@ -25,7 +25,7 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | `Cannot import non-existent remote object` | Kontrollera ID:t och nyckelns behörigheter: se [Importera resurser](/docs/terraform/importing-resources#felsökning) |
 | `Provider produced inconsistent result after apply` | Uppgradera providern: se [Inkonsekvent resultat efter apply](#inkonsekvent-resultat-efter-apply) |
 | En plan skapar en resurs som du inte har lagt till | Nyckeln kan inte längre läsa den, och OneUptime svarade `404`: ge nyckeln dess läsåtkomst tillbaka, och importera sedan resursen med `terraform import`: se [En resurs lämnar state, och nästa apply skapar den igen](#en-resurs-lämnar-state-och-nästa-apply-skapar-den-igen) |
-| En `priority` eller `order` ändras efter apply | Ge var och en ett nummer som ingen annan har: se [En prioritet eller ordning som flyttar sig](#en-prioritet-eller-ordning-som-flyttar-sig) |
+| En `priority` eller `order` ändras efter apply | Ändra ordningen i listan i Terraform, inte i instrumentpanelen, och ge ett nytt tillstånd ett nummer: se [En prioritet eller ordning som flyttar sig](#en-prioritet-eller-ordning-som-flyttar-sig) |
 | `Invalid Configuration for Read-Only Attribute` | Ta bort attributet från konfigurationen: se [Skrivskyddade attribut](#skrivskyddade-attribut) |
 | `has been renamed to` | Byt namn på resurstypen, med ett `moved`-block: se [En resurstyp med nytt namn](#en-resurstyp-med-nytt-namn) |
 | En monitor som skapats med Terraform visar aldrig sina kontroller | Uppgradera OneUptime: se [Monitorer från före steg-ID:n](#monitorer-från-före-steg-idn) |
@@ -131,9 +131,12 @@ Det händer när nyckeln som hanterar en resurs inte längre kan läsa den: dess
 
 ### En prioritet eller ordning som flyttar sig
 
-Monitorstatusar, tillstånd och allvarlighetsgrader för incidenter och larm, och de andra listor som du sorterar i instrumentpanelen, har varje nummer en gång. Ett nummer som ingen annan har behålls som det är skrivet. Ett nummer som en annan redan har tas över, och de som står i vägen flyttar ner en plats, som när du drar i instrumentpanelen. Så två av dem som är konfigurerade med samma nummer byter plats vid varje apply.
+I varje lista som du sorterar - monitorstatusar, tillstånd för incidenter, larm och underhåll, allvarlighetsgrader, anpassade fält, statussidors grupper, resurser och länkar, eskaleringsregler, schemalager, pipelines, filter och regler - placerar numret som du skriver i `order`, `priority` eller `sort_order` bara den posten och flyttar ingen annan. Så en konfiguration som numrerar en hel lista, till exempel `order = index(local.states, each.key) + 1`, tillämpas exakt som den är skriven, oavsett i vilken ordning providerns skrivningar kommer fram, och nästa plan är tom. Ett nummer ändras efter en apply bara när något annat flyttar en post:
 
-Ge var och en sitt eget nummer med luckor emellan, som `101`, `102` och `103`, och ändra ordningen på dem som Terraform hanterar i Terraform, inte genom att dra dem i instrumentpanelen.
+- När du flyttar en post i instrumentpanelen numreras dess lista om till 1..n. Ändra ordningen på listorna som Terraform hanterar i Terraform, eller kopiera de nya numren till konfigurationen.
+- En post som skapas utan nummer hamnar efter den sista i sin lista och flyttar ingen annan. Ett nytt tillstånd för en incident, ett larm eller ett underhåll, en ny monitorstatus, efteranalysstatus eller status för ett säkerhetsärende hamnar i stället precis ovanför det som är löst, offline, slutfört eller stängt, och dess lista numreras om till 1..n. Ge posten ett nummer i konfigurationen.
+
+Två poster med samma nummer behåller det och listas i ordning efter sina ID:n: ge var och en ett eget. Att ta bort en post lämnar en lucka i numren, vilket inte ändrar något. De inbyggda tillstånden och statusarna behåller sin ordning, så en skrivning som skulle placera det lösta tillståndet ovanför det bekräftade avvisas: numrera dem i den ordningen.
 
 ### Skrivskyddade attribut
 

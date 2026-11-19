@@ -381,7 +381,7 @@ API에서는 새 목록을 `dropdownOptions`로, 이름 바꾸기를 `miscDataPr
 
 이 설정들은 `oneuptime_incident_custom_field` 리소스의 `sort_order`, `show_on_create`, `is_required_on_create`, `include_in_subscriber_notifications`입니다. `variable_key`는 읽기 전용으로, 필드를 만들 때 OneUptime이 만든 키입니다.
 
-`sort_order`를 빼면 새 필드는 목록 끝으로 갑니다. 다른 필드가 이미 가진 숫자를 주면 그 자리를 차지하고, 사이에 있던 필드는 한 칸씩 밀립니다. 다른 어떤 필드도 갖지 않은 숫자는 쓴 그대로 유지됩니다.
+`sort_order`를 빼면 새 필드는 목록 끝으로 갑니다. 지정한 숫자는 쓴 그대로 유지되고 다른 필드는 움직이지 않습니다. 같은 숫자를 가진 두 필드는 ID 순서로 표시됩니다.
 
 ## 측정
 

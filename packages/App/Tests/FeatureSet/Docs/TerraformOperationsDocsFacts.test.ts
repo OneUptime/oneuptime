@@ -83,7 +83,23 @@ import {
   getTerraformResourceConfig,
   TerraformResourceConfig,
 } from "Common/Utils/DeveloperDocs/TerraformConfig";
-import { getListOrderCollisionChanges } from "Common/Utils/ListOrder";
+import MoveInListUtil, {
+  MoveInListChanges,
+} from "Common/Types/Database/MoveInList";
+import {
+  getListOrderAppendValue,
+  sortListOrderItems,
+} from "Common/Utils/ListOrder";
+import {
+  STATE_LISTS,
+  StateListRow,
+  StateListType,
+  getStateListOrderViolationIntroduced,
+  getStateListRowsAfterCreate,
+  getStateListRowsAfterWrite,
+} from "Common/Utils/StateOrder";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import { beforeAll, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -106,7 +122,8 @@ import path from "path";
  *     cannot read back;
  *   - the troubleshooting page: every error it quotes, as the provider, the
  *     server and the generated Go word it, with its status; the lookup
- *     table leading to every section; and the order numbers that move;
+ *     table leading to every section; and how a list's numbers are kept
+ *     (a write places one record, issues #9573 and #9609);
  *   - the self-hosted page: the address and the version range the
  *     dashboard writes for an installation, which the new
  *     {{TERRAFORM_PROVIDER_MATCHING}} placeholder renders the same way, and
@@ -730,7 +747,13 @@ describe("the troubleshooting page", () => {
     );
   });
 
-  it("is right that a taken order number moves the ones in the way, and a free one is kept", () => {
+  it("is right that writing a number places one record and moves no other, on every list put in order", () => {
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### A priority or order that moves",
+    );
+
+    // The drag-ordered lists it names keep their numbers this way...
     for (const model of [
       MonitorStatus,
       IncidentState,
@@ -744,39 +767,147 @@ describe("the troubleshooting page", () => {
       }).toEqual({ model: new model().tableName, ordered: true });
     }
 
-    const siblings: Array<{ id: string; value: number }> = [
-      { id: "a", value: 101 },
-      { id: "b", value: 102 },
-      { id: "c", value: 103 },
+    // ...and so do the five numbered lists, groups and escalation rules among them.
+    expect(
+      readRepoFile("packages/Common/Server/Utils/Database/ContiguousOrder.ts"),
+    ).toContain("A WRITE PLACES ITS OWN ROW, AND MOVES NO OTHER.");
+    expect(new StatusPageGroup().getListOrder()).toBeNull();
+    expect(new OnCallDutyPolicyEscalationRule().getListOrder()).toBeNull();
+
+    // A write of a number the state holds already, by another: both keep theirs.
+    const states: Array<StateListRow> = [
+      {
+        id: "identified",
+        name: "Identified",
+        order: 1,
+        flags: ["isCreatedState"],
+      },
+      {
+        id: "acknowledged",
+        name: "Acknowledged",
+        order: 2,
+        flags: ["isAcknowledgedState"],
+      },
+      {
+        id: "resolved",
+        name: "Resolved",
+        order: 3,
+        flags: ["isResolvedState"],
+      },
+      { id: "investigating", name: "Investigating", order: 4, flags: [] },
     ];
 
-    // A number nobody holds is kept, and nothing else moves.
     expect(
-      getListOrderCollisionChanges({
-        siblings: siblings,
-        itemId: "new",
-        previousValue: null,
-        requestedValue: 110,
+      getStateListRowsAfterWrite({
+        rows: states,
+        id: "investigating",
+        requestedValue: 2,
+      }).map((row: StateListRow) => {
+        return row.order;
+      }),
+    ).toEqual([1, 2, 3, 2]);
+    expect(section).toContain(
+      "writing `order`, `priority` or `sort_order` places that one record and moves no other.",
+    );
+    expect(section).toContain(
+      "So a configuration that numbers a whole list, such as `order = index(local.states, each.key) + 1`, is applied exactly as written",
+    );
+
+    // Two records at one number keep it, and are listed by id.
+    expect(
+      sortListOrderItems(
+        [
+          { id: "b", value: 2 },
+          { id: "a", value: 2 },
+        ],
+        SortOrder.Ascending,
+      ).map((item: { id: string }) => {
+        return item.id;
+      }),
+    ).toEqual(["a", "b"]);
+    expect(section).toContain(
+      "Two records at one number keep it, and are listed in the order of their IDs",
+    );
+
+    // A record without a number goes after the last, gaps and all.
+    expect(
+      getListOrderAppendValue({
+        siblings: [
+          { id: "a", value: 101 },
+          { id: "b", value: 102 },
+          { id: "c", value: 103 },
+        ],
         sortOrder: SortOrder.Ascending,
       }),
-    ).toEqual([]);
-    // A taken number: the one holding it, and the run behind it, step down.
+    ).toBe(104);
+    expect(section).toContain(
+      "A record created without a number goes after the last one of its list, and moves no other.",
+    );
+
+    // A new state without a number goes just above Resolved, the list numbered 1..n.
+    expect(STATE_LISTS[StateListType.IncidentState].insertAboveFlag).toBe(
+      "isResolvedState",
+    );
+    expect(STATE_LISTS[StateListType.MonitorStatus].insertAboveFlag).toBe(
+      "isOfflineState",
+    );
     expect(
-      getListOrderCollisionChanges({
-        siblings: siblings,
-        itemId: "new",
-        previousValue: null,
-        requestedValue: 102,
-        sortOrder: SortOrder.Ascending,
-      }),
+      getStateListRowsAfterCreate({
+        definition: STATE_LISTS[StateListType.IncidentState],
+        rows: states,
+        newRow: { id: "new", name: "Mitigated", order: null, flags: [] },
+      })
+        .map((row: StateListRow) => {
+          return `${row.id}:${row.order}`;
+        })
+        .sort(),
     ).toEqual([
-      { id: "b", value: 103 },
-      { id: "c", value: 104 },
+      "acknowledged:2",
+      "identified:1",
+      "investigating:5",
+      "new:3",
+      "resolved:4",
     ]);
+    expect(section).toContain(
+      "goes just above the resolved, offline, completed or closed one instead, and its list is numbered 1..n again. Give it a number in the configuration.",
+    );
+
+    // A move in the dashboard numbers the list 1..n again, gaps and all.
+    const moved: MoveInListChanges = MoveInListUtil.getChanges({
+      rows: [
+        { id: "a", order: 10 },
+        { id: "b", order: 20 },
+        { id: "c", order: 30 },
+      ],
+      rowId: "c",
+      placeOfId: "a",
+    });
+    expect(moved).toEqual({
+      kind: "moved",
+      changedRows: [
+        { id: "c", order: 1 },
+        { id: "a", order: 2 },
+        { id: "b", order: 3 },
+      ],
+    });
+    expect(section).toContain(
+      "Moving a record in the dashboard numbers its list 1..n again.",
+    );
+
+    // The built-in states keep their order: Resolved at Acknowledged's place is refused.
     expect(
-      englishSection(TROUBLESHOOTING, "### A priority or order that moves"),
-    ).toContain(
-      "A number nobody else holds is kept as written. A number another one already holds is taken over, and the ones in the way step down one place",
+      getStateListOrderViolationIntroduced({
+        definition: STATE_LISTS[StateListType.IncidentState],
+        rowsBefore: states,
+        rowsAfter: getStateListRowsAfterWrite({
+          rows: states,
+          id: "resolved",
+          requestedValue: 2,
+        }),
+      })?.later.id,
+    ).toBe("resolved");
+    expect(section).toContain(
+      "a write that would put the resolved state above the acknowledged one is refused",
     );
   });
 

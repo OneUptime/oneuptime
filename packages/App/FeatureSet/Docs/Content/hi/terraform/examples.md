@@ -547,7 +547,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 
 ### गंभीरताएँ और स्थितियाँ
 
-गंभीरताएँ किसी घटना के प्रभाव को श्रेणी देती हैं, और स्थितियाँ उसके जीवन के चरण हैं। `order` वह जगह है जहाँ हर एक सूची में आता है:
+गंभीरताएँ किसी घटना के प्रभाव को श्रेणी देती हैं, और स्थितियाँ उसके जीवन के चरण हैं। `order` वह जगह है जहाँ हर एक सूची में आता है। नई स्थिति में इसे छोड़ दें, तो वह स्थिति सुलझी हुई स्थिति के ठीक ऊपर जाती है:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

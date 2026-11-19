@@ -25,7 +25,7 @@ Cerca nella tabella qui sotto il messaggio che Terraform ha stampato, o ciò che
 | `Cannot import non-existent remote object` | Controlla l'ID e le autorizzazioni della chiave: vedi [Importare risorse](/docs/terraform/importing-resources#risoluzione-dei-problemi) |
 | `Provider produced inconsistent result after apply` | Aggiorna il provider: vedi [Risultato incoerente dopo l'apply](#risultato-incoerente-dopo-lapply) |
 | Un piano crea una risorsa che non hai aggiunto | La chiave non può più leggerla, e OneUptime ha risposto `404`: restituisci alla chiave l'accesso in lettura, poi importa la risorsa con `terraform import`: vedi [Una risorsa lascia lo stato, e l'apply successivo la crea di nuovo](#una-risorsa-lascia-lo-stato-e-lapply-successivo-la-crea-di-nuovo) |
-| Una `priority` o un `order` cambia dopo l'apply | Dai a ciascuno un numero che nessun altro ha: vedi [Una priorità o un ordine che si sposta](#una-priorità-o-un-ordine-che-si-sposta) |
+| Una `priority` o un `order` cambia dopo l'apply | Riordina l'elenco in Terraform, non nella dashboard, e dai un numero a un nuovo stato: vedi [Una priorità o un ordine che si sposta](#una-priorità-o-un-ordine-che-si-sposta) |
 | `Invalid Configuration for Read-Only Attribute` | Togli l'attributo dalla configurazione: vedi [Attributi di sola lettura](#attributi-di-sola-lettura) |
 | `has been renamed to` | Rinomina il tipo di risorsa, con un blocco `moved`: vedi [Un tipo di risorsa rinominato](#un-tipo-di-risorsa-rinominato) |
 | Un monitor creato con Terraform non mostra mai i suoi controlli | Aggiorna OneUptime: vedi [Monitor creati prima degli ID dei passaggi](#monitor-creati-prima-degli-id-dei-passaggi) |
@@ -131,9 +131,12 @@ Succede quando la chiave che gestisce una risorsa non può più leggerla: la sua
 
 ### Una priorità o un ordine che si sposta
 
-Gli stati dei monitor, gli stati e le gravità di incidenti e avvisi, e gli altri elenchi che metti in ordine nella dashboard tengono ogni numero una sola volta. Un numero che nessun altro ha viene mantenuto come scritto. Un numero che un altro ha già viene preso, e quelli che si trovano in mezzo scendono di un posto, come fa un trascinamento nella dashboard. Così due di essi configurati con lo stesso numero si scambiano di posto a ogni apply.
+In ogni elenco che metti in ordine - stati dei monitor, stati di incidenti, avvisi e manutenzioni, gravità, campi personalizzati, gruppi, risorse e link delle pagine di stato, regole di escalation, livelli delle pianificazioni, pipeline, filtri e regole - il numero che scrivi in `order`, `priority` o `sort_order` colloca solo quel record e non ne sposta nessun altro. Così una configurazione che numera un intero elenco, come `order = index(local.states, each.key) + 1`, viene applicata esattamente come è scritta, in qualunque ordine arrivino le scritture del provider, e il piano successivo è vuoto. Un numero cambia dopo un apply solo quando qualcos'altro sposta un record:
 
-Dai a ciascuno il proprio numero con degli spazi tra l'uno e l'altro, come `101`, `102` e `103`, e riordina quelli che Terraform gestisce in Terraform, non trascinandoli nella dashboard.
+- Spostare un record nella dashboard rinumera il suo elenco come 1..n. Riordina in Terraform gli elenchi che Terraform gestisce, oppure copia i nuovi numeri nella configurazione.
+- Un record creato senza numero va dopo l'ultimo del suo elenco, e non ne sposta nessun altro. Un nuovo stato di incidente, avviso o manutenzione, stato del monitor, stato del post-mortem o stato di un caso di sicurezza va invece appena sopra quello risolto, offline, completato o chiuso, e il suo elenco viene rinumerato come 1..n. Dagli un numero nella configurazione.
+
+Due record con lo stesso numero lo mantengono, e sono elencati nell'ordine dei loro ID: dai a ciascuno il suo. Eliminare un record lascia un buco nei numeri, il che non cambia nulla. Gli stati predefiniti mantengono il loro ordine, quindi una scrittura che metterebbe lo stato risolto sopra quello riconosciuto viene rifiutata: numerali in quell'ordine.
 
 ### Attributi di sola lettura
 

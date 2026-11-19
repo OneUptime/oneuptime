@@ -130,7 +130,7 @@ Eén stap gaat de lijst weer op: het heropenen door een groeperingsregel. Een re
 
 Om een per vergissing ingestelde status te herstellen, verwijder je de rij ervan op de statustijdlijnpagina van het record (zie [De statustijdlijn](#de-statustijdlijn)). Het record gaat terug naar de status van zijn laatste resterende rij; een episode waarvan je de rij verwijdert die haar oploste, is weer open, en haar oplostijd wordt gewist.
 
-Via de API en Terraform is de volgorde de kolom `order`: lagere getallen komen eerst. Een status die zonder volgorde wordt aangemaakt, komt net boven de opgeloste status; een status die met een getal wordt aangemaakt of bijgewerkt, neemt die plek in, en de statussen die in de weg staan, schuiven een plek op. Getallen die geen andere status heeft, blijven zoals ze zijn geschreven, dus een status die door Terraform wordt beheerd, leest het getal terug dat hij kreeg.
+Via de API en Terraform is de volgorde de kolom `order`: lagere getallen komen eerst. Een status die met een getal wordt aangemaakt of bijgewerkt, houdt dat getal, en geen andere status verschuift, dus een status die door Terraform wordt beheerd, leest het getal terug dat hij kreeg; twee statussen met hetzelfde getal worden in de volgorde van hun ID's getoond. Een status die zonder volgorde wordt aangemaakt, komt net boven de opgeloste status, en de lijst wordt opnieuw als 1..n genummerd, zoals slepen in het dashboard hem nummert.
 
 ## De vooraf aangemaakte ernstniveaus
 

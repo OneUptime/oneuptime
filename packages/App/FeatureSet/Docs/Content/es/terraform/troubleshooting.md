@@ -25,7 +25,7 @@ Busque en la tabla de abajo el mensaje que imprimió Terraform, o lo que vio que
 | `Cannot import non-existent remote object` | Compruebe el ID y los permisos de la clave: consulte [Importar recursos](/docs/terraform/importing-resources#solución-de-problemas) |
 | `Provider produced inconsistent result after apply` | Actualice el proveedor: consulte [Resultado incoherente tras el apply](#resultado-incoherente-tras-el-apply) |
 | Un plan crea un recurso que usted no añadió | La clave ya no puede leerlo, y OneUptime respondió `404`: devuelva a la clave el acceso de lectura y luego importe el recurso con `terraform import`: consulte [Un recurso sale del estado, y el siguiente apply lo vuelve a crear](#un-recurso-sale-del-estado-y-el-siguiente-apply-lo-vuelve-a-crear) |
-| Un `priority` o un `order` cambia tras el apply | Dé a cada uno un número que no tenga ningún otro: consulte [Una prioridad o un orden que se mueve](#una-prioridad-o-un-orden-que-se-mueve) |
+| Un `priority` o un `order` cambia tras el apply | Reordene la lista en Terraform, no en el panel, y dé un número a un estado nuevo: consulte [Una prioridad o un orden que se mueve](#una-prioridad-o-un-orden-que-se-mueve) |
 | `Invalid Configuration for Read-Only Attribute` | Quite el atributo de la configuración: consulte [Atributos de solo lectura](#atributos-de-solo-lectura) |
 | `has been renamed to` | Cambie el nombre del tipo de recurso, con un bloque `moved`: consulte [Un tipo de recurso renombrado](#un-tipo-de-recurso-renombrado) |
 | Un monitor creado con Terraform nunca muestra sus comprobaciones | Actualice OneUptime: consulte [Monitores creados antes de los ID de pasos](#monitores-creados-antes-de-los-id-de-pasos) |
@@ -131,9 +131,12 @@ Eso ocurre cuando la clave que gestiona un recurso ya no puede leerlo: su permis
 
 ### Una prioridad o un orden que se mueve
 
-Los estados de monitor, los estados y severidades de incidentes y alertas, y las demás listas que ordena en el panel, tienen cada número una sola vez. Un número que no tiene ningún otro se conserva tal como se escribió. Un número que otro ya tiene se toma, y los que están en medio bajan un puesto, como hace un arrastre en el panel. Así, dos de ellos configurados con el mismo número intercambian sus puestos en cada apply.
+En cada lista que ordena - estados de monitor, estados de incidentes, alertas y mantenimientos, severidades, campos personalizados, grupos, recursos y enlaces de páginas de estado, reglas de escalado, capas de programación, canalizaciones, filtros y reglas -, el número que escribe en `order`, `priority` o `sort_order` coloca solo ese registro y no mueve ningún otro. Así, una configuración que numera una lista entera, como `order = index(local.states, each.key) + 1`, se aplica exactamente como está escrita, sea cual sea el orden en que lleguen las escrituras del proveedor, y el siguiente plan queda vacío. Un número solo cambia tras un apply cuando otra cosa mueve un registro:
 
-Dé a cada uno su propio número con huecos entre ellos, como `101`, `102` y `103`, y reordene los que gestiona Terraform en Terraform, no arrastrándolos en el panel.
+- Mover un registro en el panel vuelve a numerar su lista como 1..n. Reordene en Terraform las listas que gestiona Terraform, o copie los números nuevos en la configuración.
+- Un registro creado sin número va después del último de su lista, y no mueve ningún otro. En cambio, un nuevo estado de incidente, alerta o mantenimiento, estado de monitor, estado de post mortem o estado de caso de seguridad va justo por encima del que está resuelto, sin conexión, completado o cerrado, y su lista se vuelve a numerar como 1..n. Dele un número en la configuración.
+
+Dos registros con un mismo número lo conservan, y se listan en el orden de sus ID: dé a cada uno el suyo. Eliminar un registro deja un hueco en los números, lo que no cambia nada. Los estados predefinidos conservan su orden, así que se rechaza una escritura que pondría el estado resuelto por encima del reconocido: numérelos en ese orden.
 
 ### Atributos de solo lectura
 

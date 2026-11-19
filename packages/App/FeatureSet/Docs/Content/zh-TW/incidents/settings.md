@@ -381,7 +381,7 @@ Slack 和 Microsoft Teams 的事件表單也會詢問：其中的選項依開關
 
 這些設定位於 `oneuptime_incident_custom_field` 資源上，分別為 `sort_order`、`show_on_create`、`is_required_on_create` 和 `include_in_subscriber_notifications`。`variable_key` 是唯讀的：它是欄位建立時 OneUptime 產生的鍵。
 
-省略 `sort_order` 時，新欄位會排到清單最後。給它一個另一個欄位已經使用的數字，它會佔據那個位置，擋在中間的欄位依序往後移一位。沒有其他欄位使用的數字會依你寫的樣子保留。
+省略 `sort_order` 時，新欄位會排到清單最後。你給出的數字會依你寫的樣子保留，其他欄位都不會移動：數字相同的兩個欄位依其 ID 的順序排列。
 
 ## 測量
 

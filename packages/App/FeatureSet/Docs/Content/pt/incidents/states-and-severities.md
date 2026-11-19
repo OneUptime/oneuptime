@@ -130,7 +130,7 @@ Uma única mudança volta a subir na lista: a reabertura por uma regra de agrupa
 
 Para corrigir um estado definido por engano, exclua a linha dele na página da linha do tempo de estados do registro (veja [A linha do tempo de estados](#a-linha-do-tempo-de-estados)). O registro volta ao estado da sua última linha restante; um episódio cuja linha de resolução você excluir fica aberto de novo, e o horário de resolução dele é apagado.
 
-Pela API e pelo Terraform, a ordem é a coluna `order`: números menores vêm primeiro. Um estado criado sem ela vai para logo acima do estado resolvido; um criado ou atualizado com um número ocupa esse lugar, e os estados no caminho descem uma posição. Números que ninguém mais tem são mantidos como escritos, então um estado gerenciado pelo Terraform lê de volta o número que recebeu.
+Pela API e pelo Terraform, a ordem é a coluna `order`: números menores vêm primeiro. Um estado criado ou atualizado com um número o mantém, e nenhum outro estado se move, então um estado gerenciado pelo Terraform lê de volta o número que recebeu; dois estados com o mesmo número são listados na ordem dos seus IDs. Um estado criado sem ela vai para logo acima do estado resolvido, e a lista é renumerada como 1..n, como um arrastar no painel a renumera.
 
 ## As severidades iniciais
 

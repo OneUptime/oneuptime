@@ -130,7 +130,7 @@ Un solo passaggio risale l'elenco: la riapertura da parte di una regola di raggr
 
 Per correggere uno stato impostato per errore, eliminate la sua riga nella pagina della cronologia degli stati del record (vedete [La cronologia degli stati](#la-cronologia-degli-stati)). Il record torna allo stato della sua ultima riga rimasta; un episodio di cui eliminate la riga di risoluzione torna aperto, e il suo orario di risoluzione viene cancellato.
 
-Tramite l'API e Terraform l'ordine è la colonna `order`: i numeri più bassi vengono prima. Uno stato creato senza ordine va appena sopra lo stato risolto; uno creato o aggiornato con un numero prende quel posto, e gli stati che lo intralciano scendono di una posizione. I numeri che nessun altro ha vengono mantenuti come scritti, così uno stato gestito con Terraform rilegge il numero che gli è stato dato.
+Tramite l'API e Terraform l'ordine è la colonna `order`: i numeri più bassi vengono prima. Uno stato creato o aggiornato con un numero lo mantiene, e nessun altro stato si sposta, così uno stato gestito con Terraform rilegge il numero che gli è stato dato; due stati con lo stesso numero sono elencati nell'ordine dei loro ID. Uno stato creato senza ordine va appena sopra lo stato risolto, e l'elenco viene rinumerato come 1..n, come lo rinumera un trascinamento nella dashboard.
 
 ## Le gravità predefinite
 

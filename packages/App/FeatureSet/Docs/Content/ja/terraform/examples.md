@@ -547,7 +547,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 
 ### 重大度と状態
 
-重大度はインシデントの影響の大きさを表し、状態はインシデントがたどる段階です。`order` は、それぞれが並ぶ位置です。
+重大度はインシデントの影響の大きさを表し、状態はインシデントがたどる段階です。`order` は、それぞれが並ぶ位置です。新しい状態で省略すると、その状態は解決状態のすぐ上に入ります。
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

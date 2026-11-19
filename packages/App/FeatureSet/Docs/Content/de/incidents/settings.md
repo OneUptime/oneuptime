@@ -381,7 +381,7 @@ Jedes `to` muss nach dem Speichern eine der Optionen des Felds sein, und jedes `
 
 Die Einstellungen stehen an der Ressource `oneuptime_incident_custom_field` als `sort_order`, `show_on_create`, `is_required_on_create` und `include_in_subscriber_notifications`. `variable_key` ist schreibgeschützt: der Schlüssel, den OneUptime beim Anlegen des Felds gebildet hat.
 
-Lassen Sie `sort_order` weg, kommt ein neues Feld ans Ende der Liste. Geben Sie ihm die Zahl, die ein anderes Feld schon hat, nimmt es diesen Platz ein, und die Felder im Weg rücken um einen Platz weiter. Eine Zahl, die kein anderes Feld hat, wird so behalten, wie Sie sie geschrieben haben.
+Lassen Sie `sort_order` weg, kommt ein neues Feld ans Ende der Liste. Eine Zahl, die Sie angeben, wird so behalten, wie Sie sie geschrieben haben, und kein anderes Feld verschiebt sich: Zwei Felder mit derselben Zahl werden in der Reihenfolge ihrer IDs aufgeführt.
 
 ## Messungen
 

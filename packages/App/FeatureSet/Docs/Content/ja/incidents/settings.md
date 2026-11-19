@@ -381,7 +381,7 @@ API では、新しい一覧を `dropdownOptions` として、名前の変更を
 
 これらの設定は、`oneuptime_incident_custom_field` リソースの `sort_order`、`show_on_create`、`is_required_on_create`、`include_in_subscriber_notifications` です。`variable_key` は読み取り専用で、フィールドの作成時に OneUptime が作ったキーです。
 
-`sort_order` を省略すると、新しいフィールドは一覧の末尾に入ります。別のフィールドがすでに持っている番号を指定すると、その位置に入り、間にあるフィールドは 1 つずつずれます。他のどのフィールドも持っていない番号は、書いたとおりに保たれます。
+`sort_order` を省略すると、新しいフィールドは一覧の末尾に入ります。指定した番号は書いたとおりに保たれ、ほかのフィールドは動きません。同じ番号の 2 つのフィールドは ID の順に並びます。
 
 ## 測定値
 

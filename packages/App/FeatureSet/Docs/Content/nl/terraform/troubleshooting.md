@@ -25,7 +25,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | `Cannot import non-existent remote object` | Controleer het ID en de machtigingen van de sleutel: zie [Resources importeren](/docs/terraform/importing-resources#probleemoplossing) |
 | `Provider produced inconsistent result after apply` | Upgrade de provider: zie [Inconsistent resultaat na apply](#inconsistent-resultaat-na-apply) |
 | Een plan maakt een resource aan die je niet hebt toegevoegd | De sleutel kan hem niet meer lezen, en OneUptime antwoordde `404`: geef de sleutel zijn leestoegang terug, en importeer de resource daarna met `terraform import`: zie [Een resource verlaat de state, en de volgende apply maakt hem opnieuw aan](#een-resource-verlaat-de-state-en-de-volgende-apply-maakt-hem-opnieuw-aan) |
-| Een `priority` of `order` verandert na apply | Geef elk een nummer dat niemand anders heeft: zie [Een prioriteit of volgorde die verschuift](#een-prioriteit-of-volgorde-die-verschuift) |
+| Een `priority` of `order` verandert na apply | Orden de lijst opnieuw in Terraform, niet in het dashboard, en geef een nieuwe status een nummer: zie [Een prioriteit of volgorde die verschuift](#een-prioriteit-of-volgorde-die-verschuift) |
 | `Invalid Configuration for Read-Only Attribute` | Haal het attribuut uit de configuratie: zie [Alleen-lezen attributen](#alleen-lezen-attributen) |
 | `has been renamed to` | Hernoem het resourcetype, met een `moved`-blok: zie [Een hernoemd resourcetype](#een-hernoemd-resourcetype) |
 | Een monitor die met Terraform is gemaakt, toont nooit zijn controles | Upgrade OneUptime: zie [Monitoren van vóór stap-ID's](#monitoren-van-vóór-stap-ids) |
@@ -131,9 +131,12 @@ Dat gebeurt wanneer de sleutel die een resource beheert, hem niet meer kan lezen
 
 ### Een prioriteit of volgorde die verschuift
 
-Monitorstatussen, statussen en ernstniveaus van incidenten en waarschuwingen, en de andere lijsten die je in het dashboard op volgorde zet, bevatten elk nummer één keer. Een nummer dat niemand anders heeft, blijft zoals het geschreven is. Een nummer dat een ander al heeft, wordt overgenomen, en de items die in de weg staan, schuiven één plaats op, zoals slepen in het dashboard doet. Twee items die met hetzelfde nummer zijn geconfigureerd, wisselen dus bij elke apply van plaats.
+In elke lijst die je op volgorde zet - monitorstatussen, statussen van incidenten, waarschuwingen en onderhoud, ernstniveaus, aangepaste velden, groepen, resources en links van statuspagina's, escalatieregels, roosterlagen, pipelines, filters en regels - plaatst het nummer dat je in `order`, `priority` of `sort_order` schrijft alleen dat ene record, en verschuift het geen ander. Een configuratie die een hele lijst nummert, zoals `order = index(local.states, each.key) + 1`, wordt dus precies toegepast zoals ze geschreven is, in welke volgorde de schrijfacties van de provider ook binnenkomen, en het volgende plan is leeg. Een nummer verandert na een apply alleen wanneer iets anders een record verplaatst:
 
-Geef elk een eigen nummer met ruimte ertussen, zoals `101`, `102` en `103`, en orden de items die Terraform beheert opnieuw in Terraform, niet door ze in het dashboard te slepen.
+- Een record in het dashboard verplaatsen nummert zijn lijst opnieuw als 1..n. Orden de lijsten die Terraform beheert opnieuw in Terraform, of neem de nieuwe nummers over in de configuratie.
+- Een record dat zonder nummer wordt aangemaakt, komt na het laatste van zijn lijst en verschuift geen ander. Een nieuwe status van een incident, waarschuwing of onderhoud, een nieuwe monitorstatus, postmortemstatus of status van een beveiligingszaak komt in plaats daarvan net boven de opgeloste, offline, voltooide of gesloten status, en de lijst wordt opnieuw als 1..n genummerd. Geef hem een nummer in de configuratie.
+
+Twee records met hetzelfde nummer houden het, en worden in de volgorde van hun ID's getoond: geef elk een eigen nummer. Een record verwijderen laat een gat in de nummers achter, wat niets verandert. De ingebouwde statussen behouden hun volgorde, dus een schrijfactie die de opgeloste status boven de bevestigde zou zetten, wordt geweigerd: nummer ze in die volgorde.
 
 ### Alleen-lezen attributen
 

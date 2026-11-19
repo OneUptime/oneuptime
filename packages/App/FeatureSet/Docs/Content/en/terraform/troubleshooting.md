@@ -25,7 +25,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `Cannot import non-existent remote object` | Check the ID and the key's permissions: see [Importing Resources](/docs/terraform/importing-resources#troubleshooting) |
 | `Provider produced inconsistent result after apply` | Upgrade the provider: see [Inconsistent result after apply](#inconsistent-result-after-apply) |
 | A plan creates a resource you did not add | The key can no longer read it, and OneUptime answered `404`: give the key read access back, then `terraform import` the resource: see [A resource leaves the state, and the next apply creates it again](#a-resource-leaves-the-state-and-the-next-apply-creates-it-again) |
-| A `priority` or `order` changes after apply | Give each one a number nobody else holds: see [A priority or order that moves](#a-priority-or-order-that-moves) |
+| A `priority` or `order` changes after apply | Reorder the list in Terraform, not in the dashboard, and give a new state a number: see [A priority or order that moves](#a-priority-or-order-that-moves) |
 | `Invalid Configuration for Read-Only Attribute` | Remove the attribute from the configuration: see [Read-only attributes](#read-only-attributes) |
 | `has been renamed to` | Rename the resource type, with a `moved` block: see [A renamed resource type](#a-renamed-resource-type) |
 | A monitor made with Terraform never shows its checks | Upgrade OneUptime: see [Monitors made before step IDs](#monitors-made-before-step-ids) |
@@ -131,9 +131,12 @@ That happens when the key that manages a resource can no longer read it: its rea
 
 ### A priority or order that moves
 
-Monitor statuses, incident and alert states and severities, and the other lists you put in order in the dashboard hold each number once. A number nobody else holds is kept as written. A number another one already holds is taken over, and the ones in the way step down one place, as a drag in the dashboard does. So two of them configured with the same number trade places on every apply.
+On every list you put in order - monitor statuses, incident, alert and maintenance states, severities, custom fields, status page groups, resources and links, escalation rules, schedule layers, pipelines, filters and rules - writing `order`, `priority` or `sort_order` places that one record and moves no other. So a configuration that numbers a whole list, such as `order = index(local.states, each.key) + 1`, is applied exactly as written, whatever order the provider's writes land in, and the next plan is empty. A number changes after an apply only when something else moves a record:
 
-Give each one its own number with gaps between them, such as `101`, `102` and `103`, and reorder the ones Terraform manages in Terraform, not by dragging them in the dashboard.
+- Moving a record in the dashboard numbers its list 1..n again. Reorder the lists Terraform manages in Terraform, or copy the new numbers into the configuration.
+- A record created without a number goes after the last one of its list, and moves no other. A new incident, alert or maintenance state, monitor status, postmortem status or security case status goes just above the resolved, offline, completed or closed one instead, and its list is numbered 1..n again. Give it a number in the configuration.
+
+Two records at one number keep it, and are listed in the order of their IDs: give each one its own. Deleting a record leaves a gap in the numbers, which changes nothing. The built-in states and statuses keep their order, so a write that would put the resolved state above the acknowledged one is refused: number them in that order.
 
 ### Read-only attributes
 

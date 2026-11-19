@@ -381,7 +381,7 @@ Chaque `to` doit être l'une des options du champ une fois enregistré, et chaqu
 
 Les réglages se trouvent sur la ressource `oneuptime_incident_custom_field` sous `sort_order`, `show_on_create`, `is_required_on_create` et `include_in_subscriber_notifications`. `variable_key` est en lecture seule : la clé que OneUptime a construite à la création du champ.
 
-Omettez `sort_order` et un nouveau champ va à la fin de la liste. Donnez-lui le nombre qu'a déjà un autre champ et il prend cette place, tandis que les champs qui la gênent avancent d'un rang. Un nombre qu'aucun autre champ n'a est conservé tel que vous l'avez écrit.
+Omettez `sort_order` et un nouveau champ va à la fin de la liste. Un nombre que vous donnez est conservé tel que vous l'avez écrit, et aucun autre champ ne bouge : deux champs au même nombre sont listés dans l'ordre de leurs ID.
 
 ## Mesures
 

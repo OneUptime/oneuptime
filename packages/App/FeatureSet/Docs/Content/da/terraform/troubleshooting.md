@@ -25,7 +25,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `Cannot import non-existent remote object` | Kontrollér ID'et og nøglens tilladelser: se [Import af ressourcer](/docs/terraform/importing-resources#fejlfinding) |
 | `Provider produced inconsistent result after apply` | Opgradér provideren: se [Inkonsistent resultat efter apply](#inkonsistent-resultat-efter-apply) |
 | En plan opretter en ressource, du ikke har tilføjet | Nøglen kan ikke længere læse den, og OneUptime svarede `404`: giv nøglen dens læseadgang tilbage, og importér derefter ressourcen med `terraform import`: se [En ressource forlader state, og næste apply opretter den igen](#en-ressource-forlader-state-og-næste-apply-opretter-den-igen) |
-| En `priority` eller `order` ændres efter apply | Giv hver enkelt et nummer, som ingen anden har: se [En prioritet eller rækkefølge, der flytter sig](#en-prioritet-eller-rækkefølge-der-flytter-sig) |
+| En `priority` eller `order` ændres efter apply | Ændr listens rækkefølge i Terraform, ikke i dashboardet, og giv en ny tilstand et nummer: se [En prioritet eller rækkefølge, der flytter sig](#en-prioritet-eller-rækkefølge-der-flytter-sig) |
 | `Invalid Configuration for Read-Only Attribute` | Fjern attributten fra konfigurationen: se [Skrivebeskyttede attributter](#skrivebeskyttede-attributter) |
 | `has been renamed to` | Omdøb ressourcetypen med en `moved`-blok: se [En omdøbt ressourcetype](#en-omdøbt-ressourcetype) |
 | En monitor, der er lavet med Terraform, viser aldrig sine tjek | Opgradér OneUptime: se [Monitorer fra før trin-ID'er](#monitorer-fra-før-trin-ider) |
@@ -131,9 +131,12 @@ Det sker, når den nøgle, der styrer en ressource, ikke længere kan læse den:
 
 ### En prioritet eller rækkefølge, der flytter sig
 
-Monitorstatusser, hændelses- og alarmtilstande og -alvorligheder, og de andre lister, du sætter i rækkefølge i dashboardet, har hvert nummer én gang. Et nummer, som ingen anden har, beholdes, som det er skrevet. Et nummer, som en anden allerede har, overtages, og dem, der står i vejen, rykker én plads ned, som når du trækker i dashboardet. Så to af dem, der er konfigureret med det samme nummer, bytter plads ved hver apply.
+På hver liste, du sætter i rækkefølge - monitorstatusser, hændelses-, alarm- og vedligeholdelsestilstande, alvorligheder, brugerdefinerede felter, statussidernes grupper, ressourcer og links, eskaleringsregler, vagtplanlag, pipelines, filtre og regler - placerer det nummer, du skriver i `order`, `priority` eller `sort_order`, kun den ene post og flytter ingen andre. Så en konfiguration, der nummererer en hel liste, såsom `order = index(local.states, each.key) + 1`, anvendes præcis, som den er skrevet, uanset i hvilken rækkefølge providerens skrivninger lander, og den næste plan er tom. Et nummer ændres kun efter en apply, når noget andet flytter en post:
 
-Giv hver enkelt sit eget nummer med mellemrum imellem, som `101`, `102` og `103`, og ændr rækkefølgen af dem, Terraform styrer, i Terraform, ikke ved at trække dem i dashboardet.
+- Når du flytter en post i dashboardet, nummereres dens liste 1..n igen. Ændr rækkefølgen af de lister, Terraform styrer, i Terraform, eller kopiér de nye numre ind i konfigurationen.
+- En post, der oprettes uden et nummer, kommer efter den sidste på sin liste og flytter ingen andre. En ny hændelses-, alarm- eller vedligeholdelsestilstand, monitorstatus, postmortem-status eller status for sikkerhedssager kommer i stedet lige over den, der er løst, offline, fuldført eller lukket, og dens liste nummereres 1..n igen. Giv den et nummer i konfigurationen.
+
+To poster med samme nummer beholder det og vises i rækkefølge efter deres ID'er: giv hver enkelt sit eget. Sletter du en post, efterlader det et hul i numrene, og det ændrer intet. De indbyggede tilstande og statusser beholder deres rækkefølge, så en skrivning, der ville placere den løste tilstand over den bekræftede, afvises: nummerér dem i den rækkefølge.
 
 ### Skrivebeskyttede attributter
 

@@ -130,7 +130,7 @@ Ein Wechsel führt in der Liste wieder nach oben: das Wiedereröffnen durch eine
 
 Um einen versehentlich gesetzten Status zu korrigieren, löschen Sie seine Zeile auf der Seite mit der Statuszeitachse des Datensatzes (siehe [Die Statuszeitachse](#die-statuszeitachse)). Der Datensatz kehrt in den Status seiner letzten verbleibenden Zeile zurück; löschen Sie bei einer Episode die Zeile, mit der sie behoben wurde, ist sie wieder offen, und ihr Behebungszeitpunkt wird geleert.
 
-Über die API und Terraform ist die Reihenfolge die Spalte `order`: Kleinere Zahlen kommen zuerst. Ein ohne Zahl angelegter Status kommt direkt über den behobenen Status; einer, der mit einer Zahl angelegt oder aktualisiert wird, nimmt diesen Platz ein, und die Status im Weg rücken eine Stufe nach unten. Zahlen, die sonst niemand hat, bleiben wie geschrieben, sodass ein von Terraform verwalteter Status die Zahl zurückliest, die er bekommen hat.
+Über die API und Terraform ist die Reihenfolge die Spalte `order`: Kleinere Zahlen kommen zuerst. Ein Status, der mit einer Zahl angelegt oder aktualisiert wird, behält sie, und kein anderer Status verschiebt sich, sodass ein von Terraform verwalteter Status die Zahl zurückliest, die er bekommen hat; zwei Status mit derselben Zahl werden in der Reihenfolge ihrer IDs aufgeführt. Ein ohne Zahl angelegter Status kommt direkt über den behobenen Status, und die Liste wird neu mit 1..n nummeriert, so wie ein Ziehen im Dashboard sie nummeriert.
 
 ## Die vorangelegten Schweregrade
 

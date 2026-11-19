@@ -547,7 +547,7 @@ En monitors kriterier larmar policyn via `on_call_policy_ids` på de incidenter 
 
 ### Allvarlighetsgrader och tillstånd
 
-Allvarlighetsgrader rangordnar en incidents påverkan, och tillstånd är stegen i dess livscykel. `order` är var var och en listas:
+Allvarlighetsgrader rangordnar en incidents påverkan, och tillstånd är stegen i dess livscykel. `order` är var var och en listas. Utelämnar du det för ett nytt tillstånd hamnar tillståndet precis ovanför det lösta:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

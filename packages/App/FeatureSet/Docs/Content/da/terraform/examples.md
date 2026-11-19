@@ -547,7 +547,7 @@ En monitors kriterier tilkalder politikken via `on_call_policy_ids` på de hænd
 
 ### Alvorligheder og tilstande
 
-Alvorligheder rangerer en hændelses påvirkning, og tilstande er trinnene i dens forløb. `order` er der, hvor hver af dem står i listen:
+Alvorligheder rangerer en hændelses påvirkning, og tilstande er trinnene i dens forløb. `order` er der, hvor hver af dem står i listen. Udelader du den for en ny tilstand, kommer tilstanden lige over den løste:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

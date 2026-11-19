@@ -381,7 +381,7 @@ Each `to` must be one of the field's options once it is saved, and each `from` c
 
 The settings are on the `oneuptime_incident_custom_field` resource as `sort_order`, `show_on_create`, `is_required_on_create` and `include_in_subscriber_notifications`. `variable_key` is read-only: the key OneUptime made when the field was created.
 
-Leave `sort_order` out and a new field goes to the end of the list. Give it the number another field already has and it takes that place, while the fields in the way move one place along. A number no other field has is kept as you wrote it.
+Leave `sort_order` out and a new field goes to the end of the list. A number you give is kept as you wrote it, and no other field moves: two fields with one number are listed in the order of their IDs.
 
 ## Measurements
 

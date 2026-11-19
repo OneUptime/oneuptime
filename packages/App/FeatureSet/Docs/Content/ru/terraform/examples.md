@@ -547,7 +547,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 
 ### Серьёзности и состояния
 
-Серьёзности ранжируют влияние инцидента, а состояния — это этапы его жизни. `order` — это место, на котором стоит каждое из них:
+Серьёзности ранжируют влияние инцидента, а состояния — это этапы его жизни. `order` — это место, на котором стоит каждое из них. Если не указать его для нового состояния, состояние встанет сразу над состоянием устранения:
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 

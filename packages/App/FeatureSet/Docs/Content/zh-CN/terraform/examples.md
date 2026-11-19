@@ -547,7 +547,7 @@ resource "oneuptime_escalation_rule_team" "sre" {
 
 ### 严重程度和状态
 
-严重程度表示事件影响的大小，状态是事件生命周期中的各个阶段。`order` 表示每一项的排列位置：
+严重程度表示事件影响的大小，状态是事件生命周期中的各个阶段。`order` 表示每一项的排列位置。新状态如果省略它，就会放在解决状态的正上方：
 
 ```hcl
 resource "oneuptime_incident_severity" "sev1" {
@@ -561,7 +561,6 @@ resource "oneuptime_incident_state" "mitigated" {
   name        = "Mitigated"
   description = "Impact contained, fix in progress"
   color       = "#F39C12"
-  order       = 3
 }
 ```
 
