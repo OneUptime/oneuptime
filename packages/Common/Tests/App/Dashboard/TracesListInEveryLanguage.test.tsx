@@ -508,7 +508,7 @@ const LIST_WORDS: Array<string> = [
   "Keep spaces together",
   "Filter by span status (unset = no error status set)",
   "Filter by span name (contains)",
-  "Duration in milliseconds (also <)",
+  "Duration in milliseconds (also >=, <, <=)",
   "Spans with / without exceptions",
   "Filter by status message (contains)",
   "Exclude — works with every filter above",

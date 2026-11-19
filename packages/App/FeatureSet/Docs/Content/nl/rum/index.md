@@ -77,7 +77,7 @@ OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te lett
 
 | Waar | Wat het toont |
 | --- | --- |
-| **Overzicht** | De tegels van een web-app voor **Paginaladingen**, **Paginalaadtijd (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Gebeurtenisduur (p95)**, **Uitzonderingen**, **Clients** en **Opgenomen sessies**, of die van een mobiele app voor **Sessies**, **Crashvrije sessies**, **Crashes**, **ANR's**, **App-starts**, **Koude start (p95)**, **Bevroren frames** en **Foutpercentage**, en trendgrafieken over het tijdsbereik dat je kiest. |
+| **Overzicht** | De tegels van een web-app voor **Paginaladingen**, **Paginalaadtijd (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Gebeurtenisduur (p95)**, **Uitzonderingen**, **Clients** en **Opgenomen sessies**, of die van een mobiele app voor **Sessies**, **Crashvrije sessies** met de crashvrije installaties, **Crashes**, **ANR's**, **App-starts**, **Koude start (p95)**, **Bevroren frames** en **Foutpercentage**, en trendgrafieken over het tijdsbereik dat je kiest. |
 | **Core Web Vitals** | Een kaart in het overzicht van een web-app met LCP, INP, CLS, FCP en TTFB, elk beoordeeld tegen de grenzen van Google, en de INP van elke route van een single-page-app. Zie [Core Web Vitals](/docs/rum/web-vitals) en [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrieken**, **Logboeken**, **Traces** | De telemetrieverkenners, beperkt tot deze applicatie. |
 | **Clients** | De browserplatforms en apparaatmodellen waarop de applicatie is gebruikt: een korte lijst per platform, nooit een rij per gebruiker. |

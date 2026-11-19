@@ -5,6 +5,7 @@ Instrumentieren Sie eine Android-, iOS- oder React-Native-App mit OpenTelemetry,
 :::cards
 - [Was OneUptime braucht](#was-oneuptime-braucht): Zwei Ressourcenattribute, gesendet mit einem Server-Schlüssel.
 - [Ihre Plattform einrichten](#ihre-plattform-einrichten): Android, iOS, React Native und alle anderen.
+- [iOS-Abstürze und -Hänger](#ios-abstürze-und-hänger): Die Diagnosen von MetricKit unter Ausnahmen und auf der Übersicht.
 - [Prüfen, ob es ankommt](#prüfen-ob-es-ankommt): Den Schlüssel testen, dann die App finden.
 - [Sitzungswiedergabe auf Mobilgeräten](#sitzungswiedergabe-auf-mobilgeräten): Aufzeichnungen für React-Native-Apps.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 Das SDK hängt `/v1/traces`, `/v1/metrics` und `/v1/logs` selbst an den Endpunkt an.
 :::
+
+## iOS-Abstürze und -Hänger
+
+opentelemetry-swift ab Version 2.3 meldet die Abstürze und Hänger einer iOS-App über seine MetricKit-Instrumentierung, die jede Diagnose von Apple als Protokolleintrag an OpenTelemetry übergibt. OneUptime ordnet sie so ein wie die Abstürze und ANRs von OpenTelemetry Android, sodass sie unter **Ausnahmen** und auf der **Übersicht** der Anwendung erscheinen:
+
+| Diagnose von Apple | Ereignisname | Unter Ausnahmen |
+| --- | --- | --- |
+| Ein Absturz | `metrickit.diagnostic.crash` | Eine nicht behandelte Ausnahme, deren Typ angibt, was die App beendet hat: die Objective-C-Ausnahme ab iOS 17, sonst die Mach-Ausnahme (`EXC_BAD_ACCESS`), sonst das Signal (`SIGSEGV`) |
+| Ein Hänger | `metrickit.diagnostic.hang` | Eine nicht behandelte Ausnahme vom Typ **Hang**, das iOS-Gegenstück zu einem ANR, die festhält, wie lange der Hänger gedauert hat |
+
+Die Kachel **Abstürze** der Übersicht zählt die Abstürze, und ihre Kachel **ANRs** zählt die Hänger zusammen mit den ANRs von Android. Jeder Stacktrace wird wie die Threads eines Absturzberichts dargestellt, mit dem Thread, der abgestürzt ist oder hing, an erster Stelle. Die Frames sind nicht symbolisiert: Jeder nennt seine Binärdatei und wie weit darin der Code lag, und **Binary Images** listet die UUID jeder Binärdatei auf, an der Sie erkennen, zu welchem Build das dSYM gehört, das sie symbolisiert.
+
+:::steps
+### Logs zusätzlich zu Spans exportieren
+
+MetricKit meldet Diagnosen als Protokolleinträge, registrieren Sie daher neben dem Tracer-Provider einen Logger-Provider, mit derselben Ressource, demselben Endpunkt und demselben Header:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### Die MetricKit-Instrumentierung registrieren
+
+Fügen Sie das Produkt `MetricKitInstrumentation` von opentelemetry-swift hinzu und registrieren Sie es bei MetricKit, sobald der Logger-Provider registriert ist:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### Sitzungen aufzeichnen
+
+Die Kacheln **Sitzungen** und **Absturzfreie Sitzungen** zählen die `session.id` auf Ihren Spans. Das Produkt `Sessions` von opentelemetry-swift setzt sie: Fügen Sie dem Tracer-Provider `SessionSpanProcessor` hinzu und umhüllen Sie den Log-Prozessor mit `SessionLogRecordProcessor`, damit auch Diagnosen eine Sitzung tragen. Die Releases von opentelemetry-swift setzen noch keine `app.installation.id`, daher zeigt die Kachel **Absturzfreie Sitzungen** einer iOS-App, wie viele Sitzungen abgestürzt sind, statt ihrer absturzfreien Installationen.
+:::
+
+> [!NOTE]
+> Apple übergibt die Diagnosen von MetricKit erst bei einem späteren Start an die App, ab iOS 15 sofort und davor einmal am Tag, sodass ein Absturz oder ein Hänger Minuten oder einen Tag nach seinem Auftreten ankommen kann und gezählt wird, wenn er ankommt. „0 Abstürze in der letzten Stunde“ auf der Übersicht einer iOS-App ist also noch keine gute Nachricht. Eine Diagnose trägt die Sitzung, die sie gemeldet hat, nicht die, die sie beendet hat.
+
+opentelemetry-swift zeichnet keinen Span auf, wenn die App startet, daher bleiben die Kacheln **App-Starts** und **Kaltstart (p95)** leer, bis Ihre App einen aufzeichnet: einen Span namens `AppStart`, bei dem `start.type` auf `cold`, `warm` oder `hot` gesetzt ist, vom Start des Prozesses, bis der erste Bildschirm bereit ist.
 
 ## Prüfen, ob es ankommt
 

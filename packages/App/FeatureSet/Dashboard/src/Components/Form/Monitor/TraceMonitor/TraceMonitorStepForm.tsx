@@ -6,8 +6,13 @@ import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import LogGroupByAttributesInput from "../LogMonitor/LogGroupByAttributesInput";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FOLDED_SECTION_LINE } from "Common/UI/Components/FoldedSection/FoldedSectionVariant";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -180,6 +185,41 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             placeholder: "5000",
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
+          },
+          /*
+           * One alert per group (#9711): per install of a mobile app, as
+           * Device Stopped Reporting groups by app.installation.id. Folded
+           * with the filters, as few trace monitors are grouped; the
+           * header names it as a chip once it is set.
+           */
+          {
+            field: {
+              groupByAttributes: true,
+            },
+            fieldType: FormFieldSchemaType.CustomComponent,
+            title: "Group by Attributes",
+            description:
+              "One alert or incident per combination of these values, such as one per device. Empty: every matching span counts together.",
+            hideOptionalLabel: true,
+            collapsibleSection: MORE_TRACE_FILTERS,
+            getCustomElement: (
+              values: FormValues<MonitorStepTraceMonitor>,
+              customElementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <LogGroupByAttributesInput
+                  initialValue={
+                    values.groupByAttributes as Array<string> | undefined
+                  }
+                  suggestions={props.attributeKeys}
+                  isLoadingSuggestions={props.isLoadingAttributeKeys}
+                  ariaLabelledby={customElementProps.ariaLabelledby}
+                  onChange={(groupByAttributes: Array<string>) => {
+                    customElementProps.onChange?.(groupByAttributes);
+                  }}
+                />
+              );
+            },
           },
         ]}
       />

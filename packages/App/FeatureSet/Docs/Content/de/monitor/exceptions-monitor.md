@@ -49,7 +49,7 @@ Legen Sie in **Zu überwachende Ausnahmen** die Felder **Meldung enthält**, **A
 
 ### Weiter eingrenzen (optional)
 
-Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst oder Infrastruktur-Entität zu filtern oder auch behobene und archivierte Ausnahmen zu zählen.
+Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst oder Infrastruktur-Entität zu filtern, um nur nicht behandelte Ausnahmen zu zählen oder einige Typen auszuschließen, oder um auch behobene und archivierte Ausnahmen zu zählen.
 
 ### Festlegen, wann alarmiert wird
 
@@ -74,6 +74,8 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Zeitfenster** (in **Wann alarmieren**) | Ausnahmen der letzten 5 Sekunden bis zu den letzten 24 Stunden. | **Letzte 5 Minuten** |
 | **Nach Dienst filtern** (unter **Weitere Felder**) | Ausnahmen von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Ausnahmen von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
+| **Nur nicht behandelte Ausnahmen** (unter **Weitere Felder**) | Nur die Ausnahmen, die nicht abgefangen wurden, etwa ein Absturz: die, die der Ausnahmen-Explorer als **Nicht behandelt** markiert. Eine Ausnahme, die nicht angibt, ob sie abgefangen wurde, zählt als behandelt. | Aus |
+| **Ausnahmetypen ausschließen** (unter **Weitere Felder**) | Nicht die Ausnahmen dieser Typen, durch Kommas getrennt, etwa `ANR, Hang`. Der Typname muss genau übereinstimmen. Ein hier aufgeführter Typ wird auch dann ausgeschlossen, wenn **Ausnahmetypen** ihn ebenfalls aufführt. | Leer: kein Typ wird ausgeschlossen |
 | **Behobene Ausnahmen einbeziehen** (unter **Weitere Felder**) | Auch Ausnahmen zählen, die als behoben markiert sind. | Aus |
 | **Archivierte Ausnahmen einbeziehen** (unter **Weitere Felder**) | Auch Ausnahmen zählen, die archiviert sind. | Aus |
 
@@ -103,6 +105,17 @@ Wenn Sie den Monitor über die API erstellen, setzen Sie `environments` im `exce
 }
 ```
 
+Über die API ist **Nur nicht behandelte Ausnahmen** `unhandledOnly` und **Ausnahmetypen ausschließen** `excludedExceptionTypes`, eine Liste von Typnamen. Die Empfehlung **App Crashes** einer mobilen App setzt beides, um ihre Abstürze zu zählen und nicht ihre Hänger:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Wie er ausgewertet wird
 
 - **Jede Minute.** Ein Ausnahmen-Monitor wird nicht von Sonden geprüft, deshalb hat er kein Intervall zum Einstellen und keine Seite **Sonden & Intervall**.
@@ -116,7 +129,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Anzahl der Ausnahmen**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **Neue Ausnahmen**, **Erneut aufgetretene Ausnahmen** und **Anstieg der Ausnahmen (in %)**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
+Die Kriterien eines Ausnahmen-Monitors haben sechs Arten von **Filtertyp**: **Anzahl der Ausnahmen**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **Neue Ausnahmen**, **Erneut aufgetretene Ausnahmen**, **Anstieg der Ausnahmen (in %)**, **Sitzungen mit Ausnahmen (in %)** und **Sitzungen**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Ausnahmen … |
 | --- | --- |
@@ -160,6 +173,17 @@ Neben der Anzahl der Ausnahmen kann ein Ausnahmen-Monitor bei dem alarmieren, wo
 | **Anstieg der Ausnahmen (in %)** | Wie weit die Anzahl passender Ausnahmen über der üblichen liegt: der Tag vor dem Fenster, je Fenster seiner Länge, mindestens eine. Zehn Ausnahmen nach einem ruhigen Tag ergeben 900 %. |
 
 Neue und zurückgekommene Ausnahmen werden nach Dienst, Ausnahmetyp, Umgebung und Meldung gefiltert und auch nach Infrastruktur-Entität: Eine Ausnahme zählt, wenn eines ihrer Vorkommen im Fenster von einer der gewählten Entitäten kam.
+
+## Ein Anteil der Sitzungen
+
+Eine App auf Tausenden von Handys hat immer einige Abstürze, deshalb will ihr Team erfahren, wenn die Rate steigt. Für eine App, deren Spans `session.id` tragen, etwa eine mobile App, kann ein Ausnahmen-Monitor beim Anteil der Sitzungen alarmieren, in denen eine Ausnahme aufgetreten ist. Beide werden nur gelesen, wenn ein Kriterium sie prüft.
+
+| Filtertyp | Was es im Fenster liest |
+| --- | --- |
+| **Sitzungen mit Ausnahmen (in %)** | Der Anteil der Sitzungen des Fensters, in denen eine passende Ausnahme aufgetreten ist. Ohne Sitzung im Fenster gibt es keinen Anteil, und kein Kriterium, das ihn prüft, trifft zu. |
+| **Sitzungen** | Die Sitzungen des Fensters: die verschiedenen `session.id` der Spans der Dienste des Monitors. Kombinieren Sie diesen Filtertyp mit dem Anteil, damit der Anteil weniger Sitzungen keine Warnung auslöst. |
+
+Mit eingeschaltetem **Nur nicht behandelte Ausnahmen** und ausgeschlossenen Typen `ANR` und `Hang` ist der Anteil die Absturzrate einer mobilen App. Die Empfehlung **App Crash Rate** einer mobilen App alarmiert, wenn mehr als 1,09 % der Sitzungen einer Stunde abstürzen, die Rate, die Android vitals als schlechtes Verhalten wertet, sobald die Stunde mindestens 250 Sitzungen hat. **App ANR Rate** zählt nur `ANR` und `Hang`, über 0,47 %. Um eine solche Regel selbst zu schreiben, wählen Sie in **Wann alarmieren** unter **Warnung bei** die Option **Ein Anteil der Sitzungen**.
 
 ## Sprünge gegenüber dem Normalen
 

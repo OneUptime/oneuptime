@@ -75,6 +75,15 @@ export enum CheckOn {
   NewExceptionCount = "New Exceptions",
   RegressedExceptionCount = "Regressed Exceptions",
   ExceptionCountIncreasePercent = "Exception Increase (in %)",
+  /*
+   * The share of the window's sessions a matching exception happened in,
+   * and those sessions: the distinct session.id of the spans of the
+   * monitor's services, as a mobile app's Sessions tile counts them. With
+   * a crash's filters, a mobile app's crash rate (#9716). Stored in
+   * monitor criteria; never rename one.
+   */
+  SessionsWithExceptionsPercent = "Sessions With Exceptions (in %)",
+  SessionCount = "Sessions",
 
   // Profile monitors.
   ProfileCount = "Profile Count",

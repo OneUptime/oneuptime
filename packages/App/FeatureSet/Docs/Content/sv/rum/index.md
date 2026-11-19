@@ -77,7 +77,7 @@ OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftl
 
 | Var | Vad det visar |
 | --- | --- |
-| **Översikt** | En webbapps rutor för **Sidladdningar**, **Sidladdningstid (p95)**, **Händelser**, **Felfrekvens**, **Händelsevaraktighet (p95)**, **Undantag**, **Klienter** och **Inspelade sessioner**, eller en mobilapps för **Sessioner**, **Kraschfria sessioner**, **Krascher**, **ANR:er**, **Appstarter**, **Kallstart (p95)**, **Frusna bildrutor** och **Felfrekvens**, och trenddiagram över det tidsintervall du väljer. |
+| **Översikt** | En webbapps rutor för **Sidladdningar**, **Sidladdningstid (p95)**, **Händelser**, **Felfrekvens**, **Händelsevaraktighet (p95)**, **Undantag**, **Klienter** och **Inspelade sessioner**, eller en mobilapps för **Sessioner**, **Kraschfria sessioner** med de kraschfria installationerna, **Krascher**, **ANR:er**, **Appstarter**, **Kallstart (p95)**, **Frusna bildrutor** och **Felfrekvens**, och trenddiagram över det tidsintervall du väljer. |
 | **Core Web Vitals** | Ett kort i en webbapps översikt med LCP, INP, CLS, FCP och TTFB, var och en bedömd mot Googles gränser, och INP för varje route i en ensidesapp. Se [Core Web Vitals](/docs/rum/web-vitals) och [Ensidesappar](/docs/rum/web-vitals#ensidesappar). |
 | **Mätvärden**, **Loggar**, **Spår** | Telemetriutforskarna, begränsade till den här applikationen. |
 | **Klienter** | De webbläsarplattformar och enhetsmodeller som applikationen har använts på: en kort lista per plattform, aldrig en rad per användare. |

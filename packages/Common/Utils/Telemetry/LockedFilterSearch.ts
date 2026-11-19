@@ -45,6 +45,12 @@ export const TELEMETRY_EXPLORER_LABELS: Readonly<
 
 const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
 
+// The span column a `duration:` token filters on.
+const DURATION_FACET_KEY: string = "durationUnixNano";
+
+// One comparison of a number of milliseconds: `>=5000`, `<200`, `750`.
+const DURATION_SEARCH_VALUE: RegExp = /^(?:>=|<=|>|<)?\d+(?:\.\d+)?$/;
+
 /*
  * A search token KEY is read up to the first colon, ends at whitespace and
  * cannot be quoted, and a leading `@` / `-` is grammar — so a key carrying
@@ -128,6 +134,16 @@ export const buildSearchTokenForFilter: BuildSearchTokenForFilterFunction = (
 ): string | null => {
   if (typeof value !== "string" || value.length === 0) {
     return null;
+  }
+
+  /*
+   * A span duration chip's value is the search bar's own comparison, in
+   * milliseconds (`>=5000` for a Traces monitor's Takes at least 5000 ms):
+   * written as it is, since the grammar reads the operator - escaped, it
+   * would ask for spans named ">=5000".
+   */
+  if (signal === "traces" && facetKey === DURATION_FACET_KEY) {
+    return DURATION_SEARCH_VALUE.test(value) ? `duration:${value}` : null;
   }
 
   if (facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
