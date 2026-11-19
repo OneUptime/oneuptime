@@ -746,7 +746,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       {
         title: "Used",
         type: FieldType.Element,
-        key: STORAGE_USED_COLUMN_KEY as keyof InfrastructureResource,
+        // STORAGE_USED_COLUMN_KEY, written out: a page's column folds into it.
+        key: "storageUsage",
         headerTooltip: storageColumns.usedDescription,
         getElement: (resource: InfrastructureResource): ReactElement => {
           return (
@@ -762,7 +763,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         // The room left, never the price (MeaningKeys).
         title: "Free (storage space)",
         type: FieldType.Element,
-        key: STORAGE_FREE_COLUMN_KEY as keyof InfrastructureResource,
+        // STORAGE_FREE_COLUMN_KEY: no field of the row, as a custom column's key.
+        key: "storageFree" as keyof InfrastructureResource,
         headerTooltip: storageColumns.freeDescription,
         hideBelowLargeScreen: true,
         foldInto: STORAGE_USED_COLUMN_KEY,

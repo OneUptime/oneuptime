@@ -414,6 +414,11 @@ interface ListPage {
   columns: Array<[string, KubernetesResourceMetric]>;
   // Rows carry pod sums from the aggregate endpoints.
   sumsPods: boolean;
+  /*
+   * The texts of the table's own Used and Free columns, for a list of claims
+   * or volumes (storageUsageColumns, #9539).
+   */
+  storage?: [KubernetesResourceMetric, KubernetesResourceMetric] | undefined;
 }
 
 const LIST_PAGES: Record<string, ListPage> = {
@@ -473,11 +478,13 @@ const LIST_PAGES: Record<string, ListPage> = {
     builtIn: null,
     columns: [["Capacity", "pvcCapacity"]],
     sumsPods: false,
+    storage: ["pvcUsed", "pvcFree"],
   },
   PersistentVolumes: {
     builtIn: null,
     columns: [["Capacity", "pvCapacity"]],
     sumsPods: false,
+    storage: ["pvUsed", "pvFree"],
   },
 };
 
@@ -616,9 +623,34 @@ describe("list pages: custom metric columns carry their tooltip", () => {
             return column[1];
           },
         ),
+        ...(list.storage || []),
       ];
 
       expect(referencedKeys(code).sort()).toEqual(expected.sort());
+    },
+  );
+
+  test.each(
+    Object.entries(LIST_PAGES).filter((entry: [string, ListPage]): boolean => {
+      return Boolean(entry[1].storage);
+    }),
+  )(
+    "%s hands the table its Used and Free texts",
+    (page: string, list: ListPage) => {
+      const code: string = readCode(`${PAGES}/${page}.tsx`);
+      const [used, free] = list.storage as [
+        KubernetesResourceMetric,
+        KubernetesResourceMetric,
+      ];
+
+      expect(code).toContain(
+        compact(
+          `storageUsageColumns={{
+            usedDescription: ${REC}.${used},
+            freeDescription: ${REC}.${free},
+          }}`,
+        ),
+      );
     },
   );
 

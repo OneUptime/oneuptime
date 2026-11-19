@@ -8,7 +8,6 @@ import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -138,63 +137,63 @@ const KubernetesClusterPVCs: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      {isUsageMissing ? <KubernetesVolumeUsageMissingAlert /> : null}
-      <KubernetesResourceTable
-        onRefreshClick={() => {
-          fetchData().catch(() => {});
-        }}
-        title="Persistent Volume Claims"
-        description="Every claim in this cluster: how much of it is used, how much is free, and its status."
-        resources={resources}
-        showResourceMetrics={false}
-        storageUsageColumns={{
-          usedDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcUsed,
-          freeDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcFree,
-        }}
-        columns={[
-          {
-            title: "Capacity",
-            key: "capacity",
-            description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcCapacity,
-            // Under Used while the table runs out of room, as Free is.
-            foldInto: "storageUsage",
-            showTitleWhenFolded: true,
-          },
-          {
-            title: "Storage Class",
-            key: "storageClass",
-          },
-          {
-            title: "Volume",
-            key: "volumeName",
-            isName: true,
-          },
-          {
-            title: "Access Modes",
-            key: "accessModes",
-          },
-        ]}
-        getViewRoute={(resource: KubernetesResource): Route => {
-          // In its namespace: names repeat across namespaces.
-          return (
-            getKubernetesPartRoute(modelId, {
-              kind: "PersistentVolumeClaim",
-              name: resource.name,
-              namespace: resource.namespace,
-            }) ||
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL] as Route,
-              {
-                modelId: modelId,
-                subModelId: new ObjectID(resource.name),
-              },
-            )
-          );
-        }}
-        emptyMessage="No PVCs yet. They appear once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes persistentvolumeclaims."
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      notice={
+        isUsageMissing ? <KubernetesVolumeUsageMissingAlert /> : undefined
+      }
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
+      title="Persistent Volume Claims"
+      description="Every claim in this cluster: how much of it is used, how much is free, and its status."
+      resources={resources}
+      showResourceMetrics={false}
+      storageUsageColumns={{
+        usedDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcUsed,
+        freeDescription: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcFree,
+      }}
+      columns={[
+        {
+          title: "Capacity",
+          key: "capacity",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcCapacity,
+          // Under Used while the table runs out of room, as Free is.
+          foldInto: "storageUsage",
+          showTitleWhenFolded: true,
+        },
+        {
+          title: "Storage Class",
+          key: "storageClass",
+        },
+        {
+          title: "Volume",
+          key: "volumeName",
+          isName: true,
+        },
+        {
+          title: "Access Modes",
+          key: "accessModes",
+        },
+      ]}
+      getViewRoute={(resource: KubernetesResource): Route => {
+        // In its namespace: names repeat across namespaces.
+        return (
+          getKubernetesPartRoute(modelId, {
+            kind: "PersistentVolumeClaim",
+            name: resource.name,
+            namespace: resource.namespace,
+          }) ||
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL] as Route,
+            {
+              modelId: modelId,
+              subModelId: new ObjectID(resource.name),
+            },
+          )
+        );
+      }}
+      emptyMessage="No PVCs yet. They appear once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes persistentvolumeclaims."
+    />
   );
 };
 

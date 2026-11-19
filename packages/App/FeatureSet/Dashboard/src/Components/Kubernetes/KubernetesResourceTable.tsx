@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ResourceTable, {
   BuiltInColumnDescriptions,
   ResourceStorageUsageColumns,
@@ -47,12 +47,17 @@ export interface ComponentProps {
   builtInColumnDescriptions?: BuiltInColumnDescriptions | undefined;
   // A list of claims or volumes: their Used and Free columns.
   storageUsageColumns?: ResourceStorageUsageColumns | undefined;
+  /*
+   * What the page must say above its list, only while it is so: the claims
+   * list's note that no claim reports its usage.
+   */
+  notice?: ReactElement | undefined;
 }
 
 const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  return (
+  const table: ReactElement = (
     <ResourceTable
       resources={props.resources}
       title={props.title}
@@ -74,6 +79,17 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
       builtInColumnDescriptions={props.builtInColumnDescriptions}
       storageUsageColumns={props.storageUsageColumns}
     />
+  );
+
+  if (!props.notice) {
+    return table;
+  }
+
+  return (
+    <Fragment>
+      {props.notice}
+      {table}
+    </Fragment>
   );
 };
 
