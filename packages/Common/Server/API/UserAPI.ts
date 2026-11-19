@@ -557,7 +557,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
             typeof isMasterAdminConfirmed !== "boolean"
           ) {
             throw new BadDataException(
-              "isMasterAdminConfirmed must be true or false.",
+              "Say whether you confirm clearing a master admin's sign-in settings with true or false (isMasterAdminConfirmed).",
             );
           }
 

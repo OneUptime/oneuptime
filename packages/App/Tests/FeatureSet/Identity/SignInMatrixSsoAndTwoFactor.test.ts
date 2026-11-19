@@ -11,6 +11,7 @@ import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -20,9 +21,9 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * ---------------------------------------------------------------------------
- * EVERY SIGN-IN, FOR EVERY ACCOUNT THESE CHANGES TOUCH (#9666, #9688).
+ * EVERY SIGN-IN, FOR EVERY ACCOUNT THESE CHANGES TOUCH (#9666, #9688, #9763).
  *
- * Neither issue changes who signs in, and this holds that, for every
+ * None of these issues changes who signs in, and this holds that, for every
  * combination of:
  *
  *   - the server requiring single sign-on, or not;
@@ -30,10 +31,14 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
  *   - two-factor authentication off, on with a second step set up, or on
  *     with none - the state a master admin's requirement creates, and the
  *     one the profile used to let anybody switch on (#9666);
+ *   - the person's projects (#9763): none; all requiring SSO and managing
+ *     sign-in with it; and those, plus one that does not require SSO or one
+ *     that requires it without managing sign-in;
  *
  * through a password (POST /login) and a passkey (POST /passkey-login),
- * driven through their real handlers with the real rule (SsoRequiredSignIn)
- * and only the server's setting and the account's rows stood in:
+ * driven through their real handlers with the real rules (SsoRequiredSignIn,
+ * SsoManagedSignIn) and only the server's setting, the person's memberships
+ * and the account's rows stood in:
  *
  *   - while SSO is required, nobody but a master admin signs in without it,
  *     however their two-factor authentication stands - so a password or a
@@ -46,7 +51,13 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
  *   - an account switched on with nothing set up is walked through
  *     enrolment, not locked out - the profile now says "Setup needed"
  *     about it, never "Enabled";
- *   - a passkey is a sign-in of its own, with no second step after it.
+ *   - a passkey is a sign-in of its own, with no second step after it;
+ *   - projects that manage sign-in with SSO change no sign-in: a password
+ *     still signs their people in, and a second step set up before still
+ *     works. Only an enrolment - a new second step - is refused for someone
+ *     whose every project manages sign-in, with "sign in with SSO" rather
+ *     than an app of their choosing; one project that does not, or a
+ *     master admin, keeps the enrolment as it was.
  * ---------------------------------------------------------------------------
  */
 
@@ -158,8 +169,35 @@ jest.mock("Common/Server/Services/EmailVerificationTokenService", () => {
   };
 });
 
+/*
+ * The person's memberships and their projects' sign-in rules: what the real
+ * SsoManagedSignIn reads (#9763) when somebody sets up a second step.
+ */
+const teamMemberFindBy: jest.Mock = jest.fn();
+
 jest.mock("Common/Server/Services/TeamMemberService", () => {
-  return { __esModule: true, default: { findOneBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: jest.fn(),
+      findBy: (...args: Array<unknown>): unknown => {
+        return teamMemberFindBy(...args);
+      },
+    },
+  };
+});
+
+const projectFindBy: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: (...args: Array<unknown>): unknown => {
+        return projectFindBy(...args);
+      },
+    },
+  };
 });
 
 jest.mock("Common/Server/Services/AccessTokenService", () => {
@@ -394,6 +432,87 @@ enum Outcome {
   AskedForTheSecondStep = "asked for the second step",
   WalkedThroughEnrolment = "walked through enrolment",
   RefusedForSso = "refused: sign in with SSO",
+  RefusedSsoManagesSignIn = "refused an enrolment: SSO manages the sign-in",
+}
+
+// The person's projects (#9763).
+enum Projects {
+  None = "in no project",
+  EveryOneManages = "every project requires SSO and manages sign-in",
+  PlusOneWithoutSso = "plus a project that does not require SSO",
+  PlusOneNotManaging = "plus a project that requires SSO without managing sign-in",
+}
+
+const MANAGING_PROJECT_ID: string = "59595959-5959-4595-8595-595959595959";
+const OTHER_PROJECT_ID: string = "5a5a5a5a-5a5a-45a5-85a5-5a5a5a5a5a5a";
+
+type ProjectRow = {
+  id: ObjectID;
+  _id: string;
+  name: string;
+  requireSsoForLogin: boolean;
+  manageSignInWithSso: boolean;
+};
+
+function projectRow(data: {
+  id: string;
+  name: string;
+  requireSsoForLogin: boolean;
+  manageSignInWithSso: boolean;
+}): ProjectRow {
+  return {
+    id: new ObjectID(data.id),
+    _id: data.id,
+    name: data.name,
+    requireSsoForLogin: data.requireSsoForLogin,
+    manageSignInWithSso: data.manageSignInWithSso,
+  };
+}
+
+// What the person's memberships and their projects' rules are, as read.
+function storeProjects(projects: Projects): void {
+  const rows: Array<ProjectRow> = [];
+
+  if (projects !== Projects.None) {
+    rows.push(
+      projectRow({
+        id: MANAGING_PROJECT_ID,
+        name: "Acme",
+        requireSsoForLogin: true,
+        manageSignInWithSso: true,
+      }),
+    );
+  }
+
+  if (projects === Projects.PlusOneWithoutSso) {
+    rows.push(
+      projectRow({
+        id: OTHER_PROJECT_ID,
+        name: "Side project",
+        requireSsoForLogin: false,
+        manageSignInWithSso: false,
+      }),
+    );
+  }
+
+  if (projects === Projects.PlusOneNotManaging) {
+    rows.push(
+      projectRow({
+        id: OTHER_PROJECT_ID,
+        name: "Partner",
+        requireSsoForLogin: true,
+        manageSignInWithSso: false,
+      }),
+    );
+  }
+
+  // One membership per team: two teams in a project are one project.
+  teamMemberFindBy.mockResolvedValue(
+    rows.flatMap((row: ProjectRow) => {
+      return [{ projectId: row.id }, { projectId: row.id }];
+    }),
+  );
+  projectFindBy.mockResolvedValue(rows);
 }
 
 type Answer = { error: Error | null };
@@ -454,8 +573,12 @@ function outcome(answer: Answer): Outcome | string {
   const error: Error | undefined = sentError || answer.error || undefined;
 
   if (error) {
-    return error.message === SSO_REQUIRED_SIGN_IN_MESSAGE
-      ? Outcome.RefusedForSso
+    if (error.message === SSO_REQUIRED_SIGN_IN_MESSAGE) {
+      return Outcome.RefusedForSso;
+    }
+
+    return error.message === SSO_MANAGED_SIGN_IN_MESSAGE
+      ? Outcome.RefusedSsoManagesSignIn
       : `refused: ${error.message}`;
   }
 
@@ -490,6 +613,7 @@ function expectSessionIf(signedIn: boolean): void {
 beforeEach(() => {
   jest.clearAllMocks();
 
+  storeProjects(Projects.None);
   totpFindOneBy.mockResolvedValue(null);
   totpCreate.mockResolvedValue({
     id: new ObjectID(PENDING_ENROLMENT_ID),
@@ -511,6 +635,7 @@ type PasswordCase = {
   isSsoRequired: boolean;
   isMasterAdmin: boolean;
   twoFactor: TwoFactor;
+  projects: Projects;
   expected: Outcome;
 };
 
@@ -523,34 +648,45 @@ for (const isSsoRequired of [false, true]) {
       TwoFactor.OnWithASecondStep,
       TwoFactor.OnWithNothingSetUp,
     ]) {
-      let expected: Outcome;
+      for (const projects of [
+        Projects.None,
+        Projects.EveryOneManages,
+        Projects.PlusOneWithoutSso,
+        Projects.PlusOneNotManaging,
+      ]) {
+        let expected: Outcome;
 
-      if (isSsoRequired && !isMasterAdmin) {
-        expected = Outcome.RefusedForSso;
-      } else if (twoFactor === TwoFactor.Off) {
-        expected = Outcome.SignedIn;
-      } else if (twoFactor === TwoFactor.OnWithASecondStep) {
-        expected = Outcome.AskedForTheSecondStep;
-      } else {
-        expected = Outcome.WalkedThroughEnrolment;
+        if (isSsoRequired && !isMasterAdmin) {
+          expected = Outcome.RefusedForSso;
+        } else if (twoFactor === TwoFactor.Off) {
+          expected = Outcome.SignedIn;
+        } else if (twoFactor === TwoFactor.OnWithASecondStep) {
+          expected = Outcome.AskedForTheSecondStep;
+        } else if (!isMasterAdmin && projects === Projects.EveryOneManages) {
+          expected = Outcome.RefusedSsoManagesSignIn;
+        } else {
+          expected = Outcome.WalkedThroughEnrolment;
+        }
+
+        PASSWORD_CASES.push({
+          isSsoRequired,
+          isMasterAdmin,
+          twoFactor,
+          projects,
+          expected,
+        });
       }
-
-      PASSWORD_CASES.push({
-        isSsoRequired,
-        isMasterAdmin,
-        twoFactor,
-        expected,
-      });
     }
   }
 }
 
 describe("POST /login: a password, for every account", () => {
   it.each(PASSWORD_CASES)(
-    "SSO required: $isSsoRequired, master admin: $isMasterAdmin, two-factor authentication $twoFactor -> $expected",
+    "SSO required: $isSsoRequired, master admin: $isMasterAdmin, two-factor authentication $twoFactor, $projects -> $expected",
     async (testCase: PasswordCase) => {
       getRequireSsoForLogin.mockResolvedValue(testCase.isSsoRequired);
       storeAccount(testCase);
+      storeProjects(testCase.projects);
 
       const answer: Answer = await invoke("/login", {
         data: {
@@ -565,6 +701,7 @@ describe("POST /login: a password, for every account", () => {
       // A master admin is let through without the rule even being read.
       if (testCase.isMasterAdmin) {
         expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+        expect(teamMemberFindBy).not.toHaveBeenCalled();
       }
 
       // Somebody refused is never started on a challenge or an enrolment.
@@ -572,8 +709,102 @@ describe("POST /login: a password, for every account", () => {
         expect(totpFindBy).not.toHaveBeenCalled();
         expect(totpCreate).not.toHaveBeenCalled();
       }
+
+      /*
+       * Only setting up a second step asks the person's projects: a
+       * password, and a second step already set up, sign in as they did.
+       */
+      expect(teamMemberFindBy.mock.calls.length > 0).toBe(
+        !testCase.isMasterAdmin &&
+          testCase.twoFactor === TwoFactor.OnWithNothingSetUp &&
+          testCase.expected !== Outcome.RefusedForSso,
+      );
+
+      // An enrolment SSO refuses creates nothing for the person to scan.
+      if (testCase.expected === Outcome.RefusedSsoManagesSignIn) {
+        expect(totpCreate).not.toHaveBeenCalled();
+        expect(totpFindOneBy).not.toHaveBeenCalled();
+      }
     },
   );
+
+  it("asks the person's every membership - an invitation not accepted yet included - and each project once", async () => {
+    getRequireSsoForLogin.mockResolvedValue(false);
+    storeAccount({
+      isMasterAdmin: false,
+      twoFactor: TwoFactor.OnWithNothingSetUp,
+    });
+    storeProjects(Projects.PlusOneWithoutSso);
+
+    await invoke("/login", {
+      data: {
+        email: USER_EMAIL,
+        password: { _type: "HashedString", value: PASSWORD },
+      },
+    });
+
+    const membershipQuery: Record<string, unknown> = (
+      teamMemberFindBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(Object.keys(membershipQuery)).toEqual(["userId"]);
+    expect(String(membershipQuery["userId"])).toBe(USER_ID);
+    expect(projectFindBy).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The rule is read on every sign-in, never kept: joining a project that
+   * does not require SSO gives the enrolment back at once, and leaving it
+   * takes it away at once.
+   */
+  it("follows the person's projects from one sign-in to the next", async () => {
+    getRequireSsoForLogin.mockResolvedValue(false);
+    storeAccount({
+      isMasterAdmin: false,
+      twoFactor: TwoFactor.OnWithNothingSetUp,
+    });
+
+    const signIn: () => Promise<Answer> = (): Promise<Answer> => {
+      sendErrorResponse.mockClear();
+      sendEntityResponse.mockClear();
+
+      return invoke("/login", {
+        data: {
+          email: USER_EMAIL,
+          password: { _type: "HashedString", value: PASSWORD },
+        },
+      });
+    };
+
+    storeProjects(Projects.EveryOneManages);
+    expect(outcome(await signIn())).toBe(Outcome.RefusedSsoManagesSignIn);
+
+    storeProjects(Projects.PlusOneWithoutSso);
+    expect(outcome(await signIn())).toBe(Outcome.WalkedThroughEnrolment);
+
+    storeProjects(Projects.EveryOneManages);
+    expect(outcome(await signIn())).toBe(Outcome.RefusedSsoManagesSignIn);
+  });
+
+  it("a projects' rule that cannot be read refuses the enrolment, and signs nobody in", async () => {
+    getRequireSsoForLogin.mockResolvedValue(false);
+    storeAccount({
+      isMasterAdmin: false,
+      twoFactor: TwoFactor.OnWithNothingSetUp,
+    });
+    teamMemberFindBy.mockRejectedValue(new Error("connection refused"));
+
+    const answer: Answer = await invoke("/login", {
+      data: {
+        email: USER_EMAIL,
+        password: { _type: "HashedString", value: PASSWORD },
+      },
+    });
+
+    expect(outcome(answer)).toBe("refused: connection refused");
+    expect(totpCreate).not.toHaveBeenCalled();
+    expectSessionIf(false);
+  });
 
   it("an account on with nothing set up is handed a QR code to enrol, and nothing that signs it in", async () => {
     getRequireSsoForLogin.mockResolvedValue(false);
@@ -604,6 +835,7 @@ type PasskeyCase = {
   isSsoRequired: boolean;
   isMasterAdmin: boolean;
   twoFactor: TwoFactor;
+  projects: Projects;
   expected: Outcome;
 };
 
@@ -616,25 +848,29 @@ for (const isSsoRequired of [false, true]) {
       TwoFactor.OnWithASecondStep,
       TwoFactor.OnWithNothingSetUp,
     ]) {
-      PASSKEY_CASES.push({
-        isSsoRequired,
-        isMasterAdmin,
-        twoFactor,
-        expected:
-          isSsoRequired && !isMasterAdmin
-            ? Outcome.RefusedForSso
-            : Outcome.SignedIn,
-      });
+      for (const projects of [Projects.None, Projects.EveryOneManages]) {
+        PASSKEY_CASES.push({
+          isSsoRequired,
+          isMasterAdmin,
+          twoFactor,
+          projects,
+          expected:
+            isSsoRequired && !isMasterAdmin
+              ? Outcome.RefusedForSso
+              : Outcome.SignedIn,
+        });
+      }
     }
   }
 }
 
 describe("POST /passkey-login: a passkey, for every account", () => {
   it.each(PASSKEY_CASES)(
-    "SSO required: $isSsoRequired, master admin: $isMasterAdmin, two-factor authentication $twoFactor -> $expected",
+    "SSO required: $isSsoRequired, master admin: $isMasterAdmin, two-factor authentication $twoFactor, $projects -> $expected",
     async (testCase: PasskeyCase) => {
       getRequireSsoForLogin.mockResolvedValue(testCase.isSsoRequired);
       storeAccount(testCase);
+      storeProjects(testCase.projects);
 
       const answer: Answer = await invoke(
         "/passkey-login",
@@ -647,6 +883,8 @@ describe("POST /passkey-login: a passkey, for every account", () => {
       // A passkey is a sign-in of its own: no second step, no enrolment.
       expect(totpFindBy).not.toHaveBeenCalled();
       expect(totpCreate).not.toHaveBeenCalled();
+      // Projects that manage sign-in with SSO change no sign-in.
+      expect(teamMemberFindBy).not.toHaveBeenCalled();
     },
   );
 });
