@@ -27,7 +27,10 @@ import {
   AIRunAttemptEnd,
   AIRunAttemptOutcome,
   AIRunFailureKind,
+  PROVIDER_FIXED_FAILURE_KINDS,
 } from "../../../../Types/AI/AIRunAttempt";
+import LlmLog from "../../../../Models/DatabaseModels/LlmLog";
+import LlmLogService from "../../../Services/LlmLogService";
 
 /*
  * How much of a failed attempt's error its AttemptEnded or RunFailed event
@@ -877,6 +880,13 @@ export default class AIInvestigationQueue {
       mayHaveChangedSomething: data.mayHaveChangedSomething,
     });
 
+    // A provider's failure says whose provider it was (issue #6494).
+    const providerIsGlobal: boolean = PROVIDER_FIXED_FAILURE_KINDS.includes(
+      decision.failureKind,
+    )
+      ? await this.didLastModelCallUseGlobalProvider(data.aiRunId)
+      : false;
+
     if (decision.shouldRetry) {
       const retryAt: Date = OneUptimeDate.addRemoveSeconds(
         OneUptimeDate.getCurrentDate(),
@@ -898,6 +908,7 @@ export default class AIInvestigationQueue {
       const attemptEnd: AIRunAttemptEnd = AIRunRetryPolicy.toAttemptEnd(
         decision,
         retryAt,
+        { providerIsGlobal },
       );
 
       if (requeued > 0) {
@@ -923,8 +934,40 @@ export default class AIInvestigationQueue {
 
     return {
       outcome: finalized > 0 ? "finalized" : "noop",
-      attemptEnd: AIRunRetryPolicy.toAttemptEnd(decision),
+      attemptEnd: AIRunRetryPolicy.toAttemptEnd(decision, undefined, {
+        providerIsGlobal,
+      }),
     };
+  }
+
+  /*
+   * Whether the run's last model call went to the global LLM provider -
+   * the one the server's admin sets up (LlmProvider.isGlobalLlm) - as its
+   * AI log says (AIService writes one for every call, a failed one too,
+   * with the run's id and whose provider it was). A project's members
+   * cannot change that provider, so a failure there is worded for them
+   * (issue #6494). False when no log says so, or it cannot be read: the
+   * words for a project's own provider, as before.
+   */
+  private static async didLastModelCallUseGlobalProvider(
+    aiRunId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      const lastCall: LlmLog | null = await LlmLogService.findOneBy({
+        query: { aiRunId },
+        select: { isGlobalProvider: true },
+        sort: { createdAt: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+
+      return lastCall?.isGlobalProvider === true;
+    } catch (error) {
+      logger.error(
+        `AI: could not read which LLM provider run ${aiRunId.toString()} used last: ${error}`,
+      );
+
+      return false;
+    }
   }
 
   /*

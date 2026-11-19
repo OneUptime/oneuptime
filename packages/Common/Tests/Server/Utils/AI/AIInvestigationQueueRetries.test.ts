@@ -7,6 +7,9 @@ import AIIncidentInvestigationRunner from "../../../../Server/Utils/AI/SRE/Incid
 import AIRunRetryPolicy from "../../../../Server/Utils/AI/AIRunRetryPolicy";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIRunService from "../../../../Server/Services/AIRunService";
+import LlmLogService from "../../../../Server/Services/LlmLogService";
+import LlmLog from "../../../../Models/DatabaseModels/LlmLog";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import AIService from "../../../../Server/Services/AIService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -79,6 +82,8 @@ describe("AIInvestigationQueue.failOrRequeueWithDetails", () => {
     transition = jest
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
+    // The run's model calls went to the project's own provider.
+    jest.spyOn(LlmLogService, "findOneBy").mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -523,5 +528,137 @@ describe("the AIRun row keeps when its next attempt is due", () => {
     expect(access.read).toEqual(run.getColumnAccessControlFor("status")!.read);
     expect(access.create).toEqual([]);
     expect(access.update).toEqual([]);
+  });
+});
+
+/*
+ * Issue #6494: a run that timed out on the global LLM provider - the one
+ * the server's admin sets up, which a project's members cannot change -
+ * told them to raise its Response Timeout in Project Settings, where the
+ * global provider cannot be edited. The attempt's end now says whose
+ * provider failed, from the run's last model call's AI log, so the card
+ * words the fix for the reader.
+ */
+describe("a provider's failure says whose provider it was", () => {
+  let lastCall: jest.SpyInstance;
+
+  function logOnProvider(isGlobalProvider: boolean): LlmLog {
+    const log: LlmLog = new LlmLog();
+    log.isGlobalProvider = isGlobalProvider;
+    return log;
+  }
+
+  beforeEach(() => {
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    lastCall = jest.spyOn(LlmLogService, "findOneBy");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a timeout on the global provider: the attempt's end says so", async () => {
+    lastCall.mockResolvedValue(logOnProvider(true));
+    const aiRunId: ObjectID = ObjectID.generate();
+
+    const result: FailedAttemptResult =
+      await AIInvestigationQueue.failOrRequeueWithDetails({
+        aiRunId,
+        attemptCount: 1,
+        errorMessage: CUSTOMER_TIMEOUT,
+        isPermanent: false,
+      });
+
+    expect(result.attemptEnd).toEqual(
+      expect.objectContaining({
+        failureKind: AIRunFailureKind.ProviderTimeout,
+        providerIsGlobal: true,
+      }),
+    );
+    // The run's own last model call, read as root.
+    expect(lastCall).toHaveBeenCalledWith({
+      query: { aiRunId },
+      select: { isGlobalProvider: true },
+      sort: { createdAt: SortOrder.Descending },
+      props: { isRoot: true },
+    });
+  });
+
+  test("an outage and a refusal on the global provider say so too, the last attempt included", async () => {
+    lastCall.mockResolvedValue(logOnProvider(true));
+
+    const outage: FailedAttemptResult =
+      await AIInvestigationQueue.failOrRequeueWithDetails({
+        aiRunId: ObjectID.generate(),
+        attemptCount: AIRunRetryPolicy.PROVIDER_FAILURE_MAX_ATTEMPTS,
+        errorMessage: "LLM provider answered 503 Service Unavailable",
+        isPermanent: false,
+      });
+
+    expect(outage.outcome).toBe("finalized");
+    expect(outage.attemptEnd).toEqual(
+      expect.objectContaining({
+        outcome: AIRunAttemptOutcome.GaveUp,
+        failureKind: AIRunFailureKind.ProviderUnavailable,
+        providerIsGlobal: true,
+      }),
+    );
+
+    const refusal: FailedAttemptResult =
+      await AIInvestigationQueue.failOrRequeueWithDetails({
+        aiRunId: ObjectID.generate(),
+        attemptCount: 1,
+        errorMessage: "401 invalid_api_key",
+        isPermanent: false,
+      });
+
+    expect(refusal.attemptEnd).toEqual(
+      expect.objectContaining({
+        failureKind: AIRunFailureKind.ProviderRejected,
+        providerIsGlobal: true,
+      }),
+    );
+  });
+
+  test("a project's own provider keeps today's end, with nothing said of whose", async () => {
+    lastCall.mockResolvedValue(logOnProvider(false));
+
+    const result: FailedAttemptResult =
+      await AIInvestigationQueue.failOrRequeueWithDetails({
+        aiRunId: ObjectID.generate(),
+        attemptCount: 1,
+        errorMessage: CUSTOMER_TIMEOUT,
+        isPermanent: false,
+      });
+
+    expect(result.attemptEnd.providerIsGlobal).toBeUndefined();
+  });
+
+  test("a failure that is not the provider's never asks whose provider it was", async () => {
+    const result: FailedAttemptResult =
+      await AIInvestigationQueue.failOrRequeueWithDetails({
+        aiRunId: ObjectID.generate(),
+        attemptCount: 1,
+        errorMessage: "The tool loop crashed",
+        isPermanent: false,
+      });
+
+    expect(lastCall).not.toHaveBeenCalled();
+    expect(result.attemptEnd.providerIsGlobal).toBeUndefined();
+  });
+
+  test("a log that cannot be read leaves today's end, and the decision stands", async () => {
+    lastCall.mockRejectedValue(new Error("db down"));
+
+    const result: FailedAttemptResult =
+      await AIInvestigationQueue.failOrRequeueWithDetails({
+        aiRunId: ObjectID.generate(),
+        attemptCount: 1,
+        errorMessage: CUSTOMER_TIMEOUT,
+        isPermanent: false,
+      });
+
+    expect(result.outcome).toBe("requeued");
+    expect(result.attemptEnd.providerIsGlobal).toBeUndefined();
   });
 });
