@@ -191,8 +191,8 @@ Varje typ når OneUptime som vanliga loggar:
 | SSH-inloggningar, sudo | En Linux-maskins journal eller auth-logg, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows-händelser | Collectorns `windowseventlog`-receiver på maskinen, eller en vidarebefordrare som skriver varje händelse som JSON, till exempel NXLog eller Winlogbeat. En [värd](/docs/telemetry/hosts) som har lagts till i OneUptime läser också Sysmon, Microsoft Defender och PowerShell där den har dem |
 | AWS CloudTrail | Ett trail som levereras till CloudWatch Logs, läst av collectorns `awscloudwatch`-receiver, eller, för ett konto som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
-| Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, för ett projekt som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
-| Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller, för aktivitetsloggen i en prenumeration som är ansluten under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, för ett projekt som är anslutet under **Moln**, dess [ström](/docs/telemetry/cloud-streaming-google-cloud) eller [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller till händelsehubben i en ansluten prenumerations [ström](/docs/telemetry/cloud-streaming-azure), eller, för aktivitetsloggen i en prenumeration som är ansluten under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
 | Granskningsspår för OpenStack | Ett moln notifieringar och granskningsfilter skickade till dess loggar med `driver = log`, lästa av agentens [loggprofil](/docs/telemetry/openstack#vem-gjorde-vad) |
 | CEF, LEEF | Produktens syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brandväggens egen syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +203,7 @@ På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera 
 
 Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett hot från Palo Alto Networks, FortiGate eller Cisco ASA, öppnar ett [ärende](/docs/telemetry/security-cases) på samma sätt som en ansluten produkts larm, och ökar risken för användaren, värden eller adressen som det nämner. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**. Produktens inloggningar och blockerade anslutningar förblir händelser som dina regler kan läsa.
 
-En post som når OneUptime på två vägar lagras en gång: en Microsoft Entra ID-inloggning som anslutningen läser och som Azure även exporterar till dina loggar, eller en CloudTrail-post i dina loggar och i granskningsloggen för ett anslutet AWS-konto.
+En post som når OneUptime på två vägar lagras en gång: en Microsoft Entra ID-inloggning som anslutningen läser och som Azure även exporterar till dina loggar, en CloudTrail-post i dina loggar och i granskningsloggen för ett anslutet AWS-konto, eller en granskningspost som ett molnkontos ström skickar och som **Molngranskningsloggar** också läser.
 
 ### Läs granskningsloggarna för dina molnkonton
 

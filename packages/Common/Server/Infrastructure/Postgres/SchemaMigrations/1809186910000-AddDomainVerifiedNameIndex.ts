@@ -49,10 +49,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * table, that the lookup read the whole table without it and reads the
  * index, and the one row it returns, with it.
  */
-export class AddDomainVerifiedNameIndex1809186820000
+export class AddDomainVerifiedNameIndex1809186910000
   implements MigrationInterface
 {
-  public name: string = "AddDomainVerifiedNameIndex1809186820000";
+  public name: string = "AddDomainVerifiedNameIndex1809186910000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

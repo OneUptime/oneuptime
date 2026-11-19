@@ -60,7 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * make. The real definition is (LOWER("domain")) WHERE "isVerified" = true
  * AND "deletedAt" IS NULL, so the lookup reads only the rows it can return
  * (#9988). It lives in migration
- * 1809186820000-AddDomainVerifiedNameIndex: @Index() cannot express LOWER()
+ * 1809186910000-AddDomainVerifiedNameIndex: @Index() cannot express LOWER()
  * or a WHERE, so the index is declared here by name with synchronize: false
  * (Types/Database/UnsynchronizedIndex), and the schema builder neither drops
  * it nor tries to create it.

@@ -191,8 +191,8 @@ Hver type når OneUptime som vanlige logger:
 | SSH-pålogginger, sudo | Journalen eller auth-loggen til en Linux-maskin, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows-hendelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender som skriver hver hendelse som JSON, for eksempel NXLog eller Winlogbeat. En [vert](/docs/telemetry/hosts) som er lagt til i OneUptime, leser også Sysmon, Microsoft Defender og PowerShell der den har dem |
 | AWS CloudTrail | Et trail levert til CloudWatch Logs, lest av collectorens `awscloudwatch`-receiver, eller, for en konto som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
-| Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et prosjekt som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
-| Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller, for aktivitetsloggen til et abonnement som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et prosjekt som er koblet til under **Sky**, prosjektets [strøm](/docs/telemetry/cloud-streaming-google-cloud) eller [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller til hendelseshuben i [strømmen](/docs/telemetry/cloud-streaming-azure) til et tilkoblet abonnement, eller, for aktivitetsloggen til et abonnement som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
 | OpenStack-revisjonsspor | Notifikasjonene og revisjonsfilteret til en sky, sendt til loggene med `driver = log` og lest av agentens [loggprofil](/docs/telemetry/openstack#hvem-gjorde-hva) |
 | CEF, LEEF | Produktets syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brannmurens egen syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +203,7 @@ På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en log
 
 En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åpner en [sak](/docs/telemetry/security-cases) slik et tilkoblet produkts varsel gjør, og øker risikoen for brukeren, verten eller adressen den nevner. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**. Produktets pålogginger og blokkerte tilkoblinger forblir hendelser som reglene dine kan lese.
 
-En oppføring som når OneUptime på to måter, lagres én gang: en Microsoft Entra ID-pålogging som tilkoblingen leser, og som Azure også eksporterer til loggene dine, eller en CloudTrail-oppføring i loggene dine og i revisjonsloggen til en tilkoblet AWS-konto.
+En oppføring som når OneUptime på to måter, lagres én gang: en Microsoft Entra ID-pålogging som tilkoblingen leser, og som Azure også eksporterer til loggene dine, en CloudTrail-oppføring i loggene dine og i revisjonsloggen til en tilkoblet AWS-konto, eller en revisjonsoppføring som strømmen til en skykonto sender, og som **Skyrevisjonslogger** også leser.
 
 ### Les revisjonsloggene til skykontoene dine
 

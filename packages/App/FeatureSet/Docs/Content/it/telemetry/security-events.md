@@ -191,8 +191,8 @@ Ogni tipo arriva a OneUptime come normali log:
 | Accessi SSH, sudo | Il journal o il log di autenticazione di una macchina Linux, con l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Eventi Windows | Il receiver `windowseventlog` del collector sulla macchina, o un forwarder che scrive ogni evento come JSON, come NXLog o Winlogbeat. Un [host](/docs/telemetry/hosts) aggiunto a OneUptime legge anche Sysmon, Microsoft Defender e PowerShell dove li ha |
 | AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector, oppure, per un account collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
-| Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
-| Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, il suo [stream](/docs/telemetry/cloud-streaming-google-cloud) o [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure all'hub eventi dello [stream](/docs/telemetry/cloud-streaming-azure) di una sottoscrizione collegata, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | Audit trail di OpenStack | Le notifiche e il filtro di audit di un cloud inviati ai suoi log con `driver = log`, letti dal [profilo dei log](/docs/telemetry/openstack#chi-ha-fatto-cosa) dell'agente |
 | CEF, LEEF | Il syslog del prodotto, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Il syslog del firewall stesso, inoltrato da [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +203,7 @@ Su **I tuoi log**, ogni tipo indica quando è stato trovato l'ultima volta, e **
 
 Una minaccia che un prodotto di sicurezza scrive nei tuoi log, come un rilevamento CEF o LEEF o una minaccia di Palo Alto Networks, FortiGate o Cisco ASA, apre un [caso](/docs/telemetry/security-cases) come fa l'avviso di un prodotto collegato, e aumenta il rischio dell'utente, dell'host o dell'indirizzo che nomina. **Apri casi a partire da**, su **I tuoi log**, indica da quale gravità: **Alta e superiori** a meno che tu non ne scelga un'altra, oppure **Mai**. Gli accessi e le connessioni bloccate del prodotto restano eventi, che le tue regole leggono.
 
-Un record che raggiunge OneUptime per due vie viene salvato una sola volta: un accesso di Microsoft Entra ID letto dalla sua connessione ed esportato da Azure nei tuoi log, oppure un record CloudTrail nei tuoi log e nel log di audit di un account AWS collegato.
+Un record che raggiunge OneUptime per due vie viene salvato una sola volta: un accesso di Microsoft Entra ID letto dalla sua connessione ed esportato da Azure nei tuoi log, un record CloudTrail nei tuoi log e nel log di audit di un account AWS collegato, oppure un record di audit che lo stream di un account cloud invia e che anche **Log di audit cloud** legge.
 
 ### Leggere i log di audit dei tuoi account cloud
 

@@ -305,6 +305,59 @@ describe("ResourceSecurity.read", () => {
     expect(args.limit).toBe(RESOURCE_SECURITY_MAX_CASES);
   });
 
+  /*
+   * #10034: a case naming a DynamoDB table "orders" is not about the table
+   * "Orders" - an ARN is compared as written - while an Azure resource ID
+   * names its resource whatever its case.
+   */
+  test("the open cases naming a cloud resource: an ARN as written, an Azure ID without case", async () => {
+    const arn: string = "arn:aws:dynamodb:us-east-1:123456789012:table/Orders";
+
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "Orders",
+      providerResourceId: arn,
+    } as never);
+
+    await read(SecurityConnectionKind.CloudResource);
+
+    const tableQuery: Record<string, unknown> = (
+      casesSpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    // The key, no folded texts, and the ARN as written.
+    expect(
+      Object.values(
+        (
+          tableQuery["entities"] as {
+            objectLiteralParameters: Record<string, unknown>;
+          }
+        ).objectLiteralParameters,
+      ),
+    ).toEqual(["value", [], [arn]]);
+
+    const azure: string =
+      "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod/providers/Microsoft.KeyVault/vaults/kv-payments";
+
+    casesSpy.mockClear();
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "kv-payments",
+      providerResourceId: azure,
+    } as never);
+
+    await read(SecurityConnectionKind.CloudResource);
+
+    const vaultQuery: Record<string, unknown> = (
+      casesSpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(bound(vaultQuery["entities"])).toEqual([
+      "value",
+      azure.toLowerCase(),
+    ]);
+  });
+
   test("its highest risk, by the keys its identities have", async () => {
     readHost();
     riskSpy.mockResolvedValue([
@@ -392,7 +445,7 @@ describe("ResourceSecurity.read", () => {
       values: [],
       attribute: {
         key: SECURITY_LOG_FUNCTION_ATTRIBUTE,
-        value: "checkout-handler",
+        values: ["checkout-handler"],
       },
     });
     // Never by the service its lines are filed under.
@@ -441,7 +494,7 @@ describe("ResourceSecurity.read", () => {
       values: [arn],
       attribute: {
         key: SECURITY_LOG_FUNCTION_ATTRIBUTE,
-        value: "Checkout-Handler",
+        values: ["Checkout-Handler"],
       },
     });
     // Its cases and risk are looked up by its ARN.
@@ -583,8 +636,9 @@ describe("ResourceSecurity.read", () => {
     expect(countSpy.mock.calls[0]![0]).toMatchObject({
       attribute: {
         key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
-        value:
+        values: [
           "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/checkout/1",
+        ],
       },
     });
     expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
@@ -640,7 +694,7 @@ describe("ResourceSecurity.read", () => {
       values: [],
       attribute: {
         key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
-        value: "AWS/AmazonMQ Broker=orders",
+        values: ["AWS/AmazonMQ Broker=orders"],
       },
     });
     expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
@@ -743,7 +797,7 @@ describe("ResourceSecurity.read", () => {
     expect(countSpy.mock.calls[0]![0]).toMatchObject({
       attribute: {
         key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
-        value: HOST_ID.toString(),
+        values: [HOST_ID.toString()],
       },
     });
   });
@@ -763,7 +817,7 @@ describe("ResourceSecurity.read", () => {
       values: [],
       attribute: {
         key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
-        value: HOST_ID.toString(),
+        values: [HOST_ID.toString()],
       },
     });
   });
