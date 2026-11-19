@@ -1736,9 +1736,11 @@ false
 {{/*
 Whether cost.engine.url is `auto` (#9633): bundle nothing, and let the cost
 agent find the OpenCost or Kubecost the cluster already runs, wherever it is,
-at run time. The chart cannot look for it itself: Helm's `lookup` comes back
-empty under `helm template`, Argo CD and dry runs, so the same values would
-render differently depending on the tool. Any spelling of auto counts.
+at run time. The chart cannot look for it itself: a template that reads the
+cluster gets nothing back under `helm template`, Argo CD and dry runs, so the
+same values would render differently depending on the tool; and Amazon EKS,
+which renders this chart as an add-on too (HelmChart/Marketplace), refuses a
+template that reads the cluster at all. Any spelling of auto counts.
 Usage: {{- if eq (include "kubernetes-agent.costEngineAuto" .) "true" }}
 */}}
 {{- define "kubernetes-agent.costEngineAuto" -}}
