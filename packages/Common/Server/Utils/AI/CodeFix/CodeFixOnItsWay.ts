@@ -511,7 +511,7 @@ LIMIT ${limit}`,
           return "OneUptime AI is already improving how this exception is handled. Follow it in Code.";
         }
 
-        return "OneUptime AI is already fixing this exception. Follow the fix in Code.";
+        return "OneUptime AI is already fixing this exception. Follow it in Code.";
       case CodeFixProblemKind.Incident:
       case CodeFixProblemKind.Alert: {
         const record: string =
