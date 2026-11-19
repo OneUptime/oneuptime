@@ -34,13 +34,15 @@ import { DEFAULT_STORAGE_USAGE_THRESHOLDS } from "../../../Utils/Storage/Storage
 import { getRecoveryThreshold } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
 
 /*
- * How the Kubernetes agent's chart names its cumulative-to-delta processor:
- * as the agent's collector knows it, cumulative_to_delta from collector
- * 0.157.0 and cumulativetodelta before (_helpers.tpl). The chart's own
- * tests pin both names.
+ * How the Kubernetes agent's chart names its renamed collector components
+ * (#9930): by a variable its collector templates declare from
+ * kubernetes-agent.componentType (_helpers.tpl), which is each component's
+ * type as the agent's collector knows it: cumulative_to_delta and
+ * k8s_attributes on the collector the chart pins, cumulativetodelta and
+ * k8sattributes before their renames. The chart's own tests pin both names.
  */
-const CUMULATIVE_TO_DELTA: string =
-  '{{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}';
+const CUMULATIVE_TO_DELTA: string = "{{ $cumulativeToDelta }}";
+const K8S_ATTRIBUTES: string = "{{ $k8sAttributes }}";
 
 /*
  * These tests lock in the subtle, easy-to-regress decisions in the
@@ -998,7 +1000,7 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
     expect(metricsPipeline).toContain(
       "            - forward/restarts-increase\n",
     );
-    expect(metricsPipeline).toContain("            - k8sattributes\n");
+    expect(metricsPipeline).toContain(`            - ${K8S_ATTRIBUTES}\n`);
     expect(restartsPipeline).toContain(
       `            - ${CUMULATIVE_TO_DELTA}/restarts-increase\n          exporters:\n            - forward/restarts-increase\n`,
     );
@@ -1047,7 +1049,7 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
     );
     expect(
       processors.indexOf("- transform/job-failures-increase\n"),
-    ).toBeLessThan(processors.indexOf("- k8sattributes\n"));
+    ).toBeLessThan(processors.indexOf(`- ${K8S_ATTRIBUTES}\n`));
     expect(
       processors.indexOf("- transform/job-failures-increase\n"),
     ).toBeLessThan(processors.indexOf("- resource\n"));
