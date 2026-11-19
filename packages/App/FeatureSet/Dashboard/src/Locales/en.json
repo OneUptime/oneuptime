@@ -57547,5 +57547,9 @@
   "Paged First": "Paged First",
   "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
   "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
-  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}.",
+  "Already in this team": "Already in this team",
+  "Already invited to this team": "Already invited to this team",
+  "Not in this project yet": "Not in this project yet",
+  "People you can invite": "People you can invite"
 }
