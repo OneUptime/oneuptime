@@ -100,8 +100,8 @@ class FetchMonitorTestAndProbe {
           options: ProbeAPIRequest.getDefaultRequestOptions(monitorListUrl),
         });
 
+      // Not the list itself: its tests hold their secrets' values.
       logger.debug("MONITOR TEST: Fetched monitor test list");
-      logger.debug(result);
 
       // Too busy to hand out tests now: they stay due for the next tick.
       if (ServerBusy.isBusyAnswer(result)) {
@@ -149,8 +149,10 @@ class FetchMonitorTestAndProbe {
 
     for (const result of results) {
       if (monitorTests && monitorTests[resultIndex]) {
-        logger.debug("Monitor Test:");
-        logger.debug(monitorTests[resultIndex]);
+        // Its id, never the test: it holds its secrets' values.
+        logger.debug(
+          `Monitor Test: ${monitorTests[resultIndex]?.id?.toString() || ""}`,
+        );
       }
 
       if (result.status === "rejected") {
