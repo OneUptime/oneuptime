@@ -254,7 +254,9 @@ Teams, labels, on-call policies and on-call schedules each have a name of their 
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart. For teams, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike.
+Beside the message, the answer carries `"refusalCode": "name_taken"`. Tell this refusal apart by that code, not by the sentence, which may be reworded. Nothing was written, so the same request can be sent again once the other record gives the name up: the Terraform provider asks again for up to 30 seconds.
+
+An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart. For teams, labels, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `label`, `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike. Archived labels and on-call policies are left out.
 
 ### Switches
 

@@ -12,7 +12,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  *   - its root filesystem's capacity, with its free space on the same
  *     chart, so the gap between the two lines is what is used;
  *   - how much of it is used (%), with the lines the Nodes list's bar turns
- *     amber and red at - the red one where the kubelet starts evicting pods;
+ *     amber and red at - the red one where the kubelet's nodefs eviction
+ *     starts (imagefs's, at 85%, comes first on a disk that also holds the
+ *     images);
  *   - on a node whose container images have a disk of their own, the same
  *     two for that disk, which the kubelet reports as every container's root
  *     filesystem (the largest and smallest reading of a minute: they are the
@@ -101,7 +103,7 @@ export function getKubernetesNodeDiskCharts(data: {
         metricVariable: "node_disk_used_percent",
         title: translator.translateText("Disk Used (%)"),
         description: translator.translateTemplate(
-          "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. The kubelet starts evicting pods at 90% by default.",
+          "How much of node {{nodeName}}'s root filesystem is used, as a share of its capacity. By default the kubelet starts evicting pods at 90%, or at 85% when this disk also holds the node's container images.",
           { nodeName: data.nodeName },
         ),
         legend: translator.translateText("Used"),

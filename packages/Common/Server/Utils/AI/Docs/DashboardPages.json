@@ -6173,6 +6173,20 @@
     "kind": "page"
   },
   {
+    "title": "Compliance",
+    "where": [
+      "Kubernetes"
+    ],
+    "keywords": [
+      "cluster hardening",
+      "pod security standards",
+      "cis kubernetes benchmark",
+      "kubernetes compliance"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/compliance",
+    "kind": "page"
+  },
+  {
     "title": "Costs",
     "where": [
       "Kubernetes"

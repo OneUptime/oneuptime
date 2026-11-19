@@ -143,7 +143,7 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 | `/data-store/<id>/scan-now` | **Scansiona ora**: campiona subito il contenuto dell'archivio |
 | `/data-store/<id>/check-now` | **Controlla ora**: rilegge la configurazione dell'archivio ed esegue i suoi controlli |
 | `/data-store-finding/<id>/scrub` | **Ripulisci** su un risultato della telemetria |
-| `/data-store-finding/<id>/drop-metric-impact` | Cosa scarterebbe **Scarta questa metrica** per un risultato nel nome di una metrica: quante metriche, e i monitor e le dashboard che le leggono |
+| `/data-store-finding/<id>/drop-metric-impact` | Cosa scarterebbe **Scarta questa metrica** per un risultato nel nome di una metrica: quante metriche, e i monitor, le dashboard, gli SLO e le regole di registrazione che le leggono |
 | `/data-store-finding/<id>/drop-metric` | **Scarta questa metrica**: una regola della pipeline delle metriche che scarta per sempre i nuovi punti dati di quelle metriche del servizio. Riceve `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Spiega con l'IA** su un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Correggi con l'IA** su un problema |

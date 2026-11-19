@@ -8,7 +8,10 @@ import {
   planManagedDeviceAppSync,
   planManagedDeviceSync,
   toManagedDeviceFields,
+  toStoredManagedDevice,
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceSync";
+import ManagedDevice from "../../../../Models/DatabaseModels/ManagedDevice";
+import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import {
   ProviderApp,
   ProviderDevice,
@@ -91,6 +94,52 @@ function plan(data: {
     now: NOW,
   });
 }
+
+// #9837: what a device runs is kept, and never counted as a change.
+describe("what a device runs", () => {
+  test("a new device is created with its platform", () => {
+    const result: ManagedDeviceSyncPlan = plan({
+      stored: [],
+      devices: [device("a")],
+    });
+
+    expect(result.creates[0]!.fields.platform).toBe(
+      ManagedDevicePlatform.Android,
+    );
+  });
+
+  test("a row written before the platform was kept gains it, as a change not counted", () => {
+    const readNow: ProviderDevice = device("a");
+    const result: ManagedDeviceSyncPlan = plan({
+      stored: [stored(readNow, { fields: { platform: null } })],
+      devices: [readNow],
+    });
+
+    expect(result.updates).toHaveLength(1);
+    expect(result.updates[0]!.changes).toEqual({
+      platform: ManagedDevicePlatform.Android,
+    });
+    expect(result.updates[0]!.isCounted).toBe(false);
+  });
+
+  test("a stored row reads its platform as written, and an unknown value as none", () => {
+    const row: ManagedDevice = new ManagedDevice();
+    row._id = "row-1";
+    row.providerDeviceId = "a";
+    row.platform = ManagedDevicePlatform.IPadOS;
+
+    expect(toStoredManagedDevice(row).fields.platform).toBe(
+      ManagedDevicePlatform.IPadOS,
+    );
+
+    row.platform = "beos" as ManagedDevicePlatform;
+    expect(toStoredManagedDevice(row).fields.platform).toBeNull();
+
+    // A row stored before the column was added reads null.
+    row.platform = null as unknown as ManagedDevicePlatform;
+    expect(toStoredManagedDevice(row).fields.platform).toBeNull();
+  });
+});
 
 describe("devices", () => {
   test("a device new to OneUptime is created, its group named from the groups read", () => {

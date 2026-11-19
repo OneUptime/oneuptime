@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  ESPER_IMPORTED_PLATFORMS,
   cleanText,
   isEsperId,
   newestCheckIns,
@@ -7,17 +8,21 @@ import {
   parseEsperApp,
   parseEsperCheckIn,
   parseEsperDevice,
+  parseEsperDeviceLastSeen,
   parseEsperGroup,
   parseEsperUserInfo,
+  readEsperApplePlatform,
 } from "../../../../Server/Utils/DeviceManagement/Esper/EsperParsers";
 import {
   ProviderCheckIn,
   ProviderDevice,
 } from "../../../../Server/Utils/DeviceManagement/DeviceManagementTypes";
+import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   ESPER_ENTERPRISE_ID,
   buildEsperApp,
+  buildEsperAppleDevice,
   buildEsperDevice,
   buildEsperGroup,
   buildEsperUserInfo,
@@ -30,6 +35,173 @@ import {
  */
 
 const DEVICE_ID: string = "811a2d27-13fd-4358-8dc3-aed049e73ce7";
+const IPAD_ID: string = "9b3e7c41-5d2a-4f8e-b1c6-0a7d4e2f9c15";
+
+/*
+ * device_AppleDeviceV2 (#9837): an iPhone, an iPad or an Apple TV, read by
+ * the names it shares with an Android device, its own beside them.
+ */
+describe("an Apple device", () => {
+  test("is read with every documented fact, by the Apple schema's names", () => {
+    const device: ProviderDevice | null = parseEsperDevice(
+      buildEsperAppleDevice({
+        id: IPAD_ID,
+        name: "ESP-ID-IPAD1",
+        alias: "Front counter iPad",
+        serial: "DMPXK2ABQ1GC",
+        os: "iPadOS",
+        osVersion: "17.4.1",
+        buildNumber: "21E236",
+        state: 1,
+        groupId: "22222222-bbbb-4bbb-8bbb-000000000001",
+        isKiosk: true,
+        batteryLevel: 76,
+      }),
+    );
+
+    expect(device).not.toBeNull();
+    expect(device!.platform).toBe(ManagedDevicePlatform.IPadOS);
+    expect(device!.deviceName).toBe("ESP-ID-IPAD1");
+    expect(device!.alias).toBe("Front counter iPad");
+    expect(device!.serialNumber).toBe("DMPXK2ABQ1GC");
+    expect(device!.model).toBe("iPad (10th generation)");
+    expect(device!.osVersion).toBe("17.4.1");
+    expect(device!.buildNumber).toBe("21E236");
+    expect(device!.state).toBe(1);
+    expect(device!.groupId).toBe("22222222-bbbb-4bbb-8bbb-000000000001");
+    expect(device!.isKioskMode).toBe(true);
+    expect(device!.batteryLevel).toBe(76);
+    expect(device!.macAddress).toBe("3c:22:fb:10:aa:21");
+    expect(device!.ipAddresses).toEqual([]);
+    expect(device!.provisionedAt).toEqual(new Date("2026-03-02T15:04:05Z"));
+  });
+
+  test("is Apple's, whether or not Esper says who made it", () => {
+    expect(
+      parseEsperDevice(buildEsperAppleDevice({ id: IPAD_ID, name: "x" }))!
+        .manufacturer,
+    ).toBe("Apple");
+  });
+
+  test("has no security patch level and no Esper agent: those are Android's", () => {
+    const value: JSONObject = buildEsperAppleDevice({ id: IPAD_ID, name: "x" });
+    (value["software_info"] as JSONObject)["security_path_level"] =
+      "2024-09-01";
+    (value["software_info"] as JSONObject)["esper_agent_info"] = {
+      version_name: "8.00.0764",
+    };
+
+    const device: ProviderDevice = parseEsperDevice(value)!;
+
+    expect(device.securityPatchLevel).toBe("");
+    expect(device.agentVersion).toBe("");
+  });
+
+  test("keeps its UDID, its supervision and where it was enrolled from, and its storage in gigabytes", () => {
+    const device: ProviderDevice = parseEsperDevice(
+      buildEsperAppleDevice({ id: IPAD_ID, name: "x" }),
+    )!;
+
+    expect(device.details).toEqual(
+      expect.objectContaining({
+        udid: "00008030-001A2D3C0E91402E",
+        isSupervised: true,
+        deviceSource: "ABM",
+        operatingSystem: "iPadOS",
+        totalStorage: "64",
+        totalRam: "4",
+        memoryUnits: "GB",
+        availableRamBytes: 1200000000,
+        availableStorageBytes: 31500000000,
+      }),
+    );
+    // An Android device's names for free memory are not an Apple device's bytes.
+    expect(device.details["availableRam"]).toBeUndefined();
+    expect(device.details["availableStorage"]).toBeUndefined();
+  });
+
+  test("runs iOS, iPadOS or tvOS as its os says, else as its model says, else iOS", () => {
+    const platformOf: (fixture: {
+      os?: string;
+      model?: string;
+    }) => ManagedDevicePlatform | undefined = (fixture: {
+      os?: string;
+      model?: string;
+    }): ManagedDevicePlatform | undefined => {
+      const value: JSONObject = buildEsperAppleDevice({
+        id: IPAD_ID,
+        name: "x",
+        ...(fixture.model ? { model: fixture.model } : {}),
+      });
+      value["os"] = fixture.os ?? null;
+
+      return parseEsperDevice(value)?.platform;
+    };
+
+    expect(platformOf({ os: "iOS", model: "iPhone 15" })).toBe(
+      ManagedDevicePlatform.IOS,
+    );
+    expect(platformOf({ os: "iPadOS" })).toBe(ManagedDevicePlatform.IPadOS);
+    expect(platformOf({ os: "tvOS", model: "Apple TV 4K" })).toBe(
+      ManagedDevicePlatform.TvOS,
+    );
+    // Esper does not manage Macs today; one would still read as one.
+    expect(platformOf({ os: "macOS", model: "Mac mini" })).toBe(
+      ManagedDevicePlatform.MacOS,
+    );
+    expect(platformOf({ model: "iPad Pro (11-inch)" })).toBe(
+      ManagedDevicePlatform.IPadOS,
+    );
+    expect(platformOf({ model: "Apple TV HD" })).toBe(
+      ManagedDevicePlatform.TvOS,
+    );
+    expect(platformOf({ model: "iPhone 15" })).toBe(ManagedDevicePlatform.IOS);
+    expect(readEsperApplePlatform({ os: undefined, model: undefined })).toBe(
+      ManagedDevicePlatform.IOS,
+    );
+  });
+
+  test("its last check-in is its last_seen, never later than now, and none without one", () => {
+    const now: Date = new Date("2026-11-19T12:00:00.000Z");
+
+    expect(
+      parseEsperDeviceLastSeen(
+        buildEsperAppleDevice({
+          id: IPAD_ID,
+          name: "x",
+          lastSeen: "2026-11-19T09:30:00Z",
+        }),
+        now,
+      ),
+    ).toEqual(new Date("2026-11-19T09:30:00Z"));
+    expect(
+      parseEsperDeviceLastSeen(
+        buildEsperAppleDevice({
+          id: IPAD_ID,
+          name: "x",
+          lastSeen: "2026-11-19T13:00:00Z",
+        }),
+        now,
+      ),
+    ).toEqual(now);
+    expect(
+      parseEsperDeviceLastSeen(
+        buildEsperAppleDevice({ id: IPAD_ID, name: "x", lastSeen: null }),
+        now,
+      ),
+    ).toBeNull();
+    expect(
+      parseEsperDeviceLastSeen(
+        { ...buildEsperAppleDevice({ id: IPAD_ID, name: "x" }), last_seen: 7 },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  test("the platforms a read lists are Android and Apple", () => {
+    expect(ESPER_IMPORTED_PLATFORMS).toEqual(["ANDROID", "APPLE"]);
+  });
+});
 
 describe("a device", () => {
   test("every documented fact, from the v2 device schema", () => {
@@ -71,15 +243,29 @@ describe("a device", () => {
     expect(parseEsperDevice(fixed)!.securityPatchLevel).toBe("2025-01-01");
   });
 
-  test("another platform's device, or one with no ID, is left out", () => {
-    expect(
-      parseEsperDevice(
-        buildEsperDevice({ id: DEVICE_ID, name: "x", platform: "WINDOWS" }),
-      ),
-    ).toBeNull();
+  test("a Windows or Linux device, a platform Esper names that OneUptime does not, or one with no ID, is left out", () => {
+    for (const platform of ["WINDOWS", "LINUX", "CHROMEOS"]) {
+      expect(
+        parseEsperDevice(
+          buildEsperDevice({ id: DEVICE_ID, name: "x", platform }),
+        ),
+      ).toBeNull();
+    }
     expect(parseEsperDevice({ name: "no id" })).toBeNull();
     expect(parseEsperDevice(null)).toBeNull();
     expect(parseEsperDevice("a string")).toBeNull();
+  });
+
+  test("an Android device says so, and so does one that names no platform", () => {
+    expect(
+      parseEsperDevice(buildEsperDevice({ id: DEVICE_ID, name: "x" }))!
+        .platform,
+    ).toBe(ManagedDevicePlatform.Android);
+    expect(
+      parseEsperDevice(
+        buildEsperDevice({ id: DEVICE_ID, name: "x", platform: "android" }),
+      )!.platform,
+    ).toBe(ManagedDevicePlatform.Android);
   });
 
   test("a device with almost nothing still reads, its facts empty", () => {
@@ -87,6 +273,7 @@ describe("a device", () => {
 
     expect(device).toEqual({
       providerDeviceId: DEVICE_ID,
+      platform: ManagedDevicePlatform.Android,
       deviceName: "",
       alias: "",
       serialNumber: "",

@@ -72,6 +72,8 @@ Under **Aggreger etter** velger du hvordan verdiene i hvert punkt i diagrammet k
 
 Hver spørring tegner sitt eget diagram. For å tegne en spørring i samme diagram som den forrige slår du på **Legg over forrige spørring** i dens **Visningsinnstillinger**.
 
+Et overlagt diagram leser den venstre verdiaksen i enheten til sin første spørring, og regner om en spørring i en annen enhet av samme slag til den, som megabyte i et diagram i gigabyte. En spørring i en enhet av et annet slag, som byte i et diagram i prosent, tegnes mot en ekstra verdiakse på høyre side av diagrammet, i sin egen enhet, og forklaringen under diagrammet sier hvilken akse hver serie tegnes mot. Bare et tredje slag enhet passer på ingen av aksene: den tegnes mot venstre akse, og både diagrammet og bryteren sier det.
+
 ## Kombiner spørringer med en formel
 
 :::steps

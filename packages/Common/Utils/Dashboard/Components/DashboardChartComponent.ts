@@ -101,9 +101,16 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       section: DataSourceSection,
     });
 
+    /*
+     * The added queries (Query 2, Query 3, ...), drawn by the settings form
+     * as cards of their own with an Add Query button, never by this name.
+     * Each draws a chart of its own unless its "Overlay with previous query"
+     * switch is on (MetricQueryOverlay), which is what this says (#10044).
+     */
     componentArguments.push({
       name: "Additional Queries",
-      description: "Overlay more metrics on the same chart",
+      description:
+        "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart",
       required: false,
       type: ComponentInputType.MetricsQueryConfigs,
       id: "metricQueryConfigs",

@@ -106,7 +106,7 @@ Bare monitorene hendelsen nevner under **Monitorer**, slutter å bli sjekket, og
 :::
 
 :::details Hendelsen vises ikke på statussiden min
-Sjekk at hendelsen nevner siden under **Vis hendelse på disse statussidene**, og at **Synlig på statussiden** er slått på i **Innstillinger** for hendelsen. Viser toppen dens **Ikke på statussider ennå**, vises den fra **Publiser den** for den: se [Publiser den senere](/docs/scheduled-maintenance/creating-events#publiser-den-senere). Sjekk deretter selve statussiden: den må vise vedlikeholdshendelser, og en hendelse som startet lenger tilbake enn historikkvinduet til siden, 14 dager med mindre du har endret det, vises ikke lenger.
+Sjekk at hendelsen nevner siden under **Vis hendelse på disse statussidene**, og at **Synlig på statussiden** er slått på i **Innstillinger** for hendelsen. Viser toppen dens **Ikke på statussider ennå**, vises den fra **Publiser den** for den: se [Publiser den senere](/docs/scheduled-maintenance/creating-events#publiser-den-senere). Sjekk deretter selve statussiden: den må vise vedlikeholdshendelser (hendelsens kort **Detaljer om vedlikehold** sier det når ingen av statussidene dens gjør det), og en hendelse som startet lenger tilbake enn historikkvinduet til siden, 14 dager med mindre du har endret det, vises ikke lenger.
 :::
 
 ## Neste steg

@@ -17,6 +17,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
   applyTypedLogFilterToRequest,
+  buildLogsAggregateScope,
   buildLogsHistogramRequest,
   getLogsChosenFacetKeys,
   parseLogsHistogramResponse,
@@ -1182,5 +1183,100 @@ describe("withoutLogsFacetSelection", () => {
     );
 
     expect(request["serviceIds"]).toEqual(["page-service"]);
+  });
+});
+
+/*
+ * The Analytics chart reads the rows the histogram reads (#7716): every
+ * filter but the window, which the chart resolves with its own bucket
+ * size. It used to compile only some chips itself, so a typed search, an
+ * attribute or message chip, and a host's or a pod's own scope narrowed
+ * the list and the histogram while the chart under them read every log.
+ */
+describe("buildLogsAggregateScope", () => {
+  beforeEach(() => {
+    freezeClock();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const EVERY_FILTER: Parameters<typeof buildLogsAggregateScope>[0] = {
+    serviceIds: ["page-service"],
+    traceIds: ["trace-1"],
+    spanIds: ["span-1"],
+    attributes: { "k8s.pod.name": "checkout-7f9" } as never,
+    entityKeys: ["k8s.pod:checkout-7f9"],
+    appliedFacetFilters: facets({
+      severityText: ["Error"],
+      "attributes.http.route": ["/checkout"],
+      body: ["timed out"],
+    }),
+    typedFilter: {
+      attributes: { "deployment.environment": "prod" },
+      body: new Search("payment"),
+    },
+  };
+
+  // A request as it goes out: operators in their wire shape.
+  function onTheWire(request: JSONObject): JSONObject {
+    return JSON.parse(JSON.stringify(request)) as JSONObject;
+  }
+
+  test("is the histogram's request without its window", () => {
+    const scope: JSONObject = buildLogsAggregateScope(EVERY_FILTER);
+    const histogram: JSONObject = buildLogsHistogramRequest({
+      timeRange: PAST_ONE_HOUR,
+      ...EVERY_FILTER,
+    });
+
+    expect(scope).not.toHaveProperty("startTime");
+    expect(scope).not.toHaveProperty("endTime");
+
+    const { startTime, endTime, ...histogramScope } = histogram;
+
+    expect(startTime).toBe("2026-08-05T11:00:00.000Z");
+    expect(endTime).toBe("2026-08-05T12:00:00.000Z");
+    expect(onTheWire(scope)).toEqual(onTheWire(histogramScope));
+  });
+
+  test("carries the page's scope, the chips and what the search bar typed", () => {
+    const scope: JSONObject = onTheWire(buildLogsAggregateScope(EVERY_FILTER));
+
+    expect(scope).toMatchObject({
+      serviceIds: ["page-service"],
+      traceIds: ["trace-1"],
+      spanIds: ["span-1"],
+      entityKeys: ["k8s.pod:checkout-7f9"],
+      severityTexts: ["Error"],
+      // The typed message wins over the chip's, as in the list query.
+      bodySearchText: "payment",
+    });
+    expect(scope["attributes"]).toEqual({
+      "k8s.pod.name": "checkout-7f9",
+      "http.route": "/checkout",
+      "deployment.environment": "prod",
+    });
+  });
+
+  test("carries what the chips leave out", () => {
+    const scope: JSONObject = buildLogsAggregateScope({
+      appliedFacetFilters: facets({
+        "!severityText": ["Debug"],
+        "!primaryEntityId": ["noisy-service"],
+      }),
+    });
+
+    expect(scope).toEqual({
+      excludedSeverityTexts: ["Debug"],
+      excludedServiceIds: ["noisy-service"],
+    });
+  });
+
+  test("an empty viewer narrows nothing", () => {
+    expect(buildLogsAggregateScope({ appliedFacetFilters: new Map() })).toEqual(
+      {},
+    );
   });
 });

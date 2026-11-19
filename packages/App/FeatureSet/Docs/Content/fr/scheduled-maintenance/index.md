@@ -106,7 +106,7 @@ Seuls les moniteurs que l'événement nomme sous **Moniteurs** cessent d'être v
 :::
 
 :::details L'événement n'apparaît pas sur ma page de statut
-Vérifiez que l'événement nomme la page sous **Afficher l'événement sur ces pages de statut** et que **Visible sur la page de statut** est activé dans les **Paramètres** de l'événement. Si son en-tête indique **Pas encore sur les pages de statut**, il s'affiche à partir de son **Publier le** : voir [Publier plus tard](/docs/scheduled-maintenance/creating-events#publier-plus-tard). Vérifiez ensuite la page de statut elle-même : elle doit afficher les événements de maintenance, et un événement qui a commencé depuis plus longtemps que la fenêtre d'historique de la page, 14 jours sauf si vous l'avez modifiée, n'est plus listé.
+Vérifiez que l'événement nomme la page sous **Afficher l'événement sur ces pages de statut** et que **Visible sur la page de statut** est activé dans les **Paramètres** de l'événement. Si son en-tête indique **Pas encore sur les pages de statut**, il s'affiche à partir de son **Publier le** : voir [Publier plus tard](/docs/scheduled-maintenance/creating-events#publier-plus-tard). Vérifiez ensuite la page de statut elle-même : elle doit afficher les événements de maintenance (la carte **Détails de la maintenance** de l'événement le dit quand aucune de ses pages de statut ne le fait), et un événement qui a commencé depuis plus longtemps que la fenêtre d'historique de la page, 14 jours sauf si vous l'avez modifiée, n'est plus listé.
 :::
 
 ## Prochaines étapes

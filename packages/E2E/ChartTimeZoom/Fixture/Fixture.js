@@ -26,6 +26,9 @@
  *                                     (ExceptionsViewer)
  *   METRICS                           /dashboard/:projectId/metrics
  *                                     Pages/Metrics/{Layout,Index} (MetricsViewer)
+ *   METRIC_VIEW                       /dashboard/:projectId/metrics/view
+ *                                     Pages/Metrics/View/{Layout,Index}
+ *                                     (MetricExplorer: the explorer's charts)
  *
  * Only the data boundary (ModelAPI / AnalyticsModelAPI / API / Realtime) and
  * the signed-in user are replaced. Every record is fabricated for a generic
@@ -160,6 +163,8 @@ import ExceptionsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Except
 import ExceptionsUnresolved from "../../../App/FeatureSet/Dashboard/src/Pages/Exceptions/Unresolved";
 import MetricsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Layout";
 import MetricsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Index";
+import MetricsViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/View/Layout";
+import MetricViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/View/Index";
 import RouteMap, {
   RouteUtil,
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -3668,6 +3673,11 @@ function FixtureMetricsLayout() {
   return <MetricsLayout {...pageProps(PageMap.METRICS)} />;
 }
 
+function FixtureMetricViewLayout() {
+  useNavigationHooks();
+  return <MetricsViewLayout {...pageProps(PageMap.METRIC_VIEW)} />;
+}
+
 function StubPage(props) {
   useNavigationHooks();
   const location = useLocation();
@@ -3805,6 +3815,15 @@ createRoot(document.getElementById("root")).render(
           <Route
             index
             element={<MetricsPage {...pageProps(PageMap.METRICS)} />}
+          />
+        </Route>
+        <Route
+          path={RouteMap[PageMap.METRIC_VIEW].toString()}
+          element={<FixtureMetricViewLayout />}
+        >
+          <Route
+            index
+            element={<MetricViewPage {...pageProps(PageMap.METRIC_VIEW)} />}
           />
         </Route>
         <Route

@@ -143,7 +143,7 @@ Quelques réponses sont calculées à la demande plutôt que stockées. Chacune 
 | `/data-store/<id>/scan-now` | **Analyser maintenant** : échantillonne aussitôt le contenu du magasin de données |
 | `/data-store/<id>/check-now` | **Contrôler maintenant** : relit la configuration du magasin de données et exécute ses contrôles |
 | `/data-store-finding/<id>/scrub` | **Nettoyer** sur une détection de télémétrie |
-| `/data-store-finding/<id>/drop-metric-impact` | Ce que ferait **Abandonner cette métrique** pour une détection dans le nom d'une métrique : combien de métriques elle abandonnerait, et les moniteurs et tableaux de bord qui les lisent |
+| `/data-store-finding/<id>/drop-metric-impact` | Ce que ferait **Abandonner cette métrique** pour une détection dans le nom d'une métrique : combien de métriques elle abandonnerait, et les moniteurs, tableaux de bord, SLO et règles d'enregistrement qui les lisent |
 | `/data-store-finding/<id>/drop-metric` | **Abandonner cette métrique** : une règle de pipeline de métriques qui abandonne définitivement les nouveaux points de données de ces métriques du service. Elle prend `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Expliquer avec l'IA** sur un problème |
 | `/data-security-issue/<id>/fix-with-ai` | **Corriger avec l'IA** sur un problème |

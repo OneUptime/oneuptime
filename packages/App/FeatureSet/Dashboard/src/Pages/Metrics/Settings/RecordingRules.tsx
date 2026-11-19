@@ -18,6 +18,7 @@ import RecordingRuleDefinition, {
 import { getOutputMetricNameFromRuleName } from "Common/Types/Metrics/RecordingRuleOutputMetricName";
 import { getRecordingRuleAdvancedSummary } from "../../../Components/Metrics/RecordingRule/RecordingRuleForm";
 import MetricRecordingRuleDefinitionEditor from "../../../Components/Metrics/RecordingRule/MetricRecordingRuleDefinitionEditor";
+import { METRIC_RECORDING_RULES_TABLE_ID } from "../../../Components/Metrics/RecordingRule/RecordingRulesRoute";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -66,9 +67,10 @@ const MetricRecordingRules: FunctionComponent<
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}
-      id="metric-recording-rules-table"
+      id={METRIC_RECORDING_RULES_TABLE_ID}
       name="Metrics > Settings > Recording Rules"
-      userPreferencesKey="metric-recording-rules-table"
+      // Also the key of its filter in the address, which a rule's link sets (RecordingRulesRoute).
+      userPreferencesKey={METRIC_RECORDING_RULES_TABLE_ID}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}

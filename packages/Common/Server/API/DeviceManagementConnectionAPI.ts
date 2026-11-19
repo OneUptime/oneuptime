@@ -6,21 +6,30 @@ import { LlmConnectionFailureKind } from "../../Types/LlmObservability/LlmConnec
 import {
   DeviceManagementConfig,
   readEsperTenant,
+  readIntuneTenant,
   toDeviceManagementConfigJson,
   validateDeviceManagementConfig,
 } from "../../Types/DeviceManagement/DeviceManagementConnectionSettings";
 import { DeviceManagementTestResult } from "../../Types/DeviceManagement/DeviceManagementConnectionTest";
-import DeviceManagementProvider from "../../Types/DeviceManagement/DeviceManagementProvider";
+import DeviceManagementProvider, {
+  getDeviceManagementProviderTitle,
+  isDeviceManagementProvider,
+} from "../../Types/DeviceManagement/DeviceManagementProvider";
 import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import DeviceManagementConnectionService, {
+  DeviceManagementSecretValues,
   Service as DeviceManagementConnectionServiceClass,
 } from "../Services/DeviceManagementConnectionService";
 import DataSourceHttpFetch from "../Utils/DataSource/HttpFetch";
 import DeviceManagementConnectorRegistry from "../Utils/DeviceManagement/DeviceManagementConnectorRegistry";
 import DeviceManagementScheduler from "../Utils/DeviceManagement/DeviceManagementScheduler";
-import { DeviceManagementSettings } from "../Utils/DeviceManagement/DeviceManagementTypes";
+import {
+  DeviceManagementSecrets,
+  DeviceManagementSettings,
+  getDeviceManagementSecretValues,
+} from "../Utils/DeviceManagement/DeviceManagementTypes";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -32,13 +41,21 @@ import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 
+// What a test reads with: the service, its settings and its secrets.
+type SettingsToTest = DeviceManagementSecrets & {
+  provider: DeviceManagementProvider;
+  config: DeviceManagementConfig;
+};
+
 /*
- * Device management connections (an Esper tenant): the CRUD routes, plus
+ * Device management connections (an Esper tenant, a Microsoft Intune
+ * tenant): the CRUD routes, plus
  *
  *   POST /device-management-connection/test
- *     { config, secrets }                  settings never saved: the tenant
- *                                          and the key, as the connect
- *                                          dialog has them;
+ *     { provider?, config, secrets }       settings never saved: the tenant
+ *                                          and the secret, as the connect
+ *                                          dialog has them (Esper when no
+ *                                          provider is named);
  *     { connectionId, config?, secrets? }  a saved connection, with the edit
  *                                          form's unsaved values over it (a
  *                                          key left empty keeps the stored
@@ -80,7 +97,7 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
               ? (req.body as JSONObject)
               : {};
 
-          let toTest: { apiKey: string; config: DeviceManagementConfig };
+          let toTest: SettingsToTest;
 
           try {
             toTest = await this.readSettingsToTest({ body, projectId, props });
@@ -94,12 +111,17 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
               throw error;
             }
 
+            const provider: DeviceManagementProvider =
+              DeviceManagementConnectionAPI.readProviderQuietly(body);
             const result: DeviceManagementTestResult = {
-              provider: DeviceManagementProvider.Esper,
+              provider: provider,
               status: "fail",
               message: error.message,
               failureKind: LlmConnectionFailureKind.Settings,
-              tenant: DeviceManagementConnectionAPI.readTenantQuietly(body),
+              tenant: DeviceManagementConnectionAPI.readTenantQuietly(
+                body,
+                provider,
+              ),
               durationMs: 0,
             };
 
@@ -112,7 +134,7 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
 
           const result: DeviceManagementTestResult =
             await DeviceManagementConnectorRegistry.getConnector(
-              DeviceManagementProvider.Esper,
+              toTest.provider,
             )
               .testConnection(toTest, {
                 transport: DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
@@ -122,12 +144,14 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
                 const failure: LlmProviderError = LlmProviderError.from({
                   error,
                   step: "test",
-                  providerTitle: "Esper",
-                  secretValues: [toTest.apiKey],
+                  providerTitle: getDeviceManagementProviderTitle(
+                    toTest.provider,
+                  ),
+                  secretValues: getDeviceManagementSecretValues(toTest),
                 });
 
                 return {
-                  provider: DeviceManagementProvider.Esper,
+                  provider: toTest.provider,
                   status: "fail",
                   message: failure.message,
                   failureKind: failure.kind,
@@ -202,12 +226,26 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
       allowedPermissions:
         new DeviceManagementConnection().getUpdatePermissions(),
       errorMessage:
-        "Project Owners and Project Admins can connect, test and read Esper tenants.",
+        "Project Owners and Project Admins can connect, test and read device management connections.",
     });
   }
 
+  // The service a test asked about, for its answer: Esper when it named none it knows.
+  private static readProviderQuietly(
+    body: JSONObject,
+  ): DeviceManagementProvider {
+    const provider: unknown = body["provider"];
+
+    return isDeviceManagementProvider(provider)
+      ? provider
+      : DeviceManagementProvider.Esper;
+  }
+
   // The tenant a test asked about, for its answer; "" when there is none.
-  private static readTenantQuietly(body: JSONObject): string {
+  private static readTenantQuietly(
+    body: JSONObject,
+    provider: DeviceManagementProvider,
+  ): string {
     const config: unknown = body["config"];
 
     if (!config || typeof config !== "object" || Array.isArray(config)) {
@@ -215,7 +253,11 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
     }
 
     try {
-      return readEsperTenant((config as JSONObject)["tenant"]);
+      const tenant: unknown = (config as JSONObject)["tenant"];
+
+      return provider === DeviceManagementProvider.Intune
+        ? readIntuneTenant(tenant)
+        : readEsperTenant(tenant);
     } catch {
       return "";
     }
@@ -231,28 +273,31 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
     body: JSONObject;
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<{ apiKey: string; config: DeviceManagementConfig }> {
+  }): Promise<SettingsToTest> {
     const connectionIdValue: JSONValue | undefined = data.body["connectionId"];
 
     if (connectionIdValue === undefined || connectionIdValue === null) {
-      DeviceManagementConnectionServiceClass.readProvider(
-        data.body["provider"],
-      );
+      const provider: DeviceManagementProvider =
+        DeviceManagementConnectionServiceClass.readProvider(
+          data.body["provider"],
+        );
 
-      const secrets: { apiKey?: string | undefined } =
+      const secrets: DeviceManagementSecretValues =
         DeviceManagementConnectionServiceClass.readSecrets(
           data.body["secrets"],
-          { requireApiKey: true },
+          { required: true, provider },
         );
 
       return {
-        apiKey: secrets.apiKey!,
+        provider,
+        apiKey: secrets.apiKey || "",
+        ...(secrets.clientSecret ? { clientSecret: secrets.clientSecret } : {}),
         config: validateDeviceManagementConfig(
           DeviceManagementConnectionServiceClass.parseJsonObject(
             data.body["config"],
             "Settings",
           ),
-          { requireTenant: true },
+          { requireTenant: true, provider },
         ),
       };
     }
@@ -284,11 +329,11 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
         })(),
       );
 
-    const provided: { apiKey?: string | undefined } =
+    const provided: DeviceManagementSecretValues =
       data.body["secrets"] !== undefined
         ? DeviceManagementConnectionServiceClass.readSecrets(
             data.body["secrets"],
-            { requireApiKey: false },
+            { required: false, provider: stored.provider },
           )
         : {};
 
@@ -302,19 +347,27 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
                 "Settings",
               ),
             },
-            { requireTenant: true },
+            { requireTenant: true, provider: stored.provider },
           )
         : stored.config;
 
-    // The rule a save applies: a saved connection's tenant is fixed.
-    if (config.tenant !== stored.config.tenant) {
+    // The rule a save applies: a saved connection's tenant (and cloud) is fixed.
+    if (
+      config.tenant !== stored.config.tenant ||
+      (config.cloud || "") !== (stored.config.cloud || "")
+    ) {
       throw new BadDataException(
         "A saved connection is tested with its own tenant. To try another one, connect it as well.",
       );
     }
 
+    const clientSecret: string | undefined =
+      provided.clientSecret || stored.clientSecret;
+
     return {
+      provider: stored.provider,
       apiKey: provided.apiKey || stored.apiKey,
+      ...(clientSecret ? { clientSecret } : {}),
       config,
     };
   }
