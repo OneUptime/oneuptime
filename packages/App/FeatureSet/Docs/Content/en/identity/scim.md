@@ -454,7 +454,7 @@ Users SCIM creates itself and users who are members of your project are added st
 A OneUptime account's email address is how that person signs in, to every project they belong to, and where their password reset links go. So:
 
 - **OneUptime Cloud**: SCIM never changes an email address. A request that would change one still succeeds: the connection keeps the address your identity provider sent, and answers with it, while the account keeps the address it signs in with. The connection's SCIM logs say the change was not applied. Ask the user to change their address from their own OneUptime profile.
-- **Self-hosted**: SCIM changes the email address only of a user who has joined this project, belongs to no other project, and is not a OneUptime administrator. For anyone else, the connection keeps the new address and the account its own, as on OneUptime Cloud.
+- **Self-hosted**: SCIM changes the email address only of a user who has joined this project, belongs to no other project, and is not a OneUptime administrator. For anyone else, the connection keeps the new address and the account its own, as on OneUptime Cloud. The same goes for an address another OneUptime account already signs in with.
 
 Names follow the same rule everywhere: SCIM updates the name only of a user who has joined this project, belongs to no other project, and is not a OneUptime administrator. For anyone else the name is left as it is and the rest of the request still succeeds.
 :::
