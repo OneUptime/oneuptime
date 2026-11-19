@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "Added as service or infrastructure owner",
   "Added as workflow owner": "Added as workflow owner",
   "Dashboards & Automation": "Dashboards & Automation",
-  "Notify me about dashboards, workflows and runbooks I own.": "Notify me about dashboards, workflows and runbooks I own.",
   "Notify me about incoming call policies I own.": "Notify me about incoming call policies I own.",
   "Notify me about on-call policies and schedules I own.": "Notify me about on-call policies and schedules I own.",
   "Notify me about the services and infrastructure I own.": "Notify me about the services and infrastructure I own.",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "You are added as an owner of a workflow.",
   "You are added as an owner of an incoming call policy.": "You are added as an owner of an incoming call policy.",
   "You are added as an owner of an on-call policy.": "You are added as an owner of an on-call policy.",
-  "You are added as an owner of an on-call schedule.": "You are added as an owner of an on-call schedule."
+  "You are added as an owner of an on-call schedule.": "You are added as an owner of an on-call schedule.",
+  "Added as Runner owner": "Added as Runner owner",
+  "Added as monitor group owner": "Added as monitor group owner",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "Notify me about dashboards, workflows, runbooks and Runners I own.",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.",
+  "You are added as an owner of a monitor group.": "You are added as an owner of a monitor group.",
+  "{{channel}} is not available for these events.": "{{channel}} is not available for these events.",
+  "{{channel}} is not available for this event.": "{{channel}} is not available for this event."
 }

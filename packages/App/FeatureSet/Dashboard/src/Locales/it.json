@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "Aggiunto come proprietario di un servizio o di un'infrastruttura",
   "Added as workflow owner": "Aggiunto come proprietario del flusso di lavoro",
   "Dashboards & Automation": "Dashboard e automazione",
-  "Notify me about dashboards, workflows and runbooks I own.": "Avvisami delle dashboard, dei flussi di lavoro e dei runbook di cui sono proprietario.",
   "Notify me about incoming call policies I own.": "Avvisami delle policy chiamate in entrata di cui sono proprietario.",
   "Notify me about on-call policies and schedules I own.": "Avvisami delle policy e delle pianificazioni di reperibilità di cui sono proprietario.",
   "Notify me about the services and infrastructure I own.": "Avvisami dei servizi e dell'infrastruttura di cui sono proprietario.",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "Sei stato aggiunto come proprietario di un flusso di lavoro.",
   "You are added as an owner of an incoming call policy.": "Sei stato aggiunto come proprietario di una policy chiamate in entrata.",
   "You are added as an owner of an on-call policy.": "Sei stato aggiunto come proprietario di una policy di reperibilità.",
-  "You are added as an owner of an on-call schedule.": "Sei stato aggiunto come proprietario di una pianificazione di reperibilità."
+  "You are added as an owner of an on-call schedule.": "Sei stato aggiunto come proprietario di una pianificazione di reperibilità.",
+  "Added as Runner owner": "Aggiunto come proprietario del Runner",
+  "Added as monitor group owner": "Aggiunto come proprietario del gruppo di monitor",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "Avvisami delle dashboard, dei flussi di lavoro, dei runbook e dei Runner di cui sono proprietario.",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "Sei stato aggiunto come proprietario di un Runner, che esegue i passaggi dei runbook e le correzioni del codice con l'IA.",
+  "You are added as an owner of a monitor group.": "Sei stato aggiunto come proprietario di un gruppo di monitor.",
+  "{{channel}} is not available for these events.": "{{channel}} non è disponibile per questi eventi.",
+  "{{channel}} is not available for this event.": "{{channel}} non è disponibile per questo evento."
 }

@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "Lagt til som eier av en tjeneste eller infrastruktur",
   "Added as workflow owner": "Lagt til som arbeidsflyt-eier",
   "Dashboards & Automation": "Dashbord og automatisering",
-  "Notify me about dashboards, workflows and runbooks I own.": "Varsle meg om dashbord, arbeidsflyter og runbooks jeg eier.",
   "Notify me about incoming call policies I own.": "Varsle meg om policyer for innkommende anrop jeg eier.",
   "Notify me about on-call policies and schedules I own.": "Varsle meg om vaktpolicyer og vaktplaner jeg eier.",
   "Notify me about the services and infrastructure I own.": "Varsle meg om tjenester og infrastruktur jeg eier.",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "Du er lagt til som eier av en arbeidsflyt.",
   "You are added as an owner of an incoming call policy.": "Du er lagt til som eier av en policy for innkommende anrop.",
   "You are added as an owner of an on-call policy.": "Du er lagt til som eier av en vaktpolicy.",
-  "You are added as an owner of an on-call schedule.": "Du er lagt til som eier av en vakttidsplan."
+  "You are added as an owner of an on-call schedule.": "Du er lagt til som eier av en vakttidsplan.",
+  "Added as Runner owner": "Lagt til som Runner-eier",
+  "Added as monitor group owner": "Lagt til som monitorgruppe-eier",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "Varsle meg om dashbord, arbeidsflyter, runbooks og Runnere jeg eier.",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "Du er lagt til som eier av en Runner, som kjører runbook-trinn og AI-koderettelser.",
+  "You are added as an owner of a monitor group.": "Du er lagt til som eier av en monitorgruppe.",
+  "{{channel}} is not available for these events.": "{{channel}} er ikke tilgjengelig for disse hendelsene.",
+  "{{channel}} is not available for this event.": "{{channel}} er ikke tilgjengelig for denne hendelsen."
 }

@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "서비스 또는 인프라 소유자로 추가됨",
   "Added as workflow owner": "워크플로 소유자로 추가됨",
   "Dashboards & Automation": "대시보드 및 자동화",
-  "Notify me about dashboards, workflows and runbooks I own.": "내가 소유한 대시보드, 워크플로, 런북을 알려 줍니다.",
   "Notify me about incoming call policies I own.": "내가 소유한 수신 통화 정책을 알려 줍니다.",
   "Notify me about on-call policies and schedules I own.": "내가 소유한 온콜 정책과 스케줄을 알려 줍니다.",
   "Notify me about the services and infrastructure I own.": "내가 소유한 서비스와 인프라를 알려 줍니다.",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "귀하가 워크플로의 소유자로 추가되었습니다.",
   "You are added as an owner of an incoming call policy.": "귀하가 수신 통화 정책의 소유자로 추가되었습니다.",
   "You are added as an owner of an on-call policy.": "귀하가 온콜 정책의 소유자로 추가되었습니다.",
-  "You are added as an owner of an on-call schedule.": "귀하가 온콜 일정의 소유자로 추가되었습니다."
+  "You are added as an owner of an on-call schedule.": "귀하가 온콜 일정의 소유자로 추가되었습니다.",
+  "Added as Runner owner": "Runner 소유자로 추가됨",
+  "Added as monitor group owner": "모니터 그룹 소유자로 추가됨",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "내가 소유한 대시보드, 워크플로, 런북, Runner를 알려 줍니다.",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "귀하가 런북 단계와 AI 코드 수정을 실행하는 Runner의 소유자로 추가되었습니다.",
+  "You are added as an owner of a monitor group.": "귀하가 모니터 그룹의 소유자로 추가되었습니다.",
+  "{{channel}} is not available for these events.": "이러한 이벤트에는 {{channel}}을(를) 사용할 수 없습니다.",
+  "{{channel}} is not available for this event.": "이 이벤트에는 {{channel}}을(를) 사용할 수 없습니다."
 }

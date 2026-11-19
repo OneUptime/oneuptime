@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "サービスまたはインフラストラクチャの所有者として追加されました",
   "Added as workflow owner": "ワークフローの所有者として追加されました",
   "Dashboards & Automation": "ダッシュボードと自動化",
-  "Notify me about dashboards, workflows and runbooks I own.": "自分が所有するダッシュボード、ワークフロー、Runbook について通知します。",
   "Notify me about incoming call policies I own.": "自分が所有する着信ポリシーについて通知します。",
   "Notify me about on-call policies and schedules I own.": "自分が所有するオンコールポリシーとスケジュールについて通知します。",
   "Notify me about the services and infrastructure I own.": "自分が所有するサービスとインフラストラクチャについて通知します。",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "ワークフローの所有者として追加されました。",
   "You are added as an owner of an incoming call policy.": "着信ポリシーの所有者として追加されました。",
   "You are added as an owner of an on-call policy.": "オンコールポリシーの所有者として追加されました。",
-  "You are added as an owner of an on-call schedule.": "オンコールスケジュールの所有者として追加されました。"
+  "You are added as an owner of an on-call schedule.": "オンコールスケジュールの所有者として追加されました。",
+  "Added as Runner owner": "Runner の所有者として追加されました",
+  "Added as monitor group owner": "モニターグループの所有者として追加されました",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "自分が所有するダッシュボード、ワークフロー、Runbook、Runner について通知します。",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "Runbook のステップと AI のコード修正を実行する Runner の所有者として追加されました。",
+  "You are added as an owner of a monitor group.": "モニターグループの所有者として追加されました。",
+  "{{channel}} is not available for these events.": "これらのイベントには {{channel}} を利用できません。",
+  "{{channel}} is not available for this event.": "このイベントには {{channel}} を利用できません。"
 }

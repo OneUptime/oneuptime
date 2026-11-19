@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "सेवा या बुनियादी ढांचा स्वामी के रूप में जोड़ा गया",
   "Added as workflow owner": "वर्कफ़्लो स्वामी के रूप में जोड़ा गया",
   "Dashboards & Automation": "डैशबोर्ड और ऑटोमेशन",
-  "Notify me about dashboards, workflows and runbooks I own.": "मेरे स्वामित्व वाले डैशबोर्ड, वर्कफ़्लो और रनबुक के बारे में मुझे सूचित करें।",
   "Notify me about incoming call policies I own.": "मेरे स्वामित्व वाली इनकमिंग कॉल नीतियों के बारे में मुझे सूचित करें।",
   "Notify me about on-call policies and schedules I own.": "मेरे स्वामित्व वाली ऑन-कॉल नीतियों और अनुसूचियों के बारे में मुझे सूचित करें।",
   "Notify me about the services and infrastructure I own.": "मेरे स्वामित्व वाली सेवाओं और बुनियादी ढांचे के बारे में मुझे सूचित करें।",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "आपको एक वर्कफ़्लो के स्वामी के रूप में जोड़ा गया है।",
   "You are added as an owner of an incoming call policy.": "आपको एक इनकमिंग कॉल नीति के स्वामी के रूप में जोड़ा गया है।",
   "You are added as an owner of an on-call policy.": "आपको एक ऑन-कॉल नीति के स्वामी के रूप में जोड़ा गया है।",
-  "You are added as an owner of an on-call schedule.": "आपको एक ऑन-कॉल अनुसूची के स्वामी के रूप में जोड़ा गया है।"
+  "You are added as an owner of an on-call schedule.": "आपको एक ऑन-कॉल अनुसूची के स्वामी के रूप में जोड़ा गया है।",
+  "Added as Runner owner": "Runner स्वामी के रूप में जोड़ा गया",
+  "Added as monitor group owner": "मॉनिटर समूह स्वामी के रूप में जोड़ा गया",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "मेरे स्वामित्व वाले डैशबोर्ड, वर्कफ़्लो, रनबुक और Runner के बारे में मुझे सूचित करें।",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "आपको एक Runner के स्वामी के रूप में जोड़ा गया है, जो रनबुक के चरण और AI कोड सुधार चलाता है।",
+  "You are added as an owner of a monitor group.": "आपको एक मॉनिटर समूह के स्वामी के रूप में जोड़ा गया है।",
+  "{{channel}} is not available for these events.": "इन इवेंट के लिए {{channel}} उपलब्ध नहीं है।",
+  "{{channel}} is not available for this event.": "इस इवेंट के लिए {{channel}} उपलब्ध नहीं है।"
 }

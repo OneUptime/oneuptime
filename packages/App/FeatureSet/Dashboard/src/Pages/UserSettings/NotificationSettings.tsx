@@ -57,6 +57,7 @@ import {
 import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 import NotificationMatrix, {
   NotificationMatrixEvent,
+  NotificationMatrixSection,
 } from "../../Components/NotificationSettings/NotificationMatrix";
 import {
   ChannelReadinessFacts,
@@ -414,6 +415,10 @@ const EVENT_LIBRARY: Record<
     label: "Added as monitor owner",
     description: "You are added as an owner of a monitor.",
   },
+  [NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as monitor group owner",
+    description: "You are added as an owner of a monitor group.",
+  },
   [NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION]: {
     label: "SLO status changed",
     description:
@@ -457,6 +462,11 @@ const EVENT_LIBRARY: Record<
   [NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION]: {
     label: "Added as runbook owner",
     description: "You are added as an owner of a runbook.",
+  },
+  [NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as Runner owner",
+    description:
+      "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.",
   },
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     {
@@ -832,6 +842,8 @@ const monitoring: Array<SectionDef> = [
       NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+      // A group of them, made an owner of on its Owners page (#9758).
+      NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
     ],
@@ -893,14 +905,20 @@ const monitoring: Array<SectionDef> = [
       NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ],
   ),
-  // Dashboards, workflows and runbooks (#9700), the products menu's own group.
+  /*
+   * Dashboards, workflows and runbooks (#9700), the products menu's own
+   * group, and the Runners that run runbook steps (#9758).
+   */
   buildSection(
     translationKey("Dashboards & Automation"),
-    translationKey("Notify me about dashboards, workflows and runbooks I own."),
+    translationKey(
+      "Notify me about dashboards, workflows, runbooks and Runners I own.",
+    ),
     [
       NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
       NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
       NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
     ],
   ),
 ];
@@ -1013,20 +1031,32 @@ const security: Array<SectionDef> = [
   ),
 ];
 
+/*
+ * Every card of the page, tab by tab, in its order: what its tests walk
+ * through, so an event is checked the day it is listed here.
+ */
+export const NOTIFICATION_SETTINGS_CARDS: ReadonlyArray<NotificationMatrixSection> =
+  [
+    ...incidents,
+    ...alerts,
+    ...monitoring,
+    ...statusPages,
+    ...scheduledMaintenance,
+    ...onCall,
+    ...security,
+  ];
+
 // Every event the page lists, read in one go.
-const ALL_EVENT_TYPES: Array<NotificationSettingEventType> = [
-  ...incidents,
-  ...alerts,
-  ...monitoring,
-  ...statusPages,
-  ...scheduledMaintenance,
-  ...onCall,
-  ...security,
-].flatMap((section: SectionDef): Array<NotificationSettingEventType> => {
-  return section.events.map((event: EventDef): NotificationSettingEventType => {
-    return event.type;
-  });
-});
+const ALL_EVENT_TYPES: Array<NotificationSettingEventType> =
+  NOTIFICATION_SETTINGS_CARDS.flatMap(
+    (section: NotificationMatrixSection): Array<NotificationSettingEventType> => {
+      return section.events.map(
+        (event: NotificationMatrixEvent): NotificationSettingEventType => {
+          return event.type;
+        },
+      );
+    },
+  );
 
 export const NOTIFICATION_SETTINGS_INTRO_TEST_ID: string =
   "notification-settings-intro";

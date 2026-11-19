@@ -19,6 +19,7 @@ import {
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import Route from "Common/Types/API/Route";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import { isNotificationChannelOfferedForEvent } from "Common/Types/WhatsApp/WhatsAppEventTemplates";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
@@ -67,6 +68,14 @@ import React, {
  *   - What a press saves shows at once; "Saving…" and then "Saved" beside
  *     the card's title (SaveStatus) say it reached the server, and a write
  *     the server refuses goes back, with the reason over the matrix.
+ *   - A channel that cannot send an event at all - WhatsApp, for an event
+ *     it has no approved template for (Types/WhatsApp/WhatsAppEventTemplates)
+ *     - offers no switch for it (#9715): no column on a card none of whose
+ *     events it can send, which says so under its matrix, and on a card
+ *     where it is a column, a dash in the event's cell and a line under the
+ *     event saying it is not available. "All events" switches it for the
+ *     events it can send. A switch on for such an event sends nothing, so
+ *     it is neither shown nor counted.
  *
  * Narrower than the table needs - the event's column at least 13rem, and
  * each channel 60px - each event is drawn on its own: its name and
@@ -115,12 +124,65 @@ export const NOTIFICATION_MATRIX_SAVE_STATUS_TEST_ID: string =
   "notification-matrix-save-status";
 export const NOTIFICATION_CHANNEL_SET_UP_TEST_ID: string =
   "notification-channel-set-up";
+// Where a channel offers no switch for an event it cannot send (#9715).
+export const NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID: string =
+  "notification-channel-not-available";
+export const NOTIFICATION_CHANNEL_NOT_AVAILABLE_ON_CARD_TEST_ID: string =
+  "notification-channel-not-available-on-card";
+
+/*
+ * The events of a card a channel can send: every one, but for WhatsApp only
+ * those it has an approved template for (Types/WhatsApp/WhatsAppEventTemplates,
+ * #9715). A switch is offered for these alone.
+ */
+export const getEventsChannelSends: (data: {
+  eventTypes: ReadonlyArray<NotificationSettingEventType>;
+  channel: NotificationChannelKey;
+}) => Array<NotificationSettingEventType> = (data: {
+  eventTypes: ReadonlyArray<NotificationSettingEventType>;
+  channel: NotificationChannelKey;
+}): Array<NotificationSettingEventType> => {
+  return data.eventTypes.filter(
+    (eventType: NotificationSettingEventType): boolean => {
+      return isNotificationChannelOfferedForEvent({
+        channel: data.channel,
+        eventType: eventType,
+      });
+    },
+  );
+};
+
+/*
+ * The channels that could reach the person but can send none of a card's
+ * events, so are no column of it: the card says so under its matrix
+ * ("WhatsApp is not available for these events."). A channel that cannot
+ * reach the person anyway is not named here.
+ */
+export const getChannelsNotAvailableOnCard: (data: {
+  channels: ReadonlyArray<OfferedChannel>;
+  eventTypes: ReadonlyArray<NotificationSettingEventType>;
+}) => Array<OfferedChannel> = (data: {
+  channels: ReadonlyArray<OfferedChannel>;
+  eventTypes: ReadonlyArray<NotificationSettingEventType>;
+}): Array<OfferedChannel> => {
+  return data.channels.filter((channel: OfferedChannel): boolean => {
+    return (
+      data.eventTypes.length > 0 &&
+      canChannelReach(channel.reach) &&
+      getEventsChannelSends({
+        eventTypes: data.eventTypes,
+        channel: channel.definition.key,
+      }).length === 0
+    );
+  });
+};
 
 /*
  * The columns a card shows: every channel that can reach the person, and a
  * channel that cannot only while one of the card's switches is on for it.
  * A column once shown stays while the card is open, so turning off its last
- * switch does not take the switch away from under the pointer.
+ * switch does not take the switch away from under the pointer. A channel
+ * that can send none of the card's events is never a column (#9715).
  */
 export const getShownMatrixChannels: (data: {
   channels: ReadonlyArray<OfferedChannel>;
@@ -134,13 +196,23 @@ export const getShownMatrixChannels: (data: {
   alreadyShown?: ReadonlySet<NotificationChannelKey> | undefined;
 }): Array<OfferedChannel> => {
   return data.channels.filter((channel: OfferedChannel): boolean => {
+    const sentEvents: Array<NotificationSettingEventType> =
+      getEventsChannelSends({
+        eventTypes: data.eventTypes,
+        channel: channel.definition.key,
+      });
+
+    if (sentEvents.length === 0) {
+      return false;
+    }
+
     if (data.alreadyShown?.has(channel.definition.key)) {
       return true;
     }
 
     return isChannelColumnShown({
       reach: channel.reach,
-      isOnForAnEvent: data.eventTypes.some(
+      isOnForAnEvent: sentEvents.some(
         (eventType: NotificationSettingEventType): boolean => {
           return isChannelOn(
             data.rowsByEvent.get(eventType),
@@ -152,7 +224,10 @@ export const getShownMatrixChannels: (data: {
   });
 };
 
-// Whether every event given is on for the channel: what "All events" shows.
+/*
+ * Whether every event given that the channel can send is on for it: what
+ * "All events" shows. An event the channel cannot send (#9715) is not asked.
+ */
 export const isOnForEveryEvent: (data: {
   eventTypes: ReadonlyArray<NotificationSettingEventType>;
   rowsByEvent: RowsByEvent;
@@ -162,13 +237,17 @@ export const isOnForEveryEvent: (data: {
   rowsByEvent: RowsByEvent;
   channel: NotificationChannelKey;
 }): boolean => {
+  const sentEvents: Array<NotificationSettingEventType> =
+    getEventsChannelSends({
+      eventTypes: data.eventTypes,
+      channel: data.channel,
+    });
+
   return (
-    data.eventTypes.length > 0 &&
-    data.eventTypes.every(
-      (eventType: NotificationSettingEventType): boolean => {
-        return isChannelOn(data.rowsByEvent.get(eventType), data.channel);
-      },
-    )
+    sentEvents.length > 0 &&
+    sentEvents.every((eventType: NotificationSettingEventType): boolean => {
+      return isChannelOn(data.rowsByEvent.get(eventType), data.channel);
+    })
   );
 };
 
@@ -271,6 +350,37 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
     shownRef.current.add(channel.definition.key);
   }
 
+  // The channels that could reach the person but send none of these events.
+  const notAvailableChannels: Array<OfferedChannel> =
+    getChannelsNotAvailableOnCard({
+      channels: props.channels,
+      eventTypes: eventTypes,
+    });
+
+  // Whether the channel can send the event at all (#9715).
+  const canChannelSendEvent: (
+    channel: OfferedChannel,
+    event: NotificationMatrixEvent,
+  ) => boolean = (
+    channel: OfferedChannel,
+    event: NotificationMatrixEvent,
+  ): boolean => {
+    return isNotificationChannelOfferedForEvent({
+      channel: channel.definition.key,
+      eventType: event.type,
+    });
+  };
+
+  // "WhatsApp is not available for this event.", in the reader's language.
+  const describeNotAvailable: (
+    channel: OfferedChannel,
+    template: string,
+  ) => string = (channel: OfferedChannel, template: string): string => {
+    return translator.translateTemplate(template, {
+      channel: translatableTerm(getChannelWord(channel.definition)),
+    });
+  };
+
   /*
    * The matrix's box, always drawn so its width is read from the first
    * paint - the window's where nothing is laid out (a test).
@@ -346,7 +456,8 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
   /*
    * A cell's switch. One whose channel cannot reach the person can only be
    * turned off: it is there because it is on, and turning it on again would
-   * send nothing.
+   * send nothing. A channel that cannot send the event at all has no switch:
+   * a dash, and the line under the event says why (#9715).
    */
   const renderCellSwitch: (data: {
     event: NotificationMatrixEvent;
@@ -357,6 +468,21 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
     channel: OfferedChannel;
     isNamedBeside: boolean;
   }): ReactElement => {
+    if (!canChannelSendEvent(data.channel, data.event)) {
+      return (
+        <span
+          className="text-sm text-gray-400"
+          title={describeNotAvailable(
+            data.channel,
+            NotificationSettingsWords.notAvailableForEvent,
+          )}
+          aria-hidden="true"
+        >
+          —
+        </span>
+      );
+    }
+
     const isOn: boolean = isChannelOn(
       props.rowsByEvent.get(data.event.type),
       data.channel.definition.key,
@@ -433,8 +559,16 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
       },
     );
 
+    // The card's events the channel can send: never one it cannot (#9715).
     const onChange: (value: boolean) => void = (value: boolean): void => {
-      switchChannel(eventTypes, data.channel.definition.key, value);
+      switchChannel(
+        getEventsChannelSends({
+          eventTypes: eventTypes,
+          channel: data.channel.definition.key,
+        }),
+        data.channel.definition.key,
+        value,
+      );
     };
 
     if (data.isNamedBeside) {
@@ -473,6 +607,24 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
         <div className="mt-0.5 max-w-md text-xs text-gray-500">
           {translator.translateText(event.description) || event.description}
         </div>
+        {shownChannels
+          .filter((channel: OfferedChannel): boolean => {
+            return !canChannelSendEvent(channel, event);
+          })
+          .map((channel: OfferedChannel) => {
+            return (
+              <div
+                key={channel.definition.key}
+                className="mt-1 max-w-md text-xs text-gray-500"
+                data-testid={NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID}
+              >
+                {describeNotAvailable(
+                  channel,
+                  NotificationSettingsWords.notAvailableForEvent,
+                )}
+              </div>
+            );
+          })}
         {props.renderEventDetail ? (
           props.renderEventDetail(event, row, trackSave)
         ) : (
@@ -659,17 +811,22 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
               aria-label={eventName}
               className={channelGridClassName}
             >
-              {shownChannels.map((channel: OfferedChannel) => {
-                return (
-                  <div key={channel.definition.key} className="min-w-0">
-                    {renderCellSwitch({
-                      event: event,
-                      channel: channel,
-                      isNamedBeside: true,
-                    })}
-                  </div>
-                );
-              })}
+              {shownChannels
+                .filter((channel: OfferedChannel): boolean => {
+                  // Said under the event instead (#9715).
+                  return canChannelSendEvent(channel, event);
+                })
+                .map((channel: OfferedChannel) => {
+                  return (
+                    <div key={channel.definition.key} className="min-w-0">
+                      {renderCellSwitch({
+                        event: event,
+                        channel: channel,
+                        isNamedBeside: true,
+                      })}
+                    </div>
+                  );
+                })}
             </div>
           </li>
         );
@@ -699,6 +856,27 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
           <></>
         )}
         {isTableShown ? table : list}
+        {notAvailableChannels.map((channel: OfferedChannel) => {
+          /*
+           * A channel that can send none of the card's events is no column
+           * of it: said once, under the matrix, rather than left missing
+           * (#9715).
+           */
+          return (
+            <p
+              key={channel.definition.key}
+              className="mt-4 text-xs text-gray-500"
+              data-testid={NOTIFICATION_CHANNEL_NOT_AVAILABLE_ON_CARD_TEST_ID}
+            >
+              {describeNotAvailable(
+                channel,
+                props.section.events.length > 1
+                  ? NotificationSettingsWords.notAvailableForEvents
+                  : NotificationSettingsWords.notAvailableForEvent,
+              )}
+            </p>
+          );
+        })}
       </div>
     </Card>
   );

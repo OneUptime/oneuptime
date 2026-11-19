@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "Tilføjet som ejer af en tjeneste eller infrastruktur",
   "Added as workflow owner": "Tilføjet som ejer af arbejdsgang",
   "Dashboards & Automation": "Dashboards og automatisering",
-  "Notify me about dashboards, workflows and runbooks I own.": "Giv mig besked om dashboards, arbejdsgange og runbooks, jeg ejer.",
   "Notify me about incoming call policies I own.": "Giv mig besked om indgående opkaldspolitikker, jeg ejer.",
   "Notify me about on-call policies and schedules I own.": "Giv mig besked om vagtpolitikker og vagtplaner, jeg ejer.",
   "Notify me about the services and infrastructure I own.": "Giv mig besked om tjenester og infrastruktur, jeg ejer.",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "Du er tilføjet som ejer af en arbejdsgang.",
   "You are added as an owner of an incoming call policy.": "Du er tilføjet som ejer af en indgående opkaldspolitik.",
   "You are added as an owner of an on-call policy.": "Du er tilføjet som ejer af en vagtpolitik.",
-  "You are added as an owner of an on-call schedule.": "Du er tilføjet som ejer af en vagttidsplan."
+  "You are added as an owner of an on-call schedule.": "Du er tilføjet som ejer af en vagttidsplan.",
+  "Added as Runner owner": "Tilføjet som Runner-ejer",
+  "Added as monitor group owner": "Tilføjet som monitorgruppeejer",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "Giv mig besked om dashboards, arbejdsgange, runbooks og Runnere, jeg ejer.",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "Du er tilføjet som ejer af en Runner, der kører runbooktrin og AI-koderettelser.",
+  "You are added as an owner of a monitor group.": "Du er tilføjet som ejer af en monitorgruppe.",
+  "{{channel}} is not available for these events.": "{{channel}} er ikke tilgængelig for disse begivenheder.",
+  "{{channel}} is not available for this event.": "{{channel}} er ikke tilgængelig for denne begivenhed."
 }

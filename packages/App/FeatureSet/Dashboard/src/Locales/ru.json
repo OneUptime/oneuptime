@@ -57724,7 +57724,6 @@
   "Added as service or infrastructure owner": "Добавлен как владелец сервиса или инфраструктуры",
   "Added as workflow owner": "Добавлен как владелец рабочего процесса",
   "Dashboards & Automation": "Панели и автоматизация",
-  "Notify me about dashboards, workflows and runbooks I own.": "Уведомлять меня о панелях, рабочих процессах и сборниках инструкций, владельцем которых я являюсь.",
   "Notify me about incoming call policies I own.": "Уведомлять меня о политиках входящих звонков, владельцем которых я являюсь.",
   "Notify me about on-call policies and schedules I own.": "Уведомлять меня о политиках и расписаниях дежурств, владельцем которых я являюсь.",
   "Notify me about the services and infrastructure I own.": "Уведомлять меня о сервисах и инфраструктуре, владельцем которых я являюсь.",
@@ -57736,5 +57735,12 @@
   "You are added as an owner of a workflow.": "Вы добавлены как владелец рабочего процесса.",
   "You are added as an owner of an incoming call policy.": "Вы добавлены как владелец политики входящих звонков.",
   "You are added as an owner of an on-call policy.": "Вы добавлены как владелец политики дежурства.",
-  "You are added as an owner of an on-call schedule.": "Вы добавлены как владелец расписания дежурства."
+  "You are added as an owner of an on-call schedule.": "Вы добавлены как владелец расписания дежурства.",
+  "Added as Runner owner": "Добавлен как владелец Runner-а",
+  "Added as monitor group owner": "Добавлен как владелец группы мониторов",
+  "Notify me about dashboards, workflows, runbooks and Runners I own.": "Уведомлять меня о панелях, рабочих процессах, сборниках инструкций и Runner-ах, владельцем которых я являюсь.",
+  "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.": "Вы добавлены как владелец Runner-а, который выполняет шаги сборников инструкций и исправления кода от ИИ.",
+  "You are added as an owner of a monitor group.": "Вы добавлены как владелец группы мониторов.",
+  "{{channel}} is not available for these events.": "{{channel}} недоступен для этих событий.",
+  "{{channel}} is not available for this event.": "{{channel}} недоступен для этого события."
 }
