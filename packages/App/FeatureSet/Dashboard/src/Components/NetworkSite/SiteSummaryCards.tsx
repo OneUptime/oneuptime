@@ -55,6 +55,15 @@ export interface ComponentProps {
   onTileClick?:
     | ((tile: SiteSummaryTile, selection: FacetTileSelection | null) => void)
     | undefined;
+  /*
+   * Told each time the counts are read, with the chip each tile stands for:
+   * a link that names a tile (?show=unhealthy) is pressed with it (#9596).
+   */
+  onCountsLoaded?:
+    | ((
+        getSelection: (tile: SiteSummaryTile) => FacetTileSelection | null,
+      ) => void)
+    | undefined;
 }
 
 const SiteSummaryCards: FunctionComponent<ComponentProps> = (
@@ -83,8 +92,17 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
        * statuses behind the number on it — rather than every non-operational
        * status the project happens to define.
        */
-      setCounts(await fetchSiteSummary());
+      const summary: SiteSummaryCounts = await fetchSiteSummary();
+
+      setCounts(summary);
       setHasError(false);
+      props.onCountsLoaded?.(
+        (tile: SiteSummaryTile): FacetTileSelection | null => {
+          return getSiteFacetSelectionForTile(tile, {
+            unhealthyStatusIds: summary.unhealthyStatusIds || [],
+          });
+        },
+      );
     } catch {
       // The summary row is supplementary — hide it instead of breaking the page.
       setHasError(true);
