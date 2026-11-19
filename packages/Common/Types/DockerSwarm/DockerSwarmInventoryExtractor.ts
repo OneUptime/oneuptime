@@ -1,5 +1,9 @@
 import { JSONObject } from "../JSON";
 import { ParsedDockerSwarmResource } from "../../Server/Services/DockerSwarmResourceService";
+import {
+  isOtlpKvlistValue,
+  readOtlpAnyValue,
+} from "../../Utils/Telemetry/OtlpAnyValue";
 
 /*
  * ------------------------------------------------------------------
@@ -77,7 +81,17 @@ export function isInventoriedDockerSwarmKind(kind: string): boolean {
 
 function parseLogBody(logBody: string): JSONObject | null {
   try {
-    const parsed: unknown = JSON.parse(logBody);
+    const written: unknown = JSON.parse(logBody);
+    /*
+     * The agent's collector moves each snapshot line's `data` into the
+     * record's body as a map (its filelog receiver's `move` operator), which
+     * OTLP carries as a kvlistValue and the ingest writes as that JSON. Read
+     * as the plain object it is: until #9648 every record the real agent
+     * sent read as nothing here.
+     */
+    const parsed: unknown = isOtlpKvlistValue(written)
+      ? readOtlpAnyValue(written)
+      : written;
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return parsed as JSONObject;
     }
