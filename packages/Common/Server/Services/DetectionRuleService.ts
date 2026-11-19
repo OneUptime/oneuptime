@@ -23,6 +23,10 @@ import {
 } from "../../Types/SecurityEvent/RealTimeDetection";
 import { fitDetectionRuleName } from "../../Types/SecurityEvent/DetectionRuleName";
 import {
+  DetectionRuleResponseStepsCheck,
+  checkDetectionRuleResponseSteps,
+} from "../../Types/SecurityEvent/DetectionRuleResponseSteps";
+import {
   ENTITY_RISK_POINTS_MAX,
   ENTITY_RISK_POINTS_MIN,
 } from "../../Types/SecurityCase/SecurityEntityRisk";
@@ -470,6 +474,29 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A rule's response steps (#9621), as they are saved: each with a part of
+   * the plan, an id of its own and words within their bound, trimmed - one
+   * left without words is left out - or the reason they cannot be saved.
+   * Undefined is left as it is: an update that does not name them keeps
+   * the rule's own, and a create that does not leaves a library rule to
+   * read its library's.
+   */
+  private normalizeResponseSteps(data: JSONObject): void {
+    if (data["responseSteps"] === undefined) {
+      return;
+    }
+
+    const check: DetectionRuleResponseStepsCheck =
+      checkDetectionRuleResponseSteps(data["responseSteps"]);
+
+    if (check.problem) {
+      throw new BadDataException(check.problem);
+    }
+
+    data["responseSteps"] = check.steps as unknown as JSONValue;
+  }
+
+  /*
    * A rule's own Risk Points: a whole number from 0 to 100, or empty (null)
    * for the points of its level (Types/SecurityCase/SecurityEntityRisk).
    */
@@ -503,6 +530,7 @@ export class Service extends ProjectReferencesService<Model> {
     this.validateEvaluationInterval(createBy.data.evaluationIntervalInMinutes);
     this.validateMatchCountThreshold(createBy.data.matchCountThreshold);
     this.validateRiskScore(createBy.data.riskScore);
+    this.normalizeResponseSteps(createBy.data as unknown as JSONObject);
 
     if (
       readSwitch(
@@ -601,6 +629,8 @@ export class Service extends ProjectReferencesService<Model> {
     this.validateRiskScore(
       (updateBy.data as unknown as { riskScore?: unknown }).riskScore,
     );
+
+    this.normalizeResponseSteps(updateBy.data as unknown as JSONObject);
 
     // Same trim as onBeforeCreate — see the rationale there.
     if (updateBy.data.groupByField !== undefined) {

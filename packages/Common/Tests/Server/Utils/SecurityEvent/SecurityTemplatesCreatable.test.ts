@@ -20,6 +20,7 @@ import {
   getDetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
+import { getDetectionRuleLibraryResponseSteps } from "../../../../Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
 import { DETECTION_RULE_NAME_MAX_LENGTH } from "../../../../Types/SecurityEvent/DetectionRuleName";
 import {
   ENRICH_NEW_CASES_TEMPLATE_KEY,
@@ -286,6 +287,11 @@ describe("the Rule Library", () => {
         expect(checked.isEnabled).toBe(true);
         expect(checked.shouldCreateCase).toBe(true);
         expect(overWide(checked)).toEqual([]);
+        // ...with what to do when it fires, as the library says (#9621).
+        expect(checked.responseSteps).toEqual(
+          getDetectionRuleLibraryResponseSteps(entry.id),
+        );
+        expect((checked.responseSteps || []).length).toBeGreaterThan(0);
       });
 
       test("the rule it makes is known again as this entry, and as no other", () => {
