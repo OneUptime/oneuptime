@@ -57418,5 +57418,8 @@
   "Volume Free Space": "فضای آزاد Volume",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} از {{total}} استفاده‌شده ({{percent}})",
   "Inode Usage": "مصرف inode",
-  "Total Inodes": "کل inodeها"
+  "Total Inodes": "کل inodeها",
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.": "پشته‌های {{regions}} پیش از آنکه OneUptime همه متریک‌های کلیدی را جریان دهد ساخته شده‌اند، پس متریک‌های جدیدتر را از CloudWatch می‌خواند که برای هر خواندن هزینه می‌گیرد. کلید جدیدی بسازید و فرمان را دوباره اجرا کنید تا هر دقیقه جریان یابند.",
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.": "نام این گروه‌های لاگ، الگوی پشته را بزرگ‌تر از آنچه CloudFormation از یک فرمان می‌پذیرد می‌کند. گروه‌های لاگ کمتری نام ببرید، یا همه گروه‌های لاگ را جریان دهید.",
+  "Update the stream": "به‌روزرسانی جریان"
 }

@@ -57418,5 +57418,8 @@
   "Volume Free Space": "المساحة المتاحة في وحدة التخزين",
   "{{used}} of {{total}} used ({{percent}})": "المستخدَم {{used}} من {{total}} ({{percent}})",
   "Inode Usage": "استخدام inode",
-  "Total Inodes": "إجمالي inode"
+  "Total Inodes": "إجمالي inode",
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.": "أُنشئت المكدّسات في {{regions}} قبل أن يبث OneUptime كل المقاييس الرئيسية، لذا يقرأ الأحدث منها من CloudWatch الذي يفرض رسومًا على كل قراءة. أنشئ مفتاحًا جديدًا وشغّل الأمر مجددًا لبثّها كل دقيقة.",
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.": "تجعل أسماء مجموعات السجلات هذه قالب المكدّس أكبر مما يقبله CloudFormation من أمر. سمِّ مجموعات سجلات أقل، أو ابثّ كل مجموعات السجلات.",
+  "Update the stream": "تحديث البث"
 }

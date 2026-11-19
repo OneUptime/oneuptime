@@ -57418,5 +57418,8 @@
   "Volume Free Space": "ボリュームの空き容量",
   "{{used}} of {{total}} used ({{percent}})": "{{total}} 中 {{used}} 使用 ({{percent}})",
   "Inode Usage": "inode 使用量",
-  "Total Inodes": "inode 総数"
+  "Total Inodes": "inode 総数",
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.": "{{regions}} のスタックは、OneUptime がすべての主要メトリクスをストリーミングする前に作成されたため、新しいメトリクスは CloudWatch から読み取っており、読み取りごとに課金されます。新しいキーを作成してコマンドをもう一度実行すると、毎分ストリーミングされます。",
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.": "これらのロググループの名前により、スタックのテンプレートが CloudFormation がコマンドから受け付けるサイズを超えます。ロググループの数を減らすか、すべてのロググループをストリーミングしてください。",
+  "Update the stream": "ストリームを更新"
 }

@@ -57418,5 +57418,8 @@
   "Volume Free Space": "Свободное место на томе",
   "{{used}} of {{total}} used ({{percent}})": "Занято {{used}} из {{total}} ({{percent}})",
   "Inode Usage": "Использование инодов",
-  "Total Inodes": "Всего инодов"
+  "Total Inodes": "Всего инодов",
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.": "Стеки в {{regions}} созданы до того, как OneUptime стал передавать все ключевые метрики, поэтому более новые он читает из CloudWatch, который берёт плату за каждое чтение. Создайте новый ключ и снова выполните команду, чтобы передавать их каждую минуту.",
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.": "Из-за имён этих групп журналов шаблон стека больше, чем CloudFormation принимает из команды. Укажите меньше групп журналов или передавайте все группы журналов.",
+  "Update the stream": "Обновить передачу"
 }

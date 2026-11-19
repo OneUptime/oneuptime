@@ -57418,5 +57418,8 @@
   "Volume Free Space": "卷可用空间",
   "{{used}} of {{total}} used ({{percent}})": "已用 {{used}}，共 {{total}}（{{percent}}）",
   "Inode Usage": "inode 使用量",
-  "Total Inodes": "inode 总数"
+  "Total Inodes": "inode 总数",
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.": "{{regions}} 中的堆栈创建于 OneUptime 流式传输所有关键指标之前，因此较新的指标从 CloudWatch 读取，而 CloudWatch 对每次读取收费。请创建新密钥并重新运行命令，以每分钟流式传输这些指标。",
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.": "这些日志组的名称使堆栈的模板超出了 CloudFormation 从命令接受的大小。请减少日志组，或流式传输所有日志组。",
+  "Update the stream": "更新流"
 }

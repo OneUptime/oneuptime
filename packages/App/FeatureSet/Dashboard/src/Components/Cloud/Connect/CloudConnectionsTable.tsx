@@ -36,7 +36,12 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  composedValue,
+  formatList,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -68,8 +73,12 @@ import { getGcpStreamStopCommand } from "./CloudStreamGcpSetup";
 import CloudStreamGcpDialog from "./CloudStreamGcpDialog";
 import {
   CloudStreamStatusWords,
+  CloudStreamUpdateWords,
+  STREAM_OLDER_STACKS_SENTENCE,
+  STREAM_UPDATE_LABEL,
   getCloudStreamStackRegions,
   getCloudStreamStatusWords,
+  getCloudStreamUpdateWords,
 } from "./CloudStreamWords";
 import {
   CloudConnectionHealth,
@@ -957,6 +966,19 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
 
                 // What its last read could not read, though it worked.
                 const warnings: Array<string> = getCloudReadWarnings(item);
+                /*
+                 * A stream from stacks made before OneUptime streamed every
+                 * key metric: the dialog's command updates them.
+                 */
+                const update: CloudStreamUpdateWords | null =
+                  stream && stream.state === "receiving"
+                    ? getCloudStreamUpdateWords({
+                        provider: item.provider,
+                        streamKeyCreatedAt: item.streamKeyCreatedAt,
+                        streamSummary: item.streamSummary,
+                        now: new Date(),
+                      })
+                    : null;
 
                 return (
                   <div className="min-w-0 space-y-1">
@@ -1028,6 +1050,37 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                         />
                         <span>{translator.translateText(stream.label)}</span>
                       </div>
+                    ) : (
+                      <></>
+                    )}
+                    {update ? (
+                      <button
+                        type="button"
+                        aria-haspopup="dialog"
+                        data-testid="cloud-connection-stream-update"
+                        className="flex items-center gap-1 text-start text-xs font-medium text-amber-700 hover:underline"
+                        title={translator.translateTemplate(
+                          STREAM_OLDER_STACKS_SENTENCE,
+                          {
+                            regions: composedValue(
+                              (sentence: Translator): string => {
+                                return formatList(update.regions, sentence);
+                              },
+                            ),
+                          },
+                        )}
+                        onClick={(): void => {
+                          setStreamItem(item);
+                        }}
+                      >
+                        <Icon
+                          icon={IconProp.Refresh}
+                          className="h-3 w-3 flex-shrink-0"
+                        />
+                        <span>
+                          {translator.translateText(STREAM_UPDATE_LABEL)}
+                        </span>
+                      </button>
                     ) : (
                       <></>
                     )}

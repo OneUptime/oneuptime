@@ -57418,5 +57418,8 @@
   "Volume Free Space": "Freier Volume-Speicher",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} von {{total}} belegt ({{percent}})",
   "Inode Usage": "Inode-Nutzung",
-  "Total Inodes": "Inodes gesamt"
+  "Total Inodes": "Inodes gesamt",
+  "The stacks in {{regions}} were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Make a new key and run the command again to stream them every minute.": "Die Stacks in {{regions}} wurden erstellt, bevor OneUptime jede Schlüsselmetrik streamte. Daher liest es die neueren aus CloudWatch, das jeden Lesevorgang berechnet. Erstellen Sie einen neuen Schlüssel und führen Sie den Befehl erneut aus, um sie jede Minute zu streamen.",
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.": "Die Namen dieser Protokollgruppen machen die Vorlage des Stacks größer, als CloudFormation sie von einem Befehl annimmt. Nennen Sie weniger Protokollgruppen, oder streamen Sie jede Protokollgruppe.",
+  "Update the stream": "Stream aktualisieren"
 }
