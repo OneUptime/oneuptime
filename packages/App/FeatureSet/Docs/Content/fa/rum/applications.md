@@ -163,19 +163,21 @@ const resource = defaultResource().merge(
 
 ## هشدار بر داده RUM
 
-تله‌متری RUM همان لاگ‌ها، متریک‌ها و ردیابی‌های معمولی است، پس مانیتور RUM جداگانه‌ای نیست: مانیتورهای معمول روی آن کار می‌کنند. سریع‌ترین شروع صفحه **توصیه‌ها** برنامه است، که مانیتورهایی پیشنهاد می‌دهد که از پیش به برنامه محدود شده‌اند:
+تله‌متری RUM همان لاگ‌ها، متریک‌ها و ردیابی‌های معمولی است، پس مانیتور RUM جداگانه‌ای نیست: مانیتورهای معمول روی آن کار می‌کنند. سریع‌ترین شروع صفحه **توصیه‌ها** برنامه است، که مانیتورهایی پیشنهاد می‌دهد که از پیش به برنامه محدود شده‌اند، همان‌هایی که به یک برنامه وب یا یک برنامه موبایل می‌خورند:
 
 | گروه | توصیه‌ها |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint، Poor Interaction to Next Paint، Poor Cumulative Layout Shift، Slow First Contentful Paint و Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals) را ببینید. |
-| خطاها | Failed User Operations، و Unhandled Browser Exceptions. |
+| Core Web Vitals | برای برنامه وب: Poor Largest Contentful Paint، Poor Interaction to Next Paint، Poor Cumulative Layout Shift، Slow First Contentful Paint و Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals) را ببینید. |
+| خطاها | App Crashes و App Not Responding (ANR) برای برنامه موبایل، Failed User Operations برای هر دو، و Unhandled Browser Exceptions برای برنامه وب. |
+| کارایی | برای برنامه موبایل: Slow Cold Start، وقتی یک شروع سرد ۵ ثانیه یا بیشتر طول بکشد، که Android vitals آن را بیش از حد می‌داند، و Frozen Frames، وقتی رندر یک فریم بیش از ۷۰۰ میلی‌ثانیه طول بکشد. |
+| در دسترس بودن | برای برنامه موبایل: App Stopped Reporting، وقتی برنامه ۳۰ دقیقه هیچ اسپنی نفرستد. |
 | بازپخش نشست | چهار [هشدار بودجه ذخیره‌سازی](/docs/telemetry/session-replay#هشدارهای-بودجه-ذخیرهسازی)، که پیش از تمام شدن محدودیت روزانه پروژه یا بودجه ماهانه برنامه هشدار می‌دهند. همین که برنامه بازپخشی ضبط کرده باشد پیشنهاد می‌شوند، و جفت ماهانه وقتی افزون بر آن بودجه ماهانه هم داشته باشد. |
 
 برای ساختن مانیتور خودتان، مانیتوری را برگزینید که آن سیگنال را می‌خواند:
 
 - [مانیتور متریک‌ها](/docs/monitor/metrics-monitor): یک Core Web Vital، یا هر متریکی که برنامه‌تان می‌فرستد.
-- [مانیتور ترِیس‌ها](/docs/monitor/traces-monitor): نرخ خطا یا تأخیر سمت کلاینت.
-- [مانیتور لاگ‌ها](/docs/monitor/logs-monitor): الگویی در لاگ‌های مرورگر.
+- [مانیتور ترِیس‌ها](/docs/monitor/traces-monitor): نرخ خطا یا تأخیر سمت کلاینت، یا شروع‌های برنامه که از مدتی که تعیین می‌کنید کندترند.
+- [مانیتور لاگ‌ها](/docs/monitor/logs-monitor): الگویی در لاگ‌های مرورگر، یا رویدادهای `app.crash`، `device.anr` و `app.jank` یک برنامه موبایل.
 - [مانیتور استثناها](/docs/monitor/exceptions-monitor): استثناهای سمت کلاینتِ تازه یا جهش‌یافته.
 
 مانیتوری را که می‌سازید به برنامه محدود کنید، تا سرویس بک‌اندی با امضای مشابه فعالش نکند.

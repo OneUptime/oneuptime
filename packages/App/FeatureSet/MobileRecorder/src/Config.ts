@@ -84,7 +84,7 @@ export interface ReplayConnectivity {
 
 /*
  * The part of the application's frustration settings this recorder acts on:
- * its own page, event and error signals (issue #6443). Kept under the
+ * its own tap, page, event and error signals (issues #6443, #6517). Kept under the
  * response's own field name so a cached policy is read back by the same
  * normalizeReplayConfig as a fresh one.
  */

@@ -855,3 +855,125 @@ describe("a Service Bus namespace's readings, read split per queue", () => {
     expect(getSplitSeriesSignature([])).toBe("");
   });
 });
+
+/*
+ * A Compute Engine VM's disks, as the Ops Agent on it reports them: a
+ * series per disk (#9568). Its reading is the fullest, the one its "disk
+ * nearly full" rule judges and its page shows.
+ */
+describe("a VM's disks, read as the Ops Agent reports each", () => {
+  const DISK: string = "agent.googleapis.com/disk/percent_used";
+  const MEMORY: string = "agent.googleapis.com/memory/percent_used";
+
+  function vmGroup(metrics: CloudMetricGroup["metrics"]): CloudMetricGroup {
+    return {
+      resourceAttributes: [
+        ...connectionResourceAttributes({
+          serviceName: "Google Cloud",
+          connectionId: CONNECTION.toString(),
+          cloudProvider: CloudProvider.GCP,
+        }),
+        stringAttribute("gcp.resource_type", "gce_instance"),
+        stringAttribute("instance_id", "1001"),
+        stringAttribute("project_id", "acme-prod"),
+        stringAttribute("zone", "us-central1-a"),
+      ],
+      metrics,
+    };
+  }
+
+  function diskSet(
+    device: string,
+    points: Array<{ timeMs: number; value: number }>,
+  ): CloudMetricGroup["metrics"][number]["datapointSets"][number] {
+    return {
+      attributes: [
+        stringAttribute("device", device),
+        stringAttribute("state", "used"),
+      ],
+      points,
+    };
+  }
+
+  function readingsOf(
+    metrics: CloudMetricGroup["metrics"],
+  ): CollectedCloudReadings | undefined {
+    return Array.from(
+      collectCloudResourceReadings(
+        buildMetricsPayloads([vmGroup(metrics)]),
+      ).values(),
+    )[0];
+  }
+
+  test("is the fullest disk at the newest time, whichever comes first", () => {
+    for (const order of [
+      ["/dev/sda1", "/dev/sdb"],
+      ["/dev/sdb", "/dev/sda1"],
+    ]) {
+      const values: Record<string, number> = {
+        "/dev/sda1": 62,
+        "/dev/sdb": 91.5,
+      };
+      const entry: CollectedCloudReadings | undefined = readingsOf([
+        {
+          name: DISK,
+          unit: "%",
+          datapointSets: order.map((device: string) => {
+            return diskSet(device, [
+              { timeMs: T1, value: 99 },
+              { timeMs: T2, value: values[device]! },
+            ]);
+          }),
+        },
+      ]);
+
+      expect(entry?.provider).toBe(CloudProvider.GCP);
+      expect(entry?.resourceType).toBe("gce_instance");
+      // An older point, however full, is not now.
+      expect(entry?.readings[DISK]).toEqual({
+        value: 91.5,
+        time: new Date(T2).toISOString(),
+      });
+    }
+  });
+
+  test("a disk whose newest point is older is left out of the newest time's", () => {
+    expect(
+      readingsOf([
+        {
+          name: DISK,
+          unit: "%",
+          datapointSets: [
+            diskSet("/dev/sdb", [{ timeMs: T1, value: 97 }]),
+            diskSet("/dev/sda1", [{ timeMs: T2, value: 40 }]),
+          ],
+        },
+      ])?.readings[DISK],
+    ).toEqual({ value: 40, time: new Date(T2).toISOString() });
+  });
+
+  test("its memory, one series, is read as it is; both are kept for its rules and its page", () => {
+    const entry: CollectedCloudReadings | undefined = readingsOf([
+      {
+        name: MEMORY,
+        unit: "%",
+        datapointSets: [
+          {
+            attributes: [stringAttribute("state", "used")],
+            points: [{ timeMs: T2, value: 96.2 }],
+          },
+        ],
+      },
+      {
+        name: DISK,
+        unit: "%",
+        datapointSets: [diskSet("/dev/sda1", [{ timeMs: T2, value: 50 }])],
+      },
+    ]);
+
+    expect(entry?.readings).toEqual({
+      [MEMORY]: { value: 96.2, time: new Date(T2).toISOString() },
+      [DISK]: { value: 50, time: new Date(T2).toISOString() },
+    });
+  });
+});

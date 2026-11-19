@@ -1,8 +1,11 @@
+import DatabaseConfig from "../DatabaseConfig";
 import ProjectReferencesService from "./ProjectReferencesService";
 import DataPipelineOwnerRuleEngineService from "./DataPipelineOwnerRuleEngineService";
 import DataPipeline from "../../Models/DatabaseModels/DataPipeline";
 import { OnCreate } from "../Types/Database/Hooks";
 import logger, { LogAttributes } from "../Utils/Logger";
+import URL from "../../Types/API/URL";
+import ObjectID from "../../Types/ObjectID";
 
 /*
  * The pipelines that move data, from OpenLineage events
@@ -47,6 +50,18 @@ export class Service extends ProjectReferencesService<DataPipeline> {
     }
 
     return createdItem;
+  }
+
+  // The pipeline's page in Data Observability.
+  public async getDataPipelineLinkInDashboard(
+    projectId: ObjectID,
+    dataPipelineId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/data-observability/pipelines/${dataPipelineId.toString()}`,
+    );
   }
 }
 

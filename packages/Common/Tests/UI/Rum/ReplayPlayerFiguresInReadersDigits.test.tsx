@@ -831,7 +831,11 @@ describe("the header, the stage and the rail, figure by figure", () => {
 
     expect(row).toHaveTextContent("×۱۲");
     expect(row.textContent).not.toMatch(LATIN_DIGIT);
-    expect(body.getAttribute("aria-label")).toContain("repeated ۱۲ times");
+    // In Persian words too, not "repeated ۱۲ times" (#6516).
+    expect(
+      withoutIsolateMarks(body.getAttribute("aria-label") || ""),
+    ).toContain("۱۲ بار تکرار شد");
+    expect(body.getAttribute("aria-label")).not.toContain("repeated");
     expect(body.getAttribute("aria-label")).not.toMatch(LATIN_DIGIT);
   });
 

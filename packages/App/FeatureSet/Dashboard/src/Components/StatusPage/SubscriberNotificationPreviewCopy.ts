@@ -35,7 +35,10 @@ export const SubscriberNotificationPreviewCopy: {
   privateIncident: string;
   notifyOff: string;
   noStatusPages: string;
+  noStatusPagesForNote: string;
   notificationsOff: string;
+  // A public note on an incident no status page shows: where it shows later.
+  noteShownLater: string;
 
   // Pages the caller cannot see.
   oneHiddenPageNotPreviewed: string;
@@ -89,10 +92,27 @@ export const SubscriberNotificationPreviewCopy: {
   hiddenIncident: "This incident is hidden from status pages.",
   privateIncident: "Private incidents are hidden from all status pages.",
   notifyOff: "'Notify Status Page Subscribers' is off.",
+  /*
+   * Declaring, said of the moment it is declared; a note says of now that
+   * no page shows it yet (noStatusPagesForNote). A status page that lists
+   * one of its monitors later can show it (#9684): "will show this
+   * incident", said of no moment, read as never, and a note seemed to go
+   * nowhere.
+   */
   noStatusPages:
-    "No status page that lists these monitors will show this incident.",
+    "No status page that lists these monitors will show this incident when it is declared.",
+  noStatusPagesForNote: "No status page shows this incident yet.",
   notificationsOff:
     "The status pages that show this incident do not send notifications to their subscribers.",
+  /*
+   * A public note is posted whatever is sent, and a status page shows every
+   * published note of an incident it shows - the ones posted before it
+   * started showing it too. Nothing is sent about the note then: its
+   * notification was settled when it was posted, and goes out again only if
+   * someone sends it again.
+   */
+  noteShownLater:
+    "Any status page that starts showing this incident shows this note too, without notifying its subscribers.",
 
   oneHiddenPageNotPreviewed:
     "1 more status page you do not have access to will be sent this notification. It is not previewed.",

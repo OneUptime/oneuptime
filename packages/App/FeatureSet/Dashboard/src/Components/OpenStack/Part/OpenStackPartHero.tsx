@@ -12,6 +12,7 @@ import {
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
 import {
   ResourcePartAccent,
+  ResourcePartAttention,
   ResourcePartBadge,
   ResourcePartChip,
   ResourcePartStatus,
@@ -115,6 +116,11 @@ export interface ComponentProps {
    * agent on one page and a nova-compute on another.
    */
   slug?: string | undefined;
+  /*
+   * What its Needs attention card lists (getOpenStackPartAttention), which
+   * an Error, Down or Lost status opens.
+   */
+  attention?: ResourcePartAttention | undefined;
 }
 
 const OpenStackPartHero: FunctionComponent<ComponentProps> = (
@@ -155,6 +161,7 @@ const OpenStackPartHero: FunctionComponent<ComponentProps> = (
       location={props.location || defaultLocation}
       lastReportAt={row?.lastSeenAt ? new Date(row.lastSeenAt) : null}
       chips={props.chips}
+      attention={props.attention}
     />
   );
 };

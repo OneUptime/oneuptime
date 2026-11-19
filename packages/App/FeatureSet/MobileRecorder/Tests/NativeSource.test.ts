@@ -175,6 +175,47 @@ describe("native view-tree source contracts", () => {
     expect(iosModule).not.toContain('"screenX"');
   });
 
+  /*
+   * Tap signals (issue #6517): the touched view's testID and those of the
+   * views around it, out to the replay root, are handed to JavaScript to
+   * match on the device. Only the testID React Native sets is read, and a
+   * stale or out-of-root target offers none.
+   */
+  test("native tap targets read only testIDs, out to the replay root, and fail empty", () => {
+    expect(androidModule).toContain("public void touchTargetTestIds(");
+    expect(androidModule).toContain("MAX_TAP_TEST_IDS = 32");
+    expect(androidModule).toContain("MAX_TAP_TEST_ID_LENGTH = 200");
+    expect(androidModule).toMatch(
+      /public void touchTargetTestIds\([\s\S]{0,1500}getTag\(com\.facebook\.react\.R\.id\.react_test_id\)/u,
+    );
+    expect(androidModule).toMatch(
+      /public void touchTargetTestIds\([\s\S]{0,2200}if \(current == replayRoot\) \{\s*promise\.resolve\(testIds\)/u,
+    );
+    expect(androidModule).toMatch(
+      /if \(target == null \|\| replayRoot == null\) \{\s*promise\.resolve\(Arguments\.createArray\(\)\)/u,
+    );
+    expect(androidModule).toMatch(
+      /A stale tag or a renderer error matches no tap signal\.[\s\S]{0,80}promise\.resolve\(Arguments\.createArray\(\)\)/u,
+    );
+
+    expect(iosBridge).toContain("RCT_EXTERN_METHOD(touchTargetTestIds:");
+    expect(iosModule).toContain("func touchTargetTestIds(");
+    expect(iosModule).toContain("maximumTapTestIds = 32");
+    expect(iosModule).toContain("maximumTapTestIdLength = 200");
+    expect(iosModule).toMatch(
+      /func touchTargetTestIds\([\s\S]{0,1500}if let testId = view\.accessibilityIdentifier/u,
+    );
+    expect(iosModule).toMatch(
+      /func touchTargetTestIds\([\s\S]{0,2200}if view === replayRoot \{\s*resolve\(testIds\)/u,
+    );
+    expect(iosModule).toMatch(
+      /A target outside the replay root matches no tap signal\.\s*resolve\(\[String\]\(\)\)/u,
+    );
+    /* The replay mask's own marker is never offered as a testID. */
+    expect(androidModule).toContain("!REPLAY_MASK_TEST_ID.equals(value)");
+    expect(iosModule).toContain('testId != "oneuptime-replay-mask"');
+  });
+
   test("native touch privacy walks current target ancestry and fails closed", () => {
     expect(androidModule).toContain("public void isTouchTargetPrivate(");
     expect(androidModule).toContain("View current = target;");

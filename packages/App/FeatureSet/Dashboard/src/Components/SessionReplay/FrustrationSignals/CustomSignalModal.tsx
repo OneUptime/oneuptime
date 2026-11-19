@@ -36,10 +36,10 @@ import {
 
 /*
  * Adds a signal of the application's own, or changes one: its name, what
- * sets it off (a click, a page, an event from the page's code or an error),
- * the one thing that names it - a selector, a path, an event name or a
- * piece of an error's text, each asked for in its own words - and whether
- * it counts as frustration.
+ * sets it off (a click, a tap on a view of an app, a page, an event from
+ * the page's code or an error), the one thing that names it - a selector,
+ * a testID, a path, an event name or a piece of an error's text, each asked
+ * for in its own words - and whether it counts as frustration.
  *
  * What is typed for each kind is kept while another is looked at, so
  * picking Page and going back to Click does not lose a selector. Nothing is
@@ -64,6 +64,7 @@ export interface ComponentProps {
 export const TRIGGER_ICONS: Record<SessionReplayCustomSignalTrigger, IconProp> =
   {
     click: IconProp.CursorArrowRays,
+    tap: IconProp.DevicePhoneMobile,
     page: IconProp.Window,
     event: IconProp.Code,
     error: IconProp.Bug,
@@ -83,7 +84,13 @@ type MatchTexts = Record<SessionReplayCustomSignalTrigger, string>;
 function getStartingMatches(
   signal: SessionReplayCustomSignal | null,
 ): MatchTexts {
-  const matches: MatchTexts = { click: "", page: "", event: "", error: "" };
+  const matches: MatchTexts = {
+    click: "",
+    tap: "",
+    page: "",
+    event: "",
+    error: "",
+  };
 
   if (signal) {
     matches[signal.trigger] = signal.match;

@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/DockerSwarmMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -15,13 +15,11 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
   DOCKER_SWARM_TASK_CPU_WARNING_PERCENT,
   DOCKER_SWARM_TASK_MEMORY_WARNING_PERCENT,
-  getDockerSwarmAttentionItems,
-  getDockerSwarmAttentionKey,
   getDockerSwarmAttribute,
   getDockerSwarmTaskId,
   getDockerSwarmTaskReadings,
@@ -43,9 +41,6 @@ import { DockerSwarmPartRoutes } from "./DockerSwarmPartRoutes";
  * about it.
  */
 
-// How the task's own row reads in its Needs attention card.
-const THIS_TASK: string = translationKey("This task");
-
 const LINK_CLASS_NAME: string =
   "text-indigo-600 hover:text-indigo-700 hover:underline";
 
@@ -54,6 +49,11 @@ export interface ComponentProps {
   clusterName: string;
   externalId: string;
   row: DockerSwarmResource | null;
+  /*
+   * What needs attention on the task: the page reads it once
+   * (getDockerSwarmPartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: DockerSwarmPartRoutes;
   // The task's service's and node's own pages, when the inventory has them.
   serviceExternalId?: string | undefined;
@@ -90,14 +90,6 @@ const DockerSwarmTaskOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
-
-  const attentionItems: Array<ResourceAttentionItem> =
-    getDockerSwarmAttentionItems({
-      rows: [row],
-      routeFor: props.routes.getPartRoute,
-      now: props.now,
-      scope: "part",
-    });
 
   const readings: {
     cpuPercent: number | null;
@@ -230,12 +222,9 @@ const DockerSwarmTaskOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="docker-swarm-task-overview">
       <NeedsAttentionCard
         testId="docker-swarm-task-attention"
-        items={attentionItems}
-        current={{
-          key: getDockerSwarmAttentionKey("Task", props.externalId),
-          label: THIS_TASK,
-        }}
-        description="What about this task is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       {/*

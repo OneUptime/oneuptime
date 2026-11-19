@@ -650,6 +650,15 @@ const ROUTE_CASES: Array<RouteCase> = [
     [],
     true,
   ),
+  // A mobile RUM application's Sessions tile (#9588).
+  aggregationCase(
+    "/telemetry/traces/session-count",
+    TraceAggregationService,
+    "getSessionCount",
+    {},
+    { sessions: 0, spans: 0 },
+    true,
+  ),
 
   // AI / LLM conversations: AI calls are trace spans.
   aggregationCase(
@@ -733,6 +742,15 @@ const ROUTE_CASES: Array<RouteCase> = [
     "getHistogram",
     {},
     [],
+    true,
+  ),
+  // The sessions a mobile app's crashes ended (#9588).
+  aggregationCase(
+    "/telemetry/exceptions/session-count",
+    ExceptionAggregationService,
+    "getSessionCount",
+    { escaped: true, excludedExceptionTypes: ["ANR"] },
+    { sessions: 0, occurrences: 0 },
     true,
   ),
   aggregationCase(

@@ -1,0 +1,31 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat resourceType ": " resourceName) }}
+
+{{> InfoBlock plainInfo=(concat "You have been added as an owner of this " resourceNoun ".") }}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=(concat resourceType ":") plainText=resourceName }}
+{{> DetailBoxField title="Description:" text=resourceDescription }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock plainInfo=(concat "You can view this " resourceNoun " by clicking on the button below - ") }}
+
+{{> ButtonBlock buttonUrl=resourceViewLink buttonText="View on Dashboard"}}
+
+{{> LinkBlock linkUrl=resourceViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{#if ownershipNote}}
+{{> InfoBlock plainInfo=ownershipNote }}
+{{/if}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

@@ -25,6 +25,16 @@ enum EmailTemplateType {
   TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   TwoFactorWrongCodes = "TwoFactorWrongCodes.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
+  // Made an owner of a table, a pipeline or a data store (#9681).
+  DataAssetOwnerAdded = "DataAssetOwnerAdded.hbs",
+  DataPipelineOwnerAdded = "DataPipelineOwnerAdded.hbs",
+  DataStoreOwnerAdded = "DataStoreOwnerAdded.hbs",
+  /*
+   * Made an owner of a service, a piece of infrastructure, a dashboard, a
+   * workflow, a runbook or an on-call policy, schedule or incoming call
+   * policy (#9700): one template, named by the kind of record it is about.
+   */
+  ResourceOwnerAdded = "ResourceOwnerAdded.hbs",
   InviteMember = "InviteMember.hbs",
   EmailChanged = "EmailChanged.hbs",
   SubscribedToStatusPage = "SubscribedToStatusPage.hbs",

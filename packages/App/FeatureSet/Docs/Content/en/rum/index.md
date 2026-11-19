@@ -77,15 +77,15 @@ OneUptime finds the application by `service.name`, ignoring case, and creates it
 
 | Where | What it shows |
 | --- | --- |
-| **Overview** | Tiles for **Page loads**, **Page load time (p95)**, **Events**, **Error rate**, **Event duration (p95)**, **Exceptions**, **Clients** and **Sessions recorded**, and trend charts over the time range you pick. |
-| **Core Web Vitals** | A card on the overview with LCP, INP, CLS, FCP and TTFB, each rated against Google's limits, and INP for each route of a single-page app. See [Core Web Vitals](/docs/rum/web-vitals) and [Single-page apps](/docs/rum/web-vitals#single-page-apps). |
+| **Overview** | A web app's tiles for **Page loads**, **Page load time (p95)**, **Events**, **Error rate**, **Event duration (p95)**, **Exceptions**, **Clients** and **Sessions recorded**, or a mobile app's for **Sessions**, **Crash-free sessions**, **Crashes**, **ANRs**, **App starts**, **Cold start (p95)**, **Frozen frames** and **Error rate**, and trend charts over the time range you pick. |
+| **Core Web Vitals** | A card on a web app's overview with LCP, INP, CLS, FCP and TTFB, each rated against Google's limits, and INP for each route of a single-page app. See [Core Web Vitals](/docs/rum/web-vitals) and [Single-page apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrics**, **Logs**, **Traces** | The telemetry explorers, showing only this application. |
 | **Clients** | The browser platforms and device models the application has been used on: a short list by platform, never one row per user. |
 | **Product Analytics** | Active, new, returning and dormant users and sessions by device, browser, country and page, counted from the recorded sessions, and the events your app sends, as trends, funnels and retention: see [Product Analytics](/docs/rum/product-analytics). |
 | **Session Replay** | Recordings of real sessions, next to their errors, traces and logs: see [Session Replay](/docs/telemetry/session-replay). |
-| **Recommendations** | Ready-made monitors for the application: poor Core Web Vitals, failed requests, browser exceptions and, once it records, Session Replay budgets. |
+| **Recommendations** | Ready-made monitors that fit the application: poor Core Web Vitals and browser exceptions for a web app; crashes, ANRs, slow cold starts, frozen frames and an app that stops reporting for a mobile app; failed requests for both; and, once it records, Session Replay budgets. |
 
-The counts come from the spans your instrumentation sends. **Page loads** counts the `documentLoad` span that the page-load instrumentation records for each full load, so a route change inside a single-page app is not a page load.
+The counts come from the spans your instrumentation sends. **Page loads** counts the `documentLoad` span that the page-load instrumentation records for each full load, so a route change inside a single-page app is not a page load. A mobile app's tiles count what [OpenTelemetry Android](/docs/rum/android-setup) sends on its own: its sessions, crashes, ANRs, app starts and slow and frozen frames.
 
 An application shows **Receiving data** while telemetry arrives and **No recent traffic** after 15 minutes without any, which is normal while nobody uses the app. One added by hand shows **Waiting for data** until its first data arrives. Time when OneUptime itself was down or catching up on its ingest queue does not count towards those 15 minutes.
 

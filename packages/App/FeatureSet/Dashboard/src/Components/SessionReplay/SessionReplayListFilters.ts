@@ -836,6 +836,26 @@ export function buildTimeRangeSearch(
 }
 
 /*
+ * The query that opens the session list on the sessions where one of the
+ * application's own signals fired (issue #6515): signalName=<name>, the
+ * name exactly as the Frustration Signals page holds it, case and inner
+ * spaces included, since the list matches it exactly
+ * (has(customSignalNames, name)). The list's own window applies. A name
+ * that is only spaces is no filter, and opens the list as it is.
+ */
+export function buildCustomSignalSessionsQuery(
+  name: string,
+): Record<string, string> {
+  const trimmed: string = name.trim();
+
+  if (!trimmed) {
+    return {};
+  }
+
+  return { [FILTER_URL_KEYS.customSignalName as string]: trimmed };
+}
+
+/*
  * What a Users row hands the page when its Sessions action fires: the one
  * identity filter that selects the person (see describeUserRollup), plus
  * the rollup's pseudonymous key and label. The key and label ride along

@@ -12,6 +12,7 @@ import {
   getSessionReplayCustomSignalMatchMaxLength,
   isSessionReplayCustomSignalTrigger,
   isSessionReplayPagePatternAnchored,
+  isSessionReplayTapPatternUsable,
 } from "../../Types/Rum/SessionReplayFrustrationSignals";
 
 /*
@@ -272,6 +273,24 @@ export function getSessionReplayCustomSignalMatchProblem(
       : `"${text}" is not a CSS selector.`;
   }
 
+  if (trigger === "tap") {
+    if (text.length === 0) {
+      return "Enter the testID of the view, such as pay-button.";
+    }
+
+    if (text.length > maxLength) {
+      return `A testID can be at most ${maxLength} characters.`;
+    }
+
+    if (hasControlCharacter(text)) {
+      return "A testID cannot contain line breaks or control characters.";
+    }
+
+    return isSessionReplayTapPatternUsable(text)
+      ? null
+      : "Put * only at the end of a testID, after its start, such as product-card-*.";
+  }
+
   if (trigger === "page") {
     if (text.length === 0) {
       return "Enter the page's path, such as /checkout/error.";
@@ -387,7 +406,7 @@ function readCustomSignals(
 
     if (!isSessionReplayCustomSignalTrigger(trigger)) {
       fail(
-        `Custom signal "${name}": choose what it reacts to (click, page, event or error).`,
+        `Custom signal "${name}": choose what it reacts to (click, tap, page, event or error).`,
       );
     }
 

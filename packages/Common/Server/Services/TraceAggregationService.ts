@@ -146,6 +146,27 @@ export interface HistogramRequest extends TraceFilters {
   bucketSizeInMinutes: number;
 }
 
+/*
+ * How many sessions the spans of a scope belong to, over a window (#9588:
+ * a mobile app's Sessions tile and the share of them a crash ended).
+ */
+export interface SessionCountRequest extends TraceFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+}
+
+export interface SessionCountResult {
+  // The distinct session ids of the spans; a span with none ('') is no session.
+  sessions: number;
+  /*
+   * Every span read, with a session or not: spans that name no session
+   * mean the SDK sets no `session.id`, which reads differently from no
+   * spans at all.
+   */
+  spans: number;
+}
+
 export type TraceAnalyticsChartType = "timeseries" | "toplist" | "table";
 
 export type TraceAnalyticsMetric =
@@ -467,6 +488,74 @@ export class TraceAggregationService {
         count: Number(row["cnt"] || 0),
       };
     });
+  }
+
+  /*
+   * The sessions a scope's spans belong to in a window, and the spans read
+   * (SessionCountResult). One row, from the same filters every other read
+   * here takes, so a caller scoped to a RUM application counts that app's
+   * sessions only.
+   */
+  @CaptureSpan()
+  public static async getSessionCount(
+    request: SessionCountRequest,
+  ): Promise<SessionCountResult> {
+    const statement: Statement =
+      TraceAggregationService.buildSessionCountStatement(request);
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const row: JSONObject = (response.data || [])[0] || {};
+
+    return {
+      sessions: Number(row["sessions"] || 0),
+      spans: Number(row["cnt"] || 0),
+    };
+  }
+
+  /*
+   * `uniqIf`, not `uniqExactIf`: exact while a window holds fewer than
+   * 65,536 sessions, and within about a percent beyond that, in a fixed
+   * amount of memory - where an exact count of a busy app's month would
+   * hold every session id at once. A share of sessions (crash-free) reads
+   * the same to a tenth of a percent either way.
+   */
+  public static buildSessionCountStatement(
+    request: SessionCountRequest,
+  ): Statement {
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT uniqIf(sessionId, sessionId != '') AS sessions, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND startTime >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND startTime <= ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
+    TraceAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(
+      getQuerySettings({
+        ...INTERACTIVE_READ_TIME_LIMIT,
+      }),
+    );
+
+    return statement;
   }
 
   @CaptureSpan()

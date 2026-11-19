@@ -9,8 +9,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * with a constant default rewrites nothing in Postgres 11 and later, and
  * MonitorSecret is a small table.
  */
-export class AddMonitorSecretType1809184930000 implements MigrationInterface {
-  public name: string = "AddMonitorSecretType1809184930000";
+export class AddMonitorSecretType1809185030000 implements MigrationInterface {
+  public name: string = "AddMonitorSecretType1809185030000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -209,6 +209,7 @@ import {
   vcenterModel,
 } from "./VMwareTooltipHarness";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import VMwareResourceModel from "../../../Models/DatabaseModels/VMwareResource";
 
 /*
  * Reads the page makes that these tests leave unanswered: refused at
@@ -684,6 +685,94 @@ describe("VMware overview: the hero's counts open their lists", () => {
     await renderLoaded();
 
     expect(screen.getByTestId("vmware-hero-datacenters").tagName).toBe("SPAN");
+  });
+
+  /*
+   * "1/2 ESXi hosts connected" said a host was out of reach, never which
+   * or why (#9594). Beside the chip, the hosts not responding open.
+   */
+  test("a host vCenter cannot reach is a count beside the hosts chip that opens it, where it sits", async () => {
+    const now: Date = new Date();
+    mockVCenter = vcenterModel({
+      datacenterCount: 1,
+      clusterCount: 1,
+      hostCount: 2,
+      vmCount: 1,
+      poweredOnVmCount: 1,
+      datastoreCount: 1,
+    });
+    mockRows = [
+      ...inventory().map((row: unknown): unknown => {
+        const model: VMwareResourceModel = row as VMwareResourceModel;
+        return model.kind === "Datacenter"
+          ? inventoryRow({
+              ...model,
+              hostCount: 2,
+              poweredOnHostCount: 1,
+              notRespondingHostCount: 1,
+              standbyHostCount: 0,
+            })
+          : row;
+      }),
+      // vCenter reports no use for it, and its datacenter one host lost.
+      inventoryRow({
+        kind: "Host",
+        externalId: "host/dc1/esx03",
+        name: "esx03",
+        hostName: "esx03",
+        datacenterName: "dc1",
+        clusterName: "cl1",
+        latestCpuPercent: 0,
+        latestCpuMhz: 0,
+        latestMemoryBytes: 0,
+        latestMemoryPercent: 0,
+        maxMemoryBytes: 128 * GIB,
+        metricsUpdatedAt: now,
+      }),
+    ];
+
+    await renderLoaded();
+
+    const chip: HTMLElement = await screen.findByTestId(
+      "vmware-hero-hosts-not-responding",
+    );
+    expect(chip.tagName).toBe("BUTTON");
+    expect(chip).toHaveTextContent("1 not responding");
+    expect(chip).toHaveAttribute("data-tone", "danger");
+    expect(chip).toHaveAttribute("title", "Show which hosts and why");
+    // The hosts chip still opens every host.
+    expect(screen.getByTestId("vmware-hero-hosts").tagName).toBe("A");
+
+    fireEvent.click(chip);
+
+    expect(screen.getByText("1 host not responding")).toBeInTheDocument();
+    const row: HTMLElement = screen.getByTestId(
+      "vmware-hero-hosts-not-responding-dialog-item",
+    );
+    expect(row).toHaveTextContent("esx03");
+    expect(row).toHaveTextContent("Not responding");
+    expect(
+      within(row).getByTestId("vmware-hero-hosts-not-responding-dialog-view"),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/dashboard/${PROJECT_ID}/vmware/${VCENTER_ID}`),
+    );
+    expect(
+      within(row)
+        .getAllByTestId("vmware-hero-hosts-not-responding-dialog-fact")
+        .map((fact: HTMLElement): string => {
+          return fact.textContent || "";
+        }),
+    ).toEqual(["Cluster:cl1", "Datacenter:dc1"]);
+    // Every other host runs: no count of hosts reporting no usage.
+    expect(screen.queryByTestId("vmware-hero-hosts-no-usage")).toBeNull();
+  });
+
+  test("every host connected: nothing beside the hosts chip", async () => {
+    await renderLoaded();
+
+    expect(screen.queryByTestId("vmware-hero-hosts-not-responding")).toBeNull();
+    expect(screen.queryByTestId("vmware-hero-hosts-no-usage")).toBeNull();
   });
 });
 
