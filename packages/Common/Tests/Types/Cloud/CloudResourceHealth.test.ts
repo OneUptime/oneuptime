@@ -452,6 +452,61 @@ describe("CloudResourceHealth", () => {
       expect(share(500, 1000).reasons[0]!.text).toBe(REASON_REQUESTS_FAILED);
     });
 
+    /*
+     * An HTTP API counts its server errors as 5xx, a REST API as 5XXError:
+     * the HTTP API's rule and headline read 5XXError, which it never
+     * publishes, so its server errors were never judged or shown.
+     */
+    test("an HTTP API's server errors are its 5xx, a REST API's its 5XXError", () => {
+      const at: Date = minutesAgo(5);
+      const apis: Array<{ type: string; key: string; other: string }> = [
+        {
+          type: "AWS::ApiGatewayV2::Api",
+          key: "aws/apigateway/5xx",
+          other: "aws/apigateway/5xxerror",
+        },
+        {
+          type: "AWS::ApiGateway::RestApi",
+          key: "aws/apigateway/5xxerror",
+          other: "aws/apigateway/5xx",
+        },
+      ];
+
+      for (const api of apis) {
+        expect(
+          assess({
+            provider: CloudProvider.AWS,
+            type: api.type,
+            readings: {
+              "aws/apigateway/count": reading(1000, at),
+              [api.key]: reading(80, at),
+            },
+          }).reasons.map(english),
+        ).toEqual(["8% of requests failed"]);
+        // The other kind's errors are none of its own.
+        expect(
+          assess({
+            provider: CloudProvider.AWS,
+            type: api.type,
+            readings: {
+              "aws/apigateway/count": reading(1000, at),
+              [api.other]: reading(80, at),
+            },
+          }).state,
+        ).toBe("healthy");
+        expect(getCloudReadingKeysForType("aws", api.type).has(api.key)).toBe(
+          true,
+        );
+        expect(
+          getCloudHeadlineReadings("aws", api.type).map(
+            (headline: { key: string }) => {
+              return headline.key;
+            },
+          ),
+        ).toEqual(["aws/apigateway/count", "aws/apigateway/latency", api.key]);
+      }
+    });
+
     test("the load balancer's own 5xx count with its targets'", () => {
       const at: Date = minutesAgo(5);
 
