@@ -423,6 +423,269 @@ describe("the preview", () => {
   });
 });
 
+/*
+ * "Nothing will be sent", and why - for a public note, with what happens to
+ * the note (#9684). A note on an incident no status page shows read "No
+ * status page that lists these monitors will show this incident.", as if
+ * it went nowhere: it is posted all the same, and a page that starts
+ * showing the incident later shows it, without notifying anyone.
+ */
+describe("nothing will be sent, said for the event asked about", () => {
+  const DECLARE_REQUEST: SubscriberNotificationPreviewRequest = {
+    event: SubscriberNotificationPreviewEvent.IncidentCreated,
+    incident: {
+      title: "Checkout failing",
+      description: "Payments fail.",
+      incidentSeverityId: null,
+      monitorIds: ["c0000000-0000-4000-8000-000000000001"],
+      statusPageIds: [],
+      labelIds: [],
+      customFields: {},
+      isPrivate: false,
+      shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+    },
+  };
+
+  interface NothingSentCase {
+    request: SubscriberNotificationPreviewRequest;
+    reason: SubscriberNotificationPreviewNothingSentReason;
+    // Why nothing will be sent.
+    says: string;
+    // What happens to the note, when the preview is of one.
+    saysOfTheNote: string | null;
+  }
+
+  const NOTE: (
+    reason: SubscriberNotificationPreviewNothingSentReason,
+    says: string,
+    saysOfTheNote: string | null,
+  ) => NothingSentCase = (
+    reason: SubscriberNotificationPreviewNothingSentReason,
+    says: string,
+    saysOfTheNote: string | null,
+  ): NothingSentCase => {
+    return {
+      request: REQUEST,
+      reason: reason,
+      says: says,
+      saysOfTheNote: saysOfTheNote,
+    };
+  };
+
+  const DECLARE: (
+    reason: SubscriberNotificationPreviewNothingSentReason,
+    says: string,
+  ) => NothingSentCase = (
+    reason: SubscriberNotificationPreviewNothingSentReason,
+    says: string,
+  ): NothingSentCase => {
+    return {
+      request: DECLARE_REQUEST,
+      reason: reason,
+      says: says,
+      saysOfTheNote: null,
+    };
+  };
+
+  const CASES: Array<[string, NothingSentCase]> = [
+    [
+      "a note on an incident no status page shows (the issue's case)",
+      NOTE(
+        SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+        "No status page shows this incident yet.",
+        "Any status page that starts showing this incident shows this note too, without notifying its subscribers.",
+      ),
+    ],
+    [
+      "a note on an incident with no monitors",
+      NOTE(
+        SubscriberNotificationPreviewNothingSentReason.NoMonitors,
+        SubscriberNotificationPreviewCopy.noMonitors,
+        SubscriberNotificationPreviewCopy.noteShownLater,
+      ),
+    ],
+    [
+      "a note on an incident hidden from status pages",
+      NOTE(
+        SubscriberNotificationPreviewNothingSentReason.HiddenFromStatusPages,
+        SubscriberNotificationPreviewCopy.hiddenIncident,
+        SubscriberNotificationPreviewCopy.noteShownLater,
+      ),
+    ],
+    [
+      "a note on an incident whose status pages send nothing: it is on them already",
+      NOTE(
+        SubscriberNotificationPreviewNothingSentReason.NotificationsOff,
+        SubscriberNotificationPreviewCopy.notificationsOff,
+        null,
+      ),
+    ],
+    [
+      "declaring an incident no status page will show",
+      DECLARE(
+        SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+        "No status page that lists these monitors will show this incident when it is declared.",
+      ),
+    ],
+    [
+      "declaring an incident with no monitors",
+      DECLARE(
+        SubscriberNotificationPreviewNothingSentReason.NoMonitors,
+        SubscriberNotificationPreviewCopy.noMonitors,
+      ),
+    ],
+    [
+      "declaring a private incident",
+      DECLARE(
+        SubscriberNotificationPreviewNothingSentReason.PrivateIncident,
+        SubscriberNotificationPreviewCopy.privateIncident,
+      ),
+    ],
+    [
+      "declaring with 'Notify Status Page Subscribers' off",
+      DECLARE(
+        SubscriberNotificationPreviewNothingSentReason.NotifyOff,
+        SubscriberNotificationPreviewCopy.notifyOff,
+      ),
+    ],
+    [
+      "declaring an incident whose status pages send nothing",
+      DECLARE(
+        SubscriberNotificationPreviewNothingSentReason.NotificationsOff,
+        SubscriberNotificationPreviewCopy.notificationsOff,
+      ),
+    ],
+  ];
+
+  async function openNothingSent(
+    testCase: NothingSentCase,
+    answeredEvent: SubscriberNotificationPreviewEvent = testCase.request.event,
+  ): Promise<HTMLElement> {
+    answerPreviewWith(
+      result({
+        event: answeredEvent,
+        nothingSentReason: testCase.reason,
+        statusPages: [],
+      }),
+    );
+
+    render(
+      <SubscriberNotificationPreviewModal
+        request={testCase.request}
+        onClose={() => {}}
+      />,
+    );
+
+    return screen.findByTestId("subscriber-notification-preview-nothing-sent");
+  }
+
+  test.each(CASES)(
+    "%s: says why, and, for a note, where it shows",
+    async (_label: string, testCase: NothingSentCase) => {
+      const notice: HTMLElement = await openNothingSent(testCase);
+
+      expect(notice).toHaveAttribute("data-reason", testCase.reason);
+      expect(notice).toHaveTextContent(
+        SubscriberNotificationPreviewCopy.nothingWillBeSent,
+      );
+      expect(
+        within(notice).getByTestId(
+          "subscriber-notification-preview-nothing-sent-reason",
+        ).textContent,
+      ).toBe(testCase.says);
+
+      const noteLine: HTMLElement | null = within(notice).queryByTestId(
+        "subscriber-notification-preview-nothing-sent-note-later",
+      );
+
+      if (testCase.saysOfTheNote) {
+        expect(noteLine?.textContent).toBe(testCase.saysOfTheNote);
+      } else {
+        expect(noteLine).toBeNull();
+      }
+
+      // Nothing to preview or send a test of.
+      expect(
+        screen.queryByTestId("subscriber-notification-preview-frame"),
+      ).toBeNull();
+      expect(
+        screen.queryByTestId("subscriber-notification-preview-send-test"),
+      ).toBeNull();
+    },
+  );
+
+  test.each(CASES)(
+    "%s: never says a status page will not show it, without saying when",
+    async (_label: string, testCase: NothingSentCase) => {
+      const notice: HTMLElement = await openNothingSent(testCase);
+      const text: string = notice.textContent || "";
+      const willShow: RegExp = new RegExp("will (not )?show");
+
+      if (willShow.test(text)) {
+        expect(text).toContain("when it is declared");
+        expect(testCase.request.event).toBe(
+          SubscriberNotificationPreviewEvent.IncidentCreated,
+        );
+      }
+
+      // The note's sentence is a note's, the declare's a declare's.
+      if (testCase.request.event === REQUEST.event) {
+        expect(text).not.toContain(
+          SubscriberNotificationPreviewCopy.noStatusPages,
+        );
+      } else {
+        expect(text).not.toContain(
+          SubscriberNotificationPreviewCopy.noStatusPagesForNote,
+        );
+        expect(text).not.toContain(
+          SubscriberNotificationPreviewCopy.noteShownLater,
+        );
+      }
+    },
+  );
+
+  /*
+   * The dialog words the event it asked about: an answer read without its
+   * event comes back as IncidentCreated (SubscriberNotificationPreview.
+   * fromJSON), and a note must not then read as a declare.
+   */
+  test("a note's preview says the note's sentences, whatever event the answer names", async () => {
+    const notice: HTMLElement = await openNothingSent(
+      NOTE(
+        SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+        SubscriberNotificationPreviewCopy.noStatusPagesForNote,
+        SubscriberNotificationPreviewCopy.noteShownLater,
+      ),
+      SubscriberNotificationPreviewEvent.IncidentCreated,
+    );
+
+    expect(notice).toHaveTextContent(
+      SubscriberNotificationPreviewCopy.noStatusPagesForNote,
+    );
+    expect(notice).toHaveTextContent(
+      SubscriberNotificationPreviewCopy.noteShownLater,
+    );
+    expect(notice).not.toHaveTextContent(
+      SubscriberNotificationPreviewCopy.noStatusPages,
+    );
+  });
+
+  test("the reason and the note's line are two sentences, each its own paragraph", async () => {
+    const notice: HTMLElement = await openNothingSent(CASES[0]![1]);
+
+    const paragraphs: Array<string> = Array.from(
+      notice.querySelectorAll("p"),
+    ).map((paragraph: HTMLParagraphElement): string => {
+      return paragraph.textContent || "";
+    });
+
+    expect(paragraphs).toEqual([
+      SubscriberNotificationPreviewCopy.noStatusPagesForNote,
+      SubscriberNotificationPreviewCopy.noteShownLater,
+    ]);
+  });
+});
+
 describe("Send test to me", () => {
   test("sends the shown page's email, naming the page and no address, and says where it went", async () => {
     await openModal();

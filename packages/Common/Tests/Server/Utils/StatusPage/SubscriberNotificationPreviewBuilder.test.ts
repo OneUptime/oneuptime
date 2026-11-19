@@ -741,8 +741,10 @@ describe("nothing will be sent", () => {
 
 /*
  * Send Notifications to Subscribers off (Types/StatusPage/
- * SubscriberNotificationsSwitch): when every page that shows the incident is
- * switched off, the preview says that - not that no page shows it.
+ * SubscriberNotificationsSwitch): when a page shows the incident and sends
+ * its subscribers nothing, the preview says that - never that no page shows
+ * it (#9684). A public note posted then is on that page at once. Only when
+ * no page shows the incident does the preview say none does.
  */
 describe("status pages that send their subscribers nothing", () => {
   const audience: (
@@ -774,91 +776,43 @@ describe("status pages that send their subscribers nothing", () => {
     };
   };
 
+  const leftOut: (
+    name: string,
+    reason: IncidentSubscriberAudienceExclusionReason,
+  ) => IncidentSubscriberAudienceResult["excludedStatusPages"][number] = (
+    name: string,
+    reason: IncidentSubscriberAudienceExclusionReason,
+  ): IncidentSubscriberAudienceResult["excludedStatusPages"][number] => {
+    return {
+      statusPageId: `id-${name}`,
+      name: name,
+      reason: reason,
+    };
+  };
+
+  /*
+   * The reason for an audience, and whether any page the incident reaches
+   * shows it - one the caller cannot read included, which the audience does
+   * not name.
+   */
   const reasonFor: (
     partial: Partial<IncidentSubscriberAudienceResult>,
+    isShownOnAnyStatusPage: boolean,
   ) => SubscriberNotificationPreviewNothingSentReason | null = (
     partial: Partial<IncidentSubscriberAudienceResult>,
+    isShownOnAnyStatusPage: boolean,
   ): SubscriberNotificationPreviewNothingSentReason | null => {
     return SubscriberNotificationPreviewBuilder.getNothingSentReason({
       audience: audience(partial),
       draftNothingSentReason: null,
+      isShownOnAnyStatusPage: isShownOnAnyStatusPage,
     });
   };
 
-  test("every page that shows it is off: that is why nothing is sent", () => {
-    expect(
-      reasonFor({ excludedStatusPages: [off("Site 01"), off("Site 02")] }),
-    ).toBe(SubscriberNotificationPreviewNothingSentReason.NotificationsOff);
-  });
-
-  test("off beside another reason: no page will show it, as before", () => {
-    expect(
-      reasonFor({
-        excludedStatusPages: [
-          off("Site 01"),
-          {
-            statusPageId: "id-Site 02",
-            name: "Site 02",
-            reason: IncidentSubscriberAudienceExclusionReason.HidesIncidents,
-          },
-        ],
-      }),
-    ).toBe(SubscriberNotificationPreviewNothingSentReason.NoStatusPages);
-  });
-
-  test("a picked page that lists none of the monitors: no page will show it", () => {
-    expect(
-      reasonFor({
-        excludedStatusPages: [off("Site 01")],
-        selectedStatusPagesNotListingMonitors: [
-          { statusPageId: "id-Site 09", name: "Site 09" },
-        ],
-      }),
-    ).toBe(SubscriberNotificationPreviewNothingSentReason.NoStatusPages);
-  });
-
-  test("a page that is told, or one the caller cannot see: something is sent", () => {
-    expect(
-      reasonFor({
-        excludedStatusPages: [off("Site 01")],
-        statusPages: [
-          {
-            statusPageId: "id-Site 02",
-            name: "Site 02",
-            subscriberCounts: {
-              email: 1,
-              sms: 0,
-              slack: 0,
-              microsoftTeams: 0,
-              webhook: 0,
-            },
-          },
-        ],
-      }),
-    ).toBeNull();
-    expect(
-      reasonFor({
-        excludedStatusPages: [off("Site 01")],
-        hiddenStatusPageCount: 1,
-      }),
-    ).toBeNull();
-  });
-
-  test("no monitors and a hidden incident are said first, as before", () => {
-    expect(
-      reasonFor({ hasMonitors: false, excludedStatusPages: [off("Site 01")] }),
-    ).toBe(SubscriberNotificationPreviewNothingSentReason.NoMonitors);
-    expect(
-      reasonFor({
-        isHiddenFromStatusPages: true,
-        excludedStatusPages: [off("Site 01")],
-      }),
-    ).toBe(
-      SubscriberNotificationPreviewNothingSentReason.HiddenFromStatusPages,
-    );
-  });
-
-  test("a draft whose every page is off previews nothing, and says why", async () => {
+  // Every page the monitor is on, as the jobs load them, changed by `change`.
+  const pagesAre: (change: (page: StatusPage) => void) => void = (
+    change: (page: StatusPage) => void,
+  ): void => {
     jest
       .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
       .mockImplementation((async (
@@ -870,10 +824,174 @@ describe("status pages that send their subscribers nothing", () => {
           });
         }).map((fixture: PageFixture): StatusPage => {
           const page: StatusPage = makePage(fixture);
-          page.sendSubscriberNotifications = false;
+          change(page);
           return page;
         });
       }) as never);
+  };
+
+  test("every page that shows it is off: that is why nothing is sent", () => {
+    expect(
+      reasonFor(
+        { excludedStatusPages: [off("Site 01"), off("Site 02")] },
+        true,
+      ),
+    ).toBe(SubscriberNotificationPreviewNothingSentReason.NotificationsOff);
+  });
+
+  /*
+   * Site 01 shows the incident and sends nothing; Site 02 is left out. A
+   * note posted now is on Site 01 at once, so the preview says what Site
+   * 01 does - it used to say no page would show the incident.
+   */
+  test.each([
+    IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+    IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+    IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+  ])(
+    "a page that shows it is off, beside a page left out (%s): the page's setting, never that no page shows it",
+    (reason: IncidentSubscriberAudienceExclusionReason) => {
+      expect(
+        reasonFor(
+          { excludedStatusPages: [off("Site 01"), leftOut("Site 02", reason)] },
+          true,
+        ),
+      ).toBe(SubscriberNotificationPreviewNothingSentReason.NotificationsOff);
+    },
+  );
+
+  test("a page that shows it is off, beside a picked page that lists none of the monitors: the page's setting", () => {
+    expect(
+      reasonFor(
+        {
+          excludedStatusPages: [off("Site 01")],
+          selectedStatusPagesNotListingMonitors: [
+            { statusPageId: "id-Site 09", name: "Site 09" },
+          ],
+        },
+        true,
+      ),
+    ).toBe(SubscriberNotificationPreviewNothingSentReason.NotificationsOff);
+  });
+
+  test("a page the caller cannot read shows it and is off: the pages' setting, though no readable page is named", () => {
+    expect(reasonFor({}, true)).toBe(
+      SubscriberNotificationPreviewNothingSentReason.NotificationsOff,
+    );
+  });
+
+  test("no page shows it: none lists the monitors, or each one that does leaves it out", () => {
+    expect(reasonFor({}, false)).toBe(
+      SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+    );
+    expect(
+      reasonFor(
+        {
+          excludedStatusPages: [
+            leftOut(
+              "Site 01",
+              IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+            ),
+            leftOut(
+              "Site 02",
+              IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+            ),
+            leftOut(
+              "Site 03",
+              IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+            ),
+          ],
+          selectedStatusPagesNotListingMonitors: [
+            { statusPageId: "id-Site 09", name: "Site 09" },
+          ],
+        },
+        false,
+      ),
+    ).toBe(SubscriberNotificationPreviewNothingSentReason.NoStatusPages);
+    // Off, and hiding incidents too: it shows the incident nowhere.
+    expect(reasonFor({ excludedStatusPages: [off("Site 01")] }, false)).toBe(
+      SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+    );
+  });
+
+  test("a page that is told, or one the caller cannot see: something is sent", () => {
+    for (const isShownOnAnyStatusPage of [true, false]) {
+      expect(
+        reasonFor(
+          {
+            excludedStatusPages: [off("Site 01")],
+            statusPages: [
+              {
+                statusPageId: "id-Site 02",
+                name: "Site 02",
+                subscriberCounts: {
+                  email: 1,
+                  sms: 0,
+                  slack: 0,
+                  microsoftTeams: 0,
+                  webhook: 0,
+                },
+              },
+            ],
+          },
+          isShownOnAnyStatusPage,
+        ),
+      ).toBeNull();
+      expect(
+        reasonFor(
+          {
+            excludedStatusPages: [off("Site 01")],
+            hiddenStatusPageCount: 1,
+          },
+          isShownOnAnyStatusPage,
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("no monitors and a hidden incident are said first, as before", () => {
+    for (const isShownOnAnyStatusPage of [true, false]) {
+      expect(
+        reasonFor(
+          { hasMonitors: false, excludedStatusPages: [off("Site 01")] },
+          isShownOnAnyStatusPage,
+        ),
+      ).toBe(SubscriberNotificationPreviewNothingSentReason.NoMonitors);
+      expect(
+        reasonFor(
+          {
+            isHiddenFromStatusPages: true,
+            excludedStatusPages: [off("Site 01")],
+          },
+          isShownOnAnyStatusPage,
+        ),
+      ).toBe(
+        SubscriberNotificationPreviewNothingSentReason.HiddenFromStatusPages,
+      );
+    }
+  });
+
+  test("a draft that will be private, or does not notify, is said before the pages", () => {
+    for (const draftNothingSentReason of [
+      SubscriberNotificationPreviewNothingSentReason.PrivateIncident,
+      SubscriberNotificationPreviewNothingSentReason.NotifyOff,
+    ]) {
+      for (const isShownOnAnyStatusPage of [true, false]) {
+        expect(
+          SubscriberNotificationPreviewBuilder.getNothingSentReason({
+            audience: audience({ excludedStatusPages: [off("Site 01")] }),
+            draftNothingSentReason: draftNothingSentReason,
+            isShownOnAnyStatusPage: isShownOnAnyStatusPage,
+          }),
+        ).toBe(draftNothingSentReason);
+      }
+    }
+  });
+
+  test("a draft whose every page is off previews nothing, and says why", async () => {
+    pagesAre((page: StatusPage): void => {
+      page.sendSubscriberNotifications = false;
+    });
 
     // Not limited to some pages: every page that lists the monitors would be told.
     const build: SubscriberNotificationPreviewBuild = await preview(draft());
@@ -882,6 +1000,181 @@ describe("status pages that send their subscribers nothing", () => {
       SubscriberNotificationPreviewNothingSentReason.NotificationsOff,
     );
     expect(build.statusPages).toEqual([]);
+  });
+
+  test("a draft limited to a page that shows it and is off, beside pages its scope leaves out: the page's setting", async () => {
+    pagesAre((page: StatusPage): void => {
+      if (sameId(page._id, SITE_2)) {
+        page.sendSubscriberNotifications = false;
+      }
+    });
+
+    const build: SubscriberNotificationPreviewBuild = await preview(
+      draft({ statusPageIds: [SITE_2] }),
+    );
+
+    // Read from the readable pages' reasons alone, this was NoStatusPages.
+    expect(
+      build.audience.excludedStatusPages.map(
+        (page: { name: string; reason: string }): [string, string] => {
+          return [page.name, page.reason];
+        },
+      ),
+    ).toEqual([
+      [
+        "Site 01",
+        IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+      ],
+      ["Site 02", IncidentSubscriberAudienceExclusionReason.NotificationsOff],
+      [
+        "Site 03",
+        IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+      ],
+    ]);
+    expect(build.nothingSentReason).toBe(
+      SubscriberNotificationPreviewNothingSentReason.NotificationsOff,
+    );
+    expect(build.statusPages).toEqual([]);
+  });
+
+  test("pages that are off and hide incidents show it nowhere: no page shows it", async () => {
+    pagesAre((page: StatusPage): void => {
+      page.sendSubscriberNotifications = false;
+      page.showIncidentsOnStatusPage = false;
+    });
+
+    const build: SubscriberNotificationPreviewBuild = await preview(draft());
+
+    // Every page is reported off, the first thing the jobs ask of a page.
+    expect(
+      build.audience.excludedStatusPages.map(
+        (page: { reason: string }): string => {
+          return page.reason;
+        },
+      ),
+    ).toEqual([
+      IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+      IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+      IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+    ]);
+    // But none of them shows the incident: "the pages that show it" would be none.
+    expect(build.nothingSentReason).toBe(
+      SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+    );
+  });
+
+  test("pages the caller cannot read that show it and are off: the pages' setting, with no page named", async () => {
+    readablePageIds = [];
+    pagesAre((page: StatusPage): void => {
+      page.sendSubscriberNotifications = false;
+    });
+
+    const build: SubscriberNotificationPreviewBuild = await preview(draft());
+
+    expect(build.audience.excludedStatusPages).toEqual([]);
+    expect(build.audience.hiddenStatusPageCount).toBe(0);
+    expect(build.nothingSentReason).toBe(
+      SubscriberNotificationPreviewNothingSentReason.NotificationsOff,
+    );
+
+    const answer: string = JSON.stringify(
+      SubscriberNotificationPreview.toJSON({
+        event: build.event,
+        nothingSentReason: build.nothingSentReason,
+        statusPages: [],
+        audience: build.audience,
+      }),
+    );
+
+    for (const page of PAGES) {
+      expect(answer).not.toContain(page.name);
+      expect(answer.toLowerCase()).not.toContain(page.id);
+    }
+  });
+
+  test("pages of another project never count as showing it", () => {
+    const page: StatusPage = makePage(PAGES[0]!);
+    page.projectId = OTHER_PROJECT_ID;
+
+    expect(
+      SubscriberNotificationPreviewBuilder.isShownOnAnyStatusPage({
+        projectId: PROJECT_ID,
+        statusPages: [page],
+      }),
+    ).toBe(false);
+
+    page.projectId = PROJECT_ID;
+
+    expect(
+      SubscriberNotificationPreviewBuilder.isShownOnAnyStatusPage({
+        projectId: PROJECT_ID,
+        statusPages: [page],
+      }),
+    ).toBe(true);
+
+    page.showIncidentsOnStatusPage = false;
+
+    expect(
+      SubscriberNotificationPreviewBuilder.isShownOnAnyStatusPage({
+        projectId: PROJECT_ID,
+        statusPages: [page],
+      }),
+    ).toBe(false);
+    expect(
+      SubscriberNotificationPreviewBuilder.isShownOnAnyStatusPage({
+        projectId: PROJECT_ID,
+        statusPages: [],
+      }),
+    ).toBe(false);
+  });
+});
+
+/*
+ * "No status page shows this incident yet": the preview answers for the
+ * pages as they are when it is asked (#9684). Once a page lists the
+ * incident's monitor, the same incident reaches it - the page shows it, and
+ * the next note's preview is that page's email.
+ */
+describe("a status page that lists the incident's monitor later", () => {
+  test("a note's preview: no page shows it, then the page that lists the monitor", async () => {
+    jest
+      .spyOn(StatusPageResourceService, "findByMonitors")
+      .mockResolvedValue([] as never);
+
+    const before: SubscriberNotificationPreviewBuild =
+      await preview(publicNote());
+
+    expect(before.nothingSentReason).toBe(
+      SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+    );
+    expect(before.statusPages).toEqual([]);
+
+    // Site 01 adds the incident's monitor.
+    jest
+      .spyOn(StatusPageResourceService, "findByMonitors")
+      .mockImplementation((async (data: {
+        monitorIds: Array<ObjectID>;
+      }): Promise<Array<StatusPageResource>> => {
+        if (
+          !data.monitorIds.some((id: ObjectID): boolean => {
+            return sameId(id, MONITOR_ID);
+          })
+        ) {
+          return [];
+        }
+
+        const resource: StatusPageResource = new StatusPageResource();
+        resource._id = "90000000-0000-4000-8000-000000000001";
+        resource.statusPageId = new ObjectID(SITE_1);
+        resource.displayName = "Checkout on Site 01";
+        return [resource];
+      }) as never);
+
+    const after: SubscriberNotificationPreviewBuild =
+      await preview(publicNote());
+
+    expect(after.nothingSentReason).toBeNull();
+    expect(pageIds(after)).toEqual([SITE_1]);
   });
 });
 
