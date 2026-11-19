@@ -143,6 +143,8 @@ flowchart TB
 | `/data-store/<id>/scan-now` | **立即掃描**：立即對資料儲存區的內容抽樣 |
 | `/data-store/<id>/check-now` | **立即檢查**：重新讀取資料儲存區的設定並執行其檢查 |
 | `/data-store-finding/<id>/scrub` | 遙測發現上的 **清除** |
+| `/data-store-finding/<id>/drop-metric-impact` | 對指標名稱中的發現執行 **捨棄此指標** 會捨棄什麼：多少個指標，以及讀取它們的監測器和儀表板 |
+| `/data-store-finding/<id>/drop-metric` | **捨棄此指標**：一條永久捨棄該服務這些指標新資料點的指標管道規則。它接受 `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | 問題上的 **用 AI 說明** |
 | `/data-security-issue/<id>/fix-with-ai` | 問題上的 **用 AI 修正** |
 | `/data-store/<id>/response-actions` | 資料儲存區目前可以執行哪些回應動作，以及不能執行的原因 |
