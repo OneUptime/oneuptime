@@ -327,28 +327,65 @@ describe("the docs on owners told after a stop part way", () => {
     expect(folders).toEqual([
       "AlertEpisodeOwners",
       "AlertOwners",
+      // Services, infrastructure, dashboards, workflows, runbooks, on-call (#9700).
+      "CephClusterOwners",
+      "CloudResourceOwners",
+      "DashboardOwners",
       // Data Observability's tables, pipelines and data stores (#9681).
       "DataAssetOwners",
       "DataPipelineOwners",
       "DataStoreOwners",
+      "DatabaseServerOwners",
+      "DockerHostOwners",
+      "DockerSwarmClusterOwners",
+      "HostOwners",
       "IncidentEpisodeOwners",
       "IncidentOwners",
+      "IncomingCallPolicyOwners",
+      "IoTFleetOwners",
+      "KubernetesClusterOwners",
+      "MessageQueueOwners",
       "MonitorOwners",
       "NetworkDeviceOwners",
+      "OnCallDutyPolicyOwners",
+      "OnCallDutyPolicyScheduleOwners",
+      "OpenStackCloudOwners",
+      "PodmanHostOwners",
+      "ProxmoxClusterOwners",
+      "RumApplicationOwners",
+      "RunbookOwners",
       "ScheduledMaintenanceOwners",
+      "ServerlessFunctionOwners",
+      "ServiceOwners",
       "SloOwners",
       "StatusPageOwners",
+      "StorageArrayOwners",
+      "VMwareVCenterOwners",
+      "WorkflowOwners",
     ]);
+
+    /*
+     * The 23 jobs of #9700 are each one call of the shared owner-added job
+     * (Workers/Utils/ResourceOwnersAdded), which resumes and tells each
+     * once for all of them.
+     */
+    const sharedJob: string = fs.readFileSync(
+      path.join(PACKAGES_ROOT, "App/FeatureSet/Workers/Utils/ResourceOwnersAdded.ts"),
+      "utf8",
+    );
 
     let jobs: number = 0;
 
     for (const folder of folders) {
       for (const file of fs.readdirSync(path.join(jobsRoot, folder))) {
         const job: string = file.replace(/\.ts$/, "");
-        const source: string = fs.readFileSync(
+        const ownSource: string = fs.readFileSync(
           path.join(jobsRoot, folder, file),
           "utf8",
         );
+        const source: string = ownSource.includes("runResourceOwnerAddedJob<")
+          ? sharedJob
+          : ownSource;
 
         jobs++;
 
@@ -380,7 +417,7 @@ describe("the docs on owners told after a stop part way", () => {
       }).toEqual({ job: file, resumes: true, tellsEachOnce: true });
     }
 
-    expect(jobs).toBe(38);
+    expect(jobs).toBe(61);
     // The incident and alert jobs among them, by name.
     expect(JOBS).toHaveLength(5);
 

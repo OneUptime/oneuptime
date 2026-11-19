@@ -135,3 +135,78 @@ describe("getOffProductOfServerWorkTable", () => {
     expect(getOff).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * #9700: the owner-added jobs of services, apps, infrastructure, dashboards,
+ * workflows, runbooks and on-call records wait while their products are
+ * switched off, by their owner table - the user and the team table of a
+ * record serving the same products. A cloud resource's are Cloud's and App
+ * Platforms' both, as its rows are.
+ */
+const OWNER_TABLE_PRODUCTS: ReadonlyArray<[string, Array<ProductKey>]> = [
+  ["ServiceOwner", [ProductKey.Services]],
+  ["DatabaseServerOwner", [ProductKey.Databases]],
+  ["MessageQueueOwner", [ProductKey.Queues]],
+  ["RumApplicationOwner", [ProductKey.Rum]],
+  ["HostOwner", [ProductKey.Hosts]],
+  ["KubernetesClusterOwner", [ProductKey.Kubernetes]],
+  ["DockerHostOwner", [ProductKey.Docker]],
+  ["DockerSwarmClusterOwner", [ProductKey.DockerSwarm]],
+  ["PodmanHostOwner", [ProductKey.Podman]],
+  ["ProxmoxClusterOwner", [ProductKey.Proxmox]],
+  ["OpenStackCloudOwner", [ProductKey.OpenStack]],
+  ["VMwareVCenterOwner", [ProductKey.VMware]],
+  ["CephClusterOwner", [ProductKey.Ceph]],
+  ["StorageArrayOwner", [ProductKey.StorageArrays]],
+  ["IoTFleetOwner", [ProductKey.IoT]],
+  ["CloudResourceOwner", [ProductKey.Cloud, ProductKey.AppPlatforms]],
+  ["ServerlessFunctionOwner", [ProductKey.Serverless]],
+  ["DashboardOwner", [ProductKey.Dashboards]],
+  ["WorkflowOwner", [ProductKey.Workflows]],
+  ["RunbookOwner", [ProductKey.Runbooks]],
+  ["OnCallDutyPolicyOwner", [ProductKey.OnCall]],
+  ["OnCallDutyPolicyScheduleOwner", [ProductKey.OnCall]],
+  ["IncomingCallPolicyOwner", [ProductKey.OnCall]],
+];
+
+describe("the owner rows the resource owner jobs tell of (#9700)", () => {
+  test.each(OWNER_TABLE_PRODUCTS)(
+    "%sUser and %sTeam serve their record's products",
+    (owner: string, products: Array<ProductKey>) => {
+      for (const table of [`${owner}User`, `${owner}Team`]) {
+        expect({
+          table,
+          products: [...getProductsOfRecordTable(table)].sort(),
+        }).toEqual({ table, products: [...products].sort() });
+      }
+    },
+  );
+
+  test.each(OWNER_TABLE_PRODUCTS)(
+    "%sUser waits once every product it serves is off, and not before",
+    async (owner: string, products: Array<ProductKey>) => {
+      for (const on of products) {
+        jest.restoreAllMocks();
+        switchOff(
+          products.filter((product: ProductKey): boolean => {
+            return product !== on;
+          }),
+        );
+
+        expect(
+          await ServerProducts.getOffProductOfServerWorkTable(`${owner}User`),
+        ).toBeNull();
+      }
+
+      jest.restoreAllMocks();
+      switchOff(products);
+
+      const off: { product: ProductKey; reason: ServerProductOffReason } | null =
+        await ServerProducts.getOffProductOfServerWorkTable(`${owner}User`);
+
+      expect(off).not.toBeNull();
+      expect(products).toContain(off!.product);
+      expect(off!.reason).toBe(ServerProductOffReason.SwitchedOff);
+    },
+  );
+});

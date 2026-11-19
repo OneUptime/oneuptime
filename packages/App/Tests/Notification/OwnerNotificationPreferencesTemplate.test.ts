@@ -52,6 +52,7 @@ const ownerTemplates: Array<EmailTemplateType> = [
   EmailTemplateType.DataAssetOwnerAdded,
   EmailTemplateType.DataPipelineOwnerAdded,
   EmailTemplateType.DataStoreOwnerAdded,
+  EmailTemplateType.ResourceOwnerAdded,
   EmailTemplateType.MonitorOwnerAdded,
   EmailTemplateType.IncidentOwnerAdded,
   EmailTemplateType.IncidentMemberAdded,
