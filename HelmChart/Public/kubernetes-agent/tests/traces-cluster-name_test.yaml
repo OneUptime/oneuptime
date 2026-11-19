@@ -69,7 +69,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n\\s*logs:\\n\\s*receivers:\\n\\s*- k8sobjects\\n\\s*processors:\\n\\s*- memory_limiter\\n\\s*- k8sattributes\\n\\s*- resource\\n"
+          pattern: "\\n\\s*logs:\\n\\s*receivers:\\n\\s*- k8sobjects\\n\\s*- k8sobjects/compliance\\n\\s*processors:\\n\\s*- memory_limiter\\n\\s*- k8sattributes\\n\\s*- resource\\n"
 
   - it: refuses to render at all without a cluster name
     set:

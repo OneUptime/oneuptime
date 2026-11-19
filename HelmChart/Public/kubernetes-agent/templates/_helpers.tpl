@@ -363,6 +363,32 @@ false
 {{- end -}}
 {{- end -}}
 
+{{/*
+Whether the cluster collector pulls what the CIS Kubernetes Benchmark's policy
+controls read, for the cluster's Compliance page: RBAC (Roles, ClusterRoles
+and their bindings), ServiceAccounts and NetworkPolicies, read-only, with the
+other resource specs (resourceSpecs.enabled). On unless
+resourceSpecs.compliance is false: a release upgraded with --reuse-values
+keeps the values of the chart it came from, which have no such key, and gets
+them too. The Pod Security Standards need none of it: they are scored from
+the pods the collector already pulls.
+
+They come from a k8sobjects receiver of their own with error_mode: ignore,
+which collector 0.125.0 added, so a cluster that refuses one of them (a
+service account of your own, without the rules templates/rbac.yaml grants)
+skips it instead of stopping the events and every other spec. An older
+collector leaves them out until it is upgraded.
+Usage: {{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.complianceObjectsEnabled" -}}
+{{- $specs := .Values.resourceSpecs | default dict -}}
+{{- if and $specs.enabled (or (not (hasKey $specs "compliance")) $specs.compliance) (eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.125.0")) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
 {{- define "kubernetes-agent.openshiftDetector" -}}
 resourcedetection/openshift:
   detectors: [openshift]

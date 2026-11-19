@@ -31,3 +31,6 @@ ebpf:
   extraSpanAttributes: null
   nodejs: null
   routes: null
+# 14.0.10 did not read RBAC, service accounts or network policies (#9627).
+resourceSpecs:
+  compliance: null
