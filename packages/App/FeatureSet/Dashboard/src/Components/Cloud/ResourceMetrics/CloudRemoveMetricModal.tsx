@@ -29,6 +29,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../../AppLink/AppLink";
+import { getMetricRecordingRulesRoute } from "../../Metrics/RecordingRule/RecordingRulesRoute";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
@@ -40,15 +41,16 @@ import {
  * REMOVING A METRIC SOMEONE ADDED TO WHAT A CLOUD CONNECTION READS, SAYING
  * FIRST WHAT IT LEAVES WITHOUT DATA (#9807).
  *
- * A Metrics monitor, a dashboard's widget or an SLO reads an added metric
- * as it reads a key metric. Removed, the connection stops reading it at
- * once, and they get no new data of it - a monitor has nothing to judge, a
- * chart goes flat. So Remove asks the server first which of them read it
- * (CloudResourceMetrics.readersOf) - of this resource, or of any resource
- * of its type for a type's addition - and names each, a link to it, before
- * anything is removed: "Remove Anyway" or "Keep Metric". With none, it is
- * an ordinary confirmation. A lookup that fails says so and still lets the
- * person remove it.
+ * A monitor, a dashboard's widget, an SLO or a recording rule reads an
+ * added metric as it reads a key metric. Removed, the connection stops
+ * reading it at once, and they get no new data of it - a monitor has
+ * nothing to judge, a chart goes flat. So Remove asks the server first
+ * which of them read it (CloudResourceMetrics.readersOf, the lookup Drop
+ * This Metric asks too) - of this resource, or of any resource of its type
+ * for a type's addition - and names each, a link to it, before anything is
+ * removed: "Remove Anyway" or "Keep Metric". With none, it is an ordinary
+ * confirmation. A lookup that fails says so and still lets the person
+ * remove it, and records that could not be checked are said to be.
  */
 export interface ComponentProps {
   cloudResourceId: ObjectID;
@@ -71,19 +73,19 @@ const READ_FOR_TYPE: PluralTemplate = {
     "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them.",
 };
 const READERS_GO_QUIET: PluralTemplate = {
-  one: "{{count}} monitor, dashboard or SLO reads it. Once it is removed, it gets no new data.",
+  one: "{{count}} monitor, dashboard, SLO or recording rule reads it. Once it is removed, it gets no new data.",
   other:
-    "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.",
+    "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
 };
 const HIDDEN_READERS: PluralTemplate = {
   one: "{{count}} more reads it that your role cannot open.",
   other: "{{count}} more read it that your role cannot open.",
 };
-const MAY_BE_MORE: string = translationKey(
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.",
+const UNCHECKED: string = translationKey(
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.",
 );
 const NO_READERS: string = translationKey(
-  "No monitor, dashboard or SLO reads it.",
+  "No monitor, dashboard, SLO or recording rule reads it.",
 );
 const STORED_STAYS: string = translationKey(
   "What it stored stays until its retention ends, and you can add it again from this list.",
@@ -92,19 +94,28 @@ const UNTITLED_WIDGET: string = translationKey("Untitled widget");
 const MONITORS: string = translationKey("Monitors");
 const DASHBOARDS: string = translationKey("Dashboards");
 const SLOS: string = translationKey("SLOs");
+const RECORDING_RULES: string = translationKey("Recording Rules");
 const REMOVE_ANYWAY: string = translationKey("Remove Anyway");
 const REMOVE_METRIC: string = translationKey("Remove Metric");
 const KEEP_METRIC: string = translationKey("Keep Metric");
 
-const KIND_ROUTES: Record<CloudAddedMetricReaderKind, PageMap> = {
+const KIND_ROUTES: Record<
+  Exclude<CloudAddedMetricReaderKind, CloudAddedMetricReaderKind.RecordingRule>,
+  PageMap
+> = {
   [CloudAddedMetricReaderKind.Monitor]: PageMap.MONITOR_VIEW,
   [CloudAddedMetricReaderKind.Dashboard]: PageMap.DASHBOARD_VIEW,
   [CloudAddedMetricReaderKind.Slo]: PageMap.SLO_VIEW,
 };
 
+// A reader's page: a recording rule has none, so its list, filtered to the metric it writes.
 export function getCloudAddedMetricReaderRoute(
-  reader: Pick<CloudAddedMetricReader, "kind" | "id">,
+  reader: Pick<CloudAddedMetricReader, "kind" | "id" | "outputMetricName">,
 ): Route {
+  if (reader.kind === CloudAddedMetricReaderKind.RecordingRule) {
+    return getMetricRecordingRulesRoute(reader.outputMetricName || undefined);
+  }
+
   return RouteUtil.populateRouteParams(
     RouteMap[KIND_ROUTES[reader.kind]] as Route,
     { modelId: new ObjectID(reader.id) },
@@ -210,6 +221,9 @@ const CloudRemoveMetricModal: FunctionComponent<ComponentProps> = (
   }, [props.cloudResourceId.toString(), key, readCount]);
 
   const count: number = readers ? readers.readers.length + readers.hidden : 0;
+  const isUnchecked: boolean = Boolean(readers?.uncheckedKinds.length);
+  // Something reads it, or may: removing it is then a choice to confirm.
+  const isAtRisk: boolean = count > 0 || isUnchecked;
 
   const remove: () => Promise<void> = async (): Promise<void> => {
     setIsRemoving(true);
@@ -270,6 +284,11 @@ const CloudRemoveMetricModal: FunctionComponent<ComponentProps> = (
           readers={readers.readers}
           kind={CloudAddedMetricReaderKind.Slo}
         />
+        <ReadersOfKind
+          title={RECORDING_RULES}
+          readers={readers.readers}
+          kind={CloudAddedMetricReaderKind.RecordingRule}
+        />
         {readers.hidden > 0 ? (
           <p className="text-sm text-gray-600">
             {translator.translatePlural(HIDDEN_READERS, readers.hidden)}
@@ -279,6 +298,9 @@ const CloudRemoveMetricModal: FunctionComponent<ComponentProps> = (
         )}
       </div>
     );
+  } else if (isUnchecked) {
+    // Said below: whether anything reads it is not known.
+    body = <></>;
   } else {
     body = (
       <p
@@ -294,9 +316,9 @@ const CloudRemoveMetricModal: FunctionComponent<ComponentProps> = (
     <Modal
       title={translator.translateTemplate(TITLE, { metric: name })}
       isTitleTranslated={true}
-      submitButtonText={count > 0 ? REMOVE_ANYWAY : REMOVE_METRIC}
+      submitButtonText={isAtRisk ? REMOVE_ANYWAY : REMOVE_METRIC}
       submitButtonStyleType={ButtonStyleType.DANGER}
-      closeButtonText={count > 0 ? KEEP_METRIC : undefined}
+      closeButtonText={isAtRisk ? KEEP_METRIC : undefined}
       onSubmit={() => {
         void remove();
       }}
@@ -322,9 +344,12 @@ const CloudRemoveMetricModal: FunctionComponent<ComponentProps> = (
           <></>
         )}
         {body}
-        {readers?.isCapped ? (
-          <p className="text-sm text-gray-600">
-            {translator.translateText(MAY_BE_MORE)}
+        {isUnchecked ? (
+          <p
+            className="text-sm text-gray-600"
+            data-testid="cloud-remove-metric-unchecked"
+          >
+            {translator.translateText(UNCHECKED)}
           </p>
         ) : (
           <></>

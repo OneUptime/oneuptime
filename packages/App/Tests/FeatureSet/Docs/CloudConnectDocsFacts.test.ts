@@ -1032,7 +1032,7 @@ describe("Connect a Cloud Account", () => {
       `as a series for each value, up to ${CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES} for each resource`,
     );
     expect(paragraph).toContain(
-      "**Remove** first names the monitors, dashboard widgets and SLOs that read the metric",
+      "**Remove** first names the monitors, dashboard widgets, SLOs and recording rules that read the metric",
     );
 
     // The tab, the card and its button, as the Dashboard names them.

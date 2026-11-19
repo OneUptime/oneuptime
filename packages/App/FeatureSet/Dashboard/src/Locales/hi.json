@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "इसे हर उस {{type}} के लिए पढ़ा जाता है जिसे यह कनेक्शन पढ़ता है ({{count}}), इसलिए इसे हटाने पर उसके लिए भी इसका पढ़ना बंद हो जाएगा।",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "इसका क्लाउड इसे केवल बाँटकर पढ़ता है। हर मान के लिए एक सीरीज़ (हर संसाधन के लिए अधिकतम {{max}}), जिसका चार्ट बनाया जा सकता है और जिस पर अलर्ट लगाया जा सकता है।",
   "Keep Metric": "मेट्रिक रखें",
-  "No monitor, dashboard or SLO reads it.": "कोई मॉनिटर, डैशबोर्ड या SLO इसे नहीं पढ़ता।",
   "Remove Anyway": "फिर भी हटाएं",
   "Remove Metric": "मेट्रिक हटाएं",
   "Remove {{metric}}?": "{{metric}} हटाएं?",
   "Split by {{dimension}}, a series for each value": "{{dimension}} के अनुसार बँटा हुआ, हर मान के लिए एक सीरीज़",
   "The metric was not removed.": "मेट्रिक नहीं हटाया गया।",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "और भी हो सकते हैं: इसका नाम लेने वाले केवल पहले 500 मॉनिटर, डैशबोर्ड और SLO जाँचे गए।",
   "Untitled widget": "बिना शीर्षक का विजेट",
   "What it stored stays until its retention ends, and you can add it again from this list.": "इसने जो संग्रहीत किया है, वह इसकी रिटेंशन अवधि खत्म होने तक रहेगा, और आप इसे इस सूची से फिर से जोड़ सकते हैं।",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "{{count}} मॉनिटर, डैशबोर्ड और SLO इसे पढ़ते हैं। इसे हटाने के बाद उन्हें कोई नया डेटा नहीं मिलेगा।",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "{{count}} मॉनिटर, डैशबोर्ड या SLO इसे पढ़ता है। इसे हटाने के बाद उसे कोई नया डेटा नहीं मिलेगा।",
   "{{count}} more read it that your role cannot open.": "{{count}} और इसे पढ़ते हैं, जिन्हें आपकी भूमिका नहीं खोल सकती।",
-  "{{count}} more read it that your role cannot open._one": "{{count}} और इसे पढ़ता है, जिसे आपकी भूमिका नहीं खोल सकती।"
+  "{{count}} more read it that your role cannot open._one": "{{count}} और इसे पढ़ता है, जिसे आपकी भूमिका नहीं खोल सकती।",
+  "No monitor, dashboard, SLO or recording rule reads it.": "कोई मॉनिटर, डैशबोर्ड, SLO या रिकॉर्डिंग नियम इसे नहीं पढ़ता।",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "कुछ मॉनिटर, डैशबोर्ड, SLO या रिकॉर्डिंग नियम अभी जाँचे नहीं जा सके, और वे इसे पढ़ सकते हैं।",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} मॉनिटर, डैशबोर्ड, SLO और रिकॉर्डिंग नियम इसे पढ़ते हैं। इसे हटाने के बाद उन्हें कोई नया डेटा नहीं मिलेगा।",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} मॉनिटर, डैशबोर्ड, SLO या रिकॉर्डिंग नियम इसे पढ़ता है। इसे हटाने के बाद उसे कोई नया डेटा नहीं मिलेगा।"
 }

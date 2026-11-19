@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "Det läses för varje {{type}} som den här anslutningen läser ({{count}}), så om du tar bort det slutar det läsas även för den.",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "Molnet läser det bara uppdelat. En serie per värde, upp till {{max}} per resurs, att visa i diagram och skapa larm för.",
   "Keep Metric": "Behåll mätvärde",
-  "No monitor, dashboard or SLO reads it.": "Ingen monitor, instrumentpanel eller SLO läser det.",
   "Remove Anyway": "Ta bort ändå",
   "Remove Metric": "Ta bort mätvärde",
   "Remove {{metric}}?": "Ta bort {{metric}}?",
   "Split by {{dimension}}, a series for each value": "Uppdelat efter {{dimension}}, en serie per värde",
   "The metric was not removed.": "Mätvärdet togs inte bort.",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "Det kan finnas fler: bara de första 500 monitorerna, instrumentpanelerna och SLO:erna som nämner det kontrollerades.",
   "Untitled widget": "Widget utan titel",
   "What it stored stays until its retention ends, and you can add it again from this list.": "Det som det har lagrat finns kvar tills lagringstiden löper ut, och du kan lägga till det igen från den här listan.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "{{count}} monitorer, instrumentpaneler och SLO:er läser det. När det har tagits bort får de inga nya data.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "{{count}} monitor, instrumentpanel eller SLO läser det. När det har tagits bort kommer inga nya data in.",
   "{{count}} more read it that your role cannot open.": "Det läses också av {{count}} till som din roll inte kan öppna.",
-  "{{count}} more read it that your role cannot open._one": "Det läses också av {{count}} till som din roll inte kan öppna."
+  "{{count}} more read it that your role cannot open._one": "Det läses också av {{count}} till som din roll inte kan öppna.",
+  "No monitor, dashboard, SLO or recording rule reads it.": "Ingen monitor, instrumentpanel, SLO eller inspelningsregel läser det.",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Vissa monitorer, instrumentpaneler, SLO:er eller inspelningsregler kunde inte kontrolleras just nu och kan läsa det.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitorer, instrumentpaneler, SLO:er och inspelningsregler läser det. När det har tagits bort får de inga nya data.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, instrumentpanel, SLO eller inspelningsregel läser det. När det har tagits bort kommer inga nya data in."
 }

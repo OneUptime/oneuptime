@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "يُقرأ لكل مورد من نوع {{type}} يقرؤه هذا الاتصال ({{count}})، لذا تُوقف إزالته قراءته لهذا المورد أيضًا.",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "لا تقرؤه سحابته إلا مقسّمًا. سلسلة لكل قيمة، حتى {{max}} لكل مورد، لعرضها في مخطط والتنبيه عليها.",
   "Keep Metric": "الإبقاء على المقياس",
-  "No monitor, dashboard or SLO reads it.": "لا تقرؤه أي مراقبة أو لوحة معلومات أو هدف SLO.",
   "Remove Anyway": "الإزالة على أي حال",
   "Remove Metric": "إزالة المقياس",
   "Remove {{metric}}?": "إزالة {{metric}}؟",
   "Split by {{dimension}}, a series for each value": "مقسّم حسب {{dimension}}، سلسلة لكل قيمة",
   "The metric was not removed.": "لم تتم إزالة المقياس.",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "قد يكون هناك المزيد: لم تُفحص إلا أول 500 من المراقبات ولوحات المعلومات وأهداف SLO التي تذكره.",
   "Untitled widget": "عنصر واجهة بلا عنوان",
   "What it stored stays until its retention ends, and you can add it again from this list.": "يبقى ما خزّنه حتى تنتهي مدة الاحتفاظ به، ويمكنك إضافته من جديد من هذه القائمة.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "تقرؤه {{count}} من المراقبات ولوحات المعلومات وأهداف SLO. وبعد إزالته لن تتلقى بيانات جديدة.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "يقرؤه {{count}} من المراقبات أو لوحات المعلومات أو أهداف SLO. وبعد إزالته لن يتلقى بيانات جديدة.",
   "{{count}} more read it that your role cannot open.": "تقرؤه {{count}} من العناصر الأخرى التي لا يستطيع دورك فتحها.",
-  "{{count}} more read it that your role cannot open._one": "يقرؤه {{count}} عنصر آخر لا يستطيع دورك فتحه."
+  "{{count}} more read it that your role cannot open._one": "يقرؤه {{count}} عنصر آخر لا يستطيع دورك فتحه.",
+  "No monitor, dashboard, SLO or recording rule reads it.": "لا تقرؤه أي مراقبة أو لوحة معلومات أو هدف SLO أو قاعدة تسجيل.",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "تعذّر التحقق الآن من بعض المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل، وقد تقرؤه.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "تقرؤه {{count}} من المراقبات ولوحات المعلومات وأهداف SLO وقواعد التسجيل. وبعد إزالته لن تتلقى بيانات جديدة.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "يقرؤه {{count}} من المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل. وبعد إزالته لن يتلقى بيانات جديدة."
 }

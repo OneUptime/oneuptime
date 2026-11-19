@@ -1,6 +1,5 @@
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
-  CLOUD_ADDED_METRIC_READERS_MAX_ROWS,
   CloudAddedMetricReader,
   CloudAddedMetricReaderKind,
   CloudAddedMetricReaders,
@@ -12,61 +11,58 @@ import {
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import ObjectID from "../../../Types/ObjectID";
 import {
-  MetricNameClassifier,
-  MetricQueryRead,
-  namedMetric,
-  readDashboardMetricQueries,
-  readMonitorStepsMetricQueries,
-  readSloMetricQuery,
-} from "../../../Utils/Metrics/SavedMetricQueryReads";
-import QueryHelper from "../../Types/Database/QueryHelper";
-import DashboardService from "../../Services/DashboardService";
-import MonitorService from "../../Services/MonitorService";
-import ServiceLevelObjectiveService from "../../Services/ServiceLevelObjectiveService";
-import logger from "../Logger";
-import {
-  SavedMetricQueryRow,
-  SavedMetricQueryRows,
-  findSavedMetricQueryRows,
-  getContainsPattern,
-} from "./CloudSavedMetricQueries";
+  findMetricReaders,
+  MetricNameReference,
+  MetricReader,
+  MetricReaderKind,
+  MetricReaders,
+  MetricReadersOfKind,
+  MetricReaderWidget,
+} from "../Telemetry/MetricReaders";
 
 /*
- * WHICH MONITORS, DASHBOARD WIDGETS AND SLOS READ AN ADDED METRIC (#9807).
+ * WHAT READS AN ADDED CLOUD METRIC, SAID BEFORE IT IS REMOVED (#9807).
  *
- * The project's rows whose JSON names the metric's stored name
- * (CloudSavedMetricQueries, the lookup the deprecated metrics' reads use),
- * then each query of it in them (SavedMetricQueryReads). A query reads the
- * metric of what its filter names: of one resource, which the caller says
- * is one the removal stops reading it for or not (`readsResource`), or -
- * a filter that names none, every resource's - of all of them, these
- * among them. Only the monitors, dashboards and SLOs the asker may read are
- * named; the rest are counted.
+ * The records that read a metric are found by the lookup every change that
+ * takes a metric away asks (Telemetry/MetricReaders): monitors, dashboards
+ * widget by widget, Metric SLOs and metric recording rules, named where the
+ * asker may read them and counted where they may not. Here it is asked
+ * which of their queries read this metric's points once it stops being
+ * read: its stored name, of the connection's service - the one its points
+ * are stored under - or of every service, and of a resource its removal
+ * stops reading it for, or of every resource (a filter that names none).
  */
+
+const READER_KINDS: ReadonlyArray<{
+  from: MetricReaderKind;
+  kind: CloudAddedMetricReaderKind;
+}> = [
+  { from: MetricReaderKind.Monitor, kind: CloudAddedMetricReaderKind.Monitor },
+  {
+    from: MetricReaderKind.Dashboard,
+    kind: CloudAddedMetricReaderKind.Dashboard,
+  },
+  {
+    from: MetricReaderKind.ServiceLevelObjective,
+    kind: CloudAddedMetricReaderKind.Slo,
+  },
+  {
+    from: MetricReaderKind.MetricRecordingRule,
+    kind: CloudAddedMetricReaderKind.RecordingRule,
+  },
+];
 
 /*
  * The one resource a query's filter names, or null when it names none: a
- * filter of every resource, or of attributes no resource is known by.
+ * filter of every resource, of attributes no resource is known by, or one
+ * whose values are not all text (an operator, a list).
  */
 export function getNamedCloudResource(
-  read: Pick<MetricQueryRead<unknown>, "metricName" | "attributes">,
+  reference: Pick<MetricNameReference, "metricName" | "attributes">,
 ): CloudMonitoredResource | null {
-  const attributes: unknown = read.attributes;
-
-  if (
-    !attributes ||
-    typeof attributes !== "object" ||
-    Array.isArray(attributes)
-  ) {
-    return null;
-  }
-
   const text: Record<string, string> = {};
 
-  for (const [key, value] of Object.entries(
-    attributes as Record<string, unknown>,
-  )) {
-    // A value that is no text (an operator, a list) names no one resource.
+  for (const [key, value] of Object.entries(reference.attributes || {})) {
     if (typeof value !== "string") {
       return null;
     }
@@ -79,158 +75,75 @@ export function getNamedCloudResource(
   }
 
   return resolveCloudMonitoredResource({
-    metricName: read.metricName,
+    metricName: reference.metricName,
     attributes: text,
   });
 }
 
 /*
- * Whether a query reads the metric of a resource the removal stops reading
- * it for: a query that names none reads every resource's.
+ * Whether a query reads the added metric of what its removal stops reading:
+ * its stored name (whatever its case, or the spaces around it), of the
+ * connection's service or every service, and of an affected resource or of
+ * every resource. A connection that has no service yet stores nothing, so
+ * a query of any service is taken to read it.
  */
-function readsAffected(
-  read: MetricQueryRead<unknown>,
-  readsResource: (resource: CloudMonitoredResource) => boolean,
+export function readsCloudAddedMetric(
+  reference: MetricNameReference,
+  data: {
+    storedName: string;
+    serviceId: string | null;
+    readsResource: (resource: CloudMonitoredResource) => boolean;
+  },
 ): boolean {
-  const resource: CloudMonitoredResource | null = getNamedCloudResource(read);
+  if (
+    reference.metricName.trim().toLowerCase() !==
+    data.storedName.trim().toLowerCase()
+  ) {
+    return false;
+  }
 
-  return !resource || readsResource(resource);
+  if (
+    reference.serviceIds &&
+    data.serviceId &&
+    !reference.serviceIds.includes(data.serviceId.toLowerCase())
+  ) {
+    return false;
+  }
+
+  const resource: CloudMonitoredResource | null =
+    getNamedCloudResource(reference);
+
+  return !resource || data.readsResource(resource);
 }
 
-interface Found {
-  kind: CloudAddedMetricReaderKind;
-  row: SavedMetricQueryRow;
-  widgets: Array<string>;
-}
-
-// The rows' queries of the metric that read it of an affected resource, each row once.
-export function findCloudAddedMetricReadersInRows(data: {
-  rows: SavedMetricQueryRows;
-  storedName: string;
-  readsResource: (resource: CloudMonitoredResource) => boolean;
-}): Array<Found> {
-  const classify: MetricNameClassifier<true> = namedMetric(data.storedName);
-  const found: Array<Found> = [];
-  const affected: (read: MetricQueryRead<true>) => boolean = (
-    read: MetricQueryRead<true>,
-  ): boolean => {
-    return readsAffected(read, data.readsResource);
+function toCloudReader(
+  kind: CloudAddedMetricReaderKind,
+  reader: MetricReader,
+): CloudAddedMetricReader {
+  const found: CloudAddedMetricReader = {
+    kind,
+    id: reader.id,
+    name: reader.name,
+    widgets: (reader.widgets || []).map(
+      (widget: MetricReaderWidget): string => {
+        return widget.title;
+      },
+    ),
   };
 
-  for (const row of data.rows.monitors) {
-    if (
-      row.id &&
-      readMonitorStepsMetricQueries(row.json, classify).some(affected)
-    ) {
-      found.push({
-        kind: CloudAddedMetricReaderKind.Monitor,
-        row,
-        widgets: [],
-      });
-    }
-  }
-
-  for (const row of data.rows.dashboards) {
-    const widgets: Map<string, string> = new Map<string, string>();
-
-    for (const read of readDashboardMetricQueries(row.json, classify)) {
-      if (affected(read)) {
-        // A widget once, however many of its queries read it.
-        widgets.set(
-          read.widget?.componentId || `widget-${widgets.size}`,
-          read.widget?.title || "",
-        );
-      }
-    }
-
-    if (row.id && widgets.size > 0) {
-      found.push({
-        kind: CloudAddedMetricReaderKind.Dashboard,
-        row,
-        widgets: Array.from(widgets.values()),
-      });
-    }
-  }
-
-  for (const row of data.rows.slos) {
-    const read: MetricQueryRead<true> | null = readSloMetricQuery(
-      row.json,
-      classify,
-    );
-
-    if (row.id && read && affected(read)) {
-      found.push({ kind: CloudAddedMetricReaderKind.Slo, row, widgets: [] });
-    }
+  if (reader.outputMetricName) {
+    found.outputMetricName = reader.outputMetricName;
   }
 
   return found;
-}
-
-/*
- * Of `ids`, the ones the asker may read of a kind: none when their role may
- * read none of it.
- */
-async function readableIds(data: {
-  kind: CloudAddedMetricReaderKind;
-  ids: Array<string>;
-  projectId: ObjectID;
-  props: DatabaseCommonInteractionProps;
-}): Promise<Set<string>> {
-  const readable: Set<string> = new Set<string>();
-
-  if (data.ids.length === 0) {
-    return readable;
-  }
-
-  const query: Record<string, unknown> = {
-    _id: QueryHelper.any(
-      data.ids.map((id: string): ObjectID => {
-        return new ObjectID(id);
-      }),
-    ),
-    projectId: data.projectId,
-  };
-  const find: {
-    query: never;
-    select: never;
-    skip: number;
-    limit: number;
-    props: DatabaseCommonInteractionProps;
-  } = {
-    query: query as never,
-    select: { _id: true } as never,
-    skip: 0,
-    limit: data.ids.length,
-    props: data.props,
-  };
-
-  try {
-    const rows: Array<{ id?: ObjectID | null }> =
-      data.kind === CloudAddedMetricReaderKind.Monitor
-        ? await MonitorService.findBy(find)
-        : data.kind === CloudAddedMetricReaderKind.Dashboard
-          ? await DashboardService.findBy(find)
-          : await ServiceLevelObjectiveService.findBy(find);
-
-    for (const row of rows) {
-      if (row.id) {
-        readable.add(row.id.toString());
-      }
-    }
-  } catch (error) {
-    logger.debug(
-      `CloudAddedMetricReaders: the ${data.kind} rows of project ${data.projectId.toString()} could not be read for this asker:`,
-    );
-    logger.debug(error);
-  }
-
-  return readable;
 }
 
 export async function findCloudAddedMetricReaders(data: {
   projectId: ObjectID;
   // The name the metric is stored under (getCloudAddedMetricStoredName).
   storedName: string;
+  // The service the connection stores its metrics under; null when it has none yet.
+  serviceId: string | null;
   /*
    * Whether a resource a query names is one the removal stops reading the
    * metric for: the resource, or one of its type the connection reads.
@@ -238,54 +151,34 @@ export async function findCloudAddedMetricReaders(data: {
   readsResource: (resource: CloudMonitoredResource) => boolean;
   props: DatabaseCommonInteractionProps;
 }): Promise<CloudAddedMetricReaders> {
-  const rows: SavedMetricQueryRows = await findSavedMetricQueryRows({
+  const found: MetricReaders = await findMetricReaders({
     projectId: data.projectId,
-    namePatterns: [getContainsPattern(data.storedName)],
-    limit: CLOUD_ADDED_METRIC_READERS_MAX_ROWS,
-    includeSlos: true,
-  });
-  const found: Array<Found> = findCloudAddedMetricReadersInRows({
-    rows,
-    storedName: data.storedName,
-    readsResource: data.readsResource,
+    reads: (reference: MetricNameReference): boolean => {
+      return readsCloudAddedMetric(reference, data);
+    },
+    props: data.props,
   });
   const readers: Array<CloudAddedMetricReader> = [];
+  const uncheckedKinds: Array<CloudAddedMetricReaderKind> = [];
   let hidden: number = 0;
 
-  for (const kind of Object.values(CloudAddedMetricReaderKind)) {
-    const ofKind: Array<Found> = found.filter((entry: Found): boolean => {
-      return entry.kind === kind;
-    });
-    const readable: Set<string> = await readableIds({
-      kind,
-      ids: ofKind.map((entry: Found): string => {
-        return entry.row.id;
-      }),
-      projectId: data.projectId,
-      props: data.props,
-    });
+  for (const { from, kind } of READER_KINDS) {
+    const ofKind: MetricReadersOfKind = found[from];
 
-    for (const entry of ofKind) {
-      if (!readable.has(entry.row.id)) {
-        hidden++;
-        continue;
-      }
+    if (!ofKind.isChecked) {
+      uncheckedKinds.push(kind);
+    }
 
-      readers.push({
-        kind,
-        id: entry.row.id,
-        name: entry.row.name,
-        widgets: entry.widgets,
-      });
+    hidden += ofKind.hiddenCount;
+
+    for (const reader of ofKind.readers) {
+      readers.push(toCloudReader(kind, reader));
     }
   }
 
   return {
     readers: sortCloudAddedMetricReaders(readers),
     hidden,
-    isCapped:
-      rows.monitors.length >= CLOUD_ADDED_METRIC_READERS_MAX_ROWS ||
-      rows.dashboards.length >= CLOUD_ADDED_METRIC_READERS_MAX_ROWS ||
-      rows.slos.length >= CLOUD_ADDED_METRIC_READERS_MAX_ROWS,
+    uncheckedKinds,
   };
 }

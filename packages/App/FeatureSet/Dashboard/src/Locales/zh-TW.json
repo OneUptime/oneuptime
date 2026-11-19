@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "此連線讀取的所有 {{type}}（{{count}}）都會讀取此指標，因此移除後，它們都將停止讀取此指標。",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "其雲端只允許拆分後讀取此指標。每個值一個序列，每個資源最多 {{max}} 個，可用於繪製圖表和設定警示。",
   "Keep Metric": "保留指標",
-  "No monitor, dashboard or SLO reads it.": "沒有監測器、儀表板或 SLO 讀取此指標。",
   "Remove Anyway": "仍要移除",
   "Remove Metric": "移除指標",
   "Remove {{metric}}?": "移除 {{metric}}？",
   "Split by {{dimension}}, a series for each value": "依 {{dimension}} 拆分，每個值一個序列",
   "The metric was not removed.": "指標未移除。",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "可能還有更多：只檢查了引用此指標的前 500 個監測器、儀表板和 SLO。",
   "Untitled widget": "未命名小工具",
   "What it stored stays until its retention ends, and you can add it again from this list.": "已儲存的資料會保留到保留期結束，也可以從此清單再次新增。",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "{{count}} 個監測器、儀表板和 SLO 讀取此指標。移除後，它們將不再取得新資料。",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "{{count}} 個監測器、儀表板和 SLO 讀取此指標。移除後，它們將不再取得新資料。",
   "{{count}} more read it that your role cannot open.": "另有 {{count}} 個讀取此指標，但你的角色無法開啟。",
-  "{{count}} more read it that your role cannot open._one": "另有 {{count}} 個讀取此指標，但你的角色無法開啟。"
+  "{{count}} more read it that your role cannot open._one": "另有 {{count}} 個讀取此指標，但你的角色無法開啟。",
+  "No monitor, dashboard, SLO or recording rule reads it.": "沒有監測器、儀表板、SLO 或記錄規則讀取此指標。",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "部分監測器、儀表板、SLO 或記錄規則暫時無法檢查，它們可能讀取此指標。",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} 個監測器、儀表板、SLO 和記錄規則讀取此指標。移除後，它們將不再取得新資料。",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 個監測器、儀表板、SLO 和記錄規則讀取此指標。移除後，它們將不再取得新資料。"
 }

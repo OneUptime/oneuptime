@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "Ela é lida para cada {{type}} que esta conexão lê ({{count}}), então removê-la interrompe a leitura também para esse recurso.",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "A nuvem só a lê dividida. Uma série para cada valor, até {{max}} por recurso, para exibir em gráfico e criar alertas.",
   "Keep Metric": "Manter métrica",
-  "No monitor, dashboard or SLO reads it.": "Nenhum monitor, painel ou SLO a lê.",
   "Remove Anyway": "Remover mesmo assim",
   "Remove Metric": "Remover métrica",
   "Remove {{metric}}?": "Remover {{metric}}?",
   "Split by {{dimension}}, a series for each value": "Dividida por {{dimension}}, uma série para cada valor",
   "The metric was not removed.": "A métrica não foi removida.",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "Pode haver mais: somente os primeiros 500 monitores, painéis e SLOs que a citam foram verificados.",
   "Untitled widget": "Widget sem título",
   "What it stored stays until its retention ends, and you can add it again from this list.": "O que ela armazenou permanece até o fim da retenção, e você pode adicioná-la novamente a partir desta lista.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "{{count}} monitores, painéis e SLOs a leem. Depois que ela for removida, eles deixam de receber dados novos.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "{{count}} monitor, painel ou SLO a lê. Depois que ela for removida, ele deixa de receber dados novos.",
   "{{count}} more read it that your role cannot open.": "Mais {{count}} a leem, mas a sua função não pode abri-los.",
-  "{{count}} more read it that your role cannot open._one": "Mais {{count}} a lê, mas a sua função não pode abri-lo."
+  "{{count}} more read it that your role cannot open._one": "Mais {{count}} a lê, mas a sua função não pode abri-lo.",
+  "No monitor, dashboard, SLO or recording rule reads it.": "Nenhum monitor, painel, SLO ou regra de gravação a lê.",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Não foi possível verificar agora alguns monitores, painéis, SLOs ou regras de gravação, que podem lê-la.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitores, painéis, SLOs e regras de gravação a leem. Depois que ela for removida, eles deixam de receber dados novos.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, painel, SLO ou regra de gravação a lê. Depois que ela for removida, deixam de chegar dados novos."
 }

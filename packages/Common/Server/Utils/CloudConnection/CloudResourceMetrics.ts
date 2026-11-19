@@ -220,6 +220,7 @@ const CONNECTION_SELECT: JSONObject = {
   config: true,
   secrets: true,
   isEnabled: true,
+  serviceId: true,
   pullState: true,
   addedMetrics: true,
   lastPullResult: true,
@@ -1551,10 +1552,11 @@ export default class CloudResourceMetrics {
 
   /*
    * What reads one of the additions that apply to the resource, by its key
-   * (#9807): the Metrics monitors, dashboard widgets and SLOs whose queries
-   * read its stored name of a resource its removal stops reading it for -
-   * this one, or, for a type's addition, any of its type the connection
-   * reads - or of every resource. Named only where the asker may read them.
+   * (#9807): the monitors, dashboard widgets, SLOs and recording rules whose
+   * queries read its stored name, of the connection's service, of a
+   * resource its removal stops reading it for - this one, or, for a type's
+   * addition, any of its type the connection reads - or of every resource.
+   * Named only where the asker may read them.
    */
   public static async readersOf(data: {
     projectId: ObjectID;
@@ -1599,6 +1601,7 @@ export default class CloudResourceMetrics {
     return await findCloudAddedMetricReaders({
       projectId: data.projectId,
       storedName: getCloudAddedMetricStoredName(addition),
+      serviceId: target.connection.serviceId?.toString() || null,
       readsResource: (resource: CloudMonitoredResource): boolean => {
         return identifiers.has(
           buildCloudMonitoredResourceIdentifier(resource).toLowerCase(),

@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "Den leses for hver {{type}} denne tilkoblingen leser ({{count}}), så hvis du fjerner den, stopper lesingen også for den ene.",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "Skyen leser den bare delt opp. Én serie per verdi, opptil {{max}} per ressurs, som du kan vise i diagrammer og varsle på.",
   "Keep Metric": "Behold måling",
-  "No monitor, dashboard or SLO reads it.": "Ingen monitor, dashbord eller SLO leser den.",
   "Remove Anyway": "Fjern likevel",
   "Remove Metric": "Fjern måling",
   "Remove {{metric}}?": "Fjerne {{metric}}?",
   "Split by {{dimension}}, a series for each value": "Delt opp etter {{dimension}}, én serie per verdi",
   "The metric was not removed.": "Målingen ble ikke fjernet.",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "Det kan finnes flere: bare de første 500 monitorene, dashbordene og SLO-ene som nevner den, ble kontrollert.",
   "Untitled widget": "Widget uten tittel",
   "What it stored stays until its retention ends, and you can add it again from this list.": "Det den har lagret, blir værende til oppbevaringstiden er ute, og du kan legge den til igjen fra denne listen.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "{{count}} monitorer, dashbord og SLO-er leser den. Når den er fjernet, får de ingen nye data.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashbord eller SLO leser den. Når den er fjernet, kommer det ingen nye data.",
   "{{count}} more read it that your role cannot open.": "Den leses også av {{count}} til som rollen din ikke kan åpne.",
-  "{{count}} more read it that your role cannot open._one": "Den leses også av {{count}} til som rollen din ikke kan åpne."
+  "{{count}} more read it that your role cannot open._one": "Den leses også av {{count}} til som rollen din ikke kan åpne.",
+  "No monitor, dashboard, SLO or recording rule reads it.": "Ingen monitor, dashbord, SLO eller opptaksregel leser den.",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Noen monitorer, dashbord, SLO-er eller opptaksregler kunne ikke kontrolleres akkurat nå og kan lese den.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitorer, dashbord, SLO-er og opptaksregler leser den. Når den er fjernet, får de ingen nye data.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashbord, SLO eller opptaksregel leser den. Når den er fjernet, kommer det ingen nye data."
 }

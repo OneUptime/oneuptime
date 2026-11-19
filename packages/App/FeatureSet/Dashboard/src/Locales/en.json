@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for that one too.",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.",
   "Keep Metric": "Keep Metric",
-  "No monitor, dashboard or SLO reads it.": "No monitor, dashboard or SLO reads it.",
   "Remove Anyway": "Remove Anyway",
   "Remove Metric": "Remove Metric",
   "Remove {{metric}}?": "Remove {{metric}}?",
   "Split by {{dimension}}, a series for each value": "Split by {{dimension}}, a series for each value",
   "The metric was not removed.": "The metric was not removed.",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.",
   "Untitled widget": "Untitled widget",
   "What it stored stays until its retention ends, and you can add it again from this list.": "What it stored stays until its retention ends, and you can add it again from this list.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard or SLO reads it. Once it is removed, it gets no new data.",
   "{{count}} more read it that your role cannot open.": "{{count}} more read it that your role cannot open.",
-  "{{count}} more read it that your role cannot open._one": "{{count}} more reads it that your role cannot open."
+  "{{count}} more read it that your role cannot open._one": "{{count}} more reads it that your role cannot open.",
+  "No monitor, dashboard, SLO or recording rule reads it.": "No monitor, dashboard, SLO or recording rule reads it.",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO or recording rule reads it. Once it is removed, it gets no new data."
 }

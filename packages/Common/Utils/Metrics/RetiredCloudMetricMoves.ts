@@ -1,23 +1,6 @@
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
+import { CheckOn, FilterType } from "../../Types/Monitor/CriteriaFilter";
 import MetricFormulaEvaluator from "./MetricFormulaEvaluator";
-import {
-  MetricQueryFormula,
-  MetricQueryRead,
-  MetricQuerySlot,
-  MetricQueryThreshold,
-  UnknownRecord,
-  asArray,
-  asRecord,
-  getFilterData,
-  getMetricQueryFormulas,
-  getMetricVariable,
-  readMetricQueryConfig,
-  readMonitorStepsMetricQueries,
-} from "./SavedMetricQueryReads";
-
-// Shared with every reader of saved metric queries (SavedMetricQueryReads).
-export type { UnknownRecord };
-export { asArray, asRecord, getFilterData, getMetricVariable };
 
 /*
  * MONITORS MOVED OFF THE METRICS THEIR CLOUDS DEPRECATE (#9739).
@@ -93,6 +76,18 @@ export enum CosmosConnectionMode {
 const COSMOS_SERVER_SIDE_LATENCY: RegExp =
   /^azure_serversidelatency_(average|total|maximum|minimum|count)$/;
 
+// The filters whose value is a threshold in the metric's own unit.
+const THRESHOLD_FILTER_TYPES: ReadonlySet<string> = new Set<string>([
+  FilterType.GreaterThan,
+  FilterType.LessThan,
+  FilterType.GreaterThanOrEqualTo,
+  FilterType.LessThanOrEqualTo,
+  FilterType.EqualTo,
+  FilterType.NotEqualTo,
+  FilterType.ForecastAbove,
+  FilterType.ForecastBelow,
+]);
+
 // A formula's characters, as the evaluator's tokenizer reads them.
 const DIGIT_OR_POINT: RegExp = /^[0-9.]$/;
 const IDENTIFIER_START: RegExp = /^[A-Za-z_]$/;
@@ -163,6 +158,33 @@ export interface CosmosLatencyEvidence {
   directPoints: number;
   gatewayPoints: number;
   isGatewayOnly?: boolean | undefined;
+}
+
+export type UnknownRecord = Record<string, unknown>;
+
+export function asRecord(value: unknown): UnknownRecord | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as UnknownRecord)
+    : undefined;
+}
+
+export function asArray(value: unknown): Array<unknown> {
+  return Array.isArray(value) ? value : [];
+}
+
+// A query's filterData, the object its metric and aggregation live on.
+export function getFilterData(query: unknown): UnknownRecord | undefined {
+  return asRecord(
+    asRecord(asRecord(query)?.["metricQueryData"])?.["filterData"],
+  );
+}
+
+export function getMetricVariable(config: unknown): string | undefined {
+  const variable: unknown = asRecord(asRecord(config)?.["metricAliasData"])?.[
+    "metricVariable"
+  ];
+
+  return typeof variable === "string" && variable ? variable : undefined;
 }
 
 // What a stored metric name is, of the two deprecated: null for any other.
@@ -251,11 +273,129 @@ export function chooseCosmosConnectionMode(
     : null;
 }
 
+// Each Metrics step of stored monitor steps: its metricMonitor and its criteria instances.
+function getStoredMetricSteps(monitorStepsJSON: unknown): Array<{
+  metricMonitor: UnknownRecord;
+  criteriaInstances: Array<UnknownRecord>;
+}> {
+  const steps: Array<{
+    metricMonitor: UnknownRecord;
+    criteriaInstances: Array<UnknownRecord>;
+  }> = [];
+
+  for (const step of asArray(
+    asRecord(asRecord(monitorStepsJSON)?.["value"])?.[
+      "monitorStepsInstanceArray"
+    ],
+  )) {
+    const value: UnknownRecord | undefined = asRecord(
+      asRecord(step)?.["value"],
+    );
+    const metricMonitor: UnknownRecord | undefined = asRecord(
+      value?.["metricMonitor"],
+    );
+
+    if (!metricMonitor) {
+      continue;
+    }
+
+    steps.push({
+      metricMonitor,
+      criteriaInstances: asArray(
+        asRecord(asRecord(value?.["monitorCriteria"])?.["value"])?.[
+          "monitorCriteriaInstanceArray"
+        ],
+      )
+        .map((instance: unknown): UnknownRecord | undefined => {
+          return asRecord(asRecord(instance)?.["value"]);
+        })
+        .filter((instance: UnknownRecord | undefined): boolean => {
+          return Boolean(instance);
+        }) as Array<UnknownRecord>,
+    });
+  }
+
+  return steps;
+}
+
+function getQueryConfigs(metricMonitor: UnknownRecord): Array<UnknownRecord> {
+  return asArray(
+    asRecord(metricMonitor["metricViewConfig"])?.["queryConfigs"],
+  ).filter((query: unknown): boolean => {
+    return Boolean(getFilterData(query));
+  }) as Array<UnknownRecord>;
+}
+
+function getFormulaConfigs(metricMonitor: UnknownRecord): Array<UnknownRecord> {
+  return asArray(
+    asRecord(metricMonitor["metricViewConfig"])?.["formulaConfigs"],
+  ).filter((formula: unknown): boolean => {
+    return Boolean(asRecord(formula));
+  }) as Array<UnknownRecord>;
+}
+
 // Every query of stored monitor steps that reads a metric its cloud deprecates, in order.
 export function findRetiredCloudMetricQueries(
   monitorStepsJSON: unknown,
 ): Array<RetiredCloudMetricQuery> {
-  return getMonitorReads(monitorStepsJSON).map(toRetiredCloudMetricQuery);
+  const found: Array<RetiredCloudMetricQuery> = [];
+
+  for (const step of getStoredMetricSteps(monitorStepsJSON)) {
+    for (const query of getQueryConfigs(step.metricMonitor)) {
+      const filter: UnknownRecord = getFilterData(query)!;
+      const metric: RetiredCloudMetric | null = getRetiredCloudMetric(
+        filter["metricName"],
+      );
+
+      if (metric) {
+        found.push({
+          metric,
+          metricVariable: getMetricVariable(query),
+          metricName: String(filter["metricName"]),
+          attributes: filter["attributes"],
+        });
+      }
+    }
+  }
+
+  return found;
+}
+
+/*
+ * The criteria filters that compare a query's values, of every criteria
+ * instance of its step: the ones that name its variable, and - for the
+ * step's first query - the ones that name none, which read it.
+ */
+function getComparingFilters(data: {
+  criteriaInstances: Array<UnknownRecord>;
+  metricVariable: string | undefined;
+  isFirstQuery: boolean;
+}): Array<UnknownRecord> {
+  const filters: Array<UnknownRecord> = [];
+
+  for (const instance of data.criteriaInstances) {
+    for (const rawFilter of asArray(instance["filters"])) {
+      const filter: UnknownRecord | undefined = asRecord(rawFilter);
+
+      if (!filter || filter["checkOn"] !== CheckOn.MetricValue) {
+        continue;
+      }
+
+      const alias: unknown = asRecord(filter["metricMonitorOptions"])?.[
+        "metricAlias"
+      ];
+      const namesIt: boolean =
+        typeof alias === "string" && alias
+          ? alias === data.metricVariable
+          : data.isFirstQuery;
+
+      if (namesIt) {
+        filters.push(filter);
+      }
+    }
+  }
+
+  return filters;
 }
 
 // A threshold's number, from what a filter stores: a number, or a numeric text.
@@ -411,13 +551,51 @@ export function divideFormulaVariable(data: {
  * exactly as a monitor does.
  */
 
-// Where a value is kept, what compares with a read, and a formula over it (SavedMetricQueryReads).
-export type RetiredCloudMetricSlot = MetricQuerySlot;
-export type RetiredCloudMetricThreshold = MetricQueryThreshold;
-export type RetiredCloudMetricFormula = MetricQueryFormula;
+// Where a value is kept: an object, and its key on it.
+export interface RetiredCloudMetricSlot {
+  holder: UnknownRecord;
+  key: string;
+}
 
-// One read of a deprecated metric: what it is, where it is stored, what compares with it.
-export type RetiredCloudMetricRead = MetricQueryRead<RetiredCloudMetric>;
+// A value compared with a read's values, in the metric's own unit.
+export interface RetiredCloudMetricThreshold extends RetiredCloudMetricSlot {
+  /*
+   * Whether its value is a threshold of the metric's (a monitor's filter of
+   * a comparing type; every threshold of a chart): only those are scaled.
+   */
+  isThreshold: boolean;
+  // A unit it was entered in, where it can be (a monitor filter's thresholdUnit).
+  unit?: RetiredCloudMetricSlot | undefined;
+}
+
+// A formula over a read's variable.
+export interface RetiredCloudMetricFormula extends RetiredCloudMetricSlot {
+  // The formula's own variable, when it has one.
+  alias: string | undefined;
+}
+
+export interface RetiredCloudMetricRead {
+  metric: RetiredCloudMetric;
+  metricVariable: string | undefined;
+  metricName: string;
+  // Where its name is written.
+  name: RetiredCloudMetricSlot;
+  // Its filter, as stored.
+  attributes: unknown;
+  // The keys it is split by, as stored: its group-by.
+  splitBy: Array<unknown>;
+  // Its aggregation, as stored.
+  aggregation: unknown;
+  // The unit its legend or column says.
+  legendUnit?: RetiredCloudMetricSlot | undefined;
+  thresholds: Array<RetiredCloudMetricThreshold>;
+  formulas: Array<RetiredCloudMetricFormula>;
+  /*
+   * Words of its filter that name what it is split or filtered by, where
+   * they are not keys of `attributes` (an SLO's filter, written as text).
+   */
+  filterWords?: Array<string> | undefined;
+}
 
 // The read's query, as a Cosmos DB account's evidence is found by.
 export function toRetiredCloudMetricQuery(
@@ -701,21 +879,107 @@ export function readRetiredCloudMetricQueryConfig(data: {
   thresholds: Array<RetiredCloudMetricThreshold>;
   formulas: Array<RetiredCloudMetricFormula>;
 }): RetiredCloudMetricRead | null {
-  return readMetricQueryConfig({ ...data, classify: getRetiredCloudMetric });
+  const query: UnknownRecord | undefined = asRecord(data.query);
+  const filterData: UnknownRecord | undefined = getFilterData(query);
+  const metric: RetiredCloudMetric | null = getRetiredCloudMetric(
+    filterData?.["metricName"],
+  );
+
+  if (!query || !filterData || !metric) {
+    return null;
+  }
+
+  const aliasData: UnknownRecord | undefined = asRecord(
+    query["metricAliasData"],
+  );
+
+  return {
+    metric,
+    metricVariable: getMetricVariable(query),
+    metricName: String(filterData["metricName"]),
+    name: { holder: filterData, key: "metricName" },
+    attributes: filterData["attributes"],
+    splitBy: asArray(
+      asRecord(query["metricQueryData"])?.["groupByAttributeKeys"],
+    ),
+    aggregation: filterData["aggegationType"],
+    ...(aliasData
+      ? { legendUnit: { holder: aliasData, key: "legendUnit" } }
+      : {}),
+    thresholds: data.thresholds,
+    formulas: data.formulas,
+  };
 }
 
 // A formula config's formula (MetricFormulaConfigData, as a step and a chart store one).
 export function getRetiredCloudMetricFormulas(
   formulaConfigs: Array<UnknownRecord>,
 ): Array<RetiredCloudMetricFormula> {
-  return getMetricQueryFormulas(formulaConfigs);
+  const formulas: Array<RetiredCloudMetricFormula> = [];
+
+  for (const formula of formulaConfigs) {
+    const formulaData: UnknownRecord | undefined = asRecord(
+      formula["metricFormulaData"],
+    );
+
+    if (formulaData) {
+      formulas.push({
+        holder: formulaData,
+        key: "metricFormula",
+        alias: getMetricVariable(formula),
+      });
+    }
+  }
+
+  return formulas;
 }
 
 // Each read of a deprecated metric of stored monitor steps, with what compares with it.
 function getMonitorReads(
   monitorStepsJSON: unknown,
 ): Array<RetiredCloudMetricRead> {
-  return readMonitorStepsMetricQueries(monitorStepsJSON, getRetiredCloudMetric);
+  const reads: Array<RetiredCloudMetricRead> = [];
+
+  for (const step of getStoredMetricSteps(monitorStepsJSON)) {
+    const formulas: Array<RetiredCloudMetricFormula> =
+      getRetiredCloudMetricFormulas(getFormulaConfigs(step.metricMonitor));
+
+    getQueryConfigs(step.metricMonitor).forEach(
+      (query: UnknownRecord, index: number): void => {
+        const read: RetiredCloudMetricRead | null =
+          readRetiredCloudMetricQueryConfig({
+            query,
+            thresholds: getComparingFilters({
+              criteriaInstances: step.criteriaInstances,
+              metricVariable: getMetricVariable(query),
+              isFirstQuery: index === 0,
+            }).map((filter: UnknownRecord): RetiredCloudMetricThreshold => {
+              const options: UnknownRecord | undefined = asRecord(
+                filter["metricMonitorOptions"],
+              );
+
+              return {
+                holder: filter,
+                key: "value",
+                isThreshold: THRESHOLD_FILTER_TYPES.has(
+                  String(filter["filterType"]),
+                ),
+                ...(options
+                  ? { unit: { holder: options, key: "thresholdUnit" } }
+                  : {}),
+              };
+            }),
+            formulas,
+          });
+
+        if (read) {
+          reads.push(read);
+        }
+      },
+    );
+  }
+
+  return reads;
 }
 
 /*

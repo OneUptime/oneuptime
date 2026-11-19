@@ -83,8 +83,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *     { name, namespace?, scope: "resource" | "type", aggregation?, splitBy? }
  *     -> { added, addedMetrics }: the connection reads it from its next read.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/readers { key }
- *     -> CloudAddedMetricReaders: the monitors, dashboard widgets and SLOs
- *        that read an added metric and get no new data once it is removed.
+ *     -> CloudAddedMetricReaders: the monitors, dashboard widgets, SLOs and
+ *        recording rules that read an added metric and get no new data once
+ *        it is removed.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/remove { key }
  *     -> { addedMetrics }
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/unreported

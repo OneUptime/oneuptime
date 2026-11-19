@@ -105,6 +105,7 @@ import {
   CloudAddedMetricReaderKind,
   CloudAddedMetricReaders,
 } from "../../../Types/Cloud/CloudAddedMetricReaders";
+import { getMetricRecordingRulesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/RecordingRule/RecordingRulesRoute";
 
 const RESOURCE: ObjectID = new ObjectID("5f8b9c1e-2222-4222-8222-222222222222");
 
@@ -187,10 +188,11 @@ async function list(): Promise<void> {
 const MONITOR_ID: string = "5f8b9c1e-9999-4999-8999-000000000001";
 const DASHBOARD_ID: string = "5f8b9c1e-9999-4999-8999-000000000002";
 const SLO_ID: string = "5f8b9c1e-9999-4999-8999-000000000003";
+const RULE_ID: string = "5f8b9c1e-9999-4999-8999-000000000004";
 const NO_READERS: CloudAddedMetricReaders = {
   readers: [],
   hidden: 0,
-  isCapped: false,
+  uncheckedKinds: [],
 };
 const READERS: CloudAddedMetricReaders = {
   readers: [
@@ -212,9 +214,16 @@ const READERS: CloudAddedMetricReaders = {
       name: "Shop availability",
       widgets: [],
     },
+    {
+      kind: CloudAddedMetricReaderKind.RecordingRule,
+      id: RULE_ID,
+      name: "Shop memory rate",
+      widgets: [],
+      outputMetricName: "shop_memory_rate",
+    },
   ],
   hidden: 1,
-  isCapped: false,
+  uncheckedKinds: [],
 };
 
 function rowOf(name: string): HTMLElement {
@@ -628,7 +637,9 @@ describe("removing one", () => {
       }),
     );
     expect(
-      await within(dialog).findByText("No monitor, dashboard or SLO reads it."),
+      await within(dialog).findByText(
+        "No monitor, dashboard, SLO or recording rule reads it.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("Remove Http3xx?")).toBeInTheDocument();
     expect(
@@ -670,7 +681,7 @@ describe("removing one", () => {
 
     expect(
       await within(dialog).findByText(
-        "4 monitors, dashboards and SLOs read it. Once it is removed, they get no new data.",
+        "5 monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -682,6 +693,16 @@ describe("removing one", () => {
     expect(
       within(dialog).getByRole("link", { name: "Shop availability" }),
     ).toHaveAttribute("href", viewRoute(PageMap.SLO_VIEW, SLO_ID));
+    // A recording rule has no page: its list, filtered to the metric it writes.
+    expect(
+      within(dialog).getByRole("link", { name: "Shop memory rate" }),
+    ).toHaveAttribute(
+      "href",
+      getMetricRecordingRulesRoute("shop_memory_rate").toString(),
+    );
+    expect(
+      within(dialog).getByTestId("cloud-remove-metric-readers-recordingRule"),
+    ).toHaveTextContent("Recording Rules");
     // The dashboard's widgets that read it, an untitled one in words.
     expect(within(dialog).getByText("Memory by instance")).toBeInTheDocument();
     expect(within(dialog).getByText("Untitled widget")).toBeInTheDocument();
@@ -744,7 +765,7 @@ describe("removing one", () => {
     ).not.toBeDisabled();
   });
 
-  test("a type's addition says removing it stops it for every resource of the type, and a capped answer that there may be more", async () => {
+  test("a type's addition says removing it stops it for every resource of the type, and records that could not be checked that they may read it", async () => {
     mockList.mockImplementation(() => {
       const listed: CloudPublishedMetricsListing = listing();
 
@@ -757,7 +778,10 @@ describe("removing one", () => {
       return Promise.resolve(listed);
     });
     mockReaders.mockImplementation(() => {
-      return Promise.resolve({ ...READERS, isCapped: true });
+      return Promise.resolve({
+        ...READERS,
+        uncheckedKinds: [CloudAddedMetricReaderKind.Dashboard],
+      });
     });
     await renderCard();
     await list();
@@ -771,8 +795,39 @@ describe("removing one", () => {
     ).toBeInTheDocument();
     expect(
       await within(dialog).findByText(
-        "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.",
+        "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.",
       ),
+    ).toBeInTheDocument();
+  });
+
+  test("none found, but some records not checked: nothing is said to read none of it, and removing it is still a choice", async () => {
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve({
+        ...NO_READERS,
+        uncheckedKinds: [
+          CloudAddedMetricReaderKind.Monitor,
+          CloudAddedMetricReaderKind.Slo,
+        ],
+      });
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+
+    expect(
+      await within(dialog).findByTestId("cloud-remove-metric-unchecked"),
+    ).toHaveTextContent(
+      "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.",
+    );
+    expect(
+      within(dialog).queryByTestId("cloud-remove-metric-no-readers"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Remove Anyway/ }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Keep Metric/ }),
     ).toBeInTheDocument();
   });
 
@@ -812,7 +867,9 @@ describe("removing one", () => {
     await renderCard();
     await list();
     await openRemove();
-    await screen.findByText("No monitor, dashboard or SLO reads it.");
+    await screen.findByText(
+      "No monitor, dashboard, SLO or recording rule reads it.",
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /Remove Metric/ }));

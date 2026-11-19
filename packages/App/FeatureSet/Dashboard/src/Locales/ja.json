@@ -59154,17 +59154,17 @@
   "It is read for every {{type}} this connection reads ({{count}}), so removing it stops it for all of them._one": "この接続が読み取るすべての {{type}}（{{count}}）で読み取られているため、削除するとそのすべてで読み取りが停止します。",
   "Its cloud reads it only split. A series for each value, up to {{max}} for each resource, to chart and alert on.": "クラウドでは分割しないと読み取れません。値ごとに系列を作成し（リソースごとに最大 {{max}} 個）、グラフ表示やアラート設定に使えます。",
   "Keep Metric": "メトリクスを残す",
-  "No monitor, dashboard or SLO reads it.": "このメトリクスを読み取っているモニター、ダッシュボード、SLO はありません。",
   "Remove Anyway": "それでも削除",
   "Remove Metric": "メトリクスを削除",
   "Remove {{metric}}?": "{{metric}} を削除しますか？",
   "Split by {{dimension}}, a series for each value": "{{dimension}} で分割し、値ごとに系列を作成",
   "The metric was not removed.": "メトリクスは削除されませんでした。",
-  "There may be more: only the first 500 monitors, dashboards and SLOs that name it were checked.": "ほかにもある可能性があります。確認したのは、このメトリクスを指定している最初の 500 件のモニター、ダッシュボード、SLO だけです。",
   "Untitled widget": "無題のウィジェット",
   "What it stored stays until its retention ends, and you can add it again from this list.": "保存済みのデータは保持期間が終わるまで残ります。このリストから再度追加することもできます。",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data.": "{{count}} 件のモニター、ダッシュボード、SLO がこのメトリクスを読み取っています。削除すると、これらには新しいデータが届かなくなります。",
-  "{{count}} monitors, dashboards and SLOs read it. Once it is removed, they get no new data._one": "{{count}} 件のモニター、ダッシュボード、SLO がこのメトリクスを読み取っています。削除すると、これらには新しいデータが届かなくなります。",
   "{{count}} more read it that your role cannot open.": "ほかに、あなたのロールでは開けない {{count}} 件がこのメトリクスを読み取っています。",
-  "{{count}} more read it that your role cannot open._one": "ほかに、あなたのロールでは開けない {{count}} 件がこのメトリクスを読み取っています。"
+  "{{count}} more read it that your role cannot open._one": "ほかに、あなたのロールでは開けない {{count}} 件がこのメトリクスを読み取っています。",
+  "No monitor, dashboard, SLO or recording rule reads it.": "このメトリクスを読み取っているモニター、ダッシュボード、SLO、記録ルールはありません。",
+  "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "一部のモニター、ダッシュボード、SLO、記録ルールを今は確認できませんでした。これらがこのメトリクスを読み取っている可能性があります。",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} 件のモニター、ダッシュボード、SLO、記録ルールがこのメトリクスを読み取っています。削除すると、これらには新しいデータが届かなくなります。",
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 件のモニター、ダッシュボード、SLO、記録ルールがこのメトリクスを読み取っています。削除すると、これらには新しいデータが届かなくなります。"
 }
