@@ -35,8 +35,10 @@ import { BiTableRef, getBiTableKey, getBiTableName } from "./BiTables";
  *    database connected; Power BI describing its datasets without their
  *    tables (a tenant setting) or without the queries behind them (the
  *    other); databases OneUptime does not watch; tables a watched
- *    database does not watch; dataflows; datasets Power BI could not
- *    describe; files and web pages, which are no database's tables.
+ *    database does not watch; dataflows whose definitions Power BI would
+ *    not export, or that are still being read within its hourly limit;
+ *    datasets Power BI could not describe; files and web pages, which are
+ *    no database's tables.
  *
  * A source is a watched database when one of the project's databases is
  * the same engine and, where both name one, the same database; a server
@@ -203,7 +205,12 @@ export function getBiLineageProblems(data: {
     problems.push(DataBiLineageProblem.TablesNotWatched);
   }
 
-  if (datasets && datasets.readingDataflows > 0) {
+  // A dataflow whose tables could not be read, or are still being read within Power BI's limit.
+  if (
+    datasets &&
+    ((datasets.withUnreadDataflows || 0) > 0 ||
+      (datasets.withPendingDataflows || 0) > 0)
+  ) {
     problems.push(DataBiLineageProblem.Dataflows);
   }
 

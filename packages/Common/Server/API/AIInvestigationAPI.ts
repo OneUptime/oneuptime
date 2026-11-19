@@ -33,7 +33,9 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import AIRunService from "../Services/AIRunService";
-import AIRunEventService from "../Services/AIRunEventService";
+import AIRunEventService, {
+  LatestRunEvents,
+} from "../Services/AIRunEventService";
 import ServiceService from "../Services/ServiceService";
 import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import {
@@ -529,6 +531,7 @@ async function sendLatestInvestigation(
       waitingInvestigation,
       mayTryAgain: false,
       events: [],
+      hasEarlierEvents: false,
       analysisMarkdown: null,
       analysisTldr: null,
       isAnalysisPending: false,
@@ -546,34 +549,37 @@ async function sendLatestInvestigation(
    */
   const isEvidenceEligible: boolean = run.status === AIRunStatus.Completed;
 
-  const events: Array<AIRunEvent> = await AIRunEventService.findBy({
-    query: { aiRunId: run.id!, projectId: viewer.projectId },
-    select: {
-      _id: true,
-      sequence: true,
-      eventType: true,
-      toolName: true,
-      resultSummary: true,
-      createdAt: true,
-      /*
-       * Read for the structured evidence list only — toClientEventJson
-       * strips both from the event JSON sent to the panel.
-       */
-      ...(isEvidenceEligible ? { citationId: true, toolArguments: true } : {}),
+  /*
+   * The newest events, in order: a long run's latest steps - its last
+   * attempt, and how it ended - are what the panel must show. Reading the
+   * oldest ones left the end of a run past the cap out, and its last steps
+   * open forever (issue #6437). And whether earlier ones were left out, so
+   * the panel says so rather than showing a long run's start as if it were
+   * all of it (issue #6489).
+   */
+  const latest: LatestRunEvents = await AIRunEventService.findLatestEventsOfRun(
+    {
+      aiRunId: run.id!,
+      projectId: viewer.projectId,
+      select: {
+        _id: true,
+        sequence: true,
+        eventType: true,
+        toolName: true,
+        resultSummary: true,
+        createdAt: true,
+        /*
+         * Read for the structured evidence list only — toClientEventJson
+         * strips both from the event JSON sent to the panel.
+         */
+        ...(isEvidenceEligible
+          ? { citationId: true, toolArguments: true }
+          : {}),
+      },
+      limit: MAX_EVENTS,
     },
-    /*
-     * The newest events, put back in order below: a long run's latest steps
-     * - its last attempt, and how it ended - are what the panel must show.
-     * Reading the oldest ones left the end of a run past the cap out, and
-     * its last steps open forever (issue #6437).
-     */
-    sort: { sequence: SortOrder.Descending },
-    limit: MAX_EVENTS,
-    skip: 0,
-    props: { isRoot: true },
-  });
-
-  events.reverse();
+  );
+  const events: Array<AIRunEvent> = latest.events;
 
   /*
    * Try again, for an investigation that did not finish, to whoever may
@@ -664,6 +670,7 @@ async function sendLatestInvestigation(
     waitingInvestigation: null,
     mayTryAgain,
     events: eventsJson,
+    hasEarlierEvents: latest.hasEarlierEvents,
     analysisMarkdown,
     analysisTldr,
     isAnalysisPending,

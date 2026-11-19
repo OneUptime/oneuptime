@@ -87,7 +87,33 @@ export interface AiRunFailure {
   timeoutInSeconds?: number | undefined;
   // How many attempts the run made, when it made more than one.
   attempts?: number | undefined;
+  /*
+   * A provider's failure on the global LLM provider, which the server's
+   * admin sets up and a project's members cannot change (issue #6494).
+   */
+  providerIsGlobal?: boolean | undefined;
 }
+
+/*
+ * What to do about a provider's failure when the provider is the global
+ * one (issue #6494): the server's admin sets it up, so a project's members
+ * are not sent to raise its Response Timeout or check its key on a page
+ * where they cannot - they try again, ask the admin, or add a provider of
+ * their own.
+ */
+export const GLOBAL_PROVIDER_FAILURE_FIXES: Readonly<
+  Partial<Record<AIRunFailureKind, string>>
+> = {
+  [AIRunFailureKind.ProviderTimeout]: translationKey(
+    "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  ),
+  [AIRunFailureKind.ProviderUnavailable]: translationKey(
+    "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  ),
+  [AIRunFailureKind.ProviderRejected]: translationKey(
+    "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.",
+  ),
+};
 
 export interface AiRunFailureWords {
   // What happened, as one sentence.
@@ -162,6 +188,10 @@ export function readAiRunFailure(data: {
     timeoutInSeconds:
       attemptEnd?.timeoutInSeconds ?? fromMessage.timeoutInSeconds,
     ...(attempts > 1 ? { attempts } : {}),
+    // Only the end that named the kind can say whose provider failed.
+    ...(attemptEnd?.providerIsGlobal === true && !isMessageMoreExact
+      ? { providerIsGlobal: true }
+      : {}),
   };
 }
 
@@ -231,6 +261,14 @@ export function describeAiRunFailureFix(
   failure: AiRunFailure,
   translator: Translator,
 ): string {
+  const globalProviderFix: string | undefined = failure.providerIsGlobal
+    ? GLOBAL_PROVIDER_FAILURE_FIXES[failure.failureKind]
+    : undefined;
+
+  if (globalProviderFix) {
+    return translator.translateText(globalProviderFix) as string;
+  }
+
   switch (failure.failureKind) {
     case AIRunFailureKind.ProviderTimeout:
       return translator.translateText(

@@ -21,7 +21,10 @@ import AIAgentRunLimitsHelper, {
   AIAgentRunLimits,
   MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES,
 } from "../../../../Types/AI/AIAgentRunLimits";
-import { ObservabilityAssistantExtraTool } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import {
+  ExtraToolCall,
+  ObservabilityAssistantExtraTool,
+} from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import { ToolCallOutcome } from "../../../../Server/Utils/AI/Toolbox/Index";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import KubernetesClusterAiAccessService from "../../../../Server/Services/KubernetesClusterAiAccessService";
@@ -1350,6 +1353,96 @@ describe("KubectlInvestigationToolkit run_kubectl and the run's time limit", () 
 
   it("uses the normal windows without a deadline", async () => {
     await run(toolkitWithDeadline(undefined), MAX_KUBECTL_TIMEOUT_MS);
+
+    expect(enqueuedWindows()).toEqual({
+      timeoutInMs: MAX_KUBECTL_TIMEOUT_MS,
+      claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
+    });
+  });
+
+  /*
+   * Issue #6496: Ask AI builds its toolkits before its loop reads its
+   * limits, and its clock starts again when it resumes after an approval,
+   * so it hands its deadline to each call instead.
+   */
+  function runWithCall(
+    toolkit: KubectlInvestigationToolkit,
+    call: ExtraToolCall | undefined,
+    timeoutInMs?: number,
+  ): Promise<ToolCallOutcome> {
+    return getTool(toolkit, RUN_KUBECTL_TOOL_NAME).execute(
+      {
+        clusterId: CLUSTER_ID.toString(),
+        command: "kubectl get pods -n web",
+        rationale: "see pod phases",
+        ...(timeoutInMs !== undefined ? { timeoutInMs } : {}),
+      },
+      call,
+    );
+  }
+
+  it("plans a toolkit built without a deadline by the one its call hands it", async () => {
+    await runWithCall(
+      toolkitWithDeadline(undefined),
+      { runDeadlineAtMs: NOW_MS + 40_000 },
+      MAX_KUBECTL_TIMEOUT_MS,
+    );
+
+    const windows: { timeoutInMs: number; claimTimeoutInMs: number } =
+      enqueuedWindows();
+    expect(windows).toEqual({
+      timeoutInMs:
+        40_000 - KUBECTL_WAIT_OVERHEAD_MS - MIN_KUBECTL_CLAIM_TIMEOUT_MS,
+      claimTimeoutInMs: MIN_KUBECTL_CLAIM_TIMEOUT_MS,
+    });
+    expect(KubectlWaitBudget.getWorstCaseWaitMs(windows)).toBeLessThanOrEqual(
+      40_000,
+    );
+  });
+
+  it("refuses a command its call's deadline cannot hold, enqueuing nothing", async () => {
+    const toolkit: KubectlInvestigationToolkit = toolkitWithDeadline(undefined);
+
+    const outcome: ToolCallOutcome = await runWithCall(toolkit, {
+      runDeadlineAtMs: NOW_MS + 10_000,
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("Not enough time is left");
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(toolkit.getCommandsRun()).toBe(0);
+  });
+
+  it("holds the earlier deadline when the toolkit and its call both name one", async () => {
+    // The toolkit's is the earlier.
+    await runWithCall(
+      toolkitWithDeadline(NOW_MS + 40_000),
+      { runDeadlineAtMs: NOW_MS + 200_000 },
+      MAX_KUBECTL_TIMEOUT_MS,
+    );
+    expect(
+      KubectlWaitBudget.getWorstCaseWaitMs(enqueuedWindows()),
+    ).toBeLessThanOrEqual(40_000);
+
+    enqueue.mockClear();
+
+    // The call's is the earlier.
+    await runWithCall(
+      toolkitWithDeadline(NOW_MS + 200_000),
+      { runDeadlineAtMs: NOW_MS + 40_000 },
+      MAX_KUBECTL_TIMEOUT_MS,
+    );
+    expect(
+      KubectlWaitBudget.getWorstCaseWaitMs(enqueuedWindows()),
+    ).toBeLessThanOrEqual(40_000);
+  });
+
+  it("a call that names no deadline changes nothing", async () => {
+    await runWithCall(
+      toolkitWithDeadline(undefined),
+      {},
+      MAX_KUBECTL_TIMEOUT_MS,
+    );
 
     expect(enqueuedWindows()).toEqual({
       timeoutInMs: MAX_KUBECTL_TIMEOUT_MS,

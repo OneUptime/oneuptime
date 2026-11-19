@@ -238,7 +238,7 @@ Power BI returnerar en datauppsättnings tabeller först när en Fabric-administ
 - **Enhance admin APIs responses with detailed metadata**: varje datauppsättnings tabeller.
 - **Enhance admin APIs responses with DAX and mashup expressions**: frågorna som läser in dem, som säger vilka databastabeller de läser.
 
-Power BI beskriver sedan en datauppsättning när den har uppdaterats eller publicerats på nytt; en som bara använder DirectQuery, när någon har öppnat en rapport på den. Den beskriver aldrig realtidsdatauppsättningar, datauppsättningar med en liveanslutning till Analysis Services, Excel-arbetsböcker eller datauppsättningar över 1 GB på delad kapacitet. En datauppsättning som läser från ett dataflöde läses fram till dataflödet: OneUptime läser ännu inte vilka tabeller ett dataflöde läser in.
+Power BI beskriver sedan en datauppsättning när den har uppdaterats eller publicerats på nytt; en som bara använder DirectQuery, när någon har öppnat en rapport på den. Den beskriver aldrig realtidsdatauppsättningar, datauppsättningar med en liveanslutning till Analysis Services, Excel-arbetsböcker eller datauppsättningar över 1 GB på delad kapacitet.
 
 Varje tabell matchas mot en bevakad tabell efter namn, schema och databas, och en server efter sitt korta eller fullständiga namn. En tabell från en annan databasmotor matchas aldrig, och inte heller en i en annan databas: en rapport på `Sales.dbo.Orders` kopplas inte till `Archive.dbo.Orders` eftersom bara `Archive` bevakas.
 

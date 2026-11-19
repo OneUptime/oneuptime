@@ -42,6 +42,7 @@ const deleteItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const createMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
+const moveInListMock: MockFunction = getJestMockFunction();
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the compiled
@@ -89,6 +90,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       createOrUpdate: (...args: Array<any>) => {
         return createOrUpdateMock(...args);
+      },
+      moveInList: (...args: Array<any>) => {
+        return moveInListMock(...args);
       },
     },
   };
@@ -402,6 +406,7 @@ function servePage(fixture: PageFixture): void {
     return { data: data.model };
   });
   updateByIdMock.mockResolvedValue({} as never);
+  moveInListMock.mockResolvedValue({ changedRows: [] } as never);
   createMock.mockResolvedValue({} as never);
   deleteItemMock.mockResolvedValue({} as never);
 }
@@ -510,6 +515,7 @@ afterEach(() => {
     updateByIdMock,
     createMock,
     createOrUpdateMock,
+    moveInListMock,
   ]) {
     mock.mockReset();
   }
@@ -1088,6 +1094,23 @@ describe("levels named after their place", () => {
     });
   };
 
+  /*
+   * A move is its own request since #9611: the rule takes the place of the
+   * rule named (ModelAPI.moveInList), and the server steps the levels
+   * between aside. A write of `order` would place the rule alone.
+   */
+  type MoveCall = { modelType: unknown; id: string; placeOfId: string };
+
+  const moves: () => Array<MoveCall> = (): Array<MoveCall> => {
+    return moveInListMock.mock.calls.map((call: Array<any>): MoveCall => {
+      return {
+        modelType: call[0].modelType,
+        id: idOf(call[0].id),
+        placeOfId: idOf(call[0].placeOfId),
+      };
+    });
+  };
+
   test("swap names when one moves up past the other", async () => {
     const cards: Array<HTMLElement> = await renderPage(DEFAULT_NAMED);
 
@@ -1096,11 +1119,17 @@ describe("levels named after their place", () => {
     );
 
     await waitFor(() => {
-      expect(updateByIdMock).toHaveBeenCalledTimes(3);
+      expect(updateByIdMock).toHaveBeenCalledTimes(2);
     });
 
+    expect(moves()).toEqual([
+      {
+        modelType: OnCallDutyEscalationRule,
+        id: RULE_THREE_ID,
+        placeOfId: RULE_TWO_ID,
+      },
+    ]);
     expect(updates()).toEqual([
-      { id: RULE_THREE_ID, data: { order: 2 } },
       { id: RULE_TWO_ID, data: { name: "Level 3" } },
       { id: RULE_THREE_ID, data: { name: "Level 2" } },
     ]);
@@ -1114,11 +1143,17 @@ describe("levels named after their place", () => {
     );
 
     await waitFor(() => {
-      expect(updateByIdMock).toHaveBeenCalledTimes(3);
+      expect(updateByIdMock).toHaveBeenCalledTimes(2);
     });
 
+    expect(moves()).toEqual([
+      {
+        modelType: OnCallDutyEscalationRule,
+        id: RULE_ONE_ID,
+        placeOfId: RULE_TWO_ID,
+      },
+    ]);
     expect(updates()).toEqual([
-      { id: RULE_ONE_ID, data: { order: 2 } },
       { id: RULE_ONE_ID, data: { name: "Level 2" } },
       { id: RULE_TWO_ID, data: { name: "Level 1" } },
     ]);
@@ -1137,13 +1172,17 @@ describe("levels named after their place", () => {
     );
 
     await waitFor(() => {
-      expect(updateByIdMock).toHaveBeenCalledTimes(2);
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(updates()).toEqual([
-      { id: RULE_TWO_ID, data: { order: 1 } },
-      { id: RULE_ONE_ID, data: { name: "Level 2" } },
+    expect(moves()).toEqual([
+      {
+        modelType: OnCallDutyEscalationRule,
+        id: RULE_TWO_ID,
+        placeOfId: RULE_ONE_ID,
+      },
     ]);
+    expect(updates()).toEqual([{ id: RULE_ONE_ID, data: { name: "Level 2" } }]);
   });
 
   test("move up a place when the first level is deleted", async () => {

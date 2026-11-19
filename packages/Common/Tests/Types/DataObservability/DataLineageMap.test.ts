@@ -31,6 +31,8 @@ import {
   assembleDataLineageMap,
   chooseDataLineageMapBiDashboards,
   chooseDataLineageMapFlows,
+  combineDataLineageMapBiChoices,
+  getDataLineageMapBiDashboardIds,
   getLineageMapDatasetNodeId,
   getLineageMapServiceNodeId,
   getLineageMapSourceNodeId,
@@ -1066,6 +1068,72 @@ describe("BI dashboards in the room the flows leave", () => {
         dashboardRoom: 100,
         hadMoreRows: true,
       }).isTruncated,
+    ).toBe(true);
+  });
+
+  test("a choice counts the cards it adds: its dashboards, and the tables, datasets and sources drawn for them", () => {
+    const bi: DataLineageMapBiChoice = chooseDataLineageMapBiDashboards({
+      rows: [
+        biRow("on-tables", { dataAssetIds: ["orders", "drawn"] }),
+        biRow("checklist", {
+          upstream: upstream([{ id: "ds1", sources: [CHECKLIST, SALES_DB] }]),
+        }),
+        // On the same dataset: only itself is a new card.
+        biRow("gantt", {
+          upstream: upstream([{ id: "ds1", sources: [CHECKLIST] }]),
+        }),
+      ],
+      drawnDataAssetIds: new Set(["drawn"]),
+      drawnDashboardIds: new Set(),
+      nodeRoom: 100,
+      dashboardRoom: 100,
+    });
+
+    // on-tables and orders; checklist, ds1 and two sources; gantt.
+    expect(bi.nodeCount).toBe(7);
+  });
+
+  /*
+   * A search's dashboards are chosen first, then the rest in the room
+   * they leave (#9553): two choices drawn together, the first's first.
+   */
+  test("two choices drawn together keep the first's dashboards first, and each table once", () => {
+    const first: DataLineageMapBiChoice = chooseDataLineageMapBiDashboards({
+      rows: [biRow("searched", { dataAssetIds: ["orders"] })],
+      drawnDataAssetIds: new Set(),
+      drawnDashboardIds: new Set(),
+      nodeRoom: 100,
+      dashboardRoom: 100,
+    });
+    const second: DataLineageMapBiChoice = chooseDataLineageMapBiDashboards({
+      rows: [
+        biRow("other", { dataAssetIds: ["orders", "refunds"] }),
+        biRow("sheet", { upstream: { datasets: [], sources: [CHECKLIST] } }),
+      ],
+      drawnDataAssetIds: new Set(first.dataAssetIds),
+      drawnDashboardIds: new Set(getDataLineageMapBiDashboardIds(first)),
+      // other and refunds; sheet and its source.
+      nodeRoom: 4,
+      dashboardRoom: 100,
+    });
+    const both: DataLineageMapBiChoice = combineDataLineageMapBiChoices(
+      first,
+      second,
+    );
+
+    expect(getDataLineageMapBiDashboardIds(both)).toEqual([
+      "searched",
+      "other",
+      "sheet",
+    ]);
+    expect(both.dataAssetIds).toEqual(["orders", "refunds"]);
+    expect(both.nodeCount).toBe(
+      (first.nodeCount || 0) + (second.nodeCount || 0),
+    );
+    expect(both.isTruncated).toBe(false);
+    expect(
+      combineDataLineageMapBiChoices(first, { ...second, isTruncated: true })
+        .isTruncated,
     ).toBe(true);
   });
 

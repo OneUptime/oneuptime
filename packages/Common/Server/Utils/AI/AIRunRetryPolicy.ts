@@ -3,6 +3,7 @@ import {
   AIRunAttemptOutcome,
   AIRunFailureKind,
   classifyAIRunFailureMessage,
+  PROVIDER_FIXED_FAILURE_KINDS,
 } from "../../../Types/AI/AIRunAttempt";
 
 /*
@@ -231,10 +232,15 @@ export default class AIRunRetryPolicy {
     };
   }
 
-  // How the attempt ended, for its AttemptEnded or RunFailed event.
+  /*
+   * How the attempt ended, for its AttemptEnded or RunFailed event, and -
+   * for a provider's failure - whether the provider was the global one
+   * (issue #6494).
+   */
   public static toAttemptEnd(
     decision: AIRunRetryDecision,
     nextAttemptAt?: Date | undefined,
+    options?: { providerIsGlobal?: boolean | undefined } | undefined,
   ): AIRunAttemptEnd {
     return {
       outcome: decision.shouldRetry
@@ -248,6 +254,10 @@ export default class AIRunRetryPolicy {
         : {}),
       ...(decision.timeoutInSeconds !== undefined
         ? { timeoutInSeconds: decision.timeoutInSeconds }
+        : {}),
+      ...(options?.providerIsGlobal === true &&
+      PROVIDER_FIXED_FAILURE_KINDS.includes(decision.failureKind)
+        ? { providerIsGlobal: true }
         : {}),
     };
   }

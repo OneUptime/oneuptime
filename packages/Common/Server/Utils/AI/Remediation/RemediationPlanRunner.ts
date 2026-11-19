@@ -410,6 +410,7 @@ export default class RemediationPlanRunner {
       // Context assembly failed — hand the claimed run to the retry policy.
       await AIInvestigationQueue.failOrRequeue({
         aiRunId,
+        projectId,
         attemptCount,
         errorMessage: `Failed to build remediation planning context: ${
           error instanceof Error ? error.message : String(error)

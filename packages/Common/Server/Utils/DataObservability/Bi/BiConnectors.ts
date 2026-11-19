@@ -6,6 +6,7 @@ import { DataBiDatasetRead } from "../../../../Types/DataObservability/DataBiRef
 import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
 import { DataDashboardRefreshHistory } from "../../../../Types/DataObservability/DataDashboardActivity";
 import { JSONObject } from "../../../../Types/JSON";
+import RetryAfter from "../../../../Utils/RetryAfter";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
@@ -27,15 +28,39 @@ import {
   PowerBiRefreshTarget,
   readPowerBiRefreshes,
 } from "./PowerBiRefreshes";
+import { PowerBiDataflowsRead, readPowerBiDataflows } from "./PowerBiDataflows";
 import {
+  mergePowerBiWorkspaces,
+  planPowerBiScan,
+  POWER_BI_READ_STATE_VERSION,
+  PowerBiReadState,
+  PowerBiScanPlan,
+  readPowerBiReadState,
+  writePowerBiReadState,
+} from "./PowerBiReadState";
+import {
+  composePowerBiScan,
+  getChartedDataflowEntities,
   getPowerBiDatasetFacts,
   getPowerBiTables,
   getPowerBiUpstream,
+  indexWorkspaceDataflows,
   PowerBiDataset,
   PowerBiItem,
   PowerBiScanRead,
-  readPowerBiScan,
+  readPowerBiWorkspaces,
 } from "./PowerBiScan";
+import {
+  describeUnscannedWorkspaces,
+  listPowerBiWorkspaces,
+  POWER_BI_ASKED_SCAN_WAIT_IN_MS,
+  POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+  PowerBiScanChunk,
+  PowerBiScannerApi,
+  PowerBiScanRun,
+  PowerBiScanTiming,
+  runPowerBiScans,
+} from "./PowerBiScanner";
 
 /*
  * EACH BI TOOL'S DASHBOARDS, AND THE TABLES BEHIND THEM.
@@ -55,6 +80,9 @@ import {
  *   - Power BI: a service principal allowed to use the admin APIs. A scan
  *     of the workspaces says each dataset's tables, from their Power Query
  *     sources; a report charts its dataset, and a dashboard its tiles'.
+ *     Each read scans only the workspaces that changed since the last, and
+ *     the hourly read the whole tenant once a day (PowerBiReadState), at
+ *     most 16 scans at once, each waited for patiently (PowerBiScanner).
  *     Each also says how often it is viewed, from the activity log
  *     (PowerBiActivity), and how fresh its datasets are, from their
  *     refreshes (PowerBiRefreshes); the datasets themselves are read with
@@ -110,6 +138,12 @@ export interface BiToolRead {
    * many datasets read it and the tables read from it; left out otherwise.
    */
   sources?: Array<BiSourceRead> | undefined;
+  /*
+   * What the reader keeps so its next read reads less (Power BI: each
+   * workspace's scan, its dataflows' definitions); null to keep nothing,
+   * and left out by a tool that keeps nothing.
+   */
+  readState?: JSONObject | null | undefined;
 }
 
 export type BiTransport = (
@@ -122,6 +156,13 @@ export interface BiReadInput {
   transport?: BiTransport | undefined;
   // The hours of views read already (Power BI): the read goes on from them.
   usageCursor?: PowerBiUsageCursor | undefined;
+  // What the last read kept (Power BI's workspaces and dataflows): this one reads less for it.
+  readState?: JSONObject | null | undefined;
+  /*
+   * The hourly read, not one someone asked for: it scans the whole tenant
+   * when that is due, and waits longer for a slow scan.
+   */
+  isScheduled?: boolean | undefined;
   now?: Date | undefined;
 }
 
@@ -135,8 +176,6 @@ const CENSUS_API: string = "https://app.getcensus.com/api/v1";
 const CENSUS_EU_API: string = "https://app-eu.getcensus.com/api/v1";
 const CENSUS_PAGE_SIZE: number = 100;
 const REVERSE_ETL_FOLDER: string = "Reverse ETL";
-const POWER_BI_SCAN_POLLS: number = 30;
-const POWER_BI_SCAN_WAIT_IN_MS: number = 2_000;
 
 function readText(
   value: unknown,
@@ -213,7 +252,20 @@ async function requestJson(data: {
     throw new BiRequestError(
       `${data.tool} answered ${response.statusCode}: ${message}`,
       response.statusCode,
+      RetryAfter.parseMs(RetryAfter.readHeader(response.headers)),
     );
+  }
+
+  // A file's JSON can start with a byte order mark (a dataflow's exported definition).
+  if (
+    response.bodyJson === undefined &&
+    (response.bodyText || "").startsWith("\uFEFF")
+  ) {
+    try {
+      return JSON.parse(response.bodyText.slice(1));
+    } catch {
+      return undefined;
+    }
   }
 
   return response.bodyJson;
@@ -781,7 +833,11 @@ export class LookerConnector {
 
 export class PowerBiConnector {
   public static async read(
-    input: BiReadInput & { wait?: ((ms: number) => Promise<void>) | undefined },
+    input: BiReadInput & {
+      // How the read waits between asks of a scan's status, and tells the time: replaced in tests.
+      wait?: ((ms: number) => Promise<void>) | undefined;
+      clock?: (() => number) | undefined;
+    },
   ): Promise<BiToolRead> {
     const transport: BiTransport = transportOf(input);
     const tool: string = DataBiTool.PowerBI;
@@ -817,78 +873,110 @@ export class PowerBiConnector {
       });
     };
     const now: Date = input.now || new Date();
-    const wait: (ms: number) => Promise<void> =
-      input.wait ||
-      ((ms: number): Promise<void> => {
-        return new Promise((resolve: () => void) => {
-          setTimeout(resolve, ms);
-        });
-      });
-    const workspaceIds: Array<string> = readArray(
-      await get("/admin/workspaces/modified?excludePersonalWorkspaces=true"),
-    )
-      .map((value: unknown): string => {
-        return readText(readObject(value)["id"], 100);
-      })
-      .filter(Boolean);
-    const results: Array<JSONObject> = [];
-
-    for (let start: number = 0; start < workspaceIds.length; start += 100) {
-      const scan: JSONObject = readObject(
-        await requestJson({
+    const timing: PowerBiScanTiming = {
+      wait:
+        input.wait ||
+        ((ms: number): Promise<void> => {
+          return new Promise((resolve: () => void) => {
+            setTimeout(resolve, ms);
+          });
+        }),
+      clock:
+        input.clock ||
+        ((): number => {
+          return Date.now();
+        }),
+    };
+    const api: PowerBiScannerApi = {
+      get,
+      post: (path: string, body: JSONObject): Promise<unknown> => {
+        return requestJson({
           transport,
           tool,
           method: "POST",
-          url: `${POWER_BI_API}/admin/workspaces/getInfo?lineage=True&datasourceDetails=True&datasetSchema=True&datasetExpressions=True`,
+          url: `${POWER_BI_API}${path}`,
           headers,
-          body: JSON.stringify({
-            workspaces: workspaceIds.slice(start, start + 100),
-          }),
-        }),
-      );
-      const scanId: string = readText(scan["id"], 100);
+          body: JSON.stringify(body),
+        });
+      },
+    };
+    /*
+     * Only the workspaces that changed since the last read, and those it
+     * could not scan; the whole tenant when nothing is kept, and once a day
+     * for the hourly read (PowerBiReadState, #9552).
+     */
+    const kept: PowerBiReadState | null = readPowerBiReadState(input.readState);
+    const plan: PowerBiScanPlan = planPowerBiScan({
+      state: kept,
+      now,
+      isScheduled: Boolean(input.isScheduled),
+    });
+    const listed: Array<string> = await listPowerBiWorkspaces({
+      api,
+      modifiedSince: plan.modifiedSince,
+      timing,
+    });
+    const requestedIds: Array<string> = plan.isFull
+      ? listed
+      : Array.from(new Set([...listed, ...(kept?.pendingWorkspaceIds || [])]));
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api,
+      workspaceIds: requestedIds,
+      timing,
+      waitInMs: input.isScheduled
+        ? POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS
+        : POWER_BI_ASKED_SCAN_WAIT_IN_MS,
+    });
 
-      for (let poll: number = 0; ; poll++) {
-        const status: JSONObject = readObject(
-          await get(
-            `/admin/workspaces/scanStatus/${encodeURIComponent(scanId)}`,
-          ),
-        );
-
-        if (readText(status["status"]) === "Succeeded") {
-          break;
-        }
-
-        if (readText(status["status"]) === "Failed") {
-          const reason: string = readText(
-            readObject(status["error"])["message"],
-            300,
-          );
-
-          throw new Error(
-            `Power BI's workspace scan failed${reason ? `: ${reason}` : "."}`,
-          );
-        }
-
-        if (poll >= POWER_BI_SCAN_POLLS) {
-          throw new Error("Power BI's workspace scan did not finish.");
-        }
-
-        await wait(POWER_BI_SCAN_WAIT_IN_MS);
-      }
-
-      results.push(
-        readObject(
-          await get(
-            `/admin/workspaces/scanResult/${encodeURIComponent(scanId)}`,
-          ),
-        ),
-      );
+    // Nothing scanned, and nothing kept to stand in for it: the read fails, with Power BI's reason.
+    if (run.scanned.length === 0 && run.unscanned.length > 0 && !kept) {
+      throw new Error(run.unscanned[0]!.reason);
     }
 
-    const scanned: PowerBiScanRead = readPowerBiScan(
-      results,
+    const merged: ReturnType<typeof mergePowerBiWorkspaces> =
+      mergePowerBiWorkspaces({
+        kept: kept?.workspaces || [],
+        isFull: plan.isFull,
+        requestedIds,
+        scannedIds: run.scanned.flatMap(
+          (chunk: PowerBiScanChunk): Array<string> => {
+            return chunk.workspaceIds;
+          },
+        ),
+        scanned: readPowerBiWorkspaces(
+          run.scanned.map((chunk: PowerBiScanChunk): JSONObject => {
+            return chunk.result;
+          }),
+        ),
+      });
+    /*
+     * The dataflows the charted datasets read: each one's definition, kept
+     * or exported now within Power BI's hourly limit, says which tables its
+     * entities read (PowerBiDataflows, #9551).
+     */
+    const dataflowRead: PowerBiDataflowsRead = await readPowerBiDataflows({
+      entities: getChartedDataflowEntities(
+        composePowerBiScan(
+          merged.workspaces,
+          MAX_BI_DASHBOARDS,
+          kept?.dataflows,
+        ),
+      ),
+      index: indexWorkspaceDataflows(merged.workspaces),
+      kept: kept?.dataflows || new Map(),
+      exportedAt: kept?.dataflowExports || [],
+      now,
+      exportDefinition: (dataflowId: string): Promise<unknown> => {
+        return get(`/admin/dataflows/${encodeURIComponent(dataflowId)}/export`);
+      },
+    });
+    const scanned: PowerBiScanRead = composePowerBiScan(
+      merged.workspaces,
       MAX_BI_DASHBOARDS,
+      dataflowRead.definitions,
+    );
+    const scanWarning: string | null = describeUnscannedWorkspaces(
+      run.unscanned,
     );
     const datasets: Map<string, PowerBiDataset> = scanned.datasets;
     const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> =
@@ -1032,7 +1120,11 @@ export class PowerBiConnector {
     return {
       dashboards,
       usage,
-      warnings: [...refreshRead.warnings, ...warnings],
+      warnings: [
+        ...(scanWarning ? [scanWarning] : []),
+        ...refreshRead.warnings,
+        ...warnings,
+      ],
       datasets: datasetReads,
       datasetFacts: getPowerBiDatasetFacts(chartedDatasets),
       sources: collectBiSources(
@@ -1040,6 +1132,16 @@ export class PowerBiConnector {
           return { sources: dataset.sources, tables: dataset.tables };
         }),
       ),
+      // What the next read starts from: null for a tenant too big to keep, scanned whole each time.
+      readState: writePowerBiReadState({
+        version: POWER_BI_READ_STATE_VERSION,
+        scannedFrom: now.toISOString(),
+        fullScanAt: plan.isFull || !kept ? now.toISOString() : kept.fullScanAt,
+        pendingWorkspaceIds: merged.pendingWorkspaceIds,
+        workspaces: merged.workspaces,
+        dataflows: dataflowRead.kept,
+        dataflowExports: dataflowRead.exportedAt,
+      }),
     };
   }
 }

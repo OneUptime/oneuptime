@@ -27,7 +27,16 @@ import {
   AIRunAttemptEnd,
   AIRunAttemptOutcome,
   AIRunFailureKind,
+  PROVIDER_FIXED_FAILURE_KINDS,
 } from "../../../../Types/AI/AIRunAttempt";
+import LlmLog from "../../../../Models/DatabaseModels/LlmLog";
+import LlmLogService from "../../../Services/LlmLogService";
+
+/*
+ * How much of a failed attempt's error its AttemptEnded or RunFailed event
+ * keeps: the run's own errorMessage cut, and the engine's.
+ */
+export const MAX_ATTEMPT_ERROR_LENGTH: number = 400;
 
 // What failOrRequeueWithDetails did with a failed attempt, and how it ended.
 export interface FailedAttemptResult {
@@ -792,6 +801,17 @@ export default class AIInvestigationQueue {
    * so a run that already completed (e.g. only postAnalysis failed) is
    * never clobbered or re-run.
    *
+   * For an attempt that failed before the engine ran it - its context
+   * could not be built, its fix could not be prepared - which says nothing
+   * of how it ended itself. So it is said here, as the engine says it of
+   * its own attempts (issue #6490): an AttemptEnded event when the run goes
+   * back to the queue, a RunFailed event when it fails for good, each with
+   * the attempt's end - the kind of failure, attempt N of M, and when the
+   * next attempt starts. The run's activity then ends the attempt with a
+   * line, and its failure notice says how many times OneUptime tried.
+   * Nothing is written when the run had moved on ("noop"): its new owner
+   * says how it ends.
+   *
    * Returns what actually happened, so callers can settle post-terminal
    * work (the remediation hand-off) exactly once: "requeued" — a later
    * attempt owns the run now; "finalized" — THIS call moved the run to
@@ -801,22 +821,40 @@ export default class AIInvestigationQueue {
   @CaptureSpan()
   public static async failOrRequeue(data: {
     aiRunId: ObjectID;
+    // The run's project, whose activity the attempt's end is written to.
+    projectId: ObjectID;
     attemptCount: number;
     errorMessage: string;
     isPermanent: boolean;
     // The error itself, when there is one: its status code tells more.
     error?: unknown;
   }): Promise<"requeued" | "finalized" | "noop"> {
-    return (await this.failOrRequeueWithDetails(data)).outcome;
+    const failed: FailedAttemptResult =
+      await this.failOrRequeueWithDetails(data);
+
+    if (failed.outcome !== "noop") {
+      await this.recordAttemptEnd({
+        run: { id: data.aiRunId, projectId: data.projectId },
+        eventType:
+          failed.outcome === "requeued"
+            ? AIRunEventType.AttemptEnded
+            : AIRunEventType.RunFailed,
+        attemptEnd: failed.attemptEnd,
+        errorMessage: data.errorMessage,
+      });
+    }
+
+    return failed.outcome;
   }
 
   /*
-   * failOrRequeue, saying how the attempt ended too: for the AttemptEnded
-   * or RunFailed event its executor writes (AIInvestigationEngine), so the
-   * run's activity says what happened, how many times the run was tried
-   * and when it is tried next. Whether and when is AIRunRetryPolicy's
-   * decision: a provider failure waits a minute, then five, before the
-   * next attempt (retryAt), and gets three attempts in all.
+   * failOrRequeue, saying how the attempt ended too, for the AttemptEnded
+   * or RunFailed event its executor writes itself (AIInvestigationEngine,
+   * which numbers its own events), so the run's activity says what
+   * happened, how many times the run was tried and when it is tried next.
+   * Whether and when is AIRunRetryPolicy's decision: a provider failure
+   * waits a minute, then five, before the next attempt (retryAt), and gets
+   * three attempts in all.
    */
   @CaptureSpan()
   public static async failOrRequeueWithDetails(data: {
@@ -842,6 +880,13 @@ export default class AIInvestigationQueue {
       mayHaveChangedSomething: data.mayHaveChangedSomething,
     });
 
+    // A provider's failure says whose provider it was (issue #6494).
+    const providerIsGlobal: boolean = PROVIDER_FIXED_FAILURE_KINDS.includes(
+      decision.failureKind,
+    )
+      ? await this.didLastModelCallUseGlobalProvider(data.aiRunId)
+      : false;
+
     if (decision.shouldRetry) {
       const retryAt: Date = OneUptimeDate.addRemoveSeconds(
         OneUptimeDate.getCurrentDate(),
@@ -863,6 +908,7 @@ export default class AIInvestigationQueue {
       const attemptEnd: AIRunAttemptEnd = AIRunRetryPolicy.toAttemptEnd(
         decision,
         retryAt,
+        { providerIsGlobal },
       );
 
       if (requeued > 0) {
@@ -888,8 +934,40 @@ export default class AIInvestigationQueue {
 
     return {
       outcome: finalized > 0 ? "finalized" : "noop",
-      attemptEnd: AIRunRetryPolicy.toAttemptEnd(decision),
+      attemptEnd: AIRunRetryPolicy.toAttemptEnd(decision, undefined, {
+        providerIsGlobal,
+      }),
     };
+  }
+
+  /*
+   * Whether the run's last model call went to the global LLM provider -
+   * the one the server's admin sets up (LlmProvider.isGlobalLlm) - as its
+   * AI log says (AIService writes one for every call, a failed one too,
+   * with the run's id and whose provider it was). A project's members
+   * cannot change that provider, so a failure there is worded for them
+   * (issue #6494). False when no log says so, or it cannot be read: the
+   * words for a project's own provider, as before.
+   */
+  private static async didLastModelCallUseGlobalProvider(
+    aiRunId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      const lastCall: LlmLog | null = await LlmLogService.findOneBy({
+        query: { aiRunId },
+        select: { isGlobalProvider: true },
+        sort: { createdAt: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+
+      return lastCall?.isGlobalProvider === true;
+    } catch (error) {
+      logger.error(
+        `AI: could not read which LLM provider run ${aiRunId.toString()} used last: ${error}`,
+      );
+
+      return false;
+    }
   }
 
   /*
@@ -1060,15 +1138,17 @@ export default class AIInvestigationQueue {
 
   /*
    * Say on the run's activity how an attempt ended that cannot say so
-   * itself - its server is gone, or going - after every event it wrote
-   * (AIRunEventService.appendEventToRun, afterLastEvent). Best-effort: the
-   * run has already moved on, and the dashboard reads its state from the
-   * run's status as well.
+   * itself - its server is gone, or going, or it failed before the engine
+   * ran it - after every event it wrote (AIRunEventService.appendEventToRun,
+   * afterLastEvent). Best-effort: the run has already moved on, and the
+   * dashboard reads its state from the run's status as well.
    */
   private static async recordAttemptEnd(data: {
     run: { id: ObjectID; projectId?: ObjectID | undefined };
     eventType: AIRunEventType;
     attemptEnd: AIRunAttemptEnd;
+    // What the attempt failed with, kept as the engine keeps it.
+    errorMessage?: string | undefined;
   }): Promise<void> {
     if (!data.run.projectId) {
       return;
@@ -1079,7 +1159,17 @@ export default class AIInvestigationQueue {
         projectId: data.run.projectId,
         aiRunId: data.run.id,
         eventType: data.eventType,
-        resultSummary: { attemptEnd: data.attemptEnd },
+        resultSummary: {
+          attemptEnd: data.attemptEnd,
+          ...(data.errorMessage
+            ? {
+                errorMessage: data.errorMessage.substring(
+                  0,
+                  MAX_ATTEMPT_ERROR_LENGTH,
+                ),
+              }
+            : {}),
+        },
         afterLastEvent: true,
       });
     } catch (error) {
