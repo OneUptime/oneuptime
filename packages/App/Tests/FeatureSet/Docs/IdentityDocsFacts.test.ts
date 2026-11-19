@@ -695,7 +695,7 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("says OneUptime does not sign its requests, so Keycloak must not require a client signature", () => {
+  it("says OneUptime does not sign its sign-in requests, so Keycloak must not require a client signature", () => {
     const url: URL = SSOUtil.createSAMLRequestUrl({
       acsUrl: URL.fromString(
         "https://oneuptime.example.com/identity/idp-login/a/b",
@@ -716,7 +716,7 @@ describe("the SSO guide", () => {
     expect(request).toContain("<samlp:AuthnRequest");
     expect(request).not.toMatch(/Signature/);
     expect(english(SSO)).toContain(
-      "turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its requests",
+      "turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its sign-in requests",
     );
   });
 

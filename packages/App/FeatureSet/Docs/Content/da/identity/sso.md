@@ -127,7 +127,7 @@ Keycloak er en populær open source-løsning til identitets- og adgangsstyring. 
 4. **Juster klientindstillingerne**
 
    - Sæt **Name ID Format** til `email`, og slå **Force Name ID Format** til, så Keycloak altid sender e-mailen som Name ID
-   - Slå **Client signature required** (under **Signing keys config**) fra på klientens fane **Keys**: OneUptime signerer ikke sine anmodninger
+   - Slå **Client signature required** (under **Signing keys config**) fra på klientens fane **Keys**: OneUptime signerer ikke sine login-anmodninger
 
 5. **Slå udbyderen til, og test den**
 
@@ -271,7 +271,7 @@ Angiv din identitetsudbyders log ud-URL som udbyderens **Log ud-URL** under **Fl
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**, under **View SAML setup instructions** på fanen **Sign On** | Rediger **SAML Settings** på fanen **General**, klik på **Show Advanced Settings**, og vælg **Allow application to initiate Single Logout**. Sæt **Single Logout URL** til Single Logout-URL'en og **SP Issuer** til identifikatoren (Entity ID), og upload certifikatet som **Signature Certificate**. |
 | Microsoft Entra ID | **Logout URL**, under **Set up OneUptime** | Sæt **Logout Url (Optional)** i **Basic SAML Configuration** til Single Logout-URL'en. Entra ID har ikke brug for et certifikat. |
-| Keycloak | Realmens SAML-endpoint, det samme som log på-URL'en | Sæt **Logout Service Redirect Binding URL** på klientens fane **Advanced** til Single Logout-URL'en. Lad **Front channel logout** være slået til. |
+| Keycloak | Realmens SAML-endpoint, det samme som log på-URL'en | Sæt **Logout Service Redirect Binding URL** på klientens fane **Advanced** til Single Logout-URL'en. Lad **Front channel logout** være slået til. Keycloak har ikke brug for et certifikat, så længe **Client signature required** er slået fra, som ovenfor. |
 
 Efter at have logget ud der sender identitetsudbyderen browseren tilbage til Single Logout-URL'en, som åbner login-siden eller siger, at identitetsudbyderen ikke bekræftede log ud. Når personen logger ud hos identitetsudbyderen eller af en anden app, der bruger den, logger en identitetsudbyder, der sender log ud-anmodninger til sine apps, som Keycloak og Microsoft Entra ID gør, også personen ud af OneUptime. OneUptime tager kun imod en anmodning, som identitetsudbyderen har signeret.
 @tab OpenID Connect

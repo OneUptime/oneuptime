@@ -127,7 +127,7 @@ Keycloak एक लोकप्रिय ओपन-सोर्स पहचा�
 4. **क्लाइंट सेटिंग्स समायोजित करें**
 
    - **Name ID Format** को `email` पर सेट करें और **Force Name ID Format** चालू करें, ताकि Keycloak हमेशा ईमेल को Name ID के रूप में भेजे
-   - क्लाइंट के **Keys** टैब पर **Client signature required** (**Signing keys config** में) बंद करें: OneUptime अपने अनुरोधों पर हस्ताक्षर नहीं करता
+   - क्लाइंट के **Keys** टैब पर **Client signature required** (**Signing keys config** में) बंद करें: OneUptime अपने साइन इन अनुरोधों पर हस्ताक्षर नहीं करता
 
 5. **प्रदाता चालू करें और उसका परीक्षण करें**
 
@@ -271,7 +271,7 @@ OneUptime से साइन आउट करने पर व्यक्त�
 | --- | --- | --- |
 | Okta | **Sign On** टैब पर **View SAML setup instructions** में **Identity Provider Single Logout URL** | **General** टैब पर **SAML Settings** संपादित करें, **Show Advanced Settings** पर क्लिक करें और **Allow application to initiate Single Logout** चुनें। **Single Logout URL** को सिंगल लॉगआउट URL पर और **SP Issuer** को पहचानकर्ता (Entity ID) पर सेट करें, और प्रमाणपत्र को **Signature Certificate** के रूप में अपलोड करें। |
 | Microsoft Entra ID | **Set up OneUptime** में **Logout URL** | **Basic SAML Configuration** में **Logout Url (Optional)** को सिंगल लॉगआउट URL पर सेट करें। Entra ID को किसी प्रमाणपत्र की ज़रूरत नहीं है। |
-| Keycloak | रील्म का SAML एंडपॉइंट, साइन ऑन URL जैसा ही | क्लाइंट के **Advanced** टैब पर **Logout Service Redirect Binding URL** को सिंगल लॉगआउट URL पर सेट करें। **Front channel logout** चालू रहने दें। |
+| Keycloak | रील्म का SAML एंडपॉइंट, साइन ऑन URL जैसा ही | क्लाइंट के **Advanced** टैब पर **Logout Service Redirect Binding URL** को सिंगल लॉगआउट URL पर सेट करें। **Front channel logout** चालू रहने दें। जब तक **Client signature required** बंद है, जैसा ऊपर सेट किया गया है, Keycloak को किसी प्रमाणपत्र की ज़रूरत नहीं है। |
 
 वहां साइन आउट होने के बाद पहचान प्रदाता ब्राउज़र को सिंगल लॉगआउट URL पर वापस भेजता है, जो साइन इन पेज खोलता है या बताता है कि पहचान प्रदाता ने साइन आउट की पुष्टि नहीं की। जब व्यक्ति पहचान प्रदाता पर, या उसे इस्तेमाल करने वाले किसी दूसरे ऐप से साइन आउट करता है, तो अपने ऐप्स को साइन आउट अनुरोध भेजने वाला पहचान प्रदाता, जैसे Keycloak और Microsoft Entra ID, उसे OneUptime से भी साइन आउट कर देता है। OneUptime केवल वही अनुरोध लेता है जिसे पहचान प्रदाता ने साइन किया हो।
 @tab OpenID Connect

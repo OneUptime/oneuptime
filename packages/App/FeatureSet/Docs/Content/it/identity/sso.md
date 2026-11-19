@@ -127,7 +127,7 @@ Keycloak è una diffusa soluzione open source per la gestione delle identità e 
 4. **Regolare le impostazioni del client**
 
    - Imposta **Name ID Format** su `email` e attiva **Force Name ID Format**, così Keycloak invia sempre l'email come Name ID
-   - Nella scheda **Keys** del client, disattiva **Client signature required** (in **Signing keys config**): OneUptime non firma le sue richieste
+   - Nella scheda **Keys** del client, disattiva **Client signature required** (in **Signing keys config**): OneUptime non firma le sue richieste di accesso
 
 5. **Attivare il provider e provarlo**
 
@@ -271,7 +271,7 @@ Inserisci l'URL di uscita del tuo provider di identità come **URL di uscita** d
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**, in **View SAML setup instructions** nella scheda **Sign On** | Nella scheda **General**, modifica le **SAML Settings**, fai clic su **Show Advanced Settings** e seleziona **Allow application to initiate Single Logout**. Imposta **Single Logout URL** sull'URL di Single Logout e **SP Issuer** sull'identificatore (Entity ID), e carica il certificato come **Signature Certificate**. |
 | Microsoft Entra ID | **Logout URL**, in **Set up OneUptime** | In **Basic SAML Configuration**, imposta **Logout Url (Optional)** sull'URL di Single Logout. Entra ID non ha bisogno di alcun certificato. |
-| Keycloak | L'endpoint SAML del realm, lo stesso dell'URL di accesso | Nella scheda **Advanced** del client, imposta **Logout Service Redirect Binding URL** sull'URL di Single Logout. Lascia attivo **Front channel logout**. |
+| Keycloak | L'endpoint SAML del realm, lo stesso dell'URL di accesso | Nella scheda **Advanced** del client, imposta **Logout Service Redirect Binding URL** sull'URL di Single Logout. Lascia attivo **Front channel logout**. Keycloak non ha bisogno di alcun certificato finché **Client signature required** è disattivato, come impostato sopra. |
 
 Dopo l'uscita lì, il provider di identità rimanda il browser all'URL di Single Logout, che apre la pagina di accesso o segnala che il provider di identità non ha confermato l'uscita. Quando la persona esce dal provider di identità, o da un'altra app che lo usa, un provider di identità che invia richieste di uscita alle sue app, come Keycloak e Microsoft Entra ID, la fa uscire anche da OneUptime. OneUptime accetta solo una richiesta firmata dal provider di identità.
 @tab OpenID Connect

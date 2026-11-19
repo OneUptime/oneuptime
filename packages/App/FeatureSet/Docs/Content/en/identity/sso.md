@@ -127,7 +127,7 @@ Keycloak is a popular open-source identity and access management solution. You n
 4. **Adjust the client settings**
 
    - Set **Name ID Format** to `email`, and turn on **Force Name ID Format**, so Keycloak always sends the email as the Name ID
-   - On the client's **Keys** tab, turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its requests
+   - On the client's **Keys** tab, turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its sign-in requests
 
 5. **Turn the provider on and test it**
 
@@ -271,7 +271,7 @@ Enter your identity provider's sign-out URL as the provider's **Sign Out URL**, 
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**, in **View SAML setup instructions** on the **Sign On** tab | On the **General** tab, edit **SAML Settings**, click **Show Advanced Settings** and select **Allow application to initiate Single Logout**. Set **Single Logout URL** to the Single Logout URL and **SP Issuer** to the Identifier (Entity ID), and upload the certificate as the **Signature Certificate**. |
 | Microsoft Entra ID | **Logout URL**, in **Set up OneUptime** | In **Basic SAML Configuration**, set **Logout Url (Optional)** to the Single Logout URL. Entra ID needs no certificate. |
-| Keycloak | The realm's SAML endpoint, the same as the Sign On URL | On the client's **Advanced** tab, set **Logout Service Redirect Binding URL** to the Single Logout URL. Keep **Front channel logout** on. |
+| Keycloak | The realm's SAML endpoint, the same as the Sign On URL | On the client's **Advanced** tab, set **Logout Service Redirect Binding URL** to the Single Logout URL. Keep **Front channel logout** on. Keycloak needs no certificate while **Client signature required** is off, as set up above. |
 
 After a sign-out there, the identity provider sends the browser back to the Single Logout URL, which opens the sign-in page, or says that the identity provider did not confirm the sign-out. When the person signs out at the identity provider, or of another app that uses it, an identity provider that sends sign-out requests to its apps, as Keycloak and Microsoft Entra ID do, signs them out of OneUptime too. OneUptime takes only a request the identity provider signed.
 @tab OpenID Connect

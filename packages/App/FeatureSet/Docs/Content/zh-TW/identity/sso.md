@@ -127,7 +127,7 @@ Keycloak 是一款熱門的開放原始碼身分與存取管理解決方案。�
 4. **調整用戶端設定**
 
    - 將 **Name ID Format** 設為 `email`，並開啟 **Force Name ID Format**，讓 Keycloak 一律以電子郵件作為 Name ID 傳送
-   - 在用戶端的 **Keys** 分頁上，關閉 **Client signature required**（位於 **Signing keys config** 中）：OneUptime 不會為其請求簽章
+   - 在用戶端的 **Keys** 分頁上，關閉 **Client signature required**（位於 **Signing keys config** 中）：OneUptime 不會為其登入請求簽章
 
 5. **開啟提供者並進行測試**
 
@@ -271,7 +271,7 @@ OneUptime 的 SSO 使用 SAML 2.0，可與任何相容的身分提供者搭配�
 | --- | --- | --- |
 | Okta | **Sign On** 索引標籤 **View SAML setup instructions** 中的 **Identity Provider Single Logout URL** | 在 **General** 索引標籤編輯 **SAML Settings**，按一下 **Show Advanced Settings** 並選取 **Allow application to initiate Single Logout**。將 **Single Logout URL** 設為單一登出 URL，將 **SP Issuer** 設為識別碼（Entity ID），並將憑證上傳為 **Signature Certificate**。 |
 | Microsoft Entra ID | **Set up OneUptime** 中的 **Logout URL** | 在 **Basic SAML Configuration** 中，將 **Logout Url (Optional)** 設為單一登出 URL。Entra ID 不需要憑證。 |
-| Keycloak | 領域的 SAML 端點，與登入 URL 相同 | 在用戶端的 **Advanced** 索引標籤，將 **Logout Service Redirect Binding URL** 設為單一登出 URL。保持 **Front channel logout** 開啟。 |
+| Keycloak | 領域的 SAML 端點，與登入 URL 相同 | 在用戶端的 **Advanced** 索引標籤，將 **Logout Service Redirect Binding URL** 設為單一登出 URL。保持 **Front channel logout** 開啟。只要 **Client signature required** 如上文設定保持關閉，Keycloak 就不需要憑證。 |
 
 在那裡登出後，身分提供者會將瀏覽器送回單一登出 URL，由它開啟登入頁面，或提示身分提供者未確認此次登出。當使用者在身分提供者那裡，或在使用它的其他應用程式中登出時，會向其應用程式傳送登出要求的身分提供者（例如 Keycloak 與 Microsoft Entra ID）也會讓其登出 OneUptime。OneUptime 只接受身分提供者簽署的要求。
 @tab OpenID Connect

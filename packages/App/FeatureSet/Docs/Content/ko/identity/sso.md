@@ -127,7 +127,7 @@ Keycloak은 널리 쓰이는 오픈 소스 ID 및 액세스 관리 솔루션입�
 4. **클라이언트 설정 조정**
 
    - **Name ID Format**을 `email`로 설정하고 **Force Name ID Format**을 켜서 Keycloak이 항상 이메일을 Name ID로 보내도록 합니다
-   - 클라이언트의 **Keys** 탭에서 **Client signature required**(**Signing keys config** 안)를 끕니다. OneUptime은 요청에 서명하지 않습니다
+   - 클라이언트의 **Keys** 탭에서 **Client signature required**(**Signing keys config** 안)를 끕니다. OneUptime은 로그인 요청에 서명하지 않습니다
 
 5. **공급자를 켜고 테스트**
 
@@ -271,7 +271,7 @@ ID 공급자의 로그아웃 URL을 **추가 필드**에서 공급자의 **로�
 | --- | --- | --- |
 | Okta | **Sign On** 탭의 **View SAML setup instructions**에 있는 **Identity Provider Single Logout URL** | **General** 탭에서 **SAML Settings**를 편집하고 **Show Advanced Settings**를 클릭한 뒤 **Allow application to initiate Single Logout**를 선택하세요. **Single Logout URL**에는 단일 로그아웃 URL을, **SP Issuer**에는 식별자(Entity ID)를 설정하고 인증서를 **Signature Certificate**로 업로드하세요. |
 | Microsoft Entra ID | **Set up OneUptime**에 있는 **Logout URL** | **Basic SAML Configuration**에서 **Logout Url (Optional)** 항목을 단일 로그아웃 URL로 설정하세요. Entra ID에는 인증서가 필요하지 않습니다. |
-| Keycloak | 렐름의 SAML 엔드포인트로, 로그인 URL과 같습니다 | 클라이언트의 **Advanced** 탭에서 **Logout Service Redirect Binding URL**을 단일 로그아웃 URL로 설정하세요. **Front channel logout**은 켠 상태로 두세요. |
+| Keycloak | 렐름의 SAML 엔드포인트로, 로그인 URL과 같습니다 | 클라이언트의 **Advanced** 탭에서 **Logout Service Redirect Binding URL**을 단일 로그아웃 URL로 설정하세요. **Front channel logout**은 켠 상태로 두세요. 위에서 설정한 대로 **Client signature required**가 꺼져 있는 동안 Keycloak에는 인증서가 필요하지 않습니다. |
 
 그곳에서 로그아웃하면 ID 공급자가 브라우저를 단일 로그아웃 URL로 돌려보내고, 로그인 페이지가 열리거나 ID 공급자가 로그아웃을 확인하지 않았다는 안내가 표시됩니다. 사용자가 ID 공급자나 그 공급자를 쓰는 다른 앱에서 로그아웃하면, Keycloak과 Microsoft Entra ID처럼 자신의 앱에 로그아웃 요청을 보내는 ID 공급자는 OneUptime에서도 로그아웃시킵니다. OneUptime은 ID 공급자가 서명한 요청만 받아들입니다.
 @tab OpenID Connect

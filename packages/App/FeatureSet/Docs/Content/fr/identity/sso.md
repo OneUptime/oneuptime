@@ -127,7 +127,7 @@ Keycloak est une solution open source répandue de gestion des identités et des
 4. **Ajuster les paramètres du client**
 
    - Réglez **Name ID Format** sur `email` et activez **Force Name ID Format**, pour que Keycloak envoie toujours l'e-mail comme Name ID
-   - Dans l'onglet **Keys** du client, désactivez **Client signature required** (dans **Signing keys config**) : OneUptime ne signe pas ses requêtes
+   - Dans l'onglet **Keys** du client, désactivez **Client signature required** (dans **Signing keys config**) : OneUptime ne signe pas ses requêtes de connexion
 
 5. **Activer le fournisseur et le tester**
 
@@ -271,7 +271,7 @@ Saisissez l'URL de déconnexion de votre fournisseur d'identité comme **URL de 
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**, dans **View SAML setup instructions** sur l'onglet **Sign On** | Sur l'onglet **General**, modifiez les **SAML Settings**, cliquez sur **Show Advanced Settings** et cochez **Allow application to initiate Single Logout**. Mettez dans **Single Logout URL** l'URL de Single Logout et dans **SP Issuer** l'identifiant (Entity ID), puis téléversez le certificat comme **Signature Certificate**. |
 | Microsoft Entra ID | **Logout URL**, dans **Set up OneUptime** | Dans **Basic SAML Configuration**, mettez l'URL de Single Logout dans **Logout Url (Optional)**. Entra ID n'a besoin d'aucun certificat. |
-| Keycloak | Le point de terminaison SAML du realm, le même que l'URL de connexion | Sur l'onglet **Advanced** du client, mettez l'URL de Single Logout dans **Logout Service Redirect Binding URL**. Laissez **Front channel logout** activé. |
+| Keycloak | Le point de terminaison SAML du realm, le même que l'URL de connexion | Sur l'onglet **Advanced** du client, mettez l'URL de Single Logout dans **Logout Service Redirect Binding URL**. Laissez **Front channel logout** activé. Keycloak n'a besoin d'aucun certificat tant que **Client signature required** est désactivé, comme configuré plus haut. |
 
 Après une déconnexion là-bas, le fournisseur d'identité renvoie le navigateur vers l'URL de Single Logout, qui ouvre la page de connexion, ou indique que le fournisseur d'identité n'a pas confirmé la déconnexion. Quand la personne se déconnecte chez le fournisseur d'identité, ou d'une autre application qui l'utilise, un fournisseur d'identité qui envoie des demandes de déconnexion à ses applications, comme Keycloak et Microsoft Entra ID, la déconnecte aussi de OneUptime. OneUptime n'accepte qu'une demande signée par le fournisseur d'identité.
 @tab OpenID Connect

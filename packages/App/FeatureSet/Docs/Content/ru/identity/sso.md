@@ -127,7 +127,7 @@ Keycloak — популярное решение с открытым исход�
 4. **Настройте параметры клиента**
 
    - Установите **Name ID Format** в `email` и включите **Force Name ID Format**, чтобы Keycloak всегда отправлял адрес электронной почты как Name ID
-   - На вкладке клиента **Keys** выключите **Client signature required** (в **Signing keys config**): OneUptime не подписывает свои запросы
+   - На вкладке клиента **Keys** выключите **Client signature required** (в **Signing keys config**): OneUptime не подписывает свои запросы на вход
 
 5. **Включите поставщика и проверьте его**
 
@@ -271,7 +271,7 @@ SSO в OneUptime использует SAML 2.0 и работает с любым
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL** в **View SAML setup instructions** на вкладке **Sign On** | На вкладке **General** измените **SAML Settings**, нажмите **Show Advanced Settings** и выберите **Allow application to initiate Single Logout**. Укажите в **Single Logout URL** URL Single Logout, а в **SP Issuer** — идентификатор (Entity ID), и загрузите сертификат как **Signature Certificate**. |
 | Microsoft Entra ID | **Logout URL** в **Set up OneUptime** | В **Basic SAML Configuration** укажите URL Single Logout в **Logout Url (Optional)**. Entra ID сертификат не нужен. |
-| Keycloak | Конечная точка SAML реалма, та же, что URL входа | На вкладке **Advanced** клиента укажите URL Single Logout в **Logout Service Redirect Binding URL**. Оставьте **Front channel logout** включённым. |
+| Keycloak | Конечная точка SAML реалма, та же, что URL входа | На вкладке **Advanced** клиента укажите URL Single Logout в **Logout Service Redirect Binding URL**. Оставьте **Front channel logout** включённым. Пока **Client signature required** выключен, как настроено выше, Keycloak сертификат не нужен. |
 
 После выхода там поставщик удостоверений возвращает браузер на URL Single Logout, который открывает страницу входа или сообщает, что поставщик удостоверений не подтвердил выход. Когда человек выходит у поставщика удостоверений или из другого приложения, которое его использует, поставщик удостоверений, отправляющий своим приложениям запросы на выход, как Keycloak и Microsoft Entra ID, выводит его и из OneUptime. OneUptime принимает только запрос, подписанный поставщиком удостоверений.
 @tab OpenID Connect

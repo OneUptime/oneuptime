@@ -127,7 +127,7 @@ Keycloak es una solución de código abierto muy extendida para la gestión de i
 4. **Ajustar la configuración del cliente**
 
    - Establece **Name ID Format** en `email` y activa **Force Name ID Format**, para que Keycloak envíe siempre el correo como Name ID
-   - En la pestaña **Keys** del cliente, desactiva **Client signature required** (en **Signing keys config**): OneUptime no firma sus solicitudes
+   - En la pestaña **Keys** del cliente, desactiva **Client signature required** (en **Signing keys config**): OneUptime no firma sus solicitudes de inicio de sesión
 
 5. **Activar el proveedor y probarlo**
 
@@ -271,7 +271,7 @@ Introduce la URL de cierre de sesión de tu proveedor de identidad como **URL de
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**, en **View SAML setup instructions** de la pestaña **Sign On** | En la pestaña **General**, edita **SAML Settings**, haz clic en **Show Advanced Settings** y selecciona **Allow application to initiate Single Logout**. Pon en **Single Logout URL** la URL de Single Logout y en **SP Issuer** el identificador (Entity ID), y sube el certificado como **Signature Certificate**. |
 | Microsoft Entra ID | **Logout URL**, en **Set up OneUptime** | En **Basic SAML Configuration**, pon la URL de Single Logout en **Logout Url (Optional)**. Entra ID no necesita ningún certificado. |
-| Keycloak | El punto de conexión SAML del realm, el mismo que la URL de inicio de sesión | En la pestaña **Advanced** del cliente, pon la URL de Single Logout en **Logout Service Redirect Binding URL**. Deja activado **Front channel logout**. |
+| Keycloak | El punto de conexión SAML del realm, el mismo que la URL de inicio de sesión | En la pestaña **Advanced** del cliente, pon la URL de Single Logout en **Logout Service Redirect Binding URL**. Deja activado **Front channel logout**. Keycloak no necesita ningún certificado mientras **Client signature required** esté desactivado, como se configuró arriba. |
 
 Tras cerrar la sesión allí, el proveedor de identidad devuelve el navegador a la URL de Single Logout, que abre la página de inicio de sesión o indica que el proveedor de identidad no confirmó el cierre de sesión. Cuando la persona cierra sesión en el proveedor de identidad, o en otra aplicación que lo usa, un proveedor de identidad que envía solicitudes de cierre de sesión a sus aplicaciones, como Keycloak y Microsoft Entra ID, también la saca de OneUptime. OneUptime solo acepta una solicitud firmada por el proveedor de identidad.
 @tab OpenID Connect

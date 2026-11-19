@@ -127,7 +127,7 @@ Keycloak 是一款流行的开源身份和访问管理解决方案。您需要�
 4. **调整客户端设置**
 
    - 将 **Name ID Format** 设为 `email`，并开启 **Force Name ID Format**，使 Keycloak 始终以电子邮件作为 Name ID 发送
-   - 在客户端的 **Keys** 选项卡上，关闭 **Client signature required**（位于 **Signing keys config** 中）：OneUptime 不会对其请求签名
+   - 在客户端的 **Keys** 选项卡上，关闭 **Client signature required**（位于 **Signing keys config** 中）：OneUptime 不会对其登录请求签名
 
 5. **开启提供商并进行测试**
 
@@ -271,7 +271,7 @@ OneUptime 的 SSO 使用 SAML 2.0，可与任何兼容的身份提供商配合�
 | --- | --- | --- |
 | Okta | **Sign On** 标签页 **View SAML setup instructions** 中的 **Identity Provider Single Logout URL** | 在 **General** 标签页编辑 **SAML Settings**，点击 **Show Advanced Settings** 并选中 **Allow application to initiate Single Logout**。将 **Single Logout URL** 设为单点注销 URL，将 **SP Issuer** 设为标识符（Entity ID），并把证书上传为 **Signature Certificate**。 |
 | Microsoft Entra ID | **Set up OneUptime** 中的 **Logout URL** | 在 **Basic SAML Configuration** 中，将 **Logout Url (Optional)** 设为单点注销 URL。Entra ID 不需要证书。 |
-| Keycloak | 领域的 SAML 端点，与登录 URL 相同 | 在客户端的 **Advanced** 标签页，将 **Logout Service Redirect Binding URL** 设为单点注销 URL。保持 **Front channel logout** 开启。 |
+| Keycloak | 领域的 SAML 端点，与登录 URL 相同 | 在客户端的 **Advanced** 标签页，将 **Logout Service Redirect Binding URL** 设为单点注销 URL。保持 **Front channel logout** 开启。只要 **Client signature required** 如上文设置保持关闭，Keycloak 就不需要证书。 |
 
 在那里退出后，身份提供商会把浏览器送回单点注销 URL，由它打开登录页面，或提示身份提供商未确认这次退出。当用户在身份提供商处，或在使用它的其他应用中退出时，会向其应用发送退出请求的身份提供商（如 Keycloak 和 Microsoft Entra ID）也会让其退出 OneUptime。OneUptime 只接受身份提供商签名的请求。
 @tab OpenID Connect

@@ -127,7 +127,7 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
 4. **Die Client-Einstellungen anpassen**
 
    - Setzen Sie **Name ID Format** auf `email` und schalten Sie **Force Name ID Format** ein, damit Keycloak die E-Mail immer als Name ID sendet
-   - Schalten Sie auf dem Tab **Keys** des Clients **Client signature required** (unter **Signing keys config**) aus: OneUptime signiert seine Anfragen nicht
+   - Schalten Sie auf dem Tab **Keys** des Clients **Client signature required** (unter **Signing keys config**) aus: OneUptime signiert seine Anmeldeanfragen nicht
 
 5. **Den Anbieter einschalten und testen**
 
@@ -271,7 +271,7 @@ Tragen Sie die Abmelde-URL Ihres Identitätsanbieters als **Abmelde-URL** des An
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**, unter **View SAML setup instructions** auf dem Tab **Sign On** | Bearbeiten Sie auf dem Tab **General** die **SAML Settings**, klicken Sie auf **Show Advanced Settings** und wählen Sie **Allow application to initiate Single Logout**. Setzen Sie **Single Logout URL** auf die Single-Logout-URL und **SP Issuer** auf die Kennung (Entity ID), und laden Sie das Zertifikat als **Signature Certificate** hoch. |
 | Microsoft Entra ID | **Logout URL**, unter **Set up OneUptime** | Setzen Sie in **Basic SAML Configuration** die **Logout Url (Optional)** auf die Single-Logout-URL. Entra ID braucht kein Zertifikat. |
-| Keycloak | Der SAML-Endpunkt des Realms, derselbe wie die Anmelde-URL | Setzen Sie auf dem Tab **Advanced** des Clients die **Logout Service Redirect Binding URL** auf die Single-Logout-URL. Lassen Sie **Front channel logout** eingeschaltet. |
+| Keycloak | Der SAML-Endpunkt des Realms, derselbe wie die Anmelde-URL | Setzen Sie auf dem Tab **Advanced** des Clients die **Logout Service Redirect Binding URL** auf die Single-Logout-URL. Lassen Sie **Front channel logout** eingeschaltet. Keycloak braucht kein Zertifikat, solange **Client signature required** aus ist, wie oben eingerichtet. |
 
 Nach einer Abmeldung dort schickt der Identitätsanbieter den Browser zur Single-Logout-URL zurück, die die Anmeldeseite öffnet oder meldet, dass der Identitätsanbieter die Abmeldung nicht bestätigt hat. Meldet sich die Person beim Identitätsanbieter oder bei einer anderen App ab, die ihn nutzt, meldet ein Identitätsanbieter, der seinen Apps Abmeldeanfragen schickt, wie Keycloak und Microsoft Entra ID, sie auch von OneUptime ab. OneUptime nimmt nur eine Anfrage an, die der Identitätsanbieter signiert hat.
 @tab OpenID Connect

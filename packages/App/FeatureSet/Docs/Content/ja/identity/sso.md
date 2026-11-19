@@ -127,7 +127,7 @@ Keycloak は、人気のあるオープンソースの ID およびアクセス�
 4. **クライアントの設定を調整する**
 
    - **Name ID Format** を `email` に設定し、**Force Name ID Format** をオンにして、Keycloak が常にメールアドレスを Name ID として送るようにします
-   - クライアントの **Keys** タブで、**Client signature required**（**Signing keys config** 内）をオフにします。OneUptime はリクエストに署名しません
+   - クライアントの **Keys** タブで、**Client signature required**（**Signing keys config** 内）をオフにします。OneUptime はサインインのリクエストに署名しません
 
 5. **プロバイダーをオンにしてテストする**
 
@@ -271,7 +271,7 @@ ID プロバイダーのサインアウト URL を、**その他の項目** に�
 | --- | --- | --- |
 | Okta | **Sign On** タブの **View SAML setup instructions** にある **Identity Provider Single Logout URL** | **General** タブで **SAML Settings** を編集し、**Show Advanced Settings** をクリックして **Allow application to initiate Single Logout** を選びます。**Single Logout URL** にシングルログアウト URL を、**SP Issuer** に識別子（エンティティ ID）を設定し、証明書を **Signature Certificate** としてアップロードします。 |
 | Microsoft Entra ID | **Set up OneUptime** にある **Logout URL** | **Basic SAML Configuration** で、**Logout Url (Optional)** にシングルログアウト URL を設定します。Entra ID に証明書は不要です。 |
-| Keycloak | レルムの SAML エンドポイント。サインオン URL と同じです | クライアントの **Advanced** タブで、**Logout Service Redirect Binding URL** にシングルログアウト URL を設定します。**Front channel logout** はオンのままにします。 |
+| Keycloak | レルムの SAML エンドポイント。サインオン URL と同じです | クライアントの **Advanced** タブで、**Logout Service Redirect Binding URL** にシングルログアウト URL を設定します。**Front channel logout** はオンのままにします。上記の設定どおり **Client signature required** がオフの間は、Keycloak に証明書は不要です。 |
 
 そこでサインアウトすると、ID プロバイダーはブラウザーをシングルログアウト URL へ戻し、サインインページが開くか、ID プロバイダーがサインアウトを確認しなかったことが表示されます。本人が ID プロバイダーや、それを使う別のアプリでサインアウトしたときは、Keycloak や Microsoft Entra ID のように自分のアプリへサインアウト要求を送る ID プロバイダーなら、OneUptime からもサインアウトさせます。OneUptime が受け付けるのは、ID プロバイダーが署名した要求だけです。
 @tab OpenID Connect

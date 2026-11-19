@@ -127,7 +127,7 @@ Keycloak یک راه‌حل متن‌باز و پرطرفدار برای مدی�
 4. **تنظیم کلاینت**
 
    - **Name ID Format** را روی `email` بگذارید و **Force Name ID Format** را روشن کنید، تا Keycloak همیشه ایمیل را به‌عنوان Name ID بفرستد
-   - در زبانهٔ **Keys** کلاینت، **Client signature required** (در **Signing keys config**) را خاموش کنید: OneUptime درخواست‌هایش را امضا نمی‌کند
+   - در زبانهٔ **Keys** کلاینت، **Client signature required** (در **Signing keys config**) را خاموش کنید: OneUptime درخواست‌های ورودش را امضا نمی‌کند
 
 5. **روشن کردن و آزمودن ارائه‌دهنده**
 
@@ -271,7 +271,7 @@ SSO در OneUptime از SAML 2.0 استفاده می‌کند و با هر ار�
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**، در **View SAML setup instructions** در زبانهٔ **Sign On** | در زبانهٔ **General**، **SAML Settings** را ویرایش کنید، روی **Show Advanced Settings** کلیک کنید و **Allow application to initiate Single Logout** را انتخاب کنید. **Single Logout URL** را روی نشانی خروج یکپارچه و **SP Issuer** را روی شناسه (Entity ID) بگذارید و گواهی را به‌عنوان **Signature Certificate** بارگذاری کنید. |
 | Microsoft Entra ID | **Logout URL**، در **Set up OneUptime** | در **Basic SAML Configuration**، **Logout Url (Optional)** را روی نشانی خروج یکپارچه بگذارید. Entra ID به گواهی نیازی ندارد. |
-| Keycloak | نقطهٔ پایانی SAML قلمرو، همان نشانی ورود | در زبانهٔ **Advanced** کلاینت، **Logout Service Redirect Binding URL** را روی نشانی خروج یکپارچه بگذارید. **Front channel logout** را روشن نگه دارید. |
+| Keycloak | نقطهٔ پایانی SAML قلمرو، همان نشانی ورود | در زبانهٔ **Advanced** کلاینت، **Logout Service Redirect Binding URL** را روی نشانی خروج یکپارچه بگذارید. **Front channel logout** را روشن نگه دارید. تا وقتی **Client signature required** خاموش است، همان‌طور که بالاتر تنظیم شد، Keycloak به گواهی نیازی ندارد. |
 
 پس از خروج در آنجا، ارائه‌دهندهٔ هویت مرورگر را به نشانی خروج یکپارچه برمی‌گرداند که صفحهٔ ورود را باز می‌کند، یا می‌گوید ارائه‌دهندهٔ هویت خروج را تأیید نکرد. وقتی فرد در ارائه‌دهندهٔ هویت، یا از برنامهٔ دیگری که از آن استفاده می‌کند، خارج شود، ارائه‌دهندهٔ هویتی که مانند Keycloak و Microsoft Entra ID به برنامه‌هایش درخواست خروج می‌فرستد، او را از OneUptime هم خارج می‌کند. OneUptime فقط درخواستی را می‌پذیرد که ارائه‌دهندهٔ هویت امضا کرده باشد.
 @tab OpenID Connect

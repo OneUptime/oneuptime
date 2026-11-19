@@ -127,7 +127,7 @@ Keycloak is een veelgebruikte opensourceoplossing voor identiteits- en toegangsb
 4. **De clientinstellingen aanpassen**
 
    - Zet **Name ID Format** op `email` en schakel **Force Name ID Format** in, zodat Keycloak het e-mailadres altijd als Name ID stuurt
-   - Zet op het tabblad **Keys** van de client **Client signature required** (onder **Signing keys config**) uit: OneUptime ondertekent zijn verzoeken niet
+   - Zet op het tabblad **Keys** van de client **Client signature required** (onder **Signing keys config**) uit: OneUptime ondertekent zijn aanmeldverzoeken niet
 
 5. **De provider inschakelen en testen**
 
@@ -271,7 +271,7 @@ Vul de afmeldings-URL van uw identiteitsprovider in als **Afmeldings-URL** van d
 | --- | --- | --- |
 | Okta | **Identity Provider Single Logout URL**, onder **View SAML setup instructions** op het tabblad **Sign On** | Bewerk op het tabblad **General** de **SAML Settings**, klik op **Show Advanced Settings** en selecteer **Allow application to initiate Single Logout**. Zet **Single Logout URL** op de Single Logout-URL en **SP Issuer** op de identificatie (Entity ID), en upload het certificaat als **Signature Certificate**. |
 | Microsoft Entra ID | **Logout URL**, onder **Set up OneUptime** | Zet in **Basic SAML Configuration** de **Logout Url (Optional)** op de Single Logout-URL. Entra ID heeft geen certificaat nodig. |
-| Keycloak | Het SAML-eindpunt van de realm, hetzelfde als de aanmeldings-URL | Zet op het tabblad **Advanced** van de client de **Logout Service Redirect Binding URL** op de Single Logout-URL. Laat **Front channel logout** aan. |
+| Keycloak | Het SAML-eindpunt van de realm, hetzelfde als de aanmeldings-URL | Zet op het tabblad **Advanced** van de client de **Logout Service Redirect Binding URL** op de Single Logout-URL. Laat **Front channel logout** aan. Keycloak heeft geen certificaat nodig zolang **Client signature required** uit staat, zoals hierboven ingesteld. |
 
 Na een afmelding daar stuurt de identiteitsprovider de browser terug naar de Single Logout-URL, die de aanmeldpagina opent of meldt dat de identiteitsprovider de afmelding niet heeft bevestigd. Meldt iemand zich af bij de identiteitsprovider, of bij een andere app die hem gebruikt, dan meldt een identiteitsprovider die zijn apps afmeldverzoeken stuurt, zoals Keycloak en Microsoft Entra ID, diegene ook af bij OneUptime. OneUptime neemt alleen een verzoek aan dat de identiteitsprovider heeft ondertekend.
 @tab OpenID Connect
