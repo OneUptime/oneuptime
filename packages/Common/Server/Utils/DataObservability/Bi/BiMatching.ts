@@ -28,16 +28,31 @@ import { UsageAsset, UsageStore } from "../TableUsageMatching";
  * instance, and a short name (sql01) is the same server as its full one
  * (sql01.corp.acme.com).
  *
+ * A Dataverse table named by its entity set (accounts), as Power BI's OData
+ * connectors name it, is the watched table whose logical name (account)
+ * the environment itself gives that entity set (DataverseEntitySets) - in
+ * the environment at the host the connector named, never another's. With
+ * no such name known, it matches nothing: an entity set's name is not a
+ * table's.
+ *
  * A project's catalog is indexed by table name once, and each table is
  * matched once per catalog, however many dashboards read it.
  */
 
-export type BiCatalog = Pick<ProjectCatalog, "stores" | "assets">;
+export type BiCatalog = Pick<ProjectCatalog, "stores" | "assets"> & {
+  /*
+   * Each Dataverse environment's entity sets, by its store's id: each
+   * entity set, in lower case, to its table's logical name. Left out, no
+   * entity set matches.
+   */
+  dataverseEntitySets?: ReadonlyMap<string, ReadonlyMap<string, string>>;
+};
 
 interface BiCatalogIndex {
   byName: Map<string, Array<UsageAsset>>;
   storesById: Map<string, UsageStore>;
   matches: Map<string, UsageAsset | null>;
+  entitySets: ReadonlyMap<string, ReadonlyMap<string, string>>;
 }
 
 const INDEXES: WeakMap<BiCatalog, BiCatalogIndex> = new WeakMap();
@@ -180,6 +195,7 @@ function indexOf(catalog: BiCatalog): BiCatalogIndex {
       }),
     ),
     matches: new Map(),
+    entitySets: catalog.dataverseEntitySets || new Map(),
   };
 
   INDEXES.set(catalog, index);
@@ -197,11 +213,60 @@ function narrow(
   return kept.length > 0 ? kept : candidates;
 }
 
+/*
+ * A Dataverse entity set's table: in each watched environment at the host
+ * the connector named, the table whose logical name the environment gives
+ * that entity set - one in all, or none.
+ */
+function findEntitySetMatch(
+  ref: BiTableRef,
+  index: BiCatalogIndex,
+): UsageAsset | null {
+  const entitySet: string = lower(ref.table);
+
+  if (!entitySet || !ref.host) {
+    return null;
+  }
+
+  const found: Array<UsageAsset> = [];
+
+  for (const store of index.storesById.values()) {
+    if (
+      getCollectorEngineOfKind(store.kind) !== "dataverse" ||
+      !isSameBiHost(store.serverAddress, ref.host)
+    ) {
+      continue;
+    }
+
+    const logicalName: string | undefined = index.entitySets
+      .get(store.dataStoreId)
+      ?.get(entitySet);
+
+    if (!logicalName) {
+      continue;
+    }
+
+    found.push(
+      ...(index.byName.get(lower(logicalName)) || []).filter(
+        (asset: UsageAsset): boolean => {
+          return asset.dataStoreId === store.dataStoreId;
+        },
+      ),
+    );
+  }
+
+  return found.length === 1 ? found[0]! : null;
+}
+
 function findMatch(ref: BiTableRef, index: BiCatalogIndex): UsageAsset | null {
   const table: string = lower(ref.table);
 
   if (!table) {
     return null;
+  }
+
+  if (ref.isEntitySet) {
+    return findEntitySetMatch(ref, index);
   }
 
   const storeOf: (asset: UsageAsset) => UsageStore | undefined = (

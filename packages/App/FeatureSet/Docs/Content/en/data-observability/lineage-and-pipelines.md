@@ -38,7 +38,7 @@ Every arrow is something OneUptime recorded, never a guess. Cards sit left to ri
 
 Search for a table, service, pipeline or dashboard to keep what matches and everything upstream and downstream of it. Select a card to highlight its whole lineage, see what it comes from and what it goes to, and open its page; **Show Only Its Lineage** leaves only that on the map. The switches beside the search leave services, pipelines or dashboards off. **List** shows every arrow as a line, and is what a phone opens on.
 
-One map draws up to 400 cards, the most recently seen flows first; when your project has more, the map says so. The same map is served by `POST /api/data-observability/lineage/map`, for anyone who may read data assets and their API keys. A map with more says how many tables it left out, each counted once, and can start somewhere else: pick a database to map the flows of its tables and the cards they join, or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service and dashboard whose name holds it, however old they are. **Show Whole Map** goes back. To start the API's map somewhere, send `{ "dataStoreId": "<database ID>" }` or `{ "search": "orders" }`.
+One map draws up to 400 cards, the most recently seen flows first; when your project has more, the map says so. The same map is served by `POST /api/data-observability/lineage/map`, for anyone who may read data assets and their API keys. A map with more says how many tables it left out, each counted once, and can start somewhere else: pick a database to map the flows of its tables, the dashboards built on them and the cards they join, or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service, dashboard, dataset and data source whose name holds it, however old they are. **Show Whole Map** goes back. To start the API's map somewhere, send `{ "dataStoreId": "<database ID>" }` or `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -222,7 +222,7 @@ Someone who may not see the alert that caused it gets neither the **Data** card 
 
 ## Power BI lineage
 
-**Tables Matched** on each BI tool says how many watched tables its dashboards are built on, and under it the first thing keeping the rest from matching. **See Why** lists what the last read found and what to do: databases your dashboards read that are not connected to OneUptime, each one **Connect Database** away with its kind and address filled in; tables a connected database does not watch, which may be left out of its scan or not collected yet; and sources that are no database, such as files and web pages. For Power BI it also names a tenant setting that is off, datasets that read from dataflows, and datasets Power BI cannot describe. Each dashboard's **Built On** says the datasets it charts and where their data comes from, as Power BI says.
+**Tables Matched** on each BI tool says how many watched tables its dashboards are built on, and under it the first thing keeping the rest from matching. **See Why** lists what the last read found and what to do: databases your dashboards read that are not connected to OneUptime, each one **Connect Database** away with its kind and address filled in; tables a connected database does not watch, which may be left out of its scan or not collected yet; and sources that are no database, such as files and web pages. For Power BI it also names a tenant setting that is off, dataflows whose definitions Power BI would not export or that are still being read, and datasets Power BI cannot describe. Each dashboard's **Built On** says the datasets it charts and where their data comes from, as Power BI says.
 
 OneUptime reads each Power BI dataset from Power BI's metadata scan, with the Power Query behind each of its tables:
 
@@ -230,6 +230,8 @@ OneUptime reads each Power BI dataset from Power BI's metadata scan, with the Po
 - **SQL a query runs**: a connector's **SQL statement** option, `Value.NativeQuery` and `Odbc.Query`, and the tables after each `FROM` and `JOIN`.
 - **Parameters and shared queries**: a parameter stands wherever it is named, and a table that reads a staging query reads what that query reads.
 - **Composite models** chart the tables of the datasets they are built on.
+- **Dataflows**: a dataset built on a dataflow reads what the dataflow's entity reads. OneUptime exports each dataflow's definition through Power BI's admin API, which needs nothing more than the admin API access above, and reads the entity's query in it as it reads a dataset's, linked entities included. A dataflow is exported once, and again when it changes or a day after an export failed: at most 60 in one read, within Power BI's limit of 200 an hour, so a tenant with many dataflows is read through over a few hours.
+- **Dataverse's OData connectors**: `Cds.Entities` and `Cds.Contents`, the legacy Common Data Service connector's, and `Dataverse.Contents` name a table by its entity set (`accounts`), while OneUptime keeps a Dataverse table under its logical name (`account`). OneUptime asks the connected Dataverse environment at that address for its entity set names, with the environment's own connection, once a day, and matches through them; an environment a probe collects is not asked.
 
 A report charts its dataset's tables, and a dashboard its tiles' datasets'. Where the data comes from - a database's server and name, a file's path, a web address - comes from the scan's data sources, which need nothing more than the admin API access above.
 
@@ -238,9 +240,11 @@ Power BI returns a dataset's tables only once a Fabric administrator turns on tw
 - **Enhance admin APIs responses with detailed metadata**: each dataset's tables.
 - **Enhance admin APIs responses with DAX and mashup expressions**: the queries that load them, which say which database tables they read.
 
-Power BI then describes a dataset once it has been refreshed or republished; one that only uses DirectQuery, once someone has opened a report on it. It never describes real-time datasets, datasets on a live connection to Analysis Services, Excel workbooks, or datasets over 1 GB on shared capacity. A dataset that reads from a dataflow is read up to the dataflow: OneUptime does not read which tables a dataflow loads yet.
+Power BI then describes a dataset once it has been refreshed or republished; one that only uses DirectQuery, once someone has opened a report on it. It never describes real-time datasets, datasets on a live connection to Analysis Services, Excel workbooks, or datasets over 1 GB on shared capacity.
 
 Each table is matched to a watched table by its name, schema and database, and a server by its short name or its full one. A table of another engine is never matched, and neither is one in another database: a report on `Sales.dbo.Orders` is not tied to `Archive.dbo.Orders` because only `Archive` is watched.
+
+The first read scans the whole tenant. After it, each hourly read scans only the workspaces that changed since the last read, and the whole tenant once a day, which drops reports and workspaces that are gone; **Read Now** scans only what changed. OneUptime runs up to 16 scans at once, of up to 100 workspaces each, as Power BI allows, and a big tenant's scans can take minutes: the hourly read waits up to 20 minutes for them and **Read Now** up to 4. A workspace whose scan failed or did not finish keeps what was read of it, the BI tool's warning says so, and the next read scans it again.
 
 [Refreshes](#views-and-refreshes-in-power-bi) are read apart from the tables: a warning that some datasets' refreshes could not be read says nothing about their tables.
 

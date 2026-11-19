@@ -65,7 +65,10 @@ export enum DataBiLineageProblem {
   DatabasesNotConnected = "DatabasesNotConnected",
   // The tables are in watched databases, but are not among their watched tables.
   TablesNotWatched = "TablesNotWatched",
-  // The datasets read from Power BI dataflows, whose own sources are not read yet.
+  /*
+   * Datasets read from Power BI dataflows whose tables OneUptime could not
+   * read, or is still reading within Power BI's hourly limit (#9551).
+   */
   Dataflows = "Dataflows",
   // Power BI could not describe some datasets (real-time, Analysis Services, Excel workbooks, over 1 GB).
   SchemaErrors = "SchemaErrors",
@@ -109,6 +112,16 @@ export interface DataBiDatasetFacts {
   schemaError: string | null;
   // Datasets that read from dataflows.
   readingDataflows: number;
+  /*
+   * Datasets reading a dataflow whose tables OneUptime could not read
+   * (Power BI would not export its definition, or it has no such entity),
+   * and one of the reasons; and those whose dataflows' definitions are
+   * still being read, within Power BI's hourly limit (#9551). Left out by
+   * a summary kept before they were counted.
+   */
+  withUnreadDataflows?: number | undefined;
+  dataflowError?: string | null | undefined;
+  withPendingDataflows?: number | undefined;
 }
 
 // Why a tool's dashboards are, or are not, tied to watched tables (DataBiConnection.lineageSummary).
@@ -224,6 +237,16 @@ function readDatasetFacts(value: unknown): DataBiDatasetFacts | null {
     withSchemaError: readCount(facts["withSchemaError"]),
     schemaError: readText(facts["schemaError"]),
     readingDataflows: readCount(facts["readingDataflows"]),
+    // Kept only where counted, so a summary from before reads as it was kept.
+    ...(facts["withUnreadDataflows"] !== undefined
+      ? { withUnreadDataflows: readCount(facts["withUnreadDataflows"]) }
+      : {}),
+    ...(facts["dataflowError"] !== undefined
+      ? { dataflowError: readText(facts["dataflowError"]) }
+      : {}),
+    ...(facts["withPendingDataflows"] !== undefined
+      ? { withPendingDataflows: readCount(facts["withPendingDataflows"]) }
+      : {}),
   };
 }
 
