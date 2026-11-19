@@ -131,6 +131,12 @@ const AT: (minute: number) => string = (minute: number): string => {
   return new Date(Date.UTC(2026, 10, 17, 10, minute, 0)).toISOString();
 };
 
+// What the failed sends' list reads ask ModelAPI.getList for.
+interface FailedSendsRead {
+  modelType: unknown;
+  query: Record<string, unknown>;
+}
+
 const RUN: WhoWasToldRun = {
   id: "run-1",
   policyId: "policy-1",
@@ -681,7 +687,7 @@ describe("WhoWasToldCard", () => {
     failedEmail.toEmail = new Email("ana@example.com");
     failedEmail.status = MailStatus.Error;
     failedEmail.statusMessage = "550 5.1.1 Mailbox does not exist";
-    failedEmail.createdAt = AT(2);
+    failedEmail.createdAt = new Date(AT(2));
     const statusPage: StatusPage = new StatusPage();
     statusPage.name = "Acme Status";
     failedEmail.statusPage = statusPage;
@@ -690,17 +696,20 @@ describe("WhoWasToldCard", () => {
     failedText._id = "11111111-1111-4111-8111-00000000f001";
     failedText.toNumber = new Phone("+15551230100");
     failedText.status = SmsStatus.Undelivered;
-    failedText.createdAt = AT(3);
+    failedText.createdAt = new Date(AT(3));
 
-    const getList: SpyInstance<typeof ModelAPI.getList> = jest
-      .spyOn(ModelAPI, "getList")
-      .mockImplementation((async (args: {
-        modelType: unknown;
-      }): Promise<unknown> => {
-        return args.modelType === EmailLog
-          ? { data: [failedEmail], count: 1 }
-          : { data: [failedText], count: 1 };
-      }) as never);
+    // Each list read, in turn: the rows it asked for.
+    const reads: Array<FailedSendsRead> = [];
+
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+      args: FailedSendsRead,
+    ): Promise<unknown> => {
+      reads.push(args);
+
+      return args.modelType === EmailLog
+        ? { data: [failedEmail], count: 1 }
+        : { data: [failedText], count: 1 };
+    }) as never);
 
     renderCard();
 
@@ -711,7 +720,7 @@ describe("WhoWasToldCard", () => {
     expect(pill.tagName).toBe("BUTTON");
     expect(pill).toHaveTextContent("2 failed");
     // Read only when pressed.
-    expect(getList).not.toHaveBeenCalled();
+    expect(reads).toHaveLength(0);
 
     await act(async () => {
       fireEvent.click(pill);
@@ -748,11 +757,15 @@ describe("WhoWasToldCard", () => {
     );
 
     // The rows the count counts: this incident's failed sends to a status page.
-    const emailRead: { query: Record<string, unknown> } = getList.mock
-      .calls[0]![0] as unknown as { query: Record<string, unknown> };
+    const emailRead: FailedSendsRead | undefined = reads.find(
+      (read: FailedSendsRead): boolean => {
+        return read.modelType === EmailLog;
+      },
+    );
 
-    expect(emailRead.query["incidentId"]).toEqual(INCIDENT_ID);
-    expect(emailRead.query["status"]).toBe(MailStatus.Error);
+    expect(reads).toHaveLength(2);
+    expect(emailRead?.query["incidentId"]).toEqual(INCIDENT_ID);
+    expect(emailRead?.query["status"]).toBe(MailStatus.Error);
   });
 
   test("an alert has no subscribers' row, and opens its own Notification Logs", async () => {
