@@ -30,7 +30,8 @@ import fs from "fs";
 import path from "path";
 
 /*
- * THE NEW OWNERS OF 23 MORE KINDS OF RECORD ARE TOLD (#9700).
+ * THE NEW OWNERS OF 23 MORE KINDS OF RECORD ARE TOLD (#9700), AND A
+ * NETWORK DEVICE'S AS THE REST OF THE INFRASTRUCTURE'S ARE.
  *
  * Owner rules of services, RUM applications, databases, queues, hosts,
  * Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware,
@@ -187,6 +188,9 @@ import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import ServerlessFunctionOwnerTeamService from "Common/Server/Services/ServerlessFunctionOwnerTeamService";
 import ServerlessFunctionOwnerUserService from "Common/Server/Services/ServerlessFunctionOwnerUserService";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
+import NetworkDeviceOwnerTeamService from "Common/Server/Services/NetworkDeviceOwnerTeamService";
+import NetworkDeviceOwnerUserService from "Common/Server/Services/NetworkDeviceOwnerUserService";
+import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import DashboardOwnerTeamService from "Common/Server/Services/DashboardOwnerTeamService";
 import DashboardOwnerUserService from "Common/Server/Services/DashboardOwnerUserService";
 import DashboardService from "Common/Server/Services/DashboardService";
@@ -224,6 +228,7 @@ import "../../../FeatureSet/Workers/Jobs/StorageArrayOwners/SendOwnerAddedNotifi
 import "../../../FeatureSet/Workers/Jobs/IoTFleetOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/CloudResourceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/DashboardOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/WorkflowOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/RunbookOwners/SendOwnerAddedNotification";
@@ -538,6 +543,26 @@ const CASES: Array<JobCase> = [
     noun: "serverless function",
     title: "Serverless Function",
     path: "serverless",
+  },
+  /*
+   * A network device's owners were told under "Added as monitor owner",
+   * which no member was given; told now as the rest of the infrastructure's
+   * are, by the job's own name.
+   */
+  {
+    record: "NetworkDevice",
+    jobName: "NetworkDeviceOwner:SendOwnerAddedEmail",
+    kind: OwnerNotificationKind.NetworkDeviceOwnerAdded,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    ownerTable: "NetworkDeviceOwnerUser",
+    recordIdColumn: "networkDeviceId",
+    teamService: NetworkDeviceOwnerTeamService,
+    userService: NetworkDeviceOwnerUserService,
+    recordService: NetworkDeviceService,
+    noun: "network device",
+    title: "Network Device",
+    path: "network-devices",
   },
   {
     record: "Dashboard",
@@ -1035,6 +1060,7 @@ describe("the events the owners are told through", () => {
           "IoTFleet",
           "CloudResource",
           "ServerlessFunction",
+          "NetworkDevice",
         ],
       [NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION]: [
         "Dashboard",
@@ -1079,6 +1105,32 @@ describe("the Workers", () => {
           return jobCase.kind;
         }),
       ).size,
-    ).toBe(23);
+    ).toBe(24);
+  });
+});
+
+/*
+ * A network device's owners used to be told under "Added as monitor
+ * owner" - a setting no member is given, so most never were - with a
+ * WhatsApp template written for monitors. They are infrastructure's.
+ */
+describe("a network device's new owner", () => {
+  test("is told through the one setting for services and infrastructure, never a monitor's", async () => {
+    const deviceCase: JobCase = caseOf("NetworkDevice");
+
+    arrange(deviceCase);
+
+    await runJob(deviceCase);
+
+    expect(sends()[0]!.eventType).toBe(
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    );
+    expect(sends()[0]!.eventType).not.toBe(
+      NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+    );
+    expect(sends()[0]!.whatsAppMessage).toBeUndefined();
+    expect(
+      asMock(UserNotificationSettingService.ensureSettingExistsForUser),
+    ).toHaveBeenCalledTimes(1);
   });
 });
