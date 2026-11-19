@@ -97,6 +97,9 @@ export function describeRecordsCount(
  * ---------------------------------------------------------------------------
  */
 
+// What a pull request's link may be: a web address, never a script.
+const WEB_ADDRESS: RegExp = /^https?:\/\//i;
+
 function isObject(value: unknown): value is JSONObject {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -177,7 +180,7 @@ function readRecord(value: unknown): AiOutcomesRecord | null {
   }
 
   // A link only to a web address.
-  if (url && /^https?:\/\//i.test(url)) {
+  if (url && WEB_ADDRESS.test(url)) {
     record.pullRequestUrl = url;
   }
 
