@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184690000-AddSecurityCaseTaskResponseStepKey";
+import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184720000-AddSecurityCaseTaskResponseStepKey";
 import SecurityCaseTask from "../../../../Models/DatabaseModels/SecurityCaseTask";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -26,8 +26,7 @@ const MIGRATION_TIMESTAMP: string = "1809184720000";
 const MIGRATION_BASE_NAME: string = "AddSecurityCaseTaskResponseStepKey";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string =
-  "AddIdentityProviderSignOut1809184710000";
+const PREVIOUS_MIGRATION: string = "AddIdentityProviderSignOut1809184710000";
 const PREVIOUS_TIMESTAMP: number = 1809184710000;
 
 const MIGRATION_DIRECTORY: string = path.join(

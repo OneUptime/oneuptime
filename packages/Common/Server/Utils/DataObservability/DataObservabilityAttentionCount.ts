@@ -40,6 +40,9 @@ import { FAILED_RUN_STATES } from "./OpenLineageEvent";
  *   - a table whose lateAt has passed (DataAsset.lateAt);
  *   - a pipeline whose last run failed in the last thirty days, or whose
  *     lateAt has passed since its last start in them (DataPipeline.lateAt);
+ *   - a pipeline its circuit breaker stopped in the last thirty days
+ *     (DataPipeline.circuitBreakerStoppedAt, #6548) - counted instead of its
+ *     failed or late run, as the Overview tells of it once;
  *   - a check failing, or that could not run (DataCheck.health);
  *   - a data product past its promise, and a reconciliation that drifted or
  *     could not compare (their status).
@@ -73,6 +76,7 @@ export interface DataObservabilityAttentionCounts {
   lateTables: number;
   failedPipelines: number;
   latePipelines: number;
+  stoppedPipelines: number;
   checks: number;
   lateDataProducts: number;
   reconciliations: number;
@@ -86,6 +90,7 @@ export function sumAttentionCounts(
     counts.lateTables +
     counts.failedPipelines +
     counts.latePipelines +
+    counts.stoppedPipelines +
     counts.checks +
     counts.lateDataProducts +
     counts.reconciliations
@@ -193,6 +198,7 @@ export default class DataObservabilityAttentionCount {
       lateTables,
       failedPipelines,
       latePipelines,
+      stoppedPipelines,
       checks,
       lateDataProducts,
       reconciliations,
@@ -218,6 +224,8 @@ export default class DataObservabilityAttentionCount {
               lastRunState: new Includes([...FAILED_RUN_STATES]),
               lastRunStartedAt:
                 QueryHelper.greaterThanEqualToOrNull(retiredBefore),
+              // A stopped pipeline is counted as stopped, below.
+              circuitBreakerStoppedAt: QueryHelper.isNull(),
             }),
             props: { isRoot: true },
           })
@@ -230,6 +238,18 @@ export default class DataObservabilityAttentionCount {
               lateAt: QueryHelper.lessThanEqualTo(now),
               lastRunStartedAt: QueryHelper.greaterThanEqualTo(retiredBefore),
               lastRunState: QueryHelper.notIn([...FAILED_RUN_STATES]),
+              circuitBreakerStoppedAt: QueryHelper.isNull(),
+            }),
+            props: { isRoot: true },
+          })
+        ).toNumber();
+      }),
+      countOrNothing("stopped pipelines", async () => {
+        return (
+          await DataPipelineService.countBy({
+            query: withConditions<DataPipeline>(scope.pipelineQuery, {
+              circuitBreakerStoppedAt:
+                QueryHelper.greaterThanEqualTo(retiredBefore),
             }),
             props: { isRoot: true },
           })
@@ -276,6 +296,7 @@ export default class DataObservabilityAttentionCount {
       lateTables: lateTables || 0,
       failedPipelines: failedPipelines || 0,
       latePipelines: latePipelines || 0,
+      stoppedPipelines: stoppedPipelines || 0,
       checks: checks || 0,
       lateDataProducts: lateDataProducts || 0,
       reconciliations: reconciliations || 0,

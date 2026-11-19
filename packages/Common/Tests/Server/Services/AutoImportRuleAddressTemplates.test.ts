@@ -114,6 +114,7 @@ import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import OneUptimeDate from "../../../Types/Date";
+import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -499,6 +500,15 @@ beforeEach(() => {
         });
       }
 
+      // The ones a person tied to the device (issue #9545).
+      const tiedToDeviceId: unknown = data.query["networkDeviceId"];
+
+      if (tiedToDeviceId) {
+        return monitors.filter((monitor: Monitor): boolean => {
+          return sameId(monitor.networkDeviceId, tiedToDeviceId);
+        });
+      }
+
       if (data.query["monitorType"] === MonitorType.NetworkDevice) {
         return monitors.filter((monitor: Monitor): boolean => {
           return monitor.monitorType === MonitorType.NetworkDevice;
@@ -553,7 +563,7 @@ afterEach(() => {
 });
 
 describe("a rule's template may be any kind a device's monitor can be made from (issue #9510)", () => {
-  it("reads the rule's template among Network Device, Ping, IP, Port and NTP templates alike", async () => {
+  it("reads the rule's template among Network Device, Ping, IP, Port, NTP, Website, API and SSL Certificate templates alike", async () => {
     await processScan([WB1567KSK02]);
 
     const query: Record<string, unknown> =
@@ -571,7 +581,9 @@ describe("a rule's template may be any kind a device's monitor can be made from 
     );
     expect(kinds).not.toContain(MonitorType.Manual);
     expect(kinds).not.toContain(MonitorType.IncomingRequest);
-    expect(kinds).not.toContain(MonitorType.Website);
+    expect(kinds).not.toContain(MonitorType.DNS);
+    // A web UI's template is read too (issue #9546).
+    expect(kinds).toContain(MonitorType.Website);
   });
 
   it.each([
@@ -775,7 +787,7 @@ describe("a rule's template may be any kind a device's monitor can be made from 
   });
 
   it("makes a template of a kind that cannot check a device - left on a rule since - load nothing, and says why", async () => {
-    // The template find narrows to the kinds above, so a Website one is not found.
+    // The template find narrows to the kinds above, so a DNS one is not found.
     templateFindByMock.mockResolvedValue([]);
 
     const result: AutoImportRuleRunResult | null = await processScan([
@@ -788,7 +800,7 @@ describe("a rule's template may be any kind a device's monitor can be made from 
       monitorsFailed: 1,
     });
     expect(result!.monitorFailureReasons[0]).toContain(
-      "Edit the rule and pick a Network Device, Ping, IP, Port or NTP template.",
+      "Edit the rule and pick a Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate template.",
     );
     expect(monitorCreateMock).not.toHaveBeenCalled();
   });
@@ -1092,11 +1104,215 @@ describe("a dry run of a rule with a Ping template", () => {
   });
 });
 
+/*
+ * A WEBSITE, API OR SSL CERTIFICATE TEMPLATE ON A RULE (issue #9546): each
+ * host the rule imports gets a monitor of the template's URL on its own
+ * address - the scheme, port and path the template wrote - from the probe
+ * that found it, under the device's lock, and never a second of the same
+ * page.
+ */
+function webTemplate(
+  monitorType: MonitorType,
+  url: string,
+  id: ObjectID = KIOSK_PING_TEMPLATE_ID,
+): MonitorTemplate {
+  const template: MonitorTemplate = addressTemplate(monitorType, { id: id });
+  template.templateName = "Printer web UI";
+  template.monitorSteps!.data!.monitorStepsInstanceArray[0]!.setMonitorDestination(
+    URL.fromString(url),
+  );
+  return template;
+}
+
+describe("a rule's Website, API or SSL Certificate template (issue #9546)", () => {
+  it.each([
+    [MonitorType.Website, "https://printer:8443/hp/device/"],
+    [MonitorType.API, "https://ups/api/v1/status?verbose=1"],
+    [MonitorType.SSLCertificate, "https://camera/"],
+  ] as Array<[MonitorType, string]>)(
+    "gives each host a rule imports a %s monitor of the template's URL on its own address",
+    async (monitorType: MonitorType, templateUrl: string) => {
+      templateFindByMock.mockResolvedValue([
+        webTemplate(monitorType, templateUrl),
+      ]);
+
+      const result: AutoImportRuleRunResult | null = await processScan([
+        WB1567KSK02,
+        kiosk("10.40.12.8", "WB1567KSK03"),
+      ]);
+
+      expect(result).toMatchObject({
+        devicesCreated: 2,
+        monitorsCreated: 2,
+        monitorsFailed: 0,
+      });
+
+      const host: string = templateUrl.replace(/^https:\/\/[^/:?]+/, "");
+
+      expect(
+        created().map((call: { data: Monitor }): Array<string> => {
+          return destinations(call.data);
+        }),
+      ).toEqual([[`https://10.40.12.7${host}`], [`https://10.40.12.8${host}`]]);
+
+      for (const call of created()) {
+        expect(call.data.monitorType).toBe(monitorType);
+        expect(call.data.monitorTemplateId?.toString()).toBe(
+          KIOSK_PING_TEMPLATE_ID.toString(),
+        );
+        expect(call.data.autoProvisionedNetworkDeviceId).toBeDefined();
+        // From the probe that found the host: a web UI on a private network.
+        expect(call.miscDataProps).toEqual({
+          probes: [SCAN_PROBE_ID.toString()],
+        });
+      }
+
+      // Under the device's lock, as every kind whose duplicates span templates.
+      expect(deviceLocks()).toHaveLength(2);
+    },
+  );
+
+  it("skips a device whose Website monitor already checks the same page, from another template", async () => {
+    const device: NetworkDevice = deviceInInventory();
+    const existing: Monitor = monitorOf({
+      device: device,
+      monitorType: MonitorType.Website,
+      templateId: OTHER_PING_TEMPLATE_ID,
+    });
+    existing.monitorSteps!.data!.monitorStepsInstanceArray[0]!.setMonitorDestination(
+      URL.fromString("https://10.40.12.7:8443/hp/device/"),
+    );
+    templateFindByMock.mockResolvedValue([
+      webTemplate(MonitorType.Website, "https://printer:8443/hp/device/"),
+    ]);
+
+    const result: AutoImportRuleRunResult | null = await processScan([
+      WB1567KSK02,
+    ]);
+
+    expect(result).toMatchObject({
+      monitorsCreated: 0,
+      monitorsSkippedAlreadyExisting: 1,
+    });
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("makes the template's monitor beside one of another page or another kind", async () => {
+    const device: NetworkDevice = deviceInInventory();
+    const otherPage: Monitor = monitorOf({
+      device: device,
+      monitorType: MonitorType.Website,
+      templateId: OTHER_PING_TEMPLATE_ID,
+    });
+    otherPage.monitorSteps!.data!.monitorStepsInstanceArray[0]!.setMonitorDestination(
+      URL.fromString("https://10.40.12.7/other"),
+    );
+    monitorOf({ device: device, monitorType: MonitorType.Ping });
+    templateFindByMock.mockResolvedValue([
+      webTemplate(MonitorType.Website, "https://printer/hp/device/"),
+    ]);
+
+    const result: AutoImportRuleRunResult | null = await processScan([
+      WB1567KSK02,
+    ]);
+
+    expect(result).toMatchObject({ monitorsCreated: 1 });
+    expect(destinations(created()[0]!.data)).toEqual([
+      "https://10.40.12.7/hp/device/",
+    ]);
+  });
+
+  it("a dry run predicts each web monitor it would make, and writes nothing", async () => {
+    templateFindByMock.mockResolvedValue([
+      webTemplate(MonitorType.SSLCertificate, "https://camera/"),
+    ]);
+
+    const result: AutoImportRuleRunResult = await runRule(
+      [WB1567KSK02, kiosk("10.40.12.8", "WB1567KSK03")],
+      true,
+    );
+
+    expect(result).toMatchObject({ monitorsWouldCreate: 2 });
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("a template whose URL names its host with a variable fails each monitor with what to change, and keeps the devices", async () => {
+    const template: MonitorTemplate = webTemplate(
+      MonitorType.Website,
+      "https://printer/",
+    );
+    template.monitorSteps!.data!.monitorStepsInstanceArray[0]!.setMonitorDestination(
+      URL.fromStringLenient("https://{{monitorSecrets.host}}/"),
+    );
+    templateFindByMock.mockResolvedValue([template]);
+
+    const result: AutoImportRuleRunResult | null = await processScan([
+      WB1567KSK02,
+    ]);
+
+    expect(result).toMatchObject({
+      devicesCreated: 1,
+      monitorsCreated: 0,
+      monitorsFailed: 1,
+    });
+    expect(result!.monitorFailureReasons[0]).toContain(
+      "names its host with a variable",
+    );
+  });
+});
+
+/*
+ * A MONITOR A PERSON MADE AND TIED TO THE DEVICE (issue #9545) counts as the
+ * device's: a rule's Ping template finds the hand-made Ping monitor and makes
+ * no second one - while a Ping monitor of the same address that nothing ties
+ * to the device does not stop it (another site may have that address).
+ */
+describe("a monitor a person tied to the device (issue #9545)", () => {
+  it("a hand-made Ping monitor tied to the device stops the rule's Ping template making a second", async () => {
+    const device: NetworkDevice = deviceInInventory();
+    const handMade: Monitor = monitorOf({
+      device: device,
+      monitorType: MonitorType.Ping,
+      isMadeForDevice: false,
+    });
+    handMade.networkDeviceId = device.id!;
+
+    const result: AutoImportRuleRunResult | null = await processScan([
+      WB1567KSK02,
+    ]);
+
+    expect(result).toMatchObject({
+      monitorsCreated: 0,
+      monitorsSkippedAlreadyExisting: 1,
+    });
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("a Ping monitor of the same address that nothing ties to the device does not stop it", async () => {
+    const device: NetworkDevice = deviceInInventory();
+    // The same address, tied to nothing: maybe another site's 10.40.12.7.
+    monitorOf({
+      device: device,
+      monitorType: MonitorType.Ping,
+      isMadeForDevice: false,
+    });
+
+    const result: AutoImportRuleRunResult | null = await processScan([
+      WB1567KSK02,
+    ]);
+
+    expect(result).toMatchObject({ monitorsCreated: 1 });
+  });
+});
+
 describe("the kinds a rule takes", () => {
   it("are the kinds a discovery import takes", () => {
     expect([...DEVICE_MONITOR_TEMPLATE_TYPES]).toEqual([
       MonitorType.NetworkDevice,
       ...DEVICE_ADDRESS_MONITOR_TYPES,
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
     ]);
   });
 });

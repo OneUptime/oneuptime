@@ -4,6 +4,19 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../DataSource/HttpFetch";
+import {
+  DataSourceUnreachedError,
+  failedAnswerError,
+  isRequestId,
+  readBodyText,
+  readErrorCode,
+  unreachedError,
+} from "../DataSource/HttpFailure";
+import DataSourceHttpRetry, {
+  HttpRetryExchange,
+  HttpRetryReason,
+  HttpRetryVerdict,
+} from "../DataSource/HttpRetry";
 
 /*
  * SNOWFLAKE, OVER ITS SQL API, WITH KEY-PAIR AUTHENTICATION.
@@ -19,6 +32,14 @@ import DataSourceHttpFetch, {
  * PEM, base64>, either as a store's saved connection string or in a probe's
  * environment variable. The account is the account identifier
  * (orgname-accountname) or a locator with its region (xy12345.us-east-1).
+ *
+ * An answer that may pass is asked again (DataSourceHttpRetry), as the SQL
+ * API's reference says to: a 429, too many requests or too much at once,
+ * and a 500, 502, 503 or 504, with backoff. A 408 is not: the statement ran
+ * past its timeout and was cancelled, and would again. A statement sent
+ * again carries the request ID of its first sending and retry=true, so
+ * Snowflake runs it once however many times it is sent ("Resubmitting a
+ * request to execute SQL statements").
  */
 
 export interface SnowflakeConnection {
@@ -44,6 +65,41 @@ const POLL_WAIT_IN_MS: number = 500;
 const MAX_PARTITIONS: number = 50;
 // A token is valid for at most an hour; one a minute short of it.
 const TOKEN_LIFETIME_IN_SECONDS: number = 59 * 60;
+// The longest name of a statement's kind a failure names: SHOW TABLES, SHOW COLUMNS.
+const STATEMENT_KIND: RegExp = /^\s*(SHOW\s+[A-Z]+)/i;
+
+/*
+ * The answers of the SQL API worth asking again, as its reference ("Response
+ * codes for all operations") lists them: a 429 turned the request away (rate
+ * limits and excessive concurrency); a 503 was not processed, a timeout on
+ * the server's side; a 500, 502 or 504 failed for now. A 408 is the
+ * statement itself running past its timeout, cancelled: it would again.
+ */
+export function classifySnowflakeAnswer(
+  response: DataSourceHttpResponse,
+): HttpRetryVerdict | null {
+  switch (response.statusCode) {
+    case 429:
+      return { reason: HttpRetryReason.Throttled };
+    case 503:
+      return { reason: HttpRetryReason.Unavailable, isUndone: true };
+    case 500:
+    case 502:
+    case 504:
+      return { reason: HttpRetryReason.Unavailable };
+    default:
+      return null;
+  }
+}
+
+// What a statement reads, as a failure says it: running SHOW TABLES, or running a query.
+export function describeSnowflakeStatement(statement: string): string {
+  const kind: RegExpMatchArray | null = statement.match(STATEMENT_KIND);
+
+  return kind
+    ? `running ${kind[1]!.replace(/\s+/g, " ").toUpperCase()}`
+    : "running a query";
+}
 
 const ACCOUNT_PATTERN: RegExp = /^[a-z0-9][a-z0-9_.-]{1,250}$/i;
 const NAME_PATTERN: RegExp = /^[^\s"]{1,255}$/;
@@ -233,23 +289,39 @@ export function readSnowflakeRows(
 
 export default class SnowflakeSqlApi {
   private readonly connection: SnowflakeConnection;
-  private readonly transport: SnowflakeTransport;
   private readonly now: () => Date;
+  private readonly sleep: (ms: number) => Promise<void>;
+  // Every request of the collection, asked again within one budget (DataSourceHttpRetry).
+  private readonly retry: DataSourceHttpRetry;
   private token: { value: string; expiresAt: number } | null = null;
 
   public constructor(data: {
     connection: SnowflakeConnection;
     transport?: SnowflakeTransport | undefined;
     now?: (() => Date) | undefined;
+    sleep?: ((ms: number) => Promise<void>) | undefined;
   }) {
     this.connection = data.connection;
-    this.transport =
-      data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch);
     this.now =
       data.now ||
       ((): Date => {
         return new Date();
       });
+    this.sleep =
+      data.sleep ||
+      ((ms: number): Promise<void> => {
+        return DataSourceHttpRetry.sleep(ms);
+      });
+    this.retry = new DataSourceHttpRetry({
+      transport:
+        data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
+      classify: classifySnowflakeAnswer,
+      provider: "Snowflake",
+      now: (): number => {
+        return this.now().getTime();
+      },
+      sleep: this.sleep,
+    });
   }
 
   private headers(): Record<string, string> {
@@ -273,42 +345,102 @@ export default class SnowflakeSqlApi {
     };
   }
 
-  private async send(
-    method: "GET" | "POST",
-    path: string,
-    body?: JSONObject,
-  ): Promise<{ statusCode: number; body: JSONObject }> {
-    const response: DataSourceHttpResponse = await this.transport({
-      method,
-      url: `https://${getSnowflakeHost(this.connection.account)}${path}`,
-      headers: this.headers(),
-      ...(body ? { body: JSON.stringify(body) } : {}),
-      timeoutInMs: (SNOWFLAKE_STATEMENT_TIMEOUT_IN_SECONDS + 15) * 1000,
-      acceptAnyStatus: true,
-    } as DataSourceHttpRequest);
+  /*
+   * One request to the SQL API, asked again while its answer may pass. A
+   * statement is sent again with retry=true beside the request ID of its
+   * first sending, so it runs once. An answer of 400 or more says what was
+   * being read and Snowflake's own code and message, with the query ID its
+   * support finds the statement by.
+   */
+  private async send(data: {
+    method: "GET" | "POST";
+    path: string;
+    body?: JSONObject | undefined;
+    operation: string;
+    // A statement's request ID: sent again with retry=true.
+    requestId?: string | undefined;
+  }): Promise<{ statusCode: number; body: JSONObject }> {
+    let exchange: HttpRetryExchange;
+
+    try {
+      exchange = await this.retry.exchange({
+        build: (attempt: number): DataSourceHttpRequest => {
+          const search: string = data.requestId
+            ? `?requestId=${encodeURIComponent(data.requestId)}${attempt > 1 ? "&retry=true" : ""}`
+            : "";
+
+          return {
+            method: data.method,
+            url: `https://${getSnowflakeHost(this.connection.account)}${data.path}${search}`,
+            headers: this.headers(),
+            ...(data.body ? { body: JSON.stringify(data.body) } : {}),
+            timeoutInMs: (SNOWFLAKE_STATEMENT_TIMEOUT_IN_SECONDS + 15) * 1000,
+            acceptAnyStatus: true,
+          };
+        },
+        // A read, or a statement Snowflake tells apart by its request ID.
+        isSafeToRepeat: true,
+      });
+    } catch (error) {
+      // A failure of the request's own making (a sign-in refused) says itself.
+      if (!(error instanceof DataSourceUnreachedError)) {
+        throw error;
+      }
+
+      throw unreachedError({
+        provider: "Snowflake",
+        operation: data.operation,
+        error,
+        secrets: this.secrets(),
+      });
+    }
+
+    const response: DataSourceHttpResponse = exchange.response;
     const json: JSONObject =
       response.bodyJson && typeof response.bodyJson === "object"
         ? (response.bodyJson as JSONObject)
         : {};
 
     if (response.statusCode >= 400) {
-      throw new Error(
-        `Snowflake answered ${response.statusCode}: ${readText(json["message"]) || response.bodyText.slice(0, 300)}`,
-      );
+      const queryId: unknown = json["statementHandle"];
+
+      throw failedAnswerError({
+        provider: "Snowflake",
+        statusCode: response.statusCode,
+        errorCode: readErrorCode(json["code"]),
+        operation: data.operation,
+        message:
+          readText(json["message"]) ||
+          (response.bodyJson === undefined
+            ? readBodyText(response.bodyText)
+            : ""),
+        attempts: exchange.attempts,
+        requestId: isRequestId(queryId) ? queryId.trim() : null,
+        requestIdLabel: "Query ID",
+        refused: { who: "the user" },
+        secrets: this.secrets(),
+      });
     }
 
     return { statusCode: response.statusCode, body: json };
   }
 
+  // What an answer could repeat that no error may: the token this client signed.
+  private secrets(): Array<string> {
+    return [this.token?.value || ""];
+  }
+
   /*
    * One statement's rows. A warehouse is named only for a statement that
    * needs one: SHOW reads the catalog without starting a warehouse, so a
-   * collection costs no credits.
+   * collection costs no credits. A failure says what was being read: the
+   * operation given, else the statement's kind (running SHOW TABLES).
    */
   public async query(data: {
     statement: string;
     bindings?: Array<string> | undefined;
     useWarehouse?: boolean | undefined;
+    operation?: string | undefined;
   }): Promise<Array<Record<string, unknown>>> {
     if (data.useWarehouse && !this.connection.warehouse) {
       throw new Error(
@@ -316,16 +448,20 @@ export default class SnowflakeSqlApi {
       );
     }
 
+    const operation: string =
+      data.operation || describeSnowflakeStatement(data.statement);
     const bindings: JSONObject = {};
 
     (data.bindings || []).forEach((value: string, index: number) => {
       bindings[String(index + 1)] = { type: "TEXT", value };
     });
 
-    let answer: { statusCode: number; body: JSONObject } = await this.send(
-      "POST",
-      `/api/v2/statements?requestId=${crypto.randomUUID()}`,
-      {
+    let answer: { statusCode: number; body: JSONObject } = await this.send({
+      method: "POST",
+      path: "/api/v2/statements",
+      requestId: crypto.randomUUID(),
+      operation,
+      body: {
         statement: data.statement,
         timeout: SNOWFLAKE_STATEMENT_TIMEOUT_IN_SECONDS,
         database: this.connection.database,
@@ -335,7 +471,7 @@ export default class SnowflakeSqlApi {
         ...(this.connection.role ? { role: this.connection.role } : {}),
         ...(Object.keys(bindings).length > 0 ? { bindings } : {}),
       },
-    );
+    });
     const handle: string = readText(answer.body["statementHandle"]);
 
     for (let poll: number = 0; answer.statusCode === 202; poll++) {
@@ -343,13 +479,12 @@ export default class SnowflakeSqlApi {
         throw new Error("The Snowflake statement did not finish in time.");
       }
 
-      await new Promise((resolve: (value: unknown) => void) => {
-        setTimeout(resolve, POLL_WAIT_IN_MS);
+      await this.sleep(POLL_WAIT_IN_MS);
+      answer = await this.send({
+        method: "GET",
+        path: `/api/v2/statements/${encodeURIComponent(handle)}`,
+        operation,
       });
-      answer = await this.send(
-        "GET",
-        `/api/v2/statements/${encodeURIComponent(handle)}`,
-      );
     }
 
     const rows: Array<Record<string, unknown>> = readSnowflakeRows(answer.body);
@@ -365,10 +500,11 @@ export default class SnowflakeSqlApi {
       partition < Math.min(partitions, MAX_PARTITIONS);
       partition++
     ) {
-      const next: { statusCode: number; body: JSONObject } = await this.send(
-        "GET",
-        `/api/v2/statements/${encodeURIComponent(handle)}?partition=${partition}`,
-      );
+      const next: { statusCode: number; body: JSONObject } = await this.send({
+        method: "GET",
+        path: `/api/v2/statements/${encodeURIComponent(handle)}?partition=${partition}`,
+        operation,
+      });
       const page: Array<Record<string, unknown>> = readSnowflakeRows({
         ...next.body,
         resultSetMetaData: answer.body["resultSetMetaData"],

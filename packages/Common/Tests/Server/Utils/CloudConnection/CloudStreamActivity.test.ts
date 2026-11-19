@@ -121,6 +121,67 @@ describe("a delivery taken", () => {
     });
   });
 
+  /*
+   * What the stack streams, as its delivery said (CloudStreamStack): the
+   * reads leave to it only what it carries.
+   */
+  test("keeps what the delivering stack streams, its template and whether every metric", async () => {
+    CloudStreamActivity.noteDelivery({
+      connectionId: CONNECTION,
+      now: NOW,
+      sightings: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          templateVersion: 2,
+          everyMetric: false,
+        },
+        {
+          accountId: "123456789012",
+          region: "eu-west-1",
+          namespaces: ["AWS/RDS"],
+          templateVersion: 1,
+          everyMetric: true,
+        },
+        // A log delivery says nothing of a metric stream.
+        {
+          accountId: "123456789012",
+          region: "ap-south-1",
+          logGroups: ["/aws/lambda/refunds"],
+          templateVersion: 2,
+          everyMetric: false,
+        },
+      ],
+    });
+    await settle();
+
+    expect(writes[0]!.summary.metricSources).toEqual([
+      {
+        accountId: "123456789012",
+        region: "us-east-1",
+        namespaces: ["AWS/EC2"],
+        lastAt: NOW.toISOString(),
+        templateVersion: 2,
+        everyMetric: false,
+      },
+      {
+        accountId: "123456789012",
+        region: "eu-west-1",
+        namespaces: ["AWS/RDS"],
+        lastAt: NOW.toISOString(),
+        templateVersion: 1,
+        everyMetric: true,
+      },
+    ]);
+    expect(writes[0]!.summary.logSources[0]).toEqual({
+      accountId: "123456789012",
+      region: "ap-south-1",
+      logGroups: ["/aws/lambda/refunds"],
+      lastAt: NOW.toISOString(),
+    });
+  });
+
   test("then at most once a minute, with everything seen in between", async () => {
     CloudStreamActivity.noteDelivery({
       connectionId: CONNECTION,

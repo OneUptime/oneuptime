@@ -260,6 +260,159 @@ describe("the monitors of a device", () => {
   });
 });
 
+/*
+ * A MONITOR A PERSON TIED TO THE DEVICE (issue #9545): made by hand, from the
+ * device's page or on an address only this device has, and tied by
+ * Monitor.networkDeviceId. It is one of the device's monitors for the
+ * duplicate check as a monitor made for it is - and a monitor that merely
+ * checks the same address, untied (another site's 10.0.0.5), never is.
+ */
+describe("the monitors a person tied to a device", () => {
+  function answerByQuery(data: {
+    madeFor: Array<Monitor>;
+    tied: Array<Monitor>;
+  }): void {
+    findByMock.mockImplementation(
+      async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<Monitor>> => {
+        if (args.query["autoProvisionedNetworkDeviceId"]) {
+          return data.madeFor;
+        }
+
+        if (args.query["networkDeviceId"]) {
+          return data.tied;
+        }
+
+        return [];
+      },
+    );
+  }
+
+  it("are read by the device they are tied to, as OneUptime, oldest first, in the device's project", async () => {
+    const handMade: Monitor = monitor({
+      name: "Printer ping",
+      monitorType: MonitorType.Ping,
+    });
+    answerByQuery({ madeFor: [], tied: [handMade] });
+
+    const monitors: Array<DeviceMonitorFacts> =
+      await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+        projectId: PROJECT_ID,
+        device: device(),
+      });
+
+    expect(
+      monitors.map((item: DeviceMonitorFacts): string => {
+        return item.id;
+      }),
+    ).toEqual([handMade.id!.toString()]);
+
+    const tiedRead: Record<string, unknown> | undefined = findByMock.mock.calls
+      .map((call: Array<unknown>): Record<string, unknown> => {
+        return call[0] as Record<string, unknown>;
+      })
+      .find((args: Record<string, unknown>): boolean => {
+        return Boolean(
+          (args["query"] as Record<string, unknown>)["networkDeviceId"],
+        );
+      });
+
+    expect(tiedRead).toMatchObject({
+      query: { projectId: PROJECT_ID, networkDeviceId: DEVICE_ID },
+      select: DEVICE_MONITOR_FACTS_SELECT,
+      sort: { createdAt: SortOrder.Ascending },
+      props: { isRoot: true },
+    });
+  });
+
+  it("come after the ones made for it and before the one bound to it, each once", async () => {
+    const madeFor: Monitor = monitor({
+      name: "Printer - Health",
+      monitorType: MonitorType.NetworkDevice,
+      templateId: ALERT_PACK_TEMPLATE_ID,
+    });
+    const tied: Monitor = monitor({
+      name: "Printer web UI",
+      monitorType: MonitorType.Website,
+    });
+    const bound: Monitor = monitor({
+      name: "Printer ping",
+      monitorType: MonitorType.Ping,
+    });
+    // Made for it and tied to it: one monitor, listed once.
+    answerByQuery({ madeFor: [madeFor], tied: [tied, madeFor] });
+    findOneByMock.mockResolvedValue(bound);
+
+    const monitors: Array<DeviceMonitorFacts> =
+      await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+        projectId: PROJECT_ID,
+        device: device(bound.id!),
+      });
+
+    expect(
+      monitors.map((item: DeviceMonitorFacts): string => {
+        return item.name;
+      }),
+    ).toEqual(["Printer - Health", "Printer web UI", "Printer ping"]);
+  });
+
+  it("a Ping monitor someone made by hand on the device makes a Ping template's monitor a duplicate", async () => {
+    const handMade: Monitor = monitor({
+      name: "Printer ping",
+      monitorType: MonitorType.Ping,
+    });
+    answerByQuery({ madeFor: [], tied: [handMade] });
+
+    const duplicate: DeviceMonitorFacts | null =
+      await DeviceMonitorDuplicateCheck.findDuplicate({
+        projectId: PROJECT_ID,
+        device: device(),
+        template: template({
+          id: KIOSK_PING_TEMPLATE_ID,
+          monitorType: MonitorType.Ping,
+        }),
+      });
+
+    expect(duplicate?.id).toBe(handMade.id!.toString());
+  });
+
+  it("a monitor on the same address that nothing ties to the device is never counted: another site may have it", async () => {
+    /*
+     * The project holds a Ping monitor of 10.40.12.7 - the device's own
+     * address - tied to nothing, or to another site's 10.40.12.7. The
+     * check never asks for monitors by address, so it is not one of this
+     * device's, and the template's monitor is made.
+     */
+    answerByQuery({ madeFor: [], tied: [] });
+
+    const duplicate: DeviceMonitorFacts | null =
+      await DeviceMonitorDuplicateCheck.findDuplicate({
+        projectId: PROJECT_ID,
+        device: device(),
+        template: template({
+          id: KIOSK_PING_TEMPLATE_ID,
+          monitorType: MonitorType.Ping,
+        }),
+      });
+
+    expect(duplicate).toBeNull();
+
+    for (const call of findByMock.mock.calls) {
+      const query: Record<string, unknown> = (
+        call[0] as { query: Record<string, unknown> }
+      ).query;
+
+      expect(Object.keys(query).sort()).not.toContain("monitorSteps");
+      expect(
+        Boolean(
+          query["autoProvisionedNetworkDeviceId"] || query["networkDeviceId"],
+        ),
+      ).toBe(true);
+    }
+  });
+});
+
 describe("the monitor a template's would duplicate", () => {
   // The screenshot on issue #9509, from the server's side.
   it("is the device's Ping monitor from another Ping template", async () => {
@@ -364,12 +517,16 @@ describe("the device's lock", () => {
     );
   });
 
-  it("is held around the work for every Ping, IP, Port and NTP template, and given back", async () => {
+  it("is held around the work for every Ping, IP, Port, NTP, Website, API and SSL Certificate template, and given back", async () => {
     for (const monitorType of [
       MonitorType.Ping,
       MonitorType.IP,
       MonitorType.Port,
       MonitorType.NTP,
+      // Their duplicates span templates too (issue #9546).
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
     ]) {
       jest.clearAllMocks();
       lockMock.mockResolvedValue({ id: "device-lock" });

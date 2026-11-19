@@ -19,11 +19,12 @@ import React, {
 
 /*
  * Monitors page for one device: the monitor bound to it, every Network
- * Device monitor watching it, and the Ping, IP, Port and NTP monitors a
- * discovery import made for it (OneUptime issue #5145), with current status
- * and a create path when none exist. Monitors are how a device gets metrics,
- * alerting, and incident automation - and for a monitor-backed device, its
- * status at all.
+ * Device monitor watching it, the Ping, IP, Port, NTP, Website, API and SSL
+ * Certificate monitors a discovery import made for it (OneUptime issues
+ * #5145, #9546), and the monitors a person tied to it (#9545), with current
+ * status, a create path, and a way to add a monitor made earlier. Monitors
+ * are how a device gets metrics, alerting, and incident automation - and for
+ * a monitor-backed device, its status at all.
  */
 const NetworkDeviceMonitors: FunctionComponent<
   PageComponentProps
@@ -34,6 +35,8 @@ const NetworkDeviceMonitors: FunctionComponent<
   const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // Bumped when a monitor is added to the device, to read its monitors again.
+  const [readCount, setReadCount] = useState<number>(0);
 
   /*
    * "Monitor web UI" is for a reader who may create monitors - hidden, not
@@ -62,7 +65,7 @@ const NetworkDeviceMonitors: FunctionComponent<
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     });
-  }, []);
+  }, [readCount]);
 
   return (
     <Fragment>
@@ -73,6 +76,11 @@ const NetworkDeviceMonitors: FunctionComponent<
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
         canCreateMonitor={canCreateMonitor}
+        onMonitorAdded={() => {
+          setReadCount((count: number): number => {
+            return count + 1;
+          });
+        }}
       />
     </Fragment>
   );

@@ -1012,10 +1012,22 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
   },
   {
     provider: AWS,
-    types: ["AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"],
+    types: ["AWS::ApiGateway::RestApi"],
     rules: [
       failedShare({
         failures: ["aws/apigateway/5xxerror"],
+        total: "aws/apigateway/count",
+        reason: REASON_REQUESTS_FAILED,
+      }),
+    ],
+  },
+  {
+    // An HTTP API counts its server errors as 5xx, a REST API as 5XXError.
+    provider: AWS,
+    types: ["AWS::ApiGatewayV2::Api"],
+    rules: [
+      failedShare({
+        failures: ["aws/apigateway/5xx"],
         total: "aws/apigateway/count",
         reason: REASON_REQUESTS_FAILED,
       }),
@@ -1699,11 +1711,21 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
     },
     {
       provider: AWS,
-      types: ["AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"],
+      types: ["AWS::ApiGateway::RestApi"],
       readings: [
         headline("aws/apigateway/count", HEADLINE_REQUESTS, "perPeriod"),
         headline("aws/apigateway/latency", HEADLINE_LATENCY, "milliseconds"),
         headline("aws/apigateway/5xxerror", HEADLINE_ERRORS, "perPeriod"),
+      ],
+    },
+    {
+      // An HTTP API's server errors are its 5xx.
+      provider: AWS,
+      types: ["AWS::ApiGatewayV2::Api"],
+      readings: [
+        headline("aws/apigateway/count", HEADLINE_REQUESTS, "perPeriod"),
+        headline("aws/apigateway/latency", HEADLINE_LATENCY, "milliseconds"),
+        headline("aws/apigateway/5xx", HEADLINE_ERRORS, "perPeriod"),
       ],
     },
     {

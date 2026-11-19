@@ -574,6 +574,22 @@ describe("one meaning per key", () => {
    * only by the two storage widgets; nothing in the Dashboard looks up the
    * bare word now, so a data array that needs it gets a meaning of its own.
    */
+  /*
+   * #9658: the Tables Matched dialog marked a data source OneUptime watches
+   * with the bare "Watched", the session replay audit's column of time
+   * spent watching a replay, so the source read "Durée de visionnage" in
+   * French and "مدة المشاهدة" in Arabic. Its standing has a key of its own,
+   * and only the replay audit looks up the bare word.
+   */
+  test("a BI data source's watched standing is its own key, and only the replay audit looks up the bare Watched", () => {
+    expect(filesLookingUp("Watched by OneUptime")).toEqual([
+      "Components/DataObservability/BiLineageWords.ts",
+    ]);
+    expect(filesLookingUp("Watched")).toEqual([
+      "Pages/Rum/View/SessionReplayAudit.tsx",
+    ]);
+  });
+
   test("a storage array is its own key, looked up only by the storage widgets, and nothing looks up the bare Array", () => {
     expect(filesLookingUp("Array (storage array)")).toEqual([
       "Components/Dashboard/Components/DashboardStorageArrayHardwareListComponent.tsx",
@@ -868,6 +884,35 @@ describe("the locales word each meaning as its own", () => {
     // Arabic's Open buttons read "فتح" (open it), as Persian's "باز کردن".
     expect(readLocale("ar")["Open"]).toBe("فتح");
     expect(readLocale("fa")["Open"]).toBe("باز کردن");
+  });
+
+  /*
+   * #9658: a data source OneUptime watches is worded as each language's
+   * Tables Watched words a watched table, never as a replay's watching time.
+   */
+  test("a data source OneUptime watches is never worded as a replay's watching time", () => {
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        worded:
+          Boolean(locale["Watched by OneUptime"]) &&
+          locale["Watched by OneUptime"] !== ENGLISH["Watched by OneUptime"],
+        same: locale["Watched by OneUptime"] === locale["Watched"],
+      }).toEqual({ language, worded: true, same: false });
+    }
+
+    expect(readLocale("fr")["Watched"]).toBe("Durée de visionnage");
+    expect(readLocale("fr")["Tables Watched"]).toBe("Tables surveillées");
+    expect(readLocale("fr")["Watched by OneUptime"]).toBe(
+      "Surveillé par OneUptime",
+    );
+    expect(readLocale("ar")["Watched"]).toBe("مدة المشاهدة");
+    expect(readLocale("ar")["Tables Watched"]).toBe("الجداول المراقَبة");
+    expect(readLocale("ar")["Watched by OneUptime"]).toBe("يراقبه OneUptime");
   });
 
   // #8078: a data asset of kind View read "Ver", "Anzeigen", "Voir".

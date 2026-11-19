@@ -167,19 +167,24 @@ describe("ClickHouseHttpApi", () => {
     );
   });
 
-  test("an error says ClickHouse's own first line", async () => {
+  test("an error says what was being read, ClickHouse's exception and its own first line", async () => {
     const api: ClickHouseHttpApi = new ClickHouseHttpApi({
       connection: readClickHouseConnection(URL_CONNECTION),
       transport: async (): Promise<DataSourceHttpResponse> => {
         return json(
-          "Code: 60. DB::Exception: Table analytics.nope does not exist. (UNKNOWN_TABLE)\nstack",
+          "Code: 60. DB::Exception: Table analytics.nope does not exist. (UNKNOWN_TABLE) (version 24.8.4.13 (official build))\nstack",
           404,
         );
       },
     });
 
-    await expect(api.query({ statement: "SELECT 1" })).rejects.toThrow(
-      "ClickHouse answered 404: Code: 60. DB::Exception: Table analytics.nope does not exist. (UNKNOWN_TABLE)",
+    await expect(
+      api.query({
+        statement: "SELECT 1",
+        operation: "listing the tables (system.tables)",
+      }),
+    ).rejects.toThrow(
+      "ClickHouse answered 404 (UNKNOWN_TABLE) while listing the tables (system.tables): Table analytics.nope does not exist.",
     );
   });
 

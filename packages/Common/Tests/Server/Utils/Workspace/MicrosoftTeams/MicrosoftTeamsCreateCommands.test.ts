@@ -36,6 +36,7 @@ import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../../Types/Workspace/Co
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
 import logger, { LogAttributes } from "../../../../../Server/Utils/Logger";
+import ServerProducts from "../../../../../Server/Utils/ServerProducts/ServerProducts";
 import {
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
@@ -1073,6 +1074,13 @@ function budgetsBuilt(profile: CommandProfile): Array<number> {
 }
 
 beforeEach((): void => {
+  /*
+   * Every product is on. The real permission model asks what the server
+   * has switched off before it decides (WorkspaceActionAuthorization), a
+   * read of the database, which nothing connects here.
+   */
+  jest.spyOn(ServerProducts, "getOff").mockResolvedValue({});
+
   senderLookupSpy = jest
     .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
     .mockResolvedValue(USER_ID);

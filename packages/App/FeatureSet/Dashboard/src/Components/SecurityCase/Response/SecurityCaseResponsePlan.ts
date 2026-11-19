@@ -94,6 +94,7 @@ import SecurityEventRequestOutcome, {
 } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { SecurityPlaybookActionType } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import { parseInvestigationReport } from "Common/Utils/AI/InvestigationReport";
+import { isSecurityCaseTriageDecisionLine } from "Common/Server/Utils/AI/Security/SecurityCaseTriageDecision";
 import {
   SecurityAddressScope,
   getSecurityAddressScope,
@@ -224,8 +225,6 @@ export function getResponseStepKey(kind: string, value?: string): string {
 
 const CITATIONS: RegExp = /\[(?:C\d{1,3})(?:\s*,\s*C\d{1,3})*\]/g;
 const LIST_MARKER: RegExp = /^\s*(?:[-*+]|\d{1,2}[.)])\s+/;
-const DECISION_LINE: RegExp =
-  /^\s*\**\s*(?:verdict|priority|playbook)\s*\**\s*[:=]/i;
 
 // A line of the report as plain words: no list marker, citation, emphasis or link markup.
 export function toPlainStepText(line: string): string {
@@ -288,8 +287,12 @@ export function readAiSuggestedSteps(
   for (const item of items) {
     const text: string = toPlainStepText(item);
 
-    // The triage's own decision lines are read elsewhere, never a step.
-    if (DECISION_LINE.test(text)) {
+    /*
+     * The triage's own decision lines - "Verdict:", "Priority:",
+     * "Playbook:" - are read where the server reads them
+     * (SecurityCaseTriageDecision), never a step.
+     */
+    if (isSecurityCaseTriageDecisionLine(text)) {
       continue;
     }
 

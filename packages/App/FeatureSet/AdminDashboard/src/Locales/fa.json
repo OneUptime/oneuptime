@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "فقط آن دسته از مخازن داده که با شرط‌ها مطابقت دارند",
   "All tables": "همه جدول‌ها",
   "Only tables that match conditions": "فقط جدول‌هایی که با شرط‌ها مطابقت دارند",
+  "All pipelines": "همهٔ خطوط لوله",
+  "Only pipelines that match conditions": "فقط خطوط لوله‌ای که با شرط‌ها مطابقت دارند",
   "All cloud environments": "همه محیط‌های ابری",
   "Only cloud environments that match conditions": "فقط آن دسته از محیط‌های ابری که با شرط‌ها مطابقت دارند",
   "Only what matches conditions": "فقط مواردی که با شرط‌ها مطابقت دارند",

@@ -242,13 +242,29 @@ function formEncode(fields: Dictionary<string>): string {
     .join("&");
 }
 
+// What one AWS call is, to be signed: AwsRequest without how it is sent.
+export type AwsRequestToSign = Pick<
+  AwsRequest,
+  | "credentials"
+  | "service"
+  | "region"
+  | "host"
+  | "target"
+  | "jsonVersion"
+  | "body"
+  | "now"
+>;
+
 /*
- * Sends one signed request; JSON protocol answers are parsed, query
- * protocol answers are returned as text (XML).
+ * One AWS call, signed with Signature Version 4 at the time now: its URL,
+ * its signed headers and its body. Signed again for each try, so a retry
+ * is never refused as a request too old (RequestExpired).
  */
-export async function sendAwsRequest(
-  request: AwsRequest,
-): Promise<{ json: JSONObject; text: string }> {
+export function signAwsRequest(request: AwsRequestToSign): {
+  url: string;
+  headers: Dictionary<string>;
+  body: string;
+} {
   const isJson: boolean = Boolean(request.target);
   const host: string =
     request.host || getAwsHost(request.service, request.region);
@@ -265,6 +281,30 @@ export async function sendAwsRequest(
         "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
         Accept: "application/xml",
       };
+  const signed: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
+    method: "POST",
+    host,
+    path: "/",
+    headers,
+    body,
+    accessKeyId: request.credentials.accessKeyId.trim(),
+    secretAccessKey: request.credentials.secretAccessKey,
+    sessionToken: request.credentials.sessionToken,
+    region: request.region.trim(),
+    service: request.service,
+    date: request.now ? request.now() : new Date(),
+  });
+
+  return { url: `https://${host}/`, headers: signed.headers, body };
+}
+
+/*
+ * Sends one signed request; JSON protocol answers are parsed, query
+ * protocol answers are returned as text (XML).
+ */
+export async function sendAwsRequest(
+  request: AwsRequest,
+): Promise<{ json: JSONObject; text: string }> {
   const secrets: Array<string> = [
     request.credentials.secretAccessKey,
     ...(request.credentials.sessionToken
@@ -279,27 +319,16 @@ export async function sendAwsRequest(
       throw new CloudReadBudgetSpent();
     }
 
-    const signed: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
-      method: "POST",
-      host,
-      path: "/",
-      headers,
-      body,
-      accessKeyId: request.credentials.accessKeyId.trim(),
-      secretAccessKey: request.credentials.secretAccessKey,
-      sessionToken: request.credentials.sessionToken,
-      region: request.region.trim(),
-      service: request.service,
-      date: request.now ? request.now() : new Date(),
-    });
+    const signed: { url: string; headers: Dictionary<string>; body: string } =
+      signAwsRequest(request);
 
     try {
       const response: DataSourceHttpResponse = await LlmProviderHttp.send({
         transport: request.transport,
         method: "POST",
-        url: `https://${host}/`,
+        url: signed.url,
         headers: signed.headers,
-        body,
+        body: signed.body,
         timeoutInMs: request.timeoutInMs,
         step: request.step,
         providerTitle: request.providerTitle,

@@ -147,7 +147,7 @@ Eller med en Dataverse-forbindelsesstreng i den form, SDK'erne bruger: `AuthType
 
 Et miljø indeholder hundredvis af egne tabeller, så kun disse overvåges: de centrale forretningstabeller (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` og `annotation`) og dine egne brugerdefinerede tabeller. Tabellerne fra Microsofts apps, hvis navne starter med `msdyn_`, `adx_` eller et andet `ms`-præfiks, udelades. Angiv enhver anden tabel med dens logiske navn for også at overvåge den: `"tables": ["msdyn_workorder", "systemuser"]`.
 
-Hvert femte minut giver Web API hver tabels definition, dens rækker og dens nyeste `modifiedon`, som er, hvornår den sidst blev ændret. Rækkerne kommer fra den optælling, Dataverse laver én gang om dagen, så de kan være op til en dag bagud. Kolonnerne læses én gang i timen. Hver indsamling sender to anmodninger og én mere pr. overvåget tabel, og de tæller med i appens grænse på 6.000 anmodninger på fem minutter. Når Dataverse beder den om at sætte tempoet ned, venter resten af læsningerne til næste indsamling. Udeluk en tabel for at holde op med at læse den.
+Hvert femte minut giver Web API hver tabels definition, dens rækker og dens nyeste `modifiedon`, som er, hvornår den sidst blev ændret. Rækkerne kommer fra den optælling, Dataverse laver én gang om dagen, så de kan være op til en dag bagud. Kolonnerne læses én gang i timen. Hver indsamling sender to anmodninger og én mere pr. overvåget tabel, og de tæller med i appens grænse på 6.000 anmodninger på fem minutter. En anmodning, der fejler et øjeblik hos Dataverse, eller som Dataverse beder om at vente et par sekunder med, sendes igen, højst to gange; når Dataverse beder om at vente længere, venter resten af læsningerne til næste indsamling. Kan Dataverse ikke læse en tabel, udelades kun den, med Dataverses egen fejlkode og fejlmeddelelse, og den springes over indtil næste forsøg: en time senere, derefter to timer, så fire, op til en dag. Databasens side viser de oversprungne tabeller under **Oversprungne tabeller**. **Indsaml nu** spørger efter dem alle igen på én gang, og det samme gør en ændring i miljøets tabeller eller i den app, der læser dem. Udeluk en tabel for at holde op med at læse den.
 
 Tjek kører som skrivebeskyttet SQL på miljøets TDS-endpoint, på port 1433 eller 5558, logget ind som den samme app. Det er slået til, medmindre en administrator har slået det fra. Hvor adgangskontrol på brugerniveau er slået til for det, skal appens rolle have rettigheden **Allow user to access TDS endpoint**. Dets SQL har ingen regulære udtryk, ingen `WITH` og ingen stikprøve, så et tjek dér læser hver række.
 :::
@@ -160,7 +160,7 @@ Tjek kører som skrivebeskyttet SQL på miljøets TDS-endpoint, på port 1433 el
 | Tjek | Hvert 15. minut, hver time, hver 6. time eller hver dag, som hvert tjek angiver |
 | Afstamning og seneste læsninger fra forespørgselshistorikken | Én gang i timen, tilbage til den seneste læsning |
 
-Hver sætning kører skrivebeskyttet, med en tidsgrænse for sætninger og låse, hvor motoren har dem. Forbindelsesstrengen logges aldrig og fjernes fra hver fejlmeddelelse. En statistik, som login ikke må læse, udelades med en advarsel på databasen; indsamlingen mislykkes aldrig af den grund. Forbindelser til private adresser afvises på OneUptime Cloud: brug en sonde.
+Hver sætning kører skrivebeskyttet, med en tidsgrænse for sætninger og låse, hvor motoren har dem. En anmodning, der et øjeblik afvises eller fejler hos Snowflake, Databricks, BigQuery, Athena, ClickHouse eller Dataverse, med en 429, en 503 eller tjenestens eget svar om, at den har for travlt, sendes igen, højst to gange og inden for et minuts ventetid pr. indsamling, og aldrig på en måde, der kunne køre en sætning to gange. Forbindelsesstrengen logges aldrig og fjernes fra hver fejlmeddelelse. En statistik, som login ikke må læse, udelades med en advarsel på databasen; indsamlingen mislykkes aldrig af den grund. Forbindelser til private adresser afvises på OneUptime Cloud: brug en sonde.
 
 ## Læsereplikaer
 
@@ -174,11 +174,12 @@ Hver sti vises derefter under **Tabeller**: dens nyeste objekt er, hvornår den 
 
 ## Fejlfinding
 
-- **Databasen viser Mislykkedes.** Dens meddelelse siger hvorfor: en vært, OneUptime ikke kan nå, et afvist login, en TLS-tilstand, serveren ikke accepterer. Forbind en database inde i dit netværk via en sonde.
+- **Databasen viser Mislykkedes.** Dens meddelelse siger hvorfor: en vært, OneUptime ikke kan nå, et afvist login, en TLS-tilstand, serveren ikke accepterer. Forbind en database inde i dit netværk via en sonde. For Snowflake, Databricks, BigQuery, Athena, ClickHouse og Dataverse nævner meddelelsen, hvad der blev læst, tjenestens egen fejlkode og fejlmeddelelse og det anmodnings- eller forespørgsels-id, som tjenestens support kan spore, hvis tjenesten giver et. **Indsaml nu** prøver igen med det samme, og siden viser, hvordan det gik.
 - **Tabeller viser ingen seneste ændring.** Login kan ikke læse motorens statistik: giv det, som fanen for din motor viser, eller vent, til en tabels rækker har ændret sig to gange.
 - **En tabel mangler.** Den ligger i et skema, som login ikke må bruge, eller den er udelukket på databasen. Giv `USAGE` på dens skema, eller fjern udelukkelsen.
 - **En MySQL-tabel har ingen kolonner.** Login skal have `REFERENCES`, som ovenfor: det viser en tabels kolonner uden at give nogen læsning af dens rækker.
 - **Et Dataverse-miljø siger, at det har afvist appen.** Tilføj appen til miljøet som programbruger med en sikkerhedsrolle, der må læse tabellerne, som på fanen Microsoft Dataverse.
+- **En Dataverse-tabel springes over.** Dataverse kunne ikke læse den, og **Oversprungne tabeller** på databasens side siger hvorfor, med Dataverses egne ord. Hvis appens sikkerhedsrolle ikke må læse tabellen, så giv rollen læseadgang, og vælg derefter **Indsaml nu**: den spørger efter alle oversprungne tabeller igen på én gang.
 - **En Dataverse-tabel mangler.** Kun de centrale forretningstabeller og dine egne brugerdefinerede tabeller overvåges. Angiv den i `tables` med dens logiske navn.
 
 ## Næste trin

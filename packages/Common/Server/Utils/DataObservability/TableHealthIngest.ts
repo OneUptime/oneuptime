@@ -897,6 +897,17 @@ export default class TableHealthIngest {
         ...(snapshot.target
           ? { tableHealthTarget: snapshot.target as unknown as JSONObject }
           : {}),
+        /*
+         * The tables the database keeps refusing (#9541): null once none is,
+         * kept as they were when the collection says nothing of them (an
+         * engine that keeps none, an older probe).
+         */
+        ...(snapshot.skippedTables !== undefined
+          ? {
+              tableHealthSkippedTables: (snapshot.skippedTables ||
+                null) as unknown as JSONObject,
+            }
+          : {}),
         nextTableHealthCollectionAt: getNextCollectionTime(
           OneUptimeDate.getCurrentDate(),
           TABLE_HEALTH_COLLECTION_INTERVAL_IN_MINUTES,

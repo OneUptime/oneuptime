@@ -238,7 +238,7 @@ describe("opening the page", () => {
       ISSUES_FILTERS_TEST_ID,
     );
 
-    expect(within(filters).getByRole("radio", { name: "Any" })).toHaveAttribute(
+    expect(within(filters).getByRole("radio", { name: "All" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -305,8 +305,8 @@ describe("filtering", () => {
       TableFilterUrlState.read(DATA_OBSERVABILITY_ISSUES_LIST_ID, "filter"),
     ).toEqual({ alert: DataObservabilityIssueAlertFilter.Open });
 
-    // Any again: no filter left in the address.
-    fireEvent.click(screen.getByRole("radio", { name: "Any" }));
+    // All again: no filter left in the address.
+    fireEvent.click(screen.getByRole("radio", { name: "All" }));
 
     await waitFor(() => {
       expect(requests).toHaveLength(3);

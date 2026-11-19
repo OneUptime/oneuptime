@@ -3782,6 +3782,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Recommendations",
       },
       {
+        page: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER,
+        section: "Pipeline",
+        title: "Circuit Breaker",
+      },
+      {
         page: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS,
         section: "Pipeline",
         title: "Owners",

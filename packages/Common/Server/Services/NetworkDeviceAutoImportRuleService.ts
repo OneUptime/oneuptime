@@ -593,11 +593,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * Every kind a device's monitor can be made from, as Review Results
-     * offers them (issue #9510): a Network Device template's monitor reads
-     * each imported device's polls, a Ping, IP, Port or NTP template's checks
-     * each device's address. A Website, DNS, database or telemetry template
-     * has nothing of a device's to check, so it is refused here, where the
-     * person picking it reads why, rather than failing every monitor later.
+     * offers them (issues #9510, #9546): a Network Device template's monitor
+     * reads each imported device's polls, a Ping, IP, Port or NTP template's
+     * checks each device's address, and a Website, API or SSL Certificate
+     * template's checks its URL with each device's address as the host. A
+     * DNS, database or telemetry template has nothing of a device's to
+     * check, so it is refused here, where the person picking it reads why,
+     * rather than failing every monitor later - and so is a web template
+     * whose URL has no host a device's address can take.
      */
     if (!isDeviceMonitorTemplateType(monitorTemplate.monitorType)) {
       throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
@@ -609,7 +612,7 @@ export class Service extends ProjectReferencesService<Model> {
         "Monitor template",
       );
     } else {
-      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+      DeviceMonitorTemplateUtil.assertDeviceTemplateSteps({
         monitorType: monitorTemplate.monitorType,
         monitorSteps: monitorTemplate.monitorSteps,
       });

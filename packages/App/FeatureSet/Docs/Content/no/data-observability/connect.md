@@ -147,7 +147,7 @@ Eller med en Dataverse-tilkoblingsstreng, i den formen SDK-ene bruker: `AuthType
 
 Et miljø har hundrevis av egne tabeller, så bare disse overvåkes: de sentrale forretningstabellene (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` og `annotation`) og de egendefinerte tabellene dine. Tabellene til Microsofts apper, der navnene starter med `msdyn_`, `adx_` eller et annet `ms`-prefiks, utelates. Oppgi en hvilken som helst annen tabell med det logiske navnet for å overvåke den også: `"tables": ["msdyn_workorder", "systemuser"]`.
 
-Hvert femte minutt gir Web API-et hver tabells definisjon, rader og nyeste `modifiedon`, som er når den sist ble endret. Radene kommer fra tellingen Dataverse gjør én gang om dagen, så de kan ligge opptil en dag etter. Kolonnene leses én gang i timen. Hver innsamling sender to forespørsler, og én til per overvåket tabell, som telles med i appens grense på 6000 forespørsler på fem minutter. Når Dataverse ber den senke tempoet, venter resten av lesingene til neste innsamling. Utelat en tabell for å slutte å lese den.
+Hvert femte minutt gir Web API-et hver tabells definisjon, rader og nyeste `modifiedon`, som er når den sist ble endret. Radene kommer fra tellingen Dataverse gjør én gang om dagen, så de kan ligge opptil en dag etter. Kolonnene leses én gang i timen. Hver innsamling sender to forespørsler, og én til per overvåket tabell, som telles med i appens grense på 6000 forespørsler på fem minutter. En forespørsel som feiler et øyeblikk hos Dataverse, eller som Dataverse ber om å vente noen sekunder med, sendes på nytt, høyst to ganger; når Dataverse ber om å vente lenger, venter resten av lesingene til neste innsamling. Hvis Dataverse ikke kan lese en tabell, utelates bare den, med Dataverses egen feilkode og feilmelding, og den hoppes over til neste forsøk: en time senere, deretter to timer, så fire, opptil en dag. Databasens side viser tabellene som hoppes over, under **Tabeller som hoppes over**. **Samle inn nå** spør etter alle igjen med en gang, og det samme gjør en endring i miljøets tabeller eller i appen som leser dem. Utelat en tabell for å slutte å lese den.
 
 Sjekker kjører som skrivebeskyttet SQL på miljøets TDS-endepunkt, på port 1433 eller 5558, pålogget som den samme appen. Det er på med mindre en administrator har slått det av. Der tilgangskontroll på brukernivå er slått på for det, trenger appens rolle rettigheten **Allow user to access TDS endpoint**. Endepunktets SQL har verken regulære uttrykk, `WITH` eller utvalg, så en sjekk der leser hver rad.
 :::
@@ -160,7 +160,7 @@ Sjekker kjører som skrivebeskyttet SQL på miljøets TDS-endepunkt, på port 14
 | Sjekker | Hvert 15. minutt, hver time, hver 6. time eller hver dag, slik hver sjekk angir |
 | Avstamning og siste lesinger fra spørringshistorikken | Én gang i timen, tilbake til forrige lesing |
 
-Hver setning kjører skrivebeskyttet, med tidsavbrudd for setninger og låser der databasemotoren har det. Tilkoblingsstrengen logges aldri og fjernes fra hver feilmelding. En statistikk brukeren ikke har lov til å lese, utelates med en advarsel på databasen, og gir aldri en mislykket innsamling. Tilkoblinger til private adresser avvises på OneUptime Cloud: bruk en sonde.
+Hver setning kjører skrivebeskyttet, med tidsavbrudd for setninger og låser der databasemotoren har det. En forespørsel som et øyeblikk avvises eller feiler hos Snowflake, Databricks, BigQuery, Athena, ClickHouse eller Dataverse, med en 429, en 503 eller tjenestens eget svar om at den er for opptatt, sendes på nytt, høyst to ganger og innenfor ett minutts venting per innsamling, og aldri på en måte som kan kjøre en setning to ganger. Tilkoblingsstrengen logges aldri og fjernes fra hver feilmelding. En statistikk brukeren ikke har lov til å lese, utelates med en advarsel på databasen, og gir aldri en mislykket innsamling. Tilkoblinger til private adresser avvises på OneUptime Cloud: bruk en sonde.
 
 ## Lesereplikaer
 
@@ -174,11 +174,12 @@ Hver sti vises deretter under **Tabeller**: det nyeste objektet er når den sist
 
 ## Feilsøking
 
-- **Innsamlingen fra databasen mislykkes.** Meldingen sier hvorfor: en vert OneUptime ikke når, en pålogging som avvises, en TLS-modus serveren ikke godtar. En database inne i nettverket ditt kobler du til gjennom en sonde.
+- **Innsamlingen fra databasen mislykkes.** Meldingen sier hvorfor: en vert OneUptime ikke når, en pålogging som avvises, en TLS-modus serveren ikke godtar. En database inne i nettverket ditt kobler du til gjennom en sonde. For Snowflake, Databricks, BigQuery, Athena, ClickHouse og Dataverse nevner meldingen hva som ble lest, tjenestens egen feilkode og feilmelding, og forespørsels- eller spørrings-ID-en som tjenestens brukerstøtte kan spore, når tjenesten oppgir en. **Samle inn nå** prøver igjen med en gang, og siden viser hvordan det gikk.
 - **Tabeller viser ingen siste endring.** Brukeren kan ikke lese databasemotorens statistikk: gi det fanen for databasemotoren din viser, eller vent til antall rader i en tabell har endret seg to ganger.
 - **En tabell mangler.** Den ligger i et skjema brukeren ikke kan bruke, eller den er utelatt på databasen. Gi `USAGE` på skjemaet, eller fjern utelatelsen.
 - **En MySQL-tabell har ingen kolonner.** Brukeren trenger `REFERENCES`, som ovenfor: det viser kolonnene i en tabell uten å gi noen lesing av radene.
 - **Et Dataverse-miljø sier at det avviste appen.** Legg appen til i miljøet som programbruker, med en sikkerhetsrolle som kan lese tabellene, som på fanen Microsoft Dataverse.
+- **En Dataverse-tabell hoppes over.** Dataverse kunne ikke lese den, og **Tabeller som hoppes over** på databasens side sier hvorfor, med Dataverses egne ord. Hvis appens sikkerhetsrolle ikke har lov til å lese tabellen, gir du rollen lesetilgang og velger deretter **Samle inn nå**: den spør etter alle tabellene som hoppes over, igjen med en gang.
 - **En Dataverse-tabell mangler.** Bare de sentrale forretningstabellene og de egendefinerte tabellene dine overvåkes. Oppgi den i `tables`, med det logiske navnet.
 
 ## Neste steg

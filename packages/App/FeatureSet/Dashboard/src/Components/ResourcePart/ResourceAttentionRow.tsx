@@ -19,6 +19,7 @@ import {
   ResourceAttentionText,
 } from "./ResourceAttention";
 import { withSentenceDigits } from "./SentenceDigits";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * ONE PART THAT NEEDS ATTENTION, AS EVERY LIST OF THEM DRAWS IT.
@@ -346,7 +347,7 @@ const ResourceAttentionRow: FunctionComponent<ComponentProps> = (
                     )}
                     {event.lastSeenAt || event.count > 1 ? (
                       <span className="text-gray-500">
-                        {" · "}
+                        <InlineSeparator />
                         {event.count > 1 && event.lastSeenAt
                           ? translator.translatePlural(
                               {

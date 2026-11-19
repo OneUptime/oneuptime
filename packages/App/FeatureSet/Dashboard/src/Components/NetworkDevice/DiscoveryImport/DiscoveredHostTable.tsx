@@ -55,8 +55,10 @@ import {
   DiscoveredHostNameFilter,
   DiscoveredHostNameFilterOption,
   DiscoveredHostQuery,
+  DiscoveredHostSelectability,
   ShownDiscoveredHost,
   areAllShownHostsSelected,
+  isAddingMonitorToExistingHost,
   countSelectableShownHosts,
   countSelectedDiscoveredHosts,
   getDiscoveredHostFilterEmptyMessage,
@@ -73,6 +75,7 @@ import {
 } from "../DiscoveredHostFilter";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { translationKey } from "Common/Types/Translator";
 import DeviceMonitorsLink from "../DeviceMonitorsLink";
 import {
   DeviceMonitorsByKey,
@@ -140,6 +143,17 @@ export interface DiscoveredHostTableProps {
    * created under, or why a rule could not name it.
    */
   namingPreview?: ReadonlyMap<string, DeviceNamingPreviewItem> | undefined;
+  /*
+   * Which hosts that are devices already may be picked to get a monitor
+   * (issue #9544): the dialog reads every such device's monitors and hands
+   * over the addresses of those that have one. Left out, none can be.
+   */
+  selectability?: DiscoveredHostSelectability | undefined;
+  /*
+   * The monitors of the devices the hosts already are, when the dialog has
+   * read them all. Left out, the table reads them a page at a time itself.
+   */
+  deviceMonitors?: DeviceMonitorsByKey | undefined;
 }
 
 const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
@@ -185,12 +199,14 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
   const selectableShownCount: number = countSelectableShownHosts({
     hosts: hosts,
     filter: query,
+    selectability: props.selectability,
   });
 
   const areAllShownSelected: boolean = areAllShownHostsSelected({
     hosts: hosts,
     filter: query,
     selectedIpAddresses: props.selectedIpAddresses,
+    selectability: props.selectability,
   });
 
   const selection: { selected: number; hiddenSelected: number } =
@@ -198,6 +214,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
       hosts: hosts,
       filter: query,
       selectedIpAddresses: props.selectedIpAddresses,
+      selectability: props.selectability,
     });
 
   const shownSelectedCount: number =
@@ -232,22 +249,29 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
 
   /*
    * The monitors of the page's hosts that are already devices (issue
-   * #9509), read once per page shown, and kept as pages are turned. A read
-   * that fails leaves those hosts "Already added".
+   * #9509), read once per page shown, and kept as pages are turned - unless
+   * the dialog read every one of them already (deviceMonitors). A read that
+   * fails leaves those hosts "Already added".
    */
-  const [deviceMonitors, setDeviceMonitors] = useState<DeviceMonitorsByKey>(
+  const [pageMonitors, setDeviceMonitors] = useState<DeviceMonitorsByKey>(
     emptyDeviceMonitorsByKey(),
   );
+  const deviceMonitors: DeviceMonitorsByKey =
+    props.deviceMonitors || pageMonitors;
   const monitorsRequestRef: React.MutableRefObject<number> = useRef<number>(0);
-  const alreadyAddedOnPage: string = pageHosts
-    .filter((shown: ShownDiscoveredHost): boolean => {
-      return Boolean(shown.host.isAlreadyRegistered && shown.host.ipAddress);
-    })
-    .map((shown: ShownDiscoveredHost): string => {
-      return shown.host.ipAddress;
-    })
-    .sort()
-    .join(",");
+  const alreadyAddedOnPage: string = props.deviceMonitors
+    ? ""
+    : pageHosts
+        .filter((shown: ShownDiscoveredHost): boolean => {
+          return Boolean(
+            shown.host.isAlreadyRegistered && shown.host.ipAddress,
+          );
+        })
+        .map((shown: ShownDiscoveredHost): string => {
+          return shown.host.ipAddress;
+        })
+        .sort()
+        .join(",");
 
   useEffect(() => {
     if (!alreadyAddedOnPage) {
@@ -293,6 +317,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
         hosts: hosts,
         filter: query,
         selectedIpAddresses: current,
+        selectability: props.selectability,
       });
     });
   };
@@ -586,12 +611,16 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                   isGlobalProbe={props.isGlobalProbe}
                   hasVendorColumn={hasVendorColumn}
                   isChecked={
-                    isSelectableDiscoveredHost(shown.host) &&
+                    isSelectableDiscoveredHost(
+                      shown.host,
+                      props.selectability,
+                    ) &&
                     isSelectedIpAddress({
                       selectedIpAddresses: props.selectedIpAddresses,
                       ipAddress: shown.host.ipAddress,
                     })
                   }
+                  selectability={props.selectability}
                   isDisabled={Boolean(props.isDisabled)}
                   naming={props.namingPreview?.get(shown.host.ipAddress)}
                   monitors={
@@ -655,6 +684,11 @@ export interface DiscoveredHostRowProps {
    * #9509): the row says "Already monitored" and links to them.
    */
   monitors?: DeviceMonitorsSummary | undefined;
+  /*
+   * Which hosts that are devices already may be picked to get a monitor
+   * (issue #9544); the table's own, so the row's box agrees with the counts.
+   */
+  selectability?: DiscoveredHostSelectability | undefined;
 }
 
 /*
@@ -752,8 +786,19 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
    * The SAME predicate every count, the select-all box and the import use,
    * so a row never offers a box no count agrees exists.
    */
-  const isSelectable: boolean = isSelectableDiscoveredHost(entry);
+  const isSelectable: boolean = isSelectableDiscoveredHost(
+    entry,
+    props.selectability,
+  );
   const isChecked: boolean = isSelectable && props.isChecked;
+  /*
+   * A device already, with no monitor: its box picks it to get one (issue
+   * #9544), not to be imported again.
+   */
+  const isAddingMonitor: boolean = isAddingMonitorToExistingHost(
+    entry,
+    props.selectability,
+  );
   const vendor: string | undefined = getDiscoveredHostVendor(entry);
   /*
    * Why this host is listed by its address, when it is - or undefined when it
@@ -836,19 +881,31 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
             value={isChecked}
             disabled={!isSelectable || props.isDisabled}
             ariaLabel={translator.translateTemplate(
-              "Import {{name}} ({{address}})",
+              isAddingMonitor
+                ? "Add a monitor to {{name}} ({{address}})"
+                : "Import {{name}} ({{address}})",
               {
                 name: displayName,
                 address: entry.ipAddress || translatableTerm("no address"),
               },
             )}
             isAriaLabelTranslated={true}
+            /*
+             * In English, marked so the extractor finds them: the checkbox
+             * draws its hover text in the reader's language.
+             */
             hoverText={
-              entry.isAlreadyRegistered
-                ? "Already added as a Network Device."
-                : entry.ipAddress
-                  ? undefined
-                  : "This host reported no address, so it cannot be imported."
+              isAddingMonitor
+                ? translationKey(
+                    "Already added, with no monitor. Select it to give it one.",
+                  )
+                : entry.isAlreadyRegistered
+                  ? translationKey("Already added as a Network Device.")
+                  : entry.ipAddress
+                    ? undefined
+                    : translationKey(
+                        "This host reported no address, so it cannot be imported.",
+                      )
             }
             onChange={(value: boolean) => {
               props.onCheckedChange(value);
@@ -984,11 +1041,25 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
               />
             </Fragment>
           ) : (
-            <Pill
-              text="Already added"
-              tone={PillTone.Neutral}
-              className="flex-shrink-0"
-            />
+            <Fragment>
+              <Pill
+                text="Already added"
+                tone={PillTone.Neutral}
+                className="flex-shrink-0"
+              />
+              {/*
+               * Picked to get a monitor (issue #9544): said where the
+               * row's state is, so the tick reads as what it does.
+               */}
+              {isAddingMonitor && isChecked && (
+                <Pill
+                  text="Gets a monitor"
+                  tone={PillTone.Info}
+                  className="flex-shrink-0"
+                  dataTestId={`discovered-host-gets-monitor-${entry.ipAddress}`}
+                />
+              )}
+            </Fragment>
           ))}
       </div>
     </li>

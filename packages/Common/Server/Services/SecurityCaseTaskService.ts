@@ -44,6 +44,9 @@ import {
 
 const ASSIGNEE_KEYS: Array<string> = ["assignedToUserId", "assignedToUser"];
 
+// The case a task is of, under both of its names (RelationIdUtil).
+const SECURITY_CASE_KEYS: Array<string> = ["securityCaseId", "securityCase"];
+
 // A task's columns its hooks look at, as they were before a change.
 interface TaskBeforeChange {
   id: string;
@@ -139,11 +142,22 @@ export class Service extends ProjectReferencesService<Model> {
     if (stepKey) {
       createBy.data.responseStepKey = stepKey;
 
+      /*
+       * The case under either of its names - the two must agree - kept in
+       * the ID column for the saved row: the case asked about is the case
+       * the task is written to.
+       */
+      const securityCaseId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+        data,
+        SECURITY_CASE_KEYS,
+        "Security Case",
+      );
+
       // One task a step: a step ticked off twice at once is done once.
-      if (createBy.data.securityCaseId) {
+      if (securityCaseId) {
         const existing: PositiveNumber = await this.countBy({
           query: {
-            securityCaseId: createBy.data.securityCaseId,
+            securityCaseId: securityCaseId,
             responseStepKey: stepKey,
           },
           props: { isRoot: true },

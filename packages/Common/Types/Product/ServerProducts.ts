@@ -6,6 +6,7 @@ import ProductKey, {
   parseProductKeys,
 } from "./ProductKey";
 import { isHideableProduct } from "./ProjectProducts";
+import { ServerProductOffReason } from "./ServerProductOffReason";
 
 /*
  * THE PRODUCTS A SERVER SWITCHES OFF FOR EVERY PROJECT (#6815, #2471).
@@ -183,13 +184,12 @@ export const TELEMETRY_INGESTION_PRODUCTS: ReadonlyArray<ProductKey> = [
   ProductKey.Exceptions,
 ];
 
-// Why a product is off on this server.
-export enum ServerProductOffReason {
-  // An admin switched it off, or SERVER_PRODUCTS left it out.
-  SwitchedOff = "switched-off",
-  // DISABLE_TELEMETRY_INGESTION is set: nothing new can reach it.
-  TelemetryIngestionStopped = "telemetry-ingestion-stopped",
-}
+/*
+ * Why a product is off on this server. It lives in ServerProductOffReason,
+ * which imports nothing, so the mobile app's suite reads it without this
+ * module's JSON types; it is exported from here as before.
+ */
+export { ServerProductOffReason } from "./ServerProductOffReason";
 
 export const isServerProductOffReason: (
   value: unknown,

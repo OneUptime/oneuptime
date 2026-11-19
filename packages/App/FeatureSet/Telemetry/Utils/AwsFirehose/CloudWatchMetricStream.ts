@@ -6,7 +6,14 @@ import {
   AwsNamespaceKeyMetrics,
   AwsStatistic,
   getAwsStoredMetricName,
+  isAwsKeyMetricSeries,
+  isAwsKeyMetricStreamable,
 } from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  AwsStreamStack,
+  UNVERSIONED_AWS_STREAM_STACK,
+  doesAwsStreamStackCarry,
+} from "Common/Types/CloudConnection/CloudStreamStack";
 import {
   CloudMonitoredResource,
   resolveCloudMonitoredResource,
@@ -412,22 +419,31 @@ export function readMetricResourceFacts(
  *
  * So a key metric is one series of one point type whichever way it came,
  * and a resource's charts, its monitors and its pages read it as before: a
- * summary's value is its sum, which a gauge of an Average is not. A key
- * metric the read writes whether the account streams or not (one added
- * since streams began: AwsKeyMetric.isStreamed false) is left out of a
- * delivery altogether, so it too is one series - the read's. Every other
- * metric stays the stream's summary - no read writes it - and its series
- * of no resource are kept: they are an account's own metrics, in its own
- * namespaces too, which no resource's filter matches.
+ * summary's value is its sum, which a gauge of an Average is not.
+ *
+ * A key metric the delivery's stack does not carry (CloudStreamStack) is
+ * the read's: the read writes it as if the account did not stream, so a
+ * stream that delivers it anyway - one of every metric made before stacks
+ * said their template - is left out of a delivery altogether, and it too
+ * is one series. So is a metric no stream writes (S3's daily storage,
+ * ACM's days to expiry: AwsKeyMetric.streamedSince null). A key metric's
+ * series it is not read from (AwsKeyMetric.onlyDimensionValues: a Network
+ * Firewall's Firewall-engine ReceivedPackets) is left out too, as the read
+ * never reads it. Every other metric stays the stream's summary - no read
+ * writes it - and its series of no resource are kept: they are an
+ * account's own metrics, in its own namespaces too, which no resource's
+ * filter matches.
  */
 
 export interface StreamedKeyMetric {
   statistic: AwsStatistic;
   // The unit the read writes the metric in.
   unit: string;
+  // The catalog's own: which stacks carry it, and the series it is read from.
+  metric: AwsKeyMetric;
 }
 
-// Each key metric by its stored name, lower case: the statistic the read reads.
+// Each key metric a stream can write, by its stored name, lower case.
 export const STREAMED_KEY_METRICS: ReadonlyMap<string, StreamedKeyMetric> =
   ((): Map<string, StreamedKeyMetric> => {
     const keyMetrics: Map<string, StreamedKeyMetric> = new Map<
@@ -437,7 +453,7 @@ export const STREAMED_KEY_METRICS: ReadonlyMap<string, StreamedKeyMetric> =
 
     for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of namespace.metrics as ReadonlyArray<AwsKeyMetric>) {
-        if (!metric.isStreamed) {
+        if (!isAwsKeyMetricStreamable(metric)) {
           continue;
         }
 
@@ -450,6 +466,7 @@ export const STREAMED_KEY_METRICS: ReadonlyMap<string, StreamedKeyMetric> =
           keyMetrics.set(name, {
             statistic: metric.statistic,
             unit: metric.unit,
+            metric,
           });
         }
       }
@@ -459,18 +476,18 @@ export const STREAMED_KEY_METRICS: ReadonlyMap<string, StreamedKeyMetric> =
   })();
 
 /*
- * The key metrics the connection's read writes whether or not a stream
- * delivers them (AwsKeyMetric.isStreamed false), by stored name, lower
- * case: a stream of every metric that brings one leaves it to the read,
- * so it is one series of one shape - the read's gauge - never the read's
- * and the stream's summary beside it.
+ * The key metrics no stream writes (AwsKeyMetric.streamedSince null), by
+ * stored name, lower case: S3's daily storage and ACM's days to expiry,
+ * which the read always writes. A stream of every metric that brings one
+ * leaves it to the read, so it is one series of one shape - the read's
+ * gauge - never the read's and the stream's summary beside it.
  */
 export const READ_ONLY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
   (AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>).flatMap(
     (namespace: AwsNamespaceKeyMetrics): Array<string> => {
       return (namespace.metrics as ReadonlyArray<AwsKeyMetric>)
         .filter((metric: AwsKeyMetric): boolean => {
-          return !metric.isStreamed;
+          return !isAwsKeyMetricStreamable(metric);
         })
         .map((metric: AwsKeyMetric): string => {
           return getAwsStoredMetricName(
@@ -481,6 +498,28 @@ export const READ_ONLY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
     },
   ),
 );
+
+/*
+ * Whether the read writes this key metric of a delivery, not the stream:
+ * no stream writes it, or the delivery's stack does not carry it.
+ */
+export function isLeftToTheRead(data: {
+  storedMetricName: string;
+  stack: AwsStreamStack;
+}): boolean {
+  const name: string = data.storedMetricName.trim().toLowerCase();
+
+  if (READ_ONLY_KEY_METRICS.has(name)) {
+    return true;
+  }
+
+  const keyMetric: StreamedKeyMetric | undefined =
+    STREAMED_KEY_METRICS.get(name);
+
+  return Boolean(
+    keyMetric && !doesAwsStreamStackCarry(data.stack, keyMetric.metric),
+  );
+}
 
 // A number as OTLP/JSON writes it: a fixed64 count or a time is a string of digits.
 function readNumberLike(value: unknown): number | null {
@@ -544,6 +583,35 @@ export function readStatisticValue(
   }
 
   return null;
+}
+
+// A datapoint's dimensions by name, from its Dimensions kvlist.
+export function readDimensions(attributes: JSONArray): Record<string, string> {
+  const dimensions: Record<string, string> = {};
+
+  for (const raw of attributes) {
+    const attribute: JSONObject = readObject(raw);
+
+    if (attribute["key"] !== "Dimensions") {
+      continue;
+    }
+
+    for (const value of readArray(
+      readObject(readObject(attribute["value"])["kvlistValue"])["values"],
+    )) {
+      const entry: JSONObject = readObject(value);
+      const name: unknown = entry["key"];
+      const text: unknown = readObject(entry["value"])["stringValue"];
+
+      if (typeof name === "string" && typeof text === "string") {
+        dimensions[name] = text.trim();
+      }
+    }
+
+    break;
+  }
+
+  return dimensions;
 }
 
 // How many dimensions a datapoint carries: the entries of its Dimensions kvlist.
@@ -756,8 +824,15 @@ export async function shapeStreamedMetrics(data: {
   connectionId: string;
   now: Date;
   memory?: StreamedSeriesMemory | undefined;
+  /*
+   * The stack the delivery came from (CloudStreamStack): the key metrics it
+   * carries are written, the others left to the read. One that says
+   * nothing of itself when left out.
+   */
+  stack?: AwsStreamStack | undefined;
 }): Promise<Array<JSONObject>> {
   const memory: StreamedSeriesMemory = data.memory || STREAMED_SERIES_MEMORY;
+  const stack: AwsStreamStack = data.stack || UNVERSIONED_AWS_STREAM_STACK;
   const places: Map<JSONObject, StreamedPointPlace> = new Map<
     JSONObject,
     StreamedPointPlace
@@ -789,6 +864,12 @@ export async function shapeStreamedMetrics(data: {
           continue;
         }
 
+        // A key metric read from some of its series only (onlyDimensionValues).
+        const seriesFilter: AwsKeyMetric | undefined = STREAMED_KEY_METRICS.get(
+          name.toLowerCase(),
+        )?.metric;
+        const isFiltered: boolean = Boolean(seriesFilter?.onlyDimensionValues);
+
         for (const rawPoint of readArray(
           readObject(metric["summary"])["dataPoints"],
         )) {
@@ -798,6 +879,25 @@ export async function shapeStreamedMetrics(data: {
 
           const point: JSONObject = readObject(rawPoint);
           const pointAttributes: JSONArray = readArray(point["attributes"]);
+
+          /*
+           * A series the key metric is not read from is no resource's: left
+           * out of its gauge, and of the fewest dimensions its own count.
+           */
+          if (
+            isFiltered &&
+            !isAwsKeyMetricSeries(
+              seriesFilter!,
+              readDimensions(pointAttributes),
+            )
+          ) {
+            places.set(point, {
+              seriesKey: null,
+              dimensions: countDimensions(pointAttributes),
+            });
+            continue;
+          }
+
           const resource: CloudMonitoredResource | null =
             resolveCloudMonitoredResource({
               metricName: name,
@@ -867,7 +967,12 @@ export async function shapeStreamedMetrics(data: {
         }
 
         // A key metric the read writes: never the stream too.
-        if (READ_ONLY_KEY_METRICS.has(readText(metric["name"]).toLowerCase())) {
+        if (
+          isLeftToTheRead({
+            storedMetricName: readText(metric["name"]),
+            stack,
+          })
+        ) {
           isChanged = true;
           continue;
         }

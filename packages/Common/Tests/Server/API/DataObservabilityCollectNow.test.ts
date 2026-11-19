@@ -198,6 +198,31 @@ describe("Collect Now", () => {
     });
   });
 
+  test("asks again at once every table the database refused (#9541): the store forgets them in the same write", async () => {
+    const outcome: Awaited<ReturnType<typeof collectNow>> = await collectNow(
+      storeOf({
+        kind: DataStoreKind.Dataverse,
+        tableHealthSkippedTables: {
+          fingerprint: "c0ffee",
+          tables: [
+            {
+              table: "cr123_secret",
+              read: "RowCount",
+              reason: "Dataverse refused the app (403).",
+              since: "2026-11-19T11:00:00.000Z",
+              refusals: 3,
+              nextTryAt: "2026-11-19T19:00:00.000Z",
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(outcome.updates).toHaveLength(1);
+    expect("tableHealthSkippedTables" in outcome.updates[0]!).toBe(true);
+    expect(outcome.updates[0]!["tableHealthSkippedTables"]).toBe(null);
+  });
+
   test("a probe's store is left to its probe's next poll: no job, and the time is said all the same", async () => {
     const outcome: Awaited<ReturnType<typeof collectNow>> = await collectNow(
       storeOf({
@@ -261,6 +286,54 @@ describe("a store says when its last collection ended", () => {
       ["contoso", "Failed", failedAt.toISOString()],
       ["orders", "Collected", null],
     ]);
+  });
+
+  test("the tables the database keeps refusing, for its page to list (#9541); none when it remembers none or nothing readable", async () => {
+    stubStores([
+      storeOf({
+        kind: DataStoreKind.Dataverse,
+        connectionString: "{}",
+        tableHealthStatus: TableHealthStatus.Collected,
+        tableHealthSkippedTables: {
+          fingerprint: "c0ffee",
+          tables: [
+            {
+              table: "cr123_secret",
+              read: "RowCount",
+              reason:
+                "Dataverse refused the app (403, 0x80040220): Principal user is missing prvReadcr123_secret privilege.",
+              since: "2026-11-19T11:00:00.000Z",
+              refusals: 1,
+              nextTryAt: "2026-11-19T12:30:00.000Z",
+            },
+            { table: "cr123_broken", read: "Everything" },
+          ],
+        },
+      }),
+      storeOf({
+        id: new ObjectID("33333333-3333-4333-8333-000000000002"),
+        name: "orders",
+        kind: DataStoreKind.PostgreSql,
+        connectionString: "postgres://reader@db/orders",
+      }),
+    ]);
+
+    const summaries: Array<DataObservabilityStoreSummary> =
+      await DataObservabilityAPI.getStoreSummaries(
+        PROJECT,
+        new Date("2026-11-19T12:00:00.000Z"),
+      );
+
+    expect(summaries[0]!.skippedTables).toEqual([
+      {
+        table: "cr123_secret",
+        read: "RowCount",
+        reason:
+          "Dataverse refused the app (403, 0x80040220): Principal user is missing prvReadcr123_secret privilege.",
+        nextTryAt: "2026-11-19T12:30:00.000Z",
+      },
+    ]);
+    expect(summaries[1]!.skippedTables).toEqual([]);
   });
 });
 

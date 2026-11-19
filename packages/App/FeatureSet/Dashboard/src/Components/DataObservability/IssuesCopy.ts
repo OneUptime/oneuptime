@@ -56,6 +56,9 @@ export interface IssuesFilter {
 export const ISSUE_KIND_LABELS: Readonly<Record<DataAttentionKind, string>> = {
   [DataAttentionKind.CollectionFailed]: translationKey("Collection Failed"),
   [DataAttentionKind.PipelineFailed]: translationKey("Pipeline Run Failed"),
+  [DataAttentionKind.PipelineStopped]: translationKey(
+    "Pipeline Stopped by Circuit Breaker",
+  ),
   [DataAttentionKind.CheckFailing]: translationKey("Check Failing"),
   [DataAttentionKind.ReconciliationDrifted]: translationKey(
     "Reconciliation Drifted",
@@ -80,9 +83,14 @@ export const ISSUE_KIND_CHOICES: ReadonlyArray<IssueChoice> =
     return { value: kind, label: ISSUE_KIND_LABELS[kind] };
   });
 
-// Whether anyone was told: any, an alert is open, or none is.
+/*
+ * Whether anyone was told: every issue, an alert is open, or none is. The
+ * first says All, as a filter left open does: the bare "Any" is a Match
+ * Condition's word, "at least one" in several languages
+ * (MatchConditionAnyWordGuard).
+ */
 export const ISSUE_ALERT_CHOICES: ReadonlyArray<IssueChoice> = [
-  { value: ANY_ALERT_FILTER, label: "Any" },
+  { value: ANY_ALERT_FILTER, label: "All" },
   { value: DataObservabilityIssueAlertFilter.Open, label: "Alert open" },
   { value: DataObservabilityIssueAlertFilter.None, label: "No alert open" },
 ];
