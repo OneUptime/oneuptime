@@ -1,7 +1,9 @@
 import VMRunner from "Common/Server/Utils/VM/VMRunner";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
-import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
+import TotpCodeIssuer, {
+  TotpCodeAnswer,
+} from "Common/Utils/Monitor/MonitorSecretTotp";
 import {
   TotpAlgorithm,
   TotpParameters,
@@ -121,7 +123,7 @@ describe("CustomCodeMonitor with a one-time code secret", () => {
 
   test("masks a code the script asked for with oneuptime.getTotpCode", async () => {
     runSpy.mockImplementation(async (call: SandboxCall) => {
-      const answer: { code?: string } =
+      const answer: TotpCodeAnswer =
         call.options.totpCodes!.tryGetCode("LoginCode");
       const sandboxResult: ReturnResult = {
         returnValue: { data: answer.code },
