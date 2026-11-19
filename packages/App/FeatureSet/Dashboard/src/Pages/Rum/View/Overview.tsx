@@ -43,6 +43,11 @@ import ResourceOverview, {
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import {
+  getCountedSpansRoute,
+  getFailedSpansRoute,
+} from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import WebVitalsCard from "../../../Components/TelemetryResource/WebVitalsCard";
@@ -656,6 +661,22 @@ const RumApplicationOverview: FunctionComponent<
     failed: pageLoadStatsFailed,
   });
   /*
+   * The page loads the tile counts (its documentLoad spans) over its range:
+   * the failed ones while its line says how many failed (#9593), every one
+   * otherwise. Nothing while they are unknown, or there are none.
+   */
+  const pageLoadsRoute: Route | undefined =
+    pageLoadStats && !pageLoadStatsFailed && pageLoadStats.count > 0
+      ? (pageLoadStats.errorCount > 0
+          ? getFailedSpansRoute
+          : getCountedSpansRoute)({
+          tracesRoute: populate(PageMap.RUM_APPLICATION_VIEW_TRACES),
+          timeRange: timeRange,
+          spanType: TraceSpanType.All,
+          spanName: PAGE_LOAD_SPAN_NAME,
+        })
+      : undefined;
+  /*
    * Why the Exceptions and Logs charts are empty, when they are (issue
    * #5770): not set up, quiet in this range, or nothing arriving at all.
    */
@@ -791,6 +812,7 @@ const RumApplicationOverview: FunctionComponent<
       iconColor: "emerald",
       loading: pageLoadsLoading,
       sublabel: pageLoadsTile.sublabel,
+      to: pageLoadsRoute,
       description: RUM_METRIC_DESCRIPTIONS.pageLoads,
     },
     {
@@ -826,6 +848,17 @@ const RumApplicationOverview: FunctionComponent<
           : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
+      /*
+       * The events it counts that failed: every span of the application
+       * (page loads, requests, clicks), over the range it counted.
+       */
+      to: m
+        ? getFailedSpansRoute({
+            tracesRoute: populate(PageMap.RUM_APPLICATION_VIEW_TRACES),
+            timeRange: timeRange,
+            spanType: TraceSpanType.All,
+          })
+        : undefined,
       description: RUM_METRIC_DESCRIPTIONS.errorRate,
     },
     {

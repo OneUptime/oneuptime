@@ -44,6 +44,12 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import {
+  getCountedSpansRoute,
+  getFailedSpansRoute,
+} from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
+import { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import DatabaseServerUnscopedBanner from "../../../Components/DatabaseServer/DatabaseServerUnscopedBanner";
@@ -626,7 +632,13 @@ const DatabaseServerOverview: FunctionComponent<
       iconColor: "sky",
       loading: telemetryLoading,
       sublabel: "from applications, selected range",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_TRACES),
+      // The queries it counts: your applications' client calls to it.
+      to: getCountedSpansRoute({
+        tracesRoute: populate(PageMap.DATABASE_SERVER_VIEW_TRACES),
+        timeRange: timeRange,
+        spanType: TraceSpanType.All,
+        kind: SpanKind.Client,
+      }),
       description: DATABASE_METRIC_DESCRIPTIONS.queries,
     },
     {
@@ -648,6 +660,15 @@ const DatabaseServerOverview: FunctionComponent<
       percent: m.errorRatePercent,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
+      // The queries it counts that failed, while it counted any.
+      to: hasQueries
+        ? getFailedSpansRoute({
+            tracesRoute: populate(PageMap.DATABASE_SERVER_VIEW_TRACES),
+            timeRange: timeRange,
+            spanType: TraceSpanType.All,
+            kind: SpanKind.Client,
+          })
+        : undefined,
       description: DATABASE_METRIC_DESCRIPTIONS.errorRate,
     },
     {

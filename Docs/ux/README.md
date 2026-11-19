@@ -180,6 +180,13 @@ next, and how to change it last.
   page. A hero's health is `ResourceHealthPill`, handed what needs attention; a count is
   `ResourceAttentionPill`, which reads its parts only when it is pressed. Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
+- **An error rate opens the requests that failed.** On a service's, a function's, a cloud
+  environment's and app's, a RUM application's, a queue's and a database's Overview, the Error rate
+  was the one tile with no link, beside a Requests tile that opened the traces: it said something
+  failed, never what (#9593). It opens the resource's traces on exactly the spans it counted that
+  failed (`FailedSpansRoute`): the failed status as a chip the reader can take off, the kind of span
+  it counted (every span, entry spans, a database's client calls) and its window. Enforced by
+  [ErrorRateTilesOpenFailuresGuard](../../packages/App/Tests/Dashboard/ErrorRateTilesOpenFailuresGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by
   [RecordIdLineGuard](../../packages/App/Tests/RecordIdLineGuard.test.ts).

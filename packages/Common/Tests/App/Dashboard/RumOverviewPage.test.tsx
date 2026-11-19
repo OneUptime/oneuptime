@@ -1041,7 +1041,7 @@ describe("RUM overview: linked tiles", () => {
     }
   });
 
-  test("only Clients and Sessions recorded are links", async () => {
+  test("only Page loads, Error rate, Clients and Sessions recorded are links", async () => {
     arrange();
     await renderPage();
 
@@ -1051,7 +1051,110 @@ describe("RUM overview: linked tiles", () => {
       return a.textContent || "";
     });
 
-    expect(tileLinks).toEqual(["View Clients", "View Sessions recorded"]);
+    expect(tileLinks).toEqual([
+      "View Page loads",
+      "View Error rate",
+      "View Clients",
+      "View Sessions recorded",
+    ]);
+  });
+
+  // A tile's link, read as the traces explorer reads its address.
+  function linkOf(name: string): { route: string; params: URLSearchParams } {
+    const href: string =
+      screen.getByRole("link", { name: name }).getAttribute("href") || "";
+    const [route, query] = href.split("?") as [string, string];
+
+    return { route: route, params: new URLSearchParams(query) };
+  }
+
+  /*
+   * "3 failed" under Page loads opens those page loads (#9593): the
+   * application's documentLoad spans that failed, over the counted range.
+   */
+  test("Page loads opens its failed page loads while its line counts some", async () => {
+    arrange();
+    await renderPage();
+
+    expectTile("Page loads", "1.2k", "3 failed");
+
+    const link: { route: string; params: URLSearchParams } =
+      linkOf("View Page loads");
+
+    expect(link.route).toBe(`/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/traces`);
+    expect(JSON.parse(link.params.get("filters") || "[]")).toEqual([
+      ["statusCode", "2"],
+      ["name", "documentLoad"],
+    ]);
+    expect(link.params.get("range")).toBe("Past 1 Hour");
+    expect(link.params.get("spanType")).toBe("all");
+    expect(tileInfo("Page loads").closest("a")).toBeNull();
+  });
+
+  test("Page loads opens every page load when none failed, and nothing when there are none", async () => {
+    arrange({
+      pageLoadStats: Promise.resolve({ ...PAGE_LOAD_STATS, errorCount: 0 }),
+    });
+    await renderPage();
+
+    expect(
+      JSON.parse(linkOf("View Page loads").params.get("filters") || "[]"),
+    ).toEqual([["name", "documentLoad"]]);
+
+    cleanup();
+    arrange({
+      pageLoadStats: Promise.resolve({ ...PAGE_LOAD_STATS, count: 0 }),
+    });
+    await renderPage();
+
+    expect(
+      screen.queryByRole("link", { name: "View Page loads" }),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * An error rate opens the events that failed (#9593): the application's
+   * traces, on its failed spans of every kind - page loads, requests,
+   * clicks - over the range the tile counted.
+   */
+  test("Error rate links to the failed spans over the counted range, and its (i) is not inside the link", async () => {
+    arrange();
+    await renderPage();
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "View Error rate",
+    });
+    const href: string = link.getAttribute("href") || "";
+    const [route, query] = href.split("?") as [string, string];
+    const params: URLSearchParams = new URLSearchParams(query);
+
+    expect(route).toBe(`/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/traces`);
+    expect(JSON.parse(params.get("filters") || "[]")).toEqual([
+      ["statusCode", "2"],
+    ]);
+    expect(params.get("range")).toBe("Past 1 Hour");
+    expect(params.get("spanType")).toBe("all");
+    expect(tileInfo("Error rate").closest("a")).toBeNull();
+  });
+
+  test("Error rate opens nothing while its figure could not be read", async () => {
+    arrange({
+      allSpans: Promise.resolve({
+        total: 0,
+        errors: 0,
+        errorRatePercent: null,
+        p95DurationMs: null,
+        countSeries: [],
+        errorSeries: [],
+        p95Series: [],
+        failed: true,
+      }),
+    });
+    await renderPage();
+
+    expect(
+      screen.queryByRole("link", { name: "View Error rate" }),
+    ).not.toBeInTheDocument();
   });
 });
 
