@@ -95,3 +95,40 @@ tests:
           pattern: "Kubernetes cost:"
       - notMatchRegexRaw:
           pattern: "cost allocations"
+
+  # --- Using the engine the cluster already runs (#9633) ---------------------------
+  - it: says the agent reads an engine the cluster already runs, and how to stop bundling one
+    asserts:
+      - matchRegexRaw:
+          pattern: "and the cost agent\\.\\nAlready running Kubecost or OpenCost\\? The cost agent reads it instead, and\\nthe cluster's overview then says the bundled one is not needed\\. To stop\\nrunning it:\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set cost\\.engine\\.url=auto\\n"
+      - matchRegexRaw:
+          pattern: "from the bundled OpenCost engine, or the cluster's own OpenCost or Kubecost when it runs one — "
+
+  - it: says nothing of another engine when the bundled one has a rate card
+    set:
+      cost.opencost.customPricing.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Already running Kubecost or OpenCost"
+      - matchRegexRaw:
+          pattern: "from the bundled OpenCost engine — "
+
+  - it: says nothing of another engine with preferExisting off
+    set:
+      cost.engine.preferExisting: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Already running Kubecost or OpenCost"
+
+  - it: with auto, says the agent finds the cluster's engine and nothing is bundled
+    set:
+      cost.engine.url: auto
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: on, as it is by default\\.\\nCosts are read from the OpenCost or Kubecost this cluster runs, which the\\ncost agent finds by itself; nothing is bundled\\. With neither installed,\\nnothing is priced: install one, or bundle OpenCost again:\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set cost\\.engine\\.url=\\n"
+      - matchRegexRaw:
+          pattern: "from the OpenCost or Kubecost this cluster runs — "
+      - notMatchRegexRaw:
+          pattern: "The bundled OpenCost prices"
+      - notMatchRegexRaw:
+          pattern: "cost engine at auto"
