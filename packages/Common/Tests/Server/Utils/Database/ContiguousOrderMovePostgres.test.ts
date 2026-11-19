@@ -2,6 +2,20 @@ import Entities from "../../../../Models/DatabaseModels/Index";
 import ContiguousOrder, {
   ListColumnValue,
 } from "../../../../Server/Utils/Database/ContiguousOrder";
+import ListOrderMaintainer from "../../../../Server/Utils/Database/ListOrderMaintainer";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
+import LogPipeline from "../../../../Models/DatabaseModels/LogPipeline";
+import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
+import NetworkSiteAssignmentRule from "../../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
+import PublicNoteApprovalStep from "../../../../Models/DatabaseModels/PublicNoteApprovalStep";
+import { ListOrderSettings } from "../../../../Types/Database/ListOrderColumn";
+import {
+  ListPlace,
+  MoveInListChanges,
+} from "../../../../Types/Database/MoveInList";
+import { PublicNoteApprovalEventType } from "../../../../Types/StatusPage/PublicNoteApproval";
+import { getListOrderValue } from "../../../../Utils/ListOrder";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -30,11 +44,16 @@ import { DataSource, EntityManager, QueryRunner } from "typeorm";
  *   - a write of one row's order that lands while a move holds the list
  *     waits for it, then lands as written - the placement wins, as it was
  *     made last;
- *   - a row deleted by the time the move holds the list is not found.
+ *   - a row deleted by the time the move holds the list is not found;
+ *   - a drag-ordered list (@ListOrderColumn, issue #9609) is moved by the
+ *     same SQL: by its own number column (a smallint for a state, priority,
+ *     sortOrder), named by a kind as well as ids (a public note approval
+ *     step's event type, compared as text), its twins put the older first,
+ *     and a list that counts down numbered from its top.
  *
  * Opt in with RUN_POSTGRES_CONTIGUOUS_ORDER_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
- * database. The five tables' STRUCTURE is cloned into a schema of the
+ * database. The tables' STRUCTURE is cloned into a schema of the
  * suite's own (search_path holds only that schema), dropped afterwards;
  * every row is synthetic. Credentials from DATABASE_USERNAME /
  * DATABASE_PASSWORD, database from CONTIGUOUS_ORDER_TEST_DATABASE_NAME or
@@ -76,6 +95,19 @@ const TABLES: Array<ListTable> = [
     table: "StatusPageResource",
     listColumns: ["statusPageId", "statusPageGroupId"],
   },
+];
+
+/*
+ * Drag-ordered lists (@ListOrderColumn) of each kind: a state (its number a
+ * smallint), a monitor status (priority), a pipeline (sortOrder), a list
+ * named by a kind (an approval step's event type) and one that counts down.
+ */
+const DRAG_ORDERED_MODELS: Array<{ new (): BaseModel }> = [
+  IncidentState,
+  MonitorStatus,
+  LogPipeline,
+  PublicNoteApprovalStep,
+  NetworkSiteAssignmentRule,
 ];
 
 interface FillColumn {
@@ -310,7 +342,12 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
 
-    for (const listTable of TABLES) {
+    for (const listTable of [
+      ...TABLES,
+      ...DRAG_ORDERED_MODELS.map((modelType: { new (): BaseModel }) => {
+        return { table: new modelType().tableName!, listColumns: [] };
+      }),
+    ]) {
       await database.query(
         `CREATE TABLE "${schema}"."${listTable.table}" (LIKE public."${listTable.table}" INCLUDING ALL)`,
       );
@@ -497,6 +534,265 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
     expect(await ordersOf("StatusPageResource", grouped.ids)).toEqual([
       1, 2, 3,
     ]);
+  });
+
+  describe.each(
+    DRAG_ORDERED_MODELS.map((modelType: { new (): BaseModel }) => {
+      return [new modelType().tableName!, new modelType()] as [
+        string,
+        BaseModel,
+      ];
+    }),
+  )("a drag-ordered list, on %s", (table: string, model: BaseModel) => {
+    const settings: ListOrderSettings = model.getListOrder()!;
+    const column: string = settings.column;
+
+    // The list's columns besides the project: a parent's id, or a kind.
+    const listValuesOf: () => Record<string, string> = (): Record<
+      string,
+      string
+    > => {
+      const values: Record<string, string> = {};
+
+      for (const scopeColumn of settings.scopeColumns) {
+        if (scopeColumn !== "projectId") {
+          values[scopeColumn] =
+            scopeColumn === "eventType"
+              ? PublicNoteApprovalEventType.Incident
+              : ObjectID.generate().toString();
+        }
+      }
+
+      return values;
+    };
+
+    /*
+     * `numbers.length` rows of one list, created a minute apart in that
+     * order. Most of these lists are a whole project's rows, so each test
+     * seeds a project of its own.
+     */
+    const seed: (data: {
+      numbers: Array<number | null>;
+      listValues: Record<string, string>;
+      projectId: string;
+    }) => Promise<{
+      ids: Array<string>;
+      list: Array<ListColumnValue>;
+    }> = async (data: {
+      numbers: Array<number | null>;
+      listValues: Record<string, string>;
+      projectId: string;
+    }): Promise<{ ids: Array<string>; list: Array<ListColumnValue> }> => {
+      const projectId: string = data.projectId;
+      const ids: Array<string> = [];
+
+      for (let index: number = 0; index < data.numbers.length; index++) {
+        ids.push(
+          await insert(table, {
+            projectId: projectId,
+            ...data.listValues,
+            [column]: data.numbers[index],
+            createdAt: new Date(Date.UTC(2026, 0, 1, 0, index)),
+          }),
+        );
+      }
+
+      return {
+        ids: ids,
+        list: [
+          ...Object.entries(data.listValues).map(
+            ([listColumn, value]: [string, string]): ListColumnValue => {
+              return {
+                column: listColumn,
+                value: value,
+                isText: listColumn === "eventType",
+              };
+            },
+          ),
+          { column: "projectId", value: projectId },
+        ],
+      };
+    };
+
+    const numbersOf: (ids: Array<string>) => Promise<Array<number>> = async (
+      ids: Array<string>,
+    ): Promise<Array<number>> => {
+      const rows: Array<Record<string, unknown>> = await database.query(
+        `SELECT "_id", "${column}" AS "number" FROM "${schema}"."${table}" WHERE "_id" = ANY($1::uuid[])`,
+        [ids],
+      );
+
+      return ids.map((id: string): number => {
+        return Number(
+          rows.find((row: Record<string, unknown>): boolean => {
+            return row["_id"] === id;
+          })?.["number"],
+        );
+      });
+    };
+
+    const moveIn: (data: {
+      list: Array<ListColumnValue>;
+      rowId: string;
+      placeOfId: string;
+    }) => Promise<Array<{ id: string; order: number }>> = async (data: {
+      list: Array<ListColumnValue>;
+      rowId: string;
+      placeOfId: string;
+    }): Promise<Array<{ id: string; order: number }>> => {
+      return (
+        await database.transaction(
+          async (
+            manager: EntityManager,
+          ): Promise<{ changedRows: Array<{ id: string; order: number }> }> => {
+            return await ContiguousOrder.moveWithinTransaction({
+              manager: manager,
+              tableName: table,
+              list: data.list,
+              rowId: new ObjectID(data.rowId),
+              placeOfId: new ObjectID(data.placeOfId),
+              name: "row",
+              orderColumn: column,
+              getChanges: (move: {
+                places: Array<ListPlace>;
+                rowId: string;
+                placeOfId: string;
+              }): MoveInListChanges => {
+                return ListOrderMaintainer.getMoveChanges({
+                  settings: settings,
+                  places: move.places,
+                  rowId: move.rowId,
+                  placeOfId: move.placeOfId,
+                });
+              },
+            });
+          },
+        )
+      ).changedRows;
+    };
+
+    // The numbers a list shown in this order holds, from its top.
+    const fromTheTop: (count: number) => Array<number> = (
+      count: number,
+    ): Array<number> => {
+      return Array.from({ length: count }, (_value: unknown, index: number) => {
+        return getListOrderValue({
+          position: index + 1,
+          count: count,
+          sortOrder: settings.sortOrder,
+        });
+      });
+    };
+
+    test("the bottom row moved to the top row's place: the list numbered from the top, by its own column", async () => {
+      // Numbered from the top already: 1..4, or 4..1 for a list that counts down.
+      const seeded: { ids: Array<string>; list: Array<ListColumnValue> } =
+        await seed({
+          numbers: fromTheTop(4),
+          listValues: listValuesOf(),
+          projectId: ObjectID.generate().toString(),
+        });
+      const [top, second, third, bottom] = seeded.ids as [
+        string,
+        string,
+        string,
+        string,
+      ];
+
+      const changed: Array<{ id: string; order: number }> = await moveIn({
+        list: seeded.list,
+        rowId: bottom,
+        placeOfId: top,
+      });
+
+      expect(await numbersOf([bottom, top, second, third])).toEqual(
+        fromTheTop(4),
+      );
+      expect(changed).toHaveLength(4);
+    });
+
+    test("twins are put the older first, a row without a number last, and the list comes out numbered", async () => {
+      const top: number = fromTheTop(4)[0]!;
+      const seeded: { ids: Array<string>; list: Array<ListColumnValue> } =
+        await seed({
+          // Two at the top number (the older first), one other, one without.
+          numbers: [top, top, fromTheTop(4)[2]!, null],
+          listValues: listValuesOf(),
+          projectId: ObjectID.generate().toString(),
+        });
+      const [older, younger, other, unnumbered] = seeded.ids as [
+        string,
+        string,
+        string,
+        string,
+      ];
+
+      // The row without a number, last, moved to the younger twin's place.
+      await moveIn({
+        list: seeded.list,
+        rowId: unnumbered,
+        placeOfId: younger,
+      });
+
+      expect(await numbersOf([older, unnumbered, younger, other])).toEqual(
+        fromTheTop(4),
+      );
+    });
+
+    test("no row of another list, another project or deleted is read or written", async () => {
+      const projectId: string = ObjectID.generate().toString();
+      const listValues: Record<string, string> = listValuesOf();
+      const seeded: { ids: Array<string>; list: Array<ListColumnValue> } =
+        await seed({
+          numbers: fromTheTop(3),
+          listValues: listValues,
+          projectId: projectId,
+        });
+      const otherProject: { ids: Array<string> } = await seed({
+        numbers: fromTheTop(2),
+        listValues: listValues,
+        projectId: ObjectID.generate().toString(),
+      });
+      /*
+       * Another list of the same project: another parent's, or another
+       * kind's. A list that is a whole project's rows has no other.
+       */
+      const otherList: { ids: Array<string> } =
+        Object.keys(listValues).length > 0
+          ? await seed({
+              numbers: fromTheTop(2),
+              listValues:
+                "eventType" in listValues
+                  ? {
+                      eventType:
+                        PublicNoteApprovalEventType.ScheduledMaintenance,
+                    }
+                  : listValuesOf(),
+              projectId: projectId,
+            })
+          : { ids: [] };
+      const deletedId: string = await insert(table, {
+        projectId: projectId,
+        ...listValues,
+        [column]: fromTheTop(3)[0],
+        deletedAt: new Date(),
+      });
+
+      await moveIn({
+        list: seeded.list,
+        rowId: seeded.ids[2]!,
+        placeOfId: seeded.ids[0]!,
+      });
+
+      expect(
+        await numbersOf([seeded.ids[2]!, seeded.ids[0]!, seeded.ids[1]!]),
+      ).toEqual(fromTheTop(3));
+      expect(await numbersOf(otherProject.ids)).toEqual(fromTheTop(2));
+      expect(await numbersOf(otherList.ids)).toEqual(
+        otherList.ids.length > 0 ? fromTheTop(2) : [],
+      );
+      expect(await numbersOf([deletedId])).toEqual([fromTheTop(3)[0]]);
+    });
   });
 
   test("moves at once on one list run one after the other, and leave it numbered 1..n", async () => {
