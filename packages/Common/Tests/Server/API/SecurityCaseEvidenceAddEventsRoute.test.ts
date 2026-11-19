@@ -190,6 +190,8 @@ describe("POST /security-case-evidence/add-events", () => {
         { eventUid: "evt-2", time: new Date("2026-10-28T23:00:00.000Z") },
       ],
       hunt: { id: HUNT_ID.toString(), name: "Encoded PowerShell" },
+      // No detection named: the events are kept as any are.
+      detectionId: null,
       props: ANALYST,
     });
 
@@ -214,6 +216,20 @@ describe("POST /security-case-evidence/add-events", () => {
     }
     // Only the id that is one was looked up.
     expect(findHunt).toHaveBeenCalledTimes(1);
+  });
+
+  test("hands on the detection the events were matched by, and leaves out one that is not an id (#9622)", async () => {
+    const detectionId: string = "40000000-0000-4000-8000-000000000001";
+
+    await post({ ...BODY, securityDetectionId: detectionId });
+    await post({ ...BODY, securityDetectionId: "detection-1" });
+    await post({ ...BODY, securityDetectionId: 7 });
+
+    expect(
+      addEvents.mock.calls.map((call: Array<unknown>): unknown => {
+        return (call[0] as { detectionId: unknown }).detectionId;
+      }),
+    ).toEqual([new ObjectID(detectionId), null, null]);
   });
 
   test("names a case, and the events to keep", async () => {

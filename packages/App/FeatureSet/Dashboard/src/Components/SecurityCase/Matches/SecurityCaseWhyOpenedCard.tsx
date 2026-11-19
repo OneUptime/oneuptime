@@ -25,6 +25,9 @@ import {
   FIRST_EVENTS_OF,
   HIDE_WHAT_IT_MATCHED,
   JOINED_THE_CASE,
+  KEEP_ON_CASE,
+  KEPT_ON_CASE,
+  KEPT_ON_CASE_TITLE,
   LOOKS_FOR_IN_FIELD,
   LOOK_NEXT_HEADING,
   MORE_DETECTIONS,
@@ -64,6 +67,8 @@ import {
   getEventLinks,
   getEventRowText,
   getEventSourceLabel,
+  getHiddenEventsNote,
+  getKeptPastRetentionNote,
   getLookNextLinks,
   getMatchedSentence,
   getRequestOutcomeSentence,
@@ -71,6 +76,7 @@ import {
   getRuleCountingSentence,
 } from "./SecurityCaseMatchesModel";
 import { SecurityCaseMatchesState } from "./useSecurityCaseMatches";
+import useKeptOnCase, { KeptOnCase } from "./useKeptOnCase";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -86,7 +92,11 @@ import {
   splitTextByLookFor,
   TextMatchPart,
 } from "Common/Utils/SecurityCase/SecurityCaseMatchRules";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -97,7 +107,7 @@ import TableEmptyState, {
 } from "Common/UI/Components/Table/TableEmptyState";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   writeReaderMoment,
@@ -133,6 +143,13 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  * is asked for. A case nobody's detection opened says so, with the way to
  * its Evidence. What the reader may not read, and what failed, is said,
  * never left as a gap that reads as "nothing matched".
+ *
+ * A detection keeps the events it matched when it fires (#9619): those are
+ * listed, exactly as matched, and the ones past the events table's
+ * retention are said to be. Each event can be kept on the case's Evidence
+ * in one click (#9622) - on its row, and in its panel - naming the
+ * detection, and an event kept says so, opening the Evidence page. A line
+ * read from a log line names it, and opens the Logs explorer on it (#9620).
  */
 
 export interface ComponentProps {
@@ -237,22 +254,123 @@ const RuleCounting: FunctionComponent<{
   );
 };
 
+// What keeping an event on the case takes: whether it is, the gate and the case's Evidence.
+interface KeepOnCaseProps {
+  isKept: boolean;
+  isKeeping: boolean;
+  gate: PermissionGateResult;
+  evidenceRoute: Route | null;
+  onKeep: () => void;
+}
+
+/*
+ * Keep on This Case, or, once kept, that it is - opening it on the case's
+ * Evidence page. A quiet link on a row; a button in the event's panel.
+ */
+const KeepOnCaseControl: FunctionComponent<
+  KeepOnCaseProps & { isButton?: boolean | undefined }
+> = (
+  props: KeepOnCaseProps & { isButton?: boolean | undefined },
+): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (props.isKept) {
+    const content: ReactElement = (
+      <>
+        <Icon
+          icon={IconProp.CheckCircle}
+          className="h-3.5 w-3.5 shrink-0 text-green-600"
+        />
+        <span>{translator.translateText(KEPT_ON_CASE)}</span>
+      </>
+    );
+
+    return props.evidenceRoute ? (
+      <AppLink
+        to={props.evidenceRoute}
+        className={LINK_CLASS_NAME}
+        title={translator.translateText(KEPT_ON_CASE_TITLE) || ""}
+        dataTestId={SECURITY_CASE_MATCHES_TEST_IDS.kept}
+      >
+        {content}
+      </AppLink>
+    ) : (
+      <span
+        className="inline-flex items-center gap-1 text-gray-600"
+        data-testid={SECURITY_CASE_MATCHES_TEST_IDS.kept}
+      >
+        {content}
+      </span>
+    );
+  }
+
+  /*
+   * Refused with nothing to say (the permissions not read yet): no button,
+   * rather than one disabled for no reason (PermissionGate).
+   */
+  if (!props.gate.isAllowed && !props.gate.disabledReason) {
+    return <></>;
+  }
+
+  return (
+    <Button
+      title={KEEP_ON_CASE}
+      icon={IconProp.PaperClip}
+      buttonStyle={
+        props.isButton ? ButtonStyleType.OUTLINE : ButtonStyleType.LINK
+      }
+      buttonSize={ButtonSize.Small}
+      isLoading={props.isKeeping}
+      disabled={!props.gate.isAllowed || props.isKeeping}
+      tooltip={props.gate.isAllowed ? undefined : props.gate.disabledReason}
+      dataTestId={SECURITY_CASE_MATCHES_TEST_IDS.keep}
+      onClick={props.onKeep}
+    />
+  );
+};
+
+// A note under a detection's events, its count in the reader's plural.
+const EventsNote: FunctionComponent<{
+  note: { template: PluralTemplate; count: number };
+  dataTestId: string;
+}> = (props: {
+  note: { template: PluralTemplate; count: number };
+  dataTestId: string;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <p className="text-xs text-gray-500" data-testid={props.dataTestId}>
+      {translator.translatePlural(props.note.template, props.note.count)}
+    </p>
+  );
+};
+
 // One event a detection matched, as a line.
 const MatchedEventRow: FunctionComponent<{
   event: SecurityCaseMatchedEventJson;
   lookFor: Array<string>;
   onOpen: () => void;
+  keep: KeepOnCaseProps;
 }> = (props: {
   event: SecurityCaseMatchedEventJson;
   lookFor: Array<string>;
   onOpen: () => void;
+  keep: KeepOnCaseProps;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const time: Date | null = props.event.time
     ? new Date(props.event.time)
     : null;
-  const source: EventSourceLabel | null = getEventSourceLabel(props.event);
   const links: Array<EventLink> = getEventLinks(props.event);
+  // A log line's source is its link, opening the line: said once.
+  const source: EventSourceLabel | null = links.some(
+    (link: EventLink): boolean => {
+      return link.key === "logLine";
+    },
+  )
+    ? null
+    : getEventSourceLabel(props.event);
 
   return (
     <li
@@ -305,7 +423,12 @@ const MatchedEventRow: FunctionComponent<{
                     className={LINK_CLASS_NAME}
                   >
                     <Icon icon={link.icon} className="h-3.5 w-3.5" />
-                    <span>{translator.translateText(link.label)}</span>
+                    <span className="[overflow-wrap:anywhere]">
+                      {translator.translateTemplate(
+                        link.label,
+                        link.values || {},
+                      )}
+                    </span>
                   </AppLink>
                 );
               })}
@@ -313,6 +436,7 @@ const MatchedEventRow: FunctionComponent<{
           ) : (
             <></>
           )}
+          <KeepOnCaseControl {...props.keep} />
         </div>
       </div>
     </li>
@@ -325,6 +449,11 @@ function getNoEventsSentence(data: {
   matches: SecurityCaseMatchesJson;
 }): string {
   const { detection, matches } = data;
+
+  // It kept them, of sources the reader's role cannot read.
+  if (detection.isKept && detection.hiddenEventCount > 0) {
+    return EVENTS_UNREADABLE;
+  }
 
   if (detection.matchedEventCount !== null) {
     return NO_EVENTS_LEFT;
@@ -355,11 +484,15 @@ const DetectionSection: FunctionComponent<{
   matches: SecurityCaseMatchesJson;
   onOpenEvent: (event: SecurityCaseMatchedEventJson) => void;
   onTryAgain: () => void;
+  keptOnCase: KeptOnCase;
+  evidenceRoute: Route | null;
 }> = (props: {
   detection: SecurityCaseMatchedDetectionJson;
   matches: SecurityCaseMatchesJson;
   onOpenEvent: (event: SecurityCaseMatchedEventJson) => void;
   onTryAgain: () => void;
+  keptOnCase: KeptOnCase;
+  evidenceRoute: Route | null;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const { detection } = props;
@@ -387,6 +520,10 @@ const DetectionSection: FunctionComponent<{
     : detection.events.slice(0, MATCHED_EVENTS_SHOWN);
   const hiddenCount: number = detection.events.length - events.length;
   const total: number = detection.matchedEventCount || 0;
+  const pastRetentionNote: ReturnType<typeof getKeptPastRetentionNote> =
+    getKeptPastRetentionNote(detection);
+  const hiddenEventsNote: ReturnType<typeof getHiddenEventsNote> =
+    getHiddenEventsNote(detection);
 
   return (
     <section
@@ -647,6 +784,14 @@ const DetectionSection: FunctionComponent<{
         ) : (
           <></>
         )}
+        {pastRetentionNote ? (
+          <EventsNote
+            note={pastRetentionNote}
+            dataTestId={SECURITY_CASE_MATCHES_TEST_IDS.keptNote}
+          />
+        ) : (
+          <></>
+        )}
         {detection.events.length > 0 ? (
           <>
             <ul
@@ -665,6 +810,18 @@ const DetectionSection: FunctionComponent<{
                       lookFor={lookFor}
                       onOpen={() => {
                         props.onOpenEvent(event);
+                      }}
+                      keep={{
+                        isKept: props.keptOnCase.isKept(event),
+                        isKeeping: props.keptOnCase.isKeeping(event),
+                        gate: props.keptOnCase.gate,
+                        evidenceRoute: props.evidenceRoute,
+                        onKeep: () => {
+                          void props.keptOnCase.keep({
+                            event,
+                            detectionId: detection.id,
+                          });
+                        },
                       }}
                     />
                   );
@@ -700,6 +857,14 @@ const DetectionSection: FunctionComponent<{
                 <></>
               )}
             </div>
+            {hiddenEventsNote ? (
+              <EventsNote
+                note={hiddenEventsNote}
+                dataTestId={SECURITY_CASE_MATCHES_TEST_IDS.hiddenNote}
+              />
+            ) : (
+              <></>
+            )}
           </>
         ) : (
           <p
@@ -735,11 +900,15 @@ const OtherDetection: FunctionComponent<{
   matches: SecurityCaseMatchesJson;
   onOpenEvent: (event: SecurityCaseMatchedEventJson) => void;
   onTryAgain: () => void;
+  keptOnCase: KeptOnCase;
+  evidenceRoute: Route | null;
 }> = (props: {
   detection: SecurityCaseMatchedDetectionJson;
   matches: SecurityCaseMatchesJson;
   onOpenEvent: (event: SecurityCaseMatchedEventJson) => void;
   onTryAgain: () => void;
+  keptOnCase: KeptOnCase;
+  evidenceRoute: Route | null;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -769,6 +938,8 @@ const OtherDetection: FunctionComponent<{
           matches={props.matches}
           onOpenEvent={props.onOpenEvent}
           onTryAgain={props.onTryAgain}
+          keptOnCase={props.keptOnCase}
+          evidenceRoute={props.evidenceRoute}
         />
         {toggle}
       </li>
@@ -856,9 +1027,12 @@ const SecurityCaseWhyOpenedCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const { matches, error, reread } = props.state;
+  const keptOnCase: KeptOnCase = useKeptOnCase(props.caseId);
+  const evidenceRoute: Route | null = getCaseEvidenceRoute(props.caseId);
   const [viewing, setViewing] = useState<{
     event: SecurityCaseMatchedEventJson;
     detectionName: string;
+    detectionId: string;
   } | null>(null);
 
   const opening: SecurityCaseMatchedDetectionJson | null = matches
@@ -911,8 +1085,6 @@ const SecurityCaseWhyOpenedCard: FunctionComponent<ComponentProps> = (
       </p>
     );
   } else if (!opening) {
-    const evidenceRoute: Route | null = getCaseEvidenceRoute(props.caseId);
-
     body = (
       <div data-testid={SECURITY_CASE_MATCHES_TEST_IDS.openedByHand}>
         <TableEmptyState
@@ -968,9 +1140,12 @@ const SecurityCaseWhyOpenedCard: FunctionComponent<ComponentProps> = (
             setViewing({
               event,
               detectionName: opening.rule?.name || opening.title,
+              detectionId: opening.id,
             });
           }}
           onTryAgain={reread}
+          keptOnCase={keptOnCase}
+          evidenceRoute={evidenceRoute}
         />
 
         {others.length > 0 || moreCount > 0 ? (
@@ -994,9 +1169,12 @@ const SecurityCaseWhyOpenedCard: FunctionComponent<ComponentProps> = (
                           event,
                           detectionName:
                             detection.rule?.name || detection.title,
+                          detectionId: detection.id,
                         });
                       }}
                       onTryAgain={reread}
+                      keptOnCase={keptOnCase}
+                      evidenceRoute={evidenceRoute}
                     />
                   );
                 },
@@ -1057,18 +1235,37 @@ const SecurityCaseWhyOpenedCard: FunctionComponent<ComponentProps> = (
           securityEvent={toSecurityEvent(viewing.event)}
           showCaseActions={false}
           note={
-            <p className="text-xs text-gray-500">
-              <TranslatedSentence
-                template={EVENT_PANEL_NOTE}
-                slots={{
-                  detection: (
-                    <span className="font-medium text-gray-700">
-                      <bdi>{viewing.detectionName}</bdi>
-                    </span>
-                  ),
+            /*
+             * Why it is shown, and keeping it on this case: on its own
+             * line under the words on a phone.
+             */
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              <p className="min-w-0 text-xs text-gray-500">
+                <TranslatedSentence
+                  template={EVENT_PANEL_NOTE}
+                  slots={{
+                    detection: (
+                      <span className="font-medium text-gray-700">
+                        <bdi>{viewing.detectionName}</bdi>
+                      </span>
+                    ),
+                  }}
+                />
+              </p>
+              <KeepOnCaseControl
+                isButton={true}
+                isKept={keptOnCase.isKept(viewing.event)}
+                isKeeping={keptOnCase.isKeeping(viewing.event)}
+                gate={keptOnCase.gate}
+                evidenceRoute={evidenceRoute}
+                onKeep={() => {
+                  void keptOnCase.keep({
+                    event: viewing.event,
+                    detectionId: viewing.detectionId,
+                  });
                 }}
               />
-            </p>
+            </div>
           }
           onClose={() => {
             setViewing(null);

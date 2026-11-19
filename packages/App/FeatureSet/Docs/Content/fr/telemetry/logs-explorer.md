@@ -63,7 +63,7 @@ Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme pu
 Cliquez sur une ligne. Ses détails s'ouvrent à côté de la liste.
 :::
 
-Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux.
+Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux. Un lien vers une seule ligne de journal, comme **Voir la ligne de journal** d'un événement de sécurité, ouvre cette ligne au-dessus de la liste, lue avec vos propres permissions.
 
 ## Lire un journal
 

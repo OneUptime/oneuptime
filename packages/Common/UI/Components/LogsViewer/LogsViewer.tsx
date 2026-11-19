@@ -51,6 +51,7 @@ import {
 } from "../Date/TimeRangePickerDropdown";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
+import OpenedLogLine, { LogsViewerOpenedLog } from "./components/OpenedLogLine";
 import LogsHistogram from "./components/LogsHistogram";
 import LogsFacetSidebar from "./components/LogsFacetSidebar";
 import ActiveFilterChips from "./components/ActiveFilterChips";
@@ -181,6 +182,11 @@ export interface ComponentProps {
     | undefined;
   // A section the app adds to an opened line (LogDetailsPanel).
   renderLogExtraSection?: ((log: Log) => ReactNode) | undefined;
+  /*
+   * One line a link opened by its id (#9620), drawn above the list in the
+   * panel a row opens: the Logs page's `log` param (OpenedLogLine).
+   */
+  openedLog?: LogsViewerOpenedLog | undefined;
   projectId?: ObjectID | undefined;
   /*
    * How many logs the query matches — or the lower bound the logs list
@@ -1622,6 +1628,37 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 <div className="border-b border-gray-100 bg-gray-50/50 px-4 py-3">
                   <LogsViewerToolbar {...toolbarProps} />
                 </div>
+              )}
+
+              {props.openedLog ? (
+                <OpenedLogLine
+                  opened={props.openedLog}
+                  renderLog={(log: Log): ReactElement => {
+                    return (
+                      <LogDetailsPanel
+                        log={log}
+                        serviceMap={drawnServiceMap}
+                        resourceEntityMaps={entityLookupMaps}
+                        entityNameMap={entityNameMap}
+                        onClose={() => {
+                          props.openedLog?.onClose();
+                        }}
+                        getTraceRoute={props.getTraceRoute}
+                        getSpanRoute={props.getSpanRoute}
+                        resolveSpanRoute={props.resolveSpanRoute}
+                        getSessionRoute={props.getSessionRoute}
+                        renderExtraSection={props.renderLogExtraSection}
+                        variant="embedded"
+                        projectId={props.projectId}
+                        onFilterByAttribute={
+                          handleFieldValueSelectWithServiceResolve
+                        }
+                      />
+                    );
+                  }}
+                />
+              ) : (
+                <></>
               )}
 
               {props.listError ? (

@@ -1,3 +1,4 @@
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
@@ -22,11 +23,13 @@ import SecurityCaseIngest, {
 } from "./SecurityCaseIngest";
 import {
   IMPORTED_ALERT_CLASS_UIDS,
+  getStoredRowsByEventUid,
   importedAlertEntities,
   importedAlertGroupValue,
   isAtLeastSeverity,
   readCaseMinimumSeverity,
 } from "./SecurityConnectionCases";
+import { getMatchedEventsOfStoredRow } from "./SecurityDetectionMatchedEventsReader";
 
 /*
  * WHAT A SECURITY PRODUCT FOUND, IN THE LOGS, OPENS A CASE.
@@ -157,6 +160,8 @@ export function logThreatMarkdown(
 export function logThreatSignal(data: {
   projectId: ObjectID;
   event: NormalizedSecurityEvent;
+  // The row the threat was stored as: its detection keeps it (#9619).
+  storedRow?: JSONObject | undefined;
 }): SecurityDetectionSignal {
   const { event } = data;
   const product: string = getLogThreatProductName(event);
@@ -182,6 +187,9 @@ export function logThreatSignal(data: {
     ruleName: event.ruleName || product,
     sampleMessage: event.message || undefined,
     eventUid: event.eventUid,
+    matchedEvents: data.storedRow
+      ? getMatchedEventsOfStoredRow(data.storedRow) || undefined
+      : undefined,
     seenAt: event.time,
   };
 }
@@ -196,6 +204,8 @@ export default class SecurityLogCases {
     projectId: ObjectID;
     caseMinimumSeverity: string | null | undefined;
     events: Array<NormalizedSecurityEvent>;
+    // The rows the events were stored as: each threat's detection keeps its own.
+    rows?: Array<JSONObject> | undefined;
     // The most threats sent to the case queue; LOG_THREATS_PER_SCAN_LIMIT when left out.
     limit?: number | undefined;
   }): Promise<SecurityLogThreatsResult> {
@@ -219,13 +229,20 @@ export default class SecurityLogCases {
       );
 
       if (minimum && limit > 0) {
+        const storedRows: Map<string, JSONObject> = getStoredRowsByEventUid(
+          data.rows,
+        );
         const signals: Array<SecurityDetectionSignal> = threats
           .filter((event: NormalizedSecurityEvent): boolean => {
             return isAtLeastSeverity(event.severityName, minimum);
           })
           .slice(0, limit)
           .map((event: NormalizedSecurityEvent): SecurityDetectionSignal => {
-            return logThreatSignal({ projectId: data.projectId, event });
+            return logThreatSignal({
+              projectId: data.projectId,
+              event,
+              storedRow: storedRows.get(event.eventUid),
+            });
           });
 
         if (signals.length > 0) {

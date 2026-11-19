@@ -17,6 +17,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -495,6 +496,34 @@ export default class DetectionRule extends BaseModel {
     type: ColumnType.Number,
   })
   public riskScore?: number = undefined;
+
+  /*
+   * What to do when the rule fires, in its author's words: the steps every
+   * case its detections are on shows in its Response Plan, each under
+   * Confirm, Contain or Fix, ahead of the general ones
+   * (Types/SecurityEvent/DetectionRuleResponseSteps, #9621). Each keeps an
+   * id of its own, so ticking it off on a case stays with it when its words
+   * change. A Rule Library rule comes with steps of its own. Null for a
+   * rule that never had any written: a library rule's then come from the
+   * library.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Response Steps",
+    description:
+      "What to do when the rule fires: up to 10 steps, each { id, phase, text }, where phase is Confirm, Contain or Fix. A case's Response Plan shows them ahead of its general steps.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public responseSteps?: JSONArray = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

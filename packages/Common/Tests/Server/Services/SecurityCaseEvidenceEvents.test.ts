@@ -3,7 +3,11 @@ import SecurityCaseEvidenceService, {
 } from "../../../Server/Services/SecurityCaseEvidenceService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
 import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
+import SecurityDetectionService from "../../../Server/Services/SecurityDetectionService";
 import SecurityEventService from "../../../Server/Services/SecurityEventService";
+import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
+import SecurityDetection from "../../../Models/DatabaseModels/SecurityDetection";
+import { buildSecurityDetectionMatchedEvent } from "../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
@@ -13,7 +17,7 @@ import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
-import { JSONValue } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -379,5 +383,220 @@ describe("Event evidence written by a request", () => {
     );
 
     expect(onCreate.createBy.data.name).toBe("An event I made up");
+  });
+});
+
+/*
+ * Events kept from what one of the case's detections matched (#9622): each
+ * names the detection, and one past its retention is kept as the detection
+ * kept it when it fired (#9619) - only one of a source the person's role
+ * reads, within a second of the time named.
+ */
+describe("events kept from what a detection matched", () => {
+  const DETECTION_ID: ObjectID = new ObjectID(
+    "40000000-0000-4000-8000-000000000001",
+  );
+  const SOURCE_ID: string = "50000000-0000-4000-8000-000000000001";
+  const OTHER_SOURCE_ID: string = "50000000-0000-4000-8000-000000000002";
+
+  let findDetection: Spy;
+  let findKeptByDetection: Spy;
+  let serviceFilter: Spy;
+
+  function detectionRow(): SecurityDetection {
+    const detection: SecurityDetection = new SecurityDetection();
+    detection._id = DETECTION_ID.toString();
+    detection.title = "Encoded PowerShell — web-03";
+    detection.ruleName = "Encoded PowerShell command";
+    return detection;
+  }
+
+  function keptCopy(
+    uid: string,
+    time: string,
+    sourceId: string = SOURCE_ID,
+  ): JSONObject {
+    return buildSecurityDetectionMatchedEvent({
+      time,
+      eventUid: uid,
+      primaryEntityId: sourceId,
+      severityName: "High",
+      className: "Process Activity",
+      message: `Encoded PowerShell started on web-03 (${uid}), as kept`,
+      retentionDate: "2026-10-30 00:00:00",
+    }) as unknown as JSONObject;
+  }
+
+  beforeEach(() => {
+    findDetection = getJestSpyOn(
+      SecurityDetectionService,
+      "findOneBy",
+    ).mockResolvedValue(detectionRow() as never);
+
+    const stored: SecurityDetection = new SecurityDetection();
+    stored.matchedEvents = {
+      events: [
+        keptCopy("gone-1", "2026-10-28T21:00:00.000Z"),
+        keptCopy("gone-2", "2026-10-28T21:01:00.000Z", OTHER_SOURCE_ID),
+      ],
+      outcomes: {},
+    } as unknown as JSONObject;
+
+    findKeptByDetection = getJestSpyOn(
+      SecurityDetectionService,
+      "findOneById",
+    ).mockResolvedValue(stored as never);
+
+    serviceFilter = getJestSpyOn(
+      TelemetryReadAccess,
+      "getServiceFilter",
+    ).mockResolvedValue({
+      serviceIds: [new ObjectID(SOURCE_ID)],
+    } as never);
+  });
+
+  async function addMatched(
+    events: Array<SecurityCaseEventReference>,
+  ): Promise<SecurityCaseEventsAddResult> {
+    return await SecurityCaseEvidenceService.addEvents({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      events,
+      hunt: null,
+      detectionId: DETECTION_ID,
+      props: AS_MAYA,
+    });
+  }
+
+  test("each names the detection it was matched by, and the timeline says so", async () => {
+    await addMatched([reference("evt-1", "2026-10-28T22:42:00.000Z")]);
+
+    const snapshot: SecurityCaseEventSnapshot | null =
+      readSecurityCaseEventSnapshot(written()[0]!.eventSnapshot);
+
+    expect(snapshot!.detection).toEqual({
+      id: DETECTION_ID.toString(),
+      name: "Encoded PowerShell command",
+    });
+    expect(snapshot!.hunt).toBeNull();
+    expect(
+      (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+        .feedInfoInMarkdown,
+    ).toContain("matched by **Encoded PowerShell command**");
+  });
+
+  test("reads the detection as the person keeping the events: one of this case's", async () => {
+    await addMatched([reference("evt-1", "2026-10-28T22:42:00.000Z")]);
+
+    const read: Record<string, unknown> = findDetection.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(read["query"]).toEqual({
+      _id: DETECTION_ID,
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+    });
+    expect(read["props"]).toBe(AS_MAYA);
+  });
+
+  test("keeps an event past its retention as the detection kept it, read as OneUptime", async () => {
+    const result: SecurityCaseEventsAddResult = await addMatched([
+      reference("gone-1", "2026-10-28T21:00:00.400Z"),
+    ]);
+
+    expect(result.added).toEqual(["gone-1"]);
+
+    const [row] = written();
+    const snapshot: SecurityCaseEventSnapshot | null =
+      readSecurityCaseEventSnapshot(row!.eventSnapshot);
+
+    expect(row!.eventUid).toBe("gone-1");
+    expect(row!.eventTime).toEqual(new Date("2026-10-28T21:00:00.000Z"));
+    expect(row!.name).toBe(
+      "Encoded PowerShell started on web-03 (gone-1), as kept",
+    );
+    expect(snapshot!.sourceId).toBe(SOURCE_ID);
+    expect(snapshot!.detection!.id).toBe(DETECTION_ID.toString());
+    // What the detection kept is the snapshot's own: no field of it is added.
+    expect(
+      Object.keys(row!.eventSnapshot as Record<string, unknown>),
+    ).not.toContain("retentionDate");
+    expect(findKeptByDetection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: DETECTION_ID,
+        select: { matchedEvents: true },
+        props: { isRoot: true },
+      }),
+    );
+  });
+
+  test("never keeps the copy of an event from a source the person's role does not read", async () => {
+    const result: SecurityCaseEventsAddResult = await addMatched([
+      reference("gone-2", "2026-10-28T21:01:00.000Z"),
+    ]);
+
+    expect(result).toEqual({
+      added: [],
+      alreadyOnCase: [],
+      notFound: ["gone-2"],
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("never keeps a copy whose time is not the one named", async () => {
+    const result: SecurityCaseEventsAddResult = await addMatched([
+      reference("gone-1", "2026-10-28T21:00:05.000Z"),
+    ]);
+
+    expect(result.notFound).toEqual(["gone-1"]);
+  });
+
+  test("a person who may read no security events keeps no copy", async () => {
+    serviceFilter.mockRejectedValue(new BadDataException("No."));
+
+    const result: SecurityCaseEventsAddResult = await addMatched([
+      reference("gone-1", "2026-10-28T21:00:00.000Z"),
+    ]);
+
+    expect(result.notFound).toEqual(["gone-1"]);
+    expect(findKeptByDetection).not.toHaveBeenCalled();
+  });
+
+  test("a detection not on this case, or not the person's to read, is named on nothing, and keeps no copy", async () => {
+    findDetection.mockResolvedValue(null as never);
+
+    const result: SecurityCaseEventsAddResult = await addMatched([
+      reference("evt-1", "2026-10-28T22:42:00.000Z"),
+      reference("gone-1", "2026-10-28T21:00:00.000Z"),
+    ]);
+
+    expect(result).toEqual({
+      added: ["evt-1"],
+      alreadyOnCase: [],
+      notFound: ["gone-1"],
+    });
+    expect(
+      readSecurityCaseEventSnapshot(written()[0]!.eventSnapshot)!.detection,
+    ).toBeUndefined();
+    expect(findKeptByDetection).not.toHaveBeenCalled();
+  });
+
+  test("a detection that cannot be read leaves the events kept as any are", async () => {
+    findDetection.mockRejectedValue(new Error("No."));
+
+    const result: SecurityCaseEventsAddResult = await addMatched([
+      reference("evt-1", "2026-10-28T22:42:00.000Z"),
+    ]);
+
+    expect(result.added).toEqual(["evt-1"]);
+  });
+
+  test("an event the table still has is kept as the table has it, the copy left alone", async () => {
+    await addMatched([reference("evt-2", "2026-10-28T23:00:00.000Z")]);
+
+    expect(written()[0]!.name).toBe(
+      "Encoded PowerShell started on web-03 (evt-2)",
+    );
+    expect(findKeptByDetection).not.toHaveBeenCalled();
   });
 });

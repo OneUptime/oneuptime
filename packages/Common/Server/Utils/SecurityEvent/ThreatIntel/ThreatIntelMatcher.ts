@@ -73,6 +73,9 @@ import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../../SecurityCase/SecurityCaseIngest";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
+import { SecurityDetectionMatchedEvents } from "../../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
+import SecurityDetectionMatchedEventsReader from "../../SecurityCase/SecurityDetectionMatchedEventsReader";
+import { SQL } from "../../AnalyticsDatabase/Statement";
 import {
   SecurityEntity,
   entitiesFromObservables,
@@ -372,6 +375,12 @@ export default class ThreatIntelMatcher {
           feed,
           matchedGroups: split.opened,
           findingEventUids,
+          matchedEvents: await this.readMatchedEvents({
+            projectId: feed.projectId,
+            matchedGroups: split.opened,
+            startTime,
+            endTime,
+          }),
           startTime,
           endTime,
         });
@@ -548,6 +557,8 @@ export default class ThreatIntelMatcher {
     feed: ThreatIntelFeed;
     matchedGroups: Array<IndicatorMatchGroup>;
     findingEventUids: Map<string, string>;
+    // What each indicator matched, by its value (readMatchedEvents).
+    matchedEvents?: Map<string, SecurityDetectionMatchedEvents> | undefined;
     startTime: Date;
     endTime: Date;
   }): Array<SecurityDetectionSignal> {
@@ -585,10 +596,40 @@ export default class ThreatIntelMatcher {
           threatIntelFeedId: feed.id!,
           sampleMessage: matchGroup.sampleMessage || undefined,
           eventUid: data.findingEventUids.get(matchGroup.indicatorValue),
+          matchedEvents: data.matchedEvents?.get(matchGroup.indicatorValue),
           seenAt: data.endTime,
         };
       },
     );
+  }
+
+  /*
+   * The events behind each indicator a check opens (#9619), read as the
+   * check read them: every event of the window carrying the indicator
+   * among its observables, but the Detection Findings, as
+   * ThreatIntelIndicatorService.findIndicatorMatches joins them. A read
+   * that fails keeps nothing (SecurityDetectionMatchedEventsReader).
+   */
+  public static async readMatchedEvents(data: {
+    projectId: ObjectID;
+    matchedGroups: Array<IndicatorMatchGroup>;
+    startTime: Date;
+    endTime: Date;
+  }): Promise<Map<string, SecurityDetectionMatchedEvents>> {
+    return SecurityDetectionMatchedEventsReader.readForGroups({
+      projectId: data.projectId,
+      start: data.startTime,
+      end: data.endTime,
+      condition: SQL`1`,
+      groupExpression: null,
+      groupByObservable: true,
+      groupValues: data.matchedGroups.map(
+        (matchGroup: IndicatorMatchGroup): string => {
+          return matchGroup.indicatorValue;
+        },
+      ),
+      excludeClassUids: [DETECTION_FINDING_CLASS_UID],
+    });
   }
 
   /*
