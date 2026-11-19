@@ -8,31 +8,14 @@
  * by each of the seeds, and every row must end at the number written.
  */
 
-// A small, seeded random number generator (mulberry32): the same shuffles every run.
-export function seededRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
+import {
+  seededRandom,
+  shuffled as shuffledBy,
+} from "../../Helpers/SeededRandom";
 
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let value: number = state;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
+// The items in an order drawn from a seed (Tests/Helpers/SeededRandom): the same shuffles every run.
 export function shuffled<T>(items: Array<T>, seed: number): Array<T> {
-  const random: () => number = seededRandom(seed);
-  const result: Array<T> = [...items];
-
-  for (let index: number = result.length - 1; index > 0; index--) {
-    const other: number = Math.floor(random() * (index + 1));
-    const held: T = result[index]!;
-    result[index] = result[other]!;
-    result[other] = held;
-  }
-
-  return result;
+  return shuffledBy(items, seededRandom(seed));
 }
 
 export interface ListNumbering {

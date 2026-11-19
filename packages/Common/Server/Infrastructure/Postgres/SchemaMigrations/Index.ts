@@ -1080,6 +1080,7 @@ import { AddDataPipelineOwnerRules1809184860000 } from "./1809184860000-AddDataP
 import { AddDataPipelineCircuitBreaker1809184870000 } from "./1809184870000-AddDataPipelineCircuitBreaker";
 import { AddMonitorNetworkDeviceId1809184900000 } from "./1809184900000-AddMonitorNetworkDeviceId";
 import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./1809184900100-AddMonitorNetworkDeviceIdIndexAndKey";
+import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
 
 export default [
   InitialMigration,
@@ -2164,4 +2165,5 @@ export default [
   AddDataPipelineCircuitBreaker1809184870000,
   AddMonitorNetworkDeviceId1809184900000,
   AddMonitorNetworkDeviceIdIndexAndKey1809184900100,
+  AddTableHealthSkippedTables1809184919541,
 ];

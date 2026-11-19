@@ -606,6 +606,14 @@ export interface AwsCloudWatchResourceRule {
   // The rule does not apply to a datapoint carrying any of these.
   excludedDimensions?: ReadonlyArray<string>;
   /*
+   * The rule applies only to a datapoint whose these dimensions hold
+   * exactly these values, whatever their case: a web ACL's own total is
+   * its series whose Rule is ALL - its other series are one rule's, or a
+   * label's. The resource's metric filter names them too, so its charts
+   * read its total alone.
+   */
+  requiredDimensionValues?: Readonly<Record<string, string>>;
+  /*
    * The resource's name, from its identity dimensions. Default: the first
    * identity dimension's value.
    */
@@ -825,11 +833,17 @@ export const AWS_CLOUDWATCH_RESOURCE_RULES: ReadonlyArray<AwsCloudWatchResourceR
       },
     },
     {
-      // A Web ACL's ARN carries an id no metric reports.
+      /*
+       * A web ACL's own total is published with Rule ALL; its other series
+       * are each one rule's (Rule), a rule group's (RuleGroup) or a
+       * label's (Label, without Rule). Its ARN carries an id no metric
+       * reports.
+       */
       namespace: "AWS/WAFV2",
       type: "AWS::WAFv2::WebACL",
       identityDimensions: ["WebACL"],
-      excludedDimensions: ["Rule", "RuleGroup"],
+      requiredDimensionValues: { Rule: "ALL" },
+      excludedDimensions: ["RuleGroup"],
     },
     {
       namespace: "AWS/S3",

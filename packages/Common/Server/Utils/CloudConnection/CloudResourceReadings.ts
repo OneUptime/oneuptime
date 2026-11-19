@@ -6,8 +6,8 @@ import {
   CLOUD_READINGS_STALE_MS,
   getCloudHealthSeverity,
   getCloudReadingKey,
-  getCloudReadingKeysForType,
 } from "../../../Types/Cloud/CloudResourceHealth";
+import { isCloudReadingKeyOfType } from "../../../Types/Cloud/CloudReadingKeys";
 import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
@@ -15,7 +15,6 @@ import {
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import { AZURE_DIMENSION_ATTRIBUTE_PREFIX } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
-import { getCloudAlertTemplateReadingKeys } from "../../../Types/Monitor/CloudAlertTemplates";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -268,16 +267,11 @@ export function collectCloudResourceReadings(
              */
             if (
               !key ||
-              !(
-                getCloudReadingKeysForType(
-                  provider,
-                  target.resource.resourceType,
-                ).has(key) ||
-                getCloudAlertTemplateReadingKeys({
-                  provider,
-                  resourceType: target.resource.resourceType,
-                }).has(key)
-              )
+              !isCloudReadingKeyOfType({
+                provider,
+                resourceType: target.resource.resourceType,
+                key,
+              })
             ) {
               continue;
             }

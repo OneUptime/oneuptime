@@ -2985,6 +2985,8 @@
   "Only data stores that match conditions": "مخازن البيانات التي تطابق الشروط فقط",
   "All tables": "كل الجداول",
   "Only tables that match conditions": "الجداول التي تطابق الشروط فقط",
+  "All pipelines": "كل مسارات المعالجة",
+  "Only pipelines that match conditions": "مسارات المعالجة التي تطابق الشروط فقط",
   "All cloud environments": "كل البيئات السحابية",
   "Only cloud environments that match conditions": "البيئات السحابية التي تطابق الشروط فقط",
   "Only what matches conditions": "ما يطابق الشروط فقط",

@@ -5,7 +5,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 :::cards
 - [Install the agent](/docs/monitor/kubernetes-agent): One Helm command puts the cluster into OneUptime.
 - [Create the monitor](#create-a-kubernetes-monitor): Pick the cluster, then a template, a metric or a query.
-- [Alert templates](#pre-built-alert-templates): Twenty-four ready-made alerts, from a silent cluster to etcd.
+- [Alert templates](#pre-built-alert-templates): Twenty-five ready-made alerts, from a silent cluster to etcd.
 - [Criteria](#criteria): Static thresholds and anomaly detection.
 :::
 

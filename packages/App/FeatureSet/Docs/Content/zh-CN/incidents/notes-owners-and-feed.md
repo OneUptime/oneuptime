@@ -302,7 +302,7 @@ flowchart TB
 - **关联的警报** —— `AlertLinked` 和 `AlertUnlinked`，显示为 **警报已关联** 和 **警报已取消关联**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自动化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
-- **视频通话** —— `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded` 和 `VideoCallSummary`：为事件发起的通话及其加入链接、提供方无法发起通话的原因、由某人添加或从提供方读取的通话转录，或 OneUptime AI 从转录中读到的内容，后者也会发布到事件的频道。参见 [视频通话](/docs/workspace-connections/video-calls)。
+- **视频通话** —— `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded`、 `VideoCallTranscriptRemoved` 和 `VideoCallSummary`：为事件发起的通话及其加入链接、提供方无法发起通话的原因、由某人添加、从提供方读取或已删除的通话转录，或 OneUptime AI 从转录中读到的内容，后者也会发布到事件的频道。参见 [视频通话](/docs/workspace-connections/video-calls)。
 
 值班条目说明每次呼叫的经过。一次呼叫的条目会写出其通知所经由的渠道："On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 此人自己的值班规则稍后发送的通知（例如十分钟后的电话）有自己的条目（"… paged Nitin Kumar again via phone call …"），未能发送的通知也一样（"… could not page Nitin Kumar via SMS …"）。当 Twilio 报告电话无人接听或占线时，未接的电话也会有自己的条目："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 每个渠道在一次呼叫中只写一次，因此在有人应答之前不断重复的推送不会每分钟增加一行。应答会写出它来自哪条通知："Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." 以其他方式确认的呼叫，例如在 OneUptime 本身或 OneUptime On-Call 应用中确认的，不写渠道。Feed 从不写出通知未能发送的原因，因为服务商给出的原因可能包含电话号码或电子邮件地址：原因显示在事件的 **通知日志** 和此人自己的 **值班日志** 中。
 

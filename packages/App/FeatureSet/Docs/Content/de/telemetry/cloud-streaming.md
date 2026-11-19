@@ -24,7 +24,7 @@ flowchart TB
 
 - **Ein Stack in jeder Region.** Der Befehl stellt in jeder Region, aus der Sie streamen, einen CloudFormation-Stack bereit. Sein Metrik-Stream und seine Protokoll-Abonnementfilter übergeben alles an zwei Firehose-Streams, und Firehose stellt es über HTTPS an OneUptime zu.
 - **Der Stream-Schlüssel sagt, wem es gehört.** Firehose sendet mit jeder Zustellung den Stream-Schlüssel der Verbindung. Der Schlüssel benennt die Verbindung und damit das Projekt: Nichts in einer Zustellung entscheidet, wohin sie geschrieben wird. OneUptime speichert nur den SHA-256 des Schlüssels.
-- **Die Lesevorgänge überlassen gestreamte Metriken dem Stream.** Solange ein Stream einen Namespace einer Region zustellt, schreiben die Lesevorgänge der Verbindung die Metriken dieses Namespaces nicht mehr, sodass kein Datenpunkt doppelt gezählt wird. Die wichtigen Metriken, die ein Stream ihnen überlässt, schreiben sie weiter, etwa die tägliche Größe eines S3-Buckets und die wichtigen Metriken, die nach dem Start der Streams hinzukamen und die ein älterer Stack nicht enthält. Die Lesevorgänge finden weiter Ressourcen, ihren Zustand und ihre Änderungen, und übernehmen einen Namespace nach 15 Minuten ohne Zustellung wieder.
+- **Die Lesevorgänge überlassen gestreamte Metriken dem Stream.** Solange ein Stream einen Namespace einer Region zustellt, lesen und schreiben die Lesevorgänge der Verbindung keine wichtige Metrik davon mehr, die der Stack des Streams enthält, sodass CloudWatch das Lesen dessen, was der Stream sendet, nicht mehr berechnet und kein Datenpunkt doppelt gezählt wird. Die wenigen, nach denen der Zustand einer Ressource beurteilt wird, lesen sie weiter, und die wichtigen Metriken, die ein Stream ihnen überlässt, schreiben sie weiter, etwa die tägliche Größe eines S3-Buckets und die, die ein vor ihnen erstellter Stack nicht enthält. Die Lesevorgänge finden weiter Ressourcen, ihren Zustand und ihre Änderungen, und übernehmen einen Namespace nach 15 Minuten ohne Zustellung wieder.
 - **Nichts geht verloren, während OneUptime es nicht annehmen kann.** Firehose sendet ein abgelehntes Paket bis zu eine Stunde lang erneut und bewahrt es dann 30 Tage lang im S3-Bucket des Stacks auf.
 
 ## Bevor Sie beginnen
@@ -138,7 +138,7 @@ done
 Führen Sie bei einer Verbindung, die eine AWS Organization liest, den Befehl des Dialogs im Verwaltungskonto aus: Wurde die Organisation gestreamt, löscht er auch die Stacks jedes Mitgliedskontos und das StackSet.
 :::
 
-Um zu ändern, was ein Stack streamt, öffnen Sie erneut **Metriken und Protokolle streamen**, wählen Sie **Neuen Schlüssel erstellen** und führen Sie den neuen Befehl aus. Der Schlüssel, den er ersetzt, funktioniert noch 24 Stunden, sodass keine Zustellung abgelehnt wird, während die Stacks aktualisiert werden. Höchstens 3 ersetzte Schlüssel funktionieren gleichzeitig.
+Um zu ändern, was ein Stack streamt, öffnen Sie erneut **Metriken und Protokolle streamen**, wählen Sie **Neuen Schlüssel erstellen** und führen Sie den neuen Befehl aus. Der Schlüssel, den er ersetzt, funktioniert noch 24 Stunden, sodass keine Zustellung abgelehnt wird, während die Stacks aktualisiert werden. Höchstens 3 ersetzte Schlüssel funktionieren gleichzeitig. Gehen Sie ebenso vor, wenn die Zeile des Kontos **Stream aktualisieren** anzeigt: Seine Stacks wurden erstellt, bevor OneUptime jede wichtige Metrik streamte, und bis sie aktualisiert sind, liest die Verbindung die wichtigen Metriken, die sie nicht enthalten, aus CloudWatch, sodass keine fehlt. AWS startet einen Metrik-Stream neu, dessen Filter sich ändern, und sendet nur die Datenpunkte, die danach kommen.
 
 ## Auf andere Weise einrichten
 
@@ -153,7 +153,7 @@ Geben Sie jedem Firehose-Stream ein HTTP-Endpunktziel mit diesen Werten und dem 
 | Puffer | 1 MiB oder 60 Sekunden |
 | Wiederholungsdauer | 3600 Sekunden, mit einem S3-Bucket für das, was nicht zugestellt werden konnte |
 
-Ersetzen Sie bei einem selbst gehosteten OneUptime `https://oneuptime.com` durch die HTTPS-Adresse Ihres OneUptime. Der Metrik-Endpunkt nimmt auch einen Metrik-Stream im JSON-Format an.
+Ersetzen Sie bei einem selbst gehosteten OneUptime `https://oneuptime.com` durch die HTTPS-Adresse Ihres OneUptime. Der Metrik-Endpunkt nimmt auch einen Metrik-Stream im JSON-Format an. Von einem so eingerichteten Metrik-Stream nimmt OneUptime an, dass er nur die wichtigen Metriken enthält, mit denen die Streams begannen, und liest die übrigen aus CloudWatch.
 
 OneUptime beantwortet jede Zustellung so, wie Firehose es erwartet:
 

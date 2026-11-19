@@ -53,6 +53,13 @@ export interface CloudStreamSighting {
   region: string;
   namespaces?: Array<string> | undefined;
   logGroups?: Array<string> | undefined;
+  /*
+   * AWS: what the stack that delivered the metrics streams
+   * (CloudStreamStack): its template's version, and every metric or the
+   * key ones.
+   */
+  templateVersion?: number | undefined;
+  everyMetric?: boolean | undefined;
 }
 
 export default class CloudStreamActivity {
@@ -153,6 +160,12 @@ export default class CloudStreamActivity {
               CLOUD_STREAM_MAX_NAMESPACES_PER_SOURCE,
             ),
             lastAt: at,
+            ...(sighting.templateVersion !== undefined
+              ? {
+                  templateVersion: sighting.templateVersion,
+                  everyMetric: sighting.everyMetric === true,
+                }
+              : {}),
           });
         }
 

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import { cleanup } from "@testing-library/react";
 import * as React from "react";
@@ -174,7 +175,7 @@ function scopeWith(
   };
 }
 
-let scopeSpy: jest.SpiedFunction<typeof DataSecurityApi.getResourceScope>;
+let scopeSpy: SpyInstance<typeof DataSecurityApi.getResourceScope>;
 let isAllowed: boolean;
 
 beforeEach(() => {

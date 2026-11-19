@@ -277,13 +277,21 @@ describe("Cloud Resources docs", (): void => {
           const identity: string = rule.identityDimensions
             .map(code)
             .join(" + ");
+          // A value a dimension must hold: a web ACL's total, Rule ALL.
+          const required: string = Object.entries(
+            rule.requiredDimensionValues || {},
+          )
+            .map(([name, value]: [string, string]): string => {
+              return ` with ${code(name)} ${code(value)}`;
+            })
+            .join("");
           const without: string =
             rule.excludedDimensions && rule.excludedDimensions.length > 0
               ? ` (without ${rule.excludedDimensions.map(code).join(", ")})`
               : "";
 
           expect(rows[index]).toBe(
-            `| ${code(rule.namespace)} | ${identity}${without} | ${descriptor!.label} | ${code(rule.type)} | ${modelOf(descriptor!)} |`,
+            `| ${code(rule.namespace)} | ${identity}${required}${without} | ${descriptor!.label} | ${code(rule.type)} | ${modelOf(descriptor!)} |`,
           );
         },
       );
