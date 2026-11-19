@@ -154,7 +154,7 @@ const HostCollector: FunctionComponent<
         id="host-collector-android"
         icon={IconProp.Android}
         title="This device reports through the Android agent"
-        description="An Android device runs no OpenTelemetry Collector: the OneUptime Android agent sends its health, restarts, apps and logs. Your device manager installs and configures the agent, and its own screen on the device says what it can read."
+        description="An Android device runs no OpenTelemetry Collector: the OneUptime Android agent sends its health, restarts, apps and logs."
         footer={
           <Link
             to={URL.fromString(

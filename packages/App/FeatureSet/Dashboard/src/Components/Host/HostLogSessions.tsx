@@ -10,6 +10,7 @@ import HostLogSessionUtil, {
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { translationKey } from "Common/Types/Translator";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -22,6 +23,13 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * The create button's and dialog's words, looked up whole: "<verb> <noun>"
+ * put together reads the verb out of order in most languages
+ * (translateCreateAction).
+ */
+const REQUEST_LOG_SESSION: string = translationKey("Request Log Session");
 
 export interface ComponentProps {
   hostId: ObjectID;
@@ -56,8 +64,7 @@ const HostLogSessions: FunctionComponent<ComponentProps> = (
       singularName="Log Session"
       pluralName="Log Sessions"
       createVerb="Request"
-      createFormTitle="Request Log Session"
-      createFormSubmitButtonText="Request"
+      createFormTitle={REQUEST_LOG_SESSION}
       isCreateable={true}
       isEditable={false}
       isDeleteable={false}
