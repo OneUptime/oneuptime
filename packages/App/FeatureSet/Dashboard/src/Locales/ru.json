@@ -13178,7 +13178,7 @@
   "No monitors found": "Мониторы не найдены",
   "No monitors here yet": "Здесь пока нет мониторов",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "Пока ни один монитор не подходит под включённые правила мониторов этого SLO. Мониторы подключаются, как только какой-нибудь подойдёт.",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "Мониторы не выбраны. Уведомление получат все подписчики.",
   "No more items on this page.": "На этой странице больше нет элементов.",
   "No more sessions": "Больше сеансов нет",
   "No more users": "Больше пользователей нет",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "StatefulSets не найдены",
   "No status": "Нет статуса",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "Для этого объявления не выбраны страницы статуса.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Хранилища ещё не получены. Убедитесь, что агент Proxmox отправляет метрики.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} команда называется так же, как другая команда, и в полях выбора их не различить. Сравните их участников, затем переименуйте одну из них.",
   "None of the status pages picked shows announcements.": "Ни одна из выбранных страниц статуса не показывает объявления.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "Уведомляет подписчиков этих страниц статуса, когда начинается показ объявления.",
-  "The status pages picked do not send notifications to their subscribers.": "Выбранные страницы статуса не отправляют уведомления своим подписчикам."
+  "The status pages picked do not send notifications to their subscribers.": "Выбранные страницы статуса не отправляют уведомления своим подписчикам.",
+  "No monitors selected.": "Мониторы не выбраны."
 }

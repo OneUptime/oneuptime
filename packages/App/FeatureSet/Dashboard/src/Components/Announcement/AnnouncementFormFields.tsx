@@ -31,6 +31,7 @@ import {
   readRecordIds,
 } from "./AnnouncementForm";
 import {
+  AnnouncementNoMonitorsLine,
   AnnouncementNotifyBoxReason,
   AnnouncementScheduleLine,
 } from "./AnnouncementReachLines";
@@ -274,13 +275,17 @@ export const getAnnouncementFormFields: (
       ): ReactElement => {
         const monitorIds: Array<string> = readRecordIds(item.monitors);
 
+        /*
+         * That every subscriber is told only while the line says subscribers
+         * are notified: the pages picked may tell nobody (#9775).
+         */
         if (monitorIds.length === 0) {
           return (
-            <p>
-              {translateText(
-                "No monitors selected. All subscribers will be notified.",
-              )}
-            </p>
+            <AnnouncementNoMonitorsLine
+              values={item}
+              kind={kind}
+              announcementId={announcementId}
+            />
           );
         }
 

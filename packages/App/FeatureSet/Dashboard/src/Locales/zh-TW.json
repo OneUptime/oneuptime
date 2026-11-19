@@ -13178,7 +13178,7 @@
   "No monitors found": "找不到監測器",
   "No monitors here yet": "這裡還沒有監測器",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "目前還沒有監測器符合此 SLO 已啟用的監測器規則。一旦有監測器符合，就會立即關聯。",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "未選擇監測器。將通知所有訂閱者。",
   "No more items on this page.": "此頁面上沒有更多項目。",
   "No more sessions": "沒有更多工作階段",
   "No more users": "沒有更多使用者",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "找不到 StatefulSet",
   "No status": "無狀態",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "未為此公告選擇狀態頁面。",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "尚未回報任何儲存空間。請確認 Proxmox 代理程式正在傳送指標。",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "有 {{count}} 個團隊與另一個團隊同名，在選擇器中無法區分。請比較它們的成員，然後重新命名其中一個。",
   "None of the status pages picked shows announcements.": "所選的狀態頁面都不顯示公告。",
   "Tell the subscribers of these status pages when the announcement starts showing.": "公告開始顯示時，通知這些狀態頁面的訂閱者。",
-  "The status pages picked do not send notifications to their subscribers.": "所選的狀態頁面不會傳送通知給其訂閱者。"
+  "The status pages picked do not send notifications to their subscribers.": "所選的狀態頁面不會傳送通知給其訂閱者。",
+  "No monitors selected.": "未選擇監測器。"
 }

@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} فريق يحمل اسم فريق آخر، ولا يمكن التمييز بينهما في أدوات الاختيار. قارن بين أعضائهما، ثم غيّر اسم أحدهما.",
   "None of the status pages picked shows announcements.": "لا تعرض أيٌّ من صفحات الحالة المختارة الإعلانات.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "أبلِغ مشتركي صفحات الحالة هذه عندما يبدأ الإعلان في الظهور.",
-  "The status pages picked do not send notifications to their subscribers.": "صفحات الحالة المختارة لا ترسل إشعارات إلى مشتركيها."
+  "The status pages picked do not send notifications to their subscribers.": "صفحات الحالة المختارة لا ترسل إشعارات إلى مشتركيها.",
+  "No monitors selected.": "لم تُحدَّد مراقبات."
 }

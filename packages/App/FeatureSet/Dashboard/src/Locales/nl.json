@@ -13178,7 +13178,7 @@
   "No monitors found": "Geen monitoren gevonden",
   "No monitors here yet": "Hier nog geen monitors",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "Er komen nog geen monitoren overeen met de ingeschakelde monitorregels van deze SLO. Monitoren worden gekoppeld zodra er een overeenkomt.",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "Geen monitoren geselecteerd. Alle abonnees krijgen een melding.",
   "No more items on this page.": "Geen items meer op deze pagina.",
   "No more sessions": "Geen sessies meer",
   "No more users": "Geen gebruikers meer",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "Geen StatefulSets gevonden",
   "No status": "Geen status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "Er zijn geen statuspagina's geselecteerd voor deze aankondiging.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Nog geen opslag gemeld. Zorg ervoor dat de Proxmox-agent metrieken verzendt.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team heeft dezelfde naam als een ander team, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk hun leden en hernoem er dan één.",
   "None of the status pages picked shows announcements.": "Geen van de geselecteerde statuspagina's toont aankondigingen.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "Stuurt abonnees van deze statuspagina's een melding zodra de aankondiging wordt getoond.",
-  "The status pages picked do not send notifications to their subscribers.": "De geselecteerde statuspagina's sturen geen meldingen naar hun abonnees."
+  "The status pages picked do not send notifications to their subscribers.": "De geselecteerde statuspagina's sturen geen meldingen naar hun abonnees.",
+  "No monitors selected.": "Geen monitoren geselecteerd."
 }

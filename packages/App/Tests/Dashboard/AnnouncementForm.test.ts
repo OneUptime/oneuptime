@@ -3,6 +3,8 @@ import {
   ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
   ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
   ANNOUNCEMENT_NOTHING_SENT,
+  ANNOUNCEMENT_NO_MONITORS,
+  ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED,
   ANNOUNCEMENT_NOT_SHOWN,
   ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
@@ -19,6 +21,7 @@ import {
   SCHEDULE_SECTION_TITLE,
   getAnnouncementCreateQueryParams,
   getAnnouncementEndsAtError,
+  getAnnouncementNoMonitorsSummary,
   getAnnouncementNotificationSummary,
   getAnnouncementNotifyBoxReason,
   getAnnouncementReachQuestion,
@@ -734,6 +737,55 @@ describe("under a ticked notify box", () => {
   });
 });
 
+describe("Monitors Affected on the review, with none picked", () => {
+  test("every subscriber is told only while the line says subscribers are notified", () => {
+    expect(
+      getAnnouncementNoMonitorsSummary(
+        PICKED,
+        AnnouncementFormKind.Create,
+        NOTIFIES,
+      ),
+    ).toBe("No monitors selected. All subscribers will be notified.");
+    expect(ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED).toBe(
+      "No monitors selected. All subscribers will be notified.",
+    );
+  });
+
+  test("otherwise only that no monitor is picked: switched off, pages that tell nobody, not known, or no page", () => {
+    const cases: Array<[unknown, AnnouncementReachResult | null | undefined]> =
+      [
+        [{ ...PICKED, [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false }, NOTIFIES],
+        [PICKED, NEVER_NOTIFY],
+        [PICKED, HIDE_ANNOUNCEMENTS],
+        [PICKED, null],
+        [PICKED, undefined],
+        [{}, NOTIFIES],
+      ];
+
+    for (const [values, reach] of cases) {
+      expect(
+        getAnnouncementNoMonitorsSummary(
+          values,
+          AnnouncementFormKind.Create,
+          reach,
+        ),
+      ).toBe("No monitors selected.");
+    }
+
+    expect(ANNOUNCEMENT_NO_MONITORS).toBe("No monitors selected.");
+  });
+
+  test("on the Edit, which sends nothing of its own when it starts showing, only that no monitor is picked", () => {
+    expect(
+      getAnnouncementNoMonitorsSummary(
+        PICKED,
+        AnnouncementFormKind.Edit,
+        NOTIFIES,
+      ),
+    ).toBe(ANNOUNCEMENT_NO_MONITORS);
+  });
+});
+
 describe("what the server is asked about the pages picked", () => {
   test("their ids, each once, and on an Edit the announcement's own", () => {
     expect(
@@ -848,6 +900,9 @@ describe("every sentence of it is translated", () => {
     ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
     ANNOUNCEMENT_NOT_SHOWN,
     ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+    ANNOUNCEMENT_NO_MONITORS,
+    ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED,
+    "No status pages selected for this announcement.",
     ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
     ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
     SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,

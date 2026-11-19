@@ -4,6 +4,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { ScopeNotice } from "../Incident/IncidentStatusPageScopeNotices";
 import {
   AnnouncementFormKind,
+  getAnnouncementNoMonitorsSummary,
   getAnnouncementNotifyBoxReason,
   getAnnouncementReachQuestion,
   getAnnouncementScheduleSectionSummary,
@@ -109,5 +110,41 @@ export const AnnouncementNotifyBoxReason: FunctionComponent<{
       text={translateString(reason) || reason}
       dataTestId={props.dataTestId}
     />
+  );
+};
+
+/*
+ * Monitors Affected on the review step, with no monitor picked: that every
+ * subscriber is told only while the Schedule & Notifications line says
+ * subscribers are notified (getAnnouncementNoMonitorsSummary).
+ */
+export const AnnouncementNoMonitorsLine: FunctionComponent<{
+  values: unknown;
+  kind: AnnouncementFormKind;
+  announcementId?: ObjectID | string | null | undefined;
+}> = (props: {
+  values: unknown;
+  kind: AnnouncementFormKind;
+  announcementId?: ObjectID | string | null | undefined;
+}): ReactElement => {
+  const { translateString } = useTranslateValue();
+
+  const { reach }: AnnouncementReachState = useAnnouncementReach(
+    getAnnouncementReachQuestion({
+      values: props.values,
+      announcementId: props.announcementId,
+    }),
+  );
+
+  const sentence: string = getAnnouncementNoMonitorsSummary(
+    props.values,
+    props.kind,
+    reach,
+  );
+
+  return (
+    <p data-testid="announcement-no-monitors-line">
+      {translateString(sentence) ?? sentence}
+    </p>
   );
 };

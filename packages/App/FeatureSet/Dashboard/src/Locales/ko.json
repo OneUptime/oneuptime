@@ -13178,7 +13178,7 @@
   "No monitors found": "모니터를 찾을 수 없습니다",
   "No monitors here yet": "아직 모니터가 없습니다",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "이 SLO의 활성화된 모니터 규칙과 일치하는 모니터가 아직 없습니다. 일치하는 모니터가 생기면 바로 연결됩니다.",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "선택한 모니터가 없습니다. 모든 구독자에게 알립니다.",
   "No more items on this page.": "이 페이지에 더 이상 항목이 없습니다.",
   "No more sessions": "더 이상 세션 없음",
   "No more users": "더 이상 사용자 없음",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "StatefulSet을 찾을 수 없습니다",
   "No status": "상태 없음",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "이 공지사항에 선택한 상태 페이지가 없습니다.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "아직 보고된 스토리지가 없습니다. Proxmox 에이전트가 메트릭을 전송하고 있는지 확인하세요.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "팀 {{count}}개가 다른 팀과 이름이 같아 선택기에서 구분할 수 없습니다. 구성원을 비교한 뒤 그중 하나의 이름을 바꾸세요.",
   "None of the status pages picked shows announcements.": "선택한 상태 페이지 중 공지사항을 표시하는 페이지가 없습니다.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "공지사항의 표시가 시작되면 이 상태 페이지의 구독자에게 알립니다.",
-  "The status pages picked do not send notifications to their subscribers.": "선택한 상태 페이지는 구독자에게 알림을 보내지 않습니다."
+  "The status pages picked do not send notifications to their subscribers.": "선택한 상태 페이지는 구독자에게 알림을 보내지 않습니다.",
+  "No monitors selected.": "선택한 모니터가 없습니다."
 }

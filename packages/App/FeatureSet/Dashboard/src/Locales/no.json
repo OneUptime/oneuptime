@@ -13178,7 +13178,7 @@
   "No monitors found": "Ingen monitorer funnet",
   "No monitors here yet": "Ingen monitorer her ennå",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "Ingen monitorer samsvarer ennå med denne SLO-ens aktiverte monitorregler. Monitorer knyttes til så snart én samsvarer.",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "Ingen monitorer valgt. Alle abonnenter varsles.",
   "No more items on this page.": "Ingen flere elementer på denne siden.",
   "No more sessions": "Ingen flere økter",
   "No more users": "Ingen flere brukere",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "Ingen StatefulSets funnet",
   "No status": "Ingen status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "Ingen statussider er valgt for denne kunngjøringen.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Ingen lagringer rapportert ennå. Sørg for at Proxmox-agenten sender målinger.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team har samme navn som et annet team, og de to kan ikke skilles fra hverandre i velgere. Sammenlign medlemmene deres, og gi så det ene nytt navn.",
   "None of the status pages picked shows announcements.": "Ingen av de valgte statussidene viser kunngjøringer.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "Varsler abonnenter på disse statussidene når kunngjøringen begynner å vises.",
-  "The status pages picked do not send notifications to their subscribers.": "De valgte statussidene sender ikke varslinger til abonnentene sine."
+  "The status pages picked do not send notifications to their subscribers.": "De valgte statussidene sender ikke varslinger til abonnentene sine.",
+  "No monitors selected.": "Ingen monitorer valgt."
 }

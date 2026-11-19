@@ -13178,7 +13178,7 @@
   "No monitors found": "未找到监视器",
   "No monitors here yet": "这里还没有监视器",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "目前还没有监视器匹配此 SLO 已启用的监视器规则。一旦有监视器匹配，就会立即关联。",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "未选择监视器。将通知所有订阅者。",
   "No more items on this page.": "此页面上没有更多项目。",
   "No more sessions": "没有更多会话",
   "No more users": "没有更多用户",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "未找到 StatefulSet",
   "No status": "无状态",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "未为此公告选择状态页。",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "尚未报告任何存储。请确保 Proxmox 代理正在发送指标。",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "有 {{count}} 个团队与另一个团队同名，在选择器中无法区分。请比较它们的成员，然后重命名其中一个。",
   "None of the status pages picked shows announcements.": "所选的状态页都不显示公告。",
   "Tell the subscribers of these status pages when the announcement starts showing.": "公告开始显示时，通知这些状态页的订阅者。",
-  "The status pages picked do not send notifications to their subscribers.": "所选的状态页不向其订阅者发送通知。"
+  "The status pages picked do not send notifications to their subscribers.": "所选的状态页不向其订阅者发送通知。",
+  "No monitors selected.": "未选择监视器。"
 }

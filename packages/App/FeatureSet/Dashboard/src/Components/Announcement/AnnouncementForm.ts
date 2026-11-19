@@ -494,6 +494,44 @@ export const getAnnouncementNotifyBoxReason: (data: {
 };
 
 /*
+ * MONITORS AFFECTED, WITH NONE PICKED.
+ *
+ * The review step said "No monitors selected. All subscribers will be
+ * notified." of every announcement without monitors - beside a line that
+ * says nobody is told, when the switch is off or the pages picked send
+ * nothing. Monitors only decide which subscribers hear about it; whether
+ * anyone does is the line's to say. So "All subscribers will be notified."
+ * is said only while the line says subscribers are notified, and otherwise
+ * only that no monitor is picked.
+ */
+export const ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED: string = translationKey(
+  "No monitors selected. All subscribers will be notified.",
+);
+
+export const ANNOUNCEMENT_NO_MONITORS: string = translationKey(
+  "No monitors selected.",
+);
+
+export const getAnnouncementNoMonitorsSummary: (
+  values: unknown,
+  kind: AnnouncementFormKind,
+  reach?: AnnouncementReachResult | null | undefined,
+) => string = (
+  values: unknown,
+  kind: AnnouncementFormKind,
+  reach?: AnnouncementReachResult | null | undefined,
+): string => {
+  const isNotifying: boolean =
+    kind === AnnouncementFormKind.Create &&
+    getAnnouncementNotificationSummary(values, reach) ===
+      ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY;
+
+  return isNotifying
+    ? ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED
+    : ANNOUNCEMENT_NO_MONITORS;
+};
+
+/*
  * The section the schedule (and, on Create, the notify switch) is folded
  * into. It always starts folded: its line says what is set, so nothing is
  * hidden, and it opens by itself when a field in it fails its check.

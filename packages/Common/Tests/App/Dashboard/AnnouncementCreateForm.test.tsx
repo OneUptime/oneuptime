@@ -904,6 +904,12 @@ describe("Create Announcement, from the project's Announcements list", () => {
     expect(
       within(form()).getByTestId("form-summary-section-summary"),
     ).toHaveTextContent(DEFAULT_LINE);
+    // No monitor picked, and the pages notify: every subscriber is told.
+    expect(
+      within(form()).getByTestId("announcement-no-monitors-line"),
+    ).toHaveTextContent(
+      "No monitors selected. All subscribers will be notified.",
+    );
     // The folded fields are reviewed by that line, not one row each.
     expect(
       within(form()).queryByText("Notify Status Page Subscribers"),
@@ -1355,6 +1361,10 @@ describe("Create Announcement, on the status pages picked", () => {
 
     await goToNextStep("Summary");
     expect(reviewedLine()).toBe(line);
+    // Monitors decide who among the subscribers; nobody is, so none is promised.
+    expect(
+      within(form()).getByTestId("announcement-no-monitors-line"),
+    ).toHaveTextContent(/^No monitors selected\.$/);
 
     // The answer is advisory: the announcement is created all the same.
     fireEvent.click(createButton());

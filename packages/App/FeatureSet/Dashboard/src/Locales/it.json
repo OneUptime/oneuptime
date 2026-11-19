@@ -13178,7 +13178,7 @@
   "No monitors found": "Nessun monitor trovato",
   "No monitors here yet": "Ancora nessun monitor qui",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "Nessun monitor corrisponde ancora alle regole dei monitor abilitate di questo SLO. I monitor vengono collegati appena uno corrisponde.",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "Nessun monitor selezionato. Tutti gli iscritti verranno notificati.",
   "No more items on this page.": "Non ci sono altri elementi in questa pagina.",
   "No more sessions": "Nessun'altra sessione",
   "No more users": "Nessun altro utente",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "Nessuno StatefulSet trovato",
   "No status": "Nessuno stato",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "Nessuna pagina di stato selezionata per questo annuncio.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Nessuno storage ancora segnalato. Assicurati che l'agente Proxmox stia inviando le metriche.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} team ha lo stesso nome di un altro team e i selettori non permettono di distinguerli. Confronta i loro membri, poi rinominane uno.",
   "None of the status pages picked shows announcements.": "Nessuna delle pagine di stato selezionate mostra annunci.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "Avvisa gli iscritti a queste pagine di stato quando l'annuncio inizia a essere mostrato.",
-  "The status pages picked do not send notifications to their subscribers.": "Le pagine di stato selezionate non inviano notifiche ai loro iscritti."
+  "The status pages picked do not send notifications to their subscribers.": "Le pagine di stato selezionate non inviano notifiche ai loro iscritti.",
+  "No monitors selected.": "Nessun monitor selezionato."
 }

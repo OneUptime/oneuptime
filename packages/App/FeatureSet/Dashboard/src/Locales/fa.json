@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} تیم با تیمی دیگر هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. اعضایشان را مقایسه کنید، سپس نام یکی را تغییر دهید.",
   "None of the status pages picked shows announcements.": "هیچ‌یک از صفحه‌های وضعیت انتخاب‌شده اطلاعیه نمایش نمی‌دهد.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "هنگام شروع نمایش اطلاعیه، مشترکان این صفحات وضعیت را مطلع می‌کند.",
-  "The status pages picked do not send notifications to their subscribers.": "صفحه‌های وضعیت انتخاب‌شده برای مشترکانشان اعلان نمی‌فرستند."
+  "The status pages picked do not send notifications to their subscribers.": "صفحه‌های وضعیت انتخاب‌شده برای مشترکانشان اعلان نمی‌فرستند.",
+  "No monitors selected.": "هیچ مانیتوری انتخاب نشده است."
 }

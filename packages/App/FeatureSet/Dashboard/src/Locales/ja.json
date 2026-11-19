@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} 個のチームが他のチームと同じ名前のため、選択欄では区別できません。メンバーを比較してから、どちらかの名前を変更してください。",
   "None of the status pages picked shows announcements.": "選択したステータスページはいずれもお知らせを表示しません。",
   "Tell the subscribers of these status pages when the announcement starts showing.": "お知らせの表示が始まったら、これらのステータスページの購読者に通知します。",
-  "The status pages picked do not send notifications to their subscribers.": "選択したステータスページは、購読者に通知を送信しません。"
+  "The status pages picked do not send notifications to their subscribers.": "選択したステータスページは、購読者に通知を送信しません。",
+  "No monitors selected.": "モニターが選択されていません。"
 }

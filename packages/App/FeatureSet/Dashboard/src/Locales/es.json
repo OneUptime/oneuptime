@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} equipo tiene el mismo nombre que otro equipo, y los selectores no permiten distinguirlos. Compara sus miembros y luego cambia el nombre de uno de ellos.",
   "None of the status pages picked shows announcements.": "Ninguna de las páginas de estado seleccionadas muestra anuncios.",
   "Tell the subscribers of these status pages when the announcement starts showing.": "Avisa a los suscriptores de estas páginas de estado cuando el anuncio empieza a mostrarse.",
-  "The status pages picked do not send notifications to their subscribers.": "Las páginas de estado seleccionadas no envían notificaciones a sus suscriptores."
+  "The status pages picked do not send notifications to their subscribers.": "Las páginas de estado seleccionadas no envían notificaciones a sus suscriptores.",
+  "No monitors selected.": "No hay monitores seleccionados."
 }

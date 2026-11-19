@@ -206,6 +206,11 @@ const askAnnouncementReach: (
       };
     })
     .then((answer: KeptAnswer): KeptAnswer => {
+      // Answers kept past their while go as a new one is kept.
+      for (const keptKey of Array.from(keptAnswers.keys())) {
+        readKeptAnswer(keptKey);
+      }
+
       keptAnswers.set(key, answer);
       questionsOnTheirWay.delete(key);
       return answer;

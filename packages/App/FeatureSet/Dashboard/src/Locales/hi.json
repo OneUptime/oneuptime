@@ -13178,7 +13178,7 @@
   "No monitors found": "कोई मॉनिटर नहीं मिला",
   "No monitors here yet": "यहाँ अभी तक कोई मॉनिटर नहीं",
   "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.": "अभी कोई मॉनिटर इस SLO के सक्षम मॉनिटर नियमों से मेल नहीं खाता। कोई मेल खाते ही मॉनिटर जुड़ जाते हैं।",
-  "No monitors selected. All subscribers will be notified.": "No monitors selected. All subscribers will be notified.",
+  "No monitors selected. All subscribers will be notified.": "कोई मॉनिटर नहीं चुना गया। सभी सब्सक्राइबर्स को सूचित किया जाएगा।",
   "No more items on this page.": "इस पेज पर और आइटम नहीं हैं।",
   "No more sessions": "कोई और सेशन नहीं",
   "No more users": "कोई और उपयोगकर्ता नहीं",
@@ -13357,7 +13357,7 @@
   "No stateful sets found": "कोई StatefulSet नहीं मिला",
   "No status": "कोई स्थिति नहीं",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
-  "No status pages selected for this announcement.": "No status pages selected for this announcement.",
+  "No status pages selected for this announcement.": "इस घोषणा के लिए कोई स्थिति पृष्ठ नहीं चुना गया।",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "अभी तक कोई स्टोरेज नहीं आया है। सुनिश्चित करें कि Proxmox एजेंट मेट्रिक्स भेज रहा है।",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -58670,5 +58670,6 @@
   "{{count}} teams have the same name as another team, and pickers can't tell them apart. Compare their members, then rename one._one": "{{count}} टीम का नाम किसी दूसरी टीम जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। उनके सदस्यों की तुलना करें, फिर किसी एक का नाम बदलें।",
   "None of the status pages picked shows announcements.": "चुने गए स्थिति पृष्ठों में से कोई भी घोषणाएं नहीं दिखाता।",
   "Tell the subscribers of these status pages when the announcement starts showing.": "घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित करें।",
-  "The status pages picked do not send notifications to their subscribers.": "चुने गए स्थिति पृष्ठ अपने सब्सक्राइबरों को सूचनाएं नहीं भेजते।"
+  "The status pages picked do not send notifications to their subscribers.": "चुने गए स्थिति पृष्ठ अपने सब्सक्राइबरों को सूचनाएं नहीं भेजते।",
+  "No monitors selected.": "कोई मॉनिटर नहीं चुना गया।"
 }
