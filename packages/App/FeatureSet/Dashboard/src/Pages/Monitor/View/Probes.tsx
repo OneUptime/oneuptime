@@ -329,6 +329,8 @@ const MonitorProbes: FunctionComponent<
             field: {
               probe: {
                 connectionStatus: true,
+                // When a disconnected one was last seen (#9597).
+                lastAlive: true,
               },
             },
             title: "Probe Status",

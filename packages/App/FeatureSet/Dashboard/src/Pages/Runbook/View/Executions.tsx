@@ -22,6 +22,7 @@ import {
   getRunStatusFilterOptions,
   getRunStatusLabel,
 } from "../../../Components/Runbook/RunbookRunStatus";
+import { RUNBOOK_EXECUTIONS_TABLE_ID } from "../../../Components/Runbook/RunbookOverviewState";
 
 // In the words the Status filter offers it in.
 function statusPill(status: RunbookExecutionStatus): ReactElement {
@@ -43,10 +44,14 @@ const RunbookExecutionsList: FunctionComponent<
     <Fragment>
       <ModelTable<RunbookExecution>
         modelType={RunbookExecution}
-        id="runbook-view-executions-table"
-        userPreferencesKey="runbook-view-executions-table"
+        /*
+         * One key for its id, preferences and address: the Overview's "N
+         * failed" opens it with its Status filter set (#9597).
+         */
+        id={RUNBOOK_EXECUTIONS_TABLE_ID}
+        userPreferencesKey={RUNBOOK_EXECUTIONS_TABLE_ID}
         saveFilterProps={{
-          tableId: "runbook-view-executions-table",
+          tableId: RUNBOOK_EXECUTIONS_TABLE_ID,
         }}
         isDeleteable={false}
         isEditable={false}

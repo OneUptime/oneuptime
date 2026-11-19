@@ -129,6 +129,7 @@ import {
   getSecurityWatchlistFiltersProblem,
   readSecurityWatchlistFilters,
 } from "../SecurityEvent/SecurityWatchlistFilter";
+import { TotpSecrets, readTotpSecrets } from "../../Utils/Totp/TotpParameters";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -301,6 +302,16 @@ export interface MonitorStepType {
 
   // Probe Status monitor: the probes it watches.
   probeStatusMonitor?: MonitorStepProbeStatusMonitor | undefined;
+
+  /*
+   * The one-time code (TOTP) monitor secrets this step references, by
+   * name, as the server hands the step to a probe (issue #9703): what the
+   * probe makes each {{monitorSecrets.NAME}} code from at the moment the
+   * check uses it (Common/Utils/Monitor/MonitorSecretTotp). Never set by
+   * users and never stored: a write to the database leaves it out
+   * (MonitorStep.toDatabaseJSON).
+   */
+  totpSecrets?: TotpSecrets | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -1467,11 +1478,46 @@ export default class MonitorStep extends DatabaseProperty {
                 this.data.probeStatusMonitor,
               )
             : undefined,
+          totpSecrets: MonitorStep.getTotpSecretsJSON(this.data.totpSecrets),
         },
       });
     }
 
     return MonitorStep.getNewMonitorStepAsJSON();
+  }
+
+  // The step's TOTP secrets as they travel, or nothing when it has none.
+  private static getTotpSecretsJSON(
+    totpSecrets: unknown,
+  ): JSONObject | undefined {
+    const read: TotpSecrets = readTotpSecrets(totpSecrets);
+
+    return Object.keys(read).length > 0
+      ? (read as unknown as JSONObject)
+      : undefined;
+  }
+
+  /*
+   * A step as it is written to the database: what toJSON writes, without
+   * what only ever travels to a probe - the TOTP parameters the server
+   * hands it, which would put a seed into the monitor's own record.
+   */
+  public static toDatabaseJSON(json: JSONObject): JSONObject {
+    const value: unknown = json["value"];
+
+    if (
+      !value ||
+      typeof value !== "object" ||
+      !Object.prototype.hasOwnProperty.call(value, "totpSecrets")
+    ) {
+      return json;
+    }
+
+    const stored: JSONObject = { ...(value as JSONObject) };
+
+    delete stored["totpSecrets"];
+
+    return { ...json, value: stored };
   }
 
   public static override fromJSON(json: JSONObject): MonitorStep {
@@ -1730,6 +1776,7 @@ export default class MonitorStep extends DatabaseProperty {
             ),
           )
         : undefined,
+      totpSecrets: MonitorStep.getTotpSecretsJSON(json["totpSecrets"]),
     }) as any;
 
     return monitorStep;
@@ -1743,7 +1790,7 @@ export default class MonitorStep extends DatabaseProperty {
     value: MonitorStep | FindOperator<MonitorStep>,
   ): JSONObject | null {
     if (value && value instanceof MonitorStep) {
-      return (value as MonitorStep).toJSON();
+      return MonitorStep.toDatabaseJSON((value as MonitorStep).toJSON());
     } else if (value) {
       return JSONFunctions.serialize(value as any);
     }

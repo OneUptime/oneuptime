@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 シークレットを作成し、使えるモニターを選ぶ方法は [モニター シークレット](/docs/monitor/monitor-secrets) を参照してください。
 
+ワンタイムコードのシークレットは、値ではなくサイトの 2 要素認証のセットアップキーを保持します。その `{{monitorSecrets.NAME}}` はスクリプトの開始時点のコードになり、`await oneuptime.getTotpCode("NAME")` はスクリプトが求めたときに新しいコードを作るので、数ページ進んでからコードの入力画面に着くサインインに向いています。[ワンタイムコードでサインインする](/docs/monitor/monitor-secrets#ワンタイムコードでサインインする) を参照してください。
+
 ## カスタムメトリクス
 
 `oneuptime.captureMetric()` 関数を使うと、スクリプトからカスタムメトリクスを記録できます。これらのメトリクスは OneUptime に保存され、Metric Explorer でダッシュボードのグラフにできます。
@@ -258,6 +260,7 @@ return {
 | `crypto` | ブラウザーのワーカー上で実装された SHA-256 ハッシュ、HMAC-SHA-256、`randomBytes`、`randomInt`、`randomUUID`。 |
 | `console` | `console.log`、`info`、`warn`、`error`。メッセージは各実行と一緒に保持されます。 |
 | `oneuptime.captureMetric` | カスタムメトリクスを記録します。[カスタムメトリクス](#カスタムメトリクス) を参照してください。 |
+| `oneuptime.getTotpCode` | ワンタイムコードのシークレットの現在のコードを作ります：`await oneuptime.getTotpCode("NAME")`。[モニター シークレットを使う](#モニター-シークレットを使う) を参照してください。 |
 | `http` | `request`、`get`、`Agent` をサポートする、バッファリング方式でクライアント専用の互換ファサードです。 |
 | `https` | クライアント専用の `http` ファサードの HTTPS 版です。 |
 | `Buffer`、`setTimeout`、`setInterval` | およびそれぞれの `clear` 関数。 |

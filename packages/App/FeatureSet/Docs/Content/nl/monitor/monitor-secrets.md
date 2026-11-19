@@ -6,11 +6,12 @@ Monitorgeheimen houden de wachtwoorden, API-sleutels en tokens die uw monitoren 
 - [Een geheim toevoegen](#een-geheim-toevoegen): Een waarde opslaan en kiezen wie haar mag gebruiken.
 - [De toegang kiezen](#kiezen-welke-monitoren-een-geheim-mogen-gebruiken): Alle monitoren, specifieke monitoren of monitoren met labels.
 - [Een geheim gebruiken](#een-geheim-gebruiken): Waar `{{monitorSecrets.NAME}}` werkt.
+- [Aanmelden met een eenmalige code](#aanmelden-met-een-eenmalige-code): Een monitor door de tweefactorauthenticatie van een site laten komen.
 :::
 
 ## Hoe geheimen een monitor bereiken
 
-Een geheim wordt versleuteld opgeslagen en na het opslaan nooit meer getoond. Voordat OneUptime een monitor aan een sonde overdraagt, vervangt het elke verwijzing die de monitor mag gebruiken door de ontsleutelde waarde; een verwijzing die de monitor niet mag gebruiken, blijft staan zoals ze is geschreven.
+Een geheim wordt versleuteld opgeslagen en na het opslaan nooit meer getoond. Voordat OneUptime een monitor aan een sonde overdraagt, vervangt het elke verwijzing die de monitor mag gebruiken door de ontsleutelde waarde; een verwijzing die de monitor niet mag gebruiken, blijft staan zoals ze is geschreven. Een geheim voor eenmalige codes is de uitzondering: de sonde maakt de code ervan wanneer de controle draait (zie [Aanmelden met een eenmalige code](#aanmelden-met-een-eenmalige-code)).
 
 ```mermaid title="Hoe een verwijzing naar een geheim wordt ingevuld"
 flowchart TB
@@ -33,7 +34,7 @@ De sonde die de controle uitvoert, ontvangt de waarde, dus een monitor die een g
 
 :::steps
 1. Ga naar **Monitoren → Instellingen → Geheimen** en klik op **Monitorgeheim aanmaken**.
-2. Voer een **Naam** en de **Geheime waarde** in. De naam is waarnaar u verwijst, bijvoorbeeld `ApiKey`. Hij mag alleen letters, cijfers, koppeltekens (`-`) en underscores (`_`) bevatten, en geen twee geheimen in een project mogen dezelfde hebben.
+2. Voer een **Naam** en de **Geheime waarde** in. De naam is waarnaar u verwijst, bijvoorbeeld `ApiKey`. Hij mag alleen letters, cijfers, koppeltekens (`-`) en underscores (`_`) bevatten, en geen twee geheimen in een project mogen dezelfde hebben. Gaat het om de configuratiesleutel voor tweefactorauthenticatie van een site, kies dan eerst **Eenmalige code (TOTP)** (zie [Aanmelden met een eenmalige code](#aanmelden-met-een-eenmalige-code)).
 3. Kies bij de stap **Toegang** welke monitoren het mogen gebruiken (zie de volgende sectie) en klik op **Monitorgeheim aanmaken**.
 :::
 
@@ -84,6 +85,51 @@ Verwijst een monitor naar een geheim dat hij niet mag gebruiken, dan blijft de v
 
 Wanneer u een monitor test voordat u hem opslaat, worden alleen geheimen ingevuld die beschikbaar zijn voor **Alle monitoren**, omdat een nieuwe monitor op geen enkele lijst staat en nog geen labels heeft. Nadat u de monitor hebt opgeslagen, gebruiken tests elk geheim dat de monitor mag gebruiken.
 
+## Aanmelden met een eenmalige code
+
+Sommige sites vragen bij het aanmelden om een code uit een authenticator-app. Een geheim van het type **Eenmalige code (TOTP)** bevat de configuratiesleutel van die site, zodat een monitor zich kan aanmelden zoals u dat doet: overal waar de monitor het geheim gebruikt, maakt de sonde de huidige code met haar eigen klok, op het moment dat de controle die nodig heeft. De configuratiesleutel wordt versleuteld opgeslagen en nooit meer getoond, zoals elke geheime waarde, en wordt nooit in de monitor geschreven.
+
+1. Schakel tweefactorauthenticatie in voor het account waarmee de monitor zich aanmeldt. Toont de site een QR-code, vraag dan om de sleutel met de hand in te voeren, en kopieer de configuratiesleutel of de `otpauth://`-link.
+2. Ga naar **Monitoren → Instellingen → Geheimen**, klik op **Monitorgeheim aanmaken**, kies **Eenmalige code (TOTP)** en plak de sleutel of de link in **Configuratiesleutel**.
+3. Controleer of de **Huidige code** eronder overeenkomt met de code die uw authenticator-app nu toont, en kies daarna bij de stap **Toegang** welke monitoren het geheim mogen gebruiken, zoals bij elk geheim.
+
+| Wat u plakt | De codes die de monitor maakt |
+| --- | --- |
+| Een configuratiesleutel, zoals `JBSW Y3DP EHPK 3PXP` | SHA1, 6 cijfers en elke 30 seconden een nieuwe code: wat elke authenticator-app aanneemt |
+| Een `otpauth://totp/`-link | De parameters `algorithm` (`SHA1`, `SHA256` of `SHA512`), `digits` (`6` of `8`) en `period` in seconden (`30` als de link er geen heeft) van de link |
+
+| Monitortype | Waar de code terechtkomt, en wanneer die wordt gemaakt |
+| --- | --- |
+| API | `{{monitorSecrets.NAME}}` in de URL, een request-header of de request-body, vlak voordat elke poging wordt verstuurd |
+| Synthetische monitor, Aangepaste JavaScript-code | `{{monitorSecrets.NAME}}` in het script, wanneer het script start, en `await oneuptime.getTotpCode("NAME")`, wanneer het script erom vraagt |
+
+Elk ander veld houdt `{{monitorSecrets.NAME}}` zoals het is geschreven. Zet de verwijzing in een JSON-request-body tussen aanhalingstekens, zoals in `{"otp": "{{monitorSecrets.LoginCode}}"}`, omdat een code met een nul kan beginnen.
+
+Een aanmelding komt meestal pas een paar pagina's na de start van het script bij de vraag om de code, dus vraag de code op dat punt op. Dit script meldt zich aan met een wachtwoord en een eenmalige code:
+
+```javascript
+await page.goto("https://app.example.com/login");
+await page.fill("#email", "monitoring@example.com");
+await page.fill("#password", "{{monitorSecrets.AppPassword}}");
+await page.click("button[type=submit]");
+
+// The code is made now, when the sign-in asks for it.
+await page.waitForSelector("#otp");
+await page.fill("#otp", await oneuptime.getTotpCode("AppLoginCode"));
+await page.click("button[type=submit]");
+
+await page.waitForSelector(".dashboard", { timeout: 10000 });
+
+return {
+  data: { signedIn: true },
+};
+```
+
+De sonde geeft nooit een code af met minder dan vijf seconden over, of minder dan een derde van de periode als de periode korter is: ze wacht dan op de volgende code, hoogstens vijf seconden, en telt die wachttijd niet mee in de uitvoeringstijd van de controle. Elke code die een controle maakt, wordt als sterretjes getoond, zoals `******`, in de logberichten, het resultaat, de fout en de namen van de schermafbeeldingen van die controle. Een schermafbeelding is een afbeelding van de pagina, dus maak die voordat de code wordt getypt of nadat de pagina verder is gegaan.
+
+> [!NOTE]
+> De sonde maakt de codes, dus werk een aangepaste sonde bij voordat u een geheim voor eenmalige codes gebruikt: een oudere sonde verstuurt `{{monitorSecrets.NAME}}` zoals het is geschreven. Ook de klok van de sonde moet kloppen, want een sonde die een minuut afwijkt, maakt codes waar de site al voorbij is.
+
 ## Problemen oplossen
 
 :::details De monitor stuurt `{{monitorSecrets.NAME}}` letterlijk
@@ -96,6 +142,10 @@ Voordat een monitor is opgeslagen, worden alleen geheimen ingevuld die beschikba
 
 :::details Een veld negeert het geheim
 Alleen de velden in de tabel hierboven accepteren geheimen. In elk ander veld wordt `{{monitorSecrets.NAME}}` verstuurd zoals het is geschreven.
+:::
+
+:::details De site weigert de eenmalige code
+Controleer of de **Huidige code** overeenkwam met uw authenticator-app toen u het geheim opsloeg, of de klok van de sonde klopt en of een verwijzing in een JSON-request-body tussen aanhalingstekens staat. Duurt het even voordat de aanmelding bij de vraag om de code komt, vraag de code dan op dat punt op met `oneuptime.getTotpCode`.
 :::
 
 ## Volgende stappen

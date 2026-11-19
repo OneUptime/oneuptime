@@ -1,9 +1,26 @@
 import MonitorSecretAccessElement from "../../../Components/MonitorSecret/MonitorSecretAccessElement";
+import TotpCodePreview from "../../../Components/MonitorSecret/TotpCodePreview";
 import {
   MONITOR_SECRET_ACCESS_STEP_ID,
   MONITOR_SECRET_ACCESS_TITLES,
   getMonitorSecretAccessFormFields,
 } from "./MonitorSecretAccessFormFields";
+import {
+  MONITOR_SECRET_TYPE_TITLES,
+  TOTP_SECRET_VALUE_DESCRIPTION,
+  TOTP_SECRET_VALUE_PLACEHOLDER,
+  TOTP_SECRET_VALUE_TITLE,
+  getMonitorSecretTypeOptions,
+  getTotpSecretValueProblem,
+  isTextSecretForm,
+  isTotpSecretForm,
+} from "./MonitorSecretTypeFormFields";
+import MonitorSecretType, {
+  MonitorSecretTypeUtil,
+} from "Common/Types/Monitor/MonitorSecretType";
+import { Translator } from "Common/Types/Translator";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -49,6 +66,7 @@ const MonitorSecrets: FunctionComponent<
   const [updateError, setUpdateError] = useState<string>("");
 
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const translate: (text: string) => string = (text: string): string => {
     return translateString(text) || text;
@@ -133,16 +151,59 @@ const MonitorSecrets: FunctionComponent<
           },
           {
             field: {
+              secretType: true,
+            },
+            title: "Type",
+            stepId: "secret",
+            // A secret keeps the type it is created with.
+            doNotShowWhenEditing: true,
+            description: "What the secret holds. It cannot be changed later.",
+            fieldType: FormFieldSchemaType.CardSelect,
+            cardSelectOptions: getMonitorSecretTypeOptions(translate),
+            defaultValue: MonitorSecretType.Text,
+            required: true,
+          },
+          {
+            field: {
               secretValue: true,
             },
             title: "Secret Value",
             stepId: "secret",
             doNotShowWhenEditing: true, // Do not show this field when editing
+            showIf: isTextSecretForm,
             description:
               "This value will be encrypted and stored securely. Once saved, this value cannot be retrieved.",
             fieldType: FormFieldSchemaType.LongText,
             required: true,
             placeholder: "Secret Value (eg: API Key, Password, etc.)",
+          },
+          {
+            // The same value, asked as a setup key for a one-time code secret.
+            field: {
+              secretValue: true,
+            },
+            title: TOTP_SECRET_VALUE_TITLE,
+            stepId: "secret",
+            doNotShowWhenEditing: true,
+            showIf: isTotpSecretForm,
+            description: TOTP_SECRET_VALUE_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: TOTP_SECRET_VALUE_PLACEHOLDER,
+            disableSpellCheck: true,
+            customValidation: (
+              values: FormValues<MonitorSecret>,
+            ): string | null => {
+              return getTotpSecretValueProblem(
+                values.secretValue,
+                translator.translateTemplate,
+              );
+            },
+            getFooterElement: (
+              values: FormValues<MonitorSecret>,
+            ): ReactElement => {
+              return <TotpCodePreview value={values.secretValue} />;
+            },
           },
           ...getMonitorSecretAccessFormFields(translate),
         ]}
@@ -157,6 +218,22 @@ const MonitorSecrets: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              secretType: true,
+            },
+            title: "Type",
+            type: FieldType.Dropdown,
+            // The type titles in English, looked up as the menu draws them.
+            filterDropdownOptions: MonitorSecretTypeUtil.ALL_TYPES.map(
+              (secretType: MonitorSecretType) => {
+                return {
+                  label: MONITOR_SECRET_TYPE_TITLES[secretType],
+                  value: secretType,
+                };
+              },
+            ),
           },
           {
             field: {
@@ -217,6 +294,29 @@ const MonitorSecrets: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              secretType: true,
+            },
+            title: "Type",
+            type: FieldType.Element,
+            getElement: (item: MonitorSecret): ReactElement => {
+              const secretType: MonitorSecretType =
+                MonitorSecretTypeUtil.isTotp(item.secretType)
+                  ? MonitorSecretType.TOTP
+                  : MonitorSecretType.Text;
+
+              return (
+                <span
+                  data-testid="monitor-secret-type"
+                  data-secret-type={secretType}
+                  className="text-sm text-gray-900"
+                >
+                  {translate(MONITOR_SECRET_TYPE_TITLES[secretType])}
+                </span>
+              );
+            },
           },
           {
             field: {
@@ -283,19 +383,52 @@ const MonitorSecrets: FunctionComponent<
           }}
           formProps={{
             initialValues: {},
-            fields: [
-              {
-                field: {
-                  secretValue: true,
-                },
-                title: "Secret Value",
-                description:
-                  "This value will be encrypted and stored securely. Once saved, this value cannot be retrieved.",
-                fieldType: FormFieldSchemaType.LongText,
-                required: true,
-                placeholder: "Secret Value (eg: API Key, Password, etc.)",
-              },
-            ],
+            /*
+             * A one-time code secret's new value is a setup key, asked and
+             * previewed as it is on create; any other secret's is text.
+             */
+            fields: MonitorSecretTypeUtil.isTotp(
+              currentlyEditingItem.secretType,
+            )
+              ? [
+                  {
+                    field: {
+                      secretValue: true,
+                    },
+                    title: TOTP_SECRET_VALUE_TITLE,
+                    description: TOTP_SECRET_VALUE_DESCRIPTION,
+                    fieldType: FormFieldSchemaType.Text,
+                    required: true,
+                    placeholder: TOTP_SECRET_VALUE_PLACEHOLDER,
+                    disableSpellCheck: true,
+                    customValidation: (
+                      values: FormValues<JSONObject>,
+                    ): string | null => {
+                      return getTotpSecretValueProblem(
+                        values["secretValue"],
+                        translator.translateTemplate,
+                      );
+                    },
+                    getFooterElement: (
+                      values: FormValues<JSONObject>,
+                    ): ReactElement => {
+                      return <TotpCodePreview value={values["secretValue"]} />;
+                    },
+                  },
+                ]
+              : [
+                  {
+                    field: {
+                      secretValue: true,
+                    },
+                    title: "Secret Value",
+                    description:
+                      "This value will be encrypted and stored securely. Once saved, this value cannot be retrieved.",
+                    fieldType: FormFieldSchemaType.LongText,
+                    required: true,
+                    placeholder: "Secret Value (eg: API Key, Password, etc.)",
+                  },
+                ],
           }}
         />
       )}

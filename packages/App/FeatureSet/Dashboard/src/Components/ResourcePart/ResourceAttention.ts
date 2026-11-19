@@ -105,6 +105,13 @@ export interface ResourceAttentionItem {
   severity: ResourceAttentionSeverity;
   reasons: Array<ResourceAttentionText>;
   /*
+   * Why, as whole sentences already in the reader's words - what a
+   * monitor's criteria found ("Response Status Code was 503, at or above
+   * the 500 threshold.") - drawn under its name, before its facts. A
+   * reason too long for a chip; never looked up again.
+   */
+  explanation?: string | undefined;
+  /*
    * What the resource itself says about it, as it wrote it - the
    * scheduler's "0/3 nodes are available: 3 Insufficient memory." - drawn
    * under the reasons, two lines at most. Never translated.

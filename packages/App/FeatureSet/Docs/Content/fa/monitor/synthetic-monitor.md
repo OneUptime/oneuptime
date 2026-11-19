@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 برای ساخت یک راز و انتخاب مانیتورهایی که می‌توانند از آن استفاده کنند، [اسرار مانیتور](/docs/monitor/monitor-secrets) را ببینید.
 
+راز کد یک‌بارمصرف به‌جای یک مقدار، کلید راه‌اندازی احراز هویت دومرحله‌ای یک سایت را نگه می‌دارد. ‏`{{monitorSecrets.NAME}}` این راز، کد همان لحظه‌ای است که اسکریپت شروع می‌شود، و `await oneuptime.getTotpCode("NAME")` هر وقت اسکریپت بخواهد کدی تازه می‌سازد؛ این برای ورودی مناسب است که پس از چند صفحه به درخواست کد می‌رسد. [ورود با کد یک‌بارمصرف](/docs/monitor/monitor-secrets#ورود-با-کد-یکبارمصرف) را ببینید.
+
 ## متریک‌های سفارشی
 
 می‌توانید با تابع `oneuptime.captureMetric()` از اسکریپت خود متریک‌های سفارشی ثبت کنید. این متریک‌ها در OneUptime ذخیره می‌شوند و می‌توان آن‌ها را با Metric Explorer در داشبوردها به نمودار درآورد.
@@ -258,6 +260,7 @@ return {
 | `crypto` | پیاده‌سازی در browser worker از hashهای SHA-256، ‏HMAC-SHA-256، ‏`randomBytes`، `randomInt` و `randomUUID`. |
 | `console` | ‏`console.log`، `info`، `warn` و `error`. پیام‌ها همراه هر اجرا نگه داشته می‌شوند. |
 | `oneuptime.captureMetric` | یک متریک سفارشی ثبت می‌کند. [متریک‌های سفارشی](#متریکهای-سفارشی) را ببینید. |
+| `oneuptime.getTotpCode` | کد فعلی یک راز کد یک‌بارمصرف را می‌سازد: `await oneuptime.getTotpCode("NAME")`. [استفاده از اسرار مانیتور](#استفاده-از-اسرار-مانیتور) را ببینید. |
 | `http` | یک نمای سازگاری بافرشده و فقط سمت کلاینت که `request`، `get` و `Agent` را پشتیبانی می‌کند. |
 | `https` | معادل HTTPS نمای `http` فقط سمت کلاینت. |
 | `Buffer`، `setTimeout`، `setInterval` | و تابع‌های `clear` آن‌ها. |

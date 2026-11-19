@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 A secret value that contains a quote character breaks the string around it. A reference the monitor cannot use is left in the script as written. To create a secret and choose which monitors can use it, see [Monitor Secrets](/docs/monitor/monitor-secrets).
 
+A one-time code secret holds a site's two-factor setup key rather than a value. Its `{{monitorSecrets.NAME}}` is the code of the moment the script starts, and `await oneuptime.getTotpCode("NAME")` makes a fresh code when the script asks. See [Signing in with a one-time code](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code).
+
 ## Custom Metrics
 
 You can capture custom metrics from your script with the `oneuptime.captureMetric()` function. These metrics are stored in OneUptime and can be charted on dashboards using the Metric Explorer.
@@ -226,6 +228,7 @@ Add one filter per field you want to check; each can have its own condition and 
 | `http`, `https` | Only their `Agent` class, to pass to `axios` — for example `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. There is no `request` or `get`. |
 | `console.log` | Logs data for debugging. Only `console.log` exists; `console.error` and the others do not. |
 | `oneuptime.captureMetric` | Captures a custom metric. See [Custom Metrics](#custom-metrics). |
+| `oneuptime.getTotpCode` | Makes the current code of a one-time code secret: `await oneuptime.getTotpCode("NAME")`. See [Using Monitor Secrets](#using-monitor-secrets). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Wait inside the script. A delay never runs past the script's timeout. |
 
 ## Things to consider

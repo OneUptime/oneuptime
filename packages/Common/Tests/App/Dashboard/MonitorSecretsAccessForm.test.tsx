@@ -610,7 +610,14 @@ describe("Monitor secrets table", () => {
       },
     );
 
-    expect(filterTitles).toEqual(["Name", "Access", "Monitors", "Labels"]);
+    // Type: Text or a one-time code secret (#9703).
+    expect(filterTitles).toEqual([
+      "Name",
+      "Type",
+      "Access",
+      "Monitors",
+      "Labels",
+    ]);
 
     const accessFilter: { filterDropdownOptions?: Array<unknown> } = (
       capturedTableProps!.filters || []

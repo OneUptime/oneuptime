@@ -233,6 +233,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   { directory: "packages/Common/Utils/Slo/SloMetricType.ts", kind: "keys" },
   /*
+   * What is wrong with a one-time code (TOTP) monitor secret's setup key or
+   * otpauth:// link, which the secret's form says as it is typed (#9703).
+   * Only the sentences the file marks are read: the server and the probe
+   * read the same file.
+   */
+  { directory: "packages/Common/Utils/Totp/TotpSecret.ts", kind: "keys" },
+  /*
    * What the server stores as each monitor series' description, which the
    * metrics list words under the series' name (#8356).
    */
