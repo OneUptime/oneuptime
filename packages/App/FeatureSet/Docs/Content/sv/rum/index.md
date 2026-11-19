@@ -77,15 +77,15 @@ OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftl
 
 | Var | Vad det visar |
 | --- | --- |
-| **Översikt** | Rutor för **Sidladdningar**, **Sidladdningstid (p95)**, **Händelser**, **Felfrekvens**, **Händelsevaraktighet (p95)**, **Undantag**, **Klienter** och **Inspelade sessioner**, och trenddiagram över det tidsintervall du väljer. |
-| **Core Web Vitals** | Ett kort i översikten med LCP, INP, CLS, FCP och TTFB, var och en bedömd mot Googles gränser, och INP för varje route i en ensidesapp. Se [Core Web Vitals](/docs/rum/web-vitals) och [Ensidesappar](/docs/rum/web-vitals#ensidesappar). |
+| **Översikt** | En webbapps rutor för **Sidladdningar**, **Sidladdningstid (p95)**, **Händelser**, **Felfrekvens**, **Händelsevaraktighet (p95)**, **Undantag**, **Klienter** och **Inspelade sessioner**, eller en mobilapps för **Sessioner**, **Kraschfria sessioner**, **Krascher**, **ANR:er**, **Appstarter**, **Kallstart (p95)**, **Frusna bildrutor** och **Felfrekvens**, och trenddiagram över det tidsintervall du väljer. |
+| **Core Web Vitals** | Ett kort i en webbapps översikt med LCP, INP, CLS, FCP och TTFB, var och en bedömd mot Googles gränser, och INP för varje route i en ensidesapp. Se [Core Web Vitals](/docs/rum/web-vitals) och [Ensidesappar](/docs/rum/web-vitals#ensidesappar). |
 | **Mätvärden**, **Loggar**, **Spår** | Telemetriutforskarna, begränsade till den här applikationen. |
 | **Klienter** | De webbläsarplattformar och enhetsmodeller som applikationen har använts på: en kort lista per plattform, aldrig en rad per användare. |
 | **Produktanalys** | Aktiva, nya, återkommande och inaktiva användare och sessioner per enhet, webbläsare, land och sida, räknade från de inspelade sessionerna, och de händelser din app skickar, som trender, trattar och kvarhållning: se [Produktanalys](/docs/rum/product-analytics). |
 | **Sessionsuppspelning** | Inspelningar av riktiga sessioner, bredvid deras fel, spår och loggar: se [Sessionsuppspelning](/docs/telemetry/session-replay). |
-| **Rekommendationer** | Färdiga monitorer för applikationen: dåliga Core Web Vitals, misslyckade förfrågningar, webbläsarundantag och, så snart den spelar in, budgetar för Session Replay. |
+| **Rekommendationer** | Färdiga monitorer som passar applikationen: dåliga Core Web Vitals och webbläsarundantag för en webbapp; krascher, ANR:er, långsamma kallstarter, frusna bildrutor och en app som slutar rapportera för en mobilapp; misslyckade förfrågningar för båda; och, så snart den spelar in, budgetar för Session Replay. |
 
-Siffrorna kommer från de spans som din instrumentering skickar. **Sidladdningar** räknar det `documentLoad`-span som instrumenteringen för sidladdning registrerar vid varje fullständig laddning, så ett routebyte i en ensidesapp är ingen sidladdning.
+Siffrorna kommer från de spans som din instrumentering skickar. **Sidladdningar** räknar det `documentLoad`-span som instrumenteringen för sidladdning registrerar vid varje fullständig laddning, så ett routebyte i en ensidesapp är ingen sidladdning. En mobilapps rutor räknar det som [OpenTelemetry Android](/docs/rum/android-setup) skickar av sig självt: appens sessioner, krascher, ANR:er, appstarter och långsamma och frusna bildrutor.
 
 En applikation visar **Tar emot data** så länge telemetri kommer in och **Ingen trafik nyligen** efter 15 minuter utan, vilket är normalt medan ingen använder appen. En applikation som lagts till för hand visar **Väntar på data** tills dess första data kommer. Tid då OneUptime självt var nere eller betade av sin intagningskö räknas inte in i de 15 minuterna.
 

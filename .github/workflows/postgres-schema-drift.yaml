@@ -175,6 +175,11 @@ jobs:
       # approval and a decision moments old - and the code fix a recommended
       # investigation leads to says why it did not open on its own, all on
       # structure-only copies of the migrated tables in a schema of their own.
+      # #6524: Try again on an AI fix that stopped hands it to a new run with
+      # one conditional UPDATE - of two presses at once one starts it (the
+      # second waits for the first's row lock and reads its WHERE again), a
+      # fix tried again since, settled, dismissed or deleted is never
+      # written, and a run never created puts the fix back as it was read.
       - name: Test why AI remediation did not run, and Try again, on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -185,7 +190,9 @@ jobs:
           AI_REMEDIATION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Services/AiRemediationTryAgainPostgres.test.ts --forceExit
+          Tests/Server/Services/AiRemediationTryAgainPostgres.test.ts
+          Tests/Server/Services/AutoRemediationSuggestionRoundRunChangePostgres.test.ts
+          --forceExit
 
       # #5303's follow-up: what an incident or alert is linked to is what
       # OneUptime AI investigates and fixes. Ask AI's create and linking

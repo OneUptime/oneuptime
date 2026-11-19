@@ -428,6 +428,18 @@ När utredningen hittar orsaken i koden säger steget vad som blev av det: pull-
 
 Incidentens eller larmets tidslinje för en förteckning över varje ändring. När en godkänd plan har körts listar dess post varje kommando i den ordning det kördes, med var det kördes och hur det slutade, och en återställnings post listar varje kommando som ångrar en ändring på samma sätt, med kommandot det ångrade. Listan finns under postens **Visa detaljer**, bara på tidslinjen: incidentens eller larmets Slack- och Microsoft Teams-kanaler får högst postens enda rad, aldrig listan.
 
+### Varför OneUptime AI inte hittade någon åtgärd, eller stoppade
+
+En åtgärd som slutar utan någon säger varför under sitt plansteg. **Hittade ingen säker åtgärd** (**Hittade ingen runbook som passar** för en runbook) öppnas med skälet, med OneUptime AI:s egna ord, och hela svaret finns under **Visa hela resonemanget**. Under skälet kommer **Åtgärder den uteslöt**, var och en med varför inte och kommandona den skulle ha kört, och **Vad den kontrollerade**: varje kommando den körde på klustret eller resursen och varje verktyg från projektets MCP-servrar som den läste med, med varför, när och hur det gick, och hur många gånger den dessutom frågade projektets telemetri. Sist säger steget att ingen åtgärd kördes och att ingen ombads godkänna någon: OneUptime AI ber bara om godkännande när den föreslår en åtgärd.
+
+En åtgärd vars AI-körning misslyckades, slutade svara eller löpte ut i kön säger aldrig att den inte hittade något: Dess plansteg visar **Stoppade innan den hittade en åtgärd** (**Stoppade innan den valde en runbook** för en runbook), och stegets status **Slutfördes inte**. Öppnat säger det varför den stoppade, hur många gånger OneUptime försökte och vad du ska göra, med en länk dit det åtgärdas och leverantörens eget fel under **Detaljer**, och sedan vad den kontrollerade och att ingen åtgärd kördes. **Försök igen** startar åtgärden igen med en ny körning, för alla som får redigera incidenten eller larmet. Det avvisas, med skälet:
+
+- när åtgärden gjorde en ändring innan den stoppade, eftersom en omstart kunde göra samma ändring två gånger: Kontrollera vad den ändrade och slutför sedan åtgärden själv;
+- medan åtgärden fortfarande arbetar, eller när den är klar;
+- när incidenten eller larmet är löst;
+- när AI är avstängt, projektet inte har någon LLM-leverantör, dess AI-krediter är slut eller det har nått en daglig AI-gräns;
+- när någon annan just har tryckt på det, eller du har tryckt på Försök igen 30 gånger på 15 minuter.
+
 ### Innan du godkänner en åtgärd
 
 Varje åtgärd visas som de steg den gick igenom, i den ordning de hände, ett steg per rad: vad OneUptime AI planerade – hur många kommandon den kör och var, eller hur många ändringar den gör och via vilka MCP-servrar – och sedan om den väntar på ditt godkännande eller vem som godkände eller avvisade den, hur den kördes, om incidenten återhämtade sig och vad som återställdes. Varje rad säger när det hände, och varför eller vad som gick fel, och en åtgärd säger i rött hur många av dess kommandon eller ändringar som misslyckades. Öppna ett steg för att se mer: planen visar resonemanget och varje kommando, körningen varje kommandos utdata och slutkod, och återställningen varje kommando som ångrar en ändring. **Granska och godkänn** öppnar planen för en åtgärd som väntar på godkännande, med **Godkänn och kör** under den, eftersom ett godkännande kör exakt det som visas. En åtgärd som väntar på godkännande visar under varje ändring det du behöver för att bestämma dig:

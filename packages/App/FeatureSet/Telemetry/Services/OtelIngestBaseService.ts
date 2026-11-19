@@ -2,6 +2,11 @@ import { ExpressRequest } from "Common/Server/Utils/Express";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  RUM_CLIENT_KIND_BROWSER,
+  RUM_CLIENT_KIND_MOBILE,
+  RumClientKind,
+} from "Common/Types/Rum/RumClientKind";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
@@ -4831,21 +4836,23 @@ export default abstract class OtelIngestBaseService {
    * is reported for host inventory, so it now needs the host-identity
    * check below to stay unambiguous.
    */
-  protected static getRumClientType(attributes: JSONArray): string | null {
+  protected static getRumClientType(
+    attributes: JSONArray,
+  ): RumClientKind | null {
     const hasBrowser: boolean = Boolean(
       this.getStringAttribute(attributes, "browser.platform") ||
         this.getStringAttribute(attributes, "browser.language") ||
         this.getStringArrayAttribute(attributes, "browser.brands").length > 0,
     );
     if (hasBrowser) {
-      return "browser";
+      return RUM_CLIENT_KIND_BROWSER;
     }
     const hasDevice: boolean = Boolean(
       this.getStringAttribute(attributes, "device.id") ||
         this.getStringAttribute(attributes, "device.model.identifier"),
     );
     if (hasDevice) {
-      return "mobile";
+      return RUM_CLIENT_KIND_MOBILE;
     }
 
     /*
@@ -4878,7 +4885,7 @@ export default abstract class OtelIngestBaseService {
         !this.getStringAttribute(attributes, "host.id"),
     );
     if (hasDeviceManufacturerOnly) {
-      return "mobile";
+      return RUM_CLIENT_KIND_MOBILE;
     }
 
     return null;

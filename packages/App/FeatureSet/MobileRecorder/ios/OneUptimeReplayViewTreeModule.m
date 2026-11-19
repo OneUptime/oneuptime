@@ -14,4 +14,9 @@ RCT_EXTERN_METHOD(isTouchTargetPrivate:(nonnull NSNumber *)targetTag
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(touchTargetTestIds:(nonnull NSNumber *)targetTag
+                  replayRootTag:(nonnull NSNumber *)replayRootTag
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 @end

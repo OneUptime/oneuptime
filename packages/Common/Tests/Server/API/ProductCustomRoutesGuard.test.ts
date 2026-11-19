@@ -1188,9 +1188,9 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
+      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
       {
-        "packages/Common/Server/API/TelemetryAPI.ts": 70,
+        "packages/Common/Server/API/TelemetryAPI.ts": 72,
       },
     ),
     ...decided(

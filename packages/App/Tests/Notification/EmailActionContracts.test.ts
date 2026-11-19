@@ -52,6 +52,10 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "viewProbesLink",
   "viewMonitorsLink",
   "sloViewLink",
+  "tableViewLink",
+  "pipelineViewLink",
+  "dataStoreViewLink",
+  "resourceViewLink",
   "acknowledgeIncidentLink",
   "acknowledgeAlertLink",
   "acknowledgeIncidentEpisodeLink",
@@ -291,6 +295,32 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "registrationLink",
     "Complete Registration",
     "registrationLink",
+  ],
+  // Made an owner of a table, a pipeline or a data store (#9681).
+  [
+    "DataAssetOwnerAdded",
+    "tableViewLink",
+    "View on Dashboard",
+    "tableViewLink",
+  ],
+  [
+    "DataPipelineOwnerAdded",
+    "pipelineViewLink",
+    "View on Dashboard",
+    "pipelineViewLink",
+  ],
+  [
+    "DataStoreOwnerAdded",
+    "dataStoreViewLink",
+    "View on Dashboard",
+    "dataStoreViewLink",
+  ],
+  // Made an owner of a service, infrastructure, a dashboard, on-call (#9700).
+  [
+    "ResourceOwnerAdded",
+    "resourceViewLink",
+    "View on Dashboard",
+    "resourceViewLink",
   ],
   [
     "ConfirmProjectSsoSignIn",

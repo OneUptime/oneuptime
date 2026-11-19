@@ -20,7 +20,6 @@ import ObjectID from "../../../Types/ObjectID";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 import IncidentSubscriberAudience, {
   IncidentSubscriberAudienceCounts,
-  IncidentSubscriberAudienceExclusionReason,
   IncidentSubscriberAudienceResult,
   IncidentSubscriberAudienceStatusPage,
 } from "../../../Types/StatusPage/IncidentSubscriberAudience";
@@ -165,6 +164,10 @@ export default class SubscriberNotificationPreviewBuilder {
       this.getNothingSentReason({
         audience: audience,
         draftNothingSentReason: previewIncident.draftNothingSentReason,
+        isShownOnAnyStatusPage: this.isShownOnAnyStatusPage({
+          projectId: data.projectId,
+          statusPages: withStatusPages.resolved.statusPages,
+        }),
       });
 
     const result: SubscriberNotificationPreviewBuild = {
@@ -278,11 +281,26 @@ export default class SubscriberNotificationPreviewBuilder {
   /*
    * Why nothing will be sent, in the order the jobs find it out: no monitor,
    * an incident hidden from status pages, a draft that will be private or
-   * does not notify, and no page that will show it.
+   * does not notify - and, when no status page is sent the email, whether a
+   * page shows the incident all the same.
+   *
+   * A page that shows it and is not sent the email sends its subscribers
+   * nothing (Send Notifications to Subscribers off): NotificationsOff, even
+   * beside pages the scope leaves out, since a public note posted then is on
+   * that page at once. Only with no page showing it is it NoStatusPages
+   * (#9684). Worked out from the readable pages' reasons alone, a page that
+   * shows it beside one the scope left out, or one the caller cannot read,
+   * read as NoStatusPages: no page would show an incident that one did.
    */
   public static getNothingSentReason(data: {
     audience: IncidentSubscriberAudienceResult;
     draftNothingSentReason: SubscriberNotificationPreviewNothingSentReason | null;
+    /*
+     * Whether any status page the incident reaches shows it: in its scope,
+     * and showing incidents - one the caller cannot read included
+     * (isShownOnAnyStatusPage).
+     */
+    isShownOnAnyStatusPage: boolean;
   }): SubscriberNotificationPreviewNothingSentReason | null {
     if (!data.audience.hasMonitors) {
       return SubscriberNotificationPreviewNothingSentReason.NoMonitors;
@@ -300,27 +318,45 @@ export default class SubscriberNotificationPreviewBuilder {
       data.audience.statusPages.length === 0 &&
       data.audience.hiddenStatusPageCount === 0
     ) {
-      // Every page that shows it is switched off, rather than none showing it.
-      const isEveryPageOff: boolean =
-        data.audience.selectedStatusPagesNotListingMonitors.length === 0 &&
-        data.audience.excludedStatusPages.length > 0 &&
-        data.audience.excludedStatusPages.every(
-          (statusPage: {
-            reason: IncidentSubscriberAudienceExclusionReason;
-          }): boolean => {
-            return (
-              statusPage.reason ===
-              IncidentSubscriberAudienceExclusionReason.NotificationsOff
-            );
-          },
-        );
-
-      return isEveryPageOff
+      /*
+       * No page is sent it. A page that shows it then sends its subscribers
+       * nothing: a preview's audience never leaves out a page as sent
+       * already (excludeStatusPagesNotifiedOnCreation is a Retry's).
+       */
+      return data.isShownOnAnyStatusPage
         ? SubscriberNotificationPreviewNothingSentReason.NotificationsOff
         : SubscriberNotificationPreviewNothingSentReason.NoStatusPages;
     }
 
     return null;
+  }
+
+  /*
+   * Whether any status page the incident reaches shows it: in its scope
+   * (the resolved pages are only those) and showing incidents, as the
+   * audience reads a page that does not (HidesIncidents). Another project's
+   * page is never told, so it does not count.
+   *
+   * A page the caller cannot read counts too, so that what the preview says
+   * is true whoever reads it: "the status pages that show this incident do
+   * not send notifications to their subscribers", rather than that no page
+   * shows it. It names no page, and tells no more than the audience does of
+   * the pages the caller cannot read (hiddenStatusPageCount counts those that
+   * will be sent it).
+   */
+  public static isShownOnAnyStatusPage(data: {
+    projectId: ObjectID;
+    statusPages: Array<StatusPage>;
+  }): boolean {
+    const projectId: string = data.projectId.toString().toLowerCase();
+
+    return data.statusPages.some((statusPage: StatusPage): boolean => {
+      const isProjectPage: boolean =
+        !statusPage.projectId ||
+        statusPage.projectId.toString().toLowerCase() === projectId;
+
+      return isProjectPage && statusPage.showIncidentsOnStatusPage !== false;
+    });
   }
 
   /*

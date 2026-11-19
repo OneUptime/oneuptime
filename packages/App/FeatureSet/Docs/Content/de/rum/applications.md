@@ -163,19 +163,21 @@ Eine sinnvolle Aufteilung: Geben Sie einem Support-Mitarbeiter `ReadRumApplicati
 
 ## Alarme für RUM-Daten
 
-RUM-Telemetrie besteht aus gewöhnlichen Logs, Metriken und Traces, daher gibt es keinen eigenen RUM-Monitor: Die üblichen Monitore funktionieren damit. Am schnellsten beginnen Sie auf der Seite **Empfehlungen** der Anwendung, die Monitore anbietet, die bereits auf die Anwendung beschränkt sind:
+RUM-Telemetrie besteht aus gewöhnlichen Logs, Metriken und Traces, daher gibt es keinen eigenen RUM-Monitor: Die üblichen Monitore funktionieren damit. Am schnellsten beginnen Sie auf der Seite **Empfehlungen** der Anwendung, die Monitore anbietet, die bereits auf die Anwendung beschränkt sind, und zwar die, die zu einer Web-App oder einer mobilen App passen:
 
 | Gruppe | Empfehlungen |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint und Slow Time to First Byte. Siehe [Core Web Vitals](/docs/rum/web-vitals). |
-| Fehler | Failed User Operations und Unhandled Browser Exceptions. |
+| Core Web Vitals | Für eine Web-App: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint und Slow Time to First Byte. Siehe [Core Web Vitals](/docs/rum/web-vitals). |
+| Fehler | App Crashes und App Not Responding (ANR) für eine mobile App, Failed User Operations für beide und Unhandled Browser Exceptions für eine Web-App. |
+| Leistung | Für eine mobile App: Slow Cold Start, wenn ein Kaltstart 5 Sekunden oder länger dauert, was Android vitals als übermäßig lang wertet, und Frozen Frames, wenn das Rendern eines Frames länger als 700 ms dauert. |
+| Verfügbarkeit | Für eine mobile App: App Stopped Reporting, wenn die App 30 Minuten lang keine Spans sendet. |
 | Sitzungswiedergabe | Die vier [Warnungen zum Speicherbudget](/docs/telemetry/session-replay#warnungen-zum-speicherbudget), die warnen, bevor das Tageslimit des Projekts oder das Monatsbudget der Anwendung aufgebraucht ist. Sie werden angeboten, sobald die Anwendung eine Wiedergabe aufgezeichnet hat, das Monatspaar erst, wenn sie auch ein Monatsbudget hat. |
 
 Um einen eigenen Monitor zu bauen, wählen Sie den, der das Signal liest:
 
 - [Metriken-Monitor](/docs/monitor/metrics-monitor): eine Core Web Vital oder jede Metrik, die Ihre App sendet.
-- [Traces-Monitor](/docs/monitor/traces-monitor): die clientseitige Fehlerrate oder Latenz.
-- [Logs-Monitor](/docs/monitor/logs-monitor): ein Muster in Browser-Logs.
+- [Traces-Monitor](/docs/monitor/traces-monitor): die clientseitige Fehlerrate oder Latenz oder App-Starts, die langsamer sind als eine von Ihnen festgelegte Dauer.
+- [Logs-Monitor](/docs/monitor/logs-monitor): ein Muster in Browser-Logs oder die Ereignisse `app.crash`, `device.anr` und `app.jank` einer mobilen App.
 - [Ausnahmen-Monitor](/docs/monitor/exceptions-monitor): neue oder sprunghaft steigende clientseitige Ausnahmen.
 
 Beschränken Sie einen selbst gebauten Monitor auf die Anwendung, damit ein Backend-Dienst mit ähnlicher Signatur ihn nicht auslöst.

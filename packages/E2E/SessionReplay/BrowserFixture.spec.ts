@@ -2623,6 +2623,21 @@ test("a Persian reader reads the player's clocks, buttons, chip, rail and timeli
   ).toEqual([]);
   await expect(page.getByTestId("replay-seek-back")).toContainText("۱۰ ثانیه");
   await expect(page.getByTestId("replay-speed")).toContainText("۱x");
+
+  /*
+   * The rail's rows say what happened in Persian, around what the page
+   * recorded, and a request's own figures are Persian digits (#6516).
+   */
+  const clickRow: Locator = page
+    .getByTestId("rail-row")
+    .filter({ hasText: "Place order" })
+    .first();
+
+  await expect(clickRow).toContainText("کلیک روی");
+  await expect(clickRow).not.toContainText("Click");
+  await expect(
+    page.getByTestId("rail-row").filter({ hasText: "/api/checkout" }).first(),
+  ).toContainText("۴۸۲ms");
   // Paused: the clock carries its tenth, after Persian's decimal sign.
   await expect(page.getByTestId("replay-time")).toContainText(
     /^[۰-۹]+(:[۰-۹]{2})+٫[۰-۹] \/ [۰-۹]+(:[۰-۹]{2})+$/,
