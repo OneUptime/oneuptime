@@ -74,6 +74,14 @@ export const HOST_LOG_SESSION_CANCEL_NOTICE_MINUTES: number = 60;
  */
 export const HOST_LOG_SESSION_SILENT_END_GRACE_MINUTES: number = 10;
 
+/*
+ * The most a requester's note says (#9966): a line, shown to the person at
+ * the device under the request, in its notification and on the agent's
+ * screen. Counted in characters as typed, before redaction
+ * (Utils/Host/HostLogSessionNote).
+ */
+export const HOST_LOG_SESSION_NOTE_MAX_LENGTH: number = 200;
+
 // The attribute every log line a session sent carries: what finds its lines in Logs.
 export const HOST_LOG_SESSION_ATTRIBUTE: string =
   "oneuptime.agent.log_session.id";

@@ -17,6 +17,7 @@
     <color name="status_error">#FFDC2626</color>
     <color name="status_idle">#FF6B7280</color>
     <color name="code_background">#FFF3F4F6</color>
+    <color name="note_background">#FFEEF2FF</color>
     <color name="launcher_background">#FFFFFFFF</color>
     <color name="launcher_top">#FFC1C0FF</color>
     <color name="launcher_middle">#FFA2A1FF</color>

@@ -31,9 +31,11 @@ import Host from "../../../Models/DatabaseModels/Host";
 import HostLogSession from "../../../Models/DatabaseModels/HostLogSession";
 import User from "../../../Models/DatabaseModels/User";
 import {
+  HOST_LOG_SESSION_NOTE_MAX_LENGTH,
   HostLogSessionLevel,
   HostLogSessionStatus,
 } from "../../../Types/Host/HostLogSession";
+import { NOTE_TOO_LONG_MESSAGE } from "../../../Utils/Host/HostLogSessionNote";
 import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -228,6 +230,39 @@ describe("asking for a log session", () => {
     expect(data.expiresAt!.getTime()).toBeLessThanOrEqual(
       Date.now() + 60 * 60 * 1000 + 1000,
     );
+  });
+
+  test("keeps the requester's note as the device will show it: one line, secrets taken out", async () => {
+    const data: HostLogSession = (
+      await hooks.onBeforeCreate(
+        createBy({
+          note: "  Checking why the payment app\ncrashes after 6pm, card 4111 1111 1111 1111  ",
+        }),
+      )
+    ).createBy.data;
+
+    expect(data.note).toBe(
+      "Checking why the payment app crashes after 6pm, card [card number]",
+    );
+  });
+
+  test("a note of nothing but spaces is no note", async () => {
+    const data: HostLogSession = (
+      await hooks.onBeforeCreate(createBy({ note: "  \n  " }))
+    ).createBy.data;
+
+    expect(data.note).toBeUndefined();
+  });
+
+  test("a note longer than a person may write is refused, before anything is read of the device's sessions", async () => {
+    const findBy: unknown = HostLogSessionService.findBy;
+
+    await expect(
+      hooks.onBeforeCreate(
+        createBy({ note: "a".repeat(HOST_LOG_SESSION_NOTE_MAX_LENGTH + 1) }),
+      ),
+    ).rejects.toThrow(NOTE_TOO_LONG_MESSAGE);
+    expect(findBy).not.toHaveBeenCalled();
   });
 
   test("starts from 30 minutes at info", async () => {
@@ -569,6 +604,38 @@ describe("an exchange with the device's agent", () => {
       minimumLevel: "info",
       requestedByName: "Dana Reyes",
     });
+    expect(told[0]!["note"]).toBeUndefined();
+  });
+
+  test("the device is told the requester's note, as it was kept", async () => {
+    const asked: HostLogSession = session({
+      status: HostLogSessionStatus.Requested,
+      durationMinutes: 30,
+      expiresAt: new Date(Date.now() + 50 * 60 * 1000),
+      note: "Checking why the payment app crashes after 6pm",
+    });
+    sessions = [asked];
+    // The spy beforeEach set.
+    const findBy: { mock: { calls: Array<Array<unknown>> } } =
+      HostLogSessionService.findBy as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      };
+
+    const told: Array<JSONObject> = await exchange([]);
+
+    expect(told[0]).toMatchObject({
+      id: asked._id!.toString(),
+      note: "Checking why the payment app crashes after 6pm",
+    });
+    // The note is read with the sessions the device is told.
+    expect(
+      findBy.mock.calls.some((call: Array<unknown>): boolean => {
+        const select: Record<string, unknown> | undefined = (
+          call[0] as { select?: Record<string, unknown> }
+        ).select;
+        return Boolean(select && select["note"]);
+      }),
+    ).toBe(true);
   });
 
   test("the device's report moves its session on", async () => {

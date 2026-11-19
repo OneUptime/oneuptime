@@ -32,6 +32,9 @@ import AndroidAgentLogSessions, {
 } from "../../Utils/Host/AndroidAgentLogSessions";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import logger from "../Utils/Logger";
+import HostLogSessionNote, {
+  HostLogSessionNoteResult,
+} from "../../Utils/Host/HostLogSessionNote";
 
 export const NOT_AN_ANDROID_DEVICE_MESSAGE: string =
   "Log sessions are for Android devices that run the OneUptime Android agent. This host is not one.";
@@ -116,6 +119,15 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(LEVEL_NOT_OFFERED_MESSAGE);
     }
 
+    // Why the requester asks, as the device will show it (#9966).
+    const note: HostLogSessionNoteResult = HostLogSessionNote.prepare(
+      data.note,
+    );
+
+    if (note.error) {
+      throw new BadDataException(note.error);
+    }
+
     const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
@@ -138,6 +150,11 @@ export class Service extends ProjectReferencesService<Model> {
     data.projectId = projectId;
     data.durationMinutes = durationMinutes;
     data.minimumLevel = minimumLevel;
+    if (note.note) {
+      data.note = note.note;
+    } else {
+      delete data.note;
+    }
     data.status = HostLogSessionStatus.Requested;
     data.expiresAt = OneUptimeDate.addRemoveMinutes(
       now,
@@ -345,6 +362,7 @@ export class Service extends ProjectReferencesService<Model> {
         createdAt: true,
         expiresAt: true,
         endedAt: true,
+        note: true,
         createdByUser: { name: true },
       },
       sort: { createdAt: SortOrder.Ascending },
@@ -382,6 +400,7 @@ export class Service extends ProjectReferencesService<Model> {
         requestedAt: session.createdAt,
         requestedByName:
           session.createdByUser?.name?.toString().trim() || undefined,
+        note: session.note?.trim() || undefined,
         expiresAt: session.expiresAt,
       });
     }
