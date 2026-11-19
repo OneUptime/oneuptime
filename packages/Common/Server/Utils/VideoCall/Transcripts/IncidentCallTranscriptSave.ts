@@ -50,6 +50,14 @@ export default class IncidentCallTranscriptSave {
     userId?: ObjectID | undefined;
     // OneUptime got it by itself, nobody asked (Record and transcribe incident calls).
     isAutomatic?: boolean | undefined;
+    /*
+     * The account whose sign-in read it from the provider
+     * (VideoCallTranscriptRead), kept on the call so that the account
+     * removing OneUptime deletes it (IncidentCallTranscriptRemoval). A
+     * transcript a person added leaves the call's as it was: what was read
+     * in the one it replaces may still be posted.
+     */
+    signInAccountId?: string | undefined;
   }): Promise<CallSummaryStart> {
     const callId: ObjectID = data.call.id!;
     const info: VideoCallTranscriptInfo = data.prepared.info;
@@ -60,6 +68,9 @@ export default class IncidentCallTranscriptSave {
       transcriptInfo: info as unknown as JSONObject,
       transcriptAddedAt: new Date(),
       transcriptAddedByUserId: data.userId || null,
+      ...(data.signInAccountId
+        ? { transcriptSignInAccountId: data.signInAccountId }
+        : {}),
       ...IncidentVideoCallTranscriptWrite.noReading(),
       ...IncidentVideoCallTranscriptWrite.noFetch(),
     });

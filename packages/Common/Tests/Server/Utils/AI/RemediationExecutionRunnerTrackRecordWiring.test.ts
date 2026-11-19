@@ -54,6 +54,9 @@ import OneUptimeDate from "../../../../Types/Date";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import WorkspaceLiveMessageKey from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 
 /*
  * Contract under test - what RemediationExecutionRunner hands the planner
@@ -276,6 +279,18 @@ let withTrackRecords: jest.SpyInstance;
 let proposalBlocks: jest.SpyInstance;
 let startDryRun: jest.SpyInstance;
 
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+});
+
 beforeEach(() => {
   startDryRun = jest
     .spyOn(CloudChangeDryRun, "startForProposedPlan")
@@ -388,6 +403,8 @@ describe("the fixes made before, in the planner's context", () => {
       },
       excludeSuggestionId: SUGGESTION_ID,
       excludeSubject: { incidentId: INCIDENT_ID, alertId: undefined },
+      // Read for everyone who may see the incident (#9612).
+      readAudience: readAudienceOf({ projectId: PROJECT_ID }),
     });
 
     const context: string = request.get().contextSummary || "";
@@ -433,9 +450,13 @@ describe("the fixes made before, in the planner's context", () => {
       RemediationExecutionRunner as unknown as {
         describeEarlierFixes: (
           suggestion: AutoRemediationSuggestion,
+          readAudience: ReadAudience,
         ) => Promise<Array<string>>;
       }
-    ).describeEarlierFixes(suggestion);
+    ).describeEarlierFixes(
+      suggestion,
+      readAudienceOf({ projectId: PROJECT_ID }),
+    );
 
     expect(readEarlierFixes).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -453,16 +474,20 @@ describe("the fixes made before, in the planner's context", () => {
       RemediationExecutionRunner as unknown as {
         describeEarlierFixes: (
           suggestion: AutoRemediationSuggestion,
+          readAudience: ReadAudience,
         ) => Promise<Array<string>>;
       }
-    ).describeEarlierFixes({
-      id: SUGGESTION_ID,
-      projectId: PROJECT_ID,
-      incidentId: INCIDENT_ID,
-      resourceType: AiResourceType.DockerHost,
-      resourceId: RESOURCE_ID,
-      autoRemediationRuleId: ObjectID.generate(),
-    } as unknown as AutoRemediationSuggestion);
+    ).describeEarlierFixes(
+      {
+        id: SUGGESTION_ID,
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        resourceType: AiResourceType.DockerHost,
+        resourceId: RESOURCE_ID,
+        autoRemediationRuleId: ObjectID.generate(),
+      } as unknown as AutoRemediationSuggestion,
+      readAudienceOf({ projectId: PROJECT_ID }),
+    );
 
     expect(lines).toEqual([]);
     expect(readEarlierFixes).not.toHaveBeenCalled();
@@ -539,6 +564,8 @@ describe("a proposal, with its track record and its buttons", () => {
         projectId: PROJECT_ID,
         excludeSuggestionId: SUGGESTION_ID,
         excludeSubject: { incidentId: INCIDENT_ID, alertId: undefined },
+        // The incidents it names are read for the round's readers (#9612).
+        readAudience: readAudienceOf({ projectId: PROJECT_ID }),
       }),
     );
 

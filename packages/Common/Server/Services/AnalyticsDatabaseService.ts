@@ -644,7 +644,9 @@ export default class AnalyticsDatabaseService<
         windowsStartAtMs !== undefined &&
         (!Number.isFinite(windowsStartAtMs) || windowsStartAtMs % 1000 !== 0)
       ) {
-        throw new BadDataException("windowsStartAt must be on a whole second");
+        throw new BadDataException(
+          "The time the windows start at (windowsStartAt) is not on a whole second. Round it to the second and ask again.",
+        );
       }
 
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =

@@ -53,7 +53,7 @@ flowchart TB
 - O servidor conta as duas durações a partir da própria sessão: quando ela entrou, e quando a pessoa dela esteve ativa pela última vez. Ele as verifica em cada solicitação, cada renovação e cada atualização ao vivo, e nunca deixa a desconexão por conta do navegador.
 - O tempo de inatividade conta a partir do último clique, tecla pressionada ou rolagem em qualquer aba do painel ou do Admin Dashboard. Uma aba deixada aberta não mantém uma sessão viva. Abrir o OneUptime de novo também não a traz de volta: quem ficou fora por mais tempo que o tempo de inatividade, com o navegador fechado ou o computador em repouso, entra novamente.
 - No aplicativo móvel, o tempo de inatividade conta a partir do último toque ou tecla pressionada. O tempo que o aplicativo passa em segundo plano ou fechado conta como tempo sem uso: quem o abre de novo depois do tempo de inatividade entra novamente. Com um tempo de inatividade de 15 minutos, o aplicativo precisa de uma versão mais nova que a 1.6.0: a versão 1.6.0 e as anteriores saem a cada 15 minutos, por mais que sejam usadas. As versões mais novas que a 1.6.0 também dizem na tela de entrada por que o servidor encerrou a sessão da pessoa.
-- Quando uma sessão termina, o navegador vai para a página de entrada, que diz por quê. Depois de entrar novamente, a pessoa volta à página em que estava.
+- Quando uma sessão termina, o navegador vai para a página de entrada, que diz por quê. Depois de entrar novamente, a pessoa volta à página em que estava. Uma sessão encerrada, pela duração ou por uma saída, uma nova senha ou um bloqueio, é recusada na hora em todos os servidores, a partir da próxima solicitação.
 
 | Alteração | O que acontece com as pessoas conectadas agora |
 | --- | --- |

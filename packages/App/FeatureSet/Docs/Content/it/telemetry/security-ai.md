@@ -53,6 +53,8 @@ Una classificazione legge:
 
 Può anche leggere il resto di OneUptime come fa l'indagine di un incidente: log, tracce, metriche, host e gli strumenti in sola lettura dei server MCP del progetto.
 
+Chiunque possa vedere il caso legge la sua classificazione, quindi una classificazione legge solo ciò che tutti loro possono leggere, come fa l'indagine di un incidente. Un tipo di record che nessun team, ruolo personalizzato o chiave API legge solo in base al proprietario o all'etichetta viene letto per intero; dove qualcuno lo fa, un host, un cluster, un servizio o un altro record che un proprietario o un'etichetta mette da parte viene escluso e non viene mai nominato né contato. Il caso viene sempre letto, e così l'incidente che ha dichiarato, a meno che quell'incidente non sia privato. Gli incidenti e gli avvisi privati non vengono mai letti.
+
 ### Che cosa conclude
 
 | Lettura | Significa | Suggerisce di chiudere come |

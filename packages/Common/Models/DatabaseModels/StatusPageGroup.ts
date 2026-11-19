@@ -573,7 +573,8 @@ export default class StatusPageGroup extends BaseModel {
     isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Order / Priority of this resource",
+    description:
+      "This group's place on its status page, lowest first. Groups that share a place are shown in the order of their IDs. Setting it places this group and moves no other, so a configuration that numbers every group ends up exactly as written. Left out when you create a group, it goes after the page's last group.",
     canReadOnRelationQuery: true,
   })
   @Column({

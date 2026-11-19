@@ -556,15 +556,19 @@ describe("where each activation milestone is set", () => {
       );
     });
 
-    test("first telemetry: collected when the rows are handed over, kept only once ClickHouse accepted them", () => {
+    test("first telemetry and first AI call: collected when the rows are handed over, kept only once ClickHouse accepted them", () => {
       const body: string = methodBody(
         readSource("Utils/Telemetry/TelemetryFanInWriter.ts"),
         "public async submit(",
       );
 
       expect(body).toContain("TelemetryMilestones.collect(tableName, rows);");
+      // Of spans, the projects' first AI call too (#7325).
+      expect(body).toContain(
+        "TelemetryMilestones.collectLlmCalls(tableName, rows);",
+      );
       expect(body).toMatch(
-        /flushed\.then\(\s*\(\): void => \{\s*TelemetryMilestones\.markReached\(pendingMilestones\);\s*\},\s*\(\): void => \{/,
+        /flushed\.then\(\s*\(\): void => \{\s*TelemetryMilestones\.markReached\(pendingMilestones\);\s*TelemetryMilestones\.markReached\(pendingLlmCalls\);\s*\},\s*\(\): void => \{/,
       );
     });
   });

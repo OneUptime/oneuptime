@@ -91,6 +91,12 @@ Duas perguntas do provedor mudam isso, recolhidas em **Mais campos**. Cada uma c
 
 Com **Todos os projetos**, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados.
 
+## Sair também do provedor de identidade
+
+Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, a próxima pessoa que entra com esse provedor entra como quem saiu. Em um provedor OpenID Connect, clique em **Editar configuração** e ative **Sair também do provedor de identidade** em **Mais campos**: sair do OneUptime passa a encerrar também a sessão no provedor, e o provedor devolve o navegador à página de entrada do OneUptime. Vem desativado, pois em um notebook pessoal também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
+
+Registre no seu provedor a URI de redirecionamento após sair que o cartão **URL do provedor de identidade** mostra, como post-logout redirect URI permitida. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la.
+
 ## Impor o SSO
 
 Configurar um provedor global não obriga ninguém a usá-lo; o login com senha continua funcionando. Para exigir SSO, ligue a exigência em um projeto ou na instância inteira:

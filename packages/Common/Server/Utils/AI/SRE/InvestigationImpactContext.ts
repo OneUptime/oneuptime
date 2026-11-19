@@ -12,6 +12,8 @@ import IncidentService from "../../../Services/IncidentService";
 import ServiceLevelObjectiveService from "../../../Services/ServiceLevelObjectiveService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 
 /*
  * AI SRE - WHAT AN INCIDENT'S OR ALERT'S USERS RELY ON, FOR THE IMPACT
@@ -33,8 +35,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * enabled and not archived, the linked ones first, at most MAX_IMPACT_SLOS,
  * with the ids query_slos takes. A record with monitors that no SLO counts
  * says so, so the report says so rather than guess. Every read is held to
- * the record's project. Enrichment only: a read that fails leaves the
- * context as it was (the runners catch it).
+ * the record's project, and made for the record's readers (readAudience,
+ * #9576): where some role reads SLOs only by owner or label, an SLO that
+ * counts one of its monitors but is set apart from one of them is never
+ * named, nor counted among those "more" than named. The SLOs linked to the
+ * record are its own: its Affected Resources name them to every reader.
+ * Enrichment only: a read that fails leaves the context as it was (the
+ * runners catch it).
  */
 
 // The most SLOs the context names.
@@ -107,6 +114,8 @@ export default class InvestigationImpactContext {
   public static async readForIncident(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
+    // Everyone who may see the incident: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<InvestigationImpact | null> {
     const incident: Incident | null = await IncidentService.findOneBy({
       query: { _id: data.incidentId.toString(), projectId: data.projectId },
@@ -124,6 +133,7 @@ export default class InvestigationImpactContext {
 
     return await InvestigationImpactContext.readSlos({
       projectId: data.projectId,
+      readAudience: data.readAudience,
       subjectKind: "incident",
       links: {
         monitors: InvestigationImpactContext.toMonitors(incident.monitors),
@@ -139,6 +149,8 @@ export default class InvestigationImpactContext {
   public static async readForAlert(data: {
     projectId: ObjectID;
     alertId: ObjectID;
+    // Everyone who may see the alert: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<InvestigationImpact | null> {
     const alert: Alert | null = await AlertService.findOneBy({
       query: { _id: data.alertId.toString(), projectId: data.projectId },
@@ -156,6 +168,7 @@ export default class InvestigationImpactContext {
 
     return await InvestigationImpactContext.readSlos({
       projectId: data.projectId,
+      readAudience: data.readAudience,
       subjectKind: "alert",
       links: {
         monitors: InvestigationImpactContext.toMonitors(
@@ -176,6 +189,7 @@ export default class InvestigationImpactContext {
     projectId: ObjectID;
     subjectKind: "incident" | "alert";
     links: SubjectLinks;
+    readAudience: ReadAudience;
   }): Promise<InvestigationImpact> {
     const select: Record<string, unknown> = {
       _id: true,
@@ -211,7 +225,7 @@ export default class InvestigationImpactContext {
             sort: { name: SortOrder.Ascending },
             limit: SLO_READ_LIMIT,
             skip: 0,
-            props: { isRoot: true },
+            props: ReadAudiencePermission.getReadProps(data.readAudience),
           })
         : Promise.resolve([]),
       data.links.monitors.length > 0
@@ -230,7 +244,7 @@ export default class InvestigationImpactContext {
             sort: { name: SortOrder.Ascending },
             limit: SLO_READ_LIMIT,
             skip: 0,
-            props: { isRoot: true },
+            props: ReadAudiencePermission.getReadProps(data.readAudience),
           })
         : Promise.resolve([]),
     ]);

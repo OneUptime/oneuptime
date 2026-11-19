@@ -36,6 +36,9 @@ import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import Response from "../Utils/Response";
 import IncidentCallTranscriptSave from "../Utils/VideoCall/Transcripts/IncidentCallTranscriptSave";
+import IncidentCallTranscriptRemoval, {
+  TranscriptRemovalOutcome,
+} from "../Utils/VideoCall/Transcripts/IncidentCallTranscriptRemoval";
 import IncidentVideoCallTranscriptWrite, {
   IncidentVideoCallTranscriptColumns,
 } from "../Utils/VideoCall/Transcripts/IncidentVideoCallTranscriptWrite";
@@ -54,7 +57,7 @@ import ProductKey from "../../Types/Product/ProductKey";
  *
  *   POST   /incident-video-call/:callId/transcript                add one: { text, fileName? }
  *   POST   /incident-video-call/:callId/transcript/from-provider  read it from Zoom or Google Meet
- *   DELETE /incident-video-call/:callId/transcript                remove it, and what was read in it
+ *   DELETE /incident-video-call/:callId/transcript                remove it, and what was read in it, wherever it was posted
  *   POST   /incident-video-call/:callId/call-summary              have OneUptime AI read it again
  *   POST   /incident-video-call/:callId/root-cause-suggestion     { decision, rootCause? }
  *
@@ -252,6 +255,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       props,
       prepared,
       source: VideoCallTranscriptSource.Provider,
+      signInAccountId: read.signInAccountId,
     });
 
     return Response.sendJsonObjectResponse(req, res, {
@@ -260,6 +264,12 @@ export default class IncidentVideoCallAPI extends BaseAPI<
     });
   }
 
+  /*
+   * Removes the call's transcript and what OneUptime AI read in it from the
+   * incident: from the call, its feed and the messages OneUptime posted in
+   * its channels (IncidentCallTranscriptRemoval). Answers where a message
+   * stays - one OneUptime could not delete - so the dialog can say so.
+   */
   private async removeTranscript(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -268,12 +278,17 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       await this.authorizeCallWork(req);
     const call: IncidentVideoCall = await this.getCallToWorkOn(req, props);
 
-    await this.writeCall(
-      call.id!,
-      IncidentVideoCallTranscriptWrite.noTranscript(),
-    );
+    const outcome: TranscriptRemovalOutcome =
+      await IncidentCallTranscriptRemoval.removeByPerson({
+        callId: call.id!,
+        userId: props.userId,
+      });
 
-    return Response.sendEmptySuccessResponse(req, res);
+    return Response.sendJsonObjectResponse(req, res, {
+      removed: outcome.removed,
+      messagesLeftIn: outcome.messagesLeftIn,
+      mayHaveMessagesLeft: outcome.mayHaveMessagesLeft,
+    });
   }
 
   private async readAgain(
@@ -434,12 +449,17 @@ export default class IncidentVideoCallAPI extends BaseAPI<
     props: DatabaseCommonInteractionProps;
     prepared: PreparedTranscript;
     source: VideoCallTranscriptSource;
+    // Whose sign-in read it from the provider, when one did.
+    signInAccountId?: string | undefined;
   }): Promise<JSONObject> {
     const started: CallSummaryStart = await IncidentCallTranscriptSave.save({
       call: data.call,
       prepared: data.prepared,
       source: data.source,
       userId: data.props.userId,
+      ...(data.signInAccountId
+        ? { signInAccountId: data.signInAccountId }
+        : {}),
     });
 
     return {

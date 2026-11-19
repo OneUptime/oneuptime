@@ -86,7 +86,7 @@ Forbindelser, der er logget ind som samme konto, deler ét login, i alle projekt
 
 At slette en forbindelse trækker OneUptimes adgang tilbage hos Zoom og Google, så snart ingen anden forbindelse bruger loginet. For Microsoft skal du fjerne OneUptime under kontoens **My Apps** (myapps.microsoft.com). At fjerne OneUptime fra din Zoom-konto i Zoom App Marketplace sletter dens login fra alle forbindelser, der er logget ind som den konto, og de viser **Virker ikke**, indtil de forbindes igen.
 
-Transskriptioner, som OneUptime allerede har læst, bliver på deres hændelser: At slette en forbindelse bevarer de opkald, den startede, med deres transskriptioner, og det samme gør det at fjerne OneUptime fra kontoen hos Zoom, Google eller Microsoft. **Fjern transskription** på et opkald sletter dets transskription og det, OneUptime AI læste i den, men ikke det, OneUptime AI postede i hændelsens feed og kanaler. At slette en hændelse sletter dens opkald og deres transskriptioner.
+At fjerne OneUptime fra din Zoom-konto sletter også inden for få minutter de opkaldstransskriptioner, OneUptime læste via dens login, og det, OneUptime AI læste i dem: fra deres opkald, fra hændelsernes feeds og fra de beskeder, OneUptime slog op i hændelsernes Slack-, Microsoft Teams- og Mattermost-kanaler. Hver hændelses feed siger det, og en transskription, som nogen har tilføjet, bliver. At slette en forbindelse bevarer de opkald, den startede, med deres transskriptioner, og det samme gør det at fjerne OneUptime fra en Google- eller Microsoft-konto. **Fjern transskription** på et opkald sletter dets transskription og det, OneUptime AI læste i den, de samme steder. Hvis OneUptime ikke længere kan slette en besked dér, fordi dens workspace blev afbrudt, eller appen blev fjernet fra kanalen, siger den, hvor beskeden bliver. En grundårsag eller et postmortem, som nogen skrev ud fra opkaldet, bliver. At slette en hændelse sletter dens opkald og deres transskriptioner.
 
 ### Hvis Microsoft beder om en administrator
 
@@ -100,7 +100,7 @@ For at forbinde med en tjenesteidentitet i stedet for en persons login — en Zo
 
 **Video Call**-kortet på en hændelses eller advarsels side har **Start call** (eller **Start another**, når der er et). Vælg en af projektets forbindelser, huddlen i hændelsens Slack-kanal, eller indsæt dit eget mødelink. Opkaldet slås op i hændelsens kanaler og feed, ligesom et, en regel starter.
 
-**Fjern** på kortet tager et opkald af hændelsens side. Selve mødet slettes ikke, og alle med linket kan stadig deltage i det.
+**Fjern** på kortet tager et opkald af hændelsens side, med dets transskription og det, OneUptime AI læste i den. Selve mødet slettes ikke, og alle med linket kan stadig deltage i det.
 
 At starte og fjerne opkald kræver rettighed til at arbejde med hændelser (eller advarsler): **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Hændelsesadministrator** eller **Hændelsesmedlem**, eller **Create Incident Video Call** og **Delete Incident Video Call** i en brugerdefineret rolle. Alle, der kan læse hændelsen, ser dens opkald.
 
@@ -152,7 +152,7 @@ At hente, tilføje, erstatte og fjerne en transskription, få den læst igen og 
 
 ### Hvad OneUptime AI læser
 
-At læse en transskription er AI-arbejde som en undersøgelse: Det kører kun, mens AI er slået til for projektet, og tæller med i projektets AI-forbrug og daglige grænser (se [Omkostningskontrol](/docs/ai/ai-sre#omkostningsstyring)). En lang transskription læses i dele. Når AI er slået fra, bevares transskriptionen, og kortet siger, at den ikke blev læst. At fjerne en transskription fjerner det, OneUptime AI læste i den, og bevarer hændelsens grundårsag. Et AI-udkast til postmortem læser også, hvad der blev sagt i hændelsens opkald (se [Postmortems](/docs/incidents/postmortems)).
+At læse en transskription er AI-arbejde som en undersøgelse: Det kører kun, mens AI er slået til for projektet, og tæller med i projektets AI-forbrug og daglige grænser (se [Omkostningskontrol](/docs/ai/ai-sre#omkostningsstyring)). En lang transskription læses i dele. Når AI er slået fra, bevares transskriptionen, og kortet siger, at den ikke blev læst. At fjerne en transskription fjerner det, OneUptime AI læste i den, fra opkaldet, hændelsens feed og dens kanaler, og bevarer hændelsens grundårsag. Et AI-udkast til postmortem læser også, hvad der blev sagt i hændelsens opkald (se [Postmortems](/docs/incidents/postmortems)).
 
 ## Udbydere
 

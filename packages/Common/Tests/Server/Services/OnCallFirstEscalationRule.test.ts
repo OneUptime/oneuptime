@@ -11,8 +11,8 @@ import {
  * A POLICY'S FIRST ESCALATION RULE IS ITS LOWEST PLACE (#9369).
  *
  * Rules written through the API or by Terraform keep the place they are
- * given (ContiguousOrder moves nothing to fill a place no rule held), so a
- * policy's only rule can be at 2. A new run looked for the rule at place 1,
+ * given, and a deleted rule leaves its gap (ContiguousOrder moves no other
+ * rule), so a policy's only rule can be at 2. A new run looked for the rule at place 1,
  * found none, and ended in "no escalation rules" - every run, while the
  * policy had one. A page again with no place of its own, the test page and
  * When this goes down read the first rule too, and all of them read it by

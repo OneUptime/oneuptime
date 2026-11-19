@@ -74,6 +74,7 @@ interface FixtureState {
     data: Record<string, unknown>;
   }>;
   deletes: Array<{ modelName: string; id: string }>;
+  apiRequests: Array<{ method: string; url: string; body: unknown }>;
   unhandled: Array<unknown>;
 }
 
@@ -83,7 +84,7 @@ interface OpenOptions {
   theme?: "dark" | undefined;
   role?: "viewer";
   targets?: "on";
-  lang?: "de" | "fa";
+  lang?: "de" | "fa" | undefined;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -1434,6 +1435,238 @@ test.describe("response targets", () => {
       page.getByText("Password spray against Okta from 203.0.113.47"),
     ).toBeVisible({ timeout: 30000 });
     await expect(lines).toHaveCount(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Why the case was opened, and what to do about it (#9556, #9557)
+ * ---------------------------------------------------------------------------
+ */
+
+function whyCard(page: Page): Locator {
+  return page.getByTestId("security-case-why-opened");
+}
+
+function responsePlan(page: Page): Locator {
+  return page.getByTestId("security-case-response-plan");
+}
+
+function planStep(page: Page, key: string): Locator {
+  return responsePlan(page).locator(
+    `[data-testid="security-case-response-step"][data-step-key="${key}"]`,
+  );
+}
+
+const BLOCK_STEP: string =
+  "Block 203.0.113.47 at your firewall, WAF or load balancer.";
+
+test.describe("why the case was opened, and what to do about it", () => {
+  test("the spray case's Overview names the rule that opened it, what it matched, each event whole a click away, and where to look next", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH);
+    const why: Locator = whyCard(page);
+
+    await expect(
+      why.getByTestId("security-case-why-opened-detection-title").first(),
+    ).toHaveText("Brute force from one IP address", { timeout: 30000 });
+    const matched: Locator = why.getByTestId(
+      "security-case-why-opened-matched",
+    );
+    await expect(matched).toContainText("412 events naming 203.0.113.47");
+    await expect(matched).toContainText("Fired 31 times");
+
+    // What matched: the first five, the rest a click away, how many in all.
+    const events: Locator = why.getByTestId("security-case-why-opened-event");
+    await expect(events).toHaveCount(5);
+    await expect(events.first()).toContainText(
+      "user.session.start FAILURE: INVALID_CREDENTIALS for j.wilson@acme-commerce.example from 203.0.113.47",
+    );
+    const showAll: Locator = why.getByTestId(
+      "security-case-why-opened-show-all",
+    );
+    await expect(showAll).toHaveAttribute("aria-expanded", "false");
+    await showAll.click();
+    await expect(events).toHaveCount(25);
+    await expect(showAll).toHaveAttribute("aria-expanded", "true");
+    await expect(why).toContainText("These are the first 25 of 412.");
+
+    // An event opens whole, in the Events explorer's panel, saying what matched it.
+    await events
+      .first()
+      .getByTestId("security-case-why-opened-event-text")
+      .click();
+    await expect(
+      page.getByText("Matched by", { exact: false }).filter({ visible: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // The case's other detections, each folded to a line.
+    const others: Locator = why.getByTestId("security-case-why-opened-others");
+    await expect(others).toContainText(
+      "Known-bad address 203.0.113.47 (Tor exit node)",
+    );
+    await expect(others).toContainText("Password spraying");
+
+    // Where to look next.
+    const lookNext: Locator = why.getByTestId(
+      "security-case-why-opened-look-next",
+    );
+    for (const text of [
+      "Everything about 203.0.113.47",
+      "Events naming 203.0.113.47",
+      "Log lines naming 203.0.113.47",
+      "The case's story",
+      "Connected signals",
+    ]) {
+      await expect(lookNext.getByText(text, { exact: true })).toBeVisible();
+    }
+
+    // One read of what the case's detections matched, by the case's id.
+    expect(
+      (await fixture(page)).apiRequests
+        .filter((request: { url: string }): boolean => {
+          return request.url.endsWith("/security-case-context/matches");
+        })
+        .map((request: { body: unknown }): unknown => {
+          return request.body;
+        }),
+    ).toEqual([{ caseId: caseIdOf(142) }]);
+  });
+
+  test("the Response Plan goes in the order a response goes; a step ticked off is a done task keyed by its step; a playbook run held for an approval is not done", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH);
+    const plan: Locator = responsePlan(page);
+    const phases: Locator = plan.getByTestId("security-case-response-phase");
+
+    await expect(phases).toHaveCount(4, { timeout: 30000 });
+    expect(
+      await phases.evaluateAll((sections: Array<Element>): Array<string> => {
+        return sections.map((section: Element): string => {
+          return section.getAttribute("data-phase") || "";
+        });
+      }),
+    ).toEqual(["Confirm", "Contain", "Fix", "Close"]);
+
+    // Blocking the address is done outside OneUptime.
+    const block: Locator = planStep(page, "contain:block-ip:203.0.113.47");
+    await expect(block).toContainText(BLOCK_STEP);
+    await expect(
+      block.getByTestId("security-case-response-step-by-hand"),
+    ).toContainText("Outside OneUptime");
+
+    // The accounts wait on the held run of Contain Compromised Okta Users.
+    const account: Locator = planStep(
+      page,
+      "contain:user:k.morgan@acme-commerce.example",
+    );
+    await expect(account).toContainText(
+      "Its run is waiting for approval on the case's Playbooks page.",
+    );
+    await expect(account).toHaveAttribute("data-done", "false");
+    await expect(
+      account.getByTestId("security-case-response-step-action"),
+    ).toHaveCount(0);
+
+    // Ticked off: a task on the case, done by the reader, keyed by the step.
+    await block.getByTestId("security-case-response-step-done").click();
+    await expect(block).toHaveAttribute("data-done", "true");
+    await expect(
+      block.getByTestId("security-case-response-step-done-line"),
+    ).toContainText("Done by Maya Chen");
+    expect(
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "SecurityCaseTask";
+        },
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: BLOCK_STEP,
+          responseStepKey: "contain:block-ip:203.0.113.47",
+          isDone: true,
+          securityCaseId: objectId(caseIdOf(142)),
+        }),
+      }),
+    ]);
+
+    // It is on the case's Tasks page, done.
+    await menuEntry(page, "Tasks").click();
+    await expect(taskRow(page, BLOCK_STEP)).toHaveAttribute(
+      "data-done",
+      "true",
+      { timeout: 30000 },
+    );
+  });
+
+  test("both cards fit at 1280, 1024, 768 and 390, in both themes, and read in German and right to left in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(240000);
+
+    const views: Array<{
+      width: number;
+      theme?: "dark" | undefined;
+      lang?: "de" | "fa" | undefined;
+      words?: { why: string; plan: string } | undefined;
+    }> = [
+      { width: 1280 },
+      { width: 1024 },
+      { width: 768 },
+      { width: 390 },
+      { width: 1280, theme: "dark" },
+      { width: 390, theme: "dark" },
+      {
+        width: 1280,
+        lang: "de",
+        words: {
+          why: "Warum dieser Fall eröffnet wurde",
+          plan: "Reaktionsplan",
+        },
+      },
+      {
+        width: 390,
+        lang: "fa",
+        words: { why: "چرا این پرونده باز شد", plan: "برنامهٔ پاسخ" },
+      },
+    ];
+
+    for (const view of views) {
+      const name: string = `case-why-and-plan-${view.width}${
+        view.theme ? `-${view.theme}` : ""
+      }${view.lang ? `-${view.lang}` : ""}`;
+
+      await open(page, SPRAY_CASE_PATH, {
+        width: view.width,
+        height: view.width === 390 ? 844 : 1000,
+        theme: view.theme,
+        lang: view.lang,
+      });
+      await expect(
+        whyCard(page).getByTestId("security-case-why-opened-event"),
+      ).toHaveCount(5, { timeout: 30000 });
+      await expect(
+        responsePlan(page).getByTestId("security-case-response-step").first(),
+      ).toBeVisible();
+
+      if (view.words) {
+        await expect(whyCard(page)).toContainText(view.words.why);
+        await expect(responsePlan(page)).toContainText(view.words.plan);
+      }
+
+      await expectNoSidewaysScroll(page, { tolerance: 1, message: name });
+      await screenshot(page, name);
+    }
   });
 });
 

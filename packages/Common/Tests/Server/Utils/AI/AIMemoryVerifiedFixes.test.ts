@@ -18,6 +18,11 @@ import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/Aut
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import {
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../Helpers/ReadAudienceFixtures";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import {
   afterEach,
@@ -51,6 +56,8 @@ import type { SpyInstance } from "jest-mock";
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-eeee-4aaa-8bbb-000000000001",
 );
+// Everyone who may see the subject, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({ projectId: PROJECT_ID });
 const CURRENT_INCIDENT: ObjectID = new ObjectID(
   "0193c0de-eeee-4aaa-8bbb-000000000002",
 );
@@ -186,6 +193,7 @@ async function remember(
   monitorNames: Array<string> = ["checkout-api"],
 ): Promise<string> {
   return await AIMemory.getPriorSimilarIncidentsContext({
+    readAudience: READERS,
     projectId: PROJECT_ID,
     currentIncidentId: CURRENT_INCIDENT,
     monitorNames,
@@ -336,7 +344,7 @@ describe("how OneUptime AI fixed them", () => {
       incidentId(3),
     ]);
     expect(read.sort).toEqual({ createdAt: "DESC" });
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual(readAudienceProps(READERS));
   });
 
   test("the newest verified fix speaks for its incident", async () => {
@@ -470,6 +478,7 @@ describe("one fix in a line", () => {
   test("no incident ids: nothing is read", async () => {
     expect(
       await AIMemory.readVerifiedFixes({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         incidentIds: [],
       }),

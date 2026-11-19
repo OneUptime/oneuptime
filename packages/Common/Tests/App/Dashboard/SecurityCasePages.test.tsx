@@ -87,6 +87,50 @@ jest.mock(
 );
 
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseWhyOpenedCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        record("SecurityCaseWhyOpenedCard", props);
+        return React.createElement("div", { "data-testid": "why-opened" });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponsePlanCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        record("SecurityCaseResponsePlanCard", props);
+        return React.createElement("div", { "data-testid": "response-plan" });
+      },
+    };
+  },
+);
+
+/*
+ * What the case's detections matched, as the Overview reads it once for
+ * the Why card and the Response Plan: answered here with what the calls
+ * name, so a test reads what it was asked for.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Matches/useSecurityCaseMatches",
+  () => {
+    return {
+      __esModule: true,
+      default: (caseId: unknown, refreshToken: unknown): unknown => {
+        record("useSecurityCaseMatches", { caseId, refreshToken });
+        return MATCHES_STATE;
+      },
+    };
+  },
+);
+
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseFeed",
   () => {
     const ReactModule: typeof import("react") = jest.requireActual(
@@ -213,6 +257,7 @@ import SecurityCaseCustomField from "../../../Models/DatabaseModels/SecurityCase
 import SecurityCaseNote from "../../../Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseNoteTemplate from "../../../Models/DatabaseModels/SecurityCaseNoteTemplate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import UserUtil from "../../../UI/Utils/User";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
@@ -237,6 +282,17 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 refuseRequestsTo(["/security-case-context/impact"]);
 
 const CASE_ID: string = "20000000-0000-4000-8000-000000000142";
+
+// What the Overview's one read of the case's matches answers in these tests.
+const MATCHES_STATE: {
+  matches: { detections: Array<unknown>; detectionCount: number };
+  error: string;
+  reread: () => void;
+} = {
+  matches: { detections: [], detectionCount: 0 },
+  error: "",
+  reread: (): void => {},
+};
 const PLAYBOOK_ID: string = "24000000-0000-4000-8000-000000000003";
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 
@@ -279,6 +335,8 @@ interface ContextHandlers {
   updateCase: MockFunction;
   runPlaybook: MockFunction;
   requestDelete: MockFunction;
+  requestDeclareIncident: MockFunction;
+  requestClose: MockFunction;
 }
 
 let handlers: ContextHandlers;
@@ -302,6 +360,9 @@ function contextFor(
     runPlaybook:
       handlers.runPlaybook as unknown as SecurityCaseViewContext["runPlaybook"],
     requestDelete: handlers.requestDelete as unknown as () => void,
+    requestDeclareIncident:
+      handlers.requestDeclareIncident as unknown as () => void,
+    requestClose: handlers.requestClose as unknown as () => void,
     ...fields,
   };
 }
@@ -348,6 +409,8 @@ beforeEach(() => {
     updateCase: getJestMockFunction(),
     runPlaybook: getJestMockFunction(),
     requestDelete: getJestMockFunction(),
+    requestDeclareIncident: getJestMockFunction(),
+    requestClose: getJestMockFunction(),
   };
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
 });
@@ -358,6 +421,92 @@ afterEach(() => {
 });
 
 describe("the Overview", () => {
+  /*
+   * Why the case was opened and what to do about it, under its figures
+   * (#9556, #9557): one read of what its detections matched, handed to both.
+   */
+  test("answers why the case was opened, then what to do about it, before OneUptime AI's read", () => {
+    drawPage(
+      <SecurityCaseOverviewPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const why: HTMLElement = screen.getByTestId("why-opened");
+    const plan: HTMLElement = screen.getByTestId("response-plan");
+    const ai: HTMLElement = screen.getByTestId("ai-card");
+
+    expect(
+      why.compareDocumentPosition(plan) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      plan.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("reads what the case's detections matched once, again with the case, for the Why card and the Response Plan", () => {
+    const context: SecurityCaseViewContext = contextFor(buildCase(), {
+      refreshToggle: "after-a-detection",
+    });
+
+    drawPage(<SecurityCaseOverviewPage {...PAGE_PROPS} />, context);
+
+    const read: Record<string, unknown> = lastProps("useSecurityCaseMatches");
+
+    expect(String(read["caseId"])).toBe(CASE_ID);
+    expect(read["refreshToken"]).toBe("after-a-detection");
+    expect(lastProps("SecurityCaseWhyOpenedCard")["state"]).toBe(MATCHES_STATE);
+    expect(String(lastProps("SecurityCaseWhyOpenedCard")["caseId"])).toBe(
+      CASE_ID,
+    );
+
+    const plan: Record<string, unknown> = lastProps(
+      "SecurityCaseResponsePlanCard",
+    );
+
+    expect(plan["matches"]).toBe(MATCHES_STATE.matches);
+    expect(plan["securityCase"]).toBe(context.securityCase);
+    expect(plan["values"]).toBe(context.values);
+    expect(plan["refreshToggle"]).toBe("after-a-detection");
+  });
+
+  test("the Response Plan's buttons press what the case's header presses", () => {
+    jest
+      .spyOn(UserUtil, "getUserId")
+      .mockReturnValue(new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-000000000001"));
+
+    drawPage(
+      <SecurityCaseOverviewPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const plan: Record<string, unknown> = lastProps(
+      "SecurityCaseResponsePlanCard",
+    );
+
+    (plan["onAssignToMe"] as () => void)();
+    expect(handlers.updateCase).toHaveBeenCalledWith({
+      assignedToUserId: "aaaaaaaa-aaaa-4aaa-8aaa-000000000001",
+    });
+
+    (plan["onMarkContained"] as () => void)();
+    expect(handlers.updateCase).toHaveBeenCalledWith({
+      securityCaseStatusId: testStatusId(
+        SecurityCaseStage.Contained,
+      ).toString(),
+    });
+
+    (plan["onRunPlaybook"] as (id: ObjectID) => void)(
+      new ObjectID(PLAYBOOK_ID),
+    );
+    expect(String(handlers.runPlaybook.mock.calls[0]![0])).toBe(PLAYBOOK_ID);
+
+    (plan["onDeclareIncident"] as () => void)();
+    expect(handlers.requestDeclareIncident).toHaveBeenCalledTimes(1);
+
+    (plan["onCloseCase"] as () => void)();
+    expect(handlers.requestClose).toHaveBeenCalledTimes(1);
+  });
+
   test("leads with the case's figures: its detections, and how long it has been open, to acknowledge and to contain", () => {
     drawPage(
       <SecurityCaseOverviewPage {...PAGE_PROPS} />,

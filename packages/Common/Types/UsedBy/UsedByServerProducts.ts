@@ -101,6 +101,7 @@ export const USED_BY_ROW_KIND_PRODUCTS: Readonly<
   [UsedByRowKind.RumApplication]: ProductKey.Rum,
   [UsedByRowKind.DataStore]: ProductKey.DataObservability,
   [UsedByRowKind.DataAsset]: ProductKey.DataObservability,
+  [UsedByRowKind.DataPipeline]: ProductKey.DataObservability,
   [UsedByRowKind.Probe]: ProductKey.Monitors,
   [UsedByRowKind.Runner]: ProductKey.Runbooks,
   // An AI agent belongs to the project, beside the resources it reads.

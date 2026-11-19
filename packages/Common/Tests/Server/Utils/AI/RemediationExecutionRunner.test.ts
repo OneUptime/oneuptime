@@ -70,6 +70,8 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * Who declares a kubectl change's object is read through the cluster too
@@ -77,6 +79,18 @@ import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspe
  * RemediationCommandToolsGitOps.test.ts cover it); these tests count only
  * the changes themselves.
  */
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+});
+
 beforeEach(() => {
   jest.spyOn(GitOpsInspector, "inspectCommand").mockResolvedValue(null);
   jest.spyOn(GitOpsInspector, "captureRevertWatch").mockResolvedValue(null);

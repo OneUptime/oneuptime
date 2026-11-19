@@ -1,0 +1,149 @@
+/*
+ * THE RECORDS A TELEMETRY SCAN FOUND A FINDING'S DATA IN.
+ *
+ * A telemetry finding - a data type at a location of one service's logs,
+ * traces, exceptions, AI conversations or session replays - comes from a
+ * sample: the newest records of the hour before a scan. The scan keeps, with
+ * the finding, which of those records held the data type
+ * (DataStoreFinding.sampleRecords), so the issue's page reads exactly those
+ * records again when a person asks where it was found (issue #9549), instead
+ * of searching for them among everything the service wrote since.
+ *
+ * A reference is when the record was written, to the millisecond - the
+ * primary key's own column, so the read is a lookup, not a search - and the
+ * keys that tell it from its neighbours of the same millisecond: its trace
+ * and span, its session. Never a value: what the record holds is read from
+ * the telemetry itself, by someone who may read that telemetry.
+ */
+
+// The most records one finding keeps: as many as its records list shows.
+export const MAX_FINDING_SAMPLE_RECORDS: number = 10;
+
+// The longest a kept trace, span or session id may be.
+export const MAX_SAMPLE_RECORD_ID_LENGTH: number = 128;
+
+export interface FindingSampleRecord {
+  // When the record was written (ISO 8601, to the millisecond).
+  time: string;
+  traceId?: string | undefined;
+  spanId?: string | undefined;
+  sessionId?: string | undefined;
+}
+
+type SampleRecordIdKey = "traceId" | "spanId" | "sessionId";
+
+const ID_KEYS: ReadonlyArray<SampleRecordIdKey> = [
+  "traceId",
+  "spanId",
+  "sessionId",
+];
+
+function readId(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed: string = value.trim();
+
+  return trimmed.length <= MAX_SAMPLE_RECORD_ID_LENGTH ? trimmed : "";
+}
+
+function readTime(value: unknown): Date | null {
+  const time: Date =
+    typeof value === "number"
+      ? new Date(value)
+      : new Date(typeof value === "string" ? value : NaN);
+
+  return Number.isFinite(time.getTime()) && time.getTime() > 0 ? time : null;
+}
+
+/*
+ * A record as a reference: its time (a Date, milliseconds since the epoch,
+ * or ISO text) and the ids it has. Null without a time it was written.
+ */
+export function toFindingSampleRecord(data: {
+  time: unknown;
+  traceId?: unknown;
+  spanId?: unknown;
+  sessionId?: unknown;
+}): FindingSampleRecord | null {
+  const time: Date | null =
+    data.time instanceof Date
+      ? readTime(data.time.getTime())
+      : readTime(data.time);
+
+  if (!time) {
+    return null;
+  }
+
+  const record: FindingSampleRecord = { time: time.toISOString() };
+
+  for (const key of ID_KEYS) {
+    const id: string = readId(data[key]);
+
+    if (id) {
+      record[key] = id;
+    }
+  }
+
+  return record;
+}
+
+// What tells two references apart: the same record is kept once.
+export function getFindingSampleRecordKey(record: FindingSampleRecord): string {
+  return [
+    record.time,
+    record.traceId || "",
+    record.spanId || "",
+    record.sessionId || "",
+  ].join("|");
+}
+
+/*
+ * A finding's kept references as its JSON column holds them, read
+ * defensively: each one a record with a time, the same record once, at most
+ * MAX_FINDING_SAMPLE_RECORDS, in the order the scan kept them (the newest
+ * first). Anything else - a row from before the column, a value someone
+ * wrote by hand - reads as none.
+ */
+export function readFindingSampleRecords(
+  value: unknown,
+): Array<FindingSampleRecord> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const records: Array<FindingSampleRecord> = [];
+  const seen: Set<string> = new Set();
+
+  for (const item of value) {
+    if (records.length >= MAX_FINDING_SAMPLE_RECORDS) {
+      break;
+    }
+
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const entry: Record<string, unknown> = item as Record<string, unknown>;
+    const record: FindingSampleRecord | null = toFindingSampleRecord({
+      time: entry["time"],
+      traceId: entry["traceId"],
+      spanId: entry["spanId"],
+      sessionId: entry["sessionId"],
+    });
+
+    if (!record) {
+      continue;
+    }
+
+    const key: string = getFindingSampleRecordKey(record);
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      records.push(record);
+    }
+  }
+
+  return records;
+}

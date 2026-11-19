@@ -113,6 +113,17 @@ async function serverWith(
   const sentErrors: Array<Exception> = [];
 
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+  /*
+   * The session a genuine token names is live (what an ended one does is
+   * EndedSessionAccessToken.test.ts), on this server's own copy of the
+   * service, loaded afresh with it.
+   */
+  const UserSessionService: AnyClass = (
+    await import("../../../Server/Services/UserSessionService")
+  ).default;
+  jest
+    .spyOn(UserSessionService, "isSessionLive")
+    .mockResolvedValue(true as never);
   // The master admin a genuine session names is one still.
   jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true as never);
   jest

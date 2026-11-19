@@ -1131,6 +1131,16 @@ describe("a rule created with the next person in a rotation", () => {
         counted++;
         return new PositiveNumber(1);
       }) as never);
+    // The policy's last rule, at 1: a rule created without a number goes after it.
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .mockImplementation((async () => {
+        counted++;
+        const last: OnCallDutyPolicyEscalationRule =
+          new OnCallDutyPolicyEscalationRule();
+        last.order = 1;
+        return last;
+      }) as never);
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
       .mockResolvedValue([] as never);

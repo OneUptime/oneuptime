@@ -26,7 +26,7 @@ Cliquez sur votre photo en haut à droite du tableau de bord.
 | **Profil** | Ouvre **Profil utilisateur** : votre nom, votre adresse e-mail, votre fuseau horaire, votre langue, votre photo et la sécurité de votre connexion. |
 | **Paramètres admin** | Ouvre l'Admin Dashboard. Seuls les administrateurs principaux d'une installation auto-hébergée le voient. |
 | **Thème** | Règle le thème du tableau de bord : **Clair**, **Sombre** ou **Système**, qui est clair ou sombre selon le réglage de votre appareil. |
-| **Se déconnecter** | Vous déconnecte. |
+| **Se déconnecter** | Vous déconnecte, aussitôt sur chaque serveur OneUptime. Là où votre administrateur l'a prévu, vous déconnecte aussi de votre fournisseur d'identité. |
 
 **Profil utilisateur** a son propre menu latéral. **Basique** contient **Vue d'ensemble** et **Photo de profil**. **Sécurité** et **Zone de danger** sont repliées : cliquez sur le titre d'une section pour l'ouvrir.
 

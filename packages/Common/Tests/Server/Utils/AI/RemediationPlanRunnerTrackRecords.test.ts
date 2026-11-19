@@ -34,6 +34,8 @@ import {
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * Contract under test - a runbook OneUptime AI proposes carries how it went
@@ -124,6 +126,10 @@ function mockRound(data: {
   };
 
   jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+  // Who reads the pick (#9612): a project whose roles narrow nobody.
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
   jest
     .spyOn(AutoRemediationSuggestionService, "findOneById")
     .mockResolvedValue({

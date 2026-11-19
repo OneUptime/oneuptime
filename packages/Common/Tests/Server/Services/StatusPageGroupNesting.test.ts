@@ -2,7 +2,6 @@ import StatusPageGroupService from "../../../Server/Services/StatusPageGroupServ
 import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import StatusPageGroupTreeUtil from "../../../Utils/StatusPage/GroupTree";
@@ -95,9 +94,20 @@ function mockService(data: {
       return data.groupsMatchedByUpdate || [];
     });
 
+  // The last numbered group of the page, which a group created without a number goes after.
   jest
-    .spyOn(StatusPageGroupService, "countBy")
-    .mockResolvedValue(new PositiveNumber(data.groupsOnStatusPage.length));
+    .spyOn(StatusPageGroupService, "findOneBy")
+    .mockImplementation(async () => {
+      return (
+        data.groupsOnStatusPage
+          .filter((group: StatusPageGroup) => {
+            return typeof group.order === "number";
+          })
+          .sort((a: StatusPageGroup, b: StatusPageGroup) => {
+            return b.order! - a.order!;
+          })[0] || null
+      );
+    });
 
   jest.spyOn(StatusPageGroupService, "updateOneBy").mockResolvedValue(1);
 }
@@ -525,7 +535,10 @@ describe("StatusPageGroupService nesting rules, under either name of a reference
   });
 
   it("takes a status page named by the relation alone, and numbers the group on it", async () => {
-    mockService({ groupsOnStatusPage: [makeGroup({ id: groupId(1) })] });
+    // The page's last group is at 4 (a gap before it): the new one goes after it.
+    const lastGroup: StatusPageGroup = makeGroup({ id: groupId(1) });
+    lastGroup.order = 4;
+    mockService({ groupsOnStatusPage: [lastGroup] });
 
     const create: CreateBy<StatusPageGroup> = createByRelation({
       statusPage: STATUS_PAGE_ID,
@@ -540,13 +553,13 @@ describe("StatusPageGroupService nesting rules, under either name of a reference
     expect(
       String(
         (
-          (StatusPageGroupService.countBy as jest.Mock).mock.calls[0]![0] as {
+          (StatusPageGroupService.findOneBy as jest.Mock).mock.calls[0]![0] as {
             query: { statusPageId: ObjectID };
           }
         ).query.statusPageId,
       ),
     ).toBe(STATUS_PAGE_ID.toString());
-    expect(create.data.order).toBe(2);
+    expect(create.data.order).toBe(5);
   });
 
   it("refuses a parent named differently under its two names", async () => {

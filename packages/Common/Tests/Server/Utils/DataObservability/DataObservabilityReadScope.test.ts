@@ -24,6 +24,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 
 /*
  * WHAT A CALLER MAY READ, FOR DATA OBSERVABILITY'S OWN ROUTES (#6553).
@@ -413,5 +414,105 @@ describe("what nobody in particular may read (nobodyInParticular)", () => {
     ]);
     expect(read.props).toEqual({ isRoot: true });
     expect(Object.keys(scope.assetQuery).sort()).toEqual(["_id", "projectId"]);
+  });
+});
+
+/*
+ * WHAT EVERYONE WHO MAY SEE A DATA ALERT MAY READ (#9576): nobody in
+ * particular, made exact for a project that narrows nobody. An
+ * investigation knows which kinds some team, custom role or API key reads
+ * only by owner or label (ReadAudience): tables and pipelines nobody is
+ * narrowed on are read whole, and the others by the owners or the labels
+ * that narrow somebody, beside what the alert names itself.
+ */
+describe("what everyone who may see a data alert may read (forAudience)", () => {
+  const TABLE_ID: string = '"DataAsset"."_id"';
+  const UNOWNED_TABLE: string =
+    '(NOT EXISTS (SELECT 1 FROM "DataAssetOwnerUser" WHERE "DataAssetOwnerUser"."dataAssetId" = "DataAsset"."_id" AND "DataAssetOwnerUser"."deletedAt" IS NULL) AND NOT EXISTS (SELECT 1 FROM "DataAssetOwnerTeam" WHERE "DataAssetOwnerTeam"."dataAssetId" = "DataAsset"."_id" AND "DataAssetOwnerTeam"."deletedAt" IS NULL))';
+  const UNLABELLED_TABLE: string =
+    '("DataAsset"."_id" NOT IN (SELECT "DataAssetLabel"."dataAssetId" FROM "DataAssetLabel" WHERE "DataAssetLabel"."dataAssetId" IS NOT NULL))';
+
+  function sqlOf(condition: unknown, alias: string): string {
+    expect(condition).toBeInstanceOf(FindOperator);
+
+    return (condition as FindOperator<unknown>).getSql!(alias);
+  }
+
+  function audience(data: Partial<ReadAudience>): ReadAudience {
+    return {
+      _type: "ReadAudience",
+      projectId: PROJECT.toString(),
+      ownedOnlyPermissions: [],
+      labelledPermissions: [],
+      named: {},
+      telemetryBlockedIds: [],
+      ...data,
+    };
+  }
+
+  test("a project whose roles narrow nobody reads every table and pipeline, as before #9562", () => {
+    expect(DataObservabilityReadScope.forAudience(audience({}))).toEqual(
+      DataObservabilityReadScope.wholeProject(PROJECT),
+    );
+  });
+
+  test("tables read only for some labels: as the label rule weighs a table, by its database's labels; pipelines whole", () => {
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.forAudience(
+        audience({ labelledPermissions: [Permission.ReadDataAsset] }),
+      );
+    const sql: string = sqlOf(scope.assetQuery._id, TABLE_ID);
+
+    expect(scope.isWholeProject).toBe(false);
+    /*
+     * A table carries no labels of its own for the label rule: a grant
+     * limited to labels reaches it through the database it is in.
+     */
+    expect(sql).toContain(
+      '"DataAsset"."dataStoreId" IS NULL OR "DataAsset"."dataStoreId" NOT IN (SELECT',
+    );
+    expect(sql).toContain('FROM "DataStore" "record');
+    expect(sql).toContain('NOT IN (SELECT "DataStoreLabel"."dataStoreId"');
+    expect(sql).not.toContain(UNLABELLED_TABLE);
+    expect(scope.pipelineQuery).toEqual({ projectId: PROJECT });
+  });
+
+  test("tables read only by owner: none an owner sets apart, whatever labels they carry", () => {
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.forAudience(
+        audience({ ownedOnlyPermissions: [Permission.ReadDataAsset] }),
+      );
+
+    expect(sqlOf(scope.assetQuery._id, TABLE_ID)).toContain(UNOWNED_TABLE);
+    expect(
+      sqlOf(scope.checkQuery.dataAssetId, '"DataCheck"."dataAssetId"'),
+    ).toContain('FROM "DataAsset" "record');
+  });
+
+  test("the alert's own table is read whoever owns it", () => {
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.forAudience(
+        audience({
+          ownedOnlyPermissions: [Permission.ReadDataAsset],
+          named: { DataAsset: [TABLE_OWNED] },
+        }),
+      );
+
+    expect(sqlOf(scope.assetQuery._id, TABLE_ID)).toContain(
+      '"DataAsset"."_id" IN (:...',
+    );
+  });
+
+  test("a run of OneUptime's own reads for its audience when it carries one, else as nobody in particular", () => {
+    expect(
+      DataObservabilityReadScope.forRootRun(PROJECT, {
+        isRoot: true,
+        readAudience: audience({}),
+      }),
+    ).toEqual(DataObservabilityReadScope.wholeProject(PROJECT));
+    expect(
+      DataObservabilityReadScope.forRootRun(PROJECT, { isRoot: true })
+        .isWholeProject,
+    ).toBe(false);
   });
 });

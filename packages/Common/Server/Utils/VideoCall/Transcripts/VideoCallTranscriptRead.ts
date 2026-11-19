@@ -19,6 +19,13 @@ export type VideoCallTranscriptRead =
       found: true;
       lines: Array<TranscriptLine>;
       format: TranscriptSourceFormat;
+      /*
+       * The account at the provider (a Zoom user ID) whose sign-in read
+       * it, when a connection made by signing in did: kept with the
+       * transcript, so that the account removing OneUptime deletes it
+       * (IncidentCallTranscriptRemoval). Absent for a project's own app.
+       */
+      signInAccountId?: string | undefined;
     }
   | {
       found: false;

@@ -370,7 +370,7 @@ describe("the English docs quote sign in and sign out", () => {
     };
 
     expect(say("introduction/your-account.md")).toContain(
-      "| **Sign Out** | Signs you out. |",
+      "| **Sign Out** | Signs you out, at once on every OneUptime server.",
     );
     expect(say("status-pages/index.md")).toContain(
       "A private page also gets a **Sign Out** item.",

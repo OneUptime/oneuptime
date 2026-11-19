@@ -72,6 +72,14 @@ export interface FieldClassification extends DataTypeTallyJSON {
   isAiSuggested?: boolean | undefined;
   // Why OneUptime AI suggested it, in a sentence.
   aiReason?: string | undefined;
+  /*
+   * Where the first values that held this type are among the values the
+   * field was classified from - indexes into them as given, empty ones
+   * counted - at most maxMatchedValueIndexes, in the order given. A test
+   * value is never one. Only when asked for: the telemetry scan keeps the
+   * records those values came from (FindingSampleRecord).
+   */
+  matchedValueIndexes?: Array<number> | undefined;
 }
 
 export interface FieldClassifierOptions extends TextScanOptions {
@@ -79,6 +87,11 @@ export interface FieldClassifierOptions extends TextScanOptions {
   extraHints?:
     | ReadonlyArray<{ dataTypeId: string; hints: ReadonlyArray<string> }>
     | undefined;
+  /*
+   * How many of the values that held each type to name in
+   * matchedValueIndexes. None are named when absent or 0.
+   */
+  maxMatchedValueIndexes?: number | undefined;
 }
 
 // A value as text, or null when it holds nothing to classify.
@@ -156,22 +169,63 @@ export function classifyField(
   options: FieldClassifierOptions = {},
 ): Array<FieldClassification> {
   const values: Array<string> = [];
+  // Where each value read sits among the raw values: empty ones are skipped.
+  const rawIndexes: Array<number> = [];
 
-  for (const raw of rawValues) {
+  for (let rawIndex: number = 0; rawIndex < rawValues.length; rawIndex++) {
     if (values.length >= MAX_FIELD_VALUES) {
       break;
     }
 
-    const value: string | null = toScannableValue(raw);
+    const value: string | null = toScannableValue(rawValues[rawIndex]);
 
     if (value !== null) {
       values.push(value);
+      rawIndexes.push(rawIndex);
     }
   }
 
   if (values.length === 0) {
     return [];
   }
+
+  const maxMatchedValueIndexes: number = Math.max(
+    0,
+    Math.trunc(options.maxMatchedValueIndexes || 0),
+  );
+  // The raw indexes of the values that held each type, while asked for.
+  const matchedValueIndexes: Map<string, Array<number>> = new Map();
+
+  const noteMatchedValue: (dataTypeId: string, valueIndex: number) => void = (
+    dataTypeId: string,
+    valueIndex: number,
+  ): void => {
+    if (maxMatchedValueIndexes === 0) {
+      return;
+    }
+
+    const indexes: Array<number> = matchedValueIndexes.get(dataTypeId) || [];
+
+    if (indexes.length < maxMatchedValueIndexes) {
+      indexes.push(rawIndexes[valueIndex]!);
+      matchedValueIndexes.set(dataTypeId, indexes);
+    }
+  };
+
+  const withMatchedValueIndexes: (
+    classification: FieldClassification,
+  ) => FieldClassification = (
+    classification: FieldClassification,
+  ): FieldClassification => {
+    return maxMatchedValueIndexes > 0
+      ? {
+          ...classification,
+          matchedValueIndexes: [
+            ...(matchedValueIndexes.get(classification.dataTypeId) || []),
+          ],
+        }
+      : classification;
+  };
 
   const hinted: Set<string> = getHintedDataTypeIds(
     fieldPath,
@@ -231,7 +285,8 @@ export function classifyField(
     }
   }
 
-  for (const value of values) {
+  for (let valueIndex: number = 0; valueIndex < values.length; valueIndex++) {
+    const value: string = values[valueIndex]!;
     const matches: Array<TextMatch> = findSensitiveValues(value, scanOptions);
     // Types with a real match in the value, which its ratio counts.
     const typesInValue: Set<string> = new Set();
@@ -287,6 +342,7 @@ export function classifyField(
         dataTypeId,
         (valuesWithMatch.get(dataTypeId) || 0) + 1,
       );
+      noteMatchedValue(dataTypeId, valueIndex);
     }
   }
 
@@ -298,19 +354,21 @@ export function classifyField(
     const ratio: number = withMatch / values.length;
     const nameHinted: boolean = hinted.has(tally.dataTypeId);
 
-    results.push({
-      ...json,
-      confidence:
-        isFreeText || json.matchCount === 0
-          ? json.confidence
-          : confidenceForRatio(ratio, nameHinted),
-      matchRatio: ratio,
-      valueCount: values.length,
-      valuesWithMatch: withMatch,
-      isFreeText,
-      nameHinted,
-      foundByName: false,
-    });
+    results.push(
+      withMatchedValueIndexes({
+        ...json,
+        confidence:
+          isFreeText || json.matchCount === 0
+            ? json.confidence
+            : confidenceForRatio(ratio, nameHinted),
+        matchRatio: ratio,
+        valueCount: values.length,
+        valuesWithMatch: withMatch,
+        isFreeText,
+        nameHinted,
+        foundByName: false,
+      }),
+    );
   }
 
   // Types found from names only.
@@ -325,9 +383,12 @@ export function classifyField(
     let plausible: number = 0;
     const samples: Array<string> = [];
 
-    for (const value of values) {
+    for (let valueIndex: number = 0; valueIndex < values.length; valueIndex++) {
+      const value: string = values[valueIndex]!;
+
       if (!shape || shape.test(value)) {
         plausible++;
+        noteMatchedValue(dataTypeId, valueIndex);
 
         if (samples.length < 3) {
           const masked: string = maskValue(dataTypeId, value);
@@ -345,22 +406,24 @@ export function classifyField(
 
     const ratio: number = plausible / values.length;
 
-    results.push({
-      dataTypeId,
-      matchCount: plausible,
-      testValueCount: 0,
-      confidence:
-        shape && ratio >= 0.6 ? DataConfidence.High : DataConfidence.Medium,
-      maskedSamples: samples,
-      distinctValues: new Set(values).size,
-      distinctValuesCapped: false,
-      matchRatio: ratio,
-      valueCount: values.length,
-      valuesWithMatch: plausible,
-      isFreeText,
-      nameHinted: true,
-      foundByName: true,
-    });
+    results.push(
+      withMatchedValueIndexes({
+        dataTypeId,
+        matchCount: plausible,
+        testValueCount: 0,
+        confidence:
+          shape && ratio >= 0.6 ? DataConfidence.High : DataConfidence.Medium,
+        maskedSamples: samples,
+        distinctValues: new Set(values).size,
+        distinctValuesCapped: false,
+        matchRatio: ratio,
+        valueCount: values.length,
+        valuesWithMatch: plausible,
+        isFreeText,
+        nameHinted: true,
+        foundByName: true,
+      }),
+    );
   }
 
   return results;

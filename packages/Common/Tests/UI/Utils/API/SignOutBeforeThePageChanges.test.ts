@@ -94,8 +94,8 @@ async function flushWithoutTheClock(): Promise<void> {
 
 // What the Sign Out pages of the Dashboard and the Admin Dashboard do.
 async function signOutAsTheSignOutPagesDo(): Promise<void> {
-  await User.logout();
-  Navigation.navigate(ACCOUNTS_URL);
+  const identityProviderSignOutUrl: URL | null = await User.logout();
+  Navigation.navigate(identityProviderSignOutUrl || ACCOUNTS_URL);
 }
 
 // A session the server ended: a request refused, and the renewal it asks for refused too.
@@ -216,7 +216,7 @@ describe("Sign Out on the Dashboard and the Admin Dashboard", () => {
     localStorage.setItem("user_email", "ada@example.com");
     expect(User.isLoggedIn()).toBe(true);
 
-    const signingOut: Promise<void> = User.logout();
+    const signingOut: Promise<URL | null> = User.logout();
 
     expect(User.isLoggedIn()).toBe(false);
 
@@ -254,7 +254,7 @@ describe("Sign Out on the Dashboard and the Admin Dashboard", () => {
       { status: 200, gate: gate.promise },
     ]);
 
-    const signingOut: Promise<void> = User.logout();
+    const signingOut: Promise<URL | null> = User.logout();
     Navigation.navigate(ACCOUNTS_URL);
 
     gate.open();

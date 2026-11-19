@@ -18,6 +18,10 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import AIMemory from "./AIMemory";
+import ServiceService from "../../../Services/ServiceService";
+import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 
 /*
  * AI SRE - what OneUptime AI has learned about each service (issue #6798).
@@ -48,8 +52,13 @@ import AIMemory from "./AIMemory";
  *
  * What it never reads: a private incident or alert (its title and cause
  * would reach the subject's report, which everyone who can see the subject
- * reads), a record of another project, or the subject itself. Every read is
- * bounded, and nothing here throws: knowledge is a help, not load-bearing.
+ * reads), a record of another project, or the subject itself. Nor, where
+ * some role reads them only by owner or label, a service, monitor,
+ * incident or alert set apart from somebody who reads the report: every
+ * read is made for the subject's readers (readAudience, #9576), and a
+ * monitor's service the subject does not name is kept only when they may
+ * read it. Every read is bounded, and nothing here throws: knowledge is a
+ * help, not load-bearing.
  */
 
 export const SERVICE_KNOWLEDGE_HEADING: string =
@@ -127,6 +136,8 @@ export default class ServiceKnowledge {
     services: Array<NamedService>;
     excludeIncidentId?: ObjectID | undefined;
     excludeAlertId?: ObjectID | undefined;
+    // Everyone who may see the subject: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<string> {
     if (data.services.length === 0) {
       return "";
@@ -152,6 +163,7 @@ export default class ServiceKnowledge {
   public static async readServicesOfIncident(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
+    readAudience: ReadAudience;
   }): Promise<Array<NamedService>> {
     try {
       const incident: Incident | null = await IncidentService.findOneBy({
@@ -164,7 +176,7 @@ export default class ServiceKnowledge {
           services: { _id: true, name: true },
           monitors: { _id: true },
         },
-        props: { isRoot: true },
+        props: ReadAudiencePermission.getReadProps(data.readAudience),
       });
 
       if (!incident) {
@@ -175,6 +187,7 @@ export default class ServiceKnowledge {
         incident.services || [],
         await ServiceKnowledge.readServicesOfMonitors({
           projectId: data.projectId,
+          readAudience: data.readAudience,
           monitorIds: (incident.monitors || [])
             .map((monitor: Monitor): ObjectID | undefined => {
               return monitor.id || undefined;
@@ -201,6 +214,7 @@ export default class ServiceKnowledge {
     projectId: ObjectID;
     services: Array<Service> | undefined;
     monitorId: ObjectID | undefined;
+    readAudience: ReadAudience;
   }): Promise<Array<NamedService>> {
     let monitorServices: Array<Service> = [];
 
@@ -209,6 +223,7 @@ export default class ServiceKnowledge {
         monitorServices = await ServiceKnowledge.readServicesOfMonitors({
           projectId: data.projectId,
           monitorIds: [data.monitorId],
+          readAudience: data.readAudience,
         });
       } catch (error) {
         logger.error(
@@ -227,6 +242,7 @@ export default class ServiceKnowledge {
     services: Array<NamedService>;
     excludeIncidentId?: ObjectID | undefined;
     excludeAlertId?: ObjectID | undefined;
+    readAudience: ReadAudience;
   }): Promise<Array<ServiceLessons>> {
     const services: Array<NamedService> = data.services.slice(0, MAX_SERVICES);
 
@@ -254,7 +270,7 @@ export default class ServiceKnowledge {
       select: { _id: true, services: { _id: true } },
       limit: MAX_MONITORS_READ,
       skip: 0,
-      props: { isRoot: true },
+      props: ReadAudiencePermission.getReadProps(data.readAudience),
     });
 
     const servicesByMonitor: Map<string, Set<string>> = new Map<
@@ -285,6 +301,7 @@ export default class ServiceKnowledge {
       await Promise.all([
         ServiceKnowledge.readIncidents({
           projectId: data.projectId,
+          readAudience: data.readAudience,
           serviceIds,
           monitorIds,
           ours,
@@ -293,6 +310,7 @@ export default class ServiceKnowledge {
         }),
         ServiceKnowledge.readAlerts({
           projectId: data.projectId,
+          readAudience: data.readAudience,
           serviceIds,
           monitorIds,
           ours,
@@ -309,20 +327,24 @@ export default class ServiceKnowledge {
     ] = await Promise.all([
       AIMemory.readConfirmedAnalyses({
         projectId: data.projectId,
+        readAudience: data.readAudience,
         kind: "incident",
         ids: ServiceKnowledge.idsWithoutCause(incidents),
       }),
       AIMemory.readConfirmedAnalyses({
         projectId: data.projectId,
+        readAudience: data.readAudience,
         kind: "alert",
         ids: ServiceKnowledge.idsWithoutCause(alerts),
       }),
       AIMemory.readVerifiedFixes({
         projectId: data.projectId,
+        readAudience: data.readAudience,
         incidentIds: ServiceKnowledge.objectIds(incidents),
       }),
       AIMemory.readVerifiedAlertFixes({
         projectId: data.projectId,
+        readAudience: data.readAudience,
         alertIds: ServiceKnowledge.objectIds(alerts),
       }),
     ]);
@@ -536,6 +558,7 @@ export default class ServiceKnowledge {
     ours: Set<string>;
     servicesByMonitor: Map<string, Set<string>>;
     excludeId: string;
+    readAudience: ReadAudience;
   }): Promise<Array<RecordFacts>> {
     const resolvedStateIds: Array<ObjectID> =
       await IncidentStateService.getResolvedIncidentStateIds(data.projectId);
@@ -570,7 +593,7 @@ export default class ServiceKnowledge {
         sort: { createdAt: SortOrder.Descending },
         limit: MAX_RECORDS_READ,
         skip: 0,
-        props: { isRoot: true },
+        props: ReadAudiencePermission.getReadProps(data.readAudience),
       });
     };
 
@@ -633,6 +656,7 @@ export default class ServiceKnowledge {
     ours: Set<string>;
     servicesByMonitor: Map<string, Set<string>>;
     excludeId: string;
+    readAudience: ReadAudience;
   }): Promise<Array<RecordFacts>> {
     const resolvedStateIds: Array<ObjectID> =
       await AlertStateService.getResolvedAlertStateIds(data.projectId);
@@ -667,7 +691,7 @@ export default class ServiceKnowledge {
         sort: { createdAt: SortOrder.Descending },
         limit: MAX_RECORDS_READ,
         skip: 0,
-        props: { isRoot: true },
+        props: ReadAudiencePermission.getReadProps(data.readAudience),
       });
     };
 
@@ -725,6 +749,7 @@ export default class ServiceKnowledge {
   private static async readServicesOfMonitors(data: {
     projectId: ObjectID;
     monitorIds: Array<ObjectID>;
+    readAudience: ReadAudience;
   }): Promise<Array<Service>> {
     if (data.monitorIds.length === 0) {
       return [];
@@ -738,11 +763,31 @@ export default class ServiceKnowledge {
       select: { _id: true, services: { _id: true, name: true } },
       limit: MAX_MONITORS_READ,
       skip: 0,
-      props: { isRoot: true },
+      props: ReadAudiencePermission.getReadProps(data.readAudience),
     });
 
-    return monitors.flatMap((monitor: Monitor): Array<Service> => {
-      return monitor.services || [];
+    const services: Array<Service> = monitors.flatMap(
+      (monitor: Monitor): Array<Service> => {
+        return monitor.services || [];
+      },
+    );
+
+    /*
+     * A monitor's services are named through the monitor: the ones its
+     * subject's readers may not read themselves are never named in turn.
+     */
+    const readable: Set<string> = await ReadAudienceReader.readReadableIds({
+      service: ServiceService,
+      ids: services
+        .map((service: Service): string => {
+          return service.id?.toString() || "";
+        })
+        .filter(Boolean),
+      audience: data.readAudience,
+    });
+
+    return services.filter((service: Service): boolean => {
+      return readable.has(ServiceKnowledge.key(service.id));
     });
   }
 

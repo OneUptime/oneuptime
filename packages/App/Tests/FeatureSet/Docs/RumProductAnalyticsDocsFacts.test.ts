@@ -213,14 +213,15 @@ function rumGroup(): NavGroup {
 }
 
 describe("Product Analytics: its place in the docs", () => {
-  it("is the RUM group's fifth link, after Core Web Vitals and before Managing Applications", () => {
+  it("is the RUM group's sixth link, after Core Web Vitals and before Managing Applications", () => {
     const links: Array<NavLink> = rumGroup().links;
     const urls: Array<string> = links.map((link: NavLink): string => {
       return link.url;
     });
     const at: number = urls.indexOf(`/docs/${PRODUCT_ANALYTICS}`);
 
-    expect(at).toBe(4);
+    // Right after the five setup pages, Android Setup (#9533) among them.
+    expect(at).toBe(5);
     expect(urls[at - 1]).toBe("/docs/rum/web-vitals");
     expect(urls[at + 1]).toBe("/docs/rum/applications");
     expect(links[at]?.title).toBe("Product Analytics");

@@ -19,6 +19,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../../Types/Permission";
 import SsoProviderType from "../../../../Types/SSO/SsoProviderType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { treatEverySessionAsLive } from "../../TestingUtils/LiveSessions";
 import CookieParser from "cookie-parser";
 import fs from "fs";
 import path from "path";
@@ -477,6 +478,8 @@ describe("for the same handshake, the join answers as the API does", () => {
     (UserService.isUserBlocked as unknown as jest.Mock).mockResolvedValue(
       false,
     );
+    // Its session is live: what an ended one does is EndedSessionAccessToken.test.ts.
+    treatEverySessionAsLive();
     // A handshake that says master admin is one whose person still is one.
     (UserService.isUserMasterAdmin as unknown as jest.Mock).mockResolvedValue(
       true,

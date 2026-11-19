@@ -524,7 +524,8 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
-    description: "Order of this rule",
+    description:
+      "This rule's level in its on-call policy: the lowest is paged first, then the next, and so on. Rules that share a level are paged in the order of their IDs. Setting it places this rule and moves no other, so a configuration that numbers every rule of a policy ends up exactly as written. Left out when you create a rule, it becomes the policy's last level.",
     example: 1,
   })
   @Column({

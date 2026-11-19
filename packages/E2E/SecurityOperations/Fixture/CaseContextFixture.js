@@ -1,7 +1,8 @@
 /*
  * A security case as the rest of OneUptime tells it, on the fixture's own
- * records: what POST /security-case-context/story and /impact answer for a
- * case's Story page and the Impact card on its Overview, worked out the way
+ * records: what POST /security-case-context/story, /impact and /matches
+ * answer for a case's Story page and the Impact and Why This Case Was Opened
+ * cards on its Overview, worked out the way
  * the server works them out (Common/Server/Utils/SecurityCase/Context/
  * SecurityCaseStory and SecurityCaseImpact) - the events told in runs and
  * the items merged on one time axis by Common/Utils/SecurityCase/
@@ -37,6 +38,7 @@
  * followed into its trace, so the internet verdict rests on the public
  * addresses the records report.
  */
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
@@ -54,11 +56,19 @@ import {
   SecurityCaseStoryMilestone,
   SecurityCaseStorySource,
 } from "Common/Types/SecurityCase/SecurityCaseContext";
+import { buildSecurityCaseEventSnapshot } from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
+import {
+  SECURITY_CASE_MATCHES_MAX_DETECTIONS,
+  SECURITY_CASE_MATCHES_MAX_EVENTS,
+  SecurityCaseMatchBasis,
+} from "Common/Types/SecurityCase/SecurityCaseMatches";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
+import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import SecurityEventRequestOutcome, {
   getRequestOutcomeRank,
 } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import { THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import { getSecurityPlaybookRunStatusColor } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   buildInternetExposure,
@@ -77,6 +87,13 @@ import {
   getCaseConnectionWindow,
   readRecordAddresses,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
+import {
+  getDetectionMatchWindow,
+  getSigmaRuleLookFor,
+  readSigmaRuleGuidance,
+} from "Common/Utils/SecurityCase/SecurityCaseMatchRules";
+import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 
 // The kinds of record that can have owners (SecurityCaseImpact's OWNER_TABLES).
 const OWNED_KINDS = [
@@ -966,5 +983,250 @@ export function createCaseContextFixture(options) {
     };
   }
 
-  return { story, impact };
+  /*
+   * ---------------------------------------------------------------------------
+   * What the case's detections matched (Why This Case Was Opened)
+   * ---------------------------------------------------------------------------
+   */
+  /*
+   * What a detection's rule matches, of the events naming its group, where
+   * the rule matches fewer than all of them: the spray's failed sign-ins,
+   * and the one success after them. The server runs the rule's own Sigma
+   * condition; the fixture's events say what those conditions would match.
+   */
+  const MATCHED_BY = {
+    [ids.detection(1)]: (row) => {
+      return row.message.includes("FAILURE");
+    },
+    [ids.detection(3)]: (row) => {
+      return row.message.includes("SUCCESS");
+    },
+  };
+
+  // The detection rule as the case explains it (SecurityCaseMatches.toMatchRule).
+  function toMatchRule(rule) {
+    const yamlText = rule.sigmaRuleYaml || "";
+    const isCorrelation = SigmaRuleSetParser.isCorrelationYaml(yamlText);
+    let rules = [];
+    if (!isCorrelation) {
+      try {
+        rules = [SigmaRuleParser.parse(yamlText)];
+      } catch {
+        rules = [];
+      }
+    }
+    const guidance = readSigmaRuleGuidance(yamlText);
+    return {
+      id: String(rule._id),
+      name: rule.name || "",
+      description: rule.description || rules[0]?.description || "",
+      isEnabled: rule.isEnabled !== false,
+      isRealTime: rule.isRealTime === true,
+      isCorrelation,
+      threshold: Math.max(1, Math.trunc(rule.matchCountThreshold || 1)),
+      groupByField: (rule.groupByField || "").trim(),
+      distinctCountField: (rule.distinctCountField || "").trim(),
+      windowInMinutes: Math.max(
+        1,
+        Math.trunc(rule.evaluationIntervalInMinutes || 1),
+      ),
+      sigmaRuleYaml: yamlText,
+      falsePositives: guidance.falsePositives,
+      references: guidance.references,
+      lookFor: getSigmaRuleLookFor(rules),
+    };
+  }
+
+  // Whether an event names one of the values: as who, where or what, or in its words.
+  const names = (row, values) => {
+    return values.some((value) => {
+      return (
+        row.principalIp === value ||
+        row.principalUser === value ||
+        row.principalHost === value ||
+        row.targetResource === value ||
+        row.message.includes(value)
+      );
+    });
+  };
+
+  /*
+   * How a detection's events are found, as SecurityCaseMatches finds them:
+   * its rule's condition for its group over the windows it fired in; else
+   * the events carrying a feed's indicator, the event a product's alert was
+   * recorded as, or the events naming what it is about.
+   */
+  function lookupOf(detection, rule) {
+    const groupValue = (detection.groupValue || "").trim();
+    const values = groupValue
+      ? groupValue
+          .split(" / ")
+          .map((value) => {
+            return value.trim();
+          })
+          .filter(Boolean)
+      : (detection.entities || []).map((item) => {
+          return item.value;
+        });
+    const windowOver = (lookBackInMinutes) => {
+      return getDetectionMatchWindow({
+        firstSeenAt: detection.firstSeenAt,
+        lastSeenAt: detection.lastSeenAt,
+        lookBackInMinutes,
+        now,
+      });
+    };
+    const matchedBy = MATCHED_BY[String(detection._id)];
+
+    if (rule && values.length > 0) {
+      return {
+        basis: rule.isCorrelation
+          ? SecurityCaseMatchBasis.CorrelationSteps
+          : SecurityCaseMatchBasis.RuleCondition,
+        window: windowOver(rule.windowInMinutes),
+        matches: (row) => {
+          return names(row, values) && (!matchedBy || matchedBy(row));
+        },
+      };
+    }
+    if (
+      detection.source === SecurityDetectionSource.ThreatIntel &&
+      groupValue
+    ) {
+      return {
+        basis: SecurityCaseMatchBasis.Indicator,
+        window: windowOver(THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES),
+        matches: (row) => {
+          return names(row, [groupValue]);
+        },
+      };
+    }
+    if (
+      detection.source === SecurityDetectionSource.ConnectedProduct &&
+      detection.eventUid
+    ) {
+      return {
+        basis: SecurityCaseMatchBasis.RecordedEvent,
+        window: windowOver(24 * 60 - 1),
+        matches: (row) => {
+          return row.eventUid === detection.eventUid;
+        },
+      };
+    }
+    if (values.length === 0) {
+      return null;
+    }
+    return {
+      basis: SecurityCaseMatchBasis.NamedEntities,
+      window: windowOver(undefined),
+      matches: (row) => {
+        return names(row, values);
+      },
+    };
+  }
+
+  // One detection, with its rule and the events it matched (SecurityCaseMatches.explain).
+  function explain(securityCase, detection, isOpening) {
+    const ruleRow = detection.detectionRuleId
+      ? table(DetectionRule).find((row) => {
+          return String(row._id) === String(detection.detectionRuleId);
+        })
+      : null;
+    const rule = ruleRow ? toMatchRule(ruleRow) : null;
+    const lookup = lookupOf(detection, rule);
+    const answer = {
+      id: String(detection._id),
+      source: detection.source || "",
+      title: detection.title || "",
+      severity: detection.severity || "",
+      groupValue: (detection.groupValue || "").trim(),
+      ruleName: detection.ruleName || "",
+      eventCount: Math.max(0, Math.trunc(detection.eventCount || 0)),
+      fireCount: Math.max(1, Math.trunc(detection.fireCount || 1)),
+      firstSeenAt: iso(detection.firstSeenAt),
+      lastSeenAt: iso(detection.lastSeenAt),
+      sampleMessage: detection.sampleMessage || "",
+      isOpening,
+      rule,
+      threatIntelFeedId: detection.threatIntelFeedId
+        ? String(detection.threatIntelFeedId)
+        : "",
+      securityEventConnectionId: detection.securityEventConnectionId
+        ? String(detection.securityEventConnectionId)
+        : "",
+      basis: lookup?.basis || SecurityCaseMatchBasis.NamedEntities,
+      windowStart: null,
+      windowEnd: null,
+      events: [],
+      matchedEventCount: null,
+      outcomes: {},
+    };
+    if (!lookup || !lookup.window) {
+      return answer;
+    }
+    const matched = (CASE_EVENTS[securityCase.caseNumber] || [])
+      .filter((row) => {
+        return isIn(row.time, lookup.window) && lookup.matches(row);
+      })
+      .sort((a, b) => {
+        return a.time.getTime() - b.time.getTime();
+      });
+    const outcomes = {};
+    for (const row of matched) {
+      const outcome = row.requestOutcome || "";
+      outcomes[outcome] = (outcomes[outcome] || 0) + 1;
+    }
+    answer.windowStart = lookup.window.start.toISOString();
+    answer.windowEnd = lookup.window.end.toISOString();
+    answer.events = matched
+      .slice(0, SECURITY_CASE_MATCHES_MAX_EVENTS)
+      .map((row) => {
+        return buildSecurityCaseEventSnapshot({
+          event: { ...row, time: row.time.toISOString() },
+        });
+      });
+    answer.matchedEventCount = matched.length;
+    answer.outcomes = outcomes;
+    return answer;
+  }
+
+  function matches(body) {
+    const read = readCase(body);
+    if (read.error) {
+      return read.error;
+    }
+    const securityCase = read.securityCase;
+    const all = rowsOfCase(SecurityDetection, securityCase, "firstSeenAt");
+    // The one that opened the case, then the latest others.
+    const latest = all.slice().sort((a, b) => {
+      return (
+        new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime()
+      );
+    });
+    const picked = [];
+    for (const detection of [...all.slice(0, 1), ...latest]) {
+      if (
+        picked.length < SECURITY_CASE_MATCHES_MAX_DETECTIONS &&
+        !picked.includes(detection)
+      ) {
+        picked.push(detection);
+      }
+    }
+    return {
+      status: 200,
+      body: {
+        detections: picked.map((detection, index) => {
+          return explain(securityCase, detection, index === 0);
+        }),
+        detectionCount: Math.max(
+          all.length,
+          Math.trunc(Number(securityCase.detectionCount) || 0),
+        ),
+        unreadableSources: [],
+        failedSources: [],
+      },
+    };
+  }
+
+  return { story, impact, matches };
 }

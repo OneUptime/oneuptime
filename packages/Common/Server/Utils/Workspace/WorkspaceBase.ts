@@ -179,6 +179,23 @@ export default class WorkspaceBase {
   }
 
   /*
+   * Deletes a message the bot posted (Slack chat.delete, Microsoft Teams
+   * deleteActivity, Mattermost's DELETE of the post): what OneUptime AI read
+   * in a call's transcript, taken back with the transcript. A message that
+   * is already gone - somebody deleted it - counts as deleted. Throws what
+   * the workspace answered when it refuses.
+   */
+  @CaptureSpan()
+  public static async deleteMessage(_data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+  }): Promise<void> {
+    throw new NotImplementedException();
+  }
+
+  /*
    * Whether an edit failed because the message is no longer there - somebody
    * deleted it - so a new one has to be posted instead. Any other failure
    * (the channel is archived, the app was removed, a network error) is not:

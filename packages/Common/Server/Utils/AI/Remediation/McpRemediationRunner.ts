@@ -76,6 +76,8 @@ import {
   buildExplainNoFixTool,
   EXPLAIN_NO_FIX_RULE,
 } from "./RemediationRoundRun";
+import RemediationReadAudience from "./RemediationReadAudience";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 
 /*
  * AUTO-REMEDIATION THROUGH THE PROJECT'S EXTERNAL MCP SERVERS.
@@ -110,6 +112,10 @@ import {
  * redacted, and it never changes a rule or an approval. A fix never undoes
  * itself: an MCP tool has no undo OneUptime can know of, so a fix that does
  * not recover the service is reported for a person, never rolled back.
+ *
+ * Its plan and outcome are posted where everyone who may see the incident
+ * or alert reads them, so OneUptime's own tools read only what all of them
+ * may read (RemediationReadAudience, #9612).
  */
 
 const MAX_SIGNAL_TITLE_CHARS: number = 500;
@@ -267,6 +273,17 @@ export default class McpRemediationRunner {
         return;
       }
 
+      /*
+       * Who reads what the fix posts: everyone who may see the incident or
+       * alert (#9612). OneUptime's own tools read only what all of them may
+       * read. A fix that cannot tell who reads it is retried.
+       */
+      const readAudience: ReadAudience = await RemediationReadAudience.forFix({
+        projectId,
+        incidentId: suggestion.incidentId,
+        alertId: suggestion.alertId,
+      });
+
       const servers: Array<ExternalMcpServer> =
         await ExternalMcpServerService.findServersForRun({
           projectId,
@@ -356,6 +373,8 @@ export default class McpRemediationRunner {
           ],
           // The project's limits per run: the engine reads them.
           maxOutputTokens: MAX_OUTPUT_TOKENS,
+          // Everyone who may see the incident or alert reads what it posts (#9612).
+          readAudience,
           postAnalysis: async (postData: {
             analysisMarkdown: string;
             confidence: ConfidenceSignal;

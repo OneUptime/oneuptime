@@ -560,9 +560,10 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   ) => Promise<void>;
 
   /*
-   * Reordering writes the neighbouring sibling's `order` onto this group and
-   * lets StatusPageGroupService renumber everything between the two - the only
-   * write the service knows how to rebalance.
+   * Reordering moves this group to the neighbouring sibling's place, and
+   * StatusPageGroupService steps everything between the two aside, in one
+   * transaction (ModelAPI.moveInList). Writing the group's `order` would
+   * place it alone, beside the sibling rather than past it.
    */
   const moveGroup: MoveGroupFunction = async (
     statusPageGroup: StatusPageGroup,
@@ -570,15 +571,15 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   ): Promise<void> => {
     const statusPageGroupId: string = statusPageGroup._id?.toString() || "";
 
-    const targetOrder: number | null =
-      StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+    const placeOfId: string | null =
+      StatusPageGroupHierarchyViewUtil.getReorderTargetId({
         statusPageGroups: groups,
         statusPageGroupId: statusPageGroupId,
         direction: direction,
         index: groupIndex,
       });
 
-    if (targetOrder === null) {
+    if (placeOfId === null) {
       return;
     }
 
@@ -586,12 +587,10 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
     setGroupActionError("");
 
     try {
-      await ModelAPI.updateById<StatusPageGroup>({
+      await ModelAPI.moveInList<StatusPageGroup>({
         modelType: StatusPageGroup,
         id: new ObjectID(statusPageGroupId),
-        data: {
-          order: targetOrder,
-        },
+        placeOfId: new ObjectID(placeOfId),
       });
 
       await fetchGroups();
@@ -635,7 +634,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
 
     const canMove: CanMoveFunction = (direction: "up" | "down"): boolean => {
       return (
-        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+        StatusPageGroupHierarchyViewUtil.getReorderTargetId({
           statusPageGroups: groups,
           statusPageGroupId: selection.statusPageGroupId || "",
           direction: direction,

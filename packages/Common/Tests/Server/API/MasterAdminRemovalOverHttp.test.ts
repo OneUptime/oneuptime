@@ -83,6 +83,7 @@ import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * A real Express app: an error that walks the routes registered after the
@@ -296,6 +297,8 @@ beforeAll(async () => {
   jest
     .spyOn(UserService, "updateLastActive")
     .mockResolvedValue(undefined as never);
+  // The sessions these tokens name are live: what an ended one does is EndedSessionAccessToken.test.ts.
+  treatEverySessionAsLive();
   jest
     .spyOn(ProjectService, "updateLastActive")
     .mockResolvedValue(undefined as never);

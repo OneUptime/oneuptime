@@ -11,7 +11,11 @@ import CopyableValueList from "Common/UI/Components/CopyableValueList/CopyableVa
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import { getOidcProviderFormFields } from "Common/UI/Components/Sso/OidcProviderFormFields";
+import {
+  getOidcProviderFormFields,
+  OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+} from "Common/UI/Components/Sso/OidcProviderFormFields";
+import { getPostLogoutRedirectUri } from "Common/Types/SSO/IdentityProviderSignOut";
 import {
   getSsoGlobalReachAnswerTitle,
   getSsoGlobalSignUpAnswerTitle,
@@ -43,6 +47,12 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const redirectURI: string = `${HTTP_PROTOCOL}${HOST}/identity/global-oidc-callback/${modelId.toString()}`;
+
+  // Where the provider sends people once it has signed them out: the sign-in page.
+  const postLogoutRedirectURI: string = getPostLogoutRedirectUri({
+    httpProtocol: HTTP_PROTOCOL.toString(),
+    host: HOST,
+  });
 
   /*
    * Service-provider initiated login endpoint (same base the Accounts login
@@ -108,6 +118,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           formSteps={getSsoProviderFormSteps<GlobalOIDC>()}
           formFields={getOidcProviderFormFields<GlobalOIDC>({
             withGlobalAccessSwitches: true,
+            withIdentityProviderSignOut: true,
           })}
           modelDetailProps={{
             modelType: GlobalOIDC,
@@ -196,6 +207,15 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               },
               {
                 field: {
+                  signOutOfIdentityProvider: true,
+                },
+                title: OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+                fieldType: FieldType.Boolean,
+                placeholder: t("common.no"),
+                isPlaceholderTranslated: true,
+              },
+              {
+                field: {
                   isEnabled: true,
                 },
                 title: "Enabled",
@@ -216,16 +236,24 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
         <Card
           title={"Identity Provider URL"}
           description={
-            "Register this redirect URI (callback URL) with your OIDC identity provider."
+            "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on."
           }
         >
-          {/* The value, with a button that copies it. */}
+          {/*
+           * The values, each with a button that copies it. The provider
+           * sends people back to the sign-out redirect URI - the sign-in
+           * page - once it has signed them out (#9535).
+           */}
           <CopyableValueList
             dataTestId="global-oidc-values"
             values={[
               {
                 label: "Redirect URI (Callback URL):",
                 value: redirectURI,
+              },
+              {
+                label: "Sign-out Redirect URI:",
+                value: postLogoutRedirectURI,
               },
             ]}
           />
