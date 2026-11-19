@@ -4,6 +4,7 @@ import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MonitorStep from "../MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "../MonitorStepExceptionMonitor";
+import { MonitorStepTraceMonitorUtil } from "../MonitorStepTraceMonitor";
 import MonitorSteps from "../MonitorSteps";
 import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
@@ -674,6 +675,23 @@ export default class MonitorRecommendationUtil {
         `entityKeys=${(config.entityKeys || []).slice().sort().join(",")}`,
         `lastXSecondsOfSpans=${String(config.lastXSecondsOfSpans ?? "")}`,
       );
+
+      /*
+       * One alert per group (#9711): a monitor that counts every span of
+       * an app does not cover Device Stopped Reporting, which counts them
+       * per install. Written only when set, so every ungrouped step
+       * fingerprints exactly as before.
+       */
+      const groupByAttributes: Array<string> =
+        MonitorStepTraceMonitorUtil.getGroupByAttributes({
+          groupByAttributes: config.groupByAttributes,
+        });
+
+      if (groupByAttributes.length > 0) {
+        values.push(
+          `groupByAttributes=${groupByAttributes.slice().sort().join(",")}`,
+        );
+      }
     }
 
     if (configKind === "exceptionMonitor") {

@@ -25,6 +25,7 @@ import {
   EVENT_NAME_ATTRIBUTE,
   EXCESSIVE_APP_START_MS,
   FROZEN_FRAME_THRESHOLD,
+  STORED_APP_INSTALLATION_ID_ATTRIBUTE,
 } from "../Rum/MobileAppTelemetry";
 import {
   SESSION_REPLAY_SIGNAL_ID_ATTRIBUTE,
@@ -1020,7 +1021,7 @@ const frozenFramesTemplate: RumAlertTemplate = buildMobileLogEventTemplate({
  * the SDK keeps what it records on the device until it can send it, so a
  * device that drops off the network for a moment is late rather than gone.
  * A device of a fleet going quiet while the others report is not seen
- * here: that needs a check per device.
+ * here: Device Stopped Reporting checks each one (#9711).
  */
 const appStoppedReportingTemplate: RumAlertTemplate = {
   id: "rum-app-stopped-reporting",
@@ -1065,6 +1066,75 @@ const appStoppedReportingTemplate: RumAlertTemplate = {
         incidentDescription:
           "OneUptime has received no spans from the app for thirty minutes. Check whether its devices are on and online, whether a recent release still starts OpenTelemetry, and whether its ingestion key was revoked or has expired. This resolves on its own once spans arrive again.",
         healthyDescription: `Spans are arriving from ${args.monitorName}.`,
+      }),
+    );
+
+    return step;
+  },
+};
+
+/*
+ * One device of a fleet gone quiet while the others report (#9711): the
+ * kiosk, point-of-sale terminal or scanner a company owns that stopped
+ * sending anything. A Traces monitor grouped by the install OpenTelemetry
+ * Android names on its resource (app.installation.id, 1.1 and later; it
+ * sends no device.id), one alert per install: an install that sent spans in
+ * the week before the window and none in it is counted as 0
+ * (TraceGroupAbsence), and resolves when it reports again.
+ *
+ * An hour, because a kiosk left on one screen sends nothing until someone
+ * uses it; a kiosk app that records a heartbeat span (docs/rum/android-
+ * setup) is heard from every few minutes. When every device goes quiet at
+ * once - the store's network, a revoked key - no device alerts: that is
+ * the whole app's silence, which App Stopped Reporting reports once, and
+ * the devices' open alerts stay open until spans arrive.
+ */
+export const DEVICE_SILENCE_WINDOW_SECONDS: number = 3600;
+
+const deviceStoppedReportingTemplate: RumAlertTemplate = {
+  id: "rum-device-stopped-reporting",
+  name: "Device Stopped Reporting",
+  description:
+    "Alert when a device sends no spans for an hour after sending some in the past week, one alert per device: a kiosk or terminal of a fleet gone quiet while the others report. Reads the app.installation.id OpenTelemetry Android sets; when every device goes quiet at once, App Stopped Reporting alerts instead.",
+  category: "Availability",
+  severity: "Warning",
+  monitorType: MonitorType.Traces,
+  clients: MOBILE_ONLY,
+  getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Traces,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setTraceMonitor({
+      attributes: {},
+      spanName: "",
+      spanStatuses: [],
+      telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+      entityKeys: [],
+      lastXSecondsOfSpans: DEVICE_SILENCE_WINDOW_SECONDS,
+      groupByAttributes: [STORED_APP_INSTALLATION_ID_ATTRIBUTE],
+    });
+
+    step.setMonitorCriteria(
+      buildCriteria({
+        args: args,
+        checkOn: CheckOn.SpanCount,
+        // Below the threshold is the bad state, per device.
+        unhealthyFilterType: FilterType.LessThan,
+        healthyFilterType: FilterType.GreaterThanOrEqualTo,
+        threshold: 1,
+        unhealthyName: "A device sent no spans in an hour",
+        unhealthyDescription:
+          "Triggers when a device that sent spans in the past week sends none over the past hour, once for each such device.",
+        incidentTitle: `[RUM] Device stopped reporting - ${args.monitorName}`,
+        incidentDescription:
+          "One device of the app sent no spans for an hour, though it sent some in the past week, while other devices still report. Check whether it is on, online and still running the app. Its last spans name its model, and its host.name when the fleet names its devices. This resolves on its own once it reports again.",
+        healthyDescription: `Every device of ${args.monitorName} that reported in the past week sent spans in the past hour.`,
       }),
     );
 
@@ -1475,6 +1545,7 @@ const ALL_RUM_ALERT_TEMPLATES: Array<RumAlertTemplate> = [
   slowColdStartTemplate,
   frozenFramesTemplate,
   appStoppedReportingTemplate,
+  deviceStoppedReportingTemplate,
   ...sessionReplayBudgetTemplates,
 ];
 
@@ -1548,8 +1619,9 @@ function isClientMet(data: {
  * Only the templates for its kind of app (#9589): a browser app's Web Vitals
  * and Unhandled Browser Exceptions, or a mobile app's App Crashes, App Not
  * Responding (ANR), App Crash Rate, App ANR Rate, Slow Cold Start, Frozen
- * Frames and App Stopped Reporting, and the templates every kind can use.
- * An application of no known kind is offered the browser set.
+ * Frames, App Stopped Reporting and Device Stopped Reporting, and the
+ * templates every kind can use. An application of no known kind is
+ * offered the browser set.
  *
  * The session replay budget pairs only once their series can exist (see the
  * storage budget comment above): the daily pair once the application has

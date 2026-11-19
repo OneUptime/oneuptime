@@ -1,4 +1,8 @@
+import { traceStepCountsQuietGroups } from "../../../Server/Utils/Monitor/TraceGroupAbsence";
+import SeriesContextEnricher from "../../../Server/Utils/Monitor/SeriesContextEnricher";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import {
+  DEVICE_SILENCE_WINDOW_SECONDS,
   EXCEPTION_CLI_RESOURCE,
   MOBILE_ANR_RATE_PERCENT,
   MOBILE_CRASH_RATE_PERCENT,
@@ -50,7 +54,10 @@ import {
   APP_NOT_RESPONDING_EXCEPTION_TYPES,
   HANG_EXCEPTION_TYPE,
 } from "../../../Utils/Telemetry/MobileAppFaults";
-import { EXCESSIVE_APP_START_MS } from "../../../Types/Rum/MobileAppTelemetry";
+import {
+  APP_INSTALLATION_ID_ATTRIBUTE,
+  EXCESSIVE_APP_START_MS,
+} from "../../../Types/Rum/MobileAppTelemetry";
 import {
   ServiceAlertTemplate,
   getAllServiceAlertTemplates,
@@ -190,6 +197,12 @@ const SEVERITY_CASES: Array<{
     category: "Availability",
     severity: "Warning",
   },
+  // One device of a fleet gone quiet (#9711): a Warning, as the whole app's.
+  {
+    id: "rum-device-stopped-reporting",
+    category: "Availability",
+    severity: "Warning",
+  },
   /*
    * "Nearly spent" warns while there is still time to act; "spent" means the
    * recorders have already been told to stop, so nothing more is recorded.
@@ -318,6 +331,7 @@ const MOBILE_TEMPLATE_IDS: Array<string> = [
   "rum-slow-cold-start",
   "rum-frozen-frames",
   "rum-app-stopped-reporting",
+  "rum-device-stopped-reporting",
 ];
 
 // Only a mobile app sends what these read.
@@ -329,6 +343,7 @@ const MOBILE_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-slow-cold-start",
   "rum-frozen-frames",
   "rum-app-stopped-reporting",
+  "rum-device-stopped-reporting",
 ];
 
 // Only a browser sends what these read.
@@ -341,8 +356,8 @@ const BROWSER_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-unhandled-exceptions",
 ];
 
-// Every template there is: 5 web vitals, 2 shared, 7 mobile, 4 budgets.
-const ALL_TEMPLATE_COUNT: number = 18;
+// Every template there is: 5 web vitals, 2 shared, 8 mobile, 4 budgets.
+const ALL_TEMPLATE_COUNT: number = 19;
 
 const DAILY_TEMPLATE_IDS: Array<string> = [
   "rum-session-replay-daily-budget-nearly-spent",
@@ -448,6 +463,7 @@ describe("RumAlertTemplates", () => {
       "rum-slow-cold-start",
       "rum-frozen-frames",
       "rum-app-stopped-reporting",
+      "rum-device-stopped-reporting",
       "rum-session-replay-daily-budget-nearly-spent",
       "rum-session-replay-daily-budget-spent",
       "rum-session-replay-monthly-budget-nearly-spent",
@@ -1890,6 +1906,17 @@ describe("the crash and ANR rate templates", () => {
     expect(resource?.operations).toContain("list");
   });
 
+  test("Device Stopped Reporting is offered to a mobile app, after App Stopped Reporting", () => {
+    const ids: Array<string> = offeredIds({ clientKind: "mobile" });
+
+    expect(ids.indexOf("rum-device-stopped-reporting")).toBe(
+      ids.indexOf("rum-app-stopped-reporting") + 1,
+    );
+    expect(offeredIds({ clientKind: "browser" })).not.toContain(
+      "rum-device-stopped-reporting",
+    );
+  });
+
   test("the rates leave the first-occurrence templates, for small fleets, as they were", () => {
     const [crashBreach]: Array<MonitorCriteriaInstance> = getCriteria(
       getTemplate("rum-app-crashes").getMonitorStep(buildArgs()),
@@ -1897,5 +1924,114 @@ describe("the crash and ANR rate templates", () => {
 
     expect(crashBreach?.data?.filters).toHaveLength(1);
     expect(crashBreach?.data?.filters[0]?.checkOn).toBe(CheckOn.ExceptionCount);
+  });
+});
+
+/*
+ * #9711: one device of a mobile fleet gone quiet while the others report -
+ * a Traces monitor grouped by the install OpenTelemetry Android names, one
+ * alert per install, a quiet install counted as 0 (TraceGroupAbsence).
+ */
+describe("Device Stopped Reporting", () => {
+  const template: RumAlertTemplate = getTemplate(
+    "rum-device-stopped-reporting",
+  );
+  const step: MonitorStep = template.getMonitorStep(buildArgs());
+
+  test("counts each install's spans of the app over an hour", () => {
+    expect(template.monitorType).toBe(MonitorType.Traces);
+    expect(template.category).toBe("Availability");
+    expect(template.clients).toEqual(["mobile"]);
+    expect(DEVICE_SILENCE_WINDOW_SECONDS).toBe(3600);
+
+    expect(step.data?.traceMonitor).toEqual({
+      attributes: {},
+      spanName: "",
+      spanStatuses: [],
+      telemetryServiceIds: [RUM_APPLICATION_ID],
+      entityKeys: [],
+      lastXSecondsOfSpans: 3600,
+      groupByAttributes: ["resource.app.installation.id"],
+    });
+  });
+
+  test("groups by the install OpenTelemetry Android names on its resource, never a device.id", () => {
+    expect(
+      MonitorStepTraceMonitorUtil.getGroupByAttributes(step.data?.traceMonitor),
+    ).toEqual([`resource.${APP_INSTALLATION_ID_ATTRIBUTE}`]);
+    expect(JSON.stringify(step.data?.traceMonitor)).not.toContain("device.id");
+  });
+
+  test("alerts on an install with no span, and is healthy once it sends one", () => {
+    const [breach, recovery]: Array<MonitorCriteriaInstance> =
+      getCriteria(step);
+
+    expect(breach?.data?.filters).toEqual([
+      expect.objectContaining({
+        checkOn: CheckOn.SpanCount,
+        filterType: FilterType.LessThan,
+        value: 1,
+      }),
+    ]);
+    expect(recovery?.data?.filters).toEqual([
+      expect.objectContaining({
+        checkOn: CheckOn.SpanCount,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+      }),
+    ]);
+    expect(breach?.data?.incidents[0]?.title).toBe(
+      "[RUM] Device stopped reporting - Storefront",
+    );
+    expect(breach?.data?.alerts[0]?.autoResolveAlert).toBe(true);
+  });
+
+  test("its criteria count the quiet installs, as only a rule that can match 0 does", () => {
+    expect(traceStepCountsQuietGroups(step)).toBe(true);
+    expect(
+      traceStepCountsQuietGroups(
+        getTemplate("rum-slow-cold-start").getMonitorStep(buildArgs()),
+      ),
+    ).toBe(false);
+  });
+
+  test("its alert names the install, in the title and in the description, with its first command", () => {
+    const install: string = "1b4e28ba-2fa1-11d2-883f-0016d3cca427";
+    const seriesLabels: JSONObject = {
+      "resource.app.installation.id": install,
+    };
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(step);
+
+    expect(
+      SeriesLabelDisplay.isKnownLabelKey("resource.app.installation.id"),
+    ).toBe(true);
+    expect(
+      SeriesLabelDisplay.getFriendlyLabelName("resource.app.installation.id"),
+    ).toBe("Install");
+    expect(
+      SeriesContextEnricher.enrichTitle({
+        title: breach!.data!.alerts[0]!.title,
+        seriesLabels,
+      }),
+    ).toContain(install);
+
+    const description: string = SeriesContextEnricher.enrichDescription({
+      description: breach!.data!.alerts[0]!.description,
+      seriesLabels,
+      monitorType: MonitorType.Traces,
+    });
+
+    expect(description).toContain(install);
+    expect(description).toContain(
+      `oneuptime span list --query '{"attributes":{"resource.app.installation.id":"${install}"}}' --sort '{"startTime":"DESC"}' --limit 5 --fields startTime,name,attributes`,
+    );
+  });
+
+  test("the command names the CLI's own resource for spans", () => {
+    expect(
+      getCliResources().find((candidate: CliResource): boolean => {
+        return candidate.name === "span";
+      })?.operations,
+    ).toContain("list");
   });
 });

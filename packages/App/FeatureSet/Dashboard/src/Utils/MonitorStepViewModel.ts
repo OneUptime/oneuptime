@@ -1477,6 +1477,16 @@ export default class MonitorStepViewModel {
         value: toAttributeFilters(traceMonitor?.attributes),
         placeholder: "No attributes entered",
       }),
+      // One alert per group, as a Logs monitor's (#9711).
+      optional({
+        key: "traceGroupByAttributes",
+        title: "Group by Attributes",
+        description:
+          "One alert or incident is raised per distinct combination of these attribute values.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepTraceMonitorUtil.getGroupByAttributes(traceMonitor),
+        placeholder: "Not grouped",
+      }),
       optional({
         key: "traceEntityKeys",
         title: "Inventory Items",

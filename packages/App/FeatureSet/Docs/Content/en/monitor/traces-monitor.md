@@ -48,7 +48,7 @@ In **Spans to watch**, set **Span Status** and **Span name contains**. A filter 
 
 ### Narrow them down (optional)
 
-Open **More fields** to filter by telemetry service, infrastructure entity or attribute, or to count only the spans that took at least a given time.
+Open **More fields** to filter by telemetry service, infrastructure entity or attribute, to count only the spans that took at least a given time, or to raise one alert per value of an attribute with **Group by Attributes**.
 
 ### Say when to alert
 
@@ -77,6 +77,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Filter by Infrastructure Entity** (under **More fields**) | Spans from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Spans whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
 | **Takes at least (ms)** (under **More fields**) | Spans that took this long or longer, in milliseconds, such as 5000 for a five-second cold start. | Empty: any duration |
+| **Group by Attributes** (under **More fields**) | Not a filter: one count, and one alert or incident, per combination of these attributes' values. See [One alert per group](#one-alert-per-group). | Empty: every matching span counts together |
 
 All the filters you set must match for a span to be counted. The spans behind an alert or an incident the monitor opens are listed with the same filters, **Takes at least (ms)** included as a **Duration** filter, so they are the spans it counted.
 
@@ -99,6 +100,14 @@ If you want successful requests to show as OK, add a trace pipeline under **Trac
 - **Criteria from top to bottom.** The first criteria that matches decides, so put the most severe one first.
 
 Each status change, with the reason for it, is recorded on the monitor's **Status Timeline**.
+
+## One alert per group
+
+With **Group by Attributes** set, the monitor counts the matching spans per combination of the attributes' values, and each group raises its own alert or incident and resolves it on its own. A mobile app's **Device Stopped Reporting** recommendation groups by `resource.app.installation.id`, one group per install of the app.
+
+A device that stops sending spans leaves no span in the window to make a group of. So a grouped monitor whose rule can match no span, such as **Fewer than** `1`, also counts each group that sent spans in the week before the window and none in it, as 0. A group quiet for longer than that week drops out, and its alert resolves.
+
+When none of the groups sends a span, the whole app went quiet, not one device: no group alerts, and the open alerts stay open until spans arrive. An ungrouped monitor, such as **App Stopped Reporting**, alerts on that. At most 100 groups are judged in one check, the quiet ones first.
 
 ## Criteria
 

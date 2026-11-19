@@ -1035,4 +1035,48 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
     expect(coveredBy({ unhandledOnly: true })).toBe(0);
     expect(coveredBy({ excludedExceptionTypes: ["ANR"] })).toBe(0);
   });
+
+  /*
+   * #9711: a Traces monitor that counts every span of an app does not cover
+   * one that counts them per install (Device Stopped Reporting), and an
+   * ungrouped step fingerprints as it always did.
+   */
+  test("a Traces monitor's group-by is part of what it watches", () => {
+    const args: MonitorRecommendationArgs = buildArgs();
+
+    const recommendation: MonitorRecommendation | undefined =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.RumApplication,
+        { rumClientKind: "mobile" },
+      ).find((candidate: MonitorRecommendation) => {
+        return candidate.templateId === "rum-device-stopped-reporting";
+      });
+
+    expect(recommendation).toBeDefined();
+
+    const coveredBy: (
+      groupByAttributes: Array<string> | undefined,
+    ) => number = (groupByAttributes: Array<string> | undefined): number => {
+      const monitor: ExistingRecommendationMonitor = buildMonitorFor(
+        [recommendation!],
+        args,
+      );
+      const step: MonitorStep = monitor.monitorSteps[0]!;
+
+      step.setTraceMonitor({
+        ...step.data!.traceMonitor!,
+        groupByAttributes: groupByAttributes,
+      });
+
+      return MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+        recommendations: [recommendation!],
+        existingMonitors: [monitor],
+        args: args,
+      }).size;
+    };
+
+    expect(coveredBy(["resource.app.installation.id"])).toBe(1);
+    expect(coveredBy(undefined)).toBe(0);
+    expect(coveredBy(["resource.host.name"])).toBe(0);
+  });
 });

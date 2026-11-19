@@ -521,18 +521,50 @@ describe("Trace monitor filters", () => {
     expect(screen.queryByText("Filter by Span Status")).not.toBeInTheDocument();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    /*
+     * Its five fields: the first four by name - a duration floor, such as
+     * a slow cold start's (#9589), among them - and the group-by (#9711),
+     * one alert per install of a mobile app, as "1 more".
+     */
     expect(listedNames(moreFields())).toEqual([
       "Filter by Service",
       "Filter by Infrastructure Entity",
       "Filter by Attributes",
-      // A duration floor, such as a slow cold start's (#9589).
       "Takes at least (ms)",
+      "Group by Attributes",
     ]);
     expect(setChips(moreFields())).toEqual([]);
     expect(fieldLabel("Filter by Attributes")).not.toBeVisible();
     expect(fieldLabel("Takes at least (ms)")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
+  });
+
+  /*
+   * #9711: a Traces monitor grouped by an attribute raises one alert per
+   * value of it - Device Stopped Reporting, one per install of a mobile
+   * app. Folded with the filters, shown as a chip once set.
+   */
+  test("a saved group-by stays folded, shown as a chip, and reaches the step as it was", () => {
+    const recorder: Recorder = renderForm({
+      groupByAttributes: ["resource.app.installation.id"],
+    });
+
+    expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFields())).toEqual(["Group by Attributes: 1"]);
+
+    fireEvent.click(moreFields());
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Span name contains" }),
+      {
+        target: { value: "Resumed" },
+      },
+    );
+
+    expect(recorder.latest).toMatchObject({
+      spanName: "Resumed",
+      groupByAttributes: ["resource.app.installation.id"],
+    });
   });
 
   test("a duration floor typed under More fields reaches the step, and shows folded as a chip", () => {

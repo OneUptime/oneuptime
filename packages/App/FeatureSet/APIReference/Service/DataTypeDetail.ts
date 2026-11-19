@@ -3132,6 +3132,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         description:
           "Only spans that took at least this many milliseconds are included, which is how a Trace monitor alerts on slow operations: for example 5000 with spanName 'AppStart' counts the app starts of five seconds or more. Leave it out to include spans of any duration.",
       },
+      {
+        name: "groupByAttributes",
+        type: "Array<string>",
+        required: false,
+        description:
+          "Span attribute keys to count by: one count, and one alert or incident, per combination of their values, such as ['resource.app.installation.id'] for one per install of a mobile app. When a criteria can match 0 spans, a group that sent spans in the week before the window and none in it is counted as 0. Leave it out to count every matching span together.",
+      },
     ],
     values: [],
     jsonExample: JSON.stringify(

@@ -35,6 +35,7 @@ import LogMonitorGroupResult, {
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import TraceMonitorGroupResult from "../../../Types/Monitor/TraceMonitor/TraceMonitorGroupResult";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import ProfileMonitorResponse, {
   ProfileFunctionShareReading,
@@ -1721,7 +1722,49 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    return `Span count was ${traceResponse.spanCount}.`;
+    // One group, judged alone by the per-group pass (#9711).
+    if (traceResponse.evaluatedGroup) {
+      return `Span count for ${LogMonitorGroupResultUtil.describeGroup(
+        traceResponse.evaluatedGroup.labels,
+      )} was ${traceResponse.spanCount}${
+        traceResponse.evaluatedGroup.isQuiet
+          ? ": it sent spans in the week before the window, and none in it"
+          : ""
+      }.`;
+    }
+
+    const groups: Array<TraceMonitorGroupResult> | undefined =
+      traceResponse.groupBreakdown;
+
+    if (!groups) {
+      return `Span count was ${traceResponse.spanCount}.`;
+    }
+
+    if (traceResponse.isQuietWindow) {
+      return "No span matched in the window, from any group: the whole app went quiet, so no group was evaluated.";
+    }
+
+    if (groups.length === 0) {
+      return "No spans matched, so there was no group to evaluate.";
+    }
+
+    const quiet: number = groups.filter(
+      (group: TraceMonitorGroupResult): boolean => {
+        return group.isQuiet === true;
+      },
+    ).length;
+    const groupCount: number = Math.max(
+      traceResponse.totalGroupCount || 0,
+      groups.length,
+    );
+
+    return `Span count was ${traceResponse.spanCount} across ${groupCount} ${
+      groupCount === 1 ? "group" : "groups"
+    }${
+      quiet > 0
+        ? `; ${quiet} of them sent no span in the window, after sending spans in the week before it`
+        : ""
+    }.`;
   }
 
   /*

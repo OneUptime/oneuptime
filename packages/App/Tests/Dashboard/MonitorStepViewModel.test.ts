@@ -20,6 +20,7 @@ import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusP
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { LlmAnswerIssue } from "Common/Types/Telemetry/LlmAnswerIssue";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import { IoTResourceScope } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import { KubernetesResourceScope } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { ProxmoxResourceScope } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
@@ -1060,6 +1061,47 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
         value: ["production", "staging"],
       }),
     );
+  });
+
+  // #9711: a Traces monitor grouped per install says so, as a Logs one does.
+  it("names a Traces monitor's group-by, and hides it when it is not grouped", () => {
+    const rowsOf: (
+      groupByAttributes: Array<string> | undefined,
+    ) => Array<MonitorStepViewRow> = (
+      groupByAttributes: Array<string> | undefined,
+    ): Array<MonitorStepViewRow> => {
+      return MonitorStepViewModel.getRows({
+        monitorStep: buildStep({
+          traceMonitor: {
+            ...MonitorStepTraceMonitorUtil.getDefault(),
+            groupByAttributes: groupByAttributes,
+          },
+        }),
+        monitorType: MonitorType.Traces,
+      });
+    };
+
+    expect(
+      rowsOf(["resource.app.installation.id"]).find(
+        (row: MonitorStepViewRow) => {
+          return row.key === "traceGroupByAttributes";
+        },
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        title: "Group by Attributes",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: ["resource.app.installation.id"],
+      }),
+    );
+
+    for (const ungrouped of [undefined, []]) {
+      expect(
+        rowsOf(ungrouped).find((row: MonitorStepViewRow) => {
+          return row.key === "traceGroupByAttributes";
+        }),
+      ).toBeUndefined();
+    }
   });
 
   it("hides the environments row when the exception monitor watches every environment", () => {
