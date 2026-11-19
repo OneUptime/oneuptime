@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Sletter en post med det samme, uden at spørge.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Argument eller indstilling | Påkrævet | Hvad det er |
 | --- | --- | --- |
 | `<id>` | Ja | Postens ID |
 | `--force` | Nej | Accepteres og ændrer intet: `delete` beder aldrig om bekræftelse |
+| `--workflows-run-as <value>` | Nej | Kun brugerdefinerede roller: hvad de arbejdsgange, der kører som rollen, kører som, når den er slettet, `Default` eller `CustomRole`. En rolle, som arbejdsgange kører som, slettes kun med den |
+| `--workflows-run-as-custom-role-id <id>` | Nej | Kun brugerdefinerede roller: med `--workflows-run-as CustomRole` den anden brugerdefinerede rolle, de kører som |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ Hver operation er én anmodning til API'et med nøglen i headeren `APIKey`. `<pa
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | Ingen |
+| `delete` | `DELETE /api/<path>/<id>/` | Ingen, eller `miscDataProps` med `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 En handling læser dit projekts tilstande og posten og opretter så en række i postens tilstandstidslinje, som knappen i dashboardet gør: `acknowledge` på en hændelse opretter en `incident-state-timeline`. `add-note` opretter en `incident-internal-note`, eller med `--public` en `incident-public-note`. Et e-mailflag viser først projektets teammedlemmer med den adresse. Når OneUptime afviser et felt, som nøglen ikke må læse, spørger en liste eller en læsning igen uden feltet.

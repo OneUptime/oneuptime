@@ -207,6 +207,20 @@ Den svarer `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` 
 > [!CAUTION]
 > `delete` fjerner posten med en gang. CLI-en ber deg ikke bekrefte, og det kan ikke angres. Den godtar `--force`, for skript som er skrevet med det, og `--force` endrer ingenting.
 
+### En egendefinert rolle som arbeidsflyter kjører som
+
+OneUptime sletter bare en egendefinert rolle som arbeidsflyter kjører som, når slettingen sier hva de skal kjøre som i stedet, og avviser en sletting som ikke gjør det, med navnene på arbeidsflytene. Si det med `--workflows-run-as`: `Default`, standardtillatelsene, eller `CustomRole`, en annen egendefinert rolle du kunne gi et team, med ID-en i `--workflows-run-as-custom-role-id`. Aldri Project Owner: å slette en rolle gir aldri en arbeidsflyt flere tillatelser.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+En avvist sletting skriver ut OneUptimes avvisning, som nevner arbeidsflytene, og deretter flaggene du skal kjøre den på nytt med. En rolle som ingen arbeidsflyt kjører som, trenger ingen av dem.
+
 ## Tell poster
 
 ```bash

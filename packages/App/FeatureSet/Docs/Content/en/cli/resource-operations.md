@@ -207,6 +207,20 @@ It answers `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` 
 > [!CAUTION]
 > `delete` removes the record at once. The CLI does not ask you to confirm, and there is no undo. It accepts `--force`, for scripts written with it, and `--force` changes nothing.
 
+### A custom role that workflows run as
+
+OneUptime deletes a custom role that workflows run as only when the delete says what they run as instead, and refuses one that does not, naming the workflows. Say it with `--workflows-run-as`: `Default`, the default permissions, or `CustomRole`, another custom role you could give a team, with its ID in `--workflows-run-as-custom-role-id`. Never Project Owner: deleting a role never raises what a workflow can do.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+A refused delete prints OneUptime's refusal, which names the workflows, and then the flags to run it again with. A role no workflow runs as needs neither flag.
+
 ## Count records
 
 ```bash
