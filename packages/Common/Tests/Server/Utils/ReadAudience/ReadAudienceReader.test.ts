@@ -485,6 +485,38 @@ describe("what a security case names itself", () => {
       ReadAudiencePermission.isNamed(Incident, INCIDENT_ID, audience),
     ).toBe(true);
   });
+
+  /*
+   * A case has no labels of its own, so the label rule weighs it by the
+   * records it names - the incident it declared among them - and a case
+   * naming a private incident nobody named is left out of a read for an
+   * audience. The case a triage is about is named, so it reads itself
+   * whatever incident it declared.
+   */
+  test("the case reads itself for its triage, though the incident it declared is private and not named", async () => {
+    rows.labelledTeam = [teamRow(Permission.ProjectMember)];
+    readsCase(INCIDENT_ID);
+    readsIncident(true);
+
+    const audience: ReadAudience = await ReadAudienceReader.forSubject(
+      { projectId: PROJECT_ID, securityCaseId: CASE_ID },
+      { withTelemetry: false },
+    );
+    const kept: FindOperator<unknown> | null =
+      ReadAudiencePermission.getKeptCondition(SecurityCase, audience, {
+        followReferences: true,
+      }) as FindOperator<unknown> | null;
+
+    // A case is weighed by the incident it names...
+    expect(kept).not.toBeNull();
+    // ...and the case the triage is about is kept by its id, whatever it names.
+    expect(kept!.getSql!('"SecurityCase"."_id"')).toContain(
+      '"SecurityCase"."_id" IN (:...',
+    );
+    expect(
+      JSON.stringify(Object.values(kept!.objectLiteralParameters || {})),
+    ).toContain(CASE_ID.toString());
+  });
 });
 
 describe("what an AI insight names itself", () => {
