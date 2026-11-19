@@ -4783,10 +4783,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * Drag-and-drop reordering, for both the table and the list layout.
    *
    * A drop moves the row on screen at once and saves it in the background:
-   * the row is given the number of the row it was dropped on, and the server
-   * gives it that place and moves the rows in the way one place along
-   * (@ListOrderColumn). The list is then refreshed quietly to pick up their
-   * new numbers. If the save fails, the rows go back where they were and say
+   * a move to the place of the row it was dropped on (POST <list>/:id/move,
+   * through the moveInList callback), which the server makes in one
+   * transaction holding the list, numbering it from scratch. Writing the
+   * row's number would not do: a write places that row alone and moves no
+   * other (@ListOrderColumn), so it would share the number of the row it
+   * was dropped on. The list is then refreshed quietly to pick up the new
+   * numbers. If the move fails, the rows go back where they were and say
    * why.
    *
    * While a filter or search narrows the list, dragging is off - the rows in

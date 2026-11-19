@@ -395,8 +395,8 @@ describe("a create limited to owned records makes a record its creator owns", ()
 
   /*
    * A creator whose permission to create reaches only what they own is made
-   * its owner right after the save - before the record's list place, its
-   * images, its hooks and the best-effort owner row of everyone else - and a
+   * its owner right after the save - before its images, its hooks and the
+   * best-effort owner row of everyone else - and a
    * record they could not be made the owner of is deleted again, the create
    * refused.
    */
@@ -419,8 +419,12 @@ describe("a create limited to owned records makes a record its creator owns", ()
     const owned: number = create.indexOf(
       "await this.makeCreatorOwnerOrUndo(createBy.data, createBy.props);",
     );
+    /*
+     * A drag-ordered list's number is decided before the save, so the row
+     * is written with it and no other row moves (issue #9609).
+     */
     const listPlace: number = create.indexOf(
-      "await this.applyListOrderCreatePlan(listOrderPlan);",
+      "await this.planListOrderForCreate(data);",
     );
     const hooks: number = create.indexOf("await this.onCreateSuccess(");
     const bestEffort: number = create.indexOf(
@@ -431,7 +435,8 @@ describe("a create limited to owned records makes a record its creator owns", ()
     expect(decided).toBeGreaterThan(-1);
     expect(saved).toBeGreaterThan(decided);
     expect(owned).toBeGreaterThan(saved);
-    expect(listPlace).toBeGreaterThan(owned);
+    expect(listPlace).toBeGreaterThan(-1);
+    expect(listPlace).toBeLessThan(saved);
     expect(hooks).toBeGreaterThan(owned);
     expect(bestEffort).toBeGreaterThan(hooks);
 

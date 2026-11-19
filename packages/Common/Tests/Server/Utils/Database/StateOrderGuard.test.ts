@@ -1,4 +1,9 @@
-import StateOrderGuard from "../../../../Server/Utils/Database/StateOrderGuard";
+import ContiguousOrder from "../../../../Server/Utils/Database/ContiguousOrder";
+import StateOrderGuard, {
+  StateListCreatePlacement,
+} from "../../../../Server/Utils/Database/StateOrderGuard";
+import logger from "../../../../Server/Utils/Logger";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../../Server/Types/Database/DeleteBy";
 import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
@@ -14,7 +19,14 @@ import {
   StateListDefinition,
   StateListType,
 } from "../../../../Utils/StateOrder";
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * StateOrderGuard: what the state, severity and monitor status services do
@@ -22,7 +34,10 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * as. The service is faked - a project's rows in memory - so these pin the
  * guard's own decisions and the reads it makes:
  *
- *   - a row created without a place goes where its list wants a new one;
+ *   - a row created without a place goes where its list wants a new one:
+ *     saved at the end of its list like any other row, then moved to the
+ *     place of the row it goes above (beforeCreate says which, afterCreate
+ *     moves it) - so it never shares that row's number (issue #9609);
  *   - a signed-in write that puts the built-in states of a path out of order
  *     is refused before anything is written, with why;
  *   - a signed-in delete may not take away the last row of a built-in kind;
@@ -281,19 +296,27 @@ describe("StateOrderGuard.beforeCreate", () => {
     fake = fakeService(IncidentState, incidentStates());
   });
 
-  test("a state created without a place takes the resolved state's place", async () => {
+  /*
+   * The row is saved at the end of its list, with no number of its own, and
+   * moved to the resolved state's place once it is saved (afterCreate): it
+   * no longer takes the resolved state's number, which put two states at
+   * one number when writing a number stopped moving the rest.
+   */
+  test("a state created without a place is to go just above the resolved state, once saved at the end", async () => {
     const state: IncidentState = newIncidentState({});
 
-    await StateOrderGuard.beforeCreate({
-      service: fake.service,
-      definition: INCIDENT,
-      createBy: {
-        data: state,
-        props: SIGNED_IN,
-      } as unknown as CreateBy<IncidentState>,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: fake.service,
+        definition: INCIDENT,
+        createBy: {
+          data: state,
+          props: SIGNED_IN,
+        } as unknown as CreateBy<IncidentState>,
+      });
 
-    expect(state.order).toBe(4);
+    expect(placement).toEqual({ placeAboveId: id(4) });
+    expect(state.order).toBeUndefined();
   });
 
   test("the list is read in the new row's project, with its places and flags", async () => {
@@ -310,10 +333,10 @@ describe("StateOrderGuard.beforeCreate", () => {
     expect(fake.findAllByQueries[0]!["projectId"]?.toString()).toBe(
       PROJECT_ID.toString(),
     );
+    // Rows that share a number are read by id: no time of creation.
     expect(fake.findAllBySelects[0]).toEqual({
       _id: true,
       name: true,
-      createdAt: true,
       order: true,
       isCreatedState: true,
       isAcknowledgedState: true,
@@ -321,38 +344,59 @@ describe("StateOrderGuard.beforeCreate", () => {
     });
   });
 
-  test("a state created with a place keeps it, and costs no read", async () => {
+  test("a state created with a place keeps it, is moved nowhere, and costs no read", async () => {
     const state: IncidentState = newIncidentState({ order: 99 });
 
-    await StateOrderGuard.beforeCreate({
-      service: fake.service,
-      definition: INCIDENT,
-      createBy: {
-        data: state,
-        props: SIGNED_IN,
-      } as unknown as CreateBy<IncidentState>,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: fake.service,
+        definition: INCIDENT,
+        createBy: {
+          data: state,
+          props: SIGNED_IN,
+        } as unknown as CreateBy<IncidentState>,
+      });
 
+    expect(placement).toBeNull();
     expect(state.order).toBe(99);
     expect(fake.findAllByQueries).toHaveLength(0);
   });
 
-  test("with no resolved state, the new row is left to go to the end", async () => {
+  test("a state created at the resolved state's own number keeps it: two states at one number, listed by id", async () => {
+    const state: IncidentState = newIncidentState({ order: 4 });
+
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: fake.service,
+        definition: INCIDENT,
+        createBy: {
+          data: state,
+          props: SIGNED_IN,
+        } as unknown as CreateBy<IncidentState>,
+      });
+
+    expect(placement).toBeNull();
+    expect(state.order).toBe(4);
+  });
+
+  test("with no resolved state, the new row is left at the end", async () => {
     fake.rows = fake.rows.filter((row: FakeRow) => {
       return !row["isResolvedState"];
     });
 
     const state: IncidentState = newIncidentState({});
 
-    await StateOrderGuard.beforeCreate({
-      service: fake.service,
-      definition: INCIDENT,
-      createBy: {
-        data: state,
-        props: SIGNED_IN,
-      } as unknown as CreateBy<IncidentState>,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: fake.service,
+        definition: INCIDENT,
+        createBy: {
+          data: state,
+          props: SIGNED_IN,
+        } as unknown as CreateBy<IncidentState>,
+      });
 
+    expect(placement).toBeNull();
     expect(state.order).toBeUndefined();
   });
 
@@ -389,7 +433,26 @@ describe("StateOrderGuard.beforeCreate", () => {
           props: SIGNED_IN,
         } as unknown as CreateBy<IncidentState>,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull();
+  });
+
+  test("a signed-in built-in state created without a place is checked where it will go: just above the resolved state", async () => {
+    // A project whose list has lost its created state.
+    fake.rows = fake.rows.map((row: FakeRow): FakeRow => {
+      return { ...row, isCreatedState: false };
+    });
+
+    // The created state, just above Resolved: below Acknowledged - refused.
+    await expect(
+      StateOrderGuard.beforeCreate({
+        service: fake.service,
+        definition: INCIDENT,
+        createBy: {
+          data: newIncidentState({ name: "Opened", isCreatedState: true }),
+          props: SIGNED_IN,
+        } as unknown as CreateBy<IncidentState>,
+      }),
+    ).rejects.toThrow(BadDataException);
   });
 
   test("root (seeding, migrations) is placed but never refused", async () => {
@@ -406,7 +469,18 @@ describe("StateOrderGuard.beforeCreate", () => {
           props: { isRoot: true },
         } as unknown as CreateBy<IncidentState>,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull();
+
+    await expect(
+      StateOrderGuard.beforeCreate({
+        service: fake.service,
+        definition: INCIDENT,
+        createBy: {
+          data: newIncidentState({ name: "Seeded" }),
+          props: { isRoot: true },
+        } as unknown as CreateBy<IncidentState>,
+      }),
+    ).resolves.toEqual({ placeAboveId: id(4) });
   });
 
   test("a row without a project is refused", async () => {
@@ -425,7 +499,7 @@ describe("StateOrderGuard.beforeCreate", () => {
     ).rejects.toThrow("Incident State projectId is required");
   });
 
-  test("a monitor status takes the offline status's place", async () => {
+  test("a monitor status is to go just above the offline status", async () => {
     const statuses: FakeService = fakeService(MonitorStatus, [
       {
         _id: id(1),
@@ -448,16 +522,18 @@ describe("StateOrderGuard.beforeCreate", () => {
     status.name = "Maintenance";
     status.projectId = PROJECT_ID;
 
-    await StateOrderGuard.beforeCreate({
-      service: statuses.service,
-      definition: STATE_LISTS[StateListType.MonitorStatus],
-      createBy: {
-        data: status,
-        props: SIGNED_IN,
-      } as unknown as CreateBy<MonitorStatus>,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: statuses.service,
+        definition: STATE_LISTS[StateListType.MonitorStatus],
+        createBy: {
+          data: status,
+          props: SIGNED_IN,
+        } as unknown as CreateBy<MonitorStatus>,
+      });
 
-    expect(status.priority).toBe(3);
+    expect(placement).toEqual({ placeAboveId: id(3) });
+    expect(status.priority).toBeUndefined();
   });
 
   test("a severity is left alone - to the end of its list - with no read", async () => {
@@ -470,20 +546,22 @@ describe("StateOrderGuard.beforeCreate", () => {
     severity.name = "Medium";
     severity.projectId = PROJECT_ID;
 
-    await StateOrderGuard.beforeCreate({
-      service: severities.service,
-      definition: STATE_LISTS[StateListType.AlertSeverity],
-      createBy: {
-        data: severity,
-        props: SIGNED_IN,
-      } as unknown as CreateBy<AlertSeverity>,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: severities.service,
+        definition: STATE_LISTS[StateListType.AlertSeverity],
+        createBy: {
+          data: severity,
+          props: SIGNED_IN,
+        } as unknown as CreateBy<AlertSeverity>,
+      });
 
+    expect(placement).toBeNull();
     expect(severity.order).toBeUndefined();
     expect(severities.findAllByQueries).toHaveLength(0);
   });
 
-  test("a maintenance state takes the completed state's place", async () => {
+  test("a maintenance state is to go just above the completed state", async () => {
     const maintenance: FakeService = fakeService(ScheduledMaintenanceState, [
       {
         _id: id(1),
@@ -519,16 +597,128 @@ describe("StateOrderGuard.beforeCreate", () => {
     state.name = "Verifying";
     state.projectId = PROJECT_ID;
 
-    await StateOrderGuard.beforeCreate({
-      service: maintenance.service,
-      definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
-      createBy: {
-        data: state,
-        props: SIGNED_IN,
-      } as unknown as CreateBy<ScheduledMaintenanceState>,
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: maintenance.service,
+        definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
+        createBy: {
+          data: state,
+          props: SIGNED_IN,
+        } as unknown as CreateBy<ScheduledMaintenanceState>,
+      });
+
+    expect(placement).toEqual({ placeAboveId: id(4) });
+    expect(state.order).toBeUndefined();
+  });
+});
+
+/*
+ * Once the row beforeCreate placed is saved at the end of its list, it is
+ * moved to the place of the row it goes above, in one transaction holding
+ * the list (ContiguousOrder.moveRowOfList): that row and the rows after it
+ * step down one, the list numbered 1..n.
+ */
+describe("StateOrderGuard.afterCreate", () => {
+  let moves: Array<Record<string, unknown>>;
+  let fake: FakeService;
+
+  beforeEach(() => {
+    moves = [];
+    fake = fakeService(IncidentState, incidentStates());
+
+    jest
+      .spyOn(ContiguousOrder, "moveRowOfList")
+      .mockImplementation(async (data: unknown) => {
+        moves.push(data as Record<string, unknown>);
+        // New (6) to Resolved's place: it is 4, Resolved 5, Postmortem 6.
+        return {
+          changedRows: [
+            { id: id(6), order: 4 },
+            { id: id(4), order: 5 },
+            { id: id(5), order: 6 },
+          ],
+        };
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const created: () => IncidentState = (): IncidentState => {
+    const state: IncidentState = newIncidentState({ order: 6 });
+    state.id = new ObjectID(id(6));
+    return state;
+  };
+
+  test("moves the new row to the place of the row it goes above, in its project's list, and hands back its number", async () => {
+    const state: IncidentState = created();
+
+    await StateOrderGuard.afterCreate({
+      service: fake.service,
+      placement: { placeAboveId: id(4) },
+      createdItem: state,
     });
 
+    expect(moves).toHaveLength(1);
+    expect(moves[0]!["rowId"]?.toString()).toBe(id(6));
+    expect(moves[0]!["placeOfId"]?.toString()).toBe(id(4));
+    expect(moves[0]!["orderColumn"]).toBe("order");
+    expect(moves[0]!["sortOrder"]).toBe(SortOrder.Ascending);
+    expect(moves[0]!["list"]).toEqual([
+      { column: "projectId", value: PROJECT_ID.toString(), isId: true },
+    ]);
     expect(state.order).toBe(4);
+  });
+
+  test("moves nothing for a row beforeCreate left where it was saved", async () => {
+    await StateOrderGuard.afterCreate({
+      service: fake.service,
+      placement: null,
+      createdItem: created(),
+    });
+
+    expect(moves).toHaveLength(0);
+  });
+
+  test("a move that fails leaves the row at the end of its list, and the create stands", async () => {
+    jest
+      .spyOn(ContiguousOrder, "moveRowOfList")
+      .mockRejectedValue(new Error("lock timeout") as never);
+    const logged: jest.SpiedFunction<typeof logger.error> = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {}) as never);
+
+    const state: IncidentState = created();
+
+    await expect(
+      StateOrderGuard.afterCreate({
+        service: fake.service,
+        placement: { placeAboveId: id(4) },
+        createdItem: state,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(state.order).toBe(6);
+    expect(logged).toHaveBeenCalled();
+  });
+
+  test("a monitor status is moved by its priority", async () => {
+    const statuses: FakeService = fakeService(MonitorStatus, []);
+    const status: MonitorStatus = new MonitorStatus();
+    status.id = new ObjectID(id(6));
+    status.projectId = PROJECT_ID;
+    // Saved at the end of the list, past the offline status.
+    status.priority = 6;
+
+    await StateOrderGuard.afterCreate({
+      service: statuses.service,
+      placement: { placeAboveId: id(3) },
+      createdItem: status,
+    });
+
+    expect(moves[0]!["orderColumn"]).toBe("priority");
+    expect(status.priority).toBe(4);
   });
 });
 

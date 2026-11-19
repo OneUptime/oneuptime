@@ -1,4 +1,6 @@
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
+import ContiguousOrder from "../../../Server/Utils/Database/ContiguousOrder";
+import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -25,7 +27,9 @@ import {
  * service
  *
  *   - puts a new status that has no priority just above the offline status,
- *     so an outage still shows as the worst thing on a status page;
+ *     so an outage still shows as the worst thing on a status page: saved at
+ *     the end of the list, then moved to the offline status's place, which
+ *     steps down one (it never shares the offline status's number);
  *   - lets a signed-in caller move a status (it used to refuse every
  *     priority change: "delete and recreate it");
  *   - never lets a signed-in delete take away the project's last
@@ -42,6 +46,7 @@ const OPERATIONAL_ID: string = "22222222-2222-4222-8222-222222222222";
 const DEGRADED_ID: string = "33333333-3333-4333-8333-333333333333";
 const OFFLINE_ID: string = "44444444-4444-4444-8444-444444444444";
 const SECOND_OPERATIONAL_ID: string = "55555555-5555-4555-8555-555555555555";
+const NEW_ID: string = "66666666-6666-4666-8666-666666666666";
 
 type StatusRow = {
   _id: string;
@@ -131,20 +136,39 @@ afterEach(() => {
 const runOnBeforeCreate: (
   model: MonitorStatus,
   isRoot?: boolean,
-) => Promise<void> = async (
+) => Promise<OnCreate<MonitorStatus>> = async (
   model: MonitorStatus,
   isRoot: boolean = false,
-): Promise<void> => {
+): Promise<OnCreate<MonitorStatus>> => {
   const createBy: CreateBy<MonitorStatus> = {
     data: model,
     props: { isRoot: isRoot, tenantId: PROJECT_ID },
   } as CreateBy<MonitorStatus>;
 
-  await (
+  return await (
     MonitorStatusService as unknown as {
-      onBeforeCreate: (c: CreateBy<MonitorStatus>) => Promise<unknown>;
+      onBeforeCreate: (
+        c: CreateBy<MonitorStatus>,
+      ) => Promise<OnCreate<MonitorStatus>>;
     }
   ).onBeforeCreate(createBy);
+};
+
+const runOnCreateSuccess: (
+  onCreate: OnCreate<MonitorStatus>,
+  createdItem: MonitorStatus,
+) => Promise<MonitorStatus> = async (
+  onCreate: OnCreate<MonitorStatus>,
+  createdItem: MonitorStatus,
+): Promise<MonitorStatus> => {
+  return await (
+    MonitorStatusService as unknown as {
+      onCreateSuccess: (
+        o: OnCreate<MonitorStatus>,
+        c: MonitorStatus,
+      ) => Promise<MonitorStatus>;
+    }
+  ).onCreateSuccess(onCreate, createdItem);
 };
 
 const runOnBeforeUpdate: (
@@ -191,19 +215,83 @@ const runOnBeforeDelete: (
 };
 
 describe("MonitorStatusService.onBeforeCreate", () => {
-  test("a status created without a priority goes just above the offline status", async () => {
+  test("a status created without a priority is saved at the end, to go just above the offline status", async () => {
     const model: MonitorStatus = new MonitorStatus();
     model.name = "Maintenance";
     model.projectId = PROJECT_ID;
 
-    await runOnBeforeCreate(model);
+    const onCreate: OnCreate<MonitorStatus> = await runOnBeforeCreate(model);
 
-    // Offline's place: the offline status steps down one (DatabaseService).
-    expect(model.priority).toBe(3);
+    // DatabaseService puts it at the end; onCreateSuccess moves it.
+    expect(model.priority).toBeUndefined();
+    expect(onCreate.carryForward).toEqual({ placeAboveId: OFFLINE_ID });
     expect(listQueries).toHaveLength(1);
     expect(listQueries[0]!["projectId"]?.toString()).toBe(
       PROJECT_ID.toString(),
     );
+  });
+
+  test("once saved, it is moved to the offline status's place, which steps down one", async () => {
+    const moves: Array<Record<string, unknown>> = [];
+
+    jest
+      .spyOn(ContiguousOrder, "moveRowOfList")
+      .mockImplementation(async (data: unknown) => {
+        moves.push(data as Record<string, unknown>);
+        return {
+          changedRows: [
+            { id: NEW_ID, order: 3 },
+            { id: OFFLINE_ID, order: 4 },
+          ],
+        };
+      });
+
+    const created: MonitorStatus = new MonitorStatus();
+    created.id = new ObjectID(NEW_ID);
+    created.name = "Maintenance";
+    created.projectId = PROJECT_ID;
+    created.priority = 4;
+
+    const returned: MonitorStatus = await runOnCreateSuccess(
+      {
+        createBy: {
+          data: created,
+          props: { tenantId: PROJECT_ID },
+        } as CreateBy<MonitorStatus>,
+        carryForward: { placeAboveId: OFFLINE_ID },
+      },
+      created,
+    );
+
+    expect(moves).toHaveLength(1);
+    expect(moves[0]!["rowId"]?.toString()).toBe(NEW_ID);
+    expect(moves[0]!["placeOfId"]?.toString()).toBe(OFFLINE_ID);
+    expect(moves[0]!["orderColumn"]).toBe("priority");
+    expect(returned.priority).toBe(3);
+  });
+
+  test("a status created with a priority is moved nowhere once saved", async () => {
+    const move: jest.SpiedFunction<typeof ContiguousOrder.moveRowOfList> =
+      jest.spyOn(ContiguousOrder, "moveRowOfList");
+
+    const created: MonitorStatus = new MonitorStatus();
+    created.id = new ObjectID(NEW_ID);
+    created.projectId = PROJECT_ID;
+    created.priority = 99;
+
+    await runOnCreateSuccess(
+      {
+        createBy: {
+          data: created,
+          props: { tenantId: PROJECT_ID },
+        } as CreateBy<MonitorStatus>,
+        carryForward: null,
+      },
+      created,
+    );
+
+    expect(move).not.toHaveBeenCalled();
+    expect(created.priority).toBe(99);
   });
 
   test("with no offline status it is left to DatabaseService, which puts it at the end", async () => {
@@ -239,7 +327,9 @@ describe("MonitorStatusService.onBeforeCreate", () => {
     model.isOperationalState = true;
     model.projectId = PROJECT_ID;
 
-    await expect(runOnBeforeCreate(model)).resolves.toBeUndefined();
+    await expect(runOnBeforeCreate(model)).resolves.toEqual(
+      expect.objectContaining({ carryForward: null }),
+    );
     expect(model.priority).toBe(99);
   });
 
@@ -248,9 +338,13 @@ describe("MonitorStatusService.onBeforeCreate", () => {
     model.name = "Maintenance";
     model.projectId = PROJECT_ID;
 
-    await runOnBeforeCreate(model, true);
+    const onCreate: OnCreate<MonitorStatus> = await runOnBeforeCreate(
+      model,
+      true,
+    );
 
-    expect(model.priority).toBe(3);
+    expect(model.priority).toBeUndefined();
+    expect(onCreate.carryForward).toEqual({ placeAboveId: OFFLINE_ID });
   });
 
   test("rejects a status created without a projectId", async () => {
