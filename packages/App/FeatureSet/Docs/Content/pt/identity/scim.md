@@ -454,7 +454,7 @@ Usuários que o próprio SCIM cria e usuários que são membros do seu projeto s
 O endereço de email de uma conta do OneUptime é o que a pessoa usa para fazer login em todos os projetos dos quais faz parte, e é para onde vão os links de redefinição de senha. Por isso:
 
 - **OneUptime Cloud**: O SCIM nunca altera um endereço de email. Uma solicitação que alteraria um ainda é bem-sucedida: a conexão guarda o endereço que seu provedor de identidade enviou, e responde com ele, enquanto a conta mantém o endereço com que faz login. Os registros SCIM da conexão informam que a alteração não foi aplicada. Peça ao usuário que altere o endereço no próprio perfil do OneUptime.
-- **Auto-hospedado**: o SCIM altera o endereço de email apenas de um usuário que entrou neste projeto, não pertence a nenhum outro projeto e não é administrador do OneUptime. Para qualquer outra pessoa, a conexão guarda o novo endereço e a conta mantém o dela, como no OneUptime Cloud.
+- **Auto-hospedado**: o SCIM altera o endereço de email apenas de um usuário que entrou neste projeto, não pertence a nenhum outro projeto e não é administrador do OneUptime. Para qualquer outra pessoa, a conexão guarda o novo endereço e a conta mantém o dela, como no OneUptime Cloud. O mesmo vale para um endereço com que outra conta do OneUptime já faz login.
 
 Os nomes seguem a mesma regra em todos os casos: o SCIM atualiza o nome apenas de um usuário que entrou neste projeto, não pertence a nenhum outro projeto e não é administrador do OneUptime. Para qualquer outra pessoa, o nome permanece como está e o restante da solicitação ainda é bem-sucedido.
 :::

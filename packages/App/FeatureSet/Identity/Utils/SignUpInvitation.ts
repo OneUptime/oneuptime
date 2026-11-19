@@ -6,9 +6,16 @@ import InvitationInviterUtil, {
 } from "Common/Server/Utils/TeamMember/InvitationInviter";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import UserRegistrationToken from "Common/Server/Utils/UserRegistrationToken";
+import SsoManagedSignIn from "Common/Server/Utils/SsoManagedSignIn";
+import SsoSignInMethods from "Common/Server/Utils/SsoSignInMethods";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
-import { SignUpInvitation } from "Common/Types/Accounts/SignUpInvitation";
+import {
+  SignUpInvitation,
+  SignUpInvitationSsoSignIn,
+} from "Common/Types/Accounts/SignUpInvitation";
+import { ProjectSignInMethods } from "Common/Types/SSO/SignInMethods";
+import { SsoManagedBy } from "Common/Types/SSO/SsoManagedSignIn";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -69,6 +76,8 @@ export default class SignUpInvitationUtil {
         name: true,
         password: true,
         isBlocked: true,
+        // Whether SSO manages their sign-in is not asked of a master admin.
+        isMasterAdmin: true,
       },
       props: {
         isRoot: true,
@@ -91,6 +100,7 @@ export default class SignUpInvitationUtil {
         hasAcceptedInvitation: true,
         createdByUserId: true,
         createdAt: true,
+        inviteeName: true,
       },
       sort: {
         createdAt: SortOrder.Descending,
@@ -140,9 +150,59 @@ export default class SignUpInvitationUtil {
       projectId: membership.projectId.toString(),
       projectName: membership.project!.name!.toString().trim(),
       inviterName: inviter ? InvitationInviterUtil.getName(inviter) : null,
-      name: user.name?.toString().trim() || null,
+      /*
+       * The name typed with this invitation (#9823), else the one an
+       * earlier invitation gave the account nobody has claimed yet.
+       */
+      name:
+        membership.inviteeName?.trim() || user.name?.toString().trim() || null,
       isAccepted: Boolean(membership.hasAcceptedInvitation),
+      ssoSignIn: await SignUpInvitationUtil.readSsoSignIn({
+        userId: user.id,
+        isMasterAdmin: user.isMasterAdmin === true,
+        projectId: membership.projectId,
+      }),
     };
+  }
+
+  /*
+   * SINGLE SIGN-ON IN PLACE OF A PASSWORD (#9819): when every project the
+   * person would be in manages sign-in with SSO, the project's providers
+   * for the page to offer - claiming the account with a password would only
+   * be refused (SsoManagedSignIn). Null otherwise, and when the rule or the
+   * providers cannot be read: the page is then the sign-up page it always
+   * was, and the server still refuses a password where it must. A server
+   * that requires SSO for everyone is not this: the page offers its own
+   * providers then (SsoRequiredSignIn).
+   */
+  public static async readSsoSignIn(data: {
+    userId: ObjectID;
+    isMasterAdmin: boolean;
+    projectId: ObjectID;
+  }): Promise<SignUpInvitationSsoSignIn | null> {
+    try {
+      const managedBy: SsoManagedBy | null =
+        await SsoManagedSignIn.getManagedByOnceIn({
+          userId: data.userId,
+          isMasterAdmin: data.isMasterAdmin,
+          joiningProjectId: data.projectId,
+        });
+
+      if (managedBy !== SsoManagedBy.Projects) {
+        return null;
+      }
+
+      const methods: ProjectSignInMethods =
+        await SsoSignInMethods.getProjectSignInMethods(data.projectId);
+
+      return { providers: methods.ssoProviders };
+    } catch (err) {
+      logger.warn(
+        "Could not read whether single sign-on manages an invited person's sign-in; their sign-up page is the plain one.",
+      );
+      logger.warn(err);
+      return null;
+    }
   }
 
   /*

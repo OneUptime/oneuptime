@@ -34,6 +34,9 @@ import logger from "../Utils/Logger";
 import ProjectMembership, {
   ProjectMembershipStandings,
 } from "../Utils/TeamMember/ProjectMembership";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
 import { getWhoCanTurnOnClause } from "../../Utils/Project/NotificationChannels";
 import { isMissingRequiredPhoneMethod } from "../../Types/NotificationRule/PagingLadderDefault";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -1887,6 +1890,19 @@ export default class OnCallReadinessService {
       completeness: data.completeness,
     });
 
+    /*
+     * Someone only invited is shown as the project knows them - the name
+     * typed for them, else their address, and no picture - never by their
+     * account's own name, which it does not see until they join (#9823).
+     */
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: userIds.map((userId: ObjectID): string => {
+          return userId.toString();
+        }),
+        projectId: data.projectId,
+      });
+
     const readiness: Array<UserReadiness> = [];
 
     for (const user of inputs.users) {
@@ -1898,17 +1914,33 @@ export default class OnCallReadinessService {
         teamIds: new Set<string>(),
       };
 
-      readiness.push(
-        this.buildUserReadiness(
-          user,
-          attachment,
-          userIdString,
-          inputs,
-          teamNamesById,
-          memberUserIds.has(userIdString.toLowerCase()),
-          invitedUserIds.has(userIdString.toLowerCase()),
-        ),
+      const one: UserReadiness = this.buildUserReadiness(
+        user,
+        attachment,
+        userIdString,
+        inputs,
+        teamNamesById,
+        memberUserIds.has(userIdString.toLowerCase()),
+        invitedUserIds.has(userIdString.toLowerCase()),
       );
+
+      if (
+        PendingInviteeProfiles.getWithheldProfile({
+          userId: userIdString,
+          withheld: withheld,
+        })
+      ) {
+        one.userName =
+          PendingInviteeProfiles.getNameInProject({
+            userId: userIdString,
+            name: null,
+            email: user.email,
+            withheld: withheld,
+          }) || "Unknown User";
+        one.userProfilePictureId = undefined;
+      }
+
+      readiness.push(one);
     }
 
     return this.sortReadiness(readiness);

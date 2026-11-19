@@ -26,7 +26,7 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import {
   drawInviteeEmailField,
   getInviteeEmailError,
-} from "../../../Components/Team/InviteeEmailFormField";
+} from "Common/UI/Components/InviteeEmailField/InviteeEmailFormField";
 import {
   INVITEE_NAME_DESCRIPTION,
   shouldAskForInviteeName,
@@ -251,7 +251,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             /*
              * The form's text box, which suggests the project's people as
              * it is typed in, each with where they stand for this team
-             * (#9701, Components/Team/InviteeEmailFormField).
+             * (#9701, Common/UI/Components/InviteeEmailField).
              */
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,

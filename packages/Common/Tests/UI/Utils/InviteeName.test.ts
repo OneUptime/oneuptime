@@ -118,12 +118,12 @@ describe("the invite forms", () => {
     [
       "the Admin Dashboard's Invite New User",
       "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
-      false,
+      true,
     ],
     [
       "the Admin Dashboard's team members",
       "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/TeamView.tsx",
-      false,
+      true,
     ],
   ];
 
@@ -146,7 +146,11 @@ describe("the invite forms", () => {
       expect(source).not.toContain("isEmailRegistered");
       expect(source).not.toContain("useUserEmailRegistrationStatus");
 
-      // The Dashboard's forms hide it for a person picked from the suggestions.
+      /*
+       * Every form suggests people as the address is typed - the Admin
+       * Dashboard's too, since #9826 - and hides it for a person picked
+       * from the suggestions.
+       */
       expect(source.includes("pickedEmail: pickedInviteeEmail")).toBe(
         hasSuggestions,
       );

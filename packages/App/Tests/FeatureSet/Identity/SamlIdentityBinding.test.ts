@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import SSORouter from "../../../FeatureSet/Identity/API/SSO";
-import ProjectSsoSignInConfirmation from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
+import ProjectSsoSignInConfirmation, {
+  PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+  PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+} from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
 import {
   PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
   PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
@@ -113,6 +116,10 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
         return teamMemberCountBy(...args);
       },
       findBy: jest.fn(),
+      // Signing in accepts an invitation into the project still pending (#9819).
+      updateBy: (): Promise<number> => {
+        return Promise.resolve(0);
+      },
     },
   };
 });
@@ -555,9 +562,9 @@ describe("a later sign-in", () => {
     expect(bindingOf(USER_ID)).toBe(OTHER_OBJECT_ID);
   });
 
-  test("as someone else, on the hosted service, is refused before any confirmation email", async () => {
+  test("as someone else, on the hosted service, is refused once the account has confirmed, with no confirmation email", async () => {
     bindings.set(`${PROVIDER_ID}:${USER_ID}`, OTHER_OBJECT_ID);
-    hasConsent = false;
+    hasConsent = true;
     const requestConfirmation: jest.SpyInstance = jest
       .spyOn(ProjectSsoSignInConfirmation, "requestConfirmation")
       .mockResolvedValue(undefined as never);
@@ -566,6 +573,32 @@ describe("a later sign-in", () => {
 
     expectRefusedAsAnotherPerson();
     expect(requestConfirmation).not.toHaveBeenCalled();
+
+    requestConfirmation.mockRestore();
+  });
+
+  test("as someone else, on the hosted service, before the account has confirmed: answered as any account that has not (#9824), and still never signed in", async () => {
+    /*
+     * Every sign-in the hosted service does not let through reads alike
+     * (ProjectSsoSignInGate). The binding is asked once a sign-in may go
+     * through: should the mailbox's owner confirm, the next sign-in as
+     * someone else is refused as above.
+     */
+    bindings.set(`${PROVIDER_ID}:${USER_ID}`, OTHER_OBJECT_ID);
+    hasConsent = false;
+    const requestConfirmation: jest.SpyInstance = jest
+      .spyOn(ProjectSsoSignInConfirmation, "requestConfirmation")
+      .mockResolvedValue(undefined as never);
+
+    await signIn({ billing: true });
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(render.mock.calls[0]![3]).toEqual({
+      title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+      message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+    });
+    expect(createSession).not.toHaveBeenCalled();
+    expect(bindingOf(USER_ID)).toBe(OTHER_OBJECT_ID);
 
     requestConfirmation.mockRestore();
   });

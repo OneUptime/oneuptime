@@ -603,7 +603,7 @@ class IncidentOwnerRuleEngineServiceClass
           : ""
       }\n\nAssigned the following owner${
         users.length + teams.length === 1 ? "" : "s"
-      } to the incident:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}${creatorTeamNote}`;
+      } to the incident:\n${await RuleFeedMarkdown.readOwnersList({ users: users, teams: teams, projectId: incident.projectId })}${inheritedNote}${creatorTeamNote}`;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id,

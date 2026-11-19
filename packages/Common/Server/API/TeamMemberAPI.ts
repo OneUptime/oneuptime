@@ -16,9 +16,13 @@ import InviteSuggestions from "../Utils/Team/InviteSuggestions";
 import {
   InviteSuggestion,
   InviteSuggestionsRequest,
+  readInviteSuggestionsProjectId,
   readInviteSuggestionsRequest,
   toInviteSuggestionsAnswerJSON,
 } from "../../Types/Team/InviteSuggestions";
+import ProjectService from "../Services/ProjectService";
+import Project from "../../Models/DatabaseModels/Project";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import ReadableTeamNames from "../Utils/Team/ReadableTeamNames";
 import InvitationEmailsNotSent from "../Utils/TeamMember/InvitationEmailsNotSent";
 import EditionEnforcement from "../Utils/EditionEnforcement";
@@ -159,6 +163,82 @@ export default class TeamMemberAPI extends BaseAPI<
               projectId: projectId,
               request: request,
               props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toInviteSuggestionsAnswerJSON(suggestions),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/invite-suggestions-in-project/:id - the same
+     * suggestions, for the Admin Dashboard's invitation forms (#9826):
+     * Invite New User on a project's Users, and a team's members. The Admin
+     * Dashboard works in no project, so the project is the one the path
+     * names (`:id`, the project's id). It is never the request's tenant:
+     * as a tenant it would hold the master admin to that project's own
+     * sign-in rules (Require SSO to Sign In refuses one who did not sign in
+     * with its SSO) and answer a project that is gone with the 405 the
+     * browser signs out on. Master admins only (MasterAdminAuthorization,
+     * which asks whether they still are one), read with their own props in
+     * that project, as the Admin Dashboard reads any project. A project
+     * that does not exist is refused, never answered with nobody. Who is
+     * suggested is InviteSuggestions' rule, unchanged: the project's
+     * people, and on a server somebody runs its other accounts, never on
+     * OneUptime Cloud. Nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/invite-suggestions-in-project/:id`,
+      UserMiddleware.getUserMiddleware,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID = readInviteSuggestionsProjectId(
+            req.params["id"],
+          );
+
+          const request: InviteSuggestionsRequest =
+            readInviteSuggestionsRequest(req.body);
+
+          const project: Project | null = await ProjectService.findOneById({
+            id: projectId,
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!project) {
+            throw new NotFoundException(
+              "This project does not exist. It may have been deleted: open another one from the Projects list.",
+            );
+          }
+
+          const suggestions: Array<InviteSuggestion> =
+            await InviteSuggestions.suggest({
+              projectId: projectId,
+              request: request,
+              /*
+               * In the project the path names, and no other: a tenant the
+               * request named as well is not the one read.
+               */
+              props: {
+                ...props,
+                tenantId: projectId,
+              },
             });
 
           Response.setNoCacheHeaders(res);

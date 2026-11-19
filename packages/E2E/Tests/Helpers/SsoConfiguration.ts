@@ -39,6 +39,9 @@ export const PROJECT_SSO_API_PATH: string = "/api/project-sso";
 
 export const PROJECT_API_PATH: string = "/api/project";
 
+// Common/Models/DatabaseModels/Domain.ts (@CrudApiEndpoint "/domain").
+export const DOMAIN_API_PATH: string = "/api/domain";
+
 /*
  * What UserAuthorization answers, with a 406, for a project that requires
  * SSO when the session carries no SSO token for it - copied from
@@ -376,10 +379,16 @@ type ExpectSamlProviderOfferedFunction = (data: {
  *     unauthenticated too;
  *   - GET /identity/service-provider-login?email=..., the Accounts sign-in
  *     page's discovery by email (FeatureSet/Identity/API/SSO.ts), which lists
- *     the enabled providers of every project the address belongs to.
+ *     the enabled providers that serve a verified domain of their project
+ *     with the address's domain (#9824). The owner's own address, on a
+ *     domain the provider does not serve, is offered nothing, though the
+ *     owner is in the project: discovery reads no account. Once the project
+ *     verifies a domain of its own (a reserved .test name, which needs no
+ *     DNS record) and the provider lists it, any address on that domain,
+ *     with an account or not, is offered the provider.
  *
- * Any one coming back empty would leave a working provider that a page
- * does not offer.
+ * Any one coming back empty where it should offer the provider would leave
+ * a working provider that a page does not offer.
  */
 export const expectSamlProviderOffered: ExpectSamlProviderOfferedFunction =
   async (data: {
@@ -429,29 +438,174 @@ export const expectSamlProviderOffered: ExpectSamlProviderOfferedFunction =
       `The project's SSO list must offer its enabled provider ${data.where}. ${listedFound}`,
     ).toContain(data.projectSsoId);
 
-    const discoveryUrl: string = identityRouteUrl({
-      prefix: "/identity",
-      path: "/service-provider-login",
-    });
-    const discovered: ApiOutcome = await toOutcome(
-      await data.request.get(discoveryUrl, {
-        params: { email: data.ownerEmail },
-        maxRedirects: 0,
-      }),
-    );
-    const discoveredFound: string = describeOutcome({
-      request: `GET ${discoveryUrl}?email=${data.ownerEmail}`,
-      outcome: discovered,
-    });
+    const discover: (email: string) => Promise<{
+      ids: Array<string>;
+      found: string;
+    }> = async (
+      email: string,
+    ): Promise<{ ids: Array<string>; found: string }> => {
+      const discoveryUrl: string = identityRouteUrl({
+        prefix: "/identity",
+        path: "/service-provider-login",
+      });
+      const discovered: ApiOutcome = await toOutcome(
+        await data.request.get(discoveryUrl, {
+          params: { email: email },
+          maxRedirects: 0,
+        }),
+      );
+      const found: string = describeOutcome({
+        request: `GET ${discoveryUrl}?email=${email}`,
+        outcome: discovered,
+      });
 
-    expect(discovered.status, discoveredFound).toBe(200);
+      expect(discovered.status, found).toBe(200);
+
+      return { ids: readListedIds(discovered.body), found: found };
+    };
+
+    const ownAddress: { ids: Array<string>; found: string } = await discover(
+      data.ownerEmail,
+    );
 
     expect(
-      readListedIds(discovered.body),
-      `SSO discovery by email must offer the provider of the owner's project ${data.where}. ` +
-        `${discoveredFound}`,
+      ownAddress.ids,
+      `SSO discovery by email must not offer a provider for the owner's membership, on a domain the provider does not serve ${data.where}. ` +
+        `${ownAddress.found}`,
+    ).not.toContain(data.projectSsoId);
+
+    const domain: string = await addVerifiedTestDomain({
+      request: data.request,
+      projectId: data.projectId,
+      where: data.where,
+    });
+
+    await listProviderDomains({
+      request: data.request,
+      projectId: data.projectId,
+      projectSsoId: data.projectSsoId,
+      domainIds: [domain],
+      where: data.where,
+    });
+
+    const domainName: string = domainNames.get(domain) || "";
+
+    // An address nobody signed up with, on the domain the provider serves.
+    const onTheDomain: { ids: Array<string>; found: string } = await discover(
+      `${Faker.generateRandomString(8).toLowerCase()}@${domainName}`,
+    );
+
+    expect(
+      onTheDomain.ids,
+      `SSO discovery by email must offer the provider to an address on the verified domain it serves ${data.where}. ` +
+        `${onTheDomain.found}`,
     ).toContain(data.projectSsoId);
+
+    expect(
+      (await discover(data.ownerEmail)).ids,
+      `SSO discovery by email must still offer nothing for the owner's own address ${data.where}.`,
+    ).not.toContain(data.projectSsoId);
   };
+
+// The names of the domains addVerifiedTestDomain added, by their id.
+const domainNames: Map<string, string> = new Map<string, string>();
+
+type AddVerifiedTestDomainFunction = (data: {
+  request: APIRequestContext;
+  projectId: string;
+  where: string;
+}) => Promise<string>;
+
+/*
+ * Adds a verified domain to the project: a name under .test, which RFC 2606
+ * reserves, so nobody can own it, it needs no DNS record, and DomainService
+ * lets it be added verified (Domain.isTestDomain). Returns its id.
+ */
+export const addVerifiedTestDomain: AddVerifiedTestDomainFunction =
+  async (data: {
+    request: APIRequestContext;
+    projectId: string;
+    where: string;
+  }): Promise<string> => {
+    const name: string = `e2e-${Faker.generateRandomString(12).toLowerCase()}.test`;
+
+    const outcome: ApiOutcome = await toOutcome(
+      await data.request.post(stackUrl(DOMAIN_API_PATH), {
+        headers: projectHeaders(data.projectId),
+        data: {
+          data: {
+            /*
+             * As the Domains page sends it: the name as text. DomainService
+             * takes a domain as text or as its own server-side type, and
+             * refuses one sent as a { _type: "Domain" } value.
+             */
+            domain: name,
+            projectId: data.projectId,
+            isVerified: true,
+          },
+        },
+      }),
+    );
+    const found: string = describeOutcome({
+      request: `POST ${stackUrl(DOMAIN_API_PATH)}`,
+      outcome: outcome,
+    });
+
+    expect(
+      outcome.status,
+      `A project owner must be able to add a verified test domain ${data.where}. ${found}`,
+    ).toBe(200);
+
+    const id: string = readCreatedId(outcome.body);
+
+    expect(id, `The domain create must answer with its id. ${found}`).not.toBe(
+      "",
+    );
+
+    domainNames.set(id, name);
+
+    return id;
+  };
+
+type ListProviderDomainsFunction = (data: {
+  request: APIRequestContext;
+  projectId: string;
+  projectSsoId: string;
+  domainIds: Array<string>;
+  where: string;
+}) => Promise<void>;
+
+/*
+ * The provider serves these verified domains of its project at Sign in with
+ * SSO: the Domains field of its form on Settings > SSO.
+ */
+export const listProviderDomains: ListProviderDomainsFunction = async (data: {
+  request: APIRequestContext;
+  projectId: string;
+  projectSsoId: string;
+  domainIds: Array<string>;
+  where: string;
+}): Promise<void> => {
+  const url: string = stackUrl(`${PROJECT_SSO_API_PATH}/${data.projectSsoId}`);
+  const outcome: ApiOutcome = await toOutcome(
+    await data.request.put(url, {
+      headers: projectHeaders(data.projectId),
+      data: {
+        data: {
+          domains: data.domainIds.map((id: string): Record<string, string> => {
+            return { _id: id };
+          }),
+        },
+      },
+    }),
+  );
+
+  expect(
+    outcome.status,
+    `A project owner must be able to list the provider's domains ${data.where}. ` +
+      describeOutcome({ request: `PUT ${url}`, outcome: outcome }),
+  ).toBe(200);
+};
 
 type ExpectSamlStartRedirectsFunction = (data: {
   request: APIRequestContext;
