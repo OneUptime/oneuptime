@@ -14,7 +14,7 @@ import {
   toDeviceMonitorCandidate,
   toDeviceMonitorFacts,
 } from "../../../Utils/Monitor/DeviceMonitorDuplicates";
-import { isDeviceAddressMonitorType } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import { isDeviceTargetMonitorType } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import MonitorService from "../../Services/MonitorService";
 import logger from "../Logger";
@@ -30,13 +30,14 @@ import logger from "../Logger";
  * device's ("Already monitored") instead of making a second. What counts as
  * a duplicate is the shared rule's (Utils/Monitor/DeviceMonitorDuplicates);
  * this reads the monitors it is asked about: the ones made for the device,
- * then the one bound to it.
+ * the ones a person tied to it (issue #9545), then the one bound to it.
  *
  * TWO CREATES AT ONCE. A monitor from the same template as one the device
  * has is refused by the database itself: Monitor's unique (device, template)
  * index. Two Ping templates are two pairs, so nothing in the database stops
  * an import and an auto import rule from each giving the same device a Ping
- * monitor in the same second. For a Ping, IP, Port or NTP template the check
+ * monitor in the same second. For a target template - Ping, IP, Port, NTP,
+ * Website, API or SSL Certificate (DEVICE_TARGET_MONITOR_TYPES) - the check
  * and the create therefore run under one lock per device, held by every path
  * (underDeviceLock): the second waits for the first, then finds its monitor.
  * The two engines are already one run at a time each (a project's imports
@@ -90,20 +91,21 @@ export const DEVICE_MONITOR_FACTS_SELECT: {
 export default class DeviceMonitorDuplicateCheck {
   /*
    * Whether a template of this kind can duplicate a monitor the database
-   * cannot see: a Ping, IP, Port or NTP template, whose duplicates span
-   * templates. A Network Device template's is the (device, template) pair,
-   * which the unique index holds.
+   * cannot see: a target template (Ping, IP, Port, NTP, Website, API, SSL
+   * Certificate), whose duplicates span templates. A Network Device
+   * template's is the (device, template) pair, which the unique index holds.
    */
   public static needsDeviceLock(
     monitorType: MonitorType | string | null | undefined,
   ): boolean {
-    return isDeviceAddressMonitorType(monitorType);
+    return isDeviceTargetMonitorType(monitorType);
   }
 
   /*
-   * The device's monitors, oldest first: the ones made for it, then the one
-   * bound to it when that is another. Read as OneUptime: the question is
-   * about the device, whoever asks.
+   * The device's monitors, oldest first: the ones made for it, then the
+   * ones a person tied to it (Monitor.networkDeviceId, issue #9545), then
+   * the one bound to it when that is another - each once. Read as
+   * OneUptime: the question is about the device, whoever asks.
    */
   public static async readDeviceMonitors(data: {
     projectId: ObjectID;
@@ -127,9 +129,31 @@ export default class DeviceMonitorDuplicateCheck {
       props: { isRoot: true },
     });
 
-    const monitors: Array<DeviceMonitorFacts> = (madeForDevice || []).map(
-      toDeviceMonitorFacts,
-    );
+    const tiedToDevice: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        projectId: data.projectId,
+        networkDeviceId: deviceId,
+      },
+      select: DEVICE_MONITOR_FACTS_SELECT,
+      sort: { createdAt: SortOrder.Ascending },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const monitors: Array<DeviceMonitorFacts> = [];
+
+    for (const monitor of [...(madeForDevice || []), ...(tiedToDevice || [])]) {
+      const facts: DeviceMonitorFacts = toDeviceMonitorFacts(monitor);
+
+      if (
+        !monitors.some((listed: DeviceMonitorFacts): boolean => {
+          return listed.id.toLowerCase() === facts.id.toLowerCase();
+        })
+      ) {
+        monitors.push(facts);
+      }
+    }
 
     const boundMonitorId: string = data.device.monitorId?.toString() || "";
 
