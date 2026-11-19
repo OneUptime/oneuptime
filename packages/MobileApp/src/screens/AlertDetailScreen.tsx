@@ -13,6 +13,7 @@ import { useContentGutters } from "../layout/WindowLayout";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
+import RecordOwnersAndLabels from "../components/RecordOwnersAndLabels";
 import {
   useAlertDetail,
   useAlertStates,
@@ -484,6 +485,11 @@ export default function AlertDetailScreen({
         <ResponseInfoRow
           label="Created"
           value={formatDateTime(alert.createdAt)}
+        />
+        <RecordOwnersAndLabels
+          list="alerts"
+          projectId={projectId}
+          recordId={alertId}
         />
       </ResponseSection>
       <ResponseSection title="Root Cause" iconName="bulb-outline">

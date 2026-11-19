@@ -110,6 +110,27 @@ jest.mock("../hooks/useScreenPadding", () => {
   };
 });
 
+/*
+ * A monitor's owners and labels are read through React Query, which this
+ * suite does not provide; their rows have a suite of their own
+ * (components/RecordOwnersAndLabels.test.tsx).
+ */
+jest.mock("../hooks/useRecordOwnersAndLabels", () => {
+  return {
+    useRecordOwnersAndLabels: () => {
+      return {
+        owners: [],
+        labels: [],
+        isLoading: false,
+        ownersFailed: false,
+        refetch: async (): Promise<void> => {
+          return undefined;
+        },
+      };
+    },
+  };
+});
+
 jest.mock("../hooks/useMonitorDetail", () => {
   return {
     useMonitorDetail: () => {
