@@ -88,18 +88,32 @@ export interface AwsKeyMetric {
    */
   periodSeconds: number;
   /*
-   * Whether a metric stream of the account writes it in place of the read,
-   * while one streams (CloudStreamedMetrics): the key metrics a stream's
-   * CloudFormation stack carries (CloudStreamTemplate), as every stack made
-   * since streams began carries them, and ACM's DaysToExpiry, which a
-   * stream of every metric carries. False for a metric no stack carries -
-   * S3's daily storage, and every key metric added since (awsRead): a stack
-   * made before them does not carry them, so the read keeps writing them
-   * whether the account streams or not, and a stream of every metric that
-   * delivers one is left to the read (CloudWatchMetricStream), so nothing
-   * is written twice.
+   * The first version of the stream template whose key-metric filters
+   * carry it (AWS_STREAM_TEMPLATE_VERSION, CloudStreamTemplate): 1 for the
+   * key metrics every stack has carried since streams began, 2 for those
+   * added since. A stack is made once, from the template of its day, so a
+   * stack of an older template does not carry a metric added after it, and
+   * the read keeps reading and writing that metric for its account
+   * (AwsStreamStack, CloudStreamedMetrics) until the stack is made again
+   * from a newer template. Null for a metric no stream writes: S3's daily
+   * storage, which a metric stream does not carry, and ACM's DaysToExpiry,
+   * published twice a day and read once an hour - a stream would bring it
+   * an hour sooner, which is nothing to a count of days. The read always
+   * writes those, and a stream of every metric that delivers one leaves it
+   * to the read (CloudWatchMetricStream), so nothing is written twice.
    */
-  isStreamed: boolean;
+  streamedSince: number | null;
+  /*
+   * Only the series whose named dimensions hold one of these values, or do
+   * not carry the dimension at all, are this metric's: a Network
+   * Firewall's ReceivedPackets is published once for each engine that saw
+   * a packet, and only its Stateless (Classic policy) or System (Next
+   * Generation policy) engine's series counts every packet the firewall
+   * received - summed with the Firewall engine's, a packet would count
+   * twice. The read lists and reads only these (AwsCloudConnector), and a
+   * stream's other series of it are left out (CloudWatchMetricStream).
+   */
+  onlyDimensionValues?: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
 export interface AwsNamespaceKeyMetrics {
@@ -135,7 +149,29 @@ export const AWS_DEFAULT_PERIOD_SECONDS: number = 300;
 export const HOURLY_PERIOD_SECONDS: number = 3600;
 export const DAILY_PERIOD_SECONDS: number = 86400;
 
-// A key metric a stream writes in place of the read (isStreamed), but a daily one.
+/*
+ * THE VERSIONS OF THE STREAM TEMPLATE (CloudStreamTemplate).
+ *
+ * The template a stream's stack is made from says its version to OneUptime
+ * with every delivery (CloudStreamStack), and its key-metric filters carry
+ * every key metric of a version up to its own (AwsKeyMetric.streamedSince).
+ *
+ *   - 1: the key metrics every stack has carried since streams began. A
+ *     stack that says no version is held to these: one made before stacks
+ *     said theirs, or one set up another way, with Terraform or the
+ *     console, whose filters OneUptime cannot know.
+ *   - 2: every key metric read every five minutes, the ones added since
+ *     streams began too.
+ *
+ * A key metric added to the catalog after a version is written is streamed
+ * since the next one, never the current one: stacks of the current version
+ * are out there and do not carry it. CloudStreamTemplate.test pins what
+ * each version carries.
+ */
+export const AWS_STREAM_TEMPLATE_UNVERSIONED: number = 1;
+export const AWS_STREAM_TEMPLATE_VERSION: number = 2;
+
+// A key metric every key-metric stack carries, since streams began - but a daily or hourly one.
 function aws(
   metricName: string,
   statistic: AwsStatistic,
@@ -149,20 +185,26 @@ function aws(
     unit,
     group,
     periodSeconds,
-    isStreamed: periodSeconds < DAILY_PERIOD_SECONDS,
+    streamedSince:
+      periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS
+        ? AWS_STREAM_TEMPLATE_UNVERSIONED
+        : null,
   };
 }
 
 /*
- * A key metric the read writes whether the account streams or not
- * (isStreamed false): every one added since streams began. Read every five
- * minutes.
+ * A key metric added since streams began, read every five minutes: the
+ * stacks of template 2 on carry it, and an older stack's account has it
+ * read and written by the read.
  */
-function awsRead(
+function aws2(
   metricName: string,
   statistic: AwsStatistic,
   unit: string,
   group: CloudKeyMetricGroup,
+  options: {
+    onlyDimensionValues?: Readonly<Record<string, ReadonlyArray<string>>>;
+  } = {},
 ): AwsKeyMetric {
   return {
     metricName,
@@ -170,7 +212,10 @@ function awsRead(
     unit,
     group,
     periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
-    isStreamed: false,
+    streamedSince: 2,
+    ...(options.onlyDimensionValues
+      ? { onlyDimensionValues: options.onlyDimensionValues }
+      : {}),
   };
 }
 
@@ -183,9 +228,9 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("NetworkOut", "Sum", "Bytes", G.Network),
       aws("StatusCheckFailed", "Maximum", "Count", G.Availability),
       // A burstable (T) instance's credits; a Nitro instance's EBS throughput.
-      awsRead("CPUCreditBalance", "Average", "Count", G.Compute),
-      awsRead("EBSReadBytes", "Sum", "Bytes", G.Storage),
-      awsRead("EBSWriteBytes", "Sum", "Bytes", G.Storage),
+      aws2("CPUCreditBalance", "Average", "Count", G.Compute),
+      aws2("EBSReadBytes", "Sum", "Bytes", G.Storage),
+      aws2("EBSWriteBytes", "Sum", "Bytes", G.Storage),
     ],
   },
   {
@@ -194,10 +239,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("VolumeReadOps", "Sum", "Count", G.Storage),
       aws("VolumeWriteOps", "Sum", "Count", G.Storage),
       aws("VolumeQueueLength", "Average", "Count", G.Storage),
-      awsRead("VolumeReadBytes", "Sum", "Bytes", G.Storage),
-      awsRead("VolumeWriteBytes", "Sum", "Bytes", G.Storage),
+      aws2("VolumeReadBytes", "Sum", "Bytes", G.Storage),
+      aws2("VolumeWriteBytes", "Sum", "Bytes", G.Storage),
       // gp2, st1 and sc1 volumes only.
-      awsRead("BurstBalance", "Average", "Percent", G.Storage),
+      aws2("BurstBalance", "Average", "Percent", G.Storage),
     ],
   },
   {
@@ -207,10 +252,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("Latency", "Average", "Seconds", G.Latency),
       aws("HTTPCode_Backend_5XX", "Sum", "Count", G.Errors),
       aws("UnHealthyHostCount", "Maximum", "Count", G.Availability),
-      awsRead("HealthyHostCount", "Average", "Count", G.Availability),
-      awsRead("HTTPCode_ELB_5XX", "Sum", "Count", G.Errors),
-      awsRead("SurgeQueueLength", "Maximum", "Count", G.Backlog),
-      awsRead("SpilloverCount", "Sum", "Count", G.Errors),
+      aws2("HealthyHostCount", "Average", "Count", G.Availability),
+      aws2("HTTPCode_ELB_5XX", "Sum", "Count", G.Errors),
+      aws2("SurgeQueueLength", "Maximum", "Count", G.Backlog),
+      aws2("SpilloverCount", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -220,11 +265,11 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("TargetResponseTime", "Average", "Seconds", G.Latency),
       aws("HTTPCode_Target_5XX_Count", "Sum", "Count", G.Errors),
       aws("HTTPCode_ELB_5XX_Count", "Sum", "Count", G.Errors),
-      awsRead("HTTPCode_Target_4XX_Count", "Sum", "Count", G.Errors),
-      awsRead("RejectedConnectionCount", "Sum", "Count", G.Errors),
-      awsRead("TargetConnectionErrorCount", "Sum", "Count", G.Errors),
-      awsRead("ActiveConnectionCount", "Sum", "Count", G.Connections),
-      awsRead("ProcessedBytes", "Sum", "Bytes", G.Traffic),
+      aws2("HTTPCode_Target_4XX_Count", "Sum", "Count", G.Errors),
+      aws2("RejectedConnectionCount", "Sum", "Count", G.Errors),
+      aws2("TargetConnectionErrorCount", "Sum", "Count", G.Errors),
+      aws2("ActiveConnectionCount", "Sum", "Count", G.Connections),
+      aws2("ProcessedBytes", "Sum", "Bytes", G.Traffic),
     ],
   },
   {
@@ -233,10 +278,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ActiveFlowCount", "Average", "Count", G.Connections),
       aws("NewFlowCount", "Sum", "Count", G.Connections),
       aws("ProcessedBytes", "Sum", "Bytes", G.Traffic),
-      awsRead("TCP_Client_Reset_Count", "Sum", "Count", G.Errors),
-      awsRead("TCP_Target_Reset_Count", "Sum", "Count", G.Errors),
-      awsRead("TCP_ELB_Reset_Count", "Sum", "Count", G.Errors),
-      awsRead("PortAllocationErrorCount", "Sum", "Count", G.Errors),
+      aws2("TCP_Client_Reset_Count", "Sum", "Count", G.Errors),
+      aws2("TCP_Target_Reset_Count", "Sum", "Count", G.Errors),
+      aws2("TCP_ELB_Reset_Count", "Sum", "Count", G.Errors),
+      aws2("PortAllocationErrorCount", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -245,10 +290,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ActiveConnectionCount", "Maximum", "Count", G.Connections),
       aws("BytesOutToDestination", "Sum", "Bytes", G.Network),
       aws("ErrorPortAllocation", "Sum", "Count", G.Errors),
-      awsRead("PacketsDropCount", "Sum", "Count", G.Errors),
-      awsRead("BytesInFromDestination", "Sum", "Bytes", G.Network),
-      awsRead("ConnectionAttemptCount", "Sum", "Count", G.Connections),
-      awsRead("IdleTimeoutCount", "Sum", "Count", G.Connections),
+      aws2("PacketsDropCount", "Sum", "Count", G.Errors),
+      aws2("BytesInFromDestination", "Sum", "Bytes", G.Network),
+      aws2("ConnectionAttemptCount", "Sum", "Count", G.Connections),
+      aws2("IdleTimeoutCount", "Sum", "Count", G.Connections),
     ],
   },
   {
@@ -262,19 +307,19 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
   {
     namespace: "AWS/TransitGateway",
     metrics: [
-      awsRead("BytesIn", "Sum", "Bytes", G.Network),
-      awsRead("BytesOut", "Sum", "Bytes", G.Network),
-      awsRead("PacketDropCountBlackhole", "Sum", "Count", G.Errors),
-      awsRead("PacketDropCountNoRoute", "Sum", "Count", G.Errors),
+      aws2("BytesIn", "Sum", "Bytes", G.Network),
+      aws2("BytesOut", "Sum", "Bytes", G.Network),
+      aws2("PacketDropCountBlackhole", "Sum", "Count", G.Errors),
+      aws2("PacketDropCountNoRoute", "Sum", "Count", G.Errors),
     ],
   },
   {
     namespace: "AWS/DX",
     metrics: [
-      awsRead("ConnectionState", "Minimum", "None", G.Availability),
-      awsRead("ConnectionBpsEgress", "Average", "Bits/Second", G.Network),
-      awsRead("ConnectionBpsIngress", "Average", "Bits/Second", G.Network),
-      awsRead("ConnectionErrorCount", "Sum", "Count", G.Errors),
+      aws2("ConnectionState", "Minimum", "None", G.Availability),
+      aws2("ConnectionBpsEgress", "Average", "Bits/Second", G.Network),
+      aws2("ConnectionBpsIngress", "Average", "Bits/Second", G.Network),
+      aws2("ConnectionErrorCount", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -285,8 +330,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("4xxErrorRate", "Average", "Percent", G.Errors),
       aws("5xxErrorRate", "Average", "Percent", G.Errors),
       aws("BytesDownloaded", "Sum", "None", G.Network),
-      awsRead("TotalErrorRate", "Average", "Percent", G.Errors),
-      awsRead("BytesUploaded", "Sum", "None", G.Network),
+      aws2("TotalErrorRate", "Average", "Percent", G.Errors),
+      aws2("BytesUploaded", "Sum", "None", G.Network),
     ],
   },
   {
@@ -321,20 +366,20 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("ClientConnections", "Sum", "Count", G.Connections),
       aws("PercentIOLimit", "Average", "Percent", G.Storage),
-      awsRead("BurstCreditBalance", "Average", "Bytes", G.Storage),
-      awsRead("DataReadIOBytes", "Sum", "Bytes", G.Storage),
-      awsRead("DataWriteIOBytes", "Sum", "Bytes", G.Storage),
+      aws2("BurstCreditBalance", "Average", "Bytes", G.Storage),
+      aws2("DataReadIOBytes", "Sum", "Bytes", G.Storage),
+      aws2("DataWriteIOBytes", "Sum", "Bytes", G.Storage),
     ],
   },
   {
     namespace: "AWS/FSx",
     metrics: [
-      awsRead("DataReadBytes", "Sum", "Bytes", G.Storage),
-      awsRead("DataWriteBytes", "Sum", "Bytes", G.Storage),
-      awsRead("DataReadOperations", "Sum", "Count", G.Storage),
-      awsRead("DataWriteOperations", "Sum", "Count", G.Storage),
+      aws2("DataReadBytes", "Sum", "Bytes", G.Storage),
+      aws2("DataWriteBytes", "Sum", "Bytes", G.Storage),
+      aws2("DataReadOperations", "Sum", "Count", G.Storage),
+      aws2("DataWriteOperations", "Sum", "Count", G.Storage),
       // FSx for Windows File Server only.
-      awsRead("FreeStorageCapacity", "Average", "Bytes", G.Storage),
+      aws2("FreeStorageCapacity", "Average", "Bytes", G.Storage),
     ],
   },
   {
@@ -343,8 +388,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("MemoryUtilization", "Average", "Percent", G.Memory),
       // A cluster's own: what its tasks reserve of its instances.
-      awsRead("CPUReservation", "Average", "Percent", G.Compute),
-      awsRead("MemoryReservation", "Average", "Percent", G.Memory),
+      aws2("CPUReservation", "Average", "Percent", G.Compute),
+      aws2("MemoryReservation", "Average", "Percent", G.Memory),
     ],
   },
   {
@@ -354,10 +399,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("Errors", "Sum", "Count", G.Errors),
       aws("Duration", "Average", "Milliseconds", G.Latency),
       aws("Throttles", "Sum", "Count", G.Errors),
-      awsRead("ConcurrentExecutions", "Maximum", "Count", G.Compute),
+      aws2("ConcurrentExecutions", "Maximum", "Count", G.Compute),
       // Stream and asynchronous event sources only.
-      awsRead("IteratorAge", "Maximum", "Milliseconds", G.Backlog),
-      awsRead("DeadLetterErrors", "Sum", "Count", G.Errors),
+      aws2("IteratorAge", "Maximum", "Milliseconds", G.Backlog),
+      aws2("DeadLetterErrors", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -366,10 +411,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ExecutionsStarted", "Sum", "Count", G.Traffic),
       aws("ExecutionsFailed", "Sum", "Count", G.Errors),
       aws("ExecutionTime", "Average", "Milliseconds", G.Latency),
-      awsRead("ExecutionsSucceeded", "Sum", "Count", G.Traffic),
-      awsRead("ExecutionsTimedOut", "Sum", "Count", G.Errors),
-      awsRead("ExecutionsAborted", "Sum", "Count", G.Errors),
-      awsRead("ExecutionThrottled", "Sum", "Count", G.Errors),
+      aws2("ExecutionsSucceeded", "Sum", "Count", G.Traffic),
+      aws2("ExecutionsTimedOut", "Sum", "Count", G.Errors),
+      aws2("ExecutionsAborted", "Sum", "Count", G.Errors),
+      aws2("ExecutionThrottled", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -381,18 +426,13 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("FreeableMemory", "Average", "Bytes", G.Memory),
       aws("ReadLatency", "Average", "Seconds", G.Latency),
       aws("WriteLatency", "Average", "Seconds", G.Latency),
-      awsRead("ReadIOPS", "Average", "Count/Second", G.Storage),
-      awsRead("WriteIOPS", "Average", "Count/Second", G.Storage),
-      awsRead("DiskQueueDepth", "Average", "Count", G.Storage),
-      awsRead("NetworkReceiveThroughput", "Average", "Bytes/Second", G.Network),
-      awsRead(
-        "NetworkTransmitThroughput",
-        "Average",
-        "Bytes/Second",
-        G.Network,
-      ),
+      aws2("ReadIOPS", "Average", "Count/Second", G.Storage),
+      aws2("WriteIOPS", "Average", "Count/Second", G.Storage),
+      aws2("DiskQueueDepth", "Average", "Count", G.Storage),
+      aws2("NetworkReceiveThroughput", "Average", "Bytes/Second", G.Network),
+      aws2("NetworkTransmitThroughput", "Average", "Bytes/Second", G.Network),
       // A read replica's own.
-      awsRead("ReplicaLag", "Maximum", "Seconds", G.Replication),
+      aws2("ReplicaLag", "Maximum", "Seconds", G.Replication),
     ],
   },
   {
@@ -401,20 +441,20 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("DatabaseConnections", "Average", "Count", G.Connections),
       aws("FreeableMemory", "Average", "Bytes", G.Memory),
-      awsRead("ReadLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("WriteLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("DBInstanceReplicaLag", "Maximum", "Milliseconds", G.Replication),
+      aws2("ReadLatency", "Average", "Milliseconds", G.Latency),
+      aws2("WriteLatency", "Average", "Milliseconds", G.Latency),
+      aws2("DBInstanceReplicaLag", "Maximum", "Milliseconds", G.Replication),
     ],
   },
   {
     namespace: "AWS/Neptune",
     metrics: [
-      awsRead("CPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("FreeableMemory", "Average", "Bytes", G.Memory),
-      awsRead("MainRequestQueuePendingRequests", "Sum", "Count", G.Backlog),
-      awsRead("TotalServerErrorsPerSec", "Average", "Count/Second", G.Errors),
-      awsRead("TotalClientErrorsPerSec", "Average", "Count/Second", G.Errors),
-      awsRead("ClusterReplicaLag", "Average", "Milliseconds", G.Replication),
+      aws2("CPUUtilization", "Average", "Percent", G.Compute),
+      aws2("FreeableMemory", "Average", "Bytes", G.Memory),
+      aws2("MainRequestQueuePendingRequests", "Sum", "Count", G.Backlog),
+      aws2("TotalServerErrorsPerSec", "Average", "Count/Second", G.Errors),
+      aws2("TotalClientErrorsPerSec", "Average", "Count/Second", G.Errors),
+      aws2("ClusterReplicaLag", "Average", "Milliseconds", G.Replication),
     ],
   },
   {
@@ -425,8 +465,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ReadThrottleEvents", "Sum", "Count", G.Errors),
       aws("WriteThrottleEvents", "Sum", "Count", G.Errors),
       // A provisioned table's own.
-      awsRead("ProvisionedReadCapacityUnits", "Average", "Count", G.Compute),
-      awsRead("ProvisionedWriteCapacityUnits", "Average", "Count", G.Compute),
+      aws2("ProvisionedReadCapacityUnits", "Average", "Count", G.Compute),
+      aws2("ProvisionedWriteCapacityUnits", "Average", "Count", G.Compute),
     ],
   },
   {
@@ -437,21 +477,21 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("Evictions", "Sum", "Count", G.Cache),
       aws("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
       // Valkey and Redis OSS nodes'.
-      awsRead("EngineCPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("CacheHits", "Sum", "Count", G.Cache),
-      awsRead("CacheMisses", "Sum", "Count", G.Cache),
+      aws2("EngineCPUUtilization", "Average", "Percent", G.Compute),
+      aws2("CacheHits", "Sum", "Count", G.Cache),
+      aws2("CacheMisses", "Sum", "Count", G.Cache),
       // A read replica's own.
-      awsRead("ReplicationLag", "Maximum", "Seconds", G.Replication),
+      aws2("ReplicationLag", "Maximum", "Seconds", G.Replication),
     ],
   },
   {
     namespace: "AWS/MemoryDB",
     metrics: [
-      awsRead("CPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("EngineCPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
-      awsRead("CurrConnections", "Average", "Count", G.Connections),
-      awsRead("Evictions", "Sum", "Count", G.Cache),
+      aws2("CPUUtilization", "Average", "Percent", G.Compute),
+      aws2("EngineCPUUtilization", "Average", "Percent", G.Compute),
+      aws2("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
+      aws2("CurrConnections", "Average", "Count", G.Connections),
+      aws2("Evictions", "Sum", "Count", G.Cache),
     ],
   },
   {
@@ -460,9 +500,9 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("PercentageDiskSpaceUsed", "Average", "Percent", G.Storage),
       aws("DatabaseConnections", "Average", "Count", G.Connections),
-      awsRead("HealthStatus", "Minimum", "Count", G.Availability),
-      awsRead("ReadLatency", "Average", "Seconds", G.Latency),
-      awsRead("WriteLatency", "Average", "Seconds", G.Latency),
+      aws2("HealthStatus", "Minimum", "Count", G.Availability),
+      aws2("ReadLatency", "Average", "Seconds", G.Latency),
+      aws2("WriteLatency", "Average", "Seconds", G.Latency),
     ],
   },
   {
@@ -471,12 +511,12 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("FreeStorageSpace", "Minimum", "Megabytes", G.Storage),
       aws("ClusterStatus.red", "Maximum", "Count", G.Availability),
-      awsRead("ClusterStatus.yellow", "Maximum", "Count", G.Availability),
-      awsRead("ClusterIndexWritesBlocked", "Maximum", "Count", G.Errors),
-      awsRead("5xx", "Sum", "Count", G.Errors),
-      awsRead("SearchLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("IndexingLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("JVMMemoryPressure", "Maximum", "Percent", G.Memory),
+      aws2("ClusterStatus.yellow", "Maximum", "Count", G.Availability),
+      aws2("ClusterIndexWritesBlocked", "Maximum", "Count", G.Errors),
+      aws2("5xx", "Sum", "Count", G.Errors),
+      aws2("SearchLatency", "Average", "Milliseconds", G.Latency),
+      aws2("IndexingLatency", "Average", "Milliseconds", G.Latency),
+      aws2("JVMMemoryPressure", "Maximum", "Percent", G.Memory),
     ],
   },
   {
@@ -485,13 +525,13 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ApproximateNumberOfMessagesVisible", "Maximum", "Count", G.Backlog),
       aws("ApproximateAgeOfOldestMessage", "Maximum", "Seconds", G.Backlog),
       aws("NumberOfMessagesSent", "Sum", "Count", G.Traffic),
-      awsRead(
+      aws2(
         "ApproximateNumberOfMessagesNotVisible",
         "Maximum",
         "Count",
         G.Backlog,
       ),
-      awsRead("NumberOfMessagesDeleted", "Sum", "Count", G.Traffic),
+      aws2("NumberOfMessagesDeleted", "Sum", "Count", G.Traffic),
     ],
   },
   {
@@ -499,7 +539,7 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("NumberOfMessagesPublished", "Sum", "Count", G.Traffic),
       aws("NumberOfNotificationsFailed", "Sum", "Count", G.Errors),
-      awsRead("NumberOfNotificationsDelivered", "Sum", "Count", G.Traffic),
+      aws2("NumberOfNotificationsDelivered", "Sum", "Count", G.Traffic),
     ],
   },
   {
@@ -512,9 +552,9 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
         "Milliseconds",
         G.Backlog,
       ),
-      awsRead("IncomingBytes", "Sum", "Bytes", G.Traffic),
-      awsRead("WriteProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
-      awsRead("ReadProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
+      aws2("IncomingBytes", "Sum", "Bytes", G.Traffic),
+      aws2("WriteProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
+      aws2("ReadProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -522,9 +562,9 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("IncomingRecords", "Sum", "Count", G.Traffic),
       aws("DeliveryToS3.Success", "Average", "Count", G.Availability),
-      awsRead("IncomingBytes", "Sum", "Bytes", G.Traffic),
-      awsRead("ThrottledRecords", "Sum", "Count", G.Errors),
-      awsRead("DeliveryToS3.DataFreshness", "Maximum", "Seconds", G.Backlog),
+      aws2("IncomingBytes", "Sum", "Bytes", G.Traffic),
+      aws2("ThrottledRecords", "Sum", "Count", G.Errors),
+      aws2("DeliveryToS3.DataFreshness", "Maximum", "Seconds", G.Backlog),
     ],
   },
   {
@@ -533,8 +573,14 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("Count", "Sum", "Count", G.Traffic),
       aws("5XXError", "Sum", "Count", G.Errors),
       aws("Latency", "Average", "Milliseconds", G.Latency),
-      awsRead("4XXError", "Sum", "Count", G.Errors),
-      awsRead("IntegrationLatency", "Average", "Milliseconds", G.Latency),
+      aws2("4XXError", "Sum", "Count", G.Errors),
+      aws2("IntegrationLatency", "Average", "Milliseconds", G.Latency),
+      /*
+       * An HTTP API's errors: it publishes 5xx and 4xx, a REST API 5XXError
+       * and 4XXError, so each is listed only for the APIs that publish it.
+       */
+      aws2("5xx", "Sum", "Count", G.Errors),
+      aws2("4xx", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -542,9 +588,9 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("Invocations", "Sum", "Count", G.Traffic),
       aws("FailedInvocations", "Sum", "Count", G.Errors),
-      awsRead("TriggeredRules", "Sum", "Count", G.Traffic),
-      awsRead("ThrottledRules", "Sum", "Count", G.Errors),
-      awsRead("DeadLetterInvocations", "Sum", "Count", G.Errors),
+      aws2("TriggeredRules", "Sum", "Count", G.Traffic),
+      aws2("ThrottledRules", "Sum", "Count", G.Errors),
+      aws2("DeadLetterInvocations", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -557,24 +603,161 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("CpuUtilization", "Average", "Percent", G.Compute),
       // RabbitMQ.
-      awsRead("SystemCpuUtilization", "Average", "Percent", G.Compute),
-      awsRead("MessageCount", "Maximum", "Count", G.Backlog),
-      awsRead("ConnectionCount", "Maximum", "Count", G.Connections),
+      aws2("SystemCpuUtilization", "Average", "Percent", G.Compute),
+      aws2("MessageCount", "Maximum", "Count", G.Backlog),
+      aws2("ConnectionCount", "Maximum", "Count", G.Connections),
       // ActiveMQ.
-      awsRead("HeapUsage", "Maximum", "Percent", G.Memory),
-      awsRead("StorePercentUsage", "Maximum", "Percent", G.Storage),
-      awsRead("CurrentConnectionsCount", "Maximum", "Count", G.Connections),
+      aws2("HeapUsage", "Maximum", "Percent", G.Memory),
+      aws2("StorePercentUsage", "Maximum", "Percent", G.Storage),
+      aws2("CurrentConnectionsCount", "Maximum", "Count", G.Connections),
     ],
   },
   {
     namespace: "AWS/Kafka",
     metrics: [
       aws("ActiveControllerCount", "Maximum", "Count", G.Availability),
-      awsRead("OfflinePartitionsCount", "Maximum", "Count", G.Availability),
+      aws2("OfflinePartitionsCount", "Maximum", "Count", G.Availability),
       // Each broker's own (Broker ID): a series per broker of the cluster.
-      awsRead("UnderReplicatedPartitions", "Maximum", "Count", G.Replication),
-      awsRead("KafkaDataLogsDiskUsed", "Maximum", "Percent", G.Storage),
-      awsRead("CpuUser", "Average", "Percent", G.Compute),
+      aws2("UnderReplicatedPartitions", "Maximum", "Count", G.Replication),
+      aws2("KafkaDataLogsDiskUsed", "Maximum", "Percent", G.Storage),
+      aws2("CpuUser", "Average", "Percent", G.Compute),
+    ],
+  },
+  {
+    /*
+     * A web ACL's requests, by what its rules did with them: its own total
+     * is the series whose Rule is ALL (CloudResourceCatalog's rule), each
+     * published only when it is not zero. A CloudFront distribution's web
+     * ACL publishes in us-east-1, a Region's own in its Region.
+     */
+    namespace: "AWS/WAFV2",
+    probeMetricNames: ["AllowedRequests", "BlockedRequests"],
+    metrics: [
+      aws2("AllowedRequests", "Sum", "Count", G.Traffic),
+      aws2("BlockedRequests", "Sum", "Count", G.Traffic),
+      aws2("CountedRequests", "Sum", "Count", G.Traffic),
+      aws2("CaptchaRequests", "Sum", "Count", G.Traffic),
+      aws2("ChallengeRequests", "Sum", "Count", G.Traffic),
+    ],
+  },
+  {
+    /*
+     * A firewall's packets, per Availability Zone and inspection engine.
+     * The packets it received are the Stateless engine's (a Classic
+     * policy) or the System engine's (a Next Generation policy), which each
+     * count every packet - never also the Firewall engine's, which would
+     * count some again. A packet is dropped by one engine, so its drops
+     * are every engine's.
+     */
+    namespace: "AWS/NetworkFirewall",
+    metrics: [
+      aws2("ReceivedPackets", "Sum", "Count", G.Traffic, {
+        onlyDimensionValues: { Engine: ["Stateless", "System"] },
+      }),
+      aws2("DroppedPackets", "Sum", "Count", G.Errors),
+      // Throttled by bursting traffic, among others.
+      aws2("OtherDroppedPackets", "Sum", "Count", G.Errors),
+      aws2("InvalidDroppedPackets", "Sum", "Count", G.Errors),
+    ],
+  },
+  {
+    // A service's own, without its instances' (Instance).
+    namespace: "AWS/AppRunner",
+    metrics: [
+      aws2("CPUUtilization", "Average", "Percent", G.Compute),
+      aws2("Requests", "Sum", "Count", G.Traffic),
+      aws2("5xxStatusResponses", "Sum", "Count", G.Errors),
+      aws2("4xxStatusResponses", "Sum", "Count", G.Errors),
+      aws2("RequestLatency", "Average", "Milliseconds", G.Latency),
+      aws2("MemoryUtilization", "Average", "Percent", G.Memory),
+      aws2("ActiveInstances", "Average", "Count", G.Compute),
+    ],
+  },
+  {
+    /*
+     * An Auto Scaling group's size, once its group metrics collection is
+     * on: free, at a minute's grain. A group without it publishes none, so
+     * it is never listed and costs nothing to read.
+     */
+    namespace: "AWS/AutoScaling",
+    metrics: [
+      aws2("GroupInServiceInstances", "Average", "Count", G.Availability),
+      aws2("GroupDesiredCapacity", "Average", "Count", G.Compute),
+      aws2("GroupPendingInstances", "Maximum", "Count", G.Compute),
+      aws2("GroupTerminatingInstances", "Maximum", "Count", G.Compute),
+    ],
+  },
+  {
+    /*
+     * An accelerator's endpoints and traffic, on the accelerator's own
+     * series (Accelerator alone). Global Accelerator publishes to US West
+     * (Oregon) whatever the endpoints' Regions.
+     */
+    namespace: "AWS/GlobalAccelerator",
+    onlyRegion: "us-west-2",
+    metrics: [
+      aws2("HealthyEndpointCount", "Minimum", "Count", G.Availability),
+      aws2("UnhealthyEndpointCount", "Maximum", "Count", G.Availability),
+      aws2("NewFlowCount", "Sum", "Count", G.Connections),
+      aws2("ProcessedBytesIn", "Sum", "Bytes", G.Network),
+      aws2("ProcessedBytesOut", "Sum", "Bytes", G.Network),
+    ],
+  },
+  {
+    /*
+     * A user pool's sign-ins, token refreshes and sign-ups, and those
+     * throttled. Cognito publishes them for each app client of the pool
+     * (UserPool, UserPoolClient), never for the pool alone: a series per
+     * client, which add up to the pool's. A pool may only refresh tokens
+     * for hours, so a sweep asks for any of the three.
+     */
+    namespace: "AWS/Cognito",
+    probeMetricNames: [
+      "SignInSuccesses",
+      "TokenRefreshSuccesses",
+      "SignUpSuccesses",
+    ],
+    metrics: [
+      aws2("SignInSuccesses", "Sum", "Count", G.Traffic),
+      aws2("SignInThrottles", "Sum", "Count", G.Errors),
+      aws2("TokenRefreshSuccesses", "Sum", "Count", G.Traffic),
+      aws2("TokenRefreshThrottles", "Sum", "Count", G.Errors),
+      aws2("SignUpSuccesses", "Sum", "Count", G.Traffic),
+      aws2("SignUpThrottles", "Sum", "Count", G.Errors),
+    ],
+  },
+  {
+    /*
+     * An environment's health, the one metric enhanced health reporting
+     * publishes for free: 0 OK, 1 Info, 5 Unknown, 10 No data, 15
+     * Warning, 20 Degraded, 25 Severe. Its Maximum is the period's worst.
+     * The others are custom metrics CloudWatch charges for, published only
+     * when the environment is set to.
+     */
+    namespace: "AWS/ElasticBeanstalk",
+    metrics: [aws2("EnvironmentHealth", "Maximum", "None", G.Availability)],
+  },
+  {
+    // A GraphQL API's own (GraphQLAPIId); its requests are the Region's, not an API's.
+    namespace: "AWS/AppSync",
+    metrics: [
+      aws2("Latency", "Average", "Milliseconds", G.Latency),
+      aws2("5XXError", "Sum", "Count", G.Errors),
+      aws2("4XXError", "Sum", "Count", G.Errors),
+    ],
+  },
+  {
+    /*
+     * An endpoint's invocations, published for each production variant of
+     * it (EndpointName, VariantName): a series per variant, which add up
+     * to the endpoint's. A model's latency is in microseconds.
+     */
+    namespace: "AWS/SageMaker",
+    metrics: [
+      aws2("Invocations", "Sum", "None", G.Traffic),
+      aws2("Invocation5XXErrors", "Sum", "None", G.Errors),
+      aws2("Invocation4XXErrors", "Sum", "None", G.Errors),
+      aws2("ModelLatency", "Average", "Microseconds", G.Latency),
     ],
   },
   {
@@ -582,9 +765,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
      * The days a certificate has left. ACM publishes it twice a day for
      * every certificate until it expires, then stops: read once an hour,
      * and listed whatever its last point's age (isListedWhenQuiet). Its
-     * Minimum is the period's one point. The key metrics' stream leaves it
-     * to this read (CloudStreamTemplate): an hour sooner is nothing to a
-     * count of days.
+     * Minimum is the period's one point. No stream writes it
+     * (streamedSince null): an hour sooner is nothing to a count of days.
      */
     namespace: "AWS/CertificateManager",
     isListedWhenQuiet: true,
@@ -635,6 +817,105 @@ export function getAwsStoredMetricName(
   metricName: string,
 ): string {
   return `amazonaws.com/${namespace}/${metricName}`;
+}
+
+// A namespace's key metric by its name, whatever its case.
+export function getAwsKeyMetric(
+  namespace: string,
+  metricName: string,
+): AwsKeyMetric | undefined {
+  const wanted: string = metricName.trim().toLowerCase();
+
+  return getAwsKeyMetrics(namespace)?.metrics.find(
+    (metric: AwsKeyMetric): boolean => {
+      return metric.metricName.toLowerCase() === wanted;
+    },
+  );
+}
+
+/*
+ * The key metric a stored CloudWatch name is ("amazonaws.com/AWS/EC2/
+ * CPUUtilization"), with its namespace as the catalog spells it, whatever
+ * the case it was stored in - or null for a name no connection reads.
+ */
+export function getAwsKeyMetricOfStoredName(storedMetricName: string): {
+  namespace: string;
+  metric: AwsKeyMetric;
+} | null {
+  const parsed: { namespace: string; metricName: string } | null =
+    parseAwsStoredMetricName(storedMetricName);
+  const entry: AwsNamespaceKeyMetrics | undefined = parsed
+    ? getAwsKeyMetrics(parsed.namespace)
+    : undefined;
+  const metric: AwsKeyMetric | undefined =
+    parsed && entry
+      ? getAwsKeyMetric(entry.namespace, parsed.metricName)
+      : undefined;
+
+  return entry && metric ? { namespace: entry.namespace, metric } : null;
+}
+
+/*
+ * Whether a series of the metric, on these dimensions, is one it is read
+ * from (AwsKeyMetric.onlyDimensionValues): every series of a metric that
+ * names none, and of one that does, each whose named dimensions are
+ * missing or hold one of their values.
+ */
+export function isAwsKeyMetricSeries(
+  metric: AwsKeyMetric,
+  dimensions: Readonly<Record<string, string>>,
+): boolean {
+  for (const [name, values] of Object.entries(
+    metric.onlyDimensionValues || {},
+  )) {
+    const value: string | undefined = dimensions[name];
+
+    if (value !== undefined && value !== "" && !values.includes(value)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Whether any stream writes the metric: none writes a daily or hourly one.
+export function isAwsKeyMetricStreamable(metric: AwsKeyMetric): boolean {
+  return metric.streamedSince !== null;
+}
+
+/*
+ * Whether the key-metric filters of a template version carry the metric:
+ * a stack made from that version streams it.
+ */
+export function isAwsKeyMetricInTemplate(
+  metric: AwsKeyMetric,
+  templateVersion: number,
+): boolean {
+  return (
+    metric.streamedSince !== null && metric.streamedSince <= templateVersion
+  );
+}
+
+/*
+ * How many key metrics the current template's filters carry that a
+ * stack of an older version does not: what running the command again
+ * streams in place of the read.
+ */
+export function countAwsKeyMetricsAddedSince(templateVersion: number): number {
+  let count: number = 0;
+
+  for (const entry of AWS_KEY_METRICS) {
+    for (const metric of entry.metrics) {
+      if (
+        isAwsKeyMetricInTemplate(metric, AWS_STREAM_TEMPLATE_VERSION) &&
+        !isAwsKeyMetricInTemplate(metric, templateVersion)
+      ) {
+        count++;
+      }
+    }
+  }
+
+  return count;
 }
 
 /*

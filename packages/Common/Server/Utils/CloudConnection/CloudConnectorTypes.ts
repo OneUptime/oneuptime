@@ -7,6 +7,7 @@ import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
+import { AwsStreamCoverage } from "../../../Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataSourceHttpRequest,
@@ -257,6 +258,13 @@ export interface CloudReadOptions extends CloudConnectorCallOptions {
   maxDurationMs: number;
   // The resources the connection holds, for a read that lists none.
   knownResources?: Array<CloudKnownResource> | undefined;
+  /*
+   * AWS: what the connection's streams deliver lately, and what each
+   * stack carries (CloudStreamStack). A key metric a stream writes is not
+   * read from CloudWatch, but where a resource's health or headline is
+   * judged from it. None for a connection that does not stream.
+   */
+  awsStreamCoverage?: AwsStreamCoverage | undefined;
 }
 
 // One resource a read saw, with a friendlier name when the cloud has one.
