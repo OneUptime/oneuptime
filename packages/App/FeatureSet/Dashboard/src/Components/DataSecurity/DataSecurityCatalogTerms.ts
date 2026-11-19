@@ -190,6 +190,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Exceptions"),
   translationKey("Session Replays"),
   translationKey("AI Conversations"),
+  translationKey("Metrics"),
   // Families, each as the noun it is drawn with
   ...Object.values(DATA_STORE_FAMILY_TITLES),
   // Environments, each as the noun it is drawn with (Unknown is an exposure's too, above)
