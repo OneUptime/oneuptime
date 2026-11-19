@@ -990,7 +990,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Signing in, and keeping a session, which every product needs: what a person proves to get in is of no one product.",
       {
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 18,
+        // #9764: a security key set up at sign-in - its options, and the key's answer.
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 20,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 1,
         "packages/App/FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts": 1,
@@ -1042,7 +1043,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * gone (#9745).
          */
         "packages/Common/Server/API/TeamMemberAPI.ts": 10,
-        "packages/Common/Server/API/UserAPI.ts": 7,
+        // #9762: a master admin clearing one person's sign-in settings.
+        "packages/Common/Server/API/UserAPI.ts": 8,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
     ),
@@ -1072,7 +1074,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "The server's own setup, which a master admin changes or the server reads - switching a product on again among it.",
       {
-        "packages/Common/Server/API/GlobalConfigAPI.ts": 6,
+        // #9762: clearing the sign-in settings of everyone the server's SSO requirement covers.
+        "packages/Common/Server/API/GlobalConfigAPI.ts": 7,
         "packages/Common/Server/API/ProbeAPI.ts": 1,
         "packages/Common/Server/API/RunnerAPI.ts": 1,
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,

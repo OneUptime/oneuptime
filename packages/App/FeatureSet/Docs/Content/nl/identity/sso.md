@@ -294,6 +294,21 @@ Het uitzetten van **SSO vereisen om aan te melden** slaat op zodra u de schakela
 > [!NOTE]
 > Op OneUptime Cloud vereist het verplichten van SSO het **Scale**-abonnement, en uitzetten werkt op elk abonnement. Onder Scale toont **Projectinstellingen** > **Beveiliging** > **SSO** het upgrade-aanbod van het abonnement; een project dat na een Scale-proefperiode nog SSO verplicht, vindt daar onder het aanbod ook **SSO vereisen om aan te melden**, zodat het kan worden uitgezet. Opnieuw aanzetten vereist **Scale**.
 
+### De aanmelding van uw leden beheren met SSO
+
+SSO verplichten houdt de gegevens van uw project achter uw identiteitsprovider, maar uw leden kunnen in OneUptime nog steeds een wachtwoord, passkeys en tweefactorauthenticatie instellen, waar uw project nooit om vraagt. Zolang **SSO vereisen om aan te melden** aan staat, voorkomt een tweede schakelaar eronder, **Aanmelden beheren met SSO**, dat.
+
+Iemands aanmelding wordt door SSO beheerd als elk project waartoe diegene behoort, inclusief elk project waarvoor diegene is uitgenodigd, SSO vereist en **Aanmelden beheren met SSO** heeft ingeschakeld. Diegene kan dan geen wachtwoord, passkey, beveiligingssleutel, authenticator-app, back-upcodes of tweefactorauthenticatie instellen, **Wachtwoord vergeten?** mailt geen link, en het **Gebruikersprofiel** noemt de identiteitsprovider in plaats van die instellingen aan te bieden. Aan het aanmelden zelf verandert niets: het wachtwoord meldt diegene nog steeds aan bij OneUptime, en uw project vraagt zoals voorheen om SSO.
+
+De regel wordt elke keer gecontroleerd, dus:
+
+- **Iemand in een project dat het aanmelden niet beheert**: zodra diegene lid is van, of uitgenodigd is voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, krijgt diegene de instellingen terug, en het **Gebruikersprofiel** noemt dat project als de reden. Na het verlaten ervan wordt het aanmelden weer beheerd. Een account kan bij veel organisaties horen, dus beslist een organisatie nooit over de projecten van een andere.
+- **Projecten met verschillende providers**: iemand in twee projecten die allebei het aanmelden beheren, elk met een eigen identiteitsprovider, wordt beheerd, en het profiel noemt beide providers.
+- **Master-admins** houden altijd hun eigen instellingen.
+- **Wat mensen eerder hebben ingesteld**, blijft bewaard, ongebruikt door uw project. Een serverbeheerder kan het wissen op de pagina **Authenticatie** van de persoon in het Admin Dashboard, met **Aanmeldinstellingen wissen**.
+
+**Aanmelden beheren met SSO** slaat op zodra u de schakelaar omzet, verwijdert niets, en uitzetten geeft iedereen meteen de instellingen terug. Wie **SSO vereisen om aan te melden** kan wijzigen, kan ook deze schakelaar wijzigen, op dezelfde abonnementen. Staat **SSO vereisen om aan te melden** uit, dan is hij verborgen en verandert hij niets.
+
 ## Een provider uitzetten of verwijderen
 
 | Wat u wijzigt | Mensen die zich met de provider hebben aangemeld |

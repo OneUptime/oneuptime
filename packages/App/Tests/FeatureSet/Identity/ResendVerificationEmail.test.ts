@@ -104,6 +104,21 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
 });
 
 /*
+ * Single sign-on manages nobody's sign-in here: setting up a second step at
+ * sign-in, claiming an invited account with a password and a password reset
+ * link each ask SsoManagedSignIn first, which reads the server's rule and,
+ * since #9763, every project the person is in. Driven for real in
+ * SignInMatrixSsoAndTwoFactor.test.ts and ForgotPasswordSsoManaged.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoManagedSignInStandIn",
+    ) as typeof import("./SsoManagedSignInStandIn")
+  ).ssoManagesNobody();
+});
+
+/*
  * Served through a getter so one file can run as both deployment shapes. See
  * SignupMasterAdminElection.test.ts for why defineProperty, not a spread.
  */

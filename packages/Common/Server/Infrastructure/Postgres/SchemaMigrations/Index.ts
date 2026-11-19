@@ -1099,6 +1099,7 @@ import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./18
 import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
 import { AddWorkflowRunAsApiKey1809185400000 } from "./1809185400000-AddWorkflowRunAsApiKey";
 import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkflowRunAsApiKeyKey";
+import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddProjectManageSignInWithSso";
 
 export default [
   InitialMigration,
@@ -2202,4 +2203,5 @@ export default [
   AddSuggestServerAccountsWhenInviting1809185347450,
   AddWorkflowRunAsApiKey1809185400000,
   AddWorkflowRunAsApiKeyKey1809185400100,
+  AddProjectManageSignInWithSso1809185500000,
 ];

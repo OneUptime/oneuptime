@@ -161,6 +161,10 @@ const SIGN_IN_LABELS: Record<string, Array<string>> = {
   "Sign in with a passkey": ["login", "passkey", "signIn"],
   "Forgot password?": ["login", "forgotPassword"],
   "Lost access to your authenticator?": ["login", "twoFactor", "lostAccess"],
+  // The second step a sign-in asks someone to set up (#9764).
+  "Verify and Sign In": ["login", "twoFactorEnrolment", "submitButton"],
+  "Register Security Key": ["login", "twoFactorEnrolment", "securityKeyButton"],
+  "Choose another way": ["login", "twoFactorEnrolment", "chooseAnotherWay"],
 };
 
 const ACCOUNTS_LOCALES_DIR: string = path.resolve(
@@ -545,7 +549,7 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("name user menu and sign-in labels the English Your Account page bolds, and nothing the Dashboard has as a flat label", () => {
+  it("name user menu and sign-in labels the English Your Account page bolds, and a flat label only where it bolds it once", () => {
     const labels: Array<string> = boldLabels(englishPage(YOUR_ACCOUNT));
 
     for (const label of [
@@ -558,11 +562,22 @@ describe("the lists this test keeps", () => {
       });
     }
 
+    /*
+     * A sign-in label may also be a flat label - the sign-in page's Register
+     * Security Key is the Dashboard's button too, worded otherwise in some
+     * languages (#9764) - when the page bolds it once, where it names the
+     * sign-in page. The page's Dashboard labels are checked without the
+     * sign-in labels, so a second, Dashboard use would go unchecked.
+     */
     for (const label of Object.keys(SIGN_IN_LABELS)) {
-      expect({ label: label, flat: isActionLabel(label) }).toEqual({
+      if (!isActionLabel(label)) {
+        continue;
+      }
+
+      expect({
         label: label,
-        flat: false,
-      });
+        bolded: englishPage(YOUR_ACCOUNT).split(`**${label}**`).length - 1,
+      }).toEqual({ label: label, bolded: 1 });
     }
 
     /*
@@ -802,9 +817,16 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     it("names every Dashboard label the English page names, as this language's Dashboard draws it", () => {
       const translated: string = readPage(language, entry.page);
       const proseWords: Array<string> = PROSE[entry.page] || [];
+      // The sign-in page's labels, checked as it draws them (Your Account).
+      const signInWords: Array<string> =
+        entry.page === YOUR_ACCOUNT ? Object.keys(SIGN_IN_LABELS) : [];
       const missing: Array<string> = boldLabels(english)
         .filter((label: string): boolean => {
-          return isActionLabel(label) && !proseWords.includes(label);
+          return (
+            isActionLabel(label) &&
+            !proseWords.includes(label) &&
+            !signInWords.includes(label)
+          );
         })
         .filter((label: string): boolean => {
           return !translated.includes(

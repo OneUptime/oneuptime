@@ -294,6 +294,21 @@ Desactivar **Requerir SSO para iniciar sesión** se guarda en cuanto cambias el 
 > [!NOTE]
 > En OneUptime Cloud, exigir SSO requiere el plan **Scale**, y desactivarlo funciona en todos los planes. Por debajo de Scale, **Ajustes del proyecto** > **Seguridad** > **SSO** muestra la oferta del plan; un proyecto que una prueba de Scale dejó exigiendo SSO también encuentra ahí **Requerir SSO para iniciar sesión**, debajo de la oferta, para poder desactivarlo. Volver a activarlo requiere **Scale**.
 
+### Gestionar el inicio de sesión de tus miembros con SSO
+
+Exigir SSO mantiene los datos de tu proyecto detrás de tu proveedor de identidad, pero tus miembros aún pueden configurar en OneUptime una contraseña, llaves de acceso y la autenticación de dos factores, algo que tu proyecto nunca pide. Mientras **Requerir SSO para iniciar sesión** está activado, un segundo interruptor debajo, **Gestionar el inicio de sesión con SSO**, lo impide.
+
+El inicio de sesión de una persona lo gestiona el SSO cuando todos los proyectos a los que pertenece, incluido cualquier proyecto al que esté invitada, exigen SSO y tienen activado **Gestionar el inicio de sesión con SSO**. Entonces no puede configurar una contraseña, una llave de acceso, una llave de seguridad, una aplicación de autenticación, códigos de respaldo ni la autenticación de dos factores, **¿Olvidó su contraseña?** no le envía ningún enlace, y su **Perfil de usuario** nombra su proveedor de identidad en lugar de ofrecer esos ajustes. Nada cambia al iniciar sesión: su contraseña sigue iniciando su sesión en OneUptime, y tu proyecto pide SSO como antes.
+
+La regla se comprueba cada vez, así que:
+
+- **Alguien en un proyecto que no gestiona el inicio de sesión**: en cuanto es miembro de un proyecto, o está invitado a uno, que no exige SSO o no tiene activado **Gestionar el inicio de sesión con SSO**, recupera sus ajustes, y su **Perfil de usuario** nombra ese proyecto como el motivo. Si lo deja, su inicio de sesión vuelve a estar gestionado. Una cuenta puede pertenecer a muchas organizaciones, así que una organización nunca decide por los proyectos de otra.
+- **Proyectos con proveedores distintos**: alguien en dos proyectos que gestionan ambos el inicio de sesión, cada uno con su propio proveedor de identidad, está gestionado, y su perfil nombra ambos proveedores.
+- **Los administradores maestros** conservan siempre sus propios ajustes.
+- **Lo que las personas configuraron antes** se conserva, sin que tu proyecto lo use. Un administrador del servidor puede borrarlo en la página **Autenticación** de la persona en el Admin Dashboard, con **Borrar configuración de inicio de sesión**.
+
+**Gestionar el inicio de sesión con SSO** se guarda en cuanto cambias el interruptor, no borra nada, y desactivarlo devuelve a todos sus ajustes al instante. Quien puede cambiar **Requerir SSO para iniciar sesión** puede cambiarlo, en los mismos planes. Con **Requerir SSO para iniciar sesión** desactivado, queda oculto y no cambia nada.
+
 ## Desactivar o eliminar un proveedor
 
 | Lo que cambias | Las personas que iniciaron sesión con el proveedor |

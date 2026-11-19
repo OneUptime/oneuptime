@@ -1745,7 +1745,13 @@ describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable whi
         })![0],
       ).toEqual(
         expect.objectContaining({
-          data: { select: { requireSsoForLogin: true } },
+          /*
+           * With the switch that hangs under it while the project requires
+           * SSO (Manage Sign-In with SSO, #9763), read by the same request.
+           */
+          data: {
+            select: { requireSsoForLogin: true, manageSignInWithSso: true },
+          },
         }),
       );
     },
