@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "비정상 엔드포인트 {{count}}개",
   "{{count}} unhealthy endpoints": "비정상 엔드포인트 {{count}}개",
   "{{count}} unhealthy endpoints_one": "비정상 엔드포인트 {{count}}개",
-  "{{percent}} of requests blocked": "요청의 {{percent}} 차단"
+  "{{percent}} of requests blocked": "요청의 {{percent}} 차단",
+  "Documents": "문서",
+  "Index size": "인덱스 크기",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "메모리와 디스크 모니터는 VM에서 Ops Agent가 실행되어 이를 보고하면 제안됩니다."
 }

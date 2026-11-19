@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} 個不健康的端點",
   "{{count}} unhealthy endpoints": "{{count}} 個不健康的端點",
   "{{count}} unhealthy endpoints_one": "{{count}} 個不健康的端點",
-  "{{percent}} of requests blocked": "{{percent}} 的請求遭封鎖"
+  "{{percent}} of requests blocked": "{{percent}} 的請求遭封鎖",
+  "Documents": "文件",
+  "Index size": "索引大小",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "VM 上的 Ops Agent 執行並回報記憶體和磁碟資料後，就會提供記憶體和磁碟監測器。"
 }

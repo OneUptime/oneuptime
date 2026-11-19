@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} endpoint non integro",
   "{{count}} unhealthy endpoints": "{{count}} endpoint non integri",
   "{{count}} unhealthy endpoints_one": "{{count}} endpoint non integro",
-  "{{percent}} of requests blocked": "{{percent}} delle richieste bloccate"
+  "{{percent}} of requests blocked": "{{percent}} delle richieste bloccate",
+  "Documents": "Documenti",
+  "Index size": "Dimensione dell'indice",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "I monitor di memoria e disco vengono proposti non appena l'Ops Agent è in esecuzione sulla VM e li segnala."
 }

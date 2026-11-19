@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطه پایانی ناسالم",
-  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده"
+  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده",
+  "Documents": "سندها",
+  "Index size": "اندازهٔ ایندکس",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "مانیتورهای حافظه و دیسک وقتی پیشنهاد می‌شوند که Ops Agent روی VM اجرا شود و آن‌ها را گزارش کند."
 }

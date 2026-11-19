@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} point de terminaison défaillant",
   "{{count}} unhealthy endpoints": "{{count}} points de terminaison défaillants",
   "{{count}} unhealthy endpoints_one": "{{count}} point de terminaison défaillant",
-  "{{percent}} of requests blocked": "{{percent}} des requêtes bloquées"
+  "{{percent}} of requests blocked": "{{percent}} des requêtes bloquées",
+  "Documents": "Documents",
+  "Index size": "Taille de l'index",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Les moniteurs de mémoire et de disque sont proposés dès que l'Ops Agent s'exécute sur la VM et les signale."
 }

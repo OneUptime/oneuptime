@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} неисправная конечная точка",
   "{{count}} unhealthy endpoints": "Неисправных конечных точек: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} неисправная конечная точка",
-  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано"
+  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано",
+  "Documents": "Документы",
+  "Index size": "Размер индекса",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Мониторы памяти и дисков появятся, как только на VM запустится Ops Agent и начнёт передавать эти данные."
 }

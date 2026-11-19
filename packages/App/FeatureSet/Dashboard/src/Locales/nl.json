@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} ongezond endpoint",
   "{{count}} unhealthy endpoints": "{{count}} ongezonde endpoints",
   "{{count}} unhealthy endpoints_one": "{{count}} ongezond endpoint",
-  "{{percent}} of requests blocked": "{{percent}} van de verzoeken geblokkeerd"
+  "{{percent}} of requests blocked": "{{percent}} van de verzoeken geblokkeerd",
+  "Documents": "Documenten",
+  "Index size": "Indexgrootte",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitors voor geheugen en schijven worden aangeboden zodra de Ops Agent op de VM draait en ze rapporteert."
 }

@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "異常なエンドポイント {{count}} 個",
   "{{count}} unhealthy endpoints": "異常なエンドポイント {{count}} 個",
   "{{count}} unhealthy endpoints_one": "異常なエンドポイント {{count}} 個",
-  "{{percent}} of requests blocked": "リクエストの {{percent}} がブロック"
+  "{{percent}} of requests blocked": "リクエストの {{percent}} がブロック",
+  "Documents": "ドキュメント",
+  "Index size": "インデックスサイズ",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "メモリとディスクのモニターは、VM 上で Ops Agent が動作してそれらを報告すると提案されます。"
 }

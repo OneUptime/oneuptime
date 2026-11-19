@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} نقطة نهاية غير سليمة",
   "{{count}} unhealthy endpoints": "نقاط النهاية غير السليمة: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطة نهاية غير سليمة",
-  "{{percent}} of requests blocked": "حُظر {{percent}} من الطلبات"
+  "{{percent}} of requests blocked": "حُظر {{percent}} من الطلبات",
+  "Documents": "المستندات",
+  "Index size": "حجم الفهرس",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "تُعرض مراقبات الذاكرة والقرص بعد أن يعمل Ops Agent على الجهاز الافتراضي ويُبلغ عنهما."
 }

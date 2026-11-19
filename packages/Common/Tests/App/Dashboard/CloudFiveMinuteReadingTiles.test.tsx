@@ -61,6 +61,20 @@ const LANGUAGES: ReadonlyArray<string> = ["en", ...DASHBOARD_LANGUAGES];
 const locales: Record<string, Record<string, string>> = {};
 const instances: Record<string, i18n> = {};
 
+// What a locale writes as English does on purpose (i18n/Progress/<code>.json).
+function sameAsEnglish(language: string): Array<string> {
+  return (
+    (
+      JSON.parse(
+        fs.readFileSync(
+          path.resolve(LOCALES_DIR, "../../i18n/Progress", `${language}.json`),
+          "utf8",
+        ),
+      ) as { sameAsEnglish?: Array<string> }
+    ).sameAsEnglish || []
+  );
+}
+
 function readLocale(language: string): Record<string, string> {
   return JSON.parse(
     fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
@@ -303,6 +317,16 @@ describe("in every language", () => {
           english,
           "string",
         ]);
+
+        // French writes "Documents" as English does, and says so.
+        if (drawn === english) {
+          expect([language, sameAsEnglish(language)]).toEqual([
+            language,
+            expect.arrayContaining([english]),
+          ]);
+          continue;
+        }
+
         expect([language, drawn]).not.toEqual([language, english]);
       }
     }

@@ -58728,5 +58728,8 @@
   "{{count}} unhealthy endpoint": "{{count}} usunt endepunkt",
   "{{count}} unhealthy endpoints": "{{count}} usunne endepunkter",
   "{{count}} unhealthy endpoints_one": "{{count}} usunt endepunkt",
-  "{{percent}} of requests blocked": "{{percent}} av forespørslene ble blokkert"
+  "{{percent}} of requests blocked": "{{percent}} av forespørslene ble blokkert",
+  "Documents": "Dokumenter",
+  "Index size": "Indeksstørrelse",
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitorer for minne og disker tilbys så snart Ops Agent kjører på VM-en og rapporterer dem."
 }
