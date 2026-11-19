@@ -118,6 +118,8 @@ describe("what became of one notification, by its log's own status", () => {
     [WhoWasToldLogKind.Call, CallStatus.Success, "Sent"],
     [WhoWasToldLogKind.Call, CallStatus.MissedCall, "Not Answered"],
     [WhoWasToldLogKind.Call, CallStatus.Busy, "Not Answered"],
+    // Voicemail answered it (#6594): it reached the phone, nobody picked up.
+    [WhoWasToldLogKind.Call, CallStatus.Voicemail, "Not Answered"],
     [WhoWasToldLogKind.Call, CallStatus.LowBalance, "Failed"],
     [WhoWasToldLogKind.Call, CallStatus.Error, "Failed"],
     [WhoWasToldLogKind.Push, PushStatus.Success, "Sent"],

@@ -147,6 +147,12 @@ Lo que ninguna configuración predeterminada envía sale como saldría sin confi
 
 Las páginas de estado ofrecen solo las configuraciones que envían SMS, y **Enviar SMS de prueba** y **Enviar llamada de prueba** aparecen solo para lo que envía cada configuración. Toda configuración existente queda en **Llamadas y SMS**, como antes. En la API y en Terraform, la elección es el campo `usedFor`, y se rechaza una configuración sin los números que su elección necesita.
 
+### Buzón de voz en las llamadas de guardia
+
+Para Twilio, una llamada que contesta el buzón de voz está contestada, igual que una que contesta una persona. Por eso cada llamada de guardia pregunta a Twilio, en segundo plano, si la contestó una persona o el buzón de voz, con la [detección de contestador](https://www.twilio.com/docs/voice/answering-machine-detection): quien descuelga oye el aviso al momento. Una llamada que contesta el buzón de voz cuenta como no contestada, como una que suena sin respuesta, y el aviso sigue como con una llamada perdida. En cuanto termina el saludo, OneUptime deja un mensaje breve con lo que decía la llamada. El registro de la llamada dice si se dejó un mensaje, y también el feed del incidente: «Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left.»
+
+Twilio cobra la detección de contestador por cada llamada contestada que comprueba, a la cuenta que hace la llamada: la cuenta de toda la instalación o la configuración propia del proyecto. Está activada en todos los proyectos. Para desactivarla, desactiva **Buzón de voz en las llamadas de guardia** en **Más ajustes** de **Ajustes del proyecto > Notificaciones > Canales de notificación**: una llamada que contesta el buzón de voz vuelve a contar como contestada, como antes. **Enviar llamada de prueba** y las llamadas entrantes nunca se comprueban. Igual que el resultado de las llamadas, necesita que Twilio llegue a tu servidor: consulta la siguiente sección.
+
 ## 3. Configura el acceso a la red
 
 El envío funciona solo con acceso saliente. Las actualizaciones de entrega, el resultado de las llamadas, la confirmación con el teclado y las llamadas entrantes necesitan que Twilio alcance tu servidor.
@@ -171,7 +177,7 @@ El acceso entrante depende de la función:
 | --- | --- |
 | Envío de SMS | No. Las actualizaciones del estado de entrega sí necesitan un callback. |
 | Una llamada de voz de prueba sencilla | No. OneUptime incluye las instrucciones habladas en la solicitud saliente a la API. |
-| Saber si se contestó una llamada de guardia | Sí. Twilio informa de cómo terminó cada llamada, para que el feed del incidente pueda decir cuándo alguien no contestó. Las llamadas salen igualmente sin ello. |
+| Saber si se contestó una llamada de guardia | Sí. Twilio informa de cómo terminó cada llamada, y de si la contestó una persona o el buzón de voz, para que el feed del incidente pueda decir cuándo alguien no contestó. Las llamadas salen igualmente sin ello. |
 | Pulsar 1 para confirmar una alerta de guardia | Sí. Twilio envía la entrada del teclado a OneUptime. |
 | Políticas de llamadas entrantes | Sí. Twilio pide las instrucciones de la llamada e informa de los resultados de la marcación. |
 
@@ -181,13 +187,14 @@ Estas son las rutas externas, a través de la pasarela Nginx de OneUptime. Los m
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Estado de entrega del SMS |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Resultado de la llamada |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Si una persona o el buzón de voz contestó una llamada de guardia |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Confirmación con el teclado |
 | POST | `/notification/incoming-call/voice` | Instrucciones opcionales de llamadas entrantes |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Resultados opcionales del enrutamiento de llamadas entrantes |
 
 OneUptime genera automáticamente las URL de los SMS, del resultado de las llamadas y de la confirmación. No sustituyas sus tokens por una URL de webhook fija. Para las llamadas entrantes, sigue [las políticas de llamadas entrantes](/docs/on-call/incoming-call-policy), que configuran el webhook del número cuando lo asocias.
 
-Twilio exige [URL de webhook accesibles públicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Usa un certificado TLS de confianza pública y conserva a través de los proxies el host, el protocolo, la ruta, los parámetros de consulta, el cuerpo y el encabezado `X-Twilio-Signature` originales. Los manejadores de llamadas entrantes validan las firmas de Twilio; la entrega de SMS y el resultado de las llamadas usan un token de URL por mensaje o llamada, y la confirmación con el teclado, un token de consulta firmado. No expongas los tokens en registros compartidos ni en capturas de pantalla. Consulta [la seguridad de los webhooks de Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio exige [URL de webhook accesibles públicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Usa un certificado TLS de confianza pública y conserva a través de los proxies el host, el protocolo, la ruta, los parámetros de consulta, el cuerpo y el encabezado `X-Twilio-Signature` originales. Los manejadores de llamadas entrantes validan las firmas de Twilio; la entrega de SMS y el resultado de las llamadas usan un token de URL por mensaje o llamada, y la confirmación con el teclado, un token de consulta firmado. El callback del buzón de voz comprueba tanto su token de URL como la firma de Twilio. No expongas los tokens en registros compartidos ni en capturas de pantalla. Consulta [la seguridad de los webhooks de Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publicar callbacks desde un despliegue privado
 

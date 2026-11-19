@@ -53,7 +53,7 @@ Gå til **Vagt** > **Indgående opkaldspolitikker**, og klik på **Opret Indgåe
 
 ### Vælg Twilio-kontoen
 
-Politikkens **Oversigt** viser et kort **Opsætning** med tre nummererede trin. Klik i det første på **Vælg**, vælg kontoen under **Twilio-konfiguration**, og klik på **Gem**.
+Politikkens **Oversigt** viser et kort **Opsætning** med tre nummererede trin. Klik i det første på **Vælg**, vælg kontoen under **Twilio-konfiguration**, og klik på **Gem**. Listen viser kun konfigurationer, der bruges til **Opkald og SMS** eller **Kun opkald**. En politik, hvis konfiguration senere sættes til **Kun SMS**, beholder den, og kortet siger, hvad du skal ændre.
 
 ### Tilføj et telefonnummer
 
