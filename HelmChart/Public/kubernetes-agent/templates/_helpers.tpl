@@ -389,6 +389,104 @@ false
 {{- end -}}
 {{- end -}}
 
+{{/*
+nodes/proxy, which the agent's ClusterRole grants only where nothing narrower
+works (#9878). It reaches the whole kubelet API: a GET on it can run commands
+in any container of the node, and CIS Kubernetes Benchmark 5.1.10 fails every
+binding that grants it - as the cluster's Compliance page says. The kubelet
+authorizes each of its paths as a subresource of nodes: /stats/* as
+nodes/stats, /metrics/* (cAdvisor's included) as nodes/metrics, /pods as
+nodes/pods from Kubernetes 1.33 (KubeletFineGrainedAuthz: beta and on by
+default from 1.33, GA from 1.36), and the rest as nodes/proxy.
+
+A setting below is true, false or auto, in any spelling; missing or empty is
+auto, which is what a release upgraded with --reuse-values from an older
+chart has.
+Usage: {{ include "kubernetes-agent.nodesProxySetting" (dict "value" .Values.kubeletstats.nodesProxy "setting" "kubeletstats.nodesProxy" "auto" "...") }}
+*/}}
+{{- define "kubernetes-agent.nodesProxySetting" -}}
+{{- $value := .value -}}
+{{- if or (kindIs "invalid" $value) (eq (toString $value | trim) "") -}}
+auto
+{{- else if has (toString $value | trim | lower) (list "auto" "true" "false") -}}
+{{- toString $value | trim | lower -}}
+{{- else -}}
+{{- fail (printf "%s is %q. Set it to true, false or auto (the default: %s)." .setting (toString $value) .auto) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the ClusterRole grants nodes/proxy for the node collector's kubelet
+pod list. kubeletstats reads each node's /pods - each container's ID, each
+volume's claim, and the requests and limits its utilization metrics divide
+by - and sends nothing from a node whose kubelet refuses it. A kubelet from
+1.33 on lets it read the list with nodes/pods, which the ClusterRole always
+grants; an older one asks for nodes/proxy.
+
+kubeletstats.nodesProxy: true or false as set. auto grants it while the
+Kubernetes version the chart is rendered for is older than 1.36: a kubelet may
+be up to three minor versions older than the API server, so only from 1.36
+is every kubelet 1.33 or later. Helm reads that version from the cluster on
+install and upgrade, Amazon EKS renders the add-on with the cluster's
+(--kube-version), and Argo CD and Flux pass it too; a bare `helm template`
+assumes its own default. Never without the node collector: the eks-fargate
+preset runs none.
+Usage: {{- if eq (include "kubernetes-agent.kubeletPodsThroughNodesProxy" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.kubeletPodsThroughNodesProxy" -}}
+{{- $setting := include "kubernetes-agent.nodesProxySetting" (dict "value" (.Values.kubeletstats | default dict).nodesProxy "setting" "kubeletstats.nodesProxy" "auto" "granted while the cluster runs Kubernetes older than 1.36") -}}
+{{- if ne (include "kubernetes-agent.daemonSetMetricsEnabled" .) "true" -}}
+false
+{{- else if eq $setting "auto" -}}
+{{- ternary "false" "true" (semverCompare ">=1.36-0" .Capabilities.KubeVersion.Version) -}}
+{{- else -}}
+{{- $setting -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the bundled cost Prometheus reads each node's cAdvisor through the API
+server's node proxy (/api/v1/nodes/<node>/proxy/metrics/cadvisor), which needs
+nodes/proxy, rather than from the node's own kubelet
+(https://<node address>:10250/metrics/cadvisor), which needs only
+nodes/metrics - as the node collector's own cAdvisor scrape does.
+
+cost.prometheus.nodesProxy: true or false as set. auto is true only on the
+eks-fargate preset: Fargate lets no pod reach a node's kubelet, so there the
+API server is the only way to cAdvisor. Never while the chart bundles no
+Prometheus (cost off, or an engine of the cluster's own).
+Usage: {{- if eq (include "kubernetes-agent.costPrometheusThroughNodesProxy" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costPrometheusThroughNodesProxy" -}}
+{{- $setting := include "kubernetes-agent.nodesProxySetting" (dict "value" (((.Values.cost | default dict).prometheus) | default dict).nodesProxy "setting" "cost.prometheus.nodesProxy" "auto" "through the API server on the eks-fargate preset only") -}}
+{{- if ne (include "kubernetes-agent.costEngineBundled" .) "true" -}}
+false
+{{- else if eq $setting "auto" -}}
+{{- ternary "true" "false" (eq (default "" .Values.preset) "eks-fargate") -}}
+{{- else -}}
+{{- $setting -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Why the ClusterRole grants nodes/proxy, as the value of its
+oneuptime.com/nodes-proxy label: kubelet-pods, cost-prometheus, both joined
+by a dot, or nothing when it grants none. The cluster's Compliance page reads
+the label to say why the agent's own binding fails CIS Kubernetes Benchmark
+5.1.10, and how to drop it (KubernetesRbac's NODES_PROXY_REASON_LABEL).
+Usage: {{- with include "kubernetes-agent.nodesProxyReasons" . }}
+*/}}
+{{- define "kubernetes-agent.nodesProxyReasons" -}}
+{{- $reasons := list -}}
+{{- if eq (include "kubernetes-agent.kubeletPodsThroughNodesProxy" .) "true" -}}
+{{- $reasons = append $reasons "kubelet-pods" -}}
+{{- end -}}
+{{- if eq (include "kubernetes-agent.costPrometheusThroughNodesProxy" .) "true" -}}
+{{- $reasons = append $reasons "cost-prometheus" -}}
+{{- end -}}
+{{- join "." $reasons -}}
+{{- end -}}
+
 {{- define "kubernetes-agent.openshiftDetector" -}}
 resourcedetection/openshift:
   detectors: [openshift]

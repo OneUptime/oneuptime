@@ -613,6 +613,28 @@ if [ -n "$PRIMARY_POD" ]; then
   fi
 fi
 
+# The node collectors' kubeletstats reads each node's pod list from its
+# kubelet (/pods), and sends nothing at all from a node whose kubelet refuses
+# it: no node, pod or container metrics. A kubelet from Kubernetes 1.33 on
+# allows it with nodes/pods, which the chart always grants; an older one only
+# with nodes/proxy, which kubeletstats.nodesProxy grants (auto: on a cluster
+# older than 1.36).
+PODS_REFUSED_NODES=""
+while read -r npod nnode; do
+  [ -z "$npod" ] && continue
+  if kubectl logs -n "$NS" "$npod" -c otel-collector --tail=300 2>/dev/null \
+    | grep -q 'call to /pods endpoint failed'; then
+    PODS_REFUSED_NODES="$PODS_REFUSED_NODES ${nnode:-$npod}"
+  fi
+done <<EOF
+$(kubectl get pods -n "$NS" -l "$SEL,component=log-collector" \
+  -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.nodeName}{"\n"}{end}' 2>/dev/null)
+EOF
+if [ -n "$PODS_REFUSED_NODES" ]; then
+  fail "The node collector could not read the kubelet's pod list on:$PODS_REFUSED_NODES"
+  add_finding "The kubelet refused the node collector its pod list (/pods) on:$PODS_REFUSED_NODES — so no kubelet metrics (node, pod and container CPU, memory, disk and network) come from those nodes. A kubelet older than Kubernetes 1.33 allows the list only with nodes/proxy: upgrade the agent with --set kubeletstats.nodesProxy=true, or with auto on a cluster older than 1.36, until those nodes run 1.33 or later. kubectl get nodes -o wide shows each node's kubelet version."
+fi
+
 # ----------------------------------------------------------------------------
 section "9. Cost pipeline"
 # ----------------------------------------------------------------------------
@@ -976,7 +998,7 @@ else
             fail "cost-prometheus has no '$pjob' target at all."
             COST_OK=0
             if [ "$pjob" = "kubernetes-nodes-cadvisor" ]; then
-              add_finding "The cost Prometheus discovered no cAdvisor targets — node discovery is failing (the agent ServiceAccount needs nodes + nodes/proxy). Without container usage, OpenCost can only produce empty or idle-only allocations."
+              add_finding "The cost Prometheus discovered no cAdvisor targets — node discovery is failing (the agent ServiceAccount needs list and watch on nodes). Without container usage, OpenCost can only produce empty or idle-only allocations."
             else
               add_finding "The cost Prometheus has no 'opencost' scrape target — its config didn't render or the pod is running an older ConfigMap. Restart it: kubectl rollout restart -n $NS deploy/$PROM_SVC"
             fi
@@ -987,7 +1009,7 @@ else
             [ -n "$PROM_ERR" ] && detail "lastError: $(printf '%s' "$PROM_ERR" | head -c 200)"
             COST_OK=0
             if [ "$pjob" = "kubernetes-nodes-cadvisor" ]; then
-              add_finding "$((PROM_TOTAL - PROM_UP)) of $PROM_TOTAL cAdvisor targets are down, so those nodes' containers get no usage series and their workloads will be missing (or priced as idle) in the cost data. lastError: ${PROM_ERR:-see the target page}"
+              add_finding "$((PROM_TOTAL - PROM_UP)) of $PROM_TOTAL cAdvisor targets are down, so those nodes' containers get no usage series and their workloads will be missing (or priced as idle) in the cost data. It reads each node's kubelet on port 10250 (nodes/metrics) unless cost.prometheus.nodesProxy sends it through the API server (nodes/proxy): a 403 means the agent's ClusterRole lacks that grant; a timeout or a refused connection means the network keeps pods from the nodes' port 10250 - allow it, or set cost.prometheus.nodesProxy=true. lastError: ${PROM_ERR:-see the target page}"
             else
               add_finding "The cost Prometheus cannot scrape OpenCost (${PROM_UP}/${PROM_TOTAL} up), so node/PV prices never enter the TSDB and allocations come back without cost. lastError: ${PROM_ERR:-see the target page}"
             fi
