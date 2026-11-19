@@ -29,6 +29,7 @@ import Link from "../../Link/Link";
 import OneUptimeDate from "../../../../Types/Date";
 import { getTextReadingDirectionByMostLetters } from "../../../../Types/ReadingDirection";
 import SeverityBadge from "./SeverityBadge";
+import CopyLogLineLinkButton from "./CopyLogLineLinkButton";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../Utils/API/API";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
@@ -112,6 +113,13 @@ export interface LogDetailsPanelProps {
    * was written in, is part of. Rendering nothing is fine.
    */
   renderExtraSection?: ((log: Log) => ReactNode) | undefined;
+  /*
+   * The link that opens this very line (#9794), as the app builds it: the
+   * Logs page naming the line by its id and when it was written. Given, the
+   * header has Copy Link (CopyLogLineLinkButton); none for a line the link
+   * cannot name.
+   */
+  getLogLink?: ((log: Log) => string | null | undefined) | undefined;
 }
 
 interface AttributeEntry {
@@ -321,6 +329,11 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
   const traceId: string = props.log.traceId?.toString() || "";
   const spanId: string = props.log.spanId?.toString() || "";
+
+  // The link to this very line, when the app can build one.
+  const logLink: string = useMemo(() => {
+    return props.getLogLink?.(props.log) || "";
+  }, [props.getLogLink, props.log]);
 
   const traceRoute: Route | URL | undefined = useMemo(() => {
     if (!traceId || !props.getTraceRoute) {
@@ -711,15 +724,23 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
           </div>
         </div>
 
-        {props.onClose && (
-          <button
-            type="button"
-            onClick={props.onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
-            title={translator.translateText("Close details")}
-          >
-            <Icon icon={IconProp.Close} className="h-4 w-4" />
-          </button>
+        {logLink || props.onClose ? (
+          <div className="flex flex-none items-center gap-2">
+            {/* A link to this very line, to send or keep (#9794). */}
+            {logLink ? <CopyLogLineLinkButton link={logLink} /> : <></>}
+            {props.onClose && (
+              <button
+                type="button"
+                onClick={props.onClose}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
+                title={translator.translateText("Close details")}
+              >
+                <Icon icon={IconProp.Close} className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <></>
         )}
       </div>
 
