@@ -41,7 +41,7 @@ import {
   getSplitDescriptors,
 } from "./createAdaptiveStackNavigator";
 import { useListPane, usePaneState } from "./paneState";
-import { usePane } from "../layout/WindowLayout";
+import { usePane } from "../layout/WindowLayoutProvider";
 import {
   TEST_WINDOWS,
   resetWindowSize,

@@ -507,6 +507,11 @@
             "enabled": { "type": "boolean" }
           },
           "additionalProperties": false
+        },
+        "nodesProxy": {
+          "type": ["boolean", "string"],
+          "enum": [true, false, "auto", "true", "false"],
+          "description": "Grant nodes/proxy for the kubelet pod list (/pods), which a kubelet older than Kubernetes 1.33 allows only with it; from 1.33 nodes/pods, always granted, is enough. auto (the default): granted while the cluster runs Kubernetes older than 1.36. CIS Kubernetes Benchmark 5.1.10 fails a binding that grants nodes/proxy."
         }
       },
       "additionalProperties": false
@@ -675,6 +680,11 @@
                 "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
               },
               "additionalProperties": false
+            },
+            "nodesProxy": {
+              "type": ["boolean", "string"],
+              "enum": [true, false, "auto", "true", "false"],
+              "description": "Read each node's cAdvisor through the API server's node proxy (nodes/proxy, which CIS Kubernetes Benchmark 5.1.10 fails) rather than from the node's kubelet (nodes/metrics). auto (the default): through the API server on the eks-fargate preset only, where no pod reaches a kubelet."
             },
             "retention": { "type": "string" },
             "scrapeInterval": { "type": "string" },

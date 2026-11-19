@@ -39,7 +39,11 @@ import {
  *     note template picker, when the project has templates, and the note.
  *     It says "Configured" while a note or template is in it, keeps what was
  *     written while folded, and the dialog grows to the wide one when it is
- *     opened (Common/UI/Components/Forms/Utils/FormModalWidth.ts).
+ *     opened (Common/UI/Components/Forms/Utils/FormModalWidth.ts);
+ *   - and, when the change resolves an incident or an alert, one more
+ *     folded line, "Add the root cause" (#7765, getStateChangeRootCauseFields):
+ *     why it happened, saved as the record's root cause, what OneUptime AI's
+ *     investigation of it is graded against.
  *
  * Nothing about what is sent changes: the note travels under the same key
  * (publicNote / privateNote), the template id under its own, and the notify
@@ -62,6 +66,65 @@ export const STATE_CHANGE_NOTIFY_FIELD_KEY: string =
   "shouldStatusPageSubscribersBeNotified";
 
 export const STATE_CHANGE_NOTE_SECTION_ID: string = "state-change-note";
+
+/*
+ * Resolving an incident or an alert asks for its root cause too (#7765),
+ * folded under "Add the root cause", after the note: why it happened, saved
+ * as the record's root cause, and what OneUptime AI's investigation of it is
+ * graded against (InvestigationGrader). Optional, like the note: leaving it
+ * empty resolves as before, and the record keeps the root cause it has.
+ *
+ * It travels with the change under writtenRootCause, which the server reads
+ * (Common/Server/Utils/StateChangeRootCause): it refuses a change whose root
+ * cause its sender may not write, so it is offered only to someone who may
+ * edit the record (recordModel).
+ *
+ * Only the incident and alert dialogs ask it, with their own builder
+ * (getStateChangeRootCauseFields): the bulk dialog, which shares
+ * getStateChangeFormFields, does not, and the form scans read a builder at
+ * its largest.
+ */
+export const STATE_CHANGE_ROOT_CAUSE_SECTION_ID: string =
+  "state-change-root-cause";
+
+export const STATE_CHANGE_ROOT_CAUSE_SECTION_TITLE: string =
+  translationKey("Add the root cause");
+
+export const STATE_CHANGE_ROOT_CAUSE_FIELD_KEY: string = "writtenRootCause";
+
+export interface StateChangeRootCauseOptions {
+  // One line under the field: what it becomes, worded for the record.
+  description: string;
+  /*
+   * The record whose root cause it writes, as an empty model of its kind (an
+   * Alert, an Incident). Someone who may not edit it is not offered the
+   * root cause.
+   */
+  recordModel: PermissionCheckableModel;
+  // The page's private record scope, when it is open on one.
+  recordGateOptions?: PermissionGateOptions | undefined;
+}
+
+/*
+ * Whether the person signed in may write the record's root cause: the
+ * record's update permissions (PermissionGate), the ones the server asks
+ * for. A person it does not know yet is offered it, and the server decides.
+ */
+export const canWriteStateChangeRootCause: (
+  recordModel: PermissionCheckableModel,
+  options?: PermissionGateOptions | undefined,
+) => boolean = (
+  recordModel: PermissionCheckableModel,
+  options?: PermissionGateOptions | undefined,
+): boolean => {
+  const gate: PermissionGateResult = PermissionGate.check(
+    recordModel,
+    ModelAction.Update,
+    options,
+  );
+
+  return gate.isAllowed || !gate.disabledReason;
+};
 
 // The folded line, worded for who reads the note.
 export const STATE_CHANGE_NOTE_SECTION_TITLES: Record<
@@ -281,3 +344,55 @@ export const getStateChangeFormFields: GetStateChangeFormFieldsFunction = <
     },
   ];
 };
+
+export type GetStateChangeRootCauseFieldsFunction = <TEntity>(
+  rootCause: StateChangeRootCauseOptions | undefined,
+) => Fields<TEntity>;
+
+/*
+ * The folded "Add the root cause" line of a resolve (#7765), for the
+ * incident and alert dialogs to put after getStateChangeFormFields' fields:
+ * one Markdown field, folded even with something in it, like the note.
+ * Handed nothing - a change that does not resolve the record - it is no
+ * field at all.
+ */
+export const getStateChangeRootCauseFields: GetStateChangeRootCauseFieldsFunction =
+  <TEntity>(
+    rootCause: StateChangeRootCauseOptions | undefined,
+  ): Fields<TEntity> => {
+    // Offered only to someone who may write the record's root cause.
+    const isRootCauseOffered: boolean = Boolean(
+      rootCause &&
+        canWriteStateChangeRootCause(
+          rootCause.recordModel,
+          rootCause.recordGateOptions,
+        ),
+    );
+
+    const rootCauseSection: FormFieldCollapsibleSection<TEntity> = {
+      id: STATE_CHANGE_ROOT_CAUSE_SECTION_ID,
+      title: STATE_CHANGE_ROOT_CAUSE_SECTION_TITLE,
+      openWhenConfigured: false,
+    };
+
+    return rootCause
+      ? [
+          {
+            // STATE_CHANGE_ROOT_CAUSE_FIELD_KEY, written out for the form scans.
+            field: {
+              writtenRootCause: true,
+            } as SelectFormFields<TEntity>,
+            fieldType: FormFieldSchemaType.Markdown,
+            title: "Root Cause",
+            description: rootCause.description,
+            showIf: (): boolean => {
+              return isRootCauseOffered;
+            },
+            required: false,
+            overrideFieldKey: STATE_CHANGE_ROOT_CAUSE_FIELD_KEY,
+            showEvenIfPermissionDoesNotExist: true,
+            collapsibleSection: rootCauseSection,
+          },
+        ]
+      : [];
+  };

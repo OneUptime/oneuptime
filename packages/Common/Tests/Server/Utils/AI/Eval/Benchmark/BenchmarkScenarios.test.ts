@@ -15,7 +15,13 @@
  * the incident's "Declared at" line is written in the server's zone.
  */
 import AIToolbox from "../../../../../../Server/Utils/AI/Toolbox/Index";
+import { LOOKBACK_MINUTES as CONTAINER_LOOKBACK_MINUTES } from "../../../../../../Server/Utils/AI/Toolbox/ContainerTools";
+import {
+  COMPLIANCE_NOTE,
+  DEPLOYMENT_GATE_NOTE,
+} from "../../../../../../Server/Utils/AI/Toolbox/SloTools";
 import AIIncidentInvestigationRunner from "../../../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
+import AIAlertInvestigationRunner from "../../../../../../Server/Utils/AI/SRE/AlertInvestigationRunner";
 import RecentChangesContext, {
   CHANGE_LOOKAHEAD_MINUTES,
   CHANGE_LOOKBACK_MINUTES,
@@ -39,16 +45,30 @@ import {
 } from "../../../../../../Server/Utils/AI/SRE/ChangeImpact";
 import BENCHMARK_SCENARIOS from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScenarios";
 import {
+  BenchmarkExpectationKind,
   BenchmarkFaultKind,
   BenchmarkScenario,
+  BenchmarkSubjectKind,
   BenchmarkToolResponse,
+  getScenarioExpectationKind,
+  getScenarioSubjectKind,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScenario";
-import BenchmarkScorer from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScorer";
+import BenchmarkScorer, {
+  INCONCLUSIVE_WORDS,
+} from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScorer";
+import {
+  getMissingSloRecommendedBurnRateRules,
+  getSloRecommendedBurnRateRules,
+  SloRecommendedBurnRateRule,
+} from "../../../../../../Utils/Slo/SloRecommendedBurnRateRules";
 import InvestigationBenchmark, {
   BENCHMARK_EXCLUDED_TOOL_NAMES,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/InvestigationBenchmark";
 import ScenarioTools from "../../../../../../Server/Utils/AI/Eval/Benchmark/ScenarioTools";
 import { LLMToolDefinition } from "../../../../../../Server/Utils/LLM/LLMService";
+import Alert from "../../../../../../Models/DatabaseModels/Alert";
+import AlertSeverity from "../../../../../../Models/DatabaseModels/AlertSeverity";
+import AlertState from "../../../../../../Models/DatabaseModels/AlertState";
 import Incident from "../../../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../../../Models/DatabaseModels/IncidentState";
@@ -463,8 +483,8 @@ describe("every scenario's clock holds together", () => {
   );
 });
 
-// The incident's section, rebuilt by the investigation runner from its own lines.
-function buildIncidentSummary(scenario: BenchmarkScenario): string {
+// The summary's "Label: value" lines, read up to its first blank line.
+function summaryFieldsOf(scenario: BenchmarkScenario): Map<string, string> {
   const fields: Map<string, string> = new Map();
 
   for (const line of scenario.contextText.split("\n").slice(1)) {
@@ -476,12 +496,28 @@ function buildIncidentSummary(scenario: BenchmarkScenario): string {
     fields.set(line.substring(0, separator), line.substring(separator + 2));
   }
 
-  const names: (label: string) => Array<string> = (
-    label: string,
-  ): Array<string> => {
-    return (fields.get(label) || "").split(", ").filter(Boolean);
-  };
+  return fields;
+}
 
+function namesIn(fields: Map<string, string>, label: string): Array<string> {
+  return (fields.get(label) || "").split(", ").filter(Boolean);
+}
+
+function monitorNamed(name: string): Monitor {
+  const monitor: Monitor = new Monitor();
+  monitor.name = name;
+  return monitor;
+}
+
+function labelNamed(name: string): Label {
+  const label: Label = new Label();
+  label.name = name;
+  return label;
+}
+
+// The incident's section, rebuilt by the investigation runner from its own lines.
+function buildIncidentSummary(scenario: BenchmarkScenario): string {
+  const fields: Map<string, string> = summaryFieldsOf(scenario);
   const incident: Incident = new Incident(ObjectID.generate());
   const description: string | undefined = fields.get("Description");
   incident.title = fields.get("Title") || "";
@@ -499,18 +535,8 @@ function buildIncidentSummary(scenario: BenchmarkScenario): string {
   state.name = fields.get("Current state") || "";
   incident.currentIncidentState = state;
 
-  incident.monitors = names("Affected monitors").map(
-    (name: string): Monitor => {
-      const monitor: Monitor = new Monitor();
-      monitor.name = name;
-      return monitor;
-    },
-  );
-  incident.labels = names("Labels").map((name: string): Label => {
-    const label: Label = new Label();
-    label.name = name;
-    return label;
-  });
+  incident.monitors = namesIn(fields, "Affected monitors").map(monitorNamed);
+  incident.labels = namesIn(fields, "Labels").map(labelNamed);
 
   return AIIncidentInvestigationRunner.buildIncidentSummary({
     incident,
@@ -521,6 +547,53 @@ function buildIncidentSummary(scenario: BenchmarkScenario): string {
   });
 }
 
+// The alert's section, rebuilt by the alert investigation runner from its own lines.
+function buildAlertSummary(scenario: BenchmarkScenario): string {
+  const fields: Map<string, string> = summaryFieldsOf(scenario);
+  const alert: Alert = new Alert(ObjectID.generate());
+  const description: string | undefined = fields.get("Description");
+  const monitorName: string | undefined = fields.get("Affected monitor");
+  const rootCause: string | undefined = fields.get(
+    "Root cause (as recorded so far)",
+  );
+  alert.title = fields.get("Title") || "";
+  alert.createdAt = new Date(scenario.declaredAt);
+
+  if (description) {
+    alert.description = description;
+  }
+
+  const severity: AlertSeverity = new AlertSeverity();
+  severity.name = fields.get("Severity") || "";
+  alert.alertSeverity = severity;
+
+  const state: AlertState = new AlertState();
+  state.name = fields.get("Current state") || "";
+  alert.currentAlertState = state;
+
+  if (monitorName) {
+    alert.monitor = monitorNamed(monitorName);
+  }
+
+  alert.labels = namesIn(fields, "Labels").map(labelNamed);
+
+  if (rootCause) {
+    alert.rootCause = rootCause;
+  }
+
+  return AIAlertInvestigationRunner.buildAlertSummary({
+    alert,
+    stateTimeline: [],
+    internalNotes: [],
+  });
+}
+
+function buildSubjectSummary(scenario: BenchmarkScenario): string {
+  return getScenarioSubjectKind(scenario) === BenchmarkSubjectKind.Alert
+    ? buildAlertSummary(scenario)
+    : buildIncidentSummary(scenario);
+}
+
 describe("the starting context opens as the investigation runner writes it", () => {
   test("the process runs in UTC, as OneUptime's servers do", () => {
     expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("UTC");
@@ -529,9 +602,13 @@ describe("the starting context opens as the investigation runner writes it", () 
   test.each(SCENARIO_CASES)(
     "%s",
     (_id: string, scenario: BenchmarkScenario) => {
-      const summary: string = buildIncidentSummary(scenario);
+      const summary: string = buildSubjectSummary(scenario);
+      const heading: string =
+        getScenarioSubjectKind(scenario) === BenchmarkSubjectKind.Alert
+          ? "# Alert"
+          : "# Incident";
 
-      expect(summary.startsWith("# Incident\nTitle: ")).toBe(true);
+      expect(summary.startsWith(`${heading}\nTitle: `)).toBe(true);
       expect(scenario.contextText.substring(0, summary.length + 1)).toBe(
         `${summary}\n`,
       );
@@ -855,7 +932,7 @@ describe("the recent changes read as RecentChangesContext writes them", () => {
         CHANGE_LOOKAHEAD_MINUTES,
       );
       const written: string = RecentChangesContext.buildContextSection({
-        subjectKind: "incident",
+        subjectKind: getScenarioSubjectKind(scenario),
         subjectCreatedAt: declaredAt,
         windowStart: OneUptimeDate.addRemoveMinutes(
           declaredAt,
@@ -882,18 +959,34 @@ describe("the recent changes read as RecentChangesContext writes them", () => {
  * figures are ones the SLO evaluation could have written: the budget its
  * SLI leaves, and the status that budget gives at the default threshold.
  */
-const AFFECTED_MONITORS: string = "Affected monitors: ";
 const ROLLING_WINDOW: RegExp = /^Rolling (\d+)d$/;
 const SECONDS_IN_A_DAY: number = 24 * 60 * 60;
 
+// An incident names its monitors; an alert, the one it was raised for.
 function affectedMonitorsOf(scenario: BenchmarkScenario): Array<string> {
-  const line: string | undefined = scenario.contextText
-    .split("\n")
-    .find((one: string): boolean => {
-      return one.startsWith(AFFECTED_MONITORS);
-    });
+  const fields: Map<string, string> = summaryFieldsOf(scenario);
 
-  return line ? line.substring(AFFECTED_MONITORS.length).split(", ") : [];
+  return getScenarioSubjectKind(scenario) === BenchmarkSubjectKind.Alert
+    ? namesIn(fields, "Affected monitor").slice(0, 1)
+    : namesIn(fields, "Affected monitors");
+}
+
+/*
+ * The SLO rows query_slos lists: an answer to any call that names no sloId.
+ * Reading one SLO by its sloId answers it in full (ScenarioSlos), and its
+ * rows are checked against these below.
+ */
+function sloListRowsOf(scenario: BenchmarkScenario): Array<JSONObject> {
+  return scenario.responses
+    .filter((response: BenchmarkToolResponse): boolean => {
+      return (
+        response.toolName === "query_slos" &&
+        response.whenArguments?.["sloId"] === undefined
+      );
+    })
+    .flatMap((response: BenchmarkToolResponse): Array<JSONObject> => {
+      return response.rows || [];
+    });
 }
 
 function numberIn(row: JSONObject, key: string): number | undefined {
@@ -917,7 +1010,7 @@ function windowDaysOf(row: JSONObject): number {
 function impactSlosOf(scenario: BenchmarkScenario): Array<ImpactSlo> {
   const incidentMonitors: Array<string> = affectedMonitorsOf(scenario);
 
-  return rowsOf(scenario, "query_slos")
+  return sloListRowsOf(scenario)
     .map((row: JSONObject): ImpactSlo => {
       return {
         id: String(row["id"]),
@@ -965,7 +1058,7 @@ describe("the impact reads as InvestigationImpactContext writes it, for the SLOs
     (_id: string, scenario: BenchmarkScenario) => {
       const slos: Array<ImpactSlo> = impactSlosOf(scenario);
       const written: string = InvestigationImpactContext.buildContextSection({
-        subjectKind: "incident",
+        subjectKind: getScenarioSubjectKind(scenario),
         hasMonitors: affectedMonitorsOf(scenario).length > 0,
         slos: slos.slice(0, MAX_IMPACT_SLOS),
         hasMoreSlos: slos.length > MAX_IMPACT_SLOS,
@@ -1001,7 +1094,7 @@ describe("the impact reads as InvestigationImpactContext writes it, for the SLOs
   test.each(SCENARIO_CASES)(
     "%s: each SLO's budget and status are the ones its SLI gives",
     (_id: string, scenario: BenchmarkScenario) => {
-      const rows: Array<JSONObject> = rowsOf(scenario, "query_slos");
+      const rows: Array<JSONObject> = sloListRowsOf(scenario);
 
       expect(rows.length).toBeGreaterThan(0);
 
@@ -1050,7 +1143,7 @@ describe("the impact reads as InvestigationImpactContext writes it, for the SLOs
   test("the scenarios do not all report the same SLO status", () => {
     const statuses: Set<string> = new Set(
       SCENARIO_CASES.flatMap(([, scenario]: ScenarioCase): Array<string> => {
-        return valuesOf(rowsOf(scenario, "query_slos"), "sloStatus");
+        return valuesOf(sloListRowsOf(scenario), "sloStatus");
       }),
     );
 
@@ -1145,4 +1238,362 @@ describe("the scorer's words name the planted cause, and nothing else", () => {
       expect(hidden).toEqual([]);
     },
   );
+});
+
+/*
+ * WHAT A REAL TOOL WRITES AROUND ITS ROWS (#7766). query_slos opens every
+ * answer that has an SLO row with its deploy-gate and compliance notes, and
+ * reads one SLO in full - its row, then its burn-rate rules - when its sloId
+ * is asked for. A scripted answer does the same, in the tool's own words.
+ * Every other tool these scenarios script writes no note before rows like
+ * theirs, so no other answer carries one: a note added to one is a note the
+ * product writes, added here first.
+ */
+const TOOL_NOTES: { [toolName: string]: Array<string> } = {
+  query_slos: [DEPLOYMENT_GATE_NOTE, COMPLIANCE_NOTE],
+};
+
+const SLO_FIGURES: Array<string> = [
+  "id",
+  "name",
+  "isEnabled",
+  "sliType",
+  "targetPercentage",
+  "window",
+  "monitors",
+  "sloStatus",
+  "currentSliPercentage",
+  "errorBudgetRemainingPercentage",
+  "currentBurnRate",
+  "deploymentsAllowed",
+  "lastEvaluatedAt",
+];
+
+describe("an answer carries the notes the real tool writes before its rows, and only those", () => {
+  test.each(SCENARIO_CASES)(
+    "%s",
+    (_id: string, scenario: BenchmarkScenario) => {
+      const problems: Array<string> = [];
+
+      for (const response of scenario.responses) {
+        const expected: Array<string> = TOOL_NOTES[response.toolName] || [];
+        const notes: Array<string> = response.notes || [];
+
+        if (JSON.stringify(notes) !== JSON.stringify(expected)) {
+          problems.push(
+            `${describeResponse(response)}: notes ${JSON.stringify(notes)}, the tool writes ${JSON.stringify(expected)}`,
+          );
+        }
+
+        for (const note of notes) {
+          if (!note.endsWith("\n")) {
+            problems.push(`${describeResponse(response)}: a note ends a line`);
+          }
+        }
+
+        if (notes.length > 0 && (response.rows || []).length === 0) {
+          problems.push(
+            `${describeResponse(response)}: the tool writes its notes only with rows`,
+          );
+        }
+      }
+
+      expect(problems).toEqual([]);
+    },
+  );
+
+  /*
+   * query_containers writes its notes after its rows, on a line of its own
+   * (ContainerTools): the host and the window it read - the hour to now
+   * unless asked for another - how many containers reported and stopped,
+   * and how to read the numbers. No other tool here writes notes after rows.
+   */
+  test.each(SCENARIO_CASES)(
+    "%s: notes after the rows are query_containers' own, for its host, window and rows",
+    (_id: string, scenario: BenchmarkScenario) => {
+      const promptTime: Date = InvestigationBenchmark.getPromptTime(scenario);
+      const windowStart: string = OneUptimeDate.addRemoveMinutes(
+        promptTime,
+        -60,
+      ).toISOString();
+      const problems: Array<string> = [];
+
+      for (const response of scenario.responses) {
+        const after: Array<string> = response.notesAfterRows || [];
+
+        if (response.toolName !== "query_containers") {
+          if (after.length > 0) {
+            problems.push(
+              `${describeResponse(response)}: only query_containers writes notes after its rows`,
+            );
+          }
+          continue;
+        }
+
+        const host: string = (response.citationLabel || "").replace(
+          /^Containers of /,
+          "",
+        );
+        const rows: Array<JSONObject> = response.rows || [];
+        const stopped: number = rows.filter((row: JSONObject): boolean => {
+          return row["status"] === "stopped reporting";
+        }).length;
+
+        expect(after).toEqual([
+          `Containers of ${host}, window ${windowStart} – ${promptTime.toISOString()} (containers seen in the ${CONTAINER_LOOKBACK_MINUTES} minutes before it count too).`,
+          `${rows.length} container(s) reported; ${stopped} stopped reporting. A stopped or crashed container sends nothing rather than zero.`,
+          "Stopped containers first, then the busiest by cpu. CPU is in percent of one core (100 = one full core), averaged per bucket; memory is the peak percent of the container's limit or the host's memory.",
+        ]);
+      }
+
+      expect(problems).toEqual([]);
+    },
+  );
+
+  test("the notes read as query_slos writes them", () => {
+    expect(DEPLOYMENT_GATE_NOTE).toMatch(/^Note: deploymentsAllowed /);
+    expect(COMPLIANCE_NOTE).toMatch(/^Note: compliance figures /);
+  });
+});
+
+describe("every SLO query_slos lists can be read in full by its sloId", () => {
+  test.each(SCENARIO_CASES)(
+    "%s: its row, with the list's figures, then OneUptime's burn-rate rules for its window",
+    (_id: string, scenario: BenchmarkScenario) => {
+      const listed: Array<JSONObject> = sloListRowsOf(scenario);
+
+      expect(listed.length).toBeGreaterThan(0);
+
+      for (const row of listed) {
+        const full: BenchmarkToolResponse | null = ScenarioTools.findResponse(
+          scenario,
+          "query_slos",
+          { sloId: String(row["id"]) },
+        );
+        const rows: Array<JSONObject> = full?.rows || [];
+        const sloRow: JSONObject = rows[0] || {};
+        const rules: Array<JSONObject> = rows.slice(1);
+
+        expect(full?.whenArguments).toEqual({ sloId: row["id"] });
+        expect(full?.citationLabel).toBe(`SLO ${row["name"]}`);
+        expect(sloRow["record"]).toBe("slo");
+
+        for (const figure of SLO_FIGURES) {
+          expect([figure, sloRow[figure]]).toEqual([figure, row[figure]]);
+        }
+
+        // Its error budget in seconds, as its SLI gives it.
+        const budget: { budgetRemainingSeconds: number } =
+          SloUtil.getErrorBudget({
+            sliPercentage: numberIn(row, "currentSliPercentage")!,
+            totalSeconds: windowDaysOf(row) * SECONDS_IN_A_DAY,
+            targetPercentage: numberIn(row, "targetPercentage")!,
+          });
+        expect(sloRow["errorBudgetRemainingSeconds"]).toBe(
+          Math.round(budget.budgetRemainingSeconds),
+        );
+
+        // Every one of OneUptime's rules for its window: the tool writes no note of one it lacks.
+        expect(
+          rules.map((rule: JSONObject): unknown => {
+            return rule["record"];
+          }),
+        ).toEqual(["burnRateRule", "burnRateRule", "burnRateRule"]);
+        expect(
+          getMissingSloRecommendedBurnRateRules({
+            window: {
+              windowType: SloWindowType.Rolling,
+              windowDays: windowDaysOf(row),
+            },
+            existingRules: rules.map(
+              (
+                rule: JSONObject,
+              ): { name: string; longWindowInMinutes: number } => {
+                return {
+                  name: String(rule["name"]),
+                  longWindowInMinutes: Number(rule["longWindowInMinutes"]),
+                };
+              },
+            ),
+          }),
+        ).toEqual([]);
+        expect(
+          rules.map((rule: JSONObject): string => {
+            return `${rule["name"]} ${rule["burnRateThreshold"]}x ${rule["longWindowInMinutes"]}/${rule["shortWindowInMinutes"]}`;
+          }),
+        ).toEqual(
+          getSloRecommendedBurnRateRules({
+            windowType: SloWindowType.Rolling,
+            windowDays: windowDaysOf(row),
+          }).map((rule: SloRecommendedBurnRateRule): string => {
+            return `${rule.name} ${rule.burnRateThreshold}x ${rule.longWindowInMinutes}/${rule.shortWindowInMinutes}`;
+          }),
+        );
+      }
+    },
+  );
+});
+
+/*
+ * A SCENARIO WHOSE EVIDENCE NAMES NO CAUSE (#7766) is scored on whether the
+ * answer says it could not tell: its words are the scorer's own, never a
+ * hand-picked few, and the root cause people would write says so too.
+ */
+describe("a scenario whose evidence names no cause is scored on saying so", () => {
+  const NO_CAUSE_CASES: Array<ScenarioCase> = SCENARIO_CASES.filter(
+    ([, scenario]: ScenarioCase): boolean => {
+      return (
+        getScenarioExpectationKind(scenario) ===
+        BenchmarkExpectationKind.Inconclusive
+      );
+    },
+  );
+
+  test("there is at least one", () => {
+    expect(NO_CAUSE_CASES.length).toBeGreaterThan(0);
+  });
+
+  test.each(NO_CAUSE_CASES)(
+    "%s: its words are the scorer's, and its kind says no evidence",
+    (_id: string, scenario: BenchmarkScenario) => {
+      expect(scenario.expectation.mustMention).toEqual([INCONCLUSIVE_WORDS]);
+      expect(scenario.faultKind).toBe(BenchmarkFaultKind.NoEvidence);
+      expect(
+        BenchmarkScorer.holdsAny(
+          scenario.expectation.rootCause,
+          INCONCLUSIVE_WORDS,
+        ),
+      ).toBe(true);
+    },
+  );
+
+  test.each(SCENARIO_CASES)(
+    "%s: only a scenario whose evidence names no cause is scored on those words",
+    (_id: string, scenario: BenchmarkScenario) => {
+      const isNoCause: boolean =
+        getScenarioExpectationKind(scenario) ===
+        BenchmarkExpectationKind.Inconclusive;
+
+      expect(scenario.faultKind === BenchmarkFaultKind.NoEvidence).toBe(
+        isNoCause,
+      );
+
+      if (!isNoCause) {
+        expect(
+          BenchmarkScorer.holdsAny(
+            scenario.expectation.rootCause,
+            INCONCLUSIVE_WORDS,
+          ),
+        ).toBe(false);
+      }
+    },
+  );
+});
+
+/*
+ * A planted cause's words should be ones only it uses (#7766): with no
+ * judge, an answer is scored by its words, and an answer that blames a
+ * distractor in the words of the distractor's own evidence must not hold
+ * them all. So a result that holds every group of the cause's words is the
+ * fault's own evidence, and is marked so.
+ */
+describe("a result that names the planted cause in full is the fault's own evidence", () => {
+  test.each(SCENARIO_CASES)(
+    "%s",
+    (_id: string, scenario: BenchmarkScenario) => {
+      if (
+        getScenarioExpectationKind(scenario) ===
+        BenchmarkExpectationKind.Inconclusive
+      ) {
+        return;
+      }
+
+      const unmarked: Array<string> = scenario.responses
+        .filter((response: BenchmarkToolResponse): boolean => {
+          if (response.isKeyEvidence === true) {
+            return false;
+          }
+
+          const answer: string = ScenarioTools.answer(
+            scenario,
+            response.toolName,
+            response.whenArguments || {},
+          ).textForLlm;
+
+          return scenario.expectation.mustMention.every(
+            (group: Array<string>): boolean => {
+              return BenchmarkScorer.holdsAny(answer, group);
+            },
+          );
+        })
+        .map(describeResponse);
+
+      expect(unmarked).toEqual([]);
+    },
+  );
+});
+
+/*
+ * WHAT THE BENCHMARK COVERS (#7766): an alert, a scenario whose evidence
+ * names no cause, one with two causes, one with a past incident whose fix
+ * does not apply, and the toolbox's reach - a host's containers, a
+ * connected cloud's resources, and the code.
+ */
+describe("the benchmark covers more than incidents with one cause in their logs", () => {
+  function scenariosWhere(
+    predicate: (scenario: BenchmarkScenario) => boolean,
+  ): Array<string> {
+    return BENCHMARK_SCENARIOS.filter(predicate).map(
+      (scenario: BenchmarkScenario): string => {
+        return scenario.id;
+      },
+    );
+  }
+
+  function scriptsTool(
+    toolName: string,
+  ): (scenario: BenchmarkScenario) => boolean {
+    return (scenario: BenchmarkScenario): boolean => {
+      return scenario.responses.some(
+        (response: BenchmarkToolResponse): boolean => {
+          return response.toolName === toolName;
+        },
+      );
+    };
+  }
+
+  test("an alert", () => {
+    expect(
+      scenariosWhere((scenario: BenchmarkScenario): boolean => {
+        return getScenarioSubjectKind(scenario) === BenchmarkSubjectKind.Alert;
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("two causes", () => {
+    expect(
+      scenariosWhere((scenario: BenchmarkScenario): boolean => {
+        return scenario.faultKind === BenchmarkFaultKind.TwoCauses;
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("a past incident in its context", () => {
+    expect(
+      scenariosWhere((scenario: BenchmarkScenario): boolean => {
+        return scenario.contextText.includes(
+          "\n\n# Past resolved incidents in this project (recurrence context)\n",
+        );
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test.each([
+    ["a host's containers", "query_containers"],
+    ["a connected cloud's resource", "query_cloud_resource"],
+    ["the code behind an exception", "find_code_for_exception"],
+    ["a file of the code", "read_code_file"],
+  ])("the toolbox's reach: %s (%s)", (_what: string, toolName: string) => {
+    expect(scenariosWhere(scriptsTool(toolName)).length).toBeGreaterThan(0);
+  });
 });

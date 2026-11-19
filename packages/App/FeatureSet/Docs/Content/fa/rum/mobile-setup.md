@@ -5,6 +5,7 @@
 :::cards
 - [آنچه OneUptime لازم دارد](#آنچه-oneuptime-لازم-دارد): دو ویژگی منبع که با کلید سرور فرستاده می‌شوند.
 - [پلتفرمتان را راه‌اندازی کنید](#پلتفرمتان-را-راهاندازی-کنید): Android، iOS، React Native و بقیه.
+- [کرش‌ها و هنگ‌های iOS](#کرشها-و-هنگهای-ios): گزارش‌های تشخیصی MetricKit در استثناها و در نمای کلی.
 - [بررسی کنید که داده می‌رسد](#بررسی-کنید-که-داده-میرسد): کلید را بیازمایید، سپس برنامه را پیدا کنید.
 - [بازپخش نشست در موبایل](#بازپخش-نشست-در-موبایل): ضبط‌ها برای برنامه‌های React Native.
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 خود SDK مسیرهای `/v1/traces`، `/v1/metrics` و `/v1/logs` را به نقطه پایانی می‌افزاید.
 :::
+
+## کرش‌ها و هنگ‌های iOS
+
+opentelemetry-swift نسخهٔ 2.3 و بعد از آن، کرش‌ها و هنگ‌های یک برنامه iOS را از راه ابزارگذاری MetricKit خود گزارش می‌کند، که هر گزارش تشخیصی Apple را به‌صورت یک رکورد لاگ به OpenTelemetry می‌سپارد. OneUptime آن‌ها را همان‌طور ثبت می‌کند که کرش‌ها و ANRهای OpenTelemetry Android را، پس در **استثناها** و در **نمای کلی** برنامه نمایش داده می‌شوند:
+
+| گزارش تشخیصی Apple | نام رویداد | در استثناها |
+| --- | --- | --- |
+| یک کرش | `metrickit.diagnostic.crash` | یک استثنای مدیریت‌نشده که نوعش را چیزی تعیین می‌کند که برنامه را بست: استثنای Objective-C در iOS 17 و بعد از آن، وگرنه استثنای Mach (`EXC_BAD_ACCESS`)، وگرنه سیگنال (`SIGSEGV`) |
+| یک هنگ | `metrickit.diagnostic.hang` | یک استثنای مدیریت‌نشده از نوع **Hang**، همتای ANR در iOS، که مدت هنگ را نگه می‌دارد |
+
+کاشی **کرش‌ها** در نمای کلی کرش‌ها را می‌شمارد، و کاشی **ANRها** هنگ‌ها را همراه با ANRهای Android می‌شمارد. هر ردیابی پشته به شکل رشته‌های یک گزارش کرش رسم می‌شود و رشته‌ای که کرش کرد یا هنگ کرد اول می‌آید. فریم‌ها نمادین‌سازی نشده‌اند: هر فریم نام باینری خود و فاصلهٔ کد از ابتدای آن را می‌گوید، و **Binary Images** شناسهٔ UUID هر باینری را فهرست می‌کند، که نشان می‌دهد dSYM کدام بیلد آن را نمادین‌سازی می‌کند.
+
+:::steps
+### لاگ‌ها را هم در کنار اسپن‌ها صادر کنید
+
+MetricKit گزارش‌های تشخیصی را به‌صورت رکوردهای لاگ می‌فرستد، پس در کنار ارائه‌دهندهٔ ردیاب، یک ارائه‌دهندهٔ لاگ‌گیر هم با همان منبع، نقطه پایانی و سرآیند ثبت کنید:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### ابزارگذاری MetricKit را ثبت کنید
+
+محصول `MetricKitInstrumentation` از opentelemetry-swift را بیفزایید و وقتی ارائه‌دهندهٔ لاگ‌گیر ثبت شد، آن را در MetricKit ثبت کنید:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### نشست‌ها را ثبت کنید
+
+کاشی‌های **نشست‌ها** و **نشست‌های بدون کرش** مقدار `session.id` روی اسپن‌های شما را می‌شمارند. محصول `Sessions` از opentelemetry-swift آن را تنظیم می‌کند: `SessionSpanProcessor` را به ارائه‌دهندهٔ ردیاب بیفزایید و پردازشگر لاگ را درون `SessionLogRecordProcessor` بپیچید، تا گزارش‌های تشخیصی هم نشست داشته باشند. نسخه‌های آن هنوز هیچ `app.installation.id` تنظیم نمی‌کنند، پس کاشی **نشست‌های بدون کرش** یک برنامه iOS به‌جای نصب‌های بدون کرش، تعداد نشست‌هایی را که کرش کردند نشان می‌دهد.
+:::
+
+> [!NOTE]
+> Apple گزارش‌های تشخیصی MetricKit را در یکی از اجراهای بعدی به برنامه می‌سپارد، در iOS 15 و بعد از آن بی‌درنگ و پیش از آن روزی یک بار، پس یک کرش یا هنگ ممکن است چند دقیقه یا یک روز پس از رخ دادنش برسد، و وقتی برسد شمرده می‌شود. «۰ کرش در یک ساعت گذشته» در نمای کلی یک برنامه iOS هنوز خبر خوبی نیست. هر گزارش تشخیصی نشستی را همراه دارد که آن را گزارش کرد، نه نشستی را که به آن پایان داد.
+
+opentelemetry-swift هنگام شروع برنامه هیچ اسپنی ثبت نمی‌کند، پس کاشی‌های **شروع‌های برنامه** و **شروع سرد (p95)** خالی می‌مانند تا برنامهٔ شما خودش یکی ثبت کند: اسپنی به نام `AppStart` که `start.type` آن روی `cold`، `warm` یا `hot` تنظیم شده باشد، از شروع فرایند تا آماده شدن نخستین صفحه.
 
 ## بررسی کنید که داده می‌رسد
 

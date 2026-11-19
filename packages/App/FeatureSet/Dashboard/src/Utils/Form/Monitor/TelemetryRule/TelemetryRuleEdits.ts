@@ -328,6 +328,26 @@ const getRecipeTitles: (data: {
 };
 
 /*
+ * The number a measure starts at when a change of measure drops the
+ * condition: a rise of 200% over the usual, 1% of sessions with an
+ * exception (Android vitals calls more than 1.09% of users crashing bad
+ * behaviour), and any for a count.
+ */
+const getMeasureStartThreshold: (measure: CheckOn | undefined) => number = (
+  measure: CheckOn | undefined,
+): number => {
+  if (measure === CheckOn.ExceptionCountIncreasePercent) {
+    return 200;
+  }
+
+  if (measure === CheckOn.SessionsWithExceptionsPercent) {
+    return 1;
+  }
+
+  return 0;
+};
+
+/*
  * The fields of an Exceptions rule that change with what it alerts on. Only
  * the count has a baseline, so a rule on anything else cannot stay "unusually
  * high": it takes a number, the one its pick starts on. The rise over the
@@ -353,7 +373,7 @@ export const getMeasureChange: (data: {
   return {
     measure,
     filterType: FilterType.GreaterThan,
-    threshold: measure === CheckOn.ExceptionCountIncreasePercent ? 200 : 0,
+    threshold: getMeasureStartThreshold(measure),
   };
 };
 

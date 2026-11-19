@@ -107,7 +107,9 @@ OpenTelemetry Android legt dit allemaal uit zichzelf vast. De apparaatattributen
 
 Crashes en ANR's komen in **Uitzonderingen** binnen als niet-afgehandeld, gegroepeerd op hun stacktraces, met de sessie waarin ze gebeurden. De agent slaat een crash op schijf op terwijl de app sterft en verstuurt hem van daaruit, dus een crash die offline gebeurt, komt toch binnen zodra de app weer draait met een netwerk.
 
-De pagina **Overzicht** van de applicatie zet dit voor je op een rij: **Sessies**, **Crashvrije sessies**, **Crashes**, **ANR's**, **App-starts**, **Koude start (p95)** en **Bevroren frames**, en elke tegel opent de uitzonderingen, spans of gebeurtenissen die hij telt. Zolang de app geen app-starts of frames verstuurt, vertellen de bijbehorende grafieken hoe je ze aanzet. De pagina **Aanbevelingen** biedt monitors voor crashes, ANR's, trage koude starts, bevroren frames en een app die stopt met rapporteren.
+De pagina **Overzicht** van de applicatie zet dit voor je op een rij: **Sessies**, **Crashvrije sessies**, **Crashes**, **ANR's**, **App-starts**, **Koude start (p95)** en **Bevroren frames**, en elke tegel opent de uitzonderingen, spans of gebeurtenissen die hij telt. Zolang de app geen app-starts of frames verstuurt, vertellen de bijbehorende grafieken hoe je ze aanzet. De pagina **Aanbevelingen** biedt monitors voor crashes, ANR's, trage koude starts, bevroren frames, en een app of een van zijn apparaten die stopt met rapporteren.
+
+Onder **Crashvrije sessies** toont de regel hetzelfde aandeel voor de installaties: de `app.installation.id` die OpenTelemetry Android vanaf versie 1.1 op elke span en log instelt, een id die blijft zolang de app geïnstalleerd is, zodat hij voor de gebruikers van de app staat. Voor een app met honderden sessies per uur, waar een crash per dag normaal is, waarschuwen **App Crash Rate** en **App ANR Rate** bij het aandeel van de sessies van een uur dat crashte of vastliep, boven de 1,09% en 0,47% van Android vitals, in plaats van bij elke crash afzonderlijk.
 
 Een sessie eindigt na 15 minuten op de achtergrond, of na 4 uur. Een app die nooit naar de achtergrond gaat, zoals een kiosk, houdt 4 uur lang één sessie, dus trace het bezoek van elke klant als een eigen span, zoals [Je eigen workflows tracen](#je-eigen-workflows-tracen) laat zien.
 
@@ -222,6 +224,35 @@ resource {
 ```
 
 De telemetrie van de app blijft bij zijn RUM-applicatie, en het apparaat wordt geen host in **Hosts**: een app meldt geen hostmetrieken, dus daar zou niets te tonen zijn. De pagina van het apparaat in **Inventaris** toont zijn eigen logs, traces en uitzonderingen, en `@resource.host.name:` vindt ze in **Traces** en **Logboeken**. Een apparaat dat 30 dagen niets verstuurt, verdwijnt uit **Inventaris**. Om het apparaat zelf te zien, zijn geheugen, opslag en herstarts en de crashes van elke app erop, voeg je de [Android-agent](/docs/telemetry/android-agent) toe en geef je hem dezelfde naam in zijn `device_name`: het apparaat is dan ook een host in **Hosts**, en nog steeds één item in **Inventaris**.
+
+### Horen wanneer een apparaat stil wordt
+
+De pagina **Aanbevelingen** van de applicatie biedt **Device Stopped Reporting**: een waarschuwing voor elk apparaat dat een uur lang geen spans verstuurt nadat het er in de afgelopen week wel verstuurde, onderscheiden aan de `app.installation.id` die de agent instelt. De waarschuwing van elk apparaat noemt zijn installatie en wordt opgelost zodra het apparaat weer rapporteert. Als alle apparaten tegelijk stil worden, bijvoorbeeld wanneer het netwerk van een winkel uitvalt, waarschuwt geen enkel apparaat: **App Stopped Reporting** meldt het één keer voor de hele app.
+
+Een kiosk die op één scherm blijft staan, verstuurt niets tot iemand hem gebruikt. Verstuur om de paar minuten een span zolang de app draait, zodat een kiosk die niet wordt gebruikt niet wordt aangezien voor een stille:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Start hem zodra de agent is gestart, met `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Een span om de vijf minuten houdt een werkende kiosk ruim binnen het uur.
 
 ### De vloot vanuit je MDM configureren
 

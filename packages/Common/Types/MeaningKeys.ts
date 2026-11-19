@@ -139,6 +139,15 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    * ("Gratis"), which no disk is.
    */
   "Free (storage space)",
+  /*
+   * The Pod Security Standards' Baseline control on what a container may add
+   * of Linux's capabilities (CAP_NET_ADMIN, CAP_SYS_ADMIN...), on a
+   * cluster's Compliance page (#9877). The bare "Capabilities" is what a
+   * Runner or a session recording can do, worded as features in most
+   * languages - Japanese 機能, Chinese 功能, Swedish "Funktioner" - which
+   * no Linux capability is.
+   */
+  "Capabilities (Linux capabilities)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

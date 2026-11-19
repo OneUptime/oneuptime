@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useActiveProject } from "./useProject";
+import { useListFilter, type ListFilterQuery } from "./useListFilter";
+import type { ListFilter } from "../api/recordFilters";
+import type { RecordFilters } from "../filters/recordFilters";
 import { fetchAlertEpisodes } from "../api/alertEpisodes";
 import type {
   ProjectItem,
@@ -19,14 +22,18 @@ interface UseAllProjectAlertEpisodesResult {
 }
 
 /** The public name is retained for callers; only the selected project is queried. */
-export function useAllProjectAlertEpisodes(): UseAllProjectAlertEpisodesResult {
+export function useAllProjectAlertEpisodes(
+  // The list's filters (filters/recordFilters.ts), asked of the server.
+  filters?: RecordFilters,
+): UseAllProjectAlertEpisodesResult {
   const { projectList, isLoadingProjects } = useActiveProject();
   const project: ProjectItem | undefined = projectList[0];
   const projectId: string | undefined = project?._id;
+  const listFilter: ListFilterQuery = useListFilter("alertEpisodes", filters);
   const query: UseQueryResult<ListResponse<AlertEpisodeItem>, Error> = useQuery(
     {
-      queryKey: ["alert-episodes", projectId],
-      queryFn: () => {
+      queryKey: ["alert-episodes", projectId, ...listFilter.keyParts],
+      queryFn: async () => {
         if (!projectId) {
           return Promise.resolve({
             data: [],
@@ -35,7 +42,14 @@ export function useAllProjectAlertEpisodes(): UseAllProjectAlertEpisodesResult {
             limit: FETCH_LIMIT,
           });
         }
-        return fetchAlertEpisodes(projectId, { skip: 0, limit: FETCH_LIMIT });
+        const filter: ListFilter | undefined =
+          await listFilter.resolve(projectId);
+        return fetchAlertEpisodes(
+          projectId,
+          filter
+            ? { skip: 0, limit: FETCH_LIMIT, filter: filter }
+            : { skip: 0, limit: FETCH_LIMIT },
+        );
       },
       enabled: Boolean(projectId) && !isLoadingProjects,
       placeholderData: undefined,

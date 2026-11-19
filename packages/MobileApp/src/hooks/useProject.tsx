@@ -285,6 +285,17 @@ export function useProject(): ProjectContextValue {
   return context;
 }
 
+/*
+ * The selected project's id, or null while none is selected - or outside a
+ * ProjectProvider, where a list is drawn on its own (its suites): what is
+ * only an extra to a screen, such as its filter sheet's values, reads this
+ * and waits, rather than taking the screen down with it.
+ */
+export function useSelectedProjectId(): string | null {
+  const context: ProjectContextValue | undefined = useContext(ProjectContext);
+  return context?.activeProject?._id ?? null;
+}
+
 /** Operational screens can only load the currently selected project. */
 export function useActiveProject(): ProjectContextValue {
   const context: ProjectContextValue = useProject();

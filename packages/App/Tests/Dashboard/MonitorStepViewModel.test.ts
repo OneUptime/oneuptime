@@ -20,6 +20,7 @@ import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusP
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { LlmAnswerIssue } from "Common/Types/Telemetry/LlmAnswerIssue";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import { IoTResourceScope } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import { KubernetesResourceScope } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { ProxmoxResourceScope } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
@@ -1062,6 +1063,47 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
     );
   });
 
+  // #9711: a Traces monitor grouped per install says so, as a Logs one does.
+  it("names a Traces monitor's group-by, and hides it when it is not grouped", () => {
+    const rowsOf: (
+      groupByAttributes: Array<string> | undefined,
+    ) => Array<MonitorStepViewRow> = (
+      groupByAttributes: Array<string> | undefined,
+    ): Array<MonitorStepViewRow> => {
+      return MonitorStepViewModel.getRows({
+        monitorStep: buildStep({
+          traceMonitor: {
+            ...MonitorStepTraceMonitorUtil.getDefault(),
+            groupByAttributes: groupByAttributes,
+          },
+        }),
+        monitorType: MonitorType.Traces,
+      });
+    };
+
+    expect(
+      rowsOf(["resource.app.installation.id"]).find(
+        (row: MonitorStepViewRow) => {
+          return row.key === "traceGroupByAttributes";
+        },
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        title: "Group by Attributes",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: ["resource.app.installation.id"],
+      }),
+    );
+
+    for (const ungrouped of [undefined, []]) {
+      expect(
+        rowsOf(ungrouped).find((row: MonitorStepViewRow) => {
+          return row.key === "traceGroupByAttributes";
+        }),
+      ).toBeUndefined();
+    }
+  });
+
   it("hides the environments row when the exception monitor watches every environment", () => {
     for (const environments of [[], undefined]) {
       const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
@@ -1080,6 +1122,67 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
         }),
       ).toBeUndefined();
     }
+  });
+
+  /*
+   * #9713: an Exceptions monitor's two newer filters are named on its
+   * summary as on its form: App Crashes reads "Only Unhandled Exceptions:
+   * Yes" and "Leave Out Exception Types: ANR, Hang".
+   */
+  it("names unhandled only and the types left out, as the form does", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        exceptionMonitor: {
+          ...MonitorStepExceptionMonitorUtil.getDefault(),
+          unhandledOnly: true,
+          excludedExceptionTypes: ["ANR", "Hang"],
+        },
+      }),
+      monitorType: MonitorType.Exceptions,
+    });
+
+    const rowOf: (key: string) => MonitorStepViewRow | undefined = (
+      key: string,
+    ): MonitorStepViewRow | undefined => {
+      return rows.find((row: MonitorStepViewRow) => {
+        return row.key === key;
+      });
+    };
+
+    expect(rowOf("unhandledOnly")).toEqual(
+      expect.objectContaining({
+        title: "Only Unhandled Exceptions",
+        valueType: MonitorStepViewValueType.Boolean,
+        value: true,
+      }),
+    );
+    expect(rowOf("excludedExceptionTypes")).toEqual(
+      expect.objectContaining({
+        title: "Leave Out Exception Types",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: ["ANR", "Hang"],
+      }),
+    );
+  });
+
+  it("an exception monitor without them says No, and lists no type left out", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        exceptionMonitor: MonitorStepExceptionMonitorUtil.getDefault(),
+      }),
+      monitorType: MonitorType.Exceptions,
+    });
+
+    expect(
+      rows.find((row: MonitorStepViewRow) => {
+        return row.key === "unhandledOnly";
+      })?.value,
+    ).toBe(false);
+    expect(
+      rows.find((row: MonitorStepViewRow) => {
+        return row.key === "excludedExceptionTypes";
+      }),
+    ).toBeUndefined();
   });
 
   it("shows the network device the monitor alerts on, which used to render nothing", () => {

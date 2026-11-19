@@ -42,6 +42,7 @@ import {
 } from "../../../../Types/AI/InvestigationRecording";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import PromptText from "../../../../Utils/AI/PromptText";
 import {
   afterEach,
@@ -380,6 +381,37 @@ describe("AIInvestigationEngine.executeRun: what an investigation keeps for a re
     expect(inputs.questionOverride).toBe("Check this incident again.");
     expect(inputs.aiContext).toEqual(aiContext);
     expect(inputs.maxOutputTokens).toBe(2048);
+  });
+
+  /*
+   * A run that read for its readers says so with its recording (#9811):
+   * a replay shown to the subject's readers takes only such recordings,
+   * since the ones made before runs read for their readers hold what the
+   * whole project held.
+   */
+  test("a run that read for its readers says so; one that read as OneUptime does not", async () => {
+    const audience: ReadAudience = {
+      _type: "ReadAudience",
+      projectId: PROJECT_ID.toString(),
+      ownedOnlyPermissions: [],
+      labelledPermissions: [],
+      named: { Incident: [INCIDENT_ID.toString().toLowerCase()] },
+      telemetryBlockedIds: [],
+    };
+
+    await run({ readAudience: audience });
+
+    expect(saved().recording.inputs.readForItsReaders).toBe(true);
+    // The audience itself is not kept: who may read the subject can change.
+    expect(JSON.stringify(saved().recording)).not.toContain(
+      "ownedOnlyPermissions",
+    );
+
+    saveForRun.mockClear();
+
+    await run({ readAudience: undefined });
+
+    expect(saved().recording.inputs).not.toHaveProperty("readForItsReaders");
   });
 
   test("names only what the run had: no instructions, persona, question, provider or model it was not given", async () => {

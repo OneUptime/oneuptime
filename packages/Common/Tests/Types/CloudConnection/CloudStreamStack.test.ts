@@ -212,8 +212,12 @@ describe("what a stack carries", () => {
     expect(
       isAwsStreamStackOlder({ templateVersion: 1, everyMetric: false }),
     ).toBe(true);
+    // Template 2 carries no Glue or Athena key metric (#9691).
     expect(
       isAwsStreamStackOlder({ templateVersion: 2, everyMetric: false }),
+    ).toBe(true);
+    expect(
+      isAwsStreamStackOlder({ templateVersion: 3, everyMetric: false }),
     ).toBe(false);
     expect(
       isAwsStreamStackOlder({ templateVersion: 2, everyMetric: true }),
@@ -355,11 +359,18 @@ describe("the stacks to update", () => {
       },
       {
         accountId: ACCOUNT,
+        region: "eu-west-1",
+        metricsToStream: countAwsKeyMetricsAddedSince(2),
+      },
+      {
+        accountId: ACCOUNT,
         region: "ap-south-1",
         metricsToStream: countAwsKeyMetricsAddedSince(1),
       },
     ]);
     expect(countAwsKeyMetricsAddedSince(1)).toBeGreaterThan(100);
+    // Glue's and Athena's.
+    expect(countAwsKeyMetricsAddedSince(2)).toBe(11);
   });
 
   test("none once every stack is of the current template", () => {

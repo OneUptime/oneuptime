@@ -1,6 +1,8 @@
 import { isAwsRegion } from "../Cloud/AwsRegionCode";
 import { translationKey } from "../Translator";
 import {
+  AWS_STACK_SET_OPERATION_PREFERENCES,
+  formatAwsStackSetParameters,
   getAwsOrganizationStartLines,
   getAwsStackSetDeleteLines,
   getAwsStackSetDeployLine,
@@ -11,12 +13,17 @@ import {
 } from "./AwsStackSets";
 import { isAwsAccountId } from "./CloudOrganizationAgents";
 import {
+  CLOUD_STREAM_DEPLOYED_TEMPLATE_FILE,
   CLOUD_STREAM_TEMPLATE_FILE,
+  CLOUD_STREAM_UPDATE_PROGRAM_FILE,
   CloudStreamLogsMode,
   CloudStreamTemplateOptions,
   getAwsCloudStreamTemplateBody,
+  getAwsCloudStreamUpdateProgramLines,
+  getAwsCloudStreamUpdateStackLine,
   getCloudStreamCommandRegions,
   getCloudStreamNames,
+  getCloudStreamRegionList,
 } from "./CloudStreamTemplate";
 
 /*
@@ -157,6 +164,52 @@ export function getAwsCloudStreamOrganizationCommand(data: {
     `    aws cloudformation deploy --region "$REGION" --stack-name ${names.stackName} --template-file ${CLOUD_STREAM_TEMPLATE_FILE} --capabilities CAPABILITY_IAM --parameter-overrides "StreamKey=$STREAM_KEY" --no-fail-on-empty-changeset`,
     "  done",
     `  echo ${quoteForShell(CLOUD_STREAM_ORGANIZATION_STARTED_MESSAGE)}`,
+    "fi",
+  ].join("\n");
+}
+
+// What the update command prints once the StackSet's update is on its way.
+export const CLOUD_STREAM_ORGANIZATION_UPDATING_MESSAGE: string =
+  "Every member account's stacks are being updated. StackSets updates them in the background.";
+
+/*
+ * Updating the organization's stacks in place (#9693), in the management
+ * account's CloudShell: the StackSet's own template read back, changed as
+ * one account's update changes a stack's (getAwsCloudStreamUpdateProgram),
+ * and given back to the StackSet with its key as it was - which updates
+ * every member account's stacks - then the management account's own stacks
+ * in the Regions given, as one account's update does. An organization
+ * whose StackSet is not there (streamed from the management account alone)
+ * has its own stacks updated only.
+ */
+export function getAwsCloudStreamOrganizationUpdateCommand(data: {
+  connectionId: string;
+  // The Regions whose stacks are of an older template.
+  regions: Array<string>;
+  // The organization's management account: where the command runs.
+  managementAccountId: string;
+}): string {
+  const stackSetName: string = getCloudStreamNames(data.connectionId).stackName;
+  const management: string = isAwsAccountId(data.managementAccountId)
+    ? data.managementAccountId
+    : "";
+
+  return [
+    ...getAwsCloudStreamUpdateProgramLines(),
+    "ACCOUNT=$(aws sts get-caller-identity --query Account --output text)",
+    `if [ "$ACCOUNT" != ${quoteForShell(management)} ]; then`,
+    `  echo ${quoteForShell(getCloudStreamOrganizationWrongAccountMessage(management))}`,
+    "else",
+    `  ${getAwsStackSetHomeRegionLine({ variable: STREAM_HOME_VARIABLE, region: null })}`,
+    `  if aws cloudformation describe-stack-set --stack-set-name ${stackSetName} --region ${STREAM_HOME} --query StackSet.TemplateBody --output json > ${CLOUD_STREAM_DEPLOYED_TEMPLATE_FILE} 2> /dev/null; then`,
+    `    jq -c -f ${CLOUD_STREAM_UPDATE_PROGRAM_FILE} ${CLOUD_STREAM_DEPLOYED_TEMPLATE_FILE} > ${CLOUD_STREAM_TEMPLATE_FILE} && aws cloudformation update-stack-set --stack-set-name ${stackSetName} --region ${STREAM_HOME} --template-body file://${CLOUD_STREAM_TEMPLATE_FILE} --capabilities CAPABILITY_IAM --parameters ${formatAwsStackSetParameters(
+      [{ key: "StreamKey", value: null }],
+    )} --operation-preferences ${AWS_STACK_SET_OPERATION_PREFERENCES} > /dev/null && echo ${quoteForShell(CLOUD_STREAM_ORGANIZATION_UPDATING_MESSAGE)}`,
+    "  fi",
+    // The management account, which StackSets never deploys to: its own stacks, as one account's update updates them.
+    `  for REGION in ${getCloudStreamRegionList(data.regions)}; do`,
+    `    ${getAwsCloudStreamUpdateStackLine(data.connectionId)}`,
+    "  done",
     "fi",
   ].join("\n");
 }

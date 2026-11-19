@@ -90,6 +90,23 @@ export interface DataSourceHttpResponse {
   headers?: Dictionary<string> | undefined;
 }
 
+/*
+ * What the transport throws for an answer outside 2xx: its status and the
+ * start of its body, where Prometheus or Elasticsearch put the real reason
+ * ("parse error at char 5"). Other code reads the status back from these
+ * words (LlmProviderError, the security connectors' clients), so a caller
+ * that asks for every status and judges it itself (AwsApi) throws the very
+ * same error.
+ */
+export function getDataSourceHttpStatusError(
+  statusCode: number,
+  body: string,
+): BadDataException {
+  return new BadDataException(
+    `Data source responded with HTTP ${statusCode}: ${body.substring(0, 500)}`,
+  );
+}
+
 export default class DataSourceHttpFetch {
   /*
    * Standard auth headers for a data source: Bearer token wins, else HTTP
@@ -254,9 +271,7 @@ export default class DataSourceHttpFetch {
             : Buffer.isBuffer(error.response.data)
               ? error.response.data.toString("utf8")
               : JSON.stringify(error.response.data ?? "");
-        throw new BadDataException(
-          `Data source responded with HTTP ${error.response.status}: ${responseBody.substring(0, 500)}`,
-        );
+        throw getDataSourceHttpStatusError(error.response.status, responseBody);
       }
 
       throw new BadDataException(

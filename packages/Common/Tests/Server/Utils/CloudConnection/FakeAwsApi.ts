@@ -120,6 +120,29 @@ export interface FakeRegion {
   kmsAliases?: Array<{ AliasName: string; TargetKeyId: string }> | undefined;
   // "service:Action" (rds:DescribeDBSnapshots, es:ListDomainNames) -> the error it answers with instead.
   dataErrors?: Record<string, FakeResponse> | undefined;
+  /*
+   * The services' own lists the inventory reads (AwsServiceListings,
+   * #9692), each item as its API answers it: WAF's web ACLs - with the
+   * Scope they are listed under (REGIONAL when absent) and the MetricName
+   * GetWebACL answers - Network Firewall's firewalls, Cognito's user
+   * pools, AppSync's GraphQL APIs and SageMaker's endpoints. None when
+   * absent. listingErrors: the error an action answers with instead, by
+   * its IAM name ("wafv2:ListWebACLs").
+   */
+  wafWebAcls?:
+    | Array<{
+        Name: string;
+        Id: string;
+        ARN: string;
+        Scope?: "REGIONAL" | "CLOUDFRONT" | undefined;
+        MetricName?: string | undefined;
+      }>
+    | undefined;
+  networkFirewalls?: Array<JSONObject> | undefined;
+  userPools?: Array<JSONObject> | undefined;
+  appSyncApis?: Array<JSONObject> | undefined;
+  sageMakerEndpoints?: Array<JSONObject> | undefined;
+  listingErrors?: Record<string, FakeResponse> | undefined;
 }
 
 // A manual RDS snapshot, and the accounts its "restore" attribute names ("all": everyone).
@@ -316,11 +339,23 @@ export interface FakeAwsOptions {
   // Cost Optimization Hub (ListRecommendations): its items, or the error.
   savingsItems?: Array<JSONObject> | undefined;
   savingsError?: FakeResponse | undefined;
+  /*
+   * Global Accelerator's accelerators, as ListAccelerators lists them - in
+   * US West (Oregon) alone, whatever Regions the account uses - or the
+   * error it answers with instead.
+   */
+  accelerators?: Array<JSONObject> | undefined;
+  acceleratorsError?: FakeResponse | undefined;
 }
 
 export interface FakeAws extends FakeProviderApi {
   // CloudWatch calls by action and Region, in order.
   cloudWatchCalls: Array<{ action: string; region: string; body: JSONObject }>;
+  /*
+   * The services' own list calls (AwsServiceListings), by IAM action
+   * ("cognito-idp:ListUserPools"), Region and body (a REST call's query).
+   */
+  listingCalls: Array<{ action: string; region: string; body: JSONObject }>;
   stsCalls: Array<{
     action: string;
     body: URLSearchParams;
@@ -1417,6 +1452,7 @@ function dimensionsMatch(
 
 export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const cloudWatchCalls: FakeAws["cloudWatchCalls"] = [];
+  const listingCalls: FakeAws["listingCalls"] = [];
   const stsCalls: FakeAws["stsCalls"] = [];
   const taggingCalls: FakeAws["taggingCalls"] = [];
   const cloudControlCalls: FakeAws["cloudControlCalls"] = [];
@@ -1729,7 +1765,33 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         return json({ events: options.healthEvents || [] });
       }
 
-      const fakeRegion: FakeRegion | undefined = options.regions[region];
+      // Global Accelerator: the account's accelerators, from US West (Oregon) alone.
+      if (service === "globalaccelerator") {
+        const body: JSONObject = bodyOf(request);
+
+        listingCalls.push({
+          action: "globalaccelerator:ListAccelerators",
+          region,
+          body,
+        });
+
+        if (options.acceleratorsError) {
+          return options.acceleratorsError;
+        }
+
+        return json({
+          Accelerators:
+            region === "us-west-2" ? options.accelerators || [] : [],
+        });
+      }
+
+      // SageMaker's API answers at api.sagemaker.<region>.
+      const isSageMaker: boolean =
+        service === "api" && host.split(".")[1] === "sagemaker";
+      const listingRegion: string = isSageMaker
+        ? host.split(".")[2] || ""
+        : region;
+      const fakeRegion: FakeRegion | undefined = options.regions[listingRegion];
 
       if (!fakeRegion) {
         // An opt-in Region the account has not enabled.
@@ -1742,6 +1804,76 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
 
       if (fakeRegion.error) {
         return fakeRegion.error;
+      }
+
+      // The services' own lists (AwsServiceListings): WAF, Network Firewall, Cognito, SageMaker.
+      if (
+        service === "wafv2" ||
+        service === "network-firewall" ||
+        service === "cognito-idp" ||
+        isSageMaker
+      ) {
+        const body: JSONObject = bodyOf(request);
+        const operation: string =
+          headerOf(request, "X-Amz-Target").split(".").pop() || "";
+        const action: string = `${isSageMaker ? "sagemaker" : service}:${operation}`;
+
+        listingCalls.push({ action, region: listingRegion, body });
+
+        const failure: FakeResponse | undefined =
+          fakeRegion.listingErrors?.[action];
+
+        if (failure) {
+          return failure;
+        }
+
+        if (action === "wafv2:ListWebACLs") {
+          return json({
+            WebACLs: (fakeRegion.wafWebAcls || [])
+              .filter((acl: { Scope?: string | undefined }): boolean => {
+                return (acl.Scope || "REGIONAL") === body["Scope"];
+              })
+              .map((acl: { Name: string; Id: string; ARN: string }) => {
+                return { Name: acl.Name, Id: acl.Id, ARN: acl.ARN };
+              }),
+          });
+        }
+
+        if (action === "wafv2:GetWebACL") {
+          const acl:
+            | { Name: string; Id: string; MetricName?: string | undefined }
+            | undefined = (fakeRegion.wafWebAcls || []).find(
+            (candidate: { Name: string; Id: string }): boolean => {
+              return (
+                candidate.Name === body["Name"] && candidate.Id === body["Id"]
+              );
+            },
+          );
+
+          return acl
+            ? json({
+                WebACL: {
+                  Name: acl.Name,
+                  Id: acl.Id,
+                  Capacity: 3,
+                  VisibilityConfig: {
+                    MetricName: acl.MetricName || acl.Name,
+                  },
+                },
+                LockToken: "token",
+              })
+            : awsError(400, "WAFNonexistentItemException", "not found");
+        }
+
+        if (action === "network-firewall:ListFirewalls") {
+          return json({ Firewalls: fakeRegion.networkFirewalls || [] });
+        }
+
+        if (action === "cognito-idp:ListUserPools") {
+          return json({ UserPools: fakeRegion.userPools || [] });
+        }
+
+        return json({ Endpoints: fakeRegion.sageMakerEndpoints || [] });
       }
 
       // Classic load balancers, over the Query protocol (version 2012-06-01).
@@ -2247,6 +2379,34 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
       const region: string = labels[1] || "";
       const fakeRegion: FakeRegion | undefined = options.regions[region];
 
+      // AppSync's GraphQL APIs, over its REST API.
+      if (service === "appsync") {
+        const query: JSONObject = {};
+
+        url.searchParams.forEach((value: string, name: string) => {
+          query[name] = value;
+        });
+        listingCalls.push({
+          action: "appsync:ListGraphqlApis",
+          region,
+          body: query,
+        });
+
+        if (!fakeRegion) {
+          return {
+            status: 403,
+            body: JSON.stringify({
+              message: "The security token included in the request is invalid.",
+            }),
+          };
+        }
+
+        const failure: FakeResponse | undefined =
+          fakeRegion.listingErrors?.["appsync:ListGraphqlApis"];
+
+        return failure || json({ graphqlApis: fakeRegion.appSyncApis || [] });
+      }
+
       // EKS's clusters, over its REST API.
       if (service === "eks") {
         eksCalls.push({ region, path: url.pathname });
@@ -2390,6 +2550,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     ...api,
     transport,
     cloudWatchCalls,
+    listingCalls,
     stsCalls,
     taggingCalls,
     cloudControlCalls,

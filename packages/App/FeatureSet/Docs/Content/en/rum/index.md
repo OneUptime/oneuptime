@@ -77,7 +77,7 @@ OneUptime finds the application by `service.name`, ignoring case, and creates it
 
 | Where | What it shows |
 | --- | --- |
-| **Overview** | A web app's tiles for **Page loads**, **Page load time (p95)**, **Events**, **Error rate**, **Event duration (p95)**, **Exceptions**, **Clients** and **Sessions recorded**, or a mobile app's for **Sessions**, **Crash-free sessions**, **Crashes**, **ANRs**, **App starts**, **Cold start (p95)**, **Frozen frames** and **Error rate**, and trend charts over the time range you pick. |
+| **Overview** | A web app's tiles for **Page loads**, **Page load time (p95)**, **Events**, **Error rate**, **Event duration (p95)**, **Exceptions**, **Clients** and **Sessions recorded**, or a mobile app's for **Sessions**, **Crash-free sessions** with its crash-free installs, **Crashes**, **ANRs**, **App starts**, **Cold start (p95)**, **Frozen frames** and **Error rate**, and trend charts over the time range you pick. |
 | **Core Web Vitals** | A card on a web app's overview with LCP, INP, CLS, FCP and TTFB, each rated against Google's limits, and INP for each route of a single-page app. See [Core Web Vitals](/docs/rum/web-vitals) and [Single-page apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrics**, **Logs**, **Traces** | The telemetry explorers, showing only this application. |
 | **Clients** | The browser platforms and device models the application has been used on: a short list by platform, never one row per user. |

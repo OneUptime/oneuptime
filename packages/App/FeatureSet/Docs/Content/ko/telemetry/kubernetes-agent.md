@@ -9,6 +9,7 @@ OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 
 - [에이전트 설치](#에이전트-설치): Helm으로 네 단계.
 - [Amazon EKS 추가 기능으로 설치](#amazon-eks-추가-기능으로-설치): Helm 없이 EKS 콘솔에서.
 - [OpenShift](#openshift): 프리셋, 프리셋이 만드는 보안 컨텍스트 제약 조건, OpenShift 자체 경고.
+- [클러스터 보안 강화](#클러스터-보안-강화): 파드 보안 표준과 CIS Benchmark 점수, 그리고 에이전트 자체의 권한.
 - [구성 옵션](#구성-옵션): 필터, 샘플링, 컨트롤 플레인, 서비스 메시, 비용, 레이블.
 - [Kubernetes AI 에이전트](#kubernetes-ai-에이전트): OneUptime AI를 위한 읽기 전용 `kubectl`과, 허용할 때의 수정.
 - [전송량 줄이기](#수집하는-데이터양-줄이기): 효과가 큰 순서로 정리한 조정 수단.
@@ -267,6 +268,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | Kubernetes 이벤트 | 모든 네임스페이스와 모든 종류의 객체에서 온 모든 이벤트(Warning과 Normal): [Kubernetes 이벤트](#kubernetes-이벤트) 참고 |
 | Pod 로그 | 모든 컨테이너의 stdout과 stderr (표준 클러스터에서는 `hostPath`를 통해, Autopilot과 Fargate에서는 Kubernetes API를 통해) |
 | OpenShift 객체 (OpenShift 프리셋) | ClusterOperator, ClusterVersion, Route, DeploymentConfig, Service: [OpenShift](#openshift) 참고 |
+| RBAC, 서비스 계정, NetworkPolicy | Role, ClusterRole과 그 바인딩, ServiceAccount, NetworkPolicy (읽기 전용, `resourceSpecs.interval`마다). 클러스터 보안 강화의 점수를 매기는 데 쓰입니다: [클러스터 보안 강화](#클러스터-보안-강화) 참고. Secret은 절대 읽지 않습니다 |
 | 애플리케이션 트레이스 (eBPF, 기본적으로 켜짐) | 모든 Pod의 HTTP, gRPC, SQL, Redis 스팬 (SDK나 코드 변경 불필요) |
 | HTTP RED 메트릭 (eBPF) | 서비스별 `http.server.request.duration`, 그리고 요청 및 응답 본문 크기 |
 | 서비스 그래프 (eBPF) | 호출자에서 피호출자로의 요청 속도, 지연 시간, 오류 엣지. 서비스 맵을 그립니다 |
@@ -311,6 +313,49 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | `k8s.namespace.name` | `default` |
 
 **로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 경고를 받으려면 클러스터의 **권장 사항** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **Warning 이벤트 경고 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 경고를 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 경고를 받으려면 필터에 `k8s.event.reason`을 추가하세요.
+
+## 클러스터 보안 강화
+
+클러스터의 **규정 준수** 페이지(**보안** 아래)는 **클러스터 보안 강화** 섹션에서 세 가지 프레임워크를 기준으로 클러스터 자체의 점수를 매깁니다. 읽는 것은 에이전트가 이미 보내는 데이터로, 클러스터의 Pod와 네임스페이스, 그리고 CIS Benchmark의 경우 클러스터의 RBAC, 서비스 계정, NetworkPolicy입니다. 이 페이지는 에이전트가 클러스터의 Pod를 보고하는 즉시 클러스터 메뉴에 나타나며, 클러스터에서 데이터베이스가 실행되는지와는 관계없습니다.
+
+| 프레임워크 | 점수를 매기는 대상 |
+| --- | --- |
+| **파드 보안 표준: Baseline** | 클러스터에서 실행 중인 모든 워크로드. 클러스터 Kubernetes 버전의 Baseline 정책을 기준으로, privileged 컨테이너, 호스트의 네임스페이스·포트·경로, 추가된 capability 등 정책이 정한 모든 필드를 각 Pod의 사양에서 읽어 평가합니다 |
+| **파드 보안 표준: Restricted** | 같은 워크로드. Restricted 정책을 기준으로, Baseline의 통제 항목에 더해 허용된 볼륨 유형만 쓰는지, root가 아닌 사용자로 실행하는지, 권한 상승이 없는지, seccomp 프로필이 있는지, 모든 capability를 제거했는지를 평가합니다 |
+| **CIS Kubernetes Benchmark v2.0** | 섹션 5의 통제 항목 중 Kubernetes API로 판단할 수 있는 27개. cluster-admin, Secret, `nodes/proxy` 등 통제 항목이 명시한 권한을 부여하는 역할 바인딩, 와일드카드가 있는 역할, 기본 서비스 계정, 각 네임스페이스의 Pod Security Admission 또는 정책 엔진, NetworkPolicy, 각 Pod가 실행하는 것을 평가합니다 |
+
+각 프레임워크의 타일에는 점수와 함께, 평가한 워크로드 수와 그중 실패한 수가 표시됩니다. 통제 항목은 실패한 것부터 나열됩니다. 각 통제 항목은 무엇이 문제인지와 수정 방법을 알려 주고, 실패한 워크로드, 역할, 역할 바인딩, 서비스 계정, 네임스페이스를 각각의 페이지 링크와 함께 나열하며, 컨테이너나 볼륨, 그리고 `securityContext.privileged` 같은 필드까지 짚어 줍니다. 데이터 보안이 클러스터에서 실행되는 데이터베이스의 점수를 매기는 경우, 그 데이터베이스는 아래의 **이 클러스터의 데이터베이스**에 그대로 표시됩니다.
+
+파드 보안 표준은 클러스터 자체의 Kubernetes 버전, 즉 클러스터에서 가장 새로운 kubelet의 버전을 기준으로 점수를 매기며, 상한은 OneUptime이 아는 최신 버전입니다. 이후 버전에서 추가된 통제 항목은 그 버전부터만 반영되며, 페이지에는 어느 버전을 기준으로 점수를 매겼는지 표시됩니다.
+
+벤치마크의 나머지 통제 항목 104개는 노드의 파일과 kubelet 또는 컨트롤 플레인의 플래그를 확인하거나, 사람의 검토가 필요합니다. 어떤 API로도 판단할 수 없으므로 **여기서 점수를 매기지 않음** 아래에 이유별로 묶여 표시되며, 통과로도 실패로도 보지 않습니다. EKS, GKE, AKS 같은 관리형 컨트롤 플레인에서는 이 통제 항목들이 해당 제공업체의 벤치마크를 따른다고 페이지에 표시됩니다.
+
+### 프레임워크, 통제 항목, 네임스페이스 끄기
+
+클러스터에 해당되지 않는 것은 끄세요. 각 스위치는 그 클러스터만의 것이며 끌 때 이유를 묻고, 페이지에는 누가, 언제, 왜 껐는지가 남습니다:
+
+- 프레임워크의 **여기에 적용** 스위치는 클러스터를 그 프레임워크의 대상에서 뺍니다. 그 프레임워크는 **꺼짐** 아래로 접히며, 그곳의 스위치로 다시 켤 수 있습니다.
+- 통제 항목의 스위치는 그 통제 항목을 클러스터 점수에서 뺍니다.
+- 각 프레임워크 아래에 있는 네임스페이스의 스위치는, Pod Security Admission이 네임스페이스를 예외로 두듯이 그 네임스페이스의 모든 것을 그 프레임워크의 대상에서 뺍니다.
+
+### 프레임워크 내보내기
+
+**CSV 내보내기**와 **JSON 내보내기**는 프레임워크의 보고서를 다운로드합니다. 보고서에는 모든 통제 항목과 각 항목의 통과 여부, 무엇이 실패했는지와 수정 방법, 그리고 점수를 매길 때 기준으로 삼은 Kubernetes 버전이 들어 있습니다.
+
+### 이를 위해 에이전트가 읽는 것
+
+`resourceSpecs.compliance`(기본적으로 켜짐)는 Role, ClusterRole과 그 바인딩, ServiceAccount, NetworkPolicy를 `resourceSpecs.interval`마다 읽으며, 이들에 대해 `get`, `list`, `watch`만 쓰고 그 이상은 쓰지 않습니다. Secret은 절대 읽지 않습니다. ServiceAccount는 토큰 Secret의 이름만 가리키며, OneUptime은 그 이름조차 버립니다. 이 값을 끄면(`--set resourceSpecs.compliance=false`) 벤치마크의 RBAC, 서비스 계정, NetworkPolicy 통제 항목은 *평가 안 됨*이 되며, 파드 보안 표준은 여전히 Pod를 바탕으로 점수를 매깁니다.
+
+### 에이전트 자체의 권한
+
+에이전트는 kubelet이 각 경로를 인가할 때 쓰는 하위 리소스를 통해 각 kubelet을 읽습니다. 통계에는 `nodes/stats`, cAdvisor에는 `nodes/metrics`, 노드의 Pod 목록에는 `nodes/pods`를 쓰는데, kubelet은 Kubernetes 1.33부터 이를 허용합니다. `nodes/proxy`는 kubelet API 전체에 접근할 수 있고 CIS 5.1.10은 이를 부여하는 역할 바인딩을 실패로 판정하므로, 에이전트는 더 좁은 권한으로는 안 되는 곳에서만 이를 부여합니다:
+
+| 값 | 에이전트가 `nodes/proxy`를 부여하는 경우 |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto`(기본값)는 클러스터가 1.36보다 오래된 Kubernetes를 실행하는 동안 이를 부여합니다. 그런 클러스터의 kubelet은 1.33보다 오래되었을 수 있는데, 이런 kubelet은 노드의 Pod 목록을 `nodes/proxy` 권한에만 내주기 때문입니다. 모든 노드가 1.33 이상을 실행하면 `false`로, `KubeletFineGrainedAuthz`가 꺼진 kubelet에서는 `true`로 설정하세요 |
+| `cost.prometheus.nodesProxy` | `auto`(기본값)는 `eks-fargate` 프리셋에서만 이를 부여합니다. 이 프리셋에서는 어떤 Pod도 노드의 kubelet에 도달할 수 없어, 비용 계산에 쓰는 Prometheus가 API 서버를 통해 cAdvisor를 읽습니다. 그 밖의 모든 곳에서는 포트 10250으로 각 노드의 kubelet을 읽습니다 |
+
+에이전트 자체의 역할 바인딩이 5.1.10에서 실패하면, 페이지는 그 역할 바인딩이 에이전트의 것이라는 점, `nodes/proxy`를 부여하는 이유, 그리고 이를 없애는 값을 알려 줍니다.
 
 ## 구성 옵션
 
@@ -824,6 +869,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 `--reuse-values`는 사용하지 마세요. 업그레이드하기 전 차트의 기본값까지 유지하므로 새 차트의 기본값(eBPF 이미지 포함)이 적용되지 않습니다. 릴리스가 이전 차트의 기본값으로 실행되고 있으면, 설치나 업그레이드 후 Helm이 출력하는 노트 끝에 경고와 이를 고치는 명령이 표시됩니다.
 
 업그레이드가 `namespaces "<name>" not found`로 실패하면 `aiAgent.remediation.namespaces`(또는 이전 `aiAccess.remediation.namespaces`)에 존재하지 않는(또는 더 이상 존재하지 않는) 네임스페이스가 있는 것입니다. 차트는 나열된 각 네임스페이스에 RoleBinding을 두지만 네임스페이스는 만들지 않습니다. 네임스페이스를 만들거나, 그 네임스페이스를 뺀 목록으로 업그레이드하거나(`--set "aiAgent.remediation.namespaces={web}"`), `--set-json 'aiAgent.remediation.namespaces=[]'`로 클러스터 전체 바인딩으로 되돌리세요. `--reuse-values`에서는 `--set aiAgent.remediation.namespaces=null`로 저장된 목록이 재설정되지 않으므로 같은 오류로 실패합니다.
+
+> **CIS Benchmark의 RBAC 통제 항목에는 업그레이드된 에이전트가 필요합니다.** `resourceSpecs.compliance` 이전의 에이전트는 RBAC, 서비스 계정, NetworkPolicy를 보내지 않으므로, 클러스터의 **규정 준수** 페이지에는 벤치마크의 RBAC, 서비스 계정, NetworkPolicy 통제 항목이 *평가 안 됨*으로 표시되고 해결 방법이 안내됩니다. `resourceSpecs.compliance`를 켠 상태로(기본적으로 켜져 있습니다) 에이전트를 업그레이드하세요. Collector 0.125.0 이상이 필요합니다. 또한 업그레이드하면 `nodes/proxy`가 필요한 노드가 없는 곳에서는 더 이상 이를 부여하지 않습니다. [에이전트 자체의 권한](#에이전트-자체의-권한)을 참고하세요.
 
 > **eBPF 스팬 메트릭의 이름이 바뀌었습니다.** `ebpf.features.spanMetrics`는 이제 `traces_spanmetrics_calls_total`과 `traces_spanmetrics_latency` 대신 `traces.span.metrics.calls`와 `traces.span.metrics.duration`(초)을 보냅니다. 같은 시계열이며, OBI가 유지하는 이름입니다(이전 이름은 OBI에서 더 이상 사용되지 않음). 이전 이름을 사용하는 대시보드, 차트, 메트릭 모니터는 업그레이드 후 오류 없이 새 데이터를 받지 못합니다. 새 이름으로 옮기고, 이전 이름을 지정한 `filters.metrics` 항목도 업데이트하세요.
 

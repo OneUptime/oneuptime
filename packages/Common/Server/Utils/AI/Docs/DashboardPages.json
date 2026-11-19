@@ -2773,6 +2773,21 @@
     "kind": "page"
   },
   {
+    "title": "User Overrides",
+    "where": [
+      "On-Call",
+      "Schedules"
+    ],
+    "keywords": [
+      "vacation",
+      "time off",
+      "cover",
+      "swap shift"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/user-overrides",
+    "kind": "page"
+  },
+  {
     "title": "Calendar Feeds",
     "where": [
       "On-Call",
@@ -2785,21 +2800,6 @@
       "outlook"
     ],
     "path": "/dashboard/:projectId/on-call-duty/calendar-feeds",
-    "kind": "page"
-  },
-  {
-    "title": "User Overrides",
-    "where": [
-      "On-Call",
-      "Advanced"
-    ],
-    "keywords": [
-      "vacation",
-      "time off",
-      "cover",
-      "swap shift"
-    ],
-    "path": "/dashboard/:projectId/on-call-duty/user-overrides",
     "kind": "page"
   },
   {

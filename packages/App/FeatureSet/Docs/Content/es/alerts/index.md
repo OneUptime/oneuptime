@@ -126,7 +126,7 @@ Abre la alerta. Su cabecera muestra su estado, su gravedad, cuánto ha durado, s
 - **Cambiar el estado a**, en el menú **⋯** junto a ellos, la lleva a un estado propio, como "Investigando".
 - **Declarar incidente** abre un incidente nuevo rellenado a partir de la alerta, cuando el problema resulta afectar a los usuarios. Consulta [Alertas vinculadas](/docs/incidents/linked-alerts).
 
-Pasar a otro estado te pide confirmación, con una nota privada opcional plegada en **Añadir una nota privada**. Lo que hace cada estado está en [Estados y severidades de alertas](/docs/alerts/states-and-severities).
+Pasar a otro estado te pide confirmación, con una nota privada opcional plegada en **Añadir una nota privada**. Al resolverla desde su cabecera también se pliega **Añadir la causa raíz**: por qué ocurrió, que pasa a ser la causa raíz de la alerta y aquello según lo cual se califica la investigación de OneUptime AI. Lo que hace cada estado está en [Estados y severidades de alertas](/docs/alerts/states-and-severities).
 
 Mientras trabajas en ella, anota lo que vayas aprendiendo como **Notas privadas**, completa sus páginas **Causa raíz** y **Remediación** y añade **Propietarios**. El menú **Acciones** del **Feed de la alerta** también ejecuta un runbook con **Ejecutar runbook** o avisa a más personas con **Ejecutar política de guardia**.
 

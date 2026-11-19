@@ -49,7 +49,12 @@ import { DataSecurityResponseOutcome } from "../DataSecurityCloudTypes";
  *                              (UpdateContinuousBackups).
  *
  * Each reads first and writes only what is not so already: run twice, the
- * second run changes nothing and says so. Each answers with a sentence the
+ * second run changes nothing and says so. Each write sets a setting to one
+ * value - a bucket's whole Block Public Access, versioning or ownership
+ * setting, the snapshot's shares removed, point-in-time recovery on - so
+ * sending it again after AWS failed it for a moment changes nothing more,
+ * and each says so (isSafeToRepeat): it is asked again as a read is
+ * (AwsRetry). Each answers with a sentence the
  * person reading the playbook's run understands, and fails as the reader's
  * calls fail - a refusal says which setting grants the permission. A write
  * to a bucket names the account it must belong to (S3's expected bucket
@@ -262,10 +267,12 @@ export async function blockS3BucketPublicAccess(
     method: "GET" | "PUT";
     body?: string | undefined;
     step: string;
+    isSafeToRepeat?: boolean | undefined;
   }) => Promise<AwsRestResponse> = async (data: {
     method: "GET" | "PUT";
     body?: string | undefined;
     step: string;
+    isSafeToRepeat?: boolean | undefined;
   }): Promise<AwsRestResponse> => {
     return await sendAwsRestRequest({
       transport: call.transport,
@@ -282,6 +289,7 @@ export async function blockS3BucketPublicAccess(
       now: call.now,
       sleep: call.sleep,
       budget: call.budget,
+      isSafeToRepeat: data.isSafeToRepeat,
     });
   };
 
@@ -324,6 +332,8 @@ export async function blockS3BucketPublicAccess(
       method: "PUT",
       body: S3_BLOCK_ALL_PUBLIC_ACCESS_XML,
       step: "bucket public access block update",
+      // The whole setting, all four on: sent again, it sets the same.
+      isSafeToRepeat: true,
     });
   } catch (error) {
     throw explainRefusal(error, {
@@ -406,9 +416,11 @@ export async function revokeRdsSnapshotSharing(
   const query: (
     body: Dictionary<string>,
     step: string,
+    isSafeToRepeat?: boolean | undefined,
   ) => Promise<string> = async (
     body: Dictionary<string>,
     step: string,
+    isSafeToRepeat?: boolean | undefined,
   ): Promise<string> => {
     return (
       await sendAwsRequest({
@@ -422,6 +434,7 @@ export async function revokeRdsSnapshotSharing(
         now: call.now,
         sleep: call.sleep,
         budget: call.budget,
+        isSafeToRepeat,
       })
     ).text;
   };
@@ -491,6 +504,8 @@ export async function revokeRdsSnapshotSharing(
         ...values,
       },
       "snapshot share update",
+      // Removes the shares named: sent again, they are already gone.
+      true,
     );
   } catch (error) {
     throw explainRefusal(error, {
@@ -618,11 +633,13 @@ function bucketSubresource(
   method: "GET" | "PUT";
   body?: string | undefined;
   step: string;
+  isSafeToRepeat?: boolean | undefined;
 }) => Promise<AwsRestResponse> {
   return async (data: {
     method: "GET" | "PUT";
     body?: string | undefined;
     step: string;
+    isSafeToRepeat?: boolean | undefined;
   }): Promise<AwsRestResponse> => {
     return await sendAwsRestRequest({
       transport: call.transport,
@@ -639,6 +656,7 @@ function bucketSubresource(
       now: call.now,
       sleep: call.sleep,
       budget: call.budget,
+      isSafeToRepeat: data.isSafeToRepeat,
     });
   };
 }
@@ -691,6 +709,8 @@ export async function turnOnS3BucketVersioning(
       method: "PUT",
       body: S3_VERSIONING_ENABLED_XML,
       step: "bucket versioning update",
+      // Versioning on: sent again, it is on.
+      isSafeToRepeat: true,
     });
   } catch (error) {
     throw explainRefusal(error, {
@@ -766,6 +786,8 @@ export async function enforceS3BucketOwnership(
       method: "PUT",
       body: S3_BUCKET_OWNER_ENFORCED_XML,
       step: "bucket ownership update",
+      // The whole setting, Bucket owner enforced: sent again, it sets the same.
+      isSafeToRepeat: true,
     });
   } catch (error) {
     if (
@@ -832,10 +854,12 @@ export async function turnOnDynamoDbPointInTimeRecovery(
     target: string,
     body: JSONObject,
     step: string,
+    isSafeToRepeat?: boolean | undefined,
   ) => Promise<JSONObject> = async (
     target: string,
     body: JSONObject,
     step: string,
+    isSafeToRepeat?: boolean | undefined,
   ): Promise<JSONObject> => {
     return (
       await sendAwsRequest({
@@ -851,6 +875,7 @@ export async function turnOnDynamoDbPointInTimeRecovery(
         now: call.now,
         sleep: call.sleep,
         budget: call.budget,
+        isSafeToRepeat,
       })
     ).json;
   };
@@ -894,6 +919,8 @@ export async function turnOnDynamoDbPointInTimeRecovery(
         PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true },
       },
       "table backup update",
+      // Turns it on: sent again, it is on.
+      true,
     );
   } catch (error) {
     if (

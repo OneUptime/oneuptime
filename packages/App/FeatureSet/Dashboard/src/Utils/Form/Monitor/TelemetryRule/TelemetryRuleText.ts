@@ -439,11 +439,13 @@ export const TelemetryRuleCopy: {
   newExceptionCountTitle: string;
   regressedExceptionCountTitle: string;
   exceptionIncreaseTitle: string;
+  sessionsWithExceptionsTitle: string;
   exceptionMeasureTitle: string;
   exceptionMeasureCount: string;
   exceptionMeasureNew: string;
   exceptionMeasureRegressed: string;
   exceptionMeasureIncrease: string;
+  exceptionMeasureSessions: string;
   exceptionMeasureNoPreview: string;
   metricValueTitle: string;
   windowTitle: string;
@@ -498,13 +500,17 @@ export const TelemetryRuleCopy: {
     "Number of exceptions that came back",
   ),
   exceptionIncreaseTitle: translationKey("Rise over the usual (in %)"),
+  sessionsWithExceptionsTitle: translationKey(
+    "Sessions with an exception (in %)",
+  ),
   exceptionMeasureTitle: translationKey("Alert on"),
   exceptionMeasureCount: translationKey("Exceptions"),
   exceptionMeasureNew: translationKey("New exceptions"),
   exceptionMeasureRegressed: translationKey("Exceptions that came back"),
   exceptionMeasureIncrease: translationKey("A rise over the usual"),
+  exceptionMeasureSessions: translationKey("A share of sessions"),
   exceptionMeasureNoPreview: translationKey(
-    "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.",
+    "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions.",
   ),
   metricValueTitle: translationKey("Value"),
   windowTitle: translationKey("Time window"),
@@ -802,8 +808,9 @@ export const getRuleSentence: (data: {
 };
 
 /*
- * An Exceptions rule on new exceptions, exceptions that came back, or the
- * rise over the usual count (ExceptionMonitorEvaluation), said back.
+ * An Exceptions rule on new exceptions, exceptions that came back, the rise
+ * over the usual count or the share of sessions with an exception
+ * (ExceptionMonitorEvaluation), said back.
  */
 const getExceptionMeasureSentence: (data: {
   measure: CheckOn;
@@ -839,6 +846,22 @@ const getExceptionMeasureSentence: (data: {
         )
       : translator.translateTemplate(
           "Alerts when the number of matching exceptions seen for the first time in {{window}} is {{comparison}} the number you enter.",
+          { window, comparison },
+        );
+  }
+
+  /*
+   * A mobile app's crash rate, with a crash's filters (#9716). A share, so
+   * "at least 1" is 1%, not any session: no "any" sentence of its own.
+   */
+  if (data.measure === CheckOn.SessionsWithExceptionsPercent) {
+    return data.hasCount
+      ? translator.translateTemplate(
+          "Alerts when the share of the sessions in {{window}} with a matching exception is {{comparison}} {{count}}%.",
+          { window, count, comparison },
+        )
+      : translator.translateTemplate(
+          "Alerts when the share of the sessions in {{window}} with a matching exception is {{comparison}} the percent you enter.",
           { window, comparison },
         );
   }
@@ -1022,6 +1045,10 @@ export const getCountTitle: (
 
     if (measure === CheckOn.ExceptionCountIncreasePercent) {
       return TelemetryRuleCopy.exceptionIncreaseTitle;
+    }
+
+    if (measure === CheckOn.SessionsWithExceptionsPercent) {
+      return TelemetryRuleCopy.sessionsWithExceptionsTitle;
     }
   }
 

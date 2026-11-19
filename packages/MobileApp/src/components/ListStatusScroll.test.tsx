@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import ListStatusScroll from "./ListStatusScroll";
 import { PaneStateScope } from "../navigation/paneState";
-import { PaneProvider, type PaneLayout } from "../layout/WindowLayout";
+import { PaneProvider, type PaneLayout } from "../layout/WindowLayoutProvider";
 
 /*
  * What stands in for a list's rows while they load or cannot be shown, under

@@ -105,9 +105,11 @@ import {
   planOccurrenceRead,
 } from "../Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import {
+  createDropRuleForFinding,
   createScrubRuleForFinding,
   CreatedScrubRule,
 } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import { getDropMetricImpact } from "../Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
@@ -197,6 +199,18 @@ const SCRUB_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.CreateProjectLogScrubRule,
   Permission.CreateProjectTraceScrubRule,
+  Permission.CreateProjectMetricPipelineRule,
+];
+
+/*
+ * Who may drop the metrics whose names hold a finding's data (#9757): who
+ * may change metric pipeline rules - the Drop rule is made with the
+ * person's own permissions and recorded in the audit log as theirs, and
+ * removing it from the pipeline rules undoes it.
+ */
+const DROP_METRIC_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
   Permission.CreateProjectMetricPipelineRule,
 ];
 
@@ -470,45 +484,17 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const finding: DataStoreFinding | null =
-          await DataStoreFindingService.findOneBy({
-            query: { _id: DataSecurityAPI.readId(req), projectId },
-            select: {
-              _id: true,
-              dataTypeId: true,
-              location: true,
-              dataStoreId: true,
-              dataStore: { kind: true, serviceId: true },
-            },
-            props: { isRoot: true },
-          });
-
-        if (
-          !finding?.dataTypeId ||
-          !finding.location ||
-          !finding.dataStore?.kind
-        ) {
-          throw new BadDataException("Finding not found.");
-        }
-
-        if (
-          !TELEMETRY_DATA_STORE_KINDS.includes(
-            finding.dataStore.kind as DataStoreKind,
-          )
-        ) {
-          throw new BadDataException(
-            "Scrub It masks telemetry at ingest; this finding is in a data store.",
-          );
-        }
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
 
         const created: CreatedScrubRule = await createScrubRuleForFinding({
           projectId,
           userId: props.userId || undefined,
-          kind: finding.dataStore.kind as DataStoreKind,
-          dataTypeId: finding.dataTypeId,
-          location: finding.location,
+          kind: finding.dataStore!.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId!,
+          location: finding.location!,
           // A metric's rule is its service's.
-          serviceId: finding.dataStore.serviceId || null,
+          serviceId: finding.dataStore!.serviceId || null,
         });
 
         await DataStoreFindingService.updateColumnsByIdWithoutHooks({
@@ -518,6 +504,75 @@ export default class DataSecurityAPI extends BaseAPI<
         await queueDataSecurityEvaluation(projectId);
 
         return created as unknown as JSONObject;
+      },
+    );
+
+    // What dropping the metrics named with a finding's data would do (#9757).
+    this.post(
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      DROP_METRIC_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+
+        return (await getDropMetricImpact({
+          projectId,
+          kind: finding.dataStore!.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId!,
+          location: finding.location!,
+          serviceId: finding.dataStore!.serviceId || null,
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * The drop itself: a metric pipeline Drop rule for the service, made as
+     * the person who asked. Its data points are lost for good, so it is
+     * made only when the request says so in as many words.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+      DROP_METRIC_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        if (body["confirmDataLoss"] !== true) {
+          throw new BadDataException(
+            "Dropping these metrics loses their new data points for good. Confirm that you want them dropped.",
+          );
+        }
+
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+        const created: { ruleId: string; ruleName: string } =
+          await createDropRuleForFinding({
+            projectId,
+            userId: props.userId || undefined,
+            kind: finding.dataStore!.kind as DataStoreKind,
+            dataTypeId: finding.dataTypeId!,
+            location: finding.location!,
+            serviceId: finding.dataStore!.serviceId || null,
+          });
+
+        await DataStoreFindingService.updateColumnsByIdWithoutHooks({
+          id: finding.id!,
+          data: { isScrubbed: true },
+        });
+        await queueDataSecurityEvaluation(projectId);
+
+        return {
+          ruleId: created.ruleId,
+          ruleName: created.ruleName,
+        } as unknown as JSONObject;
       },
     );
 
@@ -755,6 +810,45 @@ export default class DataSecurityAPI extends BaseAPI<
     }
 
     return new ObjectID(id);
+  }
+
+  /*
+   * The telemetry finding a route acts on - Scrub It, Drop This Metric -
+   * with its data type, its place and its store's kind and service. Another
+   * project's finding, or one in a data store, is refused.
+   */
+  private static async readTelemetryFinding(
+    projectId: ObjectID,
+    req: ExpressRequest,
+  ): Promise<DataStoreFinding> {
+    const finding: DataStoreFinding | null =
+      await DataStoreFindingService.findOneBy({
+        query: { _id: DataSecurityAPI.readId(req), projectId },
+        select: {
+          _id: true,
+          dataTypeId: true,
+          location: true,
+          dataStoreId: true,
+          dataStore: { kind: true, serviceId: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!finding?.dataTypeId || !finding.location || !finding.dataStore?.kind) {
+      throw new BadDataException("Finding not found.");
+    }
+
+    if (
+      !TELEMETRY_DATA_STORE_KINDS.includes(
+        finding.dataStore.kind as DataStoreKind,
+      )
+    ) {
+      throw new BadDataException(
+        "Scrub It masks telemetry at ingest; this finding is in a data store.",
+      );
+    }
+
+    return finding;
   }
 
   private static async readStore(

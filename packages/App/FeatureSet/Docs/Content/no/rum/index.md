@@ -77,7 +77,7 @@ OneUptime finner applikasjonen ut fra `service.name`, uten å skille mellom stor
 
 | Hvor | Hva det viser |
 | --- | --- |
-| **Oversikt** | En webapps fliser for **Sideinnlastinger**, **Sideinnlastingstid (p95)**, **Hendelser**, **Feilrate**, **Hendelsesvarighet (p95)**, **Unntak**, **Klienter** og **Økter med opptak**, eller en mobilapps for **Økter**, **Krasjfrie økter**, **Krasj**, **ANR-er**, **Appoppstarter**, **Kaldstart (p95)**, **Frosne rammer** og **Feilrate**, og trendgrafer over tidsrommet du velger. |
+| **Oversikt** | En webapps fliser for **Sideinnlastinger**, **Sideinnlastingstid (p95)**, **Hendelser**, **Feilrate**, **Hendelsesvarighet (p95)**, **Unntak**, **Klienter** og **Økter med opptak**, eller en mobilapps for **Økter**, **Krasjfrie økter** med de krasjfrie installasjonene, **Krasj**, **ANR-er**, **Appoppstarter**, **Kaldstart (p95)**, **Frosne rammer** og **Feilrate**, og trendgrafer over tidsrommet du velger. |
 | **Core Web Vitals** | Et kort i en webapps oversikt med LCP, INP, CLS, FCP og TTFB, hver vurdert mot Googles grenser, og INP for hver rute i en enkeltsideapp. Se [Core Web Vitals](/docs/rum/web-vitals) og [Enkeltsideapper](/docs/rum/web-vitals#enkeltsideapper). |
 | **Målinger**, **Logger**, **Spor** | Telemetriutforskerne, begrenset til denne applikasjonen. |
 | **Klienter** | Nettleserplattformene og enhetsmodellene applikasjonen er brukt på: en kort liste per plattform, aldri én rad per bruker. |

@@ -16,7 +16,7 @@ import {
   WindowLayoutProvider,
   usePane,
   type ResolvedPaneLayout,
-} from "./WindowLayout";
+} from "./WindowLayoutProvider";
 import { TABLETOP_FOLD_GAP } from "./windowLayout";
 import type { FoldSplit } from "./foldSplit";
 import { useScreenPadding } from "../hooks/useScreenPadding";

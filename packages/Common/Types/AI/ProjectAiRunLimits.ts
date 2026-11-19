@@ -1,7 +1,9 @@
 /*
  * A project's own limits on each OneUptime AI run (Project Settings → AI →
  * AI Features → More settings → Limits per run, issue #6440): the most model
- * calls, tool calls and tokens one run may use, and its time limit.
+ * calls, tool calls and tokens one run may use, its time limit, and how long
+ * one command of a code task may run on a Runner of the project's own (Time
+ * Limit per Command, issue #6532).
  *
  * One setting for every kind of run - an incident or alert investigation,
  * an Ask AI answer, a Slack or Microsoft Teams answer, a security case or
@@ -15,7 +17,11 @@
  * its time limit and by loop detection (Types/AI/AIAgentRunLimits). The time
  * limit is unset by default too, which means
  * DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES: every run has one, so none runs
- * forever.
+ * forever. So is the time limit per command, which means
+ * DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES (ten minutes, as a command
+ * always had): a project with a slow build or test suite gives its commands
+ * longer, up to MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES, and a command
+ * still never runs past the run's own time limit.
  *
  * Nothing was stored for the old limits - they were constants in the code -
  * so no project starts with a cap: they apply only once someone sets one.
@@ -27,7 +33,9 @@
 
 import Permission from "../Permission";
 import {
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   MAX_AI_RUN_TIME_LIMIT_IN_MINUTES,
+  MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
   MIN_AI_RUN_TIME_LIMIT_IN_MINUTES,
 } from "./AIAgentRunLimits";
 import { PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS } from "./ProjectAiDailyLimits";
@@ -37,7 +45,8 @@ export type ProjectAiRunLimitColumn =
   | "aiRunMaxModelCalls"
   | "aiRunMaxToolCalls"
   | "aiRunMaxTokens"
-  | "aiRunTimeLimitInMinutes";
+  | "aiRunTimeLimitInMinutes"
+  | "aiRunCommandTimeLimitInMinutes";
 
 export const PROJECT_AI_RUN_MAX_MODEL_CALLS_COLUMN: ProjectAiRunLimitColumn =
   "aiRunMaxModelCalls";
@@ -47,6 +56,16 @@ export const PROJECT_AI_RUN_MAX_TOKENS_COLUMN: ProjectAiRunLimitColumn =
   "aiRunMaxTokens";
 export const PROJECT_AI_RUN_TIME_LIMIT_COLUMN: ProjectAiRunLimitColumn =
   "aiRunTimeLimitInMinutes";
+/*
+ * Not a cap on the run: how long one command of a code task may run on a
+ * Runner of the project's own, inside the run's time limit (issue #6532).
+ */
+export const PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN: ProjectAiRunLimitColumn =
+  "aiRunCommandTimeLimitInMinutes";
+
+// The two that are times: empty is the default, not "no limit".
+export const PROJECT_AI_RUN_TIME_LIMIT_COLUMNS: ReadonlyArray<ProjectAiRunLimitColumn> =
+  [PROJECT_AI_RUN_TIME_LIMIT_COLUMN, PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN];
 
 // In the order the card shows them.
 export const PROJECT_AI_RUN_LIMIT_COLUMNS: ReadonlyArray<ProjectAiRunLimitColumn> =
@@ -55,6 +74,7 @@ export const PROJECT_AI_RUN_LIMIT_COLUMNS: ReadonlyArray<ProjectAiRunLimitColumn
     PROJECT_AI_RUN_MAX_TOOL_CALLS_COLUMN,
     PROJECT_AI_RUN_MAX_TOKENS_COLUMN,
     PROJECT_AI_RUN_TIME_LIMIT_COLUMN,
+    PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN,
   ];
 
 /*
@@ -73,6 +93,10 @@ export const PROJECT_AI_RUN_LIMIT_BOUNDS: Readonly<
     min: MIN_AI_RUN_TIME_LIMIT_IN_MINUTES,
     max: MAX_AI_RUN_TIME_LIMIT_IN_MINUTES,
   },
+  aiRunCommandTimeLimitInMinutes: {
+    min: MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+    max: MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+  },
 };
 
 /*
@@ -89,6 +113,7 @@ const LIMIT_NAMES: Readonly<Record<ProjectAiRunLimitColumn, string>> = {
   aiRunMaxToolCalls: "The limit of tool calls per run",
   aiRunMaxTokens: "The limit of tokens per run",
   aiRunTimeLimitInMinutes: "The time limit per run",
+  aiRunCommandTimeLimitInMinutes: "The time limit per command",
 };
 
 export interface ProjectAiRunLimitValues {
@@ -97,6 +122,8 @@ export interface ProjectAiRunLimitValues {
   maxTokens: number | null;
   // Null: the default (DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES).
   timeLimitInMinutes: number | null;
+  // Null: the default (DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES).
+  commandTimeLimitInMinutes: number | null;
 }
 
 export default class ProjectAiRunLimits {
@@ -140,16 +167,20 @@ export default class ProjectAiRunLimits {
       timeLimitInMinutes: this.getLimit(
         project?.[PROJECT_AI_RUN_TIME_LIMIT_COLUMN],
       ),
+      commandTimeLimitInMinutes: this.getLimit(
+        project?.[PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN],
+      ),
     };
   }
 
-  // How many of the four are set.
+  // How many of them are set.
   public static countSet(limits: ProjectAiRunLimitValues): number {
     return [
       limits.maxModelCalls,
       limits.maxToolCalls,
       limits.maxTokens,
       limits.timeLimitInMinutes,
+      limits.commandTimeLimitInMinutes,
     ].filter((value: number | null): boolean => {
       return value !== null;
     }).length;
@@ -179,10 +210,9 @@ export default class ProjectAiRunLimits {
       value < bounds.min ||
       value > bounds.max
     ) {
-      const empty: string =
-        column === PROJECT_AI_RUN_TIME_LIMIT_COLUMN
-          ? "Leave it empty for the default."
-          : "Leave it empty for no limit.";
+      const empty: string = PROJECT_AI_RUN_TIME_LIMIT_COLUMNS.includes(column)
+        ? "Leave it empty for the default."
+        : "Leave it empty for no limit.";
 
       return `${LIMIT_NAMES[column]} must be a whole number from ${bounds.min.toLocaleString("en-US")} to ${bounds.max.toLocaleString("en-US")}. ${empty}`;
     }

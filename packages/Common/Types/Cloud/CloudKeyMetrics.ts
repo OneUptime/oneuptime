@@ -92,7 +92,19 @@ function when<T extends { onlyWhen?: CloudKeyMetricCondition | undefined }>(
  * resource of it reports.
  */
 
-export type AwsStatistic = "Average" | "Sum" | "Maximum" | "Minimum";
+/*
+ * The statistic a key metric is read with. SampleCount is how many values
+ * were published in the period ("the number of data points during the
+ * period", CloudWatch's Statistics definitions): Athena publishes a query's
+ * times once, as it ends, so the SampleCount of its TotalExecutionTime is
+ * how many queries ended. A metric stream carries it as each minute's count.
+ */
+export type AwsStatistic =
+  | "Average"
+  | "Sum"
+  | "Maximum"
+  | "Minimum"
+  | "SampleCount";
 
 export interface AwsKeyMetric {
   metricName: string;
@@ -198,6 +210,8 @@ export const DAILY_PERIOD_SECONDS: number = 86400;
  *     console, whose filters OneUptime cannot know.
  *   - 2: every key metric read every five minutes, the ones added since
  *     streams began too.
+ *   - 3: AWS Glue jobs' and Amazon Athena workgroups' key metrics too
+ *     (#9691).
  *
  * A key metric added to the catalog after a version is written is streamed
  * since the next one, never the current one: stacks of the current version
@@ -205,7 +219,7 @@ export const DAILY_PERIOD_SECONDS: number = 86400;
  * each version carries.
  */
 export const AWS_STREAM_TEMPLATE_UNVERSIONED: number = 1;
-export const AWS_STREAM_TEMPLATE_VERSION: number = 2;
+export const AWS_STREAM_TEMPLATE_VERSION: number = 3;
 
 // A key metric every key-metric stack carries, since streams began - but a daily or hourly one.
 function aws(
@@ -252,6 +266,27 @@ function aws2(
     ...(options.onlyDimensionValues
       ? { onlyDimensionValues: options.onlyDimensionValues }
       : {}),
+  };
+}
+
+/*
+ * A key metric added since template 2 was written, read every five
+ * minutes: the stacks of template 3 on carry it, and an older stack's
+ * account has it read and written by the read.
+ */
+function aws3(
+  metricName: string,
+  statistic: AwsStatistic,
+  unit: string,
+  group: CloudKeyMetricGroup,
+): AwsKeyMetric {
+  return {
+    metricName,
+    statistic,
+    unit,
+    group,
+    periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
+    streamedSince: 3,
   };
 }
 
@@ -907,6 +942,96 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws2("Invocation5XXErrors", "Sum", "None", G.Errors),
       aws2("Invocation4XXErrors", "Sum", "None", G.Errors),
       aws2("ModelLatency", "Average", "Microseconds", G.Latency),
+    ],
+  },
+  {
+    /*
+     * An AWS Glue job's own, on its JobRunId ALL series (CloudResourceCatalog's
+     * rule): each run has a series of its own beside it, with as many
+     * dimensions, which is no job's. Glue publishes them every 30 seconds
+     * while a job runs, and only for a job whose job metrics are on
+     * (--enable-metrics), which its owner turns on for their own use -
+     * CloudWatch bills them as custom metrics - so a job without them is
+     * never listed and costs nothing to read. Each is the change since
+     * Glue's last report (a Sum over the period), but the executors, which
+     * are a count at a moment. A sweep asks for the tasks completed, which
+     * every running job reports.
+     */
+    namespace: "Glue",
+    metrics: [
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.aggregate.numCompletedTasks",
+          "Sum",
+          "Count",
+          G.Traffic,
+        ),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.numFailedTasks", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.numKilledTasks", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.recordsRead", "Sum", "Count", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.bytesRead", "Sum", "Bytes", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+          "Average",
+          "Count",
+          G.Compute,
+        ),
+      ),
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
+          "Maximum",
+          "Count",
+          G.Backlog,
+        ),
+      ),
+    ],
+  },
+  {
+    /*
+     * An Amazon Athena workgroup's queries, published as each query ends,
+     * by a workgroup whose "Publish query metrics to CloudWatch" is on (the
+     * console's default). The bytes a workgroup's queries scanned have a
+     * series of the workgroup's own; its query times only one per query
+     * state and type (WorkGroup, QueryState, QueryType), read side by side.
+     * A query publishes its times once, so the SampleCount of its
+     * TotalExecutionTime is how many queries ended - the failed and
+     * cancelled ones apart by their QueryState. A workgroup of DDL alone
+     * publishes no bytes, so a sweep asks for its queries too.
+     */
+    namespace: "AWS/Athena",
+    probeMetricNames: ["ProcessedBytes", "TotalExecutionTime"],
+    metrics: [
+      when(C.Setup, aws3("ProcessedBytes", "Sum", "Bytes", G.Traffic)),
+      when(
+        C.Setup,
+        aws3("TotalExecutionTime", "SampleCount", "Count", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3("EngineExecutionTime", "Average", "Milliseconds", G.Latency),
+      ),
+      when(
+        C.Setup,
+        aws3("QueryQueueTime", "Average", "Milliseconds", G.Backlog),
+      ),
     ],
   },
   {
