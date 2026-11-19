@@ -9,6 +9,7 @@ import {
   CloudAddedMetricDimension,
   CloudAddedMetricScope,
   addCloudAddedMetric,
+  getCloudAddedMetricStoredName,
   getCloudAddedMetricsOfResource,
   readCloudAddedMetrics,
   removeCloudAddedMetric,
@@ -36,8 +37,11 @@ import {
   AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE,
   CLOUD_ACCOUNT_ID_ATTRIBUTE,
   CLOUD_REGION_ATTRIBUTE,
+  CloudMonitoredResource,
   GCP_RESOURCE_TYPE_ATTRIBUTE,
+  buildCloudMonitoredResourceIdentifier,
 } from "../../../Types/Cloud/CloudMonitoredResource";
+import { CloudAddedMetricReaders } from "../../../Types/Cloud/CloudAddedMetricReaders";
 import { getAwsDocumentedMetricUnit } from "../../../Types/Cloud/AwsMetricUnits";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
@@ -93,6 +97,7 @@ import AzureCloudConnector, {
   selectAzureMetrics,
 } from "./Azure/AzureCloudConnector";
 import { AzureMetricDefinition } from "./Azure/AzureArm";
+import { findCloudAddedMetricReaders } from "./CloudAddedMetricReaders";
 import CloudConnectionPullRunner from "./CloudConnectionPullRunner";
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
 import {
@@ -194,6 +199,7 @@ const RESOURCE_SELECT: JSONObject = {
   _id: true,
   projectId: true,
   name: true,
+  resourceIdentifier: true,
   cloudProvider: true,
   cloudResourceType: true,
   cloudAccountId: true,
@@ -1307,6 +1313,93 @@ export default class CloudResourceMetrics {
       } as never,
       props: { isRoot: true },
     });
+  }
+
+  /*
+   * What reads one of the additions that apply to the resource, by its key
+   * (#9807): the Metrics monitors, dashboard widgets and SLOs whose queries
+   * read its stored name of a resource its removal stops reading it for -
+   * this one, or, for a type's addition, any of its type the connection
+   * reads - or of every resource. Named only where the asker may read them.
+   */
+  public static async readersOf(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    key: string;
+  }): Promise<CloudAddedMetricReaders> {
+    const target: CloudResourceTarget =
+      await CloudResourceMetrics.loadTarget(data);
+
+    if (!target.connection) {
+      throw new BadDataException(
+        "No cloud connection reads this resource, so it has no added metrics.",
+      );
+    }
+
+    const addition: CloudAddedMetric | undefined =
+      getCloudAddedMetricsOfResource({
+        added: readCloudAddedMetrics(target.connection.addedMetrics),
+        resourceType: target.type,
+        cloudResourceId: target.resource.id!.toString(),
+      }).find((metric: CloudAddedMetric): boolean => {
+        return metric.key === data.key;
+      });
+
+    if (!addition) {
+      throw new BadDataException(
+        "This metric is not added to what this resource's cloud connection reads.",
+      );
+    }
+
+    const identifiers: Set<string> = new Set<string>(
+      addition.scope === CloudAddedMetricScope.Type
+        ? await CloudResourceMetrics.getResourceIdentifiersOfType({
+            projectId: data.projectId,
+            connectionId: target.connection.id!,
+            type: target.type,
+          })
+        : [String(target.resource.resourceIdentifier || "").toLowerCase()],
+    );
+
+    return await findCloudAddedMetricReaders({
+      projectId: data.projectId,
+      storedName: getCloudAddedMetricStoredName(addition),
+      readsResource: (resource: CloudMonitoredResource): boolean => {
+        return identifiers.has(
+          buildCloudMonitoredResourceIdentifier(resource).toLowerCase(),
+        );
+      },
+      props: data.props,
+    });
+  }
+
+  // The identifiers of the resources of a type the connection reads, in lower case.
+  private static async getResourceIdentifiersOfType(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+    type: string;
+  }): Promise<Array<string>> {
+    const rows: Array<CloudResource> = await CloudResourceService.findBy({
+      query: {
+        projectId: data.projectId,
+        cloudConnectionId: data.connectionId,
+        cloudResourceType: data.type,
+        isArchived: false,
+      },
+      select: { _id: true, resourceIdentifier: true },
+      limit: 10000,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return rows
+      .map((row: CloudResource): string => {
+        return String(row.resourceIdentifier || "").toLowerCase();
+      })
+      .filter((identifier: string): boolean => {
+        return Boolean(identifier);
+      });
   }
 
   // Removes one of the additions that apply to the resource, by its key.

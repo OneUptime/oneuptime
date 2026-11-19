@@ -114,6 +114,17 @@ function readText(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+/*
+ * A listed metric's unit as the list shows it: as its cloud writes it, but
+ * nothing for a cloud's own word for no unit - CloudWatch's "None", Azure
+ * Monitor's "Unspecified" - which is not one (#9809).
+ */
+export function getCloudPublishedMetricUnitText(unit: string): string {
+  const trimmed: string = (unit || "").trim();
+
+  return ["none", "unspecified"].includes(trimmed.toLowerCase()) ? "" : trimmed;
+}
+
 function readMetric(value: unknown): CloudPublishedMetric | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;

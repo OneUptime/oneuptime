@@ -7,6 +7,10 @@ import {
   readCloudAddedMetrics,
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import {
+  CloudAddedMetricReaders,
+  readCloudAddedMetricReaders,
+} from "Common/Types/Cloud/CloudAddedMetricReaders";
+import {
   CloudPublishedMetricsListing,
   readCloudPublishedMetricsListing,
 } from "Common/Types/Cloud/CloudPublishedMetrics";
@@ -86,6 +90,28 @@ export async function addCloudResourceMetric(data: {
   });
 
   return readCloudAddedMetrics(answer["addedMetrics"]);
+}
+
+/*
+ * What reads one of the additions that apply to the resource, by its key:
+ * the monitors, dashboard widgets and SLOs that get no new data once it is
+ * removed (#9807).
+ */
+export async function findCloudResourceMetricReaders(data: {
+  cloudResourceId: ObjectID;
+  key: string;
+}): Promise<CloudAddedMetricReaders> {
+  const readers: CloudAddedMetricReaders | null = readCloudAddedMetricReaders(
+    await post(data.cloudResourceId, "readers", { key: data.key }),
+  );
+
+  if (!readers) {
+    throw new Error(
+      "The server did not answer with what reads this metric. Try again.",
+    );
+  }
+
+  return readers;
 }
 
 // Removes one of the additions that apply to the resource, by its key.

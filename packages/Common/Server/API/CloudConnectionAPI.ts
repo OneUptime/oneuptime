@@ -4,6 +4,7 @@ import {
   CloudAddedMetric,
   CloudAddedMetricScope,
 } from "../../Types/Cloud/CloudAddedMetrics";
+import { CloudAddedMetricReaders } from "../../Types/Cloud/CloudAddedMetricReaders";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import { CloudPublishedMetricsListing } from "../../Types/Cloud/CloudPublishedMetrics";
 import { CloudUnreportedKeyMetricReport } from "../../Types/Cloud/CloudUnreportedKeyMetrics";
@@ -81,6 +82,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/add
  *     { name, namespace?, scope: "resource" | "type", aggregation? }
  *     -> { added, addedMetrics }: the connection reads it from its next read.
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/readers { key }
+ *     -> CloudAddedMetricReaders: the monitors, dashboard widgets and SLOs
+ *        that read an added metric and get no new data once it is removed.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/remove { key }
  *     -> { addedMetrics }
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/unreported
@@ -88,7 +92,8 @@ import ProductKey from "../../Types/Product/ProductKey";
  *        key metric the resource did not report last did, and why.
  *
  *   The resource-metrics routes list and explain for whoever may read the
- *   resource; Add and Remove are for whoever may edit connections.
+ *   resource; Add, Remove and what reads an addition are for whoever may
+ *   edit connections.
  *
  * All of them are for whoever may edit connections (project owners and
  * admins): a test signs in to a cloud account with its credential, a read
@@ -480,6 +485,50 @@ export default class CloudConnectionAPI extends BaseAPI<
             req,
             res,
             removed as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * What reads an added metric, asked before it is removed (#9807): for
+     * whoever may remove it, and named only where they may read it.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/readers`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanChangeReads(props);
+
+          const key: JSONValue | undefined = this.readBody(req)["key"];
+
+          if (typeof key !== "string" || !key) {
+            throw new BadDataException(
+              "Say which added metric to look up what reads.",
+            );
+          }
+
+          const readers: CloudAddedMetricReaders =
+            await CloudResourceMetrics.readersOf({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+              key,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            readers as unknown as JSONObject,
           );
         } catch (error) {
           next(error);
