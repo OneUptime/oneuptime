@@ -4,6 +4,7 @@ import {
   FaasCloudPlatform,
   normalizeCloudPlatform,
 } from "../../../Types/Cloud/CloudPlatform";
+import { canCloudResourceHaveStreamedLogs } from "../../../Types/Cloud/CloudLogGroups";
 import { getAwsPartitionForRegion } from "../../../Types/Cloud/CloudResourceCatalog";
 import {
   AWS_CLOUDWATCH_DIMENSION_PREFIX,
@@ -1595,6 +1596,36 @@ export function readGoogleCloudAuditResourceIds(data: {
 
 // ---------- A serverless function's own id ----------
 
+// A Lambda function: by its platform, or an AWS function whose platform was not reported.
+function isLambdaFunction(data: {
+  cloudProvider?: string | null | undefined;
+  cloudPlatform?: string | null | undefined;
+}): boolean {
+  const platform: string = normalizeCloudPlatform(data.cloudPlatform) || "";
+  const provider: string = (data.cloudProvider || "").trim().toLowerCase();
+
+  return (
+    platform === FaasCloudPlatform.AwsLambda ||
+    (!platform && provider === CloudProvider.AWS)
+  );
+}
+
+/*
+ * Whether a function's cloud's audit log can name it once its telemetry
+ * says its account and Region: an AWS Lambda function's or a Google Cloud
+ * function's, never an Azure function's (getServerlessFunctionCloudResourceId).
+ */
+export function canServerlessFunctionBeNamedByAuditLog(data: {
+  cloudProvider?: string | null | undefined;
+  cloudPlatform?: string | null | undefined;
+}): boolean {
+  return (
+    isLambdaFunction(data) ||
+    normalizeCloudPlatform(data.cloudPlatform) ===
+      FaasCloudPlatform.GcpCloudFunctions
+  );
+}
+
 /*
  * A serverless function's id at its cloud, the way an audit record names
  * it (#9780) - or null where its telemetry does not say it in full:
@@ -1618,7 +1649,6 @@ export function getServerlessFunctionCloudResourceId(data: {
 }): string | null {
   const name: string = (data.functionIdentifier || "").trim();
   const platform: string = normalizeCloudPlatform(data.cloudPlatform) || "";
-  const provider: string = (data.cloudProvider || "").trim().toLowerCase();
   const region: string = (data.cloudRegion || "").trim().toLowerCase();
   const accountId: string = (data.cloudAccountId || "").trim();
 
@@ -1626,10 +1656,7 @@ export function getServerlessFunctionCloudResourceId(data: {
     return null;
   }
 
-  if (
-    platform === FaasCloudPlatform.AwsLambda ||
-    (!platform && provider === CloudProvider.AWS)
-  ) {
+  if (isLambdaFunction(data)) {
     const named: { name: string; accountId: string } | null =
       readLambdaFunctionName(name);
 
@@ -1660,4 +1687,36 @@ export function getServerlessFunctionCloudResourceId(data: {
   }
 
   return null;
+}
+
+// ---------- Which cloud resources have security events of their own ----------
+
+/*
+ * Whether a cloud resource can have security events of its own (#9779),
+ * and so a Security Events page: an ID its cloud's audit log names it by -
+ * an ARN, an Azure resource ID, a Google Cloud full resource name - or logs
+ * of its own, which its connection's stream files under it.
+ *
+ * A resource OneUptime knows only by a readable stand-in its metrics give
+ * it ("AWS/AmazonMQ Broker=orders", a Google Cloud VPN gateway's labels)
+ * and that sends no logs of its own has neither: no audit record names the
+ * stand-in, and nothing else is its. It has no page, rather than one that
+ * would always be empty.
+ */
+export function canCloudResourceHaveSecurityEvents(data: {
+  provider: string | null | undefined;
+  type: string | null | undefined;
+  providerResourceId: string | null | undefined;
+}): boolean {
+  const provider: string = (data.provider || "").toLowerCase();
+  const id: string = (data.providerResourceId || "").trim();
+
+  if (!id) {
+    return false;
+  }
+
+  return (
+    isCloudProviderOwnResourceId(provider, id) ||
+    canCloudResourceHaveStreamedLogs({ provider, type: data.type })
+  );
 }

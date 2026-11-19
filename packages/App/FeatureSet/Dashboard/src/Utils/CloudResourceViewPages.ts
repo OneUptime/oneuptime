@@ -34,6 +34,7 @@ export enum CloudResourceViewTab {
   Apps = "apps",
   Metrics = "metrics",
   Logs = "logs",
+  SecurityEvents = "security-events",
   Traces = "traces",
   Instances = "instances",
   Feed = "feed",
@@ -67,6 +68,7 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   [CloudResourceViewTab.Apps]: "apps",
   [CloudResourceViewTab.Metrics]: "metrics",
   [CloudResourceViewTab.Logs]: "logs",
+  [CloudResourceViewTab.SecurityEvents]: "security-events",
   [CloudResourceViewTab.Traces]: "traces",
   [CloudResourceViewTab.Instances]: "instances",
   [CloudResourceViewTab.Feed]: "feed",
@@ -148,7 +150,9 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
  * which silence those monitors while they are in progress, and what Data
  * Security reads of a bucket or a database it is (Data Security and
  * Compliance, #9547 and #9555) - its side menu shows those two only for a
- * resource that holds a data store.
+ * resource that holds a data store - and the security events about it
+ * (#9779), which its side menu shows only for a resource an event can
+ * reach (canCloudResourceHaveSecurityEvents).
  */
 export const RESOURCE_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
@@ -156,6 +160,8 @@ export const RESOURCE_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.Overview]: PageMap.CLOUD_RESOURCE_VIEW,
   [CloudResourceViewTab.Metrics]: PageMap.CLOUD_RESOURCE_VIEW_METRICS,
   [CloudResourceViewTab.Logs]: PageMap.CLOUD_RESOURCE_VIEW_LOGS,
+  [CloudResourceViewTab.SecurityEvents]:
+    PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
   [CloudResourceViewTab.Feed]: PageMap.CLOUD_RESOURCE_VIEW_FEED,
   [CloudResourceViewTab.Incidents]: PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
   [CloudResourceViewTab.Alerts]: PageMap.CLOUD_RESOURCE_VIEW_ALERTS,

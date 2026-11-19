@@ -2573,6 +2573,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Logs",
       },
       {
+        page: PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+      },
+      {
         page: PageMap.SERVERLESS_FUNCTION_VIEW_TRACES,
         section: "Observability",
         title: "Traces",
@@ -2771,6 +2776,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.CLOUD_RESOURCE_VIEW_METRICS,
         section: "Observability",
         title: "Metrics",
+      },
+      {
+        page: PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["cloudtrail", "activity log", "audit log"],
       },
       {
         page: PageMap.CLOUD_RESOURCE_VIEW_FEED,

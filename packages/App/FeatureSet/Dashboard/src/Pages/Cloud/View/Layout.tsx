@@ -15,6 +15,7 @@ import {
 } from "Common/Types/Cloud/CloudResourceKind";
 import { canCloudResourceHaveStreamedLogs } from "Common/Types/Cloud/CloudLogGroups";
 import { getCloudAlertTemplatesForType } from "Common/Types/Monitor/CloudAlertTemplates";
+import { canCloudResourceHaveSecurityEvents } from "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -57,12 +58,18 @@ const CloudResourceViewLayout: FunctionComponent<
    * ever say there are none.
    */
   const [hasRecommendations, setHasRecommendations] = useState<boolean>(false);
+  /*
+   * Whether its menu has Security Events: a resource an event can reach,
+   * by its own ID in its cloud's audit log or by logs of its own (#9779).
+   */
+  const [hasSecurityEvents, setHasSecurityEvents] = useState<boolean>(false);
 
   useEffect(() => {
     let ignore: boolean = false;
     setCloudResourceKind(null);
     setHasStreamedLogs(false);
     setHasRecommendations(false);
+    setHasSecurityEvents(false);
 
     ModelAPI.getItem({
       modelType: CloudResource,
@@ -71,6 +78,7 @@ const CloudResourceViewLayout: FunctionComponent<
         cloudResourceKind: true,
         cloudProvider: true,
         cloudResourceType: true,
+        providerResourceId: true,
       },
     })
       .then((item: CloudResource | null): void => {
@@ -79,6 +87,13 @@ const CloudResourceViewLayout: FunctionComponent<
             canCloudResourceHaveStreamedLogs({
               provider: item?.cloudProvider,
               type: item?.cloudResourceType,
+            }),
+          );
+          setHasSecurityEvents(
+            canCloudResourceHaveSecurityEvents({
+              provider: item?.cloudProvider,
+              type: item?.cloudResourceType,
+              providerResourceId: item?.providerResourceId,
             }),
           );
           setHasRecommendations(
@@ -136,6 +151,7 @@ const CloudResourceViewLayout: FunctionComponent<
           modelId={modelId}
           hasStreamedLogs={hasStreamedLogs}
           hasRecommendations={hasRecommendations}
+          hasSecurityEvents={hasSecurityEvents}
         />
       }
     >

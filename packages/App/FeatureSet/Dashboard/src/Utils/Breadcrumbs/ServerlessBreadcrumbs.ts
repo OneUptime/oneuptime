@@ -38,6 +38,10 @@ export function getServerlessBreadcrumbs(
       "View Function",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS,
+      ["Project", "Serverless Functions", "View Function", "Security Events"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_TRACES, [
       "Project",
       "Serverless Functions",
