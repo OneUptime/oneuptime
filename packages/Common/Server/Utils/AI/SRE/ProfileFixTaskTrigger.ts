@@ -1,6 +1,5 @@
 import AIInsightService from "../../../Services/AIInsightService";
 import AIService from "../../../Services/AIService";
-import AIRunService from "../../../Services/AIRunService";
 import ServiceService from "../../../Services/ServiceService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -19,6 +18,7 @@ import SourceLocator, {
   LocatableRepositoryWithTree,
   SourceLink,
 } from "../../CodeRepository/SourceLocator";
+import CodeFixOnItsWay from "../CodeFix/CodeFixOnItsWay";
 import CodeTaskAccess from "../CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
@@ -32,18 +32,12 @@ import ProfileSample from "../../../../Models/AnalyticsModels/ProfileSample";
 import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../../Types/AI/AIInsightType";
 import Service from "../../../../Models/DatabaseModels/Service";
-import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
-import AIRunType from "../../../../Types/AI/AIRunType";
-import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
-import { getCodeTaskRequest } from "../../../../Types/AI/CodeFixTaskContext";
 import {
   CodeTaskBlocker,
   CodeTaskContextItem,
   CodeTaskContextType,
-  CodeTaskRequest,
 } from "../../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { ProfileFrameOrigin } from "../../../../Utils/Profiles/ProfileFrames";
@@ -189,8 +183,10 @@ export default class ProfileFixTaskTrigger {
 
   /*
    * The Code task already working on this function: a Code request whose
-   * turn is queued or running and whose context names the same function of
-   * the same service. Its task id (a reply's task is its first turn).
+   * context names the same function of the same service, with a turn
+   * queued or running - the turn asked it, or its task's first turn did,
+   * as for a reply someone sent in Code - by the rule every fix holds to
+   * (CodeFixOnItsWay). Its task id (a reply's task is its first turn).
    */
   @CaptureSpan()
   public static async findActiveTaskId(data: {
@@ -199,43 +195,9 @@ export default class ProfileFixTaskTrigger {
     functionName: string;
     fileName: string;
   }): Promise<string | null> {
-    const activeRuns: Array<AIRun> = await AIRunService.findBy({
-      query: {
-        projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: CodeFixTaskType.CodeRequest,
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: { _id: true, taskContext: true, codeTaskId: true },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    const serviceId: string = data.serviceId.toString().toLowerCase();
-
-    for (const run of activeRuns) {
-      const request: CodeTaskRequest | null = getCodeTaskRequest(
-        run.taskContext,
-      );
-
-      const isThisFunction: boolean = Boolean(
-        request?.context.some((item: CodeTaskContextItem): boolean => {
-          return (
-            item.type === CodeTaskContextType.Profile &&
-            (item.serviceId || "").toLowerCase() === serviceId &&
-            item.functionName === data.functionName &&
-            (item.fileName || "") === data.fileName
-          );
-        }),
-      );
-
-      if (isThisFunction) {
-        return (run.codeTaskId || run.id)?.toString() || null;
-      }
-    }
-
-    return null;
+    return await CodeFixOnItsWay.findTaskId(
+      CodeFixOnItsWay.ofProfileFunction(data),
+    );
   }
 
   // Where the function's file is, when one repository holds it for certain.
