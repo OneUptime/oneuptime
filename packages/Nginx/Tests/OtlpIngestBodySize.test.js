@@ -47,6 +47,7 @@ const {
   getLocationBlocks,
   getServerBlocks,
   ingressListenEnvironment,
+  primaryHttp2Environment,
   primaryServerNameEnvironment,
   readNginxConf,
   readTemplate,
@@ -292,7 +293,10 @@ function forwardsToApp(location) {
   );
 }
 
-/** Whether HTTP/2 is on for `serverBlock`: its own setting, else http{}'s. */
+/**
+ * Whether HTTP/2 is on for `serverBlock`: its own setting, else http{}'s. The
+ * primary's reads the NGINX_HTTP2 setting, taken here at its default (on).
+ */
 function http2Enabled(serverBlock) {
   if (/\shttp2\b/.test(plaintextIngressListen(serverBlock) || "")) {
     // The pre-1.25.1 spelling, `listen ... http2`.
@@ -304,7 +308,12 @@ function http2Enabled(serverBlock) {
     ownDirectives(nginxHttpBlock().body, "http2"),
   ]) {
     if (directives.length > 0) {
-      return directives[directives.length - 1] === "http2 on;";
+      return (
+        directives[directives.length - 1].replace(
+          "${NGINX_HTTP2}",
+          primaryHttp2Environment().NGINX_HTTP2,
+        ) === "http2 on;"
+      );
     }
   }
 
@@ -619,7 +628,8 @@ const INGRESS_HOST = "oneuptime.example.com";
  * deployment, with `overrides` on top. The listen directives are the ones
  * envsubst-on-templates.sh exports for the NGINX_LISTEN_ADDRESS it ends up
  * with, on a kernel with IPv6, and the primary server's name the one it
- * exports for HOST; an override names them to differ.
+ * exports for HOST; an override names them to differ. NGINX_HTTP2 is what the
+ * script exports for the setting (on unless an override says off).
  */
 function baseEnvironment(overrides = {}) {
   const environment = {};
@@ -659,6 +669,7 @@ function baseEnvironment(overrides = {}) {
     ...ingressListenEnvironment({ listenAddress }),
     ...primaryServerNameEnvironment(host),
     ...overrides,
+    ...primaryHttp2Environment(overrides.NGINX_HTTP2),
   };
 }
 
