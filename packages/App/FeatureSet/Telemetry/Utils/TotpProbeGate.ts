@@ -254,10 +254,10 @@ export default class TotpProbeGate {
           data.kind === ItemForProbeKind.MonitorTest
             ? "monitor-test"
             : "probe-response",
-        testId:
-          data.kind === ItemForProbeKind.MonitorTest
-            ? data.item.id.toString()
-            : undefined,
+        // A monitor test's result is filed under the test it answers.
+        ...(data.kind === ItemForProbeKind.MonitorTest
+          ? { testId: data.item.id.toString() }
+          : {}),
         receivedAt: now,
       });
     } catch (err) {

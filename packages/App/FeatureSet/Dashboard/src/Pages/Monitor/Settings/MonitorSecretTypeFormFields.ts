@@ -71,26 +71,28 @@ export const UPDATE_SETUP_KEY_FIELD: string = "setupKey";
 /*
  * What Update Secret Value sends: the type picked, and the value typed for
  * it - the server reads the value for that type, and changes both in one
- * write.
+ * write. A value left empty goes as empty, for the server to say what it
+ * needs; the dialog asks for it before that.
  */
 export const getUpdateSecretValueData: (values: Record<string, unknown>) => {
   secretType: MonitorSecretType;
-  secretValue: unknown;
+  secretValue: string;
 } = (
   values: Record<string, unknown>,
-): { secretType: MonitorSecretType; secretValue: unknown } => {
+): { secretType: MonitorSecretType; secretValue: string } => {
   const secretType: MonitorSecretType = MonitorSecretTypeUtil.isTotp(
     values["secretType"],
   )
     ? MonitorSecretType.TOTP
     : MonitorSecretType.Text;
+  const value: unknown =
+    secretType === MonitorSecretType.TOTP
+      ? values[UPDATE_SETUP_KEY_FIELD]
+      : values[UPDATE_TEXT_VALUE_FIELD];
 
   return {
     secretType: secretType,
-    secretValue:
-      secretType === MonitorSecretType.TOTP
-        ? values[UPDATE_SETUP_KEY_FIELD]
-        : values[UPDATE_TEXT_VALUE_FIELD],
+    secretValue: typeof value === "string" ? value : "",
   };
 };
 
