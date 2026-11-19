@@ -617,6 +617,108 @@ describe("a notification after the page's own entry", () => {
     expect(markdowns()[0]).not.toContain("CA0123");
   });
 
+  /*
+   * #6594: a call voicemail answered is not answered, and the feed says so
+   * after the sentence, read from the call's line: the person may hear the
+   * message. Its line's other words - the call's id - never reach the feed.
+   */
+  test.each([
+    [
+      "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: it went to voicemail, and a message was left.",
+      "It went to voicemail, and a message was left.",
+    ],
+    [
+      "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: it went to voicemail, and no message was left.",
+      "It went to voicemail, and no message was left.",
+    ],
+    [
+      "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: a fax machine picked up.",
+      "A fax machine picked up.",
+    ],
+  ])(
+    "a call a machine answered says so after the sentence (%s)",
+    async (statusMessage: string, sentence: string) => {
+      const call: UserOnCallLogTimeline = notificationOf({
+        minutes: 10,
+        status: UserNotificationStatus.NotAnswered,
+        method: "userCallId",
+        statusMessage: statusMessage,
+      });
+
+      await notificationEntry(call, OnCallPageNotificationEvent.NotAnswered);
+
+      expect(markdowns()).toEqual([
+        `**Ana Lopez** did not answer the phone call from ${POLICY_IN_SENTENCE_MD} at ${RULE_MD}. ${sentence}`,
+      ]);
+      expect(entries[0]!.color).toEqual(Yellow500);
+      expect(markdowns()[0]).not.toContain("CA0123");
+      // The step's notifications are read with their lines.
+      expect(
+        (deliveryReads[0]!["select"] as Record<string, unknown>)[
+          "statusMessage"
+        ],
+      ).toBe(true);
+    },
+  );
+
+  test("a direct page's call that went to voicemail says so too, from whoever paged", async () => {
+    line = lineOf({
+      isDirectPage: true,
+      status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    });
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+      statusMessage:
+        "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: it went to voicemail, and a message was left.",
+    });
+
+    await notificationEntry(call, OnCallPageNotificationEvent.NotAnswered);
+
+    expect(markdowns()).toEqual([
+      "**Ana Lopez** did not answer the phone call from workflow **Page SRE**. It went to voicemail, and a message was left.",
+    ]);
+  });
+
+  test("a call that went to voicemail once the page was answered - acknowledged by its SMS - says nothing", async () => {
+    line = lineOf({
+      status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+    });
+    const call: UserOnCallLogTimeline = notificationOf({
+      minutes: 0,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+      statusMessage:
+        "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: it went to voicemail, and a message was left.",
+    });
+
+    await notificationEntry(call, OnCallPageNotificationEvent.NotAnswered);
+
+    expect(entries).toEqual([]);
+  });
+
+  test("a second call that went to voicemail is told of once: the first said the person did not answer", async () => {
+    notificationOf({
+      minutes: 10,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+      statusMessage:
+        "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: it rang out.",
+    });
+    const second: UserOnCallLogTimeline = notificationOf({
+      minutes: 20,
+      status: UserNotificationStatus.NotAnswered,
+      method: "userCallId",
+      statusMessage:
+        "Call ID: CA0123456789abcdef0123456789abcdef. The call was not answered: it went to voicemail, and a message was left.",
+    });
+
+    await notificationEntry(second, OnCallPageNotificationEvent.NotAnswered);
+
+    expect(entries).toEqual([]);
+  });
+
   test("a second call that rings out is told of once: the first said as much", async () => {
     notificationOf({
       minutes: 10,

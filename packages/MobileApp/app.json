@@ -74,10 +74,14 @@
         {
           "ios": {
             "enableSceneSupport": true
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
-      "./plugins/withFoldableContinuity"
+      "./plugins/withFoldableContinuity",
+      "./plugins/withOptionalHardwareFeatures"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

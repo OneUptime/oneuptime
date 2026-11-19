@@ -1,5 +1,6 @@
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import URL from "../../Types/API/URL";
+import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
@@ -176,6 +177,59 @@ export const isSameWebsiteAddress: (left: string, right: string) => boolean = (
 
   return (
     leftIdentity !== null && leftIdentity === getWebsiteAddressIdentity(right)
+  );
+};
+
+// The address a monitor checks, as its first step names it: "" for none.
+export const getMonitorAddress: (
+  monitorSteps: MonitorSteps | undefined | null,
+) => string = (monitorSteps: MonitorSteps | undefined | null): string => {
+  const step: MonitorStep | undefined =
+    monitorSteps?.data?.monitorStepsInstanceArray?.[0];
+  const destination: unknown = step?.data?.monitorDestination;
+
+  return destination ? destination.toString() : "";
+};
+
+/*
+ * How many of the project's newest Website and API monitors are read to
+ * find one that checks an address (#7254, #7292). An address is in a
+ * monitor's steps, which no query can ask for, so the newest are read and
+ * matched by isMonitorCheckingAddress. A project with more than this
+ * misses an older one, and a monitor is made, as before.
+ */
+export const MONITORS_CHECKING_ADDRESS_READ_LIMIT: number = 200;
+
+// What is read of a monitor to know whether it checks an address now.
+export interface MonitorCheckingFacts {
+  monitorSteps?: MonitorSteps | undefined | null;
+  isArchived?: boolean | undefined;
+  disableActiveMonitoring?: boolean | undefined;
+}
+
+/*
+ * ONE MONITOR FOR ONE ADDRESS (#7059, #7292): whether a monitor checks the
+ * address now, so a setup goes on with it instead of making a second - the
+ * website guided setup (WebsiteDownApi.findOwnMonitor, findOtherMonitor)
+ * and Ask AI's set_up_website_monitoring alike. Its first step asks for the
+ * same address (isSameWebsiteAddress), and it is neither archived nor
+ * turned off: one that is no longer checked does not answer "is my website
+ * down?".
+ */
+export const isMonitorCheckingAddress: (data: {
+  monitor: MonitorCheckingFacts;
+  address: WebsiteAddress;
+}) => boolean = (data: {
+  monitor: MonitorCheckingFacts;
+  address: WebsiteAddress;
+}): boolean => {
+  if (data.monitor.isArchived || data.monitor.disableActiveMonitoring) {
+    return false;
+  }
+
+  return isSameWebsiteAddress(
+    getMonitorAddress(data.monitor.monitorSteps),
+    data.address.url,
   );
 };
 

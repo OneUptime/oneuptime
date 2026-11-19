@@ -147,6 +147,12 @@ SMS에만, 또는 통화에만 쓰는 계정에는 다른 쪽을 위한 번호�
 
 상태 페이지에서는 SMS를 보내는 구성만 고를 수 있고, **테스트 SMS 보내기**와 **테스트 전화 보내기**는 구성이 보내는 것에 대해서만 나타납니다. 기존 구성은 모두 이전처럼 **통화 및 SMS**로 쓰입니다. API와 Terraform에서는 이 선택이 `usedFor` 필드이며, 선택에 필요한 번호가 없는 구성은 거부됩니다.
 
+### 온콜 전화의 음성사서함
+
+Twilio에게는 음성사서함이 받은 전화도 사람이 받은 전화처럼 받은 전화입니다. 그래서 각 온콜 전화는 [자동 응답기 감지](https://www.twilio.com/docs/voice/answering-machine-detection)로 사람과 음성사서함 중 누가 받았는지 백그라운드에서 Twilio에 묻습니다. 전화를 받은 사람은 호출 내용을 바로 듣습니다. 음성사서함이 받은 전화는 신호만 가다 끊긴 전화처럼 받지 않은 것으로 처리되며, 호출은 부재중 전화일 때처럼 계속됩니다. 인사말이 끝나면 OneUptime이 전화 내용을 담은 짧은 메시지를 남깁니다. 메시지를 남겼는지는 통화 로그에 표시되며, 인시던트 피드에도 표시됩니다: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio는 확인한 수신 전화마다 자동 응답기 감지 요금을 전화를 거는 계정에 청구합니다. 설치 전체의 계정이나 프로젝트 자체 구성입니다. 모든 프로젝트에서 켜져 있습니다. 끄려면 **프로젝트 설정 > 알림 > 알림 채널**의 **추가 설정**에 있는 **온콜 전화의 음성사서함**을 끄세요. 그러면 음성사서함이 받은 전화는 이전처럼 받은 것으로 처리됩니다. **테스트 전화 보내기**와 수신 전화는 확인하지 않습니다. 통화 결과처럼 Twilio가 서버에 접근할 수 있어야 합니다. 다음 섹션을 참고하세요.
+
 ## 3. 네트워크 액세스 설정
 
 전송은 아웃바운드 액세스만으로 동작합니다. 전달 상태 업데이트, 통화 결과, 키패드 확인, 수신 전화에는 Twilio가 서버에 도달해야 합니다.
@@ -171,7 +177,7 @@ sequenceDiagram
 | --- | --- |
 | SMS 전송 | 아니요. 다만 전달 상태 업데이트에는 콜백이 필요합니다. |
 | 간단한 테스트 음성 통화 | 아니요. OneUptime이 음성 안내를 아웃바운드 API 요청에 함께 보냅니다. |
-| 온콜 전화를 받았는지 알기 | 예. Twilio가 각 통화가 어떻게 끝났는지 알려 주므로 응답하지 않은 경우 인시던트 피드에 표시할 수 있습니다. 없어도 전화는 걸립니다. |
+| 온콜 전화를 받았는지 알기 | 예. Twilio가 각 통화가 어떻게 끝났는지, 그리고 사람과 음성사서함 중 누가 받았는지 알려 주므로 응답하지 않은 경우 인시던트 피드에 표시할 수 있습니다. 없어도 전화는 걸립니다. |
 | 1을 눌러 온콜 경고 확인 | 예. Twilio가 키패드 입력을 OneUptime에 보냅니다. |
 | 수신 전화 정책 | 예. Twilio가 통화 지침을 요청하고 다이얼 결과를 보고합니다. |
 
@@ -181,13 +187,14 @@ sequenceDiagram
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS 전달 상태 |
 | POST | `/notification/call/status-callback/:callLogId/:token` | 통화 결과 |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | 온콜 전화를 사람이 받았는지 음성사서함이 받았는지 |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | 키패드 확인 |
 | POST | `/notification/incoming-call/voice` | 선택: 수신 전화 지침 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 선택: 수신 전화 라우팅 결과 |
 
 SMS, 통화 결과, 확인 URL은 OneUptime이 자동으로 만듭니다. 그 토큰을 고정된 웹훅 URL로 바꾸지 마세요. 수신 전화는 [수신 전화 정책](/docs/on-call/incoming-call-policy)을 따르세요. 번호를 연결하면 그 번호의 웹훅이 구성됩니다.
 
-Twilio는 [공개적으로 접근할 수 있는 웹훅 URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)이 필요합니다. 공개적으로 신뢰되는 TLS 인증서를 사용하고, 프록시를 거쳐도 원래의 호스트, 프로토콜, 경로, 쿼리 매개변수, 본문, `X-Twilio-Signature` 헤더를 유지하세요. 수신 전화 핸들러는 Twilio 서명을 검증합니다. SMS 전달과 통화 결과는 메시지나 통화마다 URL 토큰을, 키패드 확인은 서명된 쿼리 토큰을 사용합니다. 토큰을 공유 로그나 스크린샷에 노출하지 마세요. [Twilio 웹훅 보안](https://www.twilio.com/docs/usage/webhooks/webhooks-security)을 참고하세요.
+Twilio는 [공개적으로 접근할 수 있는 웹훅 URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)이 필요합니다. 공개적으로 신뢰되는 TLS 인증서를 사용하고, 프록시를 거쳐도 원래의 호스트, 프로토콜, 경로, 쿼리 매개변수, 본문, `X-Twilio-Signature` 헤더를 유지하세요. 수신 전화 핸들러는 Twilio 서명을 검증합니다. SMS 전달과 통화 결과는 메시지나 통화마다 URL 토큰을, 키패드 확인은 서명된 쿼리 토큰을 사용합니다. 음성사서함 콜백은 URL 토큰과 Twilio 서명을 모두 확인합니다. 토큰을 공유 로그나 스크린샷에 노출하지 마세요. [Twilio 웹훅 보안](https://www.twilio.com/docs/usage/webhooks/webhooks-security)을 참고하세요.
 
 ### 프라이빗 배포에서 콜백 공개하기
 
