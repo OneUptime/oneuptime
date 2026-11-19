@@ -20,6 +20,7 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -432,7 +433,7 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
                         DEVICE_COUNT,
                         summary.deviceCount,
                       )}
-                      {" · "}
+                      <InlineSeparator />
                       {translator.translateTemplate(
                         "{{online}} online, {{offline}} offline",
                         {
