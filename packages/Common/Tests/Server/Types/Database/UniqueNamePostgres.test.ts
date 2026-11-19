@@ -731,4 +731,95 @@ describePostgres("a name as it reads, on Postgres", () => {
 
     expect(withArchived.flat()).toContain(primary);
   });
+
+  /*
+   * What a declarative client - Terraform, an API client that writes a
+   * desired state - sees (#9742, docs/terraform/troubleshooting): a rename
+   * onto a name another policy still holds is refused and writes nothing;
+   * once that one gives the name up, the same rename goes through, so a
+   * chain converges by the next apply (or in order, with depends_on). A swap
+   * refuses both renames whatever the order, and goes through by way of a
+   * name nobody holds.
+   */
+  test("a chain of renames converges once each name is given up, and a swap by way of a free name", async () => {
+    const alpha: string = await onCallPolicy("Alpha");
+    const beta: string = await onCallPolicy("Beta");
+
+    const hook: (updateBy: UpdateBy<OnCallDutyPolicy>) => Promise<void> = (
+      OnCallDutyPolicyService as unknown as {
+        onBeforeUpdateUniqueCheck: (
+          updateBy: UpdateBy<OnCallDutyPolicy>,
+        ) => Promise<void>;
+      }
+    ).onBeforeUpdateUniqueCheck.bind(OnCallDutyPolicyService);
+
+    // Checked as the service checks it, then written as the update would be.
+    const rename: (id: string, name: string) => Promise<void> = async (
+      id: string,
+      name: string,
+    ): Promise<void> => {
+      jest
+        .spyOn(OnCallDutyPolicyService, "findRowsAndHoldUpdateToThem")
+        .mockImplementation(async (): Promise<Array<OnCallDutyPolicy>> => {
+          return await database.getRepository(OnCallDutyPolicy).find({
+            where: { _id: id } as never,
+            select: { _id: true, name: true, projectId: true } as never,
+          });
+        });
+
+      await hook({
+        query: { _id: id },
+        data: { name: name },
+        props: { userId: USER_ID, tenantId: PROJECT_ID },
+        limit: 1,
+        skip: 0,
+      } as unknown as UpdateBy<OnCallDutyPolicy>);
+
+      await database.query(
+        `UPDATE ${tableOf(OnCallDutyPolicy)} SET "name" = $1 WHERE "_id" = $2`,
+        [name, id],
+      );
+    };
+
+    const nameOf: (id: string) => Promise<string> = async (
+      id: string,
+    ): Promise<string> => {
+      const rows: Array<{ name: string }> = await database.query(
+        `SELECT "name" FROM ${tableOf(OnCallDutyPolicy)} WHERE "_id" = $1`,
+        [id],
+      );
+      return rows[0]!.name;
+    };
+
+    // A chain, Alpha to Beta while Beta becomes Gamma: refused first...
+    expect(await refusal(rename(alpha, "Beta"))).toBe(
+      "There is already an on-call policy called Beta in this project. Pick another name.",
+    );
+    expect(await nameOf(alpha)).toBe("Alpha");
+
+    // ...and through once Beta has given its name up.
+    await rename(beta, "Gamma");
+    await rename(alpha, "Beta");
+    expect([await nameOf(alpha), await nameOf(beta)]).toEqual([
+      "Beta",
+      "Gamma",
+    ]);
+
+    // A swap, Beta and Gamma for each other: refused both ways round.
+    expect(await refusal(rename(alpha, "Gamma"))).toContain(
+      "called Gamma in this project",
+    );
+    expect(await refusal(rename(beta, "Beta"))).toContain(
+      "called Beta in this project",
+    );
+
+    // By way of a name nobody holds, in three steps.
+    await rename(alpha, "Beta (renaming)");
+    await rename(beta, "Beta");
+    await rename(alpha, "Gamma");
+    expect([await nameOf(alpha), await nameOf(beta)]).toEqual([
+      "Gamma",
+      "Beta",
+    ]);
+  });
 });
