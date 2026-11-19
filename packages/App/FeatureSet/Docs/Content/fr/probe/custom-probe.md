@@ -124,6 +124,33 @@ Les moniteurs que les sondes ne vérifient pas (Manuel, Requête entrante, E-mai
 > [!TIP]
 > Une sonde qui doit vérifier des adresses privées, comme `http://10.0.0.5/health`, a besoin de `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`. Les sondes refusent les adresses privées tant que vous ne les autorisez pas : voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
 
+## Mettre à jour une sonde
+
+Une sonde exécute la version de l'image à partir de laquelle elle a été lancée : pour la mettre à jour, relancez-la donc à partir d'une image plus récente, avec le même ID et la même clé de sonde. L'image `oneuptime/probe:release` est toujours la version la plus récente.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+Exécutez ensuite à nouveau la commande de [Lancer la sonde](#lancer-la-sonde).
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+Remplacez `<version>` par la version à exécuter, par exemple `17.0.1`, et écrivez la même image dans `oneuptime-probe.yaml`, pour qu'elle reste quand vous appliquez à nouveau le fichier.
+:::
+
+La page de la sonde indique la version qu'elle exécute, sous **Statut de la sonde**. Une sonde antérieure à 17.0.1 ne peut pas produire les codes d'un [secret de code à usage unique](/docs/monitor/monitor-secrets#se-connecter-avec-un-code-à-usage-unique) : sa page le signale, tout comme le formulaire d'un moniteur qu'elle vérifie.
+
 ## Passer par un proxy
 
 Si la sonde doit passer par un proxy pour joindre OneUptime ou les sites qu'elle vérifie, donnez-lui l'adresse du proxy :

@@ -19,9 +19,10 @@ import {
  * React-free, like MonitorSecretAccessFormFields.ts, so App tests can
  * import it without the Dashboard's react.
  *
- * The type is asked when a secret is created, and only then: the same
- * value means something else in the other type, so the server keeps the
- * type a secret was created with.
+ * The type is asked when a secret is created, and again in Update Secret
+ * Value (issue #9760): the same value means something else in the other
+ * type, so the type changes only together with a new value, which the
+ * server reads for the new type.
  */
 
 // How the form and the table name each type.
@@ -49,6 +50,51 @@ export const MONITOR_SECRET_TYPE_OPTIONS: Array<CardSelectOption> = [
     ),
   },
 ];
+
+// The type field's help, on create and in Update Secret Value.
+export const MONITOR_SECRET_TYPE_CREATE_DESCRIPTION: string = translationKey(
+  "What the secret holds. Update Secret Value can change it later, together with a new value.",
+);
+export const MONITOR_SECRET_TYPE_UPDATE_DESCRIPTION: string = translationKey(
+  "Change it together with a new value below; monitors that use the secret take it at their next check.",
+);
+
+/*
+ * Update Secret Value asks the value of each type in a field of its own,
+ * so switching the type never carries what was typed for the other one: a
+ * setup key typed and then switched to Text is not sent as text, and a
+ * password is never previewed as a code.
+ */
+export const UPDATE_TEXT_VALUE_FIELD: string = "secretValue";
+export const UPDATE_SETUP_KEY_FIELD: string = "setupKey";
+
+/*
+ * What Update Secret Value sends: the type picked, and the value typed for
+ * it - the server reads the value for that type, and changes both in one
+ * write. A value left empty goes as empty, for the server to say what it
+ * needs; the dialog asks for it before that.
+ */
+export const getUpdateSecretValueData: (values: Record<string, unknown>) => {
+  secretType: MonitorSecretType;
+  secretValue: string;
+} = (
+  values: Record<string, unknown>,
+): { secretType: MonitorSecretType; secretValue: string } => {
+  const secretType: MonitorSecretType = MonitorSecretTypeUtil.isTotp(
+    values["secretType"],
+  )
+    ? MonitorSecretType.TOTP
+    : MonitorSecretType.Text;
+  const value: unknown =
+    secretType === MonitorSecretType.TOTP
+      ? values[UPDATE_SETUP_KEY_FIELD]
+      : values[UPDATE_TEXT_VALUE_FIELD];
+
+  return {
+    secretType: secretType,
+    secretValue: typeof value === "string" ? value : "",
+  };
+};
 
 // The setup key field's words, for the create form and Update Secret Value.
 export const TOTP_SECRET_VALUE_TITLE: string = translationKey("Setup Key");

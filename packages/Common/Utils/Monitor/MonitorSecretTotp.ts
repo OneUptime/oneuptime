@@ -1,7 +1,6 @@
 import Dictionary from "../../Types/Dictionary";
 import {
   TemplatePlaceholder,
-  findTemplatePlaceholders,
   replaceTemplatePlaceholders,
 } from "../TemplatePlaceholders";
 import {
@@ -12,11 +11,24 @@ import {
   readTotpSecrets,
 } from "../Totp/TotpParameters";
 import { generateTotpCode, getTotpWaitInMs } from "../Totp/TotpSecret";
+import {
+  MONITOR_SECRETS_REFERENCE_PREFIX,
+  TOTP_CODE_FUNCTION_NAME,
+  callsTotpCodeFunction,
+  getQuotedNames,
+  getReferencedName,
+  getReferencedSecretNames,
+} from "./MonitorSecretReferences";
 
 export {
   MAX_TOTP_SECRETS_PER_STEP,
   MAX_TOTP_SECRET_NAME_LENGTH,
   readTotpSecrets,
+  MONITOR_SECRETS_REFERENCE_PREFIX,
+  TOTP_CODE_FUNCTION_NAME,
+  callsTotpCodeFunction,
+  getQuotedNames,
+  getReferencedSecretNames,
 };
 export type { TotpSecrets };
 
@@ -44,11 +56,6 @@ export type { TotpSecrets };
  * A seed is never written anywhere a code goes.
  */
 
-export const MONITOR_SECRETS_REFERENCE_PREFIX: string = "monitorSecrets.";
-
-// The function a script asks a fresh code with: oneuptime.getTotpCode("NAME").
-export const TOTP_CODE_FUNCTION_NAME: string = "getTotpCode";
-
 /*
  * What stands in for a code a check made, wherever the check reports it:
  * an asterisk for each digit. It is exactly as long as the code, so taking
@@ -68,10 +75,6 @@ export function maskTotpCode(code: string): string {
  */
 const MAX_WAITS: number = 3;
 
-const CALLS_TOTP_CODE_FUNCTION: RegExp = new RegExp(
-  `\\b${TOTP_CODE_FUNCTION_NAME}\\s*\\(`,
-);
-
 const DIGITS_ONLY: RegExp = /^\d+$/;
 
 // How deep a value is walked for codes to take out.
@@ -89,69 +92,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   const prototype: unknown = Object.getPrototypeOf(value);
 
   return prototype === Object.prototype || prototype === null;
-}
-
-/*
- * The secret a placeholder names: the rest of "monitorSecrets.NAME" as
- * written, read the way the server reads it (VMUtil.replaceValueInPlace),
- * so {{ monitorSecrets.NAME }} is no reference here either.
- */
-function getReferencedName(placeholder: TemplatePlaceholder): string | null {
-  if (!placeholder.inner.startsWith(MONITOR_SECRETS_REFERENCE_PREFIX)) {
-    return null;
-  }
-
-  const name: string = placeholder.inner.slice(
-    MONITOR_SECRETS_REFERENCE_PREFIX.length,
-  );
-
-  return name ? name : null;
-}
-
-// The names of the secrets a text references as {{monitorSecrets.NAME}}.
-export function getReferencedSecretNames(text: string): Array<string> {
-  const names: Array<string> = [];
-
-  for (const placeholder of findTemplatePlaceholders(text)) {
-    const name: string | null = getReferencedName(placeholder);
-
-    if (name && !names.includes(name)) {
-      names.push(name);
-    }
-  }
-
-  return names;
-}
-
-// Whether a script asks for a code with oneuptime.getTotpCode(...).
-export function callsTotpCodeFunction(script: string): boolean {
-  return typeof script === "string" && CALLS_TOTP_CODE_FUNCTION.test(script);
-}
-
-/*
- * Of these names, the ones a script writes in quotes - "NAME", 'NAME' or
- * `NAME` - as oneuptime.getTotpCode("NAME") is written. The server hands a
- * script the secrets it names, never all of them.
- */
-export function getQuotedNames(
-  script: string,
-  names: Iterable<string>,
-): Array<string> {
-  const quoted: Array<string> = [];
-
-  for (const name of Array.from(names)) {
-    if (
-      name &&
-      !quoted.includes(name) &&
-      (script.includes(`"${name}"`) ||
-        script.includes(`'${name}'`) ||
-        script.includes(`\`${name}\``))
-    ) {
-      quoted.push(name);
-    }
-  }
-
-  return quoted;
 }
 
 /*

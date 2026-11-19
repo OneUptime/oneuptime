@@ -39,7 +39,7 @@ Sonden som kjører sjekken, mottar verdien, så en monitor som bruker en hemmeli
 :::
 
 > [!IMPORTANT]
-> Hemmeligheter krypteres og lagres sikkert. Verdien til hemmeligheten vises aldri igjen etter at den er lagret — verken i tabellen, i redigeringsskjemaet eller via API-et. Hvis du mister verdien, må du hente den fra der den kom fra, og sette den på nytt. For å rotere en hemmelighet bruker du knappen **Oppdater hemmelig verdi** på raden dens; du trenger ikke å slette og opprette den på nytt.
+> Hemmeligheter krypteres og lagres sikkert. Verdien til hemmeligheten vises aldri igjen etter at den er lagret — verken i tabellen, i redigeringsskjemaet eller via API-et. Hvis du mister verdien, må du hente den fra der den kom fra, og sette den på nytt. For å rotere en hemmelighet bruker du knappen **Oppdater hemmelig verdi** på raden dens; du trenger ikke å slette og opprette den på nytt. Den samme knappen endrer også hva hemmeligheten inneholder, **Tekst** eller **Engangskode (TOTP)**, sammen med en ny verdi, og monitorer som bruker hemmeligheten, tar i bruk den nye typen ved neste sjekk.
 
 ### Velg hvilke monitorer som kan bruke en hemmelighet
 
@@ -128,7 +128,7 @@ return {
 Sonden deler aldri ut en kode med mindre enn fem sekunder igjen, eller en tredjedel av perioden når perioden er kortere: den venter i stedet på neste kode, høyst fem sekunder, og holder den ventetiden utenfor sjekkens kjøretid. Hver kode en sjekk genererer, vises som stjerner, for eksempel `******`, i loggmeldingene, resultatet, feilen og navnene på skjermbildene til sjekken. Et skjermbilde er et bilde av siden, så ta det før koden skrives inn, eller etter at siden har gått videre.
 
 > [!NOTE]
-> Det er sonden som genererer kodene, så oppdater en egendefinert sonde før du bruker en engangskodehemmelighet: en eldre sonde sender `{{monitorSecrets.NAME}}` slik det er skrevet. Sondens klokke må også gå riktig, for en sonde som går ett minutt feil, genererer koder som nettstedet allerede har gått videre fra.
+> Det er sonden som genererer kodene, så en egendefinert sonde trenger OneUptime 17.0.1 eller nyere. På en eldre kjører ikke en sjekk som trenger en kode, men feiler med en setning som ber deg oppdatere sonden; monitorens skjema og sondens side navngir en sonde som er for gammel, og [Oppdater en sonde](/docs/probe/custom-probe#oppdater-en-sonde) forklarer hvordan. Sondens klokke må også gå riktig, for en sonde som går ett minutt feil, genererer koder som nettstedet allerede har gått videre fra.
 
 ## Feilsøking
 
@@ -146,6 +146,10 @@ Bare feltene i tabellen ovenfor tar imot hemmeligheter. I ethvert annet felt sen
 
 :::details Nettstedet avviser engangskoden
 Sjekk at **Gjeldende kode** stemte med autentiseringsappen din da du lagret hemmeligheten, at sondens klokke går riktig, og at en henvisning i en JSON-brødtekst i en forespørsel står i anførselstegn. Hvis det tar en stund før påloggingen ber om koden, ber du om koden der med `oneuptime.getTotpCode`.
+:::
+
+:::details Sjekken sier at sonden er for gammel til å generere engangskoder
+Sonden kjører en versjon eldre enn OneUptime 17.0.1, som ikke kan generere engangskoder, så sjekken ble ikke kjørt på den. Oppdater sonden (se [Oppdater en sonde](/docs/probe/custom-probe#oppdater-en-sonde)), eller la sonder med 17.0.1 eller nyere sjekke monitoren.
 :::
 
 ## Neste steg

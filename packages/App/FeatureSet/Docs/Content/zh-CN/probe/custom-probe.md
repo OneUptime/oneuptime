@@ -124,6 +124,33 @@ spec:
 > [!TIP]
 > 需要检查私有地址（如 `http://10.0.0.5/health`）的探测器需要 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`。在你允许之前，探测器会拒绝私有地址：参见 [私有网络访问](/docs/self-hosted/private-network-access)。
 
+## 更新探测器
+
+探测器运行的是启动它的镜像的版本，因此要更新它，请使用同一个探测器 ID 和密钥，从更新的镜像重新启动它。`oneuptime/probe:release` 镜像始终是最新版本。
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+然后再次运行[运行探测器](#运行探测器)中的命令。
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+将 `<version>` 替换为要运行的版本，例如 `17.0.1`，并在 `oneuptime-probe.yaml` 中写入同一个镜像，这样再次应用该文件时它会保留。
+:::
+
+探测器的页面在 **探测器状态** 下显示它运行的版本。早于 17.0.1 的探测器无法生成[一次性验证码密钥](/docs/monitor/monitor-secrets#使用一次性验证码登录)的验证码：它的页面会说明这一点，它检查的监视器的表单也会。
+
 ## 通过代理连接
 
 如果探测器必须经过代理才能访问 OneUptime 或它检查的站点，请把代理的地址告诉它：

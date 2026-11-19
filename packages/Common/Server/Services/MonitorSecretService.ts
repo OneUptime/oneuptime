@@ -10,6 +10,7 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialChanges";
 import ProjectReferencesService from "./ProjectReferencesService";
 import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
@@ -34,6 +35,24 @@ import {
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorSecret from "../../Models/DatabaseModels/MonitorSecret";
+
+// The column the value is kept in: nobody reads it, and it is kept encrypted.
+const MONITOR_SECRET_VALUE_COLUMN: string = "secretValue";
+
+/*
+ * Said when a write changes a secret's type without a new value, or with an
+ * empty one, for the new type (issue #9760).
+ */
+export const TYPE_CHANGE_NEEDS_VALUE_MESSAGE: string =
+  "A secret's type changes only together with a new value, because the value it holds means something else in the other type. Enter the new value along with the type.";
+
+/*
+ * Said when a one-time code secret would become Text with the setup key it
+ * holds as its value: a Text secret is sent as written, so the key itself
+ * would go where the code went.
+ */
+export const SETUP_KEY_AS_TEXT_MESSAGE: string =
+  "This is the setup key the secret holds now. A Text secret is sent as written, so the key itself would be sent where the one-time code went. Enter the new text value, or keep the type One-time code (TOTP).";
 
 export class Service extends ProjectReferencesService<MonitorSecret> {
   public constructor() {
@@ -124,22 +143,23 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
     const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
 
     /*
-     * A secret keeps the type it was created with: the column takes no
-     * update from a teammate, and OneUptime's own writes are held to the
-     * same.
+     * The value is nobody's to read, so the audit log leaves it out of
+     * every entry: a value replaced is recorded as changed - by whom, and
+     * when - and never with either value (WriteOnlyCredentialChanges).
      */
-    if (data["secretType"] !== undefined) {
-      throw new BadDataException(
-        "A secret's type is set when the secret is created and cannot be changed. Create a new secret of the type you need instead.",
-      );
-    }
+    WriteOnlyCredentialChanges.recordInAuditLog(updateBy, [
+      MONITOR_SECRET_VALUE_COLUMN,
+    ]);
 
-    /*
-     * A new value for a one-time code secret is read as a setup key or an
-     * otpauth://totp link, as one is on create - the Update Secret Value
-     * button sends nothing but the value, so the type is the stored one.
-     */
-    if (data["secretValue"] !== undefined) {
+    if (data["secretType"] !== undefined) {
+      await this.readTypeChange(updateBy, data);
+    } else if (data["secretValue"] !== undefined) {
+      /*
+       * A new value for a one-time code secret is read as a setup key or
+       * an otpauth://totp link, as one is on create - Update Secret Value
+       * sends the value alone when the type stays, so the type is the
+       * stored one.
+       */
       const rows: Array<MonitorSecret> = await this.findRowsAndHoldUpdateToThem(
         updateBy,
         {
@@ -441,6 +461,74 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * A secret's type changes only together with a new value, read for the
+   * new type (issue #9760). The value a secret holds means something else
+   * in the other type, so the one it held is never read as the new type: a
+   * Text secret's password is never made into codes, and a setup key is
+   * never filled into a monitor as text, where a check's log could show it.
+   * Both are written in the one statement, so no check ever reads the new
+   * type with the old value: a monitor that uses the secret takes the new
+   * type at its next check, when the server fills its secrets in again.
+   *
+   * The value is read as it is on create: for One-time code, a setup key or
+   * an otpauth://totp link, stored canonically; for Text, any value but an
+   * empty one - and never the setup key the secret holds now, which as text
+   * would be sent where the code went.
+   */
+  private async readTypeChange(
+    updateBy: UpdateBy<MonitorSecret>,
+    data: Dictionary<unknown>,
+  ): Promise<void> {
+    const secretType: MonitorSecretType = this.readSecretType(
+      data["secretType"],
+    );
+
+    data["secretType"] = secretType;
+
+    const value: unknown = data["secretValue"];
+
+    if (value === undefined) {
+      throw new BadDataException(TYPE_CHANGE_NEEDS_VALUE_MESSAGE);
+    }
+
+    if (secretType === MonitorSecretType.TOTP) {
+      data["secretValue"] = this.readTotpSecretValue(value);
+      return;
+    }
+
+    if (typeof value !== "string" || !value.trim()) {
+      throw new BadDataException(TYPE_CHANGE_NEEDS_VALUE_MESSAGE);
+    }
+
+    const asSetupKey: TotpSecretReading = readTotpSecret(value);
+
+    if (!asSetupKey.parameters) {
+      return;
+    }
+
+    const rows: Array<MonitorSecret> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        secretType: true,
+        secretValue: true,
+      },
+    );
+
+    for (const row of rows) {
+      if (!MonitorSecretTypeUtil.isTotp(row.secretType)) {
+        continue;
+      }
+
+      const held: TotpSecretReading = readTotpSecret(row.secretValue);
+
+      if (held.parameters?.secret === asSetupKey.parameters.secret) {
+        throw new BadDataException(SETUP_KEY_AS_TEXT_MESSAGE);
+      }
+    }
   }
 
   private readSecretType(value: unknown): MonitorSecretType {
