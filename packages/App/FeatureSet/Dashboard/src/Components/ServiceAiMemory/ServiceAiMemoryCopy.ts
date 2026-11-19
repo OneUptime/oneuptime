@@ -25,7 +25,7 @@ export const NOTHING_LEARNED_DESCRIPTION: string = translationKey(
 
 // How often a failure was seen, of the records the reader may see.
 export const SEEN_TIMES: PluralTemplate = {
-  one: "Seen once",
+  one: "Seen {{count}} time",
   other: "Seen {{count}} times",
 };
 
@@ -56,8 +56,9 @@ export const ALERT_REFERENCE: string = translationKey("Alert {{alert}}");
 export const LOADING_KNOWLEDGE: string = translationKey(
   "Loading what OneUptime AI learned",
 );
+// The server's answer was not one the card can draw.
 export const COULD_NOT_READ_KNOWLEDGE: string = translationKey(
-  "What OneUptime AI learned could not be read.",
+  "The answer from the server could not be read. Reload the page, then try again.",
 );
 export const COULD_NOT_LOAD_KNOWLEDGE_WITH_ERROR: string = translationKey(
   "What OneUptime AI learned could not be loaded. {{error}}",

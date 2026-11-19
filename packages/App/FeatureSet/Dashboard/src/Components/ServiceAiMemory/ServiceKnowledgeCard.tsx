@@ -31,8 +31,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
-import { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyStateSize";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
