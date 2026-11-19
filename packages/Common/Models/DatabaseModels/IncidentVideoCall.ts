@@ -79,6 +79,13 @@ const deletePermissions: Array<Permission> = [
  * Record and transcribe incident calls on, OneUptime also asks the provider
  * for the transcript by itself once the call is over, and keeps where that
  * stands on the call (transcriptFetch*, CallTranscriptAutoFetch).
+ *
+ * What OneUptime AI read is posted to the incident's feed and channels too,
+ * and the call keeps where each reading went (callSummaryPosts), so that
+ * removing the transcript - or the call - takes all of it back; a transcript
+ * read through someone's sign-in names that account
+ * (transcriptSignInAccountId), so that the account removing OneUptime
+ * deletes what was read through it (IncidentCallTranscriptRemoval).
  */
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incident")

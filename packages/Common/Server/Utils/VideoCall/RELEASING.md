@@ -516,3 +516,17 @@ Found while writing this guide on 17 November 2026:
   **Video Calls** after signing in was not checked.
 - This guide does not record which Zoom account owns the app. Add it the
   next time a maintainer signs in.
+
+Found while making `app_deauthorized` delete what was read through the
+sign-in (#9289), on 19 November 2026:
+
+- A Slack, Microsoft Teams or Mattermost message of what OneUptime AI read
+  that OneUptime can no longer delete - the project disconnected that
+  workspace since, or the app was removed from the channel - stays in the
+  customer's channel. Remove transcript names it to the person; after a
+  deauthorization nobody is asked, so only the server log and the message's
+  Notification Logs row ("OneUptime could not delete it: ...") say so.
+- A reading posted before calls kept where their readings went (before
+  this release) is found by its text: its feed item always, its channel
+  messages only while Notification Logs still keep them (three days on
+  OneUptime Cloud).

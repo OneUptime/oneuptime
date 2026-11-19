@@ -471,6 +471,11 @@ export class Service extends ProjectReferencesService<Model> {
    * transcript when it was read from the provider through it, and the posts
    * of what was read in such transcripts. A transcript a person added stays,
    * and so do its posts. Null when there is no such call.
+   *
+   * The posts are taken here and deleted right after, outside the
+   * transaction, since deleting a channel message is a request to its
+   * workspace that no row lock should wait on: the feed items first, then
+   * the messages.
    */
   @CaptureSpan()
   public async takeTranscriptForRemoval(data: {
