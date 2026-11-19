@@ -186,6 +186,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the file's JSON string forms, quote marks, tool names and flag letters",
   },
   {
+    file: "packages/Common/Utils/DataSecurity/DetectorPrefilter.ts",
+    count: 1,
+    builtFrom:
+      "a data type's pattern, a detector's own or one a project wrote, whose syntax JavaScript checks before toRe2Prefilter writes it as an RE2 expression; it is never run here, and ClickHouse runs the expression",
+  },
+  {
     file: "packages/Common/Utils/DeveloperDocs/TerraformSchema.ts",
     count: 1,
     builtFrom: "the words TERRAFORM_MIXED_CASE_WORDS lists",

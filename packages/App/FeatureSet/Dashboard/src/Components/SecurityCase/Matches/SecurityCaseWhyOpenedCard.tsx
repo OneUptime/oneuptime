@@ -104,6 +104,7 @@ import {
   writeReaderTimeOfDay,
 } from "Common/UI/Utils/ReaderMoments";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * WHY THIS CASE WAS OPENED, on a case's Overview (#9556): the three things
@@ -401,7 +402,9 @@ const DetectionSection: FunctionComponent<{
               className="h-3.5 w-3.5 text-gray-400"
             />
             <span>{translator.translateText(detection.source)}</span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true">
+              <InlineSeparator markOnly />
+            </span>
             <span>
               {translator.translateText(
                 detection.isOpening ? OPENED_THE_CASE : JOINED_THE_CASE,
@@ -473,7 +476,7 @@ const DetectionSection: FunctionComponent<{
               />
               {detection.fireCount > 1 ? (
                 <span className="text-gray-500">
-                  {" · "}
+                  <InlineSeparator />
                   {translator.translatePlural(FIRED, detection.fireCount)}
                 </span>
               ) : (
