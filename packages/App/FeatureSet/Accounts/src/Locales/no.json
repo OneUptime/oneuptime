@@ -225,7 +225,7 @@
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer deg.",
     "selectProjectTitle": "Velg prosjekt",
-    "noConfigForEmail": "Ingen SSO-konfigurasjon funnet for e-posten: {{email}}",
+    "notSetUpForDomain": "Enkel pålogging er ikke satt opp for {{domain}}. Be administratoren om å sette det opp, eller logg inn på en annen måte.",
     "emailRequired": "E-post er nødvendig for å utføre denne handlingen",
     "defaultProjectName": "Prosjekt",
     "globalProvidersTitle": "Logg på med organisasjonen din",

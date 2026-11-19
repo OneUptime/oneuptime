@@ -225,7 +225,7 @@
     "noAccountPrompt": "Non hai un account?",
     "registerLink": "Registrati.",
     "selectProjectTitle": "Seleziona progetto",
-    "noConfigForEmail": "Nessuna configurazione SSO trovata per l'e-mail: {{email}}",
+    "notSetUpForDomain": "Il single sign-on non è configurato per {{domain}}. Chiedi all’amministratore di configurarlo, oppure accedi in un altro modo.",
     "emailRequired": "L'e-mail è richiesta per eseguire questa azione",
     "defaultProjectName": "Progetto",
     "globalProvidersTitle": "Accedi con la tua organizzazione",

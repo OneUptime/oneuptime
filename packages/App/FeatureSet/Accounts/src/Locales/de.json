@@ -225,7 +225,7 @@
     "noAccountPrompt": "Sie haben noch kein Konto?",
     "registerLink": "Registrieren.",
     "selectProjectTitle": "Projekt auswählen",
-    "noConfigForEmail": "Keine SSO-Konfiguration für die E-Mail-Adresse gefunden: {{email}}",
+    "notSetUpForDomain": "Single Sign-On ist für {{domain}} nicht eingerichtet. Bitten Sie Ihren Administrator, es einzurichten, oder melden Sie sich auf andere Weise an.",
     "emailRequired": "E-Mail ist erforderlich, um diese Aktion auszuführen",
     "defaultProjectName": "Projekt",
     "globalProvidersTitle": "Mit Ihrer Organisation anmelden",

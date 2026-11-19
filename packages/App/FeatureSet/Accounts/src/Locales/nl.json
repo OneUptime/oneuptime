@@ -225,7 +225,7 @@
     "noAccountPrompt": "Hebt u geen account?",
     "registerLink": "Aanmelden.",
     "selectProjectTitle": "Project selecteren",
-    "noConfigForEmail": "Geen SSO-configuratie gevonden voor e-mail: {{email}}",
+    "notSetUpForDomain": "Single sign-on is niet ingesteld voor {{domain}}. Vraag uw beheerder om het in te stellen, of meld u op een andere manier aan.",
     "emailRequired": "E-mail is vereist om deze actie uit te voeren",
     "defaultProjectName": "Project",
     "globalProvidersTitle": "Aanmelden met uw organisatie",

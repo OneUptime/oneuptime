@@ -61,6 +61,19 @@ export interface ComponentProps {
 }
 
 /*
+ * The domain of an address, as the server finds providers by it: what
+ * follows its last "@", trimmed and lower-cased.
+ */
+export const getEmailDomain: (email: string) => string = (
+  email: string,
+): string => {
+  return email
+    .slice(email.lastIndexOf("@") + 1)
+    .trim()
+    .toLowerCase();
+};
+
+/*
  * The test ids of the page's own parts, for its tests and the browser suite.
  */
 export const SSO_PROJECTS_TEST_ID: string = "sso-projects";
@@ -75,9 +88,9 @@ export const LOOKED_UP_EMAIL_TEST_ID: string = "sso-looked-up-email";
  * The instance-wide providers come first, one button each: they are not
  * bound to an email address, so somebody with an organization-wide identity
  * provider signs in without typing one. Under them, the email form finds the
- * providers of the projects the address belongs to, and the page then lists
- * them by project, drawn as the instance-wide ones are, with a way back to
- * the form.
+ * project providers that serve the address's domain (never by its account,
+ * #9824), and the page then lists them by project, drawn as the
+ * instance-wide ones are, with a way back to the form.
  *
  * While the server requires SSO (Admin Dashboard > Settings > Single Sign-On
  * > Require SSO to Sign In), the page offers only SSO: no way back to a
@@ -209,7 +222,16 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
       }
 
       if (nextSaml.length === 0 && nextOidc.length === 0) {
-        setError(t("sso.noConfigForEmail", { email: email.toString() }));
+        /*
+         * Providers are found by the address's domain (#9824): nothing
+         * found means no provider serves that domain yet, which its admin
+         * sets up. The domain is named, so a typo in it shows too.
+         */
+        setError(
+          t("sso.notSetUpForDomain", {
+            domain: getEmailDomain(email.toString()),
+          }),
+        );
       } else {
         setSamlConfigs(nextSaml);
         setOidcConfigs(nextOidc);
@@ -351,7 +373,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The providers of the projects an address belongs to, by project: drawn
+   * The project providers an address's domain found, by project: drawn
    * as the instance-wide providers are, in the page's card - one filled
    * button when there is one provider in all - with a way back to the email
    * form, the address still in it. They were a list of their own under the
@@ -476,7 +498,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * The email form finds the providers of a project the address belongs to:
+   * The email form finds the project providers that serve an address's domain:
    * kept unless the server requires SSO and no project has one of its own.
    */
   const hasEmailForm: boolean =
