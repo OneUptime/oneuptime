@@ -496,45 +496,30 @@ export interface CloudUnreportedConnectionState {
   lastReadWarnings?: ReadonlyArray<string> | undefined;
 }
 
-// A character of a word, as a metric's name is set apart from what is around it.
-const WORD_CHARACTER: RegExp = new RegExp("[a-z0-9_]");
-
 /*
- * Whether one of the last read's warnings is about this metric: Azure's
- * "Azure Monitor could not read <metric> of 3 resources", AWS's "Could not
- * list <namespace> in <region>". The metric's own name, as a whole word.
+ * Whether one of the last read's warnings is about this metric, by the
+ * sentences the reads write: Azure's "Azure Monitor could not read
+ * <metric> of 3 resources" and "Could not read which metrics <type>
+ * publishes", AWS's "Could not list <namespace> in <region>". A metric's
+ * name is matched with what the sentence puts around it: Azure's names
+ * hold spaces, so "Percentage CPU" is no word of "Percentage CPU Credits".
  */
 export function isCloudReadWarningAbout(data: {
   warning: string;
   metric: CloudResourceKeyMetric;
+  type?: string | undefined;
 }): boolean {
   const text: string = data.warning.toLowerCase();
-  const names: Array<string> = [data.metric.name.toLowerCase()];
+  const name: string = data.metric.name.toLowerCase();
+  const namespace: string = (data.metric.namespace || "").toLowerCase();
+  const type: string = (data.type || "").toLowerCase();
 
-  if (data.metric.namespace) {
-    names.push(data.metric.namespace.toLowerCase());
-  }
-
-  return names.some((name: string): boolean => {
-    if (!name) {
-      return false;
-    }
-
-    let from: number = text.indexOf(name);
-
-    while (from >= 0) {
-      const before: string = from > 0 ? text.charAt(from - 1) : " ";
-      const after: string = text.charAt(from + name.length) || " ";
-
-      if (!WORD_CHARACTER.test(before) && !WORD_CHARACTER.test(after)) {
-        return true;
-      }
-
-      from = text.indexOf(name, from + 1);
-    }
-
-    return false;
-  });
+  return (
+    (Boolean(name) && text.includes(`could not read ${name} of `)) ||
+    (Boolean(namespace) && text.includes(`could not list ${namespace} in `)) ||
+    (Boolean(type) &&
+      text.includes(`could not read which metrics ${type} publishes`))
+  );
 }
 
 /*
@@ -546,6 +531,8 @@ export function isCloudReadWarningAbout(data: {
  */
 export function explainCloudUnreportedKeyMetric(data: {
   metric: CloudResourceKeyMetric;
+  // The resource's type, which a read's warning may name.
+  type?: string | undefined;
   connection: CloudUnreportedConnectionState | null;
   isPublished?: boolean | null | undefined;
   isPublishedByType?: boolean | null | undefined;
@@ -576,7 +563,7 @@ export function explainCloudUnreportedKeyMetric(data: {
   } else if (
     data.connection.lastReadStatus === "failed" ||
     (data.connection.lastReadWarnings || []).some((warning: string) => {
-      return isCloudReadWarningAbout({ warning, metric });
+      return isCloudReadWarningAbout({ warning, metric, type: data.type });
     })
   ) {
     reasons.push({

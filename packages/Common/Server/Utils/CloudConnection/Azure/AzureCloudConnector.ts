@@ -769,7 +769,8 @@ export default class AzureCloudConnector implements CloudConnector {
     }
   }
 
-  private arm(
+  // The connection's Resource Manager client: a resource's metric list reads through it too.
+  public arm(
     settings: CloudConnectionSettings,
     options: CloudConnectorCallOptions,
     budget?: CloudReadBudget | undefined,

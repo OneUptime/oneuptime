@@ -525,7 +525,8 @@ export default class GcpCloudConnector implements CloudConnector {
     }
   }
 
-  private monitoring(
+  // The connection's Cloud Monitoring client: a resource's metric list reads through it too.
+  public monitoring(
     settings: CloudConnectionSettings,
     options: CloudConnectorCallOptions,
     budget?: CloudReadBudget | undefined,

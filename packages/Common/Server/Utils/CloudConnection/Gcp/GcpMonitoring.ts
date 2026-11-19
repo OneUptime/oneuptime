@@ -55,6 +55,22 @@ export interface GcpTimeSeries {
   points: Array<{ timeMs: number; value: number }>;
 }
 
+// A metric a project's resources may report (projects.metricDescriptors).
+export interface GcpMetricDescriptor {
+  type: string;
+  displayName: string;
+  description: string;
+  // UCUM, as Cloud Monitoring writes it ("By", "1", "10^2.%").
+  unit: string;
+  // GAUGE, DELTA or CUMULATIVE.
+  metricKind: string;
+  // BOOL, INT64, DOUBLE, STRING or DISTRIBUTION.
+  valueType: string;
+  // GA, BETA, DEPRECATED and the rest.
+  launchStage: string;
+  monitoredResourceTypes: Array<string>;
+}
+
 export interface GcpMonitoringOptions {
   serviceAccountJson: string;
   transport: CloudConnectorTransport;
@@ -224,6 +240,112 @@ export default class GcpMonitoring {
     }
 
     return series;
+  }
+
+  /*
+   * The metric descriptors of a project whose types start with one of
+   * `prefixes` ("compute.googleapis.com/"), and that a resource of
+   * `resourceType` can report (monitoredResourceTypes): what a resource's
+   * list of the metrics it publishes shows (CloudResourceMetrics). A
+   * descriptor filter selects by metric type only, so the resource type is
+   * matched here. Free: Cloud Monitoring bills only reads of time series.
+   */
+  public async listMetricDescriptors(data: {
+    projectId: string;
+    prefixes: Array<string>;
+    resourceType: string;
+  }): Promise<Array<GcpMetricDescriptor>> {
+    GoogleMonitoringClient.validateProjectId(data.projectId);
+
+    const descriptors: Array<GcpMetricDescriptor> = [];
+
+    for (const prefix of data.prefixes) {
+      let pageToken: string = "";
+
+      for (let page: number = 0; page < MAX_PAGES; page++) {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const accessToken: string = await this.token.getAccessToken();
+        const query: string = buildQueryString([
+          ["filter", `metric.type = starts_with("${prefix}")`],
+          ["pageSize", PAGE_SIZE],
+          ["pageToken", pageToken],
+        ]);
+
+        let response: JSONObject;
+
+        try {
+          response = await LlmProviderHttp.requestJson({
+            transport: this.options.transport,
+            method: "GET",
+            url: `${GOOGLE_MONITORING_BASE_URL}/projects/${encodeURIComponent(
+              data.projectId.trim(),
+            )}/metricDescriptors?${query}`,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json",
+            },
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step: "metric descriptors request",
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [accessToken],
+          });
+        } catch (error) {
+          throw GcpMonitoring.classify(error);
+        }
+
+        for (const raw of readArray(response["metricDescriptors"])) {
+          const descriptor: GcpMetricDescriptor | null =
+            GcpMonitoring.readDescriptor(raw);
+
+          if (
+            descriptor &&
+            descriptor.monitoredResourceTypes.includes(data.resourceType)
+          ) {
+            descriptors.push(descriptor);
+          }
+        }
+
+        const next: string = readText(response["nextPageToken"]);
+
+        if (!next || next === pageToken) {
+          break;
+        }
+
+        pageToken = next;
+      }
+    }
+
+    return descriptors;
+  }
+
+  // One metric descriptor of an answer, or null when it is not one.
+  public static readDescriptor(raw: unknown): GcpMetricDescriptor | null {
+    const descriptor: JSONObject = readObject(raw);
+    const type: string = readText(descriptor["type"]);
+
+    if (!type) {
+      return null;
+    }
+
+    return {
+      type,
+      displayName: readText(descriptor["displayName"]),
+      description: readText(descriptor["description"]),
+      unit: readText(descriptor["unit"]),
+      metricKind: readText(descriptor["metricKind"]),
+      valueType: readText(descriptor["valueType"]),
+      launchStage: readText(descriptor["launchStage"]),
+      monitoredResourceTypes: readArray(descriptor["monitoredResourceTypes"])
+        .map((resourceType: unknown): string => {
+          return readText(resourceType);
+        })
+        .filter((resourceType: string): boolean => {
+          return Boolean(resourceType);
+        }),
+    };
   }
 
   /*
