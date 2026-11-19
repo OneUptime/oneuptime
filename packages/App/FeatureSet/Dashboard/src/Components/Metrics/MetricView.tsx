@@ -1180,7 +1180,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                       data={queryConfig}
                       hideCard={props.hideCardInQueryElements}
                       canOverlayWithPreviousQuery={index > 0}
-                      overlayChartQuery={MetricQueryOverlay.getChartLead(
+                      overlayChartQueries={MetricQueryOverlay.getChartQueriesBefore(
                         props.data.queryConfigs,
                         index,
                       )}

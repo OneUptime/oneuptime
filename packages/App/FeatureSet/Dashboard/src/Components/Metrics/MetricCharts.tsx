@@ -37,7 +37,10 @@ import MetricQueryConfigData, {
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
-import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import {
+  SecondYAxis,
+  YAxisPrecision,
+} from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YScaleMaxMin from "Common/UI/Components/Charts/Types/YAxis/YAxisMaxMin";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -62,6 +65,9 @@ import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
 import { BarChartPalette } from "Common/UI/Components/Charts/Bar/BarChart";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayAxisReading,
+  OverlayChartAxes,
   OverlayUnitFit,
   OverlayUnitReading,
 } from "Common/Utils/Metrics/MetricQueryOverlay";
@@ -333,6 +339,13 @@ export const SERIES_CHIP_VALUE_CLASS_NAME: string = "min-w-0 truncate";
  */
 export const OVERLAY_UNIT_MISMATCH_TEST_ID: string =
   "metric-chart-overlay-unit-mismatch";
+
+/*
+ * On a chart with a second value axis (issue #10042): the unit of each axis,
+ * above the series, and on each series' chip the axis it is drawn against.
+ */
+export const CHART_AXIS_UNIT_TEST_ID: string = "metric-chart-axis-unit";
+export const SERIES_CHIP_AXIS_TEST_ID: string = "metric-chart-series-axis";
 
 type SeriesValueStat = "peak" | "avg" | "latest";
 
@@ -1017,40 +1030,106 @@ function applyPanelSeriesNaming(members: Array<PanelMember>): void {
 }
 
 /*
- * How each overlaid member of a panel reads on the panel's axis, which is in
- * its first member's unit (MetricQueryOverlay.readUnit). The first member is
- * the axis's own, so it has no reading.
+ * The value axes of a panel, and how each member reads on the one it is
+ * drawn against (MetricQueryOverlay.readChartAxes, issue #10042): the first
+ * axis, in the first member's unit, and, when a member is in a unit of
+ * another kind, a second axis on the right, in that member's unit.
  */
-function getPanelUnitReadings(
-  members: Array<PanelMember>,
-): Map<PanelMember, OverlayUnitReading> {
-  const readings: Map<PanelMember, OverlayUnitReading> = new Map<
-    PanelMember,
-    OverlayUnitReading
-  >();
-  const firstMember: PanelMember | undefined = members[0];
+interface PanelAxes {
+  readingByMember: Map<PanelMember, OverlayAxisReading>;
+  // The member whose unit the second axis is in; undefined for none.
+  secondAxisLead: PanelMember | undefined;
+}
 
-  if (!firstMember) {
-    return readings;
-  }
+function getPanelAxes(members: Array<PanelMember>): PanelAxes {
+  const axes: OverlayChartAxes = MetricQueryOverlay.readChartAxes(
+    members.map((member: PanelMember): { unit: string; metricName: string } => {
+      return { unit: member.unit, metricName: member.metricName };
+    }),
+  );
+  const readingByMember: Map<PanelMember, OverlayAxisReading> = new Map<
+    PanelMember,
+    OverlayAxisReading
+  >();
 
   members.forEach((member: PanelMember, memberIndex: number): void => {
-    if (memberIndex === 0) {
-      return;
-    }
-
-    readings.set(
-      member,
-      MetricQueryOverlay.readUnit({
-        chartUnit: firstMember.unit,
-        chartMetricName: firstMember.metricName,
-        queryUnit: member.unit,
-        queryMetricName: member.metricName,
-      }),
-    );
+    readingByMember.set(member, axes.readings[memberIndex]!);
   });
 
-  return readings;
+  return {
+    readingByMember: readingByMember,
+    secondAxisLead:
+      axes.secondAxisLeadIndex === null
+        ? undefined
+        : members[axes.secondAxisLeadIndex],
+  };
+}
+
+/*
+ * How a member writes a value in its own unit: the page's formatter for its
+ * query when it has one, else its unit's, in the reader's language.
+ */
+function getMemberValueFormatter(
+  member: PanelMember,
+  language: string,
+): (value: number) => string {
+  const formatterOptions: ValueFormatterOptions = {
+    metricName: member.metricName,
+    language: language,
+  };
+
+  return (value: number): string => {
+    if (member.queryConfig.yAxisValueFormatter) {
+      // The page writes its figure in English; the chart, in the reader's digits.
+      return writeFigureInLanguage(
+        member.queryConfig.yAxisValueFormatter(value),
+        language,
+      );
+    }
+
+    return ValueFormatter.formatValue(value, member.unit, formatterOptions);
+  };
+}
+
+/*
+ * The soft range of a percent axis, over the series drawn against it: the
+ * full percent scale, so 25% reads as a quarter of the axis, stretched to
+ * any value past it, and fitted to the data when it all sits well under it.
+ * A 0-1 fraction's scale ends at 1, a percent's at 100.
+ */
+function getPercentAxisRange(
+  series: Array<SeriesPoint>,
+  isFractionScale: boolean,
+): { min: number; max: number } {
+  const baseline: number = isFractionScale ? 1 : 100;
+  let observedMax: number = Number.NEGATIVE_INFINITY;
+  let observedMin: number = 0;
+  let hasFinitePoint: boolean = false;
+
+  for (const oneSeries of series) {
+    for (const point of oneSeries.data) {
+      if (typeof point.y === "number" && Number.isFinite(point.y)) {
+        hasFinitePoint = true;
+        if (point.y > observedMax) {
+          observedMax = point.y;
+        }
+        if (point.y < observedMin) {
+          observedMin = point.y;
+        }
+      }
+    }
+  }
+
+  if (!hasFinitePoint) {
+    return { min: 0, max: baseline };
+  }
+
+  if (observedMax < baseline * 0.25) {
+    const headroom: number = observedMax > 0 ? observedMax * 0.25 : 0;
+    return { min: observedMin, max: observedMax + headroom };
+  }
+
+  return { min: observedMin, max: Math.max(observedMax, baseline) };
 }
 
 // A member's series with every value read in the chart's unit.
@@ -1129,10 +1208,17 @@ function renderSeriesControls(input: {
    */
   unitLabel: string;
   /*
-   * Formats a series value (peak/avg/latest) for display next to its name,
-   * using the same unit/precision as the chart's y-axis.
+   * The unit of the chart's second value axis, on its right (issue #10042):
+   * set, the two badges name the axis each unit is on, and each chip the
+   * axis its series is drawn against (axisOfSeries).
    */
-  valueFormatter: (value: number) => string;
+  secondAxisUnitLabel?: string | undefined;
+  axisOfSeries?: ((seriesName: string) => OverlayAxis) | undefined;
+  /*
+   * Formats a series value (peak/avg/latest) for display next to its name,
+   * using the same unit/precision as the axis the series is drawn against.
+   */
+  valueFormatter: (value: number, seriesName: string) => string;
   /*
    * When set, every chip grows a magnifier button that opens the
    * per-series investigate menu, anchored under the button.
@@ -1171,10 +1257,33 @@ function renderSeriesControls(input: {
     resolveColor,
     warningElement,
     unitLabel,
+    secondAxisUnitLabel,
+    axisOfSeries,
     valueFormatter,
     onInvestigateSeries,
     investigatedSeriesName,
   } = input;
+
+  /*
+   * On a chart with two value axes, each badge says which axis its unit is
+   * on: "Left axis: Percent", "Right axis: Bytes".
+   */
+  const axisUnitBadges: Array<string> = secondAxisUnitLabel
+    ? [
+        ...(unitLabel
+          ? [
+              translator.translateTemplate("Left axis: {{unit}}", {
+                unit: unitLabel,
+              }),
+            ]
+          : []),
+        translator.translateTemplate("Right axis: {{unit}}", {
+          unit: secondAxisUnitLabel,
+        }),
+      ]
+    : unitLabel
+      ? [unitLabel]
+      : [];
 
   const sortBy: SeriesSortBy = controls.sortBy;
   /*
@@ -1327,14 +1436,24 @@ function renderSeriesControls(input: {
        * the same place instead of floating between controls.
        */}
       <div className="flex flex-wrap items-center gap-2">
-        {unitLabel ? (
-          <Pill
-            text={unitLabel}
-            isUserContent={true}
-            tone={PillTone.Neutral}
-            isDotHidden={true}
-          />
-        ) : null}
+        {axisUnitBadges.map((badge: string): ReactElement => {
+          return (
+            <span
+              key={badge}
+              data-testid={
+                secondAxisUnitLabel ? CHART_AXIS_UNIT_TEST_ID : undefined
+              }
+              className="inline-flex"
+            >
+              <Pill
+                text={badge}
+                isUserContent={true}
+                tone={PillTone.Neutral}
+                isDotHidden={true}
+              />
+            </span>
+          );
+        })}
         <span className="text-xs text-gray-500">
           {translator.translatePlural(SERIES_COUNT_TEMPLATE, totalSeries)}
         </span>
@@ -1584,7 +1703,15 @@ function renderSeriesControls(input: {
               displayStat,
             );
             const valueLabel: string | null =
-              statValue === null ? null : valueFormatter(statValue);
+              statValue === null
+                ? null
+                : valueFormatter(statValue, series.seriesName);
+            // The axis it is drawn against, on a chart with two.
+            const axisLabel: string | null = axisOfSeries
+              ? (axisOfSeries(series.seriesName) === OverlayAxis.Second
+                  ? translator.translateText("Right axis")
+                  : translator.translateText("Left axis")) || null
+              : null;
             // Its name as the reader reads it: "(unset)" in their words.
             const readerName: string = getSeriesNameForReader(
               series.seriesName,
@@ -1661,6 +1788,16 @@ function renderSeriesControls(input: {
                         isHidden ? "text-gray-300" : "text-gray-500"
                       }`}
                     />
+                  ) : null}
+                  {axisLabel !== null ? (
+                    <span
+                      data-testid={SERIES_CHIP_AXIS_TEST_ID}
+                      className={`shrink-0 whitespace-nowrap rounded bg-gray-100 px-1 text-[11px] font-medium leading-4 ${
+                        isHidden ? "text-gray-500" : "text-gray-600"
+                      }`}
+                    >
+                      {axisLabel}
+                    </span>
                   ) : null}
                 </button>
                 {onInvestigateSeries ? (
@@ -2059,6 +2196,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   // One pinned bucket inspector (chart click), portalled like the menus.
   interface BucketInspectorEntry {
     name: string;
+    // The series' name as the chart keeps it, for writing its value.
+    seriesName: string;
     value: number;
   }
   const [bucketInspector, setBucketInspector] = useState<{
@@ -2067,7 +2206,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     bucketEnd: Date;
     entries: Array<BucketInspectorEntry>;
     hiddenCount: number;
-    formatValue: (value: number) => string;
+    formatValue: (value: number, seriesName: string) => string;
     position: { x: number; y: number };
   } | null>(null);
 
@@ -2118,7 +2257,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     bucketEnd: Date;
     valuesAtBucket: Record<string, number | string>;
     seriesNames: Array<string>;
-    formatValue: (value: number) => string;
+    formatValue: (value: number, seriesName: string) => string;
   }) => void = useCallback(
     (input: {
       title: string;
@@ -2126,7 +2265,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       bucketEnd: Date;
       valuesAtBucket: Record<string, number | string>;
       seriesNames: Array<string>;
-      formatValue: (value: number) => string;
+      formatValue: (value: number, seriesName: string) => string;
     }): void => {
       /*
        * Highest value first — the same "which series is spiking?"
@@ -2142,7 +2281,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           const value: unknown =
             input.valuesAtBucket[name] ?? input.valuesAtBucket[seriesName];
           return typeof value === "number" && Number.isFinite(value)
-            ? { name, value }
+            ? { name, seriesName, value }
             : null;
         })
         .filter((entry: BucketInspectorEntry | null): boolean => {
@@ -2595,7 +2734,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     ) => SeriesColorResolver;
     hasColorCustomization: boolean;
     unitLabel: string;
-    valueFormatter: (value: number) => string;
+    secondAxisUnitLabel?: string | undefined;
+    axisOfSeries?: ((seriesName: string) => OverlayAxis) | undefined;
+    valueFormatter: (value: number, seriesName: string) => string;
     onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
     onTopNChange?: ((topN: number) => void) | undefined;
     serverTotalGroups?: number | undefined;
@@ -2622,7 +2763,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     ) => SeriesColorResolver;
     hasColorCustomization: boolean;
     unitLabel: string;
-    valueFormatter: (value: number) => string;
+    secondAxisUnitLabel?: string | undefined;
+    axisOfSeries?: ((seriesName: string) => OverlayAxis) | undefined;
+    valueFormatter: (value: number, seriesName: string) => string;
     onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
     onTopNChange?: ((topN: number) => void) | undefined;
     serverTotalGroups?: number | undefined;
@@ -2733,6 +2876,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           resolveColor,
           warningElement: input.warningElement,
           unitLabel: input.unitLabel,
+          secondAxisUnitLabel: input.secondAxisUnitLabel,
+          axisOfSeries: input.axisOfSeries,
           valueFormatter: input.valueFormatter,
           onInvestigateSeries: input.onInvestigateSeries,
           investigatedSeriesName: input.investigatedSeriesName,
@@ -2814,21 +2959,28 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       applyPanelSeriesNaming(members);
 
       /*
-       * Each overlaid query is read in the chart's unit, its first query's
-       * (MetricQueryOverlay, issue #9961): one in another unit of the same
-       * kind - megabytes on a chart in gigabytes - is converted into it, so
-       * its line, its values and its warning and critical lines read right
-       * on the shared axis. One in a unit of another kind keeps its values,
-       * and the chart says the units differ (unitMismatchWarning).
+       * Each overlaid query is read on one of the chart's value axes
+       * (MetricQueryOverlay.readChartAxes): the first, in the chart's first
+       * query's unit (issue #9961), or, for a query in a unit of another
+       * kind, a second axis on the right, in the unit of the first such
+       * query (issue #10042). One in another unit of its axis's kind -
+       * megabytes on an axis in gigabytes - is converted into the axis's
+       * unit, so its line, its values and its warning and critical lines
+       * read right there. Only a third kind of unit fits neither axis: it
+       * keeps its values, on the first, and the chart says so
+       * (unitMismatchWarning).
        */
-      const unitReadingByMember: Map<PanelMember, OverlayUnitReading> =
-        getPanelUnitReadings(members);
+      const panelAxes: PanelAxes = getPanelAxes(members);
+      const readingOf: (member: PanelMember) => OverlayAxisReading = (
+        member: PanelMember,
+      ): OverlayAxisReading => {
+        return panelAxes.readingByMember.get(member)!;
+      };
 
       for (const member of members) {
-        const reading: OverlayUnitReading | undefined =
-          unitReadingByMember.get(member);
+        const reading: OverlayAxisReading = readingOf(member);
 
-        if (reading?.fit === OverlayUnitFit.Converted) {
+        if (reading.fit === OverlayUnitFit.Converted) {
           member.series = toChartUnitSeries(member.series, reading);
         }
       }
@@ -2902,26 +3054,92 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       let yAxisMax: YScaleMaxMin = "auto";
 
       /*
+       * The second value axis, on the right, when a member is in a unit of
+       * another kind: written in its lead's unit, with its own percent
+       * scale when that unit is a percent or a 0-1 fraction.
+       */
+      const secondAxisLead: PanelMember | undefined = panelAxes.secondAxisLead;
+      const secondAxisUnit: string = secondAxisLead?.unit || "";
+      const isSecondAxisFractionScale: boolean = Boolean(
+        secondAxisLead &&
+          secondAxisUnit === "1" &&
+          ValueFormatter.isFractionMetric(secondAxisLead.metricName),
+      );
+      const isSecondAxisPercent: boolean = Boolean(
+        secondAxisLead &&
+          (isSecondAxisFractionScale ||
+            ValueFormatter.isPercentUnit(secondAxisUnit)),
+      );
+      let secondYAxisMin: YScaleMaxMin = "auto";
+      let secondYAxisMax: YScaleMaxMin = "auto";
+
+      // How each axis writes a value: in its lead's unit.
+      const firstAxisValueFormatter: (value: number) => string =
+        getMemberValueFormatter(firstMember, translator.language);
+      const secondAxisValueFormatter: ((value: number) => string) | undefined =
+        secondAxisLead
+          ? getMemberValueFormatter(secondAxisLead, translator.language)
+          : undefined;
+
+      /*
+       * How a member's values are written - its line's ticks, its chips, its
+       * tooltip and its moment's values - and the axis it is drawn against:
+       * its axis's way, or its own for a member that fits neither axis.
+       */
+      const getMemberAxisValueFormatter: (
+        member: PanelMember,
+      ) => (value: number) => string = (
+        member: PanelMember,
+      ): ((value: number) => string) => {
+        const reading: OverlayAxisReading = readingOf(member);
+
+        if (reading.fit === OverlayUnitFit.Different) {
+          return getMemberValueFormatter(member, translator.language);
+        }
+
+        return reading.axis === OverlayAxis.Second && secondAxisValueFormatter
+          ? secondAxisValueFormatter
+          : firstAxisValueFormatter;
+      };
+
+      /*
        * Thresholds concatenate across the panel: every overlaid query's
        * warning/critical lines render, each formatted in the unit its
-       * values are drawn in - the chart's, for a query converted into it.
+       * values are drawn in - its axis's, for a query converted into it -
+       * and drawn against its query's axis.
        */
       const referenceLines: Array<ChartReferenceLineProps> = [];
       for (const member of members) {
-        const reading: OverlayUnitReading | undefined =
-          unitReadingByMember.get(member);
-        const isConverted: boolean = reading?.fit === OverlayUnitFit.Converted;
-        const drawnUnit: string = isConverted ? unit : member.unit;
+        const reading: OverlayAxisReading = readingOf(member);
+        const isOnSecondAxis: boolean =
+          reading.axis === OverlayAxis.Second && Boolean(secondAxisLead);
+        const axisLead: PanelMember =
+          isOnSecondAxis && secondAxisLead ? secondAxisLead : firstMember;
+        const isConverted: boolean = reading.fit === OverlayUnitFit.Converted;
+        const drawnUnit: string = isConverted ? axisLead.unit : member.unit;
         const drawnFormatterOptions: ValueFormatterOptions = {
-          metricName: isConverted ? queryMetricName : member.metricName,
+          metricName: isConverted ? axisLead.metricName : member.metricName,
           language: translator.language,
         };
         const inDrawnUnit: (value: number | undefined) => number | undefined = (
           value: number | undefined,
         ): number | undefined => {
-          return reading && typeof value === "number"
+          return typeof value === "number"
             ? MetricQueryOverlay.toChartUnit(value, reading)
             : value;
+        };
+        const onMemberAxis: (
+          lines: Array<ChartReferenceLineProps>,
+        ) => Array<ChartReferenceLineProps> = (
+          lines: Array<ChartReferenceLineProps>,
+        ): Array<ChartReferenceLineProps> => {
+          return isOnSecondAxis
+            ? lines.map(
+                (line: ChartReferenceLineProps): ChartReferenceLineProps => {
+                  return { ...line, isOnSecondYAxis: true };
+                },
+              )
+            : lines;
         };
         const warningThreshold: number | undefined = inDrawnUnit(
           member.queryConfig.warningThreshold,
@@ -2931,63 +3149,69 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         );
 
         referenceLines.push(
-          ...buildThresholdReferenceLines({
-            warningThreshold: warningThreshold,
-            criticalThreshold: criticalThreshold,
-            unit: drawnUnit,
-            formatterOptions: drawnFormatterOptions,
-            extendsDomain: props.thresholdLinesExtendAxis,
-          }),
-          ...buildMetricChartThresholdLines({
-            /*
-             * A line with no unit of its own is in its query's unit, so a
-             * converted query's is converted as its values are. A line
-             * with a unit is converted into the chart's by the builder.
-             */
-            thresholds: isConverted
-              ? (props.thresholds || []).map(
-                  (threshold: MetricChartThreshold): MetricChartThreshold => {
-                    return threshold.unit
-                      ? threshold
-                      : {
-                          ...threshold,
-                          value: inDrawnUnit(threshold.value) as number,
-                        };
-                  },
-                )
-              : props.thresholds,
-            metricVariable: member.queryConfig.metricAliasData?.metricVariable,
-            unit: drawnUnit,
-            formatterOptions: drawnFormatterOptions,
-            drawnValues: [warningThreshold, criticalThreshold],
-          }),
+          ...onMemberAxis([
+            ...buildThresholdReferenceLines({
+              warningThreshold: warningThreshold,
+              criticalThreshold: criticalThreshold,
+              unit: drawnUnit,
+              formatterOptions: drawnFormatterOptions,
+              extendsDomain: props.thresholdLinesExtendAxis,
+            }),
+            ...buildMetricChartThresholdLines({
+              /*
+               * A line with no unit of its own is in its query's unit, so a
+               * converted query's is converted as its values are. A line
+               * with a unit is converted into its axis's by the builder.
+               */
+              thresholds: isConverted
+                ? (props.thresholds || []).map(
+                    (threshold: MetricChartThreshold): MetricChartThreshold => {
+                      return threshold.unit
+                        ? threshold
+                        : {
+                            ...threshold,
+                            value: inDrawnUnit(threshold.value) as number,
+                          };
+                    },
+                  )
+                : props.thresholds,
+              metricVariable:
+                member.queryConfig.metricAliasData?.metricVariable,
+              unit: drawnUnit,
+              formatterOptions: drawnFormatterOptions,
+              drawnValues: [warningThreshold, criticalThreshold],
+            }),
+          ]),
         );
       }
 
       /*
-       * Unit safety for overlay panels: the axis is in the first query's
-       * unit, and a query in a unit of another kind cannot be converted
-       * into it, so the two share one axis but not one scale. Warn (don't
-       * block): the query is drawn where its switch asked. A query in a
-       * unit of the same kind was converted above and needs no warning.
+       * Unit safety for overlay panels: a query in a unit of another kind
+       * gets the second axis, and a later one of that kind is read on it, so
+       * only a third kind fits neither axis. It is drawn against the left
+       * axis, where its switch put it, and its chips and tooltip write its
+       * values in its own unit; the chart says its line is not to the
+       * axis's scale. Warn (don't block).
        */
-      const membersThatCannotShareTheAxis: Array<PanelMember> = members.filter(
+      const membersOnNeitherAxis: Array<PanelMember> = members.filter(
         (member: PanelMember): boolean => {
-          return (
-            unitReadingByMember.get(member)?.fit === OverlayUnitFit.Different
-          );
+          return readingOf(member).fit === OverlayUnitFit.Different;
         },
       );
       /*
-       * The axis's unit, then each one that cannot be read on it, by the
-       * names the unit badge gives them, in the sentence's language.
+       * Units by the names the unit badges give them, each once, in the
+       * sentence's language.
        */
-      const getMismatchedUnitNames: (sentence: Translator) => Array<string> = (
+      const getUnitNames: (
+        unitMembers: Array<PanelMember>,
+        sentence: Translator,
+      ) => Array<string> = (
+        unitMembers: Array<PanelMember>,
         sentence: Translator,
       ): Array<string> => {
         const names: Array<string> = [];
 
-        for (const member of [firstMember, ...membersThatCannotShareTheAxis]) {
+        for (const member of unitMembers) {
           const unitName: string =
             getUnitNameInLanguage(member.unit, sentence, {
               metricName: member.metricName,
@@ -3001,15 +3225,21 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         return names;
       };
       const unitMismatchWarning: ReactElement | undefined =
-        membersThatCannotShareTheAxis.length > 0 ? (
+        membersOnNeitherAxis.length > 0 && secondAxisLead ? (
           <HintChip variant="amber">
             <span data-testid={OVERLAY_UNIT_MISMATCH_TEST_ID}>
               {translator.translateTemplate(
-                "Overlaid queries use different units ({{units}}) — they share one axis, so values may not be directly comparable.",
+                "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.",
                 {
                   units: composedValue((sentence: Translator): string => {
                     return formatList(
-                      getMismatchedUnitNames(sentence),
+                      getUnitNames(membersOnNeitherAxis, sentence),
+                      sentence,
+                    );
+                  }),
+                  axisUnits: composedValue((sentence: Translator): string => {
+                    return formatList(
+                      getUnitNames([firstMember, secondAxisLead], sentence),
                       sentence,
                     );
                   }),
@@ -3076,13 +3306,26 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       for (const member of members) {
         const memberExemplars: Array<ExemplarPoint> =
           exemplarsByQueryKey[getExemplarStateKey(member.queryConfig)] || [];
+        // Each dot where its query's line is: on its axis, in its unit.
+        const reading: OverlayAxisReading = readingOf(member);
         for (const exemplar of memberExemplars) {
           const exemplarKey: string = `${exemplar.traceId}-${exemplar.x.getTime()}-${exemplar.y}`;
           if (seenExemplarKeys.has(exemplarKey)) {
             continue;
           }
           seenExemplarKeys.add(exemplarKey);
-          chartExemplars.push(exemplar);
+          chartExemplars.push(
+            reading.fit === OverlayUnitFit.Converted ||
+              (reading.axis === OverlayAxis.Second && secondAxisLead)
+              ? {
+                  ...exemplar,
+                  y: MetricQueryOverlay.toChartUnit(exemplar.y, reading),
+                  ...(reading.axis === OverlayAxis.Second && secondAxisLead
+                    ? { isOnSecondYAxis: true }
+                    : {}),
+                }
+              : exemplar,
+          );
         }
       }
 
@@ -3195,20 +3438,44 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
 
       /*
        * Formats a series value for the node list using the same unit and
-       * precision as the chart's y-axis, so "52.75%" in the list matches
-       * the axis and tooltip.
+       * precision as the axis its series is drawn against, so "52.75%" in
+       * the list matches that axis and the tooltip. A previous period's
+       * twin is written as its live series is.
        */
-      const seriesValueFormatter: (value: number) => string = (
+      const getSeriesOwner: (seriesName: string) => PanelMember | undefined = (
+        seriesName: string,
+      ): PanelMember | undefined => {
+        return (
+          seriesOwnerByName.get(seriesName) ||
+          (seriesName.endsWith(PREVIOUS_PERIOD_SERIES_SUFFIX)
+            ? seriesOwnerByName.get(
+                seriesName.slice(
+                  0,
+                  seriesName.length - PREVIOUS_PERIOD_SERIES_SUFFIX.length,
+                ),
+              )
+            : undefined)
+        );
+      };
+      const seriesValueFormatter: (
         value: number,
-      ): string => {
-        if (firstQuery.yAxisValueFormatter) {
-          // The page writes its figure in English; the chart, in the reader's digits.
-          return writeFigureInLanguage(
-            firstQuery.yAxisValueFormatter(value),
-            translator.language,
-          );
-        }
-        return ValueFormatter.formatValue(value, unit, formatterOptions);
+        seriesName: string,
+      ) => string = (value: number, seriesName: string): string => {
+        const owner: PanelMember | undefined = getSeriesOwner(seriesName);
+
+        return (
+          owner ? getMemberAxisValueFormatter(owner) : firstAxisValueFormatter
+        )(value);
+      };
+      // The axis a series is drawn against, on a chart with two.
+      const getSeriesAxis: (seriesName: string) => OverlayAxis = (
+        seriesName: string,
+      ): OverlayAxis => {
+        const owner: PanelMember | undefined = getSeriesOwner(seriesName);
+
+        return owner && secondAxisLead
+          ? readingOf(owner).axis
+          : OverlayAxis.First;
       };
 
       const {
@@ -3228,6 +3495,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         unitLabel: unit
           ? getUnitNameInLanguage(unit, translator, formatterOptions)
           : "",
+        secondAxisUnitLabel: secondAxisLead
+          ? getUnitNameInLanguage(secondAxisUnit, translator, {
+              metricName: secondAxisLead.metricName,
+            }) || secondAxisUnit
+          : undefined,
+        axisOfSeries: secondAxisLead ? getSeriesAxis : undefined,
         valueFormatter: seriesValueFormatter,
         onShowAllToggled: (nextShowAll: boolean): void => {
           /*
@@ -3303,14 +3576,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           if (!previousResult) {
             continue;
           }
-          // In the chart's unit, as the member's live series is.
-          const reading: OverlayUnitReading | undefined =
-            unitReadingByMember.get(member);
+          // In its axis's unit, as the member's live series is.
+          const reading: OverlayAxisReading = readingOf(member);
           const previousSeries: Array<SeriesPoint> = buildQuerySeries(
             member.queryConfig,
             previousResult,
           );
-          for (const series of reading?.fit === OverlayUnitFit.Converted
+          for (const series of reading.fit === OverlayUnitFit.Converted
             ? toChartUnitSeries(previousSeries, reading)
             : previousSeries) {
             previousSeriesByName.set(series.seriesName, series);
@@ -3373,34 +3645,72 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
        * data scale: utilization metrics live in [0, 1], explicit percent
        * units live in [0, 100].
        */
+      const isOnSecondAxis: (series: SeriesPoint) => boolean = (
+        series: SeriesPoint,
+      ): boolean => {
+        return getSeriesAxis(series.seriesName) === OverlayAxis.Second;
+      };
+
       if (isPercentChart) {
-        const baseline: number = isFractionScale ? 1 : 100;
-        let observedMax: number = Number.NEGATIVE_INFINITY;
-        let observedMin: number = 0;
-        let hasFinitePoint: boolean = false;
-        for (const series of renderSeries) {
-          for (const point of series.data) {
-            if (typeof point.y === "number" && Number.isFinite(point.y)) {
-              hasFinitePoint = true;
-              if (point.y > observedMax) {
-                observedMax = point.y;
-              }
-              if (point.y < observedMin) {
-                observedMin = point.y;
-              }
+        const range: { min: number; max: number } = getPercentAxisRange(
+          renderSeries.filter((series: SeriesPoint): boolean => {
+            return !isOnSecondAxis(series);
+          }),
+          isFractionScale,
+        );
+        yAxisMin = range.min;
+        yAxisMax = range.max;
+      }
+
+      if (isSecondAxisPercent) {
+        const range: { min: number; max: number } = getPercentAxisRange(
+          renderSeries.filter(isOnSecondAxis),
+          isSecondAxisFractionScale,
+        );
+        secondYAxisMin = range.min;
+        secondYAxisMax = range.max;
+      }
+
+      /*
+       * The second axis names every series of its queries, shown or not,
+       * so hiding one never moves the plot, and each previous period's
+       * line beside its live one.
+       */
+      const secondYAxis: SecondYAxis | undefined =
+        secondAxisLead && secondAxisValueFormatter
+          ? {
+              legend: isSecondAxisPercent ? "%" : secondAxisUnit,
+              options: {
+                type: YAxisType.Number,
+                formatter: secondAxisValueFormatter,
+                precision: YAxisPrecision.NoDecimals,
+                max: secondYAxisMax,
+                min: secondYAxisMin,
+              },
+              seriesNames: [...panelSeries, ...renderSeries]
+                .filter(isOnSecondAxis)
+                .map((series: SeriesPoint): string => {
+                  return series.seriesName;
+                })
+                .filter((name: string, index: number, names: Array<string>) => {
+                  return names.indexOf(name) === index;
+                }),
             }
-          }
-        }
-        if (!hasFinitePoint) {
-          yAxisMax = baseline;
-          yAxisMin = 0;
-        } else if (observedMax < baseline * 0.25) {
-          const headroom: number = observedMax > 0 ? observedMax * 0.25 : 0;
-          yAxisMax = observedMax + headroom;
-          yAxisMin = observedMin;
-        } else {
-          yAxisMax = Math.max(observedMax, baseline);
-          yAxisMin = observedMin;
+          : undefined;
+
+      /*
+       * A series that fits neither axis writes its values in its own unit
+       * in the tooltip; every other series, as its axis writes its ticks.
+       */
+      const seriesValueFormatters: Dictionary<(value: number) => string> = {};
+      for (const series of renderSeries) {
+        const owner: PanelMember | undefined = getSeriesOwner(
+          series.seriesName,
+        );
+
+        if (owner && readingOf(owner).fit === OverlayUnitFit.Different) {
+          seriesValueFormatters[series.seriesName] =
+            getMemberAxisValueFormatter(owner);
         }
       }
 
@@ -3448,26 +3758,17 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             legend: yAxisLegend,
             options: {
               type: YAxisType.Number,
-              formatter: (value: number) => {
-                if (firstQuery.yAxisValueFormatter) {
-                  // The page writes its figure in English; the chart, in the reader's digits.
-                  return writeFigureInLanguage(
-                    firstQuery.yAxisValueFormatter(value),
-                    translator.language,
-                  );
-                }
-
-                return ValueFormatter.formatValue(
-                  value,
-                  unit,
-                  formatterOptions,
-                );
-              },
+              formatter: firstAxisValueFormatter,
               precision: YAxisPrecision.NoDecimals,
               max: yAxisMax,
               min: yAxisMin,
             },
           },
+          secondYAxis: secondYAxis,
+          seriesValueFormatters:
+            Object.keys(seriesValueFormatters).length > 0
+              ? seriesValueFormatters
+              : undefined,
           curve: ChartCurve.MONOTONE,
           sync: true,
           colors: renderColors,
@@ -3847,6 +4148,21 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const ghostSeriesNames: Array<string> | undefined = (
         chart.props as { ghostSeriesNames?: Array<string> | undefined }
       ).ghostSeriesNames;
+      const secondYAxis: SecondYAxis | undefined = (
+        chart.props as { secondYAxis?: SecondYAxis | undefined }
+      ).secondYAxis;
+      const seriesValueFormatters:
+        | Dictionary<(value: number) => string>
+        | undefined = (
+        chart.props as {
+          seriesValueFormatters?:
+            | Dictionary<(value: number) => string>
+            | undefined;
+        }
+      ).seriesValueFormatters;
+      const forReader: (name: string) => string = (name: string): string => {
+        return getSeriesNameForReader(name, translator);
+      };
 
       return {
         ...chart,
@@ -3855,10 +4171,28 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           data: data,
           ...(ghostSeriesNames
             ? {
-                ghostSeriesNames: ghostSeriesNames.map(
-                  (name: string): string => {
-                    return getSeriesNameForReader(name, translator);
-                  },
+                ghostSeriesNames: ghostSeriesNames.map(forReader),
+              }
+            : {}),
+          ...(secondYAxis
+            ? {
+                secondYAxis: {
+                  ...secondYAxis,
+                  seriesNames: secondYAxis.seriesNames.map(forReader),
+                },
+              }
+            : {}),
+          ...(seriesValueFormatters
+            ? {
+                seriesValueFormatters: Object.fromEntries(
+                  Object.entries(seriesValueFormatters).map(
+                    ([name, formatter]: [string, (value: number) => string]): [
+                      string,
+                      (value: number) => string,
+                    ] => {
+                      return [forReader(name), formatter];
+                    },
+                  ),
                 ),
               }
             : {}),
@@ -4188,7 +4522,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   </p>
                 ) : (
                   bucketInspector.entries.map(
-                    (entry: { name: string; value: number }, index: number) => {
+                    (entry: BucketInspectorEntry, index: number) => {
                       return (
                         <div
                           key={entry.name}
@@ -4201,7 +4535,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                             {entry.name}
                           </span>
                           <span className="shrink-0 select-text text-xs font-medium tabular-nums text-gray-900">
-                            {bucketInspector.formatValue(entry.value)}
+                            {bucketInspector.formatValue(
+                              entry.value,
+                              entry.seriesName,
+                            )}
                           </span>
                         </div>
                       );

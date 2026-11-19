@@ -64,7 +64,7 @@ jest.mock(
 interface EditorProps {
   data: MetricQueryConfigData;
   canOverlayWithPreviousQuery?: boolean | undefined;
-  overlayChartQuery?: MetricQueryConfigData | undefined;
+  overlayChartQueries?: Array<MetricQueryConfigData> | undefined;
 }
 
 let editors: Array<EditorProps> = [];
@@ -225,7 +225,7 @@ describe("every query after the first offers the switch, and knows the chart it 
     ).toEqual([false, true, true]);
   });
 
-  test("each later query is handed the first query of the chart it would join", async () => {
+  test("each later query is handed the chart it would join, its first query first", async () => {
     await drawView(
       dataOf([
         query("a", "mem_used"),
@@ -236,11 +236,16 @@ describe("every query after the first offers the switch, and knows the chart it 
       ]),
     );
 
+    // The chart's queries before each one: its lead, then those overlaid.
     expect(
-      lastEditors(5).map((editor: EditorProps): string | undefined => {
-        return editor.overlayChartQuery?.metricAliasData?.metricVariable;
+      lastEditors(5).map((editor: EditorProps): string => {
+        return (editor.overlayChartQueries || [])
+          .map((queryConfig: MetricQueryConfigData): string => {
+            return queryConfig.metricAliasData?.metricVariable || "";
+          })
+          .join(",");
       }),
-    ).toEqual([undefined, "a", "a", "a", "d"]);
+    ).toEqual(["", "a", "a,b", "a,b,c", "d"]);
   });
 
   test("a metric monitor's form offers it the same way", async () => {
@@ -252,9 +257,13 @@ describe("every query after the first offers the switch, and knows the chart it 
 
     expect(first!.canOverlayWithPreviousQuery).toBe(false);
     expect(second!.canOverlayWithPreviousQuery).toBe(true);
-    expect(second!.overlayChartQuery?.metricAliasData?.metricVariable).toBe(
-      "a",
-    );
+    expect(
+      (second!.overlayChartQueries || []).map(
+        (queryConfig: MetricQueryConfigData): string | undefined => {
+          return queryConfig.metricAliasData?.metricVariable;
+        },
+      ),
+    ).toEqual(["a"]);
   });
 });
 
