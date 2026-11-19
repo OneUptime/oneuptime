@@ -548,7 +548,9 @@ export default class IncidentCallTranscriptRemoval {
             removedTranscript: data.removedTranscript,
           }),
         userId:
-          data.reason === TranscriptRemovalReason.SignInRemoved ? undefined : data.userId,
+          data.reason === TranscriptRemovalReason.SignInRemoved
+            ? undefined
+            : data.userId,
       });
     } catch (error) {
       logger.error(`Could not record a removed call transcript: ${error}`, {

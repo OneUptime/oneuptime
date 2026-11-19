@@ -530,3 +530,6 @@ sign-in (#9289), on 19 November 2026:
   this release) is found by its text: its feed item always, its channel
   messages only while Notification Logs still keep them (three days on
   OneUptime Cloud).
+- A removal takes the posts off the call before it deletes them, so a
+  server that stops in between leaves that feed item and those messages
+  with nothing to try again (#9638).
