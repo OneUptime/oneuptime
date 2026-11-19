@@ -22,6 +22,8 @@ import useDockerSwarmPart, {
   DockerSwarmPart,
 } from "../../../Components/DockerSwarm/Part/UseDockerSwarmPart";
 import { getDockerSwarmAttribute } from "../Utils/DockerSwarmHealth";
+import { getDockerSwarmPartAttention } from "../Utils/DockerSwarmPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
   externalIdFromRouteParam,
   keyForDockerSwarmCluster,
@@ -114,6 +116,14 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
     "Node",
     part.row?.nodeHostname,
   );
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getDockerSwarmPartAttention({
+    kind: "Task",
+    externalId: externalId,
+    row: part.row,
+    routeFor: routes.getPartRoute,
+    now: part.readAt,
+  });
 
   const tabs: Array<Tab> = [
     {
@@ -133,6 +143,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
           clusterName={clusterName}
           externalId={externalId}
           row={part.row}
+          attention={attention}
           routes={routes}
           serviceExternalId={serviceExternalId}
           nodeExternalId={nodeExternalId}
@@ -183,6 +194,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
         serviceExternalId={serviceExternalId}
         nodeExternalId={nodeExternalId}
         now={part.readAt}
+        attention={attention}
       />
       <ResourcePartTabs label="Task" tabs={tabs} />
     </div>
