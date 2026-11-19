@@ -104,6 +104,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a sign-in and hands it to the captcha check; its attempts are counted by IdentityRateLimit",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
     "records the address of a status page sign-in; its attempts are counted by IdentityRateLimit",
+  "packages/App/FeatureSet/Identity/API/SsoSignInLinks.ts":
+    "hands the address to the captcha check; its requests are counted by PublicMessageRateLimit, per caller and per address",
   "packages/App/FeatureSet/Identity/API/SSO.ts":
     "records the address of a single sign-on",
   "packages/App/FeatureSet/Identity/API/GlobalSSO.ts":

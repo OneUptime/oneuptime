@@ -244,7 +244,13 @@
     "signInWithProvider": "{{name}} でサインイン",
     "requiredSubtitle": "このサーバーではシングルサインオン（SSO）が必須です。",
     "requiredNotSetUp": "このサーバーではシングルサインオンがまだ設定されていません。サーバー管理者に設定を依頼してください。",
-    "useDifferentEmail": "別のメールアドレスを使用"
+    "useDifferentEmail": "別のメールアドレスを使用",
+    "lastUsedTitle": "このデバイスで前回使用",
+    "forgetLastUsed": "このプロバイダーを削除",
+    "emailLinksPrompt": "このアドレスが所属するすべての組織の SSO サインインリンクを、このアドレスにメールで送信できます。",
+    "emailLinksButton": "サインインリンクをメールで受け取る",
+    "emailLinksSent": "このアドレスがシングルサインオンを使用する組織に所属している場合は、SSO サインインリンクをメールで送信しました。",
+    "emailLinksCaptchaRequired": "リンクをリクエストする前に、キャプチャを完了してください。"
   },
   "adminLogin": {
     "title": "マスター管理者のサインイン",

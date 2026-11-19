@@ -4,6 +4,7 @@ import ResellerAPI from "./API/Reseller";
 import MicrosoftSignInAPI from "./API/MicrosoftSignIn";
 import GoogleSignInAPI from "./API/GoogleSignIn";
 import SignInMethodsAPI from "./API/SignInMethods";
+import SsoSignInLinksAPI from "./API/SsoSignInLinks";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
@@ -38,6 +39,13 @@ const IdentityFeatureSet: FeatureSet = {
      * and with which providers - for its sign-in pages (./API/SignInMethods).
      */
     app.use([`/${APP_NAME}`, "/"], SignInMethodsAPI);
+
+    /*
+     * "Sign in with SSO"'s Email Me My Sign-in Links: the SSO sign-in links
+     * of an address's organizations, emailed to it, every address answered
+     * alike (./API/SsoSignInLinks, #9987).
+     */
+    app.use([`/${APP_NAME}`, "/"], SsoSignInLinksAPI);
 
     /*
      * Single sign-on - SAML and OIDC for projects, the whole instance and
