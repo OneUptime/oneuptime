@@ -5,6 +5,7 @@ import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ResourcePartHero from "../ResourcePart/ResourcePartHero";
 import {
+  ResourcePartAttention,
   ResourcePartChip,
   ResourcePartStatus,
 } from "../ResourcePart/ResourcePartTypes";
@@ -38,6 +39,11 @@ export interface ComponentProps {
   hostLatestReadingAt: Date | null;
   hostName: string;
   hostRoute: Route;
+  /*
+   * What its Needs attention card lists (getContainerHostPartAttention),
+   * which a Restart loop or Stopped reporting status opens.
+   */
+  attention?: ResourcePartAttention | undefined;
 }
 
 const ContainerHostContainerHero: FunctionComponent<ComponentProps> = (
@@ -104,6 +110,7 @@ const ContainerHostContainerHero: FunctionComponent<ComponentProps> = (
       }
       lastReportAt={isQuiet ? container?.lastReadingAt : undefined}
       chips={chips}
+      attention={props.attention}
     />
   );
 };
