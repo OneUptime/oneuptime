@@ -72,6 +72,12 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
    * and notifies anyone: what Create Announcement's line says (#9775).
    */
   "/status-page-announcement/reach",
+  /*
+   * The same of a maintenance event's and a maintenance template's pages:
+   * what their Subscriber Notifications line says (#9920).
+   */
+  "/scheduled-maintenance/reach",
+  "/scheduled-maintenance-template/reach",
 ];
 
 /*
@@ -176,6 +182,19 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "Announcement", "useAnnouncementReach.ts"],
     routePrefix: "/status-page-announcement/reach",
+  },
+  /*
+   * The maintenance forms' Subscriber Notifications line and the notes
+   * under their boxes ask what the status pages picked do - an event's and
+   * a template's each through its own API - through this one hook.
+   */
+  {
+    page: [
+      "Components",
+      "ScheduledMaintenance",
+      "useScheduledMaintenanceReach.ts",
+    ],
+    routePrefix: "/scheduled-maintenance",
   },
 ];
 

@@ -5,6 +5,10 @@ import ScheduledMaintenancePublication, {
   PUBLISH_ON_STATUS_PAGE_AT_COLUMN,
   ScheduledMaintenancePublicationColumns,
 } from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
+import ScheduledMaintenanceSubscriberReach, {
+  MaintenanceStatusPagesReason,
+  MaintenanceSubscriberMoment,
+} from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceSubscriberReach";
 import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
 import {
   translateTemplate,
@@ -270,19 +274,46 @@ export const getWaitingPublishAt: (
 /*
  * Whether the event's subscribers hear it is scheduled when it is
  * published: the 'scheduled' notification is on (a switch never set is on,
- * as on the model) and not skipped already.
+ * as on the model) and not skipped already - and, as its job decides it at
+ * the publish time, the event is shown on its status pages then and one of
+ * them shows maintenance events and notifies its subscribers (#9920): the
+ * rule Schedule Maintenance Event's Subscriber Notifications line reads
+ * (ScheduledMaintenanceSubscriberReach). `statusPagesReason` is the
+ * server's answer for the pages it is on (PickedStatusPagesReach); while it
+ * is not known, nobody is promised anything.
  */
 export const areSubscribersToldWhenPublished: (
   event: PublishingEvent | undefined | null,
-) => boolean = (event: PublishingEvent | undefined | null): boolean => {
-  if (!event) {
+  statusPagesReason: MaintenanceStatusPagesReason,
+) => boolean = (
+  event: PublishingEvent | undefined | null,
+  statusPagesReason: MaintenanceStatusPagesReason,
+): boolean => {
+  if (
+    !event ||
+    event.subscriberNotificationStatusOnEventScheduled ===
+      StatusPageSubscriberNotificationStatus.Skipped
+  ) {
     return false;
   }
 
   return (
-    event.shouldStatusPageSubscribersBeNotifiedOnEventCreated !== false &&
-    event.subscriberNotificationStatusOnEventScheduled !==
-      StatusPageSubscriberNotificationStatus.Skipped
+    ScheduledMaintenanceSubscriberReach.getMomentReason({
+      moment: MaintenanceSubscriberMoment.Scheduled,
+      settings: {
+        isVisibleOnStatusPage: event.isVisibleOnStatusPage,
+        publishOnStatusPageAt: event.publishOnStatusPageAt,
+        startsAt: null,
+        endsAt: null,
+        notifiesWhenScheduled:
+          event.shouldStatusPageSubscribersBeNotifiedOnEventCreated !== false,
+        // Only the 'scheduled' moment is read here.
+        notifiesWhenStarted: false,
+        notifiesWhenEnded: false,
+        reminders: [],
+      },
+      statusPagesReason: statusPagesReason,
+    }) === null
   );
 };
 

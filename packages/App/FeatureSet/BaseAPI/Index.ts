@@ -1908,12 +1908,9 @@ import WorkspaceNotificationLogService, {
 } from "Common/Server/Services/WorkspaceNotificationLogService";
 
 // scheduled maintenance template
-import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateAPI from "Common/Server/API/ScheduledMaintenanceTemplateAPI";
 import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
-import ScheduledMaintenanceTemplateService, {
-  Service as ScheduledMaintenanceTemplateServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService, {
   Service as ScheduledMaintenanceTemplateOwnerTeamServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
@@ -4116,16 +4113,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // scheduled maintenance template
+    /*
+     * scheduled maintenance template: its CRUD, and whether an event made
+     * from it on the status pages picked notifies anyone (#9920).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateServiceType
-      >(
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateService,
-      ).getRouter(),
+      new ScheduledMaintenanceTemplateAPI().getRouter(),
     );
 
     app.use(

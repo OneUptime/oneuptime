@@ -77,10 +77,15 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   getDefaultMaintenanceEndsAt,
   getDefaultMaintenanceStartsAt,
-  getEventSubscriberNotificationsSection,
   getMaintenanceEndsAtError,
   moveMaintenanceEndWithStart,
 } from "../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  MaintenanceNotifyOptionsReason,
+  MaintenanceRemindersReason,
+  getEventSubscriberNotificationsSection,
+} from "../../Components/ScheduledMaintenance/ScheduledMaintenanceReachLines";
+import { MaintenanceReachRecord } from "../../Components/ScheduledMaintenance/ScheduledMaintenanceReach";
 import {
   hasPickedMonitors,
   omitMonitorStatusWithoutMonitors,
@@ -113,7 +118,8 @@ const advancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
 /*
  * Subscriber Notifications, as an event asks it: first when the event is
  * published on its status pages - right away, unless a time is picked -
- * then who is told, and when.
+ * then who is told, and when. Its line says what is true for the status
+ * pages picked and the event's own settings (#9920).
  */
 const eventSubscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
   getEventSubscriberNotificationsSection<ScheduledMaintenance>();
@@ -1061,7 +1067,8 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                  * off the pages, and its subscribers told nothing, until
                  * then. All three switches are on, as on the model:
                  * subscribers hear when the event is scheduled, starts and
-                 * ends.
+                 * ends - as far as the status pages picked show maintenance
+                 * events and notify, which the line says (#9920).
                  */
                 getColumnChoiceField<ScheduledMaintenance, PublishChoice>({
                   config: PUBLISH_CHOICE,
@@ -1117,6 +1124,21 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
+                  /*
+                   * Under the three moments: why nobody would be told of
+                   * any of them - no status page picked, the pages picked
+                   * hide maintenance events or send nothing (#9920).
+                   */
+                  getFooterElement: (
+                    values: FormValues<ScheduledMaintenance>,
+                  ) => {
+                    return (
+                      <MaintenanceNotifyOptionsReason
+                        values={values}
+                        record={MaintenanceReachRecord.Event}
+                      />
+                    );
+                  },
                 },
                 {
                   field: {
@@ -1140,6 +1162,15 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                       />
                     );
+                  },
+                  /*
+                   * Which reminders are not sent: due before the event is
+                   * published, or whose time has passed (#9920).
+                   */
+                  getFooterElement: (
+                    values: FormValues<ScheduledMaintenance>,
+                  ) => {
+                    return <MaintenanceRemindersReason values={values} />;
                   },
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,

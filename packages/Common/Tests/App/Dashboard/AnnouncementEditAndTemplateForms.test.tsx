@@ -139,7 +139,10 @@ import {
   ANNOUNCEMENT_NOT_SHOWN,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
   ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+  ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
+  ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import {
   ANNOUNCEMENT_NOTIFIES,
   AnnouncementReachAnswer,
@@ -673,6 +676,92 @@ describe("the announcement's details card Edit", () => {
       expect(sectionLine()).toBe(ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded);
     });
   });
+
+  /*
+   * #9921: the update job skips an update for the announcement's own state
+   * before it reads a page - its own notification not gone out yet, or its
+   * start still to come - and the ticked box says so first.
+   */
+  describe("for the announcement's own state", () => {
+    function queryUpdateReason(): HTMLElement | null {
+      return screen.queryByTestId("announcement-update-notify-reason");
+    }
+
+    async function tickUpdateBox(): Promise<void> {
+      fireEvent.click(
+        screen.getByRole("checkbox", {
+          name: SubscriberUpdateNotification.formFieldTitle,
+        }),
+      );
+      await act(async () => {});
+    }
+
+    test("its start still to come: it is not shown until then, so the update is not sent - whatever the pages do", async () => {
+      storedAnnouncement["showAnnouncementAt"] = "2026-10-05T09:00:00.000Z";
+      reachAnswer = {
+        nothingSentReason: PublicNoteNothingSentReason.NotificationsOff,
+        originalNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      };
+
+      await renderEditForm();
+      await tickUpdateBox();
+
+      await waitFor(() => {
+        expect(queryUpdateReason()).toHaveTextContent(
+          `This announcement is not shown on status pages until ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(new Date("2026-10-05T09:00:00.000Z"))}, so this update is not sent.`,
+        );
+      });
+    });
+
+    test("its own notification not gone out yet: so the update is not sent", async () => {
+      reachAnswer = {
+        nothingSentReason: null,
+        originalNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      };
+
+      await renderEditForm();
+      await tickUpdateBox();
+
+      await waitFor(() => {
+        expect(queryUpdateReason()).toHaveTextContent(
+          ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
+        );
+      });
+    });
+
+    test.each([
+      StatusPageSubscriberNotificationStatus.Success,
+      StatusPageSubscriberNotificationStatus.Skipped,
+      StatusPageSubscriberNotificationStatus.InProgress,
+    ])(
+      "its own notification %s: nothing more than what the pages do",
+      async (status: StatusPageSubscriberNotificationStatus) => {
+        reachAnswer = {
+          nothingSentReason: null,
+          originalNotificationStatus: status,
+        };
+
+        await renderEditForm();
+        await tickUpdateBox();
+        await waitFor(() => {
+          expect(reachAsks.length).toBeGreaterThan(0);
+        });
+        await act(async () => {});
+
+        expect(queryUpdateReason()).toBeNull();
+      },
+    );
+
+    test("unticked, as every edit starts: nothing is said", async () => {
+      storedAnnouncement["showAnnouncementAt"] = "2026-10-05T09:00:00.000Z";
+
+      await renderEditForm();
+
+      expect(queryUpdateReason()).toBeNull();
+    });
+  });
 });
 
 describe("an announcement template", () => {
@@ -774,6 +863,13 @@ describe("an announcement template", () => {
 
     expect(notify).toBeVisible();
     expect(notify).toBeChecked();
+    // What ticking it asks for, as Create's switch says it (#9921).
+    expect(notify).toHaveAccessibleDescription(
+      ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
+    );
+    expect(form()).not.toHaveTextContent(
+      "Subscribers of these status pages are told when an announcement made from this template starts showing.",
+    );
     expect(labelText("Monitors Affected")).toBe("Monitors Affected (Optional)");
 
     fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
