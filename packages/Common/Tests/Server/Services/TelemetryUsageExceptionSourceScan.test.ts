@@ -224,7 +224,7 @@ describe("a usage scan by an exception source", () => {
         attributeFilter: getBilledExceptionsFilter(ProductType.Logs),
       }),
     ).rejects.toThrow(
-      "attributeFilter needs a required attributes map, and MonitorLogV3 has none",
+      "An attribute filter needs a table with a required attributes map, and MonitorLogV3 has none.",
     );
     expect(captured.query).toBeNull();
   });
@@ -262,7 +262,7 @@ describe("a usage scan by an exception source", () => {
         endDate: END,
         attributeFilter: { key: "", value: "log", isEqual: true },
       }),
-    ).rejects.toThrow("attributeFilter needs a key.");
+    ).rejects.toThrow("An attribute filter needs a key.");
     expect(captured.query).toBeNull();
   });
 });

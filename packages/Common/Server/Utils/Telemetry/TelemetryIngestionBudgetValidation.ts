@@ -114,14 +114,23 @@ export default class TelemetryIngestionBudgetValidation {
         });
 
         if (problem) {
-          throw new BadDataException(
-            `${this.describeColumn(signal, kind)}: ${problem}`,
-          );
+          this.throwValueProblem(signal, kind, problem);
         }
 
         data[column] = normalizeTelemetryIngestionBudgetValue(data[column]);
       }
     }
+  }
+
+  // A budget value's problem, said with the field it is in.
+  private static throwValueProblem(
+    signal: TelemetryIngestionBudgetSignal,
+    kind: TelemetryIngestionBudgetValueKind,
+    problem: string,
+  ): never {
+    throw new BadDataException(
+      `${this.describeColumn(signal, kind)}: ${problem}`,
+    );
   }
 
   // Check and normalize the instance-wide warning threshold and reset time.
@@ -272,8 +281,10 @@ export default class TelemetryIngestionBudgetValidation {
       });
 
       if (problem) {
-        throw new BadDataException(
-          `${this.describeColumn(signal, TelemetryIngestionBudgetValueKind.DailyBudget)}: ${problem}`,
+        this.throwValueProblem(
+          signal,
+          TelemetryIngestionBudgetValueKind.DailyBudget,
+          problem,
         );
       }
 

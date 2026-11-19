@@ -1333,12 +1333,12 @@ export default class AnalyticsDatabaseService<
       column.type !== TableColumnType.MapStringString
     ) {
       throw new BadDataException(
-        `attributeFilter needs a required attributes map, and ${this.model.tableName} has none`,
+        `An attribute filter needs a table with a required attributes map, and ${this.model.tableName} has none.`,
       );
     }
 
     if (!filter.key) {
-      throw new BadDataException("attributeFilter needs a key.");
+      throw new BadDataException("An attribute filter needs a key.");
     }
   }
 
