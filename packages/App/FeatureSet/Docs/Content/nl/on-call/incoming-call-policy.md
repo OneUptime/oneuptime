@@ -53,7 +53,7 @@ Ga naar **Bereikbaarheid** > **Beleid inkomende gesprekken** en klik op **Beleid
 
 ### Kies het Twilio-account
 
-Het **Overzicht** van het beleid toont een kaart **Instellen** met drie genummerde stappen. Klik in de eerste op **Selecteren**, kies het account onder **Twilio-configuratie** en klik op **Opslaan**.
+Het **Overzicht** van het beleid toont een kaart **Instellen** met drie genummerde stappen. Klik in de eerste op **Selecteren**, kies het account onder **Twilio-configuratie** en klik op **Opslaan**. De lijst biedt alleen configuraties aan die worden gebruikt voor **Oproepen en sms** of **Alleen oproepen**. Een beleid waarvan de configuratie later op **Alleen sms** wordt gezet, houdt die, en de kaart zegt wat u moet wijzigen.
 
 ### Voeg een telefoonnummer toe
 

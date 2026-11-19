@@ -147,6 +147,12 @@ Det ingen standard sender, går ut slik det ville gjort uten en konfigurasjon: s
 
 Statussider tilbyr bare konfigurasjonene som sender SMS, og **Send test-SMS** og **Send testanrop** vises bare for det en konfigurasjon sender. Alle eksisterende konfigurasjoner er som før satt til **Anrop og SMS**. Gjennom API-et og Terraform er valget feltet `usedFor`, og en konfigurasjon uten numrene valget trenger, blir avvist.
 
+### Talepost ved vaktanrop
+
+For Twilio er et anrop som taleposten svarer på, besvart, akkurat som et anrop en person svarer på. Derfor spør hvert vaktanrop Twilio i bakgrunnen om en person eller taleposten svarte, med [telefonsvarergjenkjenning](https://www.twilio.com/docs/voice/answering-machine-detection): Den som svarer, hører varslingen med en gang. Et anrop som taleposten svarer på, regnes som ubesvart, akkurat som et anrop som ringer ut, og varslingen fortsetter som for et tapt anrop. Så snart hilsenen er ferdig, legger OneUptime igjen en kort melding med det anropet sa. Loggen til anropet sier om en melding ble lagt igjen, og det gjør også hendelsens feed: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio tar betalt for telefonsvarergjenkjenning for hvert besvarte anrop det sjekker, på kontoen som ringer: kontoen for hele installasjonen eller prosjektets egen konfigurasjon. Den er slått på for alle prosjekter. Slå av **Talepost ved vaktanrop** under **Flere innstillinger** på **Prosjektinnstillinger > Varslinger > Varslingskanaler** for å slå den av: Et anrop som taleposten svarer på, regnes da som besvart, som før. **Send testanrop** og innkommende anrop sjekkes aldri. Akkurat som anropsresultater trenger den at Twilio kan nå serveren din: se neste avsnitt.
+
 ## 3. Konfigurer nettverkstilgang
 
 Sending fungerer med bare utgående tilgang. Leveringsoppdateringer, anropsresultater, bekreftelse med tastene og innkommende anrop krever at Twilio når serveren din.
@@ -171,7 +177,7 @@ Innkommende tilgang avhenger av funksjonen:
 | --- | --- |
 | Sending av SMS | Nei. Oppdateringer av leveringsstatus trenger likevel et tilbakekall. |
 | Et enkelt testanrop med tale | Nei. OneUptime sender de talte instruksjonene med i den utgående API-forespørselen. |
-| Vite om et vaktanrop ble besvart | Ja. Twilio melder hvordan hvert anrop endte, slik at hendelsens feed kan si når noen ikke svarte. Anrop går ut også uten dette. |
+| Vite om et vaktanrop ble besvart | Ja. Twilio melder hvordan hvert anrop endte, og om en person eller taleposten svarte, slik at hendelsens feed kan si når noen ikke svarte. Anrop går ut også uten dette. |
 | Trykke 1 for å bekrefte et vaktvarsel | Ja. Twilio sender tasteinndataene til OneUptime. |
 | Policyer for innkommende anrop | Ja. Twilio henter anropsinstruksjoner og rapporterer resultatene av oppringingen. |
 
@@ -181,13 +187,14 @@ Dette er de eksterne stiene gjennom OneUptimes Nginx-gateway. Plassholderne er f
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Leveringsstatus for SMS |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Anropsresultat |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Om en person eller taleposten svarte på et vaktanrop |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bekreftelse med tastene |
 | POST | `/notification/incoming-call/voice` | Valgfrie instruksjoner for innkommende anrop |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valgfrie resultater av ruting av innkommende anrop |
 
 OneUptime genererer URL-ene for SMS, anropsresultater og bekreftelse automatisk. Ikke erstatt tokenene deres med en fast webhook-URL. For innkommende anrop følger du [policyer for innkommende anrop](/docs/on-call/incoming-call-policy), som konfigurerer webhooken til nummeret når du knytter til et nummer.
 
-Twilio krever [offentlig tilgjengelige webhook-URL-er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Bruk et offentlig klarert TLS-sertifikat, og bevar den opprinnelige verten, protokollen, stien, spørringsparameterne, kroppen og headeren `X-Twilio-Signature` gjennom proxyer. Behandlerne for innkommende anrop validerer Twilios signaturer; SMS-levering og anropsresultater bruker et URL-token per melding eller anrop, og bekreftelse med tastene et signert spørringstoken. Ikke vis tokener i delte logger eller skjermbilder. Se [Twilios webhook-sikkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio krever [offentlig tilgjengelige webhook-URL-er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Bruk et offentlig klarert TLS-sertifikat, og bevar den opprinnelige verten, protokollen, stien, spørringsparameterne, kroppen og headeren `X-Twilio-Signature` gjennom proxyer. Behandlerne for innkommende anrop validerer Twilios signaturer; SMS-levering og anropsresultater bruker et URL-token per melding eller anrop, og bekreftelse med tastene et signert spørringstoken. Tilbakekallet for talepost sjekker både URL-tokenet sitt og Twilios signatur. Ikke vis tokener i delte logger eller skjermbilder. Se [Twilios webhook-sikkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publiser tilbakekall fra en privat installasjon
 

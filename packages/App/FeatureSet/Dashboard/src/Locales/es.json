@@ -58895,5 +58895,19 @@
   "Whether subscribers are notified depends on the status pages picked.": "Que se notifique o no a los suscriptores depende de las páginas de estado seleccionadas.",
   "Documents": "Documentos",
   "Index size": "Tamaño del índice",
-  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Los monitores de memoria y de disco se ofrecen en cuanto el Ops Agent se ejecute en la VM y los informe."
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Los monitores de memoria y de disco se ofrecen en cuanto el Ops Agent se ejecute en la VM y los informe.",
+  "A call that voicemail answers counts as answered.": "Una llamada que contesta el buzón de voz cuenta como contestada.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Una llamada que contesta el buzón de voz cuenta como no contestada y deja un mensaje breve. Twilio cobra por cada llamada contestada que comprueba.",
+  "Configs used for SMS only are not listed: they take no calls.": "Las configuraciones usadas solo para SMS no aparecen: no reciben llamadas.",
+  "Detect Voicemail on On-Call Calls": "Detectar el buzón de voz en las llamadas de guardia",
+  "Detect voicemail on on-call calls": "Detectar el buzón de voz en las llamadas de guardia",
+  "No Twilio Configuration for Calls": "No hay configuración de Twilio para llamadas",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Saber si una persona o el buzón de voz contestó cada llamada de guardia, para que una llamada que fue al buzón no cuente como contestada.",
+  "The call was not answered: a fax machine picked up.": "La llamada no se contestó: contestó un fax.",
+  "The call was not answered: it went to voicemail, and a message was left.": "La llamada no se contestó: fue al buzón de voz y se dejó un mensaje.",
+  "The call was not answered: it went to voicemail, and no message was left.": "La llamada no se contestó: fue al buzón de voz y no se dejó ningún mensaje.",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Esta configuración se usa solo para SMS. Cámbiala a Llamadas y SMS, o Solo llamadas, en Ajustes del proyecto.",
+  "Voicemail": "Buzón de voz",
+  "Voicemail on On-Call Calls": "Buzón de voz en las llamadas de guardia",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Todas tus configuraciones de Twilio se usan solo para SMS. Cambia una a Llamadas y SMS, o Solo llamadas, o añade una en Ajustes del proyecto > Notificaciones > Canales de notificación."
 }

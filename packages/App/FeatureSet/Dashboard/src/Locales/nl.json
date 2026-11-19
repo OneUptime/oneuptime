@@ -58895,5 +58895,19 @@
   "Whether subscribers are notified depends on the status pages picked.": "Of abonnees een melding krijgen, hangt af van de geselecteerde statuspagina's.",
   "Documents": "Documenten",
   "Index size": "Indexgrootte",
-  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitors voor geheugen en schijven worden aangeboden zodra de Ops Agent op de VM draait en ze rapporteert."
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "Monitors voor geheugen en schijven worden aangeboden zodra de Ops Agent op de VM draait en ze rapporteert.",
+  "A call that voicemail answers counts as answered.": "Een oproep die de voicemail aanneemt, telt als beantwoord.",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "Een oproep die de voicemail aanneemt, telt als niet beantwoord en laat een kort bericht achter. Twilio rekent kosten voor elke beantwoorde oproep die het controleert.",
+  "Configs used for SMS only are not listed: they take no calls.": "Configuraties die alleen voor sms worden gebruikt, staan er niet bij: die nemen geen oproepen aan.",
+  "Detect Voicemail on On-Call Calls": "Voicemail herkennen bij oproepen voor dienst",
+  "Detect voicemail on on-call calls": "Voicemail herkennen bij oproepen voor dienst",
+  "No Twilio Configuration for Calls": "Geen Twilio-configuratie voor oproepen",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "Herken of een persoon of de voicemail elke oproep voor dienst aannam, zodat een oproep die op de voicemail uitkwam niet als beantwoord telt.",
+  "The call was not answered: a fax machine picked up.": "Het gesprek is niet beantwoord: een faxapparaat nam op.",
+  "The call was not answered: it went to voicemail, and a message was left.": "Het gesprek is niet beantwoord: het ging naar de voicemail, en er is een bericht ingesproken.",
+  "The call was not answered: it went to voicemail, and no message was left.": "Het gesprek is niet beantwoord: het ging naar de voicemail, en er is geen bericht ingesproken.",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Deze configuratie wordt alleen voor sms gebruikt. Zet hem in de projectinstellingen op Oproepen en sms, of Alleen oproepen.",
+  "Voicemail": "Voicemail",
+  "Voicemail on On-Call Calls": "Voicemail bij oproepen voor dienst",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Uw Twilio-configuraties worden allemaal alleen voor sms gebruikt. Zet er een op Oproepen en sms, of Alleen oproepen, of voeg er een toe onder Projectinstellingen > Meldingen > Meldingskanalen."
 }

@@ -58895,5 +58895,19 @@
   "Whether subscribers are notified depends on the status pages picked.": "是否通知订阅者取决于所选的状态页。",
   "Documents": "文档",
   "Index size": "索引大小",
-  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "VM 上的 Ops Agent 运行并上报内存和磁盘数据后，就会提供内存和磁盘监视器。"
+  "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.": "VM 上的 Ops Agent 运行并上报内存和磁盘数据后，就会提供内存和磁盘监视器。",
+  "A call that voicemail answers counts as answered.": "语音信箱接听的电话算作已接听。",
+  "A call that voicemail answers counts as not answered, and leaves a short message. Twilio charges for each answered call it checks.": "语音信箱接听的电话算作未接听，并会留下一段简短留言。Twilio 会对其检测的每个已接听电话收费。",
+  "Configs used for SMS only are not listed: they take no calls.": "仅用于短信的配置不会列出：它们无法接听来电。",
+  "Detect Voicemail on On-Call Calls": "在值班电话中检测语音信箱",
+  "Detect voicemail on on-call calls": "在值班电话中检测语音信箱",
+  "No Twilio Configuration for Calls": "没有用于通话的 Twilio 配置",
+  "Tell whether a person or voicemail answered each on-call phone call, so a call that went to voicemail is not taken as answered.": "判断每个值班电话是由人还是语音信箱接听，这样转入语音信箱的电话不会算作已接听。",
+  "The call was not answered: a fax machine picked up.": "电话未接听：传真机接听了电话。",
+  "The call was not answered: it went to voicemail, and a message was left.": "电话未接听：转入了语音信箱，并留下了留言。",
+  "The call was not answered: it went to voicemail, and no message was left.": "电话未接听：转入了语音信箱，未能留下留言。",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "此配置仅用于短信。请在项目设置中将其改为“通话和短信”或“仅通话”。",
+  "Voicemail": "语音信箱",
+  "Voicemail on On-Call Calls": "值班电话的语音信箱",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "你的 Twilio 配置都仅用于短信。请将其中一个改为“通话和短信”或“仅通话”，或在“项目设置 > 通知 > 通知渠道”中添加一个。"
 }
