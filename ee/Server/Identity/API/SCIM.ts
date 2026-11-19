@@ -1356,6 +1356,13 @@ const SCIM_ACCOUNT_SELECT: Select<User> = {
 interface ProjectScimUser {
   account: User;
   record: ProjectSCIMUser | null;
+  /*
+   * Whether the answer may show the account's own name and dates: only for
+   * a member of the project the identity provider has not written (no
+   * record) who has joined the project - an accepted membership. Never for
+   * a user with a record, nor for an account that is only invited (#9825).
+   */
+  showsAccountProfile: boolean;
 }
 
 // The filters a user list answers (RFC 7644, section 3.4.2.2).
@@ -1365,16 +1372,24 @@ const USER_FILTER_ATTRIBUTES: ReadonlyArray<string> = [
   "id",
 ];
 
-const toScimAccount: (account: User) => ScimUserAccount = (
-  account: User,
+// The account of a SCIM user, with its own name and dates only where they may be shown.
+const toScimAccount: (user: ProjectScimUser) => ScimUserAccount = (
+  user: ProjectScimUser,
 ): ScimUserAccount => {
-  return {
-    id: account.id!,
-    email: account.email?.toString() || "",
-    name: account.name?.toString() || "",
-    createdAt: account.createdAt,
-    updatedAt: account.updatedAt,
+  const account: ScimUserAccount = {
+    id: user.account.id!,
+    email: user.account.email?.toString() || "",
   };
+
+  if (user.showsAccountProfile && !user.record) {
+    account.profile = {
+      name: user.account.name?.toString() || "",
+      createdAt: user.account.createdAt,
+      updatedAt: user.account.updatedAt,
+    };
+  }
+
+  return account;
 };
 
 // The SCIM user to answer with.
@@ -1388,7 +1403,7 @@ const renderProjectScimUser: (data: {
   user: ProjectScimUser;
 }): JSONObject => {
   return renderScimUser({
-    account: toScimAccount(data.user.account),
+    account: toScimAccount(data.user),
     record: data.user.record,
     location: `${getScimBaseUrl({
       req: data.req,
@@ -1436,11 +1451,57 @@ const withAccounts: (
     );
 
     if (account) {
-      users.push({ account: account, record: record });
+      users.push({
+        account: account,
+        record: record,
+        showsAccountProfile: false,
+      });
     }
   }
 
   return users;
+};
+
+/*
+ * The account's membership of the project, with the account: an accepted
+ * one when it has one, else a pending invitation, else null. Whether it has
+ * joined decides what of its own an answer may show (ProjectScimUser).
+ */
+const findProjectMembership: (data: {
+  projectId: ObjectID;
+  userId: ObjectID;
+}) => Promise<TeamMember | null> = async (data: {
+  projectId: ObjectID;
+  userId: ObjectID;
+}): Promise<TeamMember | null> => {
+  const select: Select<TeamMember> = {
+    userId: true,
+    hasAcceptedInvitation: true,
+    user: SCIM_ACCOUNT_SELECT,
+  };
+
+  const accepted: TeamMember | null = await TeamMemberService.findOneBy({
+    query: {
+      projectId: data.projectId,
+      userId: data.userId,
+      hasAcceptedInvitation: true,
+    },
+    select: select,
+    props: { isRoot: true },
+  });
+
+  if (accepted) {
+    return accepted;
+  }
+
+  return await TeamMemberService.findOneBy({
+    query: {
+      projectId: data.projectId,
+      userId: data.userId,
+    },
+    select: select,
+    props: { isRoot: true },
+  });
 };
 
 /*
@@ -1469,20 +1530,17 @@ const findProjectScimUser: (data: {
       userId: userId,
     });
 
-  const membership: TeamMember | null = await TeamMemberService.findOneBy({
-    query: {
-      projectId: data.projectId,
-      userId: userId,
-    },
-    select: {
-      userId: true,
-      user: SCIM_ACCOUNT_SELECT,
-    },
-    props: { isRoot: true },
+  const membership: TeamMember | null = await findProjectMembership({
+    projectId: data.projectId,
+    userId: userId,
   });
 
   if (membership?.user) {
-    return { account: membership.user, record: record };
+    return {
+      account: membership.user,
+      record: record,
+      showsAccountProfile: !record && Boolean(membership.hasAcceptedInvitation),
+    };
   }
 
   if (!record) {
@@ -1495,7 +1553,9 @@ const findProjectScimUser: (data: {
     props: { isRoot: true },
   });
 
-  return account ? { account: account, record: record } : null;
+  return account
+    ? { account: account, record: record, showsAccountProfile: false }
+    : null;
 };
 
 /*
@@ -1527,6 +1587,7 @@ const listAllProjectScimUsers: (data: {
     select: {
       userId: true,
       createdAt: true,
+      hasAcceptedInvitation: true,
       user: SCIM_ACCOUNT_SELECT,
     },
     sort: {
@@ -1536,6 +1597,15 @@ const listAllProjectScimUsers: (data: {
     skip: 0,
     props: { isRoot: true },
   });
+
+  // Who has joined the project: an accepted row in any of its teams.
+  const joined: Set<string> = new Set<string>();
+
+  for (const membership of memberships) {
+    if (membership.hasAcceptedInvitation && membership.user?.id) {
+      joined.add(membership.user.id.toString().toLowerCase());
+    }
+  }
 
   for (const membership of memberships) {
     if (!membership.user?.id) {
@@ -1549,7 +1619,11 @@ const listAllProjectScimUsers: (data: {
     }
 
     listed.add(key);
-    users.push({ account: membership.user, record: null });
+    users.push({
+      account: membership.user,
+      record: null,
+      showsAccountProfile: joined.has(key),
+    });
   }
 
   return users;
@@ -1921,7 +1995,7 @@ const createProjectScimUser: (data: {
   executionSteps.push("Recorded the user for this SCIM connection");
 
   return {
-    user: { account: user, record: record },
+    user: { account: user, record: record, showsAccountProfile: false },
     email: email,
     name: name,
     userWasCreated: userWasCreated,
@@ -2006,7 +2080,7 @@ const updateProjectScimUser: (data: {
 
   const current: ScimUserResource = found.record
     ? getScimUserResourceOfRecord(found.record)
-    : getScimUserResourceOfAccount(toScimAccount(found.account));
+    : getScimUserResourceOfAccount(toScimAccount(found));
 
   const body: JSONObject =
     data.body && typeof data.body === "object" && !Array.isArray(data.body)
@@ -2277,7 +2351,7 @@ const updateProjectScimUser: (data: {
 
   return {
     refused: false,
-    user: { account: account, record: record },
+    user: { account: account, record: record, showsAccountProfile: false },
     active: active,
     teamOperationPerformed: teamOperationPerformed,
     fieldsUpdated: fieldsUpdated,

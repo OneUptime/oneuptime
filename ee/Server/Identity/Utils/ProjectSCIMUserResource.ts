@@ -22,9 +22,17 @@ import ObjectID from "Common/Types/ObjectID";
  * ProjectSCIMAccountPolicy allows. getAccountEmail and getAccountName say what
  * the identity provider would have the account be.
  *
- * In a ScimUserResource an attribute that is absent was never sent, and the
- * answer falls back to the account's own value; one that is null was
- * cleared, and is left out of the answer. "" is a value like any other.
+ * The answer never shows the account's own name or dates for a user the
+ * connection keeps a record of (#9825). An identity provider can create a
+ * user for an address that already had an account, elsewhere on the
+ * server; the account's name and dates would tell whoever holds the
+ * connection's token that it did. Only the account's id is answered with:
+ * identity providers keep it.
+ *
+ * In a ScimUserResource an attribute that is absent was never sent, and is
+ * left out of the answer (the userName, which SCIM requires, and the emails
+ * fall back to an address the identity provider sent); one that is null was
+ * cleared, and is left out too. "" is a value like any other.
  * ---------------------------------------------------------------------------
  */
 
@@ -69,13 +77,25 @@ export interface ScimUserResource {
   active?: boolean;
 }
 
+// The account's own name and dates.
+export interface ScimUserAccountProfile {
+  name: string;
+  createdAt?: Date | undefined;
+  updatedAt?: Date | undefined;
+}
+
 // The account a SCIM user is, as the answer reads it.
 export interface ScimUserAccount {
   id: ObjectID;
   email: string;
-  name: string;
-  createdAt?: Date | undefined;
-  updatedAt?: Date | undefined;
+  /*
+   * The account's own name and dates, given only where an answer may show
+   * them: for a member of the project the identity provider has not written
+   * (no record), who has joined the project - the project sees its members'
+   * profiles anyway. An account that is only invited, or that the
+   * connection keeps a record of, is answered without them (#9825).
+   */
+  profile?: ScimUserAccountProfile | undefined;
 }
 
 const isObject: (value: unknown) => value is JSONObject = (
@@ -795,21 +815,28 @@ export const getScimUserResourceOfRecord: (
 /*
  * The SCIM user an account is before its connection keeps anything of it -
  * a member of the project the identity provider has not written - as the
- * answer shows it: what a PATCH to such a user starts from.
+ * answer shows it: what a PATCH to such a user starts from. Its name only
+ * when the account's profile is given (ScimUserAccount): an invitee is the
+ * address the project invited, and nothing of its own.
  */
 export const getScimUserResourceOfAccount: (
   account: ScimUserAccount,
 ) => ScimUserResource = (account: ScimUserAccount): ScimUserResource => {
-  const name: { givenName: string; familyName: string; formatted: string } =
-    splitName(getDisplayName(account));
-
-  return {
+  const resource: ScimUserResource = {
     userName: account.email,
-    displayName: name.formatted,
-    name: name,
     emails: [{ value: account.email, type: "work", primary: true }],
     active: true,
   };
+
+  if (account.profile) {
+    const name: { givenName: string; familyName: string; formatted: string } =
+      splitName(getDisplayName(account, account.profile));
+
+    resource.displayName = name.formatted;
+    resource.name = name;
+  }
+
+  return resource;
 };
 
 // What a record of `resource` holds.
@@ -928,10 +955,14 @@ export const getAccountName: (resource: ScimUserResource) => string = (
     : "";
 };
 
-const getDisplayName: (account: ScimUserAccount) => string = (
+const getDisplayName: (
   account: ScimUserAccount,
+  profile: ScimUserAccountProfile,
+) => string = (
+  account: ScimUserAccount,
+  profile: ScimUserAccountProfile,
 ): string => {
-  return account.name || account.email.split("@")[0] || "Unknown User";
+  return profile.name || account.email.split("@")[0] || "Unknown User";
 };
 
 const splitName: (fullName: string) => {
@@ -951,9 +982,19 @@ const splitName: (fullName: string) => {
 };
 
 /*
- * The SCIM user to answer with: what the identity provider sent, where it
- * sent something, and the account's own values where it did not. A user the
- * connection keeps no record of is active.
+ * The SCIM user to answer with (#9825):
+ *
+ *   - a user the connection keeps a record of is what the identity provider
+ *     sent, and nothing of the account's own: a name, display name or date
+ *     the record does not hold is left out, whatever the account has. The
+ *     userName, which SCIM requires (RFC 7643, section 4.1), is the one sent,
+ *     else an address sent; the emails, when none were sent, the address its
+ *     userName is. Only a record whose userName was cleared, with no address
+ *     left in it, falls back to the account's address.
+ *   - a member of the project the identity provider has not written is the
+ *     account as the project sees it, active: with its name and dates when
+ *     it has joined the project (the account's profile is given), and only
+ *     the address the project invited when it has not.
  */
 export const renderScimUser: (data: {
   account: ScimUserAccount;
@@ -967,9 +1008,12 @@ export const renderScimUser: (data: {
 }): JSONObject => {
   const sent: ScimUserResource = data.record
     ? getScimUserResourceOfRecord(data.record)
-    : {};
-  const derived: { givenName: string; familyName: string; formatted: string } =
-    splitName(getDisplayName(data.account));
+    : getScimUserResourceOfAccount(data.account);
+
+  // Never the account's own dates for a user the connection keeps a record of.
+  const profile: ScimUserAccountProfile | undefined = data.record
+    ? undefined
+    : data.account.profile;
 
   const user: JSONObject = {
     schemas: [SCIM_USER_SCHEMA],
@@ -980,11 +1024,10 @@ export const renderScimUser: (data: {
     user["externalId"] = sent.externalId;
   }
 
-  user["userName"] = sent.userName ? sent.userName : data.account.email;
+  user["userName"] =
+    sent.userName || getAccountEmail(sent) || data.account.email;
 
-  if (sent.name === undefined) {
-    user["name"] = { ...derived };
-  } else if (sent.name !== null) {
+  if (sent.name) {
     const name: JSONObject = {};
 
     for (const part of NAME_PARTS) {
@@ -1010,16 +1053,17 @@ export const renderScimUser: (data: {
     user["name"] = name;
   }
 
-  if (sent.displayName === undefined) {
-    user["displayName"] = derived.formatted;
-  } else if (sent.displayName !== null) {
+  if (typeof sent.displayName === "string") {
     user["displayName"] = sent.displayName;
   }
 
   if (sent.emails === undefined) {
-    user["emails"] = [
-      { value: data.account.email, type: "work", primary: true },
-    ];
+    // No emails sent: the address the userName is, when it is one.
+    const address: string | null = getAccountEmail(sent);
+
+    if (address) {
+      user["emails"] = [{ value: address, type: "work", primary: true }];
+    }
   } else if (sent.emails !== null && sent.emails.length > 0) {
     user["emails"] = sent.emails.map((email: ScimUserEmail): JSONObject => {
       const entry: JSONObject = { value: email.value };
@@ -1038,10 +1082,12 @@ export const renderScimUser: (data: {
 
   user["active"] = data.record ? data.record.isActive !== false : true;
 
-  const created: Date | undefined =
-    data.record?.createdAt || data.account.createdAt;
-  const lastModified: Date | undefined =
-    data.record?.updatedAt || data.account.updatedAt;
+  const created: Date | undefined = data.record
+    ? data.record.createdAt
+    : profile?.createdAt;
+  const lastModified: Date | undefined = data.record
+    ? data.record.updatedAt
+    : profile?.updatedAt;
 
   user["meta"] = {
     resourceType: "User",

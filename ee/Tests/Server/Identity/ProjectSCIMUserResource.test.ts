@@ -34,12 +34,25 @@ const SCIM_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const LOCATION: string = `https://oneuptime.example.com/identity/scim/v2/${SCIM_ID.toString()}/Users/${USER_ID.toString()}`;
 
+/*
+ * An account whose own name and dates the answer may show: a member of the
+ * project who has joined it. The renderer must still never show them for a
+ * user the connection keeps a record of (#9825).
+ */
 const ACCOUNT: ScimUserAccount = {
   id: USER_ID,
   email: "dana.scully@example.com",
-  name: "Dana Scully",
-  createdAt: new Date("2026-01-01T00:00:00.000Z"),
-  updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  profile: {
+    name: "Dana Scully",
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  },
+};
+
+// The same account, only invited to the project: nothing of its own is shown.
+const INVITED_ACCOUNT: ScimUserAccount = {
+  id: USER_ID,
+  email: "dana.scully@example.com",
 };
 
 // A record as the service reads it back, holding `resource`.
@@ -593,14 +606,99 @@ describe("renderScimUser - what the identity provider reads back", () => {
     expect("emails" in user).toBe(false);
   });
 
-  test("what was never sent falls back to the account", () => {
+  /*
+   * #9825: the account may have existed before the identity provider created
+   * the user - elsewhere on the server - and its own name and dates would
+   * say so. A user with a record is what was sent, and nothing else.
+   */
+  test("what was never sent is left out: never the account's own name or dates", () => {
     const user: JSONObject = roundTrip({ userName: "a@example.com" });
 
-    expect(user["userName"]).toBe("a@example.com");
-    expect(user["displayName"]).toBe("Dana Scully");
-    expect(user["emails"]).toEqual([
-      { value: "dana.scully@example.com", type: "work", primary: true },
-    ]);
+    expect(user).toEqual({
+      schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
+      id: USER_ID.toString(),
+      userName: "a@example.com",
+      // The address the userName is, as no emails were sent.
+      emails: [{ value: "a@example.com", type: "work", primary: true }],
+      active: true,
+      meta: {
+        resourceType: "User",
+        created: "2026-03-01T00:00:00.000Z",
+        lastModified: "2026-03-02T00:00:00.000Z",
+        location: LOCATION,
+      },
+    });
+    expect(JSON.stringify(user)).not.toContain("Dana");
+    expect(JSON.stringify(user)).not.toContain("dana.scully");
+    expect(JSON.stringify(user)).not.toContain("2026-01-0");
+  });
+
+  test("a user with a record answers the same whatever the account's own profile", () => {
+    for (const resource of [
+      readScimUserResource(OKTA_USER),
+      { userName: "a@example.com" },
+      { userName: "a@example.com", name: null, displayName: null },
+      { userName: "jdoe", emails: [{ value: "j.doe@example.com" }] },
+    ] as Array<ScimUserResource>) {
+      const record: ProjectSCIMUser = recordOf(resource);
+
+      expect(
+        renderScimUser({
+          account: ACCOUNT,
+          record: record,
+          location: LOCATION,
+        }),
+      ).toEqual(
+        renderScimUser({
+          account: INVITED_ACCOUNT,
+          record: record,
+          location: LOCATION,
+        }),
+      );
+    }
+  });
+
+  test("a userName that is no address, with no emails, is answered without emails", () => {
+    const user: JSONObject = roundTrip({ userName: "jdoe" });
+
+    expect(user["userName"]).toBe("jdoe");
+    expect("emails" in user).toBe(false);
+  });
+
+  test("a cleared userName is answered with an address sent, and only then with the account's", () => {
+    expect(
+      roundTrip({
+        userName: null,
+        emails: [{ value: "j.doe@example.com", type: "work" }],
+      })["userName"],
+    ).toBe("j.doe@example.com");
+
+    // SCIM requires a userName: the last resort is the address the account signs in with.
+    expect(roundTrip({ userName: null })["userName"]).toBe(
+      "dana.scully@example.com",
+    );
+  });
+
+  test("an invitee the identity provider has not written: the address it was invited by, and nothing of its own", () => {
+    expect(
+      renderScimUser({
+        account: INVITED_ACCOUNT,
+        record: null,
+        location: LOCATION,
+      }),
+    ).toEqual({
+      schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
+      id: USER_ID.toString(),
+      userName: "dana.scully@example.com",
+      emails: [
+        { value: "dana.scully@example.com", type: "work", primary: true },
+      ],
+      active: true,
+      meta: {
+        resourceType: "User",
+        location: LOCATION,
+      },
+    });
   });
 
   test("Entra ID's update test: every value written is read back exactly", () => {
@@ -672,6 +770,26 @@ describe("records keep what they were given", () => {
       ],
       active: true,
     });
+  });
+
+  test("an invitee starts from the address it was invited by, and no name", () => {
+    expect(getScimUserResourceOfAccount(INVITED_ACCOUNT)).toEqual({
+      userName: "dana.scully@example.com",
+      emails: [
+        { value: "dana.scully@example.com", type: "work", primary: true },
+      ],
+      active: true,
+    });
+  });
+
+  test("a member with no name of its own is named by its address, as before", () => {
+    expect(
+      getScimUserResourceOfAccount({
+        id: USER_ID,
+        email: "dana.scully@example.com",
+        profile: { name: "" },
+      }).displayName,
+    ).toBe("dana.scully");
   });
 
   test("a record's columns hold the userName and externalId, the rest is JSON", () => {
