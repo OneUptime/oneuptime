@@ -426,6 +426,25 @@ describe("a cluster's hardening", () => {
     expect(
       within(nonRoot).getByLabelText("Container kube-proxy"),
     ).toBeInTheDocument();
+
+    /*
+     * The sentence is one item of the chip's flex row (TranslatedSentenceInRowGuard):
+     * its words and the field sit in one element, so no piece of it is an item
+     * of its own, and nothing of it is loose in the row.
+     */
+    const chip: HTMLElement | null = within(nonRoot)
+      .getByText("securityContext.runAsNonRoot")
+      .closest("li");
+
+    expect(chip).not.toBeNull();
+    expect(chip!.lastElementChild).toHaveTextContent(
+      "securityContext.runAsNonRoot is not set",
+    );
+    expect(
+      Array.from(chip!.childNodes).every((node: ChildNode): boolean => {
+        return node.nodeType === globalThis.Node.ELEMENT_NODE;
+      }),
+    ).toBe(true);
   });
 
   test("a control many workloads fail shows the first few, then all, and says which way it is", async () => {

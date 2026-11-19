@@ -1425,7 +1425,14 @@ const DetailChip: FunctionComponent<{
         <></>
       )}
       {detail.isNotSet ? (
-        <TranslatedSentence template={IS_NOT_SET} slots={{ field: code }} />
+        /*
+         * One item of the chip's row: loose in the flex <li>, each piece of
+         * the sentence would be an item of its own, and on a page read right
+         * to left the marks that set the field apart would be gaps too.
+         */
+        <span>
+          <TranslatedSentence template={IS_NOT_SET} slots={{ field: code }} />
+        </span>
       ) : (
         code
       )}
