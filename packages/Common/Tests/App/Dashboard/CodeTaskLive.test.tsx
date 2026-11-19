@@ -167,6 +167,7 @@ import useCodeTaskLive, {
 import useFollowLatest, {
   FOLLOW_LATEST_SLACK_PX,
   FOLLOW_LATEST_START_GAP_PX,
+  FollowLatest,
   getFollowTarget,
   isScrolledToEnd,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/UseFollowLatest";
@@ -1672,5 +1673,281 @@ describe("useFollowLatest: the newest step stays in view for a reader at the end
     rerender({ growthKey: "1:a:Working:3", isLive: true });
 
     expect(scroller.scrollTop).toBe(300);
+  });
+
+  /*
+   * #7644: a reply's Markdown viewer loads on its own (LazyMarkdownViewer)
+   * and draws the reply from a two-line placeholder - after the second
+   * look, on a slow network the first time a session draws a reply. That
+   * growth changes no growth key and sends no scroll or resize: the page
+   * watches the conversation for it, and follows a reader it follows who
+   * is still at the end - never one who scrolled up, never on opening a
+   * task, and an ended turn no further than its reply's first line.
+   */
+  describe("what lays out later than the second look", () => {
+    const observed: Array<{
+      callback: ResizeObserverCallback;
+      elements: Array<Element>;
+      isDisconnected: boolean;
+    }> = [];
+    const container: HTMLElement = document.createElement("ol");
+    let replyTop: number = 0;
+    const reply: HTMLElement = document.createElement("li");
+
+    reply.getBoundingClientRect = (): DOMRect => {
+      return {
+        top: replyTop,
+        bottom: replyTop + 40,
+        left: 0,
+        right: 600,
+        width: 600,
+        height: 40,
+        x: 0,
+        y: replyTop,
+        toJSON: (): JSONObject => {
+          return {};
+        },
+      } as DOMRect;
+    };
+
+    class FakeResizeObserver {
+      private entry: {
+        callback: ResizeObserverCallback;
+        elements: Array<Element>;
+        isDisconnected: boolean;
+      };
+
+      public constructor(callback: ResizeObserverCallback) {
+        this.entry = { callback, elements: [], isDisconnected: false };
+        observed.push(this.entry);
+      }
+
+      public observe(element: Element): void {
+        this.entry.elements.push(element);
+      }
+
+      public unobserve(): void {}
+
+      public disconnect(): void {
+        this.entry.isDisconnected = true;
+      }
+    }
+
+    // The conversation grew to `height`: what a ResizeObserver reports.
+    function layOutLater(height: number): void {
+      scroller.scrollHeight = height;
+
+      act(() => {
+        for (const entry of observed) {
+          if (!entry.isDisconnected && entry.elements.includes(container)) {
+            entry.callback([], entry as unknown as ResizeObserver);
+          }
+        }
+      });
+    }
+
+    function followWatching(initial: { growthKey: string; isLive: boolean }): {
+      rerender: (next: { growthKey: string; isLive: boolean }) => void;
+      unmount: () => void;
+      result: { current: FollowLatest };
+    } {
+      return renderHook(
+        (props: { growthKey: string; isLive: boolean }): FollowLatest => {
+          return useFollowLatest({
+            ...props,
+            getLatestStart: (): Element => {
+              return reply;
+            },
+            container,
+          });
+        },
+        { initialProps: initial },
+      );
+    }
+
+    beforeEach(() => {
+      observed.length = 0;
+      replyTop = 0;
+      (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
+        FakeResizeObserver;
+      document.documentElement.style.setProperty("--app-header-height", "64px");
+    });
+
+    afterEach(() => {
+      delete (window as unknown as { ResizeObserver?: unknown }).ResizeObserver;
+      document.documentElement.style.removeProperty("--app-header-height");
+    });
+
+    test("a turn that ends with a short reply: the reader at the end lands on the reply's first line once its Markdown lays out", () => {
+      const { rerender } = followWatching({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      // Watching at the end of a page 1,000 pixels tall.
+      scrollTo(200);
+
+      // The turn ends: the reply's two-line placeholder, at the window's foot.
+      replyTop = 700;
+      scroller.scrollHeight = 1100;
+      rerender({ growthKey: "1:a:Done:0:1", isLive: false });
+      expect(scroller.scrollTop).toBe(1100 - 800);
+
+      // Its Markdown lays out after the second look: the reply is 1,400 tall.
+      replyTop = 400;
+      layOutLater(2500);
+
+      // Its first line, under the sticky header - not short of it.
+      expect(scroller.scrollTop).toBe(
+        300 + 400 - 64 - FOLLOW_LATEST_START_GAP_PX,
+      );
+    });
+
+    test("while AI works, a step that lays out later is followed to the end", () => {
+      const { rerender } = followWatching({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      scrollTo(200);
+      scroller.scrollHeight = 1240;
+      rerender({ growthKey: "1:a:Working:6", isLive: true });
+      expect(scroller.scrollTop).toBe(1240 - 800);
+
+      layOutLater(1900);
+
+      expect(scroller.scrollTop).toBe(1900 - 800);
+    });
+
+    test("a reader who scrolled up meanwhile is not pulled back, and is not followed after", () => {
+      const { rerender } = followWatching({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      scrollTo(200);
+      scroller.scrollHeight = 1240;
+      rerender({ growthKey: "1:a:Working:6", isLive: true });
+
+      // Up to read.
+      scrollTo(120);
+      layOutLater(1900);
+      expect(scroller.scrollTop).toBe(120);
+
+      // Back near where the end was: still not followed, until a new step.
+      scroller.scrollTop = 1100;
+      layOutLater(2300);
+      expect(scroller.scrollTop).toBe(1100);
+    });
+
+    test("a reader who scrolled up before the browser said so is not pulled back either", () => {
+      const { rerender } = followWatching({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      scrollTo(200);
+      scroller.scrollHeight = 1240;
+      rerender({ growthKey: "1:a:Working:6", isLive: true });
+
+      // Up to read; the scroll's event is not sent yet.
+      scroller.scrollTop = 100;
+      layOutLater(1900);
+
+      expect(scroller.scrollTop).toBe(100);
+    });
+
+    test("opening a task never moves the page, however late its Markdown lays out", () => {
+      followWatching({ growthKey: "1:a:Done:0:1", isLive: false });
+
+      // A short page, its reader at its end as it opens.
+      scroller.scrollHeight = 700;
+      layOutLater(2400);
+
+      expect(scroller.scrollTop).toBe(0);
+    });
+
+    test("the conversation is watched while the page is open, and no longer once it goes", () => {
+      const { unmount } = followWatching({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      expect(observed).toHaveLength(1);
+      expect(observed[0]!.elements).toEqual([container]);
+
+      unmount();
+
+      expect(observed[0]!.isDisconnected).toBe(true);
+    });
+
+    test("negative control: without the conversation to watch, what lays out after the second look is left short", () => {
+      const { rerender } = renderHook(
+        (props: { growthKey: string; isLive: boolean }): FollowLatest => {
+          return useFollowLatest({
+            ...props,
+            getLatestStart: (): Element => {
+              return reply;
+            },
+          });
+        },
+        { initialProps: { growthKey: "1:a:Working:5", isLive: true } },
+      );
+
+      scrollTo(200);
+      replyTop = 700;
+      scroller.scrollHeight = 1100;
+      rerender({ growthKey: "1:a:Done:0:1", isLive: false });
+
+      replyTop = 400;
+      layOutLater(2500);
+
+      expect(observed).toHaveLength(0);
+      expect(scroller.scrollTop).toBe(1100 - 800);
+    });
+
+    /*
+     * Jump to newest (#7129): the page to the newest turn now and once more
+     * on the next frame, then followed from there - its Markdown too.
+     */
+    test("Jump to newest takes the reader to the newest turn, and follows what lays out after", () => {
+      const { result } = followWatching({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      // Far up a long page.
+      scroller.scrollHeight = 60000;
+      scrollTo(300);
+
+      act(() => {
+        result.current.jumpToNewest();
+      });
+
+      expect(scroller.scrollTop).toBe(60000 - 800);
+
+      layOutLater(61100);
+
+      expect(scroller.scrollTop).toBe(61100 - 800);
+    });
+
+    test("a reader taken to the end after a reply (followFromHere) is followed from there", () => {
+      const { result } = followWatching({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      scroller.scrollHeight = 60000;
+      // goToPageEnd took them there; no scroll event yet.
+      scroller.scrollTop = 60000 - 800;
+
+      act(() => {
+        result.current.followFromHere();
+      });
+
+      layOutLater(61100);
+
+      expect(scroller.scrollTop).toBe(61100 - 800);
+    });
   });
 });

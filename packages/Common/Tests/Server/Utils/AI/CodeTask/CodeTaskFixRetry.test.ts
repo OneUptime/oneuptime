@@ -37,6 +37,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+// The spy type of the jest imported above.
+import type { SpyInstance } from "jest-mock";
 
 /*
  * TRY AGAIN ON A FIX ONEUPTIME STARTED (#6509).
@@ -649,7 +651,7 @@ describe("a fix waiting for its own next attempt", () => {
   test("is started now, as a request's is: no new turn", async () => {
     world.task.status = AIRunStatus.Queued;
     world.task.nextAttemptAt = new Date(Date.now() + 60 * 1000);
-    const update: jest.SpiedFunction<typeof AIRunService.updateOneBy> = jest
+    const update: SpyInstance<typeof AIRunService.updateOneBy> = jest
       .spyOn(AIRunService, "updateOneBy")
       .mockResolvedValue(undefined as never);
 
