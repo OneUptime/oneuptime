@@ -6,6 +6,7 @@ import {
 import AIDocsLibrary from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import {
   AskAiGrade,
+  getOfferedPages,
   gradeHowDoITurn,
 } from "Common/Server/Utils/AI/Eval/AskAi/AskAiEvalGrades";
 import {
@@ -45,12 +46,18 @@ jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
 
 function scripted(
   replies: Array<Partial<ObservabilityAssistantModelReply>>,
+  // Each call the model was handed, the system prompt in its messages.
+  seen: Array<ObservabilityAssistantModelCall> = [],
 ): (
   call: ObservabilityAssistantModelCall,
 ) => Promise<ObservabilityAssistantModelReply> {
   let index: number = 0;
 
-  return async (): Promise<ObservabilityAssistantModelReply> => {
+  return async (
+    call: ObservabilityAssistantModelCall,
+  ): Promise<ObservabilityAssistantModelReply> => {
+    seen.push(call);
+
     const reply: Partial<ObservabilityAssistantModelReply> = replies[
       index++
     ] || { content: "Done." };
@@ -123,6 +130,94 @@ describe("a how-do-I question through the eval's turn", () => {
     expect(gradeHowDoITurn(TEXT_WHEN_DOWN.howDoI!, turn).reasons).toEqual([
       "Cited no page that answers it (notifications/notification-methods or guides/paging); cited no docs page.",
       "Offered no Go to Phone Numbers for SMS Notifications button; offered none.",
+    ]);
+  });
+});
+
+/*
+ * Asked on a status page (#7062, #7065): the page's context reaches the
+ * prompt, find_dashboard_page reads the status page as the person asking,
+ * and its button opens that status page's own Custom Domains.
+ */
+const OWN_DOMAIN: AskAiEvalCase = getHowDoICases().find(
+  (evalCase: AskAiEvalCase): boolean => {
+    return evalCase.asked === "How do I put this on my own domain?";
+  },
+)!;
+
+const askOnTheStatusPage: (
+  recordId: string,
+  seen?: Array<ObservabilityAssistantModelCall>,
+) => Promise<AskAiEvalTurn> = async (
+  recordId: string,
+  seen: Array<ObservabilityAssistantModelCall> = [],
+): Promise<AskAiEvalTurn> => {
+  return await AskAiEvalTurnRunner.ask({
+    question: OWN_DOMAIN.asked,
+    project: getAskAiEvalProject(OWN_DOMAIN.howDoI!.projectKind!),
+    language: "en",
+    pageContext: OWN_DOMAIN.howDoI!.pageContext,
+    callModel: scripted(
+      [
+        callOf("search_docs", { query: "status page custom domain" }),
+        callOf("read_docs", { page: "status-pages/branding-and-domains" }),
+        callOf("find_dashboard_page", {
+          query: "Custom Domains",
+          recordType: "status-pages",
+          recordId,
+        }),
+        {
+          content:
+            "1. Add your domain and point its CNAME at OneUptime [C1][C2].\n\nOpen Custom Domains [C3]",
+        },
+      ],
+      seen,
+    ),
+  });
+};
+
+describe("a how-do-I question asked on a status page, through the eval's turn", () => {
+  test("is asked with the page's context, and its button opens that status page's own Custom Domains", async () => {
+    const statusPageId: string = OWN_DOMAIN.howDoI!.pageContext!.entityId!;
+    const seen: Array<ObservabilityAssistantModelCall> = [];
+    const turn: AskAiEvalTurn = await askOnTheStatusPage(statusPageId, seen);
+
+    expect(turn.error).toBeUndefined();
+
+    // The prompt says which status page is on screen, and how to end at its page.
+    const prompt: string = seen[0]!.messages
+      .map((message: { content?: unknown }): string => {
+        return String(message.content ?? "");
+      })
+      .join("\n");
+
+    expect(prompt).toContain("Acme Status");
+    expect(prompt).toContain(
+      `recordType="status-pages" and recordId="${statusPageId}"`,
+    );
+
+    expect(getOfferedPages(turn)).toEqual([
+      {
+        path: "/dashboard/:projectId/status-pages/:id/domains",
+        title: "Custom Domains",
+        recordId: statusPageId,
+        recordTitle: "Acme Status",
+      },
+    ]);
+    expect(gradeHowDoITurn(OWN_DOMAIN.howDoI!, turn)).toEqual({
+      passed: true,
+      reasons: [],
+    });
+  });
+
+  test("a status page the person cannot open gets no button, and the grade says whose was wanted", async () => {
+    const turn: AskAiEvalTurn = await askOnTheStatusPage(
+      "e7246000-0000-4000-8000-0000000000ff",
+    );
+
+    expect(getOfferedPages(turn)).toEqual([]);
+    expect(gradeHowDoITurn(OWN_DOMAIN.howDoI!, turn).reasons).toEqual([
+      `Offered no Go to Custom Domains button of record ${OWN_DOMAIN.howDoI!.dashboardRecordId}; offered none.`,
     ]);
   });
 });

@@ -176,7 +176,8 @@ describe("AI Insights page detection", () => {
     },
   );
 
-  test.each(["", "/rum", "/settings", "/rum-other", "/services-other"])(
+  // Project Settings has a context of its own since #7062: it is no longer unrelated.
+  test.each(["", "/rum", "/users", "/rum-other", "/services-other"])(
     "does not infer context for unrelated path %s",
     (path: string) => {
       navigateTo(path === "/rum" ? path : `/dashboard/${PROJECT_ID}${path}`);

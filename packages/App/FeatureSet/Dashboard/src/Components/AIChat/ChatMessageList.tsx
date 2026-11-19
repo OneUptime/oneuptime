@@ -25,6 +25,7 @@ import ChatActivityFeed, {
   describeLiveActivity,
   LiveActivity,
 } from "./ChatActivityFeed";
+import AskAiDocsResults from "./AskAiDocsResults";
 import AskAiPageButtons from "./AskAiPageButtons";
 import AskAiTestPageOffer from "./AskAiTestPageOffer";
 import SafeChatMarkdown from "./SafeChatMarkdown";
@@ -613,8 +614,12 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderMessage: (message: AIConversationMessage) => ReactElement = (
+  const renderMessage: (
     message: AIConversationMessage,
+    turnOf: { question: string; isLastTurn: boolean },
+  ) => ReactElement = (
+    message: AIConversationMessage,
+    turnOf: { question: string; isLastTurn: boolean },
   ): ReactElement => {
     const messageId: string = message.id?.toString() || "";
     const timestamp: string = message.createdAt
@@ -702,6 +707,19 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            {/*
+             * The question it could not answer, looked up in the docs
+             * (#7063): a limit reached or a provider down still leaves the
+             * person a page to read. Only under the latest answer, so an
+             * old conversation does not search again for each failure.
+             */}
+            {turnOf.isLastTurn && turnOf.question ? (
+              <div className="mt-3">
+                <AskAiDocsResults question={turnOf.question} />
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       );
@@ -733,6 +751,11 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
     >
       {turns.map((turn: ChatTurn, index: number): ReactElement => {
         const isLastTurn: boolean = index === turns.length - 1;
+        // What the person asked in this turn, for an answer that failed.
+        const question: string =
+          turn.messages.find((message: AIConversationMessage): boolean => {
+            return message.role === AIChatMessageRole.User;
+          })?.contentInMarkdown || "";
 
         return (
           <div
@@ -746,7 +769,11 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
             }
             className="flex flex-col gap-4"
           >
-            {turn.messages.map(renderMessage)}
+            {turn.messages.map(
+              (message: AIConversationMessage): ReactElement => {
+                return renderMessage(message, { question, isLastTurn });
+              },
+            )}
             {isLastTurn && props.isWorking ? (
               <LiveLine events={props.runEvents || []} />
             ) : (

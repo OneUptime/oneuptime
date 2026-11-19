@@ -1,6 +1,7 @@
 import { BenchmarkFailUnder } from "../Benchmark/BenchmarkCommandLine";
 import {
   AskAiGrade,
+  describeOfferedPage,
   getCitedDocsPages,
   getOfferedPages,
 } from "./AskAiEvalGrades";
@@ -116,11 +117,8 @@ export default class AskAiEvalReport {
         },
       ),
       citedDocs: getCitedDocsPages(data.turn),
-      offeredPages: getOfferedPages(data.turn).map(
-        (page: { title: string }): string => {
-          return page.title;
-        },
-      ),
+      // A record's page with the record's name: "Custom Domains (Acme Status)".
+      offeredPages: getOfferedPages(data.turn).map(describeOfferedPage),
       answer: oneLine(data.turn.answer, ANSWER_CHARACTERS),
       llmCallCount: data.turn.llmCallCount,
       totalTokens: data.turn.totalTokens,
