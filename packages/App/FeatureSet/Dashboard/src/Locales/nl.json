@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "{{count}} ongezond endpoint",
   "{{count}} unhealthy endpoints": "{{count}} ongezonde endpoints",
   "{{count}} unhealthy endpoints_one": "{{count}} ongezond endpoint",
-  "{{percent}} of requests blocked": "{{percent}} van de verzoeken geblokkeerd"
+  "{{percent}} of requests blocked": "{{percent}} van de verzoeken geblokkeerd",
+  "Configs used for SMS only are not listed: they take no calls.": "Configuraties die alleen voor sms worden gebruikt, staan er niet bij: die nemen geen oproepen aan.",
+  "No Twilio Configuration for Calls": "Geen Twilio-configuratie voor oproepen",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Deze configuratie wordt alleen voor sms gebruikt. Zet hem in de projectinstellingen op Oproepen en sms, of Alleen oproepen.",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Uw Twilio-configuraties worden allemaal alleen voor sms gebruikt. Zet er een op Oproepen en sms, of Alleen oproepen, of voeg er een toe onder Projectinstellingen > Meldingen > Meldingskanalen."
 }

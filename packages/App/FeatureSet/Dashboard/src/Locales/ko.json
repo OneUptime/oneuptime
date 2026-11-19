@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "비정상 엔드포인트 {{count}}개",
   "{{count}} unhealthy endpoints": "비정상 엔드포인트 {{count}}개",
   "{{count}} unhealthy endpoints_one": "비정상 엔드포인트 {{count}}개",
-  "{{percent}} of requests blocked": "요청의 {{percent}} 차단"
+  "{{percent}} of requests blocked": "요청의 {{percent}} 차단",
+  "Configs used for SMS only are not listed: they take no calls.": "SMS 전용 구성은 전화를 받을 수 없어 목록에 없습니다.",
+  "No Twilio Configuration for Calls": "통화용 Twilio 구성이 없음",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "이 구성은 SMS 전용입니다. 프로젝트 설정에서 통화 및 SMS 또는 통화만으로 바꾸세요.",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Twilio 구성이 모두 SMS 전용입니다. 하나를 통화 및 SMS 또는 통화만으로 바꾸거나, 프로젝트 설정 > 알림 > 알림 채널에서 구성을 추가하세요."
 }

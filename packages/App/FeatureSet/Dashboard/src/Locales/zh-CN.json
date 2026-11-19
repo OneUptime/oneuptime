@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "{{count}} 个不健康的端点",
   "{{count}} unhealthy endpoints": "{{count}} 个不健康的端点",
   "{{count}} unhealthy endpoints_one": "{{count}} 个不健康的端点",
-  "{{percent}} of requests blocked": "{{percent}} 的请求被阻止"
+  "{{percent}} of requests blocked": "{{percent}} 的请求被阻止",
+  "Configs used for SMS only are not listed: they take no calls.": "仅用于短信的配置不会列出：它们无法接听来电。",
+  "No Twilio Configuration for Calls": "没有用于通话的 Twilio 配置",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "此配置仅用于短信。请在项目设置中将其改为“通话和短信”或“仅通话”。",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "你的 Twilio 配置都仅用于短信。请将其中一个改为“通话和短信”或“仅通话”，或在“项目设置 > 通知 > 通知渠道”中添加一个。"
 }

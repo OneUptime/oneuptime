@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "{{count}} نقطة نهاية غير سليمة",
   "{{count}} unhealthy endpoints": "نقاط النهاية غير السليمة: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطة نهاية غير سليمة",
-  "{{percent}} of requests blocked": "حُظر {{percent}} من الطلبات"
+  "{{percent}} of requests blocked": "حُظر {{percent}} من الطلبات",
+  "Configs used for SMS only are not listed: they take no calls.": "لا تُدرج الإعدادات المستخدمة للرسائل النصية فقط: فهي لا تستقبل المكالمات.",
+  "No Twilio Configuration for Calls": "لا يوجد إعداد Twilio للمكالمات",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "يُستخدم هذا الإعداد للرسائل النصية فقط. اضبطه على «المكالمات والرسائل النصية» أو «المكالمات فقط» في إعدادات المشروع.",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "كل إعدادات Twilio لديك مستخدمة للرسائل النصية فقط. اضبط أحدها على «المكالمات والرسائل النصية» أو «المكالمات فقط»، أو أضف إعدادًا ضمن إعدادات المشروع > الإشعارات > قنوات الإشعار."
 }

@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "{{count}} ej felfri slutpunkt",
   "{{count}} unhealthy endpoints": "{{count}} ej felfria slutpunkter",
   "{{count}} unhealthy endpoints_one": "{{count}} ej felfri slutpunkt",
-  "{{percent}} of requests blocked": "{{percent}} av förfrågningarna blockerades"
+  "{{percent}} of requests blocked": "{{percent}} av förfrågningarna blockerades",
+  "Configs used for SMS only are not listed: they take no calls.": "Konfigurationer som bara används för SMS visas inte, eftersom de inte tar emot samtal.",
+  "No Twilio Configuration for Calls": "Ingen Twilio-konfiguration för samtal",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Den här konfigurationen används bara för SMS. Ställ in den på Samtal och SMS eller Endast samtal i projektinställningarna.",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Alla dina Twilio-konfigurationer används bara för SMS. Ställ in en på Samtal och SMS eller Endast samtal, eller lägg till en under Projektinställningar > Aviseringar > Aviseringskanaler."
 }

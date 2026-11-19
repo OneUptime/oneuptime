@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "{{count}} endpoint non integro",
   "{{count}} unhealthy endpoints": "{{count}} endpoint non integri",
   "{{count}} unhealthy endpoints_one": "{{count}} endpoint non integro",
-  "{{percent}} of requests blocked": "{{percent}} delle richieste bloccate"
+  "{{percent}} of requests blocked": "{{percent}} delle richieste bloccate",
+  "Configs used for SMS only are not listed: they take no calls.": "Le configurazioni usate solo per gli SMS non sono elencate: non ricevono chiamate.",
+  "No Twilio Configuration for Calls": "Nessuna configurazione Twilio per le chiamate",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Questa configurazione è usata solo per gli SMS. Impostala su Chiamate e SMS, o Solo chiamate, nelle impostazioni del progetto.",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Le tue configurazioni Twilio sono tutte usate solo per gli SMS. Impostane una su Chiamate e SMS, o Solo chiamate, oppure aggiungine una in Impostazioni del progetto > Notifiche > Canali di notifica."
 }

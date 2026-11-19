@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "{{count}} неисправная конечная точка",
   "{{count}} unhealthy endpoints": "Неисправных конечных точек: {{count}}",
   "{{count}} unhealthy endpoints_one": "{{count}} неисправная конечная точка",
-  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано"
+  "{{percent}} of requests blocked": "{{percent}} запросов заблокировано",
+  "Configs used for SMS only are not listed: they take no calls.": "Конфигурации только для SMS не показаны: они не принимают звонки.",
+  "No Twilio Configuration for Calls": "Нет конфигурации Twilio для звонков",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "Эта конфигурация используется только для SMS. Переключите её на «Звонки и SMS» или «Только звонки» в настройках проекта.",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Все ваши конфигурации Twilio используются только для SMS. Переключите одну на «Звонки и SMS» или «Только звонки» либо добавьте новую в разделе Настройки проекта > Уведомления > Каналы уведомлений."
 }

@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "異常なエンドポイント {{count}} 個",
   "{{count}} unhealthy endpoints": "異常なエンドポイント {{count}} 個",
   "{{count}} unhealthy endpoints_one": "異常なエンドポイント {{count}} 個",
-  "{{percent}} of requests blocked": "リクエストの {{percent}} がブロック"
+  "{{percent}} of requests blocked": "リクエストの {{percent}} がブロック",
+  "Configs used for SMS only are not listed: they take no calls.": "SMS のみに使う設定は一覧に表示されません。通話を受けられないためです。",
+  "No Twilio Configuration for Calls": "通話用の Twilio 設定がありません",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "この設定は SMS のみに使われています。プロジェクト設定で「通話と SMS」または「通話のみ」に変更してください。",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "Twilio 設定はすべて SMS のみに使われています。いずれかを「通話と SMS」または「通話のみ」に変更するか、プロジェクト設定 > 通知 > 通知チャネル で追加してください。"
 }

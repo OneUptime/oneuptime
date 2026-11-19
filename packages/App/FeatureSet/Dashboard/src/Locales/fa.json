@@ -58741,5 +58741,9 @@
   "{{count}} unhealthy endpoint": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints": "{{count}} نقطه پایانی ناسالم",
   "{{count}} unhealthy endpoints_one": "{{count}} نقطه پایانی ناسالم",
-  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده"
+  "{{percent}} of requests blocked": "{{percent}} از درخواست‌ها مسدود شده",
+  "Configs used for SMS only are not listed: they take no calls.": "پیکربندی‌هایی که فقط برای پیامک هستند فهرست نمی‌شوند: آن‌ها تماسی دریافت نمی‌کنند.",
+  "No Twilio Configuration for Calls": "هیچ پیکربندی Twilio برای تماس وجود ندارد",
+  "This config is used for SMS only. Set it to Calls and SMS, or Calls only, in Project Settings.": "این پیکربندی فقط برای پیامک است. در تنظیمات پروژه آن را روی «تماس و پیامک» یا «فقط تماس» بگذارید.",
+  "Your Twilio configurations are all used for SMS only. Set one to Calls and SMS, or Calls only, or add one under Project Settings > Notifications > Notification Channels.": "همه پیکربندی‌های Twilio شما فقط برای پیامک هستند. یکی را روی «تماس و پیامک» یا «فقط تماس» بگذارید، یا یکی را در تنظیمات پروژه > اعلان‌ها > کانال‌های اعلان اضافه کنید."
 }
