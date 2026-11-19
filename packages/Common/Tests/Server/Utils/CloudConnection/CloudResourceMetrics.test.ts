@@ -100,7 +100,12 @@ let settings: CloudConnectionSettings;
 let resourcesOfType: Array<CloudResource> = [];
 let saved: Array<JSONObject> = [];
 
-function resourceRow(overrides: Partial<CloudResource> = {}): CloudResource {
+// An override may be undefined: a resource no connection reads.
+type RowOverrides<T> = { [K in keyof T]?: T[K] | undefined };
+
+function resourceRow(
+  overrides: RowOverrides<CloudResource> = {},
+): CloudResource {
   const row: CloudResource = new CloudResource();
   row.id = RESOURCE;
   row.projectId = PROJECT;
