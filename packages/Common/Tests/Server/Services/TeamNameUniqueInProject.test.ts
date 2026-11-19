@@ -50,6 +50,9 @@ const CLASHING_TEAM_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
+// A spy, as getJestSpyOn hands it back.
+type Spy = ReturnType<typeof getJestSpyOn>;
+
 interface Hooks {
   onBeforeCreateUniqueCheck: (createBy: CreateBy<Team>) => Promise<void>;
   onBeforeUpdateUniqueCheck: (updateBy: UpdateBy<Team>) => Promise<void>;
@@ -103,7 +106,7 @@ function stubClash(clash: Team | null): Array<RecordedFind> {
 }
 
 // The teams the update writes, as the update path reads them.
-function stubRowsWritten(rows: Array<Team>): jest.SpyInstance {
+function stubRowsWritten(rows: Array<Team>): Spy {
   return getJestSpyOn(
     TeamService,
     "findRowsAndHoldUpdateToThem",
@@ -285,7 +288,7 @@ describe("renaming a team", () => {
   });
 
   test("reads the teams the update writes, as the update path holds them", async () => {
-    const rows: jest.SpyInstance = stubRowsWritten([
+    const rows: Spy = stubRowsWritten([
       team({ id: TEAM_ID, name: "Platform" }),
     ]);
     stubClash(null);
@@ -320,9 +323,7 @@ describe("renaming a team", () => {
   );
 
   test("an edit that does not write the name reads nothing", async () => {
-    const rows: jest.SpyInstance = stubRowsWritten([
-      team({ id: TEAM_ID, name: "Tenants" }),
-    ]);
+    const rows: Spy = stubRowsWritten([team({ id: TEAM_ID, name: "Tenants" })]);
     const finds: Array<RecordedFind> = stubClash(null);
 
     await update({ description: "For all tenants." });
@@ -373,7 +374,7 @@ describe("renaming a team", () => {
   });
 
   test("by OneUptime itself - SCIM renaming a group - is trusted", async () => {
-    const rows: jest.SpyInstance = stubRowsWritten([
+    const rows: Spy = stubRowsWritten([
       team({ id: TEAM_ID, name: "Platform" }),
     ]);
     const finds: Array<RecordedFind> = stubClash(
@@ -387,7 +388,7 @@ describe("renaming a team", () => {
   });
 
   test("to a blank name or to something that is no text leaves it to the column's checks", async () => {
-    const rows: jest.SpyInstance = stubRowsWritten([
+    const rows: Spy = stubRowsWritten([
       team({ id: TEAM_ID, name: "Platform" }),
     ]);
     stubClash(team({ id: CLASHING_TEAM_ID, name: "Tenants" }));

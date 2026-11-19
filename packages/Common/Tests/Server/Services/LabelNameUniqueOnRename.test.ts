@@ -39,6 +39,9 @@ const OTHER_LABEL_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
+// A spy, as getJestSpyOn hands it back.
+type Spy = ReturnType<typeof getJestSpyOn>;
+
 interface Hooks {
   onBeforeUpdateUniqueCheck: (updateBy: UpdateBy<Label>) => Promise<void>;
   onBeforeCreate: (createBy: CreateBy<Label>) => Promise<OnCreate<Label>>;
@@ -74,7 +77,7 @@ function label(data: {
   return model;
 }
 
-function stubRowsWritten(rows: Array<Label>): jest.SpyInstance {
+function stubRowsWritten(rows: Array<Label>): Spy {
   return getJestSpyOn(
     LabelService,
     "findRowsAndHoldUpdateToThem",
@@ -181,7 +184,7 @@ describe("renaming a label", () => {
   );
 
   test("an edit of its colour alone reads nothing", async () => {
-    const rows: jest.SpyInstance = stubRowsWritten([
+    const rows: Spy = stubRowsWritten([
       label({ id: LABEL_ID, name: "Staging" }),
     ]);
 
@@ -219,10 +222,9 @@ describe("creating a label", () => {
     getJestSpyOn(ArchivableValueGuard, "beforeCreate").mockResolvedValue(
       undefined,
     );
-    const count: jest.SpyInstance = getJestSpyOn(
-      LabelService,
-      "countBy",
-    ).mockResolvedValue(new PositiveNumber(1));
+    const count: Spy = getJestSpyOn(LabelService, "countBy").mockResolvedValue(
+      new PositiveNumber(1),
+    );
 
     expect(await refusal(create("Production  "))).toBe(
       "There is already a label called Production in this project. Pick another name.",
