@@ -30,7 +30,7 @@ I modusen **Skrivebeskyttet** tilbys modellen aldri handlingene, så samtalen ba
 
 Spør AI svarer også på spørsmål om selve OneUptime: «Hvordan får jeg en SMS når nettstedet mitt er nede?», «Hva er en episode?», «Hvor legger jeg til et nummer til?». Svarene kommer fra denne dokumentasjonen, kopien din OneUptime selv leverer, så det virker uten internettilgang og sender ingenting til nye steder. Den leser en side på ditt språk når siden er oversatt, oppgir side og avsnitt for hvert trinn, og sier at dokumentasjonen ikke dekker noe i stedet for å gjette.
 
-Et svar på «hvordan gjør jeg» slutter med en knapp som åpner siden i prosjektet ditt der du gjør det, for eksempel **Opprett monitor** eller **Varslingsmetoder**. Den åpner bare sider OneUptime har: de Søk (`Ctrl` + `K`) finner.
+Et svar på «hvordan gjør jeg» slutter med en knapp som åpner siden i prosjektet ditt der du gjør det, for eksempel **Opprett monitor** eller **Varslingsmetoder**. Den åpner bare sider OneUptime har: de Søk (`Ctrl` + `K`) finner. Spør du om én post, som en statusside, åpner den postens egen side, som dens **Egendefinerte domener**, og bare for en post du har lov til å åpne.
 
 ## Åpne Spør AI
 
@@ -60,7 +60,7 @@ Spør AI leser prosjektet ditt med dine egne tillatelser, så den ser det du kan
 
 ## Sidekontekst
 
-Spør AI vet hvilken side du åpnet den fra. På en hendelsesside betyr "hvorfor skjedde dette?" akkurat den hendelsen: skrivefeltet viser en brikke med sidens emne, og spørsmålene den foreslår, er sidens egne. Fjern brikken for å spørre om hele prosjektet, og legg den til igjen på samme måte. Åpne Spør AI på en annen side, så følger konteksten med. Samtalen husker også sitt første emne på serveren, så et oppfølgingsspørsmål dager senere fortsatt forstår "denne hendelsen".
+Spør AI vet hvilken side du åpnet den fra. På en hendelsesside betyr "hvorfor skjedde dette?" akkurat den hendelsen: skrivefeltet viser en brikke med sidens emne, og spørsmålene den foreslår, er sidens egne. Fjern brikken for å spørre om hele prosjektet, og legg den til igjen på samme måte. Åpne Spør AI på en annen side, så følger konteksten med. Samtalen husker også sitt første emne på serveren, så et oppfølgingsspørsmål dager senere fortsatt forstår "denne hendelsen". Spør AI kjenner også sidene der du setter opp et prosjekt: **Hjem**, **Prosjektinnstillinger**, **Brukerinnstillinger**, **Vakt**, **Statussider** og skjemaene som oppretter noe, slik at «hvordan legger jeg til en her?» besvares for siden du er på.
 
 På en hendelse, et varsel, en monitor eller en vedlikeholdshendelse følger spørsmålene også hvor den posten står, lest hver gang Spør AI åpnes på den. En løst hendelse spør hvordan responsen gikk og hva som ville hindret at den skjer igjen, et løst varsel om det var et reelt problem og hvor ofte varsler som det blir utløst, og en monitor som ikke er i drift spør hvorfor. En vedlikeholdshendelse som ikke har startet, spør om monitorene er friske før den starter, og en som er over, om de er tilbake til normalt.
 
@@ -147,7 +147,7 @@ Spør AI teller med i prosjektets egne daglige AI-grenser når prosjektet setter
 ## Feilsøking
 
 :::details Spør AI sier at AI ikke er tilgjengelig
-Spør AI sier hvorfor før du skriver: prosjektets abonnement omfatter ikke AI, **Aktiver AI** er slått av, eller prosjektet har ingen LLM-leverandør. Hver melding lenker til siden der det endres.
+Spør AI sier hvorfor før du skriver: prosjektets abonnement omfatter ikke AI, **Aktiver AI** er slått av, eller prosjektet har ingen LLM-leverandør. Hver melding lenker til siden der det endres. Over meldingen søker Spør AI likevel i denne dokumentasjonen etter spørsmålet ditt. Et svar som mislykkes, ved en daglig grense eller fordi leverandøren ikke svarer, viser også sidene i dokumentasjonen om spørsmålet under seg.
 :::
 
 :::details En handling ble avvist
