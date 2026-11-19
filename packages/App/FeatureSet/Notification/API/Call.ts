@@ -74,6 +74,34 @@ import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSCon
 
 const router: ExpressRouter = Express.getRouter();
 
+/*
+ * How a call ended, for the platform's operator (notification.delivery.count
+ * and .duration): on the account its callback's address names, as an
+ * on-call page when its log names one, timed from Twilio accepting it - its
+ * log is written then. Counted once a call, by whichever callback wrote how
+ * it ended: its status callback, or its answering machine callback when a
+ * machine answered it.
+ */
+function recordCallEnd(data: {
+  query: unknown;
+  callLog: CallLog;
+  outcome: CallOutcome;
+}): void {
+  NotificationDeliveryMetrics.recordDelivery({
+    channel: NotificationDeliveryChannel.Call,
+    provider: NotificationDeliveryProvider.Twilio,
+    providerConfig: getProviderConfigOfCallback(data.query),
+    isOnCallPage: Boolean(data.callLog.userOnCallLogTimelineId),
+    status: data.outcome.deliveryStatus,
+    timeToStatusInMs: getTimeToCallOutcomeInMs({
+      outcome: data.outcome,
+      millisecondsSincePlaced: NotificationDeliveryMetrics.getMillisecondsSince(
+        data.callLog.createdAt,
+      ),
+    }),
+  });
+}
+
 router.post(
   "/make-call",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
@@ -250,21 +278,7 @@ router.post(
          * How the call ended, for the platform's operator - once, as only
          * the callback that wrote it gets here (notification.delivery.count).
          */
-        NotificationDeliveryMetrics.recordDelivery({
-          channel: NotificationDeliveryChannel.Call,
-          provider: NotificationDeliveryProvider.Twilio,
-          providerConfig: getProviderConfigOfCallback(req.query),
-          isOnCallPage: Boolean(callLog.userOnCallLogTimelineId),
-          status: outcome.deliveryStatus,
-          timeToStatusInMs: getTimeToCallOutcomeInMs({
-            outcome: outcome,
-            // The call's log is written as Twilio accepts the call.
-            millisecondsSincePlaced:
-              NotificationDeliveryMetrics.getMillisecondsSince(
-                callLog.createdAt,
-              ),
-          }),
-        });
+        recordCallEnd({ query: req.query, callLog: callLog, outcome: outcome });
       }
 
       /*
@@ -605,20 +619,7 @@ router.post(
        * the status callback had counted it answered already.
        */
       if (!written.wasEndCounted) {
-        NotificationDeliveryMetrics.recordDelivery({
-          channel: NotificationDeliveryChannel.Call,
-          provider: NotificationDeliveryProvider.Twilio,
-          providerConfig: getProviderConfigOfCallback(req.query),
-          isOnCallPage: Boolean(callLog.userOnCallLogTimelineId),
-          status: outcome.deliveryStatus,
-          timeToStatusInMs: getTimeToCallOutcomeInMs({
-            outcome: outcome,
-            millisecondsSincePlaced:
-              NotificationDeliveryMetrics.getMillisecondsSince(
-                callLog.createdAt,
-              ),
-          }),
-        });
+        recordCallEnd({ query: req.query, callLog: callLog, outcome: outcome });
       }
 
       // Not Answered, while the notification is only sent.
