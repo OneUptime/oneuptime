@@ -337,6 +337,9 @@ export function readDiscoveryImportSettings(
  *  - AlreadyAdded: a device at this address was already there - created by
  *    another import, an auto import rule or a person since the scan was
  *    reviewed. Nothing was created twice; its monitor is still seen to.
+ *    With no `deviceId`, devices there could not be told apart from the
+ *    scan's probe (issue #9677): none was created, and none was given a
+ *    monitor (DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON).
  *  - Failed: the create was refused; `deviceError` says why.
  *  - NotReached: the import was stopped before it got here.
  */
@@ -399,12 +402,20 @@ export const DISCOVERY_IMPORT_MONITOR_BACKED_REASON: string =
 // A host whose device was not imported, so its monitor was not made either.
 export const DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON: string =
   "The device was not imported, so it has no monitor.";
+/*
+ * A scan's host at an address several devices have that the scan's probe
+ * cannot tell apart (issue #9677): a device is there, so none is created,
+ * and which one this host is cannot be known, so none is given a monitor.
+ */
+export const DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON: string =
+  "More than one device has this address, and this scan's probe cannot tell which of them this host is, so none was given a monitor. Give the right device its monitor from its own page.";
 
 export const DISCOVERY_IMPORT_OWN_REASONS: ReadonlyArray<string> = [
   DISCOVERY_IMPORT_STOPPED_REASON,
   DISCOVERY_IMPORT_UNFINISHED_REASON,
   DISCOVERY_IMPORT_MONITOR_BACKED_REASON,
   DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+  DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON,
 ];
 
 export interface DiscoveryImportHostResult {
