@@ -10,10 +10,13 @@ import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AwsKeyMetric,
   AwsStatistic,
+  GCP_OPS_AGENT,
+  GcpReadMetric,
   HOURLY_PERIOD_SECONDS,
   getAwsKeyMetrics,
   getAwsStoredMetricName,
   getAzureStoredMetricName,
+  getGcpReadMetrics,
 } from "../Cloud/CloudKeyMetrics";
 import {
   CLOUD_AVAILABILITY_LOW_PERCENT,
@@ -24,8 +27,11 @@ import {
   CLOUD_FAILED_SHARE_WARNING_PERCENT,
   CLOUD_HEALTH_MIN_REQUESTS,
   CLOUD_MEMORY_HIGH_PERCENT,
+  CLOUD_STORAGE_FULL_PERCENT,
   CLOUD_STORAGE_HIGH_PERCENT,
   CloudResourceReadings,
+  GCP_OPS_AGENT_DISK_KEY,
+  GCP_OPS_AGENT_MEMORY_KEY,
   getCloudReadingKey,
 } from "../Cloud/CloudResourceHealth";
 import {
@@ -287,6 +293,13 @@ export interface CloudAlertMetric {
 export interface CloudAlertQuery {
   alias: string;
   metric: CloudAlertMetric;
+  /*
+   * The attributes it is read in a series per value of, each judged on its
+   * own and named on what it opens: a VM's disks (the Ops Agent's
+   * `device`), so the fullest is never averaged with the emptiest and the
+   * incident says which disk filled. Unset: the resource's one series.
+   */
+  groupByAttributeKeys?: Array<string> | undefined;
 }
 
 /*
@@ -320,6 +333,12 @@ export interface CloudAlertTemplateArgs {
   allocatedStorageGiB?: number | null | undefined;
   // An RDS instance's connection limit (RdsConnectionLimits).
   connectionLimit?: number | null | undefined;
+  /*
+   * Its name (CloudResource.name), where its first command needs what its
+   * attributes do not hold: a Compute Engine VM's, which gcloud names it
+   * by, while its metrics name it by its numeric id.
+   */
+  resourceName?: string | null | undefined;
   onlineMonitorStatusId: ObjectID;
   offlineMonitorStatusId: ObjectID;
   defaultIncidentSeverityId: ObjectID;
@@ -390,23 +409,49 @@ export interface CloudAlertTemplate {
   /*
    * Offered only to a resource that reports its metric, whoever reads it:
    * a metric of one tier of a service, which the others never send (an
-   * Azure SQL database's DTUs, on the DTU purchasing model only). Without
-   * it a monitor on a vCore database would watch a metric nobody sends.
+   * Azure SQL database's DTUs, on the DTU purchasing model only), or one
+   * an agent on it reports (a Compute Engine VM's memory and disks, only
+   * where the Ops Agent runs). Without it a monitor on a vCore database, or
+   * on a VM without the agent, would watch a metric nobody sends.
    */
   requiresReading?: boolean | undefined;
   incidentDescription: string;
   /*
-   * The first command to run when it fires, for AWS CloudShell, written for
-   * the resource the monitor watches from its stored attributes (its
-   * identity dimensions, account and Region) - or null when they do not
-   * name enough of it. The incident's description ends with it
-   * (getCloudAlertIncidentDescription).
+   * The first command to run when it fires, for its cloud's shell (AWS
+   * CloudShell, Google Cloud Shell), written for the resource the monitor
+   * watches from its stored attributes (its identity dimensions, account
+   * and Region; its project and zone) and, where those do not hold it, its
+   * name - or null when they do not name enough of it. The incident's
+   * description ends with it (getCloudAlertIncidentDescription).
    */
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
   getMonitorStep: (args: CloudAlertTemplateArgs) => MonitorStep;
 }
+
+export type CloudAlertFirstCommand = (
+  attributes: Dictionary<string>,
+  resourceName?: string | null | undefined,
+) => string | null;
+
+/*
+ * A Google Cloud monitored resource's labels, as its metrics are stored
+ * (CloudMonitoredResource's telemetryAttributes): "resource.project_id".
+ */
+const GCP_RESOURCE_LABEL_PREFIX: string = "resource.";
+
+/*
+ * The Ops Agent's label of a VM's disk on agent.googleapis.com/disk/
+ * percent_used ("/dev/sda1"), as the read stores it on each point.
+ */
+export const GCP_OPS_AGENT_DISK_DEVICE_ATTRIBUTE: string = "device";
+
+// The shell each cloud's first commands are run in, by its own name.
+export const CLOUD_ALERT_SHELL_NAMES: Readonly<Record<CloudProvider, string>> =
+  {
+    [CloudProvider.AWS]: "AWS CloudShell",
+    [CloudProvider.Azure]: "Azure Cloud Shell",
+    [CloudProvider.GCP]: "Google Cloud Shell",
+  };
 
 /*
  * ---------------------------------------------------------------------------
@@ -576,6 +621,10 @@ function buildQuery(data: {
         aggegationType: data.query.metric.aggregationType,
         aggregateBy: {},
       },
+      ...(data.query.groupByAttributeKeys &&
+      data.query.groupByAttributeKeys.length > 0
+        ? { groupByAttributeKeys: [...data.query.groupByAttributeKeys] }
+        : {}),
     },
     /*
      * The resource, by its row: its charts draw its own incidents, alerts
@@ -701,19 +750,23 @@ export function quoteCloudShellArgument(value: string): string {
 
 /*
  * What the incident says: the template's description, then - where the
- * template knows one and the resource's attributes name enough of it - the
- * first command to run, in AWS CloudShell.
+ * template knows one and the resource's attributes (or its name) say
+ * enough of it - the first command to run, in its cloud's shell.
  */
 export function getCloudAlertIncidentDescription(
-  template: Pick<CloudAlertTemplate, "incidentDescription" | "firstCommand">,
+  template: Pick<
+    CloudAlertTemplate,
+    "incidentDescription" | "firstCommand" | "provider"
+  >,
   attributes: Dictionary<string>,
+  resourceName?: string | null | undefined,
 ): string {
   const command: string | null = template.firstCommand
-    ? template.firstCommand(attributes)
+    ? template.firstCommand(attributes, resourceName)
     : null;
 
   return command
-    ? `${template.incidentDescription} First, run this in AWS CloudShell: \`${command}\``
+    ? `${template.incidentDescription} First, run this in ${CLOUD_ALERT_SHELL_NAMES[template.provider]}: \`${command}\``
     : template.incidentDescription;
 }
 
@@ -754,6 +807,7 @@ function buildCriteria(
     incidentDescription: getCloudAlertIncidentDescription(
       template,
       args.telemetryAttributes,
+      args.resourceName,
     ),
     criteriaName: `${template.name} - ${template.thresholdLabel}`,
     criteriaDescription: describeCriteria(template, args),
@@ -932,10 +986,10 @@ function sustainedAtOrAbove(data: {
   metric: CloudAlertMetric;
   threshold: number;
   thresholdLabel: string;
+  // Offered only to a resource that reports its metric (requiresReading).
+  requiresReading?: boolean | undefined;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   return define({
     id: data.id,
@@ -952,6 +1006,7 @@ function sustainedAtOrAbove(data: {
     filterType: FilterType.GreaterThanOrEqualTo,
     threshold: data.threshold,
     thresholdLabel: data.thresholdLabel,
+    ...(data.requiresReading ? { requiresReading: true } : {}),
     incidentDescription: data.incidentDescription,
     firstCommand: data.firstCommand,
   });
@@ -1019,9 +1074,7 @@ function anyInWindow(data: {
   metrics: Array<CloudAlertMetric>;
   thresholdLabel: string;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   const [first, second] = data.metrics;
 
@@ -1076,9 +1129,7 @@ function failedShare(data: {
   // Judged whatever the count of requests (a function's invocations).
   withoutRequestFloor?: boolean | undefined;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   const [first, second] = data.failed;
   const failed: string = second
@@ -1139,9 +1190,7 @@ function breakage(data: {
   threshold?: number | undefined;
   thresholdLabel: string;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   return define({
     id: data.id,
@@ -2760,6 +2809,106 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * A Compute Engine VM's first command (#9741): a look inside it, over SSH
+ * from Google Cloud Shell, where the Ops Agent read what filled it.
+ * gcloud names a VM by its name, which its metrics' attributes do not hold
+ * (they name it by its numeric id): the resource's own name does, once its
+ * inventory or its metrics' metadata named it. Its project and zone are
+ * its attributes'. Null when any of them is not one gcloud takes.
+ */
+
+// A project ID, or a domain-scoped one ("example.com:shop-prod").
+const GCP_PROJECT_ID: RegExp =
+  /^(?:[a-z0-9][a-z0-9.-]{0,62}:)?[a-z][-a-z0-9]{4,28}[a-z0-9]$/;
+const GCP_ZONE: RegExp = /^[a-z]+-[a-z]+\d+-[a-z]$/;
+// A Compute Engine resource's name (RFC 1035): what gcloud takes for a VM.
+const GCE_INSTANCE_NAME: RegExp = /^[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
+
+export function getGceSshCommand(data: {
+  attributes: Dictionary<string>;
+  resourceName: string | null | undefined;
+  // What to run on the VM.
+  command: string;
+}): string | null {
+  const project: string = (
+    data.attributes[`${GCP_RESOURCE_LABEL_PREFIX}project_id`] || ""
+  ).trim();
+  const zone: string = (
+    data.attributes[`${GCP_RESOURCE_LABEL_PREFIX}zone`] || ""
+  ).trim();
+  const name: string = (data.resourceName || "").trim();
+
+  if (
+    !GCP_PROJECT_ID.test(project) ||
+    !GCP_ZONE.test(zone) ||
+    !GCE_INSTANCE_NAME.test(name)
+  ) {
+    return null;
+  }
+
+  return `gcloud compute ssh ${name} --zone ${zone} --project ${project} --command ${quoteCloudShellArgument(data.command)}`;
+}
+
+// What fills a VM's memory: the processes that hold the most of it.
+export const GCE_MEMORY_FIRST_COMMAND: string =
+  "free -m; ps -eo pid,user,%mem,rss,comm --sort=-%mem | head -n 15";
+// What fills its disks: every filesystem, how full, where it is mounted.
+export const GCE_DISK_FIRST_COMMAND: string = "df -h";
+
+function gceFirstCommand(command: string): CloudAlertFirstCommand {
+  return (
+    attributes: Dictionary<string>,
+    resourceName?: string | null | undefined,
+  ): string | null => {
+    return getGceSshCommand({ attributes, resourceName, command });
+  };
+}
+
+/*
+ * A VM's disks, from the Ops Agent: a series per disk (`device`), each
+ * judged on its own - the fullest is never averaged with the emptiest -
+ * and named on the incident it opens.
+ */
+function gceDiskTemplate(data: {
+  id: string;
+  name: string;
+  summary: string;
+  severity: CloudAlertTemplateSeverity;
+  threshold: number;
+  incidentDescription: string;
+}): CloudAlertTemplate {
+  return define({
+    id: data.id,
+    name: data.name,
+    summary: data.summary,
+    description: `Fires when every reading of ${GCP_OPS_AGENT_DISK_KEY} (in its used state) in the past 15 minutes is at or above ${data.threshold}%, for any of the VM's disks: each disk is judged on its own, and the incident names it. Offered to a VM that runs the Ops Agent, which reports how full its disks are. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
+    category: "Storage",
+    severity: data.severity,
+    provider: CloudProvider.GCP,
+    resourceTypes: ["gce_instance"],
+    measure: "sustained",
+    queries: [
+      {
+        alias: VALUE,
+        metric: gcpMetric({
+          metricType: GCP_OPS_AGENT_DISK_KEY,
+          aggregationType: MetricsAggregationType.Max,
+          legendUnit: "%",
+        }),
+        groupByAttributeKeys: [GCP_OPS_AGENT_DISK_DEVICE_ATTRIBUTE],
+      },
+    ],
+    comparedAlias: VALUE,
+    filterType: FilterType.GreaterThanOrEqualTo,
+    threshold: data.threshold,
+    thresholdLabel: `at or above ${data.threshold}%`,
+    requiresReading: true,
+    incidentDescription: data.incidentDescription,
+    firstCommand: gceFirstCommand(GCE_DISK_FIRST_COMMAND),
+  });
+}
+
 const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   gcpPercentAtOrAbove({
     id: "cloud-gcp-compute-high-cpu",
@@ -2773,6 +2922,49 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
     thresholdLabel: `at or above ${CLOUD_COMPUTE_CPU_HIGH_PERCENT}%`,
     incidentDescription:
       "The VM's CPU stayed at 90% or more for 15 minutes. Look for a process that runs away or for traffic that grew, then add VMs to its group or move it to a larger machine type.",
+  }),
+  /*
+   * A VM's memory and disks, as the Ops Agent on it reports them (#9741):
+   * offered only to a VM that reports them, on the lines its health rules
+   * judge them by.
+   */
+  sustainedAtOrAbove({
+    id: "cloud-gcp-compute-memory-nearly-full",
+    name: "Memory Nearly Full",
+    summary: "Memory use stays at 95% or more for 15 minutes.",
+    description: `Fires when every reading of ${GCP_OPS_AGENT_MEMORY_KEY} (in its used state) in the past 15 minutes is at or above ${CLOUD_MEMORY_HIGH_PERCENT}%. Offered to a VM that runs the Ops Agent, which reports how full its memory is. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
+    category: "Utilization",
+    provider: CloudProvider.GCP,
+    resourceTypes: ["gce_instance"],
+    metric: gcpMetric({
+      metricType: GCP_OPS_AGENT_MEMORY_KEY,
+      aggregationType: MetricsAggregationType.Max,
+      legendUnit: "%",
+    }),
+    threshold: CLOUD_MEMORY_HIGH_PERCENT,
+    thresholdLabel: `at or above ${CLOUD_MEMORY_HIGH_PERCENT}%`,
+    requiresReading: true,
+    incidentDescription:
+      "The VM used 95% or more of its memory for 15 minutes; once it runs out, the kernel's out-of-memory killer stops processes. Look for a process that holds more and more of it, then move the VM to a machine type with more memory.",
+    firstCommand: gceFirstCommand(GCE_MEMORY_FIRST_COMMAND),
+  }),
+  gceDiskTemplate({
+    id: "cloud-gcp-compute-disk-nearly-full",
+    name: "Disk Nearly Full",
+    summary: "A disk stays 90% full or more for 15 minutes.",
+    severity: "Warning",
+    threshold: CLOUD_STORAGE_HIGH_PERCENT,
+    incidentDescription:
+      "A disk of the VM is 90% full or more; once full, what writes to it fails. The incident names the disk: delete what it no longer needs, such as old logs, or resize its persistent disk and grow its filesystem.",
+  }),
+  gceDiskTemplate({
+    id: "cloud-gcp-compute-disk-full",
+    name: "Disk Full",
+    summary: "A disk stays 95% full or more for 15 minutes.",
+    severity: "Critical",
+    threshold: CLOUD_STORAGE_FULL_PERCENT,
+    incidentDescription:
+      "A disk of the VM is 95% full or more, and writes to it are about to fail. The incident names the disk: free space on it now, then resize its persistent disk and grow its filesystem.",
   }),
   gcpPercentAtOrAbove({
     id: "cloud-gcp-cloudsql-disk-full",
@@ -3041,6 +3233,26 @@ export function getCloudAlertTemplatesFor(
       return false;
     }
 
+    /*
+     * An AWS or Google Cloud template over a metric only some resources
+     * report - a VM's memory and disks, from the Ops Agent on it - waits
+     * for a reading of it. Their stored names are fixed: any reading will
+     * do.
+     */
+    if (
+      template.provider !== CloudProvider.Azure &&
+      template.requiresReading &&
+      !template.queries.every((query: CloudAlertQuery): boolean => {
+        return hasStoredNameReading({
+          metric: query.metric,
+          readings: context.readings,
+          needsName: false,
+        });
+      })
+    ) {
+      return false;
+    }
+
     return true;
   });
 }
@@ -3123,6 +3335,36 @@ function getReadingKeysByType(): Map<string, Set<string>> {
   readingKeysByType = byType;
 
   return byType;
+}
+
+/*
+ * Whether a template reads what only the Ops Agent on a Compute Engine VM
+ * reports (#9741): offered once the VM reports it, so a VM without the
+ * agent is told what would offer it.
+ */
+export function isCloudAlertTemplateOfOpsAgent(
+  template: CloudAlertTemplate,
+): boolean {
+  if (template.provider !== CloudProvider.GCP) {
+    return false;
+  }
+
+  const agentMetrics: Set<string> = new Set<string>(
+    getGcpReadMetrics()
+      .filter((metric: GcpReadMetric): boolean => {
+        return metric.reportedBy === GCP_OPS_AGENT;
+      })
+      .map((metric: GcpReadMetric): string => {
+        return metric.storedName.toLowerCase();
+      }),
+  );
+
+  return (
+    template.queries.length > 0 &&
+    template.queries.every((query: CloudAlertQuery): boolean => {
+      return agentMetrics.has(query.metric.metricName.toLowerCase());
+    })
+  );
 }
 
 // The resource types some template is for, of one cloud or every cloud.
