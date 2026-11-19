@@ -159,11 +159,7 @@ function cephRow(fields: Partial<CephResource>): CephResource {
   });
 }
 
-function osd(
-  id: number,
-  isUp: boolean | undefined,
-  isIn: boolean | undefined,
-): CephResource {
+function osd(id: number, isUp: boolean, isIn: boolean): CephResource {
   return cephRow({ kind: "Osd", externalId: `osd.${id}`, isUp, isIn });
 }
 
