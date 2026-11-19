@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import Alert from "../../../Models/DatabaseModels/Alert";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
@@ -20,6 +21,7 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
+import { WorkflowRunAs } from "../../../Types/Workflow/WorkflowRunAs";
 import {
   canLookUpByName,
   getNameColumn,
@@ -142,10 +144,47 @@ describe("a workflow's attributes", () => {
       "is_enabled",
       "graph",
       "labels",
+      "run_as",
+      "run_as_custom_role_id",
       "webhook_secret_key",
       "incoming_email_secret_key",
       "webhook_signing_secret",
     ]);
+  });
+
+  /*
+   * What its steps can do in the project (#9695, #9720): the
+   * configuration's to give, Default unless it says otherwise, set when the
+   * workflow is made and changed in place. Who gave it those permissions,
+   * and when, OneUptime records from whoever saved it: no configuration
+   * sets them, so they are no attribute.
+   */
+  test("what it runs as is configuration, Default unless it says otherwise; who gave it is OneUptime's", () => {
+    const runAs: TerraformAttributeDescriptor = attribute(Workflow, "run_as");
+    const role: TerraformAttributeDescriptor = attribute(
+      Workflow,
+      "run_as_custom_role_id",
+    );
+
+    expect(runAs.kind).toBe(TerraformValueKind.String);
+    expect(runAs.defaultValue).toBe(WorkflowRunAs.Default);
+    expect(runAs.isRequired).toBe(false);
+    expect(runAs.isServerManaged).toBe(false);
+    expect([runAs.inCreateSchema, runAs.inUpdateSchema]).toEqual([true, true]);
+
+    expect(role.kind).toBe(TerraformValueKind.String);
+    expect(role.relatedModelType).toBe(CustomRole);
+    expect(role.isRequired).toBe(false);
+    expect(role.isServerManaged).toBe(false);
+    expect([role.inCreateSchema, role.inUpdateSchema]).toEqual([true, true]);
+
+    for (const name of [
+      "run_as_given_by_user_id",
+      "run_as_given_by_api_key_id",
+      "run_as_given_at",
+    ]) {
+      expect(attributeNames(Workflow)).not.toContain(name);
+    }
   });
 
   test("each has the provider's type", () => {

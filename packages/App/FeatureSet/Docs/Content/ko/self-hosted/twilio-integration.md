@@ -194,7 +194,10 @@ sequenceDiagram
 
 SMS, 통화 결과, 확인 URL은 OneUptime이 자동으로 만듭니다. 그 토큰을 고정된 웹훅 URL로 바꾸지 마세요. 수신 전화는 [수신 전화 정책](/docs/on-call/incoming-call-policy)을 따르세요. 번호를 연결하면 그 번호의 웹훅이 구성됩니다.
 
-Twilio는 [공개적으로 접근할 수 있는 웹훅 URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)이 필요합니다. 공개적으로 신뢰되는 TLS 인증서를 사용하고, 프록시를 거쳐도 원래의 호스트, 프로토콜, 경로, 쿼리 매개변수, 본문, `X-Twilio-Signature` 헤더를 유지하세요. 수신 전화 핸들러는 Twilio 서명을 검증합니다. SMS 전달과 통화 결과는 메시지나 통화마다 URL 토큰을, 키패드 확인은 서명된 쿼리 토큰을 사용합니다. 음성사서함 콜백은 URL 토큰과 Twilio 서명을 모두 확인합니다. 토큰을 공유 로그나 스크린샷에 노출하지 마세요. [Twilio 웹훅 보안](https://www.twilio.com/docs/usage/webhooks/webhooks-security)을 참고하세요.
+Twilio는 [공개적으로 접근할 수 있는 웹훅 URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)이 필요합니다. 공개적으로 신뢰되는 TLS 인증서를 사용하고, 프록시를 거쳐도 원래의 호스트, 프로토콜, 경로, 쿼리 매개변수, 본문, `X-Twilio-Signature` 헤더를 유지하세요. 표의 모든 콜백은 Twilio 서명을 확인합니다. 이 서명은 SMS를 보내거나 통화를 건 Twilio 계정의 Auth Token으로 만들어지며, 그 계정은 프로젝트의 Twilio 구성이나 설치 전체의 계정입니다. SMS 전달, 통화 결과, 음성사서함 콜백은 URL의 토큰도, 키패드 확인은 쿼리의 서명된 토큰도 확인합니다. 서명은 요청이 Twilio에서 왔다는 것을, 토큰은 어떤 SMS나 통화에 관한 요청인지를 알려 줍니다. 서명이 일치하지 않는 콜백은 403으로 거부되며 아무것도 바꾸지 않습니다. 토큰을 공유 로그나 스크린샷에 노출하지 마세요. [Twilio 웹훅 보안](https://www.twilio.com/docs/usage/webhooks/webhooks-security)을 참고하세요.
+
+> [!IMPORTANT]
+> Twilio는 호출하는 정확한 URL과 보내는 모든 매개변수에 서명합니다. 그래서 OneUptime은 프록시가 중간에 바꾼 콜백을 거부하며, 그러면 SMS 전달 상태, 통화 결과, 키패드 확인이 더 이상 업데이트되지 않습니다. Twilio와 OneUptime 사이의 모든 프록시가 경로, 쿼리 문자열, 본문, `X-Twilio-Signature` 헤더를 바꾸지 않고 리디렉션 없이 전달하는지 확인하세요. OneUptime은 `HOST`와 `HTTP_PROTOCOL`로 만들어지는 URL과, 요청의 `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto` 헤더가 가리키는 URL 모두로 서명을 확인하므로, 둘 중 하나만 Twilio가 호출한 공개 URL이면 됩니다. 거부한 콜백마다 서버 로그에는 `Twilio callback refused`로 시작하고 이유를 알려 주는 줄이 남으며, 토큰이나 Auth Token은 들어 있지 않습니다.
 
 ### 프라이빗 배포에서 콜백 공개하기
 
@@ -231,7 +234,7 @@ Twilio의 일반적인 웹훅 출발지 주소는 바뀌므로, SIP나 미디어
 | 아무것도 전송되지 않음 | 자격 증명, 번호의 기능, 계정 제한, 아웃바운드 연결. |
 | Twilio가 오류 21606으로 SMS를 거부함 | 그 번호는 SMS를 보낼 수 없습니다. SMS를 보낼 수 있는 번호를 **Twilio SMS 전화번호**에 추가하세요. [통화와 SMS에 별도 번호 사용](#통화와-sms에-별도-번호-사용)을 참고하세요. |
 | 통화나 SMS가 프로젝트의 계정이 아닌 다른 계정으로 나감 | 해당 메시지의 프로젝트 기본값인 구성이 없습니다. **프로젝트 기본값** 열에 각 구성이 무엇의 기본값인지 표시됩니다. [SMS 전용 또는 통화 전용 계정](#sms-전용-또는-통화-전용-계정)을 참고하세요. |
-| SMS나 통화는 도착하지만 상태나 확인이 업데이트되지 않음 | 콜백 URL과 공개 ingress 로그. Twilio의 [HTTP 가져오기 실패 안내](https://www.twilio.com/docs/api/errors/11200)는 도달할 수 없는 콜백, TLS 문제, HTTP 오류를 진단하는 데 도움이 됩니다. |
+| SMS나 통화는 도착하지만 상태나 확인이 업데이트되지 않음 | 콜백 URL과 공개 ingress 로그. Twilio의 [HTTP 가져오기 실패 안내](https://www.twilio.com/docs/api/errors/11200)는 도달할 수 없는 콜백, TLS 문제, HTTP 오류를 진단하는 데 도움이 됩니다. 403은 OneUptime이 콜백을 거부했다는 뜻입니다. 이유는 서버 로그에서 `Twilio callback refused`로 시작하는 줄에 나옵니다. |
 
 테스트 통화가 성공했다는 것만으로는 콜백 접근이 확인되지 않습니다.
 

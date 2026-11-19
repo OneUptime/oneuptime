@@ -570,6 +570,78 @@ its userlist at startup.
   {{- end }}
 {{- end -}}
 
+{{/*
+An init container that holds a runtime pod until the PostgreSQL backend accepts
+connections: the app's, the worker's, the telemetry writer's and the ingress's,
+whose processes connect to PostgreSQL as they start.
+
+Those processes try four times, five seconds apart, and then exit
+(PostgresDatabase.connect()). On a fresh install the bundled PostgreSQL, or a
+CloudNativePG cluster, is still pulling its image and initializing then. The
+images run JavaScript compiled when they are built, and reach that connect
+within seconds of starting, so each of those pods exited and was restarted at
+least once. Here the pod waits for PostgreSQL first, not started, and its
+process then waits, not ready, for the schema migrations its code needs
+(SchemaMigrationWait). It waits for the backend, never the pooler, which
+accepts connections before PostgreSQL does.
+
+Unlike the migrate Job's own wait, it never holds a pod for good:
+
+  - A service mesh whose sidecar starts after the init containers (Istio's or
+    Linkerd's, when they do not run it as a native sidecar) sends every
+    connection they open to a proxy that is not running yet, so they reach
+    nothing. When the Kubernetes API does not answer either, that is where
+    this pod is, and it starts the process, which connects through the proxy
+    once it runs. The Job's pod can leave the mesh (migrate.podAnnotations);
+    these pods are what the mesh is for.
+  - After PG_WAIT_SECONDS it starts the process anyway, which tries again
+    itself, as before this wait.
+
+It runs the pod's own image, which has bash, so the node pulls nothing more,
+under the security context of the pod's own container.
+
+  initContainers:
+    {{`{{- include "oneuptime.postgres.runtimeWaitInitContainer" (dict "Values" $.Values "Release" $.Release "ServiceName" "app" "SecurityContext" $.Values.containerSecurityContext) | nindent 8 }}`}}
+
+ServiceName and ImageName are oneuptime.image's; SecurityContext is optional.
+*/}}
+{{- define "oneuptime.postgres.runtimeWaitInitContainer" -}}
+- name: wait-for-postgres
+  image: {{ include "oneuptime.image" (dict "Values" .Values "ServiceName" .ServiceName "ImageName" .ImageName) }}
+  imagePullPolicy: {{ .Values.image.pullPolicy }}
+  {{- with .SecurityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  command:
+    - bash
+    - -c
+    - |
+      reachable() {
+        (exec 3<>"/dev/tcp/$1/$2") 2>/dev/null
+      }
+      until reachable "$PGHOST" "$PGPORT"; do
+        if [ -n "${KUBERNETES_SERVICE_HOST:-}" ] && ! reachable "$KUBERNETES_SERVICE_HOST" "${KUBERNETES_SERVICE_PORT:-443}"; then
+          echo "Neither postgres at $PGHOST:$PGPORT nor the Kubernetes API answers: this pod's connections go through a proxy that starts after this container, such as a service mesh's sidecar. Starting the process, which connects through it."
+          exit 0
+        fi
+        if [ "$SECONDS" -ge "$PG_WAIT_SECONDS" ]; then
+          echo "postgres at $PGHOST:$PGPORT did not answer in $PG_WAIT_SECONDS s. Starting the process, which tries again itself."
+          exit 0
+        fi
+        echo "waiting for postgres at $PGHOST:$PGPORT ..."
+        sleep 3
+      done
+      echo "postgres reachable at $PGHOST:$PGPORT"
+  env:
+    - name: PGHOST
+      value: {{ include "oneuptime.envValue" (include "oneuptime.postgres.backendHost" .) }}
+    - name: PGPORT
+      value: {{ include "oneuptime.postgres.backendPort" . | quote }}
+    - name: PG_WAIT_SECONDS
+      value: "300"
+{{- end -}}
+
 {{- define "oneuptime.env.common" }}
 {{- $isEnterpriseEdition := eq (default "community-edition" $.Values.image.type) "enterprise-edition" }}
 {{- $provisionSSL := false -}}

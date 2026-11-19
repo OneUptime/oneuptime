@@ -13,6 +13,13 @@ export interface ErrorContext {
   resource?: string | undefined;
   // Its subcommand: `create`.
   operation?: string | undefined;
+  /*
+   * What to do next, from a command that knows better than the error's
+   * kind: a delete OneUptime refused for the choices it needs says which
+   * flags give them (Utils/DeleteChoiceFlags). It takes the place of the
+   * hint an error OneUptime refused with would otherwise have.
+   */
+  hint?: string | null | undefined;
 }
 
 /*
@@ -165,7 +172,7 @@ export function describeError(
     line: message.includes("API error") ? message : `Error: ${message}`,
     message,
     status,
-    hint: generalHint(message, status, context),
+    hint: context.hint || generalHint(message, status, context),
   };
 }
 

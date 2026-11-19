@@ -74,12 +74,15 @@ import OneUptimeOperation from "../Types/OneUptimeOperation";
 
 /*
  * The tools written by hand that publish: acknowledging or resolving an
- * incident moves it to another state, and a note can be a public one.
+ * incident moves it to another state, a note can be a public one, and Ask
+ * AI's setup actions publish a status page, or put monitors on one (#7241).
  */
 const PUBLISHING_WORKFLOW_TOOLS: Array<string> = [
   "acknowledge_incident",
   "resolve_incident",
   "add_incident_note",
+  "publish_status_page",
+  "add_monitors_to_status_page",
 ];
 
 // The longest tool name the Claude Connectors Directory accepts.
@@ -286,6 +289,8 @@ describe("every tool carries the title and the hints MCP directories ask for", (
       "add_incident_note",
       "acknowledge_incident",
       "resolve_incident",
+      "publish_status_page",
+      "add_monitors_to_status_page",
     ]) {
       expect([name, openWorld.includes(name)]).toEqual([name, true]);
     }
@@ -300,6 +305,9 @@ describe("every tool carries the title and the hints MCP directories ask for", (
       "update_team",
       "list_incidents",
       "oneuptime_whoami",
+      "set_up_website_monitoring",
+      "set_up_paging",
+      "who_is_told",
     ]) {
       expect([name, openWorld.includes(name)]).toEqual([name, false]);
     }

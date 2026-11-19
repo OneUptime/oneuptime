@@ -11,8 +11,13 @@ import {
 } from "Common/Types/Call/CallProvider";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Twilio, { validateRequest } from "twilio";
+import Twilio from "twilio";
 import logger from "Common/Server/Utils/Logger";
+import {
+  describeTwilioWebhookUrl,
+  getTwilioWebhookUrls,
+  isSignedWithAuthToken,
+} from "Common/Server/Utils/TwilioWebhookSignature";
 
 export default class TwilioCallProvider implements ICallProvider {
   private client: Twilio.Twilio;
@@ -268,82 +273,37 @@ export default class TwilioCallProvider implements ICallProvider {
     };
   }
 
+  /*
+   * Whether this account signed the request, at the public URL Twilio was
+   * given - as the request names it, through the ingress's /notification
+   * rewrite and the scheme and host a proxy forwarded, or as this server
+   * gives it to Twilio from HOST and HTTP_PROTOCOL (TwilioWebhookSignature).
+   * A request it did not sign is logged with the URLs it was checked at,
+   * their query values left out, and never the signature.
+   */
   public validateWebhookSignature(
     request: WebhookRequest,
     signature: string,
   ): boolean {
-    const authToken: string = this.config.authToken;
+    const isValid: boolean = isSignedWithAuthToken({
+      request: request,
+      authToken: this.config.authToken,
+      signature: signature,
+    });
 
-    /*
-     * Build the full URL that Twilio used to generate the signature
-     * When behind a proxy, use X-Forwarded-Proto and X-Forwarded-Host headers
-     * These headers are set by reverse proxies (nginx, load balancers, etc.)
-     */
-    const forwardedProto: string | undefined = request.get(
-      "x-forwarded-proto",
-    ) as string | undefined;
-    const forwardedHost: string | undefined = request.get(
-      "x-forwarded-host",
-    ) as string | undefined;
-
-    // Use forwarded headers if available, otherwise fall back to request properties
-    const protocol: string = forwardedProto || request.protocol || "https";
-    const host: string = forwardedHost || request.get("host") || "";
-
-    /*
-     * Nginx rewrites /notification to /api/notification internally
-     * But Twilio signed with the original external URL path (/notification/...)
-     * So we need to remove the /api prefix for signature validation
-     */
-    let originalUrl: string = request.originalUrl;
-    if (originalUrl.startsWith("/api/notification")) {
-      originalUrl = originalUrl.replace("/api/notification", "/notification");
-    }
-
-    const url: string = `${protocol}://${host}${originalUrl}`;
-
-    const params: Record<string, string> = {};
-    const body: Record<string, unknown> = request.body as Record<
-      string,
-      unknown
-    >;
-    for (const key of Object.keys(body)) {
-      params[key] = String(body[key]);
-    }
-
-    const isValid: boolean = validateRequest(authToken, signature, url, params);
-
-    // Debug logging for signature validation
     if (!isValid) {
-      logger.debug("Twilio Webhook Signature Validation Debug:", {
-        service: "notification",
-      });
-      logger.debug(`  URL used for validation: ${url}`, {
-        service: "notification",
-      });
-      logger.debug(`  Signature received: ${signature}`, {
-        service: "notification",
-      });
-      logger.debug(`  Protocol: ${protocol}`, { service: "notification" });
-      logger.debug(`  Host: ${host}`, { service: "notification" });
-      logger.debug(`  Original URL (from request): ${request.originalUrl}`, {
-        service: "notification",
-      });
-      logger.debug(`  Corrected URL path: ${originalUrl}`, {
-        service: "notification",
-      });
-      logger.debug(`  X-Forwarded-Proto: ${forwardedProto}`, {
-        service: "notification",
-      });
-      logger.debug(`  X-Forwarded-Host: ${forwardedHost}`, {
-        service: "notification",
-      });
-      logger.debug(`  Request protocol: ${request.protocol}`, {
-        service: "notification",
-      });
-      logger.debug(`  Request host header: ${request.get("host")}`, {
-        service: "notification",
-      });
+      logger.debug(
+        `Twilio webhook signature not valid for ${
+          getTwilioWebhookUrls(request)
+            .map((url: string): string => {
+              return describeTwilioWebhookUrl(url);
+            })
+            .join(" or ") || "a request naming no host"
+        }${signature ? "" : ": the request carries no X-Twilio-Signature"}`,
+        {
+          service: "notification",
+        },
+      );
     }
 
     return isValid;

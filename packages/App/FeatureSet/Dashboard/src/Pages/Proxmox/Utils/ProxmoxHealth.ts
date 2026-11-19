@@ -18,7 +18,9 @@ import {
   mergeResourceAttentionSeverity,
   sortResourceAttention,
 } from "../../../Components/ResourcePart/ResourceAttention";
+import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../../Components/ResourceTopology/ResourceTopologyIssues";
+import { getProxmoxLockBadge } from "./ProxmoxPartFacts";
 
 /*
  * WHAT ON A PROXMOX VE CLUSTER NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -463,11 +465,26 @@ export type ProxmoxProblem =
   | { kind: "nodesOffline" }
   | { kind: "haState"; state: string }
   | { kind: "backupFailed" }
-  | { kind: "noBackupJob" };
+  | { kind: "noBackupJob" }
+  /*
+   * Guests "8/10 guests running" leaves out that should be running: stopped
+   * although they start on boot, or HA gave up on them (error) or cut their
+   * node off (fence). A guest someone stopped and left off is not one.
+   */
+  | { kind: "guestsStopped" };
 
 const FACT_NODE: string = translationKey("Node");
 // When a guest's last backup failed: "Failed 2 hours ago".
 const SINCE_BACKUP_FAILED: string = translationKey("Failed {{time}}");
+/*
+ * Why a guest that should run is not running, where the inventory says:
+ * the node it is on is offline (the guest went with it).
+ */
+const REASON_NODE_OFFLINE: string = translationKey("Its node is offline");
+
+function isHaCritical(row: ProxmoxResource): boolean {
+  return Boolean(row.haState && HA_CRITICAL_STATES.has(row.haState));
+}
 
 /*
  * Whether a row is one the count counts - the very test the Overview's
@@ -494,6 +511,18 @@ export function isProxmoxProblemRow(
         !isProxmoxTemplate(row) &&
         row.isBackedUp === false
       );
+    case "guestsStopped":
+      /*
+       * Not counted running (isUp true is what "8/10 running" counts), and
+       * flagged by the rules for it: stopped though it starts on boot, or
+       * in an HA state HA gave up in.
+       */
+      return (
+        row.kind === "Guest" &&
+        !isProxmoxTemplate(row) &&
+        row.isUp !== true &&
+        ((row.onboot === true && row.isUp === false) || isHaCritical(row))
+      );
     default:
       return false;
   }
@@ -510,10 +539,42 @@ function problemReasonOf(
       return { text: REASON_HA_STATE, values: { state: row.haState || "" } };
     case "backupFailed":
       return { text: REASON_BACKUP_FAILED };
+    case "guestsStopped":
+      // HA's verdict says more than the stop it led to.
+      return isHaCritical(row)
+        ? { text: REASON_HA_STATE, values: { state: row.haState || "" } }
+        : { text: REASON_STOPPED_ON_BOOT };
     case "noBackupJob":
     default:
       return { text: REASON_NO_BACKUP_JOB };
   }
+}
+
+/*
+ * Why a guest that should run is not, where the inventory can tell: its
+ * node is offline, or a task holds it (a backup that stops it while it
+ * runs, a migration) in Proxmox's lock, worded as the guest's page words it.
+ */
+function guestStoppedCauses(
+  row: ProxmoxResource,
+  nodesByName: Map<string, ProxmoxResource>,
+): Array<ResourceAttentionText> {
+  const causes: Array<ResourceAttentionText> = [];
+  const node: ProxmoxResource | undefined = row.parentNodeName
+    ? nodesByName.get(row.parentNodeName)
+    : undefined;
+  if (node && node.isUp === false) {
+    causes.push({ text: REASON_NODE_OFFLINE });
+  }
+  const lock: ResourcePartBadge | null = getProxmoxLockBadge(row.lockState);
+  if (lock) {
+    causes.push(
+      lock.values
+        ? { text: lock.label, values: lock.values }
+        : { text: lock.label },
+    );
+  }
+  return causes;
 }
 
 function sameReason(
@@ -555,6 +616,11 @@ export function getProxmoxProblemItems(data: {
     const assessment: ProxmoxAssessment = assessProxmoxResource(row);
     const first: ResourceAttentionText = problemReasonOf(row, data.problem);
     const externalId: string = row.externalId || "";
+    // Why a guest that should run is not, right after the count's reason.
+    const causes: Array<ResourceAttentionText> =
+      data.problem.kind === "guestsStopped"
+        ? guestStoppedCauses(row, nodesByName)
+        : [];
 
     const item: ResourceAttentionItem = {
       key: `${kind}:${externalId}`,
@@ -566,6 +632,7 @@ export function getProxmoxProblemItems(data: {
       // The count's own reason first, then the rest of what the rules say.
       reasons: [
         first,
+        ...causes,
         ...assessment.reasons.filter((reason: ResourceAttentionText) => {
           return !sameReason(reason, first);
         }),

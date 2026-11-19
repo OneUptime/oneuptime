@@ -38,6 +38,7 @@ import {
 import {
   drawnActionLabel,
   drawnDashboardLabel,
+  drawnLabelOnPage,
   drawnTableButton,
   isActionLabel,
 } from "./DocsDashboardLabels";
@@ -237,6 +238,15 @@ function drawnLabel(language: string, label: string): string {
 }
 
 /*
+ * A bold label of one page, as its screen draws it: by the screen's own
+ * key where it has one (LABELS_DRAWN_BY_OWN_KEY: the All Items list's Model
+ * is a machine's model, #9838), otherwise as drawnLabel draws it.
+ */
+function drawnLabelOn(page: string, language: string, label: string): string {
+  return drawnLabelOnPage(language, page, label, drawnLabel);
+}
+
+/*
  * The Dashboard labels a page names that drawnLabel draws: every bold
  * label but the ones a list draws, keeps or translates freely.
  */
@@ -257,7 +267,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnLabel(language, label)}**`];
+      return [`**${label}**`, `**${drawnLabelOn(page, language, label)}**`];
     }),
     ...listed(CREATE_BUTTONS, page).map((button: string): [string, string] => {
       return [`**${button}**`, `**${drawnTableButton(language, button)}**`];
@@ -909,7 +919,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         const translated: string = readPage(language, entry.page);
         const missing: Array<string> = [
           ...dashboardLabels(entry.page).map((label: string): string => {
-            return drawnLabel(language, label);
+            return drawnLabelOn(entry.page, language, label);
           }),
           ...listed(CREATE_BUTTONS, entry.page).map(
             (button: string): string => {

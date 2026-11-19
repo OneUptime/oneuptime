@@ -4,6 +4,7 @@ import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CodeFixOnItsWay, { CodeFixProblem } from "../CodeFix/CodeFixOnItsWay";
 import FixRunBudget from "../CodeFix/FixRunBudget";
 import CodeTaskFixRetry from "./CodeTaskFixRetry";
 import CodeTaskLive from "./CodeTaskLive";
@@ -121,6 +122,12 @@ export default class CodeTaskRuns {
      * (AIRunService).
      */
     carries?: CarriedRecordIds | undefined;
+    /*
+     * The problems the request is a fix of, when a path starts it as one: a
+     * profile's slow function (ProfileFixTaskTrigger). It is written only
+     * while no fix of them is on its way (CodeFixOnItsWay.createHeldTo).
+     */
+    holdsTo?: Array<CodeFixProblem> | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
@@ -160,10 +167,7 @@ export default class CodeTaskRuns {
       CarriedRecords.writeTo(run, data.carries);
     }
 
-    return await AIRunService.create({
-      data: run,
-      props: { isRoot: true },
-    });
+    return await CodeTaskRuns.createFirstTurn(run, data.holdsTo);
   }
 
   /*
@@ -184,6 +188,8 @@ export default class CodeTaskRuns {
     context: Array<CodeTaskContextItem>;
     triggeredByAiInsightId: ObjectID;
     llmProviderId?: ObjectID | undefined;
+    // The problems it is a fix of beyond its insight (start's holdsTo).
+    holdsTo?: Array<CodeFixProblem> | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
@@ -203,9 +209,33 @@ export default class CodeTaskRuns {
       run.llmProviderId = data.llmProviderId;
     }
 
-    return await AIRunService.create({
-      data: run,
-      props: { isRoot: true },
+    return await CodeTaskRuns.createFirstTurn(run, data.holdsTo);
+  }
+
+  /*
+   * A task's first turn, written as root - held, when a path starts it as a
+   * fix of problems it names in no column, to no fix of them being on its
+   * way (CodeFixOnItsWay.createHeldTo).
+   */
+  private static async createFirstTurn(
+    run: AIRun,
+    holdsTo: Array<CodeFixProblem> | undefined,
+  ): Promise<AIRun> {
+    const create: () => Promise<AIRun> = async (): Promise<AIRun> => {
+      return await AIRunService.create({
+        data: run,
+        props: { isRoot: true },
+      });
+    };
+
+    if (!holdsTo || holdsTo.length === 0) {
+      return await create();
+    }
+
+    return await CodeFixOnItsWay.createHeldTo({
+      run,
+      problems: holdsTo,
+      create,
     });
   }
 

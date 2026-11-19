@@ -390,6 +390,8 @@ import "./Jobs/Cloud/ReadCloudConnections";
 // Azure connections' streams: their event hubs read every minute.
 import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
+// What still reads a metric its cloud deprecates, moved again every hour.
+import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";
 import "./Jobs/DataSecurity/DataSecurityJobs";
 import "./Jobs/DataObservability/DataObservabilityJobs";
 /*

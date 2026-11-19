@@ -123,6 +123,49 @@ const rulesOf: (timezone: string) => ZoneRules | null = (
   return { untils: zone.untils, offsets: zone.offsets, abbrs: zone.abbrs };
 };
 
+/*
+ * A zone's rules from `sinceMs` on: every period that ends after it, so two
+ * zones that keep one clock from then on compare equal whatever they did
+ * before.
+ */
+const rulesSince: (timezone: string, sinceMs: number) => ZoneRules | null = (
+  timezone: string,
+  sinceMs: number,
+): ZoneRules | null => {
+  const rules: ZoneRules | null = rulesOf(timezone);
+
+  if (!rules) {
+    return null;
+  }
+
+  const first: number = rules.untils.findIndex((until: number): boolean => {
+    return until > sinceMs;
+  });
+
+  return {
+    untils: rules.untils.slice(first),
+    offsets: rules.offsets.slice(first),
+    abbrs: rules.abbrs.slice(first),
+  };
+};
+
+/*
+ * The four System V names that observe daylight saving follow US federal
+ * rules again since tzdata 2026d, as they did until 2024a: before 1967
+ * each parts from the city it maps to (New York's, Chicago's, Denver's and
+ * Los Angeles' own local rules), and from 1967 on the two are one clock.
+ * Nothing OneUptime stores, schedules or shows is that old, so their clock
+ * is compared from 1970 on, where tzdata itself merges zones.
+ */
+const SYSTEM_V_DAYLIGHT_NAMES: ReadonlyArray<Timezone> = [
+  Timezone.CST6CDT,
+  Timezone.EST5EDT,
+  Timezone.MST7MDT,
+  Timezone.PST8PDT,
+];
+
+const START_OF_1970_MS: number = Date.UTC(1970, 0, 1);
+
 const variantsOf: (timezone: string) => Array<string> = (
   timezone: string,
 ): Array<string> => {
@@ -231,7 +274,10 @@ describe("LEGACY_TIMEZONE_NAMES — every translation keeps the clock", () => {
    */
   test.each(
     LEGACY_PAIRS.filter(([legacy]: [Timezone, Timezone]): boolean => {
-      return legacy !== Timezone.USPacificNew;
+      return (
+        legacy !== Timezone.USPacificNew &&
+        !SYSTEM_V_DAYLIGHT_NAMES.includes(legacy)
+      );
     }),
   )("%s has exactly the rules of %s", (legacy: Timezone, current: Timezone) => {
     const legacyRules: ZoneRules | null = rulesOf(legacy);
@@ -241,6 +287,44 @@ describe("LEGACY_TIMEZONE_NAMES — every translation keeps the clock", () => {
     expect(currentRules).not.toBeNull();
     expect(legacyRules).toEqual(currentRules);
   });
+
+  test.each(
+    SYSTEM_V_DAYLIGHT_NAMES.map((legacy: Timezone): [Timezone, Timezone] => {
+      return [legacy, LEGACY_TIMEZONE_NAMES[legacy]!];
+    }),
+  )(
+    "%s has the rules of %s from 1970 on",
+    (legacy: Timezone, current: Timezone) => {
+      const legacyRules: ZoneRules | null = rulesSince(
+        legacy,
+        START_OF_1970_MS,
+      );
+      const currentRules: ZoneRules | null = rulesSince(
+        current,
+        START_OF_1970_MS,
+      );
+
+      expect(legacyRules).not.toBeNull();
+      expect(legacyRules!.untils.length).toBeGreaterThan(100);
+      expect(legacyRules).toEqual(currentRules);
+    },
+  );
+
+  /*
+   * Guards the exception above: if tzdata makes these plain links to their
+   * cities again, their whole history matches and the exception can go.
+   */
+  test.each(SYSTEM_V_DAYLIGHT_NAMES)(
+    "%s parts from its city only before 1967",
+    (legacy: Timezone) => {
+      const current: Timezone = LEGACY_TIMEZONE_NAMES[legacy]!;
+
+      expect(rulesOf(legacy)).not.toEqual(rulesOf(current));
+      expect(rulesSince(legacy, Date.UTC(1967, 0, 1))).toEqual(
+        rulesSince(current, Date.UTC(1967, 0, 1)),
+      );
+    },
+  );
 
   /*
    * tzdata removed US/Pacific-New in 2020b; moment cannot resolve it at
@@ -602,10 +686,12 @@ describe("TimezoneAlias.getCanonicalTimezone", () => {
   });
 
   /*
-   * Translating is not validating. A zone newer than the enum
-   * (America/Coyhaique arrived in tzdata 2025b), a typo, or an empty
-   * string comes back exactly as given — never trimmed, never re-cased,
-   * never swapped for a guess.
+   * Translating is not validating. A zone newer than the enum, a typo, or
+   * an empty string comes back exactly as given — never trimmed, never
+   * re-cased, never swapped for a guess. No real zone is newer than the
+   * enum today (America/Coyhaique, tzdata 2025b, was the last, and the enum
+   * lists it since moment-timezone carries tzdata 2026f), so
+   * America/Atlantis stands in for the next one.
    */
   test.each([
     "Mars/Olympus",
@@ -613,7 +699,7 @@ describe("TimezoneAlias.getCanonicalTimezone", () => {
     "mars/olympus",
     "",
     "   ",
-    "America/Coyhaique",
+    "America/Atlantis",
     "Asia/Singapore/Extra",
   ])("the unknown %j comes back as the identical string", (input: string) => {
     expect(TimezoneAlias.getCanonicalTimezone(input)).toBe(input);
@@ -633,10 +719,19 @@ describe("TimezoneAlias.getCanonicalTimezone", () => {
     },
   );
 
-  test("America/Coyhaique really is unknown to the enum and to moment", () => {
+  test("America/Atlantis really is unknown to the enum and to moment", () => {
     // Guards the example above: if tzdata catches up, pick another.
-    expect(ALL_TIMEZONES).not.toContain("America/Coyhaique");
-    expect(moment.tz.zone("America/Coyhaique")).toBeNull();
+    expect(ALL_TIMEZONES).not.toContain("America/Atlantis");
+    expect(moment.tz.zone("America/Atlantis")).toBeNull();
+  });
+
+  test("America/Coyhaique, the zone tzdata 2025b added, is in the enum and current", () => {
+    expect(ALL_TIMEZONES).toContain(Timezone.AmericaCoyhaique);
+    expect(moment.tz.zone(Timezone.AmericaCoyhaique)).not.toBeNull();
+    expect(TimezoneAlias.isLegacyName(Timezone.AmericaCoyhaique)).toBe(false);
+    expect(TimezoneAlias.getCanonicalTimezone(Timezone.AmericaCoyhaique)).toBe(
+      Timezone.AmericaCoyhaique,
+    );
   });
 
   test("is idempotent over every enum value and every variant", () => {

@@ -9,6 +9,7 @@ import {
   MAX_SIMULTANEOUS_SCANS,
   POWER_BI_ASKED_SCAN_WAIT_IN_MS,
   POWER_BI_SCAN_QUERY,
+  POWER_BI_SCANS_FULL_REASON,
   POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
   PowerBiLimitError,
   PowerBiPendingScan,
@@ -617,6 +618,8 @@ describe("picking up a scan an earlier read stopped waiting for", () => {
             return { id, name: `Workspace ${id}`, state: "Active" };
           }),
         },
+        // What it read is as old as its start, not the read that picked it up (#9901).
+        startedAt: STARTED_AT,
       },
     ]);
     expect(run.running).toEqual([]);
@@ -947,7 +950,12 @@ describe("what a read's scans leave for the next", () => {
           startedAt: "2026-11-19T08:00:00.000Z",
         },
         { kind: "unscanned", workspaceIds: ["b", "c"], reason: "Failed." },
-        { kind: "scanned", workspaceIds: ["c"], result: {} },
+        {
+          kind: "scanned",
+          workspaceIds: ["c"],
+          result: {},
+          startedAt: "2026-11-19T08:30:00.000Z",
+        },
         {
           kind: "running",
           scanId: "new",
@@ -991,5 +999,138 @@ describe("what a read's scans leave for the next", () => {
     expect(
       describeRunningScans([], POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS),
     ).toBeNull();
+  });
+});
+
+/*
+ * Power BI counts a scan toward its 16 at once until its status says it
+ * ended (#9901): Microsoft's guide says to wait for Succeeded or Failed
+ * before starting another. A read that stopped waiting for a scan leaves
+ * its place taken. Before, the place started the next chunk at once, could
+ * not ask about it in time and went on, so a big tenant's read started
+ * every chunk left, far past 16.
+ */
+describe("Power BI's 16 scans at once, as the read stops waiting", () => {
+  function postsOf(scanner: FakeScanner): number {
+    return scanner.calls.filter((call: string): boolean => {
+      return call.startsWith("POST");
+    }).length;
+  }
+
+  function scanIds(scans: Array<{ scanId: string }>): Array<string> {
+    return scans.map((scan: { scanId: string }): string => {
+      return scan.scanId;
+    });
+  }
+
+  test("a place that leaves a scan running starts no other: 16 at most, the rest left for the next read", async () => {
+    const scanner: FakeScanner = fakeScanner({
+      polls: (): number => {
+        return Number.POSITIVE_INFINITY;
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ids(4_000),
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(scanner.maxRunning).toBe(MAX_SIMULTANEOUS_SCANS);
+    expect(postsOf(scanner)).toBe(MAX_SIMULTANEOUS_SCANS);
+    expect(
+      run.running.flatMap((scan: PowerBiPendingScan): Array<string> => {
+        return scan.workspaceIds;
+      }),
+    ).toEqual(ids(1_600));
+    // The 24 chunks no place was free for: never started, so the next read scans them.
+    expect(
+      run.unscanned.flatMap(
+        (entry: PowerBiScanRun["unscanned"][number]): Array<string> => {
+          return entry.workspaceIds;
+        },
+      ),
+    ).toEqual(ids(4_000).slice(1_600));
+    expect(
+      new Set(
+        run.unscanned.map(
+          (entry: PowerBiScanRun["unscanned"][number]): string => {
+            return entry.reason;
+          },
+        ),
+      ),
+    ).toEqual(new Set([POWER_BI_SCANS_FULL_REASON]));
+    expect(describeUnscannedWorkspaces(run.unscanned)).toBe(
+      "2400 workspaces were not scanned this time: The read stopped waiting while Power BI was still running the 16 scans it allows at once. The next read scans them again, and until then they show what was read before.",
+    );
+  });
+
+  test("a place whose scan ended takes the next, even as the wait runs out: one it cannot wait for is kept for the next read", async () => {
+    // The first 16 chunks end after three asks; the 16 after them never do.
+    const scanner: FakeScanner = fakeScanner({
+      polls: (workspaceIds: Array<string>): number => {
+        return Number(workspaceIds[0]!.split("-")[1]) < 1_600
+          ? 3
+          : Number.POSITIVE_INFINITY;
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ids(3_200),
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(postsOf(scanner)).toBe(32);
+    expect(scanner.maxRunning).toBe(MAX_SIMULTANEOUS_SCANS);
+    expect(run.scanned).toHaveLength(16);
+    expect(run.running).toHaveLength(16);
+    expect(run.unscanned).toEqual([]);
+  });
+
+  test("scans picked up that no place reached are kept as they were, unasked, and none of the read's own starts", async () => {
+    const startedAt: string = "2026-11-19T09:00:00.000Z";
+    const kept: Array<PowerBiPendingScan> = Array.from(
+      { length: 20 },
+      (_: unknown, index: number): PowerBiPendingScan => {
+        return {
+          scanId: `s-${String(index).padStart(2, "0")}`,
+          workspaceIds: ids(1, `p${index}`),
+          startedAt,
+        };
+      },
+    );
+    const scanner: FakeScanner = fakeScanner({
+      started: kept,
+      polls: (): number => {
+        return Number.POSITIVE_INFINITY;
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ids(5),
+      pickUp: kept,
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+    const asked: Set<string> = new Set(
+      scanner.calls
+        .filter((call: string): boolean => {
+          return call.includes("/scanStatus/");
+        })
+        .map((call: string): string => {
+          return call.split("/").pop()!;
+        }),
+    );
+
+    // The 16 places each follow a picked-up scan to the wait's end.
+    expect(Array.from(asked).sort()).toEqual(scanIds(kept.slice(0, 16)));
+    // All 20 are kept for the next read, the 4 no place reached as they were.
+    expect(scanIds(run.running)).toEqual(scanIds(kept));
+    expect(run.running[19]).toEqual(kept[19]);
+    expect(postsOf(scanner)).toBe(0);
+    expect(run.unscanned).toEqual([
+      { workspaceIds: ids(5), reason: POWER_BI_SCANS_FULL_REASON },
+    ]);
   });
 });

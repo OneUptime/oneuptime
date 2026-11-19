@@ -48,6 +48,7 @@ import {
   withAverageWhenNotAggregated,
 } from "./MetricWidgetQuery";
 import DashboardWidgetLine from "./DashboardWidgetLine";
+import RetiredCloudMetricNotice from "../../Metrics/RetiredCloudMetricNotice";
 import InvestigationDrawer from "../../Telemetry/LazyInvestigationDrawer";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
@@ -705,6 +706,15 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       ) : null}
+      {/*
+       * A query of a metric its cloud deprecates, which the connection
+       * reads only for what still reads it, says so and what replaces it
+       * (#9980): every hour such a chart is moved where it can be.
+       */}
+      <RetiredCloudMetricNotice
+        queryConfigs={queryConfigs}
+        className="px-2 pb-1 flex-shrink-0"
+      />
       {zoomWindow ? (
         <div className="mx-2 mb-1 flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-indigo-50 px-2 py-1">
           <Icon

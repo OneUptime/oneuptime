@@ -207,6 +207,20 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 > [!CAUTION]
 > `delete` रिकॉर्ड को तुरंत हटा देता है। CLI आपसे पुष्टि नहीं माँगता, और इसे पूर्ववत नहीं किया जा सकता। यह उन स्क्रिप्ट के लिए `--force` स्वीकार करता है जो इसके साथ लिखी गई हैं, और `--force` कुछ नहीं बदलता।
 
+### जिस कस्टम भूमिका के रूप में वर्कफ़्लो चलते हैं
+
+जिस कस्टम भूमिका के रूप में वर्कफ़्लो चलते हैं, उसे OneUptime तभी मिटाता है जब मिटाने का अनुरोध बताए कि उसकी जगह वे किस रूप में चलें, और जो अनुरोध यह नहीं बताता उसे वर्कफ़्लो के नाम बताते हुए अस्वीकार कर देता है। इसे `--workflows-run-as` से बताएँ: `Default`, यानी डिफ़ॉल्ट अनुमतियाँ, या `CustomRole`, यानी कोई दूसरी कस्टम भूमिका जो आप किसी टीम को दे सकते हैं, जिसकी ID `--workflows-run-as-custom-role-id` में हो। Project Owner कभी नहीं: भूमिका मिटाने से कोई वर्कफ़्लो कभी पहले से ज़्यादा नहीं कर पाता।
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+अस्वीकार हुआ मिटाना OneUptime का अस्वीकार संदेश छापता है, जिसमें वर्कफ़्लो के नाम होते हैं, और फिर वे फ़्लैग जिनके साथ इसे दोबारा चलाना है। जिस भूमिका के रूप में कोई वर्कफ़्लो नहीं चलता, उसे इन दोनों में से किसी फ़्लैग की ज़रूरत नहीं।
+
 ## रिकॉर्ड गिनें
 
 ```bash

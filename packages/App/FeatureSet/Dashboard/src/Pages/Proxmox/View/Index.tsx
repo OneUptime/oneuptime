@@ -132,6 +132,7 @@ import {
 import {
   ResourceAttentionItem,
   ResourceHealth,
+  getResourceAttentionTone,
 } from "../../../Components/ResourcePart/ResourceAttention";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import ProxmoxNodesCard from "../../../Components/Proxmox/ProxmoxNodesCard";
@@ -144,6 +145,7 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import {
+  PluralTemplate,
   toLabelTerm,
   translationKey,
   Translator,
@@ -164,6 +166,64 @@ export const PROXMOX_HEALTH_WORDS: ResourceHealthDialogWords = {
   degradedTitle: translationKey("Why this cluster is Degraded"),
   unhealthyTitle: translationKey("Why this cluster is Unhealthy"),
 };
+
+/*
+ * What "8/10 guests running" and the Guests tile open while a guest that
+ * should run does not (#9729): which, and why - stopped though it starts
+ * on boot, or HA gave up on it - with its node and what holds it.
+ */
+export const PROXMOX_GUESTS_STOPPED: PluralTemplate = {
+  one: "{{count}} should be running",
+  other: "{{count}} should be running",
+};
+export const PROXMOX_GUESTS_STOPPED_TITLE: PluralTemplate = {
+  one: "{{count}} guest should be running",
+  other: "{{count}} guests should be running",
+};
+export const PROXMOX_GUESTS_HINT: string = translationKey(
+  "Show which guests and why",
+);
+export const PROXMOX_GUESTS_STOPPED_DESCRIPTION: string = translationKey(
+  "Guests that start on boot, or that HA keeps running, and are not running. A guest someone stopped and left off is not one.",
+);
+export const PROXMOX_NO_GUEST_STOPPED: string = translationKey(
+  "Every guest that should be running is running now.",
+);
+
+/*
+ * The pill after the guests count, or none while every guest that should
+ * run does: red while HA has given up on one, amber while they are only
+ * stopped.
+ */
+export function getProxmoxGuestsStoppedPill(data: {
+  testId: string;
+  items: Array<ResourceAttentionItem>;
+  translator: Translator;
+}): ResourceAttentionPillProps | undefined {
+  if (data.items.length === 0) {
+    return undefined;
+  }
+  return {
+    testId: data.testId,
+    label: data.translator.translatePlural(
+      PROXMOX_GUESTS_STOPPED,
+      data.items.length,
+    ),
+    tone: getResourceAttentionTone(data.items),
+    hint: PROXMOX_GUESTS_HINT,
+    dialog: {
+      title: data.translator.translatePlural(
+        PROXMOX_GUESTS_STOPPED_TITLE,
+        data.items.length,
+      ),
+      description: PROXMOX_GUESTS_STOPPED_DESCRIPTION,
+      items: data.items,
+      emptyMessage: PROXMOX_NO_GUEST_STOPPED,
+      // Every row is a guest.
+      showKind: false,
+    },
+  };
+}
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -1435,6 +1495,14 @@ const ProxmoxClusterOverview: FunctionComponent<
     };
   })();
 
+  /*
+   * Guests that should be running and are not: what the hero's guests count
+   * and the Guests tile open (#9729), while the agent reports.
+   */
+  const guestsStoppedItems: Array<ResourceAttentionItem> = problemItemsOf({
+    kind: "guestsStopped",
+  });
+
   // A guest's own page: what its name and its tiles link to.
   const getGuestRoute: (externalId: string) => Route = (
     externalId: string,
@@ -1541,6 +1609,11 @@ const ProxmoxClusterOverview: FunctionComponent<
         icon: IconProp.Cube,
         route: guestsRoute,
         testId: "proxmox-hero-guests",
+        problem: getProxmoxGuestsStoppedPill({
+          testId: "proxmox-hero-guests-stopped",
+          items: guestsStoppedItems,
+          translator: translator,
+        }),
         label: inventory
           ? translator.translatePlural(
               {
@@ -2019,6 +2092,12 @@ const ProxmoxClusterOverview: FunctionComponent<
           thresholds={{ warn: 99, danger: 50 }}
           higherIsBetter={true}
           description={PROXMOX_METRIC_DESCRIPTIONS.guestsRunning}
+          // Which guests should be running and are not, and why (#9729).
+          attention={getProxmoxGuestsStoppedPill({
+            testId: "proxmox-tile-guests-stopped",
+            items: guestsStoppedItems,
+            translator: translator,
+          })}
         />
       </div>
     );

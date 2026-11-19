@@ -343,6 +343,18 @@ The **`get_data_table_lineage`** tool tells an agent what a watched table is bui
 
 The **`oneuptime_move_in_list`** tool moves a row of an ordered list, such as an incident severity, an incident state or a monitor status, to another row's place, as dragging it in the dashboard does: the rows in between step one place, and it answers with each row whose number changed. Pass `resource` (such as `Incident Severity`), the row's `id` and `placeOfId`, the ID of the row whose place it takes. Writing a row's number with its `update_` tool places only that row, beside any row that already has that number.
 
+## Tools for setting things up
+
+The server also has Ask AI's setup actions, one call each: what you set up, rather than one record at a time. Each makes the records Ask AI and the guided setups make for the same answers, with the same checks:
+
+- **`set_up_website_monitoring`**: a website or API monitor for an address, which opens an incident when the address does not answer or answers with an error. You own it, and an address a monitor already checks gets no second one
+- **`set_up_paging`**: in a project that pages nobody yet, its first on-call policy, which pages you and the people and teams you name for every new incident and alert
+- **`publish_status_page`**: a public status page that shows the monitors you name
+- **`add_monitors_to_status_page`**: monitors put on a status page the project has
+- **`who_is_told`**: who is told when a monitor goes down, and what would stop them being reached. It changes nothing
+
+They act as you, signed in with OAuth: a project API key cannot use the four that make something. Your client asks you before each of them, and its answer says what was made. What is missing, such as a permission, an address or room in the plan, is said before anything is made.
+
 ## Querying Telemetry
 
 Logs, metrics, traces (spans), exceptions, monitor logs and the other kinds of telemetry come as read-only `list_` and `count_` tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` and their `count_` twins). Telemetry arrives through OpenTelemetry, so there are no create tools.

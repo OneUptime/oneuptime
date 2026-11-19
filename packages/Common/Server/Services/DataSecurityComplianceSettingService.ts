@@ -9,6 +9,7 @@ import Model from "../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
@@ -25,6 +26,15 @@ import {
   isKubernetesComplianceFramework,
   isKubernetesNamespaceName,
 } from "../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
+
+/*
+ * Who turned a setting off (#9629), under each name of the reference: the
+ * hooks below write it with RelationIdUtil.stamp, so it is the one stored.
+ */
+const TURNED_OFF_BY_KEYS: Array<string> = [
+  "turnedOffByUserId",
+  "turnedOffByUser",
+];
 
 /*
  * What a resource turned off of a compliance framework (#9555,
@@ -238,7 +248,11 @@ export class Service extends ProjectReferencesService<Model> {
     data.turnedOffAt = OneUptimeDate.getCurrentDate();
 
     if (onCreate.createBy.props.userId) {
-      data.turnedOffByUserId = onCreate.createBy.props.userId;
+      RelationIdUtil.stamp(
+        data as unknown as Record<string, unknown>,
+        TURNED_OFF_BY_KEYS,
+        onCreate.createBy.props.userId,
+      );
     }
   }
 
@@ -256,17 +270,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isEnabled: unknown = (updateBy.data as { isEnabled?: unknown })
       .isEnabled;
-    const stamps: {
-      turnedOffAt?: Date | null;
-      turnedOffByUserId?: ObjectID | null;
-    } = updateBy.data as unknown as {
-      turnedOffAt?: Date | null;
-      turnedOffByUserId?: ObjectID | null;
-    };
+    const stamps: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
 
     if (isEnabled === true) {
-      stamps.turnedOffAt = null;
-      stamps.turnedOffByUserId = null;
+      stamps["turnedOffAt"] = null;
+      RelationIdUtil.stamp(stamps, TURNED_OFF_BY_KEYS, null);
       return;
     }
 
@@ -291,8 +302,12 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    stamps.turnedOffAt = OneUptimeDate.getCurrentDate();
-    stamps.turnedOffByUserId = updateBy.props.userId || null;
+    stamps["turnedOffAt"] = OneUptimeDate.getCurrentDate();
+    RelationIdUtil.stamp(
+      stamps,
+      TURNED_OFF_BY_KEYS,
+      updateBy.props.userId || null,
+    );
   }
 
   // Whether the record a setting names is the project's own.

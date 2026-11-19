@@ -123,6 +123,8 @@ const TABLES: Array<string> = [
   "TeamPermissionLabel",
   "Monitor",
   "MonitorLabel",
+  // A role's delete first reads the workflows that run as it (#9767).
+  "Workflow",
 ];
 
 // Copies a migrated foreign key's definition so it names the schema's clone.

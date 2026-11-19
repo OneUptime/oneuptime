@@ -8,6 +8,7 @@ import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
 import DataProduct from "../../../Models/DatabaseModels/DataProduct";
 import DataReconciliation from "../../../Models/DatabaseModels/DataReconciliation";
 import DataBiConnection from "../../../Models/DatabaseModels/DataBiConnection";
+import DeviceManagementConnection from "../../../Models/DatabaseModels/DeviceManagementConnection";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -190,6 +191,12 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: DataBiConnection,
     nameFields: ["name"],
   },
+  // An Esper connection's readings: the connection whose devices' check-ins they are.
+  [ServiceType.DeviceManagementConnection]: {
+    label: "Esper Connection",
+    modelType: DeviceManagementConnection,
+    nameFields: ["name"],
+  },
   [ServiceType.NetworkDevice]: {
     label: "Network Device",
     modelType: NetworkDevice,
@@ -249,6 +256,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.DataProduct,
   ServiceType.DataReconciliation,
   ServiceType.DataBiConnection,
+  ServiceType.DeviceManagementConnection,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
   ServiceType.OpenStackCloud,

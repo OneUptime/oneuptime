@@ -38,7 +38,9 @@ import {
   getDockerSwarmNodesNotReadyItems,
   getDockerSwarmIssueTarget,
   getDockerSwarmManagerQuorum,
+  getDockerSwarmManagersOutOfReachItems,
   getDockerSwarmNodeLoad,
+  getDockerSwarmQuorumItem,
   getDockerSwarmNodeRows,
   getDockerSwarmServiceRows,
   getDockerSwarmStatusReasons,
@@ -48,6 +50,7 @@ import {
   isCurrentDockerSwarmTask,
   isDockerSwarmIssueAbout,
   isDockerSwarmJobService,
+  isDockerSwarmManagerOutOfReach,
   keepLatestDockerSwarmSnapshot,
   sortDockerSwarmNodesForGlance,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DockerSwarmHealth";
@@ -1417,6 +1420,199 @@ describe("what the hero's counts of what is wrong open", () => {
         return fact.key;
       }),
     ).toEqual(["service"]);
+  });
+
+  /*
+   * "3 managers" said nothing while the swarm lost its majority (#9729):
+   * it opens the managers the majority cannot count on, by the rule the
+   * quorum counts them with, and the swarm's own row when that put the
+   * majority at risk.
+   */
+  test("a manager is out of reach when its node is not Ready or the others cannot reach it", () => {
+    expect(isDockerSwarmManagerOutOfReach(manager("m-1", "Leader"))).toBe(
+      false,
+    );
+    expect(isDockerSwarmManagerOutOfReach(manager("m-2", "Reachable"))).toBe(
+      false,
+    );
+    expect(isDockerSwarmManagerOutOfReach(manager("m-3", "Unreachable"))).toBe(
+      true,
+    );
+    expect(
+      isDockerSwarmManagerOutOfReach(
+        manager("m-4", "Reachable", { state: "down", isReady: false }),
+      ),
+    ).toBe(true);
+    expect(
+      isDockerSwarmManagerOutOfReach(
+        manager("m-5", "Reachable", { state: "unknown" }),
+      ),
+    ).toBe(true);
+    // A worker has no standing among the managers.
+    expect(
+      isDockerSwarmManagerOutOfReach(
+        node("worker-1", { state: "down", isReady: false }),
+      ),
+    ).toBe(false);
+  });
+
+  test("the managers out of reach: the majority lost first, then each manager with why, Docker's word and its address", () => {
+    const rows: Array<DockerSwarmResource> = [
+      manager("manager-1", "Leader"),
+      manager("manager-2", "Unreachable", {
+        attributes: { addr: "10.0.0.12" },
+      }),
+      manager("manager-3", "Reachable", {
+        state: "down",
+        isReady: false,
+        attributes: { message: "heartbeat failure", addr: "10.0.0.13" },
+      }),
+      node("worker-1", { state: "down", isReady: false }),
+      service("web"),
+    ];
+
+    const items: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: rows,
+        clusterName: "prod-swarm",
+        routeFor: routeFor,
+      });
+
+    // A worker that is down is the nodes count's, never a manager's.
+    expect(keys(items)).toEqual([
+      DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+      "Node:node/manager-2-id",
+      "Node:node/manager-3-id",
+    ]);
+
+    const swarm: ResourceAttentionItem = items[0]!;
+    expect(swarm.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(swarm.name).toBe("prod-swarm");
+    expect(texts(swarm.reasons)).toEqual([
+      "Manager quorum lost",
+      "{{reachable}} of {{total}} managers reachable",
+    ]);
+    expect(swarm.reasons[1]!.values).toEqual({ reachable: "1", total: "3" });
+
+    const unreachable: ResourceAttentionItem = items[1]!;
+    expect(unreachable.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(texts(unreachable.reasons)).toEqual(["Manager unreachable"]);
+    expect(unreachable.facts).toEqual([
+      { key: "role", label: "Role", value: "Unreachable" },
+      { key: "address", label: "Address", value: "10.0.0.12" },
+    ]);
+    expect(unreachable.route?.toString()).toBe("/swarm/node/node/manager-2-id");
+
+    const down: ResourceAttentionItem = items[2]!;
+    expect(texts(down.reasons)).toEqual(["Down"]);
+    expect(down.message).toBe("heartbeat failure");
+    expect(down.facts).toEqual([
+      { key: "role", label: "Role", value: "Reachable" },
+      { key: "address", label: "Address", value: "10.0.0.13" },
+    ]);
+  });
+
+  test("one manager from losing the majority: the swarm's row is a warning; with one to spare there is none", () => {
+    const edge: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          manager("manager-3", "Unreachable"),
+        ],
+        clusterName: "prod-swarm",
+        routeFor: routeFor,
+      });
+    // The unreachable manager is critical, so it comes first.
+    expect(keys(edge)).toEqual([
+      "Node:node/manager-3-id",
+      DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+    ]);
+    expect(edge[1]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(texts(edge[1]!.reasons)).toEqual([
+      "Can lose no more managers",
+      "{{reachable}} of {{total}} managers reachable",
+    ]);
+
+    const spare: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          manager("manager-3", "Reachable"),
+          manager("manager-4", "Reachable"),
+          manager("manager-5", "Unreachable"),
+        ],
+        routeFor: routeFor,
+      });
+    expect(keys(spare)).toEqual(["Node:node/manager-5-id"]);
+  });
+
+  test("a manager in a state Swarm does not know is a warning, and one with no state yet says so", () => {
+    const items: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          manager("manager-3", "Reachable"),
+          manager("manager-4", "Reachable"),
+          manager("manager-5", "Reachable", { state: "unknown" }),
+          manager("manager-6", "Reachable"),
+          manager("manager-7", "Reachable", { state: "", isReady: undefined }),
+        ],
+        routeFor: routeFor,
+      });
+    expect(keys(items)).toEqual([
+      "Node:node/manager-5-id",
+      "Node:node/manager-7-id",
+    ]);
+    expect(items[0]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(texts(items[0]!.reasons)).toEqual(["State unknown"]);
+    expect(items[1]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(texts(items[1]!.reasons)).toEqual(["No data yet"]);
+  });
+
+  test("every manager in reach, or no manager reported: nothing to open", () => {
+    expect(
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          node("worker-1", { state: "down", isReady: false }),
+        ],
+        routeFor: routeFor,
+      }),
+    ).toEqual([]);
+    expect(
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [node("worker-1")],
+        routeFor: routeFor,
+      }),
+    ).toEqual([]);
+  });
+
+  test("Needs attention's swarm row is the managers list's own", () => {
+    const rows: Array<DockerSwarmResource> = [
+      manager("manager-1", "Leader"),
+      manager("manager-2", "Unreachable"),
+      manager("manager-3", "Unreachable"),
+    ];
+    const attention: Array<ResourceAttentionItem> =
+      getDockerSwarmAttentionItems({
+        rows: rows,
+        clusterName: "prod-swarm",
+        routeFor: routeFor,
+        now: NOW,
+      });
+    expect(attention[0]).toEqual(
+      getDockerSwarmQuorumItem({ rows: rows, clusterName: "prod-swarm" }),
+    );
+    expect(
+      getDockerSwarmQuorumItem({
+        rows: [manager("manager-1", "Leader")],
+        clusterName: "prod-swarm",
+      }),
+    ).toBeNull();
   });
 
   test("a task whose service or node the inventory does not hold is named, a step from nowhere", () => {

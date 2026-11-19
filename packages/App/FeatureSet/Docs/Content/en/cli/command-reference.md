@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Deletes a record at once, without asking.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Argument or option | Required | What it is |
 | --- | --- | --- |
 | `<id>` | Yes | The record's ID |
 | `--force` | No | Accepted and changes nothing: `delete` never asks to confirm |
+| `--workflows-run-as <value>` | No | Custom roles only: what the workflows that run as the role run as once it is deleted, `Default` or `CustomRole`. A role that workflows run as is deleted only with it |
+| `--workflows-run-as-custom-role-id <id>` | No | Custom roles only: with `--workflows-run-as CustomRole`, the other custom role they run as |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ Each operation is one request to the API, with the key in the `APIKey` header. `
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | None |
+| `delete` | `DELETE /api/<path>/<id>/` | None, or `miscDataProps` with `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 An action reads your project's states and the record, then creates a row of the record's state timeline, as the dashboard's button does: `acknowledge` on an incident creates an `incident-state-timeline`. `add-note` creates an `incident-internal-note`, or with `--public` an `incident-public-note`. An email flag first lists the project's team members with that address. When OneUptime refuses a field the key may not read, a list or a get asks again without it.
