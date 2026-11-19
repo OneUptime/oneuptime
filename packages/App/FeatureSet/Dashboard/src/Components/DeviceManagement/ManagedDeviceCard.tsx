@@ -20,6 +20,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import AgentVersion from "../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import { getManagedDeviceMatchWords } from "./DeviceManagementWords";
 import ManagedDeviceStatusPill from "./ManagedDeviceStatusPill";
 
@@ -151,6 +153,7 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
         ? device.inventoryMatch
         : undefined,
     );
+    const hasAgentVersion: boolean = Boolean(device.agentVersion);
 
     const facts: Array<Fact> = [
       {
@@ -228,7 +231,16 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
       },
       {
         label: "Esper Agent",
-        value: text(device.agentVersion) || undefined,
+        /*
+         * Drawn as every agent version is (AgentVersion): Esper releases
+         * and updates its agent, so it is never called outdated.
+         */
+        value: hasAgentVersion ? (
+          <AgentVersion
+            kind={AgentKind.EsperAgent}
+            version={device.agentVersion}
+          />
+        ) : undefined,
       },
       {
         label: "Enrolled",

@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -51,6 +51,7 @@ import DeviceManagementConnectionsTable, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/DeviceManagementConnectionsTable";
 import ManagedDevicesTable from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDevicesTable";
 import ManagedDeviceAppsTable from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceAppsTable";
+import ManagedDeviceCard from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceCard";
 import ManagedDeviceStatusPill, {
   getMinutesSinceCheckIn,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceStatusPill";
@@ -423,6 +424,48 @@ describe("a device's apps", () => {
     expect(props["isCreateable"]).toBe(false);
     expect(props["isEditable"]).toBe(false);
     expect(props["isDeleteable"]).toBe(false);
+  });
+});
+
+/*
+ * A device's Esper card draws Esper's agent version as every agent version
+ * is drawn (AgentVersion, AgentVersionDisplayGuard): Esper releases and
+ * updates its agent, so OneUptime never calls it outdated.
+ */
+describe("a device's Esper card", () => {
+  async function renderCard(fields: Record<string, unknown>): Promise<void> {
+    const device: ManagedDevice = new ManagedDevice();
+    device._id = DEVICE_ID;
+    device.deviceName = "ESP-ID-AAAAW";
+    device.lastCheckInAt = new Date("2026-11-19T11:50:00.000Z");
+    Object.assign(device, fields);
+    getJestSpyOn(ModelAPI, "getItem").mockResolvedValue(device);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <ManagedDeviceCard managedDeviceId={new ObjectID(DEVICE_ID)} />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  function agentRow(): HTMLElement {
+    return screen.getByText("Esper Agent").parentElement as HTMLElement;
+  }
+
+  test("shows Esper's agent version as it is, with no sign however old", async () => {
+    await renderCard({ agentVersion: "0.0.1" });
+
+    expect(within(agentRow()).getByText("0.0.1")).toBeInTheDocument();
+    expect(screen.queryByTestId("agent-version-outdated")).toBeNull();
+  });
+
+  test("a device whose agent reported no version shows none", async () => {
+    await renderCard({ agentVersion: "" });
+
+    expect(within(agentRow()).queryByText("0.0.1")).toBeNull();
+    expect(screen.queryByTestId("agent-version-outdated")).toBeNull();
   });
 });
 
