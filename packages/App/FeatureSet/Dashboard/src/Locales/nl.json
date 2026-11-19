@@ -57714,5 +57714,6 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} op {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (budget: {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} geannuleerd {{path}}",
-  "{{method}} failed {{path}}": "{{method}} mislukt {{path}}"
+  "{{method}} failed {{path}}": "{{method}} mislukt {{path}}",
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "U hebt OneUptime AI de afgelopen minuten te vaak gevraagd het opnieuw te proberen. Wacht een paar minuten en probeer het dan opnieuw."
 }
