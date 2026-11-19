@@ -85,7 +85,7 @@ Fanen **Custom Metric** tilbyr disse målingene, gruppert etter ressurstype:
 
 | Kategori | Målinger |
 | --- | --- |
-| Pod | Podens CPU-forbruk, Pod minnebruk, Podens fase (kode), Podens filsystembruk, Podens utnyttelse av minnegrensen, Podens utnyttelse av CPU-grensen, Podens nettverks-I/O (akkumulert, begge retninger) |
+| Pod | Podens CPU-forbruk, Pod minnebruk, Podens fase (kode), Podens filsystembruk, Volumkapasitet, Ledig plass på volum, Podens utnyttelse av minnegrensen, Podens utnyttelse av CPU-grensen, Podens nettverks-I/O (akkumulert, begge retninger) |
 | Node | Nodens CPU-forbruk, Nodens allokerbare CPU, Node minnebruk, Nodens working set for minne, Node filsystembruk, Nodens allokerbare minne, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgjengelige filsystem |
 | Container | Containerens omstarter, Containerens omstarter (økning), Containerens CPU-grense, Containerens CPU-forespørsel, Containerens minnegrense, Containerens minneforespørsel, Container klar |
 | Arbeidsbelastning | Deploymentens tilgjengelige replikaer, Deploymentens ønskede replikaer, DaemonSetets ønskede noder, DaemonSetets feilplanlagte noder, DaemonSetets klare noder, StatefulSetets ønskede replikaer, StatefulSetets klare replikaer, Jobbens mislykkede poder, Jobbens mislykkede poder (økning), Jobbens vellykkede poder |
@@ -148,6 +148,7 @@ Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kate
 | API Server Request Saturation | Kontrollplan | API-serveren holder 200 eller flere pågående forespørsler i hele vinduet | Kritisk |
 | Scheduler Backlog | Planlegging | Schedulerens kø av ventende poder er ikke tom i 5 minutter | Advarsel |
 | High Node Disk Usage | Lagring | En nodes filsystem er mer enn 90 % fullt | Advarsel |
+| PVC Almost Full | Lagring | Et persistent volume claim er mer enn 90 % fullt | Advarsel |
 | DaemonSet Pods Not Ready | Arbeidsbelastning | Et DaemonSet har noder uten en klar pod fra det i 15 minutter | Advarsel |
 | DaemonSet Misscheduled Nodes | Arbeidsbelastning | Et DaemonSet kjører poder på noder som ikke lenger samsvarer med nodeselektoren, affiniteten eller toleransene | Advarsel |
 | High Node CPU Request Commitment | Node | En nodes summerte CPU-forespørsler fra containere overstiger 90 % av den allokerbare CPU-en | Advarsel |

@@ -85,7 +85,7 @@ La scheda **Custom Metric** offre queste metriche, raggruppate per tipo di risor
 
 | Categoria | Metriche |
 | --- | --- |
-| Pod | Consumo CPU del Pod, Utilizzo memoria del Pod, Fase del Pod (codice), Utilizzo del file system del Pod, Utilizzo del limite di memoria del Pod, Utilizzo del limite CPU del Pod, I/O di rete del Pod (cumulativo, entrambe le direzioni) |
+| Pod | Consumo CPU del Pod, Utilizzo memoria del Pod, Fase del Pod (codice), Utilizzo del file system del Pod, Capacità del volume, Spazio libero del volume, Utilizzo del limite di memoria del Pod, Utilizzo del limite CPU del Pod, I/O di rete del Pod (cumulativo, entrambe le direzioni) |
 | Nodo | Consumo CPU del nodo, CPU allocabile del nodo, Utilizzo della memoria del nodo, Working set della memoria del nodo, Utilizzo del filesystem del nodo, Memoria allocabile del nodo, Condizione Ready del nodo, Condizione MemoryPressure del nodo, Condizione DiskPressure del nodo, Condizione PIDPressure del nodo, File system disponibile del nodo |
 | Container | Riavvii del container, Riavvii del container (aumento), Limite CPU del container, Richiesta CPU del container, Limite di memoria del container, Richiesta di memoria del container, Container pronto |
 | Carico di lavoro | Repliche disponibili del Deployment, Repliche desiderate del Deployment, Nodi desiderati del DaemonSet, Nodi pianificati in modo errato del DaemonSet, Nodi pronti del DaemonSet, Repliche desiderate dello StatefulSet, Repliche pronte dello StatefulSet, Pod non riusciti del Job, Pod non riusciti del Job (aumento), Pod riusciti del Job |
@@ -148,6 +148,7 @@ L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per catego
 | API Server Request Saturation | Piano di controllo | Il server API mantiene 200 o più richieste in corso per tutta la finestra | Critico |
 | Scheduler Backlog | Pianificazione | La coda dei pod in attesa dello scheduler non è vuota per 5 minuti | Avviso |
 | High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 90% | Avviso |
+| PVC Almost Full | Archiviazione | Una richiesta di volume persistente è piena oltre il 90% | Avviso |
 | DaemonSet Pods Not Ready | Carico di lavoro | Un DaemonSet ha nodi senza un suo pod pronto per 15 minuti | Avviso |
 | DaemonSet Misscheduled Nodes | Carico di lavoro | Un DaemonSet esegue pod su nodi che non corrispondono più al suo selettore di nodi, alla sua affinità o alle sue tolleranze | Avviso |
 | High Node CPU Request Commitment | Nodo | La somma delle richieste di CPU dei container di un nodo supera il 90% della sua CPU allocabile | Avviso |

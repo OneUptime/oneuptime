@@ -85,7 +85,7 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 
 | Categorie | Metrieken |
 | --- | --- |
-| Pod | CPU-verbruik van de pod, Pod geheugengebruik, Fase van de pod (code), Bestandssysteemgebruik van de pod, Gebruik van de geheugenlimiet van de pod, Gebruik van de CPU-limiet van de pod, Netwerk-I/O van de pod (cumulatief, beide richtingen) |
+| Pod | CPU-verbruik van de pod, Pod geheugengebruik, Fase van de pod (code), Bestandssysteemgebruik van de pod, Volumecapaciteit, Vrije ruimte op het volume, Gebruik van de geheugenlimiet van de pod, Gebruik van de CPU-limiet van de pod, Netwerk-I/O van de pod (cumulatief, beide richtingen) |
 | Node | CPU-verbruik van de node, Toewijsbare CPU van de node, Geheugengebruik van node, Werkset van het geheugen van de node, Bestandssysteemgebruik van node, Toewijsbaar geheugen van de node, Ready-conditie van de node, MemoryPressure-conditie van de node, DiskPressure-conditie van de node, PIDPressure-conditie van de node, Beschikbaar bestandssysteem van de node |
 | Container | Herstarts van de container, Herstarts van de container (toename), CPU-limiet van de container, CPU-aanvraag van de container, Geheugenlimiet van de container, Geheugenaanvraag van de container, Container gereed |
 | Werklast | Beschikbare replica's van de Deployment, Gewenste replica's van de Deployment, Gewenste nodes van de DaemonSet, Verkeerd ingeplande nodes van de DaemonSet, Gereede nodes van de DaemonSet, Gewenste replica's van de StatefulSet, Gereede replica's van de StatefulSet, Mislukte pods van de Job, Mislukte pods van de Job (toename), Geslaagde pods van de Job |
@@ -148,6 +148,7 @@ De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per
 | API Server Request Saturation | Controlevlak | De API-server het hele venster 200 of meer lopende verzoeken vasthoudt | Kritiek |
 | Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Waarschuwing |
 | High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 90% vol is | Waarschuwing |
+| PVC Almost Full | Opslag | Een persistent volume claim meer dan 90% vol is | Waarschuwing |
 | DaemonSet Pods Not Ready | Werklast | Een DaemonSet 15 minuten lang nodes zonder een gereedstaande pod ervan heeft | Waarschuwing |
 | DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Waarschuwing |
 | High Node CPU Request Commitment | Node | De opgetelde CPU-requests van de containers van een node meer dan 90% van zijn toewijsbare CPU bedragen | Waarschuwing |

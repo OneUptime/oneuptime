@@ -85,7 +85,7 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 
 | Kategori | Mätvärden |
 | --- | --- |
-| Podd | Poddens CPU-förbrukning, Pod-minnesanvändning, Poddens fas (kod), Poddens filsystemsanvändning, Poddens utnyttjande av minnesgränsen, Poddens utnyttjande av CPU-gränsen, Poddens nätverks-I/O (ackumulerad, båda riktningarna) |
+| Podd | Poddens CPU-förbrukning, Pod-minnesanvändning, Poddens fas (kod), Poddens filsystemsanvändning, Volymkapacitet, Ledigt utrymme på volym, Poddens utnyttjande av minnesgränsen, Poddens utnyttjande av CPU-gränsen, Poddens nätverks-I/O (ackumulerad, båda riktningarna) |
 | Nod | Nodens CPU-förbrukning, Nodens allokerbara CPU, Minnesanvändning för nod, Nodens working set för minne, Filsystemsanvändning för nod, Nodens allokerbara minne, Nodens Ready-villkor, Nodens MemoryPressure-villkor, Nodens DiskPressure-villkor, Nodens PIDPressure-villkor, Nodens tillgängliga filsystem |
 | Container | Containerns omstarter, Containerns omstarter (ökning), Containerns CPU-gräns, Containerns CPU-begäran, Containerns minnesgräns, Containerns minnesbegäran, Container redo |
 | Arbetsbelastning | Deploymentens tillgängliga repliker, Deploymentens önskade repliker, DaemonSetets önskade noder, DaemonSetets felschemalagda noder, DaemonSetets redo noder, StatefulSetets önskade repliker, StatefulSetets redo repliker, Jobbets misslyckade poddar, Jobbets misslyckade poddar (ökning), Jobbets lyckade poddar |
@@ -148,6 +148,7 @@ Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter 
 | API Server Request Saturation | Kontrollplan | API-servern håller 200 eller fler pågående begäranden under hela fönstret | Kritisk |
 | Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Varning |
 | High Node Disk Usage | Lagring | En nods filsystem är mer än 90 % fullt | Varning |
+| PVC Almost Full | Lagring | Ett persistent volume claim är mer än 90 % fullt | Varning |
 | DaemonSet Pods Not Ready | Arbetsbelastning | Ett DaemonSet har noder utan en redo podd från det i 15 minuter | Varning |
 | DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Varning |
 | High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Varning |
