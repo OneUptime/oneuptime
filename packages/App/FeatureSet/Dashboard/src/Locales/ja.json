@@ -57659,7 +57659,7 @@
   "Change Run As": "Change Run As",
   "Changed because incident {{incident}} was created.": "Changed because incident {{incident}} was created.",
   "Changed because incident {{incident}} was updated.": "Changed because incident {{incident}} was updated.",
-  "Changed by a maintenance event.": "Changed by a maintenance event.",
+  "Changed by a maintenance event.": "メンテナンスイベントによって変更されました。",
   "Changed by {{user}}": "Changed by {{user}}",
   "Choose what this workflow's steps can do. You can only choose permissions you have yourself.": "Choose what this workflow's steps can do. You can only choose permissions you have yourself.",
   "Couldn't read the failed sends.": "失敗した送信を読み込めませんでした。",

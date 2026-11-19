@@ -57659,7 +57659,7 @@
   "Change Run As": "Change Run As",
   "Changed because incident {{incident}} was created.": "Changed because incident {{incident}} was created.",
   "Changed because incident {{incident}} was updated.": "Changed because incident {{incident}} was updated.",
-  "Changed by a maintenance event.": "Changed by a maintenance event.",
+  "Changed by a maintenance event.": "Modifié par un événement de maintenance.",
   "Changed by {{user}}": "Changed by {{user}}",
   "Choose what this workflow's steps can do. You can only choose permissions you have yourself.": "Choisissez ce que les étapes de ce flux de travail peuvent faire. Vous ne pouvez choisir que des autorisations que vous avez vous-même.",
   "Couldn't read the failed sends.": "Impossible de lire les envois en échec.",
