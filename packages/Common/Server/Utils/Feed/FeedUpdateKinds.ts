@@ -72,6 +72,8 @@ export const INCIDENT_FEED_UPDATE_KINDS: Readonly<
   [IncidentFeedEventType.VideoCallFailed]: NotificationRuleUpdateKind.Other,
   [IncidentFeedEventType.VideoCallTranscriptAdded]:
     NotificationRuleUpdateKind.Other,
+  [IncidentFeedEventType.VideoCallTranscriptRemoved]:
+    NotificationRuleUpdateKind.Other,
   // Delivery problems: not every subscriber was notified.
   [IncidentFeedEventType.SubscriberNotificationSent]:
     NotificationRuleUpdateKind.Other,

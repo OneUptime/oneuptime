@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDataSecurityComplianceSettings1809184730000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184730000-AddDataSecurityComplianceSettings";
+import { AddDataSecurityComplianceSettings1809184850000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184850000-AddDataSecurityComplianceSettings";
 import DataSecurityComplianceSetting from "../../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -23,12 +23,12 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * its statements to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809184730000";
+const MIGRATION_TIMESTAMP: string = "1809184850000";
 const MIGRATION_BASE_NAME: string = "AddDataSecurityComplianceSettings";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "AddSecurityCaseTaskResponseStepKey1809184720000";
+  "AddIncidentCallTranscriptSignInIndexes1809184840000";
 const TABLE: string = "DataSecurityComplianceSetting";
 
 const MIGRATION_DIRECTORY: string = path.join(
@@ -44,7 +44,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddDataSecurityComplianceSettings1809184730000();
+    new AddDataSecurityComplianceSettings1809184850000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -55,7 +55,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddDataSecurityComplianceSettings1809184730000", () => {
+describe("AddDataSecurityComplianceSettings1809184850000", () => {
   test("creates the one table, with the columns the model declares", async () => {
     const [create] = await statementsOf("up");
 
@@ -174,7 +174,7 @@ describe("AddDataSecurityComplianceSettings1809184730000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddDataSecurityComplianceSettings1809184730000().name).toBe(
+    expect(new AddDataSecurityComplianceSettings1809184850000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 
@@ -190,7 +190,7 @@ describe("AddDataSecurityComplianceSettings1809184730000", () => {
     expect(Number(MIGRATION_TIMESTAMP)).toBeGreaterThan(
       Math.max(
         ...timestamps.filter((value: number): boolean => {
-          return value <= 1809184720000;
+          return value <= 1809184840000;
         }),
       ),
     );

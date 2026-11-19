@@ -118,6 +118,36 @@ describe("IncidentCallTranscriptSave.save", () => {
     });
   });
 
+  /*
+   * Read through someone's sign-in, the transcript names that account, so
+   * the account removing OneUptime from Zoom deletes it (#9289).
+   */
+  test("a transcript read through someone's sign-in is kept with the account that read it", async () => {
+    await IncidentCallTranscriptSave.save({
+      call: call(VideoCallProvider.Zoom),
+      prepared: PREPARED,
+      source: VideoCallTranscriptSource.Provider,
+      isAutomatic: true,
+      signInAccountId: "KdYKjnimT4KPd8FFgQt9FQ",
+    });
+
+    expect(writes[0]!["transcriptSignInAccountId"]).toBe(
+      "KdYKjnimT4KPd8FFgQt9FQ",
+    );
+  });
+
+  test("a transcript read through nobody's sign-in leaves the call's account as it was: what was read in the one it replaces may still be posted", async () => {
+    await IncidentCallTranscriptSave.save({
+      call: call(VideoCallProvider.Zoom),
+      prepared: PREPARED,
+      source: VideoCallTranscriptSource.Upload,
+      userId: USER,
+    });
+
+    expect(writes[0]).not.toHaveProperty("transcriptSignInAccountId");
+    expect(writes[0]).not.toHaveProperty("callSummaryPosts");
+  });
+
   test("writes the transcript before it is read", async () => {
     const order: Array<string> = [];
 

@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "हां, यह स्पष्ट था",
   "No, it was not clear": "नहीं, यह स्पष्ट नहीं था",
   "Thanks for telling us.": "बताने के लिए धन्यवाद।",
+  "Thanks for your answer.": "आपके उत्तर के लिए धन्यवाद।",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" {{size}} की सीमा से बड़ी है।",
   "These files exceed the {{size}} limit: {{fileNames}}.": "ये फ़ाइलें {{size}} की सीमा से बड़ी हैं: {{fileNames}}।",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" ऐसी फ़ाइल नहीं है जिसे यह फ़ील्ड स्वीकार करता है।",

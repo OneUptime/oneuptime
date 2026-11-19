@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "Да, это было понятно",
   "No, it was not clear": "Нет, это было непонятно",
   "Thanks for telling us.": "Спасибо, что рассказали.",
+  "Thanks for your answer.": "Спасибо за ответ.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» превышает ограничение в {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "Это поле не принимает файлы такого типа, как «{{fileName}}».",

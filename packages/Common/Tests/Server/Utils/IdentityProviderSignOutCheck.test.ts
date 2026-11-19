@@ -229,38 +229,45 @@ describe("IdentityProviderSignOutCheck.beforeCreate", () => {
 });
 
 describe("IdentityProviderSignOutCheck.beforeUpdate", () => {
-  let findBy: jest.SpyInstance;
+  /*
+   * The providers an update writes, read with the update held to them
+   * (DatabaseService.findRowsAndHoldUpdateToThem; UpdateChecksReadHeldRows
+   * holds every hook to it).
+   */
+  let findRowsAndHoldUpdateToThem: jest.SpyInstance;
 
   function providerIs(provider: GlobalOIDC): void {
-    findBy.mockResolvedValue([provider] as never);
+    findRowsAndHoldUpdateToThem.mockResolvedValue([provider] as never);
   }
 
   beforeEach(() => {
-    findBy = jest.spyOn(GlobalOidcService, "findBy");
+    findRowsAndHoldUpdateToThem = jest.spyOn(
+      GlobalOidcService,
+      "findRowsAndHoldUpdateToThem",
+    );
     providerIs(storedProvider({ signOutOfIdentityProvider: false }));
   });
 
-  test("turning the switch on asks the provider's discovery document, read as it is stored", async () => {
+  test("turning the switch on asks the provider's discovery document, read as it is stored, with the update held to the providers read", async () => {
     serveDiscovery(DOES_NOT_SIGN_OUT);
+
+    const updateBy: UpdateBy<GlobalOIDC> = updateOf({
+      signOutOfIdentityProvider: true,
+    });
 
     await expect(
       IdentityProviderSignOutCheck.beforeUpdate({
         service: GlobalOidcService,
-        updateBy: updateOf({ signOutOfIdentityProvider: true }),
+        updateBy: updateBy,
       }),
     ).rejects.toThrow(NO_END_SESSION_ENDPOINT_MESSAGE);
 
-    expect(findBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: { _id: PROVIDER_ID },
-        select: {
-          _id: true,
-          discoveryURL: true,
-          signOutOfIdentityProvider: true,
-        },
-        props: { isRoot: true },
-      }),
-    );
+    expect(findRowsAndHoldUpdateToThem).toHaveBeenCalledTimes(1);
+    expect(findRowsAndHoldUpdateToThem).toHaveBeenCalledWith(updateBy, {
+      _id: true,
+      discoveryURL: true,
+      signOutOfIdentityProvider: true,
+    });
   });
 
   test("turning it on for a provider that signs people out saves", async () => {
@@ -358,7 +365,7 @@ describe("IdentityProviderSignOutCheck.beforeUpdate", () => {
         updateBy: updateOf(data),
       });
 
-      expect(findBy).not.toHaveBeenCalled();
+      expect(findRowsAndHoldUpdateToThem).not.toHaveBeenCalled();
       expect(fetch).not.toHaveBeenCalled();
     },
   );
@@ -394,7 +401,7 @@ describe("the provider services ask before a create or an update is written", ()
   test("Global OIDC: an update that turns it on is refused before the server's sign-in rules are locked", async () => {
     serveDiscovery(DOES_NOT_SIGN_OUT);
     jest
-      .spyOn(GlobalOidcService, "findBy")
+      .spyOn(GlobalOidcService, "findRowsAndHoldUpdateToThem")
       .mockResolvedValue([
         storedProvider({ signOutOfIdentityProvider: false }),
       ] as never);
@@ -432,7 +439,7 @@ describe("the provider services ask before a create or an update is written", ()
   test("Project OIDC: an update that turns it on is refused before the provider's write is held", async () => {
     serveDiscovery(DOES_NOT_SIGN_OUT);
     jest
-      .spyOn(ProjectOidcService, "findBy")
+      .spyOn(ProjectOidcService, "findRowsAndHoldUpdateToThem")
       .mockResolvedValue([
         storedProvider({ signOutOfIdentityProvider: false }),
       ] as never);
@@ -455,7 +462,7 @@ describe("the provider services ask before a create or an update is written", ()
 
   test("a provider that signs people out saves, its other checks running as before", async () => {
     jest
-      .spyOn(ProjectOidcService, "findBy")
+      .spyOn(ProjectOidcService, "findRowsAndHoldUpdateToThem")
       .mockResolvedValue([
         storedProvider({ signOutOfIdentityProvider: false }),
       ] as never);

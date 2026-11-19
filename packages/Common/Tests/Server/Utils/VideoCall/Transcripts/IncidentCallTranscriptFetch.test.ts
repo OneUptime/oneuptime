@@ -562,6 +562,29 @@ describe("what the provider answered", () => {
     expect(draftWaiting).not.toHaveBeenCalled();
   });
 
+  // Read through someone's sign-in: kept with that account (#9289).
+  test("a transcript read through someone's sign-in is stored with the account that read it", async () => {
+    read.mockResolvedValue({
+      ...LINES,
+      signInAccountId: "KdYKjnimT4KPd8FFgQt9FQ",
+    } as Awaited<ReturnType<typeof VideoCallTranscriptReader.read>>);
+
+    expect(await ask(dueCall(), at(80 * MINUTE))).toBe(
+      CallTranscriptFetchOutcome.Found,
+    );
+    expect(save.mock.calls[0]![0].signInAccountId).toBe(
+      "KdYKjnimT4KPd8FFgQt9FQ",
+    );
+  });
+
+  test("a transcript read with a project's own app names no account", async () => {
+    read.mockResolvedValue(LINES);
+
+    await ask(dueCall(), at(80 * MINUTE));
+
+    expect(save.mock.calls[0]![0]).not.toHaveProperty("signInAccountId");
+  });
+
   /*
    * A person clicked Get from Zoom, or added the transcript, while the
    * provider answered the job: theirs stands, and nothing is stored, read

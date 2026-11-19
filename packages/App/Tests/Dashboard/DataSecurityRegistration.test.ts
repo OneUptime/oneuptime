@@ -103,14 +103,14 @@ describe("Data Security registry wiring", () => {
     );
 
     expect(migrations).toContain(
-      'import { AddDataSecurityComplianceSettings1809184730000 } from "./1809184730000-AddDataSecurityComplianceSettings";',
+      'import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-AddDataSecurityComplianceSettings";',
     );
     expect(migrations).toContain(
-      "AddDataSecurityComplianceSettings1809184730000,",
+      "AddDataSecurityComplianceSettings1809184850000,",
     );
     expect(
       readSquashed(
-        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809184730000-AddDataSecurityComplianceSettings.ts",
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809184850000-AddDataSecurityComplianceSettings.ts",
       ),
     ).toContain(`CREATE TABLE "${model}"`);
   });

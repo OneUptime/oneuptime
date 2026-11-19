@@ -86,7 +86,7 @@ Les connexions établies avec le même compte partagent une seule connexion, dan
 
 Supprimer une connexion retire l'accès de OneUptime chez Zoom et Google dès qu'aucune autre connexion n'utilise cette connexion de compte. Pour Microsoft, retirez OneUptime dans **My Apps** (myapps.microsoft.com) du compte. Retirer OneUptime de votre compte Zoom dans le Zoom App Marketplace supprime sa connexion de toutes les connexions établies avec ce compte, et elles affichent **Ne fonctionne pas** jusqu'à leur reconnexion.
 
-Les transcriptions que OneUptime a déjà lues restent sur leurs incidents : supprimer une connexion conserve les appels qu'elle a lancés, avec leurs transcriptions, et retirer OneUptime du compte chez Zoom, Google ou Microsoft aussi. **Supprimer la transcription** sur un appel supprime sa transcription et ce que l'IA de OneUptime y a lu, mais pas ce que l'IA de OneUptime a publié dans le fil de l'incident et dans ses canaux. Supprimer un incident supprime ses appels et leurs transcriptions.
+Retirer OneUptime de votre compte Zoom supprime aussi, en quelques minutes, les transcriptions d'appel que OneUptime a lues grâce à sa connexion, et ce que l'IA de OneUptime y a lu : de leurs appels, des fils des incidents et des messages que OneUptime a publiés dans les canaux Slack, Microsoft Teams et Mattermost des incidents. Le fil de chaque incident l'indique, et une transcription ajoutée par quelqu'un reste. Supprimer une connexion conserve les appels qu'elle a lancés, avec leurs transcriptions, et retirer OneUptime d'un compte Google ou Microsoft aussi. **Supprimer la transcription** sur un appel supprime sa transcription et ce que l'IA de OneUptime y a lu aux mêmes endroits. Si OneUptime ne peut plus supprimer un message, parce que son espace de travail a été déconnecté ou que l'application a été retirée du canal, il indique où le message reste. Une cause racine ou un post-mortem que quelqu'un a rédigé à partir de l'appel reste. Supprimer un incident supprime ses appels et leurs transcriptions.
 
 ### Si Microsoft demande un administrateur
 
@@ -100,7 +100,7 @@ Pour vous connecter avec une identité de service plutôt qu'avec la connexion d
 
 La carte **Appel vidéo** de la page d'un incident ou d'une alerte propose **Démarrer l'appel** (ou **En démarrer un autre** dès qu'il y en a un). Choisissez l'une des connexions du projet, le huddle du canal Slack de l'incident, ou collez votre propre lien de réunion. L'appel est publié dans les canaux et le fil de l'incident comme celui qu'une règle lance.
 
-**Supprimer** sur la carte retire un appel de la page de l'incident. La réunion elle-même n'est pas supprimée, et toute personne ayant le lien peut encore la rejoindre.
+**Supprimer** sur la carte retire un appel de la page de l'incident, avec sa transcription et ce que l'IA de OneUptime y a lu. La réunion elle-même n'est pas supprimée, et toute personne ayant le lien peut encore la rejoindre.
 
 Lancer et retirer des appels demande l'autorisation de travailler sur les incidents (ou les alertes) : **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des incidents** ou **Membre des incidents**, ou **Create Incident Video Call** et **Delete Incident Video Call** dans un rôle personnalisé. Toute personne qui peut lire l'incident voit ses appels.
 
@@ -152,7 +152,7 @@ Récupérer, ajouter, remplacer et supprimer une transcription, la faire relire 
 
 ### Ce que lit l'IA de OneUptime
 
-Lire une transcription est un travail d'IA comme une investigation : il ne s'exécute que lorsque l'IA est activée pour le projet, et compte dans l'utilisation d'IA et les limites quotidiennes du projet (voir [Maîtrise des coûts](/docs/ai/ai-sre#maîtrise-des-coûts)). Une longue transcription est lue par parties. Quand l'IA est désactivée, la transcription est conservée et la carte indique qu'elle n'a pas été lue. Supprimer une transcription supprime ce que l'IA de OneUptime y a lu, et conserve la cause racine de l'incident. Un brouillon de post-mortem par l'IA lit aussi ce qui s'est dit pendant les appels de l'incident (voir [Post-mortems](/docs/incidents/postmortems)).
+Lire une transcription est un travail d'IA comme une investigation : il ne s'exécute que lorsque l'IA est activée pour le projet, et compte dans l'utilisation d'IA et les limites quotidiennes du projet (voir [Maîtrise des coûts](/docs/ai/ai-sre#maîtrise-des-coûts)). Une longue transcription est lue par parties. Quand l'IA est désactivée, la transcription est conservée et la carte indique qu'elle n'a pas été lue. Supprimer une transcription supprime ce que l'IA de OneUptime y a lu, de l'appel, du fil de l'incident et de ses canaux, et conserve la cause racine de l'incident. Un brouillon de post-mortem par l'IA lit aussi ce qui s'est dit pendant les appels de l'incident (voir [Post-mortems](/docs/incidents/postmortems)).
 
 ## Fournisseurs
 
