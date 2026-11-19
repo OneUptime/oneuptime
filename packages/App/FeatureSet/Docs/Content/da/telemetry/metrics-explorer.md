@@ -72,7 +72,7 @@ Under **Aggreger efter** vælger du, hvordan værdierne i hvert punkt i diagramm
 
 Hver forespørgsel tegner sit eget diagram. For at tegne en forespørgsel i samme diagram som den forrige skal du slå **Læg oven på forrige forespørgsel** til i dens **Visningsindstillinger**.
 
-Et overlejret diagram aflæser sin venstre værdiakse i sin første forespørgsels enhed og omregner en forespørgsel i en anden enhed af samme slags til den, som megabyte i et diagram i gigabyte. En forespørgsel i en enhed af en anden slags, som bytes i et diagram i procent, tegnes mod en ekstra værdiakse i diagrammets højre side, i sin egen enhed, og forklaringen under diagrammet siger, hvilken akse hver serie tegnes mod. Kun en tredje slags enhed passer til ingen af akserne: den tegnes mod venstre akse, og både diagrammet og kontakten siger det.
+Et overlejret diagram aflæser sin venstre værdiakse i sin første forespørgsels enhed og omregner en forespørgsel i en anden enhed af samme slags til den, som megabyte i et diagram i gigabyte. En forespørgsel i en enhed af en anden slags, som bytes i et diagram i procent, tegnes mod en ekstra værdiakse i diagrammets højre side, i sin egen enhed, og forklaringen under diagrammet siger, hvilken akse hver serie tegnes mod. Kun en tredje slags enhed passer til ingen af akserne: den tegnes på sin egen skala, uden akse, og både diagrammet og kontakten siger det. Aflæs dens værdier i forklaringen og værktøjstippet.
 
 ## Kombinér forespørgsler med en formel
 
