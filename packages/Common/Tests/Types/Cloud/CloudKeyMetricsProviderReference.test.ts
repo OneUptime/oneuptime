@@ -4,6 +4,7 @@ import path from "path";
 import {
   AWS_KEY_METRICS,
   AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_HOURLY_GRAIN,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AwsKeyMetric,
@@ -229,7 +230,7 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
 
   /*
    * A metric Microsoft deprecates is no key metric: the type reads what
-   * replaces it, and keeps reading it in the same call for the monitors
+   * replaces it, and may keep reading it in the same call for the monitors
    * built on it (AzureTypeKeyMetrics.retired) - only while Microsoft's
    * table still lists it as deprecated, and never as anything but that.
    */
@@ -280,17 +281,15 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
       }
     }
 
-    // Cosmos DB's ServerSideLatency, for its direct and gateway latencies.
+    /*
+     * None now: Cosmos DB's ServerSideLatency was read until the monitors
+     * built on it moved to its direct and gateway latencies (#9739).
+     */
     expect(
-      AZURE_KEY_METRICS.find((entry: AzureTypeKeyMetrics): boolean => {
-        return entry.type === "Microsoft.DocumentDB/databaseAccounts";
-      })?.retired,
-    ).toEqual([
-      {
-        name: "ServerSideLatency",
-        replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
-      },
-    ]);
+      AZURE_KEY_METRICS.filter((entry: AzureTypeKeyMetrics): boolean => {
+        return (entry.retired || []).length > 0;
+      }),
+    ).toEqual([]);
   });
 
   /*
@@ -328,13 +327,17 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
           readable: true,
         });
 
+        // A mark says the finest grain Azure Monitor keeps it at (#9982).
         if (keyMetric?.grain) {
-          marked++;
           expect({ type: entry.type, metric, grain }).toEqual({
             type: entry.type,
             metric,
-            grain: AZURE_FIVE_MINUTE_GRAIN,
+            grain: keyMetric.grain,
           });
+        }
+
+        if (keyMetric?.grain === AZURE_FIVE_MINUTE_GRAIN) {
+          marked++;
           continue;
         }
 
@@ -363,7 +366,7 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
 
     for (const entry of AZURE_KEY_METRICS) {
       for (const metric of entry.metrics) {
-        if (metric.grain) {
+        if (metric.grain === AZURE_FIVE_MINUTE_GRAIN) {
           marked[entry.type] = [...(marked[entry.type] || []), metric.name];
         }
       }
@@ -376,6 +379,49 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
         "IndexUsageV2",
         "DocumentCountV2",
       ],
+    });
+  });
+
+  /*
+   * #9982: a key metric Azure Monitor keeps at an hour at its finest is
+   * read once an hour, and its reading is kept between those reads - so
+   * the catalog marks every one of them, as Microsoft's tables list them.
+   */
+  test("every key metric kept at an hour at its finest is marked as one, and only those", () => {
+    const hourly: Record<string, Array<string>> = {};
+    const kept: Record<string, Array<string>> = {};
+
+    for (const entry of AZURE_KEY_METRICS) {
+      const reference: AzureReference["types"][string] = azureReferenceOf(
+        entry.type,
+      );
+
+      for (const metric of entry.metrics) {
+        const row: AzureReferenceMetric | undefined =
+          reference.metrics[metric.name];
+        const grain: string | undefined = row
+          ? pickAzureGrain(row.timeGrains)
+          : undefined;
+
+        if (grain === AZURE_HOURLY_GRAIN) {
+          kept[entry.type] = [...(kept[entry.type] || []), metric.name];
+        }
+
+        if (metric.grain === AZURE_HOURLY_GRAIN) {
+          hourly[entry.type] = [...(hourly[entry.type] || []), metric.name];
+        }
+      }
+    }
+
+    expect(hourly).toEqual(kept);
+    expect(hourly).toEqual({
+      "Microsoft.DocumentDB/databaseAccounts": ["ServiceAvailability"],
+      "Microsoft.Storage/storageAccounts": ["UsedCapacity"],
+      "Microsoft.Network/dnszones": [
+        "QueryVolume",
+        "RecordSetCapacityUtilization",
+      ],
+      "Microsoft.ContainerRegistry/registries": ["StorageUsed"],
     });
   });
 
@@ -547,7 +593,7 @@ describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents
 
   /*
    * A metric Google deprecates is no key metric: its type reads what
-   * replaces it, and keeps reading it for the monitors built on it
+   * replaces it, and may keep reading it for the monitors built on it
    * (GcpTypeKeyMetrics.retired) - only while Google's list still has it,
    * deprecated.
    */
@@ -604,17 +650,15 @@ describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents
       ).toContain(item.metric.replacedBy);
     }
 
-    // A topic's publish operations, for the count of its message sizes.
+    /*
+     * None now: a topic's publish operations were read until the monitors
+     * built on them moved to the count of its message sizes (#9739).
+     */
     expect(
       retired.map((item: { metric: GcpRetiredKeyMetric }) => {
         return [item.metric.metric.metricType, item.metric.replacedBy];
       }),
-    ).toEqual([
-      [
-        "pubsub.googleapis.com/topic/send_message_operation_count",
-        "pubsub.googleapis.com/topic/message_sizes_count",
-      ],
-    ]);
+    ).toEqual([]);
   });
 
   test("each is a metric of the resource type it is listed under", () => {

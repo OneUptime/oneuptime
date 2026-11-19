@@ -46,6 +46,7 @@ import {
   parseWaitMinutes,
 } from "./OnCallSetup";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
+import { getDescribeItPrompt } from "../AskAiGuidedSetupLinks";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
@@ -2695,6 +2696,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       isFinished={isOnCallSetupFinished(facts)}
       guideDocsPath={ON_CALL_SETUP_GUIDE_DOCS_PATH}
       minutes={WELCOME_STEP_MINUTES[WelcomeStep.OnCall]}
+      describeItPrompt={getDescribeItPrompt({
+        setup: ON_CALL_SETUP,
+        translator: translator,
+      })}
     />
   );
 };

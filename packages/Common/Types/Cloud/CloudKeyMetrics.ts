@@ -45,9 +45,11 @@ import { CloudKeyMetricCondition } from "./CloudKeyMetricCondition";
  *     projects where an agent reports them.
  *
  * A metric its provider deprecates is no key metric: a type that read one
- * reads what replaces it, and still reads the old one as it did before
- * (`retired`), so a monitor someone built on it keeps working until it is
- * moved.
+ * reads what replaces it. It can stay read for a while as `retired`, so a
+ * monitor someone built on it keeps working until it is moved; then it is
+ * read no more. Cosmos DB's ServerSideLatency and Pub/Sub's
+ * send_message_operation_count were, until their monitors were moved to
+ * what replaces them (#9739, MoveMonitorsOffRetiredCloudMetrics).
  *
  * Each metric is filed under a CloudKeyMetricGroup, and a type's metrics
  * come most telling first within it: a resource's Metrics card shows them
@@ -1218,6 +1220,17 @@ export function countAwsKeyMetricsAddedSince(templateVersion: number): number {
 export const AZURE_FIVE_MINUTE_GRAIN: string = "PT5M";
 export const AZURE_FIVE_MINUTE_READ_MINUTES: number = 15;
 
+/*
+ * The grain a key metric is marked with when Azure Monitor keeps it at an
+ * hour at its finest (#9982): a Storage account's used capacity, a Cosmos
+ * DB account's availability, a DNS zone's queries, a registry's storage.
+ * It is read as it always was, in its hour's call once an hour (no call is
+ * added), and its reading is kept between those reads
+ * (AZURE_HOURLY_READING_HOLD_MS, CloudResourceHealth), where every other
+ * read would leave it out.
+ */
+export const AZURE_HOURLY_GRAIN: string = "PT1H";
+
 export interface AzureKeyMetric {
   // Azure Monitor's name for it, "Name in REST API" in Microsoft's tables.
   name: string;
@@ -1230,8 +1243,11 @@ export interface AzureKeyMetric {
    * type's minute metrics: read in a five-minute call every
    * AZURE_FIVE_MINUTE_READ_MINUTES, with the type's other five-minute
    * metrics. Where its definition offers a minute, it is read with the
-   * minute metrics, at no cost. Unset for every other metric, which is read
-   * at its type's one grain finer than an hour.
+   * minute metrics, at no cost. AZURE_HOURLY_GRAIN: Azure Monitor keeps it
+   * at an hour at its finest, and it is read once an hour, as every hourly
+   * metric is; the mark says so to the readings, which keep it between its
+   * reads. Unset for every other metric, which is read at its type's one
+   * grain finer than an hour.
    */
   grain?: string | undefined;
   /*
@@ -1315,6 +1331,11 @@ function azure(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
 // A metric Azure Monitor keeps at five minutes at its finest, read every 15 minutes.
 function azure5(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
   return { name, group, grain: AZURE_FIVE_MINUTE_GRAIN };
+}
+
+// A metric Azure Monitor keeps at an hour at its finest, read once an hour.
+function azure60(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
+  return { name, group, grain: AZURE_HOURLY_GRAIN };
 }
 
 /*
@@ -1565,7 +1586,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("ThrottledRequestPercentage", G.Errors),
       // An account replicated to more than one region's own.
       when(C.Setup, azure("ReplicationLatency", G.Replication)),
-      azure("ServiceAvailability", G.Availability),
+      azure60("ServiceAvailability", G.Availability),
       /*
        * What the account stores, kept at five minutes at its finest: its
        * data, its indexes and its documents, every container's together.
@@ -1575,17 +1596,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure5("IndexUsageV2", G.Storage),
       azure5("DocumentCountV2", G.Storage),
     ],
-    retired: [
-      /*
-       * Microsoft's table: "will be removed from Azure Monitor at the end
-       * of August 2025. Please use Server Side Latency Direct and Server
-       * Side Latency Gateway to monitor the latency instead."
-       */
-      {
-        name: "ServerSideLatency",
-        replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
-      },
-    ],
+    /*
+     * ServerSideLatency, which Microsoft removes from Azure Monitor ("Please
+     * use Server Side Latency Direct and Server Side Latency Gateway to
+     * monitor the latency instead"), is read no more: the monitors built on
+     * it were moved to one of the two (#9739).
+     */
     notExportedByDiagnosticSettings: [
       "TotalRequests",
       "TotalRequestUnits",
@@ -1647,7 +1663,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Transactions", G.Traffic),
       azure("Availability", G.Availability),
       azure("SuccessE2ELatency", G.Latency),
-      azure("UsedCapacity", G.Storage),
+      azure60("UsedCapacity", G.Storage),
       azure("SuccessServerLatency", G.Latency),
       azure("Ingress", G.Network),
       azure("Egress", G.Network),
@@ -1935,8 +1951,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
     type: "Microsoft.Network/dnszones",
     metrics: [
-      azure("QueryVolume", G.Traffic),
-      azure("RecordSetCapacityUtilization", G.Storage),
+      azure60("QueryVolume", G.Traffic),
+      azure60("RecordSetCapacityUtilization", G.Storage),
     ],
     notExportedByDiagnosticSettings: [
       "QueryVolume",
@@ -1996,7 +2012,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     metrics: [
       azure("TotalPullCount", G.Traffic),
       azure("TotalPushCount", G.Traffic),
-      azure("StorageUsed", G.Storage),
+      azure60("StorageUsed", G.Storage),
       azure("SuccessfulPullCount", G.Traffic),
       azure("SuccessfulPushCount", G.Traffic),
     ],
@@ -2901,21 +2917,11 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         G.Traffic,
       ),
     ],
-    retired: [
-      /*
-       * Google's list: "This metric is deprecated. Apply a count aggregator
-       * on topic/message_sizes instead."
-       */
-      {
-        metric: gcp(
-          "pubsub.googleapis.com/topic/send_message_operation_count",
-          "ALIGN_RATE",
-          "1/s",
-          G.Traffic,
-        ),
-        replacedBy: "pubsub.googleapis.com/topic/message_sizes_count",
-      },
-    ],
+    /*
+     * topic/send_message_operation_count, which Google deprecates ("Apply a
+     * count aggregator on topic/message_sizes instead"), is read no more:
+     * the monitors built on it were moved to the count above (#9739).
+     */
   },
   {
     resourceType: "redis_instance",

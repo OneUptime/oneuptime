@@ -1362,12 +1362,126 @@ describe("Proxmox cluster overview: counts of what is wrong open which, and why"
     ).toHaveTextContent("In no backup job");
   });
 
+  /*
+   * "2/3 guests running" opened the whole list while a guest that starts
+   * on boot was stopped (#9729): after it, and under the Guests tile's
+   * figure, the guests that should be running open, with why.
+   */
+  function stoppedGuests(): Array<Row> {
+    return [
+      {
+        kind: "Guest",
+        externalId: "qemu/103",
+        name: "mail",
+        vmid: 103,
+        isUp: false,
+        onboot: true,
+        lockState: "backup",
+        parentNodeName: "pve1",
+        isBackedUp: true,
+      },
+      {
+        kind: "Guest",
+        externalId: "lxc/104",
+        name: "scratch",
+        vmid: 104,
+        isUp: false,
+        onboot: false,
+        isBackedUp: true,
+      },
+    ];
+  }
+
+  test("a guest stopped though it starts on boot: the guests count and the Guests tile open it, and why", async () => {
+    inventory.push(...stoppedGuests());
+
+    await renderOverview();
+
+    // The chip still opens every guest, and still counts the one stopped on purpose.
+    const chip: HTMLElement = screen.getByTestId("proxmox-hero-guests");
+    expect(chip).toHaveTextContent("3/5 guests running");
+    expect(chip.getAttribute("href") || "").toMatch(/\/guests$/);
+
+    const hero: HTMLElement = screen.getByTestId("proxmox-hero-guests-stopped");
+    expect(hero.tagName).toBe("BUTTON");
+    expect(hero.closest("a")).toBeNull();
+    // Only the guest that should run: one stopped and left off is no problem.
+    expect(hero).toHaveTextContent("1 should be running");
+    expect(hero).toHaveAttribute("data-tone", "warning");
+    expect(hero).toHaveAttribute("title", "Show which guests and why");
+
+    fireEvent.click(hero);
+    expect(screen.getByText("1 guest should be running")).toBeInTheDocument();
+    const rows: Array<HTMLElement> = dialogRows("proxmox-hero-guests-stopped");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!).toHaveTextContent("mail");
+    expect(rows[0]!).toHaveTextContent("qemu/103");
+    expect(rows[0]!).toHaveTextContent("Stopped, but starts on boot");
+    // What holds it: a stop-mode backup.
+    expect(rows[0]!).toHaveTextContent("Backup running");
+    // Its node, a step from its page, and the guest a step from its own.
+    expect(
+      within(rows[0]!).getByTestId("proxmox-hero-guests-stopped-dialog-fact"),
+    ).toHaveTextContent("pve1");
+    expect(
+      within(rows[0]!).getByTestId("proxmox-hero-guests-stopped-dialog-view"),
+    ).toHaveAttribute(
+      "href",
+      `${CLUSTER_PATH}/guests/${encodeURIComponent("qemu/103")}`,
+    );
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]!);
+
+    // The tile says the same, under its figure.
+    const tile: HTMLElement = cardOf(infoButton("Guests"));
+    const tilePill: HTMLElement = within(tile).getByTestId(
+      "proxmox-tile-guests-stopped",
+    );
+    expect(tilePill).toHaveTextContent("1 should be running");
+    fireEvent.click(tilePill);
+    expect(dialogRows("proxmox-tile-guests-stopped")[0]!).toHaveTextContent(
+      "mail",
+    );
+  });
+
+  test("a guest HA gave up on is red", async () => {
+    inventory.push({
+      kind: "Guest",
+      externalId: "qemu/105",
+      name: "api",
+      vmid: 105,
+      isUp: false,
+      haState: "error",
+      parentNodeName: "pve2",
+      isBackedUp: true,
+    });
+
+    await renderOverview();
+
+    const hero: HTMLElement = screen.getByTestId("proxmox-hero-guests-stopped");
+    expect(hero).toHaveTextContent("1 should be running");
+    expect(hero).toHaveAttribute("data-tone", "danger");
+    fireEvent.click(hero);
+    expect(dialogRows("proxmox-hero-guests-stopped")[0]!).toHaveTextContent(
+      "HA state: error",
+    );
+  });
+
+  test("every guest that should run does: no count beside the guests", async () => {
+    await renderOverview();
+
+    expect(screen.queryByTestId("proxmox-hero-guests-stopped")).toBeNull();
+    expect(screen.queryByTestId("proxmox-tile-guests-stopped")).toBeNull();
+  });
+
   test("a disconnected agent's last inventory is no truth: no count opens a list", async () => {
     cluster["otelCollectorStatus"] = "disconnected";
+    inventory.push(...stoppedGuests());
 
     await renderOverview();
 
     expect(screen.queryByTestId("proxmox-hero-nodes-offline")).toBeNull();
     expect(screen.queryByTestId("proxmox-nodes-offline")).toBeNull();
+    expect(screen.queryByTestId("proxmox-hero-guests-stopped")).toBeNull();
+    expect(screen.queryByTestId("proxmox-tile-guests-stopped")).toBeNull();
   });
 });

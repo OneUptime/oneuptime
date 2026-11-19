@@ -1,4 +1,5 @@
 import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -20,6 +21,7 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -29,7 +31,9 @@ import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
+import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -40,6 +44,8 @@ import React, {
   useState,
 } from "react";
 import { readDeviceManagementConnectionNow } from "./DeviceManagementApi";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   DeviceManagementHealthWords,
   DeviceManagementTestWords,
@@ -68,6 +74,18 @@ export const DEVICE_COUNT: PluralTemplate = {
   one: "{{count}} device",
   other: "{{count}} devices",
 };
+
+// Where a connection's Set up alerts leads: its recommended monitors (#9835).
+export function getConnectionRecommendationsRoute(
+  connectionId: ObjectID,
+): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[
+      PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS
+    ] as Route,
+    { modelId: connectionId },
+  );
+}
 
 export function getConnectionHealth(
   connection: DeviceManagementConnection,
@@ -267,6 +285,24 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
               onCompleteAction();
             },
           },
+          /*
+           * The connection's recommended monitors (#9835): Esper Device
+           * Stopped Checking In, one alert per device. Open to everyone
+           * who sees the row; creating a monitor asks its own permission.
+           */
+          {
+            title: "Set up alerts",
+            icon: IconProp.Bell,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            tooltip: "Get an alert when one of its devices stops checking in.",
+            onClick: (
+              item: DeviceManagementConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              onCompleteAction();
+              Navigation.navigate(getConnectionRecommendationsRoute(item.id!));
+            },
+          },
           {
             title: "Read now",
             icon: IconProp.Refresh,
@@ -432,7 +468,7 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
                         DEVICE_COUNT,
                         summary.deviceCount,
                       )}
-                      {" · "}
+                      <InlineSeparator />
                       {translator.translateTemplate(
                         "{{online}} online, {{offline}} offline",
                         {

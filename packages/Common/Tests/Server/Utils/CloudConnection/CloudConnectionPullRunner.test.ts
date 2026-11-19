@@ -38,6 +38,12 @@ import {
 import LlmConnectionPullRunner from "../../../../Server/Utils/LlmObservability/LlmConnectionPullRunner";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
+import CloudRetiredMetricReads from "../../../../Server/Utils/CloudConnection/CloudRetiredMetricReads";
+import logger from "../../../../Server/Utils/Logger";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { AwsStreamCoverage } from "../../../../Types/CloudConnection/CloudStreamStack";
@@ -317,6 +323,120 @@ describe("a read that works", () => {
     ).toContain(
       "More resources were found than one read adds: the next read adds the rest.",
     );
+  });
+});
+
+/*
+ * #9739's gap: a deprecated metric a monitor or a chart of the project
+ * still reads is read of the resources it reads, until it is moved
+ * (CloudRetiredMetricReads): the connector gets it as one more addition.
+ */
+describe("a deprecated metric what still reads it", () => {
+  const RETIRED: CloudAddedMetric = {
+    key: "resource|microsoft.documentdb/databaseaccounts|azure:abc||serversidelatency",
+    provider: CloudProvider.Azure,
+    scope: CloudAddedMetricScope.Resource,
+    resourceType: "Microsoft.DocumentDB/databaseAccounts",
+    cloudResourceId: "azure:abc",
+    azureResourceId:
+      "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.DocumentDB/databaseAccounts/orders",
+    name: "ServerSideLatency",
+    aggregation: "Average",
+    grain: "PT1M",
+    unit: "MilliSeconds",
+    addedAt: "2026-11-19T00:00:00.000Z",
+  };
+  const OWN: JSONObject = {
+    key: "type|microsoft.documentdb/databaseaccounts|||totalrequestunits",
+    provider: CloudProvider.Azure,
+    scope: CloudAddedMetricScope.Type,
+    resourceType: "Microsoft.DocumentDB/databaseAccounts",
+    name: "TotalRequestUnits",
+    aggregation: "Total",
+    grain: "PT1M",
+    unit: "Count",
+    addedAt: "2026-11-01T00:00:00.000Z",
+  };
+
+  async function runWith(
+    find: (data: {
+      projectId: ObjectID;
+      provider: unknown;
+      now: Date;
+    }) => Promise<Array<CloudAddedMetric>>,
+  ): Promise<CloudConnectionPullOutcome> {
+    return await CloudConnectionPullRunner.run(CONNECTION, {
+      importMetrics,
+      now: () => {
+        return NOW;
+      },
+      findRetiredMetricReads: find as never,
+    });
+  }
+
+  test("are handed to the connector after the connection's own additions, for the project, the provider and the read's time", async () => {
+    connection.provider = CloudProvider.Azure;
+    connection.addedMetrics = { metrics: [OWN] };
+    const asked: Array<JSONObject> = [];
+
+    await runWith(
+      async (data: { projectId: ObjectID; provider: unknown; now: Date }) => {
+        asked.push({
+          projectId: data.projectId.toString(),
+          provider: String(data.provider),
+          now: data.now.toISOString(),
+        });
+        return [RETIRED];
+      },
+    );
+
+    expect(asked).toEqual([
+      {
+        projectId: PROJECT.toString(),
+        provider: CloudProvider.Azure,
+        now: NOW.toISOString(),
+      },
+    ]);
+    expect(
+      (readCalls[0]!.addedMetrics || []).map((metric: CloudAddedMetric) => {
+        return metric.name;
+      }),
+    ).toEqual(["TotalRequestUnits", "ServerSideLatency"]);
+    expect(readCalls[0]!.addedMetrics![1]).toEqual(RETIRED);
+    // Never stored on the connection: a person's additions stay theirs.
+    expect(
+      recorded.some((data: JSONObject): boolean => {
+        return "addedMetrics" in data;
+      }),
+    ).toBe(false);
+  });
+
+  test("a lookup that fails reads none this time: the read goes on, and says why in the log", async () => {
+    connection.provider = CloudProvider.GCP;
+    const logged: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {}) as never);
+
+    const outcome: CloudConnectionPullOutcome = await runWith(async () => {
+      throw new Error("Postgres is away");
+    });
+
+    expect(outcome.status).toBe("success");
+    expect(readCalls).toHaveLength(1);
+    expect(readCalls[0]!.addedMetrics).toEqual([]);
+    expect(logged).toHaveBeenCalled();
+  });
+
+  test("without a finder of its own, an AWS connection asks for none and reads as it always has", async () => {
+    const find: jest.SpyInstance = jest.spyOn(
+      CloudRetiredMetricReads,
+      "findQueries",
+    );
+
+    await run();
+
+    expect(find).not.toHaveBeenCalled();
+    expect(readCalls[0]!.addedMetrics).toEqual([]);
   });
 });
 

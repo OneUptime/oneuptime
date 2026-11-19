@@ -136,6 +136,73 @@ test("sends window, accumulate and includeIdle query params", async (): Promise<
   assert.strictEqual(url.searchParams.get("includeIdle"), "true");
 });
 
+/*
+ * A Kubecost's aggregator answers /model/allocation per namespace unless told
+ * otherwise: Kubecost 2.8.7 and 3.3.2 gave 12 namespace rows, with no
+ * workload, pod, container or cluster, where these keys gave 28 containers.
+ */
+test("asks a Kubecost for each container, by every key a container has", async (): Promise<void> => {
+  const captured: Array<URL> = [];
+  responder = (path: string, res: http.ServerResponse): void => {
+    if (path === "/allocation/compute") {
+      sendJson(res, SAMPLE_RESPONSE);
+      return;
+    }
+    sendJson(res, SAMPLE_RESPONSE);
+  };
+  const record: (req: http.IncomingMessage) => void = (
+    req: http.IncomingMessage,
+  ): void => {
+    captured.push(new URL(`http://x${req.url || ""}`));
+  };
+  server.on("request", record);
+
+  await new CostEngineClient().fetchAllocations(WINDOW);
+  // Named on purpose: the same keys.
+  await new CostEngineClient({
+    allocationPath: "/model/allocation",
+  }).fetchAllocations(WINDOW);
+
+  server.off("request", record);
+
+  assert.strictEqual(captured.length, 2);
+  for (const url of captured) {
+    assert.strictEqual(url.pathname, "/model/allocation");
+    assert.strictEqual(
+      url.searchParams.get("aggregate"),
+      "cluster,node,namespace,controllerKind,controller,pod,container",
+    );
+  }
+});
+
+test("asks OpenCost's own API as it always has, for it answers per container anyway", async (): Promise<void> => {
+  const captured: Array<URL> = [];
+  responder = (path: string, res: http.ServerResponse): void => {
+    if (path === "/allocation/compute") {
+      sendJson(res, SAMPLE_RESPONSE);
+      return;
+    }
+    res.writeHead(404);
+    res.end("not found");
+  };
+  const record: (req: http.IncomingMessage) => void = (
+    req: http.IncomingMessage,
+  ): void => {
+    captured.push(new URL(`http://x${req.url || ""}`));
+  };
+  server.on("request", record);
+
+  await new CostEngineClient().fetchAllocations(WINDOW);
+
+  server.off("request", record);
+
+  const compute: URL | undefined = captured.find((url: URL): boolean => {
+    return url.pathname === "/allocation/compute";
+  });
+  assert.ok(compute);
+  assert.strictEqual(compute.searchParams.get("aggregate"), null);
+});
+
 test("flattens multiple allocation sets and skips null sets", async (): Promise<void> => {
   responder = (_path: string, res: http.ServerResponse): void => {
     sendJson(res, {

@@ -582,11 +582,21 @@ describe("Azure metrics read at five minutes, and deprecated ones still read", (
       "Microsoft.DocumentDB/databaseAccounts",
     )!;
 
-    expect(getAzureReadMetricNames(cosmos)).toEqual([
-      ...namesOf(cosmos),
-      "ServerSideLatency",
-    ]);
+    // ServerSideLatency is read no more: its monitors moved (#9739).
+    expect(getAzureReadMetricNames(cosmos)).toEqual(namesOf(cosmos));
     expect(namesOf(cosmos)).not.toContain("ServerSideLatency");
+    // A metric kept for its monitors comes after the key metrics.
+    expect(
+      getAzureReadMetricNames({
+        ...cosmos,
+        retired: [
+          {
+            name: "ServerSideLatency",
+            replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
+          },
+        ],
+      }),
+    ).toEqual([...namesOf(cosmos), "ServerSideLatency"]);
     // One call's worth, retired ones included.
     for (const entry of AZURE_KEY_METRICS) {
       expect(getAzureReadMetricNames(entry).length).toBeLessThanOrEqual(
@@ -1012,20 +1022,9 @@ describe("Google Cloud", () => {
     ).toEqual(["pubsub_topic"]);
   });
 
-  test("the deprecated metrics still read come after every key metric, for their own types", () => {
+  test("no deprecated metric is read any more: the publish operations' monitors moved (#9739)", () => {
     const reads: Array<GcpReadMetric> = getGcpReadMetrics();
-    const firstRetired: number = reads.findIndex(
-      (metric: GcpReadMetric): boolean => {
-        return metric.isRetired;
-      },
-    );
 
-    expect(firstRetired).toBeGreaterThan(0);
-    expect(
-      reads.slice(firstRetired).every((metric: GcpReadMetric): boolean => {
-        return metric.isRetired;
-      }),
-    ).toBe(true);
     expect(
       reads
         .filter((metric: GcpReadMetric): boolean => {
@@ -1034,12 +1033,15 @@ describe("Google Cloud", () => {
         .map((metric: GcpReadMetric) => {
           return [metric.storedName, metric.resourceTypes];
         }),
-    ).toEqual([
-      [
-        "pubsub.googleapis.com/topic/send_message_operation_count",
-        ["pubsub_topic"],
-      ],
-    ]);
+    ).toEqual([]);
+    expect(
+      reads.some((metric: GcpReadMetric): boolean => {
+        return (
+          metric.storedName ===
+          "pubsub.googleapis.com/topic/send_message_operation_count"
+        );
+      }),
+    ).toBe(false);
     // Never a key metric of its type.
     expect(
       getGcpKeyMetricTypes().some((metric: GcpKeyMetric): boolean => {

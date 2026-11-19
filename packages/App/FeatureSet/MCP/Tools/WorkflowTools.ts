@@ -20,6 +20,11 @@ import {
   getMoveInListToolDefinition,
   moveInList,
 } from "./MoveInList";
+import {
+  SETUP_TOOL_DEFINITIONS,
+  handleSetupTool,
+  isSetupTool,
+} from "./SetupTools";
 import McpCredentialUtil, {
   McpCredential,
   McpCredentialInput,
@@ -238,9 +243,10 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
 ];
 
 /*
- * Every workflow tool: the ones above, and the move of a row of an ordered
+ * Every workflow tool: the ones above, the move of a row of an ordered
  * list (MoveInList), whose resources are read off the models - so built the
- * first time it is asked for, once the models are there to read.
+ * first time it is asked for, once the models are there to read - and Ask
+ * AI's setup actions, one call each (SetupTools, #7241).
  */
 let workflowToolDefinitions: Array<WorkflowToolDefinition> | null = null;
 
@@ -249,6 +255,7 @@ function getWorkflowToolDefinitions(): Array<WorkflowToolDefinition> {
     workflowToolDefinitions = [
       ...WORKFLOW_TOOL_DEFINITIONS,
       getMoveInListToolDefinition(),
+      ...SETUP_TOOL_DEFINITIONS,
     ];
   }
 
@@ -358,6 +365,10 @@ export async function handleWorkflowTool(
     case MOVE_IN_LIST_TOOL_NAME:
       return moveInList(args, credential);
     default:
+      if (isSetupTool(toolName)) {
+        return handleSetupTool(toolName, args, credential);
+      }
+
       throw new Error(`Unknown workflow tool: ${toolName}`);
   }
 }

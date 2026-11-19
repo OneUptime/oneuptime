@@ -5,7 +5,13 @@ import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import ModelSwitchRow, {
   ModelSwitchConfirmation,
 } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useState,
+} from "react";
+import ProjectSavedSignInSettings from "./ProjectSavedSignInSettings";
 import ManageSignInWithSsoSwitchCopy, {
   MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN,
   MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID,
@@ -31,7 +37,10 @@ import RequireSsoForLoginSwitchCopy, {
  *
  * While the project requires SSO, a second switch hangs under the first:
  * Manage Sign-In with SSO (#9763, ManageSignInWithSsoSwitchCopy), which
- * saves on its own column - turning Require SSO on never turns it on.
+ * saves on its own column - turning Require SSO on never turns it on. While
+ * that one is on too, the project's owners see how many of its people
+ * still have a password or a second step saved from before, and can clear
+ * them (#9820, ProjectSavedSignInSettings).
  */
 
 export interface ComponentProps {
@@ -45,7 +54,8 @@ export interface ComponentProps {
   initialProject?: Project | undefined;
   /*
    * Whether the SSO page draws its test link above the card: it does once
-   * the project has a provider to try (ProjectSignInTestCard). Without it
+   * the project has a provider to try (ProjectSsoSignInLinkCard, the
+   * project's SSO sign-in link, which tests a provider too). Without it
    * the card leaves out the line pointing at the link. Drawn by default.
    */
   isTestLinkShown?: boolean | undefined;
@@ -105,23 +115,59 @@ const RequireSsoForLoginCard: FunctionComponent<ComponentProps> = (
         }
 
         return (
-          <ModelSwitchRow<Project>
-            modelType={Project}
-            modelId={props.projectId}
-            column={MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN}
+          <ManageSignInWithSsoDetails
+            projectId={props.projectId}
             initialValue={Boolean(item.manageSignInWithSso)}
-            title={ManageSignInWithSsoSwitchCopy.switchTitle}
-            getDescription={(isManaging: boolean): string => {
-              return isManaging
-                ? ManageSignInWithSsoSwitchCopy.switchOnDescription
-                : ManageSignInWithSsoSwitchCopy.switchOffDescription;
-            }}
-            dataTestId={MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID}
-            locksWhenPlanNeeded={props.isPlanLeftover}
+            isPlanLeftover={props.isPlanLeftover}
           />
         );
       }}
     />
+  );
+};
+
+/*
+ * The Manage Sign-In with SSO switch, and - while it is saved on - what
+ * the project's people still have saved from before, for its owners to
+ * clear (#9820, ProjectSavedSignInSettings). Not under the plan's upsell,
+ * which is there only so what a trial left on can be switched off.
+ */
+const ManageSignInWithSsoDetails: FunctionComponent<{
+  projectId: ObjectID;
+  initialValue: boolean;
+  isPlanLeftover?: boolean | undefined;
+}> = (props: {
+  projectId: ObjectID;
+  initialValue: boolean;
+  isPlanLeftover?: boolean | undefined;
+}): ReactElement => {
+  const [isManaging, setIsManaging] = useState<boolean>(props.initialValue);
+
+  return (
+    <>
+      <ModelSwitchRow<Project>
+        modelType={Project}
+        modelId={props.projectId}
+        column={MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN}
+        initialValue={props.initialValue}
+        title={ManageSignInWithSsoSwitchCopy.switchTitle}
+        getDescription={(isOn: boolean): string => {
+          return isOn
+            ? ManageSignInWithSsoSwitchCopy.switchOnDescription
+            : ManageSignInWithSsoSwitchCopy.switchOffDescription;
+        }}
+        dataTestId={MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID}
+        locksWhenPlanNeeded={props.isPlanLeftover}
+        onSaved={(isOn: boolean): void => {
+          setIsManaging(isOn);
+        }}
+      />
+      {isManaging && !props.isPlanLeftover ? (
+        <ProjectSavedSignInSettings projectId={props.projectId} />
+      ) : (
+        <></>
+      )}
+    </>
   );
 };
 

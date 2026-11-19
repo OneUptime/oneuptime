@@ -17,10 +17,12 @@ import {
   render,
   RenderResult,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 
 /*
  * The scheduled maintenance overview page, rendered for real with its heavy
@@ -84,6 +86,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       updateById: (...args: Array<any>) => {
         return updateByIdMock(...args);
+      },
+      // The project's header, for what the event's status pages do (#9920).
+      getCommonHeaders: (): Record<string, string> => {
+        return { tenantid: "88888888-8888-4888-8888-888888888888" };
       },
     },
   };
@@ -387,6 +393,23 @@ import {
   RecordStatusPageSuggestions,
   RecordStatusPageSuggestionsProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSuggestions";
+import {
+  MAINTENANCE_NOTIFIES,
+  SCHEDULED_MAINTENANCE_REACH_ROUTE,
+  ScheduledMaintenanceReachAnswer,
+  ScheduledMaintenanceReachAsk,
+  answerScheduledMaintenanceReach,
+  maintenanceNothingSent,
+} from "./ScheduledMaintenanceReachAnswers";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * The event's own chat channels, which its header reads for Open in Slack:
+ * left unanswered, as links that could not be read (no button). The
+ * project's header is stood in for since #9920's band asks with it.
+ */
+refuseRequestsTo(["/workspace-channel-link/"]);
 
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
@@ -2654,6 +2677,28 @@ describe("Scheduled maintenance overview page", () => {
       onPublished: () => void;
     }
 
+    const PAGE_IDS: Array<string> = [
+      "b0000000-0000-4000-8000-000000000001",
+      "b0000000-0000-4000-8000-000000000002",
+    ];
+
+    /*
+     * What the server answers about the status pages it is on (#9920), and
+     * what it was asked: pages that show maintenance events and notify,
+     * unless a test says otherwise.
+     */
+    let reachAnswer: ScheduledMaintenanceReachAnswer = MAINTENANCE_NOTIFIES;
+    let reachAsks: Array<ScheduledMaintenanceReachAsk> = [];
+
+    beforeEach(() => {
+      reachAnswer = MAINTENANCE_NOTIFIES;
+      reachAsks = answerScheduledMaintenanceReach(
+        (): ScheduledMaintenanceReachAnswer => {
+          return reachAnswer;
+        },
+      );
+    });
+
     function waitingEvent(): ScheduledMaintenance {
       const event: ScheduledMaintenance = makeEvent();
       event.isVisibleOnStatusPage = true;
@@ -2661,6 +2706,11 @@ describe("Scheduled maintenance overview page", () => {
       event.shouldStatusPageSubscribersBeNotifiedOnEventCreated = true;
       event.subscriberNotificationStatusOnEventScheduled =
         StatusPageSubscriberNotificationStatus.Pending;
+      (event.statusPages || []).forEach(
+        (statusPage: StatusPage, index: number): void => {
+          statusPage._id = PAGE_IDS[index]!;
+        },
+      );
       return event;
     }
 
@@ -2699,7 +2749,66 @@ describe("Scheduled maintenance overview page", () => {
       );
       expect(props.scheduledMaintenanceId.toString()).toBe(EVENT_ID);
       // Its subscribers hear it is scheduled then, and the band says so.
-      expect(props.areSubscribersTold).toBe(true);
+      await waitFor(() => {
+        expect((noticeElement()!.props as NoticeProps).areSubscribersTold).toBe(
+          true,
+        );
+      });
+      // Asked of the pages it is on, as its Edit would save them.
+      expect(reachAsks).toHaveLength(1);
+      expect(reachAsks[0]).toMatchObject({
+        route: SCHEDULED_MAINTENANCE_REACH_ROUTE,
+        statusPageIds: PAGE_IDS,
+        recordId: EVENT_ID,
+      });
+    });
+
+    /*
+     * #9920: the 'scheduled' notification goes out at the publish time only
+     * when one of the status pages it is on shows maintenance events and
+     * notifies their subscribers - so the band says they are told only then,
+     * and promises nothing while that is not known.
+     */
+    test.each([
+      [
+        "never notify",
+        maintenanceNothingSent(PublicNoteNothingSentReason.NotificationsOff),
+      ],
+      [
+        "hide maintenance events",
+        maintenanceNothingSent(PublicNoteNothingSentReason.NoStatusPages),
+      ],
+      ["are not known yet", "never"],
+      [
+        "could not be asked about",
+        new HTTPErrorResponse(403, { message: "No." }, {}),
+      ],
+    ] as Array<[string, ScheduledMaintenanceReachAnswer]>)(
+      "status pages that %s: the band promises its subscribers nothing",
+      async (_label: string, answer: ScheduledMaintenanceReachAnswer) => {
+        reachAnswer = answer;
+        getItemMock.mockResolvedValue(waitingEvent() as never);
+
+        await renderPage();
+        await flush();
+
+        expect(reachAsks).toHaveLength(1);
+        expect((noticeElement()!.props as NoticeProps).areSubscribersTold).toBe(
+          false,
+        );
+      },
+    );
+
+    test("an event with no band asks nothing about its status pages", async () => {
+      const event: ScheduledMaintenance = waitingEvent();
+      event.publishOnStatusPageAt = new Date(Date.now() - HOUR);
+      getItemMock.mockResolvedValue(event as never);
+
+      await renderPage();
+      await flush();
+
+      expect(noticeElement()).toBeUndefined();
+      expect(reachAsks).toEqual([]);
     });
 
     test("an event whose subscribers are told nothing has a band that promises them nothing", async () => {

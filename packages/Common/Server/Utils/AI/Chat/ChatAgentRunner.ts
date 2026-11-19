@@ -104,6 +104,7 @@ import {
 import ChatInfrastructureAccess, {
   ChatPageInfrastructure,
 } from "./ChatInfrastructureAccess";
+import { readTestPageNotes } from "./ChatTestPageNotes";
 
 export interface ChatTurnRequest {
   projectId: ObjectID;
@@ -449,10 +450,13 @@ export function applyHistoryTokenBudget(
  * when the row should be skipped (unfinished/errored assistant turns, empty
  * rows). Assistant answers get their stale [C#] markers stripped and a
  * compact evidence digest appended; widget-only answers are replayed as a
- * "[Showed the user: …]" summary instead of vanishing.
+ * "[Showed the user: …]" summary instead of vanishing. An answer a test
+ * page was sent from ends with what became of it (#7249, testPageNote:
+ * ChatTestPageNotes), as it stands now.
  */
 export function buildReplayedHistoryMessage(
   message: AIConversationMessage,
+  testPageNote?: string | undefined,
 ): ReplayedHistoryMessage | undefined {
   if (message.role === AIChatMessageRole.User) {
     if (!message.contentInMarkdown) {
@@ -509,7 +513,11 @@ export function buildReplayedHistoryMessage(
   if (prose.trim()) {
     return {
       role: "assistant",
-      content: digest ? `${prose}\n\n${digest}` : prose,
+      content: [prose, digest, testPageNote || ""]
+        .filter((part: string): boolean => {
+          return Boolean(part);
+        })
+        .join("\n\n"),
     };
   }
 
@@ -524,6 +532,9 @@ export function buildReplayedHistoryMessage(
   }
   if (digest) {
     parts.push(digest);
+  }
+  if (testPageNote) {
+    parts.push(testPageNote);
   }
 
   if (parts.length === 0) {
@@ -1312,15 +1323,30 @@ export default class ChatAgentRunner {
             : undefined;
 
           /*
-           * A setup action (#6829) that cannot be made - the person may not,
-           * the address is not one, the project pages people already - is
-           * never shown to be approved and then refused: no card, and the
-           * model is told what is needed, in every mode.
+           * Asked for approval: every action in Ask to act, and a setup
+           * action (#6829) in every mode - it makes something that pages
+           * people or that customers see, so Auto-run asks for it too.
            */
           const isSetupAction: boolean =
             isMutation && AIToolbox.isSetupAction(toolCall.name);
+          const asksForApproval: boolean =
+            isMutation &&
+            (request.permissionMode === AIChatPermissionMode.AskForApproval ||
+              isSetupAction);
 
-          if (isSetupAction && !toolCall.argumentsParseError) {
+          /*
+           * An action that cannot be made - the person's role may not make
+           * it, a team of theirs blocks it, its product is switched off on
+           * the server (#7248), or, for a setup action (#6829), the address
+           * is not one or the project pages people already - is never
+           * shown to be approved and then refused: no card, the model is
+           * told what is needed, and the answer's steps say it was not
+           * done, and why. The checks are the ones running it makes
+           * (AIToolbox.checkBeforeApproval), with the arguments it would
+           * run with; they are made again when it runs. Auto-run shows no
+           * card: its actions are refused by the same checks as they run.
+           */
+          if (asksForApproval && !toolCall.argumentsParseError) {
             const refused: ToolCallOutcome | null =
               await AIToolbox.checkBeforeApproval({
                 name: toolCall.name,
@@ -1352,16 +1378,7 @@ export default class ChatAgentRunner {
             }
           }
 
-          /*
-           * Asked for approval: every action in Ask to act, and a setup
-           * action (#6829) in every mode - it makes something that pages
-           * people or that customers see, so Auto-run asks for it too.
-           */
-          if (
-            isMutation &&
-            (request.permissionMode === AIChatPermissionMode.AskForApproval ||
-              isSetupAction)
-          ) {
+          if (asksForApproval) {
             // Defer the action for the user to approve; do not run it yet.
             this.upsertToolAction(
               state,
@@ -2373,13 +2390,24 @@ export default class ChatAgentRunner {
 
     const fetchedCount: number = history.length;
 
+    /*
+     * What became of a test page sent from an answer, as it stands now
+     * (#7249): read as the person asking, for the newest such answers.
+     */
+    const testPageNotes: Map<AIConversationMessage, string> =
+      await readTestPageNotes({
+        messages: history,
+        projectId: request.projectId,
+        props: request.props,
+      });
+
     // Oldest first, skipping unfinished/errored assistant rows.
     const replayable: Array<ReplayedHistoryMessage> = [];
     // What each of those showed the model of records it may change (issue #6291).
     const recordsSeenByEntry: Array<Array<unknown>> = [];
     for (const message of history.reverse()) {
       const replayed: ReplayedHistoryMessage | undefined =
-        buildReplayedHistoryMessage(message);
+        buildReplayedHistoryMessage(message, testPageNotes.get(message));
       if (replayed) {
         recordsSeenByEntry.push(
           (message.citations || []).flatMap(

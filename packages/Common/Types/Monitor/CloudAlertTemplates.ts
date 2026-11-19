@@ -10,10 +10,14 @@ import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AwsKeyMetric,
   AwsStatistic,
+  GCP_OPS_AGENT,
+  GcpReadMetric,
   HOURLY_PERIOD_SECONDS,
   getAwsKeyMetrics,
   getAwsStoredMetricName,
   getAzureStoredMetricName,
+  getGcpReadMetrics,
+  isAzureFiveMinuteKeyMetric,
 } from "../Cloud/CloudKeyMetrics";
 import {
   CLOUD_AVAILABILITY_LOW_PERCENT,
@@ -22,17 +26,24 @@ import {
   CLOUD_BLOCKED_SHARE_WARNING_PERCENT,
   CLOUD_CPU_HIGH_PERCENT,
   CLOUD_FAILED_SHARE_WARNING_PERCENT,
+  CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
   CLOUD_HEALTH_MIN_REQUESTS,
   CLOUD_MEMORY_HIGH_PERCENT,
+  CLOUD_STORAGE_FULL_PERCENT,
   CLOUD_STORAGE_HIGH_PERCENT,
   CloudResourceReadings,
+  GCP_OPS_AGENT_DISK_KEY,
+  GCP_OPS_AGENT_MEMORY_KEY,
   getCloudReadingKey,
 } from "../Cloud/CloudResourceHealth";
 import {
   AWS_CLOUDWATCH_DIMENSION_PREFIX,
   AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE,
+  AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE,
   CLOUD_ACCOUNT_ID_ATTRIBUTE,
   CLOUD_REGION_ATTRIBUTE,
+  ParsedAzureResourceId,
+  parseAzureResourceId,
 } from "../Cloud/CloudMonitoredResource";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
@@ -104,7 +115,11 @@ import {
  *     minute a point: a 15-minute window holds five to ten of them.
  *
  * So every AWS template reads 30 minutes, every Azure and Google Cloud one
- * 15 (CLOUD_ALERT_WINDOWS), and each is evaluated every five minutes
+ * 15 (CLOUD_ALERT_WINDOWS) - but an Azure one over a metric Azure Monitor
+ * keeps at five minutes, read every 15 minutes and 9 to 14 minutes old
+ * when read, which a 15-minute window would hold nothing of for part of
+ * every quarter hour: it reads 30 (CLOUD_FIVE_MINUTE_METRIC_WINDOW, #9981)
+ * - and each is evaluated every five minutes
  * (CLOUD_ALERT_MONITORING_INTERVAL), as often as its points can change: a
  * monitor evaluated every minute would read the same points four times out
  * of five, and cost five times the queries.
@@ -202,6 +217,16 @@ export const CLOUD_ALERT_WINDOWS: Readonly<Record<CloudProvider, RollingTime>> =
 export const CLOUD_ALERT_MONITORING_INTERVAL: string = "*/5 * * * *";
 
 /*
+ * A template over an Azure key metric Azure Monitor keeps at five minutes
+ * (an App Service app's health check: AzureKeyMetric.grain): the last 30
+ * minutes, still evaluated every five (see WINDOWS above). Its points come
+ * in a call every 15 minutes, the newest 9 to 14 minutes old, so 30
+ * minutes hold one to five of them at every evaluation.
+ */
+export const CLOUD_FIVE_MINUTE_METRIC_WINDOW: RollingTime =
+  RollingTime.Past30Minutes;
+
+/*
  * A template over a metric its cloud publishes a few times a day, which
  * the connection reads once an hour (an AWS key metric whose period is an
  * hour or more: ACM's DaysToExpiry): the last 2 days, evaluated once an
@@ -287,6 +312,13 @@ export interface CloudAlertMetric {
 export interface CloudAlertQuery {
   alias: string;
   metric: CloudAlertMetric;
+  /*
+   * The attributes it is read in a series per value of, each judged on its
+   * own and named on what it opens: a VM's disks (the Ops Agent's
+   * `device`), so the fullest is never averaged with the emptiest and the
+   * incident says which disk filled. Unset: the resource's one series.
+   */
+  groupByAttributeKeys?: Array<string> | undefined;
 }
 
 /*
@@ -320,6 +352,12 @@ export interface CloudAlertTemplateArgs {
   allocatedStorageGiB?: number | null | undefined;
   // An RDS instance's connection limit (RdsConnectionLimits).
   connectionLimit?: number | null | undefined;
+  /*
+   * Its name (CloudResource.name), where its first command needs what its
+   * attributes do not hold: a Compute Engine VM's, which gcloud names it
+   * by, while its metrics name it by its numeric id.
+   */
+  resourceName?: string | null | undefined;
   onlineMonitorStatusId: ObjectID;
   offlineMonitorStatusId: ObjectID;
   defaultIncidentSeverityId: ObjectID;
@@ -390,23 +428,49 @@ export interface CloudAlertTemplate {
   /*
    * Offered only to a resource that reports its metric, whoever reads it:
    * a metric of one tier of a service, which the others never send (an
-   * Azure SQL database's DTUs, on the DTU purchasing model only). Without
-   * it a monitor on a vCore database would watch a metric nobody sends.
+   * Azure SQL database's DTUs, on the DTU purchasing model only), or one
+   * an agent on it reports (a Compute Engine VM's memory and disks, only
+   * where the Ops Agent runs). Without it a monitor on a vCore database, or
+   * on a VM without the agent, would watch a metric nobody sends.
    */
   requiresReading?: boolean | undefined;
   incidentDescription: string;
   /*
-   * The first command to run when it fires, for AWS CloudShell, written for
-   * the resource the monitor watches from its stored attributes (its
-   * identity dimensions, account and Region) - or null when they do not
-   * name enough of it. The incident's description ends with it
-   * (getCloudAlertIncidentDescription).
+   * The first command to run when it fires, for its cloud's shell (AWS
+   * CloudShell, Google Cloud Shell), written for the resource the monitor
+   * watches from its stored attributes (its identity dimensions, account
+   * and Region; its project and zone) and, where those do not hold it, its
+   * name - or null when they do not name enough of it. The incident's
+   * description ends with it (getCloudAlertIncidentDescription).
    */
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
   getMonitorStep: (args: CloudAlertTemplateArgs) => MonitorStep;
 }
+
+export type CloudAlertFirstCommand = (
+  attributes: Dictionary<string>,
+  resourceName?: string | null | undefined,
+) => string | null;
+
+/*
+ * A Google Cloud monitored resource's labels, as its metrics are stored
+ * (CloudMonitoredResource's telemetryAttributes): "resource.project_id".
+ */
+const GCP_RESOURCE_LABEL_PREFIX: string = "resource.";
+
+/*
+ * The Ops Agent's label of a VM's disk on agent.googleapis.com/disk/
+ * percent_used ("/dev/sda1"), as the read stores it on each point.
+ */
+export const GCP_OPS_AGENT_DISK_DEVICE_ATTRIBUTE: string = "device";
+
+// The shell each cloud's first commands are run in, by its own name.
+export const CLOUD_ALERT_SHELL_NAMES: Readonly<Record<CloudProvider, string>> =
+  {
+    [CloudProvider.AWS]: "AWS CloudShell",
+    [CloudProvider.Azure]: "Azure Cloud Shell",
+    [CloudProvider.GCP]: "Google Cloud Shell",
+  };
 
 /*
  * ---------------------------------------------------------------------------
@@ -576,6 +640,10 @@ function buildQuery(data: {
         aggegationType: data.query.metric.aggregationType,
         aggregateBy: {},
       },
+      ...(data.query.groupByAttributeKeys &&
+      data.query.groupByAttributeKeys.length > 0
+        ? { groupByAttributeKeys: [...data.query.groupByAttributeKeys] }
+        : {}),
     },
     /*
      * The resource, by its row: its charts draw its own incidents, alerts
@@ -701,19 +769,23 @@ export function quoteCloudShellArgument(value: string): string {
 
 /*
  * What the incident says: the template's description, then - where the
- * template knows one and the resource's attributes name enough of it - the
- * first command to run, in AWS CloudShell.
+ * template knows one and the resource's attributes (or its name) say
+ * enough of it - the first command to run, in its cloud's shell.
  */
 export function getCloudAlertIncidentDescription(
-  template: Pick<CloudAlertTemplate, "incidentDescription" | "firstCommand">,
+  template: Pick<
+    CloudAlertTemplate,
+    "incidentDescription" | "firstCommand" | "provider"
+  >,
   attributes: Dictionary<string>,
+  resourceName?: string | null | undefined,
 ): string {
   const command: string | null = template.firstCommand
-    ? template.firstCommand(attributes)
+    ? template.firstCommand(attributes, resourceName)
     : null;
 
   return command
-    ? `${template.incidentDescription} First, run this in AWS CloudShell: \`${command}\``
+    ? `${template.incidentDescription} First, run this in ${CLOUD_ALERT_SHELL_NAMES[template.provider]}: \`${command}\``
     : template.incidentDescription;
 }
 
@@ -754,6 +826,7 @@ function buildCriteria(
     incidentDescription: getCloudAlertIncidentDescription(
       template,
       args.telemetryAttributes,
+      args.resourceName,
     ),
     criteriaName: `${template.name} - ${template.thresholdLabel}`,
     criteriaDescription: describeCriteria(template, args),
@@ -891,6 +964,29 @@ export function isCloudSlowMetricTemplate(data: {
   );
 }
 
+/*
+ * Whether a template reads only Azure key metrics Azure Monitor keeps at
+ * five minutes, for every type it is for (isAzureFiveMinuteKeyMetric): its
+ * window follows the metric (see WINDOWS above), as a slow AWS metric's
+ * does.
+ */
+export function isCloudFiveMinuteMetricTemplate(data: {
+  provider: CloudProvider;
+  resourceTypes: Array<string>;
+  queries: Array<CloudAlertQuery>;
+}): boolean {
+  return (
+    data.provider === CloudProvider.Azure &&
+    data.resourceTypes.length > 0 &&
+    data.queries.length > 0 &&
+    data.queries.every((query: CloudAlertQuery): boolean => {
+      return data.resourceTypes.every((type: string): boolean => {
+        return isAzureFiveMinuteKeyMetric(type, query.metric.metricName);
+      });
+    })
+  );
+}
+
 function define(spec: TemplateSpec): CloudAlertTemplate {
   const isSlow: boolean = isCloudSlowMetricTemplate(spec);
   const template: CloudAlertTemplate = {
@@ -898,7 +994,9 @@ function define(spec: TemplateSpec): CloudAlertTemplate {
     monitorType: MonitorType.Metrics,
     rollingTime: isSlow
       ? CLOUD_SLOW_METRIC_WINDOW
-      : CLOUD_ALERT_WINDOWS[spec.provider],
+      : isCloudFiveMinuteMetricTemplate(spec)
+        ? CLOUD_FIVE_MINUTE_METRIC_WINDOW
+        : CLOUD_ALERT_WINDOWS[spec.provider],
     monitoringInterval: isSlow
       ? CLOUD_SLOW_METRIC_MONITORING_INTERVAL
       : CLOUD_ALERT_MONITORING_INTERVAL,
@@ -932,10 +1030,10 @@ function sustainedAtOrAbove(data: {
   metric: CloudAlertMetric;
   threshold: number;
   thresholdLabel: string;
+  // Offered only to a resource that reports its metric (requiresReading).
+  requiresReading?: boolean | undefined;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   return define({
     id: data.id,
@@ -952,6 +1050,7 @@ function sustainedAtOrAbove(data: {
     filterType: FilterType.GreaterThanOrEqualTo,
     threshold: data.threshold,
     thresholdLabel: data.thresholdLabel,
+    ...(data.requiresReading ? { requiresReading: true } : {}),
     incidentDescription: data.incidentDescription,
     firstCommand: data.firstCommand,
   });
@@ -1019,9 +1118,7 @@ function anyInWindow(data: {
   metrics: Array<CloudAlertMetric>;
   thresholdLabel: string;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   const [first, second] = data.metrics;
 
@@ -1076,9 +1173,7 @@ function failedShare(data: {
   // Judged whatever the count of requests (a function's invocations).
   withoutRequestFloor?: boolean | undefined;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   const [first, second] = data.failed;
   const failed: string = second
@@ -1132,16 +1227,18 @@ function breakage(data: {
   name: string;
   summary: string;
   description: string;
+  // Critical unless it says otherwise.
+  severity?: CloudAlertTemplateSeverity | undefined;
   provider: CloudProvider;
   resourceTypes: Array<string>;
   metric: CloudAlertMetric;
   firesBelow?: boolean | undefined;
   threshold?: number | undefined;
   thresholdLabel: string;
+  // Offered only to a resource that reports its metric (requiresReading).
+  requiresReading?: boolean | undefined;
   incidentDescription: string;
-  firstCommand?:
-    | ((attributes: Dictionary<string>) => string | null)
-    | undefined;
+  firstCommand?: CloudAlertFirstCommand | undefined;
 }): CloudAlertTemplate {
   return define({
     id: data.id,
@@ -1149,7 +1246,7 @@ function breakage(data: {
     summary: data.summary,
     description: data.description,
     category: "Availability",
-    severity: "Critical",
+    severity: data.severity || "Critical",
     provider: data.provider,
     resourceTypes: data.resourceTypes,
     measure: "breakage",
@@ -1160,6 +1257,7 @@ function breakage(data: {
       : FilterType.GreaterThanOrEqualTo,
     threshold: data.threshold ?? 1,
     thresholdLabel: data.thresholdLabel,
+    ...(data.requiresReading ? { requiresReading: true } : {}),
     incidentDescription: data.incidentDescription,
     firstCommand: data.firstCommand,
   });
@@ -2197,6 +2295,45 @@ function azureShareDescription(metrics: string): string {
   return `Fires when 5% or more of the requests of the past 15 minutes failed, of at least 20 requests: ${metrics}, each totalled over the window. ${READ_FROM_AZURE_MONITOR}`;
 }
 
+/*
+ * An App Service app's Health check (#9981): HealthCheckStatus, the share of
+ * its instances whose health check passes, as its health rule reads it
+ * (CloudResourceHealth). Azure counts an instance failing only once it is
+ * deemed unhealthy - 10 failed pings a minute apart by default - and takes
+ * it out of the load balancer then, so a reading under 100 is no blip: an
+ * instance is out. Under half, App Service keeps unhealthy instances in the
+ * load balancer, so requests reach them. Each fires on its first reading
+ * under its line and clears once a whole window has none - 30 minutes, as
+ * Azure Monitor keeps the metric at five (isCloudFiveMinuteMetricTemplate).
+ * Offered only to an app that reports it: one with a Health check path.
+ */
+const APP_SERVICE_HEALTH_CHECK_METRIC: CloudAlertMetric = azureMetric({
+  metricName: "HealthCheckStatus",
+  aggregation: "average",
+  aggregationType: MetricsAggregationType.Min,
+  legendUnit: "%",
+});
+
+/*
+ * Its first command, in Azure Cloud Shell: the health check of each of the
+ * app's instances over the last hour, as Azure Monitor keeps it - which
+ * instance fails. Null when the app's attributes hold no App Service ARM id.
+ */
+export function getAppServiceHealthCheckCommand(
+  attributes: Dictionary<string>,
+): string | null {
+  const resourceId: string = (
+    attributes[AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE] || ""
+  ).trim();
+  const parsed: ParsedAzureResourceId | null = parseAzureResourceId(resourceId);
+
+  if (!parsed || parsed.type.toLowerCase() !== "microsoft.web/sites") {
+    return null;
+  }
+
+  return `az monitor metrics list --resource ${quoteCloudShellArgument(resourceId)} --metric HealthCheckStatus --aggregation Average --interval PT5M --filter "Instance eq '*'" --output table`;
+}
+
 const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   breakage({
     id: "cloud-azure-vm-unavailable",
@@ -2262,6 +2399,39 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
     thresholdLabel: "1 second or more",
     incidentDescription:
       "The app's responses took a second or more on average for 15 minutes. Look at its plan's CPU and memory, and at the databases and services it calls.",
+  }),
+  breakage({
+    id: "cloud-azure-appservice-health-check-failing",
+    name: "Health Check Failing",
+    summary: "An instance of the app fails its health check.",
+    description: `Fires on the first reading of HealthCheckStatus under 100%: Azure deemed an instance of the app unhealthy - by default after 10 failed pings of its Health check path, a minute apart - and took it out of the load balancer. Clears once every instance passes for 30 minutes, the window a metric Azure Monitor keeps at five minutes needs. Offered to an app with a Health check path set. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    severity: "Warning",
+    provider: AZURE,
+    resourceTypes: ["Microsoft.Web/sites"],
+    metric: APP_SERVICE_HEALTH_CHECK_METRIC,
+    firesBelow: true,
+    threshold: 100,
+    thresholdLabel: "under 100%",
+    requiresReading: true,
+    incidentDescription:
+      "An instance of the app failed its health check and is out of the load balancer; the others take its requests. The command below names the instance: look at its application logs for what its Health check path returned. App Service replaces an instance that stays unhealthy for an hour.",
+    firstCommand: getAppServiceHealthCheckCommand,
+  }),
+  breakage({
+    id: "cloud-azure-appservice-health-check-most-failing",
+    name: "Most Instances Unhealthy",
+    summary: "Fewer than half of the app's instances pass its health check.",
+    description: `Fires on the first reading of HealthCheckStatus under ${CLOUD_HEALTH_CHECK_CRITICAL_PERCENT}%: past half of its instances failing, App Service keeps the unhealthy ones in the load balancer, so requests reach them. Clears once half or more pass for 30 minutes, the window a metric Azure Monitor keeps at five minutes needs. Offered to an app with a Health check path set. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    provider: AZURE,
+    resourceTypes: ["Microsoft.Web/sites"],
+    metric: APP_SERVICE_HEALTH_CHECK_METRIC,
+    firesBelow: true,
+    threshold: CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
+    thresholdLabel: `under ${CLOUD_HEALTH_CHECK_CRITICAL_PERCENT}%`,
+    requiresReading: true,
+    incidentDescription:
+      "Fewer than half of the app's instances pass its health check, so some requests reach an instance that fails. Look at what was deployed last, and at the databases and services its Health check path calls: when they fail together, a dependency is usually down.",
+    firstCommand: getAppServiceHealthCheckCommand,
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-appserviceplan-high-cpu",
@@ -2760,6 +2930,106 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * A Compute Engine VM's first command (#9741): a look inside it, over SSH
+ * from Google Cloud Shell, where the Ops Agent read what filled it.
+ * gcloud names a VM by its name, which its metrics' attributes do not hold
+ * (they name it by its numeric id): the resource's own name does, once its
+ * inventory or its metrics' metadata named it. Its project and zone are
+ * its attributes'. Null when any of them is not one gcloud takes.
+ */
+
+// A project ID, or a domain-scoped one ("example.com:shop-prod").
+const GCP_PROJECT_ID: RegExp =
+  /^(?:[a-z0-9][a-z0-9.-]{0,62}:)?[a-z][-a-z0-9]{4,28}[a-z0-9]$/;
+const GCP_ZONE: RegExp = /^[a-z]+-[a-z]+\d+-[a-z]$/;
+// A Compute Engine resource's name (RFC 1035): what gcloud takes for a VM.
+const GCE_INSTANCE_NAME: RegExp = /^[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
+
+export function getGceSshCommand(data: {
+  attributes: Dictionary<string>;
+  resourceName: string | null | undefined;
+  // What to run on the VM.
+  command: string;
+}): string | null {
+  const project: string = (
+    data.attributes[`${GCP_RESOURCE_LABEL_PREFIX}project_id`] || ""
+  ).trim();
+  const zone: string = (
+    data.attributes[`${GCP_RESOURCE_LABEL_PREFIX}zone`] || ""
+  ).trim();
+  const name: string = (data.resourceName || "").trim();
+
+  if (
+    !GCP_PROJECT_ID.test(project) ||
+    !GCP_ZONE.test(zone) ||
+    !GCE_INSTANCE_NAME.test(name)
+  ) {
+    return null;
+  }
+
+  return `gcloud compute ssh ${name} --zone ${zone} --project ${project} --command ${quoteCloudShellArgument(data.command)}`;
+}
+
+// What fills a VM's memory: the processes that hold the most of it.
+export const GCE_MEMORY_FIRST_COMMAND: string =
+  "free -m; ps -eo pid,user,%mem,rss,comm --sort=-%mem | head -n 15";
+// What fills its disks: every filesystem, how full, where it is mounted.
+export const GCE_DISK_FIRST_COMMAND: string = "df -h";
+
+function gceFirstCommand(command: string): CloudAlertFirstCommand {
+  return (
+    attributes: Dictionary<string>,
+    resourceName?: string | null | undefined,
+  ): string | null => {
+    return getGceSshCommand({ attributes, resourceName, command });
+  };
+}
+
+/*
+ * A VM's disks, from the Ops Agent: a series per disk (`device`), each
+ * judged on its own - the fullest is never averaged with the emptiest -
+ * and named on the incident it opens.
+ */
+function gceDiskTemplate(data: {
+  id: string;
+  name: string;
+  summary: string;
+  severity: CloudAlertTemplateSeverity;
+  threshold: number;
+  incidentDescription: string;
+}): CloudAlertTemplate {
+  return define({
+    id: data.id,
+    name: data.name,
+    summary: data.summary,
+    description: `Fires when every reading of ${GCP_OPS_AGENT_DISK_KEY} (in its used state) in the past 15 minutes is at or above ${data.threshold}%, for any of the VM's disks: each disk is judged on its own, and the incident names it. Offered to a VM that runs the Ops Agent, which reports how full its disks are. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
+    category: "Storage",
+    severity: data.severity,
+    provider: CloudProvider.GCP,
+    resourceTypes: ["gce_instance"],
+    measure: "sustained",
+    queries: [
+      {
+        alias: VALUE,
+        metric: gcpMetric({
+          metricType: GCP_OPS_AGENT_DISK_KEY,
+          aggregationType: MetricsAggregationType.Max,
+          legendUnit: "%",
+        }),
+        groupByAttributeKeys: [GCP_OPS_AGENT_DISK_DEVICE_ATTRIBUTE],
+      },
+    ],
+    comparedAlias: VALUE,
+    filterType: FilterType.GreaterThanOrEqualTo,
+    threshold: data.threshold,
+    thresholdLabel: `at or above ${data.threshold}%`,
+    requiresReading: true,
+    incidentDescription: data.incidentDescription,
+    firstCommand: gceFirstCommand(GCE_DISK_FIRST_COMMAND),
+  });
+}
+
 const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   gcpPercentAtOrAbove({
     id: "cloud-gcp-compute-high-cpu",
@@ -2773,6 +3043,49 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
     thresholdLabel: `at or above ${CLOUD_COMPUTE_CPU_HIGH_PERCENT}%`,
     incidentDescription:
       "The VM's CPU stayed at 90% or more for 15 minutes. Look for a process that runs away or for traffic that grew, then add VMs to its group or move it to a larger machine type.",
+  }),
+  /*
+   * A VM's memory and disks, as the Ops Agent on it reports them (#9741):
+   * offered only to a VM that reports them, on the lines its health rules
+   * judge them by.
+   */
+  sustainedAtOrAbove({
+    id: "cloud-gcp-compute-memory-nearly-full",
+    name: "Memory Nearly Full",
+    summary: "Memory use stays at 95% or more for 15 minutes.",
+    description: `Fires when every reading of ${GCP_OPS_AGENT_MEMORY_KEY} (in its used state) in the past 15 minutes is at or above ${CLOUD_MEMORY_HIGH_PERCENT}%. Offered to a VM that runs the Ops Agent, which reports how full its memory is. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
+    category: "Utilization",
+    provider: CloudProvider.GCP,
+    resourceTypes: ["gce_instance"],
+    metric: gcpMetric({
+      metricType: GCP_OPS_AGENT_MEMORY_KEY,
+      aggregationType: MetricsAggregationType.Max,
+      legendUnit: "%",
+    }),
+    threshold: CLOUD_MEMORY_HIGH_PERCENT,
+    thresholdLabel: `at or above ${CLOUD_MEMORY_HIGH_PERCENT}%`,
+    requiresReading: true,
+    incidentDescription:
+      "The VM used 95% or more of its memory for 15 minutes; once it runs out, the kernel's out-of-memory killer stops processes. Look for a process that holds more and more of it, then move the VM to a machine type with more memory.",
+    firstCommand: gceFirstCommand(GCE_MEMORY_FIRST_COMMAND),
+  }),
+  gceDiskTemplate({
+    id: "cloud-gcp-compute-disk-nearly-full",
+    name: "Disk Nearly Full",
+    summary: "A disk stays 90% full or more for 15 minutes.",
+    severity: "Warning",
+    threshold: CLOUD_STORAGE_HIGH_PERCENT,
+    incidentDescription:
+      "A disk of the VM is 90% full or more; once full, what writes to it fails. The incident names the disk: delete what it no longer needs, such as old logs, or resize its persistent disk and grow its filesystem.",
+  }),
+  gceDiskTemplate({
+    id: "cloud-gcp-compute-disk-full",
+    name: "Disk Full",
+    summary: "A disk stays 95% full or more for 15 minutes.",
+    severity: "Critical",
+    threshold: CLOUD_STORAGE_FULL_PERCENT,
+    incidentDescription:
+      "A disk of the VM is 95% full or more, and writes to it are about to fail. The incident names the disk: free space on it now, then resize its persistent disk and grow its filesystem.",
   }),
   gcpPercentAtOrAbove({
     id: "cloud-gcp-cloudsql-disk-full",
@@ -3041,6 +3354,26 @@ export function getCloudAlertTemplatesFor(
       return false;
     }
 
+    /*
+     * An AWS or Google Cloud template over a metric only some resources
+     * report - a VM's memory and disks, from the Ops Agent on it - waits
+     * for a reading of it. Their stored names are fixed: any reading will
+     * do.
+     */
+    if (
+      template.provider !== CloudProvider.Azure &&
+      template.requiresReading &&
+      !template.queries.every((query: CloudAlertQuery): boolean => {
+        return hasStoredNameReading({
+          metric: query.metric,
+          readings: context.readings,
+          needsName: false,
+        });
+      })
+    ) {
+      return false;
+    }
+
     return true;
   });
 }
@@ -3123,6 +3456,36 @@ function getReadingKeysByType(): Map<string, Set<string>> {
   readingKeysByType = byType;
 
   return byType;
+}
+
+/*
+ * Whether a template reads what only the Ops Agent on a Compute Engine VM
+ * reports (#9741): offered once the VM reports it, so a VM without the
+ * agent is told what would offer it.
+ */
+export function isCloudAlertTemplateOfOpsAgent(
+  template: CloudAlertTemplate,
+): boolean {
+  if (template.provider !== CloudProvider.GCP) {
+    return false;
+  }
+
+  const agentMetrics: Set<string> = new Set<string>(
+    getGcpReadMetrics()
+      .filter((metric: GcpReadMetric): boolean => {
+        return metric.reportedBy === GCP_OPS_AGENT;
+      })
+      .map((metric: GcpReadMetric): string => {
+        return metric.storedName.toLowerCase();
+      }),
+  );
+
+  return (
+    template.queries.length > 0 &&
+    template.queries.every((query: CloudAlertQuery): boolean => {
+      return agentMetrics.has(query.metric.metricName.toLowerCase());
+    })
+  );
 }
 
 // The resource types some template is for, of one cloud or every cloud.

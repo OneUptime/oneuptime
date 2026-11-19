@@ -249,7 +249,7 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
     "Capacity is the node's total memory; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
   ),
   nodeEphemeralStorageCapacity: translationKey(
-    "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can request after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
+    "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
   ),
   nodePodCapacity: translationKey(
     "The most pods this node is configured to run at once. It caps how many pods fit here even when CPU and memory are still free.",

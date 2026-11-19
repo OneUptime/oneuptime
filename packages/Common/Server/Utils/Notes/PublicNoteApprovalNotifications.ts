@@ -22,6 +22,9 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 import type { WorkspaceSentDirectMessage } from "../../Services/WorkspaceUserNotificationService";
 import type {
   PublicNoteApprovalButtonValue,
@@ -305,8 +308,9 @@ export default class PublicNoteApprovalNotifications {
 
     const projectName: string = await this.getProjectName(data.facts.projectId);
     const sentBy: string = data.sentByUserId
-      ? (await this.getUserNames([data.sentByUserId]))[data.sentByUserId] ||
-        "A member of your team"
+      ? (await this.getUserNames([data.sentByUserId], data.facts.projectId))[
+          data.sentByUserId
+        ] || "A member of your team"
       : "OneUptime";
 
     // One chat message for everyone the step asks: nothing in it is anybody's own.
@@ -475,9 +479,10 @@ export default class PublicNoteApprovalNotifications {
         data.facts.projectId,
       );
 
-      const names: Record<string, string> = await this.getUserNames([
-        data.decidedByUserId,
-      ]);
+      const names: Record<string, string> = await this.getUserNames(
+        [data.decidedByUserId],
+        data.facts.projectId,
+      );
 
       await this.send({
         userId,
@@ -501,10 +506,21 @@ export default class PublicNoteApprovalNotifications {
     }
   }
 
-  // People's names, by id, as the Dashboard shows them: name, else email.
+  /*
+   * People's names, by id, as `projectId` shows them: a member by their
+   * name, else their email; someone only invited to the project by the name
+   * typed for them, else their address - never their account's own name,
+   * which the project does not see until they join (#9823, #9934). An
+   * approval step can name someone only invited (the pickers offer them),
+   * and every place these names go - the approval panel, the record's
+   * feed, the messages that ask approvers and tell the sender, the chat
+   * buttons' answers - is read by the project's people. People are read as
+   * OneUptime, and who of them is only invited once for them all.
+   */
   @CaptureSpan()
   public static async getUserNames(
     userIds: ReadonlyArray<string>,
+    projectId: ObjectID,
   ): Promise<Record<string, string>> {
     const names: Record<string, string> = {};
     const ids: Array<string> = Array.from(new Set(userIds)).filter(Boolean);
@@ -533,6 +549,16 @@ export default class PublicNoteApprovalNotifications {
       },
     });
 
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: users
+          .map((user: User): string => {
+            return user.id?.toString() || "";
+          })
+          .filter(Boolean),
+        projectId: projectId,
+      });
+
     for (const user of users) {
       const id: string = user.id?.toString() || "";
 
@@ -541,7 +567,12 @@ export default class PublicNoteApprovalNotifications {
       }
 
       names[id] =
-        user.name?.toString() || user.email?.toString() || "A team member";
+        PendingInviteeProfiles.getNameInProject({
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          withheld: withheld,
+        }) || "A team member";
     }
 
     return names;

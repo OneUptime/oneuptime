@@ -226,7 +226,13 @@ describe("the monthly estimate", () => {
    * read, so a monitor built on them keeps working: a time series a topic
    * a read beside its 3 key metrics, which the estimate counts too.
    */
-  test("Google Cloud: a deprecated metric still read for its monitors is a series a read too", () => {
+  /*
+   * A deprecated metric read for its monitors is a series a read too - but
+   * a topic's publish operations are read no more since their monitors
+   * moved to the count of its message sizes (#9739): a topic costs its key
+   * metrics alone again.
+   */
+  test("Google Cloud: a deprecated metric no longer read costs nothing", () => {
     const topics: Array<{ type: string; count: number }> = [
       { type: "pubsub_topic", count: 10 },
     ];
@@ -239,14 +245,14 @@ describe("the monthly estimate", () => {
         provider: CloudProvider.GCP,
         resourceTypes: topics,
       }),
-    ).toBe(10);
+    ).toBe(0);
     expect(
       estimateCloudConnectionCost({
         provider: CloudProvider.GCP,
         resourceTypes: topics,
         readIntervalInMinutes: 5,
       }).monthlyUnits,
-    ).toBe(10 * (3 + 1) * 8640);
+    ).toBe(10 * 3 * 8640);
 
     // A type with none adds nothing; Azure's ride in their resource's call.
     expect(

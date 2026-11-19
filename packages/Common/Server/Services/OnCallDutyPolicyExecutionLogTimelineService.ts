@@ -54,6 +54,11 @@ import {
 import FirstPagedAt from "../Utils/OnCall/FirstPagedAt";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import PositiveNumber from "../../Types/PositiveNumber";
+import {
+  CallOutcomeLine,
+  isMachineAnsweredCallOutcome,
+  readCallOutcomeMessage,
+} from "../../Types/OnCallDutyPolicy/OnCallSentLine";
 
 /*
  * The columns of a notification (UserOnCallLogTimeline) that say whether it
@@ -356,6 +361,8 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           status: true,
+          // How a call not answered ended: a machine may have answered it (#6594).
+          statusMessage: true,
           isAcknowledged: true,
           acknowledgedAt: true,
           createdAt: true,
@@ -771,6 +778,21 @@ export class Service extends DatabaseService<Model> {
 
       if (!news) {
         return;
+      }
+
+      /*
+       * A call not answered that a machine answered - voicemail, a message
+       * left or not, or a fax machine (#6594): its line says so, and so
+       * does the feed.
+       */
+      if (data.event === OnCallPageNotificationEvent.NotAnswered) {
+        const callOutcome: CallOutcomeLine | undefined = readCallOutcomeMessage(
+          notification.statusMessage,
+        )?.outcome;
+
+        if (isMachineAnsweredCallOutcome(callOutcome)) {
+          news.callOutcome = callOutcome;
+        }
       }
 
       const textInput:

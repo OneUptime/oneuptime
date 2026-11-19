@@ -3,7 +3,8 @@ import * as assert from "assert";
 import * as http from "http";
 import { after, before, beforeEach, test } from "node:test";
 import { attachMemoryPeaks, peakKey } from "../AllocationMapper";
-import { PrometheusClient } from "../PrometheusClient";
+import { CostPrometheus, CostPrometheusSource } from "../EnginePrometheus";
+import { PrometheusClient, memoryPeakQuery } from "../PrometheusClient";
 import { KubernetesCostAllocationIngestRow } from "../Types";
 
 interface RecordedQuery {
@@ -276,4 +277,126 @@ test("attachMemoryPeaks stamps matching rows and leaves the rest alone", (): voi
   assert.strictEqual(rows[0]!.ramBytesUsageMax, 999);
   assert.strictEqual(rows[1]!.ramBytesUsageMax, undefined);
   assert.strictEqual(rows[2]!.ramBytesUsageMax, undefined);
+});
+
+/*
+ * #9777: which Prometheus, which job and which cluster's series the peaks
+ * are read from is the source's to say (EnginePrometheus): the one the
+ * cluster's own engine reads, cost.engine.prometheusUrl, or the bundled one.
+ */
+
+const sourceOf: (
+  prometheus: CostPrometheus | null,
+  onRefresh?: () => void,
+) => CostPrometheusSource = (
+  prometheus: CostPrometheus | null,
+  onRefresh?: () => void,
+): CostPrometheusSource => {
+  return {
+    current: (): CostPrometheus | null => {
+      return prometheus;
+    },
+    reason: (): string => {
+      return prometheus ? "" : "the engine reads no Prometheus";
+    },
+    refreshIfDue: async (): Promise<void> => {
+      if (onRefresh) {
+        onRefresh();
+      }
+    },
+  };
+};
+
+const ENGINE_PROMETHEUS: CostPrometheus = {
+  url: `http://127.0.0.1:${PROMETHEUS_PORT}`,
+  origin: "engine",
+  source: "PROMETHEUS_SERVER_ENDPOINT of container opencost",
+  cadvisorJob: "kubelet",
+  cluster: null,
+  note: "",
+};
+
+test("reads the peaks where the source says, at the job it says", async (): Promise<void> => {
+  responseBody = vector([
+    { namespace: "prod", pod: "api-abc", container: "api", value: "734003200" },
+  ]);
+
+  const peaks: Map<string, number> = await new PrometheusClient(
+    sourceOf(ENGINE_PROMETHEUS),
+  ).fetchMemoryPeaks({ windowStart: WINDOW_START, windowEnd: WINDOW_END });
+
+  assert.strictEqual(peaks.size, 1);
+  assert.strictEqual(recorded.length, 1);
+  assert.match(
+    recorded[0]!.query,
+    /\{job="kubelet",container!="",container!="POD"\}/,
+  );
+  assert.strictEqual(recorded[0]!.time, String(WINDOW_END.getTime() / 1000));
+});
+
+test("in a Prometheus of several clusters, only this cluster's containers", async (): Promise<void> => {
+  await new PrometheusClient(
+    sourceOf({
+      ...ENGINE_PROMETHEUS,
+      cadvisorJob: "kubernetes-nodes-cadvisor",
+      cluster: { label: "cluster_id", value: "prod-eu" },
+    }),
+  ).fetchMemoryPeaks({ windowStart: WINDOW_START, windowEnd: WINDOW_END });
+
+  assert.match(
+    recorded[0]!.query,
+    /\{job="kubernetes-nodes-cadvisor",container!="",container!="POD",cluster_id="prod-eu"\}/,
+  );
+});
+
+test("asks the source to look again first, when it is time", async (): Promise<void> => {
+  let refreshed: number = 0;
+
+  await new PrometheusClient(
+    sourceOf(ENGINE_PROMETHEUS, (): void => {
+      refreshed++;
+    }),
+  ).fetchMemoryPeaks({ windowStart: WINDOW_START, windowEnd: WINDOW_END });
+
+  assert.strictEqual(refreshed, 1);
+});
+
+test("with no Prometheus to read, ships without peaks and asks nothing", async (): Promise<void> => {
+  const client: PrometheusClient = new PrometheusClient(sourceOf(null));
+
+  const peaks: Map<string, number> = await client.fetchMemoryPeaks({
+    windowStart: WINDOW_START,
+    windowEnd: WINDOW_END,
+  });
+
+  assert.strictEqual(peaks.size, 0);
+  assert.strictEqual(recorded.length, 0);
+  assert.strictEqual(client.isEnabled(), false);
+});
+
+test("a source whose look throws still leaves the window to ship", async (): Promise<void> => {
+  const peaks: Map<string, number> = await new PrometheusClient({
+    ...sourceOf(ENGINE_PROMETHEUS),
+    refreshIfDue: async (): Promise<void> => {
+      throw new Error("socket hang up");
+    },
+  }).fetchMemoryPeaks({ windowStart: WINDOW_START, windowEnd: WINDOW_END });
+
+  assert.strictEqual(peaks.size, 0);
+  // The Prometheus it already had is still read.
+  assert.strictEqual(recorded.length, 1);
+});
+
+test("a job or cluster name is quoted, so it cannot change the query", (): void => {
+  assert.strictEqual(
+    memoryPeakQuery(
+      {
+        ...ENGINE_PROMETHEUS,
+        cadvisorJob: 'cadvisor"} or vector(1) #',
+        cluster: { label: "cluster", value: 'a\\"b' },
+      },
+      60,
+    ),
+    'max by (namespace, pod, container) (max_over_time(container_memory_working_set_bytes{job="cadvisor\\"} or vector(1) #",container!="",container!="POD",cluster="a\\\\\\"b"}[60s]))',
+  );
 });

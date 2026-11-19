@@ -88,6 +88,42 @@ export const SSO_REQUIRED_SIGN_UP_MESSAGE: string =
 export const MASTER_ADMIN_SIGN_IN_ROUTE: string = "/admin-login";
 export const MASTER_ADMIN_SIGN_IN_PATH: string = `/accounts${MASTER_ADMIN_SIGN_IN_ROUTE}`;
 
+/*
+ * The identity route that answers which providers sign people in to one
+ * project (GET /identity/project-sign-in-methods/:projectId).
+ */
+export const PROJECT_SIGN_IN_METHODS_ROUTE: string = "/project-sign-in-methods";
+
+export const getProjectSignInMethodsRoute: (
+  projectId: ObjectID | string,
+) => string = (projectId: ObjectID | string): string => {
+  return `${PROJECT_SIGN_IN_METHODS_ROUTE}/${encodeURIComponent(
+    projectId.toString(),
+  )}`;
+};
+
+/*
+ * A PROJECT'S SSO SIGN-IN LINK (#9918): a page of the Accounts app
+ * (/accounts/sso/<project id>) that lists the providers signing people in to
+ * one project, as the answer above names them, one button each.
+ *
+ * "Sign in with SSO" finds a project's providers by an address's verified
+ * domain alone (#9824), so it finds nothing for someone whose address is on
+ * another domain - a contractor at gmail.com - or for a project that has
+ * not verified its domain. Its admin shares this link with them instead
+ * (Dashboard: Settings > SSO > SSO Sign-in Link). It asks no address, so it
+ * says nothing about who has an account; the project's id in it is what the
+ * provider URLs an identity provider is given already hold.
+ */
+export const PROJECT_SSO_SIGN_IN_PATH: string = "/accounts/sso/:projectId";
+
+// The link's route under the Accounts app (ACCOUNTS_URL).
+export const getProjectSsoSignInRoute: (
+  projectId: ObjectID | string,
+) => string = (projectId: ObjectID | string): string => {
+  return `/sso/${encodeURIComponent(projectId.toString())}`;
+};
+
 export const GLOBAL_SSO_PROVIDER_TYPES: ReadonlyArray<SsoProviderType> = [
   SsoProviderType.GlobalSSO,
   SsoProviderType.GlobalOIDC,

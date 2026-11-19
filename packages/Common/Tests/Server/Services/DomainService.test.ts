@@ -1,11 +1,18 @@
 import Model from "../../../Models/DatabaseModels/Domain";
-import { Service as DomainServiceType } from "../../../Server/Services/DomainService";
+import {
+  DOMAIN_NAME_REFUSAL_MESSAGE,
+  Service as DomainServiceType,
+} from "../../../Server/Services/DomainService";
 import Domain from "../../../Server/Types/Domain";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DomainType from "../../../Types/Domain";
+import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import {
@@ -144,7 +151,11 @@ function updateBy(
   } as unknown as UpdateBy<Model>;
 }
 
-/* A row as the pre-read sees it, with only the two columns it selects. */
+/*
+ * A row as the pre-read sees it, with only the two columns it selects: its
+ * domain as the database hands it back, the shared Domain
+ * (DomainType.fromDatabase) - never the server's subclass.
+ */
 function existingRow(
   domain: string | undefined,
   verificationText: string | undefined,
@@ -155,7 +166,7 @@ function existingRow(
     unknown
   >;
 
-  values["domain"] = domain === undefined ? undefined : new Domain(domain);
+  values["domain"] = domain === undefined ? undefined : new DomainType(domain);
   values["domainVerificationText"] = verificationText;
 
   return row;
@@ -181,11 +192,17 @@ describe("a domain is normalized before it is stored", () => {
     expect(String(written(create)["domain"])).toBe("status.acme.com");
   });
 
-  test("an already-constructed Domain is accepted", async () => {
-    // The API layer hands over a Domain; an internal caller hands a string.
+  test("a Domain the API read back from JSON is accepted", async () => {
+    /*
+     * The API reads the Dashboard's JSON back as the SHARED Domain
+     * (Common/Types/Domain), never as the server's subclass. This test used
+     * to build the subclass by hand and say "the API layer hands over a
+     * Domain" - so it passed while the hook refused every domain Add Custom
+     * Domain added (#9997). Every form is below.
+     */
     const harness: Harness = buildService();
     const create: CreateBy<Model> = createBy({
-      domain: new Domain("status.acme.com"),
+      domain: asTheApiReadsIt("status.acme.com"),
     });
 
     await harness.internals.onBeforeCreate(create);
@@ -193,7 +210,7 @@ describe("a domain is normalized before it is stored", () => {
     expect(String(written(create)["domain"])).toBe("status.acme.com");
   });
 
-  test("anything that is neither a string nor a Domain is refused", async () => {
+  test("anything that holds no domain name is refused, saying what to send", async () => {
     /*
      * Refused rather than coerced: String({}) would store "[object Object]"
      * as a hostname, and Domain's own format check is the next thing that
@@ -205,8 +222,272 @@ describe("a domain is normalized before it is stored", () => {
     });
 
     await expect(harness.internals.onBeforeCreate(create)).rejects.toThrow(
-      BadDataException,
+      new BadDataException(DOMAIN_NAME_REFUSAL_MESSAGE),
     );
+  });
+});
+
+/*
+ * A DOMAIN IS THE SAME NAME, HOWEVER IT ARRIVES (#9997).
+ *
+ * The forms a domain reaches the hooks in, each made the way its caller
+ * makes it. "As the API reads it" is the Dashboard's JSON put through JSON
+ * text and read back by the API's own JSONFunctions.deserialize - the form
+ * that was refused for every domain Add Custom Domain added, with "Domain
+ * must be a string or an instance of Domain.", because the hook asked for
+ * the server's subclass of Domain, which no request ever holds.
+ */
+function asTheApiReadsIt(name: string): unknown {
+  const sent: string = JSON.stringify(
+    JSONFunctions.serialize({ domain: new DomainType(name) }),
+  );
+
+  return JSONFunctions.deserialize(JSON.parse(sent) as JSONObject)["domain"];
+}
+
+const FORMS: Array<[string, (name: string) => unknown]> = [
+  [
+    "text, as a form field, Terraform or a script sends it",
+    (name: string): unknown => {
+      return name;
+    },
+  ],
+  [
+    "the shared Domain the API reads the Dashboard's JSON back as",
+    asTheApiReadsIt,
+  ],
+  [
+    "the shared Domain, built by hand",
+    (name: string): unknown => {
+      return new DomainType(name);
+    },
+  ],
+  [
+    "the server's subclass of Domain, as server code builds it",
+    (name: string): unknown => {
+      return new Domain(name);
+    },
+  ],
+  [
+    "the JSON of a Domain, as a caller inside the server may pass it on",
+    (name: string): unknown => {
+      return { _type: "Domain", value: name };
+    },
+  ],
+];
+
+/*
+ * Values that hold no domain name: each is refused with the words that say
+ * what to send, on create and on rename alike. false slipped through a
+ * create, and a one-name list through a rename (String(["a.com"]) is
+ * "a.com").
+ */
+const NOT_NAMES: Array<[string, unknown]> = [
+  ["a number", 42],
+  ["true", true],
+  ["false", false],
+  ["an empty list", []],
+  ["a list of one name", ["status.acme.com"]],
+  ["an object", { host: "status.acme.com" }],
+  ["an Email", new Email("ada@acme.com")],
+  ["the JSON of another type", { _type: "Email", value: "ada@acme.com" }],
+  ["the JSON of a Domain with no name", { _type: "Domain", value: 42 }],
+  ["empty text", ""],
+  ["text of spaces", "   "],
+];
+
+describe.each(FORMS)(
+  "a domain sent as %s",
+  (_form: string, make: (name: string) => unknown) => {
+    test("is created under its name, lower-cased, with a verification text", async () => {
+      const harness: Harness = buildService();
+      const create: CreateBy<Model> = createBy({
+        domain: make("Status.ACME.com"),
+      });
+
+      await harness.internals.onBeforeCreate(create);
+
+      expect(written(create)["domain"]).toBeInstanceOf(DomainType);
+      expect(String(written(create)["domain"])).toBe("status.acme.com");
+      expect(String(written(create)["domainVerificationText"])).toMatch(
+        /^oneuptime-verification-.{20}$/,
+      );
+    });
+
+    test("may be created verified only when it is a reserved test domain", async () => {
+      const harness: Harness = buildService();
+
+      await expect(
+        harness.internals.onBeforeCreate(
+          createBy({ domain: make("Status.ACME.test"), isVerified: true }),
+        ),
+      ).resolves.toBeDefined();
+
+      await expect(
+        harness.internals.onBeforeCreate(
+          createBy({ domain: make("status.acme.com"), isVerified: true }),
+        ),
+      ).rejects.toThrow(
+        "Domain cannot be verified during creation. Please verify the domain after creation. Please set isVerified to false.",
+      );
+    });
+
+    test("renames a domain to its name, lower-cased, and takes the verification away", async () => {
+      const harness: Harness = buildService([
+        existingRow("acme.com", VERIFICATION_TEXT),
+      ]);
+
+      const result: OnUpdate<Model> = await harness.internals.onBeforeUpdate(
+        updateBy({ domain: make("Status.ACME.com") }),
+      );
+
+      expect(result.updateBy.data.domain).toBeInstanceOf(DomainType);
+      expect(String(result.updateBy.data.domain)).toBe("status.acme.com");
+      expect(result.updateBy.data.isVerified).toBe(false);
+    });
+
+    test("saved back under the same name, in any case, keeps it verified", async () => {
+      const harness: Harness = buildService([
+        existingRow("status.acme.com", VERIFICATION_TEXT),
+      ]);
+
+      const result: OnUpdate<Model> = await harness.internals.onBeforeUpdate(
+        updateBy({ domain: make("Status.ACME.com") }),
+      );
+
+      expect(String(result.updateBy.data.domain)).toBe("status.acme.com");
+      expect(result.updateBy.data.isVerified).toBeUndefined();
+    });
+  },
+);
+
+describe.each(NOT_NAMES)(
+  "a domain sent as %s",
+  (_form: string, value: unknown) => {
+    test("is refused on create, saying what to send", async () => {
+      const harness: Harness = buildService();
+
+      await expect(
+        harness.internals.onBeforeCreate(createBy({ domain: value })),
+      ).rejects.toThrow(new BadDataException(DOMAIN_NAME_REFUSAL_MESSAGE));
+    });
+
+    test("is refused on rename, saying what to send, and nothing is read", async () => {
+      const harness: Harness = buildService([
+        existingRow("acme.com", VERIFICATION_TEXT),
+      ]);
+
+      await expect(
+        harness.internals.onBeforeUpdate(updateBy({ domain: value })),
+      ).rejects.toThrow(new BadDataException(DOMAIN_NAME_REFUSAL_MESSAGE));
+      expect(harness.findBy.mock.calls).toHaveLength(0);
+    });
+  },
+);
+
+describe("a domain name that is not one", () => {
+  test.each(
+    FORMS.filter(([form]: [string, unknown]): boolean => {
+      // A Domain cannot be built with a name that is not one.
+      return form.startsWith("text") || form.startsWith("the JSON");
+    }),
+  )(
+    "sent as %s, is refused as not in a valid format",
+    async (_form: string, make: (name: string) => unknown) => {
+      const harness: Harness = buildService([
+        existingRow("acme.com", VERIFICATION_TEXT),
+      ]);
+
+      await expect(
+        harness.internals.onBeforeCreate(
+          createBy({ domain: make("not a domain") }),
+        ),
+      ).rejects.toThrow("Domain not a domain is not in valid format.");
+
+      await expect(
+        harness.internals.onBeforeUpdate(
+          updateBy({ domain: make("not a domain") }),
+        ),
+      ).rejects.toThrow("Domain not a domain is not in valid format.");
+    },
+  );
+
+  test("the JSON of one is refused by the API before the hook, as not in a valid format", () => {
+    expect(() => {
+      return JSONFunctions.deserialize({
+        domain: { _type: "Domain", value: "not a domain" },
+      });
+    }).toThrow("Domain not a domain is not in valid format.");
+  });
+});
+
+describe("a domain that is not sent", () => {
+  test.each([
+    ["left out", undefined],
+    ["null", null],
+  ])(
+    "%s on create is left to the required-column check",
+    async (_case: string, value: unknown) => {
+      const harness: Harness = buildService();
+      const create: CreateBy<Model> = createBy(
+        value === undefined ? {} : { domain: value },
+      );
+
+      await harness.internals.onBeforeCreate(create);
+
+      expect(written(create)["domain"] ?? null).toBeNull();
+    },
+  );
+
+  test("null on rename is refused: a domain cannot lose its name", async () => {
+    const harness: Harness = buildService([
+      existingRow("acme.com", VERIFICATION_TEXT),
+    ]);
+
+    await expect(
+      harness.internals.onBeforeUpdate(updateBy({ domain: null })),
+    ).rejects.toThrow(new BadDataException(DOMAIN_NAME_REFUSAL_MESSAGE));
+  });
+
+  test("left out of an update, it is not read or changed", async () => {
+    const harness: Harness = buildService([
+      existingRow("acme.com", VERIFICATION_TEXT),
+    ]);
+
+    const result: OnUpdate<Model> = await harness.internals.onBeforeUpdate(
+      updateBy({ description: "prod" }),
+    );
+
+    expect("domain" in result.updateBy.data).toBe(false);
+    expect(harness.findBy.mock.calls).toHaveLength(0);
+  });
+});
+
+describe("Domain.getNameFrom, which the hooks read every name with", () => {
+  test.each(FORMS)(
+    "reads the name from %s, as it came",
+    (_form: string, make: (name: string) => unknown) => {
+      expect(DomainType.getNameFrom(make("Status.ACME.com"))).toBe(
+        "Status.ACME.com",
+      );
+      // And the server's subclass reads it the same way.
+      expect(Domain.getNameFrom(make("Status.ACME.com"))).toBe(
+        "Status.ACME.com",
+      );
+    },
+  );
+
+  test.each(
+    NOT_NAMES.filter(([, value]: [string, unknown]): boolean => {
+      return typeof value !== "string";
+    }),
+  )("holds no name in %s", (_form: string, value: unknown) => {
+    expect(DomainType.getNameFrom(value)).toBeNull();
+  });
+
+  test("holds no name in nothing", () => {
+    expect(DomainType.getNameFrom(undefined)).toBeNull();
+    expect(DomainType.getNameFrom(null)).toBeNull();
   });
 });
 

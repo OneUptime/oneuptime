@@ -10,7 +10,10 @@ import { JSONObject } from "../JSON";
  * it is turned off. #9726 deleted nothing on purpose: removing credentials on
  * upgrade, or as a side effect of flipping a switch, cannot be undone.
  *
- * A master admin can clear them when they decide to, in the Admin Dashboard:
+ * A master admin can clear them when they decide to, in the Admin Dashboard
+ * (and an organization can clear its own people's, below: #9820). Each
+ * person cleared is emailed what was removed and how they sign in now
+ * (#9818, Types/SSO/SignInSettingsClearedEmail):
  *
  *   - for one person, on the user's Authentication page (Clear Sign-In
  *     Settings): POST /user/:userId/clear-local-sign-in. Never their own
@@ -53,6 +56,47 @@ export const SAVED_SIGN_IN_SETTINGS_ROUTE: string =
 
 export const CLEAR_SAVED_SIGN_IN_SETTINGS_ROUTE: string =
   "/global-config/saved-sign-in-settings/clear";
+
+/*
+ * AN ORGANIZATION'S OWN CLEAR (#9820). A project that requires SSO and
+ * manages its people's sign-in with it (Project.manageSignInWithSso) can
+ * clear what its people saved before, from Project Settings > Security >
+ * SSO - but only for people whose every project, an invitation not yet
+ * accepted included, manages sign-in with SSO and is one the clearing
+ * person owns: "the same organization" is the projects an owner owns
+ * (Server/Utils/ProjectSignInClearing says why, and what else it holds
+ * to). Under the API's address, the project's id in the path:
+ *
+ *   GET  /project/:projectId/saved-sign-in-settings        - how many
+ *   POST /project/:projectId/saved-sign-in-settings/clear  - clear them
+ *
+ * Answered as the server's own are: SavedSignInSettingsAnswer and
+ * ClearSavedSignInSettingsAnswer below.
+ */
+export const PROJECT_SAVED_SIGN_IN_SETTINGS_ACTION: string =
+  "saved-sign-in-settings";
+
+export const PROJECT_CLEAR_SAVED_SIGN_IN_SETTINGS_ACTION: string =
+  "saved-sign-in-settings/clear";
+
+// The two routes for one project, under the API's address.
+export const getProjectSavedSignInSettingsRoute: (
+  projectId: string,
+) => string = (projectId: string): string => {
+  return `/project/${projectId}/${PROJECT_SAVED_SIGN_IN_SETTINGS_ACTION}`;
+};
+
+export const getProjectClearSavedSignInSettingsRoute: (
+  projectId: string,
+) => string = (projectId: string): string => {
+  return `/project/${projectId}/${PROJECT_CLEAR_SAVED_SIGN_IN_SETTINGS_ACTION}`;
+};
+
+export const CLEAR_PROJECT_SIGN_IN_NEEDS_MANAGED_SSO_MESSAGE: string =
+  "This project does not manage its people's sign-in with SSO, so their passwords and second steps still sign them in. Turn on Require SSO to Sign In and Manage Sign-In with SSO first.";
+
+export const CLEAR_PROJECT_SIGN_IN_OWNERS_ONLY_MESSAGE: string =
+  "Only Project Owners can clear the sign-in settings this project's people saved.";
 
 // What one person has saved in OneUptime to sign in with.
 export interface LocalSignInSettings {

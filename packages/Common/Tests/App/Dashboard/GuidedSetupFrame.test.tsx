@@ -354,8 +354,11 @@ describe("the docs' guide to the same job (#6821)", () => {
     expect(link.getAttribute("href")).toMatch(/\/guides\/paging$/);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    // On the progress line's row, so it never pushes the steps down.
-    expect(link.parentElement).toContainElement(
+    /*
+     * On the progress line's row, so it never pushes the steps down - beside
+     * Describe it instead, when the setup offers it (#7245).
+     */
+    expect(link.parentElement?.parentElement).toContainElement(
       screen.getByTestId("guided-setup-progress"),
     );
   });

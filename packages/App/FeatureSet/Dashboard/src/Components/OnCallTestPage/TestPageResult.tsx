@@ -55,7 +55,8 @@ export const TEST_PAGE_RESULT_POLL_INTERVAL_IN_MS: number = 3000;
  * How long past its answer window a result is still asked for: its last
  * messages' providers answer a little after it ends.
  */
-const POLL_GRACE_IN_MS: number = 2 * 60 * 1000;
+export const TEST_PAGE_RESULT_POLL_GRACE_IN_MS: number = 2 * 60 * 1000;
+const POLL_GRACE_IN_MS: number = TEST_PAGE_RESULT_POLL_GRACE_IN_MS;
 
 export interface ComponentProps {
   executionLogId: string;

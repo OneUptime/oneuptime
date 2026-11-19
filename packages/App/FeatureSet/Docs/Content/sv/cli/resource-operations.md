@@ -207,6 +207,20 @@ Den svarar `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` 
 > [!CAUTION]
 > `delete` tar bort posten direkt. CLI:n ber dig inte bekräfta, och det går inte att ångra. Den godtar `--force`, för skript som skrivits med det, och `--force` ändrar ingenting.
 
+### En anpassad roll som arbetsflöden körs som
+
+OneUptime tar bara bort en anpassad roll som arbetsflöden körs som när borttagningen säger vad de ska köras som i stället, och nekar en borttagning som inte gör det, med namnen på arbetsflödena. Säg det med `--workflows-run-as`: `Default`, standardbehörigheterna, eller `CustomRole`, en annan anpassad roll du kunde ge ett team, med dess ID i `--workflows-run-as-custom-role-id`. Aldrig Project Owner: att ta bort en roll ger aldrig ett arbetsflöde fler behörigheter.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+En nekad borttagning skriver ut OneUptimes nekande, som namnger arbetsflödena, och sedan flaggorna du ska köra den igen med. En roll som inget arbetsflöde körs som behöver ingen av dem.
+
 ## Räkna poster
 
 ```bash

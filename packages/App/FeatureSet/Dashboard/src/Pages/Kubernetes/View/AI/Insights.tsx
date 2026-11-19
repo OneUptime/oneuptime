@@ -4,6 +4,7 @@ import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import AiActivityInsightsPage from "../../../../Components/AI/ActivityInsights/AiActivityInsightsPage";
 import { parseStatus } from "../../Utils/KubernetesAiAgentStatus";
 import { getAgentPageHint } from "./Logs";
+import { getKubernetesContainerRoute } from "../../Utils/KubernetesPartRoutes";
 import { AiActivityObject } from "Common/Types/AI/AiActivityInsights";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -63,13 +64,40 @@ export const KUBERNETES_OBJECT_PAGES: Readonly<Record<string, PageMap>> = {
 const KUBERNETES_OBJECT_NAME: RegExp = /^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$/;
 
 /*
+ * The one value of a label among what an insight names beside a part, when
+ * it names exactly one and that is a name Kubernetes allows.
+ */
+function onlyNamed(
+  namedWith: ReadonlyArray<AiActivityObject>,
+  key: string,
+): string | undefined {
+  const values: Set<string> = new Set<string>(
+    namedWith
+      .filter((named: AiActivityObject): boolean => {
+        return named.key === key && KUBERNETES_OBJECT_NAME.test(named.value);
+      })
+      .map((named: AiActivityObject): string => {
+        return named.value;
+      }),
+  );
+  return values.size === 1 ? Array.from(values)[0] : undefined;
+}
+
+/*
  * A part of the cluster an insight names, on its own page in the cluster,
  * or null for a part without one (a label the page has no view of, or a
  * value no Kubernetes object can be named).
+ *
+ * A container is named within its pod - every pod of a Deployment runs an
+ * `app` - so a container named with one pod (and one namespace) opens that
+ * pod's container, where its metrics and logs are its own (#9732). Named
+ * with several pods, or none, it opens the list of the pods that run a
+ * container of that name, to pick from.
  */
 export function getKubernetesObjectRoute(
   clusterId: string,
   object: AiActivityObject,
+  namedWith: ReadonlyArray<AiActivityObject> = [],
 ): Route | null {
   const page: PageMap | undefined =
     object.key &&
@@ -82,6 +110,15 @@ export function getKubernetesObjectRoute(
   }
 
   try {
+    if (object.key === "k8s.container.name") {
+      const pod: string | undefined = onlyNamed(namedWith, "k8s.pod.name");
+      return getKubernetesContainerRoute(new ObjectID(clusterId), {
+        name: object.value,
+        pod: pod,
+        namespace: pod ? onlyNamed(namedWith, "k8s.namespace.name") : undefined,
+      });
+    }
+
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
       modelId: clusterId,
       subModelId: object.value,
@@ -152,8 +189,11 @@ const KubernetesClusterAIInsights: FunctionComponent<
       loadAgentHint={() => {
         return loadKubernetesAgentHint(clusterId);
       }}
-      getObjectRoute={(object: AiActivityObject): Route | null => {
-        return getKubernetesObjectRoute(clusterId, object);
+      getObjectRoute={(
+        object: AiActivityObject,
+        namedWith?: ReadonlyArray<AiActivityObject>,
+      ): Route | null => {
+        return getKubernetesObjectRoute(clusterId, object, namedWith);
       }}
       emptyStateId="kubernetes-ai-insights-empty"
     />

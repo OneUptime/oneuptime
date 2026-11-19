@@ -20,6 +20,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
 import { parseMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQueueIdentity";
 import {
   MessageQueueMetricDescriptor,
@@ -45,6 +46,7 @@ import {
   getCloudAlertTemplatesForType,
   getCloudConnectionsThreshold,
   getCloudMonitoringServiceName,
+  isCloudAlertTemplateOfOpsAgent,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
 } from "Common/Types/Monitor/CloudAlertTemplates";
@@ -502,10 +504,13 @@ export function readCloudResourceRecommendationContext(
   const provider: unknown = record["cloudProvider"];
   const resourceType: unknown = record["cloudResourceType"];
   const connectionId: unknown = record["cloudConnectionId"];
+  const name: unknown = record["name"];
 
   return {
     cloudProvider: typeof provider === "string" ? provider : null,
     cloudResourceType: typeof resourceType === "string" ? resourceType : null,
+    // What a Compute Engine VM's first command names it by.
+    cloudResourceName: typeof name === "string" && name.trim() ? name : null,
     cloudTelemetryAttributes: readCloudTelemetryAttributes(
       record["telemetryAttributes"],
     ),
@@ -721,6 +726,22 @@ export function describeCloudResourceRecommendationContext(
   }
 
   const notes: Array<string> = [];
+
+  /*
+   * A Compute Engine VM whose Ops Agent reports nothing is offered no
+   * memory or disk monitor (#9741): what would offer them, as its Overview
+   * says it needs the agent.
+   */
+  if (
+    forType.some(isCloudAlertTemplateOfOpsAgent) &&
+    !offered.some(isCloudAlertTemplateOfOpsAgent)
+  ) {
+    notes.push(
+      translateTemplate(
+        "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.",
+      ),
+    );
+  }
 
   if (isStorageWaiting) {
     notes.push(
@@ -1544,6 +1565,24 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     getCardDescription: (): string | undefined => {
       return translateTemplate(
         "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.",
+      );
+    },
+  },
+  /*
+   * A device management connection (an Esper tenant, #9835): its monitors
+   * read the check-ins each read of it writes for its devices, filtered on
+   * the connection's id, so `_id` is the identifier. Read by everyone who
+   * may read the project's Inventory; its page is opened from its row on
+   * Inventory > Managed Devices (Set up alerts).
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
+    modelType: DeviceManagementConnection,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    getCardDescription: (): string | undefined => {
+      return translateTemplate(
+        "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.",
       );
     },
   },

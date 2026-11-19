@@ -12,6 +12,7 @@ import {
   writeInDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
   SloBudgetRunwayKind,
@@ -125,14 +126,16 @@ type DashboardLabelFunction = (language: string, english: string) => string;
 /*
  * What the Dashboard draws for the label written in English, in this
  * language: its value in the language's locale, or the English where the
- * locale has none.
+ * locale has none. A key that names its meaning ("Model (hardware model)")
+ * is drawn in English as its word, as the Translator draws it
+ * (Common/Types/MeaningKeys).
  */
 export const drawnDashboardLabel: DashboardLabelFunction = (
   language: string,
   english: string,
 ): string => {
   if (language === "en") {
-    return english;
+    return withMeaningKeyAsItsWord(english);
   }
 
   const direct: string | null = translated(language, english);
@@ -155,7 +158,7 @@ export const drawnDashboardLabel: DashboardLabelFunction = (
     }
   }
 
-  return english;
+  return withMeaningKeyAsItsWord(english);
 };
 
 /*
@@ -322,6 +325,10 @@ export const LABELS_DRAWN_BY_OWN_KEY: Readonly<
   },
   "on-call/calendar-feeds": {
     "Not fetched yet": "Not fetched yet (calendar feed)",
+  },
+  // The asset details' columns of All Items: a machine's model (#9838).
+  "inventory/cmdb-sync": {
+    Model: "Model (hardware model)",
   },
 };
 

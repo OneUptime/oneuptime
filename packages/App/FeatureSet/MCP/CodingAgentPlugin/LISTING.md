@@ -13,7 +13,7 @@
 | Skill                  | Use it to                                                                                       |
 | ---------------------- | ----------------------------------------------------------------------------------------------- |
 | `add-opentelemetry`    | Add OpenTelemetry to an application and send its traces, metrics and logs to OneUptime.         |
-| `set-up-monitoring`    | Create monitors and a status page for a service.                                                |
+| `set-up-monitoring`    | Create monitors, who is paged, and a status page for a service.                                 |
 | `investigate-incident` | Find an active incident, read its logs, exceptions and traces, keep notes on it and resolve it. |
 | `use-oneuptime-cli`    | Use the OneUptime CLI in scripts and CI, where no MCP client is available.                      |
 

@@ -41,11 +41,28 @@ import {
   getOnCallPageChannelName,
   sortOnCallPageChannels,
 } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { getCallMachineAnsweredFeedSentence } from "../../../Types/OnCallDutyPolicy/OnCallSentLine";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
 import ProductBrandingText from "../ProductBrandingText";
+
+/*
+ * What follows "did not answer the phone call ..." of a call a machine
+ * answered (#6594): " It went to voicemail, and a message was left.", so a
+ * responder knows the person may hear it. Empty for a call that rang out or
+ * found the line busy.
+ */
+function getMachineAnsweredClause(
+  notification: OnCallPageNotificationNews,
+): MarkdownText {
+  const sentence: string | null = getCallMachineAnsweredFeedSentence(
+    notification.callOutcome,
+  );
+
+  return sentence ? mdText` ${sentence}` : FeedMarkdown.empty();
+}
 
 /*
  * THE FEED ENTRIES OF AN ON-CALL RUN.
@@ -1003,10 +1020,14 @@ export default class OnCallFeedText {
    *     of 3.
    *   Nitin Kumar did not answer the phone call from on-call policy
    *     PolicyX at Level 1 of 3.
+   *   Nitin Kumar did not answer the phone call from on-call policy
+   *     PolicyX at Level 1 of 3. It went to voicemail, and a message was
+   *     left.
    *
    * Never why one could not be sent (see the header), nor whether a call
-   * rang out or found the line busy. Empty without a person or a channel:
-   * there is nothing to tell.
+   * rang out or found the line busy - but a call a machine answered says
+   * so (#6594): the person may hear the message. Empty without a person or
+   * a channel: there is nothing to tell.
    */
   public static getStepNotificationMarkdown(
     input: OnCallStepFeedTextInput,
@@ -1034,7 +1055,7 @@ export default class OnCallFeedText {
     if (notification.event === OnCallPageNotificationEvent.NotAnswered) {
       return mdText`${recipient} did not answer the ${getChannelList(
         notification.channels,
-      )} from ${getPolicy(input.policyLink, { isInSentence: true })} at ${rule}.`.toString();
+      )} from ${getPolicy(input.policyLink, { isInSentence: true })} at ${rule}.${getMachineAnsweredClause(notification)}`.toString();
     }
 
     const again: MarkdownText = notification.isPagedBefore
@@ -1075,7 +1096,7 @@ export default class OnCallFeedText {
     if (notification.event === OnCallPageNotificationEvent.NotAnswered) {
       return mdText`${recipient} did not answer the ${getChannelList(
         notification.channels,
-      )} from ${getDirectPagePager(input.pager, { isInSentence: true })}.`.toString();
+      )} from ${getDirectPagePager(input.pager, { isInSentence: true })}.${getMachineAnsweredClause(notification)}`.toString();
     }
 
     const again: MarkdownText = notification.isPagedBefore

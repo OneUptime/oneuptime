@@ -30,7 +30,7 @@ Ihr Server braucht einen eigenen Hostnamen mit einem A-Eintrag, der auf ihn zeig
 
 ![Die Startseite fragt „Was möchten Sie zuerst tun?“, „Meine Kunden über eine Statusseite informieren“ ist angehakt](screen:home-goal-status-page)
 
-Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Statusseite veröffentlichen**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Meine Kunden über eine Statusseite informieren** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `status page` ein und wählen Sie **Statusseite veröffentlichen**.
+Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Statusseite veröffentlichen**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Meine Kunden über eine Statusseite informieren** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `status page` ein und wählen Sie **Statusseite veröffentlichen**. Oder klicken Sie auf **Stattdessen beschreiben**: KI fragen öffnet sich mit der Aufgabe in seinem Eingabefeld, bereit zum Senden.
 
 Auch **Statusseiten** öffnet sie: Klicken Sie in der leeren Liste auf **Geführte Einrichtung** oder, sobald das Projekt eine Statusseite hat, unter **So funktioniert es**.
 

@@ -19,6 +19,16 @@ import React, {
 } from "react";
 import ToolActionSentence, { ToolActionSentences } from "./ToolActionSentence";
 import {
+  ASK_AI_GUIDED_SETUP_COPY,
+  GuidedSetupForPlan,
+  getGuidedSetupForPlan,
+  getGuidedSetupRoute,
+  getOpenedInGuidedSetupEvent,
+} from "../GuidedSetup/AskAiGuidedSetupLinks";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import {
   ActionArgumentOptions,
   ActionArgumentPart,
   DrawnActionSentence,
@@ -165,6 +175,16 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
   const approvedCount: number = pending.filter((action: AIChatToolAction) => {
     return selections[action.id] !== false;
   }).length;
+
+  /*
+   * A setup plan's guided setup (#7245): the same job step by step, for
+   * someone who wants to see each step - its first step filled in from the
+   * plan. The card stays as it is, to answer later.
+   */
+  const guidedSetup: GuidedSetupForPlan | null =
+    props.interactive && isSetupPlan(pending)
+      ? getGuidedSetupForPlan(pending)
+      : null;
 
   return (
     <div className="space-y-2.5">
@@ -474,7 +494,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
           )}
 
           {props.interactive && (
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 disabled={props.isSubmitting}
@@ -524,6 +544,29 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
               >
                 {translator.translateText("Deny all")}
               </button>
+              {guidedSetup && (
+                <button
+                  type="button"
+                  data-testid="tool-approval-open-guided-setup"
+                  disabled={props.isSubmitting}
+                  onClick={() => {
+                    ProductEvents.send(
+                      ProductEventName.AskAiSetupOpenedInGuidedSetup,
+                      getOpenedInGuidedSetupEvent({
+                        link: guidedSetup,
+                        actions: pending,
+                      }),
+                    );
+                    Navigation.navigate(getGuidedSetupRoute(guidedSetup));
+                  }}
+                  className="ms-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-800"
+                >
+                  <Icon icon={IconProp.QueueList} className="h-3.5 w-3.5" />
+                  {translator.translateText(
+                    ASK_AI_GUIDED_SETUP_COPY.openInGuidedSetup,
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>

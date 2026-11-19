@@ -875,17 +875,39 @@ else
         warn "The cost agent has not found an OpenCost or Kubecost in this cluster yet; its last poll error below says why."
       fi
       # Where the engine serves its price metrics, which the collector asks
-      # the agent for when cost.engine.url is auto or a URL (#9776): a
-      # Kubecost frontend answers /metrics with its web page. The bundled
-      # engine is scraped where the chart put it, so it is not reported here.
+      # the agent for whenever the chart renders the agent's Service: with
+      # cost.engine.url auto or a URL (#9776), and with the bundled engine
+      # while the agent may read the cluster's own instead (#9852). A Kubecost
+      # frontend answers /metrics with its web page. Without that Service the
+      # bundled engine is scraped where the chart put it, so it is not
+      # reported here.
+      COST_METRICS_FROM_AGENT=0
+      if kubectl get svc -n "$NS" -l "$SEL,component=cost-agent" -o name 2>/dev/null | grep -q .; then
+        COST_METRICS_FROM_AGENT=1
+      fi
       COST_METRICS_URL=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineMetricsUrl":"\([^"]*\)".*/\1/p' | head -1)
       COST_METRICS_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineMetricsError":"\([^"]*\)".*/\1/p' | head -1)
-      if [ "$COST_BUNDLED" != 1 ] && [ -n "$COST_METRICS_URL" ]; then
+      if [ "$COST_METRICS_FROM_AGENT" = 1 ] && [ -n "$COST_METRICS_URL" ]; then
         info "The collector scrapes the engine's price metrics at $COST_METRICS_URL, where the cost agent found them."
-      elif [ "$COST_BUNDLED" != 1 ] && [ -n "$COST_METRICS_ERR" ]; then
+      elif [ "$COST_METRICS_FROM_AGENT" = 1 ] && [ -n "$COST_METRICS_ERR" ]; then
         warn "The cost agent has not found the engine's price metrics, so the Kubernetes Cost dashboard gets none."
         detail "$COST_METRICS_ERR"
         add_finding "The cost agent found no price metrics for the engine at ${COST_ENGINE_URL:-?}, so the collector has nothing to scrape for the Kubernetes Cost dashboard and Metric Explorer. It tried: $COST_METRICS_ERR. Name them yourself with --set cost.metrics.endpoint=<url> (Kubecost 3 keeps them on its finops agent: http://<release>-finopsagent.<namespace>.svc.cluster.local:80/metrics)."
+      fi
+      # Where the memory peaks for right-sizing are read (#9777): the bundled
+      # Prometheus, cost.engine.prometheusUrl, or the Prometheus the
+      # cluster's own engine reads, which the agent finds. Older agents say
+      # nothing here.
+      COST_PROM_URL=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costPrometheusUrl":"\([^"]*\)".*/\1/p' | head -1)
+      COST_PROM_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costPrometheusError":"\([^"]*\)".*/\1/p' | head -1)
+      COST_PROM_NOTE=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costPrometheus":{[^}]*"note":"\([^"]*\)".*/\1/p' | head -1)
+      if [ -n "$COST_PROM_URL" ]; then
+        info "Memory peaks for right-sizing are read from the Prometheus at $COST_PROM_URL."
+        [ -n "$COST_PROM_NOTE" ] && detail "$COST_PROM_NOTE"
+      elif [ -n "$COST_PROM_ERR" ]; then
+        warn "The cost agent found no Prometheus to read memory peaks from, so the Right-Sizing card leaves memory requests unsized."
+        detail "$COST_PROM_ERR"
+        add_finding "The cost agent found no Prometheus to read per-container memory peaks from, so memory right-sizing is unavailable (CPU still works). It looked: $COST_PROM_ERR. Name one that scrapes this cluster's cAdvisor with --set cost.engine.prometheusUrl=<url>."
       fi
       COST_POLL_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastPollError":"\([^"]*\)".*/\1/p' | head -1)
       COST_SHIP_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastShipError":"\([^"]*\)".*/\1/p' | head -1)

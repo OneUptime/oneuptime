@@ -18,8 +18,10 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -237,7 +239,13 @@ class DatabaseServerOwnerRuleEngineServiceClass
       }),
     );
 
-    let ownersAdded: number = 0;
+    /*
+     * What the adds did: the owners written, and the ones skipped and why -
+     * a user who has left the project, a team that is not one of its teams
+     * (#9933). The count, the result and the rules credited are made from
+     * these.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
     const addedUserIds: Array<string> = [];
     const addedTeamIds: Array<string> = [];
 
@@ -264,13 +272,17 @@ class DatabaseServerOwnerRuleEngineServiceClass
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
         if (
-          await OwnerRuleAssignment.createOwner({
-            ownerService: DatabaseServerOwnerUserService,
-            owner: owner,
-            props: RuleRunWriteProps.get(data.props),
+          OwnerRuleAssignment.recordOutcome({
+            into: outcome,
+            ownerColumn: "userId",
+            id: new ObjectID(userId),
+            outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
+              ownerService: DatabaseServerOwnerUserService,
+              owner: owner,
+              props: RuleRunWriteProps.get(data.props),
+            }),
           })
         ) {
-          ownersAdded++;
           addedUserIds.push(userId);
         }
       }
@@ -282,21 +294,45 @@ class DatabaseServerOwnerRuleEngineServiceClass
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
         if (
-          await OwnerRuleAssignment.createOwner({
-            ownerService: DatabaseServerOwnerTeamService,
-            owner: owner,
-            props: RuleRunWriteProps.get(data.props),
+          OwnerRuleAssignment.recordOutcome({
+            into: outcome,
+            ownerColumn: "teamId",
+            id: new ObjectID(teamId),
+            outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
+              ownerService: DatabaseServerOwnerTeamService,
+              owner: owner,
+              props: RuleRunWriteProps.get(data.props),
+            }),
           })
         ) {
-          ownersAdded++;
           addedTeamIds.push(teamId);
         }
       }
     }
 
+    const ownersAdded: number = outcome.userIds.length + outcome.teamIds.length;
+
+    OwnerRuleFeed.logSkipped({
+      engine: "DatabaseServerOwnerRuleEngine",
+      record: `database server ${databaseServer.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: databaseServer.projectId.toString(),
+      } as LogAttributes,
+    });
+
+    /*
+     * Nothing added. When every owner its rules name was skipped, the run
+     * could not update this resource: never "already applied", which would
+     * say it has owners it does not (OwnerRuleFeed.getResult).
+     */
     if (ownersAdded === 0) {
-      return RuleApplicationResultUtil.alreadyApplied();
+      return OwnerRuleFeed.getResult(outcome);
     }
+
+    // Credited: the rules that brought an owner this run added (#9933).
+    const rulesThatAdded: Array<DatabaseServerOwnerRule> =
+      OwnerRuleFeed.getRulesThatAdded(matchedRules, outcome);
 
     /*
      * A rule added these owners, not a person: they must not count as
@@ -332,12 +368,14 @@ class DatabaseServerOwnerRuleEngineServiceClass
         mdText`👥 Owners were added to ${await DatabaseServerService.getDatabaseServerMarkdownLink(
           databaseServer.projectId,
           databaseServer.id,
-        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+        )} by ${rulesThatAdded.length} owner ${rulesThatAdded.length === 1 ? "rule" : "rules"}.`.toString(),
       moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
         ruleKind: "Owner",
-        ruleNames: matchedRules.map((rule: DatabaseServerOwnerRule): string => {
-          return rule.name || rule.id?.toString() || "Unnamed rule";
-        }),
+        ruleNames: rulesThatAdded.map(
+          (rule: DatabaseServerOwnerRule): string => {
+            return rule.name || rule.id?.toString() || "Unnamed rule";
+          },
+        ),
       }).toString(),
     });
 

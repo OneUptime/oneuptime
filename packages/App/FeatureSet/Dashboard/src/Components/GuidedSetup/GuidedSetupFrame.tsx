@@ -8,7 +8,17 @@ import {
 } from "./GuidedSetupProgress";
 import SetupFeedback from "../Feedback/SetupFeedback";
 import { WELCOME_MINUTES_COPY } from "../Home/WelcomeChecklist/WelcomeChecklistCatalog";
+import { openAskAi } from "../AIChat/AskAiEvents";
+import {
+  ASK_AI_GUIDED_SETUP_COPY,
+  getDescribedInsteadEvent,
+} from "./AskAiGuidedSetupLinks";
 import GuidedSetupContext from "../../Utils/DashboardRecording/GuidedSetupContext";
+import useAiOffered from "../../Utils/UseAiOffered";
+import { useIsProductOffOnServer } from "../../Utils/ProjectProducts/UseProjectProducts";
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
+import ProductKey from "Common/Types/Product/ProductKey";
 import { PRODUCT_TEXT_CLASS_NAME } from "Common/UI/Utils/ProductText";
 import {
   GUIDED_SETUP_FROM_QUERY,
@@ -101,6 +111,14 @@ export interface ComponentProps {
    * quickstart on Home says beside its step (WELCOME_STEP_MINUTES).
    */
   minutes?: number | undefined;
+  /*
+   * The setup's goal as a sentence to Ask AI, in the reader's language,
+   * built from what the first step knows (AskAiGuidedSetupLinks'
+   * getDescribeItPrompt, #7245): "Describe it instead" opens Ask AI with it
+   * in its box, unsent, while the first step is open and nothing is done.
+   * Left out, the setup offers none.
+   */
+  describeItPrompt?: string | undefined;
 }
 
 // The step key the events name while the summary is shown.
@@ -114,6 +132,9 @@ export const GUIDED_SETUP_GUIDE_TEXT: string =
   translationKey("Step-by-step guide");
 
 export const GUIDED_SETUP_ASIDE_TEST_ID: string = "guided-setup-aside";
+
+export const GUIDED_SETUP_DESCRIBE_IT_TEST_ID: string =
+  "guided-setup-describe-it-instead";
 
 // The heading of what a setup sets up, beside its steps.
 export const GUIDED_SETUP_OUTCOMES_TITLE: string =
@@ -242,6 +263,25 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
 
   const doneCount: number = countDoneSteps(props.steps);
 
+  /*
+   * Describe it instead (#7245): offered while the first step is open and
+   * nothing is done yet - once the person is on their way, the setup is
+   * theirs - and only where Ask AI can answer: AI on for the project, and
+   * Ask AI not switched off on the server.
+   */
+  const isAiOffered: boolean = useAiOffered();
+  const isAskAiOffOnServer: boolean = useIsProductOffOnServer(
+    ProductKey.AIChat,
+  );
+  const describeItPrompt: string = (props.describeItPrompt || "").trim();
+  const offersDescribeIt: boolean =
+    Boolean(describeItPrompt) &&
+    isAiOffered &&
+    !isAskAiOffOnServer &&
+    doneCount === 0 &&
+    props.steps.length > 0 &&
+    props.openStepKey === props.steps[0]!.key;
+
   const outcomeSteps: Array<GuidedSetupFrameStep> = props.steps.filter(
     (step: GuidedSetupFrameStep): boolean => {
       return Boolean(step.outcome);
@@ -340,20 +380,50 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
             total: translator.formatNumber(props.steps.length),
           })}
         </p>
-        {props.guideDocsPath ? (
-          <a
-            href={getLearnMoreUrl(props.guideDocsPath, translator.language)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={LEARN_MORE_LINK_CLASS_NAME}
-            data-testid={GUIDED_SETUP_GUIDE_LINK_TEST_ID}
-          >
-            {translator.translateText(GUIDED_SETUP_GUIDE_TEXT)}
-            <Icon
-              icon={IconProp.ExternalLink}
-              className="h-3.5 w-3.5 flex-shrink-0"
-            />
-          </a>
+        {offersDescribeIt || props.guideDocsPath ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {offersDescribeIt ? (
+              <button
+                type="button"
+                className={LEARN_MORE_LINK_CLASS_NAME}
+                data-testid={GUIDED_SETUP_DESCRIBE_IT_TEST_ID}
+                onClick={() => {
+                  ProductEvents.send(
+                    ProductEventName.AskAiSetupDescribedInstead,
+                    getDescribedInsteadEvent(props.setup),
+                  );
+                  openAskAi({ prompt: describeItPrompt });
+                }}
+              >
+                <Icon
+                  icon={IconProp.Sparkles}
+                  className="h-3.5 w-3.5 flex-shrink-0"
+                />
+                {translator.translateText(
+                  ASK_AI_GUIDED_SETUP_COPY.describeItInstead,
+                )}
+              </button>
+            ) : (
+              <></>
+            )}
+            {props.guideDocsPath ? (
+              <a
+                href={getLearnMoreUrl(props.guideDocsPath, translator.language)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={LEARN_MORE_LINK_CLASS_NAME}
+                data-testid={GUIDED_SETUP_GUIDE_LINK_TEST_ID}
+              >
+                {translator.translateText(GUIDED_SETUP_GUIDE_TEXT)}
+                <Icon
+                  icon={IconProp.ExternalLink}
+                  className="h-3.5 w-3.5 flex-shrink-0"
+                />
+              </a>
+            ) : (
+              <></>
+            )}
+          </div>
         ) : (
           <></>
         )}

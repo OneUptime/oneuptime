@@ -16,7 +16,9 @@
  * Steered by the query string:
  *   - page=incident  the page behind: an incident (#42 Checkout latency
  *                    above 2s) - the default; home, Home (no page context);
- *                    logs, the logs explorer with Explain with AI
+ *                    logs, the logs explorer with Explain with AI; setup,
+ *                    a guided setup's first step, drawn by the Dashboard's
+ *                    own frame, with its Describe it instead (issue #7245)
  *   - open=1         Ask AI is opened as the page loads
  *   - history=some   five past conversations (none by default);
  *                    many, twenty-five
@@ -55,7 +57,15 @@
  *                    parts leave their cards and the test page offer;
  *                    setup-busy, the same in a busy project, which pages
  *                    people already and has a status page: a website
- *                    monitor, and that monitor put on the page
+ *                    monitor, and that monitor put on the page;
+ *                    setup-tested, the setup's answer once run, with the
+ *                    policy's test page sent from it and kept on it, read
+ *                    again as the page opens (issue #7249);
+ *                    docs, "How do I get a text when an incident starts?"
+ *                    answered from the docs - numbered steps, the docs
+ *                    section it was read from and the Dashboard page it is
+ *                    done on, under it as "Go to Notification Methods"
+ *                    (issue #7067) - in the reader's language
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -98,6 +108,11 @@ import { openAskAi } from "../../../App/FeatureSet/Dashboard/src/Components/AICh
 import AskAI from "../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
 import SideOver from "Common/UI/Components/SideOver/SideOver";
 import AICopilot from "../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot";
+import GuidedSetupFrame from "../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
+import { getDescribeItPrompt } from "../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/AskAiGuidedSetupLinks";
+import { WEBSITE_DOWN_SETUP } from "../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { AI_TOOL_CITATIONS } from "Common/Types/AI/AIReadTableWords";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
@@ -125,6 +140,7 @@ import {
   AI_ACTION_TITLES,
   aiActionCardFact,
   aiActionList,
+  aiActionMenuPath,
   aiActionPluralSentence,
   aiActionResourceByName,
   aiActionSentence,
@@ -195,6 +211,8 @@ const threadKind = [
   "readcards",
   "setup",
   "setup-busy",
+  "setup-tested",
+  "docs",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -234,6 +252,9 @@ window.__askAiFixture = {
     feedback: [],
     cancelled: 0,
     deleted: [],
+    // POST /ai-chat/message-test-page, and GET /on-call-test-page/result/:id (#7249).
+    testPagesRecorded: [],
+    testPageResultReads: [],
     unhandled: [],
   },
 };
@@ -870,6 +891,57 @@ function setupBusyCards(data) {
   return toSetupCards(cards);
 }
 
+/*
+ * The policy's test page, sent from the answer and kept on its card
+ * (?thread=setup-tested, issue #7249): its run, and what became of it as
+ * the test page's own result route answers - Ana Lopez acknowledged it by
+ * SMS.
+ */
+const SETUP_TEST_PAGE_RUN_ID = "70000000-0000-4000-8000-0000000000aa";
+
+function setupTestPageResult() {
+  return {
+    executionLogId: SETUP_TEST_PAGE_RUN_ID,
+    kind: "Policy",
+    policyId: SETUP_POLICY_ID,
+    policyName: SETUP_POLICY_NAME,
+    recordKind: "Incident",
+    severityName: "Critical Incident",
+    walksEscalation: false,
+    status: "Acknowledged",
+    statusMessage: "",
+    startedAt: minutesAgo(1).toISOString(),
+    endsAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    acknowledgedByName: "Ana Lopez",
+    acknowledgedChannel: "SMS",
+    acknowledgedAfterSeconds: 14,
+    steps: [],
+  };
+}
+
+// The cards the run plan left, the policy's test page sent from them.
+function setupTestedCards() {
+  return setupCards({ monitor: true, paging: true }).map((card) => {
+    if (card.data.testPage?.kind !== "policy") {
+      return card;
+    }
+
+    return {
+      ...card,
+      data: {
+        ...card.data,
+        testPage: {
+          ...card.data.testPage,
+          sent: {
+            executionLogId: SETUP_TEST_PAGE_RUN_ID,
+            sentAt: minutesAgo(1).toISOString(),
+          },
+        },
+      },
+    };
+  });
+}
+
 // The cards the approved parts leave, each offering its test page.
 function setupCards(data) {
   const cards = [];
@@ -964,8 +1036,127 @@ let codeConversation = null;
 let setupConversation = null;
 // The same in a project that pages people already (?thread=setup-busy).
 let setupBusyConversation = null;
+// The setup's answer once run, its policy's test page sent (?thread=setup-tested).
+let setupTestedConversation = null;
 // The conversation that looked monitors up (?thread=monitors).
 let monitorsConversation = null;
+
+/*
+ * A how-do-I question answered from the docs (?thread=docs, issue #7067):
+ * numbered steps, each fact cited - the docs section it was read from
+ * (read_docs) - and the page of this project where it is done
+ * (find_dashboard_page), which the answer offers as "Go to Notification
+ * Methods" under it (AskAiPageButtons). The citations are the shapes
+ * DocsTools mints; the answer is written in the reader's language, as Ask
+ * AI answers a question asked in it.
+ */
+let docsConversation = null;
+
+const DOCS_QUESTIONS = {
+  en: "How do I get a text when an incident starts?",
+  de: "Wie bekomme ich eine SMS, wenn ein Vorfall beginnt?",
+  fa: "چطور وقتی حادثه‌ای شروع می‌شود پیامک بگیرم؟",
+};
+
+const DOCS_ANSWERS = {
+  en: [
+    "To get a text when an incident starts:",
+    "",
+    "1. Open **User Settings > Notification Methods** and add your phone number under **SMS** [C1].",
+    "2. Enter the code OneUptime texts you, to verify the number.",
+    "3. Under **How to Reach Me**, add a step that texts you when an incident is created [C1].",
+    "",
+    "Add your number in Notification Methods [C2].",
+  ].join("\n"),
+  de: [
+    "So bekommen Sie eine SMS, wenn ein Vorfall beginnt:",
+    "",
+    "1. Öffnen Sie **Benutzereinstellungen > Benachrichtigungsmethoden** und fügen Sie unter **SMS** Ihre Telefonnummer hinzu [C1].",
+    "2. Geben Sie den Code ein, den OneUptime Ihnen per SMS schickt, um die Nummer zu bestätigen.",
+    "3. Fügen Sie unter **Wie ich erreichbar bin** einen Schritt hinzu, der Ihnen eine SMS schickt, wenn ein Vorfall angelegt wird [C1].",
+    "",
+    "Fügen Sie Ihre Nummer unter Benachrichtigungsmethoden hinzu [C2].",
+  ].join("\n"),
+  fa: [
+    "برای اینکه هنگام شروع یک حادثه پیامک بگیرید:",
+    "",
+    "1. **تنظیمات کاربر > روش‌های اعلان** را باز کنید و شماره تلفن خود را زیر **پیامک** اضافه کنید [C1].",
+    "2. کدی را که OneUptime برایتان پیامک می‌کند وارد کنید تا شماره تأیید شود.",
+    "3. زیر **راه‌های تماس با من** گامی اضافه کنید که هنگام ایجاد یک حادثه برایتان پیامک بفرستد [C1].",
+    "",
+    "شماره‌تان را در روش‌های اعلان اضافه کنید [C2].",
+  ].join("\n"),
+};
+
+// The docs section and the Dashboard page the answer cites, as DocsTools mints them.
+function docsCitations() {
+  const docsLanguage = ["de", "fa"].includes(language) ? language : "en";
+  const docsWords = aiActionSentence(AI_TOOL_CITATIONS.docsSection, {
+    page: "Notification Methods",
+    section: "Add and verify a method",
+  });
+  const pageWords = aiActionSentence(AI_TOOL_CITATIONS.dashboardPage, {
+    path: aiActionMenuPath([
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods",
+    ]),
+  });
+
+  return [
+    {
+      id: "C1",
+      toolName: "read_docs",
+      label: "Docs: Notification Methods > Add and verify a method",
+      words: docsWords,
+      queryArguments: {
+        page: "notifications/notification-methods",
+        section: "Add and verify a method",
+      },
+      rowCount: 1,
+      target: {
+        type: AIChatCitationTargetType.DocsPage,
+        params: {
+          page: "notifications/notification-methods",
+          language: docsLanguage,
+          anchor: "add-and-verify-a-method",
+        },
+      },
+    },
+    {
+      id: "C2",
+      toolName: "find_dashboard_page",
+      label:
+        "Page: User Settings > Alerts & Notifications > Notification Methods",
+      words: pageWords,
+      queryArguments: { query: "notification methods" },
+      rowCount: 1,
+      target: {
+        type: AIChatCitationTargetType.DashboardPage,
+        params: {
+          path: "/dashboard/:projectId/user-settings/notification-methods",
+          title: "Notification Methods",
+        },
+      },
+    },
+  ];
+}
+
+function seedDocsAnswer() {
+  const answerLanguage = ["de", "fa"].includes(language) ? language : "en";
+
+  docsConversation = conversationOf("Get a text when an incident starts", 2);
+  messageOf(docsConversation.id.toString(), AIChatMessageRole.User, {
+    contentInMarkdown: DOCS_QUESTIONS[answerLanguage],
+    createdAt: minutesAgo(3),
+  });
+  messageOf(docsConversation.id.toString(), AIChatMessageRole.Assistant, {
+    contentInMarkdown: DOCS_ANSWERS[answerLanguage],
+    citations: docsCitations(),
+    aiRunId: runOf({ toolCallCount: 3, totalTokens: 6120 }).id,
+    createdAt: minutesAgo(2),
+  });
+}
 
 /*
  * The card query_monitors leaves for a monitor read by id, built as the
@@ -1545,6 +1736,33 @@ function seedHistory() {
     );
   }
 
+  if (threadKind === "setup-tested") {
+    setupTestedConversation = conversationOf(
+      "Monitor example.com and text me",
+      2,
+    );
+    messageOf(setupTestedConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: SETUP_QUESTION,
+      createdAt: minutesAgo(3),
+    });
+    messageOf(
+      setupTestedConversation.id.toString(),
+      AIChatMessageRole.Assistant,
+      {
+        contentInMarkdown:
+          "example.com is checked every minute, and the Default on-call policy pages you for every new incident and alert. Texts reach you once you add and verify your phone number in Notification Methods. Send yourself a test page to be sure it works.",
+        status: AIChatMessageStatus.Completed,
+        toolActions: setupActions(
+          AIChatToolActionStatus.Executed,
+          AIChatToolActionStatus.Executed,
+        ),
+        widgets: setupTestedCards(),
+        aiRunId: runOf({ toolCallCount: 4, totalTokens: 7310 }).id,
+        createdAt: minutesAgo(3),
+      },
+    );
+  }
+
   if (threadKind === "actions") {
     actionsConversation = conversationOf("Update the status page", 5);
     messageOf(actionsConversation.id.toString(), AIChatMessageRole.User, {
@@ -1562,6 +1780,10 @@ function seedHistory() {
 
   if (threadKind === "monitors") {
     seedMonitorsAnswer();
+  }
+
+  if (threadKind === "docs") {
+    seedDocsAnswer();
   }
 
   if (threadKind === "readcards") {
@@ -1613,6 +1835,8 @@ fixture.conversationIds = {
   readcards: readCardsConversation?.id.toString(),
   setup: setupConversation?.id.toString(),
   "setup-busy": setupBusyConversation?.id.toString(),
+  "setup-tested": setupTestedConversation?.id.toString(),
+  docs: docsConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------
@@ -2082,12 +2306,25 @@ API.post = async (options) => {
     return new HTTPResponse(200, {}, {});
   }
 
+  if (path.endsWith("/ai-chat/message-test-page")) {
+    state.testPagesRecorded.push(JSON.parse(JSON.stringify(data)));
+    return new HTTPResponse(200, {}, {});
+  }
+
   state.unhandled.push(`POST ${path}`);
   return new HTTPResponse(200, {}, {});
 };
 
 API.get = async (options) => {
-  state.unhandled.push(`GET ${pathOf(options)}`);
+  const path = pathOf(options);
+  const testPageResult = path.match(/\/on-call-test-page\/result\/([^/?]+)$/);
+
+  if (testPageResult && testPageResult[1] === SETUP_TEST_PAGE_RUN_ID) {
+    state.testPageResultReads.push(testPageResult[1]);
+    return new HTTPResponse(200, setupTestPageResult(), {});
+  }
+
+  state.unhandled.push(`GET ${path}`);
   return new HTTPResponse(200, {}, {});
 };
 
@@ -2142,6 +2379,7 @@ const PAGE_PATHS = {
   incident: `/dashboard/${PROJECT_ID}/incidents/${INCIDENT_ID}`,
   home: `/dashboard/${PROJECT_ID}/home/`,
   logs: `/dashboard/${PROJECT_ID}/logs/`,
+  setup: `/dashboard/${PROJECT_ID}/monitors/setup`,
 };
 
 fixture.paths = {
@@ -2358,6 +2596,61 @@ function LogsPage() {
 
 fixture.explainPrompt = EXPLAIN_PROMPT;
 
+/*
+ * A guided setup's first step (?page=setup, issue #7245): the Dashboard's
+ * own frame (GuidedSetupFrame), as the website setup draws it, with an
+ * address to type. Its Describe it instead opens Ask AI with the setup's
+ * sentence, built from the address typed (getDescribeItPrompt), unsent.
+ * The website setup's page is also where an Ask AI plan's Open in guided
+ * setup goes.
+ */
+function SetupPage() {
+  const translator = useTranslator();
+  const [address, setAddress] = React.useState(
+    new URLSearchParams(window.location.search).get("address") || "",
+  );
+
+  return (
+    <Frame>
+      <GuidedSetupFrame
+        setup={WEBSITE_DOWN_SETUP}
+        steps={[
+          {
+            key: "check",
+            title: "What should we check?",
+            outcome: "Your website or API is checked every 5 minutes",
+            content: (
+              <label className="block text-sm font-medium text-gray-700">
+                {translator.translateText("Website or API address")}
+                <input
+                  data-testid="fixture-setup-address"
+                  value={address}
+                  onChange={(event) => {
+                    setAddress(event.target.value);
+                  }}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                />
+              </label>
+            ),
+          },
+          { key: "who", title: "Who should be told?" },
+          { key: "test", title: "Send a test" },
+        ]}
+        openStepKey="check"
+        onOpenStep={() => {}}
+        summary={<p>All set</p>}
+        isFinished={false}
+        minutes={5}
+        describeItPrompt={getDescribeItPrompt({
+          setup: WEBSITE_DOWN_SETUP,
+          facts: { address: address },
+          translator: translator,
+        })}
+      />
+    </Frame>
+  );
+}
+
 function App() {
   return (
     <NavigationShell>
@@ -2370,6 +2663,10 @@ function App() {
         />
         <PageRoute path="/dashboard/:projectId/home/*" element={<HomePage />} />
         <PageRoute path="/dashboard/:projectId/logs/*" element={<LogsPage />} />
+        <PageRoute
+          path="/dashboard/:projectId/monitors/setup"
+          element={<SetupPage />}
+        />
         <PageRoute
           path="/dashboard/:projectId/ai/chat"
           element={<AICopilot />}
@@ -2384,7 +2681,7 @@ function App() {
   );
 }
 
-const pageKind = ["home", "logs"].includes(params.get("page"))
+const pageKind = ["home", "logs", "setup"].includes(params.get("page"))
   ? params.get("page")
   : "incident";
 

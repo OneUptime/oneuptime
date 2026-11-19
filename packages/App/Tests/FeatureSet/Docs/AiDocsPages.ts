@@ -261,6 +261,12 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "What each part needs.",
     "Then test it.",
     "Who is told.",
+    // A service's monitors (#7243), how pages reach you (#7454), invitations (#7242).
+    "A service's monitors.",
+    "How pages reach you.",
+    "Inviting people.",
+    // The guided setups and Ask AI link to each other (#7245).
+    "Step by step instead.",
   ],
   [AI_SRE]: [
     "strictly read-only",

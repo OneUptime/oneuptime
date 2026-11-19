@@ -53,7 +53,7 @@ Gå til **Vakt** > **Policyer for innkommende anrop**, og klikk på **Opprett Po
 
 ### Velg Twilio-kontoen
 
-**Oversikt** for policyen viser et kort **Oppsett** med tre nummererte steg. Klikk på **Velg** i det første, velg kontoen under **Twilio-konfigurasjon** og klikk på **Lagre**.
+**Oversikt** for policyen viser et kort **Oppsett** med tre nummererte steg. Klikk på **Velg** i det første, velg kontoen under **Twilio-konfigurasjon** og klikk på **Lagre**. Listen viser bare konfigurasjoner som brukes til **Anrop og SMS** eller **Bare anrop**. En policy der konfigurasjonen senere settes til **Bare SMS**, beholder den, og kortet sier hva du skal endre.
 
 ### Legg til et telefonnummer
 

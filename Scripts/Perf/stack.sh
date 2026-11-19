@@ -65,7 +65,7 @@ start_containers() {
       -v "$REPO/Clickhouse/config.d/system-log-ttl.xml:/etc/clickhouse-server/config.d/system-log-ttl.xml:ro" \
       -v "$REPO/Clickhouse/config.d/logger.xml:/etc/clickhouse-server/config.d/logger.xml:ro" \
       -v "$REPO/Clickhouse/users.d/distributed-insert-tuning.xml:/etc/clickhouse-server/users.d/distributed-insert-tuning.xml:ro" \
-      clickhouse/clickhouse-server:26.7 >/dev/null
+      clickhouse/clickhouse-server:26.7.38.18 >/dev/null
   fi
   for _ in $(seq 1 60); do
     if docker exec "$PERF_PREFIX-pg" pg_isready -U postgres >/dev/null 2>&1; then

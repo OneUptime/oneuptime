@@ -1834,9 +1834,10 @@ false
 {{/*
 Whether cost.engine.url is `auto` (#9633): bundle nothing, and let the cost
 agent find the OpenCost or Kubecost the cluster already runs, wherever it is,
-at run time. The chart cannot look for it itself: Helm's `lookup` comes back
-empty under `helm template`, Argo CD and dry runs, so the same values would
-render differently depending on the tool. Any spelling of auto counts.
+at run time. The chart cannot look for it itself: it reads no cluster objects
+while it renders, since under `helm template`, Argo CD and dry runs there are
+none to read, so the same values would render differently depending on the
+tool. Any spelling of auto counts.
 Usage: {{- if eq (include "kubernetes-agent.costEngineAuto" .) "true" }}
 */}}
 {{- define "kubernetes-agent.costEngineAuto" -}}
@@ -1849,8 +1850,11 @@ false
 
 {{/*
 Whether the collector's cost-engine job asks the cost agent where to scrape
-(#9776): cost.engine.url is auto or a URL, the agent runs, and
-cost.metrics.endpoint names no endpoint of its own.
+(#9776, #9852): the agent runs, cost.metrics.endpoint names no endpoint of
+its own, and the agent may read an engine the chart did not put there:
+cost.engine.url is auto or a URL, or the chart bundles OpenCost and the agent
+prefers the cluster's own engine when it finds one
+(kubernetes-agent.costEnginePreferExisting).
 
 Where an engine serves its price metrics depends on which engine it is and
 which of its Services the URL names (checked against Kubecost 2.8.7, Kubecost
@@ -1864,13 +1868,21 @@ cannot weigh one Service against another. The agent reads the engine, so it
 finds the endpoint (agents/KubernetesCostAgent/EngineMetrics.ts) and serves
 it at /scrape-targets, which the job reads through http_sd.
 
-The bundled OpenCost is scraped where the chart put it, an explicit
-cost.metrics.endpoint as written, and with the agent off the engine URL's
-/metrics as before (the auto job then finds engines itself).
+With the bundled engine, that is what keeps the dashboard's prices those of
+the engine the Costs pages are priced by (#9852): the agent answers with the
+bundled OpenCost's until it reads the cluster's own, then with that one's,
+and with the bundled one's again if it falls back. A static target would
+scrape the bundled OpenCost's prices beside the cluster's own engine's
+allocations.
+
+The bundled OpenCost the agent always reads (cost.engine.preferExisting
+false, or a rate card of its own) is scraped where the chart put it, an
+explicit cost.metrics.endpoint as written, and with the agent off the engine
+URL's /metrics as before (the auto job then finds engines itself).
 Usage: {{- if eq (include "kubernetes-agent.costMetricsFromAgent" .) "true" }}
 */}}
 {{- define "kubernetes-agent.costMetricsFromAgent" -}}
-{{- if and (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") .Values.cost.agent.enabled (ne (include "kubernetes-agent.costEngineBundled" .) "true") (not (.Values.cost.metrics.endpoint | default "" | toString | trim)) -}}
+{{- if and (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") .Values.cost.agent.enabled (or (ne (include "kubernetes-agent.costEngineBundled" .) "true") (eq (include "kubernetes-agent.costEnginePreferExisting" .) "true")) (not (.Values.cost.metrics.endpoint | default "" | toString | trim)) -}}
 true
 {{- else -}}
 false
@@ -1940,6 +1952,22 @@ resolves to nothing and every poll would fail against it.
 {{- .Values.cost.engine.prometheusUrl -}}
 {{- else if eq (include "kubernetes-agent.costEngineBundled" .) "true" -}}
 http://{{ include "kubernetes-agent.fullname" . }}-cost-prometheus.{{ .Release.Namespace }}.svc.cluster.local:9090
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether kubernetes-agent.costPrometheusUrl is the chart's bundled Prometheus
+rather than one cost.engine.prometheusUrl names (#9777). The cost agent then
+reads it for the bundled engine, and for the cluster's own engine only when
+it cannot find the Prometheus that engine reads; one named in
+cost.engine.prometheusUrl it reads whatever the engine.
+Usage: {{- if eq (include "kubernetes-agent.costPrometheusBundled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costPrometheusBundled" -}}
+{{- if and (eq (include "kubernetes-agent.costEngineBundled" .) "true") (not .Values.cost.engine.prometheusUrl) -}}
+true
+{{- else -}}
+false
 {{- end -}}
 {{- end -}}
 

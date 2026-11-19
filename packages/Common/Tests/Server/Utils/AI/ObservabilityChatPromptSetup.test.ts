@@ -183,9 +183,9 @@ describe("the rest of the prompt agrees", () => {
     );
   });
 
-  test("a monitor of any condition but a website or API is still one a person creates", () => {
+  test("a monitor of any condition but a website or API, or a service's recommended ones, is still one a person creates", () => {
     expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
-      "The only monitor a tool here sets up watches a website or API address (set_up_website_monitoring",
+      "The monitors a tool here sets up watch a website or API address (set_up_website_monitoring), and a service that sends telemetry, with the monitors its Recommendations recommend - failing requests, slow requests, unhandled exceptions, a spike in error logs (set_up_service_monitor)",
     );
     expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
       "A person creates the monitor under Monitors → Create Monitor",

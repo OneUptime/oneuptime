@@ -137,14 +137,14 @@ Si aún no tienes códigos de respaldo, OneUptime te los muestra entonces una so
 
 ### Cuando tu organización gestiona tu inicio de sesión
 
-En un servidor que exige el inicio de sesión único, solo inicias sesión a través del proveedor de identidad de tu organización, como Okta o Microsoft Entra ID, y OneUptime no configura para ti ninguna contraseña, llave de acceso ni autenticación de dos factores. El **Perfil de usuario** no tiene entonces la sección **Seguridad**, y su **Vista general** indica tu proveedor en **Inicio de sesión único**. Cambia tu contraseña y tu segundo paso con tu proveedor de identidad. Lo que configuraste antes sigue guardado: solo vuelve a funcionar si el servidor deja de exigir el inicio de sesión único, salvo que un administrador del servidor lo borre. Los administradores principales conservan sus propios ajustes de **Seguridad**.
+En un servidor que exige el inicio de sesión único, solo inicias sesión a través del proveedor de identidad de tu organización, como Okta o Microsoft Entra ID, y OneUptime no configura para ti ninguna contraseña, llave de acceso ni autenticación de dos factores. El **Perfil de usuario** no tiene entonces la sección **Seguridad**, y su **Vista general** indica tu proveedor en **Inicio de sesión único**. Cambia tu contraseña y tu segundo paso con tu proveedor de identidad. Lo que configuraste antes sigue guardado: solo vuelve a funcionar si el servidor deja de exigir el inicio de sesión único, salvo que un administrador del servidor lo borre, y en ese caso recibes un correo. Los administradores principales conservan sus propios ajustes de **Seguridad**.
 
 Lo mismo ocurre cuando todos los proyectos a los que perteneces exigen el inicio de sesión único y tienen activado **Gestionar el inicio de sesión con SSO**. Tu contraseña sigue iniciando tu sesión en OneUptime, pero cada proyecto pide SSO, así que OneUptime no configura para ti ninguna contraseña, llave de acceso ni segundo paso nuevos:
 
 - **Un proyecto que no lo hace**: en cuanto eres miembro de un proyecto, o te invitan a uno, que no exige SSO o no tiene activado **Gestionar el inicio de sesión con SSO**, tu sección **Seguridad** vuelve. **Vista general** nombra entonces esos proyectos en **Inicio de sesión único**, como el motivo de que tus ajustes sean tuyos. Salir de ese proyecto te los vuelve a quitar.
 - **Proyectos con proveedores distintos**: si todos tus proyectos gestionan el inicio de sesión, cada uno con su propio proveedor de identidad, **Vista general** nombra cada proveedor.
 - **Los administradores principales** conservan siempre sus propios ajustes de **Seguridad**.
-- **Lo que configuraste antes** sigue guardado, y un administrador del servidor puede borrarlo.
+- **Lo que configuraste antes** sigue guardado. Un administrador del servidor puede borrarlo, y también un propietario de todos los proyectos a los que perteneces; recibes un correo cuando lo hacen.
 
 ## Tus proyectos
 

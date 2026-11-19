@@ -246,7 +246,7 @@ describe("Project SSO: the OpenID Connect section", () => {
       "**Redirect URI**",
       "**Enabled**",
       // One test link for both kinds, on the same page.
-      "**Test Single Sign On (SSO)**",
+      "**SSO Sign-in Link**",
     ];
 
     let at: number = -1;

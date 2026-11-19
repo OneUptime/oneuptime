@@ -109,6 +109,14 @@ export enum MonitorRecommendationResourceType {
    * only for the metrics its broker reports; see MonitorRecommendationContext.
    */
   MessageQueue = "MessageQueue",
+  /*
+   * A device management connection (a DeviceManagementConnection row: an
+   * Esper tenant, #9835). Its recommendations are Metrics monitors over the
+   * check-in readings each read of it writes for its devices
+   * (ManagedDeviceAlertTemplates), one monitor per connection alerting once
+   * per device; the set is a constant while Esper is the only service.
+   */
+  DeviceManagementConnection = "DeviceManagementConnection",
 }
 
 /*
@@ -296,6 +304,13 @@ export interface MonitorRecommendationContext {
    * team's own may set another. Absent for every other resource.
    */
   cloudConnectionLimit?: RdsConnectionLimitReading | null | undefined;
+  /*
+   * Its name (CloudResource.name): what a first command names it by where
+   * its attributes do not - a Compute Engine VM's, which gcloud takes,
+   * where its metrics name it by its numeric id (CloudAlertTemplateArgs.
+   * resourceName).
+   */
+  cloudResourceName?: string | null | undefined;
   /*
    * An App Platforms app's telemetry filter: its environment's
    * resource.cloud.* attributes and its own resource.* attributes, as its

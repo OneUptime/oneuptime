@@ -4,10 +4,34 @@ import {
   getCallOutcome,
   getCallOutcomeStatusMessage,
   getTimeToCallOutcomeInMs,
+  isTwilioCallSid,
 } from "../Utils/CallOutcome";
+import {
+  AnsweredByOutcome,
+  getAnsweredByOutcome,
+  getMachineAnsweredCallOutcome,
+} from "../Utils/AnsweredBy";
+import {
+  getVoicemailMessageOfCall,
+  leaveVoicemailMessage,
+} from "../Utils/VoicemailCallback";
+import {
+  findTwilioAccountThatSigned,
+  getTwilioCallbackRefusedMessage,
+  TwilioSignatureCheck,
+} from "Common/Server/Utils/TwilioWebhookSignature";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
 import { recordProviderReport } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import { WebhookRequest } from "Common/Types/Call/CallProvider";
+import {
+  CallOutcomeLine,
+  isMachineAnsweredCallOutcome,
+  readCallOutcomeMessage,
+} from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,
@@ -54,6 +78,34 @@ import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSCon
 
 const router: ExpressRouter = Express.getRouter();
 
+/*
+ * How a call ended, for the platform's operator (notification.delivery.count
+ * and .duration): on the account its callback's address names, as an
+ * on-call page when its log names one, timed from Twilio accepting it - its
+ * log is written then. Counted once a call, by whichever callback wrote how
+ * it ended: its status callback, or its answering machine callback when a
+ * machine answered it.
+ */
+function recordCallEnd(data: {
+  query: unknown;
+  callLog: CallLog;
+  outcome: CallOutcome;
+}): void {
+  NotificationDeliveryMetrics.recordDelivery({
+    channel: NotificationDeliveryChannel.Call,
+    provider: NotificationDeliveryProvider.Twilio,
+    providerConfig: getProviderConfigOfCallback(data.query),
+    isOnCallPage: Boolean(data.callLog.userOnCallLogTimelineId),
+    status: data.outcome.deliveryStatus,
+    timeToStatusInMs: getTimeToCallOutcomeInMs({
+      outcome: data.outcome,
+      millisecondsSincePlaced: NotificationDeliveryMetrics.getMillisecondsSince(
+        data.callLog.createdAt,
+      ),
+    }),
+  });
+}
+
 router.post(
   "/make-call",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
@@ -99,9 +151,16 @@ router.post(
  * Twilio's call status callback: how a call ended. Set as the
  * `statusCallback` URL of every call CallService places through Twilio for
  * a project (CallService.prepareStatusCallback). A public webhook - Twilio
- * signs in as nobody - so it is secured by the unguessable per-call token
- * in its URL, never by user or cluster auth, and it only records how the
- * one call it names ended (CallOutcome):
+ * signs in as nobody - so it is held to two locks, never to user or cluster
+ * auth: the unguessable per-call token in its URL, which says which call it
+ * is about, and Twilio's signature (X-Twilio-Signature), made with the auth
+ * token of the account the call went out on - the project's own Twilio
+ * config, or the OneUptime server's (TwilioWebhookSignature). The token
+ * travels in a URL - Twilio's request logs, a proxy's access log, a
+ * screenshot of the Twilio console - and alone it no longer writes a call's
+ * end: a request that fails either lock is refused (403), changes nothing,
+ * and is logged with why. It only records how the one call it names ended
+ * (CallOutcome):
  *
  *  - on the call's log: Missed Call, Busy or Error, and how it ended;
  *  - on the on-call notification the call was made for, while that is only
@@ -136,6 +195,7 @@ router.post(
         id: new ObjectID(callLogId),
         select: {
           _id: true,
+          projectId: true,
           status: true,
           statusMessage: true,
           statusCallbackToken: true,
@@ -157,13 +217,31 @@ router.post(
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      // Authenticate the callback against the per-call token.
+      // The per-call token in the URL: which call it is about.
       if (
         !callLog.statusCallbackToken ||
         !isStatusCallbackTokenValid(token, callLog.statusCallbackToken)
       ) {
         logger.warn(
           `Call status callback with invalid token for log: ${callLogId}`,
+        );
+        res.status(403).send("Forbidden");
+        return;
+      }
+
+      // Twilio's signature, by the account the call went out on.
+      const signed: TwilioSignatureCheck = await findTwilioAccountThatSigned({
+        request: req as unknown as WebhookRequest,
+        projectId: callLog.projectId,
+        urlSecrets: [token],
+      });
+
+      if (!signed.account) {
+        logger.warn(
+          getTwilioCallbackRefusedMessage({
+            callback: `the call status callback for log ${callLogId}`,
+            reason: signed.refusalReason,
+          }),
         );
         res.status(403).send("Forbidden");
         return;
@@ -230,21 +308,7 @@ router.post(
          * How the call ended, for the platform's operator - once, as only
          * the callback that wrote it gets here (notification.delivery.count).
          */
-        NotificationDeliveryMetrics.recordDelivery({
-          channel: NotificationDeliveryChannel.Call,
-          provider: NotificationDeliveryProvider.Twilio,
-          providerConfig: getProviderConfigOfCallback(req.query),
-          isOnCallPage: Boolean(callLog.userOnCallLogTimelineId),
-          status: outcome.deliveryStatus,
-          timeToStatusInMs: getTimeToCallOutcomeInMs({
-            outcome: outcome,
-            // The call's log is written as Twilio accepts the call.
-            millisecondsSincePlaced:
-              NotificationDeliveryMetrics.getMillisecondsSince(
-                callLog.createdAt,
-              ),
-          }),
-        });
+        recordCallEnd({ query: req.query, callLog: callLog, outcome: outcome });
       }
 
       /*
@@ -258,6 +322,345 @@ router.post(
        * was not answered, or failed, moved on from Sent and is not written
        * again; an answered call's, still Sent, is told the same words again.
        */
+      if (callLog.userOnCallLogTimelineId) {
+        await recordProviderReport({
+          userOnCallLogTimelineId: callLog.userOnCallLogTimelineId,
+          status: outcome.notificationStatus || undefined,
+          statusMessage: statusMessage,
+        });
+      }
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * The statuses of a call's on-call notification that say a person was on
+ * the line: they pressed 1 to acknowledge the page, or 2 to escalate it,
+ * on this very call (OnCallNotificationStatus: each is written on the
+ * notification it was answered from). A machine Twilio heard there is not
+ * one.
+ */
+const ANSWERED_ON_THE_CALL: ReadonlyArray<UserNotificationStatus> = [
+  UserNotificationStatus.Acknowledged,
+  UserNotificationStatus.PassedOn,
+];
+
+// How many times the log is read again when its message changed under the write.
+const MAX_MACHINE_ANSWERED_WRITE_ATTEMPTS: number = 3;
+
+async function isAnsweredOnTheCall(
+  userOnCallLogTimelineId: ObjectID,
+): Promise<boolean> {
+  const notification: UserOnCallLogTimeline | null =
+    await UserOnCallLogTimelineService.findOneById({
+      id: userOnCallLogTimelineId,
+      select: {
+        _id: true,
+        status: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  return Boolean(
+    notification?.status && ANSWERED_ON_THE_CALL.includes(notification.status),
+  );
+}
+
+/*
+ * Writes that a machine answered the call over its log, once: only while
+ * the log still says Success - placed, or answered as its status callback
+ * said - at the message it had when read, in the same statement. A status
+ * callback that wrote "answered" meanwhile leaves the log at Success, so it
+ * is read again and written over; one that wrote anything else - rang out,
+ * busy, failed - or another answering machine callback, is left. Whether
+ * it was written, and whether the call's end had been counted already: the
+ * status callback counts an answered call as it writes its message.
+ */
+async function writeMachineAnsweredOutcome(data: {
+  callLog: CallLog;
+  outcome: CallOutcome;
+  statusMessage: string;
+}): Promise<{ isWritten: boolean; wasEndCounted: boolean }> {
+  let status: CallStatus | undefined = data.callLog.status;
+  let statusMessage: string | undefined = data.callLog.statusMessage;
+
+  for (
+    let attempt: number = 0;
+    attempt < MAX_MACHINE_ANSWERED_WRITE_ATTEMPTS;
+    attempt++
+  ) {
+    if (status !== CallStatus.Success) {
+      return { isWritten: false, wasEndCounted: false };
+    }
+
+    const isWritten: boolean =
+      await CallLogService.compareAndSetColumnsByIdWithoutHooks({
+        id: data.callLog.id!,
+        data: {
+          ...(data.outcome.callStatus
+            ? { status: data.outcome.callStatus }
+            : {}),
+          statusMessage: data.statusMessage,
+        },
+        expectedData: {
+          status: CallStatus.Success,
+          statusMessage: (statusMessage ?? null) as string,
+        },
+      });
+
+    if (isWritten) {
+      return {
+        isWritten: true,
+        // A message saying how the call ended, rather than that it was placed.
+        wasEndCounted: Boolean(readCallOutcomeMessage(statusMessage)),
+      };
+    }
+
+    const current: CallLog | null = await CallLogService.findOneById({
+      id: data.callLog.id!,
+      select: {
+        _id: true,
+        status: true,
+        statusMessage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!current) {
+      return { isWritten: false, wasEndCounted: false };
+    }
+
+    status = current.status;
+    statusMessage = current.statusMessage;
+  }
+
+  return { isWritten: false, wasEndCounted: false };
+}
+
+/*
+ * Twilio's answering machine callback: who answered an on-call call
+ * (#6594). Set as the asyncAmdStatusCallback of every on-call call
+ * CallService places through Twilio for a project that detects voicemail
+ * (CallService.getVoicemailCallbackUrl), with the call's log id and the
+ * token its status callback carries. Twilio posts AnsweredBy while the call
+ * goes on (Utils/AnsweredBy):
+ *
+ *  - a person, or Twilio could not tell: nothing is written - the status
+ *    callback says how the call ended;
+ *  - voicemail, at the end of its greeting: the call is turned to a short
+ *    message, which the voicemail records, and ends - "a message was left";
+ *    when it cannot be (the call ended first), "no message was left";
+ *  - voicemail at the start of its greeting, or a fax machine: nothing is
+ *    left.
+ *
+ * A call a machine answered then counts as not answered, as one that rang
+ * out does: its log says Voicemail (a fax machine's, Missed Call), and the
+ * on-call notification it was made for, while it is only sent, says Not
+ * Answered, whose own hooks tell the record's feed "Nitin did not answer the
+ * phone call ... It went to voicemail, and a message was left." The page
+ * goes on to the next rule or level as for a missed call: nobody
+ * acknowledged it.
+ *
+ * A public webhook, so it is held to two locks: the per-call token in its
+ * URL, as the status callback is, and Twilio's own signature
+ * (X-Twilio-Signature), made with the auth token of the account the call
+ * went out on - the project's own Twilio config, or the OneUptime server's
+ * (TwilioWebhookSignature), as the status callback is. A request that fails
+ * either is refused (403), changes nothing, and is logged with why.
+ *
+ * The two callbacks of a call can come in either order. Twilio reports a
+ * voicemail at the end of its greeting, while the call goes on, so this one
+ * comes first as a rule, and the status callback that follows finds the
+ * log moved on and leaves it. When the status callback came first - the
+ * call had ended - it wrote "answered" and left the log Success, so this one
+ * still writes over it, once. A person who pressed 1 or 2 on the call was
+ * on the line: then nothing is written. Never over an acknowledgement, an
+ * escalation or a skip (recordProviderReport). Twilio sends the callback
+ * again when this server answered it with an error (StatusCallbackRetry): a
+ * log that says a machine answered already writes nothing more, and still
+ * corrects the notification while that is only sent.
+ */
+router.post(
+  "/amd-callback/:callLogId/:token",
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const callLogId: string = req.params["callLogId"] as string;
+      const token: string = req.params["token"] as string;
+
+      if (!callLogId || !token || !ObjectID.isValidUUID(callLogId)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "This answering machine callback URL names no call. Send it to the URL OneUptime gave Twilio as it placed the call.",
+          ),
+        );
+      }
+
+      const callLog: CallLog | null = await CallLogService.findOneById({
+        id: new ObjectID(callLogId),
+        select: {
+          _id: true,
+          projectId: true,
+          status: true,
+          statusMessage: true,
+          statusCallbackToken: true,
+          userOnCallLogTimelineId: true,
+          callData: true,
+          createdAt: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      /*
+       * Unknown id - a forged request, or a log already pruned by
+       * retention. Answered with 200 so Twilio does not retry, and not
+       * acted on.
+       */
+      if (!callLog) {
+        logger.warn(
+          `Call answering machine callback for unknown log: ${callLogId}`,
+        );
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      // The per-call token in the URL.
+      if (
+        !callLog.statusCallbackToken ||
+        !isStatusCallbackTokenValid(token, callLog.statusCallbackToken)
+      ) {
+        logger.warn(
+          `Call answering machine callback with invalid token for log: ${callLogId}`,
+        );
+        res.status(403).send("Forbidden");
+        return;
+      }
+
+      // Twilio's signature, by the account the call went out on.
+      const signed: TwilioSignatureCheck = await findTwilioAccountThatSigned({
+        request: req as unknown as WebhookRequest,
+        projectId: callLog.projectId,
+        urlSecrets: [token],
+      });
+
+      if (!signed.account) {
+        logger.warn(
+          getTwilioCallbackRefusedMessage({
+            callback: `the call answering machine callback for log ${callLogId}`,
+            reason: signed.refusalReason,
+          }),
+        );
+        res.status(403).send("Forbidden");
+        return;
+      }
+
+      const account: TwilioConfig = signed.account;
+
+      const answeredBy: AnsweredByOutcome | null = getAnsweredByOutcome(
+        req.body?.["AnsweredBy"],
+      );
+
+      // A person, or Twilio could not tell: the status callback says how it ended.
+      if (!answeredBy) {
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      if (callLog.status !== CallStatus.Success) {
+        /*
+         * The log says a machine answered already: Twilio sent the callback
+         * again. The notification is corrected - the callback that wrote
+         * the log may have stopped before it - while it is only sent.
+         * Ended any other way - rang out, busy, failed - it is left.
+         */
+        const outcome: CallOutcomeLine | undefined = readCallOutcomeMessage(
+          callLog.statusMessage,
+        )?.outcome;
+
+        if (
+          isMachineAnsweredCallOutcome(outcome) &&
+          callLog.userOnCallLogTimelineId &&
+          callLog.statusMessage
+        ) {
+          await recordProviderReport({
+            userOnCallLogTimelineId: callLog.userOnCallLogTimelineId,
+            status: UserNotificationStatus.NotAnswered,
+            statusMessage: callLog.statusMessage,
+          });
+        }
+
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      /*
+       * The person pressed 1 or 2 on this call: they were on the line, and
+       * the machine Twilio heard is not theirs. Nothing is written.
+       */
+      if (
+        callLog.userOnCallLogTimelineId &&
+        (await isAnsweredOnTheCall(callLog.userOnCallLogTimelineId))
+      ) {
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      const callSid: unknown =
+        typeof req.body?.["CallSid"] === "string"
+          ? req.body["CallSid"].trim()
+          : req.body?.["CallSid"];
+
+      /*
+       * The voicemail's greeting is over: the call is turned to the message
+       * kept for it as it was placed, which the voicemail records.
+       */
+      const isMessageLeft: boolean =
+        answeredBy.canLeaveMessage && isTwilioCallSid(callSid)
+          ? await leaveVoicemailMessage({
+              account: account,
+              callSid: callSid,
+              message: getVoicemailMessageOfCall(callLog.callData),
+              callLogId: callLog.id!,
+            })
+          : false;
+
+      const outcome: CallOutcome = getMachineAnsweredCallOutcome({
+        outcome: answeredBy,
+        isMessageLeft: isMessageLeft,
+      });
+
+      const statusMessage: string = getCallOutcomeStatusMessage({
+        callSid: callSid,
+        outcome: outcome,
+      });
+
+      const written: { isWritten: boolean; wasEndCounted: boolean } =
+        await writeMachineAnsweredOutcome({
+          callLog: callLog,
+          outcome: outcome,
+          statusMessage: statusMessage,
+        });
+
+      if (!written.isWritten) {
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      /*
+       * How the call ended, for the platform's operator - once: not when
+       * the status callback had counted it answered already.
+       */
+      if (!written.wasEndCounted) {
+        recordCallEnd({ query: req.query, callLog: callLog, outcome: outcome });
+      }
+
+      // Not Answered, while the notification is only sent.
       if (callLog.userOnCallLogTimelineId) {
         await recordProviderReport({
           userOnCallLogTimelineId: callLog.userOnCallLogTimelineId,

@@ -692,6 +692,22 @@ export interface DockerSwarmManagerQuorum {
   canLose: number;
 }
 
+/*
+ * A manager the swarm's majority cannot count on: its node is not Ready
+ * (down, disconnected, or in a state Swarm does not know) or the other
+ * managers cannot reach it. The one rule for the quorum and for the
+ * managers the hero's count opens.
+ */
+export function isDockerSwarmManagerOutOfReach(
+  row: Pick<DockerSwarmResource, "kind" | "role" | "state" | "attributes">,
+): boolean {
+  return (
+    isDockerSwarmManager(row) &&
+    ((row.state || "").toLowerCase() !== "ready" ||
+      isDockerSwarmManagerUnreachable(row))
+  );
+}
+
 export function getDockerSwarmManagerQuorum(
   rows: Array<DockerSwarmResource>,
 ): DockerSwarmManagerQuorum | null {
@@ -705,10 +721,7 @@ export function getDockerSwarmManagerQuorum(
   }
   const reachable: number = managers.filter(
     (row: DockerSwarmResource): boolean => {
-      return (
-        (row.state || "").toLowerCase() === "ready" &&
-        !isDockerSwarmManagerUnreachable(row)
-      );
+      return !isDockerSwarmManagerOutOfReach(row);
     },
   ).length;
   const majority: number = Math.floor(managers.length / 2) + 1;
@@ -719,6 +732,52 @@ export function getDockerSwarmManagerQuorum(
     hasQuorum: reachable >= majority,
     canLose: Math.max(0, reachable - majority),
   };
+}
+
+/*
+ * The swarm's own row when its managers put it at risk: critical once it
+ * has lost their majority, a warning while it can lose no more. Nothing
+ * while it can stand to lose one, or has no manager reported. Needs
+ * attention and the hero's managers count list it alike.
+ */
+export function getDockerSwarmQuorumItem(data: {
+  rows: Array<DockerSwarmResource>;
+  clusterName?: string | undefined;
+}): ResourceAttentionItem | null {
+  const quorum: DockerSwarmManagerQuorum | null = getDockerSwarmManagerQuorum(
+    data.rows,
+  );
+  if (!quorum || quorum.reachable >= quorum.total) {
+    return null;
+  }
+  const managers: ResourceAttentionText = {
+    text: REASON_MANAGERS_REACHABLE,
+    values: {
+      reachable: String(quorum.reachable),
+      total: String(quorum.total),
+    },
+  };
+  if (!quorum.hasQuorum) {
+    return {
+      key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+      kind: DOCKER_SWARM_KIND_CLUSTER,
+      icon: IconProp.DockerSwarm,
+      name: data.clusterName || "",
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [{ text: REASON_QUORUM_LOST }, managers],
+    };
+  }
+  if (quorum.canLose === 0) {
+    return {
+      key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+      kind: DOCKER_SWARM_KIND_CLUSTER,
+      icon: IconProp.DockerSwarm,
+      name: data.clusterName || "",
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_NO_TOLERANCE }, managers],
+    };
+  }
+  return null;
 }
 
 /*
@@ -806,36 +865,12 @@ export function getDockerSwarmAttentionItems(data: {
   }
 
   if (scope === "cluster") {
-    const quorum: DockerSwarmManagerQuorum | null = getDockerSwarmManagerQuorum(
-      data.rows,
-    );
-    if (quorum && quorum.reachable < quorum.total) {
-      const managers: ResourceAttentionText = {
-        text: REASON_MANAGERS_REACHABLE,
-        values: {
-          reachable: String(quorum.reachable),
-          total: String(quorum.total),
-        },
-      };
-      if (!quorum.hasQuorum) {
-        items.push({
-          key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
-          kind: DOCKER_SWARM_KIND_CLUSTER,
-          icon: IconProp.DockerSwarm,
-          name: data.clusterName || "",
-          severity: ResourceAttentionSeverity.Critical,
-          reasons: [{ text: REASON_QUORUM_LOST }, managers],
-        });
-      } else if (quorum.canLose === 0) {
-        items.push({
-          key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
-          kind: DOCKER_SWARM_KIND_CLUSTER,
-          icon: IconProp.DockerSwarm,
-          name: data.clusterName || "",
-          severity: ResourceAttentionSeverity.Warning,
-          reasons: [{ text: REASON_NO_TOLERANCE }, managers],
-        });
-      }
+    const quorumItem: ResourceAttentionItem | null = getDockerSwarmQuorumItem({
+      rows: data.rows,
+      clusterName: data.clusterName,
+    });
+    if (quorumItem) {
+      items.push(quorumItem);
     }
   }
 
@@ -1149,6 +1184,62 @@ export function getDockerSwarmNodesNotReadyItems(data: {
     items.push(item);
   }
   return sortResourceAttention(items, DOCKER_SWARM_ATTENTION_KIND_ORDER);
+}
+
+/*
+ * What the hero's "3 managers" opens while a manager is out of reach
+ * (#9729): each manager its majority cannot count on - the ones "2 of 3
+ * managers reachable" leaves out - with why (Down, Disconnected, State
+ * unknown, Manager unreachable), Docker's own words on it, its role as
+ * `docker node ls` says it and its address. The swarm's own row comes
+ * with them when that put its majority at risk (lost, or one manager from
+ * lost): what the managers it lost cost it. Nothing while every manager is
+ * in reach.
+ */
+export function getDockerSwarmManagersOutOfReachItems(data: {
+  rows: Array<DockerSwarmResource>;
+  clusterName?: string | undefined;
+  routeFor: DockerSwarmRouteFor;
+}): Array<ResourceAttentionItem> {
+  const managers: Array<ResourceAttentionItem> = [];
+  for (const row of data.rows) {
+    if (!isDockerSwarmManagerOutOfReach(row)) {
+      continue;
+    }
+    const assessment: DockerSwarmAssessment = assessDockerSwarmNode(row);
+    const item: ResourceAttentionItem = toAttentionItem({
+      row: row,
+      kind: "Node",
+      assessment: {
+        ...assessment,
+        severity: assessment.severity || ResourceAttentionSeverity.Warning,
+        // A manager that has reported no state yet says so as its reason.
+        reasons:
+          assessment.reasons.length > 0
+            ? assessment.reasons
+            : [
+                {
+                  text: assessment.status.label,
+                  values: assessment.status.values,
+                },
+              ],
+      },
+      routeFor: data.routeFor,
+    });
+    item.facts = nodeFacts(row);
+    managers.push(item);
+  }
+  if (managers.length === 0) {
+    return [];
+  }
+  const quorumItem: ResourceAttentionItem | null = getDockerSwarmQuorumItem({
+    rows: data.rows,
+    clusterName: data.clusterName,
+  });
+  return sortResourceAttention(
+    quorumItem ? [quorumItem, ...managers] : managers,
+    DOCKER_SWARM_ATTENTION_KIND_ORDER,
+  );
 }
 
 // Tasks Swarm wanted running that are not: what "N/M tasks running" is short of.

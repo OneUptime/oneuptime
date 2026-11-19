@@ -40,7 +40,7 @@ Al het andere staat onder **Meer velden**, ingeklapt tot u het opent:
 | Veld | Wat het doet |
 | --- | --- |
 | **Elke beurt duurt** | **1 dag**, **1 week**, **2 weken** of **1 maand**, en **1 week** als u het niet wijzigt. Het wordt gevraagd zodra iemand elkaar afwisselt. Elke persoon heeft zo lang dienst, daarna neemt de volgende het over, op het tijdstip van de dag waarop het schema is gemaakt. |
-| **Tijdzone** | De tijdzone waarin overdrachtstijden en diensturen worden bijgehouden. Hij begint op de uwe. |
+| **Tijdzone** | De tijdzone waarin overdrachtstijden en diensturen worden bijgehouden. Hij begint op de uwe. Elke tijdzone volgt de huidige regels van haar regio: America/Vancouver (Brits-Columbia) blijft vanaf 2026 het hele jaar op UTC-7. |
 | **Beschrijving** | Notities over het schema. |
 | **Labels** | Labels om het schema te vinden en te groeperen. |
 

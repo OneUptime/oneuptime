@@ -12,6 +12,7 @@ import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
+import SetupActionAPI from "Common/Server/API/SetupActionAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
@@ -1908,12 +1909,9 @@ import WorkspaceNotificationLogService, {
 } from "Common/Server/Services/WorkspaceNotificationLogService";
 
 // scheduled maintenance template
-import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateAPI from "Common/Server/API/ScheduledMaintenanceTemplateAPI";
 import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
-import ScheduledMaintenanceTemplateService, {
-  Service as ScheduledMaintenanceTemplateServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService, {
   Service as ScheduledMaintenanceTemplateOwnerTeamServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
@@ -4117,16 +4115,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // scheduled maintenance template
+    /*
+     * scheduled maintenance template: its CRUD, and whether an event made
+     * from it on the status pages picked notifies anyone (#9920).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateServiceType
-      >(
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateService,
-      ).getRouter(),
+      new ScheduledMaintenanceTemplateAPI().getRouter(),
     );
 
     app.use(
@@ -7608,6 +7603,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
+
+    /*
+     * Ask AI's setup actions, one call each, outside the chat: the MCP
+     * server's outcome-level tools (#7241).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupActionAPI);
 
     // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);

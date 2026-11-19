@@ -121,6 +121,10 @@ import {
   getAllMessageQueueAlertTemplates,
   getMessageQueueAlertTemplatesFor,
 } from "../MessageQueueAlertTemplates";
+import {
+  ManagedDeviceAlertTemplate,
+  getAllManagedDeviceAlertTemplates,
+} from "../ManagedDeviceAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -156,7 +160,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "cloudResourceId"
     | "cloudAppId"
     | "serverlessFunctionId"
-    | "messageQueueId";
+    | "messageQueueId"
+    | "deviceManagementConnectionId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -940,6 +945,7 @@ function normalizeCloudTemplate(
         readings: context?.cloudReadings,
         allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
         connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
+        resourceName: context?.cloudResourceName,
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         defaultIncidentSeverityId: args.defaultIncidentSeverityId,
@@ -1121,6 +1127,37 @@ function getAllMessageQueueRecommendations(): Array<MonitorRecommendation> {
     (template: MessageQueueAlertTemplate) => {
       return normalizeMessageQueueTemplate(template);
     },
+  );
+}
+
+/*
+ * The device management connection adapter (#9835): a connection's monitors
+ * read the check-ins its reads write for its devices, filtered on the
+ * connection's id, which is the resource identifier.
+ */
+function normalizeManagedDeviceTemplate(
+  template: ManagedDeviceAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
+    monitorType: MonitorType.Metrics,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        deviceManagementConnectionId: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getManagedDeviceRecommendations(): Array<MonitorRecommendation> {
+  return getAllManagedDeviceAlertTemplates().map(
+    normalizeManagedDeviceTemplate,
   );
 }
 
@@ -1317,6 +1354,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.QueueList,
       getRecommendations: getMessageQueueRecommendations,
       getAllPossibleRecommendations: getAllMessageQueueRecommendations,
+    },
+    {
+      resourceType:
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Esper Connection",
+      identifierFieldName: "deviceManagementConnectionId",
+      icon: IconProp.DevicePhoneMobile,
+      getRecommendations: getManagedDeviceRecommendations,
     },
   ];
 

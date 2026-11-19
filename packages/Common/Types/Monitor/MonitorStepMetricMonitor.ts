@@ -35,6 +35,25 @@ export default interface MonitorStepMetricMonitor {
    * total, on either connection (CloudAlertTemplates).
    */
   aggregatesWholeWindow?: boolean | undefined;
+  /*
+   * Judge each series on its latest data point in the window, not on every
+   * point in it - as an IoT Device monitor's Device Offline does
+   * (MonitorStepIoTMonitor). Absent (false) on every monitor that does not
+   * ask for it, which judges its whole window, as before.
+   *
+   * What it is for: a reading taken on a schedule slower than the monitor
+   * looks, such as the minutes since each managed device last checked in,
+   * written by every read of its device management connection (every 15
+   * minutes by default, up to an hour apart: ManagedDeviceCheckIn). The
+   * window has to be long enough to hold one read at the longest interval,
+   * and judged whole it would hold a device's old readings for that long:
+   * an alert would open an hour after the device stopped and resolve an
+   * hour after it came back. Judged on its latest reading, it opens with
+   * the first reading that says the device stopped, and resolves with the
+   * first that says it checked in again. A series with no point in the
+   * window still has none, so its no-data policy decides as before.
+   */
+  judgeLatestReading?: boolean | undefined;
 }
 
 export class MonitorStepMetricMonitorUtil {
@@ -43,6 +62,13 @@ export class MonitorStepMetricMonitorUtil {
     monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined | null,
   ): boolean {
     return monitorStepMetricMonitor?.aggregatesWholeWindow === true;
+  }
+
+  // Whether each series is judged on its latest reading (above).
+  public static judgesLatestReading(
+    monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined | null,
+  ): boolean {
+    return monitorStepMetricMonitor?.judgeLatestReading === true;
   }
 
   public static getDefault(): MonitorStepMetricMonitor {

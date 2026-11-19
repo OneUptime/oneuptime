@@ -816,6 +816,208 @@ describe("CloudResourceReadingsWriter", () => {
     expect(result).toEqual({ written: 1, needingAttention: 1, cleared: 0 });
     expect(writes()[0]!.parameters[4]).toEqual([CloudHealthSeverity.Critical]);
   });
+
+  /*
+   * #9740: a reading read less often than every read - an Azure key metric
+   * kept at five minutes, read every 15 - is kept from what the row held
+   * while its datapoint is younger than its hold, so its rule and its tile
+   * read it between its reads.
+   */
+  describe("a five-minute reading, kept between its reads", () => {
+    const APP_ID: string = "00000000-0000-4000-8000-0000000000a1";
+    const MINUTE_MS: number = 60 * 1000;
+
+    function appRow(cloudReadings: JSONObject | undefined): CloudResource {
+      const model: CloudResource = new CloudResource();
+      model.id = new ObjectID(APP_ID);
+      model.resourceIdentifier = "azure:app";
+      model.cloudProvider = "azure";
+      model.cloudResourceType = "Microsoft.Web/sites";
+
+      if (cloudReadings) {
+        model.cloudReadings = cloudReadings;
+      }
+
+      return model;
+    }
+
+    function at(minutesBeforeNow: number): string {
+      return new Date(
+        NOW.getTime() - minutesBeforeNow * MINUTE_MS,
+      ).toISOString();
+    }
+
+    function appEntry(
+      readings: JSONObject,
+    ): Map<string, CollectedCloudReadings> {
+      return collectedOf([
+        [
+          "azure:app",
+          {
+            provider: "azure",
+            resourceType: "Microsoft.Web/sites",
+            readings: readings as unknown as CollectedCloudReadings["readings"],
+          },
+        ],
+      ]);
+    }
+
+    function writtenReadings(): JSONObject {
+      return JSON.parse(
+        (writes()[0]!.parameters[3] as Array<string>)[0]!,
+      ) as JSONObject;
+    }
+
+    test("what the row held is read with the rest of it", async () => {
+      rows = [appRow(undefined)];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({ requests: { value: 10, time: at(4) } }),
+      });
+
+      expect(findBy.mock.calls[0]![0].select).toMatchObject({
+        cloudReadings: true,
+      });
+    });
+
+    test("a read without the health check keeps the one the row held, and judges it", async () => {
+      rows = [
+        appRow({
+          healthcheckstatus: {
+            value: 0,
+            time: at(14),
+            metric: "azure_healthcheckstatus_average",
+          },
+          requests: { value: 900, time: at(9) },
+        }),
+      ];
+
+      const result: CloudReadingsWriteResult =
+        await CloudResourceReadingsWriter.write({
+          projectId: PROJECT,
+          connectionId: CONNECTION,
+          writtenAt: NOW,
+          collected: appEntry({ requests: { value: 1200, time: at(4) } }),
+        });
+
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1200, time: at(4) },
+        // Kept with its own time and its stored name.
+        healthcheckstatus: {
+          value: 0,
+          time: at(14),
+          metric: "azure_healthcheckstatus_average",
+        },
+      });
+      // Every instance failing its health check: critical, between its reads too.
+      expect(writes()[0]!.parameters[4]).toEqual([
+        CloudHealthSeverity.Critical,
+      ]);
+      expect(result.needingAttention).toBe(1);
+    });
+
+    test("one as old as its hold is dropped, and judged no more", async () => {
+      rows = [
+        appRow({
+          healthcheckstatus: { value: 0, time: at(40) },
+        }),
+      ];
+
+      const result: CloudReadingsWriteResult =
+        await CloudResourceReadingsWriter.write({
+          projectId: PROJECT,
+          connectionId: CONNECTION,
+          writtenAt: NOW,
+          collected: appEntry({ requests: { value: 1200, time: at(4) } }),
+        });
+
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1200, time: at(4) },
+      });
+      expect(writes()[0]!.parameters[4]).toEqual([null]);
+      expect(result.needingAttention).toBe(0);
+    });
+
+    test("a reading every read brings is not kept from the row", async () => {
+      rows = [
+        appRow({
+          http5xx: { value: 300, time: at(9) },
+          requests: { value: 400, time: at(9) },
+        }),
+      ];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({ requests: { value: 1200, time: at(4) } }),
+      });
+
+      // The failed share of an old period never meets a new one's requests.
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1200, time: at(4) },
+      });
+      expect(writes()[0]!.parameters[4]).toEqual([null]);
+    });
+
+    test("a read that brings it writes its own", async () => {
+      rows = [appRow({ healthcheckstatus: { value: 0, time: at(24) } })];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({
+          healthcheckstatus: { value: 100, time: at(9) },
+        }),
+      });
+
+      expect(writtenReadings()).toEqual({
+        healthcheckstatus: { value: 100, time: at(9) },
+      });
+      expect(writes()[0]!.parameters[4]).toEqual([null]);
+    });
+
+    test("a row whose readings are no readings keeps nothing, and writes the read's", async () => {
+      rows = [appRow({ healthcheckstatus: "broken" } as unknown as JSONObject)];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({ requests: { value: 1, time: at(4) } }),
+      });
+
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1, time: at(4) },
+      });
+    });
+
+    test("a resource this read brought nothing of is not written: its row keeps all it had", async () => {
+      rows = [appRow({ healthcheckstatus: { value: 0, time: at(14) } })];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: collectedOf([
+          [
+            "azure:another",
+            {
+              provider: "azure",
+              resourceType: "Microsoft.Web/sites",
+              readings: { requests: { value: 1, time: at(4) } },
+            },
+          ],
+        ]),
+      });
+
+      expect(writes()).toHaveLength(0);
+    });
+  });
 });
 
 describe("a Service Bus namespace's readings, read split per queue", () => {

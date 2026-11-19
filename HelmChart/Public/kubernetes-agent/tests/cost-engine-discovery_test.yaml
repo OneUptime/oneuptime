@@ -248,7 +248,7 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "job_name: cost-engine"
 
-  - it: keeps service discovery out of the default install, which scrapes its bundled engine
+  - it: keeps service discovery out of the default install, which asks the cost agent
     template: templates/configmap-deployment.yaml
     asserts:
       - notMatchRegex:

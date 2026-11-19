@@ -58,10 +58,13 @@ export interface KubernetesCostAllocationIngestRow {
 
 /*
  * Where an engine's prices come from (EnginePricing): a cloud's public list
- * prices, rates someone set, the engine's built-in defaults, or unknown.
+ * prices, the same with a Kubecost that reconciles them with the cloud's bill
+ * later (billing-integration), rates someone set, the engine's built-in
+ * defaults, or unknown.
  */
 export type KubernetesCostPricingSource =
   | "list-prices"
+  | "billing-integration"
   | "rate-card"
   | "default-rates"
   | "unknown";
@@ -85,7 +88,10 @@ export interface KubernetesCostEngineInfo {
    */
   bundledEngineUnused: boolean;
   pricingSource: KubernetesCostPricingSource;
-  // The cloud whose list prices apply ("AWS"); empty otherwise.
+  /*
+   * The cloud whose list prices apply ("AWS"), with list-prices and
+   * billing-integration; empty otherwise.
+   */
   pricingProvider: string;
 }
 
@@ -218,6 +224,16 @@ export interface CostEngineSource {
   describe?(): KubernetesCostEngineInfo | undefined;
   // Where the engine in use answers, for /healthz and troubleshoot.sh.
   engineUrl?(): string | undefined;
+  /*
+   * Whether the allocations just read hold the whole of a closed window
+   * (EngineCollection): false holds the window for a later tick, unshipped,
+   * without counting as a failure. Absent: always.
+   */
+  isWindowComplete?(data: {
+    windowStart: Date;
+    windowEnd: Date;
+    allocations: Array<EngineAllocation>;
+  }): Promise<boolean>;
 }
 
 // One http_sd target group, as Prometheus reads it.

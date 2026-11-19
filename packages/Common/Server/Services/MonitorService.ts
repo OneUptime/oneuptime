@@ -120,7 +120,9 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import MonitorDeviceLink, {
@@ -1118,9 +1120,11 @@ export class Service extends ProjectReferencesService<Model> {
           });
 
         if (followed !== undefined) {
-          (updateBy.data as unknown as Record<string, unknown>)[
-            "networkDeviceId"
-          ] = followed;
+          RelationIdUtil.stamp(
+            updateBy.data as unknown as Record<string, unknown>,
+            NETWORK_DEVICE_KEYS,
+            followed,
+          );
           // The rule's, not the person's: see recordNetworkDeviceTieSource.
           WRITES_TIED_BY_ADDRESS.add(updateBy);
         }
@@ -1927,7 +1931,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     const data: Model = onCreate.createBy.data;
 
-    if (!data.networkDeviceId) {
+    // Under either of its names: onBeforeCreate refused two that disagree.
+    if (
+      !RelationIdUtil.readConsistent(
+        data as unknown as Record<string, unknown>,
+        NETWORK_DEVICE_KEYS,
+        "Network Device",
+      )
+    ) {
       return;
     }
 
@@ -2681,7 +2692,11 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (deviceAtAddress) {
-        createBy.data.networkDeviceId = deviceAtAddress;
+        RelationIdUtil.stamp(
+          createBy.data as unknown as Record<string, unknown>,
+          NETWORK_DEVICE_KEYS,
+          deviceAtAddress,
+        );
         // The rule's, not the person's: see recordNetworkDeviceTieSource.
         WRITES_TIED_BY_ADDRESS.add(createBy);
       }
@@ -3427,9 +3442,12 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the monitor are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the monitor are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: MonitorOwnerUserService,
       ownerTeamService: MonitorOwnerTeamService,
       resourceIdColumn: "monitorId",

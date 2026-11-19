@@ -147,6 +147,12 @@ Det som ingen standard skickar går ut som det skulle ha gjort utan en konfigura
 
 Statussidor erbjuder bara de konfigurationer som skickar SMS, och **Skicka test-SMS** och **Skicka testsamtal** visas bara för det som en konfiguration skickar. Alla befintliga konfigurationer är som tidigare inställda på **Samtal och SMS**. Via API:et och Terraform är valet fältet `usedFor`, och en konfiguration utan de nummer som valet behöver avvisas.
 
+### Röstbrevlåda vid joursamtal
+
+För Twilio är ett samtal som röstbrevlådan svarar på besvarat, precis som ett samtal som en person svarar på. Därför frågar varje joursamtal Twilio i bakgrunden om en person eller röstbrevlådan svarade, med [telefonsvarardetektering](https://www.twilio.com/docs/voice/answering-machine-detection): den som svarar hör larmet direkt. Ett samtal som röstbrevlådan svarar på räknas som obesvarat, precis som ett samtal som ringer ut, och larmet fortsätter som för ett missat samtal. Så snart hälsningen är slut lämnar OneUptime ett kort meddelande med det samtalet sa. Samtalets logg säger om ett meddelande lämnades, och det gör även incidentens feed: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio tar betalt för telefonsvarardetektering för varje besvarat samtal som kontrolleras, på kontot som ringer samtalet: hela installationens konto eller projektets egen konfiguration. Den är påslagen för alla projekt. Stäng av **Röstbrevlåda vid joursamtal** under **Fler inställningar** på **Projektinställningar > Aviseringar > Aviseringskanaler** för att stänga av den: ett samtal som röstbrevlådan svarar på räknas då som besvarat, som tidigare. **Skicka testsamtal** och inkommande samtal kontrolleras aldrig. Precis som samtalsresultat behöver den att Twilio kan nå din server: se nästa avsnitt.
+
 ## 3. Konfigurera nätverksåtkomst
 
 Att skicka fungerar med enbart utgående åtkomst. Leveransuppdateringar, samtalsresultat, kvittering med knappsatsen och inkommande samtal kräver att Twilio når din server.
@@ -171,7 +177,7 @@ Inkommande åtkomst beror på funktionen:
 | --- | --- |
 | Skicka SMS | Nej. Uppdateringar av leveransstatus behöver dock ett återanrop. |
 | Ett enkelt testsamtal med röst | Nej. OneUptime skickar de talade instruktionerna med den utgående API-begäran. |
-| Veta om ett joursamtal besvarades | Ja. Twilio meddelar hur varje samtal slutade, så att incidentens feed kan säga när någon inte svarade. Samtal går ut även utan det. |
+| Veta om ett joursamtal besvarades | Ja. Twilio meddelar hur varje samtal slutade, och om en person eller röstbrevlådan svarade, så att incidentens feed kan säga när någon inte svarade. Samtal går ut även utan det. |
 | Trycka 1 för att kvittera ett jourlarm | Ja. Twilio skickar knappsatsinmatningen till OneUptime. |
 | Policyer för inkommande samtal | Ja. Twilio hämtar samtalsinstruktioner och rapporterar resultatet av uppringningen. |
 
@@ -181,13 +187,17 @@ Det här är de externa sökvägarna via OneUptimes Nginx-gateway. Platshållarn
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS-leveransstatus |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Samtalsresultat |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Om en person eller röstbrevlådan svarade på ett joursamtal |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Kvittering med knappsatsen |
 | POST | `/notification/incoming-call/voice` | Valfria instruktioner för inkommande samtal |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valfria resultat av routning av inkommande samtal |
 
 OneUptime skapar URL:erna för SMS, samtalsresultat och kvittering automatiskt. Ersätt inte deras token med en fast webhook-URL. För inkommande samtal följer du [policyer för inkommande samtal](/docs/on-call/incoming-call-policy), som konfigurerar numrets webhook när du kopplar ett nummer.
 
-Twilio kräver [offentligt nåbara webhook-URL:er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Använd ett offentligt betrott TLS-certifikat och bevara den ursprungliga värden, protokollet, sökvägen, frågeparametrarna, kroppen och headern `X-Twilio-Signature` genom proxyer. Hanterarna för inkommande samtal validerar Twilios signaturer; SMS-leverans och samtalsresultat använder en URL-token per meddelande eller samtal, och kvittering med knappsatsen en signerad frågetoken. Visa inte token i delade loggar eller skärmbilder. Se [Twilios webhook-säkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio kräver [offentligt nåbara webhook-URL:er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Använd ett offentligt betrott TLS-certifikat och bevara den ursprungliga värden, protokollet, sökvägen, frågeparametrarna, kroppen och headern `X-Twilio-Signature` genom proxyer. Varje återanrop i tabellen kontrollerar Twilios signatur, som görs med Auth Token för det Twilio-konto som skickade SMS:et eller ringde samtalet: projektets Twilio-konfiguration eller kontot för hela installationen. Återanropen för SMS-leverans, samtalsresultat och röstbrevlåda kontrollerar också token i sin URL, och kvittering med knappsatsen den signerade token i sin fråga: signaturen visar att en begäran kommer från Twilio, och token vilket SMS eller samtal den gäller. Ett återanrop vars signatur inte stämmer avvisas med 403 och ändrar ingenting. Visa inte token i delade loggar eller skärmbilder. Se [Twilios webhook-säkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+
+> [!IMPORTANT]
+> Twilio signerar exakt den URL som anropas och varje parameter som skickas, så OneUptime avvisar ett återanrop som en proxy har ändrat på vägen, och då slutar SMS-leveransstatus, samtalsresultat och kvittering med knappsatsen att uppdateras. Kontrollera att varje proxy mellan Twilio och OneUptime skickar vidare sökvägen, frågesträngen, kroppen och headern `X-Twilio-Signature` oförändrade, utan omdirigering. OneUptime kontrollerar signaturen mot den URL som `HOST` och `HTTP_PROTOCOL` ger, och mot den som begärans headrar `Host`, `X-Forwarded-Host` och `X-Forwarded-Proto` anger, så det räcker att en av dem är den offentliga URL som Twilio anropade. För varje återanrop som avvisas har serverns logg en rad som börjar med `Twilio callback refused` och säger varför, utan token eller Auth Token.
 
 ### Publicera återanrop från en privat installation
 
@@ -224,7 +234,7 @@ För utveckling beskriver Twilios [guide för att testa webhooks](https://www.tw
 | Inget skickas | Autentiseringsuppgifter, numrets funktioner, kontots begränsningar och den utgående anslutningen. |
 | Twilio avvisar SMS med fel 21606 | Numret kan inte skicka SMS. Lägg till ett som kan under **Twilio SMS-telefonnummer**: se [Separata nummer för samtal och SMS](#separata-nummer-för-samtal-och-sms). |
 | Samtal eller SMS går via ett annat konto än projektets | Ingen konfiguration är projektets standard för dem: kolumnen **Projektstandard** visar vad varje konfiguration är standard för. Se [Ett konto endast för SMS, eller endast för samtal](#ett-konto-endast-för-sms-eller-endast-för-samtal). |
-| SMS:et eller samtalet kommer fram, men status eller kvittering uppdateras inte | Återanrops-URL:en och loggarna från den offentliga ingressen. Twilios [vägledning om fel vid HTTP-hämtning](https://www.twilio.com/docs/api/errors/11200) hjälper till med återanrop som inte nås, TLS-problem och HTTP-fel. |
+| SMS:et eller samtalet kommer fram, men status eller kvittering uppdateras inte | Återanrops-URL:en och loggarna från den offentliga ingressen. Twilios [vägledning om fel vid HTTP-hämtning](https://www.twilio.com/docs/api/errors/11200) hjälper till med återanrop som inte nås, TLS-problem och HTTP-fel. En 403 betyder att OneUptime avvisade återanropet: serverns logg säger varför, på en rad som börjar med `Twilio callback refused`. |
 
 Ett lyckat testsamtal bevisar inte ensamt att återanrop kan nås.
 

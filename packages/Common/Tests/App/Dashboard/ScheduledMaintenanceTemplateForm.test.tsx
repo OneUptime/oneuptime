@@ -137,7 +137,9 @@ import ScheduledMaintenanceTemplateView from "../../../../App/FeatureSet/Dashboa
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
-import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import EventInterval from "../../../Types/Events/EventInterval";
 import Recurring from "../../../Types/Events/Recurring";
@@ -146,6 +148,43 @@ import {
   getFormSteps,
   getTemplateFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
+import MaintenanceStatusPagesCopy from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceStatusPagesCopy";
+import {
+  MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED,
+  MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReach";
+import { MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReachLines";
+import {
+  ScheduledMaintenanceReachAsk,
+  answerScheduledMaintenanceReach,
+  maintenanceNothingSent,
+} from "./ScheduledMaintenanceReachAnswers";
+import userEvent from "@testing-library/user-event";
+
+const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
+
+function makeStatusPage(): StatusPage {
+  const statusPage: StatusPage = new StatusPage();
+  statusPage._id = STATUS_PAGE_ID;
+  statusPage.name = "Acme Public Status";
+  return statusPage;
+}
+
+// Picks the status page in the picker, as a person does.
+async function pickStatusPage(): Promise<void> {
+  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+  await user.click(
+    screen.getByRole("combobox", {
+      name: /Show event on these status pages/,
+    }),
+  );
+  await user.click(
+    await screen.findByRole("option", { name: /Acme Public Status/ }),
+  );
+}
 
 const FORM_ID: string = "create-template-form";
 
@@ -276,12 +315,22 @@ beforeEach(() => {
   PermissionGate.clearPermissionPropsCache();
 
   getListMock.mockImplementation(
-    async (): Promise<{
+    async (
+      args: unknown,
+    ): Promise<{
       data: Array<BaseModel>;
       count: number;
       skip: number;
       limit: number;
     }> => {
+      // The project's one status page, for the picker.
+      if (
+        (args as { modelType?: DatabaseBaseModelType } | undefined)
+          ?.modelType === StatusPage
+      ) {
+        return { data: [makeStatusPage()], count: 1, skip: 0, limit: 100 };
+      }
+
       return { data: [], count: 0, skip: 0, limit: 100 };
     },
   );
@@ -300,6 +349,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  // The reach answers stood in by a test.
+  jest.restoreAllMocks();
 });
 
 describe("Create Scheduled Maintenance Template", () => {
@@ -375,6 +426,9 @@ describe("Create Scheduled Maintenance Template", () => {
   });
 
   test("Event folds owners and labels under Advanced; Resources Affected asks for the monitors apart and folds the subscriber switches to a line", async () => {
+    const asks: Array<ScheduledMaintenanceReachAsk> =
+      answerScheduledMaintenanceReach();
+
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
@@ -401,9 +455,24 @@ describe("Create Scheduled Maintenance Template", () => {
     });
 
     expect(notifications).toHaveAttribute("aria-expanded", "false");
+    // No page picked: events made from it appear on none (#9920).
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
-      "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
+      `${MaintenanceStatusPagesCopy.templateNotShownWarning} ${MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED}`,
     );
+    expect(asks).toEqual([]);
+
+    // A page that shows maintenance events and notifies: every moment.
+    await pickStatusPage();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("collapsible-section-summary"),
+      ).toHaveTextContent(
+        "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
+      );
+    });
+    expect(asks[0]!.route).toBe("/scheduled-maintenance-template/reach");
+    expect(asks[0]!.statusPageIds).toEqual([STATUS_PAGE_ID]);
+    expect(asks[0]!.recordId).toBeNull();
 
     /*
      * The monitors, the status they change to - asked whether or not a
@@ -434,6 +503,44 @@ describe("Create Scheduled Maintenance Template", () => {
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
       "Subscribers of the event's status pages are notified when it starts.",
     );
+  });
+
+  /*
+   * #9920: a template's line says what its status pages will do for an
+   * event made from it, and the note under its three boxes says why nobody
+   * would be told.
+   */
+  test("the pages picked hide maintenance events: the line and the note under the boxes say so", async () => {
+    answerScheduledMaintenanceReach(
+      maintenanceNothingSent(PublicNoteNothingSentReason.NoStatusPages),
+    );
+
+    renderTemplateForm();
+    await screen.findByRole("navigation", { name: "Progress" });
+    await fillTemplateInfo();
+    await goToNextStep("Maintenance Details");
+    fireEvent.change(labelledControl("Title"), {
+      target: { value: "Database maintenance" },
+    });
+    await act(async () => {});
+    await goToNextStep("Resources Affected");
+    await pickStatusPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("collapsible-section-summary"),
+      ).toHaveTextContent(
+        `${MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED} ${MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED}`,
+      );
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Subscriber Notifications" }),
+    );
+
+    expect(
+      await screen.findByTestId(MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID),
+    ).toHaveTextContent(MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED);
   });
 
   /*
@@ -655,7 +762,9 @@ describe("the template's page", () => {
     jest.restoreAllMocks();
   });
 
-  test("says what the subscriber switches do in the form's words", async () => {
+  test("says what the subscriber switches do in the form's words, for the template's status pages", async () => {
+    const asks: Array<ScheduledMaintenanceReachAsk> =
+      answerScheduledMaintenanceReach();
     const fields: Array<DetailField> = await detailFields();
     const notifications: DetailField = fieldTitled(
       fields,
@@ -665,6 +774,8 @@ describe("the template's page", () => {
     render(
       notifications.getElement!(
         templateWith({
+          _id: "66666666-6666-4666-8666-666666666666",
+          statusPages: [makeStatusPage()],
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: false,
           shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
           shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
@@ -681,11 +792,16 @@ describe("the template's page", () => {
       ),
     );
 
-    expect(
-      screen.getByTestId("template-subscriber-notifications-summary"),
-    ).toHaveTextContent(
-      "Subscribers of the event's status pages are notified when it starts and when it ends. They get reminders before it starts.",
-    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("template-subscriber-notifications-summary"),
+      ).toHaveTextContent(
+        "Subscribers of the event's status pages are notified when it starts and when it ends. They get reminders before it starts.",
+      );
+    });
+    // Asked as the template's own, which its editor may read.
+    expect(asks[0]!.route).toBe("/scheduled-maintenance-template/reach");
+    expect(asks[0]!.recordId).toBe("66666666-6666-4666-8666-666666666666");
 
     for (const retired of [
       "Notify Status Page Subscribers",
