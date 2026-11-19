@@ -3,6 +3,9 @@ package com.oneuptime.androidagent.agent
 import com.oneuptime.androidagent.apps.AppInventoryTracker
 import com.oneuptime.androidagent.boot.BootInfo
 import com.oneuptime.androidagent.boot.BootTracker
+import com.oneuptime.androidagent.collect.CollectorCapabilities
+import com.oneuptime.androidagent.collect.CpuSource
+import com.oneuptime.androidagent.collect.CpuUnavailable
 import com.oneuptime.androidagent.collect.DeviceSnapshot
 import com.oneuptime.androidagent.collect.MemoryReading
 import com.oneuptime.androidagent.config.AgentConfig
@@ -62,6 +65,10 @@ class AgentCoreDropBoxAndSessionsTest {
     private val managed: Map<String, Any?> = mapOf("oneuptime_token" to "the-key", "device_name" to "store-0412-kiosk-02")
     private var bootInfo = BootInfo("boot-1", 41, clock.now - clock.elapsed)
 
+    // Where the next snapshot's CPU use comes from: a device another device manager owns.
+    private var cpu: CollectorCapabilities? =
+        CollectorCapabilities(cpuSource = CpuSource.NONE, cpuUnavailable = CpuUnavailable.NOT_DEVICE_OWNER)
+
     // What DropBox gives the next cycle.
     private var dropBoxState = DropBoxState.READING
     private val dropBoxRecords: MutableList<LogRecord> = mutableListOf()
@@ -120,6 +127,7 @@ class AgentCoreDropBoxAndSessionsTest {
                                 dropBoxBoots.clear()
                             }
                         },
+                        cpuReading = { cpu },
                     ),
                 facts = facts,
                 clock = clock,
@@ -162,6 +170,26 @@ class AgentCoreDropBoxAndSessionsTest {
     private fun newBoot(id: String, uptimeMillis: Long) {
         clock.elapsed = uptimeMillis
         bootInfo = BootInfo(id, 42, clock.now - uptimeMillis)
+    }
+
+    @Test
+    fun `the agent says where CPU use comes from, or plainly why there is none, once and on each change`() {
+        fun cpuRecords(): List<JsonObject> =
+            logRecords().filter { it["attributes"]!!.otlpAttributes()["event.name"]?.text("stringValue") == "oneuptime.agent.cpu" }
+
+        core.cycle(byService = true)
+        core.cycle(byService = true)
+
+        assertEquals(1, cpuRecords().size)
+        assertEquals("not_device_owner", attributesOf("oneuptime.agent.cpu")!!["oneuptime.agent.cpu"]!!.text("stringValue"))
+        assertTrue(cpuRecords()[0].obj("body").text("stringValue").contains(AgentEvents.DEVICE_OWNER_COMMAND))
+
+        // Made the device owner: CPU use is read from Android's hardware properties.
+        cpu = CollectorCapabilities(cpuUtilization = true, cpuSource = CpuSource.HARDWARE_PROPERTIES)
+        core.cycle(byService = true)
+
+        assertEquals(2, cpuRecords().size)
+        assertEquals("hardware_properties", attributesOf("oneuptime.agent.cpu")!!["oneuptime.agent.cpu"]!!.text("stringValue"))
     }
 
     @Test

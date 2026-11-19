@@ -6,6 +6,9 @@ import com.oneuptime.androidagent.apps.InstalledApp
 import com.oneuptime.androidagent.boot.BootInfo
 import com.oneuptime.androidagent.boot.BootTracker
 import com.oneuptime.androidagent.boot.RebootFacts
+import com.oneuptime.androidagent.collect.CollectorCapabilities
+import com.oneuptime.androidagent.collect.CpuSource
+import com.oneuptime.androidagent.collect.CpuUnavailable
 import com.oneuptime.androidagent.collect.DeviceSnapshot
 import com.oneuptime.androidagent.collect.HostMetrics
 import com.oneuptime.androidagent.config.AgentConfig
@@ -49,6 +52,8 @@ class AgentEnvironment(
     // Reads DropBox's new entries: every app's crash stacks, native crashes, ANRs, and the reboots' reasons.
     val readDropBox: (config: AgentConfig) -> DropBoxRead = { DropBoxRead(DropBoxState.DISABLED, emptyList(), emptyList()) },
     val takeDroppedDropBoxRecord: () -> LogRecord? = { null },
+    // Where the last snapshot's CPU use came from, or why there was none (SnapshotCollector.capabilities).
+    val cpuReading: () -> CollectorCapabilities? = { null },
 )
 
 /** How the last cycle went, for the notification and the setup screen. */
@@ -87,6 +92,7 @@ class AgentCore(
     private var announcedStart: Boolean = false
     private var lastLogcatState: LogcatState? = null
     private var lastDropBoxState: DropBoxState? = null
+    private var lastCpuReading: Pair<CpuSource, CpuUnavailable?>? = null
     private var lastAppsCheckElapsed: Long? = null
 
     // What DropBox said of recent boots, kept until the boot's record goes out with it.
@@ -162,6 +168,19 @@ class AgentCore(
         val snapshot: DeviceSnapshot = environment.collectSnapshot().copy(bootsInLastHour = bootTracker.bootsInLastHour(now))
         outbox.add(Signal.METRICS, OtlpJson.metricsRequest(resource, scope, HostMetrics.from(snapshot)).toString())
         lastCollectionAtMillis = snapshot.timeMillis
+
+        /*
+         * Where CPU use comes from, said once and again when it changes: a
+         * fleet whose devices send none sees why in OneUptime, not only on
+         * each device's screen (#9803).
+         */
+        environment.cpuReading()?.let { cpu ->
+            val reading: Pair<CpuSource, CpuUnavailable?> = cpu.cpuSource to cpu.cpuUnavailable
+            if (reading != lastCpuReading) {
+                records.add(AgentEvents.cpu(now, cpu.cpuSource, cpu.cpuUnavailable))
+                lastCpuReading = reading
+            }
+        }
         bootTracker.recordAlive(byService)
 
         if (config.installedAppsEnabled && appsCheckDue()) {

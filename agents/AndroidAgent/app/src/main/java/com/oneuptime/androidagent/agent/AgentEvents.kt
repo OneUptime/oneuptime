@@ -1,5 +1,7 @@
 package com.oneuptime.androidagent.agent
 
+import com.oneuptime.androidagent.collect.CpuSource
+import com.oneuptime.androidagent.collect.CpuUnavailable
 import com.oneuptime.androidagent.config.ConfigSource
 import com.oneuptime.androidagent.dropbox.DropBoxState
 import com.oneuptime.androidagent.logs.LogcatCollector
@@ -63,6 +65,38 @@ object AgentEvents {
                     text("oneuptime.agent.dropbox", dropBox.name.lowercase())
                 },
         )
+
+    /** Where the device's CPU use comes from, or plainly why it has none. */
+    fun cpu(
+        nowMillis: Long,
+        source: CpuSource,
+        unavailable: CpuUnavailable?,
+    ): LogRecord =
+        LogRecord(
+            timeUnixNano = millisToNanos(nowMillis),
+            observedTimeUnixNano = millisToNanos(nowMillis),
+            severity = Severity.INFO,
+            body = cpuSentence(source, unavailable),
+            attributes =
+                attributes {
+                    text("event.name", "oneuptime.agent.cpu")
+                    text("oneuptime.agent.cpu", (unavailable?.name ?: source.name).lowercase())
+                },
+        )
+
+    fun cpuSentence(
+        source: CpuSource,
+        unavailable: CpuUnavailable?,
+    ): String =
+        when {
+            source == CpuSource.PROC_STAT -> "CPU use: read from /proc/stat."
+            source == CpuSource.HARDWARE_PROPERTIES -> "CPU use: read as the device owner, from Android's hardware properties."
+            unavailable == CpuUnavailable.NOT_SUPPORTED ->
+                "CPU use is not available: this device reports none, even to its device owner."
+            else ->
+                "CPU use is not available: Android 8 and later give it only to the device owner app. " +
+                    "On a device no other device manager owns, make the agent its owner: $DEVICE_OWNER_COMMAND"
+        }
 
     /** A log session OneUptime asked for moved on: asked at the device, allowed, declined, ended. */
     fun logSession(nowMillis: Long, view: LogSessionView): LogRecord =

@@ -116,6 +116,7 @@ class AgentRuntime private constructor(context: Context) {
                     saveLogcatPosition = logcat::saveResumePoints,
                     takeDroppedLogcatRecord = logcat::takeDroppedLinesRecord,
                     readDropBox = { config -> dropBox.read(config.logcatEnabled) },
+                    cpuReading = { collector.capabilities },
                     takeDroppedDropBoxRecord = dropBox::takeDroppedRecord,
                 ),
             facts = facts,
