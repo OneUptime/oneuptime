@@ -58697,7 +58697,6 @@
   "{{count}} new devices: {{names}}_one": "새 장치 {{count}}개: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "선택한 장치 중 {{count}}개는 이미 모니터가 있어 제외됩니다.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "선택한 장치 중 {{count}}개는 이미 모니터가 있어 제외됩니다.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}}은(는) 더 이상 이 디바이스에 표시되지 않으며, 이제부터 발생시키는 항목은 이 디바이스에 연결되지 않습니다. 가져오기와 자동 가져오기 규칙이 이 모니터를 더 이상 세지 않으므로 이 디바이스에 같은 종류의 모니터를 추가할 수 있습니다. 모니터 자체는 변경 없이 계속 확인합니다.",
   "Invitee Name": "초대받은 사람 이름",
   "Add the root cause": "근본 원인 추가",
   "Why did this alert happen? It is saved as the alert's root cause, and OneUptime AI's investigation is graded against it.": "이 경고는 왜 발생했나요? 경고의 근본 원인으로 저장되며, OneUptime AI의 조사는 이와 대조해 판정됩니다.",
@@ -58801,5 +58800,6 @@
   "Move step {{number}} down": "단계 {{number}} 아래로 이동",
   "Move step {{number}} up": "단계 {{number}} 위로 이동",
   "Step {{from}} is now step {{to}}.": "단계 {{from}}이(가) 단계 {{to}}(으)로 이동했습니다.",
-  "step {{number}}": "단계 {{number}}"
+  "step {{number}}": "단계 {{number}}",
+  "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}}은(는) 이 디바이스에서 빠집니다. 발생시키는 항목은 더 이상 이 디바이스에 연결되지 않으며, 가져오기가 같은 종류의 모니터를 추가할 수 있습니다. 모니터는 계속 확인합니다."
 }

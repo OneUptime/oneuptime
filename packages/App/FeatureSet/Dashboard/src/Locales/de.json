@@ -58697,7 +58697,6 @@
   "{{count}} new devices: {{names}}_one": "{{count}} neues Gerät: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} ausgewählte Geräte haben bereits einen Monitor und werden daher ausgelassen.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} ausgewähltes Gerät hat bereits einen Monitor und wird daher ausgelassen.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} wird nicht mehr auf diesem Gerät aufgeführt, und was er ab jetzt auslöst, wird nicht mit dem Gerät verknüpft. Importe und Regeln für automatischen Import zählen ihn nicht mehr, sodass sie dem Gerät einen gleichartigen Monitor geben können. Der Monitor selbst prüft unverändert weiter.",
   "Invitee Name": "Name der eingeladenen Person",
   "Add the root cause": "Grundursache hinzufügen",
   "Why did this alert happen? It is saved as the alert's root cause, and OneUptime AI's investigation is graded against it.": "Warum ist diese Warnung aufgetreten? Der Text wird als Grundursache der Warnung gespeichert, und die Untersuchung von OneUptime AI wird daran bewertet.",
@@ -58801,5 +58800,6 @@
   "Move step {{number}} down": "Schritt {{number}} nach unten verschieben",
   "Move step {{number}} up": "Schritt {{number}} nach oben verschieben",
   "Step {{from}} is now step {{to}}.": "Schritt {{from}} ist jetzt Schritt {{to}}.",
-  "step {{number}}": "Schritt {{number}}"
+  "step {{number}}": "Schritt {{number}}",
+  "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} wird von diesem Gerät gelöst: Was er auslöst, ist nicht mehr mit ihm verknüpft, und Importe können einen gleichartigen Monitor hinzufügen. Der Monitor prüft weiter."
 }

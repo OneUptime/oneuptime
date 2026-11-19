@@ -58697,7 +58697,6 @@
   "{{count}} new devices: {{names}}_one": "新しいデバイス {{count}} 台：{{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
   "{{count}} selected devices already have a monitor, so they are left out._one": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} はこのデバイスに表示されなくなり、今後発生するものはこのデバイスに関連付けられません。インポートと自動インポートルールはこのモニターを数えなくなるため、このデバイスに同様のモニターを付けることがあります。モニター自体は変わらずチェックを続けます。",
   "Invitee Name": "招待された人の名前",
   "Add the root cause": "根本原因を追加",
   "Why did this alert happen? It is saved as the alert's root cause, and OneUptime AI's investigation is graded against it.": "このアラートはなぜ発生しましたか？アラートの根本原因として保存され、OneUptime AI の調査はこれと照合して判定されます。",
@@ -58801,5 +58800,6 @@
   "Move step {{number}} down": "ステップ {{number}} を下へ移動",
   "Move step {{number}} up": "ステップ {{number}} を上へ移動",
   "Step {{from}} is now step {{to}}.": "ステップ {{from}} はステップ {{to}} になりました。",
-  "step {{number}}": "ステップ {{number}}"
+  "step {{number}}": "ステップ {{number}}",
+  "{{monitorName}} leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.": "{{monitorName}} はこのデバイスから外れます。今後発生するものはこのデバイスに関連付けられず、インポートで同様のモニターが追加されることがあります。モニターはチェックを続けます。"
 }
