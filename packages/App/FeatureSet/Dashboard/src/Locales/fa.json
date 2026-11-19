@@ -51536,7 +51536,7 @@
   "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.": "Telegram در این پروژه خاموش است. مالک پروژه یا کسی که نقش «مدیر صورت‌حساب» یا مجوز «Manage Billing» دارد می‌تواند آن را در تنظیمات پروژه ← اعلان‌ها ← کانال‌های اعلان روشن کند.",
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.": "بررسی آمادگی این سیاست {{names}} را در بر نمی‌گیرد، پس وضعیت آن‌ها به‌جای آماده، ناشناخته است. برای فهرست کامل، «آنکال > آمادگی» را باز کنید.",
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.": "این قواعد برای هر شدت تعیین می‌کنند فراخوان کدام {{notificationMethod}} را و پس از چه مدتی امتحان کند.",
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.": "این برای همه سیاست‌های آنکال اعمال می‌شود. برای پایان زودتر، آن را در آنکال > پیشرفته > جایگزینی‌های کاربر حذف کنید.",
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.": "این برای همه سیاست‌های آنکال اعمال می‌شود. برای پایان زودتر، آن را در آنکال > زمان‌بندی‌ها > جایگزینی‌های کاربر حذف کنید.",
   "This project has no on-call policies yet. Create one under On-Call.": "این پروژه هنوز سیاست آنکالی ندارد. یکی را در آنکال بسازید.",
   "This project has no on-call schedules yet. Create one under On-Call.": "این پروژه هنوز زمان‌بندی آنکالی ندارد. یکی را در آنکال بسازید.",
   "Timeline events for on-call policy execution log.": "رویدادهای خط زمانی گزارش اجرای سیاست آنکال.",
@@ -51548,7 +51548,7 @@
   "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.": "وقتی از کار بیفتد، OneUptime یک حادثه باز می‌کند و این افراد را فرا می‌خواند، هر کدام را همان‌طور که «راه‌های تماس با من» او می‌گوید. شروع کار با شماست، با ایمیل.",
   "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "جایگاه یک هشدار در پاسخ شما. یک پروژه تازه با Identified، Acknowledged و Resolved آغاز می‌شود: نامشان را عوض کنید یا موارد خودتان را میان آن‌ها اضافه کنید.",
   "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "جایگاه یک حادثه در پاسخ شما. یک پروژه تازه با Identified، Acknowledged و Resolved آغاز می‌شود: نامشان را عوض کنید یا موارد خودتان را میان آن‌ها اضافه کنید.",
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.": "تا وقتی کسی غایب است، فراخوان‌های او از این سیاست به جانشینش یا نفر بعدی در چرخش می‌رسد. برای همه سیاست‌ها به‌یک‌باره، از آنکال > پیشرفته > جایگزینی‌های کاربر استفاده کنید.",
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.": "تا وقتی کسی غایب است، فراخوان‌های او از این سیاست به جانشینش یا نفر بعدی در چرخش می‌رسد. برای همه سیاست‌ها به‌یک‌باره، از آنکال > زمان‌بندی‌ها > جایگزینی‌های کاربر استفاده کنید.",
   "Who is on call at any moment: people take turns in layers, and each one hands over to the next.": "اینکه هر لحظه چه کسی آنکال است: افراد در لایه‌ها نوبتی کار می‌کنند و هر کدام کار را به نفر بعدی می‌سپارد.",
   "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.": "اینکه درباره یک حادثه، هشدار یا اپیزود چه کسی فراخوانده می‌شود و اگر کسی تأیید نکند نفر بعدی کیست. سطح‌های آن قواعد تشدید هستند.",
   "You already have a status page named \"{{name}}\", so no new one was made.": "شما از قبل یک صفحه وضعیت با نام «{{name}}» دارید، بنابراین صفحه جدیدی ساخته نشد.",
@@ -57542,5 +57542,10 @@
   "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
   "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
   "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
-  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "No escalation rules": "No escalation rules",
+  "Paged First": "Paged First",
+  "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
+  "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
 }

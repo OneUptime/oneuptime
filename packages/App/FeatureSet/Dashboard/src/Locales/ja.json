@@ -51536,7 +51536,7 @@
   "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.": "このプロジェクトでは Telegram がオフです。プロジェクト所有者または「請求管理者」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知 → 通知チャネル」でオンにできます。",
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.": "このポリシーの準備状況の結果には {{names}} が含まれていないため、準備完了ではなく不明になっています。全一覧は「オンコール > 準備状況」を開いて確認してください。",
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.": "これらのルールは、重大度ごとに、呼び出しがどの{{notificationMethod}}をどれだけ待ってから試すかを決めます。",
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.": "これはすべてのオンコールポリシーに適用されます。早めに終えるには、オンコール > 詳細 > ユーザーオーバーライド で削除してください。",
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.": "これはすべてのオンコールポリシーに適用されます。早めに終えるには、オンコール > スケジュール > ユーザーオーバーライド で削除してください。",
   "This project has no on-call policies yet. Create one under On-Call.": "このプロジェクトにはまだオンコールポリシーがありません。「オンコール」で作成してください。",
   "This project has no on-call schedules yet. Create one under On-Call.": "このプロジェクトにはまだオンコールスケジュールがありません。「オンコール」で作成してください。",
   "Timeline events for on-call policy execution log.": "オンコールポリシーの実行ログのタイムラインイベント。",
@@ -51548,7 +51548,7 @@
   "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.": "ダウンすると、OneUptime はインシデントを作成し、これらの人をそれぞれの「私への連絡方法」のとおりに呼び出します。最初に通知されるのはあなたで、メールで届きます。",
   "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "対応の中でアラートがどの段階にあるかです。新しいプロジェクトには Identified、Acknowledged、Resolved があります。名前を変えたり、間に独自のものを追加したりできます。",
   "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "対応の中でインシデントがどの段階にあるかです。新しいプロジェクトには Identified、Acknowledged、Resolved があります。名前を変えたり、間に独自のものを追加したりできます。",
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.": "不在の間、このポリシーからその人への呼び出しは代理の人、またはローテーションの次の人に送られます。すべてのポリシーにまとめて適用するには、オンコール > 詳細 > ユーザーオーバーライド を使います。",
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.": "不在の間、このポリシーからその人への呼び出しは代理の人、またはローテーションの次の人に送られます。すべてのポリシーにまとめて適用するには、オンコール > スケジュール > ユーザーオーバーライド を使います。",
   "Who is on call at any moment: people take turns in layers, and each one hands over to the next.": "いつ誰がオンコールかを決めます。メンバーはレイヤーごとに交代し、それぞれ次の人に引き継ぎます。",
   "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.": "インシデント、アラート、エピソードについて誰を呼び出し、誰も確認しなければ次に誰を呼び出すかを決めます。その各段階がエスカレーションルールです。",
   "You already have a status page named \"{{name}}\", so no new one was made.": "すでに「{{name}}」という名前のステータスページがあるため、新しいページは作成されませんでした。",
@@ -57542,5 +57542,10 @@
   "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
   "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
   "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
-  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "No escalation rules": "No escalation rules",
+  "Paged First": "Paged First",
+  "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
+  "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
 }

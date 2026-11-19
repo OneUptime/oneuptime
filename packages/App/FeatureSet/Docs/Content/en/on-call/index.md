@@ -87,8 +87,8 @@ Open **On-Call** from the **Products** menu in the top bar. It opens on **On-Cal
 | Section | Pages |
 | --- | --- |
 | **Policies** | **On-Call Policies**, **Readiness**: who your policies can actually reach, and **Incoming Call Policies**: a phone number that rings whoever is on call |
-| **Schedules** | **On-Call Schedules**, **Schedule Timeline** and **Calendar Feeds** |
-| **Advanced** | **User Overrides**, **Execution Logs** and **Archived Policies** |
+| **Schedules** | **On-Call Schedules**, **Schedule Timeline**, **User Overrides**: who covers for someone while they are away, and **Calendar Feeds** |
+| **Advanced** | **Execution Logs** and **Archived Policies** |
 | **Reports** | **User On-Call Time**: how long each person was on call |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**: rules that post on-call events to a channel |
 | **Settings** | **Custom Fields**, **Label Rules** and **Owner Rules** |
@@ -109,7 +109,7 @@ Open **On-Call → Readiness** and click **Coverage** on their row. It shows the
 :::
 
 :::details A person on holiday is still being paged
-Add a user override with them under **Who is away?**. One under **On-Call → Advanced → User Overrides** covers every policy; one on a policy's own **User Overrides** page covers that policy only. See [User Overrides](/docs/on-call/user-overrides).
+Add a user override with them under **Who is away?**. One under **On-Call → Schedules → User Overrides** covers every policy; one on a policy's own **User Overrides** page covers that policy only. See [User Overrides](/docs/on-call/user-overrides).
 :::
 
 ## Next steps

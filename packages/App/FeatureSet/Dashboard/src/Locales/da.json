@@ -51536,7 +51536,7 @@
   "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.": "Telegram er slået fra i dette projekt. En Projektejer eller nogen med rollen »Faktureringsadministrator« eller tilladelsen »Manage Billing« kan slå det til under Projektindstillinger → Notifikationer → Notifikationskanaler.",
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.": "Parathedskontrollen for denne politik dækker ikke {{names}}, så de står som ukendte i stedet for klare. Åbn Vagt > Parathed for at se hele listen.",
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.": "Disse regler afgør for hver alvorsgrad, hvilken {{notificationMethod}} et kald prøver, og efter hvor lang tid.",
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.": "Dette gælder alle vagtpolitikker. Slet det under Vagt > Avanceret > Brugertilsidesættelser for at afslutte det tidligere.",
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.": "Dette gælder alle vagtpolitikker. Slet det under Vagt > Tidsplaner > Brugertilsidesættelser for at afslutte det tidligere.",
   "This project has no on-call policies yet. Create one under On-Call.": "Dette projekt har endnu ingen vagtpolitikker. Opret en under Vagt.",
   "This project has no on-call schedules yet. Create one under On-Call.": "Dette projekt har endnu ingen vagtplaner. Opret en under Vagt.",
   "Timeline events for on-call policy execution log.": "Timeline events for on-call policy execution log.",
@@ -51548,7 +51548,7 @@
   "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.": "Når den går ned, åbner OneUptime en hændelse og tilkalder disse personer, hver som deres »Sådan når man mig« siger. Det starter med dig, via e-mail.",
   "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
   "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.": "Mens nogen er væk, går deres kald fra denne politik til den, der dækker for dem, eller til den næste i rotationen. For alle politikker på én gang skal du bruge Vagt > Avanceret > Brugertilsidesættelser.",
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.": "Mens nogen er væk, går deres kald fra denne politik til den, der dækker for dem, eller til den næste i rotationen. For alle politikker på én gang skal du bruge Vagt > Tidsplaner > Brugertilsidesættelser.",
   "Who is on call at any moment: people take turns in layers, and each one hands over to the next.": "Who is on call at any moment: people take turns in layers, and each one hands over to the next.",
   "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.": "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.",
   "You already have a status page named \"{{name}}\", so no new one was made.": "Du har allerede en statusside med navnet \"{{name}}\", så der blev ikke oprettet en ny.",
@@ -57542,5 +57542,10 @@
   "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
   "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
   "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
-  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "No escalation rules": "No escalation rules",
+  "Paged First": "Paged First",
+  "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
+  "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
 }

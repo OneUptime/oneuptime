@@ -2253,8 +2253,9 @@ describe("user overrides", () => {
       "**Global User Overrides**",
       "**On-Call Policy User Overrides**",
     ]);
+    // The global page is under Schedules since #9701.
     expect(placement).toEqual([
-      "**On-Call → Advanced → User Overrides**",
+      "**On-Call → Schedules → User Overrides**",
       "A policy's **User Overrides**",
     ]);
     expect(english(USER_OVERRIDES)).toContain(
@@ -2794,7 +2795,7 @@ describe("user overrides", () => {
       "A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project.",
     );
     expect(page).toContain(
-      "**Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
+      "**Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Schedules → User Overrides** are locked and say why",
     );
     expect(
       readDashboardSource(

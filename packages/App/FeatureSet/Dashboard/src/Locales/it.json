@@ -51536,7 +51536,7 @@
   "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.": "Telegram è disattivato in questo progetto. Un Proprietario del progetto o qualcuno con il ruolo «Amministratore della fatturazione» o l'autorizzazione «Manage Billing» può attivarlo in Impostazioni del progetto → Notifiche → Canali di notifica.",
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.": "La verifica di prontezza di questa policy non include {{names}}, quindi risultano sconosciuti anziché pronti. Apri Reperibilità > Prontezza per l'elenco completo.",
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.": "Queste regole decidono, per ogni gravità, quale {{notificationMethod}} prova una chiamata e dopo quanto tempo.",
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.": "Vale per ogni policy di reperibilità. Per terminarla prima, eliminala in Reperibilità > Avanzato > Sostituzioni utente.",
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.": "Vale per ogni policy di reperibilità. Per terminarla prima, eliminala in Reperibilità > Pianificazioni > Sostituzioni utente.",
   "This project has no on-call policies yet. Create one under On-Call.": "Questo progetto non ha ancora policy di reperibilità. Creane una in Reperibilità.",
   "This project has no on-call schedules yet. Create one under On-Call.": "Questo progetto non ha ancora pianificazioni di reperibilità. Creane una in Reperibilità.",
   "Timeline events for on-call policy execution log.": "Timeline events for on-call policy execution log.",
@@ -51548,7 +51548,7 @@
   "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.": "In caso di interruzione, OneUptime apre un incidente e chiama queste persone, ognuna come dice il suo «Come contattarmi». Si parte da te, via e-mail.",
   "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
   "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.": "Mentre qualcuno è assente, le sue chiamate da questa policy vanno a chi lo sostituisce o alla persona successiva nella rotazione. Per tutte le policy insieme, usa Reperibilità > Avanzato > Sostituzioni utente.",
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.": "Mentre qualcuno è assente, le sue chiamate da questa policy vanno a chi lo sostituisce o alla persona successiva nella rotazione. Per tutte le policy insieme, usa Reperibilità > Pianificazioni > Sostituzioni utente.",
   "Who is on call at any moment: people take turns in layers, and each one hands over to the next.": "Who is on call at any moment: people take turns in layers, and each one hands over to the next.",
   "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.": "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.",
   "You already have a status page named \"{{name}}\", so no new one was made.": "Hai già una pagina di stato chiamata «{{name}}», quindi non ne è stata creata una nuova.",
@@ -57542,5 +57542,10 @@
   "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
   "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
   "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
-  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "No escalation rules": "No escalation rules",
+  "Paged First": "Paged First",
+  "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
+  "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
 }

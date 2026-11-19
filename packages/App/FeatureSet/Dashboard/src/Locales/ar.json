@@ -51536,7 +51536,7 @@
   "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.": "Telegram متوقف في هذا المشروع. يمكن لمالك المشروع أو مسؤول الفوترة أو من لديه صلاحية «Manage Billing» تفعيله في إعدادات المشروع ← الإشعارات ← قنوات الإشعار.",
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.": "لا تشمل إجابة الجاهزية لهذه السياسة {{names}}، لذا فحالتهم غير معروفة لا جاهزة. افتح المناوبة > الجاهزية للاطلاع على القائمة الكاملة.",
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.": "تحدد هذه القواعد لكل درجة خطورة أي {{notificationMethod}} يجربها الاستدعاء وبعد كم من الوقت.",
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.": "ينطبق هذا على كل سياسات المناوبة. لإنهائه مبكرًا، احذفه ضمن المناوبة > متقدم > تجاوزات المستخدمين.",
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.": "ينطبق هذا على كل سياسات المناوبة. لإنهائه مبكرًا، احذفه ضمن المناوبة > الجداول > تجاوزات المستخدمين.",
   "This project has no on-call policies yet. Create one under On-Call.": "لا توجد سياسات مناوبة في هذا المشروع بعد. أنشئ واحدة ضمن «المناوبة».",
   "This project has no on-call schedules yet. Create one under On-Call.": "لا توجد جداول مناوبة في هذا المشروع بعد. أنشئ واحدًا ضمن «المناوبة».",
   "Timeline events for on-call policy execution log.": "أحداث المخطط الزمني لسجل تنفيذ سياسة المناوبة.",
@@ -51548,7 +51548,7 @@
   "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.": "عندما يتعطل، يفتح OneUptime حادثة ويستدعي هؤلاء الأشخاص، كلًّا كما تقول «طرق التواصل معي» الخاصة به. ويبدأ بك، عبر البريد الإلكتروني.",
   "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "موضع التنبيه في استجابتك. يبدأ المشروع الجديد بـ Identified وAcknowledged وResolved: أعِد تسميتها أو أضف حالاتك بينها.",
   "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "موضع الحادثة في استجابتك. يبدأ المشروع الجديد بـ Identified وAcknowledged وResolved: أعِد تسميتها أو أضف حالاتك بينها.",
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.": "أثناء غياب شخص ما، تذهب استدعاءاته من هذه السياسة إلى من ينوب عنه، أو إلى الشخص التالي في التناوب. لكل السياسات دفعة واحدة، استخدم المناوبة > متقدم > تجاوزات المستخدمين.",
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.": "أثناء غياب شخص ما، تذهب استدعاءاته من هذه السياسة إلى من ينوب عنه، أو إلى الشخص التالي في التناوب. لكل السياسات دفعة واحدة، استخدم المناوبة > الجداول > تجاوزات المستخدمين.",
   "Who is on call at any moment: people take turns in layers, and each one hands over to the next.": "من المناوب في أي لحظة: يتناوب الأشخاص في طبقات، ويسلّم كل منهم إلى التالي.",
   "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.": "من يُستدعى بشأن حادثة أو تنبيه أو حلقة، ومن يُستدعى بعده إذا لم يُقرّ أحد. مستوياتها قواعد التصعيد.",
   "You already have a status page named \"{{name}}\", so no new one was made.": "لديك بالفعل صفحة حالة باسم «{{name}}»، لذا لم تُنشأ صفحة جديدة.",
@@ -57542,5 +57542,10 @@
   "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
   "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
   "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
-  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "No escalation rules": "No escalation rules",
+  "Paged First": "Paged First",
+  "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
+  "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
 }

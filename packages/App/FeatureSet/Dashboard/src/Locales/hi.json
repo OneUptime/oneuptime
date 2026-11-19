@@ -51536,7 +51536,7 @@
   "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.": "इस प्रोजेक्ट में Telegram बंद है। प्रोजेक्ट स्वामी या 'बिलिंग एडमिन' भूमिका या 'Manage Billing' अनुमति वाला कोई व्यक्ति इसे प्रोजेक्ट सेटिंग्स → सूचनाएं → सूचना चैनल में चालू कर सकता है।",
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.": "इस नीति की तैयारी जाँच में {{names}} शामिल नहीं हैं, इसलिए वे तैयार के बजाय अज्ञात हैं। पूरी सूची के लिए ऑन-कॉल > तैयारी खोलें।",
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.": "ये नियम हर गंभीरता के लिए तय करते हैं कि पेज कौन-सी {{notificationMethod}} आज़माता है, और कितनी देर बाद।",
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.": "यह हर ऑन-कॉल नीति पर लागू होता है। इसे जल्दी खत्म करने के लिए, ऑन-कॉल > उन्नत > उपयोगकर्ता ओवरराइड में इसे हटाएँ।",
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.": "यह हर ऑन-कॉल नीति पर लागू होता है। इसे जल्दी खत्म करने के लिए, ऑन-कॉल > अनुसूची > उपयोगकर्ता ओवरराइड में इसे हटाएँ।",
   "This project has no on-call policies yet. Create one under On-Call.": "इस प्रोजेक्ट में अभी तक कोई ऑन-कॉल नीति नहीं है। ऑन-कॉल में एक बनाएं।",
   "This project has no on-call schedules yet. Create one under On-Call.": "इस प्रोजेक्ट में अभी तक कोई ऑन-कॉल अनुसूची नहीं है। ऑन-कॉल में एक बनाएं।",
   "Timeline events for on-call policy execution log.": "Timeline events for on-call policy execution log.",
@@ -51548,7 +51548,7 @@
   "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.": "डाउन होने पर OneUptime घटना खोलता है और इन लोगों को पेज करता है, हर एक को वैसे जैसा उसका “मुझसे कैसे संपर्क करें” कहता है। शुरुआत आपसे होती है, ईमेल से।",
   "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
   "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.": "जब कोई दूर हो, तो इस नीति से उसके पेज उसकी जगह कवर करने वाले को, या रोटेशन में अगले व्यक्ति को जाते हैं। सभी नीतियों के लिए एक साथ, ऑन-कॉल > उन्नत > उपयोगकर्ता ओवरराइड का उपयोग करें।",
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.": "जब कोई दूर हो, तो इस नीति से उसके पेज उसकी जगह कवर करने वाले को, या रोटेशन में अगले व्यक्ति को जाते हैं। सभी नीतियों के लिए एक साथ, ऑन-कॉल > अनुसूची > उपयोगकर्ता ओवरराइड का उपयोग करें।",
   "Who is on call at any moment: people take turns in layers, and each one hands over to the next.": "Who is on call at any moment: people take turns in layers, and each one hands over to the next.",
   "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.": "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.",
   "You already have a status page named \"{{name}}\", so no new one was made.": "आपके पास पहले से \"{{name}}\" नाम का एक स्थिति पृष्ठ है, इसलिए कोई नया पृष्ठ नहीं बनाया गया।",
@@ -57542,5 +57542,10 @@
   "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
   "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
   "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
-  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "No escalation rules": "No escalation rules",
+  "Paged First": "Paged First",
+  "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
+  "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
 }

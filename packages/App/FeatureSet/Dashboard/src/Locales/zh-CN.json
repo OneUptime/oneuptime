@@ -51536,7 +51536,7 @@
   "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.": "此项目已关闭 Telegram。项目所有者或拥有“账单管理员”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知”→“通知渠道”中开启。",
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.": "此策略的就绪情况检查未涵盖 {{names}}，因此他们显示为未知，而不是就绪。请打开“值班 > 就绪情况”查看完整列表。",
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.": "这些规则为每个严重程度决定呼叫尝试哪种{{notificationMethod}}，以及等待多久。",
-  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.": "这适用于每个值班策略。如需提前结束，请在 值班 > 高级 > 用户覆盖 中删除。",
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.": "这适用于每个值班策略。如需提前结束，请在 值班 > 计划 > 用户覆盖 中删除。",
   "This project has no on-call policies yet. Create one under On-Call.": "此项目还没有值班策略。请在“值班”中创建。",
   "This project has no on-call schedules yet. Create one under On-Call.": "此项目还没有值班计划。请在“值班”中创建。",
   "Timeline events for on-call policy execution log.": "Timeline events for on-call policy execution log.",
@@ -51548,7 +51548,7 @@
   "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.": "宕机时，OneUptime 会创建事件，并按这些人各自的“如何联系我”呼叫他们。首先收到电子邮件的是你。",
   "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
   "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.": "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.": "某人离开期间，此策略发给他的呼叫会转给代班的人，或轮值中的下一个人。如需一次覆盖所有策略，请使用 值班 > 高级 > 用户覆盖。",
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Schedules > User Overrides.": "某人离开期间，此策略发给他的呼叫会转给代班的人，或轮值中的下一个人。如需一次覆盖所有策略，请使用 值班 > 计划 > 用户覆盖。",
   "Who is on call at any moment: people take turns in layers, and each one hands over to the next.": "Who is on call at any moment: people take turns in layers, and each one hands over to the next.",
   "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.": "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.",
   "You already have a status page named \"{{name}}\", so no new one was made.": "你已有名为“{{name}}”的状态页，因此没有创建新的页面。",
@@ -57542,5 +57542,10 @@
   "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
   "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
   "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
-  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name.",
+  "No escalation rules": "No escalation rules",
+  "Paged First": "Paged First",
+  "The first escalation rule names nobody, so the policy moves on to the next rule at once.": "The first escalation rule names nobody, so the policy moves on to the next rule at once.",
+  "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.": "This policy has no escalation rules, so it pages nobody. Add one on its Escalation Rules page.",
+  "{{name}} is on call now in {{schedule}}.": "{{name}} is on call now in {{schedule}}."
 }
