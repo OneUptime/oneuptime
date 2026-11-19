@@ -100,7 +100,7 @@ describe("an Android device's security patch level in Inventory (issue #9800)", 
   test("the agent's patch level reaches the host's Inventory item", () => {
     const host: ExtractedEntity = extractHost(kioskResource("2024-06-05"));
 
-    expect(host.descriptiveAttributes["android.os.security_patch"]).toBe(
+    expect(host.descriptiveAttributes!["android.os.security_patch"]).toBe(
       "2024-06-05",
     );
     // A descriptive fact, never part of the identity: a patch must not fork the device's item.
@@ -179,7 +179,7 @@ describe("an Android device's security patch level in Inventory (issue #9800)", 
       text("android.os.security_patch", "2024-07-01"),
     ] as JSONArray);
 
-    expect(host.descriptiveAttributes["android.os.security_patch"]).toBe(
+    expect(host.descriptiveAttributes!["android.os.security_patch"]).toBe(
       "2024-07-01",
     );
   });

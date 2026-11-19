@@ -7,6 +7,7 @@ import {
   getHostAlertTemplateById,
   getHostAlertTemplatesFor,
 } from "../../../Types/Monitor/HostAlertTemplates";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
@@ -46,7 +47,7 @@ function stepOf(id: string): MonitorStep {
 
 function metricNamesOf(step: MonitorStep): Array<string> {
   return (step.data!.hostMonitor!.metricViewConfig.queryConfigs || []).map(
-    (query: { metricQueryData: { filterData: { metricName?: string } } }) => {
+    (query: MetricQueryConfigData) => {
       return String(query.metricQueryData.filterData.metricName);
     },
   );

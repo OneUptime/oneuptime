@@ -283,9 +283,9 @@ describe("changing a log session", () => {
   ): UpdateBy<HostLogSession> {
     return {
       query: { _id: id },
-      data: data as HostLogSession,
+      data: data,
       props: { tenantId: PROJECT_ID, userId: USER_ID },
-    } as UpdateBy<HostLogSession>;
+    } as unknown as UpdateBy<HostLogSession>;
   }
 
   test("a person may cancel one that is waiting or running", async () => {
@@ -300,7 +300,8 @@ describe("changing a log session", () => {
         open._id!.toString(),
       ),
     );
-    const data: HostLogSession = result.updateBy.data as HostLogSession;
+    const data: HostLogSession = result.updateBy
+      .data as unknown as HostLogSession;
 
     expect(data.status).toBe(HostLogSessionStatus.Cancelled);
     expect(data.statusMessage).toBe(CANCELLED_MESSAGE);
