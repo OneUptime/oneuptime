@@ -172,7 +172,7 @@ beforeEach(() => {
   stubProjectDirectory({});
   delegate = jest
     .spyOn(OwnerRuleAssignment, "addOwners")
-    .mockResolvedValue({ userIds: [], teamIds: [] });
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
   jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")

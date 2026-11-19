@@ -43,11 +43,62 @@ import logger from "../Logger";
  * work, or be notified about it. The owner row's own service refuses such a
  * team (every owner service is a ProjectReferencesService, which checks the
  * row's team, user and resource), and createOwner reports it as not added.
+ *
+ * WHAT WAS ADDED, AND WHAT WAS SKIPPED AND WHY (#9933). An owner rule's feed
+ * item used to name every owner its rules asked for as assigned, though
+ * createOwner had skipped some: the engines counted every id they handed to
+ * addOwners as added. addOwners now answers with the owners it wrote and,
+ * apart, the ones it skipped, each with why (OwnersAdded), so a feed names
+ * as owners only the people and teams that became owners, and says plainly
+ * which it left out. An owner the resource already had is in neither list:
+ * it was there.
  */
 
 export interface OwnersToAssign {
   userIds: Array<ObjectID>;
   teamIds: Array<ObjectID>;
+}
+
+// What became of one owner createOwnerWithOutcome was handed.
+export enum OwnerAddOutcome {
+  // The row was written.
+  Added = "Added",
+  /*
+   * The resource has the owner already: the owner service's own check
+   * found the row, or the unique index turned away an insert that raced
+   * past that check.
+   */
+  AlreadyOwner = "AlreadyOwner",
+  /*
+   * A user with no accepted membership in the project: someone who has left
+   * it, or whose invitation is still waiting to be accepted.
+   */
+  NotProjectMember = "NotProjectMember",
+  /*
+   * The owner service refused the row as naming a record that is not the
+   * project's: a team of another project, or one that is gone.
+   */
+  NotProjectRecord = "NotProjectRecord",
+}
+
+// Why an owner was skipped: the outcomes that leave the resource without it.
+export type OwnerSkipReason =
+  | OwnerAddOutcome.NotProjectMember
+  | OwnerAddOutcome.NotProjectRecord;
+
+// One owner a call was asked to add and did not, and why.
+export interface OwnerNotAdded {
+  ownerColumn: "userId" | "teamId";
+  id: ObjectID;
+  reason: OwnerSkipReason;
+}
+
+/*
+ * What addOwners did: the owners it wrote (userIds, teamIds), and the ones
+ * it was asked for and skipped, each with why (notAdded).
+ */
+export interface OwnersAdded extends OwnersToAssign {
+  notAdded: Array<OwnerNotAdded>;
 }
 
 function uniqueIds(ids: Array<ObjectID | string>): Array<ObjectID> {
@@ -150,6 +201,7 @@ export default class OwnerRuleAssignment {
    * among them (UnreadableReferenceException), or an owner row their
    * permission to add owners does not reach (CreateScopeException): that is
    * the caller's access, not a stale owner, and is not skipped as one.
+   * createOwnerWithOutcome says which of those it was.
    *
    * `onCreatorsBehalf`: the owners picked in the form that created the
    * resource, added for the person who just created it, whose permission to
@@ -169,8 +221,25 @@ export default class OwnerRuleAssignment {
     props: DatabaseCommonInteractionProps;
     onCreatorsBehalf?: boolean | undefined;
   }): Promise<boolean> {
+    return (
+      (await OwnerRuleAssignment.createOwnerWithOutcome(data)) ===
+      OwnerAddOutcome.Added
+    );
+  }
+
+  /*
+   * createOwner, answering what became of the owner: written, there
+   * already, or skipped and why (OwnerAddOutcome). Throws what createOwner
+   * throws.
+   */
+  public static async createOwnerWithOutcome<TOwner extends BaseModel>(data: {
+    ownerService: DatabaseService<TOwner>;
+    owner: TOwner;
+    props: DatabaseCommonInteractionProps;
+    onCreatorsBehalf?: boolean | undefined;
+  }): Promise<OwnerAddOutcome> {
     if (!(await OwnerRuleAssignment.isOwnerInProject(data))) {
-      return false;
+      return OwnerAddOutcome.NotProjectMember;
     }
 
     try {
@@ -179,7 +248,7 @@ export default class OwnerRuleAssignment {
         props: data.props,
       });
 
-      return true;
+      return OwnerAddOutcome.Added;
     } catch (error) {
       if (
         data.onCreatorsBehalf &&
@@ -189,16 +258,72 @@ export default class OwnerRuleAssignment {
         return await OwnerRuleAssignment.createOwnerForCreator(data);
       }
 
+      if (PostgresErrorTranslator.isUniqueViolation(error)) {
+        return OwnerAddOutcome.AlreadyOwner;
+      }
+
       if (
-        PostgresErrorTranslator.isUniqueViolation(error) ||
-        (error instanceof ProjectScopedReferenceException &&
-          !(error instanceof UnreadableReferenceException))
+        error instanceof ProjectScopedReferenceException &&
+        !(error instanceof UnreadableReferenceException)
       ) {
-        return false;
+        return OwnerAddOutcome.NotProjectRecord;
       }
 
       throw error;
     }
+  }
+
+  // Whether an outcome left the resource without the owner it was asked for.
+  public static isSkipped(
+    outcome: OwnerAddOutcome,
+  ): outcome is OwnerSkipReason {
+    return (
+      outcome === OwnerAddOutcome.NotProjectMember ||
+      outcome === OwnerAddOutcome.NotProjectRecord
+    );
+  }
+
+  // What addOwners answers before it has added anything.
+  public static noOwnersAdded(): OwnersAdded {
+    return { userIds: [], teamIds: [], notAdded: [] };
+  }
+
+  /*
+   * Adds one owner's outcome to what a call has done so far: an owner
+   * written to the users or teams added, one skipped to notAdded with why,
+   * and an owner the resource already had to neither.
+   */
+  public static recordOutcome(data: {
+    into: OwnersAdded;
+    ownerColumn: "userId" | "teamId";
+    id: ObjectID;
+    outcome: OwnerAddOutcome;
+  }): void {
+    if (data.outcome === OwnerAddOutcome.Added) {
+      (data.ownerColumn === "userId"
+        ? data.into.userIds
+        : data.into.teamIds
+      ).push(data.id);
+      return;
+    }
+
+    if (OwnerRuleAssignment.isSkipped(data.outcome)) {
+      data.into.notAdded.push({
+        ownerColumn: data.ownerColumn,
+        id: data.id,
+        reason: data.outcome,
+      });
+    }
+  }
+
+  /*
+   * Adds what one addOwners did to what earlier ones did: an engine adds the
+   * owners it notifies and the ones it adds silently in two calls.
+   */
+  public static addUp(into: OwnersAdded, from: OwnersAdded): void {
+    into.userIds.push(...from.userIds);
+    into.teamIds.push(...from.teamIds);
+    into.notAdded.push(...from.notAdded);
   }
 
   /*
@@ -217,7 +342,7 @@ export default class OwnerRuleAssignment {
     ownerService: DatabaseService<TOwner>;
     owner: TOwner;
     props: DatabaseCommonInteractionProps;
-  }): Promise<boolean> {
+  }): Promise<OwnerAddOutcome> {
     // Everything but the creator's read of their new resource still holds.
     CreatePermission.checkCreatePermissions(
       data.ownerService.modelType,
@@ -242,13 +367,14 @@ export default class OwnerRuleAssignment {
         },
       });
 
-      return true;
+      return OwnerAddOutcome.Added;
     } catch (error) {
-      if (
-        PostgresErrorTranslator.isUniqueViolation(error) ||
-        error instanceof ProjectScopedReferenceException
-      ) {
-        return false;
+      if (PostgresErrorTranslator.isUniqueViolation(error)) {
+        return OwnerAddOutcome.AlreadyOwner;
+      }
+
+      if (error instanceof ProjectScopedReferenceException) {
+        return OwnerAddOutcome.NotProjectRecord;
       }
 
       throw error;
@@ -425,7 +551,7 @@ export default class OwnerRuleAssignment {
     projectId: ObjectID;
     miscDataProps?: JSONObject | undefined;
     props: DatabaseCommonInteractionProps;
-  }): Promise<OwnersToAssign> {
+  }): Promise<OwnersAdded> {
     const picked: JSONObject = OwnerRuleAssignment.getOwnersPicked(
       data.miscDataProps,
     );
@@ -436,7 +562,7 @@ export default class OwnerRuleAssignment {
       (picked["ownerTeams"] as Array<ObjectID | string> | undefined) || [];
 
     if (userIds.length === 0 && teamIds.length === 0) {
-      return { userIds: [], teamIds: [] };
+      return OwnerRuleAssignment.noOwnersAdded();
     }
 
     return await OwnerRuleAssignment.addOwners({
@@ -460,7 +586,10 @@ export default class OwnerRuleAssignment {
    * paths adding the same owner each leave exactly one row, and so exactly one
    * feed item and one notification.
    *
-   * Resolves to the owners this call actually added.
+   * Resolves to the owners this call actually added, and apart, the ones it
+   * skipped and why: a user who is not a member of the project, a team that
+   * is not one of its teams (OwnersAdded). An owner the resource already
+   * had is in neither.
    */
   public static async addOwners<
     TOwnerUser extends BaseModel,
@@ -483,7 +612,7 @@ export default class OwnerRuleAssignment {
     props: DatabaseCommonInteractionProps;
     // The owners picked when the resource was created. See createOwner.
     onCreatorsBehalf?: boolean | undefined;
-  }): Promise<OwnersToAssign> {
+  }): Promise<OwnersAdded> {
     const ownersToAdd: OwnersToAssign =
       await OwnerRuleAssignment.getOwnersNotYetAssigned({
         ownerUserService: data.ownerUserService,
@@ -494,7 +623,7 @@ export default class OwnerRuleAssignment {
         teamIds: data.teamIds,
       });
 
-    const added: OwnersToAssign = { userIds: [], teamIds: [] };
+    const added: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     for (const teamId of ownersToAdd.teamIds) {
       const owner: TOwnerTeam = OwnerRuleAssignment.buildOwner({
@@ -508,16 +637,17 @@ export default class OwnerRuleAssignment {
         createdByUserId: data.createdByUserId,
       });
 
-      if (
-        await OwnerRuleAssignment.createOwner({
+      OwnerRuleAssignment.recordOutcome({
+        into: added,
+        ownerColumn: "teamId",
+        id: teamId,
+        outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
           ownerService: data.ownerTeamService,
           owner: owner,
           props: data.props,
           onCreatorsBehalf: data.onCreatorsBehalf,
-        })
-      ) {
-        added.teamIds.push(teamId);
-      }
+        }),
+      });
     }
 
     for (const userId of ownersToAdd.userIds) {
@@ -532,16 +662,17 @@ export default class OwnerRuleAssignment {
         createdByUserId: data.createdByUserId,
       });
 
-      if (
-        await OwnerRuleAssignment.createOwner({
+      OwnerRuleAssignment.recordOutcome({
+        into: added,
+        ownerColumn: "userId",
+        id: userId,
+        outcome: await OwnerRuleAssignment.createOwnerWithOutcome({
           ownerService: data.ownerUserService,
           owner: owner,
           props: data.props,
           onCreatorsBehalf: data.onCreatorsBehalf,
-        })
-      ) {
-        added.userIds.push(userId);
-      }
+        }),
+      });
     }
 
     return added;

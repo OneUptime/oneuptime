@@ -52,6 +52,7 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { Lexer, Token, marked } from "marked";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 // Where an HTML tag starts.
 const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
@@ -374,8 +375,12 @@ beforeEach(() => {
       return incident;
     });
 
-  jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
-  jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+  jest
+    .spyOn(AlertService, "addOwners")
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+  jest
+    .spyOn(IncidentService, "addOwners")
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
