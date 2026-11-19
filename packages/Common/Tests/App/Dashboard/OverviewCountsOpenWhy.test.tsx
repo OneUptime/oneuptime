@@ -115,7 +115,10 @@ import {
   getIoTAtRiskDevices,
   getIoTOfflineDeviceItems,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/IoTDeviceAttention";
-import { getIoTOfflineDevicesPill } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Index";
+import {
+  getIoTOfflineDevicesPill,
+  isIoTFleetConnected,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Index";
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
@@ -992,6 +995,20 @@ describe("an IoT fleet's devices online", () => {
         translator: english(),
       }),
     ).toBeUndefined();
+  });
+
+  /*
+   * While the fleet itself is disconnected its offline-device counts blame
+   * no device (#9730): whether it reports decides whether they say anything.
+   */
+  test("a fleet reports while its collector is connected, in whatever case the status is written", () => {
+    expect(isIoTFleetConnected("connected")).toBe(true);
+    expect(isIoTFleetConnected("Connected")).toBe(true);
+    expect(isIoTFleetConnected("active")).toBe(true);
+    expect(isIoTFleetConnected("disconnected")).toBe(false);
+    expect(isIoTFleetConnected("")).toBe(false);
+    expect(isIoTFleetConnected(null)).toBe(false);
+    expect(isIoTFleetConnected(undefined)).toBe(false);
   });
 
   test("pressed, it lists each offline device with when it last reported", () => {
