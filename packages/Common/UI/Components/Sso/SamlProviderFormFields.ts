@@ -18,6 +18,7 @@ import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import {
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
   getSsoProviderDescriptionField,
+  getSsoProviderDomainsField,
   getSsoProviderEnabledField,
   getSsoProviderNameField,
   getSsoProviderReachChoiceField,
@@ -47,7 +48,9 @@ import {
  *   Provider   Name, Sign On URL, Issuer, Public Certificate - what the
  *              identity provider gives you.
  *   Sign-in    The teams newcomers join (a project's provider, starting on
- *              the members team), Enabled, and one folded Advanced section:
+ *              the members team), the verified domains it serves at Sign in
+ *              with SSO (a project's provider, #9824), Enabled, and one
+ *              folded Advanced section:
  *              the signature and digest methods, at RSA-SHA256 and SHA256;
  *              the description, which follows the name; and, on the Global
  *              form, its two sign-up and access switches. While all of it is
@@ -71,6 +74,12 @@ export interface SamlProviderFormOptions {
    * names the ones the person could not invite someone to.
    */
   getTeamsFooterElement?: SsoProviderTeamsFooterFunction | undefined;
+  /*
+   * A project's provider: the project's verified domains it serves at Sign
+   * in with SSO, which finds a provider by an address's domain alone
+   * (#9824).
+   */
+  withDomains?: boolean | undefined;
   /*
    * The instance-wide provider (Admin Dashboard > Global SSO): its
    * "Disable Sign Up with SSO" and "Restrict to Attached Projects" switches,
@@ -282,6 +291,9 @@ export const getSamlProviderFormFields: GetSamlProviderFormFieldsFunction = <
             getFooterElement: options.getTeamsFooterElement,
           }),
         ]
+      : []),
+    ...(options?.withDomains
+      ? [getSsoProviderDomainsField<TEntity>({ stepId: "sign-in" })]
       : []),
     getSsoProviderEnabledField<TEntity>({ stepId: "sign-in" }),
     /*

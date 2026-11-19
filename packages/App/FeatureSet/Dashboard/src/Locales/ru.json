@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "Не удалось загрузить то, что узнал OneUptime AI. {{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "Что должен знать OneUptime AI, простыми словами. Он читает это как заметку вашей команды, а не как указание.",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "Что команда сервиса сообщает о нём OneUptime AI. Каждое расследование инцидента или оповещения по сервису читает его заметки.",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "Что ваша команда знает об этом сервисе. OneUptime AI читает эти заметки при каждом расследовании инцидента или оповещения по нему."
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "Что ваша команда знает об этом сервисе. OneUptime AI читает эти заметки при каждом расследовании инцидента или оповещения по нему.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Подтверждённых доменов пока нет. Подтвердите домен в разделе Настройки проекта > Расширенный > Домены.",
+  "Select Domains": "Выберите домены",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Вход через SSO» предлагает этого провайдера всем, чей адрес электронной почты на одном из этих доменов, которые вы подтверждаете в разделе Настройки проекта > Расширенный > Домены."
 }

@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Har personen endnu ingen OneUptime-konto, oprettes den med dette navn.",
   "Suggest every account on this server?": "Foreslå alle konti på denne server?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Alle, der må invitere personer, ser hver kontos navn og e-mail, mens de skriver. Slå det kun til, hvis alle konti her hører til én organisation.",
-  "Suggest Every Account": "Foreslå alle konti"
+  "Suggest Every Account": "Foreslå alle konti",
+  "Domains": "Domæner",
+  "Select Domains": "Vælg domæner",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "»Log ind med SSO« tilbyder denne udbyder til alle, hvis e-mail er på et af disse domæner, som du bekræfter under Projektindstillinger > Avanceret > Domæner.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ingen bekræftede domæner endnu. Bekræft et under Projektindstillinger > Avanceret > Domæner."
 }

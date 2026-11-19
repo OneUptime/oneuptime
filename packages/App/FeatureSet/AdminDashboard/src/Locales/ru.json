@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Если у этого человека ещё нет учётной записи OneUptime, она будет создана с этим именем.",
   "Suggest every account on this server?": "Предлагать все учётные записи этого сервера?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Любой, кто может приглашать людей, будет видеть при вводе имя и почту каждой учётной записи. Включайте это, только если все учётные записи здесь относятся к одной организации.",
-  "Suggest Every Account": "Предлагать все учётные записи"
+  "Suggest Every Account": "Предлагать все учётные записи",
+  "Domains": "Домены",
+  "Select Domains": "Выберите домены",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«Вход через SSO» предлагает этого провайдера всем, чей адрес электронной почты на одном из этих доменов, которые вы подтверждаете в разделе Настройки проекта > Расширенный > Домены.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Подтверждённых доменов пока нет. Подтвердите домен в разделе Настройки проекта > Расширенный > Домены."
 }

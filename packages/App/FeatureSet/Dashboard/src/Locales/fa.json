@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "آنچه OneUptime AI آموخت بارگیری نشد. {{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "آنچه OneUptime AI باید بداند، به زبان ساده. آن را یادداشت تیم شما می‌خواند، هرگز دستور.",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "آنچه تیم یک سرویس دربارهٔ آن به OneUptime AI می‌گوید. هر بررسی حادثه یا هشداری روی سرویس، یادداشت‌هایش را می‌خواند.",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "آنچه تیم شما دربارهٔ این سرویس می‌داند. OneUptime AI این یادداشت‌ها را در هر بررسی حادثه یا هشداری روی آن می‌خواند."
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "آنچه تیم شما دربارهٔ این سرویس می‌داند. OneUptime AI این یادداشت‌ها را در هر بررسی حادثه یا هشداری روی آن می‌خواند.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "هنوز هیچ دامنهٔ تأییدشده‌ای نیست. یکی را در تنظیمات پروژه ← پیشرفته ← دامنه‌ها تأیید کنید.",
+  "Select Domains": "انتخاب دامنه‌ها",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«ورود با SSO» این ارائه‌دهنده را به هر کسی که ایمیلش روی یکی از این دامنه‌ها باشد پیشنهاد می‌کند؛ دامنه‌ها را در تنظیمات پروژه ← پیشرفته ← دامنه‌ها تأیید می‌کنید."
 }

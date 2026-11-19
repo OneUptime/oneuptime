@@ -57,9 +57,12 @@ interface SamlConfigDialogTarget {
  * Adding one asks for what the identity provider gives - its sign-on URL,
  * issuer and certificate - and the teams newcomers join (the members team
  * to start with, and only teams the person could invite someone to: a
- * picked team beyond that is named under Teams, see SsoTeamsGrantNote); the
- * signature and digest methods and the description are filled in under
- * Advanced (Common/UI/Components/Sso/SamlProviderFormFields).
+ * picked team beyond that is named under Teams, see SsoTeamsGrantNote), and
+ * the project's verified domains it serves: "Sign in with SSO" finds a
+ * provider by an address's domain alone, so one with no domain is offered
+ * to nobody by email (#9824). The signature and digest methods and the
+ * description are filled in under Advanced
+ * (Common/UI/Components/Sso/SamlProviderFormFields).
  * Once it is saved, the dialog with the Entity ID and Reply URL to give the
  * identity provider opens straight away: that is the next thing to do.
  */
@@ -127,6 +130,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           formFields={getSamlProviderFormFields<ProjectSSO>({
             withTeams: true,
             getTeamsFooterElement: getSsoTeamsGrantNote,
+            withDomains: true,
           })}
           createInitialValues={createInitialValues}
           onCreateSuccess={(

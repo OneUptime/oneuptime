@@ -23,6 +23,7 @@ import { translateValidationMessage } from "../Forms/Validation";
 import {
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
   getSsoProviderDescriptionField,
+  getSsoProviderDomainsField,
   getSsoProviderEnabledField,
   getSsoProviderNameField,
   getSsoProviderReachChoiceField,
@@ -51,8 +52,10 @@ import {
  *   Provider   Name, Issuer URL, Client ID, Client Secret - what the identity
  *              provider gives you. A discovery URL pasted as the issuer is
  *              split into the two.
- *   Sign-in    The teams newcomers join (a project's provider), Enabled, and
- *              one folded Advanced section: the discovery URL, which follows
+ *   Sign-in    The teams newcomers join (a project's provider), the verified
+ *              domains it serves at Sign in with SSO (a project's provider,
+ *              #9824), Enabled, and one folded Advanced section: the
+ *              discovery URL, which follows
  *              the issuer; the scopes and the two claim names, at their usual
  *              values; the description, which follows the name; and, on the
  *              Global form, its two sign-up and access switches. While all
@@ -78,6 +81,12 @@ export interface OidcProviderFormOptions {
    * names the ones the person could not invite someone to.
    */
   getTeamsFooterElement?: SsoProviderTeamsFooterFunction | undefined;
+  /*
+   * A project's provider: the project's verified domains it serves at Sign
+   * in with SSO, which finds a provider by an address's domain alone
+   * (#9824).
+   */
+  withDomains?: boolean | undefined;
   /*
    * The instance-wide provider (Admin Dashboard > Global OIDC): its
    * "Disable Sign Up with SSO" and "Restrict to Attached Projects" switches,
@@ -416,6 +425,9 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
             getFooterElement: options.getTeamsFooterElement,
           }),
         ]
+      : []),
+    ...(options?.withDomains
+      ? [getSsoProviderDomainsField<TEntity>({ stepId: "sign-in" })]
       : []),
     getSsoProviderEnabledField<TEntity>({ stepId: "sign-in" }),
     {

@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "تعذّر تحميل ما تعلّمه OneUptime AI. {{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "ما يجب أن يعرفه OneUptime AI، بكلمات بسيطة. يقرؤه كملاحظة من فريقك، لا كتعليمات أبدًا.",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "ما يخبر به فريق الخدمة OneUptime AI عنها. كل تحقيق في حادثة أو تنبيه على الخدمة يقرأ ملاحظاتها.",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "ما يعرفه فريقك عن هذه الخدمة. يقرأ OneUptime AI هذه الملاحظات في كل تحقيق في حادثة أو تنبيه عليها."
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "ما يعرفه فريقك عن هذه الخدمة. يقرأ OneUptime AI هذه الملاحظات في كل تحقيق في حادثة أو تنبيه عليها.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "لا توجد نطاقات تم التحقق منها بعد. تحقّق من واحد في إعدادات المشروع ← متقدم ← النطاقات.",
+  "Select Domains": "اختيار النطاقات",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "يعرض «تسجيل الدخول باستخدام SSO» هذا الموفّر على كل من يقع بريده الإلكتروني في أحد هذه النطاقات، التي تتحقق منها في إعدادات المشروع ← متقدم ← النطاقات."
 }

@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "إن لم يكن لديهم حساب OneUptime بعد، فسيُعدّ بهذا الاسم.",
   "Suggest every account on this server?": "هل تريد اقتراح كل الحسابات على هذا الخادم؟",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "سيرى كل من يمكنه دعوة أشخاص اسم كل حساب وبريده الإلكتروني أثناء الكتابة. لا تفعّل هذا إلا إذا كان كل حساب هنا ينتمي إلى مؤسسة واحدة.",
-  "Suggest Every Account": "اقتراح كل الحسابات"
+  "Suggest Every Account": "اقتراح كل الحسابات",
+  "Domains": "النطاقات",
+  "Select Domains": "اختيار النطاقات",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "يعرض «تسجيل الدخول باستخدام SSO» هذا الموفّر على كل من يقع بريده الإلكتروني في أحد هذه النطاقات، التي تتحقق منها في إعدادات المشروع ← متقدم ← النطاقات.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "لا توجد نطاقات تم التحقق منها بعد. تحقّق من واحد في إعدادات المشروع ← متقدم ← النطاقات."
 }

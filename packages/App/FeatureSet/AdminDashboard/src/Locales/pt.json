@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "Se essa pessoa ainda não tiver conta no OneUptime, ela será criada com este nome.",
   "Suggest every account on this server?": "Sugerir todas as contas deste servidor?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Qualquer pessoa que possa convidar verá o nome e o e-mail de cada conta enquanto digita. Ative isso somente se todas as contas daqui pertencerem a uma única organização.",
-  "Suggest Every Account": "Sugerir todas as contas"
+  "Suggest Every Account": "Sugerir todas as contas",
+  "Domains": "Domínios",
+  "Select Domains": "Selecionar Domínios",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "“Login com SSO” oferece este provedor a qualquer pessoa cujo e-mail esteja em um destes domínios, que você verifica em Configurações do projeto > Avançado > Domínios.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "Ainda não há domínios verificados. Verifique um em Configurações do projeto > Avançado > Domínios."
 }

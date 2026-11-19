@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "이 사람에게 아직 OneUptime 계정이 없으면 이 이름으로 계정이 만들어집니다.",
   "Suggest every account on this server?": "이 서버의 모든 계정을 제안할까요?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "사람을 초대할 수 있는 모든 사람이 입력하는 동안 모든 계정의 이름과 이메일을 보게 됩니다. 여기의 모든 계정이 한 조직에 속한 경우에만 켜세요.",
-  "Suggest Every Account": "모든 계정 제안"
+  "Suggest Every Account": "모든 계정 제안",
+  "Domains": "도메인",
+  "Select Domains": "도메인 선택",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "‘SSO로 로그인’은 이메일이 이 도메인 중 하나에 있는 누구에게나 이 공급자를 제공합니다. 도메인은 프로젝트 설정 > 고급 > 도메인에서 인증합니다.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "아직 인증된 도메인이 없습니다. 프로젝트 설정 > 고급 > 도메인에서 인증하세요."
 }

@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "如果此人還沒有 OneUptime 帳戶，將用這個名稱建立帳戶。",
   "Suggest every account on this server?": "要建議此伺服器上的所有帳戶嗎？",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "任何可以邀請他人的人在輸入時都會看到每個帳戶的名稱和電子郵件。只有當這裡的每個帳戶都屬於同一個組織時，才開啟此項。",
-  "Suggest Every Account": "建議所有帳戶"
+  "Suggest Every Account": "建議所有帳戶",
+  "Domains": "網域",
+  "Select Domains": "選擇網域",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "「使用 SSO 登入」會向電子郵件屬於這些網域之一的任何人提供此提供者。網域在「專案設定 > 進階 > 網域」中驗證。",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "尚無已驗證的網域。請在「專案設定 > 進階 > 網域」中驗證一個。"
 }

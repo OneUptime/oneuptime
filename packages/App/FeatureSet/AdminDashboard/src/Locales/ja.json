@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "この人がまだ OneUptime のアカウントを持っていない場合は、この名前でアカウントが作成されます。",
   "Suggest every account on this server?": "このサーバーのすべてのアカウントを候補に表示しますか？",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "メンバーを招待できる人は、入力中にすべてのアカウントの名前とメールアドレスを見られるようになります。ここのすべてのアカウントが 1 つの組織に属している場合にのみオンにしてください。",
-  "Suggest Every Account": "すべてのアカウントを表示"
+  "Suggest Every Account": "すべてのアカウントを表示",
+  "Domains": "ドメイン",
+  "Select Domains": "ドメインを選択",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "「SSOでログイン」は、メールアドレスがこれらのドメインのいずれかにある人すべてにこのプロバイダーを表示します。ドメインは「プロジェクト設定 > 詳細 > ドメイン」で確認します。",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "確認済みのドメインはまだありません。「プロジェクト設定 > 詳細 > ドメイン」で確認してください。"
 }

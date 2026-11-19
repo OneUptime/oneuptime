@@ -4314,5 +4314,9 @@
   "If they have no OneUptime account yet, it is set up with this name.": "اگر این فرد هنوز حساب OneUptime ندارد، حساب با همین نام ساخته می‌شود.",
   "Suggest every account on this server?": "همه حساب‌های این سرور پیشنهاد شوند؟",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "هر کسی که می‌تواند افراد را دعوت کند، هنگام تایپ نام و ایمیل همه حساب‌ها را می‌بیند. فقط وقتی این را روشن کنید که همه حساب‌های اینجا متعلق به یک سازمان باشند.",
-  "Suggest Every Account": "پیشنهاد همه حساب‌ها"
+  "Suggest Every Account": "پیشنهاد همه حساب‌ها",
+  "Domains": "دامنه‌ها",
+  "Select Domains": "انتخاب دامنه‌ها",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "«ورود با SSO» این ارائه‌دهنده را به هر کسی که ایمیلش روی یکی از این دامنه‌ها باشد پیشنهاد می‌کند؛ دامنه‌ها را در تنظیمات پروژه ← پیشرفته ← دامنه‌ها تأیید می‌کنید.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "هنوز هیچ دامنهٔ تأییدشده‌ای نیست. یکی را در تنظیمات پروژه ← پیشرفته ← دامنه‌ها تأیید کنید."
 }

@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "无法加载 OneUptime AI 学到的内容。{{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "用简单的语言写下 OneUptime AI 应当知道的内容。它会把这当作您团队的备注来阅读，绝不会当作指令。",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "服务团队告诉 OneUptime AI 的关于该服务的信息。每次调查该服务上的事件或警报时都会读取其备注。",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "您的团队对该服务的了解。OneUptime AI 每次调查该服务上的事件或警报时都会阅读这些备注。"
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "您的团队对该服务的了解。OneUptime AI 每次调查该服务上的事件或警报时都会阅读这些备注。",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "尚无已验证的域名。请在“项目设置 > 高级 > 域名”中验证一个。",
+  "Select Domains": "选择域名",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "“使用 SSO 登录”会向邮箱属于这些域名之一的任何人提供此提供商。域名在“项目设置 > 高级 > 域名”中验证。"
 }

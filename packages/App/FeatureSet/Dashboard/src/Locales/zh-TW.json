@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "無法載入 OneUptime AI 學到的內容。{{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "用簡單的語言寫下 OneUptime AI 應當知道的內容。它會把這當作您團隊的備註來閱讀，絕不會當作指令。",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "服務團隊告訴 OneUptime AI 的關於該服務的資訊。每次調查該服務上的事件或警示時都會讀取其備註。",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "您的團隊對此服務的了解。OneUptime AI 每次調查此服務上的事件或警示時都會閱讀這些備註。"
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "您的團隊對此服務的了解。OneUptime AI 每次調查此服務上的事件或警示時都會閱讀這些備註。",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "尚無已驗證的網域。請在「專案設定 > 進階 > 網域」中驗證一個。",
+  "Select Domains": "選擇網域",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "「使用 SSO 登入」會向電子郵件屬於這些網域之一的任何人提供此提供者。網域在「專案設定 > 進階 > 網域」中驗證。"
 }

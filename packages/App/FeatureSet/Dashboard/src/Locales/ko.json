@@ -58326,5 +58326,8 @@
   "What OneUptime AI learned could not be loaded. {{error}}": "OneUptime AI가 학습한 내용을 불러올 수 없습니다. {{error}}",
   "What OneUptime AI should know, in plain words. It reads it as your team's note, never as an instruction.": "OneUptime AI가 알아야 할 내용을 쉬운 말로 적으세요. 팀의 노트로 읽으며, 지시로 따르지 않습니다.",
   "What a service's team tells OneUptime AI about it. Every investigation of an incident or an alert on the service reads its notes.": "서비스 팀이 OneUptime AI에 알려 주는 해당 서비스에 대한 내용입니다. 서비스의 인시던트나 경고를 조사할 때마다 그 노트를 읽습니다.",
-  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "팀이 이 서비스에 대해 알고 있는 내용입니다. OneUptime AI는 이 서비스의 인시던트나 경고를 조사할 때마다 이 노트를 읽습니다."
+  "What your team knows about this service. OneUptime AI reads these notes in every investigation of an incident or alert on it.": "팀이 이 서비스에 대해 알고 있는 내용입니다. OneUptime AI는 이 서비스의 인시던트나 경고를 조사할 때마다 이 노트를 읽습니다.",
+  "No verified domains yet. Verify one in Project Settings > Advanced > Domains.": "아직 인증된 도메인이 없습니다. 프로젝트 설정 > 고급 > 도메인에서 인증하세요.",
+  "Select Domains": "도메인 선택",
+  "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.": "‘SSO로 로그인’은 이메일이 이 도메인 중 하나에 있는 누구에게나 이 공급자를 제공합니다. 도메인은 프로젝트 설정 > 고급 > 도메인에서 인증합니다."
 }
